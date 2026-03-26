@@ -27,10 +27,15 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::account_commands::list_accounts,
+            commands::account_commands::add_account,
+            commands::account_commands::delete_account,
             commands::feed_commands::list_feeds,
+            commands::feed_commands::add_local_feed,
+            commands::feed_commands::trigger_sync,
             commands::article_commands::list_articles,
             commands::article_commands::mark_article_read,
             commands::article_commands::toggle_article_star,
+            commands::article_commands::open_in_browser,
             commands::opml_commands::import_opml,
             commands::article_commands::search_articles,
         ])

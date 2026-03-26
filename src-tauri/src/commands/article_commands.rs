@@ -7,6 +7,14 @@ use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::repository::article::{ArticleRepository, Pagination};
 
 #[tauri::command]
+pub fn open_in_browser(url: String) -> Result<(), AppError> {
+    open::that(&url).map_err(|e| AppError::UserVisible {
+        message: format!("Failed to open browser: {e}"),
+    })?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn list_articles(
     state: State<'_, AppState>,
     feed_id: String,
