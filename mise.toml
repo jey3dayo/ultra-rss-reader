@@ -31,9 +31,17 @@ run = "cargo test --manifest-path src-tauri/Cargo.toml"
 description = "Run Vitest unit tests"
 run = "pnpm run test"
 
+[tasks."test:e2e"]
+description = "Run Playwright E2E tests"
+run = "pnpm exec playwright test"
+
 [tasks.test]
 description = "Run all tests"
 depends = ["test:rust", "test:unit"]
+
+[tasks."test:all"]
+description = "Run all tests including E2E"
+depends = ["test:rust", "test:unit", "test:e2e"]
 
 [tasks."test:live"]
 description = "Run FreshRSS live integration tests (requires .env with credentials)"

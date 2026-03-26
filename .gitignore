@@ -12,3 +12,7 @@ src-tauri/target/
 .env.local
 # .env itself is encrypted by dotenvx and safe to commit
 .claude/worktrees/
+
+# Playwright
+test-results/
+playwright-report/
