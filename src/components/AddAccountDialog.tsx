@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Result } from "@praha/byethrow";
 import { addAccount } from "../api/tauri-commands";
 import { useUiStore } from "../stores/ui-store";
 
@@ -31,26 +32,25 @@ export function AddAccountDialog({ open, onClose }: { open: boolean; onClose: ()
   if (!open) return null;
 
   const handleSubmit = async () => {
-    try {
-      const account = await addAccount(
-        kind,
-        name || kind,
-        kind === "FreshRss" ? serverUrl : undefined,
-        kind === "FreshRss" ? username : undefined,
-      );
-      qc.invalidateQueries({ queryKey: ["accounts"] });
-      qc.invalidateQueries({ queryKey: ["feeds"] });
-      // Auto-select the new account
-      const { selectAccount } = useUiStore.getState();
-      selectAccount(account.id);
-      onClose();
-      setName("");
-      setServerUrl("");
-      setUsername("");
-    } catch (e) {
-      console.error("Failed to add account:", e);
-      alert(`Failed to add account: ${e instanceof Error ? e.message : JSON.stringify(e)}`);
+    const result = await addAccount(
+      kind,
+      name || kind,
+      kind === "FreshRss" ? serverUrl : undefined,
+      kind === "FreshRss" ? username : undefined,
+    );
+    if (Result.isFailure(result)) {
+      alert(`Failed to add account: ${result.error.message}`);
+      return;
     }
+    qc.invalidateQueries({ queryKey: ["accounts"] });
+    qc.invalidateQueries({ queryKey: ["feeds"] });
+    // Auto-select the new account
+    const { selectAccount } = useUiStore.getState();
+    selectAccount(result.value.id);
+    onClose();
+    setName("");
+    setServerUrl("");
+    setUsername("");
   };
 
   return (

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Result } from "@praha/byethrow";
 import { addLocalFeed } from "../../api/tauri-commands";
 import { useAccounts } from "../../hooks/use-accounts";
 import { AddAccountDialog } from "../AddAccountDialog";
@@ -20,12 +21,12 @@ export function AccountHeader() {
       return;
     }
 
-    try {
-      await addLocalFeed(firstAccount.id, url);
-      qc.invalidateQueries({ queryKey: ["feeds"] });
-    } catch (e) {
-      window.alert(`Failed to add feed: ${e}`);
+    const result = await addLocalFeed(firstAccount.id, url);
+    if (Result.isFailure(result)) {
+      window.alert(`Failed to add feed: ${result.error.message}`);
+      return;
     }
+    qc.invalidateQueries({ queryKey: ["feeds"] });
   };
 
   return (

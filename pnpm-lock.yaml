@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@praha/byethrow':
+        specifier: ^0.10.1
+        version: 0.10.1(typescript@5.9.3)
       '@tanstack/react-query':
         specifier: ^5.95.2
         version: 5.95.2(react@19.2.4)
@@ -434,6 +437,11 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@praha/byethrow@0.10.1':
+    resolution: {integrity: sha512-2pM0a6OQn6eMhTOMzQyo/3sWHpcvLlRUh4d0YkCqg9qnQMmRH8mJt+SI3PEbcp86dpR90Q08byrtGO6tjS3njw==}
+    peerDependencies:
+      typescript: '>=5.0.0'
 
   '@rolldown/pluginutils@1.0.0-beta.27':
     resolution: {integrity: sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA==}
@@ -1479,6 +1487,11 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@praha/byethrow@0.10.1(typescript@5.9.3)':
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      typescript: 5.9.3
 
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 

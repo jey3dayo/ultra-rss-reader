@@ -6,6 +6,10 @@ export function BrowserView() {
   const { browserUrl, closeBrowser } = useUiStore();
   if (!browserUrl) return null;
 
+  const handleOpenExternal = () => {
+    openInBrowser(browserUrl);
+  };
+
   return (
     <div
       style={{
@@ -38,7 +42,7 @@ export function BrowserView() {
         >
           {browserUrl}
         </span>
-        <IconButton onClick={() => openInBrowser(browserUrl)}>↗</IconButton>
+        <IconButton onClick={handleOpenExternal}>↗</IconButton>
       </div>
       <iframe
         src={browserUrl}
