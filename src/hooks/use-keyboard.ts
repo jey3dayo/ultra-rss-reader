@@ -6,6 +6,13 @@ export function useKeyboard() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // ⌘, or Ctrl+, to open Settings (works even when input focused)
+      if (e.key === "," && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        store.openSettings();
+        return;
+      }
+
       // Don't handle if input/textarea is focused
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
