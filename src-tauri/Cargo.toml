@@ -30,6 +30,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 keyring = { version = "3", features = ["apple-native", "sync-secret-service"] }
 async-trait = "0.1"
 thiserror = "2"
+quick-xml = "0.36"
 
 [dev-dependencies]
 mockito = "1"
