@@ -9,6 +9,7 @@ type Selection =
 type LayoutMode = "wide" | "compact" | "mobile";
 type FocusedPane = "sidebar" | "list" | "content";
 type ContentMode = "empty" | "reader" | "browser" | "loading";
+type SettingsCategory = "general" | "accounts";
 
 interface UiState {
   layoutMode: LayoutMode;
@@ -21,6 +22,10 @@ interface UiState {
   searchQuery: string;
   browserUrl: string | null;
   expandedFolderIds: Set<string>;
+  settingsOpen: boolean;
+  settingsCategory: SettingsCategory;
+  settingsAccountId: string | null;
+  settingsAddAccount: boolean;
 }
 
 interface UiActions {
@@ -38,6 +43,11 @@ interface UiActions {
   setViewMode: (mode: "all" | "unread" | "starred") => void;
   setSearchQuery: (query: string) => void;
   toggleFolder: (folderId: string) => void;
+  openSettings: () => void;
+  closeSettings: () => void;
+  setSettingsCategory: (cat: SettingsCategory) => void;
+  setSettingsAccountId: (id: string | null) => void;
+  setSettingsAddAccount: (show: boolean) => void;
 }
 
 const initialState: UiState = {
@@ -51,6 +61,10 @@ const initialState: UiState = {
   searchQuery: "",
   browserUrl: null,
   expandedFolderIds: new Set(),
+  settingsOpen: false,
+  settingsCategory: "general",
+  settingsAccountId: null,
+  settingsAddAccount: false,
 };
 
 export const useUiStore = create<UiState & UiActions>()((set) => ({
@@ -78,4 +92,10 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       else next.add(folderId);
       return { expandedFolderIds: next };
     }),
+  openSettings: () => set({ settingsOpen: true }),
+  closeSettings: () =>
+    set({ settingsOpen: false, settingsCategory: "general", settingsAccountId: null, settingsAddAccount: false }),
+  setSettingsCategory: (cat) => set({ settingsCategory: cat, settingsAccountId: null, settingsAddAccount: false }),
+  setSettingsAccountId: (id) => set({ settingsAccountId: id, settingsAddAccount: false }),
+  setSettingsAddAccount: (show) => set({ settingsAddAccount: show, settingsAccountId: null }),
 }));
