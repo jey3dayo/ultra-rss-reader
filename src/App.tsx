@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Result } from "@praha/byethrow";
 import { triggerSync } from "./api/tauri-commands";
-import { AppShell } from "./components/AppShell";
+import { AppShell } from "./components/app-shell";
 
 const queryClient = new QueryClient();
 
