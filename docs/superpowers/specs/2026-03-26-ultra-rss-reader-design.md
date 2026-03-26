@@ -35,18 +35,19 @@ Rust Application Layer
 ├── FeedService
 ├── SyncService (event-driven)
 ├── AccountService
-└── ArticleService
+├── ArticleService
+└── HousekeepingService (retention purge, orphan cleanup)
     ※ Repository trait に依存（impl には依存しない）
         │
 Rust Infrastructure Layer
 ├── Repository Impl (SqliteXxxRepository)
 ├── Feed Normalizer (feed-rs → NormalizedEntry → Domain Entity)
-├── Event Bus (publish/subscribe)
+├── Event Bus (SyncCommand queue + AppEvent notifications)
 ├── HTTP client (reqwest)
 └── Scheduler (tokio::time::interval)
         │
 SQLite
-├── 単一接続 + spawn_blocking隔離
+├── Writer task (専用) + Read connection pool
 ├── WALモード (読み書き並行)
 └── 書き込みはシリアル
 ```
@@ -69,20 +70,38 @@ SQLite
 | シリアライズ     | `serde` / `serde_json` |
 | HTMLサニタイズ   | `ammonia`              |
 | ログ             | `tracing`              |
+| OS Keychain      | `keyring`              |
 
 ### Credential Storage
 
-OS keychainを利用して認証情報を安全に保存する。
+認証情報（パスワード、OAuthトークン等）はOS keychainのみに保存する。
+**DBには秘密情報を保存しない。** DBにはkeychain参照キーと非秘密設定のみ保存。
 
-- **macOS**: Keychain Services (via `security-framework` crate)
+- **macOS**: Keychain Services (via `keyring` crate)
 - **Windows**: Windows Credential Manager (via `keyring` crate)
-- Tauri v2の `tauri-plugin-stronghold` も候補だが、OS keychain の方がユーザーの期待に沿う
+- keychainキー: `ultra-rss-reader/{account_id}` 形式
+
+```rust
+struct Account {
+    // DB保存: 非秘密情報のみ
+    id: AccountId,
+    kind: ProviderKind,
+    name: String,
+    server_url: Option<String>,    // FreshRSS等のサーバーURL（非秘密）
+    username: Option<String>,      // ユーザー名（非秘密）
+    // パスワード/トークンはOS keychainに保存。DBには含まない。
+    sync_interval: Duration,
+    sync_on_wake: bool,
+    keep_read_items: Duration,
+}
+```
 
 ### SQLite Concurrency Model
 
-- **Writer**: 単一の `Connection` を `Arc<Mutex<Connection>>` で管理。全ての書き込みはこのコネクション経由
-- **Reader**: 読み取り専用コネクションを別途1つ保持（WALモードの利点を活用）
+- **Writer**: 専用のwriter taskが`mpsc`チャンネルでDB書き込みリクエストを受信し、シリアルに処理。`Arc<Mutex<Connection>>`ではなく、単一所有者taskに閉じ込める
+- **Reader**: 読み取り専用コネクション（将来的にプール化可能、MVPでは1-2本）
 - **spawn_blocking**: 全DB操作は `tokio::task::spawn_blocking` でオフロード
+- **PRAGMA設定**: `busy_timeout=5000`, `foreign_keys=ON`, `journal_mode=WAL`, `synchronous=NORMAL`
 - Writer/Reader分離により、同期中の書き込みがUI読み取りをブロックしない
 
 ### Migration Strategy
@@ -102,19 +121,90 @@ OS keychainを利用して認証情報を安全に保存する。
 #[async_trait]
 trait FeedProvider: Send + Sync {
     fn kind(&self) -> ProviderKind;
+
+    /// プロバイダが対応する機能を返す
+    fn capabilities(&self) -> ProviderCapabilities;
+
+    /// 認証（必要な場合）
     async fn authenticate(&mut self, credentials: &Credentials) -> Result<()>;
-    async fn get_subscriptions(&self) -> Result<Vec<Feed>>;  // Subscription = Feed (domain)
-    async fn get_folders(&self) -> Result<Vec<Folder>>;
-    async fn get_entries(&self, feed_id: &str, options: FetchOptions) -> Result<Vec<NormalizedEntry>>;
-    async fn mark_as_read(&self, entry_ids: &[String]) -> Result<()>;
-    async fn set_starred(&self, entry_id: &str, starred: bool) -> Result<()>;
-    async fn sync_state(&self) -> Result<()>;
+
+    /// 購読フィード一覧を取得（リモートDTO → ドメイン変換はApplication層）
+    async fn get_subscriptions(&self) -> Result<Vec<RemoteSubscription>>;
+
+    /// フォルダ/カテゴリ一覧を取得
+    async fn get_folders(&self) -> Result<Vec<RemoteFolder>>;
+
+    /// 差分取得（cursor/since/ページネーション差異を吸収）
+    async fn pull_entries(&self, scope: PullScope, cursor: Option<SyncCursor>)
+        -> Result<PullResult>;
+
+    /// 既読/未読/スター状態のpull同期
+    async fn pull_state(&self) -> Result<RemoteState>;
+
+    /// ローカル変更をリモートに反映
+    async fn push_mutations(&self, mutations: &[Mutation]) -> Result<()>;
+
+    /// 購読追加
+    async fn create_subscription(&self, url: &str, folder: Option<&str>) -> Result<RemoteSubscription>;
+
+    /// 購読削除
+    async fn delete_subscription(&self, remote_id: &str) -> Result<()>;
 }
 
-struct FetchOptions {
+struct ProviderCapabilities {
+    supports_folders: bool,
+    supports_starring: bool,
+    supports_search: bool,
+    supports_delta_sync: bool,   // continuation token対応
+}
+
+/// プロバイダ間の差分取得方式を吸収
+enum PullScope {
+    Feed { remote_id: String },
+    All,
+    Unread,
+    Starred,
+}
+
+struct SyncCursor {
+    continuation: Option<String>,   // Google Reader API continuation token
     since: Option<DateTime<Utc>>,
-    limit: Option<usize>,
-    unread_only: Option<bool>,
+    etag: Option<String>,           // HTTP ETag
+    last_modified: Option<String>,  // HTTP Last-Modified
+}
+
+struct PullResult {
+    entries: Vec<NormalizedEntry>,
+    next_cursor: Option<SyncCursor>,  // 次ページがある場合
+    has_more: bool,
+}
+
+/// リモートからの生データ（ドメインモデルとは別）
+struct RemoteSubscription {
+    remote_id: String,           // プロバイダ側のID（stream ID等）
+    title: String,
+    url: String,
+    site_url: String,
+    folder_remote_id: Option<String>,
+    icon_url: Option<String>,
+}
+
+struct RemoteFolder {
+    remote_id: String,
+    name: String,
+    sort_order: Option<i32>,
+}
+
+struct RemoteState {
+    read_ids: Vec<String>,       // 既読の記事remote_id一覧
+    starred_ids: Vec<String>,    // スター付き記事remote_id一覧
+}
+
+/// ローカルで行った変更をリモートに反映するための型
+enum Mutation {
+    MarkRead { remote_entry_id: String },
+    MarkUnread { remote_entry_id: String },
+    SetStarred { remote_entry_id: String, starred: bool },
 }
 
 enum ProviderKind {
@@ -126,9 +216,9 @@ enum ProviderKind {
 
 ### Provider Implementations
 
-- **LocalProvider**: 直接RSSフェッチ (reqwest + feed-rs)。authenticate() は no-op
-- **GoogleReaderProvider** (FreshRSS): Google Reader API (`/reader/api/0/...`)。ServerURL + ユーザー名 + パスワード認証
-- **InoreaderProvider**: Inoreader API (OAuth2)
+- **LocalProvider**: 直接RSSフェッチ (reqwest + feed-rs)。authenticate() は no-op。capabilities: folders=false, delta_sync=false
+- **GoogleReaderProvider** (FreshRSS): Google Reader API (`/reader/api/0/...`)。ServerURL + ユーザー名 + パスワード認証。capabilities: all true
+- **InoreaderProvider**: Inoreader API (OAuth2)。capabilities: all true
 
 ---
 
@@ -141,7 +231,9 @@ struct Account {
     id: AccountId,
     kind: ProviderKind,
     name: String,
-    credentials: Credentials,  // 暗号化して保存
+    server_url: Option<String>,
+    username: Option<String>,
+    // credentials は OS keychain のみ。DBに含まない。
     sync_interval: Duration,
     sync_on_wake: bool,
     keep_read_items: Duration,
@@ -150,6 +242,7 @@ struct Account {
 struct Folder {
     id: FolderId,
     account_id: AccountId,
+    remote_id: Option<String>,    // プロバイダ側のID
     name: String,
     sort_order: i32,
 }
@@ -158,6 +251,7 @@ struct Feed {
     id: FeedId,
     account_id: AccountId,
     folder_id: Option<FolderId>,
+    remote_id: Option<String>,    // プロバイダ側のID（stream ID等）
     title: String,
     url: String,
     site_url: String,
@@ -166,14 +260,15 @@ struct Feed {
 }
 
 struct Article {
-    id: ArticleId,              // ID戦略で生成
+    id: ArticleId,                  // ID戦略で生成
     feed_id: FeedId,
-    provider_id: Option<String>, // プロバイダ側のID（同期用）
+    remote_id: Option<String>,      // プロバイダ側のID（同期用）
     title: String,
-    content_raw: String,         // フィードから取得した生HTML
-    content_sanitized: String,   // sanitize済み（XSS除去、表示用）
+    content_raw: String,            // フィードから取得した生HTML
+    content_sanitized: String,      // sanitize済み（XSS除去、表示用）
+    sanitizer_version: u32,         // ammonia設定のバージョン。変更時に再sanitize可能
     summary: Option<String>,
-    url: String,
+    url: Option<String>,            // URLがないエントリもある
     author: Option<String>,
     published_at: DateTime<Utc>,
     thumbnail: Option<String>,
@@ -188,35 +283,50 @@ struct Article {
 優先順位ベースで安定IDを生成:
 
 1. `entry.id` (GUID) — あればそのまま使う
-2. Fallback hash: `sha256(feed_url + entry_url + published)`
-   - 最優先: entry URL（記事の永続的な識別子）
-   - 補助: published/updated（同URL別記事の区別用）
-   - ベース: feed_url（名前空間分離）
-   - **titleは使わない**（変更されうるため）
+2. entry URL — あればそのまま使う（GUIDより安定な場合がある）
+3. Fallback hash: `sha256(feed_url + url_or_empty + title + published)`
+   - URL優先だが、URLがない場合はtitleも含めて区別
+   - publishedは補助（同一URL/titleの別記事を区別）
 
 ```rust
 fn generate_entry_id(entry: &Entry, feed_url: &str) -> String {
+    // 1. GUID
     if let Some(id) = &entry.id {
         if !id.is_empty() { return id.clone(); }
     }
+
     let url = entry.links.first().map(|l| l.href.as_str()).unwrap_or("");
+    let title = entry.title.as_ref().map(|t| t.content.as_str()).unwrap_or("");
     let published = entry.published
         .or(entry.updated)
         .map(|dt| dt.timestamp())
         .unwrap_or(0);
-    let input = format!("{}|{}|{}", feed_url, url, published);
-    sha256_hex(&input)
+
+    // 2. URL がある場合は URL ベース
+    if !url.is_empty() {
+        return sha256_hex(&format!("{}|{}|{}", feed_url, url, published));
+    }
+
+    // 3. URL がない場合は title を含める（まとめ系フィード対策）
+    sha256_hex(&format!("{}|{}|{}|{}", feed_url, url, title, published))
 }
 ```
 
 ### SQLite Schema
 
 ```sql
+PRAGMA foreign_keys = ON;
+PRAGMA journal_mode = WAL;
+PRAGMA synchronous = NORMAL;
+PRAGMA busy_timeout = 5000;
+
 CREATE TABLE accounts (
     id TEXT PRIMARY KEY,
     kind TEXT NOT NULL,
     name TEXT NOT NULL,
-    credentials_encrypted BLOB,
+    server_url TEXT,
+    username TEXT,
+    -- credentials は OS keychain のみ。DB には保存しない。
     sync_interval_secs INTEGER NOT NULL DEFAULT 3600,
     sync_on_wake INTEGER NOT NULL DEFAULT 0,
     keep_read_items_days INTEGER NOT NULL DEFAULT 30
@@ -224,31 +334,37 @@ CREATE TABLE accounts (
 
 CREATE TABLE folders (
     id TEXT PRIMARY KEY,
-    account_id TEXT NOT NULL REFERENCES accounts(id),
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    remote_id TEXT,
     name TEXT NOT NULL,
-    sort_order INTEGER NOT NULL DEFAULT 0
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(account_id, remote_id)
 );
 
 CREATE TABLE feeds (
     id TEXT PRIMARY KEY,
-    account_id TEXT NOT NULL REFERENCES accounts(id),
-    folder_id TEXT REFERENCES folders(id),
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    folder_id TEXT REFERENCES folders(id) ON DELETE SET NULL,
+    remote_id TEXT,
     title TEXT NOT NULL,
     url TEXT NOT NULL,
     site_url TEXT NOT NULL DEFAULT '',
     icon BLOB,
-    unread_count INTEGER NOT NULL DEFAULT 0
+    unread_count INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(account_id, remote_id),
+    UNIQUE(account_id, url)
 );
 
 CREATE TABLE articles (
-    id TEXT PRIMARY KEY,
-    feed_id TEXT NOT NULL REFERENCES feeds(id),
-    provider_id TEXT,
+    id TEXT PRIMARY KEY,  -- generate_entry_id() で生成
+    feed_id TEXT NOT NULL REFERENCES feeds(id) ON DELETE CASCADE,
+    remote_id TEXT,
     title TEXT NOT NULL,
     content_raw TEXT NOT NULL DEFAULT '',
     content_sanitized TEXT NOT NULL DEFAULT '',
+    sanitizer_version INTEGER NOT NULL DEFAULT 1,
     summary TEXT,
-    url TEXT NOT NULL,
+    url TEXT,  -- NULL許可（URLなしエントリ対応）
     author TEXT,
     published_at TEXT NOT NULL,
     thumbnail TEXT,
@@ -257,18 +373,48 @@ CREATE TABLE articles (
     fetched_at TEXT NOT NULL
 );
 
--- Unique constraint (URLベース。ID Strategyのfallback hashと整合)
--- ID生成: sha256(feed_url + entry_url + published) だが、
--- 重複判定はURLが最も安定なため feed_id + url で制約をかける。
--- 同一URLで日時違いのエントリは同一記事の更新として上書き(UPSERT)する。
-CREATE UNIQUE INDEX idx_articles_feed_url ON articles(feed_id, url);
+-- 同期メタデータ
+CREATE TABLE sync_state (
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    feed_remote_id TEXT,  -- NULL = アカウント全体の同期状態
+    continuation TEXT,
+    etag TEXT,
+    last_modified TEXT,
+    last_success_at TEXT,
+    last_error TEXT,
+    error_count INTEGER NOT NULL DEFAULT 0,
+    next_retry_at TEXT,
+    PRIMARY KEY (account_id, COALESCE(feed_remote_id, ''))
+);
+
+-- オフラインで行った変更（リモートに未反映）
+CREATE TABLE pending_mutations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    mutation_type TEXT NOT NULL,  -- 'mark_read', 'mark_unread', 'set_starred', 'unset_starred'
+    remote_entry_id TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+-- HTTPキャッシュ（ローカルフィード用）
+CREATE TABLE feed_http_cache (
+    feed_id TEXT PRIMARY KEY REFERENCES feeds(id) ON DELETE CASCADE,
+    etag TEXT,
+    last_modified TEXT,
+    last_fetched_at TEXT NOT NULL
+);
+
+-- 重複防止: id (PRIMARY KEY) で一意。URLベースの追加制約はURLがNULLのケースがあるため設けない。
+-- 代わりに、save時にgenerate_entry_id()の結果をidとして使い、INSERT OR IGNORE で重複を弾く。
 
 -- Performance indexes
 CREATE INDEX idx_articles_feed_id ON articles(feed_id);
 CREATE INDEX idx_articles_published_at ON articles(published_at DESC);
 CREATE INDEX idx_articles_is_read ON articles(feed_id, is_read);
 CREATE INDEX idx_articles_is_starred ON articles(is_starred) WHERE is_starred = 1;
-CREATE INDEX idx_articles_provider_id ON articles(provider_id);
+CREATE INDEX idx_articles_remote_id ON articles(remote_id);
+CREATE INDEX idx_feeds_remote_id ON feeds(account_id, remote_id);
+CREATE INDEX idx_folders_remote_id ON folders(account_id, remote_id);
 
 -- Schema version
 CREATE TABLE schema_version (version INTEGER NOT NULL);
@@ -290,11 +436,12 @@ struct ArticleListDto {
 ```rust
 // feed-rs → NormalizedEntry → Domain Entity
 struct NormalizedEntry {
-    id: String,
+    id: String,                     // generate_entry_id() で生成
+    remote_id: Option<String>,      // プロバイダ側のID
     title: String,
     content: String,
     summary: Option<String>,
-    url: String,
+    url: Option<String>,            // URLなしエントリ対応
     published_at: DateTime<Utc>,
     thumbnail: Option<String>,
     author: Option<String>,
@@ -308,28 +455,48 @@ struct NormalizedEntry {
 ```rust
 // Application Layer で定義（trait）
 trait ArticleRepository {
-    fn find_by_feed(&self, feed_id: &FeedId) -> Result<Vec<Article>>;
-    fn save(&self, articles: &[Article]) -> Result<()>;
+    fn find_by_feed(&self, feed_id: &FeedId, pagination: &Pagination) -> Result<Vec<Article>>;
+    fn save(&self, articles: &[Article]) -> Result<()>;  // INSERT OR IGNORE
     fn mark_as_read(&self, id: &ArticleId) -> Result<()>;
     fn mark_as_starred(&self, id: &ArticleId, starred: bool) -> Result<()>;
+    fn purge_old_read(&self, before: DateTime<Utc>) -> Result<u64>;  // keep_read_items 対応
+}
+
+struct Pagination {
+    offset: usize,
+    limit: usize,  // デフォルト 50
 }
 
 trait FeedRepository {
     fn find_by_account(&self, account_id: &AccountId) -> Result<Vec<Feed>>;
     fn save(&self, feed: &Feed) -> Result<()>;
     fn update_unread_count(&self, feed_id: &FeedId, count: i32) -> Result<()>;
+    fn recalculate_unread_count(&self, feed_id: &FeedId) -> Result<i32>;
 }
 
 trait FolderRepository {
     fn find_by_account(&self, account_id: &AccountId) -> Result<Vec<Folder>>;
     fn save(&self, folder: &Folder) -> Result<()>;
     fn delete(&self, id: &FolderId) -> Result<()>;
+    // フォルダ削除時、配下のfeedはfolder_id=NULLに（ON DELETE SET NULLで自動）
 }
 
 trait AccountRepository {
     fn find_all(&self) -> Result<Vec<Account>>;
     fn save(&self, account: &Account) -> Result<()>;
     fn delete(&self, id: &AccountId) -> Result<()>;
+    // アカウント削除時、配下の全データはCASCADEで自動削除
+}
+
+trait SyncStateRepository {
+    fn get(&self, account_id: &AccountId, feed_remote_id: Option<&str>) -> Result<Option<SyncState>>;
+    fn save(&self, state: &SyncState) -> Result<()>;
+}
+
+trait PendingMutationRepository {
+    fn find_by_account(&self, account_id: &AccountId) -> Result<Vec<PendingMutation>>;
+    fn save(&self, mutation: &PendingMutation) -> Result<()>;
+    fn delete(&self, ids: &[i64]) -> Result<()>;
 }
 
 // Infrastructure Layer で実装
@@ -345,40 +512,70 @@ impl ArticleRepository for InMemoryArticleRepository { /* ... */ }
 
 ## 5. Event Bus & Sync Engine
 
-### Event Bus
+### Event Architecture
+
+コマンド（ジョブ投入）と通知（UI更新）を明確に分離する。
 
 ```rust
-// 実装: tokio::broadcast channel ベース
-// 型付きイベントのディスパッチ。ハンドラはサービス初期化時にsubscribe。
+// === コマンド（ジョブ投入） ===
+// mpsc channel: 1つのreceiverがSyncServiceで処理
+enum SyncCommand {
+    SyncAll,
+    SyncAccount { account_id: AccountId },
+    SyncFeed { feed_id: FeedId },
+    ManualRefresh,
+    PushPendingMutations { account_id: AccountId },
+    PurgeOldArticles,
+}
+
+// === 通知（UI更新等） ===
+// broadcast channel: 複数のsubscriberが受信可能
 enum AppEvent {
-    AppStarted,
-    WindowFocused,
-    ManualRefreshRequested,
-    FeedUpdated { feed_id: FeedId },
+    SyncStarted { account_id: AccountId },
     SyncCompleted { account_id: AccountId },
+    FeedUpdated { feed_id: FeedId },
     ErrorOccurred { error: AppError },
-    ScheduleTick { account_id: AccountId },
+    SystemWoke,  // スリープ復帰
 }
 ```
 
+### Startup Sequence（race condition対策）
+
+```
+1. DB初期化 + マイグレーション
+2. SyncService 初期化 + AppEvent subscribe
+3. Scheduler 初期化
+4. ★ SyncService が ready になってから SyncCommand::SyncAll を明示送信
+5. Tauri window 表示
+```
+
+起動時同期は broadcast に依存せず、`SyncCommand` の明示送信で保証する。
+
 ### Sync Triggers
 
-| トリガー元          | Event                  | ハンドラ      |
-| ------------------- | ---------------------- | ------------- |
-| Tauri app setup     | AppStarted             | SyncService   |
-| Tauri window event  | WindowFocused          | SyncService   |
-| User clicks refresh | ManualRefreshRequested | SyncService   |
-| tokio::interval     | ScheduleTick           | SyncService   |
-| SyncService完了     | SyncCompleted          | UI通知 (emit) |
-| SyncService完了     | FeedUpdated            | UI通知 (emit) |
-| エラー発生          | ErrorOccurred          | UI通知 (emit) |
+| トリガー元          | 送信先                         | ハンドラ    |
+| ------------------- | ------------------------------ | ----------- |
+| App setup (ready後) | SyncCommand::SyncAll           | SyncService |
+| Window focus        | SyncCommand::SyncAll           | SyncService |
+| User clicks refresh | SyncCommand::ManualRefresh     | SyncService |
+| tokio::interval     | SyncCommand::SyncAccount       | SyncService |
+| System wake         | AppEvent::SystemWoke → SyncAll | SyncService |
+| SyncService完了     | AppEvent::SyncCompleted (emit) | UI          |
+| SyncService完了     | AppEvent::FeedUpdated (emit)   | UI          |
 
 ### Sync Design
 
-- 起動時同期: AppStarted → 全アカウント即時同期
-- イベント同期: WindowFocused, ManualRefreshRequested, wake from sleep
+- 起動時同期: SyncService ready後にSyncCommand::SyncAllを明示送信
+- イベント同期: WindowFocused, ManualRefresh, SystemWoke
 - 定期同期: tokio::time::interval、アカウントごとに間隔設定可能
-- エラー時: exponential backoff
+- エラー時: exponential backoff (初期5秒, 最大30分, 最大リトライ10回)
+- In-flight dedupe: 同一アカウントの同期リクエストが既に実行中なら新規リクエストをスキップ
+- Offline outbox: ローカル変更はpending_mutationsに保存し、オンライン復帰時にpush
+
+### Housekeeping
+
+- `RetentionPurge`: keep_read_items 期間を過ぎた既読記事を削除（起動時 + 24時間間隔）
+- `OrphanCleanup`: 削除されたフィード/アカウントの残留データを清掃
 
 ---
 
@@ -390,7 +587,8 @@ DomainError (Rust Core)
 ├── ParseError        - フィード解析失敗, 不正なXML/JSON
 ├── PersistenceError  - DB読み書き失敗
 ├── AuthError         - 認証失敗, トークン期限切れ
-└── ValidationError   - 不正な入力値
+├── ValidationError   - 不正な入力値
+└── KeychainError     - OS keychain アクセスエラー
 
          │ From<DomainError> for AppError
 
@@ -486,6 +684,9 @@ type AppUiState = {
 
   // E. Browser
   browserUrl: string | null;
+
+  // F. Sidebar presentation
+  expandedFolderIds: Set<string>;
 };
 
 // visiblePanes は保存しない（導出値）
@@ -513,6 +714,12 @@ function resolveLayout(state: AppUiState): Pane[] {
 - **Reader View**: フィードから取得したcontent_sanitizedを表示
 - **Browser View (BR)**: Tauri WebViewで元サイトを表示
 - **Reader Mode (≡)**: Phase 2。readabilityライブラリで全文抽出表示
+
+### Security: WebView
+
+- WebViewからTauri IPC (invoke) へのアクセスは許可しない
+- URLスキーム制限: `http://` / `https://` のみ許可
+- remote画像は許可するが、trackingピクセル（1x1画像）はフィルタ検討
 
 ### Toolbar Actions (MVP)
 
@@ -586,12 +793,11 @@ function resolveLayout(state: AppUiState): Pane[] {
 - 3-pane responsive layout (wide/compact/mobile)
 - Reader View + Browser View
 - 既読/未読、スター管理
-- オフラインキャッシュ (SQLite)
-- 同期 (起動時 + イベント + 定期)
+- オフラインキャッシュ (SQLite) + pending mutations
+- 同期 (起動時 + イベント + 定期) + offline outbox
 - キーボードショートカット (Reeder準拠)
 - フィルター (All / Unread / Starred)
 - 検索
-- 共有 (OS共有シート)
 - ダークテーマのみ (Reeder準拠。ライトモードはPhase 2)
 - OPMLインポート (既存リーダーからの移行導線)
 
@@ -599,6 +805,7 @@ function resolveLayout(state: AppUiState): Pane[] {
 
 - Inoreader連携
 - OPML エクスポート
+- 共有 (OS共有シート)
 - Reader Mode (full-text抽出, readability)
 - Bionic Reader View
 - Tags
