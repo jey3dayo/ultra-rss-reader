@@ -1,0 +1,31 @@
+# Ultra RSS Reader — TODO
+
+## Settings > General（将来実装）
+
+- [ ] Appearance: ダークモード / ライトモード切替
+- [ ] Reading: 記事を既読にするタイミング（On open / On scroll / Manual）
+- [ ] Reading: Sort subscriptions（Folders first / Alphabetical）
+- [ ] Shortcuts: キーボードショートカット一覧 / カスタマイズ
+- [ ] Animations: アニメーション ON/OFF
+- [ ] Actions & Sharing: 共有先の設定
+- [ ] Reader View: Full-text抽出のデフォルト設定
+- [ ] Bionic Reading: ON/OFF
+- [ ] Gestures: スワイプ操作の設定
+
+## Settings > Accounts（今回実装）
+
+- [x] アカウント一覧表示
+- [x] アカウント詳細（Description, Server URL, Username）
+- [x] Sync間隔設定
+- [x] Sync on wake設定
+- [x] Keep read items期間設定
+- [x] Delete Account
+- [x] Add Account
+
+## その他
+
+- [ ] OPML Export
+- [ ] Inoreader連携
+- [ ] FTS5検索
+- [ ] ライトモード
+- [ ] Tags
