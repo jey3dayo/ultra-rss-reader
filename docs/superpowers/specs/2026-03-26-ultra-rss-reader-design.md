@@ -81,21 +81,6 @@ SQLite
 - **Windows**: Windows Credential Manager (via `keyring` crate)
 - keychainキー: `ultra-rss-reader/{account_id}` 形式
 
-```rust
-struct Account {
-    // DB保存: 非秘密情報のみ
-    id: AccountId,
-    kind: ProviderKind,
-    name: String,
-    server_url: Option<String>,    // FreshRSS等のサーバーURL（非秘密）
-    username: Option<String>,      // ユーザー名（非秘密）
-    // パスワード/トークンはOS keychainに保存。DBには含まない。
-    sync_interval: Duration,
-    sync_on_wake: bool,
-    keep_read_items: Duration,
-}
-```
-
 ### SQLite Concurrency Model
 
 - **Writer**: 専用のwriter taskが`mpsc`チャンネルでDB書き込みリクエストを受信し、シリアルに処理。`Arc<Mutex<Connection>>`ではなく、単一所有者taskに閉じ込める
@@ -135,32 +120,43 @@ trait FeedProvider: Send + Sync {
     async fn get_folders(&self) -> Result<Vec<RemoteFolder>>;
 
     /// 差分取得（cursor/since/ページネーション差異を吸収）
+    /// scope は FeedIdentifier で統一（ローカル/リモート両対応）
     async fn pull_entries(&self, scope: PullScope, cursor: Option<SyncCursor>)
         -> Result<PullResult>;
 
     /// 既読/未読/スター状態のpull同期
+    /// ローカルプロバイダではno-op（Option化不要、空Vecを返す）
     async fn pull_state(&self) -> Result<RemoteState>;
 
     /// ローカル変更をリモートに反映
+    /// ローカルプロバイダではno-op
     async fn push_mutations(&self, mutations: &[Mutation]) -> Result<()>;
 
     /// 購読追加
     async fn create_subscription(&self, url: &str, folder: Option<&str>) -> Result<RemoteSubscription>;
 
     /// 購読削除
-    async fn delete_subscription(&self, remote_id: &str) -> Result<()>;
+    async fn delete_subscription(&self, id: &FeedIdentifier) -> Result<()>;
 }
 
 struct ProviderCapabilities {
     supports_folders: bool,
     supports_starring: bool,
     supports_search: bool,
-    supports_delta_sync: bool,   // continuation token対応
+    supports_delta_sync: bool,    // continuation token対応
+    supports_remote_state: bool,  // pull_state / push_mutations 対応
+}
+
+/// ローカルfeed_idとリモートIDの両方を扱える識別子
+/// LocalProviderはfeed_url、リモートプロバイダはremote_idを使用
+enum FeedIdentifier {
+    Local { feed_url: String },
+    Remote { remote_id: String },
 }
 
 /// プロバイダ間の差分取得方式を吸収
 enum PullScope {
-    Feed { remote_id: String },
+    Feed(FeedIdentifier),
     All,
     Unread,
     Starred,
@@ -174,9 +170,26 @@ struct SyncCursor {
 }
 
 struct PullResult {
-    entries: Vec<NormalizedEntry>,
+    entries: Vec<RemoteEntry>,
     next_cursor: Option<SyncCursor>,  // 次ページがある場合
     has_more: bool,
+}
+
+/// プロバイダから返される記事データ
+/// source_feed_id で帰属先フィードを特定（All/Unread/Starred取得時に必須）
+struct RemoteEntry {
+    id: Option<String>,              // プロバイダ側のID（remote_id用）
+    source_feed_id: FeedIdentifier,  // この記事が属するフィード
+    title: String,
+    content: String,
+    summary: Option<String>,
+    url: Option<String>,
+    published_at: Option<DateTime<Utc>>,
+    updated_at: Option<DateTime<Utc>>,
+    thumbnail: Option<String>,
+    author: Option<String>,
+    is_read: Option<bool>,           // プロバイダが既読状態を返す場合
+    is_starred: Option<bool>,        // プロバイダがスター状態を返す場合
 }
 
 /// リモートからの生データ（ドメインモデルとは別）
@@ -201,6 +214,7 @@ struct RemoteState {
 }
 
 /// ローカルで行った変更をリモートに反映するための型
+/// remote_id を持つ記事のみが対象（ローカルフィードの記事は対象外）
 enum Mutation {
     MarkRead { remote_entry_id: String },
     MarkUnread { remote_entry_id: String },
@@ -216,7 +230,7 @@ enum ProviderKind {
 
 ### Provider Implementations
 
-- **LocalProvider**: 直接RSSフェッチ (reqwest + feed-rs)。authenticate() は no-op。capabilities: folders=false, delta_sync=false
+- **LocalProvider**: 直接RSSフェッチ (reqwest + feed-rs)。authenticate() は no-op。`PullScope::Feed(Local { feed_url })` でフィード単位取得。pull_state/push_mutations は空実装。capabilities: folders=false, delta_sync=false, remote_state=false
 - **GoogleReaderProvider** (FreshRSS): Google Reader API (`/reader/api/0/...`)。ServerURL + ユーザー名 + パスワード認証。capabilities: all true
 - **InoreaderProvider**: Inoreader API (OAuth2)。capabilities: all true
 
@@ -260,7 +274,7 @@ struct Feed {
 }
 
 struct Article {
-    id: ArticleId,                  // ID戦略で生成
+    id: ArticleId,                  // ID戦略で生成（account_id含む）
     feed_id: FeedId,
     remote_id: Option<String>,      // プロバイダ側のID（同期用）
     title: String,
@@ -280,35 +294,32 @@ struct Article {
 
 ### ID Strategy
 
-優先順位ベースで安定IDを生成:
+優先順位ベースで安定IDを生成。**account_idをプレフィックスに含め**、別アカウントで同一フィードを購読した場合の衝突を防止。
 
-1. `entry.id` (GUID) — あればそのまま使う
-2. entry URL — あればそのまま使う（GUIDより安定な場合がある）
-3. Fallback hash: `sha256(feed_url + url_or_empty + title + published)`
-   - URL優先だが、URLがない場合はtitleも含めて区別
-   - publishedは補助（同一URL/titleの別記事を区別）
+1. `account_id + entry.id` (GUID) — あればそのまま使う
+2. Fallback hash: `sha256(account_id + feed_url + entry_url + title_if_no_url)`
+   - URL優先。URLがない場合のみtitleを含める
+   - **publishedはハッシュに含めない**（後から修正されうるため）
 
 ```rust
-fn generate_entry_id(entry: &Entry, feed_url: &str) -> String {
-    // 1. GUID
+fn generate_entry_id(account_id: &str, entry: &Entry, feed_url: &str) -> String {
+    // 1. GUID（アカウントスコープ）
     if let Some(id) = &entry.id {
-        if !id.is_empty() { return id.clone(); }
+        if !id.is_empty() {
+            return format!("{}:{}", account_id, id);
+        }
     }
 
     let url = entry.links.first().map(|l| l.href.as_str()).unwrap_or("");
-    let title = entry.title.as_ref().map(|t| t.content.as_str()).unwrap_or("");
-    let published = entry.published
-        .or(entry.updated)
-        .map(|dt| dt.timestamp())
-        .unwrap_or(0);
 
     // 2. URL がある場合は URL ベース
     if !url.is_empty() {
-        return sha256_hex(&format!("{}|{}|{}", feed_url, url, published));
+        return sha256_hex(&format!("{}|{}|{}", account_id, feed_url, url));
     }
 
     // 3. URL がない場合は title を含める（まとめ系フィード対策）
-    sha256_hex(&format!("{}|{}|{}|{}", feed_url, url, title, published))
+    let title = entry.title.as_ref().map(|t| t.content.as_str()).unwrap_or("");
+    sha256_hex(&format!("{}|{}|{}", account_id, feed_url, title))
 }
 ```
 
@@ -356,7 +367,7 @@ CREATE TABLE feeds (
 );
 
 CREATE TABLE articles (
-    id TEXT PRIMARY KEY,  -- generate_entry_id() で生成
+    id TEXT PRIMARY KEY,  -- generate_entry_id() で生成（account_idプレフィックス付き）
     feed_id TEXT NOT NULL REFERENCES feeds(id) ON DELETE CASCADE,
     remote_id TEXT,
     title TEXT NOT NULL,
@@ -373,10 +384,17 @@ CREATE TABLE articles (
     fetched_at TEXT NOT NULL
 );
 
+-- 記事保存: INSERT ... ON CONFLICT(id) DO UPDATE
+-- 更新時: title, content_raw, content_sanitized, summary, url, author,
+--         published_at, thumbnail, fetched_at を上書き
+-- 保持: is_read, is_starred は既存値を維持（ユーザー操作の状態を尊重）
+
 -- 同期メタデータ
 CREATE TABLE sync_state (
     account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-    feed_remote_id TEXT,  -- NULL = アカウント全体の同期状態
+    scope_key TEXT NOT NULL DEFAULT '',
+    -- scope_key: '' = アカウント全体, 'feed:{remote_id}' = フィード単位,
+    --            'unread' = 未読全体, 'starred' = スター全体
     continuation TEXT,
     etag TEXT,
     last_modified TEXT,
@@ -384,10 +402,11 @@ CREATE TABLE sync_state (
     last_error TEXT,
     error_count INTEGER NOT NULL DEFAULT 0,
     next_retry_at TEXT,
-    PRIMARY KEY (account_id, COALESCE(feed_remote_id, ''))
+    PRIMARY KEY (account_id, scope_key)
 );
 
 -- オフラインで行った変更（リモートに未反映）
+-- remote_id を持つ記事のみが対象。ローカルフィードの記事は pending_mutations に入らない。
 CREATE TABLE pending_mutations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
@@ -403,9 +422,6 @@ CREATE TABLE feed_http_cache (
     last_modified TEXT,
     last_fetched_at TEXT NOT NULL
 );
-
--- 重複防止: id (PRIMARY KEY) で一意。URLベースの追加制約はURLがNULLのケースがあるため設けない。
--- 代わりに、save時にgenerate_entry_id()の結果をidとして使い、INSERT OR IGNORE で重複を弾く。
 
 -- Performance indexes
 CREATE INDEX idx_articles_feed_id ON articles(feed_id);
@@ -434,18 +450,10 @@ struct ArticleListDto {
 ### Feed Normalizer
 
 ```rust
-// feed-rs → NormalizedEntry → Domain Entity
-struct NormalizedEntry {
-    id: String,                     // generate_entry_id() で生成
-    remote_id: Option<String>,      // プロバイダ側のID
-    title: String,
-    content: String,
-    summary: Option<String>,
-    url: Option<String>,            // URLなしエントリ対応
-    published_at: DateTime<Utc>,
-    thumbnail: Option<String>,
-    author: Option<String>,
-}
+// feed-rs → RemoteEntry (Provider層) → Domain Article (Application層)
+// NormalizedEntry は廃止。RemoteEntry が Provider→Application の統一DTOとなる。
+// Application層が RemoteEntry.source_feed_id を使ってローカルfeed_idを解決し、
+// generate_entry_id() で Article.id を生成する。
 ```
 
 ---
@@ -456,10 +464,14 @@ struct NormalizedEntry {
 // Application Layer で定義（trait）
 trait ArticleRepository {
     fn find_by_feed(&self, feed_id: &FeedId, pagination: &Pagination) -> Result<Vec<Article>>;
-    fn save(&self, articles: &[Article]) -> Result<()>;  // INSERT OR IGNORE
+    /// UPSERT: ON CONFLICT(id) DO UPDATE で content等を更新、is_read/is_starred は保持
+    fn upsert(&self, articles: &[Article]) -> Result<()>;
     fn mark_as_read(&self, id: &ArticleId) -> Result<()>;
     fn mark_as_starred(&self, id: &ArticleId, starred: bool) -> Result<()>;
-    fn purge_old_read(&self, before: DateTime<Utc>) -> Result<u64>;  // keep_read_items 対応
+    fn purge_old_read(&self, before: DateTime<Utc>) -> Result<u64>;
+    /// sanitizer_version が古い記事を再sanitize するためのバッチ更新
+    fn update_sanitized(&self, id: &ArticleId, sanitized: &str, version: u32) -> Result<()>;
+    fn find_by_sanitizer_version_below(&self, version: u32, limit: usize) -> Result<Vec<Article>>;
 }
 
 struct Pagination {
@@ -472,6 +484,9 @@ trait FeedRepository {
     fn save(&self, feed: &Feed) -> Result<()>;
     fn update_unread_count(&self, feed_id: &FeedId, count: i32) -> Result<()>;
     fn recalculate_unread_count(&self, feed_id: &FeedId) -> Result<i32>;
+    /// remote_id または url からフィードを検索（RemoteEntry → Article変換時に使用）
+    fn find_by_remote_id(&self, account_id: &AccountId, remote_id: &str) -> Result<Option<Feed>>;
+    fn find_by_url(&self, account_id: &AccountId, url: &str) -> Result<Option<Feed>>;
 }
 
 trait FolderRepository {
@@ -489,7 +504,7 @@ trait AccountRepository {
 }
 
 trait SyncStateRepository {
-    fn get(&self, account_id: &AccountId, feed_remote_id: Option<&str>) -> Result<Option<SyncState>>;
+    fn get(&self, account_id: &AccountId, scope_key: &str) -> Result<Option<SyncState>>;
     fn save(&self, state: &SyncState) -> Result<()>;
 }
 
@@ -508,6 +523,19 @@ struct InMemoryArticleRepository { /* ... */ }
 impl ArticleRepository for InMemoryArticleRepository { /* ... */ }
 ```
 
+### Sync Flow: RemoteEntry → Article 変換
+
+```
+1. Provider.pull_entries(scope, cursor) → PullResult { entries: Vec<RemoteEntry> }
+2. 各 RemoteEntry について:
+   a. source_feed_id → FeedRepository.find_by_remote_id() or find_by_url() でローカルFeedを解決
+   b. generate_entry_id(account_id, entry, feed_url) で Article.id を生成
+   c. Article ドメインモデルに変換
+3. ArticleRepository.upsert(articles)
+   - 新規: INSERT
+   - 既存: content等を更新、is_read/is_starred は保持
+```
+
 ---
 
 ## 5. Event Bus & Sync Engine
@@ -522,7 +550,7 @@ impl ArticleRepository for InMemoryArticleRepository { /* ... */ }
 enum SyncCommand {
     SyncAll,
     SyncAccount { account_id: AccountId },
-    SyncFeed { feed_id: FeedId },
+    SyncFeed { account_id: AccountId, feed_id: FeedIdentifier },
     ManualRefresh,
     PushPendingMutations { account_id: AccountId },
     PurgeOldArticles,
@@ -535,17 +563,27 @@ enum AppEvent {
     SyncCompleted { account_id: AccountId },
     FeedUpdated { feed_id: FeedId },
     ErrorOccurred { error: AppError },
-    SystemWoke,  // スリープ復帰
 }
+```
+
+### System Wake Detection
+
+スリープ復帰はOS APIで検出し、SyncCommand::SyncAllを直接送信する。
+AppEventに混ぜない（制御フローと通知の分離原則）。
+
+```rust
+// macOS: NSWorkspace.willSleepNotification / didWakeNotification
+// Windows: WM_POWERBROADCAST / PBT_APMRESUMEAUTOMATIC
+// → 検出したら sync_command_tx.send(SyncCommand::SyncAll)
 ```
 
 ### Startup Sequence（race condition対策）
 
 ```
 1. DB初期化 + マイグレーション
-2. SyncService 初期化 + AppEvent subscribe
+2. SyncService 初期化（mpsc receiver ready）
 3. Scheduler 初期化
-4. ★ SyncService が ready になってから SyncCommand::SyncAll を明示送信
+4. ★ SyncCommand::SyncAll を明示送信（SyncService は既に receiver ready）
 5. Tauri window 表示
 ```
 
@@ -553,29 +591,31 @@ enum AppEvent {
 
 ### Sync Triggers
 
-| トリガー元          | 送信先                         | ハンドラ    |
-| ------------------- | ------------------------------ | ----------- |
-| App setup (ready後) | SyncCommand::SyncAll           | SyncService |
-| Window focus        | SyncCommand::SyncAll           | SyncService |
-| User clicks refresh | SyncCommand::ManualRefresh     | SyncService |
-| tokio::interval     | SyncCommand::SyncAccount       | SyncService |
-| System wake         | AppEvent::SystemWoke → SyncAll | SyncService |
-| SyncService完了     | AppEvent::SyncCompleted (emit) | UI          |
-| SyncService完了     | AppEvent::FeedUpdated (emit)   | UI          |
+| トリガー元          | 送信先                     | ハンドラ    |
+| ------------------- | -------------------------- | ----------- |
+| App setup (ready後) | SyncCommand::SyncAll       | SyncService |
+| Window focus        | SyncCommand::SyncAll       | SyncService |
+| User clicks refresh | SyncCommand::ManualRefresh | SyncService |
+| tokio::interval     | SyncCommand::SyncAccount   | SyncService |
+| System wake (OS)    | SyncCommand::SyncAll       | SyncService |
+| SyncService完了     | AppEvent::SyncCompleted    | UI (emit)   |
+| SyncService完了     | AppEvent::FeedUpdated      | UI (emit)   |
 
 ### Sync Design
 
 - 起動時同期: SyncService ready後にSyncCommand::SyncAllを明示送信
-- イベント同期: WindowFocused, ManualRefresh, SystemWoke
+- イベント同期: WindowFocused, ManualRefresh, System Wake
 - 定期同期: tokio::time::interval、アカウントごとに間隔設定可能
 - エラー時: exponential backoff (初期5秒, 最大30分, 最大リトライ10回)
 - In-flight dedupe: 同一アカウントの同期リクエストが既に実行中なら新規リクエストをスキップ
 - Offline outbox: ローカル変更はpending_mutationsに保存し、オンライン復帰時にpush
+- **pending_mutationsはremote_idを持つ記事のみ**: ローカルフィードの記事はoutbox対象外（同期先がない）
 
 ### Housekeeping
 
 - `RetentionPurge`: keep_read_items 期間を過ぎた既読記事を削除（起動時 + 24時間間隔）
 - `OrphanCleanup`: 削除されたフィード/アカウントの残留データを清掃
+- `ReSanitize`: sanitizer_version が古い記事を最新のammoniaルールで再処理
 
 ---
 
@@ -643,8 +683,7 @@ App
     │           └── WebViewFrame
     ├── SearchOverlay
     ├── AddAccountDialog
-    ├── AccountSettingsModal
-    └── ShareSheet
+    └── AccountSettingsModal
 ```
 
 ### Component Responsibilities
@@ -690,7 +729,6 @@ type AppUiState = {
 };
 
 // visiblePanes は保存しない（導出値）
-// 状態を丸ごと受け取る方がスパゲッティ化しにくい
 function resolveLayout(state: AppUiState): Pane[] {
   if (state.layoutMode === "wide") {
     if (state.contentMode === "browser") {
@@ -715,6 +753,11 @@ function resolveLayout(state: AppUiState): Pane[] {
 - **Browser View (BR)**: Tauri WebViewで元サイトを表示
 - **Reader Mode (≡)**: Phase 2。readabilityライブラリで全文抽出表示
 
+### Search (MVP)
+
+- MVPでは `LIKE '%query%'` によるシンプル検索（title + content_sanitized）
+- Phase 2 で FTS5 への移行を検討
+
 ### Security: WebView
 
 - WebViewからTauri IPC (invoke) へのアクセスは許可しない
@@ -728,7 +771,6 @@ function resolveLayout(state: AppUiState): Pane[] {
 | ○        | 既読/未読トグル | M    |
 | ☆        | スター          | S    |
 | BR       | Browser View    | V    |
-| ⬆        | 共有            | -    |
 | ✓        | 全既読          | A    |
 | 🔍       | 検索            | /    |
 
@@ -797,7 +839,7 @@ function resolveLayout(state: AppUiState): Pane[] {
 - 同期 (起動時 + イベント + 定期) + offline outbox
 - キーボードショートカット (Reeder準拠)
 - フィルター (All / Unread / Starred)
-- 検索
+- 検索 (LIKE ベース)
 - ダークテーマのみ (Reeder準拠。ライトモードはPhase 2)
 - OPMLインポート (既存リーダーからの移行導線)
 
@@ -809,4 +851,5 @@ function resolveLayout(state: AppUiState): Pane[] {
 - Reader Mode (full-text抽出, readability)
 - Bionic Reader View
 - Tags
+- FTS5 検索
 - カスタムテーマ / ライトモード
