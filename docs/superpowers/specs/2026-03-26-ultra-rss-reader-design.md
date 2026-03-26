@@ -67,6 +67,30 @@ SQLite
 | SQLite           | `rusqlite`             |
 | 非同期ランタイム | `tokio` (Tauri v2標準) |
 | シリアライズ     | `serde` / `serde_json` |
+| HTMLサニタイズ   | `ammonia`              |
+| ログ             | `tracing`              |
+
+### Credential Storage
+
+OS keychainを利用して認証情報を安全に保存する。
+
+- **macOS**: Keychain Services (via `security-framework` crate)
+- **Windows**: Windows Credential Manager (via `keyring` crate)
+- Tauri v2の `tauri-plugin-stronghold` も候補だが、OS keychain の方がユーザーの期待に沿う
+
+### SQLite Concurrency Model
+
+- **Writer**: 単一の `Connection` を `Arc<Mutex<Connection>>` で管理。全ての書き込みはこのコネクション経由
+- **Reader**: 読み取り専用コネクションを別途1つ保持（WALモードの利点を活用）
+- **spawn_blocking**: 全DB操作は `tokio::task::spawn_blocking` でオフロード
+- Writer/Reader分離により、同期中の書き込みがUI読み取りをブロックしない
+
+### Migration Strategy
+
+- `schema_version` テーブルでバージョン管理
+- アプリ起動時に自動マイグレーション実行
+- マイグレーションファイルは `src-tauri/migrations/` に `V{n}__{description}.sql` 形式で管理
+- ロールバックは手動（前バージョンのバックアップをユーザーに促す）
 
 ---
 
@@ -79,7 +103,7 @@ SQLite
 trait FeedProvider: Send + Sync {
     fn kind(&self) -> ProviderKind;
     async fn authenticate(&mut self, credentials: &Credentials) -> Result<()>;
-    async fn get_subscriptions(&self) -> Result<Vec<Subscription>>;
+    async fn get_subscriptions(&self) -> Result<Vec<Feed>>;  // Subscription = Feed (domain)
     async fn get_folders(&self) -> Result<Vec<Folder>>;
     async fn get_entries(&self, feed_id: &str, options: FetchOptions) -> Result<Vec<NormalizedEntry>>;
     async fn mark_as_read(&self, entry_ids: &[String]) -> Result<()>;
@@ -233,7 +257,10 @@ CREATE TABLE articles (
     fetched_at TEXT NOT NULL
 );
 
--- Unique constraint
+-- Unique constraint (URLベース。ID Strategyのfallback hashと整合)
+-- ID生成: sha256(feed_url + entry_url + published) だが、
+-- 重複判定はURLが最も安定なため feed_id + url で制約をかける。
+-- 同一URLで日時違いのエントリは同一記事の更新として上書き(UPSERT)する。
 CREATE UNIQUE INDEX idx_articles_feed_url ON articles(feed_id, url);
 
 -- Performance indexes
@@ -293,6 +320,12 @@ trait FeedRepository {
     fn update_unread_count(&self, feed_id: &FeedId, count: i32) -> Result<()>;
 }
 
+trait FolderRepository {
+    fn find_by_account(&self, account_id: &AccountId) -> Result<Vec<Folder>>;
+    fn save(&self, folder: &Folder) -> Result<()>;
+    fn delete(&self, id: &FolderId) -> Result<()>;
+}
+
 trait AccountRepository {
     fn find_all(&self) -> Result<Vec<Account>>;
     fn save(&self, account: &Account) -> Result<()>;
@@ -315,7 +348,8 @@ impl ArticleRepository for InMemoryArticleRepository { /* ... */ }
 ### Event Bus
 
 ```rust
-// publish(event) / subscribe(handler)
+// 実装: tokio::broadcast channel ベース
+// 型付きイベントのディスパッチ。ハンドラはサービス初期化時にsubscribe。
 enum AppEvent {
     AppStarted,
     WindowFocused,
@@ -535,11 +569,11 @@ function resolveLayout(state: AppUiState): Pane[] {
 
 ### Phase 2
 
-| Key          | Action                         |
-| ------------ | ------------------------------ |
-| T            | Tags…                          |
-| G            | Toggle Reader View (full-text) |
-| ⇧G (article) | Toggle Bionic Reader View      |
+| Key | Action                         | 備考                                               |
+| --- | ------------------------------ | -------------------------------------------------- |
+| T   | Tags…                          |                                                    |
+| G   | Toggle Reader View (full-text) | リスト⇧G(末尾)とはコンテキスト違い                 |
+| ⇧G  | Toggle Bionic Reader View      | ContentPane フォーカス時のみ。ListPaneでは末尾移動 |
 
 ---
 
@@ -558,13 +592,14 @@ function resolveLayout(state: AppUiState): Pane[] {
 - フィルター (All / Unread / Starred)
 - 検索
 - 共有 (OS共有シート)
-- ダークテーマ
+- ダークテーマのみ (Reeder準拠。ライトモードはPhase 2)
+- OPMLインポート (既存リーダーからの移行導線)
 
 ### Phase 2
 
 - Inoreader連携
+- OPML エクスポート
 - Reader Mode (full-text抽出, readability)
 - Bionic Reader View
 - Tags
-- OPML import/export
 - カスタムテーマ / ライトモード
