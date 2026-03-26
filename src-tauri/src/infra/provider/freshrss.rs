@@ -792,6 +792,92 @@ mod tests {
         stream_mock.assert_async().await;
     }
 
+    // === Live integration tests ===
+    // Run with: dotenvx run -- cargo test --manifest-path src-tauri/Cargo.toml freshrss_live -- --ignored
+    // Or: mise test:live
+
+    #[tokio::test]
+    #[ignore]
+    async fn freshrss_live_auth() {
+        let url = std::env::var("FRESHRSS_URL").expect("Set FRESHRSS_URL");
+        let user = std::env::var("FRESHRSS_USER").expect("Set FRESHRSS_USER");
+        let pass = std::env::var("FRESHRSS_PASS").expect("Set FRESHRSS_PASS");
+
+        let mut provider = FreshRssProvider::new(&url);
+        let creds = Credentials {
+            token: Some(user),
+            password: Some(pass),
+        };
+        provider.authenticate(&creds).await.unwrap();
+        assert!(provider.auth_token.is_some());
+        println!("Auth token: {:?}", provider.auth_token);
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn freshrss_live_subscriptions() {
+        let (provider, _) = live_provider().await;
+        let subs = provider.get_subscriptions().await.unwrap();
+        println!("Subscriptions: {}", subs.len());
+        for sub in &subs {
+            println!("  - {} ({})", sub.title, sub.remote_id);
+        }
+        assert!(!subs.is_empty(), "Should have at least one subscription");
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn freshrss_live_folders() {
+        let (provider, _) = live_provider().await;
+        let folders = provider.get_folders().await.unwrap();
+        println!("Folders: {}", folders.len());
+        for f in &folders {
+            println!("  - {} ({})", f.name, f.remote_id);
+        }
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn freshrss_live_pull_entries() {
+        let (provider, _) = live_provider().await;
+        let result = provider.pull_entries(PullScope::All, None).await.unwrap();
+        println!("Entries: {}", result.entries.len());
+        println!("Has more: {}", result.has_more);
+        for entry in result.entries.iter().take(5) {
+            println!(
+                "  - {} (read={:?}, starred={:?})",
+                entry.title, entry.is_read, entry.is_starred
+            );
+        }
+        assert!(!result.entries.is_empty(), "Should have at least one entry");
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn freshrss_live_pull_state() {
+        let (provider, _) = live_provider().await;
+        let state = provider.pull_state().await.unwrap();
+        println!("Read IDs: {}", state.read_ids.len());
+        println!("Starred IDs: {}", state.starred_ids.len());
+    }
+
+    /// Helper: create an authenticated live provider
+    async fn live_provider() -> (FreshRssProvider, ()) {
+        let url = std::env::var("FRESHRSS_URL").expect("Set FRESHRSS_URL");
+        let user = std::env::var("FRESHRSS_USER").expect("Set FRESHRSS_USER");
+        let pass = std::env::var("FRESHRSS_PASS").expect("Set FRESHRSS_PASS");
+
+        let mut provider = FreshRssProvider::new(&url);
+        provider
+            .authenticate(&Credentials {
+                token: Some(user),
+                password: Some(pass),
+            })
+            .await
+            .unwrap();
+        (provider, ())
+    }
+
     #[tokio::test]
     async fn push_mutations_sends_edit_tags() {
         let mut server = mockito::Server::new_async().await;

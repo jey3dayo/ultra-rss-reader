@@ -35,6 +35,10 @@ run = "pnpm run test"
 description = "Run all tests"
 depends = ["test:rust", "test:unit"]
 
+[tasks."test:live"]
+description = "Run FreshRSS live integration tests (requires .env with credentials)"
+run = "dotenvx run -- cargo test --manifest-path src-tauri/Cargo.toml freshrss_live -- --ignored --nocapture"
+
 [tasks.build]
 description = "Build all"
 run = ["pnpm build"]

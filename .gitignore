@@ -7,7 +7,8 @@ node_modules/
 dist/
 src-tauri/target/
 
-# Environment
-.env
-.env.*
+# Environment (decryption keys must NOT be committed)
+.env.keys
+.env.local
+# .env itself is encrypted by dotenvx and safe to commit
 .claude/worktrees/
