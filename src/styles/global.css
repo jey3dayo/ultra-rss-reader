@@ -1,11 +1,83 @@
-@import "./tokens.css";
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: oklch(0.18 0 0);
+  --color-foreground: oklch(0.92 0 0);
+  --color-card: oklch(0.2 0 0);
+  --color-card-foreground: oklch(0.92 0 0);
+  --color-popover: oklch(0.22 0 0);
+  --color-popover-foreground: oklch(0.92 0 0);
+  --color-primary: oklch(0.92 0 0);
+  --color-primary-foreground: oklch(0.18 0 0);
+  --color-secondary: oklch(0.26 0 0);
+  --color-secondary-foreground: oklch(0.92 0 0);
+  --color-muted: oklch(0.26 0 0);
+  --color-muted-foreground: oklch(0.6 0 0);
+  --color-accent: oklch(0.65 0.2 25);
+  --color-accent-foreground: oklch(0.98 0 0);
+  --color-destructive: oklch(0.55 0.2 25);
+  --color-border: oklch(0.28 0 0);
+  --color-input: oklch(0.28 0 0);
+  --color-ring: oklch(0.65 0.2 25);
+  --color-sidebar: oklch(0.16 0 0);
+  --color-sidebar-foreground: oklch(0.92 0 0);
+  --color-sidebar-accent: oklch(0.24 0 0);
+  --color-sidebar-accent-foreground: oklch(0.92 0 0);
+  --color-sidebar-border: oklch(0.28 0 0);
+  --radius: 0.625rem;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Legacy tokens for existing components */
+:root {
+  --bg-sidebar: #1a1a1a;
+  --bg-list: #222222;
+  --bg-content: #1e1e1e;
+  --bg-hover: #2a2a2a;
+  --bg-selected: #333333;
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  --text-tertiary: #888888;
+  --text-muted: #555555;
+  --accent-blue: #6aafff;
+  --accent-orange: #ff9f43;
+  --border-subtle: #333333;
+  --border-divider: #2a2a2a;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+  --font-size-title: 26px;
+  --font-size-body: 17px;
+  --icon-size-sm: 16px;
+  --icon-size-md: 20px;
+  --icon-size-lg: 24px;
+  --space-content: 32px;
+  --sidebar-width: 240px;
+  --list-width: 320px;
+  --toolbar-height: 40px;
+  --filterbar-height: 36px;
+}
 
 *,
 *::before,
 *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+  border-color: var(--color-border);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
 html,
@@ -13,11 +85,6 @@ body,
 #root {
   height: 100%;
   overflow: hidden;
-  background: var(--bg-content);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-md);
-  -webkit-font-smoothing: antialiased;
 }
 
 ::-webkit-scrollbar {
@@ -29,6 +96,6 @@ body,
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-subtle);
+  background: var(--color-border);
   border-radius: 3px;
 }
