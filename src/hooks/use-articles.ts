@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { listArticles, markArticleRead, toggleArticleStar } from "../api/tauri-commands";
+import { listArticles, markArticleRead, searchArticles, toggleArticleStar } from "../api/tauri-commands";
 
 export function useArticles(feedId: string | null) {
   return useQuery({
@@ -17,6 +17,14 @@ export function useMarkRead() {
       qc.invalidateQueries({ queryKey: ["articles"] });
       qc.invalidateQueries({ queryKey: ["feeds"] });
     },
+  });
+}
+
+export function useSearchArticles(accountId: string | null, query: string) {
+  return useQuery({
+    queryKey: ["search", accountId, query],
+    queryFn: () => searchArticles(accountId as string, query),
+    enabled: !!accountId && query.length > 0,
   });
 }
 

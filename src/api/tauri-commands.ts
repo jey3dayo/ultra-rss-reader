@@ -22,3 +22,5 @@ export const listArticles = (feedId: string, offset?: number, limit?: number) =>
 export const markArticleRead = (articleId: string) => invoke<void>("mark_article_read", { articleId });
 export const toggleArticleStar = (articleId: string, starred: boolean) =>
   invoke<void>("toggle_article_star", { articleId, starred });
+export const searchArticles = (accountId: string, query: string, offset?: number, limit?: number) =>
+  invoke<ArticleDto[]>("search_articles", { accountId, query, offset, limit });

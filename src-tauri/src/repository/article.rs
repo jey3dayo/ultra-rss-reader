@@ -38,4 +38,10 @@ pub trait ArticleRepository {
         starred_remote_ids: &[String],
         pending_remote_ids: &[String],
     ) -> DomainResult<()>;
+    fn search(
+        &self,
+        account_id: &AccountId,
+        query: &str,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>>;
 }
