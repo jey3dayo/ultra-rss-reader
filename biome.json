@@ -26,6 +26,16 @@
     }
   },
   "files": {
-    "includes": ["src/**", "*.ts", "*.tsx", "*.js", "*.json", "!node_modules", "!dist", "!src-tauri/target"]
+    "includes": [
+      "src/**",
+      "tests/**",
+      "*.ts",
+      "*.tsx",
+      "*.js",
+      "*.json",
+      "!node_modules",
+      "!dist",
+      "!src-tauri/target"
+    ]
   }
 }

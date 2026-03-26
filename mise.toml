@@ -23,9 +23,17 @@ run = "pnpm run lint"
 description = "Rust clippy"
 run = "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
 
+[tasks."test:rust"]
+description = "Run Rust tests"
+run = "cargo test --manifest-path src-tauri/Cargo.toml"
+
+[tasks."test:unit"]
+description = "Run Vitest unit tests"
+run = "pnpm run test"
+
 [tasks.test]
 description = "Run all tests"
-run = ["cargo test --manifest-path src-tauri/Cargo.toml"]
+depends = ["test:rust", "test:unit"]
 
 [tasks.build]
 description = "Build all"
