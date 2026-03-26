@@ -1,0 +1,47 @@
+import { beforeEach, describe, expect, it } from "vitest";
+import { useUiStore } from "../../stores/ui-store";
+
+describe("useUiStore", () => {
+  beforeEach(() => {
+    useUiStore.setState(useUiStore.getInitialState());
+  });
+
+  it("initial state defaults", () => {
+    const s = useUiStore.getState();
+    expect(s.layoutMode).toBe("wide");
+    expect(s.contentMode).toBe("empty");
+    expect(s.selection).toEqual({ type: "all" });
+  });
+
+  it("selectFeed updates selection", () => {
+    useUiStore.getState().selectFeed("f1");
+    expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "f1" });
+    expect(useUiStore.getState().selectedArticleId).toBeNull();
+  });
+
+  it("selectArticle sets reader mode", () => {
+    useUiStore.getState().selectArticle("a1");
+    expect(useUiStore.getState().contentMode).toBe("reader");
+    expect(useUiStore.getState().selectedArticleId).toBe("a1");
+  });
+
+  it("openBrowser switches mode", () => {
+    useUiStore.getState().openBrowser("https://ex.com");
+    expect(useUiStore.getState().contentMode).toBe("browser");
+    expect(useUiStore.getState().browserUrl).toBe("https://ex.com");
+  });
+
+  it("closeBrowser returns to reader if article selected", () => {
+    useUiStore.getState().selectArticle("a1");
+    useUiStore.getState().openBrowser("https://ex.com");
+    useUiStore.getState().closeBrowser();
+    expect(useUiStore.getState().contentMode).toBe("reader");
+  });
+
+  it("toggleFolder adds and removes", () => {
+    useUiStore.getState().toggleFolder("f1");
+    expect(useUiStore.getState().expandedFolderIds.has("f1")).toBe(true);
+    useUiStore.getState().toggleFolder("f1");
+    expect(useUiStore.getState().expandedFolderIds.has("f1")).toBe(false);
+  });
+});
