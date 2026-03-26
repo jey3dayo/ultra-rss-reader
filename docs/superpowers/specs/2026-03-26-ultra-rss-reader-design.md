@@ -125,7 +125,11 @@ trait FeedProvider: Send + Sync {
         -> Result<PullResult>;
 
     /// 既読/未読/スター状態のpull同期
-    /// ローカルプロバイダではno-op（Option化不要、空Vecを返す）
+    /// 返す RemoteState は authoritative snapshot:
+    ///   - read_ids に含まれる remote_id → is_read=true
+    ///   - read_ids に含まれない remote_id → is_read=false
+    ///   - starred_ids も同様
+    /// ローカルプロバイダではno-op（空Vecを返す）
     async fn pull_state(&self) -> Result<RemoteState>;
 
     /// ローカル変更をリモートに反映
@@ -472,6 +476,17 @@ trait ArticleRepository {
     /// sanitizer_version が古い記事を再sanitize するためのバッチ更新
     fn update_sanitized(&self, id: &ArticleId, sanitized: &str, version: u32) -> Result<()>;
     fn find_by_sanitizer_version_below(&self, version: u32, limit: usize) -> Result<Vec<Article>>;
+    /// リモート状態の一括適用（pull_state結果の反映）
+    /// read_remote_ids / starred_remote_ids は authoritative snapshot。
+    /// リストに含まれる → true、含まれない → false。
+    /// ただし pending_mutations に未push変更がある記事はスキップ（ローカル変更優先）。
+    fn apply_remote_state(
+        &self,
+        account_id: &AccountId,
+        read_remote_ids: &[String],
+        starred_remote_ids: &[String],
+        pending_remote_ids: &[String],  // skip these
+    ) -> Result<()>;
 }
 
 struct Pagination {
@@ -523,18 +538,30 @@ struct InMemoryArticleRepository { /* ... */ }
 impl ArticleRepository for InMemoryArticleRepository { /* ... */ }
 ```
 
-### Sync Flow: RemoteEntry → Article 変換
+### Sync Flow: アカウント同期の実行順序
+
+**順序は厳密に守る**（後段が前段のデータに依存するため）。
 
 ```
-1. Provider.pull_entries(scope, cursor) → PullResult { entries: Vec<RemoteEntry> }
-2. 各 RemoteEntry について:
-   a. source_feed_id → FeedRepository.find_by_remote_id() or find_by_url() でローカルFeedを解決
-   b. generate_entry_id(account_id, entry, feed_url) で Article.id を生成
-   c. Article ドメインモデルに変換
-3. ArticleRepository.upsert(articles)
-   - 新規: INSERT
-   - 既存: content等を更新、is_read/is_starred は保持
+1. push_mutations()     — ローカル変更を先にリモートへ反映（競合回避）
+2. get_folders()        — フォルダ upsert（フィードの親が必要）
+3. get_subscriptions()  — フィード upsert（記事の親が必要）
+4. pull_entries(scope, cursor) → PullResult { entries: Vec<RemoteEntry> }
+   各 RemoteEntry について:
+     a. source_feed_id → FeedRepository.find_by_remote_id() or find_by_url()
+     b. generate_entry_id(account_id, entry, feed_url) で Article.id 生成
+     c. Article ドメインモデルに変換
+   ArticleRepository.upsert(articles)
+     - 新規: INSERT
+     - 既存: content等を更新、is_read/is_starred は保持
+5. pull_state()         — 既読/スター状態を authoritative snapshot として取得
+   ArticleRepository.apply_remote_state()
+     - pending_mutations に未push変更がある記事はスキップ
+6. FeedRepository.recalculate_unread_count() — 未読数を再計算
 ```
+
+**LocalProvider の場合:** Step 1, 2, 3, 5 はスキップ。Step 4 のみ実行（直接RSSフェッチ）。
+**LocalProvider の RemoteSubscription.remote_id 規約:** `feed_url` を `remote_id` として使用する。
 
 ---
 
