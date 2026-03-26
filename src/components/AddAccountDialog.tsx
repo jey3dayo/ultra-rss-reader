@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { addAccount } from "../api/tauri-commands";
+import { useUiStore } from "../stores/ui-store";
 
 type ProviderKind = "Local" | "FreshRss";
 
@@ -30,17 +31,26 @@ export function AddAccountDialog({ open, onClose }: { open: boolean; onClose: ()
   if (!open) return null;
 
   const handleSubmit = async () => {
-    await addAccount(
-      kind,
-      name || kind,
-      kind === "FreshRss" ? serverUrl : undefined,
-      kind === "FreshRss" ? username : undefined,
-    );
-    qc.invalidateQueries({ queryKey: ["accounts"] });
-    onClose();
-    setName("");
-    setServerUrl("");
-    setUsername("");
+    try {
+      const account = await addAccount(
+        kind,
+        name || kind,
+        kind === "FreshRss" ? serverUrl : undefined,
+        kind === "FreshRss" ? username : undefined,
+      );
+      qc.invalidateQueries({ queryKey: ["accounts"] });
+      qc.invalidateQueries({ queryKey: ["feeds"] });
+      // Auto-select the new account
+      const { selectAccount } = useUiStore.getState();
+      selectAccount(account.id);
+      onClose();
+      setName("");
+      setServerUrl("");
+      setUsername("");
+    } catch (e) {
+      console.error("Failed to add account:", e);
+      alert(`Failed to add account: ${e instanceof Error ? e.message : JSON.stringify(e)}`);
+    }
   };
 
   return (
