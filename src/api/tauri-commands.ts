@@ -25,6 +25,7 @@ async function safeInvoke<T>(cmd: string, args?: Record<string, unknown>): Promi
     const data = await invoke<T>(cmd, args);
     return { type: "Success", value: data };
   } catch (error: unknown) {
+    console.error(`[tauri-commands] ${cmd} failed:`, error);
     const appError: AppError =
       typeof error === "object" && error !== null && "type" in error
         ? (error as AppError)
