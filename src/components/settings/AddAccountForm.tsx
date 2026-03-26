@@ -4,6 +4,8 @@ import { Result } from "@praha/byethrow";
 import { addAccount } from "../../api/tauri-commands";
 import { useUiStore } from "../../stores/ui-store";
 import { fieldStyle } from "../Dialog";
+import { SettingsRow } from "./SettingsRow";
+import { SettingsSection } from "./SettingsSection";
 
 type ProviderKind = "Local" | "FreshRss";
 
@@ -34,117 +36,47 @@ export function AddAccountForm() {
     setSettingsAccountId(result.value.id);
   };
 
-  return (
-    <div style={{ padding: "var(--space-xl)" }}>
-      <button
-        type="button"
-        onClick={() => setSettingsAddAccount(false)}
-        style={{
-          background: "none",
-          border: "none",
-          color: "var(--accent-blue)",
-          fontSize: "var(--font-size-md)",
-          cursor: "pointer",
-          padding: 0,
-          marginBottom: "var(--space-lg)",
-        }}
-      >
-        &larr; Accounts
-      </button>
+  const inputStyle = { ...fieldStyle, width: "auto", minWidth: 160 };
 
-      <div
-        style={{
-          fontSize: "var(--font-size-xl)",
-          fontWeight: "bold",
-          color: "var(--text-primary)",
-          marginBottom: "var(--space-xl)",
-        }}
-      >
-        Add Account
+  return (
+    <div style={{ padding: "var(--space-lg) 0" }}>
+      {/* Header */}
+      <div style={{ padding: "0 var(--space-xl)", marginBottom: "var(--space-sm)" }}>
+        <div style={{ fontSize: "var(--font-size-xl)", fontWeight: "bold", color: "var(--text-primary)" }}>
+          Add Account
+        </div>
       </div>
 
-      <div style={{ marginBottom: "var(--space-md)" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "var(--space-sm) 0",
-          }}
-        >
-          <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-md)" }}>Type</span>
-          <select
-            value={kind}
-            onChange={(e) => setKind(e.target.value as ProviderKind)}
-            style={{ ...fieldStyle, width: "auto", minWidth: 160 }}
-          >
+      {/* Account type & name */}
+      <SettingsSection title="Account">
+        <SettingsRow label="Type">
+          <select value={kind} onChange={(e) => setKind(e.target.value as ProviderKind)} style={inputStyle}>
             <option value="Local">Local Feeds</option>
             <option value="FreshRss">FreshRSS</option>
           </select>
-        </div>
-      </div>
-
-      <div style={{ marginBottom: "var(--space-md)" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "var(--space-sm) 0",
-          }}
-        >
-          <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-md)" }}>Name</span>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={kind}
-            style={{ ...fieldStyle, width: "auto", minWidth: 160 }}
-          />
-        </div>
-      </div>
+        </SettingsRow>
+        <SettingsRow label="Name">
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder={kind} style={inputStyle} />
+        </SettingsRow>
+      </SettingsSection>
 
       {kind === "FreshRss" && (
-        <>
-          <div style={{ marginBottom: "var(--space-md)" }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "var(--space-sm) 0",
-              }}
-            >
-              <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-md)" }}>Server URL</span>
-              <input
-                value={serverUrl}
-                onChange={(e) => setServerUrl(e.target.value)}
-                placeholder="https://your-freshrss.com"
-                style={{ ...fieldStyle, width: "auto", minWidth: 160 }}
-              />
-            </div>
-          </div>
-
-          <div style={{ marginBottom: "var(--space-md)" }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "var(--space-sm) 0",
-              }}
-            >
-              <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-md)" }}>Username</span>
-              <input
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                style={{ ...fieldStyle, width: "auto", minWidth: 160 }}
-              />
-            </div>
-          </div>
-        </>
+        <SettingsSection title="Server">
+          <SettingsRow label="Server URL">
+            <input
+              value={serverUrl}
+              onChange={(e) => setServerUrl(e.target.value)}
+              placeholder="https://your-freshrss.com"
+              style={inputStyle}
+            />
+          </SettingsRow>
+          <SettingsRow label="Username">
+            <input value={username} onChange={(e) => setUsername(e.target.value)} style={inputStyle} />
+          </SettingsRow>
+        </SettingsSection>
       )}
 
-      <div style={{ marginTop: "var(--space-xl)" }}>
+      <div style={{ padding: "var(--space-xl) var(--space-xl) 0" }}>
         <button
           type="button"
           onClick={handleSubmit}
@@ -160,6 +92,22 @@ export function AddAccountForm() {
           }}
         >
           Add
+        </button>
+        <button
+          type="button"
+          onClick={() => setSettingsAddAccount(false)}
+          style={{
+            background: "none",
+            border: "1px solid var(--border-subtle)",
+            color: "var(--text-secondary)",
+            padding: "var(--space-sm) var(--space-xl)",
+            borderRadius: 6,
+            cursor: "pointer",
+            fontSize: "var(--font-size-md)",
+            marginLeft: "var(--space-md)",
+          }}
+        >
+          Cancel
         </button>
       </div>
     </div>

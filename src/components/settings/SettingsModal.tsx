@@ -2,14 +2,12 @@ import { useCallback, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useUiStore } from "../../stores/ui-store";
 import { AccountDetail } from "./AccountDetail";
-import { AccountsSettings } from "./AccountsSettings";
 import { AddAccountForm } from "./AddAccountForm";
 import { GeneralSettings } from "./GeneralSettings";
 import { SettingsSidebar } from "./SettingsSidebar";
 
 export function SettingsModal() {
-  const { settingsOpen, settingsCategory, settingsAccountId, settingsAddAccount, closeSettings, openSettings } =
-    useUiStore();
+  const { settingsOpen, settingsAccountId, settingsAddAccount, closeSettings, openSettings } = useUiStore();
 
   // Listen for Tauri menu event
   useEffect(() => {
@@ -44,16 +42,13 @@ export function SettingsModal() {
   };
 
   const renderContent = () => {
-    if (settingsCategory === "general") {
-      return <GeneralSettings />;
-    }
     if (settingsAccountId) {
       return <AccountDetail />;
     }
     if (settingsAddAccount) {
       return <AddAccountForm />;
     }
-    return <AccountsSettings />;
+    return <GeneralSettings />;
   };
 
   return (
@@ -77,9 +72,9 @@ export function SettingsModal() {
         style={{
           background: "var(--bg-sidebar)",
           borderRadius: 12,
-          width: 600,
+          width: 700,
           maxWidth: "90vw",
-          height: 500,
+          height: 560,
           maxHeight: "80vh",
           display: "flex",
           flexDirection: "column",
