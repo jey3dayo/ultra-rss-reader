@@ -24,14 +24,15 @@ export function IconButton({
   active?: boolean;
   style?: CSSProperties;
 }) {
-  const activeStyle: CSSProperties | undefined = active !== undefined
-    ? {
-        background: active ? "var(--bg-selected)" : "none",
-        color: active ? "var(--text-primary)" : "var(--text-muted)",
-        borderRadius: 12,
-        padding: "2px 10px",
-      }
-    : undefined;
+  const activeStyle: CSSProperties | undefined =
+    active !== undefined
+      ? {
+          background: active ? "var(--bg-selected)" : "none",
+          color: active ? "var(--text-primary)" : "var(--text-muted)",
+          borderRadius: 12,
+          padding: "2px 10px",
+        }
+      : undefined;
 
   return (
     <button

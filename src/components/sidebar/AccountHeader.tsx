@@ -43,8 +43,12 @@ export function AccountHeader() {
           <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>Today</div>
         </div>
         <div style={{ display: "flex", gap: "var(--space-sm)" }}>
-          <IconButton onClick={handleAddFeed} title="Add Feed">+</IconButton>
-          <IconButton onClick={() => setShowAddAccount(true)} title="Add Account">&#9881;</IconButton>
+          <IconButton onClick={handleAddFeed} title="Add Feed">
+            +
+          </IconButton>
+          <IconButton onClick={() => setShowAddAccount(true)} title="Add Account">
+            &#9881;
+          </IconButton>
         </div>
       </div>
       <AddAccountDialog open={showAddAccount} onClose={() => setShowAddAccount(false)} />

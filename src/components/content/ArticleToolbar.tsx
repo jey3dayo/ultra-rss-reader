@@ -32,9 +32,7 @@ export function ArticleToolbar({ article }: { article: ArticleDto }) {
       >
         ★
       </IconButton>
-      {article.url && (
-        <IconButton onClick={() => openBrowser(article.url as string)}>BR</IconButton>
-      )}
+      {article.url && <IconButton onClick={() => openBrowser(article.url as string)}>BR</IconButton>}
     </div>
   );
 }

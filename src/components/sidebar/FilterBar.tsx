@@ -20,12 +20,7 @@ export function FilterBar() {
       }}
     >
       {items.map(({ mode, label }) => (
-        <IconButton
-          key={mode}
-          onClick={() => setViewMode(mode)}
-          size="sm"
-          active={viewMode === mode}
-        >
+        <IconButton key={mode} onClick={() => setViewMode(mode)} size="sm" active={viewMode === mode}>
           {label}
         </IconButton>
       ))}
