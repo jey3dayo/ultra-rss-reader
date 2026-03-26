@@ -9,11 +9,13 @@ import { IconButton } from "../IconButton";
 
 export function AccountHeader() {
   const [showAddAccount, setShowAddAccount] = useState(false);
+  const [showAccountList, setShowAccountList] = useState(false);
   const { data: accounts } = useAccounts();
-  const { selectedAccountId } = useUiStore();
+  const { selectedAccountId, selectAccount } = useUiStore();
   const qc = useQueryClient();
 
   const selectedAccount = accounts?.find((a) => a.id === selectedAccountId);
+  const hasMultipleAccounts = accounts && accounts.length > 1;
 
   const handleAddFeed = async () => {
     if (!selectedAccountId) {
@@ -44,11 +46,85 @@ export function AccountHeader() {
           alignItems: "center",
         }}
       >
-        <div>
-          <div style={{ fontSize: "var(--font-size-xl)", fontWeight: "bold" }}>
-            {selectedAccount?.name ?? "Ultra RSS"}
-          </div>
-          <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>Today</div>
+        <div style={{ position: "relative" }}>
+          <button
+            type="button"
+            onClick={() => hasMultipleAccounts && setShowAccountList((v) => !v)}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: hasMultipleAccounts ? "pointer" : "default",
+              textAlign: "left",
+              color: "inherit",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "var(--font-size-xl)",
+                fontWeight: "bold",
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-xs)",
+              }}
+            >
+              {selectedAccount?.name ?? "Ultra RSS"}
+              {hasMultipleAccounts && (
+                <span style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>▾</span>
+              )}
+            </div>
+            <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>Today</div>
+          </button>
+          {showAccountList && accounts && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                zIndex: 50,
+                background: "var(--bg-sidebar)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: 8,
+                padding: "var(--space-xs)",
+                minWidth: 180,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+              }}
+            >
+              {accounts.map((acc) => (
+                <button
+                  type="button"
+                  key={acc.id}
+                  onClick={() => {
+                    selectAccount(acc.id);
+                    setShowAccountList(false);
+                  }}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    padding: "var(--space-sm) var(--space-md)",
+                    background: acc.id === selectedAccountId ? "var(--bg-selected)" : "transparent",
+                    border: "none",
+                    borderRadius: 4,
+                    color: "var(--text-secondary)",
+                    fontSize: "var(--font-size-md)",
+                    cursor: "pointer",
+                    textAlign: "left",
+                  }}
+                >
+                  {acc.name}
+                  <span
+                    style={{
+                      fontSize: "var(--font-size-xs)",
+                      color: "var(--text-muted)",
+                      marginLeft: "var(--space-sm)",
+                    }}
+                  >
+                    {acc.kind}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div style={{ display: "flex", gap: "var(--space-sm)" }}>
           <IconButton onClick={handleAddFeed} title="Add Feed">
