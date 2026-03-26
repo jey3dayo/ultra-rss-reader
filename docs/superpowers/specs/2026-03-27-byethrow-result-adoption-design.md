@@ -115,14 +115,14 @@ export function useAccounts() {
 
 ### C. コンポーネント内のResult処理改善
 
-**対象**: Result を直接扱うコンポーネント4箇所 + 戻り値無視1箇所
+**対象**: Result を直接扱うコンポーネント（リファクタ後の新構造に対応）
 
-**現状パターン（C1-C4共通）**:
+**現状パターン（C1-C3共通）**:
 
 ```typescript
 const result = await someCommand(args);
 if (Result.isFailure(result)) {
-  alert(`Failed: ${result.error.message}`);
+  window.alert(`Failed: ${result.error.message}`);
   return;
 }
 // 成功時の処理
@@ -130,23 +130,21 @@ if (Result.isFailure(result)) {
 
 **改善方針**:
 
-- `pipe` + `inspectError`（エラー通知）+ `map`（成功時処理）で宣言的に
-- C1の `AddAccountDialog` は外側のtry-catchも `Result.try` で包めるため、二重ガードを解消
-
-**注意**: C5/C6 は `safeInvoke` が `ResultAsync` を返すようになった後（カテゴリA完了後）に実施する。`ResultAsync` に対して `pipe` + `inspectError` が直接使える。
+- `pipe` + `inspectError`（エラー通知）+ `inspect`（成功時処理）で宣言的に
+- カテゴリA完了後に実施（`safeInvoke` が `ResultAsync` を返すようになった前提）
 
 **改善項目**:
 
-| ID  | 箇所 (ファイル)                                                             | 現状                               | 使用API                              |
-| --- | --------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------ |
-| C1  | `AddAccountDialog.handleSubmit` (`components/AddAccountDialog.tsx:17`)      | try-catch + isFailure の二重ガード | `pipe`, `inspectError`, `map`, `try` |
-| C2  | `AccountHeader.handleAddFeed` (`components/sidebar/AccountHeader.tsx:20`)   | isFailure → alert → return         | `pipe`, `inspectError`, `map`        |
-| C3  | `AccountDetail.handleDelete` (`components/settings/AccountDetail.tsx:18`)   | 同上                               | `pipe`, `inspectError`, `map`        |
-| C4  | `AddAccountForm.handleSubmit` (`components/settings/AddAccountForm.tsx:19`) | 同上                               | `pipe`, `inspectError`, `map`        |
-| C5  | `App.triggerSync` (App.tsx)                                                 | isFailure → console.error          | `inspectError` で1行化               |
-| C6  | `BrowserView.handleOpenExternal`                                            | Result戻り値を完全無視             | `inspectError` でエラー時ログ        |
+| ID  | 箇所 (ファイル)                                                            | 現状                      | 使用API                           |
+| --- | -------------------------------------------------------------------------- | ------------------------- | --------------------------------- |
+| C1  | `Sidebar.handleAddFeed` (`components/reader/sidebar.tsx:32`)               | isFailure → alert         | `pipe`, `inspectError`, `inspect` |
+| C2  | `Sidebar.handleSync` (`components/reader/sidebar.tsx:48`)                  | isFailure → console.error | `inspectError` で1行化            |
+| C3  | `AccountDetail.handleDelete` (`components/reader/settings-modal.tsx:182`)  | isFailure → alert         | `pipe`, `inspectError`, `inspect` |
+| C4  | `AddAccountForm.handleSubmit` (`components/reader/settings-modal.tsx:257`) | isFailure → alert         | `pipe`, `inspectError`, `inspect` |
+| C5  | `App.triggerSync` (`App.tsx:11`)                                           | isFailure → console.error | `inspectError` で1行化            |
+| C6  | `BrowserView.handleOpenExternal` (`components/reader/browser-view.tsx:9`)  | Result戻り値を完全無視    | `inspectError` でエラー時ログ     |
 
-**改善後コード例** (`AccountHeader.handleAddFeed`):
+**改善後コード例** (`Sidebar.handleAddFeed`):
 
 ```typescript
 const handleAddFeed = async () => {
@@ -166,26 +164,6 @@ const handleAddFeed = async () => {
   );
 };
 ```
-
----
-
-### D. SettingsModal のイベントリスナー
-
-**対象**: `src/components/settings/SettingsModal.tsx`
-
-**現状**:
-
-```typescript
-listen("open-settings", () => openSettings())
-  .then((fn) => {
-    unlisten = fn;
-  })
-  .catch(() => {}); // Ignore in browser mode
-```
-
-**判定: 改善不要**
-
-`listen` は Tauri API の `Promise<UnlistenFn>` を返す関数であり、Result型を返すわけではない。`Result.try` で包んで `inspectError` に置き換えても、`unlisten` の取り出しが煩雑になり可読性が下がる。ブラウザモード時のエラー握り潰しは意図的な仕様であり、現状のまま維持する。
 
 ---
 
@@ -223,8 +201,6 @@ if (Result.isSuccess(result)) {
 | 2    | B (hooks)          | 6箇所の繰り返しパターン解消。Aの変更後に動作確認 |
 | 3    | E (テスト)         | A/Bの変更でテストを更新する際に合わせて改善      |
 | 4    | C (コンポーネント) | UIのエラーハンドリング改善。A完了が前提          |
-
-D (SettingsModal) は改善不要と判断。
 
 ## 設計判断
 
