@@ -1,0 +1,44 @@
+[env]
+_.path = ["./node_modules/.bin"]
+
+[tools]
+node = "24"
+pnpm = "latest"
+rust = "stable"
+taplo = "latest"
+
+[tasks.format]
+description = "Format all (TS + Rust + TOML)"
+run = ["pnpm run format", "cargo fmt --manifest-path src-tauri/Cargo.toml --all", "taplo fmt mise.toml"]
+
+[tasks."lint:types"]
+description = "TypeScript type check"
+run = "pnpm exec tsc --noEmit"
+
+[tasks."lint:biome"]
+description = "Biome lint check"
+run = "pnpm run lint"
+
+[tasks."lint:clippy"]
+description = "Rust clippy"
+run = "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
+
+[tasks.test]
+description = "Run all tests"
+run = ["cargo test --manifest-path src-tauri/Cargo.toml"]
+
+[tasks.build]
+description = "Build all"
+run = ["pnpm build"]
+
+[tasks.lint]
+description = "All lint checks"
+depends = ["lint:types", "lint:biome", "lint:clippy"]
+
+[tasks.check]
+description = "Local verification"
+depends = ["format", "lint", "test"]
+
+[tasks.ci]
+description = "CI equivalent"
+depends = ["format", "lint", "test", "build"]
