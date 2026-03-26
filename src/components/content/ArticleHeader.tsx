@@ -3,7 +3,7 @@ import type { ArticleDto } from "../../api/tauri-commands";
 export function ArticleHeader({ article }: { article: ArticleDto }) {
   const date = new Date(article.published_at);
   return (
-    <div style={{ marginBottom: "var(--space-xl)" }}>
+    <div style={{ marginBottom: "var(--space-content)" }}>
       <div
         style={{
           fontSize: "var(--font-size-xs)",

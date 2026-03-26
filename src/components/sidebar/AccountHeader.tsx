@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { addLocalFeed } from "../../api/tauri-commands";
 import { useAccounts } from "../../hooks/use-accounts";
 import { AddAccountDialog } from "../AddAccountDialog";
+import { IconButton } from "../IconButton";
 
 export function AccountHeader() {
   const [showAddAccount, setShowAddAccount] = useState(false);
@@ -42,34 +43,8 @@ export function AccountHeader() {
           <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>Today</div>
         </div>
         <div style={{ display: "flex", gap: "var(--space-sm)" }}>
-          <button
-            type="button"
-            onClick={handleAddFeed}
-            title="Add Feed"
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--text-tertiary)",
-              cursor: "pointer",
-              fontSize: "16px",
-            }}
-          >
-            +
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowAddAccount(true)}
-            title="Add Account"
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--text-tertiary)",
-              cursor: "pointer",
-              fontSize: "16px",
-            }}
-          >
-            &#9881;
-          </button>
+          <IconButton onClick={handleAddFeed} title="Add Feed">+</IconButton>
+          <IconButton onClick={() => setShowAddAccount(true)} title="Add Account">&#9881;</IconButton>
         </div>
       </div>
       <AddAccountDialog open={showAddAccount} onClose={() => setShowAddAccount(false)} />

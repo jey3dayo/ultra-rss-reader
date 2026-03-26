@@ -11,7 +11,7 @@ export function ArticleRow({ article }: { article: ArticleDto }) {
       type="button"
       onClick={() => selectArticle(article.id)}
       style={{
-        padding: "var(--space-md) var(--space-lg)",
+        padding: "var(--space-lg) var(--space-lg)",
         display: "flex",
         gap: "var(--space-md)",
         cursor: "pointer",

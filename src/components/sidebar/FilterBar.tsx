@@ -1,4 +1,5 @@
 import { useUiStore } from "../../stores/ui-store";
+import { IconButton } from "../IconButton";
 
 export function FilterBar() {
   const { viewMode, setViewMode } = useUiStore();
@@ -19,22 +20,14 @@ export function FilterBar() {
       }}
     >
       {items.map(({ mode, label }) => (
-        <button
+        <IconButton
           key={mode}
-          type="button"
           onClick={() => setViewMode(mode)}
-          style={{
-            background: viewMode === mode ? "var(--bg-selected)" : "none",
-            border: "none",
-            borderRadius: 12,
-            padding: "2px 10px",
-            color: viewMode === mode ? "var(--text-primary)" : "var(--text-muted)",
-            cursor: "pointer",
-            fontSize: "var(--font-size-xs)",
-          }}
+          size="sm"
+          active={viewMode === mode}
         >
           {label}
-        </button>
+        </IconButton>
       ))}
     </div>
   );

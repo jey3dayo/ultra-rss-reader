@@ -1,5 +1,6 @@
 import { openInBrowser } from "../../api/tauri-commands";
 import { useUiStore } from "../../stores/ui-store";
+import { IconButton } from "../IconButton";
 
 export function BrowserView() {
   const { browserUrl, closeBrowser } = useUiStore();
@@ -24,19 +25,7 @@ export function BrowserView() {
           borderBottom: "1px solid var(--border-divider)",
         }}
       >
-        <button
-          type="button"
-          onClick={closeBrowser}
-          style={{
-            background: "none",
-            border: "none",
-            color: "var(--text-tertiary)",
-            cursor: "pointer",
-            fontSize: 16,
-          }}
-        >
-          ←
-        </button>
+        <IconButton onClick={closeBrowser}>←</IconButton>
         <span
           style={{
             flex: 1,
@@ -49,19 +38,7 @@ export function BrowserView() {
         >
           {browserUrl}
         </span>
-        <button
-          type="button"
-          onClick={() => openInBrowser(browserUrl)}
-          style={{
-            background: "none",
-            border: "none",
-            color: "var(--text-tertiary)",
-            cursor: "pointer",
-            fontSize: 14,
-          }}
-        >
-          ↗
-        </button>
+        <IconButton onClick={() => openInBrowser(browserUrl)}>↗</IconButton>
       </div>
       <iframe
         src={browserUrl}

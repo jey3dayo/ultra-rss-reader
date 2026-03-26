@@ -38,7 +38,7 @@ export function ArticleView({ articleId }: { articleId: string }) {
       }}
     >
       <ArticleToolbar article={article} />
-      <div style={{ flex: 1, overflow: "auto", padding: "var(--space-xl) var(--space-xl)" }}>
+      <div style={{ flex: 1, overflow: "auto", padding: "var(--space-content) 40px" }}>
         <ArticleHeader article={article} />
         <ArticleContent html={article.content_sanitized} />
       </div>

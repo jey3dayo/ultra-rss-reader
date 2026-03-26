@@ -1,3 +1,5 @@
+import { IconButton } from "../IconButton";
+
 export function ListHeader() {
   return (
     <div
@@ -12,9 +14,7 @@ export function ListHeader() {
     >
       <div style={{ fontWeight: "bold", fontSize: "var(--font-size-lg)" }}>Articles</div>
       <div style={{ display: "flex", gap: "var(--space-md)", color: "var(--text-tertiary)" }}>
-        <button type="button" style={{ background: "none", border: "none", color: "inherit", cursor: "pointer" }}>
-          ✓
-        </button>
+        <IconButton color="inherit">✓</IconButton>
       </div>
     </div>
   );
