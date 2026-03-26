@@ -1,3 +1,5 @@
+pub mod domain;
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! Welcome to Ultra RSS Reader.", name)
