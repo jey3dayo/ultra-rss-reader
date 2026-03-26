@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { useUiStore } from "../../stores/ui-store";
 import { AccountDetail } from "./AccountDetail";
 import { AccountsSettings } from "./AccountsSettings";
@@ -7,7 +8,19 @@ import { GeneralSettings } from "./GeneralSettings";
 import { SettingsSidebar } from "./SettingsSidebar";
 
 export function SettingsModal() {
-  const { settingsOpen, settingsCategory, settingsAccountId, settingsAddAccount, closeSettings } = useUiStore();
+  const { settingsOpen, settingsCategory, settingsAccountId, settingsAddAccount, closeSettings, openSettings } =
+    useUiStore();
+
+  // Listen for Tauri menu event
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    listen("open-settings", () => openSettings())
+      .then((fn) => {
+        unlisten = fn;
+      })
+      .catch(() => {}); // Ignore in browser mode
+    return () => unlisten?.();
+  }, [openSettings]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {

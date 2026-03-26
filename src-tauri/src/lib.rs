@@ -8,13 +8,49 @@ use std::sync::Mutex;
 
 use commands::AppState;
 use infra::db::connection::DbManager;
-use tauri::Manager;
+use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+use tauri::{Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
+            // App menu with Settings
+            let settings_item = MenuItemBuilder::with_id("settings", "Settings...")
+                .accelerator("CmdOrCtrl+,")
+                .build(app)?;
+
+            let app_submenu = SubmenuBuilder::new(app, "Ultra RSS Reader")
+                .item(&settings_item)
+                .separator()
+                .quit()
+                .build()?;
+
+            let edit_submenu = SubmenuBuilder::new(app, "Edit")
+                .undo()
+                .redo()
+                .separator()
+                .cut()
+                .copy()
+                .paste()
+                .select_all()
+                .build()?;
+
+            let menu = MenuBuilder::new(app)
+                .item(&app_submenu)
+                .item(&edit_submenu)
+                .build()?;
+
+            app.set_menu(menu)?;
+
+            app.on_menu_event(move |app_handle, event| {
+                if event.id().as_ref() == "settings" {
+                    if let Some(window) = app_handle.get_webview_window("main") {
+                        let _ = window.emit("open-settings", ());
+                    }
+                }
+            });
             let app_data_dir = app
                 .path()
                 .app_data_dir()
