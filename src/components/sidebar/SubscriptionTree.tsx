@@ -29,9 +29,26 @@ export function SubscriptionTree() {
       >
         Feeds
       </div>
-      {feeds?.map((feed) => (
-        <FeedItem key={feed.id} feed={feed} isSelected={selection.type === "feed" && selection.feedId === feed.id} />
-      ))}
+      {feeds && feeds.length > 0
+        ? feeds.map((feed) => (
+            <FeedItem
+              key={feed.id}
+              feed={feed}
+              isSelected={selection.type === "feed" && selection.feedId === feed.id}
+            />
+          ))
+        : selectedAccountId && (
+            <div
+              style={{
+                padding: "var(--space-md)",
+                color: "var(--text-muted)",
+                fontSize: "var(--font-size-sm)",
+                textAlign: "center",
+              }}
+            >
+              Press + to add a feed
+            </div>
+          )}
     </div>
   );
 }
