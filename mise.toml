@@ -9,7 +9,11 @@ taplo = "latest"
 
 [tasks.format]
 description = "Format all (TS + Rust + TOML)"
-run = ["pnpm run format", "cargo fmt --manifest-path src-tauri/Cargo.toml --all", "taplo fmt mise.toml"]
+run = [
+  "pnpm run format",
+  "cargo fmt --manifest-path src-tauri/Cargo.toml --all",
+  "taplo fmt mise.toml",
+]
 
 [tasks."lint:types"]
 description = "TypeScript type check"
