@@ -194,6 +194,41 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         tx.commit()?;
         Ok(())
     }
+
+    fn search(
+        &self,
+        account_id: &AccountId,
+        query: &str,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>> {
+        let like_pattern = format!("%{query}%");
+        let select_cols_prefixed = SELECT_COLS
+            .split(", ")
+            .map(|c| format!("a.{c}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let sql = format!(
+            "SELECT {select_cols_prefixed} FROM articles a
+             JOIN feeds f ON a.feed_id = f.id
+             WHERE f.account_id = ?1
+             AND (a.title LIKE ?2 OR a.content_sanitized LIKE ?2)
+             ORDER BY a.published_at DESC
+             LIMIT ?3 OFFSET ?4"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let articles = stmt
+            .query_map(
+                params![
+                    account_id.0,
+                    like_pattern,
+                    pagination.limit as i64,
+                    pagination.offset as i64
+                ],
+                row_to_article,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(articles)
+    }
 }
 
 #[cfg(test)]
@@ -502,5 +537,66 @@ mod tests {
 
         let old = repo.find_by_sanitizer_version_below(2, 100).unwrap();
         assert_eq!(old.len(), 0);
+    }
+
+    #[test]
+    fn search_finds_by_title() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let a1 = make_article(&feed_id, "Rust Programming Guide");
+        let a2 = make_article(&feed_id, "Python Tutorial");
+        repo.upsert(&[a1, a2]).unwrap();
+
+        let results = repo
+            .search(&account_id, "Rust", &Pagination::default())
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Rust Programming Guide");
+    }
+
+    #[test]
+    fn search_finds_by_content() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut a1 = make_article(&feed_id, "Generic Title");
+        a1.content_sanitized = "This article is about quantum computing".to_string();
+        let a2 = make_article(&feed_id, "Another Title");
+        repo.upsert(&[a1, a2]).unwrap();
+
+        let results = repo
+            .search(&account_id, "quantum", &Pagination::default())
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Generic Title");
+    }
+
+    #[test]
+    fn search_respects_account_scope() {
+        let db = test_db();
+        let account1 = insert_test_account(&db);
+        let account2 = insert_test_account(&db);
+        let feed1 = insert_test_feed(&db, &account1);
+        let feed2 = insert_test_feed(&db, &account2);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let a1 = make_article(&feed1, "Shared Keyword Article");
+        let a2 = make_article(&feed2, "Shared Keyword Article");
+        repo.upsert(&[a1, a2]).unwrap();
+
+        let results1 = repo
+            .search(&account1, "Shared", &Pagination::default())
+            .unwrap();
+        assert_eq!(results1.len(), 1);
+
+        let results2 = repo
+            .search(&account2, "Shared", &Pagination::default())
+            .unwrap();
+        assert_eq!(results2.len(), 1);
     }
 }

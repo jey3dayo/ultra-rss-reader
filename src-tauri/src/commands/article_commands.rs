@@ -2,7 +2,7 @@ use tauri::State;
 
 use crate::commands::dto::{AppError, ArticleDto};
 use crate::commands::AppState;
-use crate::domain::types::{ArticleId, FeedId};
+use crate::domain::types::{AccountId, ArticleId, FeedId};
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::repository::article::{ArticleRepository, Pagination};
 
@@ -47,4 +47,24 @@ pub fn toggle_article_star(
     let repo = SqliteArticleRepository::new(db.writer());
     repo.mark_as_starred(&ArticleId(article_id), starred)?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn search_articles(
+    state: State<'_, AppState>,
+    account_id: String,
+    query: String,
+    offset: Option<usize>,
+    limit: Option<usize>,
+) -> Result<Vec<ArticleDto>, AppError> {
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let repo = SqliteArticleRepository::new(db.reader());
+    let pagination = Pagination {
+        offset: offset.unwrap_or(0),
+        limit: limit.unwrap_or(50),
+    };
+    let articles = repo.search(&AccountId(account_id), &query, &pagination)?;
+    Ok(articles.into_iter().map(ArticleDto::from).collect())
 }
