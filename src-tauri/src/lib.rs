@@ -17,9 +17,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             // App menu with Settings
-            let settings_item = MenuItemBuilder::with_id("settings", "Settings...")
-                .accelerator("CmdOrCtrl+,")
-                .build(app)?;
+            let settings_item =
+                MenuItemBuilder::with_id("settings", "Settings...\tCtrl+,").build(app)?;
 
             let app_submenu = SubmenuBuilder::new(app, "Ultra RSS Reader")
                 .item(&settings_item)
@@ -45,9 +44,16 @@ pub fn run() {
             app.set_menu(menu)?;
 
             app.on_menu_event(move |app_handle, event| {
-                if event.id().as_ref() == "settings" {
+                let id = event.id().as_ref();
+                tracing::info!("Menu event: {}", id);
+                if id == "settings" {
                     if let Some(window) = app_handle.get_webview_window("main") {
-                        let _ = window.emit("open-settings", ());
+                        match window.emit("open-settings", ()) {
+                            Ok(_) => tracing::info!("Emitted open-settings event"),
+                            Err(e) => tracing::error!("Failed to emit: {}", e),
+                        }
+                    } else {
+                        tracing::error!("Could not find main window");
                     }
                 }
             });
