@@ -1,4 +1,5 @@
 pub mod domain;
+pub mod infra;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
