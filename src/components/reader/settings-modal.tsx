@@ -50,7 +50,10 @@ export function SettingsModal() {
 
   return (
     <Dialog open={settingsOpen} onOpenChange={(open) => (!open ? closeSettings() : openSettings())}>
-      <DialogContent className="flex h-[600px] max-w-[800px] gap-0 overflow-hidden p-0" showCloseButton={false}>
+      <DialogContent
+        className="flex h-[80vh] max-h-[720px] max-w-[920px] gap-0 overflow-hidden p-0"
+        showCloseButton={false}
+      >
         {/* Sidebar Navigation */}
         <div className="flex w-[260px] flex-col border-r border-border bg-sidebar">
           {/* Header */}
