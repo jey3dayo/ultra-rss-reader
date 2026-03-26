@@ -1,6 +1,7 @@
 import { openInBrowser } from "../../api/tauri-commands";
 import { useUiStore } from "../../stores/ui-store";
 import { IconButton } from "../IconButton";
+import { toolbarStyle, truncateStyle } from "../styles";
 
 export function BrowserView() {
   const { browserUrl, closeBrowser } = useUiStore();
@@ -19,25 +20,14 @@ export function BrowserView() {
         flexDirection: "column",
       }}
     >
-      <div
-        style={{
-          height: "var(--toolbar-height)",
-          padding: "0 var(--space-lg)",
-          display: "flex",
-          alignItems: "center",
-          gap: "var(--space-md)",
-          borderBottom: "1px solid var(--border-divider)",
-        }}
-      >
+      <div style={{ ...toolbarStyle, gap: "var(--space-md)" }}>
         <IconButton onClick={closeBrowser}>←</IconButton>
         <span
           style={{
             flex: 1,
             fontSize: "var(--font-size-xs)",
             color: "var(--text-muted)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            ...truncateStyle,
           }}
         >
           {browserUrl}

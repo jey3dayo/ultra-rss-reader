@@ -2,6 +2,7 @@ import type { ArticleDto } from "../../api/tauri-commands";
 import { useMarkRead, useToggleStar } from "../../hooks/use-articles";
 import { useUiStore } from "../../stores/ui-store";
 import { IconButton } from "../IconButton";
+import { toolbarStyle } from "../styles";
 
 export function ArticleToolbar({ article }: { article: ArticleDto }) {
   const markRead = useMarkRead();
@@ -9,17 +10,7 @@ export function ArticleToolbar({ article }: { article: ArticleDto }) {
   const openBrowser = useUiStore((s) => s.openBrowser);
 
   return (
-    <div
-      style={{
-        height: "var(--toolbar-height)",
-        padding: "0 var(--space-lg)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "flex-end",
-        gap: "var(--space-lg)",
-        borderBottom: "1px solid var(--border-divider)",
-      }}
-    >
+    <div style={{ ...toolbarStyle, justifyContent: "flex-end", gap: "var(--space-lg)" }}>
       <IconButton
         onClick={() => markRead.mutate(article.id)}
         color={article.is_read ? "var(--text-muted)" : "var(--accent-blue)"}
