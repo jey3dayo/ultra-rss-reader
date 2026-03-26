@@ -32,11 +32,5 @@
       "icons/icon.ico"
     ]
   },
-  "plugins": {
-    "opener": {
-      "openUrl": {
-        "enabled": true
-      }
-    }
-  }
+  "plugins": {}
 }
