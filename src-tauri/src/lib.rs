@@ -31,6 +31,7 @@ pub fn run() {
             commands::article_commands::list_articles,
             commands::article_commands::mark_article_read,
             commands::article_commands::toggle_article_star,
+            commands::opml_commands::import_opml,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
