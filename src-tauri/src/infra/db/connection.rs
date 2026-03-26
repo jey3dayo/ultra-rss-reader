@@ -1,7 +1,10 @@
 use rusqlite::Connection;
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::domain::error::DomainResult;
+
+static IN_MEMORY_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 pub struct DbManager {
     writer: Connection,
@@ -24,12 +27,13 @@ impl DbManager {
     /// In-memory DB for testing
     pub fn new_in_memory() -> DomainResult<Self> {
         // For in-memory, both connections must share the same DB.
-        // Use a named in-memory DB with shared cache.
-        let uri = "file::memory:?cache=shared";
-        let writer = Connection::open(uri)?;
+        // Use a unique named in-memory DB with shared cache to avoid conflicts in parallel tests.
+        let id = IN_MEMORY_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let uri = format!("file:memdb_{id}?mode=memory&cache=shared");
+        let writer = Connection::open(&uri)?;
         Self::apply_pragmas(&writer)?;
 
-        let reader = Connection::open(uri)?;
+        let reader = Connection::open(&uri)?;
         Self::apply_pragmas(&reader)?;
 
         let mut manager = Self { writer, reader };
