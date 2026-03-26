@@ -1,6 +1,7 @@
 pub mod domain;
 pub mod infra;
 pub mod repository;
+pub mod service;
 
 #[tauri::command]
 fn greet(name: &str) -> String {

@@ -1,0 +1,163 @@
+use crate::domain::article::{generate_entry_id, Article};
+use crate::domain::error::DomainResult;
+use crate::domain::provider::*;
+use crate::domain::types::{AccountId, FeedId};
+use crate::infra::provider::traits::FeedProvider;
+use crate::infra::sanitizer;
+use crate::repository::article::ArticleRepository;
+use crate::repository::feed::FeedRepository;
+use crate::repository::folder::FolderRepository;
+use crate::repository::pending_mutation::PendingMutationRepository;
+use crate::repository::sync_state::SyncStateRepository;
+use chrono::Utc;
+
+pub async fn sync_account(
+    account_id: &AccountId,
+    provider: &dyn FeedProvider,
+    article_repo: &dyn ArticleRepository,
+    feed_repo: &dyn FeedRepository,
+    folder_repo: &dyn FolderRepository,
+    _sync_state_repo: &dyn SyncStateRepository,
+    pending_mutation_repo: &dyn PendingMutationRepository,
+) -> DomainResult<Vec<FeedId>> {
+    let caps = provider.capabilities();
+    let mut updated_feeds = Vec::new();
+
+    // Step 1: Push pending mutations (remote providers only)
+    if caps.supports_remote_state {
+        let pending = pending_mutation_repo.find_by_account(account_id)?;
+        if !pending.is_empty() {
+            let mutations: Vec<Mutation> = pending
+                .iter()
+                .map(|p| match p.mutation_type.as_str() {
+                    "mark_read" => Mutation::MarkRead {
+                        remote_entry_id: p.remote_entry_id.clone(),
+                    },
+                    "mark_unread" => Mutation::MarkUnread {
+                        remote_entry_id: p.remote_entry_id.clone(),
+                    },
+                    "set_starred" => Mutation::SetStarred {
+                        remote_entry_id: p.remote_entry_id.clone(),
+                        starred: true,
+                    },
+                    "unset_starred" => Mutation::SetStarred {
+                        remote_entry_id: p.remote_entry_id.clone(),
+                        starred: false,
+                    },
+                    _ => Mutation::MarkRead {
+                        remote_entry_id: p.remote_entry_id.clone(),
+                    },
+                })
+                .collect();
+            provider.push_mutations(&mutations).await?;
+            let ids: Vec<i64> = pending.iter().filter_map(|p| p.id).collect();
+            pending_mutation_repo.delete(&ids)?;
+        }
+    }
+
+    // Step 2: Sync folders (remote providers only)
+    if caps.supports_folders {
+        let remote_folders = provider.get_folders().await?;
+        for rf in remote_folders {
+            let folder = crate::domain::folder::Folder {
+                id: crate::domain::types::FolderId::new(),
+                account_id: account_id.clone(),
+                remote_id: Some(rf.remote_id),
+                name: rf.name,
+                sort_order: rf.sort_order.unwrap_or(0),
+            };
+            folder_repo.save(&folder)?;
+        }
+    }
+
+    // Step 3: Sync subscriptions (remote providers only)
+    if caps.supports_remote_state {
+        let remote_subs = provider.get_subscriptions().await?;
+        for rs in remote_subs {
+            let feed = crate::domain::feed::Feed {
+                id: FeedId::new(),
+                account_id: account_id.clone(),
+                folder_id: None, // TODO: resolve from folder_remote_id
+                remote_id: Some(rs.remote_id),
+                title: rs.title,
+                url: rs.url.clone(),
+                site_url: rs.site_url,
+                icon: None,
+                unread_count: 0,
+            };
+            feed_repo.save(&feed)?;
+        }
+    }
+
+    // Step 4: Pull entries
+    let feeds = feed_repo.find_by_account(account_id)?;
+    for feed in &feeds {
+        let scope = if let Some(ref remote_id) = feed.remote_id {
+            PullScope::Feed(FeedIdentifier::Remote {
+                remote_id: remote_id.clone(),
+            })
+        } else {
+            PullScope::Feed(FeedIdentifier::Local {
+                feed_url: feed.url.clone(),
+            })
+        };
+
+        let result = provider.pull_entries(scope, None).await?;
+
+        let articles: Vec<Article> = result
+            .entries
+            .iter()
+            .map(|entry| {
+                let id = generate_entry_id(
+                    account_id.as_ref(),
+                    entry.id.as_deref(),
+                    &feed.url,
+                    entry.url.as_deref(),
+                    Some(&entry.title),
+                );
+                Article {
+                    id,
+                    feed_id: feed.id.clone(),
+                    remote_id: entry.id.clone(),
+                    title: entry.title.clone(),
+                    content_raw: entry.content.clone(),
+                    content_sanitized: sanitizer::sanitize_html(&entry.content),
+                    sanitizer_version: sanitizer::SANITIZER_VERSION,
+                    summary: entry.summary.clone(),
+                    url: entry.url.clone(),
+                    author: entry.author.clone(),
+                    published_at: entry.published_at.unwrap_or_else(Utc::now),
+                    thumbnail: entry.thumbnail.clone(),
+                    is_read: entry.is_read.unwrap_or(false),
+                    is_starred: entry.is_starred.unwrap_or(false),
+                    fetched_at: Utc::now(),
+                }
+            })
+            .collect();
+
+        if !articles.is_empty() {
+            article_repo.upsert(&articles)?;
+            updated_feeds.push(feed.id.clone());
+        }
+    }
+
+    // Step 5: Pull state (remote providers only)
+    if caps.supports_remote_state {
+        let state = provider.pull_state().await?;
+        let pending = pending_mutation_repo.find_by_account(account_id)?;
+        let pending_ids: Vec<String> = pending.iter().map(|p| p.remote_entry_id.clone()).collect();
+        article_repo.apply_remote_state(
+            account_id,
+            &state.read_ids,
+            &state.starred_ids,
+            &pending_ids,
+        )?;
+    }
+
+    // Step 6: Recalculate unread counts
+    for feed in &feeds {
+        feed_repo.recalculate_unread_count(&feed.id)?;
+    }
+
+    Ok(updated_feeds)
+}
