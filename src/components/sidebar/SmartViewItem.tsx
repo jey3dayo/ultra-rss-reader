@@ -1,4 +1,5 @@
 import { useUiStore } from "../../stores/ui-store";
+import { SelectableItem } from "../SelectableItem";
 
 export function SmartViewItem({
   kind,
@@ -11,22 +12,12 @@ export function SmartViewItem({
 }) {
   const selectSmartView = useUiStore((s) => s.selectSmartView);
   return (
-    <button
-      type="button"
+    <SelectableItem
+      isSelected={isSelected}
       onClick={() => selectSmartView(kind)}
-      style={{
-        padding: "var(--space-xs) var(--space-sm)",
-        borderRadius: 4,
-        cursor: "pointer",
-        background: isSelected ? "var(--bg-selected)" : "transparent",
-        color: "var(--text-secondary)",
-        fontSize: "var(--font-size-md)",
-        border: "none",
-        width: "100%",
-        textAlign: "left",
-      }}
+      style={{ fontSize: "var(--font-size-md)" }}
     >
       {kind === "starred" ? "★" : "●"} {label}
-    </button>
+    </SelectableItem>
   );
 }

@@ -1,5 +1,7 @@
 import type { ArticleDto } from "../../api/tauri-commands";
 import { useUiStore } from "../../stores/ui-store";
+import { SelectableItem } from "../SelectableItem";
+import { truncateStyle } from "../styles";
 
 export function ArticleRow({ article }: { article: ArticleDto }) {
   const { selectedArticleId, selectArticle } = useUiStore();
@@ -7,22 +9,15 @@ export function ArticleRow({ article }: { article: ArticleDto }) {
   const time = new Date(article.published_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   return (
-    <button
-      type="button"
+    <SelectableItem
+      isSelected={isSelected}
       onClick={() => selectArticle(article.id)}
       style={{
         padding: "var(--space-lg) var(--space-lg)",
-        display: "flex",
         gap: "var(--space-md)",
-        cursor: "pointer",
-        background: isSelected ? "var(--bg-selected)" : "transparent",
         borderBottom: "1px solid var(--border-divider)",
-        borderTop: "none",
-        borderLeft: "none",
-        borderRight: "none",
+        borderRadius: 0,
         opacity: article.is_read ? 0.6 : 1,
-        width: "100%",
-        textAlign: "left",
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -31,9 +26,7 @@ export function ArticleRow({ article }: { article: ArticleDto }) {
             fontSize: "var(--font-size-md)",
             fontWeight: article.is_read ? "normal" : "bold",
             color: "var(--text-primary)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            ...truncateStyle,
           }}
         >
           {article.title}
@@ -47,6 +40,6 @@ export function ArticleRow({ article }: { article: ArticleDto }) {
           style={{ width: 48, height: 48, borderRadius: 4, objectFit: "cover", flexShrink: 0 }}
         />
       )}
-    </button>
+    </SelectableItem>
   );
 }
