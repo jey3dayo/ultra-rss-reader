@@ -1,36 +1,48 @@
 # Ultra RSS Reader — TODO
 
-## Settings > General（将来実装）
+## UI改善（モック比較で洗い出し） — 完了
 
-- [ ] Appearance: ダークモード / ライトモード切替
-- [ ] Reading: 記事を既読にするタイミング（On open / On scroll / Manual）
-- [ ] Reading: Sort subscriptions（Folders first / Alphabetical）
-- [ ] Shortcuts: キーボードショートカット一覧 / カスタマイズ
-- [ ] Animations: アニメーション ON/OFF
-- [ ] Actions & Sharing: 共有先の設定
-- [ ] Reader View: Full-text抽出のデフォルト設定
-- [ ] Bionic Reading: ON/OFF
-- [ ] Gestures: スワイプ操作の設定
+- [x] 記事リストにサマリー表示を追加
+- [x] 記事リストにフィード名を表示
+- [x] 記事ビューにフィード名を表示
+- [x] 記事リストのヘッダーに検索ボタンを追加
+- [x] Settings: Appearanceタブを追加
+- [x] 既読記事の視覚的区別を改善
+- [x] サイドバーのフォルダ階層表示
 
-## Settings > Accounts（今回実装）
+## 設定機能の実装（spec: docs/superpowers/specs/2026-03-27-settings-implementation-design.md）
+
+### Phase 1: 永続化基盤
+- [ ] SQLite V2マイグレーション（preferencesテーブル）
+- [ ] Rustコマンド（get_preferences / set_preference）
+- [ ] フロント preferences store + 起動時読み込み
+
+### Phase 2: 各タブ実装
+- [ ] General タブ（設定値の読み書き）
+- [ ] Appearance タブ（テーマ適用 + 表示設定）
+- [ ] Reading タブ（既読タイミング, Sort, Scroll）
+- [ ] Shortcuts タブ（read-only一覧）
+- [ ] Actions and Sharing タブ（サービス + Show in toolbar）
+- [ ] Bionic Reading タブ（Coming soon表示）
+
+### Phase 3: クリーンアップ
+- [ ] 不要タブ削除（Animations, Gestures, Services）
+- [ ] 設定値の各コンポーネントへの反映
+
+## Settings > Accounts（実装済み）
 
 - [x] アカウント一覧表示
-- [x] アカウント詳細（Description, Server URL, Username）
-- [x] Sync間隔設定
-- [x] Sync on wake設定
-- [x] Keep read items期間設定
-- [x] Delete Account
-- [x] Add Account
+- [x] アカウント詳細
+- [x] Sync間隔 / Sync on wake / Keep read items
+- [x] Delete Account / Add Account
 
 ## 開発環境
 
 - [ ] Storybook導入（UIが安定してから）
-- [ ] Chromatic（ビジュアルリグレッション）
 
 ## その他
 
 - [ ] OPML Export
 - [ ] Inoreader連携
 - [ ] FTS5検索
-- [ ] ライトモード
 - [ ] Tags
