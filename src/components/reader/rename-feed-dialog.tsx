@@ -2,9 +2,10 @@ import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import type { FeedDto } from "@/api/tauri-commands";
-import { renameFeed } from "@/api/tauri-commands";
+import { renameFeed, updateFeedFolder } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useFolders } from "@/hooks/use-folders";
 import { useUiStore } from "@/stores/ui-store";
 
 export function RenameDialog({
@@ -17,38 +18,52 @@ export function RenameDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const [title, setTitle] = useState(feed.title);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(feed.folder_id);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
   const showToast = useUiStore((s) => s.showToast);
+  const { data: folders } = useFolders(feed.account_id);
 
   useEffect(() => {
     if (open) {
       setTitle(feed.title);
+      setSelectedFolderId(feed.folder_id);
       setLoading(false);
       requestAnimationFrame(() => {
         inputRef.current?.focus();
         inputRef.current?.select();
       });
     }
-  }, [open, feed.title]);
+  }, [open, feed.title, feed.folder_id]);
 
   const handleSubmit = async () => {
     const trimmed = title.trim();
-    if (!trimmed || trimmed === feed.title) {
+    if (!trimmed) {
       onOpenChange(false);
       return;
     }
     setLoading(true);
-    Result.pipe(
-      await renameFeed(feed.id, trimmed),
-      Result.inspect(() => {
-        qc.invalidateQueries({ queryKey: ["feeds"] });
-        onOpenChange(false);
-      }),
-      Result.inspectError((e) => showToast(`Failed to rename: ${e.message}`)),
-    );
+
+    // Rename if title changed
+    if (trimmed !== feed.title) {
+      Result.pipe(
+        await renameFeed(feed.id, trimmed),
+        Result.inspectError((e) => showToast(`Failed to rename: ${e.message}`)),
+      );
+    }
+
+    // Update folder if changed
+    if (selectedFolderId !== feed.folder_id) {
+      Result.pipe(
+        await updateFeedFolder(feed.id, selectedFolderId),
+        Result.inspectError((e) => showToast(`Failed to update folder: ${e.message}`)),
+      );
+    }
+
+    qc.invalidateQueries({ queryKey: ["feeds"] });
     setLoading(false);
+    onOpenChange(false);
   };
 
   return (
@@ -62,8 +77,9 @@ export function RenameDialog({
             e.preventDefault();
             handleSubmit();
           }}
+          className="space-y-4"
         >
-          <label className="mb-1 block text-sm text-muted-foreground">
+          <label className="block text-sm text-muted-foreground">
             Title
             <input
               ref={inputRef}
@@ -75,6 +91,26 @@ export function RenameDialog({
               disabled={loading}
             />
           </label>
+
+          {folders && folders.length > 0 && (
+            <label className="block text-sm text-muted-foreground">
+              Folder
+              <select
+                name="feed-folder"
+                value={selectedFolderId ?? ""}
+                onChange={(e) => setSelectedFolderId(e.target.value || null)}
+                className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm text-foreground shadow-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={loading}
+              >
+                <option value="">No folder</option>
+                {folders.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </form>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>

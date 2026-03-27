@@ -128,3 +128,10 @@
 
 - [x] OS スリープ復帰イベントの検知（visibilitychange + 30秒閾値）
 - [x] 復帰時に sync_on_wake=true のアカウントのみ同期を発火
+
+## フィード編集ダイアログにフォルダ割り当て追加 — 完了
+
+- [x] Rust: FeedRepository に update_folder メソッド追加 + Tauri コマンド
+- [x] TS: tauri-commands に updateFeedFolder ラッパー追加
+- [x] UI: rename-feed-dialog にフォルダ一覧 + 選択UI追加
+- [x] dev-mock: update_feed_folder ハンドラ追加

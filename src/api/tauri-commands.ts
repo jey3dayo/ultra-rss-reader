@@ -86,6 +86,9 @@ export const addLocalFeed = (accountId: string, url: string) =>
 export const deleteFeed = (feedId: string) => safeInvoke<void>("delete_feed", { feedId });
 export const renameFeed = (feedId: string, title: string) => safeInvoke<void>("rename_feed", { feedId, title });
 
+export const updateFeedFolder = (feedId: string, folderId: string | null) =>
+  safeInvoke<void>("update_feed_folder", { feedId, folderId });
+
 export const openInBrowser = (url: string) => safeInvoke<void>("open_in_browser", { url });
 
 export const triggerSync = () => safeInvoke<void>("trigger_sync");

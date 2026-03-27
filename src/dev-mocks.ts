@@ -225,6 +225,12 @@ export function setupDevMocks() {
         return null;
       }
 
+      case "update_feed_folder": {
+        const targetFeed = mockFeeds.find((f) => f.id === args.feedId);
+        if (targetFeed) targetFeed.folder_id = (args.folderId as string) ?? null;
+        return null;
+      }
+
       case "open_in_browser": {
         const url = args.url as string | undefined;
         if (url) window.open(url, "_blank");

@@ -8,7 +8,7 @@ use crate::commands::AppState;
 use crate::domain::account::Account;
 use crate::domain::feed::Feed;
 use crate::domain::provider::{Mutation, ProviderKind};
-use crate::domain::types::{AccountId, FeedId};
+use crate::domain::types::{AccountId, FeedId, FolderId};
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
@@ -73,6 +73,19 @@ pub fn rename_feed(
     let db = lock_db(&state.db)?;
     let repo = SqliteFeedRepository::new(db.writer());
     repo.rename(&FeedId(feed_id), &title)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn update_feed_folder(
+    state: State<'_, AppState>,
+    feed_id: String,
+    folder_id: Option<String>,
+) -> Result<(), AppError> {
+    let db = lock_db(&state.db)?;
+    let repo = SqliteFeedRepository::new(db.writer());
+    let fid = folder_id.map(FolderId);
+    repo.update_folder(&FeedId(feed_id), fid.as_ref())?;
     Ok(())
 }
 

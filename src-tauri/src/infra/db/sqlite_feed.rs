@@ -120,6 +120,14 @@ impl FeedRepository for SqliteFeedRepository<'_> {
         )?;
         Ok(())
     }
+
+    fn update_folder(&self, feed_id: &FeedId, folder_id: Option<&FolderId>) -> DomainResult<()> {
+        self.conn.execute(
+            "UPDATE feeds SET folder_id = ?1 WHERE id = ?2",
+            params![folder_id.map(|f| &f.0), feed_id.0],
+        )?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

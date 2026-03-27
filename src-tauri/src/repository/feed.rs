@@ -1,6 +1,6 @@
 use crate::domain::error::DomainResult;
 use crate::domain::feed::Feed;
-use crate::domain::types::{AccountId, FeedId};
+use crate::domain::types::{AccountId, FeedId, FolderId};
 
 pub trait FeedRepository {
     fn find_by_account(&self, account_id: &AccountId) -> DomainResult<Vec<Feed>>;
@@ -15,4 +15,5 @@ pub trait FeedRepository {
     fn find_by_url(&self, account_id: &AccountId, url: &str) -> DomainResult<Option<Feed>>;
     fn delete(&self, feed_id: &FeedId) -> DomainResult<()>;
     fn rename(&self, feed_id: &FeedId, title: &str) -> DomainResult<()>;
+    fn update_folder(&self, feed_id: &FeedId, folder_id: Option<&FolderId>) -> DomainResult<()>;
 }
