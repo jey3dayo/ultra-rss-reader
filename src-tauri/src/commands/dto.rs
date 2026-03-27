@@ -37,6 +37,9 @@ pub struct AccountDto {
     pub id: String,
     pub kind: String,
     pub name: String,
+    pub sync_interval_secs: i64,
+    pub sync_on_wake: bool,
+    pub keep_read_items_days: i64,
 }
 
 #[derive(Debug, Serialize)]
@@ -96,6 +99,9 @@ impl From<crate::domain::account::Account> for AccountDto {
             id: a.id.0,
             kind: format!("{:?}", a.kind),
             name: a.name,
+            sync_interval_secs: a.sync_interval_secs,
+            sync_on_wake: a.sync_on_wake,
+            keep_read_items_days: a.keep_read_items_days,
         }
     }
 }

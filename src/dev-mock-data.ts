@@ -10,9 +10,30 @@ const yesterday = new Date(now);
 yesterday.setDate(yesterday.getDate() - 1);
 
 export const mockAccounts: AccountDto[] = [
-  { id: "acc-freshrss", kind: "FreshRss", name: "FreshRSS" },
-  { id: "acc-inoreader", kind: "Inoreader", name: "Inoreader" },
-  { id: "acc-local", kind: "Local", name: "Local" },
+  {
+    id: "acc-freshrss",
+    kind: "FreshRss",
+    name: "FreshRSS",
+    sync_interval_secs: 3600,
+    sync_on_wake: true,
+    keep_read_items_days: 30,
+  },
+  {
+    id: "acc-inoreader",
+    kind: "Inoreader",
+    name: "Inoreader",
+    sync_interval_secs: 3600,
+    sync_on_wake: false,
+    keep_read_items_days: 30,
+  },
+  {
+    id: "acc-local",
+    kind: "Local",
+    name: "Local",
+    sync_interval_secs: 3600,
+    sync_on_wake: false,
+    keep_read_items_days: 30,
+  },
 ];
 
 export const mockFolders: FolderDto[] = [
@@ -207,7 +228,7 @@ export const mockArticles: ArticleDto[] = [
     url: "https://example.com/keiba",
     author: null,
     published_at: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 15, 56).toISOString(),
-    thumbnail: "https://images.unsplash.com/photo-1529927120475-1f638e42f5c3?w=400&h=300&fit=crop",
+    thumbnail: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop",
     is_read: true,
     is_starred: false,
   },

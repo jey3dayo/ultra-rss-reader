@@ -4,8 +4,22 @@ import type { AccountDto, ArticleDto, FeedDto } from "@/api/tauri-commands";
 // --- Sample data ---
 
 export const sampleAccounts: AccountDto[] = [
-  { id: "acc-1", kind: "local", name: "Local" },
-  { id: "acc-2", kind: "freshrss", name: "FreshRSS" },
+  {
+    id: "acc-1",
+    kind: "local",
+    name: "Local",
+    sync_interval_secs: 3600,
+    sync_on_wake: false,
+    keep_read_items_days: 30,
+  },
+  {
+    id: "acc-2",
+    kind: "freshrss",
+    name: "FreshRSS",
+    sync_interval_secs: 3600,
+    sync_on_wake: false,
+    keep_read_items_days: 30,
+  },
 ];
 
 export const sampleFeeds: FeedDto[] = [
@@ -75,7 +89,14 @@ const defaultHandler: MockHandler = (cmd, args) => {
         sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId),
       );
     case "add_account":
-      return { id: "acc-new", kind: String(args.kind), name: String(args.name) } satisfies AccountDto;
+      return {
+        id: "acc-new",
+        kind: String(args.kind),
+        name: String(args.name),
+        sync_interval_secs: 3600,
+        sync_on_wake: false,
+        keep_read_items_days: 30,
+      } satisfies AccountDto;
     case "mark_article_read":
     case "mark_articles_read":
       return null;

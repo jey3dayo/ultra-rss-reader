@@ -71,6 +71,30 @@ pub fn add_account(
 }
 
 #[tauri::command]
+pub fn update_account_sync(
+    state: State<'_, AppState>,
+    account_id: String,
+    sync_interval_secs: i64,
+    sync_on_wake: bool,
+    keep_read_items_days: i64,
+) -> Result<AccountDto, AppError> {
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let repo = SqliteAccountRepository::new(db.writer());
+    let mut account =
+        repo.find_by_id(&AccountId(account_id))?
+            .ok_or_else(|| AppError::UserVisible {
+                message: "Account not found".into(),
+            })?;
+    account.sync_interval_secs = sync_interval_secs;
+    account.sync_on_wake = sync_on_wake;
+    account.keep_read_items_days = keep_read_items_days;
+    repo.save(&account)?;
+    Ok(AccountDto::from(account))
+}
+
+#[tauri::command]
 pub fn delete_account(state: State<'_, AppState>, account_id: String) -> Result<(), AppError> {
     // Clean up keyring entry (log warning on unexpected errors)
     if let Err(e) = keyring_store::delete_password(&account_id) {

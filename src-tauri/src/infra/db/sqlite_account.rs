@@ -1,4 +1,4 @@
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::domain::account::Account;
 use crate::domain::error::DomainResult;
@@ -55,6 +55,14 @@ impl AccountRepository for SqliteAccountRepository<'_> {
             .query_map([], row_to_account)?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(accounts)
+    }
+
+    fn find_by_id(&self, id: &AccountId) -> DomainResult<Option<Account>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, kind, name, server_url, username, sync_interval_secs, sync_on_wake, keep_read_items_days FROM accounts WHERE id = ?1",
+        )?;
+        let account = stmt.query_row(params![id.0], row_to_account).optional()?;
+        Ok(account)
     }
 
     fn save(&self, account: &Account) -> DomainResult<()> {

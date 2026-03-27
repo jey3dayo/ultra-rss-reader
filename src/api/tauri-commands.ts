@@ -4,7 +4,14 @@ import { invoke } from "@tauri-apps/api/core";
 // Error type from Rust backend
 export type AppError = { type: "UserVisible"; message: string } | { type: "Retryable"; message: string };
 
-export type AccountDto = { id: string; kind: string; name: string };
+export type AccountDto = {
+  id: string;
+  kind: string;
+  name: string;
+  sync_interval_secs: number;
+  sync_on_wake: boolean;
+  keep_read_items_days: number;
+};
 export type FolderDto = { id: string; account_id: string; name: string; sort_order: number };
 export type FeedDto = {
   id: string;
@@ -63,6 +70,13 @@ export const searchArticles = (accountId: string, query: string, offset?: number
 
 export const addAccount = (kind: string, name: string, serverUrl?: string, username?: string, password?: string) =>
   safeInvoke<AccountDto>("add_account", { kind, name, serverUrl, username, password });
+
+export const updateAccountSync = (
+  accountId: string,
+  syncIntervalSecs: number,
+  syncOnWake: boolean,
+  keepReadItemsDays: number,
+) => safeInvoke<AccountDto>("update_account_sync", { accountId, syncIntervalSecs, syncOnWake, keepReadItemsDays });
 
 export const deleteAccount = (accountId: string) => safeInvoke<void>("delete_account", { accountId });
 

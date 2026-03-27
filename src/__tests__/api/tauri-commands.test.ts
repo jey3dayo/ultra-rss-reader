@@ -64,6 +64,9 @@ describe("tauri-commands with mockIPC", () => {
         id: "acc-new",
         kind: "local",
         name: "My Feed",
+        sync_interval_secs: 3600,
+        sync_on_wake: false,
+        keep_read_items_days: 30,
       });
     });
   });

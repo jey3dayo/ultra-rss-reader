@@ -38,9 +38,22 @@ export function setupDevMocks() {
           id: `dev-acc-${nextAccountId++}`,
           kind: String(args.kind ?? "Local"),
           name: String(args.name ?? "Dev Account"),
+          sync_interval_secs: 3600,
+          sync_on_wake: false,
+          keep_read_items_days: 30,
         };
         mockAccounts.push(account);
         return account;
+      }
+
+      case "update_account_sync": {
+        const target = mockAccounts.find((a) => a.id === args.accountId);
+        if (target) {
+          target.sync_interval_secs = Number(args.syncIntervalSecs);
+          target.sync_on_wake = Boolean(args.syncOnWake);
+          target.keep_read_items_days = Number(args.keepReadItemsDays);
+        }
+        return target ?? null;
       }
 
       case "delete_account": {

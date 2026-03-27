@@ -4,6 +4,7 @@ use crate::domain::types::AccountId;
 
 pub trait AccountRepository {
     fn find_all(&self) -> DomainResult<Vec<Account>>;
+    fn find_by_id(&self, id: &AccountId) -> DomainResult<Option<Account>>;
     fn save(&self, account: &Account) -> DomainResult<()>;
     fn delete(&self, id: &AccountId) -> DomainResult<()>;
 }

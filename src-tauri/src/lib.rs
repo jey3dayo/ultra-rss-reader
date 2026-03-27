@@ -79,6 +79,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::account_commands::list_accounts,
             commands::account_commands::add_account,
+            commands::account_commands::update_account_sync,
             commands::account_commands::delete_account,
             commands::feed_commands::list_folders,
             commands::feed_commands::list_feeds,
