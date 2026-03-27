@@ -15,6 +15,7 @@ export const sampleFeeds: FeedDto[] = [
     folder_id: null,
     title: "Tech Blog",
     url: "https://example.com/feed.xml",
+    site_url: "https://example.com",
     unread_count: 5,
   },
   {
@@ -23,6 +24,7 @@ export const sampleFeeds: FeedDto[] = [
     folder_id: null,
     title: "News",
     url: "https://example.com/news.xml",
+    site_url: "https://example.com",
     unread_count: 0,
   },
 ];
@@ -83,6 +85,7 @@ const defaultHandler: MockHandler = (cmd, args) => {
         folder_id: null,
         title: "New Feed",
         url: args.url,
+        site_url: args.url,
         unread_count: 0,
       };
     case "delete_account":

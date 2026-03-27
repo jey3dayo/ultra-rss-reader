@@ -64,6 +64,7 @@ export function setupDevMocks() {
           folder_id: null,
           title: titleFromUrl(feedUrl),
           url: feedUrl,
+          site_url: feedUrl,
           unread_count: 3,
         };
         mockFeeds.push(feed);

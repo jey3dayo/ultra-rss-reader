@@ -9,6 +9,7 @@ const baseFeed: FeedDto = {
   folder_id: "folder-1",
   title: "AUTOMATON",
   url: "https://automaton-media.com/feed/",
+  site_url: "https://automaton-media.com",
   unread_count: 42,
 };
 

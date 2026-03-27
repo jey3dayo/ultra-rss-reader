@@ -27,6 +27,7 @@ export const mockFeeds: FeedDto[] = [
     folder_id: "folder-gaming",
     title: "AUTOMATON",
     url: "https://automaton-media.com/feed/",
+    site_url: "https://automaton-media.com",
     unread_count: 199,
   },
   {
@@ -35,6 +36,7 @@ export const mockFeeds: FeedDto[] = [
     folder_id: "folder-gaming",
     title: "はちま起稿",
     url: "https://esuteru.com/feed/",
+    site_url: "https://esuteru.com",
     unread_count: 239,
   },
   {
@@ -43,6 +45,7 @@ export const mockFeeds: FeedDto[] = [
     folder_id: "folder-gaming",
     title: "ゆめ痛 -News Alert-",
     url: "https://yumenavi.info/feed/",
+    site_url: "https://yumenavi.info",
     unread_count: 152,
   },
   {
@@ -51,6 +54,7 @@ export const mockFeeds: FeedDto[] = [
     folder_id: "folder-tech",
     title: "Publickey",
     url: "https://www.publickey1.jp/atom.xml",
+    site_url: "https://www.publickey1.jp",
     unread_count: 70,
   },
   {
@@ -59,6 +63,7 @@ export const mockFeeds: FeedDto[] = [
     folder_id: "folder-tech",
     title: "techno-edge",
     url: "https://www.techno-edge.net/rss/",
+    site_url: "https://www.techno-edge.net",
     unread_count: 1,
   },
   {
@@ -67,6 +72,7 @@ export const mockFeeds: FeedDto[] = [
     folder_id: null,
     title: "NHKニュース",
     url: "https://www.nhk.or.jp/rss/news/cat0.xml",
+    site_url: "https://www.nhk.or.jp",
     unread_count: 187,
   },
   {
@@ -75,6 +81,7 @@ export const mockFeeds: FeedDto[] = [
     folder_id: null,
     title: "はてブ 人気エントリー",
     url: "https://b.hatena.ne.jp/hotentry/it.rss",
+    site_url: "https://b.hatena.ne.jp",
     unread_count: 432,
   },
   {
@@ -83,6 +90,7 @@ export const mockFeeds: FeedDto[] = [
     folder_id: "folder-tech",
     title: "blog.jxck.io",
     url: "https://blog.jxck.io/entries/feed",
+    site_url: "https://blog.jxck.io",
     unread_count: 1,
   },
   {
@@ -91,6 +99,7 @@ export const mockFeeds: FeedDto[] = [
     folder_id: null,
     title: "npaka",
     url: "https://note.com/npaka/rss",
+    site_url: "https://note.com/npaka",
     unread_count: 128,
   },
   {
@@ -99,6 +108,7 @@ export const mockFeeds: FeedDto[] = [
     folder_id: null,
     title: "ちもろぐ",
     url: "https://chimolog.co/feed/",
+    site_url: "https://chimolog.co",
     unread_count: 1,
   },
 ];
