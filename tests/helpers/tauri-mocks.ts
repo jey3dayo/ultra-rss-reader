@@ -74,7 +74,7 @@ export const sampleArticles: ArticleDto[] = [
 
 // --- Mock setup ---
 
-export type MockHandler = (cmd: string, args: Record<string, unknown>) => unknown;
+type MockHandler = (cmd: string, args: Record<string, unknown>) => unknown;
 
 const defaultHandler: MockHandler = (cmd, args) => {
   switch (cmd) {

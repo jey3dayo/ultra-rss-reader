@@ -32,7 +32,6 @@ export function AddFeedDialog({
       setUrl("");
       setError(null);
       setLoading(false);
-      // Focus input after dialog opens
       requestAnimationFrame(() => inputRef.current?.focus());
     }
   }, [open]);

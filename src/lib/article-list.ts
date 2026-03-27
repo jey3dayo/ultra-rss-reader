@@ -22,7 +22,7 @@ type GroupArticlesParams = {
   feedNameMap: Map<string, string>;
 };
 
-export function getDateGroup(dateStr: string): string {
+function getDateGroup(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());

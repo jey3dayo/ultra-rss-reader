@@ -56,6 +56,37 @@ const navItems: NavItem[] = [
   },
 ];
 
+function SettingsContent({
+  settingsAccountId,
+  settingsAddAccount,
+  settingsCategory,
+}: {
+  settingsAccountId: string | null;
+  settingsAddAccount: boolean;
+  settingsCategory: SettingsCategory;
+}) {
+  if (settingsAccountId) {
+    return <AccountDetail />;
+  }
+  if (settingsAddAccount) {
+    return <AddAccountForm />;
+  }
+  switch (settingsCategory) {
+    case "appearance":
+      return <AppearanceSettings />;
+    case "reading":
+      return <ReadingSettings />;
+    case "bionic-reading":
+      return <BionicReadingSettings />;
+    case "shortcuts":
+      return <ShortcutsSettings />;
+    case "actions":
+      return <ActionsSettings />;
+    default:
+      return <GeneralSettings />;
+  }
+}
+
 export function SettingsModal() {
   const settingsOpen = useUiStore((s) => s.settingsOpen);
   const settingsCategory = useUiStore((s) => s.settingsCategory);
@@ -83,29 +114,6 @@ export function SettingsModal() {
       unlisten?.();
     };
   }, [openSettings]);
-
-  const renderContent = () => {
-    if (settingsAccountId) {
-      return <AccountDetail />;
-    }
-    if (settingsAddAccount) {
-      return <AddAccountForm />;
-    }
-    switch (settingsCategory) {
-      case "appearance":
-        return <AppearanceSettings />;
-      case "reading":
-        return <ReadingSettings />;
-      case "bionic-reading":
-        return <BionicReadingSettings />;
-      case "shortcuts":
-        return <ShortcutsSettings />;
-      case "actions":
-        return <ActionsSettings />;
-      default:
-        return <GeneralSettings />;
-    }
-  };
 
   return (
     <Dialog open={settingsOpen} onOpenChange={(open) => (!open ? closeSettings() : openSettings())}>
@@ -193,7 +201,13 @@ export function SettingsModal() {
 
         {/* Content Area */}
         <div className="flex flex-1 flex-col bg-popover">
-          <ScrollArea className="flex-1">{renderContent()}</ScrollArea>
+          <ScrollArea className="flex-1">
+            <SettingsContent
+              settingsAccountId={settingsAccountId}
+              settingsAddAccount={settingsAddAccount}
+              settingsCategory={settingsCategory}
+            />
+          </ScrollArea>
         </div>
       </DialogContent>
     </Dialog>
