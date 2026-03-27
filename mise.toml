@@ -1,3 +1,7 @@
+# ========================================
+# グローバル設定
+# ========================================
+
 [env]
 _.path = ["./node_modules/.bin"]
 
@@ -7,13 +11,53 @@ pnpm = "latest"
 rust = "stable"
 taplo = "latest"
 
+# ========================================
+# フォーマット（自動修正）
+# ========================================
+
 [tasks.format]
 description = "Format all (TS + Rust + TOML)"
-run = [
-  "pnpm run format",
-  "cargo fmt --manifest-path src-tauri/Cargo.toml --all",
-  "taplo fmt mise.toml",
-]
+depends = ["format:biome", "format:rust", "format:toml"]
+
+[tasks."format:biome"]
+description = "Biome format + lint autofix"
+run = ["pnpm run format", "pnpm run lint:fix"]
+
+[tasks."format:rust"]
+description = "Rust format"
+run = "cargo fmt --manifest-path src-tauri/Cargo.toml --all"
+
+[tasks."format:toml"]
+description = "TOML format"
+run = "taplo fmt mise.toml src-tauri/Cargo.toml"
+
+# ========================================
+# フォーマットチェック（書き込みなし、CI用）
+# ========================================
+
+[tasks."format:check"]
+description = "Format check all (no writes)"
+depends = ["format:biome:check", "format:rust:check", "format:toml:check"]
+
+[tasks."format:biome:check"]
+description = "Biome format + lint check (no writes)"
+run = "biome check --formatter-enabled=true --linter-enabled=true ."
+
+[tasks."format:rust:check"]
+description = "Rust format check (no writes)"
+run = "cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check"
+
+[tasks."format:toml:check"]
+description = "TOML format check (no writes)"
+run = "taplo fmt --check mise.toml src-tauri/Cargo.toml"
+
+# ========================================
+# リント
+# ========================================
+
+[tasks.lint]
+description = "All lint checks"
+depends = ["lint:types", "lint:biome", "lint:clippy"]
 
 [tasks."lint:types"]
 description = "TypeScript type check"
@@ -27,6 +71,18 @@ run = "pnpm run lint"
 description = "Rust clippy"
 run = "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
 
+[tasks."lint:actions"]
+description = "GitHub Actions workflow check (actionlint)"
+run = "actionlint"
+
+# ========================================
+# テスト
+# ========================================
+
+[tasks.test]
+description = "Run all tests"
+depends = ["test:rust", "test:unit"]
+
 [tasks."test:rust"]
 description = "Run Rust tests"
 run = "cargo test --manifest-path src-tauri/Cargo.toml"
@@ -39,10 +95,6 @@ run = "pnpm run test"
 description = "Run Playwright E2E tests"
 run = "pnpm exec playwright test"
 
-[tasks.test]
-description = "Run all tests"
-depends = ["test:rust", "test:unit"]
-
 [tasks."test:all"]
 description = "Run all tests including E2E"
 depends = ["test:rust", "test:unit", "test:e2e"]
@@ -51,18 +103,22 @@ depends = ["test:rust", "test:unit", "test:e2e"]
 description = "Run FreshRSS live integration tests (requires .env with credentials)"
 run = "dotenvx run -- cargo test --manifest-path src-tauri/Cargo.toml freshrss_live -- --ignored --nocapture"
 
+# ========================================
+# ビルド
+# ========================================
+
 [tasks.build]
-description = "Build all"
+description = "Build frontend"
 run = ["pnpm build"]
 
-[tasks.lint]
-description = "All lint checks"
-depends = ["lint:types", "lint:biome", "lint:clippy"]
+# ========================================
+# エイリアス（まとめ実行）
+# ========================================
 
 [tasks.check]
-description = "Local verification"
+description = "Local verification (format + lint + test)"
 depends = ["format", "lint", "test"]
 
 [tasks.ci]
-description = "CI equivalent"
-depends = ["format", "lint", "test", "build"]
+description = "CI equivalent (format:check + lint + test + build)"
+depends = ["format:check", "lint", "test", "build"]

@@ -22,6 +22,24 @@ env:
     patchelf
 
 jobs:
+  format:
+    name: "Check: Format"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jdx/mise-action@v2
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: mise run format:check
+
   lint:
     name: "Check: Lint"
     runs-on: ubuntu-latest
@@ -91,12 +109,13 @@ jobs:
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
-    needs: [lint, test, build]
+    needs: [format, lint, test, build]
     if: always()
 
     steps:
       - name: Determine overall result
         env:
+          FORMAT_RESULT: ${{ needs.format.result }}
           LINT_RESULT: ${{ needs.lint.result }}
           TEST_RESULT: ${{ needs.test.result }}
           BUILD_RESULT: ${{ needs.build.result }}
@@ -105,6 +124,10 @@ jobs:
           set -euo pipefail
 
           failed=0
+          if [ "$FORMAT_RESULT" != "success" ]; then
+            echo "::error::Format FAILED ($FORMAT_RESULT)"
+            failed=1
+          fi
           if [ "$LINT_RESULT" != "success" ]; then
             echo "::error::Lint FAILED ($LINT_RESULT)"
             failed=1
