@@ -55,6 +55,21 @@ impl FolderRepository for SqliteFolderRepository<'_> {
             .execute("DELETE FROM folders WHERE id = ?1", params![id.0])?;
         Ok(())
     }
+
+    fn find_by_remote_id(
+        &self,
+        account_id: &AccountId,
+        remote_id: &str,
+    ) -> DomainResult<Option<Folder>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, account_id, remote_id, name, sort_order FROM folders WHERE account_id = ?1 AND remote_id = ?2",
+        )?;
+        let mut rows = stmt.query_map(params![account_id.0, remote_id], row_to_folder)?;
+        match rows.next() {
+            Some(row) => Ok(Some(row?)),
+            None => Ok(None),
+        }
+    }
 }
 
 #[cfg(test)]

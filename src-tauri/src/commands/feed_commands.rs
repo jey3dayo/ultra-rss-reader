@@ -203,8 +203,11 @@ async fn sync_freshrss_account(
         })?;
         let folder_repo = SqliteFolderRepository::new(db.writer());
         for rf in &remote_folders {
+            let existing_id = folder_repo
+                .find_by_remote_id(&account.id, &rf.remote_id)?
+                .map(|f| f.id);
             let folder = Folder {
-                id: FolderId::new(),
+                id: existing_id.unwrap_or_else(FolderId::new),
                 account_id: account.id.clone(),
                 remote_id: Some(rf.remote_id.clone()),
                 name: rf.name.clone(),
@@ -238,10 +241,14 @@ async fn sync_freshrss_feeds(
         })?;
         let feed_repo = SqliteFeedRepository::new(db.writer());
         for rs in &remote_subs {
+            let existing = feed_repo.find_by_remote_id(&account.id, &rs.remote_id)?;
             let feed = Feed {
-                id: FeedId::new(),
+                id: existing
+                    .as_ref()
+                    .map(|f| f.id.clone())
+                    .unwrap_or_else(FeedId::new),
                 account_id: account.id.clone(),
-                folder_id: None, // folder_id resolution is out of scope
+                folder_id: existing.and_then(|f| f.folder_id), // preserve existing folder_id
                 remote_id: Some(rs.remote_id.clone()),
                 title: rs.title.clone(),
                 url: rs.url.clone(),

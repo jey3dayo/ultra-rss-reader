@@ -500,6 +500,7 @@ function AddAccountForm() {
   const [name, setName] = useState("");
   const [serverUrl, setServerUrl] = useState("");
   const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleSubmit = async () => {
     Result.pipe(
@@ -508,6 +509,7 @@ function AddAccountForm() {
         name || kind,
         kind === "FreshRss" ? serverUrl : undefined,
         kind === "FreshRss" ? username : undefined,
+        kind === "FreshRss" ? password : undefined,
       ),
       Result.inspectError((e) => window.alert(`Failed to add account: ${e.message}`)),
       Result.inspect((account) => {
@@ -565,6 +567,15 @@ function AddAccountForm() {
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+            />
+          </div>
+          <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
+            <span className="text-sm text-foreground">Password</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
             />
           </div>
