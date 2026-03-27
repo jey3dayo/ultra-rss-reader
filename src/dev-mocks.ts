@@ -207,6 +207,24 @@ export function setupDevMocks() {
         return mockArticles.filter((a) => articleIds.includes(a.id));
       }
 
+      case "delete_feed": {
+        const feedIdx = mockFeeds.findIndex((f) => f.id === args.feedId);
+        if (feedIdx >= 0) {
+          const removed = mockFeeds.splice(feedIdx, 1)[0];
+          // Remove associated articles
+          for (let i = mockArticles.length - 1; i >= 0; i--) {
+            if (mockArticles[i].feed_id === removed.id) mockArticles.splice(i, 1);
+          }
+        }
+        return null;
+      }
+
+      case "rename_feed": {
+        const feed = mockFeeds.find((f) => f.id === args.feedId);
+        if (feed) feed.title = String(args.title);
+        return null;
+      }
+
       case "trigger_sync":
       case "open_in_browser":
       case "import_opml":
