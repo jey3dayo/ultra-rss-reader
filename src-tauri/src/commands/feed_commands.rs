@@ -1,3 +1,5 @@
+use std::sync::Mutex;
+
 use tauri::State;
 
 use crate::commands::dto::{AppError, FeedDto, FolderDto};
@@ -6,6 +8,7 @@ use crate::domain::account::Account;
 use crate::domain::feed::Feed;
 use crate::domain::provider::{Mutation, ProviderKind};
 use crate::domain::types::{AccountId, FeedId};
+use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
@@ -22,14 +25,18 @@ use crate::repository::folder::FolderRepository;
 use crate::repository::pending_mutation::PendingMutationRepository;
 use tracing::warn;
 
+fn lock_db(db: &Mutex<DbManager>) -> Result<std::sync::MutexGuard<'_, DbManager>, AppError> {
+    db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })
+}
+
 #[tauri::command]
 pub fn list_folders(
     state: State<'_, AppState>,
     account_id: String,
 ) -> Result<Vec<FolderDto>, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = lock_db(&state.db)?;
     let repo = SqliteFolderRepository::new(db.reader());
     let folders = repo.find_by_account(&AccountId(account_id))?;
     Ok(folders.into_iter().map(FolderDto::from).collect())
@@ -40,9 +47,7 @@ pub fn list_feeds(
     state: State<'_, AppState>,
     account_id: String,
 ) -> Result<Vec<FeedDto>, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    let db = lock_db(&state.db)?;
     let repo = SqliteFeedRepository::new(db.reader());
     let feeds = repo.find_by_account(&AccountId(account_id))?;
     Ok(feeds.into_iter().map(FeedDto::from).collect())
@@ -73,21 +78,17 @@ pub async fn add_local_feed(
     };
 
     {
-        let db = state.db.lock().map_err(|e| AppError::UserVisible {
-            message: format!("Lock error: {e}"),
-        })?;
+        let db = lock_db(&state.db)?;
         let feed_repo = SqliteFeedRepository::new(db.writer());
         feed_repo.save(&feed)?;
     }
 
     // 3. Fetch initial articles for the new feed
-    sync_local_feed(&state, &provider, &account_id, &feed).await?;
+    sync_local_feed(&state.db, &provider, &account_id, &feed).await?;
 
     // 4. Re-read unread count from DB
     let unread_count = {
-        let db = state.db.lock().map_err(|e| AppError::UserVisible {
-            message: format!("Lock error: {e}"),
-        })?;
+        let db = lock_db(&state.db)?;
         let feed_repo = SqliteFeedRepository::new(db.reader());
         feed_repo.recalculate_unread_count(&feed.id).unwrap_or(0)
     };
@@ -98,7 +99,7 @@ pub async fn add_local_feed(
 
 /// Fetch articles for a single local feed and save them to DB.
 async fn sync_local_feed(
-    state: &State<'_, AppState>,
+    db: &Mutex<DbManager>,
     provider: &LocalProvider,
     account_id: &AccountId,
     feed: &Feed,
@@ -147,11 +148,9 @@ async fn sync_local_feed(
         .collect();
 
     if !articles.is_empty() {
-        let db = state.db.lock().map_err(|e| AppError::UserVisible {
-            message: format!("Lock error: {e}"),
-        })?;
-        let article_repo = SqliteArticleRepository::new(db.writer());
-        let feed_repo_w = SqliteFeedRepository::new(db.writer());
+        let db_guard = lock_db(db)?;
+        let article_repo = SqliteArticleRepository::new(db_guard.writer());
+        let feed_repo_w = SqliteFeedRepository::new(db_guard.writer());
         article_repo.upsert(&articles)?;
         let _ = feed_repo_w.recalculate_unread_count(&feed.id);
     }
@@ -159,10 +158,7 @@ async fn sync_local_feed(
 }
 
 /// Sync a FreshRSS account: authenticate, sync folders, subscriptions, entries, state, unread counts.
-async fn sync_freshrss_account(
-    state: &State<'_, AppState>,
-    account: &Account,
-) -> Result<(), AppError> {
+async fn sync_freshrss_account(db: &Mutex<DbManager>, account: &Account) -> Result<(), AppError> {
     use crate::domain::folder::Folder;
     use crate::domain::types::FolderId;
 
@@ -200,10 +196,8 @@ async fn sync_freshrss_account(
     // Step 2: Sync folders
     let remote_folders = provider.get_folders().await?;
     {
-        let db = state.db.lock().map_err(|e| AppError::UserVisible {
-            message: format!("Lock error: {e}"),
-        })?;
-        let folder_repo = SqliteFolderRepository::new(db.writer());
+        let db_guard = lock_db(db)?;
+        let folder_repo = SqliteFolderRepository::new(db_guard.writer());
         for rf in &remote_folders {
             let existing_id = folder_repo
                 .find_by_remote_id(&account.id, &rf.remote_id)?
@@ -220,14 +214,14 @@ async fn sync_freshrss_account(
     }
 
     // Steps 3-7
-    sync_freshrss_feeds(state, &provider, account).await?;
+    sync_freshrss_feeds(db, &provider, account).await?;
 
     Ok(())
 }
 
 /// Steps 3-7: sync subscriptions, pull entries, push mutations, apply remote state, recalculate unread counts.
 async fn sync_freshrss_feeds(
-    state: &State<'_, AppState>,
+    db: &Mutex<DbManager>,
     provider: &FreshRssProvider,
     account: &Account,
 ) -> Result<(), AppError> {
@@ -240,10 +234,8 @@ async fn sync_freshrss_feeds(
 
     // Build remote_id -> FolderId map from existing folders
     let folder_remote_id_map: HashMap<String, FolderId> = {
-        let db = state.db.lock().map_err(|e| AppError::UserVisible {
-            message: format!("Lock error: {e}"),
-        })?;
-        let folder_repo = SqliteFolderRepository::new(db.reader());
+        let db_guard = lock_db(db)?;
+        let folder_repo = SqliteFolderRepository::new(db_guard.reader());
         let folders = folder_repo.find_by_account(&account.id)?;
         folders
             .into_iter()
@@ -254,10 +246,8 @@ async fn sync_freshrss_feeds(
     // Step 3: Sync subscriptions
     let remote_subs = provider.get_subscriptions().await?;
     {
-        let db = state.db.lock().map_err(|e| AppError::UserVisible {
-            message: format!("Lock error: {e}"),
-        })?;
-        let feed_repo = SqliteFeedRepository::new(db.writer());
+        let db_guard = lock_db(db)?;
+        let feed_repo = SqliteFeedRepository::new(db_guard.writer());
         for rs in &remote_subs {
             let existing = feed_repo.find_by_remote_id(&account.id, &rs.remote_id)?;
             let feed = Feed {
@@ -285,14 +275,10 @@ async fn sync_freshrss_feeds(
 
     // Step 4: Pull entries per feed
     let feeds = {
-        let db = state.db.lock().map_err(|e| AppError::UserVisible {
-            message: format!("Lock error: {e}"),
-        })?;
-        let feed_repo = SqliteFeedRepository::new(db.reader());
+        let db_guard = lock_db(db)?;
+        let feed_repo = SqliteFeedRepository::new(db_guard.reader());
         feed_repo.find_by_account(&account.id)?
     };
-
-    const MAX_PAGES_PER_FEED: usize = 10;
 
     for feed in &feeds {
         let scope = if let Some(ref remote_id) = feed.remote_id {
@@ -303,71 +289,56 @@ async fn sync_freshrss_feeds(
             continue; // Skip feeds without remote_id for FreshRSS
         };
 
-        let mut cursor: Option<crate::domain::provider::SyncCursor> = None;
-        let mut page: usize = 0;
+        let result = match provider.pull_entries(scope, None).await {
+            Ok(r) => r,
+            Err(e) => {
+                warn!("Failed to pull entries for feed {}: {e}", feed.url);
+                continue;
+            }
+        };
 
-        loop {
-            let result = match provider.pull_entries(scope.clone(), cursor).await {
-                Ok(r) => r,
-                Err(e) => {
-                    warn!("Failed to pull entries for feed {}: {e}", feed.url);
-                    break;
+        let articles: Vec<Article> = result
+            .entries
+            .iter()
+            .map(|entry| {
+                let id = generate_entry_id(
+                    account.id.as_ref(),
+                    entry.id.as_deref(),
+                    &feed.url,
+                    entry.url.as_deref(),
+                    Some(&entry.title),
+                );
+                Article {
+                    id,
+                    feed_id: feed.id.clone(),
+                    remote_id: entry.id.clone(),
+                    title: entry.title.clone(),
+                    content_raw: entry.content.clone(),
+                    content_sanitized: sanitizer::sanitize_html(&entry.content),
+                    sanitizer_version: sanitizer::SANITIZER_VERSION,
+                    summary: entry.summary.clone(),
+                    url: entry.url.clone(),
+                    author: entry.author.clone(),
+                    published_at: entry.published_at.unwrap_or_else(chrono::Utc::now),
+                    thumbnail: entry.thumbnail.clone(),
+                    is_read: entry.is_read.unwrap_or(false),
+                    is_starred: entry.is_starred.unwrap_or(false),
+                    fetched_at: chrono::Utc::now(),
                 }
-            };
+            })
+            .collect();
 
-            let articles: Vec<Article> = result
-                .entries
-                .iter()
-                .map(|entry| {
-                    let id = generate_entry_id(
-                        account.id.as_ref(),
-                        entry.id.as_deref(),
-                        &feed.url,
-                        entry.url.as_deref(),
-                        Some(&entry.title),
-                    );
-                    Article {
-                        id,
-                        feed_id: feed.id.clone(),
-                        remote_id: entry.id.clone(),
-                        title: entry.title.clone(),
-                        content_raw: entry.content.clone(),
-                        content_sanitized: sanitizer::sanitize_html(&entry.content),
-                        sanitizer_version: sanitizer::SANITIZER_VERSION,
-                        summary: entry.summary.clone(),
-                        url: entry.url.clone(),
-                        author: entry.author.clone(),
-                        published_at: entry.published_at.unwrap_or_else(chrono::Utc::now),
-                        thumbnail: entry.thumbnail.clone(),
-                        is_read: entry.is_read.unwrap_or(false),
-                        is_starred: entry.is_starred.unwrap_or(false),
-                        fetched_at: chrono::Utc::now(),
-                    }
-                })
-                .collect();
-
-            if !articles.is_empty() {
-                let db = state.db.lock().map_err(|e| AppError::UserVisible {
-                    message: format!("Lock error: {e}"),
-                })?;
-                let article_repo = SqliteArticleRepository::new(db.writer());
-                article_repo.upsert(&articles)?;
-            }
-
-            page += 1;
-            if !result.has_more || page >= MAX_PAGES_PER_FEED {
-                break;
-            }
-            cursor = result.next_cursor;
+        if !articles.is_empty() {
+            let db_guard = lock_db(db)?;
+            let article_repo = SqliteArticleRepository::new(db_guard.writer());
+            article_repo.upsert(&articles)?;
         }
     }
 
     // Step 5: Push pending mutations to server one by one
     let pending_mutations = {
-        let db = state.db.lock().map_err(|e| AppError::UserVisible {
-            message: format!("Lock error: {e}"),
-        })?;
-        let pending_repo = SqlitePendingMutationRepository::new(db.reader());
+        let db_guard = lock_db(db)?;
+        let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
         pending_repo.find_by_account(&account.id)?
     };
 
@@ -398,10 +369,8 @@ async fn sync_freshrss_feeds(
             Ok(()) => {
                 pushed_remote_ids.push(pm.remote_entry_id.clone());
                 if let Some(id) = pm.id {
-                    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-                        message: format!("Lock error: {e}"),
-                    })?;
-                    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+                    let db_guard = lock_db(db)?;
+                    let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
                     pending_repo.delete(&[id])?;
                 }
             }
@@ -416,10 +385,8 @@ async fn sync_freshrss_feeds(
 
     // Step 6: Pull remote state and apply (skip articles with pending or just-pushed mutations)
     let pending_remote_ids: Vec<String> = {
-        let db = state.db.lock().map_err(|e| AppError::UserVisible {
-            message: format!("Lock error: {e}"),
-        })?;
-        let pending_repo = SqlitePendingMutationRepository::new(db.reader());
+        let db_guard = lock_db(db)?;
+        let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
         let mut ids: Vec<String> = pending_repo
             .find_by_account(&account.id)?
             .into_iter()
@@ -434,10 +401,8 @@ async fn sync_freshrss_feeds(
 
     let remote_state = provider.pull_state().await?;
     {
-        let db = state.db.lock().map_err(|e| AppError::UserVisible {
-            message: format!("Lock error: {e}"),
-        })?;
-        let article_repo = SqliteArticleRepository::new(db.writer());
+        let db_guard = lock_db(db)?;
+        let article_repo = SqliteArticleRepository::new(db_guard.writer());
         article_repo.apply_remote_state(
             &account.id,
             &remote_state.read_ids,
@@ -448,10 +413,8 @@ async fn sync_freshrss_feeds(
 
     // Step 7: Recalculate unread counts
     {
-        let db = state.db.lock().map_err(|e| AppError::UserVisible {
-            message: format!("Lock error: {e}"),
-        })?;
-        let feed_repo = SqliteFeedRepository::new(db.writer());
+        let db_guard = lock_db(db)?;
+        let feed_repo = SqliteFeedRepository::new(db_guard.writer());
         for feed in &feeds {
             let _ = feed_repo.recalculate_unread_count(&feed.id);
         }
@@ -460,13 +423,11 @@ async fn sync_freshrss_feeds(
     Ok(())
 }
 
-#[tauri::command]
-pub async fn trigger_sync(state: State<'_, AppState>) -> Result<(), AppError> {
+/// Run a full sync for all accounts. Shared by `trigger_sync` command and the background scheduler.
+pub async fn run_full_sync(db: &Mutex<DbManager>) -> Result<(), AppError> {
     let accounts: Vec<Account> = {
-        let db = state.db.lock().map_err(|e| AppError::UserVisible {
-            message: format!("Lock error: {e}"),
-        })?;
-        let account_repo = SqliteAccountRepository::new(db.reader());
+        let db_guard = lock_db(db)?;
+        let account_repo = SqliteAccountRepository::new(db_guard.reader());
         account_repo.find_all()?
     };
 
@@ -475,18 +436,16 @@ pub async fn trigger_sync(state: State<'_, AppState>) -> Result<(), AppError> {
             ProviderKind::Local => {
                 let provider = LocalProvider::new();
                 let feeds = {
-                    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-                        message: format!("Lock error: {e}"),
-                    })?;
-                    let feed_repo = SqliteFeedRepository::new(db.reader());
+                    let db_guard = lock_db(db)?;
+                    let feed_repo = SqliteFeedRepository::new(db_guard.reader());
                     feed_repo.find_by_account(&account.id)?
                 };
                 for feed in &feeds {
-                    let _ = sync_local_feed(&state, &provider, &account.id, feed).await;
+                    let _ = sync_local_feed(db, &provider, &account.id, feed).await;
                 }
             }
             ProviderKind::FreshRss => {
-                if let Err(e) = sync_freshrss_account(&state, account).await {
+                if let Err(e) = sync_freshrss_account(db, account).await {
                     warn!(
                         "FreshRSS sync failed for account {}: {e}",
                         account.id.as_ref()
@@ -502,4 +461,32 @@ pub async fn trigger_sync(state: State<'_, AppState>) -> Result<(), AppError> {
         }
     }
     Ok(())
+}
+
+/// Get the minimum sync interval from all accounts (defaults to 3600s if no accounts).
+pub fn get_min_sync_interval(db: &Mutex<DbManager>) -> std::time::Duration {
+    const DEFAULT_INTERVAL_SECS: u64 = 3600;
+
+    let secs = lock_db(db)
+        .ok()
+        .and_then(|db_guard| {
+            let repo = SqliteAccountRepository::new(db_guard.reader());
+            repo.find_all().ok()
+        })
+        .and_then(|accounts| {
+            accounts
+                .iter()
+                .map(|a| a.sync_interval_secs)
+                .filter(|&s| s > 0)
+                .min()
+        })
+        .map(|s| s as u64)
+        .unwrap_or(DEFAULT_INTERVAL_SECS);
+
+    std::time::Duration::from_secs(secs)
+}
+
+#[tauri::command]
+pub async fn trigger_sync(state: State<'_, AppState>) -> Result<(), AppError> {
+    run_full_sync(&state.db).await
 }

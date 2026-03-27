@@ -98,10 +98,7 @@ pub fn import_opml(
 }
 
 #[tauri::command]
-pub fn export_opml(
-    state: State<'_, AppState>,
-    account_id: String,
-) -> Result<String, AppError> {
+pub fn export_opml(state: State<'_, AppState>, account_id: String) -> Result<String, AppError> {
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
     })?;
@@ -124,10 +121,8 @@ pub fn export_opml(
     let folders = folder_repo
         .find_by_account(&account_id)
         .map_err(AppError::from)?;
-    let folder_map: std::collections::HashMap<FolderId, String> = folders
-        .into_iter()
-        .map(|f| (f.id, f.name))
-        .collect();
+    let folder_map: std::collections::HashMap<FolderId, String> =
+        folders.into_iter().map(|f| (f.id, f.name)).collect();
 
     // Load feeds and convert to OpmlFeed
     let feed_repo = SqliteFeedRepository::new(db.reader());

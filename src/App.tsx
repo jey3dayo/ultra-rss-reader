@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { triggerSync } from "./api/tauri-commands";
 import { AppShell } from "./components/app-shell";
@@ -19,6 +20,17 @@ function AppInner() {
       ),
     );
   }, [loadPreferences]);
+
+  // Invalidate all queries when background sync completes
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    listen("sync-completed", () => {
+      queryClient.invalidateQueries();
+    }).then((fn) => {
+      unlisten = fn;
+    });
+    return () => unlisten?.();
+  }, []);
 
   return <AppShell />;
 }

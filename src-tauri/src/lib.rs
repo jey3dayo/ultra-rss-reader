@@ -65,6 +65,11 @@ pub fn run() {
             let db_path = app_data_dir.join("ultra-rss-reader.db");
             let db = DbManager::new(&db_path).expect("Failed to initialize database");
             app.manage(AppState { db: Mutex::new(db) });
+
+            // Start background periodic sync
+            let state = app.state::<AppState>();
+            service::sync_scheduler::start_sync_scheduler(&state.db, app.handle().clone());
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
