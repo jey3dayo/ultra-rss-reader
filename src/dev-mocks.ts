@@ -232,14 +232,34 @@ export function setupDevMocks() {
         return mockFeeds.filter((f) => f.account_id === args.accountId);
 
       case "add_local_feed": {
+        const feedId = `dev-feed-${nextFeedId++}`;
+        const feedUrl = String(args.url ?? "");
         const feed: FeedDto = {
-          id: `dev-feed-${nextFeedId++}`,
+          id: feedId,
           account_id: String(args.accountId),
-          title: `Feed: ${args.url}`,
-          url: String(args.url ?? ""),
-          unread_count: Math.floor(Math.random() * 50),
+          title: `Feed: ${feedUrl}`,
+          url: feedUrl,
+          unread_count: 3,
         };
         mockFeeds.push(feed);
+        // Generate sample articles for the new feed
+        const now = new Date();
+        for (let i = 0; i < 3; i++) {
+          const pubDate = new Date(now);
+          pubDate.setHours(pubDate.getHours() - i);
+          mockArticles.push({
+            id: `${feedId}-art-${i}`,
+            feed_id: feedId,
+            title: `Sample article ${i + 1} from ${feedUrl}`,
+            content_sanitized: `<p>This is a sample article fetched from ${feedUrl}.</p>`,
+            url: `${feedUrl}#article-${i}`,
+            author: null,
+            published_at: pubDate.toISOString(),
+            thumbnail: null,
+            is_read: false,
+            is_starred: false,
+          });
+        }
         return feed;
       }
 
