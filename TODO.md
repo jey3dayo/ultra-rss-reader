@@ -28,9 +28,11 @@
 - [x] Bionic Reading タブ（Coming soon表示）
 - [x] 不要タブ削除（Animations, Gestures, Services）
 
-### Phase 3: 設定値の反映
+### Phase 3: 設定値の反映 — 完了
 
-- [ ] 設定値の各コンポーネントへの反映（sort, group by, theme永続化, etc.）
+- [x] sort_unread, group_by, dim_archived, text_preview, image_previews
+- [x] action_copy_link, action_open_browser, action_share (ツールバー連動)
+- [x] theme 起動時適用 + system モード mediaQuery リスナー
 
 ## Settings > Accounts（実装済み）
 

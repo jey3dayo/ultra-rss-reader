@@ -2,7 +2,7 @@ import { useBreakpoint } from "../hooks/use-breakpoint";
 import { useKeyboard } from "../hooks/use-keyboard";
 import { useUiStore } from "../stores/ui-store";
 import { AppLayout } from "./app-layout";
-import { SettingsModal } from "./reader/settings-modal";
+import { SettingsModal } from "./settings/settings-modal";
 
 function Toast() {
   const { toastMessage, clearToast } = useUiStore();
