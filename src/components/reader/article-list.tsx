@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useArticles, useMarkRead, useSearchArticles } from "@/hooks/use-articles";
+import { useArticles, useMarkAllRead, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useArticlesByTag } from "@/hooks/use-tags";
 import { cn } from "@/lib/utils";
@@ -116,7 +116,7 @@ export function ArticleList() {
   const listRef = useRef<HTMLDivElement>(null);
   const scrollToTopOnChange = usePreferencesStore((s) => s.prefs.scroll_to_top_on_change ?? "true");
   const askBeforeMarkAll = usePreferencesStore((s) => s.prefs.ask_before_mark_all ?? "true");
-  const markRead = useMarkRead();
+  const markAllRead = useMarkAllRead();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to top when selection changes
   useEffect(() => {
@@ -132,9 +132,7 @@ export function ArticleList() {
     if (askBeforeMarkAll === "true") {
       if (!window.confirm(`Mark ${unread.length} articles as read?`)) return;
     }
-    for (const a of unread) {
-      markRead.mutate(a.id);
-    }
+    markAllRead.mutate(unread.map((a) => a.id));
   };
 
   const navigateArticle = useCallback(

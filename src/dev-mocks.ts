@@ -103,6 +103,15 @@ export function setupDevMocks() {
         return null;
       }
 
+      case "mark_articles_read": {
+        const ids = args.articleIds as string[];
+        for (const id of ids) {
+          const art = mockArticles.find((a) => a.id === id);
+          if (art) art.is_read = true;
+        }
+        return null;
+      }
+
       case "toggle_article_star": {
         const art = mockArticles.find((a) => a.id === args.articleId);
         if (art) art.is_starred = args.starred as boolean;

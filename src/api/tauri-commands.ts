@@ -12,6 +12,7 @@ export type FeedDto = {
   folder_id: string | null;
   title: string;
   url: string;
+  site_url: string;
   unread_count: number;
 };
 export type ArticleDto = {
@@ -51,6 +52,7 @@ export const listFeeds = (accountId: string) => safeInvoke<FeedDto[]>("list_feed
 export const listArticles = (feedId: string, offset?: number, limit?: number) =>
   safeInvoke<ArticleDto[]>("list_articles", { feedId, offset, limit });
 export const markArticleRead = (articleId: string) => safeInvoke<void>("mark_article_read", { articleId });
+export const markArticlesRead = (articleIds: string[]) => safeInvoke<void>("mark_articles_read", { articleIds });
 export const toggleArticleStar = (articleId: string, starred: boolean) =>
   safeInvoke<void>("toggle_article_star", { articleId, starred });
 export const searchArticles = (accountId: string, query: string, offset?: number, limit?: number) =>
@@ -63,6 +65,9 @@ export const deleteAccount = (accountId: string) => safeInvoke<void>("delete_acc
 
 export const addLocalFeed = (accountId: string, url: string) =>
   safeInvoke<FeedDto>("add_local_feed", { accountId, url });
+
+export const deleteFeed = (feedId: string) => safeInvoke<void>("delete_feed", { feedId });
+export const renameFeed = (feedId: string, title: string) => safeInvoke<void>("rename_feed", { feedId, title });
 
 export const openInBrowser = (url: string) => safeInvoke<void>("open_in_browser", { url });
 

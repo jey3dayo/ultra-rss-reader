@@ -51,6 +51,26 @@ pub fn mark_article_read(state: State<'_, AppState>, article_id: String) -> Resu
 }
 
 #[tauri::command]
+pub fn mark_articles_read(
+    state: State<'_, AppState>,
+    article_ids: Vec<String>,
+) -> Result<(), AppError> {
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let ids: Vec<ArticleId> = article_ids.iter().map(|id| ArticleId(id.clone())).collect();
+    let repo = SqliteArticleRepository::new(db.writer());
+    repo.mark_many_as_read(&ids)?;
+
+    // Queue pending mutations for FreshRSS/Inoreader articles
+    for id in &ids {
+        maybe_queue_mutation(db.writer(), id, "mark_read")?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
 pub fn toggle_article_star(
     state: State<'_, AppState>,
     article_id: String,

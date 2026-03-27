@@ -115,6 +115,21 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         Ok(())
     }
 
+    fn mark_many_as_read(&self, ids: &[ArticleId]) -> DomainResult<()> {
+        if ids.is_empty() {
+            return Ok(());
+        }
+        let tx = self.conn.unchecked_transaction()?;
+        {
+            let mut stmt = tx.prepare("UPDATE articles SET is_read = 1 WHERE id = ?1")?;
+            for id in ids {
+                stmt.execute(params![id.0])?;
+            }
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
     fn mark_as_starred(&self, id: &ArticleId, starred: bool) -> DomainResult<()> {
         self.conn.execute(
             "UPDATE articles SET is_starred = ?1 WHERE id = ?2",

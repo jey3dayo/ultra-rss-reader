@@ -4,7 +4,8 @@ pub mod infra;
 pub mod repository;
 pub mod service;
 
-use std::sync::Mutex;
+use std::sync::atomic::AtomicBool;
+use std::sync::{Arc, Mutex};
 
 use commands::AppState;
 use infra::db::connection::DbManager;
@@ -64,7 +65,10 @@ pub fn run() {
             std::fs::create_dir_all(&app_data_dir).expect("Failed to create app data dir");
             let db_path = app_data_dir.join("ultra-rss-reader.db");
             let db = DbManager::new(&db_path).expect("Failed to initialize database");
-            app.manage(AppState { db: Mutex::new(db) });
+            app.manage(AppState {
+                db: Mutex::new(db),
+                syncing: Arc::new(AtomicBool::new(false)),
+            });
 
             // Start background periodic sync
             let state = app.state::<AppState>();
@@ -79,9 +83,12 @@ pub fn run() {
             commands::feed_commands::list_folders,
             commands::feed_commands::list_feeds,
             commands::feed_commands::add_local_feed,
+            commands::feed_commands::delete_feed,
+            commands::feed_commands::rename_feed,
             commands::feed_commands::trigger_sync,
             commands::article_commands::list_articles,
             commands::article_commands::mark_article_read,
+            commands::article_commands::mark_articles_read,
             commands::article_commands::toggle_article_star,
             commands::article_commands::open_in_browser,
             commands::opml_commands::import_opml,

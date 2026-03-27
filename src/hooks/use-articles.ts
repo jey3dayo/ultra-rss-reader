@@ -1,6 +1,12 @@
 import { Result } from "@praha/byethrow";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { listArticles, markArticleRead, searchArticles, toggleArticleStar } from "../api/tauri-commands";
+import {
+  listArticles,
+  markArticleRead,
+  markArticlesRead,
+  searchArticles,
+  toggleArticleStar,
+} from "../api/tauri-commands";
 
 export function useArticles(feedId: string | null) {
   return useQuery({
@@ -14,6 +20,17 @@ export function useMarkRead() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (articleId: string) => markArticleRead(articleId).then(Result.unwrap()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["articles"] });
+      qc.invalidateQueries({ queryKey: ["feeds"] });
+    },
+  });
+}
+
+export function useMarkAllRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (articleIds: string[]) => markArticlesRead(articleIds).then(Result.unwrap()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["articles"] });
       qc.invalidateQueries({ queryKey: ["feeds"] });
