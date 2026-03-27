@@ -12,13 +12,36 @@ export type AddAccountPayload = {
 
 export type AddAccountValidationError = "missing_server_url" | "missing_username" | "missing_password";
 
-type AddAccountFormInput = {
+export type AddAccountFormState = {
   kind: AddAccountProviderKind;
   name: string;
   serverUrl: string;
   username: string;
   password: string;
 };
+
+export type AddAccountFormAction =
+  | { type: "setKind"; value: AddAccountProviderKind }
+  | { type: "setField"; field: "name" | "serverUrl" | "username" | "password"; value: string };
+
+export const addAccountFormInitialState: AddAccountFormState = {
+  kind: "Local",
+  name: "",
+  serverUrl: "",
+  username: "",
+  password: "",
+};
+
+export function addAccountFormReducer(state: AddAccountFormState, action: AddAccountFormAction): AddAccountFormState {
+  switch (action.type) {
+    case "setKind":
+      return { ...addAccountFormInitialState, kind: action.value };
+    case "setField":
+      return { ...state, [action.field]: action.value };
+  }
+}
+
+type AddAccountFormInput = AddAccountFormState;
 
 type AddAccountFormConfig = {
   sectionHeading: "Account" | "Server" | "Credentials";
@@ -71,6 +94,22 @@ export function formatAddAccountValidationError(
   }
 }
 
+function validateCredentials(
+  input: AddAccountFormInput,
+): Result.Result<{ username: string; password: string }, AddAccountValidationError> {
+  const username = input.username.trim();
+  if (!username) {
+    return Result.fail("missing_username");
+  }
+
+  const password = input.password;
+  if (!password.trim()) {
+    return Result.fail("missing_password");
+  }
+
+  return Result.succeed({ username, password });
+}
+
 export function buildAddAccountPayload(
   input: AddAccountFormInput,
 ): Result.Result<AddAccountPayload, AddAccountValidationError> {
@@ -83,42 +122,17 @@ export function buildAddAccountPayload(
       return Result.fail("missing_server_url");
     }
 
-    const username = input.username.trim();
-    if (!username) {
-      return Result.fail("missing_username");
-    }
-
-    const password = input.password;
-    if (!password.trim()) {
-      return Result.fail("missing_password");
-    }
-
-    return Result.succeed({
-      kind: input.kind,
-      name,
-      serverUrl,
-      username,
-      password,
-    });
+    return Result.pipe(
+      validateCredentials(input),
+      Result.map((creds) => ({ kind: input.kind, name, serverUrl, ...creds })),
+    );
   }
 
   if (config.requiresCredentials) {
-    const username = input.username.trim();
-    if (!username) {
-      return Result.fail("missing_username");
-    }
-
-    const password = input.password;
-    if (!password.trim()) {
-      return Result.fail("missing_password");
-    }
-
-    return Result.succeed({
-      kind: input.kind,
-      name,
-      username,
-      password,
-    });
+    return Result.pipe(
+      validateCredentials(input),
+      Result.map((creds) => ({ kind: input.kind, name, ...creds })),
+    );
   }
 
   return Result.succeed({

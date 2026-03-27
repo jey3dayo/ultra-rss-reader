@@ -1,32 +1,38 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useReducer } from "react";
 import { addAccount } from "@/api/tauri-commands";
 import { SectionHeading } from "@/components/settings/settings-components";
 import { Button } from "@/components/ui/button";
+import {
+  type AddAccountProviderKind,
+  addAccountFormInitialState,
+  addAccountFormReducer,
+  buildAddAccountPayload,
+  formatAddAccountValidationError,
+  getAddAccountFormConfig,
+} from "@/lib/add-account-form";
 import { useUiStore } from "@/stores/ui-store";
-
-type ProviderKind = "Local" | "FreshRss" | "Inoreader";
 
 export function AddAccountForm() {
   const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
   const setSettingsAccountId = useUiStore((s) => s.setSettingsAccountId);
   const qc = useQueryClient();
-  const [kind, setKind] = useState<ProviderKind>("Local");
-  const [name, setName] = useState("");
-  const [serverUrl, setServerUrl] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [form, dispatch] = useReducer(addAccountFormReducer, addAccountFormInitialState);
+  const formConfig = useMemo(() => getAddAccountFormConfig(form.kind), [form.kind]);
 
   const handleSubmit = async () => {
+    const payloadResult = buildAddAccountPayload(form);
+
+    if (Result.isFailure(payloadResult)) {
+      useUiStore.getState().showToast(formatAddAccountValidationError(form.kind, Result.unwrapError(payloadResult)));
+      return;
+    }
+
+    const payload = Result.unwrap(payloadResult);
+
     Result.pipe(
-      await addAccount(
-        kind,
-        name || kind,
-        kind === "FreshRss" ? serverUrl : undefined,
-        kind === "FreshRss" || kind === "Inoreader" ? username : undefined,
-        kind === "FreshRss" || kind === "Inoreader" ? password : undefined,
-      ),
+      await addAccount(payload.kind, payload.name, payload.serverUrl, payload.username, payload.password),
       Result.inspectError((e) => useUiStore.getState().showToast(`Failed to add account: ${e.message}`)),
       Result.inspect((account) => {
         qc.invalidateQueries({ queryKey: ["accounts"] });
@@ -48,8 +54,8 @@ export function AddAccountForm() {
           <span className="text-sm text-foreground">Type</span>
           <select
             name="account-type"
-            value={kind}
-            onChange={(e) => setKind(e.target.value as ProviderKind)}
+            value={form.kind}
+            onChange={(e) => dispatch({ type: "setKind", value: e.target.value as AddAccountProviderKind })}
             className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
           >
             <option value="Local">Local Feeds</option>
@@ -61,35 +67,35 @@ export function AddAccountForm() {
           <span className="text-sm text-foreground">Name</span>
           <input
             name="account-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={kind}
+            value={form.name}
+            onChange={(e) => dispatch({ type: "setField", field: "name", value: e.target.value })}
+            placeholder={form.kind}
             className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
           />
         </div>
       </section>
 
-      {(kind === "FreshRss" || kind === "Inoreader") && (
+      {formConfig.requiresCredentials && (
         <section className="mb-6">
-          <SectionHeading>{kind === "FreshRss" ? "Server" : "Credentials"}</SectionHeading>
-          {kind === "FreshRss" && (
+          <SectionHeading>{formConfig.sectionHeading}</SectionHeading>
+          {formConfig.showServerUrl && (
             <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
               <span className="text-sm text-foreground">Server URL</span>
               <input
                 name="server-url"
-                value={serverUrl}
-                onChange={(e) => setServerUrl(e.target.value)}
+                value={form.serverUrl}
+                onChange={(e) => dispatch({ type: "setField", field: "serverUrl", value: e.target.value })}
                 placeholder="https://your-freshrss.com"
                 className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
               />
             </div>
           )}
           <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-            <span className="text-sm text-foreground">{kind === "Inoreader" ? "Email" : "Username"}</span>
+            <span className="text-sm text-foreground">{formConfig.credentialLabel}</span>
             <input
-              name={kind === "Inoreader" ? "email" : "username"}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              name={formConfig.credentialName ?? undefined}
+              value={form.username}
+              onChange={(e) => dispatch({ type: "setField", field: "username", value: e.target.value })}
               className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
             />
           </div>
@@ -98,8 +104,8 @@ export function AddAccountForm() {
             <input
               name="password"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={form.password}
+              onChange={(e) => dispatch({ type: "setField", field: "password", value: e.target.value })}
               className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
             />
           </div>

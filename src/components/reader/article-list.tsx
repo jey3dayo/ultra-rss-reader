@@ -1,25 +1,24 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
-import { CheckCircle, Filter, Search, Star, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccountArticles, useArticles, useMarkAllRead, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useArticlesByTag } from "@/hooks/use-tags";
 import {
   countUnreadArticles,
-  formatArticleTime,
   getAdjacentArticleId,
   getUnreadArticleIds,
   groupArticles,
   selectVisibleArticles,
 } from "@/lib/article-list";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
-import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenu } from "./article-context-menu";
+import { ArticleListFooter } from "./article-list-footer";
+import { ArticleListHeader } from "./article-list-header";
+import { ArticleListItem } from "./article-list-item";
 import { contextMenuStyles } from "./context-menu-styles";
 
 export function ArticleList() {
@@ -130,6 +129,17 @@ export function ArticleList() {
     requestAnimationFrame(() => searchInputRef.current?.focus());
   }, []);
 
+  const handleToggleSearch = useCallback(() => {
+    setShowSearch((v) => !v);
+    if (!showSearch) openSearch();
+    else setSearchQuery("");
+  }, [showSearch, openSearch]);
+
+  const handleCloseSearch = useCallback(() => {
+    setShowSearch(false);
+    setSearchQuery("");
+  }, []);
+
   const navigateArticle = useCallback(
     (direction: 1 | -1) => {
       const nextArticleId = getAdjacentArticleId(filteredArticles, selectedArticleId, direction);
@@ -139,7 +149,6 @@ export function ArticleList() {
 
       const articleId = Result.unwrap(nextArticleId);
       selectArticle(articleId);
-      // Scroll selected item into view
       const btn = listRef.current?.querySelector(`[data-article-id="${articleId}"]`);
       btn?.scrollIntoView({ block: "nearest" });
     },
@@ -178,70 +187,17 @@ export function ArticleList() {
 
   return (
     <div className="flex h-full w-[380px] flex-col border-r border-border bg-card">
-      {/* Header Toolbar */}
-      <div className="flex h-12 items-center justify-between border-b border-border px-3">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Mark all as read"
-            onClick={handleMarkAllRead}
-            className="text-muted-foreground"
-          >
-            <CheckCircle className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setShowSearch((v) => !v);
-              if (!showSearch) openSearch();
-              else setSearchQuery("");
-            }}
-            aria-label="Search articles"
-            className={cn("text-muted-foreground", showSearch && "text-foreground")}
-          >
-            <Search className="h-4 w-4" />
-          </Button>
-          {showSearch && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                setShowSearch(false);
-                setSearchQuery("");
-              }}
-              aria-label="Close search"
-              className="text-muted-foreground"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Search Bar */}
-      {showSearch && (
-        <div className="border-b border-border px-4 py-2">
-          <input
-            ref={searchInputRef}
-            name="article-search"
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search articles..."
-            className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
-          />
-        </div>
-      )}
-
-      {/* Feed Title */}
-      <div className="border-b border-border px-4 py-3">
-        <h2 className="text-lg font-semibold text-foreground">{feedName}</h2>
-        <p className="text-xs text-muted-foreground">{unreadCount} Unread Items</p>
-      </div>
+      <ArticleListHeader
+        showSearch={showSearch}
+        searchQuery={searchQuery}
+        feedName={feedName}
+        unreadCount={unreadCount}
+        searchInputRef={searchInputRef}
+        onMarkAllRead={handleMarkAllRead}
+        onToggleSearch={handleToggleSearch}
+        onCloseSearch={handleCloseSearch}
+        onSearchQueryChange={setSearchQuery}
+      />
 
       {/* Article List */}
       <ContextMenu.Root>
@@ -255,7 +211,6 @@ export function ArticleList() {
               ) : (
                 Object.entries(groupedArticles).map(([groupLabel, groupArticles]) => (
                   <div key={groupLabel}>
-                    {/* Group Header (hidden when groupBy is "none") */}
                     {groupBy !== "none" && (
                       <div className="sticky top-0 bg-card px-4 py-2">
                         <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -264,70 +219,17 @@ export function ArticleList() {
                       </div>
                     )}
 
-                    {/* Articles in Group */}
                     {groupArticles.map((article) => (
                       <ArticleContextMenu key={article.id} article={article}>
-                        <button
-                          type="button"
-                          data-article-id={article.id}
-                          role="option"
-                          aria-selected={selectedArticleId === article.id}
-                          aria-label={`${article.title}${article.is_read ? "" : " (unread)"}${article.is_starred ? " (starred)" : ""}`}
-                          onClick={() => selectArticle(article.id)}
-                          className={cn(
-                            "relative flex w-full flex-col gap-1 border-l-2 px-4 py-3 text-left transition-colors",
-                            selectedArticleId === article.id
-                              ? "border-l-accent bg-accent/10"
-                              : !article.is_read
-                                ? "border-l-accent/60 hover:bg-muted/50"
-                                : dimArchived === "true"
-                                  ? "border-l-transparent hover:bg-muted/50 opacity-60"
-                                  : "border-l-transparent hover:bg-muted/50",
-                          )}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 space-y-1">
-                              {/* Title */}
-                              <h3
-                                className={cn(
-                                  "line-clamp-2 text-sm leading-snug text-foreground",
-                                  !article.is_read && "font-medium",
-                                )}
-                              >
-                                {article.title}
-                              </h3>
-                              {/* Feed Name */}
-                              {feedNameMap.has(article.feed_id) && (
-                                <p className="text-xs text-muted-foreground">{feedNameMap.get(article.feed_id)}</p>
-                              )}
-                              {/* Summary */}
-                              {textPreview === "true" && article.summary && (
-                                <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                                  {article.summary}
-                                </p>
-                              )}
-                            </div>
-
-                            {/* Thumbnail */}
-                            {imagePreviews !== "off" && article.thumbnail && (
-                              <div
-                                className={cn(
-                                  "relative shrink-0 overflow-hidden rounded",
-                                  imagePreviews === "small" && "h-12 w-16",
-                                  imagePreviews === "medium" && "h-16 w-20",
-                                  imagePreviews === "large" && "h-20 w-28",
-                                )}
-                              >
-                                <img src={article.thumbnail} alt="" className="h-full w-full object-cover" />
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Time */}
-                          <div className="absolute right-4 top-3 text-xs text-muted-foreground">
-                            {formatArticleTime(article.published_at)}
-                          </div>
-                        </button>
+                        <ArticleListItem
+                          article={article}
+                          isSelected={selectedArticleId === article.id}
+                          dimArchived={dimArchived}
+                          textPreview={textPreview}
+                          imagePreviews={imagePreviews}
+                          feedName={feedNameMap.get(article.feed_id)}
+                          onSelect={() => selectArticle(article.id)}
+                        />
                       </ArticleContextMenu>
                     ))}
                   </div>
@@ -347,39 +249,7 @@ export function ArticleList() {
         </ContextMenu.Portal>
       </ContextMenu.Root>
 
-      {/* Bottom Toolbar */}
-      <div className="flex h-10 items-center justify-center gap-4 border-t border-border bg-card">
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Show starred"
-          onClick={() => setViewMode("starred")}
-          className={cn("text-muted-foreground", viewMode === "starred" && "text-foreground")}
-        >
-          <Star className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setViewMode("unread")}
-          className={cn(
-            "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
-            viewMode === "unread" ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50",
-          )}
-        >
-          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-          UNREAD
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Show all"
-          onClick={() => setViewMode("all")}
-          className={cn("text-muted-foreground", viewMode === "all" && "text-foreground")}
-        >
-          <Filter className="h-4 w-4" />
-        </Button>
-      </div>
+      <ArticleListFooter viewMode={viewMode} onSetViewMode={setViewMode} />
     </div>
   );
 }
