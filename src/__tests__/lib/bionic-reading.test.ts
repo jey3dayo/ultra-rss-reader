@@ -31,4 +31,16 @@ describe("applyBionicReading", () => {
   it("returns original text when empty", () => {
     expect(applyBionicReading("", 3)).toBe("");
   });
+
+  it("handles accented characters", () => {
+    const result = applyBionicReading("café über naïve", 3);
+    const boldParts = result.match(/<b>.*?<\/b>/g) ?? [];
+    expect(boldParts.length).toBe(3);
+    // café (4 chars, 50% = 2) → <b>ca</b>fé
+    expect(result).toContain("<b>ca</b>fé");
+    // über (4 chars, 50% = 2) → <b>üb</b>er
+    expect(result).toContain("<b>üb</b>er");
+    // naïve (5 chars, 50% = 3) → <b>naï</b>ve
+    expect(result).toContain("<b>naï</b>ve");
+  });
 });

@@ -13,7 +13,7 @@ export function applyBionicReading(html: string, fixation: number): string {
     if (tag) return tag; // preserve HTML tags as-is
     if (!text) return match;
 
-    return text.replace(/\b(\p{L}[\p{L}''\u2019-]*)/gu, (word: string) => {
+    return text.replace(/(\p{L}[\p{L}''\u2019-]*)/gu, (word: string) => {
       if (word.length <= 1) return `<b>${word}</b>`;
       const boldLen = getBoldLength(word.length, level);
       return `<b>${word.slice(0, boldLen)}</b>${word.slice(boldLen)}`;
