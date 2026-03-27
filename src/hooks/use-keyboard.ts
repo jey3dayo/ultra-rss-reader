@@ -1,6 +1,19 @@
 import { useEffect } from "react";
 import { useUiStore } from "../stores/ui-store";
 
+export const keyboardEvents = {
+  toggleRead: "ultra-rss:toggle-read",
+  toggleStar: "ultra-rss:toggle-star",
+  openInAppBrowser: "ultra-rss:open-in-app-browser",
+  openExternalBrowser: "ultra-rss:open-external-browser",
+  markAllRead: "ultra-rss:mark-all-read",
+  focusSearch: "ultra-rss:focus-search",
+} as const;
+
+function emitKeyboardEvent(name: (typeof keyboardEvents)[keyof typeof keyboardEvents]) {
+  window.dispatchEvent(new Event(name));
+}
+
 export function useKeyboard() {
   const store = useUiStore();
 
@@ -26,21 +39,27 @@ export function useKeyboard() {
           break;
         case "m": // Toggle read
           e.preventDefault();
-          // TODO: toggle read on selected article
+          if (store.selectedArticleId) {
+            emitKeyboardEvent(keyboardEvents.toggleRead);
+          }
           break;
         case "s": // Toggle starred
           e.preventDefault();
-          // TODO: toggle star on selected article
+          if (store.selectedArticleId) {
+            emitKeyboardEvent(keyboardEvents.toggleStar);
+          }
           break;
         case "v": // View in browser
           e.preventDefault();
           if (store.selectedArticleId) {
-            // TODO: get article URL and open browser view
+            emitKeyboardEvent(keyboardEvents.openInAppBrowser);
           }
           break;
         case "b": // Open in external browser
           e.preventDefault();
-          // TODO: open in system browser
+          if (store.selectedArticleId) {
+            emitKeyboardEvent(keyboardEvents.openExternalBrowser);
+          }
           break;
         case "r":
           if (shift) {
@@ -62,11 +81,11 @@ export function useKeyboard() {
         }
         case "a": // Mark all as read
           e.preventDefault();
-          // TODO: mark all as read
+          emitKeyboardEvent(keyboardEvents.markAllRead);
           break;
         case "/": // Search
           e.preventDefault();
-          // TODO: focus search input
+          emitKeyboardEvent(keyboardEvents.focusSearch);
           break;
         case "Escape":
           e.preventDefault();

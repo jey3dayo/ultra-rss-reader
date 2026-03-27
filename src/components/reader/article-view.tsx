@@ -1,12 +1,13 @@
 import { Result } from "@praha/byethrow";
-import { Circle, Copy, Plus, Share, Star, X } from "lucide-react";
+import { ArrowLeft, Circle, Copy, Plus, Share, Star, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useArticles, useMarkRead, useToggleStar } from "@/hooks/use-articles";
+import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
+import { keyboardEvents } from "@/hooks/use-keyboard";
 import {
   useArticlesByTag,
   useArticleTags,
@@ -20,20 +21,36 @@ import { useUiStore } from "@/stores/ui-store";
 import { BrowserView } from "./browser-view";
 
 function ArticleToolbar({ article }: { article: ArticleDto | null }) {
-  const markRead = useMarkRead();
+  const setRead = useSetRead();
   const toggleStar = useToggleStar();
   const openBrowser = useUiStore((s) => s.openBrowser);
+  const layoutMode = useUiStore((s) => s.layoutMode);
+  const setFocusedPane = useUiStore((s) => s.setFocusedPane);
   const actionCopyLink = usePreferencesStore((s) => s.prefs.action_copy_link ?? "true");
   const actionOpenBrowser = usePreferencesStore((s) => s.prefs.action_open_browser ?? "true");
   const actionShare = usePreferencesStore((s) => s.prefs.action_share ?? "false");
+  const showSidebarButton = layoutMode !== "wide";
 
   return (
-    <div className="flex h-12 items-center justify-end border-b border-border px-4">
+    <div className="flex h-12 items-center justify-between border-b border-border px-4">
+      <div>
+        {showSidebarButton && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setFocusedPane("sidebar")}
+            className="text-muted-foreground"
+            aria-label="Show sidebar"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => article && markRead.mutate(article.id)}
+          onClick={() => article && setRead.mutate({ id: article.id, read: !article.is_read })}
           className="text-muted-foreground"
           disabled={!article}
           aria-label="Toggle read"
@@ -234,16 +251,51 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
   const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const cmdClickBrowser = usePreferencesStore((s) => s.prefs.cmd_click_browser ?? "false");
-  const markRead = useMarkRead();
+  const setRead = useSetRead();
+  const toggleStar = useToggleStar();
   const openBrowserView = useUiStore((s) => s.openBrowser);
 
   // Auto mark as read when article is displayed
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally trigger only on article change and preference
   useEffect(() => {
     if (afterReading === "mark_as_read" && article && !article.is_read) {
-      markRead.mutate(article.id);
+      setRead.mutate({ id: article.id, read: true });
     }
-  }, [afterReading, article?.id]);
+  }, [afterReading, article?.id, article?.is_read, setRead]);
+
+  useEffect(() => {
+    const handleToggleRead = () => {
+      setRead.mutate({ id: article.id, read: !article.is_read });
+    };
+    const handleToggleStar = () => {
+      toggleStar.mutate({ id: article.id, starred: !article.is_starred });
+    };
+    const handleOpenInAppBrowser = () => {
+      if (article.url) {
+        openBrowserView(article.url);
+      }
+    };
+    const handleOpenExternalBrowser = () => {
+      if (!article.url) return;
+      openInBrowser(article.url).then((result) =>
+        Result.pipe(
+          result,
+          Result.inspectError((e) => console.error("Failed to open in browser:", e)),
+        ),
+      );
+    };
+
+    window.addEventListener(keyboardEvents.toggleRead, handleToggleRead);
+    window.addEventListener(keyboardEvents.toggleStar, handleToggleStar);
+    window.addEventListener(keyboardEvents.openInAppBrowser, handleOpenInAppBrowser);
+    window.addEventListener(keyboardEvents.openExternalBrowser, handleOpenExternalBrowser);
+    return () => {
+      window.removeEventListener(keyboardEvents.toggleRead, handleToggleRead);
+      window.removeEventListener(keyboardEvents.toggleStar, handleToggleStar);
+      window.removeEventListener(keyboardEvents.openInAppBrowser, handleOpenInAppBrowser);
+      window.removeEventListener(keyboardEvents.openExternalBrowser, handleOpenExternalBrowser);
+    };
+  }, [article.id, article.is_read, article.is_starred, article.url, openBrowserView, setRead, toggleStar]);
 
   const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -332,6 +384,7 @@ export function ArticleView() {
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
   const { data: articles } = useArticles(feedId);
+  const { data: accountArticles } = useAccountArticles(selectedAccountId);
   const { data: tagArticles } = useArticlesByTag(tagId);
   const { data: feeds } = useFeeds(selectedAccountId);
 
@@ -343,7 +396,7 @@ export function ArticleView() {
     return <EmptyState />;
   }
 
-  const allArticles = tagId ? tagArticles : articles;
+  const allArticles = tagId ? tagArticles : feedId ? articles : accountArticles;
   const article = allArticles?.find((a) => a.id === selectedArticleId);
 
   if (!article) {

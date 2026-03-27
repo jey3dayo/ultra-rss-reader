@@ -3,8 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useArticles, useMarkAllRead, useSearchArticles } from "@/hooks/use-articles";
+import { useAccountArticles, useArticles, useMarkAllRead, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
+import { keyboardEvents } from "@/hooks/use-keyboard";
 import { useArticlesByTag } from "@/hooks/use-tags";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -50,6 +51,7 @@ export function ArticleList() {
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
   const { data: articles, isLoading } = useArticles(feedId);
+  const { data: accountArticles, isLoading: isLoadingAccountArticles } = useAccountArticles(selectedAccountId);
   const { data: tagArticles, isLoading: isLoadingTagArticles } = useArticlesByTag(tagId);
   const { data: feeds } = useFeeds(selectedAccountId);
   const [showSearch, setShowSearch] = useState(false);
@@ -61,6 +63,7 @@ export function ArticleList() {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { data: searchResults } = useSearchArticles(selectedAccountId, debouncedQuery);
 
@@ -84,7 +87,7 @@ export function ArticleList() {
     } else if (tagId) {
       list = [...(tagArticles ?? [])];
     } else {
-      const all = articles ?? [];
+      const all = feedId ? (articles ?? []) : (accountArticles ?? []);
       if (viewMode === "unread") list = all.filter((a) => !a.is_read);
       else if (viewMode === "starred") list = all.filter((a) => a.is_starred);
       else list = [...all];
@@ -93,11 +96,22 @@ export function ArticleList() {
     const direction = sortUnread === "oldest_first" ? 1 : -1;
     list.sort((a, b) => direction * (new Date(b.published_at).getTime() - new Date(a.published_at).getTime()));
     return list;
-  }, [articles, tagArticles, tagId, viewMode, showSearch, searchQuery, searchResults, sortUnread]);
+  }, [
+    accountArticles,
+    articles,
+    feedId,
+    tagArticles,
+    tagId,
+    viewMode,
+    showSearch,
+    searchQuery,
+    searchResults,
+    sortUnread,
+  ]);
 
   const unreadCount = useMemo(() => {
-    return (articles ?? []).filter((a) => !a.is_read).length;
-  }, [articles]);
+    return filteredArticles.filter((a) => !a.is_read).length;
+  }, [filteredArticles]);
 
   const groupedArticles = useMemo(() => {
     if (groupBy === "none") {
@@ -125,15 +139,20 @@ export function ArticleList() {
     }
   }, [selection, scrollToTopOnChange]);
 
-  const handleMarkAllRead = async () => {
-    if (!articles || articles.length === 0) return;
-    const unread = articles.filter((a) => !a.is_read);
+  const handleMarkAllRead = useCallback(async () => {
+    if (filteredArticles.length === 0) return;
+    const unread = filteredArticles.filter((a) => !a.is_read);
     if (unread.length === 0) return;
     if (askBeforeMarkAll === "true") {
       if (!window.confirm(`Mark ${unread.length} articles as read?`)) return;
     }
     markAllRead.mutate(unread.map((a) => a.id));
-  };
+  }, [askBeforeMarkAll, filteredArticles, markAllRead]);
+
+  const openSearch = useCallback(() => {
+    setShowSearch(true);
+    requestAnimationFrame(() => searchInputRef.current?.focus());
+  }, []);
 
   const navigateArticle = useCallback(
     (direction: 1 | -1) => {
@@ -165,6 +184,20 @@ export function ArticleList() {
     return () => window.removeEventListener("keydown", handler);
   }, [navigateArticle]);
 
+  useEffect(() => {
+    const handleFocusSearch = () => openSearch();
+    const handleMarkAllReadEvent = () => {
+      void handleMarkAllRead();
+    };
+
+    window.addEventListener(keyboardEvents.focusSearch, handleFocusSearch);
+    window.addEventListener(keyboardEvents.markAllRead, handleMarkAllReadEvent);
+    return () => {
+      window.removeEventListener(keyboardEvents.focusSearch, handleFocusSearch);
+      window.removeEventListener(keyboardEvents.markAllRead, handleMarkAllReadEvent);
+    };
+  }, [handleMarkAllRead, openSearch]);
+
   return (
     <div className="flex h-full w-[380px] flex-col border-r border-border bg-card">
       {/* Header Toolbar */}
@@ -186,7 +219,7 @@ export function ArticleList() {
             size="icon"
             onClick={() => {
               setShowSearch((v) => !v);
-              if (!showSearch) requestAnimationFrame(() => searchInputRef.current?.focus());
+              if (!showSearch) openSearch();
               else setSearchQuery("");
             }}
             aria-label="Search articles"
@@ -234,7 +267,7 @@ export function ArticleList() {
       {/* Article List */}
       <ScrollArea className="flex-1">
         <div ref={listRef} role="listbox" aria-label="Article list" className="pb-4">
-          {isLoading || isLoadingTagArticles ? (
+          {isLoading || isLoadingAccountArticles || isLoadingTagArticles ? (
             <div className="p-6 text-center text-muted-foreground">Loading...</div>
           ) : filteredArticles.length === 0 ? (
             <div className="p-6 text-center text-muted-foreground">No articles</div>

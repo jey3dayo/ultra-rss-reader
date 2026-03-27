@@ -121,6 +121,7 @@ export function SettingsModal() {
               variant="ghost"
               size="icon-sm"
               onClick={closeSettings}
+              aria-label="Close preferences"
               className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
             >
               <X className="h-4 w-4" />
