@@ -1,8 +1,8 @@
-import { CheckCircle, Filter, Star } from "lucide-react";
-import { useMemo } from "react";
+import { CheckCircle, Filter, Search, Star, X } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useArticles } from "@/hooks/use-articles";
+import { useArticles, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
@@ -37,6 +37,10 @@ export function ArticleList() {
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const { data: articles, isLoading } = useArticles(feedId);
   const { data: feeds } = useFeeds(selectedAccountId);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const { data: searchResults } = useSearchArticles(selectedAccountId, searchQuery);
 
   const feedNameMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -51,11 +55,12 @@ export function ArticleList() {
   }, [selection]);
 
   const filteredArticles = useMemo(() => {
+    if (showSearch && searchQuery.length > 0) return searchResults ?? [];
     const list = articles ?? [];
     if (viewMode === "unread") return list.filter((a) => !a.is_read);
     if (viewMode === "starred") return list.filter((a) => a.is_starred);
     return list;
-  }, [articles, viewMode]);
+  }, [articles, viewMode, showSearch, searchQuery, searchResults]);
 
   const unreadCount = useMemo(() => {
     return (articles ?? []).filter((a) => !a.is_read).length;
@@ -83,7 +88,49 @@ export function ArticleList() {
             <CheckCircle className="h-4 w-4" />
           </button>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setShowSearch((v) => !v);
+              if (!showSearch) requestAnimationFrame(() => searchInputRef.current?.focus());
+              else setSearchQuery("");
+            }}
+            className={cn(
+              "rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground",
+              showSearch && "text-foreground",
+            )}
+          >
+            <Search className="h-4 w-4" />
+          </button>
+          {showSearch && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowSearch(false);
+                setSearchQuery("");
+              }}
+              className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Search Bar */}
+      {showSearch && (
+        <div className="border-b border-border px-4 py-2">
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search articles..."
+            className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
+          />
+        </div>
+      )}
 
       {/* Feed Title */}
       <div className="border-b border-border px-4 py-3">
