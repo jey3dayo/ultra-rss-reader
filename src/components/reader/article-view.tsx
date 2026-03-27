@@ -1,10 +1,11 @@
 import { Result } from "@praha/byethrow";
-import { Circle, Share, Star } from "lucide-react";
+import { Circle, Copy, Share, Star } from "lucide-react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useArticles, useMarkRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { BrowserView } from "./browser-view";
 
@@ -12,6 +13,9 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
   const markRead = useMarkRead();
   const toggleStar = useToggleStar();
   const openBrowser = useUiStore((s) => s.openBrowser);
+  const actionCopyLink = usePreferencesStore((s) => s.prefs.action_copy_link ?? "true");
+  const actionOpenBrowser = usePreferencesStore((s) => s.prefs.action_open_browser ?? "true");
+  const actionShare = usePreferencesStore((s) => s.prefs.action_share ?? "false");
 
   return (
     <div className="flex h-12 items-center justify-end border-b border-border px-4">
@@ -32,29 +36,44 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
         >
           <Star className="h-4 w-4" />
         </button>
-        <button
-          type="button"
-          onClick={() => article?.url && openBrowser(article.url)}
-          className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
-          disabled={!article?.url}
-        >
-          <span className="text-xs font-bold">BR</span>
-        </button>
-        <button
-          type="button"
-          onClick={async () => {
-            if (article?.url) {
-              Result.pipe(
-                await openInBrowser(article.url),
-                Result.inspectError((e) => console.error("Failed to open in browser:", e)),
-              );
-            }
-          }}
-          className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
-          disabled={!article?.url}
-        >
-          <Share className="h-4 w-4" />
-        </button>
+        {actionCopyLink === "true" && (
+          <button
+            type="button"
+            onClick={() => article?.url && navigator.clipboard.writeText(article.url)}
+            className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+            disabled={!article?.url}
+            aria-label="Copy link"
+          >
+            <Copy className="h-4 w-4" />
+          </button>
+        )}
+        {actionOpenBrowser === "true" && (
+          <button
+            type="button"
+            onClick={() => article?.url && openBrowser(article.url)}
+            className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+            disabled={!article?.url}
+          >
+            <span className="text-xs font-bold">BR</span>
+          </button>
+        )}
+        {actionShare === "true" && (
+          <button
+            type="button"
+            onClick={async () => {
+              if (article?.url) {
+                Result.pipe(
+                  await openInBrowser(article.url),
+                  Result.inspectError((e) => console.error("Failed to open in browser:", e)),
+                );
+              }
+            }}
+            className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+            disabled={!article?.url}
+          >
+            <Share className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </div>
   );

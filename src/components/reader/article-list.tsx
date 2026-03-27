@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useArticles, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { cn } from "@/lib/utils";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 function getDateGroup(dateStr: string): string {
@@ -34,6 +35,11 @@ function formatTime(dateStr: string): string {
 
 export function ArticleList() {
   const { selection, selectedAccountId, selectedArticleId, selectArticle, viewMode, setViewMode } = useUiStore();
+  const sortUnread = usePreferencesStore((s) => s.prefs.sort_unread ?? "newest_first");
+  const groupBy = usePreferencesStore((s) => s.prefs.group_by ?? "date");
+  const dimArchived = usePreferencesStore((s) => s.prefs.dim_archived ?? "true");
+  const textPreview = usePreferencesStore((s) => s.prefs.text_preview ?? "true");
+  const imagePreviews = usePreferencesStore((s) => s.prefs.image_previews ?? "medium");
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const { data: articles, isLoading } = useArticles(feedId);
   const { data: feeds } = useFeeds(selectedAccountId);
@@ -55,26 +61,38 @@ export function ArticleList() {
   }, [selection]);
 
   const filteredArticles = useMemo(() => {
-    if (showSearch && searchQuery.length > 0) return searchResults ?? [];
-    const list = articles ?? [];
-    if (viewMode === "unread") return list.filter((a) => !a.is_read);
-    if (viewMode === "starred") return list.filter((a) => a.is_starred);
+    let list: ArticleDto[];
+    if (showSearch && searchQuery.length > 0) {
+      list = [...(searchResults ?? [])];
+    } else {
+      const all = articles ?? [];
+      if (viewMode === "unread") list = all.filter((a) => !a.is_read);
+      else if (viewMode === "starred") list = all.filter((a) => a.is_starred);
+      else list = [...all];
+    }
+    // Apply sort preference
+    const direction = sortUnread === "oldest_first" ? 1 : -1;
+    list.sort((a, b) => direction * (new Date(b.published_at).getTime() - new Date(a.published_at).getTime()));
     return list;
-  }, [articles, viewMode, showSearch, searchQuery, searchResults]);
+  }, [articles, viewMode, showSearch, searchQuery, searchResults, sortUnread]);
 
   const unreadCount = useMemo(() => {
     return (articles ?? []).filter((a) => !a.is_read).length;
   }, [articles]);
 
   const groupedArticles = useMemo(() => {
+    if (groupBy === "none") {
+      return { "": filteredArticles };
+    }
     const groups: Record<string, ArticleDto[]> = {};
     for (const article of filteredArticles) {
-      const group = getDateGroup(article.published_at);
+      const group =
+        groupBy === "feed" ? (feedNameMap.get(article.feed_id) ?? "Unknown Feed") : getDateGroup(article.published_at);
       if (!groups[group]) groups[group] = [];
       groups[group].push(article);
     }
     return groups;
-  }, [filteredArticles]);
+  }, [filteredArticles, groupBy, feedNameMap]);
 
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -181,14 +199,16 @@ export function ArticleList() {
           ) : filteredArticles.length === 0 ? (
             <div className="p-6 text-center text-muted-foreground">No articles</div>
           ) : (
-            Object.entries(groupedArticles).map(([dateGroup, groupArticles]) => (
-              <div key={dateGroup}>
-                {/* Date Group Header */}
-                <div className="sticky top-0 bg-card px-4 py-2">
-                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    {dateGroup}
-                  </span>
-                </div>
+            Object.entries(groupedArticles).map(([groupLabel, groupArticles]) => (
+              <div key={groupLabel}>
+                {/* Group Header (hidden when groupBy is "none") */}
+                {groupBy !== "none" && (
+                  <div className="sticky top-0 bg-card px-4 py-2">
+                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      {groupLabel}
+                    </span>
+                  </div>
+                )}
 
                 {/* Articles in Group */}
                 {groupArticles.map((article) => (
@@ -206,7 +226,9 @@ export function ArticleList() {
                         ? "border-l-accent bg-accent/10"
                         : !article.is_read
                           ? "border-l-accent/60 hover:bg-muted/50"
-                          : "border-l-transparent hover:bg-muted/50 opacity-60",
+                          : dimArchived === "true"
+                            ? "border-l-transparent hover:bg-muted/50 opacity-60"
+                            : "border-l-transparent hover:bg-muted/50",
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -225,7 +247,7 @@ export function ArticleList() {
                           <p className="text-xs text-muted-foreground">{feedNameMap.get(article.feed_id)}</p>
                         )}
                         {/* Summary */}
-                        {article.summary && (
+                        {textPreview === "true" && article.summary && (
                           <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                             {article.summary}
                           </p>
@@ -233,8 +255,15 @@ export function ArticleList() {
                       </div>
 
                       {/* Thumbnail */}
-                      {article.thumbnail && (
-                        <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded">
+                      {imagePreviews !== "off" && article.thumbnail && (
+                        <div
+                          className={cn(
+                            "relative shrink-0 overflow-hidden rounded",
+                            imagePreviews === "small" && "h-12 w-16",
+                            imagePreviews === "medium" && "h-16 w-20",
+                            imagePreviews === "large" && "h-20 w-28",
+                          )}
+                        >
                           <img src={article.thumbnail} alt="" className="h-full w-full object-cover" />
                         </div>
                       )}
