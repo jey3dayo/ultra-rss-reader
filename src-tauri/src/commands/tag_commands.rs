@@ -63,18 +63,13 @@ pub fn create_tag(
     let db = lock_db(&state.db)?;
     let repo = SqliteTagRepository::new(db.writer());
 
-    // Return existing tag if one with the same name exists (case-insensitive)
-    if let Some(existing) = repo.find_by_name(&name)? {
-        return Ok(TagDto::from(existing));
-    }
-
     let tag = Tag {
         id: TagId::new(),
         name,
         color,
     };
-    repo.save(&tag)?;
-    Ok(TagDto::from(tag))
+    let result = repo.find_or_create(&tag)?;
+    Ok(TagDto::from(result))
 }
 
 #[tauri::command]

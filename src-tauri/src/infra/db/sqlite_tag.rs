@@ -1,7 +1,7 @@
 use rusqlite::{params, Connection};
 
 use crate::domain::article::Article;
-use crate::domain::error::DomainResult;
+use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::tag::Tag;
 use crate::domain::types::{ArticleId, FeedId, TagId};
 use crate::repository::article::Pagination;
@@ -84,6 +84,15 @@ impl TagRepository for SqliteTagRepository<'_> {
             params![tag.id.0, tag.name, tag.color],
         )?;
         Ok(())
+    }
+
+    fn find_or_create(&self, tag: &Tag) -> DomainResult<Tag> {
+        self.conn.execute(
+            "INSERT OR IGNORE INTO tags (id, name, color) VALUES (?1, ?2, ?3)",
+            params![tag.id.0, tag.name, tag.color],
+        )?;
+        self.find_by_name(&tag.name)?
+            .ok_or_else(|| DomainError::Persistence("Failed to find or create tag".into()))
     }
 
     fn delete(&self, tag_id: &TagId) -> DomainResult<()> {
