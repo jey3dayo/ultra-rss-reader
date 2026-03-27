@@ -123,3 +123,8 @@
 - [x] SyncService: SyncAll / SyncAccount で run_full_sync を実際に呼び出す
 - [x] SyncService: ManualRefresh / PurgeOldArticles の実処理
 - [x] sync_flow: folder_id 解決（folder_remote_id → ローカル FolderId）
+
+## sync_on_wake ランタイム実装 — 完了
+
+- [x] OS スリープ復帰イベントの検知（visibilitychange + 30秒閾値）
+- [x] 復帰時に sync_on_wake=true のアカウントのみ同期を発火
