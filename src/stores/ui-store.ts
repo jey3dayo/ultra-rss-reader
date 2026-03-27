@@ -9,7 +9,8 @@ type Selection =
 type LayoutMode = "wide" | "compact" | "mobile";
 type FocusedPane = "sidebar" | "list" | "content";
 type ContentMode = "empty" | "reader" | "browser" | "loading";
-type SettingsCategory = "general" | "accounts";
+type SettingsCategory = "general" | "appearance" | "accounts";
+type Theme = "light" | "dark" | "system";
 
 interface UiState {
   layoutMode: LayoutMode;
@@ -26,6 +27,7 @@ interface UiState {
   settingsCategory: SettingsCategory;
   settingsAccountId: string | null;
   settingsAddAccount: boolean;
+  theme: Theme;
 }
 
 interface UiActions {
@@ -48,6 +50,7 @@ interface UiActions {
   setSettingsCategory: (cat: SettingsCategory) => void;
   setSettingsAccountId: (id: string | null) => void;
   setSettingsAddAccount: (show: boolean) => void;
+  setTheme: (theme: Theme) => void;
 }
 
 const initialState: UiState = {
@@ -65,6 +68,7 @@ const initialState: UiState = {
   settingsCategory: "general",
   settingsAccountId: null,
   settingsAddAccount: false,
+  theme: "dark" as Theme,
 };
 
 export const useUiStore = create<UiState & UiActions>()((set) => ({
@@ -98,4 +102,14 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   setSettingsCategory: (cat) => set({ settingsCategory: cat, settingsAccountId: null, settingsAddAccount: false }),
   setSettingsAccountId: (id) => set({ settingsAccountId: id, settingsAddAccount: false }),
   setSettingsAddAccount: (show) => set({ settingsAddAccount: show, settingsAccountId: null }),
+  setTheme: (theme) => {
+    set({ theme });
+    const root = document.documentElement;
+    if (theme === "system") {
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      root.classList.toggle("dark", prefersDark);
+    } else {
+      root.classList.toggle("dark", theme === "dark");
+    }
+  },
 }));

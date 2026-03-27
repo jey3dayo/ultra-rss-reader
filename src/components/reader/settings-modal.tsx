@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Result } from "@praha/byethrow";
+import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
-import { X, Settings, Rss, Plus } from "lucide-react";
+import { Palette, Plus, Rss, Settings, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { addAccount, deleteAccount } from "@/api/tauri-commands";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
-import { addAccount, deleteAccount } from "@/api/tauri-commands";
 import { useAccounts } from "@/hooks/use-accounts";
+import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 
 export function SettingsModal() {
@@ -37,6 +37,7 @@ export function SettingsModal() {
   }, [openSettings]);
 
   const isGeneralActive = settingsCategory === "general" && !settingsAccountId && !settingsAddAccount;
+  const isAppearanceActive = settingsCategory === "appearance" && !settingsAccountId && !settingsAddAccount;
 
   const renderContent = () => {
     if (settingsAccountId) {
@@ -44,6 +45,9 @@ export function SettingsModal() {
     }
     if (settingsAddAccount) {
       return <AddAccountForm />;
+    }
+    if (settingsCategory === "appearance") {
+      return <AppearanceSettings />;
     }
     return <GeneralSettings />;
   };
@@ -85,6 +89,21 @@ export function SettingsModal() {
                   <Settings className="h-5 w-5" />
                 </span>
                 General
+              </button>
+              <button
+                type="button"
+                onClick={() => setSettingsCategory("appearance")}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                  isAppearanceActive
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                )}
+              >
+                <span className="flex h-6 w-6 items-center justify-center text-muted-foreground">
+                  <Palette className="h-5 w-5" />
+                </span>
+                Appearance
               </button>
             </nav>
           </ScrollArea>
@@ -164,6 +183,57 @@ function GeneralSettings() {
       <section>
         <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Mark All As Read</h3>
         <SettingsRow label="Ask before" type="switch" checked={true} />
+      </section>
+    </div>
+  );
+}
+
+function AppearanceSettings() {
+  const { theme, setTheme } = useUiStore();
+
+  return (
+    <div className="p-6">
+      <h2 className="mb-6 text-center text-lg font-semibold">Appearance</h2>
+
+      <section className="mb-6">
+        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Theme</h3>
+        <div className="flex gap-3">
+          {(["light", "dark", "system"] as const).map((t) => (
+            <button
+              type="button"
+              key={t}
+              onClick={() => setTheme(t)}
+              className={cn(
+                "flex flex-1 flex-col items-center gap-2 rounded-lg border-2 p-4 transition-colors",
+                theme === t ? "border-accent bg-accent/10" : "border-border hover:border-muted-foreground/30",
+              )}
+            >
+              <div
+                className={cn(
+                  "flex h-12 w-16 items-center justify-center rounded-md text-xs font-medium",
+                  t === "light" && "bg-white text-black border border-gray-200",
+                  t === "dark" && "bg-zinc-900 text-white border border-zinc-700",
+                  t === "system" && "bg-gradient-to-r from-white to-zinc-900 text-transparent border border-gray-300",
+                )}
+              >
+                {t === "light" ? "Aa" : t === "dark" ? "Aa" : "Aa"}
+              </div>
+              <span className="text-xs font-medium capitalize text-foreground">{t}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="mb-6">
+        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Layout</h3>
+        <SettingsRow label="Sidebar width" value="280px" type="text" />
+        <SettingsRow label="Article list width" value="380px" type="text" />
+      </section>
+
+      <section>
+        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Typography</h3>
+        <SettingsRow label="Font size" value="Medium" type="select" />
+        <SettingsRow label="Line height" value="Relaxed" type="select" />
       </section>
     </div>
   );
