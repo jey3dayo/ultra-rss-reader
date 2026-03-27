@@ -101,28 +101,28 @@ pub fn mark_feed_read(state: State<'_, AppState>, feed_id: String) -> Result<(),
         message: format!("Lock error: {e}"),
     })?;
     let feed_id = FeedId(feed_id);
-    let repo = SqliteArticleRepository::new(db.writer());
-    repo.mark_feed_as_read(&feed_id)?;
 
-    // Queue pending mutations for FreshRSS/Inoreader articles
-    let unread_ids: Vec<(String, String)> = db
+    // Collect unread article IDs *before* marking them read
+    let newly_read_ids: Vec<String> = db
         .writer()
         .prepare(
-            "SELECT a.id, a.remote_id FROM articles a
+            "SELECT a.id FROM articles a
              JOIN feeds f ON a.feed_id = f.id
              JOIN accounts acc ON f.account_id = acc.id
-             WHERE a.feed_id = ?1 AND a.is_read = 1 AND a.remote_id IS NOT NULL
+             WHERE a.feed_id = ?1 AND a.is_read = 0 AND a.remote_id IS NOT NULL
              AND (acc.kind = 'FreshRss' OR acc.kind = 'Inoreader')",
         )
         .and_then(|mut stmt| {
-            stmt.query_map(rusqlite::params![feed_id.0], |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-            })
-            .and_then(|rows| rows.collect())
+            stmt.query_map(rusqlite::params![feed_id.0], |row| row.get::<_, String>(0))
+                .and_then(|rows| rows.collect())
         })
         .unwrap_or_default();
 
-    for (article_id, _) in &unread_ids {
+    let repo = SqliteArticleRepository::new(db.writer());
+    repo.mark_feed_as_read(&feed_id)?;
+
+    // Queue pending mutations only for newly-marked articles
+    for article_id in &newly_read_ids {
         maybe_queue_mutation(db.writer(), &ArticleId(article_id.clone()), "mark_read")?;
     }
 
@@ -134,28 +134,28 @@ pub fn mark_folder_read(state: State<'_, AppState>, folder_id: String) -> Result
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
     })?;
-    let repo = SqliteArticleRepository::new(db.writer());
-    repo.mark_folder_as_read(&folder_id)?;
 
-    // Queue pending mutations for FreshRSS/Inoreader articles
-    let unread_ids: Vec<(String, String)> = db
+    // Collect unread article IDs *before* marking them read
+    let newly_read_ids: Vec<String> = db
         .writer()
         .prepare(
-            "SELECT a.id, a.remote_id FROM articles a
+            "SELECT a.id FROM articles a
              JOIN feeds f ON a.feed_id = f.id
              JOIN accounts acc ON f.account_id = acc.id
-             WHERE f.folder_id = ?1 AND a.is_read = 1 AND a.remote_id IS NOT NULL
+             WHERE f.folder_id = ?1 AND a.is_read = 0 AND a.remote_id IS NOT NULL
              AND (acc.kind = 'FreshRss' OR acc.kind = 'Inoreader')",
         )
         .and_then(|mut stmt| {
-            stmt.query_map(rusqlite::params![folder_id], |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-            })
-            .and_then(|rows| rows.collect())
+            stmt.query_map(rusqlite::params![folder_id], |row| row.get::<_, String>(0))
+                .and_then(|rows| rows.collect())
         })
         .unwrap_or_default();
 
-    for (article_id, _) in &unread_ids {
+    let repo = SqliteArticleRepository::new(db.writer());
+    repo.mark_folder_as_read(&folder_id)?;
+
+    // Queue pending mutations only for newly-marked articles
+    for article_id in &newly_read_ids {
         maybe_queue_mutation(db.writer(), &ArticleId(article_id.clone()), "mark_read")?;
     }
 

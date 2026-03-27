@@ -139,8 +139,9 @@ export function setupDevMocks() {
       }
 
       case "mark_folder_read": {
+        const folderFeedIds = mockFeeds.filter((f) => f.folder_id === args.folderId).map((f) => f.id);
         for (const art of mockArticles) {
-          art.is_read = true;
+          if (folderFeedIds.includes(art.feed_id)) art.is_read = true;
         }
         return null;
       }
