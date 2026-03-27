@@ -65,6 +65,8 @@ export const markArticleRead = (articleId: string, read = true) =>
 export const markArticlesRead = (articleIds: string[]) => safeInvoke<void>("mark_articles_read", { articleIds });
 export const toggleArticleStar = (articleId: string, starred: boolean) =>
   safeInvoke<void>("toggle_article_star", { articleId, starred });
+export const markFeedRead = (feedId: string) => safeInvoke<void>("mark_feed_read", { feedId });
+export const markFolderRead = (folderId: string) => safeInvoke<void>("mark_folder_read", { folderId });
 export const searchArticles = (accountId: string, query: string, offset?: number, limit?: number) =>
   safeInvoke<ArticleDto[]>("search_articles", { accountId, query, offset, limit });
 

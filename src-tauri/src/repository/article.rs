@@ -29,6 +29,8 @@ pub trait ArticleRepository {
     fn upsert(&self, articles: &[Article]) -> DomainResult<()>;
     fn mark_as_read(&self, id: &ArticleId, read: bool) -> DomainResult<()>;
     fn mark_many_as_read(&self, ids: &[ArticleId]) -> DomainResult<()>;
+    fn mark_feed_as_read(&self, feed_id: &FeedId) -> DomainResult<u64>;
+    fn mark_folder_as_read(&self, folder_id: &str) -> DomainResult<u64>;
     fn mark_as_starred(&self, id: &ArticleId, starred: bool) -> DomainResult<()>;
     fn purge_old_read(&self, before: DateTime<Utc>) -> DomainResult<u64>;
     fn update_sanitized(&self, id: &ArticleId, sanitized: &str, version: u32) -> DomainResult<()>;

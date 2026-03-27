@@ -161,6 +161,22 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         Ok(())
     }
 
+    fn mark_feed_as_read(&self, feed_id: &FeedId) -> DomainResult<u64> {
+        let updated = self.conn.execute(
+            "UPDATE articles SET is_read = 1 WHERE feed_id = ?1 AND is_read = 0",
+            params![feed_id.0],
+        )?;
+        Ok(updated as u64)
+    }
+
+    fn mark_folder_as_read(&self, folder_id: &str) -> DomainResult<u64> {
+        let updated = self.conn.execute(
+            "UPDATE articles SET is_read = 1 WHERE feed_id IN (SELECT id FROM feeds WHERE folder_id = ?1) AND is_read = 0",
+            params![folder_id],
+        )?;
+        Ok(updated as u64)
+    }
+
     fn mark_as_starred(&self, id: &ArticleId, starred: bool) -> DomainResult<()> {
         self.conn.execute(
             "UPDATE articles SET is_starred = ?1 WHERE id = ?2",
