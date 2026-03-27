@@ -1,14 +1,7 @@
+import { Result } from "@praha/byethrow";
 import { useEffect } from "react";
+import { type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
 import { useUiStore } from "../stores/ui-store";
-
-export const keyboardEvents = {
-  toggleRead: "ultra-rss:toggle-read",
-  toggleStar: "ultra-rss:toggle-star",
-  openInAppBrowser: "ultra-rss:open-in-app-browser",
-  openExternalBrowser: "ultra-rss:open-external-browser",
-  markAllRead: "ultra-rss:mark-all-read",
-  focusSearch: "ultra-rss:focus-search",
-} as const;
 
 function emitKeyboardEvent(name: (typeof keyboardEvents)[keyof typeof keyboardEvents]) {
   window.dispatchEvent(new Event(name));
@@ -19,84 +12,41 @@ export function useKeyboard() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // ⌘, or Ctrl+, to open Settings (works even when input focused)
-      if (e.key === "," && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        store.openSettings();
+      const action = resolveKeyboardAction({
+        key: e.key,
+        metaKey: e.metaKey,
+        ctrlKey: e.ctrlKey,
+        shiftKey: e.shiftKey,
+        targetTag: (e.target as HTMLElement | null)?.tagName,
+        selectedArticleId: store.selectedArticleId,
+        contentMode: store.contentMode,
+        viewMode: store.viewMode,
+      });
+
+      if (Result.isFailure(action)) {
         return;
       }
 
-      // Don't handle if input/textarea is focused
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      e.preventDefault();
+      const resolvedAction = Result.unwrap(action);
 
-      const key = e.key;
-      const shift = e.shiftKey;
-
-      switch (key) {
-        case "j": // Next item — handled by ArticleList component
-        case "k": // Previous item — handled by ArticleList component
+      switch (resolvedAction.type) {
+        case "open-settings":
+          store.openSettings();
           break;
-        case "m": // Toggle read
-          e.preventDefault();
-          if (store.selectedArticleId) {
-            emitKeyboardEvent(keyboardEvents.toggleRead);
-          }
+        case "emit":
+          emitKeyboardEvent(resolvedAction.eventName);
           break;
-        case "s": // Toggle starred
-          e.preventDefault();
-          if (store.selectedArticleId) {
-            emitKeyboardEvent(keyboardEvents.toggleStar);
-          }
+        case "set-view-mode":
+          store.setViewMode(resolvedAction.mode);
           break;
-        case "v": // View in browser
-          e.preventDefault();
-          if (store.selectedArticleId) {
-            emitKeyboardEvent(keyboardEvents.openInAppBrowser);
-          }
+        case "close-browser":
+          store.closeBrowser();
           break;
-        case "b": // Open in external browser
-          e.preventDefault();
-          if (store.selectedArticleId) {
-            emitKeyboardEvent(keyboardEvents.openExternalBrowser);
-          }
+        case "clear-article":
+          store.clearArticle();
           break;
-        case "r":
-          if (shift) {
-            e.preventDefault();
-            // Shift+R: Sync current
-          } else {
-            e.preventDefault();
-            // R: Sync all
-          }
-          break;
-        case "f": {
-          // Filter
-          e.preventDefault();
-          // Cycle filter: all -> unread -> starred -> all
-          const modes = ["all", "unread", "starred"] as const;
-          const idx = modes.indexOf(store.viewMode);
-          store.setViewMode(modes[(idx + 1) % 3]);
-          break;
-        }
-        case "a": // Mark all as read
-          e.preventDefault();
-          emitKeyboardEvent(keyboardEvents.markAllRead);
-          break;
-        case "/": // Search
-          e.preventDefault();
-          emitKeyboardEvent(keyboardEvents.focusSearch);
-          break;
-        case "Escape":
-          e.preventDefault();
-          if (store.contentMode === "browser") {
-            store.closeBrowser();
-          } else if (store.selectedArticleId) {
-            store.clearArticle();
-          }
-          break;
-        case "u": // Show accounts
-          e.preventDefault();
+        case "focus-sidebar":
           store.setFocusedPane("sidebar");
           break;
       }

@@ -1,40 +1,26 @@
+import { ContextMenu } from "@base-ui/react/context-menu";
+import { Result } from "@praha/byethrow";
 import { CheckCircle, Filter, Search, Star, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ArticleDto } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccountArticles, useArticles, useMarkAllRead, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
-import { keyboardEvents } from "@/hooks/use-keyboard";
 import { useArticlesByTag } from "@/hooks/use-tags";
+import {
+  countUnreadArticles,
+  formatArticleTime,
+  getAdjacentArticleId,
+  getUnreadArticleIds,
+  groupArticles,
+  selectVisibleArticles,
+} from "@/lib/article-list";
+import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-
-function getDateGroup(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  const articleDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-  if (articleDate.getTime() >= today.getTime()) return "TODAY";
-  if (articleDate.getTime() >= yesterday.getTime()) return "YESTERDAY";
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
-
-function formatTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  return `${hours}:${minutes}`;
-}
+import { ArticleContextMenu } from "./article-context-menu";
+import { contextMenuStyles } from "./context-menu-styles";
 
 export function ArticleList() {
   const selection = useUiStore((s) => s.selection);
@@ -81,21 +67,18 @@ export function ArticleList() {
   }, [selection]);
 
   const filteredArticles = useMemo(() => {
-    let list: ArticleDto[];
-    if (showSearch && searchQuery.length > 0) {
-      list = [...(searchResults ?? [])];
-    } else if (tagId) {
-      list = [...(tagArticles ?? [])];
-    } else {
-      const all = feedId ? (articles ?? []) : (accountArticles ?? []);
-      if (viewMode === "unread") list = all.filter((a) => !a.is_read);
-      else if (viewMode === "starred") list = all.filter((a) => a.is_starred);
-      else list = [...all];
-    }
-    // Apply sort preference
-    const direction = sortUnread === "oldest_first" ? 1 : -1;
-    list.sort((a, b) => direction * (new Date(b.published_at).getTime() - new Date(a.published_at).getTime()));
-    return list;
+    return selectVisibleArticles({
+      articles,
+      accountArticles,
+      tagArticles,
+      searchResults,
+      feedId,
+      tagId,
+      viewMode,
+      showSearch,
+      searchQuery,
+      sortUnread,
+    });
   }, [
     accountArticles,
     articles,
@@ -110,21 +93,15 @@ export function ArticleList() {
   ]);
 
   const unreadCount = useMemo(() => {
-    return filteredArticles.filter((a) => !a.is_read).length;
+    return countUnreadArticles(filteredArticles);
   }, [filteredArticles]);
 
   const groupedArticles = useMemo(() => {
-    if (groupBy === "none") {
-      return { "": filteredArticles };
-    }
-    const groups: Record<string, ArticleDto[]> = {};
-    for (const article of filteredArticles) {
-      const group =
-        groupBy === "feed" ? (feedNameMap.get(article.feed_id) ?? "Unknown Feed") : getDateGroup(article.published_at);
-      if (!groups[group]) groups[group] = [];
-      groups[group].push(article);
-    }
-    return groups;
+    return groupArticles({
+      articles: filteredArticles,
+      groupBy,
+      feedNameMap,
+    });
   }, [filteredArticles, groupBy, feedNameMap]);
 
   const listRef = useRef<HTMLDivElement>(null);
@@ -140,13 +117,12 @@ export function ArticleList() {
   }, [selection, scrollToTopOnChange]);
 
   const handleMarkAllRead = useCallback(async () => {
-    if (filteredArticles.length === 0) return;
-    const unread = filteredArticles.filter((a) => !a.is_read);
-    if (unread.length === 0) return;
+    const unreadIds = getUnreadArticleIds(filteredArticles);
+    if (unreadIds.length === 0) return;
     if (askBeforeMarkAll === "true") {
-      if (!window.confirm(`Mark ${unread.length} articles as read?`)) return;
+      if (!window.confirm(`Mark ${unreadIds.length} articles as read?`)) return;
     }
-    markAllRead.mutate(unread.map((a) => a.id));
+    markAllRead.mutate(unreadIds);
   }, [askBeforeMarkAll, filteredArticles, markAllRead]);
 
   const openSearch = useCallback(() => {
@@ -156,13 +132,15 @@ export function ArticleList() {
 
   const navigateArticle = useCallback(
     (direction: 1 | -1) => {
-      if (filteredArticles.length === 0) return;
-      const currentIndex = filteredArticles.findIndex((a) => a.id === selectedArticleId);
-      const nextIndex =
-        currentIndex === -1 ? 0 : Math.max(0, Math.min(filteredArticles.length - 1, currentIndex + direction));
-      selectArticle(filteredArticles[nextIndex].id);
+      const nextArticleId = getAdjacentArticleId(filteredArticles, selectedArticleId, direction);
+      if (Result.isFailure(nextArticleId)) {
+        return;
+      }
+
+      const articleId = Result.unwrap(nextArticleId);
+      selectArticle(articleId);
       // Scroll selected item into view
-      const btn = listRef.current?.querySelector(`[data-article-id="${filteredArticles[nextIndex].id}"]`);
+      const btn = listRef.current?.querySelector(`[data-article-id="${articleId}"]`);
       btn?.scrollIntoView({ block: "nearest" });
     },
     [filteredArticles, selectedArticleId, selectArticle],
@@ -266,94 +244,108 @@ export function ArticleList() {
       </div>
 
       {/* Article List */}
-      <ScrollArea className="flex-1">
-        <div ref={listRef} role="listbox" aria-label="Article list" className="pb-4">
-          {isLoading || isLoadingAccountArticles || isLoadingTagArticles ? (
-            <div className="p-6 text-center text-muted-foreground">Loading...</div>
-          ) : filteredArticles.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground">No articles</div>
-          ) : (
-            Object.entries(groupedArticles).map(([groupLabel, groupArticles]) => (
-              <div key={groupLabel}>
-                {/* Group Header (hidden when groupBy is "none") */}
-                {groupBy !== "none" && (
-                  <div className="sticky top-0 bg-card px-4 py-2">
-                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                      {groupLabel}
-                    </span>
-                  </div>
-                )}
-
-                {/* Articles in Group */}
-                {groupArticles.map((article) => (
-                  <button
-                    type="button"
-                    key={article.id}
-                    data-article-id={article.id}
-                    role="option"
-                    aria-selected={selectedArticleId === article.id}
-                    aria-label={`${article.title}${article.is_read ? "" : " (unread)"}${article.is_starred ? " (starred)" : ""}`}
-                    onClick={() => selectArticle(article.id)}
-                    className={cn(
-                      "relative flex w-full flex-col gap-1 border-l-2 px-4 py-3 text-left transition-colors",
-                      selectedArticleId === article.id
-                        ? "border-l-accent bg-accent/10"
-                        : !article.is_read
-                          ? "border-l-accent/60 hover:bg-muted/50"
-                          : dimArchived === "true"
-                            ? "border-l-transparent hover:bg-muted/50 opacity-60"
-                            : "border-l-transparent hover:bg-muted/50",
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 space-y-1">
-                        {/* Title */}
-                        <h3
-                          className={cn(
-                            "line-clamp-2 text-sm leading-snug text-foreground",
-                            !article.is_read && "font-medium",
-                          )}
-                        >
-                          {article.title}
-                        </h3>
-                        {/* Feed Name */}
-                        {feedNameMap.has(article.feed_id) && (
-                          <p className="text-xs text-muted-foreground">{feedNameMap.get(article.feed_id)}</p>
-                        )}
-                        {/* Summary */}
-                        {textPreview === "true" && article.summary && (
-                          <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                            {article.summary}
-                          </p>
-                        )}
+      <ContextMenu.Root>
+        <ContextMenu.Trigger render={<div />} className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div ref={listRef} role="listbox" aria-label="Article list" className="pb-4">
+              {isLoading || isLoadingAccountArticles || isLoadingTagArticles ? (
+                <div className="p-6 text-center text-muted-foreground">Loading...</div>
+              ) : filteredArticles.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground">No articles</div>
+              ) : (
+                Object.entries(groupedArticles).map(([groupLabel, groupArticles]) => (
+                  <div key={groupLabel}>
+                    {/* Group Header (hidden when groupBy is "none") */}
+                    {groupBy !== "none" && (
+                      <div className="sticky top-0 bg-card px-4 py-2">
+                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                          {groupLabel}
+                        </span>
                       </div>
+                    )}
 
-                      {/* Thumbnail */}
-                      {imagePreviews !== "off" && article.thumbnail && (
-                        <div
+                    {/* Articles in Group */}
+                    {groupArticles.map((article) => (
+                      <ArticleContextMenu key={article.id} article={article}>
+                        <button
+                          type="button"
+                          data-article-id={article.id}
+                          role="option"
+                          aria-selected={selectedArticleId === article.id}
+                          aria-label={`${article.title}${article.is_read ? "" : " (unread)"}${article.is_starred ? " (starred)" : ""}`}
+                          onClick={() => selectArticle(article.id)}
                           className={cn(
-                            "relative shrink-0 overflow-hidden rounded",
-                            imagePreviews === "small" && "h-12 w-16",
-                            imagePreviews === "medium" && "h-16 w-20",
-                            imagePreviews === "large" && "h-20 w-28",
+                            "relative flex w-full flex-col gap-1 border-l-2 px-4 py-3 text-left transition-colors",
+                            selectedArticleId === article.id
+                              ? "border-l-accent bg-accent/10"
+                              : !article.is_read
+                                ? "border-l-accent/60 hover:bg-muted/50"
+                                : dimArchived === "true"
+                                  ? "border-l-transparent hover:bg-muted/50 opacity-60"
+                                  : "border-l-transparent hover:bg-muted/50",
                           )}
                         >
-                          <img src={article.thumbnail} alt="" className="h-full w-full object-cover" />
-                        </div>
-                      )}
-                    </div>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 space-y-1">
+                              {/* Title */}
+                              <h3
+                                className={cn(
+                                  "line-clamp-2 text-sm leading-snug text-foreground",
+                                  !article.is_read && "font-medium",
+                                )}
+                              >
+                                {article.title}
+                              </h3>
+                              {/* Feed Name */}
+                              {feedNameMap.has(article.feed_id) && (
+                                <p className="text-xs text-muted-foreground">{feedNameMap.get(article.feed_id)}</p>
+                              )}
+                              {/* Summary */}
+                              {textPreview === "true" && article.summary && (
+                                <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                                  {article.summary}
+                                </p>
+                              )}
+                            </div>
 
-                    {/* Time */}
-                    <div className="absolute right-4 top-3 text-xs text-muted-foreground">
-                      {formatTime(article.published_at)}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ))
-          )}
-        </div>
-      </ScrollArea>
+                            {/* Thumbnail */}
+                            {imagePreviews !== "off" && article.thumbnail && (
+                              <div
+                                className={cn(
+                                  "relative shrink-0 overflow-hidden rounded",
+                                  imagePreviews === "small" && "h-12 w-16",
+                                  imagePreviews === "medium" && "h-16 w-20",
+                                  imagePreviews === "large" && "h-20 w-28",
+                                )}
+                              >
+                                <img src={article.thumbnail} alt="" className="h-full w-full object-cover" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Time */}
+                          <div className="absolute right-4 top-3 text-xs text-muted-foreground">
+                            {formatArticleTime(article.published_at)}
+                          </div>
+                        </button>
+                      </ArticleContextMenu>
+                    ))}
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </ContextMenu.Trigger>
+        <ContextMenu.Portal>
+          <ContextMenu.Positioner>
+            <ContextMenu.Popup className={contextMenuStyles.popup}>
+              <ContextMenu.Item className={contextMenuStyles.item} onClick={handleMarkAllRead}>
+                Mark All as Read
+              </ContextMenu.Item>
+            </ContextMenu.Popup>
+          </ContextMenu.Positioner>
+        </ContextMenu.Portal>
+      </ContextMenu.Root>
 
       {/* Bottom Toolbar */}
       <div className="flex h-10 items-center justify-center gap-4 border-t border-border bg-card">

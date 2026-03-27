@@ -92,6 +92,8 @@ pub fn run() {
             commands::article_commands::list_account_articles,
             commands::article_commands::mark_article_read,
             commands::article_commands::mark_articles_read,
+            commands::article_commands::mark_feed_read,
+            commands::article_commands::mark_folder_read,
             commands::article_commands::toggle_article_star,
             commands::article_commands::open_in_browser,
             commands::opml_commands::import_opml,

@@ -131,6 +131,21 @@ export function setupDevMocks() {
         return null;
       }
 
+      case "mark_feed_read": {
+        for (const art of mockArticles) {
+          if (art.feed_id === args.feedId) art.is_read = true;
+        }
+        return null;
+      }
+
+      case "mark_folder_read": {
+        const folderFeedIds = mockFeeds.filter((f) => f.folder_id === args.folderId).map((f) => f.id);
+        for (const art of mockArticles) {
+          if (folderFeedIds.includes(art.feed_id)) art.is_read = true;
+        }
+        return null;
+      }
+
       case "toggle_article_star": {
         const art = mockArticles.find((a) => a.id === args.articleId);
         if (art) art.is_starred = args.starred as boolean;
