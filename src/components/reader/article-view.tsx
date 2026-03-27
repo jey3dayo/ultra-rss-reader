@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
-import { keyboardEvents } from "@/hooks/use-keyboard";
 import {
   useArticlesByTag,
   useArticleTags,
@@ -16,7 +15,9 @@ import {
   useTags,
   useUntagArticle,
 } from "@/hooks/use-tags";
+import { findSelectedArticle, formatArticleDate, shouldOpenExternalBrowser } from "@/lib/article-view";
 import { applyBionicReading } from "@/lib/bionic-reading";
+import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { BrowserView } from "./browser-view";
@@ -312,31 +313,17 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
     if (!anchor?.href) return;
     e.preventDefault();
 
-    const useExternal = (cmdClickBrowser === "true" && (e.metaKey || e.ctrlKey)) || openLinks === "external";
+    const useExternal = shouldOpenExternalBrowser({
+      openLinks,
+      cmdClickBrowser,
+      metaKey: e.metaKey,
+      ctrlKey: e.ctrlKey,
+    });
     if (useExternal) {
       openInBrowser(anchor.href);
     } else {
       openBrowserView(anchor.href);
     }
-  };
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return (
-      date
-        .toLocaleDateString("en-US", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        })
-        .toUpperCase() +
-      " AT " +
-      date.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      })
-    );
   };
 
   return (
@@ -345,7 +332,7 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
       <ScrollArea className="flex-1">
         <article className="mx-auto max-w-3xl px-8 py-8">
           {/* Date */}
-          <p className="mb-2 text-xs tracking-wider text-muted-foreground">{formatDate(article.published_at)}</p>
+          <p className="mb-2 text-xs tracking-wider text-muted-foreground">{formatArticleDate(article.published_at)}</p>
 
           {/* Title */}
           <h1 className="mb-4 text-2xl font-bold leading-tight text-foreground">{article.title}</h1>
@@ -405,16 +392,24 @@ export function ArticleView() {
     return <EmptyState />;
   }
 
-  const allArticles = tagId ? tagArticles : feedId ? articles : accountArticles;
-  const article = allArticles?.find((a) => a.id === selectedArticleId);
+  const articleResult = findSelectedArticle({
+    selectedArticleId,
+    feedId,
+    tagId,
+    articles,
+    accountArticles,
+    tagArticles,
+  });
 
-  if (!article) {
+  if (Result.isFailure(articleResult)) {
     return (
       <div className="flex h-full flex-1 flex-col items-center justify-center bg-background text-muted-foreground">
         Article not found
       </div>
     );
   }
+
+  const article = Result.unwrap(articleResult);
 
   const feedName = feeds?.find((f) => f.id === article.feed_id)?.title;
 

@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import type { FeedDto } from "@/api/tauri-commands";
 import { deleteFeed, openInBrowser } from "@/api/tauri-commands";
+import { extractSiteHost } from "@/lib/feed";
 import { useUiStore } from "@/stores/ui-store";
 import { RenameDialog } from "./rename-feed-dialog";
 import { UnsubscribeDialog } from "./unsubscribe-feed-dialog";
@@ -14,14 +15,8 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
   const qc = useQueryClient();
   const showToast = useUiStore((s) => s.showToast);
 
-  const siteHost = (() => {
-    const url = feed.site_url || feed.url;
-    try {
-      return new URL(url).hostname;
-    } catch {
-      return url;
-    }
-  })();
+  const hostResult = extractSiteHost(feed.site_url, feed.url);
+  const siteHost = Result.isSuccess(hostResult) ? Result.unwrap(hostResult) : Result.unwrapError(hostResult);
 
   const handleOpenSite = () => {
     const url = feed.site_url || feed.url;
