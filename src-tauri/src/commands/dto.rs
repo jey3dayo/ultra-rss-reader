@@ -72,6 +72,23 @@ pub struct ArticleDto {
     pub is_starred: bool,
 }
 
+#[derive(Debug, Serialize)]
+pub struct TagDto {
+    pub id: String,
+    pub name: String,
+    pub color: Option<String>,
+}
+
+impl From<crate::domain::tag::Tag> for TagDto {
+    fn from(t: crate::domain::tag::Tag) -> Self {
+        Self {
+            id: t.id.0,
+            name: t.name,
+            color: t.color,
+        }
+    }
+}
+
 impl From<crate::domain::account::Account> for AccountDto {
     fn from(a: crate::domain::account::Account) -> Self {
         Self {

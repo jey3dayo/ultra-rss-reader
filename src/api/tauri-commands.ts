@@ -28,6 +28,8 @@ export type ArticleDto = {
   is_starred: boolean;
 };
 
+export type TagDto = { id: string; name: string; color: string | null };
+
 function toAppError(cmd: string, error: unknown): AppError {
   console.error(`[tauri-commands] ${cmd} failed:`, error);
   return typeof error === "object" && error !== null && "type" in error
@@ -70,3 +72,14 @@ export const exportOpml = (accountId: string) => safeInvoke<string>("export_opml
 
 export const getPreferences = () => safeInvoke<Record<string, string>>("get_preferences");
 export const setPreference = (key: string, value: string) => safeInvoke<void>("set_preference", { key, value });
+
+// Tags
+export const listTags = () => safeInvoke<TagDto[]>("list_tags");
+export const createTag = (name: string, color?: string) => safeInvoke<TagDto>("create_tag", { name, color });
+export const deleteTag = (tagId: string) => safeInvoke<void>("delete_tag", { tagId });
+export const tagArticle = (articleId: string, tagId: string) => safeInvoke<void>("tag_article", { articleId, tagId });
+export const untagArticle = (articleId: string, tagId: string) =>
+  safeInvoke<void>("untag_article", { articleId, tagId });
+export const getArticleTags = (articleId: string) => safeInvoke<TagDto[]>("get_article_tags", { articleId });
+export const listArticlesByTag = (tagId: string, offset?: number, limit?: number) =>
+  safeInvoke<ArticleDto[]>("list_articles_by_tag", { tagId, offset, limit });

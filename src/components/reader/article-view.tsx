@@ -1,12 +1,20 @@
 import { Result } from "@praha/byethrow";
-import { Circle, Copy, Share, Star } from "lucide-react";
-import { useEffect } from "react";
+import { Circle, Copy, Plus, Share, Star, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useArticles, useMarkRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
+import {
+  useArticlesByTag,
+  useArticleTags,
+  useCreateTag,
+  useTagArticle,
+  useTags,
+  useUntagArticle,
+} from "@/hooks/use-tags";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { BrowserView } from "./browser-view";
@@ -104,6 +112,111 @@ function EmptyState() {
   );
 }
 
+function ArticleTagChips({ articleId }: { articleId: string }) {
+  const { data: articleTags } = useArticleTags(articleId);
+  const { data: allTags } = useTags();
+  const tagArticleMutation = useTagArticle();
+  const untagArticleMutation = useUntagArticle();
+  const createTagMutation = useCreateTag();
+  const [showPicker, setShowPicker] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+
+  const assignedTagIds = new Set(articleTags?.map((t) => t.id) ?? []);
+  const unassignedTags = (allTags ?? []).filter((t) => !assignedTagIds.has(t.id));
+
+  const handleCreateAndAssign = () => {
+    const name = newTagName.trim();
+    if (!name) return;
+    createTagMutation.mutate(
+      { name },
+      {
+        onSuccess: (tag) => {
+          tagArticleMutation.mutate({ articleId, tagId: tag.id });
+          setNewTagName("");
+        },
+      },
+    );
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {articleTags?.map((tag) => (
+        <span
+          key={tag.id}
+          className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground"
+        >
+          {tag.color && (
+            <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: tag.color }} />
+          )}
+          {tag.name}
+          <button
+            type="button"
+            onClick={() => untagArticleMutation.mutate({ articleId, tagId: tag.id })}
+            className="ml-0.5 text-muted-foreground hover:text-foreground"
+            aria-label={`Remove tag ${tag.name}`}
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </span>
+      ))}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setShowPicker((v) => !v)}
+          className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-muted-foreground text-muted-foreground hover:border-foreground hover:text-foreground"
+          aria-label="Add tag"
+        >
+          <Plus className="h-3 w-3" />
+        </button>
+        {showPicker && (
+          <div className="absolute top-full left-0 z-50 mt-1 min-w-[180px] rounded-lg border border-border bg-popover p-1 shadow-lg">
+            {unassignedTags.map((tag) => (
+              <button
+                type="button"
+                key={tag.id}
+                onClick={() => {
+                  tagArticleMutation.mutate({ articleId, tagId: tag.id });
+                  setShowPicker(false);
+                }}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm text-popover-foreground hover:bg-accent"
+              >
+                {tag.color && (
+                  <span
+                    className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: tag.color }}
+                  />
+                )}
+                {tag.name}
+              </button>
+            ))}
+            <div className="flex items-center gap-1 border-t border-border px-2 pt-1">
+              <input
+                type="text"
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreateAndAssign();
+                }}
+                placeholder="New tag..."
+                className="flex-1 rounded border-none bg-transparent px-1 py-1 text-xs outline-none placeholder:text-muted-foreground"
+              />
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={handleCreateAndAssign}
+                disabled={!newTagName.trim()}
+                className="h-5 w-5 text-muted-foreground"
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: string }) {
   const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
@@ -165,11 +278,16 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
 
           {/* Author & Feed */}
           {(article.author || feedName) && (
-            <div className="mb-8 text-sm text-muted-foreground">
+            <div className="mb-4 text-sm text-muted-foreground">
               {article.author && <p className="uppercase tracking-wide">{article.author}</p>}
               {feedName && <p className="text-xs">{feedName}</p>}
             </div>
           )}
+
+          {/* Tags */}
+          <div className="mb-8">
+            <ArticleTagChips articleId={article.id} />
+          </div>
 
           {/* Featured Image */}
           {article.thumbnail && (
@@ -196,7 +314,9 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
 export function ArticleView() {
   const { contentMode, selectedAccountId, selectedArticleId, selection } = useUiStore();
   const feedId = selection.type === "feed" ? selection.feedId : null;
+  const tagId = selection.type === "tag" ? selection.tagId : null;
   const { data: articles } = useArticles(feedId);
+  const { data: tagArticles } = useArticlesByTag(tagId);
   const { data: feeds } = useFeeds(selectedAccountId);
 
   if (contentMode === "browser") {
@@ -207,7 +327,8 @@ export function ArticleView() {
     return <EmptyState />;
   }
 
-  const article = articles?.find((a) => a.id === selectedArticleId);
+  const allArticles = tagId ? tagArticles : articles;
+  const article = allArticles?.find((a) => a.id === selectedArticleId);
 
   if (!article) {
     return (

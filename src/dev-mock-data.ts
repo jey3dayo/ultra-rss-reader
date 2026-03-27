@@ -3,7 +3,7 @@
  * Separated from IPC handler logic for maintainability.
  */
 
-import type { AccountDto, ArticleDto, FeedDto, FolderDto } from "./api/tauri-commands";
+import type { AccountDto, ArticleDto, FeedDto, FolderDto, TagDto } from "./api/tauri-commands";
 
 const now = new Date();
 const yesterday = new Date(now);
@@ -100,6 +100,18 @@ export const mockFeeds: FeedDto[] = [
     url: "https://chimolog.co/feed/",
     unread_count: 1,
   },
+];
+
+export const mockTags: TagDto[] = [
+  { id: "tag-important", name: "important", color: "#ef4444" },
+  { id: "tag-read-later", name: "read later", color: "#3b82f6" },
+  { id: "tag-work", name: "work", color: "#22c55e" },
+];
+
+export const mockArticleTags: { article_id: string; tag_id: string }[] = [
+  { article_id: "art-1", tag_id: "tag-important" },
+  { article_id: "art-1", tag_id: "tag-work" },
+  { article_id: "art-4", tag_id: "tag-read-later" },
 ];
 
 export const mockArticles: ArticleDto[] = [

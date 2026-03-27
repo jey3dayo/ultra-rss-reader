@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useArticles, useMarkRead, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
+import { useArticlesByTag } from "@/hooks/use-tags";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -42,7 +43,9 @@ export function ArticleList() {
   const textPreview = usePreferencesStore((s) => s.prefs.text_preview ?? "true");
   const imagePreviews = usePreferencesStore((s) => s.prefs.image_previews ?? "medium");
   const feedId = selection.type === "feed" ? selection.feedId : null;
+  const tagId = selection.type === "tag" ? selection.tagId : null;
   const { data: articles, isLoading } = useArticles(feedId);
+  const { data: tagArticles, isLoading: isLoadingTagArticles } = useArticlesByTag(tagId);
   const { data: feeds } = useFeeds(selectedAccountId);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -58,6 +61,7 @@ export function ArticleList() {
   const feedName = useMemo(() => {
     if (selection.type === "feed") return "Articles";
     if (selection.type === "smart") return selection.kind === "unread" ? "Unread" : "Starred";
+    if (selection.type === "tag") return "Tagged Articles";
     return "All Articles";
   }, [selection]);
 
@@ -65,6 +69,8 @@ export function ArticleList() {
     let list: ArticleDto[];
     if (showSearch && searchQuery.length > 0) {
       list = [...(searchResults ?? [])];
+    } else if (tagId) {
+      list = [...(tagArticles ?? [])];
     } else {
       const all = articles ?? [];
       if (viewMode === "unread") list = all.filter((a) => !a.is_read);
@@ -75,7 +81,7 @@ export function ArticleList() {
     const direction = sortUnread === "oldest_first" ? 1 : -1;
     list.sort((a, b) => direction * (new Date(b.published_at).getTime() - new Date(a.published_at).getTime()));
     return list;
-  }, [articles, viewMode, showSearch, searchQuery, searchResults, sortUnread]);
+  }, [articles, tagArticles, tagId, viewMode, showSearch, searchQuery, searchResults, sortUnread]);
 
   const unreadCount = useMemo(() => {
     return (articles ?? []).filter((a) => !a.is_read).length;
@@ -218,7 +224,7 @@ export function ArticleList() {
       {/* Article List */}
       <ScrollArea className="flex-1">
         <div ref={listRef} role="listbox" aria-label="Article list" className="pb-4">
-          {isLoading ? (
+          {isLoading || isLoadingTagArticles ? (
             <div className="p-6 text-center text-muted-foreground">Loading...</div>
           ) : filteredArticles.length === 0 ? (
             <div className="p-6 text-center text-muted-foreground">No articles</div>

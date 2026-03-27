@@ -88,7 +88,7 @@ mod tests {
     }
 
     #[test]
-    fn schema_version_is_3() {
+    fn schema_version_is_4() {
         let db = DbManager::new_in_memory().unwrap();
         let version: i32 = db
             .reader()
@@ -98,7 +98,7 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(version, 3);
+        assert_eq!(version, 4);
     }
 
     #[test]

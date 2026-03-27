@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { ChevronDown, Plus, RefreshCw, Settings } from "lucide-react";
+import { ChevronDown, Plus, RefreshCw, Settings, Tag } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { triggerSync } from "@/api/tauri-commands";
@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
+import { useTags } from "@/hooks/use-tags";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -25,12 +26,14 @@ export function Sidebar() {
     selection,
     selectFeed,
     selectSmartView,
+    selectTag,
     expandedFolderIds,
     toggleFolder,
     openSettings,
   } = useUiStore();
   const { data: feeds } = useFeeds(selectedAccountId);
   const { data: folders } = useFolders(selectedAccountId);
+  const { data: tags } = useTags();
   const showUnreadCount = usePreferencesStore((s) => (s.prefs.show_unread_count ?? "true") === "true");
   const displayFavicons = usePreferencesStore((s) => (s.prefs.display_favicons ?? "true") === "true");
 
@@ -214,6 +217,37 @@ export function Sidebar() {
             selectedAccountId && (
               <div className="px-2 py-4 text-center text-sm text-muted-foreground">Press + to add a feed</div>
             )
+          )}
+
+          {/* Tags Section */}
+          {tags && tags.length > 0 && (
+            <>
+              <div className="mt-2 flex items-center justify-between px-2 py-1">
+                <span className="text-sm font-medium text-sidebar-foreground">Tags</span>
+                <Tag className="h-4 w-4 text-muted-foreground" />
+              </div>
+              {tags.map((tag) => (
+                <button
+                  type="button"
+                  key={tag.id}
+                  onClick={() => selectTag(tag.id)}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm",
+                    selection.type === "tag" && selection.tagId === tag.id
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                  )}
+                >
+                  {tag.color && (
+                    <span
+                      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: tag.color }}
+                    />
+                  )}
+                  <span className="truncate">{tag.name}</span>
+                </button>
+              ))}
+            </>
           )}
         </div>
       </ScrollArea>

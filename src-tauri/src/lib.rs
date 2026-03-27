@@ -89,6 +89,13 @@ pub fn run() {
             commands::article_commands::search_articles,
             commands::preference_commands::get_preferences,
             commands::preference_commands::set_preference,
+            commands::tag_commands::list_tags,
+            commands::tag_commands::create_tag,
+            commands::tag_commands::delete_tag,
+            commands::tag_commands::tag_article,
+            commands::tag_commands::untag_article,
+            commands::tag_commands::get_article_tags,
+            commands::tag_commands::list_articles_by_tag,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

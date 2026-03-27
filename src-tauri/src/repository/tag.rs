@@ -1,0 +1,19 @@
+use crate::domain::article::Article;
+use crate::domain::error::DomainResult;
+use crate::domain::tag::Tag;
+use crate::domain::types::{ArticleId, TagId};
+use crate::repository::article::Pagination;
+
+pub trait TagRepository {
+    fn find_all(&self) -> DomainResult<Vec<Tag>>;
+    fn save(&self, tag: &Tag) -> DomainResult<()>;
+    fn delete(&self, tag_id: &TagId) -> DomainResult<()>;
+    fn find_tags_for_article(&self, article_id: &ArticleId) -> DomainResult<Vec<Tag>>;
+    fn tag_article(&self, article_id: &ArticleId, tag_id: &TagId) -> DomainResult<()>;
+    fn untag_article(&self, article_id: &ArticleId, tag_id: &TagId) -> DomainResult<()>;
+    fn find_articles_by_tag(
+        &self,
+        tag_id: &TagId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>>;
+}

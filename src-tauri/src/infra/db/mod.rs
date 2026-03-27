@@ -7,3 +7,4 @@ pub mod sqlite_folder;
 pub mod sqlite_pending_mutation;
 pub mod sqlite_preference;
 pub mod sqlite_sync_state;
+pub mod sqlite_tag;

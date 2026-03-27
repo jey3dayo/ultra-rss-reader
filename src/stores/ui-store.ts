@@ -4,6 +4,7 @@ type Selection =
   | { type: "feed"; feedId: string }
   | { type: "folder"; folderId: string }
   | { type: "smart"; kind: "unread" | "starred" }
+  | { type: "tag"; tagId: string }
   | { type: "all" };
 
 type LayoutMode = "wide" | "compact" | "mobile";
@@ -35,6 +36,7 @@ interface UiActions {
   selectFeed: (feedId: string) => void;
   selectFolder: (folderId: string) => void;
   selectSmartView: (kind: "unread" | "starred") => void;
+  selectTag: (tagId: string) => void;
   selectAll: () => void;
   selectArticle: (id: string) => void;
   clearArticle: () => void;
@@ -81,6 +83,8 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   selectFolder: (folderId) =>
     set({ selection: { type: "folder", folderId }, selectedArticleId: null, contentMode: "empty" }),
   selectSmartView: (kind) => set({ selection: { type: "smart", kind }, selectedArticleId: null, contentMode: "empty" }),
+  selectTag: (tagId) =>
+    set({ selection: { type: "tag", tagId }, selectedArticleId: null, contentMode: "empty", focusedPane: "list" }),
   selectAll: () => set({ selection: { type: "all" }, selectedArticleId: null, contentMode: "empty" }),
   selectArticle: (id) => set({ selectedArticleId: id, contentMode: "reader", focusedPane: "content" }),
   clearArticle: () => set({ selectedArticleId: null, contentMode: "empty" }),

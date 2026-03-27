@@ -4,11 +4,12 @@
  */
 
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
-import type { AccountDto, FeedDto } from "./api/tauri-commands";
-import { mockAccounts, mockArticles, mockFeeds, mockFolders } from "./dev-mock-data";
+import type { AccountDto, FeedDto, TagDto } from "./api/tauri-commands";
+import { mockAccounts, mockArticles, mockArticleTags, mockFeeds, mockFolders, mockTags } from "./dev-mock-data";
 
 let nextAccountId = 100;
 let nextFeedId = 100;
+let nextTagId = 100;
 const mockPreferences = new Map<string, string>();
 
 function titleFromUrl(feedUrl: string): string {
@@ -127,6 +128,56 @@ export function setupDevMocks() {
     <outline text="Standalone" title="Standalone" type="rss" xmlUrl="https://example.com/feed.xml"/>
   </body>
 </opml>`;
+
+      case "list_tags":
+        return mockTags;
+
+      case "create_tag": {
+        const tag: TagDto = {
+          id: `dev-tag-${nextTagId++}`,
+          name: String(args.name ?? ""),
+          color: (args.color as string) ?? null,
+        };
+        mockTags.push(tag);
+        return tag;
+      }
+
+      case "delete_tag": {
+        const tagIdx = mockTags.findIndex((t) => t.id === args.tagId);
+        if (tagIdx >= 0) mockTags.splice(tagIdx, 1);
+        // Remove associated article_tags
+        for (let i = mockArticleTags.length - 1; i >= 0; i--) {
+          if (mockArticleTags[i].tag_id === args.tagId) mockArticleTags.splice(i, 1);
+        }
+        return null;
+      }
+
+      case "tag_article": {
+        const exists = mockArticleTags.some((at) => at.article_id === args.articleId && at.tag_id === args.tagId);
+        if (!exists) {
+          mockArticleTags.push({
+            article_id: String(args.articleId),
+            tag_id: String(args.tagId),
+          });
+        }
+        return null;
+      }
+
+      case "untag_article": {
+        const atIdx = mockArticleTags.findIndex((at) => at.article_id === args.articleId && at.tag_id === args.tagId);
+        if (atIdx >= 0) mockArticleTags.splice(atIdx, 1);
+        return null;
+      }
+
+      case "get_article_tags": {
+        const tagIds = mockArticleTags.filter((at) => at.article_id === args.articleId).map((at) => at.tag_id);
+        return mockTags.filter((t) => tagIds.includes(t.id));
+      }
+
+      case "list_articles_by_tag": {
+        const articleIds = mockArticleTags.filter((at) => at.tag_id === args.tagId).map((at) => at.article_id);
+        return mockArticles.filter((a) => articleIds.includes(a.id));
+      }
 
       case "trigger_sync":
       case "open_in_browser":

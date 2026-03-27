@@ -12,6 +12,9 @@ pub struct FolderId(pub String);
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ArticleId(pub String);
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct TagId(pub String);
+
 impl Default for AccountId {
     fn default() -> Self {
         Self::new()
@@ -66,7 +69,25 @@ impl std::fmt::Display for FolderId {
     }
 }
 
+impl Default for TagId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl TagId {
+    pub fn new() -> Self {
+        Self(uuid::Uuid::new_v4().to_string())
+    }
+}
+
 impl std::fmt::Display for ArticleId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::fmt::Display for TagId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -91,6 +112,12 @@ impl AsRef<str> for FolderId {
 }
 
 impl AsRef<str> for ArticleId {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for TagId {
     fn as_ref(&self) -> &str {
         &self.0
     }
