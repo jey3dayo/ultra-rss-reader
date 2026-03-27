@@ -2,7 +2,7 @@ import { CheckCircle, Filter, Search, Star, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useArticles, useSearchArticles } from "@/hooks/use-articles";
+import { useArticles, useMarkRead, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -95,6 +95,28 @@ export function ArticleList() {
   }, [filteredArticles, groupBy, feedNameMap]);
 
   const listRef = useRef<HTMLDivElement>(null);
+  const scrollToTopOnChange = usePreferencesStore((s) => s.prefs.scroll_to_top_on_change ?? "true");
+  const askBeforeMarkAll = usePreferencesStore((s) => s.prefs.ask_before_mark_all ?? "true");
+  const markRead = useMarkRead();
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to top when selection changes
+  useEffect(() => {
+    if (scrollToTopOnChange === "true" && listRef.current) {
+      listRef.current.scrollTop = 0;
+    }
+  }, [selection, scrollToTopOnChange]);
+
+  const handleMarkAllRead = async () => {
+    if (!articles || articles.length === 0) return;
+    const unread = articles.filter((a) => !a.is_read);
+    if (unread.length === 0) return;
+    if (askBeforeMarkAll === "true") {
+      if (!window.confirm(`Mark ${unread.length} articles as read?`)) return;
+    }
+    for (const a of unread) {
+      markRead.mutate(a.id);
+    }
+  };
 
   const navigateArticle = useCallback(
     (direction: 1 | -1) => {
@@ -134,6 +156,7 @@ export function ArticleList() {
           <button
             type="button"
             aria-label="Mark all as read"
+            onClick={handleMarkAllRead}
             className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
           >
             <CheckCircle className="h-4 w-4" />

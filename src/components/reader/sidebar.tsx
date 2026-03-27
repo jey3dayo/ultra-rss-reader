@@ -19,6 +19,7 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { cn } from "@/lib/utils";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 function AddFeedDialog({
@@ -104,10 +105,12 @@ function FeedItem({
   feed,
   isSelected,
   onSelect,
+  displayFavicons,
 }: {
   feed: FeedDto;
   isSelected: boolean;
   onSelect: (feedId: string) => void;
+  displayFavicons: string;
 }) {
   return (
     <button
@@ -119,9 +122,11 @@ function FeedItem({
       )}
     >
       <div className="flex items-center gap-2 truncate">
-        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-accent/20 text-[10px] font-medium text-accent">
-          {feed.title.charAt(0).toUpperCase()}
-        </span>
+        {displayFavicons !== "false" && (
+          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-accent/20 text-[10px] font-medium text-accent">
+            {feed.title.charAt(0).toUpperCase()}
+          </span>
+        )}
         <span className="truncate">{feed.title}</span>
       </div>
       {feed.unread_count > 0 && <span className="ml-2 shrink-0 text-muted-foreground">{feed.unread_count}</span>}
@@ -136,6 +141,7 @@ function FolderSection({
   onToggle,
   selectedFeedId,
   onSelectFeed,
+  displayFavicons,
 }: {
   folder: FolderDto;
   feeds: FeedDto[];
@@ -143,6 +149,7 @@ function FolderSection({
   onToggle: (folderId: string) => void;
   selectedFeedId: string | null;
   onSelectFeed: (feedId: string) => void;
+  displayFavicons: string;
 }) {
   const folderUnread = feeds.reduce((sum, f) => sum + f.unread_count, 0);
 
@@ -161,7 +168,13 @@ function FolderSection({
       <CollapsibleContent>
         <div className="space-y-0.5 pl-3">
           {feeds.map((feed) => (
-            <FeedItem key={feed.id} feed={feed} isSelected={selectedFeedId === feed.id} onSelect={onSelectFeed} />
+            <FeedItem
+              key={feed.id}
+              feed={feed}
+              isSelected={selectedFeedId === feed.id}
+              onSelect={onSelectFeed}
+              displayFavicons={displayFavicons}
+            />
           ))}
         </div>
       </CollapsibleContent>
@@ -185,6 +198,8 @@ export function Sidebar() {
   } = useUiStore();
   const { data: feeds } = useFeeds(selectedAccountId);
   const { data: folders } = useFolders(selectedAccountId);
+  const showUnreadCount = usePreferencesStore((s) => s.prefs.show_unread_count ?? "true");
+  const displayFavicons = usePreferencesStore((s) => s.prefs.display_favicons ?? "true");
 
   // Auto-select first account if none selected
   useEffect(() => {
@@ -302,7 +317,7 @@ export function Sidebar() {
         )}
       >
         <span className="font-medium">Unread</span>
-        <span className="text-muted-foreground">{totalUnread.toLocaleString()}</span>
+        {showUnreadCount === "true" && <span className="text-muted-foreground">{totalUnread.toLocaleString()}</span>}
       </button>
 
       {/* Starred Smart View */}
@@ -344,11 +359,18 @@ export function Sidebar() {
                     onToggle={toggleFolder}
                     selectedFeedId={selectedFeedId}
                     onSelectFeed={selectFeed}
+                    displayFavicons={displayFavicons}
                   />
                 );
               })}
               {unfolderedFeeds.map((feed) => (
-                <FeedItem key={feed.id} feed={feed} isSelected={selectedFeedId === feed.id} onSelect={selectFeed} />
+                <FeedItem
+                  key={feed.id}
+                  feed={feed}
+                  isSelected={selectedFeedId === feed.id}
+                  onSelect={selectFeed}
+                  displayFavicons={displayFavicons}
+                />
               ))}
             </>
           ) : (

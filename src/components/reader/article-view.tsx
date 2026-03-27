@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { Circle, Copy, Share, Star } from "lucide-react";
+import { useEffect } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -95,6 +96,34 @@ function EmptyState() {
 }
 
 function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: string }) {
+  const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
+  const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
+  const cmdClickBrowser = usePreferencesStore((s) => s.prefs.cmd_click_browser ?? "false");
+  const markRead = useMarkRead();
+  const openBrowserView = useUiStore((s) => s.openBrowser);
+
+  // Auto mark as read when article is displayed
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally trigger only on article change and preference
+  useEffect(() => {
+    if (afterReading === "mark_as_read" && article && !article.is_read) {
+      markRead.mutate(article.id);
+    }
+  }, [afterReading, article]);
+
+  const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const anchor = target.closest("a");
+    if (!anchor?.href) return;
+    e.preventDefault();
+
+    const useExternal = (cmdClickBrowser === "true" && (e.metaKey || e.ctrlKey)) || openLinks === "external";
+    if (useExternal) {
+      openInBrowser(anchor.href);
+    } else {
+      openBrowserView(anchor.href);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return (
@@ -141,8 +170,11 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
           )}
 
           {/* Content */}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: click handler intercepts anchor navigation in sanitized HTML */}
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: click handler intercepts anchor navigation in sanitized HTML */}
           <div
             className="prose prose-invert max-w-none text-base leading-relaxed text-foreground/90"
+            onClick={handleContentClick}
             // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML is pre-sanitized by Rust backend
             dangerouslySetInnerHTML={{ __html: article.content_sanitized }}
           />
