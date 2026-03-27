@@ -83,3 +83,21 @@
 - [x] settings-modal の listen 競合修正（cancelled フラグ）
 - [x] markAllRead バッチAPI化（Rust側コマンド追加）
 - [x] 同時sync実行ガード（AtomicBool + SyncGuard RAII）
+
+## UI回遊レビューの修正（2026-03-27）
+
+- [x] アカウント全体の `All / Unread / Starred` 一覧取得を修正
+- [x] 記事一覧ヘッダーの未読件数を現在の表示対象に合わせる
+- [x] compact レイアウトでサイドバーへ戻る導線を追加
+- [x] Settings ダイアログの閉じるボタンにアクセシブルネームを付与
+- [x] 関連テスト追加
+- [x] `mise run check` 実行
+
+## すぐやれる小粒タスク
+
+- [x] Shortcuts: `m` で選択記事の既読切り替え
+- [x] Shortcuts: `s` で選択記事のスター切り替え
+- [x] Shortcuts: `v` で記事を in-app browser で開く
+- [x] Shortcuts: `b` で記事を外部ブラウザで開く
+- [x] Shortcuts: `a` で現在リストを一括既読
+- [x] Shortcuts: `/` で記事検索入力にフォーカス
