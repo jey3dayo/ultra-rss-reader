@@ -292,6 +292,8 @@ async fn sync_freshrss_feeds(
         feed_repo.find_by_account(&account.id)?
     };
 
+    const MAX_PAGES_PER_FEED: usize = 10;
+
     for feed in &feeds {
         let scope = if let Some(ref remote_id) = feed.remote_id {
             PullScope::Feed(FeedIdentifier::Remote {
@@ -301,51 +303,62 @@ async fn sync_freshrss_feeds(
             continue; // Skip feeds without remote_id for FreshRSS
         };
 
-        let result = match provider.pull_entries(scope, None).await {
-            Ok(r) => r,
-            Err(e) => {
-                warn!("Failed to pull entries for feed {}: {e}", feed.url);
-                continue;
-            }
-        };
+        let mut cursor: Option<crate::domain::provider::SyncCursor> = None;
+        let mut page: usize = 0;
 
-        let articles: Vec<Article> = result
-            .entries
-            .iter()
-            .map(|entry| {
-                let id = generate_entry_id(
-                    account.id.as_ref(),
-                    entry.id.as_deref(),
-                    &feed.url,
-                    entry.url.as_deref(),
-                    Some(&entry.title),
-                );
-                Article {
-                    id,
-                    feed_id: feed.id.clone(),
-                    remote_id: entry.id.clone(),
-                    title: entry.title.clone(),
-                    content_raw: entry.content.clone(),
-                    content_sanitized: sanitizer::sanitize_html(&entry.content),
-                    sanitizer_version: sanitizer::SANITIZER_VERSION,
-                    summary: entry.summary.clone(),
-                    url: entry.url.clone(),
-                    author: entry.author.clone(),
-                    published_at: entry.published_at.unwrap_or_else(chrono::Utc::now),
-                    thumbnail: entry.thumbnail.clone(),
-                    is_read: entry.is_read.unwrap_or(false),
-                    is_starred: entry.is_starred.unwrap_or(false),
-                    fetched_at: chrono::Utc::now(),
+        loop {
+            let result = match provider.pull_entries(scope.clone(), cursor).await {
+                Ok(r) => r,
+                Err(e) => {
+                    warn!("Failed to pull entries for feed {}: {e}", feed.url);
+                    break;
                 }
-            })
-            .collect();
+            };
 
-        if !articles.is_empty() {
-            let db = state.db.lock().map_err(|e| AppError::UserVisible {
-                message: format!("Lock error: {e}"),
-            })?;
-            let article_repo = SqliteArticleRepository::new(db.writer());
-            article_repo.upsert(&articles)?;
+            let articles: Vec<Article> = result
+                .entries
+                .iter()
+                .map(|entry| {
+                    let id = generate_entry_id(
+                        account.id.as_ref(),
+                        entry.id.as_deref(),
+                        &feed.url,
+                        entry.url.as_deref(),
+                        Some(&entry.title),
+                    );
+                    Article {
+                        id,
+                        feed_id: feed.id.clone(),
+                        remote_id: entry.id.clone(),
+                        title: entry.title.clone(),
+                        content_raw: entry.content.clone(),
+                        content_sanitized: sanitizer::sanitize_html(&entry.content),
+                        sanitizer_version: sanitizer::SANITIZER_VERSION,
+                        summary: entry.summary.clone(),
+                        url: entry.url.clone(),
+                        author: entry.author.clone(),
+                        published_at: entry.published_at.unwrap_or_else(chrono::Utc::now),
+                        thumbnail: entry.thumbnail.clone(),
+                        is_read: entry.is_read.unwrap_or(false),
+                        is_starred: entry.is_starred.unwrap_or(false),
+                        fetched_at: chrono::Utc::now(),
+                    }
+                })
+                .collect();
+
+            if !articles.is_empty() {
+                let db = state.db.lock().map_err(|e| AppError::UserVisible {
+                    message: format!("Lock error: {e}"),
+                })?;
+                let article_repo = SqliteArticleRepository::new(db.writer());
+                article_repo.upsert(&articles)?;
+            }
+
+            page += 1;
+            if !result.has_more || page >= MAX_PAGES_PER_FEED {
+                break;
+            }
+            cursor = result.next_cursor;
         }
     }
 
