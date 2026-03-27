@@ -82,6 +82,20 @@ impl AccountRepository for SqliteAccountRepository<'_> {
         Ok(())
     }
 
+    fn update_sync_settings(
+        &self,
+        id: &AccountId,
+        sync_interval_secs: i64,
+        sync_on_wake: bool,
+        keep_read_items_days: i64,
+    ) -> DomainResult<()> {
+        self.conn.execute(
+            "UPDATE accounts SET sync_interval_secs = ?1, sync_on_wake = ?2, keep_read_items_days = ?3 WHERE id = ?4",
+            params![sync_interval_secs, sync_on_wake, keep_read_items_days, id.0],
+        )?;
+        Ok(())
+    }
+
     fn delete(&self, id: &AccountId) -> DomainResult<()> {
         self.conn
             .execute("DELETE FROM accounts WHERE id = ?1", params![id.0])?;

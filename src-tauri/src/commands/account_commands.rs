@@ -82,15 +82,11 @@ pub fn update_account_sync(
         message: format!("Lock error: {e}"),
     })?;
     let repo = SqliteAccountRepository::new(db.writer());
-    let mut account =
-        repo.find_by_id(&AccountId(account_id))?
-            .ok_or_else(|| AppError::UserVisible {
-                message: "Account not found".into(),
-            })?;
-    account.sync_interval_secs = sync_interval_secs;
-    account.sync_on_wake = sync_on_wake;
-    account.keep_read_items_days = keep_read_items_days;
-    repo.save(&account)?;
+    let id = AccountId(account_id);
+    repo.update_sync_settings(&id, sync_interval_secs, sync_on_wake, keep_read_items_days)?;
+    let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
+        message: "Account not found".into(),
+    })?;
     Ok(AccountDto::from(account))
 }
 
