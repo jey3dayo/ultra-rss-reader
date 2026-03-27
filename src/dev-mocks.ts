@@ -71,6 +71,7 @@ export function setupDevMocks() {
             feed_id: feedId,
             title: `Sample article ${i + 1} from ${feedUrl}`,
             content_sanitized: `<p>This is a sample article fetched from ${feedUrl}.</p>`,
+            summary: `Sample summary for article ${i + 1}`,
             url: `${feedUrl}#article-${i}`,
             author: null,
             published_at: pubDate.toISOString(),

@@ -94,6 +94,8 @@ export const mockArticles: ArticleDto[] = [
     title: "SIE新作高難度3D弾幕ローグライトシューター『SAROS』開発者インタビュー。弾幕へのこだわりがすごい",
     content_sanitized:
       "<p>『SAROS』のクリエイティブディレクターのGregory Louden氏へのメディア合同インタビューが行われた。</p><p>本作は、Housemarque開発の高難度3D弾幕ローグライトシューターだ。プレイヤーは宇宙探査船SARUSのパイロットとして、謎の異星生物が待ち受ける未知の惑星を探索する。</p><p>インタビューでは、『Returnal』との違いや、弾幕ゲームとしてのこだわりについて語られた。開発チームは「弾幕を避ける」だけでなく「弾幕と触れ合う」新しい体験を目指しているという。</p>",
+    summary:
+      "Housemarque開発の高難度3D弾幕ローグライトシューター『SAROS』のクリエイティブディレクターへのインタビュー。弾幕ゲームとしてのこだわりを語る。",
     url: "https://automaton-media.com/articles/interviewsjp/saros-interview/",
     author: "TAKAYUKI SAWAHATA",
     published_at: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 7).toISOString(),
@@ -107,6 +109,7 @@ export const mockArticles: ArticleDto[] = [
     title: "人気海上街づくりサバイバルシム『Havendock』が期間限定で無料配布開始。Epic Gamesストアにて",
     content_sanitized:
       "<p>人気海上街づくりサバイバルシム『Havendock』がEpic Gamesストアにて無料配布中です。3月28日までの期間限定。</p>",
+    summary: "人気海上街づくりサバイバルシム『Havendock』がEpic Gamesストアにて3月28日まで無料配布中。",
     url: "https://automaton-media.com/articles/newsjp/havendock-free/",
     author: "AUTOMATON編集部",
     published_at: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 30).toISOString(),
@@ -120,6 +123,7 @@ export const mockArticles: ArticleDto[] = [
     title: "大盛況オープンワールド『紅の砂漠』、やたら「木」が強いと話題に。丸太を持ったら、ボスさえ一撃",
     content_sanitized:
       "<p>オープンワールドゲーム『紅の砂漠』で、木を使った意外な攻略法が発見されました。なんと丸太を持つだけでボスを一撃で倒せるとのこと。</p>",
+    summary: "『紅の砂漠』で木を使った意外な攻略法が話題に。丸太を持つだけでボスを一撃で倒せる。",
     url: "https://automaton-media.com/articles/newsjp/crimson-desert-tree/",
     author: "AUTOMATON編集部",
     published_at: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 18, 24).toISOString(),
@@ -133,6 +137,8 @@ export const mockArticles: ArticleDto[] = [
     title: "PostgreSQL 18ベータ版が登場、仮想生成カラムやJSONパス機能が追加。パフォーマンス改善も多数",
     content_sanitized:
       "<p>PostgreSQL Global Development Groupは、PostgreSQL 18の最初のベータ版をリリースしました。</p><p>仮想生成カラムやJSONパス機能など、多くの新機能が追加されています。また、パフォーマンスの改善も多数含まれています。</p>",
+    summary:
+      "PostgreSQL 18ベータ版がリリース。仮想生成カラムやJSONパス機能など多くの新機能とパフォーマンス改善を含む。",
     url: "https://www.publickey1.jp/blog/26/postgresql_18.html",
     author: "Publickey編集部",
     published_at: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 10, 0).toISOString(),
@@ -146,6 +152,7 @@ export const mockArticles: ArticleDto[] = [
     title: "生成AIで誰でもオシャレなパワポを作る方法 - Qiita",
     content_sanitized:
       "<p>はじめに こんにちは！AIエンジニアのヤマゾーです。突然ですが、このたび生成AIプロジェクトに関わる人に向けた技術書を出版しました。</p><p>細部まで拘って約1年かけて書いたこともあり、周りからも「図解がわかりやすい」「断片的な知識が繋がった」とかなり好評でした。</p>",
+    summary: "生成AIプロジェクト向け技術書の著者が、AIを使ったプレゼン資料作成のコツを紹介。",
     url: "https://qiita.com/yamazombie/items/example",
     author: "@yamazombie",
     published_at: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 16, 8).toISOString(),
@@ -158,6 +165,7 @@ export const mockArticles: ArticleDto[] = [
     feed_id: "feed-hatena",
     title: "競馬場で喜ぶCMは封幸心おある、選挙期間に競馬広告「ほとんどの方が馬券外れている」",
     content_sanitized: "<p>競馬場のCMについての考察記事です。</p>",
+    summary: "選挙期間中の競馬広告について。「ほとんどの方が馬券外れている」という指摘。",
     url: "https://example.com/keiba",
     author: null,
     published_at: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 15, 56).toISOString(),
@@ -170,6 +178,7 @@ export const mockArticles: ArticleDto[] = [
     feed_id: "feed-nhk",
     title: "【地震速報】岩手で震度4 津波被害の心配なし",
     content_sanitized: "<p>26日午前、岩手県で震度4の地震がありました。この地震による津波の心配はありません。</p>",
+    summary: "26日午前、岩手県で震度4の地震。津波被害の心配なし。",
     url: "https://www3.nhk.or.jp/news/html/example.html",
     author: "NHK",
     published_at: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11, 30).toISOString(),
@@ -183,6 +192,8 @@ export const mockArticles: ArticleDto[] = [
     title: "Claude 4.5 Sonnet の新機能まとめ - 実践的な使い方ガイド",
     content_sanitized:
       "<p>Claude 4.5 Sonnetがリリースされました。主な新機能と実践的な使い方をまとめます。</p><p>1. 拡張されたコンテキストウィンドウ</p><p>2. 改善されたコーディング能力</p><p>3. マルチモーダル理解の向上</p>",
+    summary:
+      "Claude 4.5 Sonnetの新機能まとめ。コンテキストウィンドウ拡張、コーディング能力改善、マルチモーダル理解の向上。",
     url: "https://note.com/npaka/n/example",
     author: "npaka",
     published_at: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 14, 0).toISOString(),

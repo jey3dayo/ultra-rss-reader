@@ -1,9 +1,9 @@
+import { CheckCircle, Filter, Star } from "lucide-react";
 import { useMemo } from "react";
-import { CheckCircle, Star, Filter } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 import type { ArticleDto } from "@/api/tauri-commands";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useArticles } from "@/hooks/use-articles";
+import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 
 function getDateGroup(dateStr: string): string {
@@ -125,6 +125,12 @@ export function ArticleList() {
                         >
                           {article.title}
                         </h3>
+                        {/* Summary */}
+                        {article.summary && (
+                          <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                            {article.summary}
+                          </p>
+                        )}
                       </div>
 
                       {/* Thumbnail */}

@@ -1,5 +1,5 @@
-import { invoke } from "@tauri-apps/api/core";
 import { Result } from "@praha/byethrow";
+import { invoke } from "@tauri-apps/api/core";
 
 // Error type from Rust backend
 export type AppError = { type: "UserVisible"; message: string } | { type: "Retryable"; message: string };
@@ -11,6 +11,7 @@ export type ArticleDto = {
   feed_id: string;
   title: string;
   content_sanitized: string;
+  summary: string | null;
   url: string | null;
   author: string | null;
   published_at: string;
