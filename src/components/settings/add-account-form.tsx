@@ -27,7 +27,7 @@ export function AddAccountForm() {
         kind === "FreshRss" || kind === "Inoreader" ? username : undefined,
         kind === "FreshRss" || kind === "Inoreader" ? password : undefined,
       ),
-      Result.inspectError((e) => window.alert(`Failed to add account: ${e.message}`)),
+      Result.inspectError((e) => useUiStore.getState().showToast(`Failed to add account: ${e.message}`)),
       Result.inspect((account) => {
         qc.invalidateQueries({ queryKey: ["accounts"] });
         qc.invalidateQueries({ queryKey: ["feeds"] });
@@ -47,6 +47,7 @@ export function AddAccountForm() {
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
           <span className="text-sm text-foreground">Type</span>
           <select
+            name="account-type"
             value={kind}
             onChange={(e) => setKind(e.target.value as ProviderKind)}
             className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
@@ -59,6 +60,7 @@ export function AddAccountForm() {
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
           <span className="text-sm text-foreground">Name</span>
           <input
+            name="account-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={kind}
@@ -74,6 +76,7 @@ export function AddAccountForm() {
             <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
               <span className="text-sm text-foreground">Server URL</span>
               <input
+                name="server-url"
                 value={serverUrl}
                 onChange={(e) => setServerUrl(e.target.value)}
                 placeholder="https://your-freshrss.com"
@@ -84,6 +87,7 @@ export function AddAccountForm() {
           <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
             <span className="text-sm text-foreground">{kind === "Inoreader" ? "Email" : "Username"}</span>
             <input
+              name={kind === "Inoreader" ? "email" : "username"}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
@@ -92,6 +96,7 @@ export function AddAccountForm() {
           <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
             <span className="text-sm text-foreground">Password</span>
             <input
+              name="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

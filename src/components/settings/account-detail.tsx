@@ -1,9 +1,10 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { deleteAccount, exportOpml } from "@/api/tauri-commands";
+import { deleteAccount, exportOpml, updateAccountSync } from "@/api/tauri-commands";
 import { SectionHeading, SettingsRow } from "@/components/settings/settings-components";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -18,10 +19,27 @@ export function AccountDetail() {
 
   if (!account) return null;
 
+  const handleSyncUpdate = async (partial: {
+    syncIntervalSecs?: number;
+    syncOnWake?: boolean;
+    keepReadItemsDays?: number;
+  }) => {
+    Result.pipe(
+      await updateAccountSync(
+        account.id,
+        partial.syncIntervalSecs ?? account.sync_interval_secs,
+        partial.syncOnWake ?? account.sync_on_wake,
+        partial.keepReadItemsDays ?? account.keep_read_items_days,
+      ),
+      Result.inspectError((e) => useUiStore.getState().showToast(`Failed to update sync settings: ${e.message}`)),
+      Result.inspect(() => qc.invalidateQueries({ queryKey: ["accounts"] })),
+    );
+  };
+
   const handleExportOpml = async () => {
     Result.pipe(
       await exportOpml(account.id),
-      Result.inspectError((e) => window.alert(`Failed to export OPML: ${e.message}`)),
+      Result.inspectError((e) => useUiStore.getState().showToast(`Failed to export OPML: ${e.message}`)),
       Result.inspect((opmlString) => {
         const blob = new Blob([opmlString], { type: "application/xml" });
         const url = URL.createObjectURL(blob);
@@ -38,7 +56,7 @@ export function AccountDetail() {
   const handleDelete = async () => {
     Result.pipe(
       await deleteAccount(account.id),
-      Result.inspectError((e) => window.alert(`Failed to delete account: ${e.message}`)),
+      Result.inspectError((e) => useUiStore.getState().showToast(`Failed to delete account: ${e.message}`)),
       Result.inspect(() => {
         qc.invalidateQueries({ queryKey: ["accounts"] });
         qc.invalidateQueries({ queryKey: ["feeds"] });
@@ -65,9 +83,47 @@ export function AccountDetail() {
 
       <section className="mb-6">
         <SectionHeading>Syncing</SectionHeading>
-        <SettingsRow label="Sync" value="Every hour" type="select" />
-        <SettingsRow label="Sync on wake up from sleep" type="switch" checked={true} />
-        <SettingsRow label="Keep read items" value="1 month" type="select" />
+        <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
+          <span className="text-sm text-foreground">Sync</span>
+          <select
+            name="sync-interval"
+            value={String(account.sync_interval_secs)}
+            onChange={(e) => handleSyncUpdate({ syncIntervalSecs: Number(e.target.value) })}
+            className="rounded-md border border-border bg-background px-2 py-1 text-sm text-muted-foreground"
+          >
+            <option value="900">Every 15 minutes</option>
+            <option value="1800">Every 30 minutes</option>
+            <option value="3600">Every hour</option>
+            <option value="7200">Every 2 hours</option>
+            <option value="14400">Every 4 hours</option>
+            <option value="86400">Once a day</option>
+          </select>
+        </div>
+        <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
+          <span className="text-sm text-foreground">Sync on wake up from sleep</span>
+          <Switch
+            checked={account.sync_on_wake}
+            onCheckedChange={(v) => handleSyncUpdate({ syncOnWake: v })}
+            className="data-[state=checked]:bg-accent"
+          />
+        </div>
+        <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
+          <span className="text-sm text-foreground">Keep read items</span>
+          <select
+            name="keep-read-items"
+            value={String(account.keep_read_items_days)}
+            onChange={(e) => handleSyncUpdate({ keepReadItemsDays: Number(e.target.value) })}
+            className="rounded-md border border-border bg-background px-2 py-1 text-sm text-muted-foreground"
+          >
+            <option value="7">1 week</option>
+            <option value="14">2 weeks</option>
+            <option value="30">1 month</option>
+            <option value="90">3 months</option>
+            <option value="180">6 months</option>
+            <option value="365">1 year</option>
+            <option value="0">Forever</option>
+          </select>
+        </div>
       </section>
 
       <div className="mt-6 border-t border-border pt-6">
