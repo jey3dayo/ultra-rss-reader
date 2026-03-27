@@ -106,6 +106,22 @@ impl FeedRepository for SqliteFeedRepository<'_> {
             None => Ok(None),
         }
     }
+
+    fn delete(&self, feed_id: &FeedId) -> DomainResult<()> {
+        self.conn
+            .execute("DELETE FROM articles WHERE feed_id = ?1", params![feed_id.0])?;
+        self.conn
+            .execute("DELETE FROM feeds WHERE id = ?1", params![feed_id.0])?;
+        Ok(())
+    }
+
+    fn rename(&self, feed_id: &FeedId, title: &str) -> DomainResult<()> {
+        self.conn.execute(
+            "UPDATE feeds SET title = ?1 WHERE id = ?2",
+            params![title, feed_id.0],
+        )?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

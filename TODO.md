@@ -78,9 +78,8 @@
 
 ## 技術的改善（レビュー指摘）
 
-- [ ] 検索入力のデバウンス（useDebouncedValue追加、300ms）
-- [ ] Account ドロップダウンの click-outside 閉じ処理
-- [ ] settings-modal の listen 競合修正（cancelled フラグ）
-- [ ] CSS.escape でセレクタインジェクション防止
-- [ ] markAllRead バッチAPI化（Rust側コマンド追加）
-- [ ] 同時sync実行ガード（AtomicBool or tokio::Mutex）
+- [x] 検索入力のデバウンス（300ms）
+- [x] Account ドロップダウンの click-outside 閉じ処理
+- [x] settings-modal の listen 競合修正（cancelled フラグ）
+- [x] markAllRead バッチAPI化（Rust側コマンド追加）
+- [x] 同時sync実行ガード（AtomicBool + SyncGuard RAII）

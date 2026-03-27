@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 use tauri::State;
@@ -56,6 +57,26 @@ pub fn list_feeds(
 }
 
 #[tauri::command]
+pub fn delete_feed(state: State<'_, AppState>, feed_id: String) -> Result<(), AppError> {
+    let db = lock_db(&state.db)?;
+    let repo = SqliteFeedRepository::new(db.writer());
+    repo.delete(&FeedId(feed_id))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn rename_feed(
+    state: State<'_, AppState>,
+    feed_id: String,
+    title: String,
+) -> Result<(), AppError> {
+    let db = lock_db(&state.db)?;
+    let repo = SqliteFeedRepository::new(db.writer());
+    repo.rename(&FeedId(feed_id), &title)?;
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn add_local_feed(
     state: State<'_, AppState>,
     account_id: String,
@@ -106,15 +127,11 @@ async fn sync_local_feed(
     account_id: &AccountId,
     feed: &Feed,
 ) -> Result<(), AppError> {
-    let scope = if let Some(ref remote_id) = feed.remote_id {
-        crate::domain::provider::PullScope::Feed(crate::domain::provider::FeedIdentifier::Remote {
-            remote_id: remote_id.clone(),
-        })
-    } else {
-        crate::domain::provider::PullScope::Feed(crate::domain::provider::FeedIdentifier::Local {
+    let scope = crate::domain::provider::PullScope::Feed(
+        crate::domain::provider::FeedIdentifier::Local {
             feed_url: feed.url.clone(),
-        })
-    };
+        },
+    );
 
     let result = provider.pull_entries(scope, None).await?;
 
@@ -418,8 +435,33 @@ async fn sync_greader_feeds(
     Ok(())
 }
 
+/// RAII guard that resets the `AtomicBool` to `false` on drop, ensuring the
+/// sync flag is always cleared even on early return or panic.
+struct SyncGuard<'a>(&'a AtomicBool);
+
+impl Drop for SyncGuard<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
+    }
+}
+
 /// Run a full sync for all accounts. Shared by `trigger_sync` command and the background scheduler.
-pub async fn run_full_sync(db: &Mutex<DbManager>) -> Result<(), AppError> {
+///
+/// Uses `syncing` as a concurrent-execution guard: if another sync is already
+/// in progress the call returns `Ok(())` immediately (skip, not error).
+pub async fn run_full_sync(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+) -> Result<(), AppError> {
+    if syncing
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        tracing::info!("Sync already in progress, skipping");
+        return Ok(());
+    }
+    let _guard = SyncGuard(syncing);
+
     let accounts: Vec<Account> = {
         let db_guard = lock_db(db)?;
         let account_repo = SqliteAccountRepository::new(db_guard.reader());
@@ -496,5 +538,5 @@ pub fn get_min_sync_interval(db: &Mutex<DbManager>) -> std::time::Duration {
 
 #[tauri::command]
 pub async fn trigger_sync(state: State<'_, AppState>) -> Result<(), AppError> {
-    run_full_sync(&state.db).await
+    run_full_sync(&state.db, &state.syncing).await
 }

@@ -13,4 +13,6 @@ pub trait FeedRepository {
         remote_id: &str,
     ) -> DomainResult<Option<Feed>>;
     fn find_by_url(&self, account_id: &AccountId, url: &str) -> DomainResult<Option<Feed>>;
+    fn delete(&self, feed_id: &FeedId) -> DomainResult<()>;
+    fn rename(&self, feed_id: &FeedId, title: &str) -> DomainResult<()>;
 }

@@ -15,7 +15,7 @@ use crate::infra::db::connection::DbManager;
 pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
     tracing::info!("Starting background sync scheduler");
 
-    tokio::spawn(async move {
+    tauri::async_runtime::spawn(async move {
         // Initial delay — let frontend handle first sync
         let state = app_handle.state::<crate::commands::AppState>();
         let initial_interval = get_min_sync_interval(&state.db);
@@ -25,7 +25,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
             // Re-read interval each iteration for dynamic updates
             let interval = get_min_sync_interval(&state.db);
 
-            let result = AssertUnwindSafe(run_full_sync(&state.db))
+            let result = AssertUnwindSafe(run_full_sync(&state.db, &state.syncing))
                 .catch_unwind()
                 .await;
 

@@ -54,6 +54,7 @@ pub struct FeedDto {
     pub folder_id: Option<String>,
     pub title: String,
     pub url: String,
+    pub site_url: String,
     pub unread_count: i32,
 }
 
@@ -118,6 +119,7 @@ impl From<crate::domain::feed::Feed> for FeedDto {
             folder_id: f.folder_id.map(|id| id.0),
             title: f.title,
             url: f.url,
+            site_url: f.site_url,
             unread_count: f.unread_count,
         }
     }
