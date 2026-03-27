@@ -1,9 +1,10 @@
-import { Circle, Star, Share } from "lucide-react";
 import { Result } from "@praha/byethrow";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Circle, Share, Star } from "lucide-react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useArticles, useMarkRead, useToggleStar } from "@/hooks/use-articles";
+import { useFeeds } from "@/hooks/use-feeds";
 import { useUiStore } from "@/stores/ui-store";
 import { BrowserView } from "./browser-view";
 
@@ -74,7 +75,7 @@ function EmptyState() {
   );
 }
 
-function ArticleReader({ article }: { article: ArticleDto }) {
+function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: string }) {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return (
@@ -105,10 +106,11 @@ function ArticleReader({ article }: { article: ArticleDto }) {
           {/* Title */}
           <h1 className="mb-4 text-2xl font-bold leading-tight text-foreground">{article.title}</h1>
 
-          {/* Author */}
-          {article.author && (
+          {/* Author & Feed */}
+          {(article.author || feedName) && (
             <div className="mb-8 text-sm text-muted-foreground">
-              <p className="uppercase tracking-wide">{article.author}</p>
+              {article.author && <p className="uppercase tracking-wide">{article.author}</p>}
+              {feedName && <p className="text-xs">{feedName}</p>}
             </div>
           )}
 
@@ -132,9 +134,10 @@ function ArticleReader({ article }: { article: ArticleDto }) {
 }
 
 export function ArticleView() {
-  const { contentMode, selectedArticleId, selection } = useUiStore();
+  const { contentMode, selectedAccountId, selectedArticleId, selection } = useUiStore();
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const { data: articles } = useArticles(feedId);
+  const { data: feeds } = useFeeds(selectedAccountId);
 
   if (contentMode === "browser") {
     return <BrowserView />;
@@ -154,5 +157,7 @@ export function ArticleView() {
     );
   }
 
-  return <ArticleReader article={article} />;
+  const feedName = feeds?.find((f) => f.id === article.feed_id)?.title;
+
+  return <ArticleReader article={article} feedName={feedName} />;
 }
