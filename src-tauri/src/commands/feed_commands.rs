@@ -229,9 +229,25 @@ async fn sync_freshrss_feeds(
     provider: &FreshRssProvider,
     account: &Account,
 ) -> Result<(), AppError> {
+    use std::collections::HashMap;
+
     use crate::domain::article::{generate_entry_id, Article};
     use crate::domain::provider::{FeedIdentifier, PullScope};
+    use crate::domain::types::FolderId;
     use crate::infra::sanitizer;
+
+    // Build remote_id -> FolderId map from existing folders
+    let folder_remote_id_map: HashMap<String, FolderId> = {
+        let db = state.db.lock().map_err(|e| AppError::UserVisible {
+            message: format!("Lock error: {e}"),
+        })?;
+        let folder_repo = SqliteFolderRepository::new(db.reader());
+        let folders = folder_repo.find_by_account(&account.id)?;
+        folders
+            .into_iter()
+            .filter_map(|f| f.remote_id.map(|rid| (rid, f.id)))
+            .collect()
+    };
 
     // Step 3: Sync subscriptions
     let remote_subs = provider.get_subscriptions().await?;
@@ -248,7 +264,12 @@ async fn sync_freshrss_feeds(
                     .map(|f| f.id.clone())
                     .unwrap_or_else(FeedId::new),
                 account_id: account.id.clone(),
-                folder_id: existing.and_then(|f| f.folder_id), // preserve existing folder_id
+                folder_id: rs
+                    .folder_remote_id
+                    .as_ref()
+                    .and_then(|rid| folder_remote_id_map.get(rid))
+                    .cloned()
+                    .or_else(|| existing.and_then(|f| f.folder_id)),
                 remote_id: Some(rs.remote_id.clone()),
                 title: rs.title.clone(),
                 url: rs.url.clone(),
