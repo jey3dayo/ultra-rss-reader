@@ -69,8 +69,8 @@ fn purge_old_articles(db: &Mutex<DbManager>) {
         let db = db.lock().map_err(|e| format!("Lock error: {e}"))?;
         let conn = db.writer();
 
-        // Delete read articles older than each account's keep_read_items_days
-        // Articles where keep_read_items_days = 0 (forever) are excluded
+        // Delete read (non-starred) articles older than each account's keep_read_items_days.
+        // Uses fetched_at (consistent with repo.purge_old_read). keep_read_items_days = 0 means forever.
         let deleted = conn
             .execute(
                 "DELETE FROM articles WHERE id IN (
@@ -78,8 +78,9 @@ fn purge_old_articles(db: &Mutex<DbManager>) {
                     JOIN feeds f ON a.feed_id = f.id
                     JOIN accounts acc ON f.account_id = acc.id
                     WHERE a.is_read = 1
+                      AND a.is_starred = 0
                       AND acc.keep_read_items_days > 0
-                      AND datetime(a.published_at) < datetime('now', '-' || acc.keep_read_items_days || ' days')
+                      AND datetime(a.fetched_at) < datetime('now', '-' || acc.keep_read_items_days || ' days')
                 )",
                 [],
             )
