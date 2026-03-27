@@ -1,21 +1,109 @@
-import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Result } from "@praha/byethrow";
-import { ChevronDown, RefreshCw, Plus, Settings } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
+import { ChevronDown, Plus, RefreshCw, Settings } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { FeedDto } from "@/api/tauri-commands";
 import { addLocalFeed, triggerSync } from "@/api/tauri-commands";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useFeeds } from "@/hooks/use-feeds";
+import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
+
+function AddFeedDialog({
+  open,
+  onOpenChange,
+  accountId,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  accountId: string;
+}) {
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    if (open) {
+      setUrl("");
+      setError(null);
+      setLoading(false);
+      // Focus input after dialog opens
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [open]);
+
+  const handleSubmit = async () => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    setLoading(true);
+    setError(null);
+
+    Result.pipe(
+      await addLocalFeed(accountId, trimmed),
+      Result.inspectError((e) => setError(e.message)),
+      Result.inspect(() => {
+        qc.invalidateQueries({ queryKey: ["feeds"] });
+        onOpenChange(false);
+      }),
+    );
+    setLoading(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent showCloseButton={false} className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add Feed</DialogTitle>
+          <DialogDescription>Enter the URL of the RSS feed you want to subscribe to.</DialogDescription>
+        </DialogHeader>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+        >
+          <input
+            ref={inputRef}
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://example.com/feed.xml"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={loading}
+          />
+          {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+        </form>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={!url.trim() || loading}>
+            {loading ? "Adding..." : "Add"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export function Sidebar() {
   const [showAccountList, setShowAccountList] = useState(false);
+  const [showAddFeed, setShowAddFeed] = useState(false);
   const { data: accounts } = useAccounts();
   const { selectedAccountId, selectAccount, selection, selectFeed, selectSmartView, openSettings } = useUiStore();
   const { data: feeds } = useFeeds(selectedAccountId);
-  const qc = useQueryClient();
 
   // Auto-select first account if none selected
   useEffect(() => {
@@ -28,21 +116,6 @@ export function Sidebar() {
   const hasMultipleAccounts = accounts && accounts.length > 1;
 
   const totalUnread = feeds?.reduce((sum, f) => sum + f.unread_count, 0) ?? 0;
-
-  const handleAddFeed = async () => {
-    if (!selectedAccountId) {
-      window.alert("Please add an account first.");
-      return;
-    }
-    const url = window.prompt("Enter feed URL:");
-    if (!url) return;
-
-    Result.pipe(
-      await addLocalFeed(selectedAccountId, url),
-      Result.inspectError((e) => window.alert(`Failed to add feed: ${e.message}`)),
-      Result.inspect(() => qc.invalidateQueries({ queryKey: ["feeds"] })),
-    );
-  };
 
   const handleSync = async () => {
     Result.pipe(
@@ -74,7 +147,7 @@ export function Sidebar() {
           </button>
           <button
             type="button"
-            onClick={handleAddFeed}
+            onClick={() => selectedAccountId && setShowAddFeed(true)}
             className="rounded p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
           >
             <Plus className="h-4 w-4" />
@@ -203,6 +276,10 @@ export function Sidebar() {
           <span>Settings</span>
         </button>
       </div>
+
+      {selectedAccountId && (
+        <AddFeedDialog open={showAddFeed} onOpenChange={setShowAddFeed} accountId={selectedAccountId} />
+      )}
     </div>
   );
 }
