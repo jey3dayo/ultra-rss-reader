@@ -30,7 +30,8 @@ export function ArticleContextMenu({ article, children }: { article: ArticleDto;
 
   return (
     <ContextMenu.Root>
-      <ContextMenu.Trigger render={<div />}>{children}</ContextMenu.Trigger>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: Base UI render prop requires event handler on static element to prevent parent context menu trigger */}
+      <ContextMenu.Trigger render={<div onContextMenu={(e) => e.stopPropagation()} />}>{children}</ContextMenu.Trigger>
       <ContextMenu.Portal>
         <ContextMenu.Positioner>
           <ContextMenu.Popup className={contextMenuStyles.popup}>

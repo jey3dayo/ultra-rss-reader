@@ -2,7 +2,8 @@ use tauri::State;
 
 use crate::commands::dto::{AppError, ArticleDto};
 use crate::commands::AppState;
-use crate::domain::types::{AccountId, ArticleId, FeedId};
+use crate::domain::error::DomainError;
+use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::repository::article::{ArticleRepository, Pagination};
@@ -116,7 +117,7 @@ pub fn mark_feed_read(state: State<'_, AppState>, feed_id: String) -> Result<(),
             stmt.query_map(rusqlite::params![feed_id.0], |row| row.get::<_, String>(0))
                 .and_then(|rows| rows.collect())
         })
-        .unwrap_or_default();
+        .map_err(DomainError::from)?;
 
     let repo = SqliteArticleRepository::new(db.writer());
     repo.mark_feed_as_read(&feed_id)?;
@@ -134,6 +135,7 @@ pub fn mark_folder_read(state: State<'_, AppState>, folder_id: String) -> Result
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
     })?;
+    let folder_id = FolderId(folder_id);
 
     // Collect unread article IDs *before* marking them read
     let newly_read_ids: Vec<String> = db
@@ -146,10 +148,12 @@ pub fn mark_folder_read(state: State<'_, AppState>, folder_id: String) -> Result
              AND (acc.kind = 'FreshRss' OR acc.kind = 'Inoreader')",
         )
         .and_then(|mut stmt| {
-            stmt.query_map(rusqlite::params![folder_id], |row| row.get::<_, String>(0))
-                .and_then(|rows| rows.collect())
+            stmt.query_map(rusqlite::params![folder_id.0], |row| {
+                row.get::<_, String>(0)
+            })
+            .and_then(|rows| rows.collect())
         })
-        .unwrap_or_default();
+        .map_err(DomainError::from)?;
 
     let repo = SqliteArticleRepository::new(db.writer());
     repo.mark_folder_as_read(&folder_id)?;
