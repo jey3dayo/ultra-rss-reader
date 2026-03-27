@@ -17,17 +17,19 @@ pub async fn run_sync_loop(
     info!("SyncService started");
     while let Some(cmd) = cmd_rx.recv().await {
         match cmd {
-            SyncCommand::SyncAll | SyncCommand::ManualRefresh => {
-                info!(
-                    "Processing {:?}",
-                    if matches!(cmd, SyncCommand::SyncAll) {
-                        "SyncAll"
-                    } else {
-                        "ManualRefresh"
-                    }
-                );
+            SyncCommand::SyncAll => {
+                info!("Processing SyncAll");
                 if let Err(e) = run_full_sync(db, syncing).await {
                     warn!("SyncAll failed: {e}");
+                    let _ = event_tx.send(AppEvent::ErrorOccurred {
+                        message: e.to_string(),
+                    });
+                }
+            }
+            SyncCommand::ManualRefresh => {
+                info!("Processing ManualRefresh");
+                if let Err(e) = run_full_sync(db, syncing).await {
+                    warn!("ManualRefresh failed: {e}");
                     let _ = event_tx.send(AppEvent::ErrorOccurred {
                         message: e.to_string(),
                     });
@@ -38,13 +40,17 @@ pub async fn run_sync_loop(
                 let _ = event_tx.send(AppEvent::SyncStarted {
                     account_id: account_id.clone(),
                 });
-                if let Err(e) = run_full_sync(db, syncing).await {
-                    warn!("SyncAccount {} failed: {e}", account_id.0);
-                    let _ = event_tx.send(AppEvent::ErrorOccurred {
-                        message: e.to_string(),
-                    });
+                match run_full_sync(db, syncing).await {
+                    Ok(()) => {
+                        let _ = event_tx.send(AppEvent::SyncCompleted { account_id });
+                    }
+                    Err(e) => {
+                        warn!("SyncAccount {} failed: {e}", account_id.0);
+                        let _ = event_tx.send(AppEvent::ErrorOccurred {
+                            message: e.to_string(),
+                        });
+                    }
                 }
-                let _ = event_tx.send(AppEvent::SyncCompleted { account_id });
             }
             SyncCommand::PurgeOldArticles => {
                 info!("Processing PurgeOldArticles");
