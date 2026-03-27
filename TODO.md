@@ -33,6 +33,12 @@
 - [x] sort_unread, group_by, dim_archived, text_preview, image_previews
 - [x] action_copy_link, action_open_browser, action_share (ツールバー連動)
 - [x] theme 起動時適用 + system モード mediaQuery リスナー
+- [x] after_reading (自動既読)
+- [x] scroll_to_top_on_change (フィード切替時スクロールリセット)
+- [x] open_links / cmd_click_browser (リンク開き方)
+- [x] show_unread_count (サイドバー未読数表示)
+- [x] display_favicons (フィードアイコン表示)
+- [x] ask_before_mark_all (全件既読確認ダイアログ)
 
 ## Settings > Accounts（実装済み）
 
@@ -47,9 +53,9 @@
 
 ## リファクタリング
 
-- [ ] settings-modal.tsx (782行) — 300行ガイドラインの2.5倍。components/settings/ に分割推奨
-- [ ] sidebar.tsx (379行) — AddFeedDialog, FeedItem, FolderSection の抽出推奨
-- [ ] 生の `<button>` を components/ui/button.tsx (CVA) でラップして統一（article-list, sidebar, settings-modal）
+- [x] settings-modal.tsx → components/settings/ に分割済み
+- [x] sidebar.tsx → AddFeedDialog, FeedItem, FolderSection を抽出済み
+- [ ] 生の `<button>` を components/ui/button.tsx (CVA) でラップして統一（article-list, sidebar, settings）
 
 ## FreshRSS 同期
 

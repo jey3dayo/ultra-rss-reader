@@ -39,17 +39,20 @@ Commands (IPC boundary) -> Service -> Repository (traits) -> Domain
 
 - domain/: Core types (Account, Feed, Article, Folder), DomainError, provider traits. No external dependencies.
 - repository/: Data access trait definitions (account, article, feed, folder, pending_mutation, sync_state).
-- infra/: Implementations -- SQLite repos (db/), feed providers (provider/), HTML sanitizer, OPML parser.
+- infra/: Implementations -- SQLite repos (db/), feed providers (provider/), HTML sanitizer, OPML parser, keyring_store (OS credential storage).
 - service/: Orchestration -- sync_service, sync_flow, event_bus, housekeeping.
-- commands/: Tauri command handlers (IPC boundary). Contains AppState, DTOs (dto.rs), and AppError.
+- commands/: Tauri command handlers (IPC boundary). Contains AppState, DTOs (dto.rs), and AppError. FreshRSS sync is orchestrated directly in feed_commands.rs with per-step Mutex lock scoping.
 
 ### TypeScript Frontend (src/)
 
 - api/tauri-commands.ts: All Tauri `invoke()` calls wrapped in `safeInvoke` returning `Result` type.
-- stores/ui-store.ts: Zustand store for UI state (selection, layout, view mode).
-- hooks/: React Query hooks (use-accounts, use-articles, use-feeds) and UI hooks (use-keyboard, use-layout, use-breakpoint).
-- components/: Three-pane layout -- sidebar/, list/, content/. AppShell orchestrates layout.
-- styles/: tokens.css (CSS custom properties), global.css. Components use inline styles referencing tokens.
+- stores/ui-store.ts: Zustand store for UI state (selection, layout, view mode, toast).
+- stores/preferences-store.ts: Zustand store for user preferences with async persistence to SQLite.
+- hooks/: React Query hooks (use-accounts, use-articles, use-feeds, use-folders) and UI hooks (use-keyboard, use-layout, use-breakpoint).
+- components/reader/: Three-pane layout -- sidebar.tsx, article-list.tsx, article-view.tsx. AppShell orchestrates layout.
+- components/settings/: Settings modal split into per-category files (general, appearance, reading, shortcuts, actions, bionic-reading, account-detail, add-account-form).
+- components/ui/: shadcn/ui base components (button, dialog, select, switch, etc.). Do not modify directly -- customize via className props.
+- styles/global.css: Tailwind CSS v4 with OKLch color tokens. No CSS-in-JS libraries.
 
 ## Coding Conventions
 
@@ -59,7 +62,7 @@ Commands (IPC boundary) -> Service -> Repository (traits) -> Domain
 - Strict mode: noUnusedLocals, noUnusedParameters, noFallthroughCasesInSwitch
 - Error handling: `@praha/byethrow` Result type. All Tauri calls go through `safeInvoke` in tauri-commands.ts.
 - AppError has two variants: `UserVisible` (show to user) and `Retryable` (can retry).
-- Styling: inline CSS with design tokens (CSS variables from tokens.css). No CSS-in-JS libraries.
+- Styling: Tailwind CSS utility classes with `cn()` helper (clsx + tailwind-merge). Design tokens via CSS custom properties in global.css.
 - Functional components only. No class components.
 
 ### Rust
