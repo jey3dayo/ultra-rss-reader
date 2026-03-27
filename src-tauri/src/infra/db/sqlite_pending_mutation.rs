@@ -34,6 +34,11 @@ impl PendingMutationRepository for SqlitePendingMutationRepository<'_> {
     }
 
     fn save(&self, mutation: &PendingMutation) -> DomainResult<()> {
+        // Delete existing mutations for the same (account_id, remote_entry_id) to keep only the latest
+        self.conn.execute(
+            "DELETE FROM pending_mutations WHERE account_id = ?1 AND remote_entry_id = ?2",
+            params![mutation.account_id.0, mutation.remote_entry_id],
+        )?;
         self.conn.execute(
             "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at) VALUES (?1, ?2, ?3, ?4)",
             params![

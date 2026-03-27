@@ -76,30 +76,27 @@ fn maybe_queue_mutation(
     article_id: &ArticleId,
     mutation_type: &str,
 ) -> Result<(), AppError> {
-    // Look up article's remote_id and its feed's account kind
-    let row: Option<(String, String)> = conn
+    // Single query to get remote_id, account kind, and account_id
+    let row: Option<(String, String, String)> = conn
         .query_row(
-            "SELECT a.remote_id, acc.kind
+            "SELECT a.remote_id, acc.kind, f.account_id
              FROM articles a
              JOIN feeds f ON a.feed_id = f.id
              JOIN accounts acc ON f.account_id = acc.id
              WHERE a.id = ?1 AND a.remote_id IS NOT NULL",
             rusqlite::params![article_id.0],
-            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            },
         )
         .ok();
 
-    if let Some((remote_entry_id, account_kind)) = row {
+    if let Some((remote_entry_id, account_kind, account_id)) = row {
         if account_kind == "FreshRss" {
-            // Look up account_id from the feed
-            let account_id: String = conn.query_row(
-                "SELECT f.account_id FROM articles a JOIN feeds f ON a.feed_id = f.id WHERE a.id = ?1",
-                rusqlite::params![article_id.0],
-                |row| row.get(0),
-            ).map_err(|e| AppError::UserVisible {
-                message: format!("Failed to look up account: {e}"),
-            })?;
-
             let pending_repo = SqlitePendingMutationRepository::new(conn);
             pending_repo.save(&PendingMutation {
                 id: None,

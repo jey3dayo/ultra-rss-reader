@@ -349,7 +349,7 @@ async fn sync_freshrss_feeds(
         }
     }
 
-    // Step 5: Push pending mutations to server
+    // Step 5: Push pending mutations to server one by one
     let pending_mutations = {
         let db = state.db.lock().map_err(|e| AppError::UserVisible {
             message: format!("Lock error: {e}"),
@@ -358,61 +358,65 @@ async fn sync_freshrss_feeds(
         pending_repo.find_by_account(&account.id)?
     };
 
-    if !pending_mutations.is_empty() {
-        let mutations: Vec<Mutation> = pending_mutations
-            .iter()
-            .filter_map(|pm| match pm.mutation_type.as_str() {
-                "mark_read" => Some(Mutation::MarkRead {
-                    remote_entry_id: pm.remote_entry_id.clone(),
-                }),
-                "mark_unread" => Some(Mutation::MarkUnread {
-                    remote_entry_id: pm.remote_entry_id.clone(),
-                }),
-                "star" => Some(Mutation::SetStarred {
-                    remote_entry_id: pm.remote_entry_id.clone(),
-                    starred: true,
-                }),
-                "unstar" => Some(Mutation::SetStarred {
-                    remote_entry_id: pm.remote_entry_id.clone(),
-                    starred: false,
-                }),
-                other => {
-                    warn!("Unknown mutation type: {other}");
-                    None
-                }
-            })
-            .collect();
+    let mut pushed_remote_ids: Vec<String> = Vec::new();
+    for pm in &pending_mutations {
+        let mutation = match pm.mutation_type.as_str() {
+            "mark_read" => Mutation::MarkRead {
+                remote_entry_id: pm.remote_entry_id.clone(),
+            },
+            "mark_unread" => Mutation::MarkUnread {
+                remote_entry_id: pm.remote_entry_id.clone(),
+            },
+            "star" => Mutation::SetStarred {
+                remote_entry_id: pm.remote_entry_id.clone(),
+                starred: true,
+            },
+            "unstar" => Mutation::SetStarred {
+                remote_entry_id: pm.remote_entry_id.clone(),
+                starred: false,
+            },
+            other => {
+                warn!("Unknown mutation type: {other}");
+                continue;
+            }
+        };
 
-        match provider.push_mutations(&mutations).await {
+        match provider.push_mutations(&[mutation]).await {
             Ok(()) => {
-                // Delete successfully pushed mutations
-                let ids: Vec<i64> = pending_mutations.iter().filter_map(|pm| pm.id).collect();
-                let db = state.db.lock().map_err(|e| AppError::UserVisible {
-                    message: format!("Lock error: {e}"),
-                })?;
-                let pending_repo = SqlitePendingMutationRepository::new(db.writer());
-                pending_repo.delete(&ids)?;
+                pushed_remote_ids.push(pm.remote_entry_id.clone());
+                if let Some(id) = pm.id {
+                    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+                        message: format!("Lock error: {e}"),
+                    })?;
+                    let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+                    pending_repo.delete(&[id])?;
+                }
             }
             Err(e) => {
                 warn!(
-                    "Failed to push mutations for account {}: {e}. Will retry next sync.",
-                    account.id.as_ref()
+                    "Failed to push mutation {} for entry {}: {e}. Will retry next sync.",
+                    pm.mutation_type, pm.remote_entry_id
                 );
             }
         }
     }
 
-    // Step 6: Pull remote state and apply (skip articles with remaining pending mutations)
+    // Step 6: Pull remote state and apply (skip articles with pending or just-pushed mutations)
     let pending_remote_ids: Vec<String> = {
         let db = state.db.lock().map_err(|e| AppError::UserVisible {
             message: format!("Lock error: {e}"),
         })?;
         let pending_repo = SqlitePendingMutationRepository::new(db.reader());
-        pending_repo
+        let mut ids: Vec<String> = pending_repo
             .find_by_account(&account.id)?
             .into_iter()
             .map(|pm| pm.remote_entry_id)
-            .collect()
+            .collect();
+        // Merge with successfully pushed IDs to prevent stale remote data from overwriting
+        ids.extend(pushed_remote_ids);
+        ids.sort();
+        ids.dedup();
+        ids
     };
 
     let remote_state = provider.pull_state().await?;
