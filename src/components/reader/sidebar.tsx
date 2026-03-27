@@ -37,19 +37,18 @@ export function Sidebar() {
     const url = window.prompt("Enter feed URL:");
     if (!url) return;
 
-    const result = await addLocalFeed(selectedAccountId, url);
-    if (Result.isFailure(result)) {
-      window.alert(`Failed to add feed: ${result.error.message}`);
-      return;
-    }
-    qc.invalidateQueries({ queryKey: ["feeds"] });
+    Result.pipe(
+      await addLocalFeed(selectedAccountId, url),
+      Result.inspectError((e) => window.alert(`Failed to add feed: ${e.message}`)),
+      Result.inspect(() => qc.invalidateQueries({ queryKey: ["feeds"] })),
+    );
   };
 
   const handleSync = async () => {
-    const result = await triggerSync();
-    if (Result.isFailure(result)) {
-      console.error("Sync failed:", result.error);
-    }
+    Result.pipe(
+      await triggerSync(),
+      Result.inspectError((e) => console.error("Sync failed:", e)),
+    );
   };
 
   // Group feeds by a simple approach (no folder hierarchy in FeedDto, show flat list)

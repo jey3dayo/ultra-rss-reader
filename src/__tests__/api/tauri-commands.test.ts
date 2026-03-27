@@ -10,71 +10,52 @@ describe("tauri-commands with mockIPC", () => {
 
   describe("listAccounts", () => {
     it("returns all accounts", async () => {
-      const result = await listAccounts();
-      expect(Result.isSuccess(result)).toBe(true);
-      if (Result.isSuccess(result)) {
-        expect(result.value).toEqual(sampleAccounts);
-        expect(result.value).toHaveLength(2);
-      }
+      const value = Result.unwrap(await listAccounts());
+      expect(value).toEqual(sampleAccounts);
+      expect(value).toHaveLength(2);
     });
   });
 
   describe("listFeeds", () => {
     it("returns feeds for a given account", async () => {
-      const result = await listFeeds("acc-1");
-      expect(Result.isSuccess(result)).toBe(true);
-      if (Result.isSuccess(result)) {
-        expect(result.value).toEqual(sampleFeeds);
-        expect(result.value).toHaveLength(2);
-      }
+      const value = Result.unwrap(await listFeeds("acc-1"));
+      expect(value).toEqual(sampleFeeds);
+      expect(value).toHaveLength(2);
     });
 
     it("returns empty array for unknown account", async () => {
-      const result = await listFeeds("nonexistent");
-      expect(Result.isSuccess(result)).toBe(true);
-      if (Result.isSuccess(result)) {
-        expect(result.value).toEqual([]);
-      }
+      const value = Result.unwrap(await listFeeds("nonexistent"));
+      expect(value).toEqual([]);
     });
   });
 
   describe("listArticles", () => {
     it("returns articles for a given feed", async () => {
-      const result = await listArticles("feed-1");
-      expect(Result.isSuccess(result)).toBe(true);
-      if (Result.isSuccess(result)) {
-        expect(result.value).toEqual(sampleArticles);
-        expect(result.value).toHaveLength(2);
-      }
+      const value = Result.unwrap(await listArticles("feed-1"));
+      expect(value).toEqual(sampleArticles);
+      expect(value).toHaveLength(2);
     });
 
     it("returns empty array for unknown feed", async () => {
-      const result = await listArticles("nonexistent");
-      expect(Result.isSuccess(result)).toBe(true);
-      if (Result.isSuccess(result)) {
-        expect(result.value).toEqual([]);
-      }
+      const value = Result.unwrap(await listArticles("nonexistent"));
+      expect(value).toEqual([]);
     });
   });
 
   describe("addAccount", () => {
     it("returns a new account DTO", async () => {
-      const result = await addAccount("local", "My Feed");
-      expect(Result.isSuccess(result)).toBe(true);
-      if (Result.isSuccess(result)) {
-        expect(result.value).toEqual({
-          id: "acc-new",
-          kind: "local",
-          name: "My Feed",
-        });
-      }
+      const value = Result.unwrap(await addAccount("local", "My Feed"));
+      expect(value).toEqual({
+        id: "acc-new",
+        kind: "local",
+        name: "My Feed",
+      });
     });
   });
 
   describe("markArticleRead", () => {
     it("succeeds without error", async () => {
-      const result = await markArticleRead("art-1");
-      expect(Result.isSuccess(result)).toBe(true);
+      Result.unwrap(await markArticleRead("art-1"));
     });
   });
 });
@@ -88,10 +69,7 @@ describe("tauri-commands with custom handler", () => {
       return null;
     });
 
-    const result = await listAccounts();
-    expect(Result.isFailure(result)).toBe(true);
-    if (Result.isFailure(result)) {
-      expect(result.error.message).toBe("Connection failed");
-    }
+    const error = Result.unwrapError(await listAccounts());
+    expect(error.message).toBe("Connection failed");
   });
 });

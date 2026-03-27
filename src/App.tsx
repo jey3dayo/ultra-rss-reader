@@ -8,11 +8,12 @@ const queryClient = new QueryClient();
 
 function AppInner() {
   useEffect(() => {
-    triggerSync().then((result) => {
-      if (Result.isFailure(result)) {
-        console.error("Initial sync failed:", result.error);
-      }
-    });
+    triggerSync().then((result) =>
+      Result.pipe(
+        result,
+        Result.inspectError((e) => console.error("Initial sync failed:", e)),
+      ),
+    );
   }, []);
 
   return <AppShell />;

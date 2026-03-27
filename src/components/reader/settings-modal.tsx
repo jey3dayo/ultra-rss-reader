@@ -180,14 +180,15 @@ function AccountDetail() {
   if (!account) return null;
 
   const handleDelete = async () => {
-    const result = await deleteAccount(account.id);
-    if (Result.isFailure(result)) {
-      window.alert(`Failed to delete account: ${result.error.message}`);
-      return;
-    }
-    qc.invalidateQueries({ queryKey: ["accounts"] });
-    qc.invalidateQueries({ queryKey: ["feeds"] });
-    setSettingsAccountId(null);
+    Result.pipe(
+      await deleteAccount(account.id),
+      Result.inspectError((e) => window.alert(`Failed to delete account: ${e.message}`)),
+      Result.inspect(() => {
+        qc.invalidateQueries({ queryKey: ["accounts"] });
+        qc.invalidateQueries({ queryKey: ["feeds"] });
+        setSettingsAccountId(null);
+      }),
+    );
   };
 
   return (
@@ -255,21 +256,22 @@ function AddAccountForm() {
   const [username, setUsername] = useState("");
 
   const handleSubmit = async () => {
-    const result = await addAccount(
-      kind,
-      name || kind,
-      kind === "FreshRss" ? serverUrl : undefined,
-      kind === "FreshRss" ? username : undefined,
+    Result.pipe(
+      await addAccount(
+        kind,
+        name || kind,
+        kind === "FreshRss" ? serverUrl : undefined,
+        kind === "FreshRss" ? username : undefined,
+      ),
+      Result.inspectError((e) => window.alert(`Failed to add account: ${e.message}`)),
+      Result.inspect((account) => {
+        qc.invalidateQueries({ queryKey: ["accounts"] });
+        qc.invalidateQueries({ queryKey: ["feeds"] });
+        const { selectAccount } = useUiStore.getState();
+        selectAccount(account.id);
+        setSettingsAccountId(account.id);
+      }),
     );
-    if (Result.isFailure(result)) {
-      window.alert(`Failed to add account: ${result.error.message}`);
-      return;
-    }
-    qc.invalidateQueries({ queryKey: ["accounts"] });
-    qc.invalidateQueries({ queryKey: ["feeds"] });
-    const { selectAccount } = useUiStore.getState();
-    selectAccount(result.value.id);
-    setSettingsAccountId(result.value.id);
   };
 
   return (

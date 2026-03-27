@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Result } from "@praha/byethrow";
+import { Result } from "@praha/byethrow";
 
 // Error type from Rust backend
 export type AppError = { type: "UserVisible"; message: string } | { type: "Retryable"; message: string };
@@ -19,19 +19,18 @@ export type ArticleDto = {
   is_starred: boolean;
 };
 
-// Helper: wrap invoke to return Result
-async function safeInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<Result.Result<T, AppError>> {
-  try {
-    const data = await invoke<T>(cmd, args);
-    return { type: "Success", value: data };
-  } catch (error: unknown) {
-    console.error(`[tauri-commands] ${cmd} failed:`, error);
-    const appError: AppError =
-      typeof error === "object" && error !== null && "type" in error
-        ? (error as AppError)
-        : { type: "UserVisible", message: String(error) };
-    return { type: "Failure", error: appError };
-  }
+function toAppError(cmd: string, error: unknown): AppError {
+  console.error(`[tauri-commands] ${cmd} failed:`, error);
+  return typeof error === "object" && error !== null && "type" in error
+    ? (error as AppError)
+    : { type: "UserVisible", message: String(error) };
+}
+
+function safeInvoke<T>(cmd: string, args?: Record<string, unknown>): Result.ResultAsync<T, AppError> {
+  return Result.try({
+    try: () => invoke<T>(cmd, args),
+    catch: (error) => toAppError(cmd, error),
+  });
 }
 
 // Commands

@@ -5,11 +5,7 @@ import { listFeeds } from "../api/tauri-commands";
 export function useFeeds(accountId: string | null) {
   return useQuery({
     queryKey: ["feeds", accountId],
-    queryFn: async () => {
-      const result = await listFeeds(accountId as string);
-      if (Result.isFailure(result)) throw result.error;
-      return result.value;
-    },
+    queryFn: () => listFeeds(accountId as string).then(Result.unwrap()),
     enabled: !!accountId,
   });
 }

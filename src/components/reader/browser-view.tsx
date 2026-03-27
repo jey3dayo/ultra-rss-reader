@@ -1,4 +1,5 @@
 import { ArrowLeft, ExternalLink } from "lucide-react";
+import { Result } from "@praha/byethrow";
 import { openInBrowser } from "@/api/tauri-commands";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -6,8 +7,11 @@ export function BrowserView() {
   const { browserUrl, closeBrowser } = useUiStore();
   if (!browserUrl) return null;
 
-  const handleOpenExternal = () => {
-    openInBrowser(browserUrl);
+  const handleOpenExternal = async () => {
+    Result.pipe(
+      await openInBrowser(browserUrl),
+      Result.inspectError((e) => console.error("Failed to open in browser:", e)),
+    );
   };
 
   return (
