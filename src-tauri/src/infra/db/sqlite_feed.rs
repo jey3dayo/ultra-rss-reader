@@ -229,4 +229,72 @@ mod tests {
         let count = repo.recalculate_unread_count(&feed.id).unwrap();
         assert_eq!(count, 2);
     }
+
+    #[test]
+    fn delete_cascades_to_articles() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let feed = make_feed(&account_id, "Feed", "http://f.com/rss");
+        repo.save(&feed).unwrap();
+
+        // Insert articles
+        let now = chrono::Utc::now().to_rfc3339();
+        for i in 1..=3 {
+            db.writer()
+                .execute(
+                    "INSERT INTO articles (id, feed_id, title, published_at, fetched_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+                    params![format!("a{i}"), feed.id.0, format!("Article {i}"), now, now],
+                )
+                .unwrap();
+        }
+
+        // Verify articles exist
+        let article_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE feed_id = ?1",
+                params![feed.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(article_count, 3);
+
+        // Delete feed (should cascade to articles via foreign key)
+        repo.delete(&feed.id).unwrap();
+
+        // Verify feed is gone
+        let feeds = repo.find_by_account(&account_id).unwrap();
+        assert_eq!(feeds.len(), 0);
+
+        // Verify articles are cascaded away
+        let article_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE feed_id = ?1",
+                params![feed.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(article_count, 0);
+    }
+
+    #[test]
+    fn rename_updates_title() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let feed = make_feed(&account_id, "Old Title", "http://f.com/rss");
+        repo.save(&feed).unwrap();
+
+        // Rename
+        repo.rename(&feed.id, "New Title").unwrap();
+
+        // Verify
+        let feeds = repo.find_by_account(&account_id).unwrap();
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].title, "New Title");
+    }
 }
