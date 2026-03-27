@@ -1,4 +1,5 @@
 import { Circle, Star, Share } from "lucide-react";
+import { Result } from "@praha/byethrow";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
@@ -40,7 +41,14 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
         </button>
         <button
           type="button"
-          onClick={() => article?.url && openInBrowser(article.url)}
+          onClick={async () => {
+            if (article?.url) {
+              Result.pipe(
+                await openInBrowser(article.url),
+                Result.inspectError((e) => console.error("Failed to open in browser:", e)),
+              );
+            }
+          }}
           className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
           disabled={!article?.url}
         >
