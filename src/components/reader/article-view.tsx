@@ -28,6 +28,7 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
           onClick={() => article && markRead.mutate(article.id)}
           className="text-muted-foreground"
           disabled={!article}
+          aria-label="Toggle read"
         >
           <Circle className="h-4 w-4" />
         </Button>
@@ -37,6 +38,7 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
           onClick={() => article && toggleStar.mutate({ id: article.id, starred: !article.is_starred })}
           className="text-muted-foreground"
           disabled={!article}
+          aria-label="Toggle star"
         >
           <Star className="h-4 w-4" />
         </Button>
@@ -59,6 +61,7 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
             onClick={() => article?.url && openBrowser(article.url)}
             className="text-muted-foreground"
             disabled={!article?.url}
+            aria-label="Open in browser"
           >
             <span className="text-xs font-bold">BR</span>
           </Button>

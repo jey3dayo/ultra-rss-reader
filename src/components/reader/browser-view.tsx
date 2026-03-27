@@ -19,11 +19,17 @@ export function BrowserView() {
     <div className="flex h-full flex-col bg-background">
       {/* Toolbar */}
       <div className="flex h-12 items-center gap-3 border-b border-border px-4">
-        <Button variant="ghost" size="icon" onClick={closeBrowser} className="text-muted-foreground">
+        <Button variant="ghost" size="icon" onClick={closeBrowser} className="text-muted-foreground" aria-label="Back">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <span className="flex-1 truncate text-xs text-muted-foreground">{browserUrl}</span>
-        <Button variant="ghost" size="icon" onClick={handleOpenExternal} className="text-muted-foreground">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleOpenExternal}
+          className="text-muted-foreground"
+          aria-label="Open in external browser"
+        >
           <ExternalLink className="h-4 w-4" />
         </Button>
       </div>

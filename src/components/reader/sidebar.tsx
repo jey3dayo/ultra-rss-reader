@@ -86,6 +86,7 @@ export function Sidebar() {
             size="icon-sm"
             onClick={handleSync}
             className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            aria-label="Sync feeds"
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -94,6 +95,7 @@ export function Sidebar() {
             size="icon-sm"
             onClick={() => selectedAccountId && setShowAddFeed(true)}
             className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            aria-label="Add feed"
           >
             <Plus className="h-4 w-4" />
           </Button>
