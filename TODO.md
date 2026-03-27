@@ -49,7 +49,7 @@
 
 ## 開発環境
 
-- [ ] Storybook導入（UIが安定してから）
+- [x] Storybook導入
 
 ## リファクタリング
 
@@ -72,6 +72,6 @@
 ## その他
 
 - [x] OPML Export
-- [ ] Inoreader連携
+- [x] Inoreader連携
 - [x] FTS5検索
 - [x] Tags
