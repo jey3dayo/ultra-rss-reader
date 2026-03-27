@@ -25,6 +25,7 @@ interface UiState {
   settingsCategory: SettingsCategory;
   settingsAccountId: string | null;
   settingsAddAccount: boolean;
+  toastMessage: string | null;
 }
 
 interface UiActions {
@@ -47,6 +48,8 @@ interface UiActions {
   setSettingsCategory: (cat: SettingsCategory) => void;
   setSettingsAccountId: (id: string | null) => void;
   setSettingsAddAccount: (show: boolean) => void;
+  showToast: (message: string) => void;
+  clearToast: () => void;
 }
 
 const initialState: UiState = {
@@ -64,6 +67,7 @@ const initialState: UiState = {
   settingsCategory: "general",
   settingsAccountId: null,
   settingsAddAccount: false,
+  toastMessage: null,
 };
 
 export const useUiStore = create<UiState & UiActions>()((set) => ({
@@ -97,4 +101,9 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   setSettingsCategory: (cat) => set({ settingsCategory: cat, settingsAccountId: null, settingsAddAccount: false }),
   setSettingsAccountId: (id) => set({ settingsAccountId: id, settingsAddAccount: false }),
   setSettingsAddAccount: (show) => set({ settingsAddAccount: show, settingsAccountId: null }),
+  showToast: (message) => {
+    set({ toastMessage: message });
+    setTimeout(() => set({ toastMessage: null }), 4000);
+  },
+  clearToast: () => set({ toastMessage: null }),
 }));

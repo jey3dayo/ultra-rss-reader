@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { create } from "zustand";
 import { getPreferences, setPreference } from "@/api/tauri-commands";
+import { useUiStore } from "@/stores/ui-store";
 
 type Theme = "light" | "dark" | "system";
 
@@ -105,11 +106,14 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
       applyTheme(value as Theme);
     }
 
-    // Fire and forget — log errors but don't block UI
+    // Fire and forget — notify user on failure
     setPreference(key, value).then((result) =>
       Result.pipe(
         result,
-        Result.inspectError((e) => console.error(`Failed to persist preference ${key}:`, e)),
+        Result.inspectError((e: { message: string }) => {
+          console.error(`Failed to persist preference ${key}:`, e);
+          useUiStore.getState().showToast(`Failed to save setting: ${e.message}`);
+        }),
       ),
     );
   },

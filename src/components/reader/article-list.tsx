@@ -1,5 +1,5 @@
 import { CheckCircle, Filter, Search, Star, X } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useArticles, useSearchArticles } from "@/hooks/use-articles";
@@ -76,6 +76,38 @@ export function ArticleList() {
     return groups;
   }, [filteredArticles]);
 
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const navigateArticle = useCallback(
+    (direction: 1 | -1) => {
+      if (filteredArticles.length === 0) return;
+      const currentIndex = filteredArticles.findIndex((a) => a.id === selectedArticleId);
+      const nextIndex =
+        currentIndex === -1 ? 0 : Math.max(0, Math.min(filteredArticles.length - 1, currentIndex + direction));
+      selectArticle(filteredArticles[nextIndex].id);
+      // Scroll selected item into view
+      const btn = listRef.current?.querySelector(`[data-article-id="${filteredArticles[nextIndex].id}"]`);
+      btn?.scrollIntoView({ block: "nearest" });
+    },
+    [filteredArticles, selectedArticleId, selectArticle],
+  );
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "j") {
+        e.preventDefault();
+        navigateArticle(1);
+      } else if (e.key === "k") {
+        e.preventDefault();
+        navigateArticle(-1);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [navigateArticle]);
+
   return (
     <div className="flex h-full w-[380px] flex-col border-r border-border bg-card">
       {/* Header Toolbar */}
@@ -83,6 +115,7 @@ export function ArticleList() {
         <div className="flex items-center gap-2">
           <button
             type="button"
+            aria-label="Mark all as read"
             className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
           >
             <CheckCircle className="h-4 w-4" />
@@ -96,6 +129,7 @@ export function ArticleList() {
               if (!showSearch) requestAnimationFrame(() => searchInputRef.current?.focus());
               else setSearchQuery("");
             }}
+            aria-label="Search articles"
             className={cn(
               "rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground",
               showSearch && "text-foreground",
@@ -110,6 +144,7 @@ export function ArticleList() {
                 setShowSearch(false);
                 setSearchQuery("");
               }}
+              aria-label="Close search"
               className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
             >
               <X className="h-4 w-4" />
@@ -140,7 +175,7 @@ export function ArticleList() {
 
       {/* Article List */}
       <ScrollArea className="flex-1">
-        <div className="pb-4">
+        <div ref={listRef} role="listbox" aria-label="Article list" className="pb-4">
           {isLoading ? (
             <div className="p-6 text-center text-muted-foreground">Loading...</div>
           ) : filteredArticles.length === 0 ? (
@@ -160,6 +195,10 @@ export function ArticleList() {
                   <button
                     type="button"
                     key={article.id}
+                    data-article-id={article.id}
+                    role="option"
+                    aria-selected={selectedArticleId === article.id}
+                    aria-label={`${article.title}${article.is_read ? "" : " (unread)"}${article.is_starred ? " (starred)" : ""}`}
                     onClick={() => selectArticle(article.id)}
                     className={cn(
                       "relative flex w-full flex-col gap-1 border-l-2 px-4 py-3 text-left transition-colors",
@@ -217,6 +256,7 @@ export function ArticleList() {
       <div className="flex h-10 items-center justify-center gap-4 border-t border-border bg-card">
         <button
           type="button"
+          aria-label="Show starred"
           onClick={() => setViewMode("starred")}
           className={cn(
             "rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground",
@@ -238,6 +278,7 @@ export function ArticleList() {
         </button>
         <button
           type="button"
+          aria-label="Show all"
           onClick={() => setViewMode("all")}
           className={cn(
             "rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground",

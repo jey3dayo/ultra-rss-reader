@@ -21,13 +21,8 @@ export function useKeyboard() {
       const shift = e.shiftKey;
 
       switch (key) {
-        case "j": // Next item
-          e.preventDefault();
-          // TODO: navigate to next article in list
-          break;
-        case "k": // Previous item
-          e.preventDefault();
-          // TODO: navigate to previous article in list
+        case "j": // Next item — handled by ArticleList component
+        case "k": // Previous item — handled by ArticleList component
           break;
         case "m": // Toggle read
           e.preventDefault();
