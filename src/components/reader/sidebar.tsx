@@ -30,8 +30,8 @@ export function Sidebar() {
   } = useUiStore();
   const { data: feeds } = useFeeds(selectedAccountId);
   const { data: folders } = useFolders(selectedAccountId);
-  const showUnreadCount = usePreferencesStore((s) => s.prefs.show_unread_count ?? "true");
-  const displayFavicons = usePreferencesStore((s) => s.prefs.display_favicons ?? "true");
+  const showUnreadCount = usePreferencesStore((s) => (s.prefs.show_unread_count ?? "true") === "true");
+  const displayFavicons = usePreferencesStore((s) => (s.prefs.display_favicons ?? "true") === "true");
 
   // Auto-select first account if none selected
   useEffect(() => {
@@ -149,7 +149,7 @@ export function Sidebar() {
         )}
       >
         <span className="font-medium">Unread</span>
-        {showUnreadCount === "true" && <span className="text-muted-foreground">{totalUnread.toLocaleString()}</span>}
+        {showUnreadCount && <span className="text-muted-foreground">{totalUnread.toLocaleString()}</span>}
       </button>
 
       {/* Starred Smart View */}

@@ -18,7 +18,7 @@ export function FolderSection({
   onToggle: (folderId: string) => void;
   selectedFeedId: string | null;
   onSelectFeed: (feedId: string) => void;
-  displayFavicons: string;
+  displayFavicons: boolean;
 }) {
   const folderUnread = feeds.reduce((sum, f) => sum + f.unread_count, 0);
 

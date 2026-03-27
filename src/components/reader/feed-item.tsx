@@ -10,7 +10,7 @@ export function FeedItem({
   feed: FeedDto;
   isSelected: boolean;
   onSelect: (feedId: string) => void;
-  displayFavicons: string;
+  displayFavicons: boolean;
 }) {
   return (
     <button
@@ -22,7 +22,7 @@ export function FeedItem({
       )}
     >
       <div className="flex items-center gap-2 truncate">
-        {displayFavicons !== "false" && (
+        {displayFavicons && (
           <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-accent/20 text-[10px] font-medium text-accent">
             {feed.title.charAt(0).toUpperCase()}
           </span>
