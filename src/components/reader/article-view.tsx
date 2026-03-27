@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { Circle, Copy, Plus, Share, Star, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
@@ -120,6 +120,18 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
   const createTagMutation = useCreateTag();
   const [showPicker, setShowPicker] = useState(false);
   const [newTagName, setNewTagName] = useState("");
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showPicker]);
 
   const assignedTagIds = new Set(articleTags?.map((t) => t.id) ?? []);
   const unassignedTags = (allTags ?? []).filter((t) => !assignedTagIds.has(t.id));
@@ -159,7 +171,7 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
           </button>
         </span>
       ))}
-      <div className="relative">
+      <div ref={pickerRef} className="relative">
         <button
           type="button"
           onClick={() => setShowPicker((v) => !v)}

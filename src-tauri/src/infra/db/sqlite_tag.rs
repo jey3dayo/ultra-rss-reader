@@ -66,9 +66,21 @@ impl TagRepository for SqliteTagRepository<'_> {
         Ok(tags)
     }
 
+    fn find_by_name(&self, name: &str) -> DomainResult<Option<Tag>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id, name, color FROM tags WHERE name = ?1 COLLATE NOCASE")?;
+        let mut rows = stmt.query_map(params![name], row_to_tag)?;
+        match rows.next() {
+            Some(row) => Ok(Some(row?)),
+            None => Ok(None),
+        }
+    }
+
     fn save(&self, tag: &Tag) -> DomainResult<()> {
         self.conn.execute(
-            "INSERT OR REPLACE INTO tags (id, name, color) VALUES (?1, ?2, ?3)",
+            "INSERT INTO tags (id, name, color) VALUES (?1, ?2, ?3) \
+             ON CONFLICT(id) DO UPDATE SET name = excluded.name, color = excluded.color",
             params![tag.id.0, tag.name, tag.color],
         )?;
         Ok(())
@@ -290,5 +302,62 @@ mod tests {
         repo.delete(&tag.id).unwrap();
         let tags = repo.find_tags_for_article(&article_id).unwrap();
         assert!(tags.is_empty());
+    }
+
+    #[test]
+    fn find_by_name_case_insensitive() {
+        let db = test_db();
+        let repo = SqliteTagRepository::new(db.writer());
+
+        let tag = Tag {
+            id: TagId::new(),
+            name: "Important".to_string(),
+            color: Some("#ff0000".to_string()),
+        };
+        repo.save(&tag).unwrap();
+
+        // Exact match
+        let found = repo.find_by_name("Important").unwrap();
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().name, "Important");
+
+        // Case-insensitive match
+        let found = repo.find_by_name("important").unwrap();
+        assert!(found.is_some());
+
+        let found = repo.find_by_name("IMPORTANT").unwrap();
+        assert!(found.is_some());
+
+        // No match
+        let found = repo.find_by_name("nonexistent").unwrap();
+        assert!(found.is_none());
+    }
+
+    #[test]
+    fn save_upsert_does_not_delete_relations() {
+        let db = test_db();
+        let (_, _, article_id) = insert_test_data(&db);
+        let repo = SqliteTagRepository::new(db.writer());
+
+        let tag = Tag {
+            id: TagId::new(),
+            name: "original".to_string(),
+            color: None,
+        };
+        repo.save(&tag).unwrap();
+        repo.tag_article(&article_id, &tag.id).unwrap();
+
+        // Update the tag name via save (upsert)
+        let updated_tag = Tag {
+            id: tag.id.clone(),
+            name: "updated".to_string(),
+            color: Some("#00ff00".to_string()),
+        };
+        repo.save(&updated_tag).unwrap();
+
+        // article_tags relation should still exist
+        let tags = repo.find_tags_for_article(&article_id).unwrap();
+        assert_eq!(tags.len(), 1);
+        assert_eq!(tags[0].name, "updated");
     }
 }
