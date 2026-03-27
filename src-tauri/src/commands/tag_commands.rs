@@ -47,7 +47,7 @@ pub fn create_tag(
             message: "Tag name cannot be empty".to_string(),
         });
     }
-    if name.len() > 50 {
+    if name.chars().count() > 50 {
         return Err(AppError::UserVisible {
             message: "Tag name must be 50 characters or less".to_string(),
         });
