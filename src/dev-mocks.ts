@@ -234,10 +234,19 @@ export function setupDevMocks() {
       case "add_local_feed": {
         const feedId = `dev-feed-${nextFeedId++}`;
         const feedUrl = String(args.url ?? "");
+        // Derive a readable title from the URL (real backend parses RSS <title>)
+        const titleFromUrl = (() => {
+          try {
+            const u = new URL(feedUrl);
+            return u.hostname.replace(/^www\./, "");
+          } catch {
+            return feedUrl;
+          }
+        })();
         const feed: FeedDto = {
           id: feedId,
           account_id: String(args.accountId),
-          title: `Feed: ${feedUrl}`,
+          title: titleFromUrl,
           url: feedUrl,
           unread_count: 3,
         };
