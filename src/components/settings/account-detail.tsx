@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { deleteAccount } from "@/api/tauri-commands";
+import { deleteAccount, exportOpml } from "@/api/tauri-commands";
 import { SectionHeading, SettingsRow } from "@/components/settings/settings-components";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useUiStore } from "@/stores/ui-store";
@@ -15,6 +15,22 @@ export function AccountDetail() {
   const account = accounts?.find((a) => a.id === settingsAccountId);
 
   if (!account) return null;
+
+  const handleExportOpml = async () => {
+    Result.pipe(
+      await exportOpml(account.id),
+      Result.inspectError((e) => window.alert(`Failed to export OPML: ${e.message}`)),
+      Result.inspect((opmlString) => {
+        const blob = new Blob([opmlString], { type: "application/xml" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${account.name}-feeds.opml`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }),
+    );
+  };
 
   const handleDelete = async () => {
     Result.pipe(
@@ -47,6 +63,12 @@ export function AccountDetail() {
       </section>
 
       <div className="mt-6 border-t border-border pt-6">
+        <button type="button" onClick={handleExportOpml} className="mb-4 text-sm text-foreground hover:underline">
+          Export OPML
+        </button>
+      </div>
+
+      <div className="mt-2 border-t border-border pt-6">
         {!confirmDelete ? (
           <button
             type="button"

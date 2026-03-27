@@ -66,5 +66,7 @@ export const openInBrowser = (url: string) => safeInvoke<void>("open_in_browser"
 
 export const triggerSync = () => safeInvoke<void>("trigger_sync");
 
+export const exportOpml = (accountId: string) => safeInvoke<string>("export_opml", { accountId });
+
 export const getPreferences = () => safeInvoke<Record<string, string>>("get_preferences");
 export const setPreference = (key: string, value: string) => safeInvoke<void>("set_preference", { key, value });

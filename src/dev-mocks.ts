@@ -116,6 +116,18 @@ export function setupDevMocks() {
         return null;
       }
 
+      case "export_opml":
+        return `<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head><title>Mock Export</title></head>
+  <body>
+    <outline text="Tech" title="Tech">
+      <outline text="Ars Technica" title="Ars Technica" type="rss" xmlUrl="https://feeds.arstechnica.com/arstechnica/index" htmlUrl="https://arstechnica.com"/>
+    </outline>
+    <outline text="Standalone" title="Standalone" type="rss" xmlUrl="https://example.com/feed.xml"/>
+  </body>
+</opml>`;
+
       case "trigger_sync":
       case "open_in_browser":
       case "import_opml":
