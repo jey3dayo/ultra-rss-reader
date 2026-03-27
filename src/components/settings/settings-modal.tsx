@@ -70,13 +70,18 @@ export function SettingsModal() {
 
   // Listen for Tauri menu event
   useEffect(() => {
+    let cancelled = false;
     let unlisten: (() => void) | undefined;
     listen("open-settings", () => openSettings())
       .then((fn) => {
-        unlisten = fn;
+        if (cancelled) fn();
+        else unlisten = fn;
       })
       .catch(() => {}); // Ignore in browser mode
-    return () => unlisten?.();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
   }, [openSettings]);
 
   const renderContent = () => {

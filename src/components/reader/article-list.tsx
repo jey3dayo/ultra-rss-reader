@@ -54,8 +54,15 @@ export function ArticleList() {
   const { data: feeds } = useFeeds(selectedAccountId);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  // Debounce search query to avoid excessive IPC calls
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const { data: searchResults } = useSearchArticles(selectedAccountId, searchQuery);
+  const { data: searchResults } = useSearchArticles(selectedAccountId, debouncedQuery);
 
   const feedNameMap = useMemo(() => {
     const map = new Map<string, string>();

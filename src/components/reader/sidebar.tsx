@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { ChevronDown, Plus, RefreshCw, Settings, Tag } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { triggerSync } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,19 @@ import { FolderSection } from "./folder-section";
 export function Sidebar() {
   const [showAccountList, setShowAccountList] = useState(false);
   const [showAddFeed, setShowAddFeed] = useState(false);
+  const accountDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close account dropdown on click outside
+  useEffect(() => {
+    if (!showAccountList) return;
+    const handler = (e: MouseEvent) => {
+      if (accountDropdownRef.current && !accountDropdownRef.current.contains(e.target as Node)) {
+        setShowAccountList(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showAccountList]);
   const { data: accounts } = useAccounts();
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectAccount = useUiStore((s) => s.selectAccount);
@@ -107,7 +120,7 @@ export function Sidebar() {
       </div>
 
       {/* Account Name with Switcher */}
-      <div className="relative px-4 pb-1">
+      <div ref={accountDropdownRef} className="relative px-4 pb-1">
         <button
           type="button"
           onClick={() => hasMultipleAccounts && setShowAccountList((v) => !v)}

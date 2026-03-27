@@ -75,3 +75,12 @@
 - [x] Inoreader連携
 - [x] FTS5検索
 - [x] Tags
+
+## 技術的改善（レビュー指摘）
+
+- [ ] 検索入力のデバウンス（useDebouncedValue追加、300ms）
+- [ ] Account ドロップダウンの click-outside 閉じ処理
+- [ ] settings-modal の listen 競合修正（cancelled フラグ）
+- [ ] CSS.escape でセレクタインジェクション防止
+- [ ] markAllRead バッチAPI化（Rust側コマンド追加）
+- [ ] 同時sync実行ガード（AtomicBool or tokio::Mutex）
