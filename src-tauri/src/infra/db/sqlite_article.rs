@@ -201,18 +201,24 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         query: &str,
         pagination: &Pagination,
     ) -> DomainResult<Vec<Article>> {
-        let like_pattern = format!("%{query}%");
         let select_cols_prefixed = SELECT_COLS
             .split(", ")
             .map(|c| format!("a.{c}"))
             .collect::<Vec<_>>()
             .join(", ");
+        // Escape FTS5 special characters by wrapping each term in double quotes
+        let fts_query = query
+            .split_whitespace()
+            .map(|term| format!("\"{term}\""))
+            .collect::<Vec<_>>()
+            .join(" ");
         let sql = format!(
             "SELECT {select_cols_prefixed} FROM articles a
              JOIN feeds f ON a.feed_id = f.id
+             JOIN articles_fts fts ON a.rowid = fts.rowid
              WHERE f.account_id = ?1
-             AND (a.title LIKE ?2 OR a.content_sanitized LIKE ?2)
-             ORDER BY a.published_at DESC
+             AND articles_fts MATCH ?2
+             ORDER BY fts.rank
              LIMIT ?3 OFFSET ?4"
         );
         let mut stmt = self.conn.prepare(&sql)?;
@@ -220,7 +226,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
             .query_map(
                 params![
                     account_id.0,
-                    like_pattern,
+                    fts_query,
                     pagination.limit as i64,
                     pagination.offset as i64
                 ],

@@ -88,7 +88,7 @@ mod tests {
     }
 
     #[test]
-    fn schema_version_is_2() {
+    fn schema_version_is_3() {
         let db = DbManager::new_in_memory().unwrap();
         let version: i32 = db
             .reader()
@@ -98,7 +98,21 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(version, 2);
+        assert_eq!(version, 3);
+    }
+
+    #[test]
+    fn fts5_table_exists() {
+        let db = DbManager::new_in_memory().unwrap();
+        let count: i32 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='articles_fts'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
     }
 
     #[test]

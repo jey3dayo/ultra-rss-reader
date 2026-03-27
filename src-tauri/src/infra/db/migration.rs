@@ -4,6 +4,7 @@ use crate::domain::error::DomainResult;
 
 const MIGRATION_V1: &str = include_str!("../../../migrations/V1__initial.sql");
 const MIGRATION_V2: &str = include_str!("../../../migrations/V2__preferences.sql");
+const MIGRATION_V3: &str = include_str!("../../../migrations/V3__fts5.sql");
 
 pub fn run_migrations(conn: &mut Connection) -> DomainResult<()> {
     let current_version = get_schema_version(conn);
@@ -13,6 +14,9 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<()> {
     }
     if current_version < 2 {
         conn.execute_batch(MIGRATION_V2)?;
+    }
+    if current_version < 3 {
+        conn.execute_batch(MIGRATION_V3)?;
     }
 
     Ok(())
