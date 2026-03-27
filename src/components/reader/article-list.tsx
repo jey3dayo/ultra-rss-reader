@@ -118,8 +118,9 @@ export function ArticleList() {
                       "relative flex w-full flex-col gap-1 border-l-2 px-4 py-3 text-left transition-colors",
                       selectedArticleId === article.id
                         ? "border-l-accent bg-accent/10"
-                        : "border-l-transparent hover:bg-muted/50",
-                      article.is_read && "opacity-60",
+                        : !article.is_read
+                          ? "border-l-accent/60 hover:bg-muted/50"
+                          : "border-l-transparent hover:bg-muted/50 opacity-60",
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
