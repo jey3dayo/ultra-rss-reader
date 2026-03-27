@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::io::Cursor;
 
+use quick_xml::escape::escape;
 use quick_xml::events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event};
 use quick_xml::{Reader, Writer};
 
@@ -113,7 +114,7 @@ pub fn generate_opml(title: &str, feeds: &[OpmlFeed]) -> String {
         .write_event(Event::Start(BytesStart::new("title")))
         .expect("write title start");
     writer
-        .write_event(Event::Text(BytesText::new(title)))
+        .write_event(Event::Text(BytesText::new(&escape(title))))
         .expect("write title text");
     writer
         .write_event(Event::End(BytesEnd::new("title")))

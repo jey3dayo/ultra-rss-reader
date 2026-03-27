@@ -23,11 +23,12 @@ export function AccountDetail() {
       Result.inspect((opmlString) => {
         const blob = new Blob([opmlString], { type: "application/xml" });
         const url = URL.createObjectURL(blob);
+        const safeName = account.name.replace(/[<>:"/\\|?*]/g, "_");
         const a = document.createElement("a");
         a.href = url;
-        a.download = `${account.name}-feeds.opml`;
+        a.download = `${safeName}-feeds.opml`;
         a.click();
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
       }),
     );
   };
