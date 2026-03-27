@@ -18,7 +18,7 @@ paths:
 
 ## コンポーネント構成
 
-- アプリ固有コンポーネントは `src/components/reader/` に配置（v0 モック準拠）
+- アプリ固有コンポーネントは `src/components/reader/` または `src/components/settings/` に配置
 - ファイル名は kebab-case（`article-list.tsx`）、コンポーネント名は PascalCase
-- 1 ファイル = 1 画面ペイン。サブコンポーネントは同一ファイル内に定義
 - 300 行を超えたら分割を検討
+- 分割時は同じディレクトリ内にファイルを抽出する（例: `feed-item.tsx`, `folder-section.tsx`）
