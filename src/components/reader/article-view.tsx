@@ -3,6 +3,7 @@ import { Circle, Copy, Share, Star } from "lucide-react";
 import { useEffect } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useArticles, useMarkRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -21,46 +22,51 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
   return (
     <div className="flex h-12 items-center justify-end border-b border-border px-4">
       <div className="flex items-center gap-2">
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => article && markRead.mutate(article.id)}
-          className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+          className="text-muted-foreground"
           disabled={!article}
         >
           <Circle className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => article && toggleStar.mutate({ id: article.id, starred: !article.is_starred })}
-          className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+          className="text-muted-foreground"
           disabled={!article}
         >
           <Star className="h-4 w-4" />
-        </button>
+        </Button>
         {actionCopyLink === "true" && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => article?.url && navigator.clipboard.writeText(article.url)}
-            className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+            className="text-muted-foreground"
             disabled={!article?.url}
             aria-label="Copy link"
           >
             <Copy className="h-4 w-4" />
-          </button>
+          </Button>
         )}
         {actionOpenBrowser === "true" && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => article?.url && openBrowser(article.url)}
-            className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+            className="text-muted-foreground"
             disabled={!article?.url}
           >
             <span className="text-xs font-bold">BR</span>
-          </button>
+          </Button>
         )}
         {actionShare === "true" && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={async () => {
               if (article?.url) {
                 Result.pipe(
@@ -69,11 +75,11 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
                 );
               }
             }}
-            className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+            className="text-muted-foreground"
             disabled={!article?.url}
           >
             <Share className="h-4 w-4" />
-          </button>
+          </Button>
         )}
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { CheckCircle, Filter, Search, Star, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useArticles, useMarkRead, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -153,43 +154,43 @@ export function ArticleList() {
       {/* Header Toolbar */}
       <div className="flex h-12 items-center justify-between border-b border-border px-3">
         <div className="flex items-center gap-2">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             aria-label="Mark all as read"
             onClick={handleMarkAllRead}
-            className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+            className="text-muted-foreground"
           >
             <CheckCircle className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => {
               setShowSearch((v) => !v);
               if (!showSearch) requestAnimationFrame(() => searchInputRef.current?.focus());
               else setSearchQuery("");
             }}
             aria-label="Search articles"
-            className={cn(
-              "rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground",
-              showSearch && "text-foreground",
-            )}
+            className={cn("text-muted-foreground", showSearch && "text-foreground")}
           >
             <Search className="h-4 w-4" />
-          </button>
+          </Button>
           {showSearch && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => {
                 setShowSearch(false);
                 setSearchQuery("");
               }}
               aria-label="Close search"
-              className="rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+              className="text-muted-foreground"
             >
               <X className="h-4 w-4" />
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -306,19 +307,18 @@ export function ArticleList() {
 
       {/* Bottom Toolbar */}
       <div className="flex h-10 items-center justify-center gap-4 border-t border-border bg-card">
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon"
           aria-label="Show starred"
           onClick={() => setViewMode("starred")}
-          className={cn(
-            "rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground",
-            viewMode === "starred" && "text-foreground",
-          )}
+          className={cn("text-muted-foreground", viewMode === "starred" && "text-foreground")}
         >
           <Star className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => setViewMode("unread")}
           className={cn(
             "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
@@ -327,18 +327,16 @@ export function ArticleList() {
         >
           <span className="h-1.5 w-1.5 rounded-full bg-accent" />
           UNREAD
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           aria-label="Show all"
           onClick={() => setViewMode("all")}
-          className={cn(
-            "rounded p-1.5 text-muted-foreground hover:bg-accent/10 hover:text-foreground",
-            viewMode === "all" && "text-foreground",
-          )}
+          className={cn("text-muted-foreground", viewMode === "all" && "text-foreground")}
         >
           <Filter className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </div>
   );

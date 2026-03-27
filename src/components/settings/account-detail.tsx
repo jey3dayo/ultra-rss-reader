@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { deleteAccount, exportOpml } from "@/api/tauri-commands";
 import { SectionHeading, SettingsRow } from "@/components/settings/settings-components";
+import { Button } from "@/components/ui/button";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -64,37 +65,25 @@ export function AccountDetail() {
       </section>
 
       <div className="mt-6 border-t border-border pt-6">
-        <button type="button" onClick={handleExportOpml} className="mb-4 text-sm text-foreground hover:underline">
+        <Button variant="link" onClick={handleExportOpml} className="mb-4 h-auto p-0 text-sm text-foreground">
           Export OPML
-        </button>
+        </Button>
       </div>
 
       <div className="mt-2 border-t border-border pt-6">
         {!confirmDelete ? (
-          <button
-            type="button"
-            onClick={() => setConfirmDelete(true)}
-            className="text-sm text-destructive hover:underline"
-          >
+          <Button variant="link" onClick={() => setConfirmDelete(true)} className="h-auto p-0 text-sm text-destructive">
             Delete Account
-          </button>
+          </Button>
         ) : (
           <div className="flex items-center gap-3">
             <span className="text-sm text-destructive">Delete this account?</span>
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="rounded-md bg-destructive px-3 py-1.5 text-sm text-white"
-            >
+            <Button variant="destructive" size="sm" onClick={handleDelete}>
               Delete
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmDelete(false)}
-              className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground"
-            >
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setConfirmDelete(false)}>
               Cancel
-            </button>
+            </Button>
           </div>
         )}
       </div>

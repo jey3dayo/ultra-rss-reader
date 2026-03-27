@@ -3,6 +3,7 @@ import { ChevronDown, Plus, RefreshCw, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { triggerSync } from "@/api/tauri-commands";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -80,20 +81,22 @@ export function Sidebar() {
           <div className="flex h-3 w-3 items-center justify-center rounded-full bg-green-500" />
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={handleSync}
-            className="rounded p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
           >
             <RefreshCw className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={() => selectedAccountId && setShowAddFeed(true)}
-            className="rounded p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
           >
             <Plus className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -215,14 +218,14 @@ export function Sidebar() {
 
       {/* Bottom Settings Button */}
       <div className="border-t border-sidebar-border p-2">
-        <button
-          type="button"
+        <Button
+          variant="ghost"
           onClick={openSettings}
-          className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          className="flex w-full items-center gap-2 px-2 py-2 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
         >
           <Settings className="h-4 w-4" />
           <span>Settings</span>
-        </button>
+        </Button>
       </div>
 
       {selectedAccountId && (

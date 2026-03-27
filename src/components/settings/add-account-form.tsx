@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { addAccount } from "@/api/tauri-commands";
 import { SectionHeading } from "@/components/settings/settings-components";
+import { Button } from "@/components/ui/button";
 import { useUiStore } from "@/stores/ui-store";
 
 type ProviderKind = "Local" | "FreshRss";
@@ -97,20 +98,10 @@ export function AddAccountForm() {
       )}
 
       <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={handleSubmit}
-          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground"
-        >
-          Add
-        </button>
-        <button
-          type="button"
-          onClick={() => setSettingsAddAccount(false)}
-          className="rounded-md border border-border px-4 py-2 text-sm text-foreground"
-        >
+        <Button onClick={handleSubmit}>Add</Button>
+        <Button variant="outline" onClick={() => setSettingsAddAccount(false)}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );

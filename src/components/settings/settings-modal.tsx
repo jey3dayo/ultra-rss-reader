@@ -9,6 +9,7 @@ import { BionicReadingSettings } from "@/components/settings/bionic-reading-sett
 import { GeneralSettings } from "@/components/settings/general-settings";
 import { ReadingSettings } from "@/components/settings/reading-settings";
 import { ShortcutsSettings } from "@/components/settings/shortcuts-settings";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccounts } from "@/hooks/use-accounts";
@@ -113,13 +114,14 @@ export function SettingsModal() {
         <div className="flex w-[260px] flex-col border-r border-border bg-sidebar">
           {/* Header */}
           <DialogHeader className="flex flex-row items-center gap-3 border-b border-border px-4 py-4">
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={closeSettings}
-              className="rounded p-1 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
             >
               <X className="h-4 w-4" />
-            </button>
+            </Button>
             <DialogTitle className="text-base font-medium">Preferences</DialogTitle>
           </DialogHeader>
 
