@@ -55,7 +55,7 @@
 
 - [x] settings-modal.tsx → components/settings/ に分割済み
 - [x] sidebar.tsx → AddFeedDialog, FeedItem, FolderSection を抽出済み
-- [ ] 生の `<button>` を components/ui/button.tsx (CVA) でラップして統一（article-list, sidebar, settings）
+- [x] 生の `<button>` を components/ui/button.tsx (CVA) でラップして統一
 
 ## FreshRSS 同期
 
@@ -64,14 +64,14 @@
 - [x] trigger_sync に FreshRSS 同期ブランチ（6ステップ）
 - [x] feed/folder の re-sync 時に既存ID再利用（CASCADE削除防止）
 - [x] UI にパスワードフィールド追加
-- [ ] pending_mutations への書き込み（既読/スター双方向同期）
+- [x] pending_mutations への書き込み（既読/スター双方向同期）
 - [ ] SyncService / EventBus 統合（バックグラウンド定期同期）
-- [ ] folder_id の解決（フォルダ階層同期）
+- [x] folder_id の解決（フォルダ階層同期）
 - [ ] ページネーション（全記事履歴の同期）
 
 ## その他
 
-- [ ] OPML Export
+- [x] OPML Export
 - [ ] Inoreader連携
-- [ ] FTS5検索
+- [x] FTS5検索
 - [ ] Tags
