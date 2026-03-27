@@ -84,16 +84,21 @@ mod tests {
         assert!(tables.contains(&"pending_mutations".to_string()));
         assert!(tables.contains(&"feed_http_cache".to_string()));
         assert!(tables.contains(&"schema_version".to_string()));
+        assert!(tables.contains(&"preferences".to_string()));
     }
 
     #[test]
-    fn schema_version_is_1() {
+    fn schema_version_is_2() {
         let db = DbManager::new_in_memory().unwrap();
         let version: i32 = db
             .reader()
-            .query_row("SELECT version FROM schema_version", [], |row| row.get(0))
+            .query_row(
+                "SELECT version FROM schema_version ORDER BY version DESC LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
             .unwrap();
-        assert_eq!(version, 1);
+        assert_eq!(version, 2);
     }
 
     #[test]

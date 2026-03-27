@@ -3,6 +3,7 @@ pub mod article_commands;
 pub mod dto;
 pub mod feed_commands;
 pub mod opml_commands;
+pub mod preference_commands;
 
 use std::sync::Mutex;
 

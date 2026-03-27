@@ -9,6 +9,7 @@ import { mockAccounts, mockArticles, mockFeeds, mockFolders } from "./dev-mock-d
 
 let nextAccountId = 100;
 let nextFeedId = 100;
+const mockPreferences = new Map<string, string>();
 
 function titleFromUrl(feedUrl: string): string {
   try {
@@ -104,6 +105,14 @@ export function setupDevMocks() {
       case "toggle_article_star": {
         const art = mockArticles.find((a) => a.id === args.articleId);
         if (art) art.is_starred = args.starred as boolean;
+        return null;
+      }
+
+      case "get_preferences":
+        return Object.fromEntries(mockPreferences);
+
+      case "set_preference": {
+        mockPreferences.set(String(args.key), String(args.value));
         return null;
       }
 

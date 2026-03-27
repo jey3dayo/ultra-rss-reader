@@ -65,3 +65,6 @@ export const addLocalFeed = (accountId: string, url: string) =>
 export const openInBrowser = (url: string) => safeInvoke<void>("open_in_browser", { url });
 
 export const triggerSync = () => safeInvoke<void>("trigger_sync");
+
+export const getPreferences = () => safeInvoke<Record<string, string>>("get_preferences");
+export const setPreference = (key: string, value: string) => safeInvoke<void>("set_preference", { key, value });

@@ -81,6 +81,8 @@ pub fn run() {
             commands::article_commands::open_in_browser,
             commands::opml_commands::import_opml,
             commands::article_commands::search_articles,
+            commands::preference_commands::get_preferences,
+            commands::preference_commands::set_preference,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

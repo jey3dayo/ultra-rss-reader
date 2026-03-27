@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { useAccounts } from "@/hooks/use-accounts";
 import { cn } from "@/lib/utils";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 type SettingsCategory =
@@ -261,7 +262,8 @@ function GeneralSettings() {
 }
 
 function AppearanceSettings() {
-  const { theme, setTheme } = useUiStore();
+  const theme = usePreferencesStore((s) => s.theme());
+  const setPref = usePreferencesStore((s) => s.setPref);
 
   const themeOptions = [
     { value: "light", label: "Light" },
@@ -281,7 +283,7 @@ function AppearanceSettings() {
           <span className="text-sm text-foreground">Theme</span>
           <select
             value={theme}
-            onChange={(e) => setTheme(e.target.value as "light" | "dark" | "system")}
+            onChange={(e) => setPref("theme", e.target.value)}
             className="rounded-md border border-border bg-background px-2 py-1 text-sm text-muted-foreground"
           >
             {themeOptions.map((opt) => (
