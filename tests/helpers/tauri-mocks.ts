@@ -70,9 +70,14 @@ const defaultHandler: MockHandler = (cmd, args) => {
       return sampleFeeds.filter((f) => f.account_id === args.accountId);
     case "list_articles":
       return sampleArticles.filter((a) => a.feed_id === args.feedId);
+    case "list_account_articles":
+      return sampleArticles.filter((a) =>
+        sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId),
+      );
     case "add_account":
       return { id: "acc-new", kind: String(args.kind), name: String(args.name) } satisfies AccountDto;
     case "mark_article_read":
+    case "mark_articles_read":
       return null;
     case "toggle_article_star":
       return null;

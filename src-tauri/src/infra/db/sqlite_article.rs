@@ -65,6 +65,37 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         Ok(articles)
     }
 
+    fn find_by_account(
+        &self,
+        account_id: &AccountId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>> {
+        let select_cols_prefixed = SELECT_COLS
+            .split(", ")
+            .map(|col| format!("a.{col}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let sql = format!(
+            "SELECT {select_cols_prefixed} FROM articles a
+             JOIN feeds f ON a.feed_id = f.id
+             WHERE f.account_id = ?1
+             ORDER BY a.published_at DESC
+             LIMIT ?2 OFFSET ?3"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let articles = stmt
+            .query_map(
+                params![
+                    account_id.0,
+                    pagination.limit as i64,
+                    pagination.offset as i64
+                ],
+                row_to_article,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(articles)
+    }
+
     fn upsert(&self, articles: &[Article]) -> DomainResult<()> {
         let tx = self.conn.unchecked_transaction()?;
         {
@@ -107,10 +138,10 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         Ok(())
     }
 
-    fn mark_as_read(&self, id: &ArticleId) -> DomainResult<()> {
+    fn mark_as_read(&self, id: &ArticleId, read: bool) -> DomainResult<()> {
         self.conn.execute(
-            "UPDATE articles SET is_read = 1 WHERE id = ?1",
-            params![id.0],
+            "UPDATE articles SET is_read = ?1 WHERE id = ?2",
+            params![read, id.0],
         )?;
         Ok(())
     }
@@ -274,10 +305,11 @@ mod tests {
 
     fn insert_test_feed(db: &DbManager, account_id: &AccountId) -> FeedId {
         let id = FeedId::new();
+        let url = format!("http://test.com/feed/{}", id.0);
         db.writer()
             .execute(
                 "INSERT INTO feeds (id, account_id, title, url) VALUES (?1, ?2, ?3, ?4)",
-                params![id.0, account_id.0, "Test Feed", "http://test.com/feed"],
+                params![id.0, account_id.0, "Test Feed", url],
             )
             .unwrap();
         id
@@ -332,7 +364,7 @@ mod tests {
         repo.upsert(&[article.clone()]).unwrap();
 
         // Mark as read and starred
-        repo.mark_as_read(&article.id).unwrap();
+        repo.mark_as_read(&article.id, true).unwrap();
         repo.mark_as_starred(&article.id, true).unwrap();
 
         // Upsert again with is_read=false, is_starred=false in the input
@@ -398,6 +430,29 @@ mod tests {
     }
 
     #[test]
+    fn find_by_account_returns_articles_across_feeds() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed1 = insert_test_feed(&db, &account_id);
+        let feed2 = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut article1 = make_article(&feed1, "Article 1");
+        article1.published_at = Utc::now();
+        let mut article2 = make_article(&feed2, "Article 2");
+        article2.published_at = Utc::now() + chrono::Duration::seconds(1);
+        repo.upsert(&[article1.clone(), article2.clone()]).unwrap();
+
+        let found = repo
+            .find_by_account(&account_id, &Pagination::default())
+            .unwrap();
+
+        assert_eq!(found.len(), 2);
+        assert_eq!(found[0].title, "Article 2");
+        assert_eq!(found[1].title, "Article 1");
+    }
+
+    #[test]
     fn mark_as_read_and_starred() {
         let db = test_db();
         let account_id = insert_test_account(&db);
@@ -407,7 +462,7 @@ mod tests {
         let article = make_article(&feed_id, "Article");
         repo.upsert(&[article.clone()]).unwrap();
 
-        repo.mark_as_read(&article.id).unwrap();
+        repo.mark_as_read(&article.id, true).unwrap();
         let found = repo.find_by_feed(&feed_id, &Pagination::default()).unwrap();
         assert!(found[0].is_read);
 

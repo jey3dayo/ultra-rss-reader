@@ -36,16 +36,41 @@ pub fn list_articles(
 }
 
 #[tauri::command]
-pub fn mark_article_read(state: State<'_, AppState>, article_id: String) -> Result<(), AppError> {
+pub fn list_account_articles(
+    state: State<'_, AppState>,
+    account_id: String,
+    offset: Option<usize>,
+    limit: Option<usize>,
+) -> Result<Vec<ArticleDto>, AppError> {
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let repo = SqliteArticleRepository::new(db.reader());
+    let pagination = Pagination {
+        offset: offset.unwrap_or(0),
+        limit: limit.unwrap_or(50),
+    };
+    let articles = repo.find_by_account(&AccountId(account_id), &pagination)?;
+    Ok(articles.into_iter().map(ArticleDto::from).collect())
+}
+
+#[tauri::command]
+pub fn mark_article_read(
+    state: State<'_, AppState>,
+    article_id: String,
+    read: Option<bool>,
+) -> Result<(), AppError> {
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
     })?;
     let article_id = ArticleId(article_id);
     let repo = SqliteArticleRepository::new(db.writer());
-    repo.mark_as_read(&article_id)?;
+    let read = read.unwrap_or(true);
+    repo.mark_as_read(&article_id, read)?;
 
     // Queue pending mutation for FreshRSS accounts
-    maybe_queue_mutation(db.writer(), &article_id, "mark_read")?;
+    let mutation_type = if read { "mark_read" } else { "mark_unread" };
+    maybe_queue_mutation(db.writer(), &article_id, mutation_type)?;
 
     Ok(())
 }

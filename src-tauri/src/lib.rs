@@ -87,6 +87,7 @@ pub fn run() {
             commands::feed_commands::rename_feed,
             commands::feed_commands::trigger_sync,
             commands::article_commands::list_articles,
+            commands::article_commands::list_account_articles,
             commands::article_commands::mark_article_read,
             commands::article_commands::mark_articles_read,
             commands::article_commands::toggle_article_star,

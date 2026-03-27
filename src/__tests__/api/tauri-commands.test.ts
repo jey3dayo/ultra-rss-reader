@@ -1,6 +1,13 @@
 import { Result } from "@praha/byethrow";
 import { beforeEach, describe, expect, it } from "vitest";
-import { addAccount, listAccounts, listArticles, listFeeds, markArticleRead } from "@/api/tauri-commands";
+import {
+  addAccount,
+  listAccountArticles,
+  listAccounts,
+  listArticles,
+  listFeeds,
+  markArticleRead,
+} from "@/api/tauri-commands";
 import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 describe("tauri-commands with mockIPC", () => {
@@ -39,6 +46,14 @@ describe("tauri-commands with mockIPC", () => {
     it("returns empty array for unknown feed", async () => {
       const value = Result.unwrap(await listArticles("nonexistent"));
       expect(value).toEqual([]);
+    });
+  });
+
+  describe("listAccountArticles", () => {
+    it("returns articles for a given account", async () => {
+      const value = Result.unwrap(await listAccountArticles("acc-1"));
+      expect(value).toEqual(sampleArticles);
+      expect(value).toHaveLength(2);
     });
   });
 

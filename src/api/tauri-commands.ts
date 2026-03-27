@@ -51,7 +51,10 @@ export const listFolders = (accountId: string) => safeInvoke<FolderDto[]>("list_
 export const listFeeds = (accountId: string) => safeInvoke<FeedDto[]>("list_feeds", { accountId });
 export const listArticles = (feedId: string, offset?: number, limit?: number) =>
   safeInvoke<ArticleDto[]>("list_articles", { feedId, offset, limit });
-export const markArticleRead = (articleId: string) => safeInvoke<void>("mark_article_read", { articleId });
+export const listAccountArticles = (accountId: string, offset?: number, limit?: number) =>
+  safeInvoke<ArticleDto[]>("list_account_articles", { accountId, offset, limit });
+export const markArticleRead = (articleId: string, read = true) =>
+  safeInvoke<void>("mark_article_read", { articleId, read });
 export const markArticlesRead = (articleIds: string[]) => safeInvoke<void>("mark_articles_read", { articleIds });
 export const toggleArticleStar = (articleId: string, starred: boolean) =>
   safeInvoke<void>("toggle_article_star", { articleId, starred });

@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  listAccountArticles,
   listArticles,
   markArticleRead,
   markArticlesRead,
@@ -16,12 +17,33 @@ export function useArticles(feedId: string | null) {
   });
 }
 
+export function useAccountArticles(accountId: string | null) {
+  return useQuery({
+    queryKey: ["accountArticles", accountId],
+    queryFn: () => listAccountArticles(accountId as string).then(Result.unwrap()),
+    enabled: !!accountId,
+  });
+}
+
 export function useMarkRead() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (articleId: string) => markArticleRead(articleId).then(Result.unwrap()),
+    mutationFn: (articleId: string) => markArticleRead(articleId, true).then(Result.unwrap()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["articles"] });
+      qc.invalidateQueries({ queryKey: ["accountArticles"] });
+      qc.invalidateQueries({ queryKey: ["feeds"] });
+    },
+  });
+}
+
+export function useSetRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, read }: { id: string; read: boolean }) => markArticleRead(id, read).then(Result.unwrap()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["articles"] });
+      qc.invalidateQueries({ queryKey: ["accountArticles"] });
       qc.invalidateQueries({ queryKey: ["feeds"] });
     },
   });
@@ -33,6 +55,7 @@ export function useMarkAllRead() {
     mutationFn: (articleIds: string[]) => markArticlesRead(articleIds).then(Result.unwrap()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["articles"] });
+      qc.invalidateQueries({ queryKey: ["accountArticles"] });
       qc.invalidateQueries({ queryKey: ["feeds"] });
     },
   });
@@ -53,6 +76,7 @@ export function useToggleStar() {
       toggleArticleStar(id, starred).then(Result.unwrap()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["articles"] });
+      qc.invalidateQueries({ queryKey: ["accountArticles"] });
     },
   });
 }

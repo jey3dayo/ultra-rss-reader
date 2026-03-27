@@ -101,7 +101,7 @@ async fn local_feed_e2e() {
     assert!(articles.iter().all(|a| !a.is_read));
 
     // 5. Mark as read
-    article_repo.mark_as_read(&articles[0].id).unwrap();
+    article_repo.mark_as_read(&articles[0].id, true).unwrap();
 
     // 6. Verify unread count
     let count = feed_repo.recalculate_unread_count(&feed_id).unwrap();

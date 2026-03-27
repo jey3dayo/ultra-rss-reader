@@ -95,12 +95,17 @@ export function setupDevMocks() {
         return mockArticles.filter((a) => a.feed_id === feedId);
       }
 
+      case "list_account_articles": {
+        const feedIds = mockFeeds.filter((f) => f.account_id === args.accountId).map((f) => f.id);
+        return mockArticles.filter((a) => feedIds.includes(a.feed_id));
+      }
+
       case "search_articles":
         return mockArticles.filter((a) => a.title.toLowerCase().includes(String(args.query ?? "").toLowerCase()));
 
       case "mark_article_read": {
         const art = mockArticles.find((a) => a.id === args.articleId);
-        if (art) art.is_read = true;
+        if (art) art.is_read = (args.read as boolean | undefined) ?? true;
         return null;
       }
 

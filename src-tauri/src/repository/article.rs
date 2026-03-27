@@ -21,8 +21,13 @@ impl Default for Pagination {
 pub trait ArticleRepository {
     fn find_by_feed(&self, feed_id: &FeedId, pagination: &Pagination)
         -> DomainResult<Vec<Article>>;
+    fn find_by_account(
+        &self,
+        account_id: &AccountId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>>;
     fn upsert(&self, articles: &[Article]) -> DomainResult<()>;
-    fn mark_as_read(&self, id: &ArticleId) -> DomainResult<()>;
+    fn mark_as_read(&self, id: &ArticleId, read: bool) -> DomainResult<()>;
     fn mark_many_as_read(&self, ids: &[ArticleId]) -> DomainResult<()>;
     fn mark_as_starred(&self, id: &ArticleId, starred: bool) -> DomainResult<()>;
     fn purge_old_read(&self, before: DateTime<Utc>) -> DomainResult<u64>;
