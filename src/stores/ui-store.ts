@@ -9,7 +9,16 @@ type Selection =
 type LayoutMode = "wide" | "compact" | "mobile";
 type FocusedPane = "sidebar" | "list" | "content";
 type ContentMode = "empty" | "reader" | "browser" | "loading";
-type SettingsCategory = "general" | "appearance" | "accounts";
+type SettingsCategory =
+  | "general"
+  | "appearance"
+  | "reading"
+  | "bionic-reading"
+  | "animations"
+  | "shortcuts"
+  | "gestures"
+  | "actions"
+  | "services";
 type Theme = "light" | "dark" | "system";
 
 interface UiState {

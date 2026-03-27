@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
-import { Palette, Plus, Rss, Settings, X } from "lucide-react";
+import { BookOpen, Palette, Plus, Pointer, Puzzle, Rss, Settings, Share2, Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { addAccount, deleteAccount } from "@/api/tauri-commands";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -10,6 +10,71 @@ import { Switch } from "@/components/ui/switch";
 import { useAccounts } from "@/hooks/use-accounts";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
+
+type SettingsCategory =
+  | "general"
+  | "appearance"
+  | "reading"
+  | "bionic-reading"
+  | "animations"
+  | "shortcuts"
+  | "gestures"
+  | "actions"
+  | "services";
+
+interface NavItem {
+  id: SettingsCategory;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const navItems: NavItem[] = [
+  {
+    id: "general",
+    label: "General",
+    icon: <Settings className="h-5 w-5" />,
+  },
+  {
+    id: "appearance",
+    label: "Appearance",
+    icon: <Palette className="h-5 w-5" />,
+  },
+  {
+    id: "reading",
+    label: "Reading",
+    icon: <BookOpen className="h-5 w-5" />,
+  },
+  {
+    id: "bionic-reading",
+    label: "Bionic Reading",
+    icon: <span className="flex h-5 w-5 items-center justify-center text-[11px] font-bold leading-none">BR</span>,
+  },
+  {
+    id: "animations",
+    label: "Animations",
+    icon: <Sparkles className="h-5 w-5" />,
+  },
+  {
+    id: "shortcuts",
+    label: "Shortcuts",
+    icon: <span className="flex h-5 w-5 items-center justify-center text-[11px] font-bold leading-none">&#8984;</span>,
+  },
+  {
+    id: "gestures",
+    label: "Gestures",
+    icon: <Pointer className="h-5 w-5" />,
+  },
+  {
+    id: "actions",
+    label: "Actions and Sharing",
+    icon: <Share2 className="h-5 w-5" />,
+  },
+  {
+    id: "services",
+    label: "Services",
+    icon: <Puzzle className="h-5 w-5" />,
+  },
+];
 
 export function SettingsModal() {
   const {
@@ -36,9 +101,6 @@ export function SettingsModal() {
     return () => unlisten?.();
   }, [openSettings]);
 
-  const isGeneralActive = settingsCategory === "general" && !settingsAccountId && !settingsAddAccount;
-  const isAppearanceActive = settingsCategory === "appearance" && !settingsAccountId && !settingsAddAccount;
-
   const renderContent = () => {
     if (settingsAccountId) {
       return <AccountDetail />;
@@ -46,10 +108,26 @@ export function SettingsModal() {
     if (settingsAddAccount) {
       return <AddAccountForm />;
     }
-    if (settingsCategory === "appearance") {
-      return <AppearanceSettings />;
+    switch (settingsCategory) {
+      case "appearance":
+        return <AppearanceSettings />;
+      case "reading":
+        return <ReadingSettings />;
+      case "bionic-reading":
+        return <BionicReadingSettings />;
+      case "animations":
+        return <AnimationsSettings />;
+      case "shortcuts":
+        return <ShortcutsSettings />;
+      case "gestures":
+        return <GesturesSettings />;
+      case "actions":
+        return <ActionsSettings />;
+      case "services":
+        return <ServicesSettings />;
+      default:
+        return <GeneralSettings />;
     }
-    return <GeneralSettings />;
   };
 
   return (
@@ -75,36 +153,25 @@ export function SettingsModal() {
           {/* Navigation */}
           <ScrollArea className="flex-1">
             <nav className="space-y-1 p-2">
-              <button
-                type="button"
-                onClick={() => setSettingsCategory("general")}
-                className={cn(
-                  "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                  isGeneralActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                )}
-              >
-                <span className="flex h-6 w-6 items-center justify-center text-muted-foreground">
-                  <Settings className="h-5 w-5" />
-                </span>
-                General
-              </button>
-              <button
-                type="button"
-                onClick={() => setSettingsCategory("appearance")}
-                className={cn(
-                  "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                  isAppearanceActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                )}
-              >
-                <span className="flex h-6 w-6 items-center justify-center text-muted-foreground">
-                  <Palette className="h-5 w-5" />
-                </span>
-                Appearance
-              </button>
+              {navItems.map((item) => {
+                const isActive = settingsCategory === item.id && !settingsAccountId && !settingsAddAccount;
+                return (
+                  <button
+                    type="button"
+                    key={item.id}
+                    onClick={() => setSettingsCategory(item.id)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                    )}
+                  >
+                    <span className="flex h-6 w-6 items-center justify-center text-muted-foreground">{item.icon}</span>
+                    {item.label}
+                  </button>
+                );
+              })}
             </nav>
           </ScrollArea>
 
@@ -161,15 +228,19 @@ function GeneralSettings() {
 
       {/* App Icon Section */}
       <section className="mb-6">
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">About</h3>
-        <SettingsRow label="Version" value="0.1.0" type="text" />
+        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">App Icon</h3>
+        <SettingsRow label="Unread count badge" value="Don't display" type="select" />
       </section>
 
       {/* Browser Section */}
       <section className="mb-6">
         <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Browser</h3>
         <SettingsRow label="Open links" value="In-app browser" type="select" />
+        <SettingsRow label="Default browser" value="Use system default" type="select" />
         <SettingsRow label="Open links in background" type="switch" checked={false} />
+        <p className="mt-2 text-xs text-muted-foreground">
+          Please note that some third-party browsers do not support opening links in the background.
+        </p>
       </section>
 
       {/* Article List Section */}
@@ -177,6 +248,7 @@ function GeneralSettings() {
         <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Article List</h3>
         <SettingsRow label="Sort unread items" value="Newest first" type="select" />
         <SettingsRow label="Group by" value="Date" type="select" />
+        <SettingsRow label="⌘-click opens in-app browser" type="switch" checked={false} />
       </section>
 
       {/* Mark All As Read Section */}
@@ -191,50 +263,152 @@ function GeneralSettings() {
 function AppearanceSettings() {
   const { theme, setTheme } = useUiStore();
 
+  const themeOptions = [
+    { value: "light", label: "Light" },
+    { value: "dark", label: "Dark" },
+    { value: "system", label: "Automatic" },
+  ] as const;
+
   return (
     <div className="p-6">
       <h2 className="mb-6 text-center text-lg font-semibold">Appearance</h2>
 
       <section className="mb-6">
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Theme</h3>
-        <div className="flex gap-3">
-          {(["light", "dark", "system"] as const).map((t) => (
-            <button
-              type="button"
-              key={t}
-              onClick={() => setTheme(t)}
-              className={cn(
-                "flex flex-1 flex-col items-center gap-2 rounded-lg border-2 p-4 transition-colors",
-                theme === t ? "border-accent bg-accent/10" : "border-border hover:border-muted-foreground/30",
-              )}
-            >
-              <div
-                className={cn(
-                  "flex h-12 w-16 items-center justify-center rounded-md text-xs font-medium",
-                  t === "light" && "bg-white text-black border border-gray-200",
-                  t === "dark" && "bg-zinc-900 text-white border border-zinc-700",
-                  t === "system" && "bg-gradient-to-r from-white to-zinc-900 text-transparent border border-gray-300",
-                )}
-              >
-                {t === "light" ? "Aa" : t === "dark" ? "Aa" : "Aa"}
-              </div>
-              <span className="text-xs font-medium capitalize text-foreground">{t}</span>
-            </button>
-          ))}
+        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">General</h3>
+        <SettingsRow label="List selection style" value="Modern" type="select" />
+        <SettingsRow label="Layout" value="Automatic" type="select" />
+        <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
+          <span className="text-sm text-foreground">Theme</span>
+          <select
+            value={theme}
+            onChange={(e) => setTheme(e.target.value as "light" | "dark" | "system")}
+            className="rounded-md border border-border bg-background px-2 py-1 text-sm text-muted-foreground"
+          >
+            {themeOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
+        <SettingsRow label="Opaque sidebars" type="switch" checked={false} />
+        <SettingsRow label="Grayscale favicons" type="switch" checked={false} />
       </section>
 
       <section className="mb-6">
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Layout</h3>
-        <SettingsRow label="Sidebar width" value="280px" type="text" />
-        <SettingsRow label="Article list width" value="380px" type="text" />
+        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Text</h3>
+        <SettingsRow label="App font style" value="Sans-serif" type="select" />
+        <SettingsRow label="Font size" value="M" type="text" />
+      </section>
+
+      <section className="mb-6">
+        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Display Counts</h3>
+        <SettingsRow label="Starred list" type="switch" checked={true} />
+        <SettingsRow label="Unread list" type="switch" checked={true} />
+        <SettingsRow label="All items list" type="switch" checked={true} />
       </section>
 
       <section>
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Typography</h3>
-        <SettingsRow label="Font size" value="Medium" type="select" />
-        <SettingsRow label="Line height" value="Relaxed" type="select" />
+        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Article List</h3>
+        <SettingsRow label="Image previews" value="Medium" type="select" />
+        <SettingsRow label="Display favicons" type="switch" checked={true} />
+        <SettingsRow label="Text preview" type="switch" checked={true} />
+        <SettingsRow label="Dim archived articles" type="switch" checked={true} />
       </section>
+    </div>
+  );
+}
+
+function ReadingSettings() {
+  return (
+    <div className="p-6">
+      <h2 className="mb-6 text-center text-lg font-semibold">Reading</h2>
+
+      <section className="mb-6">
+        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">General</h3>
+        <SettingsRow label="Reader View" value="Off" type="select" />
+        <SettingsRow label="Sort" value="Newest first" type="select" />
+        <SettingsRow label="After reading" value="Mark as read" type="select" />
+      </section>
+
+      <section>
+        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Scroll</h3>
+        <SettingsRow label="Scroll to top on feed change" type="switch" checked={true} />
+      </section>
+    </div>
+  );
+}
+
+function BionicReadingSettings() {
+  return (
+    <div className="p-6">
+      <h2 className="mb-6 text-center text-lg font-semibold">Bionic Reading</h2>
+
+      <section className="mb-6">
+        <SettingsRow label="Bionic Reading" type="switch" checked={false} />
+        <p className="mt-2 text-xs text-muted-foreground">
+          Bionic Reading highlights key parts of words to help you read faster.
+        </p>
+      </section>
+    </div>
+  );
+}
+
+function AnimationsSettings() {
+  return (
+    <div className="p-6">
+      <h2 className="mb-6 text-center text-lg font-semibold">Animations</h2>
+
+      <section>
+        <SettingsRow label="Animations" type="switch" checked={true} />
+        <SettingsRow label="Reduce motion" type="switch" checked={false} />
+      </section>
+    </div>
+  );
+}
+
+function ShortcutsSettings() {
+  return (
+    <div className="p-6">
+      <h2 className="mb-6 text-center text-lg font-semibold">Shortcuts</h2>
+
+      <p className="text-sm text-muted-foreground">Keyboard shortcuts reference coming soon.</p>
+    </div>
+  );
+}
+
+function GesturesSettings() {
+  return (
+    <div className="p-6">
+      <h2 className="mb-6 text-center text-lg font-semibold">Gestures</h2>
+
+      <section>
+        <SettingsRow label="Swipe left" value="Mark as read" type="select" />
+        <SettingsRow label="Swipe right" value="Toggle star" type="select" />
+      </section>
+    </div>
+  );
+}
+
+function ActionsSettings() {
+  return (
+    <div className="p-6">
+      <h2 className="mb-6 text-center text-lg font-semibold">Actions and Sharing</h2>
+
+      <section>
+        <SettingsRow label="Default share action" value="Copy link" type="select" />
+        <SettingsRow label="Open in browser" value="Default browser" type="select" />
+      </section>
+    </div>
+  );
+}
+
+function ServicesSettings() {
+  return (
+    <div className="p-6">
+      <h2 className="mb-6 text-center text-lg font-semibold">Services</h2>
+
+      <p className="text-sm text-muted-foreground">Third-party integrations coming soon.</p>
     </div>
   );
 }
