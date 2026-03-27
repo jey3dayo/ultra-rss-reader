@@ -9,6 +9,7 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { useTags } from "@/hooks/use-tags";
+import { groupFeedsByFolder } from "@/lib/sidebar";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -70,21 +71,7 @@ export function Sidebar() {
   const feedList: FeedDto[] = feeds ?? [];
   const folderList: FolderDto[] = folders ?? [];
 
-  // Group feeds by folder (memoized)
-  const { feedsByFolder, unfolderedFeeds } = useMemo(() => {
-    const byFolder = new Map<string, FeedDto[]>();
-    const unfoldered: FeedDto[] = [];
-    for (const feed of feedList) {
-      if (feed.folder_id) {
-        const existing = byFolder.get(feed.folder_id) ?? [];
-        existing.push(feed);
-        byFolder.set(feed.folder_id, existing);
-      } else {
-        unfoldered.push(feed);
-      }
-    }
-    return { feedsByFolder: byFolder, unfolderedFeeds: unfoldered };
-  }, [feedList]);
+  const { feedsByFolder, unfolderedFeeds } = useMemo(() => groupFeedsByFolder(feedList), [feedList]);
 
   const selectedFeedId = selection.type === "feed" ? selection.feedId : null;
 
