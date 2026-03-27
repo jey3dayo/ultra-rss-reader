@@ -3,7 +3,7 @@ use rusqlite::{params, Connection};
 
 use crate::domain::article::Article;
 use crate::domain::error::DomainResult;
-use crate::domain::types::{AccountId, ArticleId, FeedId};
+use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::repository::article::{ArticleRepository, Pagination};
 
 pub struct SqliteArticleRepository<'a> {
@@ -169,10 +169,10 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         Ok(updated as u64)
     }
 
-    fn mark_folder_as_read(&self, folder_id: &str) -> DomainResult<u64> {
+    fn mark_folder_as_read(&self, folder_id: &FolderId) -> DomainResult<u64> {
         let updated = self.conn.execute(
             "UPDATE articles SET is_read = 1 WHERE feed_id IN (SELECT id FROM feeds WHERE folder_id = ?1) AND is_read = 0",
-            params![folder_id],
+            params![folder_id.0],
         )?;
         Ok(updated as u64)
     }

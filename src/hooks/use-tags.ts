@@ -55,26 +55,28 @@ export function useDeleteTag() {
   });
 }
 
-export function useTagArticle() {
+function useInvalidateArticleTagQueries() {
   const qc = useQueryClient();
+  return () => {
+    qc.invalidateQueries({ queryKey: ["articleTags"] });
+    qc.invalidateQueries({ queryKey: ["articlesByTag"] });
+  };
+}
+
+export function useTagArticle() {
+  const onSuccess = useInvalidateArticleTagQueries();
   return useMutation({
     mutationFn: ({ articleId, tagId }: { articleId: string; tagId: string }) =>
       tagArticle(articleId, tagId).then(Result.unwrap()),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["articleTags"] });
-      qc.invalidateQueries({ queryKey: ["articlesByTag"] });
-    },
+    onSuccess,
   });
 }
 
 export function useUntagArticle() {
-  const qc = useQueryClient();
+  const onSuccess = useInvalidateArticleTagQueries();
   return useMutation({
     mutationFn: ({ articleId, tagId }: { articleId: string; tagId: string }) =>
       untagArticle(articleId, tagId).then(Result.unwrap()),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["articleTags"] });
-      qc.invalidateQueries({ queryKey: ["articlesByTag"] });
-    },
+    onSuccess,
   });
 }

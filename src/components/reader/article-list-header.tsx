@@ -1,0 +1,90 @@
+import { CheckCircle, Search, X } from "lucide-react";
+import type { RefObject } from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+type ArticleListHeaderProps = {
+  showSearch: boolean;
+  searchQuery: string;
+  feedName: string;
+  unreadCount: number;
+  searchInputRef: RefObject<HTMLInputElement | null>;
+  onMarkAllRead: () => void;
+  onToggleSearch: () => void;
+  onCloseSearch: () => void;
+  onSearchQueryChange: (query: string) => void;
+};
+
+export function ArticleListHeader({
+  showSearch,
+  searchQuery,
+  feedName,
+  unreadCount,
+  searchInputRef,
+  onMarkAllRead,
+  onToggleSearch,
+  onCloseSearch,
+  onSearchQueryChange,
+}: ArticleListHeaderProps) {
+  return (
+    <>
+      {/* Header Toolbar */}
+      <div className="flex h-12 items-center justify-between border-b border-border px-3">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Mark all as read"
+            onClick={onMarkAllRead}
+            className="text-muted-foreground"
+          >
+            <CheckCircle className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleSearch}
+            aria-label="Search articles"
+            className={cn("text-muted-foreground", showSearch && "text-foreground")}
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+          {showSearch && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onCloseSearch}
+              aria-label="Close search"
+              className="text-muted-foreground"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      {showSearch && (
+        <div className="border-b border-border px-4 py-2">
+          <input
+            ref={searchInputRef}
+            name="article-search"
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchQueryChange(e.target.value)}
+            placeholder="Search articles..."
+            className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
+          />
+        </div>
+      )}
+
+      {/* Feed Title */}
+      <div className="border-b border-border px-4 py-3">
+        <h2 className="text-lg font-semibold text-foreground">{feedName}</h2>
+        <p className="text-xs text-muted-foreground">{unreadCount} Unread Items</p>
+      </div>
+    </>
+  );
+}

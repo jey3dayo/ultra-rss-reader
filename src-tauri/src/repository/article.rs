@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 
 use crate::domain::article::Article;
 use crate::domain::error::DomainResult;
-use crate::domain::types::{AccountId, ArticleId, FeedId};
+use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 
 pub struct Pagination {
     pub offset: usize,
@@ -30,7 +30,7 @@ pub trait ArticleRepository {
     fn mark_as_read(&self, id: &ArticleId, read: bool) -> DomainResult<()>;
     fn mark_many_as_read(&self, ids: &[ArticleId]) -> DomainResult<()>;
     fn mark_feed_as_read(&self, feed_id: &FeedId) -> DomainResult<u64>;
-    fn mark_folder_as_read(&self, folder_id: &str) -> DomainResult<u64>;
+    fn mark_folder_as_read(&self, folder_id: &FolderId) -> DomainResult<u64>;
     fn mark_as_starred(&self, id: &ArticleId, starred: bool) -> DomainResult<()>;
     fn purge_old_read(&self, before: DateTime<Utc>) -> DomainResult<u64>;
     fn update_sanitized(&self, id: &ArticleId, sanitized: &str, version: u32) -> DomainResult<()>;
