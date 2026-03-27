@@ -4,7 +4,9 @@ use crate::commands::dto::{AppError, ArticleDto};
 use crate::commands::AppState;
 use crate::domain::types::{AccountId, ArticleId, FeedId};
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
+use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::repository::article::{ArticleRepository, Pagination};
+use crate::repository::pending_mutation::{PendingMutation, PendingMutationRepository};
 
 #[tauri::command]
 pub fn open_in_browser(url: String) -> Result<(), AppError> {
@@ -38,8 +40,13 @@ pub fn mark_article_read(state: State<'_, AppState>, article_id: String) -> Resu
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
     })?;
+    let article_id = ArticleId(article_id);
     let repo = SqliteArticleRepository::new(db.writer());
-    repo.mark_as_read(&ArticleId(article_id))?;
+    repo.mark_as_read(&article_id)?;
+
+    // Queue pending mutation for FreshRSS accounts
+    maybe_queue_mutation(db.writer(), &article_id, "mark_read")?;
+
     Ok(())
 }
 
@@ -52,8 +59,58 @@ pub fn toggle_article_star(
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
         message: format!("Lock error: {e}"),
     })?;
+    let article_id = ArticleId(article_id);
     let repo = SqliteArticleRepository::new(db.writer());
-    repo.mark_as_starred(&ArticleId(article_id), starred)?;
+    repo.mark_as_starred(&article_id, starred)?;
+
+    // Queue pending mutation for FreshRSS accounts
+    let mutation_type = if starred { "star" } else { "unstar" };
+    maybe_queue_mutation(db.writer(), &article_id, mutation_type)?;
+
+    Ok(())
+}
+
+/// If the article belongs to a FreshRSS account and has a remote_id, insert a pending_mutation.
+fn maybe_queue_mutation(
+    conn: &rusqlite::Connection,
+    article_id: &ArticleId,
+    mutation_type: &str,
+) -> Result<(), AppError> {
+    // Look up article's remote_id and its feed's account kind
+    let row: Option<(String, String)> = conn
+        .query_row(
+            "SELECT a.remote_id, acc.kind
+             FROM articles a
+             JOIN feeds f ON a.feed_id = f.id
+             JOIN accounts acc ON f.account_id = acc.id
+             WHERE a.id = ?1 AND a.remote_id IS NOT NULL",
+            rusqlite::params![article_id.0],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )
+        .ok();
+
+    if let Some((remote_entry_id, account_kind)) = row {
+        if account_kind == "FreshRss" {
+            // Look up account_id from the feed
+            let account_id: String = conn.query_row(
+                "SELECT f.account_id FROM articles a JOIN feeds f ON a.feed_id = f.id WHERE a.id = ?1",
+                rusqlite::params![article_id.0],
+                |row| row.get(0),
+            ).map_err(|e| AppError::UserVisible {
+                message: format!("Failed to look up account: {e}"),
+            })?;
+
+            let pending_repo = SqlitePendingMutationRepository::new(conn);
+            pending_repo.save(&PendingMutation {
+                id: None,
+                account_id: AccountId(account_id),
+                mutation_type: mutation_type.to_string(),
+                remote_entry_id,
+                created_at: chrono::Utc::now().to_rfc3339(),
+            })?;
+        }
+    }
+
     Ok(())
 }
 

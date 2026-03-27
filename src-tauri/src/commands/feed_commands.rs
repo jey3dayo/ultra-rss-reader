@@ -4,12 +4,13 @@ use crate::commands::dto::{AppError, FeedDto, FolderDto};
 use crate::commands::AppState;
 use crate::domain::account::Account;
 use crate::domain::feed::Feed;
-use crate::domain::provider::ProviderKind;
+use crate::domain::provider::{Mutation, ProviderKind};
 use crate::domain::types::{AccountId, FeedId};
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_folder::SqliteFolderRepository;
+use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::infra::keyring_store;
 use crate::infra::provider::freshrss::FreshRssProvider;
 use crate::infra::provider::local::LocalProvider;
@@ -18,6 +19,7 @@ use crate::repository::account::AccountRepository;
 use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
+use crate::repository::pending_mutation::PendingMutationRepository;
 use tracing::warn;
 
 #[tauri::command]
@@ -217,13 +219,13 @@ async fn sync_freshrss_account(
         }
     }
 
-    // Steps 3-6
+    // Steps 3-7
     sync_freshrss_feeds(state, &provider, account).await?;
 
     Ok(())
 }
 
-/// Steps 3-6: sync subscriptions, pull entries, apply remote state, recalculate unread counts.
+/// Steps 3-7: sync subscriptions, pull entries, push mutations, apply remote state, recalculate unread counts.
 async fn sync_freshrss_feeds(
     state: &State<'_, AppState>,
     provider: &FreshRssProvider,
@@ -347,7 +349,72 @@ async fn sync_freshrss_feeds(
         }
     }
 
-    // Step 5: Pull remote state and apply
+    // Step 5: Push pending mutations to server
+    let pending_mutations = {
+        let db = state.db.lock().map_err(|e| AppError::UserVisible {
+            message: format!("Lock error: {e}"),
+        })?;
+        let pending_repo = SqlitePendingMutationRepository::new(db.reader());
+        pending_repo.find_by_account(&account.id)?
+    };
+
+    if !pending_mutations.is_empty() {
+        let mutations: Vec<Mutation> = pending_mutations
+            .iter()
+            .filter_map(|pm| match pm.mutation_type.as_str() {
+                "mark_read" => Some(Mutation::MarkRead {
+                    remote_entry_id: pm.remote_entry_id.clone(),
+                }),
+                "mark_unread" => Some(Mutation::MarkUnread {
+                    remote_entry_id: pm.remote_entry_id.clone(),
+                }),
+                "star" => Some(Mutation::SetStarred {
+                    remote_entry_id: pm.remote_entry_id.clone(),
+                    starred: true,
+                }),
+                "unstar" => Some(Mutation::SetStarred {
+                    remote_entry_id: pm.remote_entry_id.clone(),
+                    starred: false,
+                }),
+                other => {
+                    warn!("Unknown mutation type: {other}");
+                    None
+                }
+            })
+            .collect();
+
+        match provider.push_mutations(&mutations).await {
+            Ok(()) => {
+                // Delete successfully pushed mutations
+                let ids: Vec<i64> = pending_mutations.iter().filter_map(|pm| pm.id).collect();
+                let db = state.db.lock().map_err(|e| AppError::UserVisible {
+                    message: format!("Lock error: {e}"),
+                })?;
+                let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+                pending_repo.delete(&ids)?;
+            }
+            Err(e) => {
+                warn!(
+                    "Failed to push mutations for account {}: {e}. Will retry next sync.",
+                    account.id.as_ref()
+                );
+            }
+        }
+    }
+
+    // Step 6: Pull remote state and apply (skip articles with remaining pending mutations)
+    let pending_remote_ids: Vec<String> = {
+        let db = state.db.lock().map_err(|e| AppError::UserVisible {
+            message: format!("Lock error: {e}"),
+        })?;
+        let pending_repo = SqlitePendingMutationRepository::new(db.reader());
+        pending_repo
+            .find_by_account(&account.id)?
+            .into_iter()
+            .map(|pm| pm.remote_entry_id)
+            .collect()
+    };
+
     let remote_state = provider.pull_state().await?;
     {
         let db = state.db.lock().map_err(|e| AppError::UserVisible {
@@ -358,11 +425,11 @@ async fn sync_freshrss_feeds(
             &account.id,
             &remote_state.read_ids,
             &remote_state.starred_ids,
-            &[], // no pending mutation IDs (out of scope)
+            &pending_remote_ids,
         )?;
     }
 
-    // Step 6: Recalculate unread counts
+    // Step 7: Recalculate unread counts
     {
         let db = state.db.lock().map_err(|e| AppError::UserVisible {
             message: format!("Lock error: {e}"),
