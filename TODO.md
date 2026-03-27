@@ -65,9 +65,9 @@
 - [x] feed/folder の re-sync 時に既存ID再利用（CASCADE削除防止）
 - [x] UI にパスワードフィールド追加
 - [x] pending_mutations への書き込み（既読/スター双方向同期）
-- [ ] SyncService / EventBus 統合（バックグラウンド定期同期）
+- [x] SyncService / EventBus 統合（バックグラウンド定期同期）
 - [x] folder_id の解決（フォルダ階層同期）
-- [ ] ページネーション（全記事履歴の同期）
+- [x] ページネーション（全記事履歴の同期）
 
 ## その他
 
