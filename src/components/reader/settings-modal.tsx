@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
-import { BookOpen, Palette, Plus, Pointer, Puzzle, Rss, Settings, Share2, Sparkles, X } from "lucide-react";
+import { BookOpen, Copy, ExternalLink, Globe, Palette, Plus, Rss, Settings, Share2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { addAccount, deleteAccount } from "@/api/tauri-commands";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,16 +12,7 @@ import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-type SettingsCategory =
-  | "general"
-  | "appearance"
-  | "reading"
-  | "bionic-reading"
-  | "animations"
-  | "shortcuts"
-  | "gestures"
-  | "actions"
-  | "services";
+type SettingsCategory = "general" | "appearance" | "reading" | "bionic-reading" | "shortcuts" | "actions";
 
 interface NavItem {
   id: SettingsCategory;
@@ -51,31 +42,89 @@ const navItems: NavItem[] = [
     icon: <span className="flex h-5 w-5 items-center justify-center text-[11px] font-bold leading-none">BR</span>,
   },
   {
-    id: "animations",
-    label: "Animations",
-    icon: <Sparkles className="h-5 w-5" />,
-  },
-  {
     id: "shortcuts",
     label: "Shortcuts",
     icon: <span className="flex h-5 w-5 items-center justify-center text-[11px] font-bold leading-none">&#8984;</span>,
-  },
-  {
-    id: "gestures",
-    label: "Gestures",
-    icon: <Pointer className="h-5 w-5" />,
   },
   {
     id: "actions",
     label: "Actions and Sharing",
     icon: <Share2 className="h-5 w-5" />,
   },
-  {
-    id: "services",
-    label: "Services",
-    icon: <Puzzle className="h-5 w-5" />,
-  },
 ];
+
+/* ---------- Reusable Settings Components ---------- */
+
+function SettingsSwitch({ label, prefKey }: { label: string; prefKey: string }) {
+  const value = usePreferencesStore((s) => s.prefs[prefKey]);
+  const setPref = usePreferencesStore((s) => s.setPref);
+  const checked = value === "true";
+  return (
+    <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
+      <span className="text-sm text-foreground">{label}</span>
+      <Switch
+        checked={checked}
+        onCheckedChange={(v) => setPref(prefKey, String(v))}
+        className="data-[state=checked]:bg-accent"
+      />
+    </div>
+  );
+}
+
+interface SelectOption {
+  value: string;
+  label: string;
+}
+
+function SettingsSelect({ label, prefKey, options }: { label: string; prefKey: string; options: SelectOption[] }) {
+  const value = usePreferencesStore((s) => s.prefs[prefKey]) ?? "";
+  const setPref = usePreferencesStore((s) => s.setPref);
+  return (
+    <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
+      <span className="text-sm text-foreground">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => setPref(prefKey, e.target.value)}
+        className="rounded-md border border-border bg-background px-2 py-1 text-sm text-muted-foreground"
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">{children}</h3>;
+}
+
+/* ---------- Settings Row (read-only, for account detail etc.) ---------- */
+
+interface SettingsRowProps {
+  label: string;
+  value?: string;
+  type: "switch" | "select" | "text";
+  checked?: boolean;
+  truncate?: boolean;
+}
+
+function SettingsRow({ label, value, type, checked, truncate }: SettingsRowProps) {
+  return (
+    <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
+      <span className="text-sm text-foreground">{label}</span>
+      {type === "switch" && <Switch checked={checked} className="data-[state=checked]:bg-accent" />}
+      {type === "select" && <span className="text-sm text-muted-foreground">{value} &#9662;</span>}
+      {type === "text" && (
+        <span className={cn("text-sm text-muted-foreground", truncate && "max-w-[200px] truncate")}>{value}</span>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Main Modal ---------- */
 
 export function SettingsModal() {
   const {
@@ -116,16 +165,10 @@ export function SettingsModal() {
         return <ReadingSettings />;
       case "bionic-reading":
         return <BionicReadingSettings />;
-      case "animations":
-        return <AnimationsSettings />;
       case "shortcuts":
         return <ShortcutsSettings />;
-      case "gestures":
-        return <GesturesSettings />;
       case "actions":
         return <ActionsSettings />;
-      case "services":
-        return <ServicesSettings />;
       default:
         return <GeneralSettings />;
     }
@@ -222,104 +265,161 @@ export function SettingsModal() {
   );
 }
 
+/* ---------- General Tab ---------- */
+
 function GeneralSettings() {
   return (
     <div className="p-6">
       <h2 className="mb-6 text-center text-lg font-semibold">General</h2>
 
-      {/* App Icon Section */}
       <section className="mb-6">
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">App Icon</h3>
-        <SettingsRow label="Unread count badge" value="Don't display" type="select" />
+        <SectionHeading>App Icon</SectionHeading>
+        <SettingsSelect
+          label="Unread count badge"
+          prefKey="unread_badge"
+          options={[
+            { value: "dont_display", label: "Don't display" },
+            { value: "all_unread", label: "All unread" },
+            { value: "only_inbox", label: "Only inbox" },
+          ]}
+        />
       </section>
 
-      {/* Browser Section */}
       <section className="mb-6">
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Browser</h3>
-        <SettingsRow label="Open links" value="In-app browser" type="select" />
-        <SettingsRow label="Default browser" value="Use system default" type="select" />
-        <SettingsRow label="Open links in background" type="switch" checked={false} />
+        <SectionHeading>Browser</SectionHeading>
+        <SettingsSelect
+          label="Open links"
+          prefKey="open_links"
+          options={[
+            { value: "in_app", label: "In-app browser" },
+            { value: "default_browser", label: "Default browser" },
+          ]}
+        />
+        <SettingsSwitch label="Open links in background" prefKey="open_links_background" />
         <p className="mt-2 text-xs text-muted-foreground">
           Please note that some third-party browsers do not support opening links in the background.
         </p>
       </section>
 
-      {/* Article List Section */}
       <section className="mb-6">
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Article List</h3>
-        <SettingsRow label="Sort unread items" value="Newest first" type="select" />
-        <SettingsRow label="Group by" value="Date" type="select" />
-        <SettingsRow label="⌘-click opens in-app browser" type="switch" checked={false} />
+        <SectionHeading>Article List</SectionHeading>
+        <SettingsSelect
+          label="Sort unread items"
+          prefKey="sort_unread"
+          options={[
+            { value: "newest_first", label: "Newest first" },
+            { value: "oldest_first", label: "Oldest first" },
+          ]}
+        />
+        <SettingsSelect
+          label="Group by"
+          prefKey="group_by"
+          options={[
+            { value: "date", label: "Date" },
+            { value: "feed", label: "Feed" },
+            { value: "none", label: "None" },
+          ]}
+        />
+        <SettingsSwitch label={"\u2318-click opens in-app browser"} prefKey="cmd_click_browser" />
       </section>
 
-      {/* Mark All As Read Section */}
       <section>
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Mark All As Read</h3>
-        <SettingsRow label="Ask before" type="switch" checked={true} />
+        <SectionHeading>Mark All As Read</SectionHeading>
+        <SettingsSwitch label="Ask before" prefKey="ask_before_mark_all" />
       </section>
     </div>
   );
 }
 
+/* ---------- Appearance Tab ---------- */
+
 function AppearanceSettings() {
-  const theme = usePreferencesStore((s) => s.theme());
-  const setPref = usePreferencesStore((s) => s.setPref);
-
-  const themeOptions = [
-    { value: "light", label: "Light" },
-    { value: "dark", label: "Dark" },
-    { value: "system", label: "Automatic" },
-  ] as const;
-
   return (
     <div className="p-6">
       <h2 className="mb-6 text-center text-lg font-semibold">Appearance</h2>
 
       <section className="mb-6">
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">General</h3>
-        <SettingsRow label="List selection style" value="Modern" type="select" />
-        <SettingsRow label="Layout" value="Automatic" type="select" />
-        <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-          <span className="text-sm text-foreground">Theme</span>
-          <select
-            value={theme}
-            onChange={(e) => setPref("theme", e.target.value)}
-            className="rounded-md border border-border bg-background px-2 py-1 text-sm text-muted-foreground"
-          >
-            {themeOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <SettingsRow label="Opaque sidebars" type="switch" checked={false} />
-        <SettingsRow label="Grayscale favicons" type="switch" checked={false} />
+        <SectionHeading>General</SectionHeading>
+        <SettingsSelect
+          label="List selection style"
+          prefKey="list_selection_style"
+          options={[
+            { value: "modern", label: "Modern" },
+            { value: "classic", label: "Classic" },
+          ]}
+        />
+        <SettingsSelect
+          label="Layout"
+          prefKey="layout"
+          options={[
+            { value: "automatic", label: "Automatic" },
+            { value: "wide", label: "Wide" },
+            { value: "compact", label: "Compact" },
+          ]}
+        />
+        <SettingsSelect
+          label="Theme"
+          prefKey="theme"
+          options={[
+            { value: "light", label: "Light" },
+            { value: "dark", label: "Dark" },
+            { value: "system", label: "Automatic" },
+          ]}
+        />
+        <SettingsSwitch label="Opaque sidebars" prefKey="opaque_sidebars" />
+        <SettingsSwitch label="Grayscale favicons" prefKey="grayscale_favicons" />
       </section>
 
       <section className="mb-6">
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Text</h3>
-        <SettingsRow label="App font style" value="Sans-serif" type="select" />
-        <SettingsRow label="Font size" value="M" type="text" />
+        <SectionHeading>Text</SectionHeading>
+        <SettingsSelect
+          label="App font style"
+          prefKey="font_style"
+          options={[
+            { value: "sans_serif", label: "Sans-serif" },
+            { value: "serif", label: "Serif" },
+            { value: "monospace", label: "Monospace" },
+          ]}
+        />
+        <SettingsSelect
+          label="Font size"
+          prefKey="font_size"
+          options={[
+            { value: "small", label: "S" },
+            { value: "medium", label: "M" },
+            { value: "large", label: "L" },
+          ]}
+        />
       </section>
 
       <section className="mb-6">
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Display Counts</h3>
-        <SettingsRow label="Starred list" type="switch" checked={true} />
-        <SettingsRow label="Unread list" type="switch" checked={true} />
-        <SettingsRow label="All items list" type="switch" checked={true} />
+        <SectionHeading>Display Counts</SectionHeading>
+        <SettingsSwitch label="Starred list" prefKey="show_starred_count" />
+        <SettingsSwitch label="Unread list" prefKey="show_unread_count" />
+        <SettingsSwitch label="All items list" prefKey="show_all_count" />
       </section>
 
       <section>
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Article List</h3>
-        <SettingsRow label="Image previews" value="Medium" type="select" />
-        <SettingsRow label="Display favicons" type="switch" checked={true} />
-        <SettingsRow label="Text preview" type="switch" checked={true} />
-        <SettingsRow label="Dim archived articles" type="switch" checked={true} />
+        <SectionHeading>Article List</SectionHeading>
+        <SettingsSelect
+          label="Image previews"
+          prefKey="image_previews"
+          options={[
+            { value: "off", label: "Off" },
+            { value: "small", label: "Small" },
+            { value: "medium", label: "Medium" },
+            { value: "large", label: "Large" },
+          ]}
+        />
+        <SettingsSwitch label="Display favicons" prefKey="display_favicons" />
+        <SettingsSwitch label="Text preview" prefKey="text_preview" />
+        <SettingsSwitch label="Dim archived articles" prefKey="dim_archived" />
       </section>
     </div>
   );
 }
+
+/* ---------- Reading Tab ---------- */
 
 function ReadingSettings() {
   return (
@@ -327,19 +427,44 @@ function ReadingSettings() {
       <h2 className="mb-6 text-center text-lg font-semibold">Reading</h2>
 
       <section className="mb-6">
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">General</h3>
-        <SettingsRow label="Reader View" value="Off" type="select" />
-        <SettingsRow label="Sort" value="Newest first" type="select" />
-        <SettingsRow label="After reading" value="Mark as read" type="select" />
+        <SectionHeading>General</SectionHeading>
+        <SettingsSelect
+          label="Reader View"
+          prefKey="reader_view"
+          options={[
+            { value: "off", label: "Off" },
+            { value: "on", label: "On" },
+            { value: "auto", label: "Automatic" },
+          ]}
+        />
+        <SettingsSelect
+          label="Sort"
+          prefKey="reading_sort"
+          options={[
+            { value: "newest_first", label: "Newest first" },
+            { value: "oldest_first", label: "Oldest first" },
+          ]}
+        />
+        <SettingsSelect
+          label="After reading"
+          prefKey="after_reading"
+          options={[
+            { value: "mark_as_read", label: "Mark as read" },
+            { value: "do_nothing", label: "Do nothing" },
+            { value: "archive", label: "Archive" },
+          ]}
+        />
       </section>
 
       <section>
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Scroll</h3>
-        <SettingsRow label="Scroll to top on feed change" type="switch" checked={true} />
+        <SectionHeading>Scroll</SectionHeading>
+        <SettingsSwitch label="Scroll to top on feed change" prefKey="scroll_to_top_on_change" />
       </section>
     </div>
   );
 }
+
+/* ---------- Bionic Reading Tab ---------- */
 
 function BionicReadingSettings() {
   return (
@@ -347,50 +472,89 @@ function BionicReadingSettings() {
       <h2 className="mb-6 text-center text-lg font-semibold">Bionic Reading</h2>
 
       <section className="mb-6">
-        <SettingsRow label="Bionic Reading" type="switch" checked={false} />
-        <p className="mt-2 text-xs text-muted-foreground">
-          Bionic Reading highlights key parts of words to help you read faster.
+        <SectionHeading>About</SectionHeading>
+        <p className="text-sm text-muted-foreground">What is Bionic Reading?</p>
+        <p className="mt-1 text-xs text-muted-foreground">bionic-reading.com</p>
+      </section>
+
+      <section>
+        <SectionHeading>Preview and Configuration</SectionHeading>
+        <p className="text-sm text-foreground">With Bionic Reading you read texts faster, better and more focused.</p>
+        <p className="mt-3 rounded-md bg-muted px-4 py-3 text-sm text-muted-foreground">
+          Coming soon -- settings will be available in a future update.
         </p>
       </section>
     </div>
   );
 }
 
-function AnimationsSettings() {
-  return (
-    <div className="p-6">
-      <h2 className="mb-6 text-center text-lg font-semibold">Animations</h2>
+/* ---------- Shortcuts Tab ---------- */
 
-      <section>
-        <SettingsRow label="Animations" type="switch" checked={true} />
-        <SettingsRow label="Reduce motion" type="switch" checked={false} />
-      </section>
-    </div>
-  );
+interface ShortcutEntry {
+  category: string;
+  shortcut: string;
+  action: string;
 }
 
+const shortcutEntries: ShortcutEntry[] = [
+  { category: "Navigation", shortcut: "j", action: "Next article" },
+  { category: "Navigation", shortcut: "k", action: "Previous article" },
+  { category: "Navigation", shortcut: "u", action: "Focus sidebar" },
+  { category: "Actions", shortcut: "m", action: "Toggle read / unread" },
+  { category: "Actions", shortcut: "s", action: "Toggle star" },
+  { category: "Actions", shortcut: "v", action: "View in browser" },
+  { category: "Actions", shortcut: "b", action: "Open in external browser" },
+  { category: "Actions", shortcut: "r", action: "Sync all feeds" },
+  { category: "Actions", shortcut: "Shift + R", action: "Sync current feed" },
+  { category: "Actions", shortcut: "a", action: "Mark all as read" },
+  { category: "Actions", shortcut: "f", action: "Cycle filter (All / Unread / Starred)" },
+  { category: "Global", shortcut: "/", action: "Search" },
+  { category: "Global", shortcut: "Escape", action: "Close browser / clear selection" },
+  { category: "Global", shortcut: "\u2318 ,", action: "Open settings" },
+];
+
 function ShortcutsSettings() {
+  const categories = [...new Set(shortcutEntries.map((s) => s.category))];
+
   return (
     <div className="p-6">
       <h2 className="mb-6 text-center text-lg font-semibold">Shortcuts</h2>
 
-      <p className="text-sm text-muted-foreground">Keyboard shortcuts reference coming soon.</p>
+      {categories.map((cat) => (
+        <section key={cat} className="mb-6">
+          <SectionHeading>{cat}</SectionHeading>
+          {shortcutEntries
+            .filter((s) => s.category === cat)
+            .map((s) => (
+              <div
+                key={s.shortcut}
+                className="flex min-h-[44px] items-center justify-between border-b border-border py-3"
+              >
+                <span className="text-sm text-foreground">{s.action}</span>
+                <kbd className="rounded border border-border bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">
+                  {s.shortcut}
+                </kbd>
+              </div>
+            ))}
+        </section>
+      ))}
     </div>
   );
 }
 
-function GesturesSettings() {
-  return (
-    <div className="p-6">
-      <h2 className="mb-6 text-center text-lg font-semibold">Gestures</h2>
+/* ---------- Actions and Sharing Tab ---------- */
 
-      <section>
-        <SettingsRow label="Swipe left" value="Mark as read" type="select" />
-        <SettingsRow label="Swipe right" value="Toggle star" type="select" />
-      </section>
-    </div>
-  );
+interface ServiceEntry {
+  label: string;
+  prefKey: string;
+  icon: React.ReactNode;
 }
+
+const serviceEntries: ServiceEntry[] = [
+  { label: "Copy Link", prefKey: "action_copy_link", icon: <Copy className="h-5 w-5" /> },
+  { label: "Open in Browser", prefKey: "action_open_browser", icon: <Globe className="h-5 w-5" /> },
+  { label: "Share", prefKey: "action_share", icon: <ExternalLink className="h-5 w-5" /> },
+];
 
 function ActionsSettings() {
   return (
@@ -398,22 +562,38 @@ function ActionsSettings() {
       <h2 className="mb-6 text-center text-lg font-semibold">Actions and Sharing</h2>
 
       <section>
-        <SettingsRow label="Default share action" value="Copy link" type="select" />
-        <SettingsRow label="Open in browser" value="Default browser" type="select" />
+        <SectionHeading>Services</SectionHeading>
+        {serviceEntries.map((svc) => (
+          <div key={svc.prefKey} className="flex min-h-[56px] items-center gap-3 border-b border-border py-3">
+            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
+              {svc.icon}
+            </span>
+            <span className="flex-1 text-sm text-foreground">{svc.label}</span>
+            <ServiceSwitch prefKey={svc.prefKey} />
+          </div>
+        ))}
       </section>
     </div>
   );
 }
 
-function ServicesSettings() {
+function ServiceSwitch({ prefKey }: { prefKey: string }) {
+  const value = usePreferencesStore((s) => s.prefs[prefKey]);
+  const setPref = usePreferencesStore((s) => s.setPref);
+  const checked = value === "true";
   return (
-    <div className="p-6">
-      <h2 className="mb-6 text-center text-lg font-semibold">Services</h2>
-
-      <p className="text-sm text-muted-foreground">Third-party integrations coming soon.</p>
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-muted-foreground">Show in toolbar</span>
+      <Switch
+        checked={checked}
+        onCheckedChange={(v) => setPref(prefKey, String(v))}
+        className="data-[state=checked]:bg-accent"
+      />
     </div>
   );
 }
+
+/* ---------- Account Detail ---------- */
 
 function AccountDetail() {
   const { settingsAccountId, setSettingsAccountId } = useUiStore();
@@ -442,22 +622,19 @@ function AccountDetail() {
       <h2 className="mb-2 text-center text-lg font-semibold">{account.name}</h2>
       <p className="mb-6 text-center text-sm text-muted-foreground">{account.kind}</p>
 
-      {/* General Section */}
       <section className="mb-6">
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">General</h3>
+        <SectionHeading>General</SectionHeading>
         <SettingsRow label="Description" value={account.name} type="text" />
         <SettingsRow label="Type" value={account.kind === "FreshRss" ? "FreshRSS" : "Local"} type="text" />
       </section>
 
-      {/* Syncing Section */}
       <section className="mb-6">
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Syncing</h3>
+        <SectionHeading>Syncing</SectionHeading>
         <SettingsRow label="Sync" value="Every hour" type="select" />
         <SettingsRow label="Sync on wake up from sleep" type="switch" checked={true} />
         <SettingsRow label="Keep read items" value="1 month" type="select" />
       </section>
 
-      {/* Delete account */}
       <div className="mt-6 border-t border-border pt-6">
         {!confirmDelete ? (
           <button
@@ -490,6 +667,8 @@ function AccountDetail() {
     </div>
   );
 }
+
+/* ---------- Add Account Form ---------- */
 
 type ProviderKind = "Local" | "FreshRss";
 
@@ -527,7 +706,7 @@ function AddAccountForm() {
       <h2 className="mb-6 text-center text-lg font-semibold">Add Account</h2>
 
       <section className="mb-6">
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Account</h3>
+        <SectionHeading>Account</SectionHeading>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
           <span className="text-sm text-foreground">Type</span>
           <select
@@ -552,7 +731,7 @@ function AddAccountForm() {
 
       {kind === "FreshRss" && (
         <section className="mb-6">
-          <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Server</h3>
+          <SectionHeading>Server</SectionHeading>
           <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
             <span className="text-sm text-foreground">Server URL</span>
             <input
@@ -598,27 +777,6 @@ function AddAccountForm() {
           Cancel
         </button>
       </div>
-    </div>
-  );
-}
-
-interface SettingsRowProps {
-  label: string;
-  value?: string;
-  type: "switch" | "select" | "text";
-  checked?: boolean;
-  truncate?: boolean;
-}
-
-function SettingsRow({ label, value, type, checked, truncate }: SettingsRowProps) {
-  return (
-    <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-      <span className="text-sm text-foreground">{label}</span>
-      {type === "switch" && <Switch checked={checked} className="data-[state=checked]:bg-accent" />}
-      {type === "select" && <span className="text-sm text-muted-foreground">{value} &#9662;</span>}
-      {type === "text" && (
-        <span className={cn("text-sm text-muted-foreground", truncate && "max-w-[200px] truncate")}>{value}</span>
-      )}
     </div>
   );
 }
