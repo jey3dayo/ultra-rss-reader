@@ -54,13 +54,8 @@ export const toggleArticleStar = (articleId: string, starred: boolean) =>
 export const searchArticles = (accountId: string, query: string, offset?: number, limit?: number) =>
   safeInvoke<ArticleDto[]>("search_articles", { accountId, query, offset, limit });
 
-export const addAccount = (
-  kind: string,
-  name: string,
-  serverUrl?: string,
-  username?: string,
-  password?: string,
-) => safeInvoke<AccountDto>("add_account", { kind, name, serverUrl, username, password });
+export const addAccount = (kind: string, name: string, serverUrl?: string, username?: string, password?: string) =>
+  safeInvoke<AccountDto>("add_account", { kind, name, serverUrl, username, password });
 
 export const deleteAccount = (accountId: string) => safeInvoke<void>("delete_account", { accountId });
 

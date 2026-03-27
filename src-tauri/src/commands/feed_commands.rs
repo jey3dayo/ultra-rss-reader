@@ -14,11 +14,11 @@ use crate::infra::keyring_store;
 use crate::infra::provider::freshrss::FreshRssProvider;
 use crate::infra::provider::local::LocalProvider;
 use crate::infra::provider::traits::{Credentials, FeedProvider};
-use tracing::warn;
 use crate::repository::account::AccountRepository;
 use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
+use tracing::warn;
 
 #[tauri::command]
 pub fn list_folders(
@@ -102,17 +102,13 @@ async fn sync_local_feed(
     feed: &Feed,
 ) -> Result<(), AppError> {
     let scope = if let Some(ref remote_id) = feed.remote_id {
-        crate::domain::provider::PullScope::Feed(
-            crate::domain::provider::FeedIdentifier::Remote {
-                remote_id: remote_id.clone(),
-            },
-        )
+        crate::domain::provider::PullScope::Feed(crate::domain::provider::FeedIdentifier::Remote {
+            remote_id: remote_id.clone(),
+        })
     } else {
-        crate::domain::provider::PullScope::Feed(
-            crate::domain::provider::FeedIdentifier::Local {
-                feed_url: feed.url.clone(),
-            },
-        )
+        crate::domain::provider::PullScope::Feed(crate::domain::provider::FeedIdentifier::Local {
+            feed_url: feed.url.clone(),
+        })
     };
 
     let result = provider.pull_entries(scope, None).await?;
