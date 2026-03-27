@@ -1,6 +1,6 @@
-import type { FeedDto } from "@/api/tauri-commands";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
+import type { FeedDto } from "@/api/tauri-commands";
 import { FeedItem } from "./feed-item";
 
 const baseFeed: FeedDto = {
