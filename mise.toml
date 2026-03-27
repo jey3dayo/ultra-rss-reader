@@ -20,8 +20,8 @@ description = "Format all (TS + Rust + TOML)"
 depends = ["format:biome", "format:rust", "format:toml"]
 
 [tasks."format:biome"]
-description = "Biome format + lint autofix"
-run = ["pnpm run format", "pnpm run lint:fix"]
+description = "Biome format + lint + import sort autofix"
+run = "biome check --write --formatter-enabled=true --linter-enabled=true ."
 
 [tasks."format:rust"]
 description = "Rust format"
