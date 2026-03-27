@@ -3,5 +3,5 @@ CREATE TABLE preferences (
   value TEXT NOT NULL
 );
 
-UPDATE schema_version SET version = 2 WHERE version = 1;
-INSERT OR IGNORE INTO schema_version VALUES (2);
+DELETE FROM schema_version WHERE version < 2;
+INSERT OR REPLACE INTO schema_version VALUES (2);
