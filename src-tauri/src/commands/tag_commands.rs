@@ -24,19 +24,55 @@ pub fn list_tags(state: State<'_, AppState>) -> Result<Vec<TagDto>, AppError> {
     Ok(tags.into_iter().map(TagDto::from).collect())
 }
 
+fn validate_color(color: &str) -> bool {
+    if color.len() != 7 {
+        return false;
+    }
+    let bytes = color.as_bytes();
+    if bytes[0] != b'#' {
+        return false;
+    }
+    bytes[1..].iter().all(|b| b.is_ascii_hexdigit())
+}
+
 #[tauri::command]
 pub fn create_tag(
     state: State<'_, AppState>,
     name: String,
     color: Option<String>,
 ) -> Result<TagDto, AppError> {
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Err(AppError::UserVisible {
+            message: "Tag name cannot be empty".to_string(),
+        });
+    }
+    if name.chars().count() > 50 {
+        return Err(AppError::UserVisible {
+            message: "Tag name must be 50 characters or less".to_string(),
+        });
+    }
+    if let Some(ref c) = color {
+        if !validate_color(c) {
+            return Err(AppError::UserVisible {
+                message: "Color must be a valid hex color (e.g. #ff0000)".to_string(),
+            });
+        }
+    }
+
+    let db = lock_db(&state.db)?;
+    let repo = SqliteTagRepository::new(db.writer());
+
+    // Return existing tag if one with the same name exists (case-insensitive)
+    if let Some(existing) = repo.find_by_name(&name)? {
+        return Ok(TagDto::from(existing));
+    }
+
     let tag = Tag {
         id: TagId::new(),
         name,
         color,
     };
-    let db = lock_db(&state.db)?;
-    let repo = SqliteTagRepository::new(db.writer());
     repo.save(&tag)?;
     Ok(TagDto::from(tag))
 }

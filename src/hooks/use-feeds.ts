@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
 import { Result } from "@praha/byethrow";
+import { useQuery } from "@tanstack/react-query";
 import { listFeeds } from "../api/tauri-commands";
 
 export function useFeeds(accountId: string | null) {

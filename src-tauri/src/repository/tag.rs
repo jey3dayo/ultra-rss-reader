@@ -6,6 +6,7 @@ use crate::repository::article::Pagination;
 
 pub trait TagRepository {
     fn find_all(&self) -> DomainResult<Vec<Tag>>;
+    fn find_by_name(&self, name: &str) -> DomainResult<Option<Tag>>;
     fn save(&self, tag: &Tag) -> DomainResult<()>;
     fn delete(&self, tag_id: &TagId) -> DomainResult<()>;
     fn find_tags_for_article(&self, article_id: &ArticleId) -> DomainResult<Vec<Tag>>;
