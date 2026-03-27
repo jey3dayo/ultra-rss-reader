@@ -74,4 +74,4 @@
 - [x] OPML Export
 - [ ] Inoreader連携
 - [x] FTS5検索
-- [ ] Tags
+- [x] Tags
