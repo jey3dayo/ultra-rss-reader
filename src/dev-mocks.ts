@@ -225,8 +225,13 @@ export function setupDevMocks() {
         return null;
       }
 
+      case "open_in_browser": {
+        const url = args.url as string | undefined;
+        if (url) window.open(url, "_blank");
+        return null;
+      }
+
       case "trigger_sync":
-      case "open_in_browser":
       case "import_opml":
         return null;
 
