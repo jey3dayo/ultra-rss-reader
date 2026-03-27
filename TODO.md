@@ -101,3 +101,25 @@
 - [x] Shortcuts: `b` で記事を外部ブラウザで開く
 - [x] Shortcuts: `a` で現在リストを一括既読
 - [x] Shortcuts: `/` で記事検索入力にフォーカス
+
+## ブラウザ回遊で見つかった修正候補
+
+- [x] フォーム入力欄に `name` 属性を付けて Console issue を解消する
+- [x] dev-mock のサムネイル URL を差し替えて CORB issue を解消する
+
+## モック・未実装の実装（2026-03-27 調査）
+
+### A: 小粒（フロントのみ） — 完了
+
+- [x] window.alert → toast 通知に置換（account-detail, add-account-form）
+
+### B: 中規模（UI + バックエンド連携） — 完了
+
+- [x] Account Detail: Syncing セクションのハードコード値を実データに置換
+- [x] Bionic Reading 設定 UI の実装（太字比率・プレビュー + 記事ビュー適用）
+
+### C: 大規模（バックエンド同期基盤） — 完了
+
+- [x] SyncService: SyncAll / SyncAccount で run_full_sync を実際に呼び出す
+- [x] SyncService: ManualRefresh / PurgeOldArticles の実処理
+- [x] sync_flow: folder_id 解決（folder_remote_id → ローカル FolderId）
