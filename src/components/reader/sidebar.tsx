@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { ChevronDown, Plus, RefreshCw, Settings, Tag } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { triggerSync } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
@@ -57,18 +57,21 @@ export function Sidebar() {
   const feedList: FeedDto[] = feeds ?? [];
   const folderList: FolderDto[] = folders ?? [];
 
-  // Group feeds by folder
-  const feedsByFolder = new Map<string, FeedDto[]>();
-  const unfolderedFeeds: FeedDto[] = [];
-  for (const feed of feedList) {
-    if (feed.folder_id) {
-      const existing = feedsByFolder.get(feed.folder_id) ?? [];
-      existing.push(feed);
-      feedsByFolder.set(feed.folder_id, existing);
-    } else {
-      unfolderedFeeds.push(feed);
+  // Group feeds by folder (memoized)
+  const { feedsByFolder, unfolderedFeeds } = useMemo(() => {
+    const byFolder = new Map<string, FeedDto[]>();
+    const unfoldered: FeedDto[] = [];
+    for (const feed of feedList) {
+      if (feed.folder_id) {
+        const existing = byFolder.get(feed.folder_id) ?? [];
+        existing.push(feed);
+        byFolder.set(feed.folder_id, existing);
+      } else {
+        unfoldered.push(feed);
+      }
     }
-  }
+    return { feedsByFolder: byFolder, unfolderedFeeds: unfoldered };
+  }, [feedList]);
 
   const selectedFeedId = selection.type === "feed" ? selection.feedId : null;
 

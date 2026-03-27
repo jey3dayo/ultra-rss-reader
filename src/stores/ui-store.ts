@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
 type Selection =
   | { type: "feed"; feedId: string }
   | { type: "folder"; folderId: string }
@@ -106,8 +108,12 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   setSettingsAccountId: (id) => set({ settingsAccountId: id, settingsAddAccount: false }),
   setSettingsAddAccount: (show) => set({ settingsAddAccount: show, settingsAccountId: null }),
   showToast: (message) => {
+    if (toastTimer) clearTimeout(toastTimer);
     set({ toastMessage: message });
-    setTimeout(() => set({ toastMessage: null }), 4000);
+    toastTimer = setTimeout(() => {
+      set({ toastMessage: null });
+      toastTimer = null;
+    }, 4000);
   },
   clearToast: () => set({ toastMessage: null }),
 }));

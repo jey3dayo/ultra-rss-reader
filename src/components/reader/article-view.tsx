@@ -88,6 +88,7 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
             }}
             className="text-muted-foreground"
             disabled={!article?.url}
+            aria-label="Share article"
           >
             <Share className="h-4 w-4" />
           </Button>
@@ -242,7 +243,7 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
     if (afterReading === "mark_as_read" && article && !article.is_read) {
       markRead.mutate(article.id);
     }
-  }, [afterReading, article]);
+  }, [afterReading, article?.id]);
 
   const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;

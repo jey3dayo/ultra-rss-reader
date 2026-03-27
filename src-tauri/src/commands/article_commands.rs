@@ -96,7 +96,7 @@ fn maybe_queue_mutation(
         .ok();
 
     if let Some((remote_entry_id, account_kind, account_id)) = row {
-        if account_kind == "FreshRss" {
+        if account_kind == "FreshRss" || account_kind == "Inoreader" {
             let pending_repo = SqlitePendingMutationRepository::new(conn);
             pending_repo.save(&PendingMutation {
                 id: None,
