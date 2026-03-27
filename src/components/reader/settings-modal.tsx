@@ -10,9 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { useAccounts } from "@/hooks/use-accounts";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
+import type { SettingsCategory } from "@/stores/ui-store";
 import { useUiStore } from "@/stores/ui-store";
-
-type SettingsCategory = "general" | "appearance" | "reading" | "bionic-reading" | "shortcuts" | "actions";
 
 interface NavItem {
   id: SettingsCategory;
@@ -115,7 +114,7 @@ function SettingsRow({ label, value, type, checked, truncate }: SettingsRowProps
   return (
     <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
       <span className="text-sm text-foreground">{label}</span>
-      {type === "switch" && <Switch checked={checked} className="data-[state=checked]:bg-accent" />}
+      {type === "switch" && <Switch checked={checked} disabled className="data-[state=checked]:bg-accent" />}
       {type === "select" && <span className="text-sm text-muted-foreground">{value} &#9662;</span>}
       {type === "text" && (
         <span className={cn("text-sm text-muted-foreground", truncate && "max-w-[200px] truncate")}>{value}</span>

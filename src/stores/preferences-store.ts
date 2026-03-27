@@ -56,11 +56,20 @@ function get(prefs: Record<string, string>, key: string): string {
   return prefs[key] ?? defaults[key] ?? "";
 }
 
+let systemThemeCleanup: (() => void) | null = null;
+
 function applyTheme(theme: Theme): void {
+  // Clean up previous system theme listener
+  systemThemeCleanup?.();
+  systemThemeCleanup = null;
+
   const root = document.documentElement;
   if (theme === "system") {
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    root.classList.toggle("dark", prefersDark);
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    root.classList.toggle("dark", mq.matches);
+    const handler = (e: MediaQueryListEvent) => root.classList.toggle("dark", e.matches);
+    mq.addEventListener("change", handler);
+    systemThemeCleanup = () => mq.removeEventListener("change", handler);
   } else {
     root.classList.toggle("dark", theme === "dark");
   }
