@@ -15,7 +15,7 @@ use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_folder::SqliteFolderRepository;
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::infra::keyring_store;
-use crate::infra::provider::freshrss::FreshRssProvider;
+use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::local::LocalProvider;
 use crate::infra::provider::traits::{Credentials, FeedProvider};
 use crate::repository::account::AccountRepository;
@@ -185,7 +185,7 @@ async fn sync_freshrss_account(db: &Mutex<DbManager>, account: &Account) -> Resu
 
     // Step 1: Authenticate (no DB lock)
     let password = keyring_store::get_password(account.id.as_ref())?;
-    let mut provider = FreshRssProvider::new(&server_url);
+    let mut provider = GReaderProvider::for_freshrss(&server_url);
     provider
         .authenticate(&Credentials {
             token: Some(username),
@@ -222,7 +222,7 @@ async fn sync_freshrss_account(db: &Mutex<DbManager>, account: &Account) -> Resu
 /// Steps 3-7: sync subscriptions, pull entries, push mutations, apply remote state, recalculate unread counts.
 async fn sync_freshrss_feeds(
     db: &Mutex<DbManager>,
-    provider: &FreshRssProvider,
+    provider: &GReaderProvider,
     account: &Account,
 ) -> Result<(), AppError> {
     use std::collections::HashMap;

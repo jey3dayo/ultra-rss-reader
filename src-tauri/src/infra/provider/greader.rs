@@ -104,23 +104,48 @@ const LABEL_PREFIX: &str = "user/-/label/";
 
 // --- Provider ---
 
-pub struct FreshRssProvider {
+/// Generic Google Reader API provider that supports FreshRSS, Inoreader, and other
+/// GReader-compatible services.
+pub struct GReaderProvider {
+    kind: ProviderKind,
+    /// Base URL for API calls (e.g., "http://server/api/greader.php" or "https://www.inoreader.com")
+    api_base: String,
+    /// Base URL for authentication (e.g., "http://server/api/greader.php" or "https://www.inoreader.com")
+    auth_base: String,
     http_client: reqwest::Client,
-    server_url: String,
     auth_token: Option<String>,
 }
 
-impl FreshRssProvider {
-    pub fn new(server_url: &str) -> Self {
+impl GReaderProvider {
+    /// Create a provider configured for FreshRSS.
+    pub fn for_freshrss(server_url: &str) -> Self {
+        let base = server_url.trim_end_matches('/');
         Self {
+            kind: ProviderKind::FreshRss,
+            api_base: format!("{base}/api/greader.php"),
+            auth_base: format!("{base}/api/greader.php"),
             http_client: reqwest::Client::new(),
-            server_url: server_url.trim_end_matches('/').to_string(),
+            auth_token: None,
+        }
+    }
+
+    /// Create a provider configured for Inoreader.
+    pub fn for_inoreader() -> Self {
+        Self {
+            kind: ProviderKind::Inoreader,
+            api_base: "https://www.inoreader.com".to_string(),
+            auth_base: "https://www.inoreader.com".to_string(),
+            http_client: reqwest::Client::new(),
             auth_token: None,
         }
     }
 
     fn api_url(&self, path: &str) -> String {
-        format!("{}/api/greader.php{}", self.server_url, path)
+        format!("{}{}", self.api_base, path)
+    }
+
+    fn auth_url(&self, path: &str) -> String {
+        format!("{}{}", self.auth_base, path)
     }
 
     fn auth_header(&self) -> DomainResult<HeaderValue> {
@@ -187,9 +212,9 @@ impl FreshRssProvider {
 }
 
 #[async_trait]
-impl FeedProvider for FreshRssProvider {
+impl FeedProvider for GReaderProvider {
     fn kind(&self) -> ProviderKind {
-        ProviderKind::FreshRss
+        self.kind.clone()
     }
 
     fn capabilities(&self) -> ProviderCapabilities {
@@ -208,13 +233,13 @@ impl FeedProvider for FreshRssProvider {
             .as_deref()
             .ok_or_else(|| DomainError::Auth("Password is required".into()))?;
 
-        // The Email field is stored in token for FreshRSS (username)
+        // The Email/username field is stored in token
         let username = credentials
             .token
             .as_deref()
             .ok_or_else(|| DomainError::Auth("Username is required".into()))?;
 
-        let url = self.api_url("/accounts/ClientLogin");
+        let url = self.auth_url("/accounts/ClientLogin");
         let body = format!(
             "Email={}&Passwd={}",
             urlencoded(username),
@@ -316,7 +341,7 @@ impl FeedProvider for FreshRssProvider {
             PullScope::Feed(FeedIdentifier::Remote { remote_id }) => (remote_id.clone(), None),
             PullScope::Feed(FeedIdentifier::Local { .. }) => {
                 return Err(DomainError::Validation(
-                    "FreshRssProvider does not support local feeds".into(),
+                    "GReaderProvider does not support local feeds".into(),
                 ));
             }
             PullScope::All => (STATE_READING_LIST.to_string(), None),
@@ -532,7 +557,7 @@ impl FeedProvider for FreshRssProvider {
             FeedIdentifier::Remote { remote_id } => remote_id,
             FeedIdentifier::Local { .. } => {
                 return Err(DomainError::Validation(
-                    "FreshRssProvider does not support local feed identifiers".into(),
+                    "GReaderProvider does not support local feed identifiers".into(),
                 ));
             }
         };
@@ -582,7 +607,7 @@ mod tests {
             .create_async()
             .await;
 
-        let mut provider = FreshRssProvider::new(&server.url());
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
         let creds = Credentials {
             password: Some("mypassword".into()),
             token: Some("myuser".into()),
@@ -629,7 +654,7 @@ mod tests {
             .create_async()
             .await;
 
-        let mut provider = FreshRssProvider::new(&server.url());
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
         provider
             .authenticate(&Credentials {
                 password: Some("p".into()),
@@ -682,7 +707,7 @@ mod tests {
             .create_async()
             .await;
 
-        let mut provider = FreshRssProvider::new(&server.url());
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
         provider
             .authenticate(&Credentials {
                 password: Some("p".into()),
@@ -752,7 +777,7 @@ mod tests {
             .create_async()
             .await;
 
-        let mut provider = FreshRssProvider::new(&server.url());
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
         provider
             .authenticate(&Credentials {
                 password: Some("p".into()),
@@ -803,7 +828,7 @@ mod tests {
         let user = std::env::var("FRESHRSS_USER").expect("Set FRESHRSS_USER");
         let pass = std::env::var("FRESHRSS_PASS").expect("Set FRESHRSS_PASS");
 
-        let mut provider = FreshRssProvider::new(&url);
+        let mut provider = GReaderProvider::for_freshrss(&url);
         let creds = Credentials {
             token: Some(user),
             password: Some(pass),
@@ -862,12 +887,12 @@ mod tests {
     }
 
     /// Helper: create an authenticated live provider
-    async fn live_provider() -> (FreshRssProvider, ()) {
+    async fn live_provider() -> (GReaderProvider, ()) {
         let url = std::env::var("FRESHRSS_URL").expect("Set FRESHRSS_URL");
         let user = std::env::var("FRESHRSS_USER").expect("Set FRESHRSS_USER");
         let pass = std::env::var("FRESHRSS_PASS").expect("Set FRESHRSS_PASS");
 
-        let mut provider = FreshRssProvider::new(&url);
+        let mut provider = GReaderProvider::for_freshrss(&url);
         provider
             .authenticate(&Credentials {
                 token: Some(user),
@@ -897,7 +922,7 @@ mod tests {
             .create_async()
             .await;
 
-        let mut provider = FreshRssProvider::new(&server.url());
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
         provider
             .authenticate(&Credentials {
                 password: Some("p".into()),
