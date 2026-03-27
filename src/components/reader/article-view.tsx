@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { ArrowLeft, Circle, Copy, Plus, Share, Star, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
   useTags,
   useUntagArticle,
 } from "@/hooks/use-tags";
+import { applyBionicReading } from "@/lib/bionic-reading";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { BrowserView } from "./browser-view";
@@ -221,6 +222,7 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
             ))}
             <div className="flex items-center gap-1 border-t border-border px-2 pt-1">
               <input
+                name="new-tag"
                 type="text"
                 value={newTagName}
                 onChange={(e) => setNewTagName(e.target.value)}
@@ -251,6 +253,13 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
   const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const cmdClickBrowser = usePreferencesStore((s) => s.prefs.cmd_click_browser ?? "false");
+  const bionicEnabled = usePreferencesStore((s) => s.prefs.bionic_reading ?? "false") === "true";
+  const bionicFixation = Number(usePreferencesStore((s) => s.prefs.bionic_fixation ?? "3"));
+
+  const contentHtml = useMemo(
+    () => (bionicEnabled ? applyBionicReading(article.content_sanitized, bionicFixation) : article.content_sanitized),
+    [article.content_sanitized, bionicEnabled, bionicFixation],
+  );
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
   const openBrowserView = useUiStore((s) => s.openBrowser);
@@ -368,7 +377,7 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
             className="prose prose-invert max-w-none text-base leading-relaxed text-foreground/90"
             onClick={handleContentClick}
             // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML is pre-sanitized by Rust backend
-            dangerouslySetInnerHTML={{ __html: article.content_sanitized }}
+            dangerouslySetInnerHTML={{ __html: contentHtml }}
           />
         </article>
       </ScrollArea>

@@ -34,6 +34,9 @@ const defaults: Record<string, string> = {
   reading_sort: "newest_first",
   after_reading: "mark_as_read",
   scroll_to_top_on_change: "true",
+  // Bionic Reading
+  bionic_reading: "false",
+  bionic_fixation: "3",
   // Actions
   action_copy_link: "true",
   action_open_browser: "true",
