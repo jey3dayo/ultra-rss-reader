@@ -9,6 +9,7 @@ Desktop RSS feed reader built with Tauri 2 (Rust backend) + React 19 (TypeScript
 - State: Zustand (UI state) + React Query (remote data)
 - Database: SQLite via rusqlite (embedded)
 - Providers: Local RSS feeds, FreshRSS (GReader API)
+- UI: Base UI (`@base-ui/react`) headless primitives + shadcn (base-nova) theme/config layer
 - Secrets: dotenvx (.env encryption), keyring (OS credential store)
 
 ## Commands
@@ -51,7 +52,7 @@ Commands (IPC boundary) -> Service -> Repository (traits) -> Domain
 - hooks/: React Query hooks (use-accounts, use-articles, use-feeds, use-folders) and UI hooks (use-keyboard, use-layout, use-breakpoint).
 - components/reader/: Three-pane layout -- sidebar.tsx, article-list.tsx, article-view.tsx, browser-view.tsx. Extracted subcomponents: add-feed-dialog.tsx, feed-item.tsx, folder-section.tsx. AppShell orchestrates layout.
 - components/settings/: Settings modal split into per-category files (general, appearance, reading, shortcuts, actions, bionic-reading, account-detail, add-account-form). Shared form components in settings-components.tsx.
-- components/ui/: shadcn/ui base components (button, dialog, select, switch, etc.). Do not modify directly -- customize via className props.
+- components/ui/: Base UI (`@base-ui/react`) headless primitives wrapped with Tailwind styling. shadcn (base-nova style) is config/theme layer only. Customize via className props.
 - styles/global.css: Tailwind CSS v4 with OKLch color tokens. No CSS-in-JS libraries.
 
 ## Coding Conventions
