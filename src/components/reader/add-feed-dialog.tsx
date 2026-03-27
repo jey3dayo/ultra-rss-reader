@@ -69,6 +69,7 @@ export function AddFeedDialog({
         >
           <input
             ref={inputRef}
+            name="feed-url"
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}

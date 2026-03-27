@@ -38,6 +38,7 @@ export function SettingsSelect({
     <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
       <span className="text-sm text-foreground">{label}</span>
       <select
+        name={prefKey}
         value={value}
         onChange={(e) => setPref(prefKey, e.target.value)}
         className="rounded-md border border-border bg-background px-2 py-1 text-sm text-muted-foreground"

@@ -67,6 +67,7 @@ export function RenameDialog({
             Title
             <input
               ref={inputRef}
+              name="feed-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}

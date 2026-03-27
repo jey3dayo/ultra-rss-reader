@@ -249,6 +249,7 @@ export function ArticleList() {
         <div className="border-b border-border px-4 py-2">
           <input
             ref={searchInputRef}
+            name="article-search"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
