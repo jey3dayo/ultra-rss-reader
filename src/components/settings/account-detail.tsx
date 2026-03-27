@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import type { AccountDto } from "@/api/tauri-commands";
 import { deleteAccount, exportOpml, updateAccountSync } from "@/api/tauri-commands";
 import { SectionHeading, SettingsRow } from "@/components/settings/settings-components";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,10 @@ export function AccountDetail() {
         partial.keepReadItemsDays ?? account.keep_read_items_days,
       ),
       Result.inspectError((e) => useUiStore.getState().showToast(`Failed to update sync settings: ${e.message}`)),
-      Result.inspect(() => qc.invalidateQueries({ queryKey: ["accounts"] })),
+      Result.inspect((updated) => {
+        // Immediately update cache with returned DTO to prevent race conditions
+        qc.setQueryData<AccountDto[]>(["accounts"], (prev) => prev?.map((a) => (a.id === updated.id ? updated : a)));
+      }),
     );
   };
 
