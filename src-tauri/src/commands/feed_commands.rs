@@ -14,6 +14,7 @@ use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_folder::SqliteFolderRepository;
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
+use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
 use crate::infra::keyring_store;
 use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::local::LocalProvider;
@@ -23,6 +24,7 @@ use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
 use crate::repository::pending_mutation::PendingMutationRepository;
+use crate::repository::preference::PreferenceRepository;
 use tracing::warn;
 
 fn lock_db(db: &Mutex<DbManager>) -> Result<std::sync::MutexGuard<'_, DbManager>, AppError> {
@@ -448,7 +450,15 @@ pub async fn run_full_sync(db: &Mutex<DbManager>) -> Result<(), AppError> {
                 }
             }
             ProviderKind::Inoreader => {
-                let provider = GReaderProvider::for_inoreader();
+                let (app_id, app_key) = {
+                    let db_guard = lock_db(db)?;
+                    let pref_repo = SqlitePreferenceRepository::new(db_guard.reader());
+                    (
+                        pref_repo.get("inoreader_app_id").unwrap_or(None),
+                        pref_repo.get("inoreader_app_key").unwrap_or(None),
+                    )
+                };
+                let provider = GReaderProvider::for_inoreader(app_id, app_key);
                 if let Err(e) = sync_greader_account(db, account, provider).await {
                     warn!(
                         "Inoreader sync failed for account {}: {e}",

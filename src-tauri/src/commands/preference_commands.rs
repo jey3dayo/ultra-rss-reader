@@ -37,6 +37,8 @@ const ALLOWED_KEYS: &[&str] = &[
     "action_copy_link",
     "action_open_browser",
     "action_share",
+    "inoreader_app_id",
+    "inoreader_app_key",
 ];
 
 #[tauri::command]

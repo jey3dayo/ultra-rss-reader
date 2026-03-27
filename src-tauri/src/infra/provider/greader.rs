@@ -112,6 +112,9 @@ pub struct GReaderProvider {
     api_base: String,
     /// Base URL for authentication (e.g., "http://server/api/greader.php" or "https://www.inoreader.com")
     auth_base: String,
+    /// Inoreader requires AppId/AppKey headers on all requests (None for FreshRSS)
+    app_id: Option<String>,
+    app_key: Option<String>,
     http_client: reqwest::Client,
     auth_token: Option<String>,
 }
@@ -124,17 +127,23 @@ impl GReaderProvider {
             kind: ProviderKind::FreshRss,
             api_base: format!("{base}/api/greader.php"),
             auth_base: format!("{base}/api/greader.php"),
+            app_id: None,
+            app_key: None,
             http_client: reqwest::Client::new(),
             auth_token: None,
         }
     }
 
     /// Create a provider configured for Inoreader.
-    pub fn for_inoreader() -> Self {
+    /// `app_id` and `app_key` are required for Inoreader API access.
+    /// Register at https://www.inoreader.com/developers to obtain them.
+    pub fn for_inoreader(app_id: Option<String>, app_key: Option<String>) -> Self {
         Self {
             kind: ProviderKind::Inoreader,
             api_base: "https://www.inoreader.com".to_string(),
             auth_base: "https://www.inoreader.com".to_string(),
+            app_id,
+            app_key,
             http_client: reqwest::Client::new(),
             auth_token: None,
         }
@@ -146,6 +155,21 @@ impl GReaderProvider {
 
     fn auth_url(&self, path: &str) -> String {
         format!("{}{}", self.auth_base, path)
+    }
+
+    /// Apply Inoreader-specific AppId/AppKey headers to a request builder.
+    fn apply_app_headers(
+        &self,
+        builder: reqwest::RequestBuilder,
+    ) -> reqwest::RequestBuilder {
+        let mut b = builder;
+        if let Some(ref app_id) = self.app_id {
+            b = b.header("AppId", app_id.as_str());
+        }
+        if let Some(ref app_key) = self.app_key {
+            b = b.header("AppKey", app_key.as_str());
+        }
+        b
     }
 
     fn auth_header(&self) -> DomainResult<HeaderValue> {
@@ -247,8 +271,7 @@ impl FeedProvider for GReaderProvider {
         );
 
         let response = self
-            .http_client
-            .post(&url)
+            .apply_app_headers(self.http_client.post(&url))
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
             .send()
@@ -275,8 +298,7 @@ impl FeedProvider for GReaderProvider {
     async fn get_subscriptions(&self) -> DomainResult<Vec<RemoteSubscription>> {
         let url = self.api_url("/reader/api/0/subscription/list?output=json");
         let resp: SubscriptionListResponse = self
-            .http_client
-            .get(&url)
+            .apply_app_headers(self.http_client.get(&url))
             .header("Authorization", self.auth_header()?)
             .send()
             .await?
@@ -307,8 +329,7 @@ impl FeedProvider for GReaderProvider {
     async fn get_folders(&self) -> DomainResult<Vec<RemoteFolder>> {
         let url = self.api_url("/reader/api/0/tag/list?output=json");
         let resp: TagListResponse = self
-            .http_client
-            .get(&url)
+            .apply_app_headers(self.http_client.get(&url))
             .header("Authorization", self.auth_header()?)
             .send()
             .await?
@@ -368,8 +389,7 @@ impl FeedProvider for GReaderProvider {
         }
 
         let resp: StreamContentsResponse = self
-            .http_client
-            .get(&url)
+            .apply_app_headers(self.http_client.get(&url))
             .header("Authorization", self.auth_header()?)
             .send()
             .await?
@@ -418,8 +438,7 @@ impl FeedProvider for GReaderProvider {
 
         let (read_resp, starred_resp) = tokio::try_join!(
             async {
-                self.http_client
-                    .get(&read_url)
+                self.apply_app_headers(self.http_client.get(&read_url))
                     .header("Authorization", auth.clone())
                     .send()
                     .await?
@@ -430,8 +449,7 @@ impl FeedProvider for GReaderProvider {
                     .map_err(DomainError::from)
             },
             async {
-                self.http_client
-                    .get(&starred_url)
+                self.apply_app_headers(self.http_client.get(&starred_url))
                     .header("Authorization", auth.clone())
                     .send()
                     .await?
@@ -497,8 +515,7 @@ impl FeedProvider for GReaderProvider {
                 }
             };
 
-            self.http_client
-                .post(&url)
+            self.apply_app_headers(self.http_client.post(&url))
                 .header("Authorization", auth.clone())
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .body(body)
@@ -529,8 +546,7 @@ impl FeedProvider for GReaderProvider {
         }
 
         let resp = self
-            .http_client
-            .post(&api_url)
+            .apply_app_headers(self.http_client.post(&api_url))
             .header("Authorization", auth)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
@@ -566,8 +582,7 @@ impl FeedProvider for GReaderProvider {
         let auth = self.auth_header()?;
         let body = format!("ac=unsubscribe&s={}", urlencoded(remote_id));
 
-        self.http_client
-            .post(&url)
+        self.apply_app_headers(self.http_client.post(&url))
             .header("Authorization", auth)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
