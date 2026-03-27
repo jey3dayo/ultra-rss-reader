@@ -79,7 +79,7 @@ fn purge_old_articles(db: &Mutex<DbManager>) {
                     JOIN accounts acc ON f.account_id = acc.id
                     WHERE a.is_read = 1
                       AND acc.keep_read_items_days > 0
-                      AND a.published_at < datetime('now', '-' || acc.keep_read_items_days || ' days')
+                      AND datetime(a.published_at) < datetime('now', '-' || acc.keep_read_items_days || ' days')
                 )",
                 [],
             )
