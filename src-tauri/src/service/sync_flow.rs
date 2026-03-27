@@ -74,11 +74,12 @@ pub async fn sync_account(
     if caps.supports_remote_state {
         let remote_subs = provider.get_subscriptions().await?;
         for rs in remote_subs {
-            let folder_id = rs
-                .folder_remote_id
-                .as_deref()
-                .and_then(|rid| folder_repo.find_by_remote_id(account_id, rid).ok()?)
-                .map(|f| f.id);
+            let folder_id = match rs.folder_remote_id.as_deref() {
+                Some(rid) => folder_repo
+                    .find_by_remote_id(account_id, rid)?
+                    .map(|f| f.id),
+                None => None,
+            };
             let feed = crate::domain::feed::Feed {
                 id: FeedId::new(),
                 account_id: account_id.clone(),
