@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useArticles } from "@/hooks/use-articles";
+import { useFeeds } from "@/hooks/use-feeds";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -32,9 +33,16 @@ function formatTime(dateStr: string): string {
 }
 
 export function ArticleList() {
-  const { selection, selectedArticleId, selectArticle, viewMode, setViewMode } = useUiStore();
+  const { selection, selectedAccountId, selectedArticleId, selectArticle, viewMode, setViewMode } = useUiStore();
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const { data: articles, isLoading } = useArticles(feedId);
+  const { data: feeds } = useFeeds(selectedAccountId);
+
+  const feedNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const f of feeds ?? []) map.set(f.id, f.title);
+    return map;
+  }, [feeds]);
 
   const feedName = useMemo(() => {
     if (selection.type === "feed") return "Articles";
@@ -125,6 +133,10 @@ export function ArticleList() {
                         >
                           {article.title}
                         </h3>
+                        {/* Feed Name */}
+                        {feedNameMap.has(article.feed_id) && (
+                          <p className="text-xs text-muted-foreground">{feedNameMap.get(article.feed_id)}</p>
+                        )}
                         {/* Summary */}
                         {article.summary && (
                           <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
