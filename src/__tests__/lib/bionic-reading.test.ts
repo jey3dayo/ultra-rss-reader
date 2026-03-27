@@ -43,4 +43,10 @@ describe("applyBionicReading", () => {
     // naïve (5 chars, 50% = 3) → <b>naï</b>ve
     expect(result).toContain("<b>naï</b>ve");
   });
+
+  it("preserves HTML entities", () => {
+    const result = applyBionicReading("Tom &amp; Jerry", 3);
+    expect(result).toContain("&amp;");
+    expect(result).not.toContain("&<b>");
+  });
 });

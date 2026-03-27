@@ -8,17 +8,21 @@
 export function applyBionicReading(html: string, fixation: number): string {
   const level = Math.max(1, Math.min(5, fixation));
 
-  // Split on HTML tags, process only text segments
-  return html.replace(/(<[^>]*>)|([^<]+)/g, (match, tag: string | undefined, text: string | undefined) => {
-    if (tag) return tag; // preserve HTML tags as-is
-    if (!text) return match;
+  // Split on HTML tags and entities, process only plain text segments
+  return html.replace(
+    /(<[^>]*>)|(&[a-zA-Z0-9#]+;)|([^<&]+)/g,
+    (match, tag: string | undefined, entity: string | undefined, text: string | undefined) => {
+      if (tag) return tag; // preserve HTML tags as-is
+      if (entity) return entity; // preserve HTML entities as-is
+      if (!text) return match;
 
-    return text.replace(/(\p{L}[\p{L}''\u2019-]*)/gu, (word: string) => {
-      if (word.length <= 1) return `<b>${word}</b>`;
-      const boldLen = getBoldLength(word.length, level);
-      return `<b>${word.slice(0, boldLen)}</b>${word.slice(boldLen)}`;
-    });
-  });
+      return text.replace(/(\p{L}[\p{L}''\u2019-]*)/gu, (word: string) => {
+        if (word.length <= 1) return `<b>${word}</b>`;
+        const boldLen = getBoldLength(word.length, level);
+        return `<b>${word.slice(0, boldLen)}</b>${word.slice(boldLen)}`;
+      });
+    },
+  );
 }
 
 function getBoldLength(wordLength: number, level: number): number {
