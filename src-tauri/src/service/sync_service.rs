@@ -1,34 +1,54 @@
-use super::event_bus::{AppEvent, SyncCommand};
-use tokio::sync::{broadcast, mpsc};
-use tracing::info;
+use std::sync::atomic::AtomicBool;
+use std::sync::Mutex;
 
-// For now, a simplified service that processes commands.
-// Full integration with repositories will happen when Tauri app state is wired up.
+use tokio::sync::{broadcast, mpsc};
+use tracing::{info, warn};
+
+use super::event_bus::{AppEvent, SyncCommand};
+use crate::commands::feed_commands::run_full_sync;
+use crate::infra::db::connection::DbManager;
 
 pub async fn run_sync_loop(
     mut cmd_rx: mpsc::Receiver<SyncCommand>,
     event_tx: broadcast::Sender<AppEvent>,
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
 ) {
     info!("SyncService started");
     while let Some(cmd) = cmd_rx.recv().await {
         match cmd {
-            SyncCommand::SyncAll => {
-                info!("Processing SyncAll");
-                // TODO: iterate accounts, call sync_flow::sync_account for each
+            SyncCommand::SyncAll | SyncCommand::ManualRefresh => {
+                info!(
+                    "Processing {:?}",
+                    if matches!(cmd, SyncCommand::SyncAll) {
+                        "SyncAll"
+                    } else {
+                        "ManualRefresh"
+                    }
+                );
+                if let Err(e) = run_full_sync(db, syncing).await {
+                    warn!("SyncAll failed: {e}");
+                    let _ = event_tx.send(AppEvent::ErrorOccurred {
+                        message: e.to_string(),
+                    });
+                }
             }
             SyncCommand::SyncAccount { account_id } => {
-                info!("Processing SyncAccount: {}", account_id);
+                info!("Processing SyncAccount: {}", account_id.0);
                 let _ = event_tx.send(AppEvent::SyncStarted {
                     account_id: account_id.clone(),
                 });
-                // TODO: call sync_flow::sync_account
+                if let Err(e) = run_full_sync(db, syncing).await {
+                    warn!("SyncAccount {} failed: {e}", account_id.0);
+                    let _ = event_tx.send(AppEvent::ErrorOccurred {
+                        message: e.to_string(),
+                    });
+                }
                 let _ = event_tx.send(AppEvent::SyncCompleted { account_id });
-            }
-            SyncCommand::ManualRefresh => {
-                info!("Processing ManualRefresh");
             }
             SyncCommand::PurgeOldArticles => {
                 info!("Processing PurgeOldArticles");
+                purge_old_articles(db);
             }
             SyncCommand::SyncFeed { .. } | SyncCommand::PushPendingMutations { .. } => {
                 info!("Processing command: {:?}", cmd);
@@ -36,6 +56,36 @@ pub async fn run_sync_loop(
         }
     }
     info!("SyncService stopped");
+}
+
+fn purge_old_articles(db: &Mutex<DbManager>) {
+    let result = (|| -> Result<usize, String> {
+        let db = db.lock().map_err(|e| format!("Lock error: {e}"))?;
+        let conn = db.writer();
+
+        // Delete read articles older than each account's keep_read_items_days
+        // Articles where keep_read_items_days = 0 (forever) are excluded
+        let deleted = conn
+            .execute(
+                "DELETE FROM articles WHERE id IN (
+                    SELECT a.id FROM articles a
+                    JOIN feeds f ON a.feed_id = f.id
+                    JOIN accounts acc ON f.account_id = acc.id
+                    WHERE a.is_read = 1
+                      AND acc.keep_read_items_days > 0
+                      AND a.published_at < datetime('now', '-' || acc.keep_read_items_days || ' days')
+                )",
+                [],
+            )
+            .map_err(|e| format!("Purge error: {e}"))?;
+        Ok(deleted)
+    })();
+
+    match result {
+        Ok(n) if n > 0 => info!("Purged {n} old read articles"),
+        Ok(_) => info!("No old articles to purge"),
+        Err(e) => warn!("PurgeOldArticles failed: {e}"),
+    }
 }
 
 #[cfg(test)]
@@ -46,10 +96,16 @@ mod tests {
 
     #[tokio::test]
     async fn sync_loop_processes_commands() {
+        let db = crate::infra::db::connection::DbManager::new_in_memory().unwrap();
+        let db_mutex = Mutex::new(db);
+        let syncing = AtomicBool::new(false);
+
         let (cmd_tx, cmd_rx, evt_tx) = event_bus::create_channels();
         let mut evt_rx = evt_tx.subscribe();
 
-        let handle = tokio::spawn(run_sync_loop(cmd_rx, evt_tx));
+        let handle = tokio::spawn(async move {
+            run_sync_loop(cmd_rx, evt_tx, &db_mutex, &syncing).await;
+        });
 
         let account_id = AccountId("test-acc".into());
         cmd_tx
