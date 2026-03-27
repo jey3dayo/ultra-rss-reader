@@ -6,7 +6,7 @@ import { SectionHeading } from "@/components/settings/settings-components";
 import { Button } from "@/components/ui/button";
 import { useUiStore } from "@/stores/ui-store";
 
-type ProviderKind = "Local" | "FreshRss";
+type ProviderKind = "Local" | "FreshRss" | "Inoreader";
 
 export function AddAccountForm() {
   const { setSettingsAddAccount, setSettingsAccountId } = useUiStore();
@@ -23,8 +23,8 @@ export function AddAccountForm() {
         kind,
         name || kind,
         kind === "FreshRss" ? serverUrl : undefined,
-        kind === "FreshRss" ? username : undefined,
-        kind === "FreshRss" ? password : undefined,
+        kind === "FreshRss" || kind === "Inoreader" ? username : undefined,
+        kind === "FreshRss" || kind === "Inoreader" ? password : undefined,
       ),
       Result.inspectError((e) => window.alert(`Failed to add account: ${e.message}`)),
       Result.inspect((account) => {
@@ -52,6 +52,7 @@ export function AddAccountForm() {
           >
             <option value="Local">Local Feeds</option>
             <option value="FreshRss">FreshRSS</option>
+            <option value="Inoreader">Inoreader</option>
           </select>
         </div>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
@@ -65,20 +66,22 @@ export function AddAccountForm() {
         </div>
       </section>
 
-      {kind === "FreshRss" && (
+      {(kind === "FreshRss" || kind === "Inoreader") && (
         <section className="mb-6">
-          <SectionHeading>Server</SectionHeading>
+          <SectionHeading>{kind === "FreshRss" ? "Server" : "Credentials"}</SectionHeading>
+          {kind === "FreshRss" && (
+            <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
+              <span className="text-sm text-foreground">Server URL</span>
+              <input
+                value={serverUrl}
+                onChange={(e) => setServerUrl(e.target.value)}
+                placeholder="https://your-freshrss.com"
+                className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+              />
+            </div>
+          )}
           <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-            <span className="text-sm text-foreground">Server URL</span>
-            <input
-              value={serverUrl}
-              onChange={(e) => setServerUrl(e.target.value)}
-              placeholder="https://your-freshrss.com"
-              className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
-            />
-          </div>
-          <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-            <span className="text-sm text-foreground">Username</span>
+            <span className="text-sm text-foreground">{kind === "Inoreader" ? "Email" : "Username"}</span>
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value)}

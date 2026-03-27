@@ -54,7 +54,12 @@ export function AccountDetail() {
       <section className="mb-6">
         <SectionHeading>General</SectionHeading>
         <SettingsRow label="Description" value={account.name} type="text" />
-        <SettingsRow label="Type" value={account.kind === "FreshRss" ? "FreshRSS" : "Local"} type="text" />
+        <SettingsRow
+          label="Type"
+          value={account.kind === "FreshRss" ? "FreshRSS" : account.kind === "Inoreader" ? "Inoreader" : "Local"}
+          type="text"
+        />
+        {account.kind === "Inoreader" && <SettingsRow label="Server" value="inoreader.com" type="text" />}
       </section>
 
       <section className="mb-6">

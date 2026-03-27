@@ -157,26 +157,20 @@ async fn sync_local_feed(
     Ok(())
 }
 
-/// Sync a FreshRSS account: authenticate, sync folders, subscriptions, entries, state, unread counts.
-async fn sync_freshrss_account(db: &Mutex<DbManager>, account: &Account) -> Result<(), AppError> {
+/// Sync a GReader-compatible account (FreshRSS, Inoreader): authenticate, sync folders, subscriptions, entries, state, unread counts.
+async fn sync_greader_account(
+    db: &Mutex<DbManager>,
+    account: &Account,
+    mut provider: GReaderProvider,
+) -> Result<(), AppError> {
     use crate::domain::folder::Folder;
     use crate::domain::types::FolderId;
 
-    let server_url = match &account.server_url {
-        Some(url) => url.clone(),
-        None => {
-            warn!(
-                "FreshRSS account {} has no server_url, skipping",
-                account.id.as_ref()
-            );
-            return Ok(());
-        }
-    };
     let username = match &account.username {
         Some(u) => u.clone(),
         None => {
             warn!(
-                "FreshRSS account {} has no username, skipping",
+                "GReader account {} has no username, skipping",
                 account.id.as_ref()
             );
             return Ok(());
@@ -185,7 +179,6 @@ async fn sync_freshrss_account(db: &Mutex<DbManager>, account: &Account) -> Resu
 
     // Step 1: Authenticate (no DB lock)
     let password = keyring_store::get_password(account.id.as_ref())?;
-    let mut provider = GReaderProvider::for_freshrss(&server_url);
     provider
         .authenticate(&Credentials {
             token: Some(username),
@@ -214,13 +207,13 @@ async fn sync_freshrss_account(db: &Mutex<DbManager>, account: &Account) -> Resu
     }
 
     // Steps 3-7
-    sync_freshrss_feeds(db, &provider, account).await?;
+    sync_greader_feeds(db, &provider, account).await?;
 
     Ok(())
 }
 
 /// Steps 3-7: sync subscriptions, pull entries, push mutations, apply remote state, recalculate unread counts.
-async fn sync_freshrss_feeds(
+async fn sync_greader_feeds(
     db: &Mutex<DbManager>,
     provider: &GReaderProvider,
     account: &Account,
@@ -445,7 +438,9 @@ pub async fn run_full_sync(db: &Mutex<DbManager>) -> Result<(), AppError> {
                 }
             }
             ProviderKind::FreshRss => {
-                if let Err(e) = sync_freshrss_account(db, account).await {
+                let server_url = account.server_url.as_deref().unwrap_or_default();
+                let provider = GReaderProvider::for_freshrss(server_url);
+                if let Err(e) = sync_greader_account(db, account, provider).await {
                     warn!(
                         "FreshRSS sync failed for account {}: {e}",
                         account.id.as_ref()
@@ -453,10 +448,13 @@ pub async fn run_full_sync(db: &Mutex<DbManager>) -> Result<(), AppError> {
                 }
             }
             ProviderKind::Inoreader => {
-                warn!(
-                    "Inoreader sync not yet implemented, skipping account {}",
-                    account.id.as_ref()
-                );
+                let provider = GReaderProvider::for_inoreader();
+                if let Err(e) = sync_greader_account(db, account, provider).await {
+                    warn!(
+                        "Inoreader sync failed for account {}: {e}",
+                        account.id.as_ref()
+                    );
+                }
             }
         }
     }

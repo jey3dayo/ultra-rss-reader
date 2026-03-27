@@ -32,6 +32,7 @@ pub fn add_account(
     let provider_kind = match kind.as_str() {
         "Local" => ProviderKind::Local,
         "FreshRss" => ProviderKind::FreshRss,
+        "Inoreader" => ProviderKind::Inoreader,
         _ => {
             return Err(AppError::UserVisible {
                 message: "Unknown provider kind".into(),
@@ -51,7 +52,10 @@ pub fn add_account(
     };
 
     // Store password in OS keyring BEFORE DB save (fail fast)
-    if account.kind == ProviderKind::FreshRss {
+    if matches!(
+        account.kind,
+        ProviderKind::FreshRss | ProviderKind::Inoreader
+    ) {
         if let Some(ref pw) = password {
             keyring_store::set_password(account.id.as_ref(), pw)?;
         }

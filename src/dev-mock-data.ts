@@ -11,6 +11,7 @@ yesterday.setDate(yesterday.getDate() - 1);
 
 export const mockAccounts: AccountDto[] = [
   { id: "acc-freshrss", kind: "FreshRss", name: "FreshRSS" },
+  { id: "acc-inoreader", kind: "Inoreader", name: "Inoreader" },
   { id: "acc-local", kind: "Local", name: "Local" },
 ];
 
