@@ -18,7 +18,7 @@ export function SettingsSwitch({ label, prefKey }: { label: string; prefKey: str
   );
 }
 
-export interface SelectOption {
+interface SelectOption {
   value: string;
   label: string;
 }
@@ -56,22 +56,26 @@ export function SectionHeading({ children }: { children: React.ReactNode }) {
   return <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">{children}</h3>;
 }
 
-export interface SettingsRowProps {
-  label: string;
-  value?: string;
-  type: "switch" | "select" | "text";
-  checked?: boolean;
-  truncate?: boolean;
-}
+/** Read-only display row for account detail settings. Switch is intentionally
+ *  disabled — these values are synced from the backend and not user-editable here.
+ *  Use SettingsSwitch/SettingsSelect for interactive preference rows. */
+export type SettingsRowProps =
+  | { label: string; type: "switch"; checked?: boolean }
+  | { label: string; type: "select"; value?: string }
+  | { label: string; type: "text"; value?: string; truncate?: boolean };
 
-export function SettingsRow({ label, value, type, checked, truncate }: SettingsRowProps) {
+export function SettingsRow(props: SettingsRowProps) {
   return (
     <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-      <span className="text-sm text-foreground">{label}</span>
-      {type === "switch" && <Switch checked={checked} disabled className="data-[state=checked]:bg-accent" />}
-      {type === "select" && <span className="text-sm text-muted-foreground">{value} &#9662;</span>}
-      {type === "text" && (
-        <span className={cn("text-sm text-muted-foreground", truncate && "max-w-[200px] truncate")}>{value}</span>
+      <span className="text-sm text-foreground">{props.label}</span>
+      {props.type === "switch" && (
+        <Switch checked={props.checked} disabled className="data-[state=checked]:bg-accent" />
+      )}
+      {props.type === "select" && <span className="text-sm text-muted-foreground">{props.value} &#9662;</span>}
+      {props.type === "text" && (
+        <span className={cn("text-sm text-muted-foreground", props.truncate && "max-w-[200px] truncate")}>
+          {props.value}
+        </span>
       )}
     </div>
   );
