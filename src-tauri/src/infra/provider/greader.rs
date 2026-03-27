@@ -158,10 +158,7 @@ impl GReaderProvider {
     }
 
     /// Apply Inoreader-specific AppId/AppKey headers to a request builder.
-    fn apply_app_headers(
-        &self,
-        builder: reqwest::RequestBuilder,
-    ) -> reqwest::RequestBuilder {
+    fn apply_app_headers(&self, builder: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
         let mut b = builder;
         if let Some(ref app_id) = self.app_id {
             b = b.header("AppId", app_id.as_str());
