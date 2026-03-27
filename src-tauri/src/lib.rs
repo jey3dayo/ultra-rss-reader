@@ -71,6 +71,7 @@ pub fn run() {
             commands::account_commands::list_accounts,
             commands::account_commands::add_account,
             commands::account_commands::delete_account,
+            commands::feed_commands::list_folders,
             commands::feed_commands::list_feeds,
             commands::feed_commands::add_local_feed,
             commands::feed_commands::trigger_sync,

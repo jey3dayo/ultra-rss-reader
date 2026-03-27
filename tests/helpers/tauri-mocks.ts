@@ -9,8 +9,22 @@ export const sampleAccounts: AccountDto[] = [
 ];
 
 export const sampleFeeds: FeedDto[] = [
-  { id: "feed-1", account_id: "acc-1", title: "Tech Blog", url: "https://example.com/feed.xml", unread_count: 5 },
-  { id: "feed-2", account_id: "acc-1", title: "News", url: "https://example.com/news.xml", unread_count: 0 },
+  {
+    id: "feed-1",
+    account_id: "acc-1",
+    folder_id: null,
+    title: "Tech Blog",
+    url: "https://example.com/feed.xml",
+    unread_count: 5,
+  },
+  {
+    id: "feed-2",
+    account_id: "acc-1",
+    folder_id: null,
+    title: "News",
+    url: "https://example.com/news.xml",
+    unread_count: 0,
+  },
 ];
 
 export const sampleArticles: ArticleDto[] = [
@@ -63,7 +77,14 @@ const defaultHandler: MockHandler = (cmd, args) => {
     case "search_articles":
       return [];
     case "add_local_feed":
-      return { id: "feed-new", account_id: args.accountId, title: "New Feed", url: args.url, unread_count: 0 };
+      return {
+        id: "feed-new",
+        account_id: args.accountId,
+        folder_id: null,
+        title: "New Feed",
+        url: args.url,
+        unread_count: 0,
+      };
     case "delete_account":
       return null;
     case "open_in_browser":

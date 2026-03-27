@@ -40,9 +40,18 @@ pub struct AccountDto {
 }
 
 #[derive(Debug, Serialize)]
+pub struct FolderDto {
+    pub id: String,
+    pub account_id: String,
+    pub name: String,
+    pub sort_order: i32,
+}
+
+#[derive(Debug, Serialize)]
 pub struct FeedDto {
     pub id: String,
     pub account_id: String,
+    pub folder_id: Option<String>,
     pub title: String,
     pub url: String,
     pub unread_count: i32,
@@ -73,11 +82,23 @@ impl From<crate::domain::account::Account> for AccountDto {
     }
 }
 
+impl From<crate::domain::folder::Folder> for FolderDto {
+    fn from(f: crate::domain::folder::Folder) -> Self {
+        Self {
+            id: f.id.0,
+            account_id: f.account_id.0,
+            name: f.name,
+            sort_order: f.sort_order,
+        }
+    }
+}
+
 impl From<crate::domain::feed::Feed> for FeedDto {
     fn from(f: crate::domain::feed::Feed) -> Self {
         Self {
             id: f.id.0,
             account_id: f.account_id.0,
+            folder_id: f.folder_id.map(|id| id.0),
             title: f.title,
             url: f.url,
             unread_count: f.unread_count,

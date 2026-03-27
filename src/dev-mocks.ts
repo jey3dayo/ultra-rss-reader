@@ -5,7 +5,7 @@
 
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import type { AccountDto, FeedDto } from "./api/tauri-commands";
-import { mockAccounts, mockArticles, mockFeeds } from "./dev-mock-data";
+import { mockAccounts, mockArticles, mockFeeds, mockFolders } from "./dev-mock-data";
 
 let nextAccountId = 100;
 let nextFeedId = 100;
@@ -47,6 +47,9 @@ export function setupDevMocks() {
         return null;
       }
 
+      case "list_folders":
+        return mockFolders.filter((f) => f.account_id === args.accountId);
+
       case "list_feeds":
         return mockFeeds.filter((f) => f.account_id === args.accountId);
 
@@ -56,6 +59,7 @@ export function setupDevMocks() {
         const feed: FeedDto = {
           id: feedId,
           account_id: String(args.accountId),
+          folder_id: null,
           title: titleFromUrl(feedUrl),
           url: feedUrl,
           unread_count: 3,

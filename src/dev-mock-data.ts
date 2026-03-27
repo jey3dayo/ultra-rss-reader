@@ -3,7 +3,7 @@
  * Separated from IPC handler logic for maintainability.
  */
 
-import type { AccountDto, ArticleDto, FeedDto } from "./api/tauri-commands";
+import type { AccountDto, ArticleDto, FeedDto, FolderDto } from "./api/tauri-commands";
 
 const now = new Date();
 const yesterday = new Date(now);
@@ -14,10 +14,16 @@ export const mockAccounts: AccountDto[] = [
   { id: "acc-local", kind: "Local", name: "Local" },
 ];
 
+export const mockFolders: FolderDto[] = [
+  { id: "folder-gaming", account_id: "acc-freshrss", name: "Gaming", sort_order: 0 },
+  { id: "folder-tech", account_id: "acc-freshrss", name: "Tech", sort_order: 1 },
+];
+
 export const mockFeeds: FeedDto[] = [
   {
     id: "feed-automaton",
     account_id: "acc-freshrss",
+    folder_id: "folder-gaming",
     title: "AUTOMATON",
     url: "https://automaton-media.com/feed/",
     unread_count: 199,
@@ -25,6 +31,7 @@ export const mockFeeds: FeedDto[] = [
   {
     id: "feed-hatima",
     account_id: "acc-freshrss",
+    folder_id: "folder-gaming",
     title: "はちま起稿",
     url: "https://esuteru.com/feed/",
     unread_count: 239,
@@ -32,6 +39,7 @@ export const mockFeeds: FeedDto[] = [
   {
     id: "feed-yumenavi",
     account_id: "acc-freshrss",
+    folder_id: "folder-gaming",
     title: "ゆめ痛 -News Alert-",
     url: "https://yumenavi.info/feed/",
     unread_count: 152,
@@ -39,6 +47,7 @@ export const mockFeeds: FeedDto[] = [
   {
     id: "feed-publickey",
     account_id: "acc-freshrss",
+    folder_id: "folder-tech",
     title: "Publickey",
     url: "https://www.publickey1.jp/atom.xml",
     unread_count: 70,
@@ -46,6 +55,7 @@ export const mockFeeds: FeedDto[] = [
   {
     id: "feed-techno",
     account_id: "acc-freshrss",
+    folder_id: "folder-tech",
     title: "techno-edge",
     url: "https://www.techno-edge.net/rss/",
     unread_count: 1,
@@ -53,6 +63,7 @@ export const mockFeeds: FeedDto[] = [
   {
     id: "feed-nhk",
     account_id: "acc-freshrss",
+    folder_id: null,
     title: "NHKニュース",
     url: "https://www.nhk.or.jp/rss/news/cat0.xml",
     unread_count: 187,
@@ -60,6 +71,7 @@ export const mockFeeds: FeedDto[] = [
   {
     id: "feed-hatena",
     account_id: "acc-freshrss",
+    folder_id: null,
     title: "はてブ 人気エントリー",
     url: "https://b.hatena.ne.jp/hotentry/it.rss",
     unread_count: 432,
@@ -67,6 +79,7 @@ export const mockFeeds: FeedDto[] = [
   {
     id: "feed-jxck",
     account_id: "acc-freshrss",
+    folder_id: "folder-tech",
     title: "blog.jxck.io",
     url: "https://blog.jxck.io/entries/feed",
     unread_count: 1,
@@ -74,6 +87,7 @@ export const mockFeeds: FeedDto[] = [
   {
     id: "feed-npaka",
     account_id: "acc-freshrss",
+    folder_id: null,
     title: "npaka",
     url: "https://note.com/npaka/rss",
     unread_count: 128,
@@ -81,6 +95,7 @@ export const mockFeeds: FeedDto[] = [
   {
     id: "feed-chimolog",
     account_id: "acc-freshrss",
+    folder_id: null,
     title: "ちもろぐ",
     url: "https://chimolog.co/feed/",
     unread_count: 1,

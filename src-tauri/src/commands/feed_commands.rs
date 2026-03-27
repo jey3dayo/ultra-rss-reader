@@ -1,6 +1,6 @@
 use tauri::State;
 
-use crate::commands::dto::{AppError, FeedDto};
+use crate::commands::dto::{AppError, FeedDto, FolderDto};
 use crate::commands::AppState;
 use crate::domain::account::Account;
 use crate::domain::feed::Feed;
@@ -9,11 +9,26 @@ use crate::domain::types::{AccountId, FeedId};
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
+use crate::infra::db::sqlite_folder::SqliteFolderRepository;
 use crate::infra::provider::local::LocalProvider;
 use crate::infra::provider::traits::FeedProvider;
 use crate::repository::account::AccountRepository;
 use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
+use crate::repository::folder::FolderRepository;
+
+#[tauri::command]
+pub fn list_folders(
+    state: State<'_, AppState>,
+    account_id: String,
+) -> Result<Vec<FolderDto>, AppError> {
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let repo = SqliteFolderRepository::new(db.reader());
+    let folders = repo.find_by_account(&AccountId(account_id))?;
+    Ok(folders.into_iter().map(FolderDto::from).collect())
+}
 
 #[tauri::command]
 pub fn list_feeds(

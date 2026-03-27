@@ -5,7 +5,15 @@ import { invoke } from "@tauri-apps/api/core";
 export type AppError = { type: "UserVisible"; message: string } | { type: "Retryable"; message: string };
 
 export type AccountDto = { id: string; kind: string; name: string };
-export type FeedDto = { id: string; account_id: string; title: string; url: string; unread_count: number };
+export type FolderDto = { id: string; account_id: string; name: string; sort_order: number };
+export type FeedDto = {
+  id: string;
+  account_id: string;
+  folder_id: string | null;
+  title: string;
+  url: string;
+  unread_count: number;
+};
 export type ArticleDto = {
   id: string;
   feed_id: string;
@@ -36,6 +44,7 @@ function safeInvoke<T>(cmd: string, args?: Record<string, unknown>): Result.Resu
 
 // Commands
 export const listAccounts = () => safeInvoke<AccountDto[]>("list_accounts");
+export const listFolders = (accountId: string) => safeInvoke<FolderDto[]>("list_folders", { accountId });
 export const listFeeds = (accountId: string) => safeInvoke<FeedDto[]>("list_feeds", { accountId });
 export const listArticles = (feedId: string, offset?: number, limit?: number) =>
   safeInvoke<ArticleDto[]>("list_articles", { feedId, offset, limit });

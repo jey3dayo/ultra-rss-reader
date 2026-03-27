@@ -1,10 +1,11 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Plus, RefreshCw, Settings } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, RefreshCw, Settings } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { FeedDto } from "@/api/tauri-commands";
+import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { addLocalFeed, triggerSync } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useFeeds } from "@/hooks/use-feeds";
+import { useFolders } from "@/hooks/use-folders";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -98,12 +100,91 @@ function AddFeedDialog({
   );
 }
 
+function FeedItem({
+  feed,
+  isSelected,
+  onSelect,
+}: {
+  feed: FeedDto;
+  isSelected: boolean;
+  onSelect: (feedId: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(feed.id)}
+      className={cn(
+        "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm",
+        isSelected ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50",
+      )}
+    >
+      <div className="flex items-center gap-2 truncate">
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-accent/20 text-[10px] font-medium text-accent">
+          {feed.title.charAt(0).toUpperCase()}
+        </span>
+        <span className="truncate">{feed.title}</span>
+      </div>
+      {feed.unread_count > 0 && <span className="ml-2 shrink-0 text-muted-foreground">{feed.unread_count}</span>}
+    </button>
+  );
+}
+
+function FolderSection({
+  folder,
+  feeds,
+  isExpanded,
+  onToggle,
+  selectedFeedId,
+  onSelectFeed,
+}: {
+  folder: FolderDto;
+  feeds: FeedDto[];
+  isExpanded: boolean;
+  onToggle: (folderId: string) => void;
+  selectedFeedId: string | null;
+  onSelectFeed: (feedId: string) => void;
+}) {
+  const folderUnread = feeds.reduce((sum, f) => sum + f.unread_count, 0);
+
+  return (
+    <Collapsible open={isExpanded}>
+      <CollapsibleTrigger
+        onClick={() => onToggle(folder.id)}
+        className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/50"
+      >
+        <div className="flex items-center gap-1">
+          {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          <span className="font-medium">{folder.name}</span>
+        </div>
+        {folderUnread > 0 && <span className="text-muted-foreground">{folderUnread.toLocaleString()}</span>}
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="space-y-0.5 pl-3">
+          {feeds.map((feed) => (
+            <FeedItem key={feed.id} feed={feed} isSelected={selectedFeedId === feed.id} onSelect={onSelectFeed} />
+          ))}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 export function Sidebar() {
   const [showAccountList, setShowAccountList] = useState(false);
   const [showAddFeed, setShowAddFeed] = useState(false);
   const { data: accounts } = useAccounts();
-  const { selectedAccountId, selectAccount, selection, selectFeed, selectSmartView, openSettings } = useUiStore();
+  const {
+    selectedAccountId,
+    selectAccount,
+    selection,
+    selectFeed,
+    selectSmartView,
+    expandedFolderIds,
+    toggleFolder,
+    openSettings,
+  } = useUiStore();
   const { data: feeds } = useFeeds(selectedAccountId);
+  const { data: folders } = useFolders(selectedAccountId);
 
   // Auto-select first account if none selected
   useEffect(() => {
@@ -124,9 +205,23 @@ export function Sidebar() {
     );
   };
 
-  // Group feeds by a simple approach (no folder hierarchy in FeedDto, show flat list)
-  // Since FeedDto doesn't have folderId, we just show all feeds in a list
   const feedList: FeedDto[] = feeds ?? [];
+  const folderList: FolderDto[] = folders ?? [];
+
+  // Group feeds by folder
+  const feedsByFolder = new Map<string, FeedDto[]>();
+  const unfolderedFeeds: FeedDto[] = [];
+  for (const feed of feedList) {
+    if (feed.folder_id) {
+      const existing = feedsByFolder.get(feed.folder_id) ?? [];
+      existing.push(feed);
+      feedsByFolder.set(feed.folder_id, existing);
+    } else {
+      unfolderedFeeds.push(feed);
+    }
+  }
+
+  const selectedFeedId = selection.type === "feed" ? selection.feedId : null;
 
   return (
     <div className="flex h-full w-[280px] flex-col border-r border-border bg-sidebar text-sidebar-foreground">
@@ -235,33 +330,32 @@ export function Sidebar() {
       {/* Scrollable Feed List */}
       <ScrollArea className="flex-1">
         <div className="space-y-0.5 px-2 pb-4">
-          {feedList.length > 0
-            ? feedList.map((feed) => (
-                <button
-                  type="button"
-                  key={feed.id}
-                  onClick={() => selectFeed(feed.id)}
-                  className={cn(
-                    "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm",
-                    selection.type === "feed" && selection.feedId === feed.id
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "hover:bg-sidebar-accent/50",
-                  )}
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-accent/20 text-[10px] font-medium text-accent">
-                      {feed.title.charAt(0).toUpperCase()}
-                    </span>
-                    <span className="truncate">{feed.title}</span>
-                  </div>
-                  {feed.unread_count > 0 && (
-                    <span className="ml-2 shrink-0 text-muted-foreground">{feed.unread_count}</span>
-                  )}
-                </button>
-              ))
-            : selectedAccountId && (
-                <div className="px-2 py-4 text-center text-sm text-muted-foreground">Press + to add a feed</div>
-              )}
+          {feedList.length > 0 ? (
+            <>
+              {folderList.map((folder) => {
+                const folderFeeds = feedsByFolder.get(folder.id) ?? [];
+                if (folderFeeds.length === 0) return null;
+                return (
+                  <FolderSection
+                    key={folder.id}
+                    folder={folder}
+                    feeds={folderFeeds}
+                    isExpanded={expandedFolderIds.has(folder.id)}
+                    onToggle={toggleFolder}
+                    selectedFeedId={selectedFeedId}
+                    onSelectFeed={selectFeed}
+                  />
+                );
+              })}
+              {unfolderedFeeds.map((feed) => (
+                <FeedItem key={feed.id} feed={feed} isSelected={selectedFeedId === feed.id} onSelect={selectFeed} />
+              ))}
+            </>
+          ) : (
+            selectedAccountId && (
+              <div className="px-2 py-4 text-center text-sm text-muted-foreground">Press + to add a feed</div>
+            )
+          )}
         </div>
       </ScrollArea>
 
