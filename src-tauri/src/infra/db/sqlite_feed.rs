@@ -109,8 +109,6 @@ impl FeedRepository for SqliteFeedRepository<'_> {
 
     fn delete(&self, feed_id: &FeedId) -> DomainResult<()> {
         self.conn
-            .execute("DELETE FROM articles WHERE feed_id = ?1", params![feed_id.0])?;
-        self.conn
             .execute("DELETE FROM feeds WHERE id = ?1", params![feed_id.0])?;
         Ok(())
     }

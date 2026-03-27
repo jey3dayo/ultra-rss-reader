@@ -127,11 +127,10 @@ async fn sync_local_feed(
     account_id: &AccountId,
     feed: &Feed,
 ) -> Result<(), AppError> {
-    let scope = crate::domain::provider::PullScope::Feed(
-        crate::domain::provider::FeedIdentifier::Local {
+    let scope =
+        crate::domain::provider::PullScope::Feed(crate::domain::provider::FeedIdentifier::Local {
             feed_url: feed.url.clone(),
-        },
-    );
+        });
 
     let result = provider.pull_entries(scope, None).await?;
 
@@ -449,10 +448,7 @@ impl Drop for SyncGuard<'_> {
 ///
 /// Uses `syncing` as a concurrent-execution guard: if another sync is already
 /// in progress the call returns `Ok(())` immediately (skip, not error).
-pub async fn run_full_sync(
-    db: &Mutex<DbManager>,
-    syncing: &AtomicBool,
-) -> Result<(), AppError> {
+pub async fn run_full_sync(db: &Mutex<DbManager>, syncing: &AtomicBool) -> Result<(), AppError> {
     if syncing
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         .is_err()
