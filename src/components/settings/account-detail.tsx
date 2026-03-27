@@ -8,7 +8,8 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { useUiStore } from "@/stores/ui-store";
 
 export function AccountDetail() {
-  const { settingsAccountId, setSettingsAccountId } = useUiStore();
+  const settingsAccountId = useUiStore((s) => s.settingsAccountId);
+  const setSettingsAccountId = useUiStore((s) => s.setSettingsAccountId);
   const { data: accounts } = useAccounts();
   const qc = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);

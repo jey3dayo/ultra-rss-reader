@@ -36,7 +36,12 @@ function formatTime(dateStr: string): string {
 }
 
 export function ArticleList() {
-  const { selection, selectedAccountId, selectedArticleId, selectArticle, viewMode, setViewMode } = useUiStore();
+  const selection = useUiStore((s) => s.selection);
+  const selectedAccountId = useUiStore((s) => s.selectedAccountId);
+  const selectedArticleId = useUiStore((s) => s.selectedArticleId);
+  const selectArticle = useUiStore((s) => s.selectArticle);
+  const viewMode = useUiStore((s) => s.viewMode);
+  const setViewMode = useUiStore((s) => s.setViewMode);
   const sortUnread = usePreferencesStore((s) => s.prefs.sort_unread ?? "newest_first");
   const groupBy = usePreferencesStore((s) => s.prefs.group_by ?? "date");
   const dimArchived = usePreferencesStore((s) => s.prefs.dim_archived ?? "true");

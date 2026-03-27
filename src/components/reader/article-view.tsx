@@ -324,7 +324,10 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
 }
 
 export function ArticleView() {
-  const { contentMode, selectedAccountId, selectedArticleId, selection } = useUiStore();
+  const contentMode = useUiStore((s) => s.contentMode);
+  const selectedAccountId = useUiStore((s) => s.selectedAccountId);
+  const selectedArticleId = useUiStore((s) => s.selectedArticleId);
+  const selection = useUiStore((s) => s.selection);
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
   const { data: articles } = useArticles(feedId);

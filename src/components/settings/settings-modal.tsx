@@ -57,17 +57,15 @@ const navItems: NavItem[] = [
 ];
 
 export function SettingsModal() {
-  const {
-    settingsOpen,
-    settingsCategory,
-    settingsAccountId,
-    settingsAddAccount,
-    closeSettings,
-    openSettings,
-    setSettingsCategory,
-    setSettingsAccountId,
-    setSettingsAddAccount,
-  } = useUiStore();
+  const settingsOpen = useUiStore((s) => s.settingsOpen);
+  const settingsCategory = useUiStore((s) => s.settingsCategory);
+  const settingsAccountId = useUiStore((s) => s.settingsAccountId);
+  const settingsAddAccount = useUiStore((s) => s.settingsAddAccount);
+  const closeSettings = useUiStore((s) => s.closeSettings);
+  const openSettings = useUiStore((s) => s.openSettings);
+  const setSettingsCategory = useUiStore((s) => s.setSettingsCategory);
+  const setSettingsAccountId = useUiStore((s) => s.setSettingsAccountId);
+  const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
   const { data: accounts } = useAccounts();
 
   // Listen for Tauri menu event

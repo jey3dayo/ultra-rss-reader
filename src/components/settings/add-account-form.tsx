@@ -9,7 +9,8 @@ import { useUiStore } from "@/stores/ui-store";
 type ProviderKind = "Local" | "FreshRss" | "Inoreader";
 
 export function AddAccountForm() {
-  const { setSettingsAddAccount, setSettingsAccountId } = useUiStore();
+  const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
+  const setSettingsAccountId = useUiStore((s) => s.setSettingsAccountId);
   const qc = useQueryClient();
   const [kind, setKind] = useState<ProviderKind>("Local");
   const [name, setName] = useState("");

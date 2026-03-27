@@ -20,17 +20,15 @@ export function Sidebar() {
   const [showAccountList, setShowAccountList] = useState(false);
   const [showAddFeed, setShowAddFeed] = useState(false);
   const { data: accounts } = useAccounts();
-  const {
-    selectedAccountId,
-    selectAccount,
-    selection,
-    selectFeed,
-    selectSmartView,
-    selectTag,
-    expandedFolderIds,
-    toggleFolder,
-    openSettings,
-  } = useUiStore();
+  const selectedAccountId = useUiStore((s) => s.selectedAccountId);
+  const selectAccount = useUiStore((s) => s.selectAccount);
+  const selection = useUiStore((s) => s.selection);
+  const selectFeed = useUiStore((s) => s.selectFeed);
+  const selectSmartView = useUiStore((s) => s.selectSmartView);
+  const selectTag = useUiStore((s) => s.selectTag);
+  const expandedFolderIds = useUiStore((s) => s.expandedFolderIds);
+  const toggleFolder = useUiStore((s) => s.toggleFolder);
+  const openSettings = useUiStore((s) => s.openSettings);
   const { data: feeds } = useFeeds(selectedAccountId);
   const { data: folders } = useFolders(selectedAccountId);
   const { data: tags } = useTags();
