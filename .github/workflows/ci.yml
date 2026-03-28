@@ -28,9 +28,9 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: jdx/mise-action@v2
+      - uses: jdx/mise-action@v4
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -46,14 +46,14 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Tauri system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ${{ env.TAURI_SYSTEM_DEPS }}
 
-      - uses: jdx/mise-action@v2
+      - uses: jdx/mise-action@v4
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -73,14 +73,14 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Tauri system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ${{ env.TAURI_SYSTEM_DEPS }}
 
-      - uses: jdx/mise-action@v2
+      - uses: jdx/mise-action@v4
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -98,9 +98,9 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: jdx/mise-action@v2
+      - uses: jdx/mise-action@v4
 
       - run: pnpm install --frozen-lockfile
 

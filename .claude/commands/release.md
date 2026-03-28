@@ -51,8 +51,10 @@ release: v{new_version}
 
 ### 6. タグ作成
 
+annotated タグを作成する（`--follow-tags` で push されるために必要）:
+
 ```bash
-git tag v{new_version}
+git tag -a v{new_version} -m "v{new_version}"
 ```
 
 ### 7. ユーザー確認
@@ -70,6 +72,18 @@ push 前に以下を表示してユーザーの確認を求める:
 
 ```bash
 git push origin main --follow-tags
+```
+
+push 後、タグがリモートに存在するか確認する:
+
+```bash
+git ls-remote --tags origin | grep v{new_version}
+```
+
+もしタグが見つからない場合は明示的に push する:
+
+```bash
+git push origin v{new_version}
 ```
 
 これにより既存の `.github/workflows/release.yml` が `v*` タグで発火する。
