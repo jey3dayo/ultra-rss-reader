@@ -32,8 +32,8 @@ Issue: #8
 
 2 つの Tauri command:
 
-- **`check_for_update`** — GitHub Releases をチェック。新バージョンがあれば `{ version: String, body: Option<String> }` を返す。なければ `null`。フロントエンドは戻り値を受け取り、`null` でなければトースト通知を表示する（Rust 側からの event emit は行わない）。
-- **`download_and_install_update`** — ダウンロード開始。進捗を `update-download-progress` イベントで emit（`{ percent: u8 }`）。完了したら `update-ready` イベントを emit。二重実行防止: Rust 側で `AtomicBool` フラグを持ち、ダウンロード中の再呼び出しはエラーを返す。
+- `check_for_update` — GitHub Releases をチェック。新バージョンがあれば `{ version: String, body: Option<String> }` を返す。なければ `null`。フロントエンドは戻り値を受け取り、`null` でなければトースト通知を表示する（Rust 側からの event emit は行わない）。
+- `download_and_install_update` — ダウンロード開始。進捗を `update-download-progress` イベントで emit（`{ percent: u8 }`）。完了したら `update-ready` イベントを emit。二重実行防止: Rust 側で `AtomicBool` フラグを持ち、ダウンロード中の再呼び出しはエラーを返す。フラグはダウンロード完了時（成功・失敗とも）に必ずリセットする（`scopeguard` または手動 `store(false)` を全 return パスで実行）。
 
 再起動は `app.restart()` (Tauri 2 API) を使用する。
 
@@ -65,7 +65,7 @@ Check for Updates...  (id: "check-for-updates")
 
 `handle_event` に `"check-for-updates" => "check-for-updates"` マッピングを追加。
 
-**メニューイベントフロー（既存パターンと統一）:**
+### メニューイベントフロー（既存パターンと統一）:
 
 1. Rust `handle_event` → `menu-action` イベントで `"check-for-updates"` を emit
 2. `use-menu-events.ts` が受信 → `executeAction("check-for-updates")` を呼び出し
@@ -101,7 +101,7 @@ env:
 
 #### Toast extension (`ui-store.ts`)
 
-既存の `showToast`（テキストのみ、5秒自動消去）を拡張:
+既存の `showToast`（テキストのみ、5秒自動消去）を拡張。後方互換性を保つため、シグネチャは `showToast(message: string | ToastData)` とし、`string` を渡した場合は従来通りの動作を維持する:
 
 ```ts
 type ToastAction = {
@@ -119,9 +119,9 @@ type ToastData = {
 
 #### Toast state transitions
 
-1. **Notification**: "v0.2.0 が利用可能です" + [今すぐ更新] [後で]
-2. **Downloading**: "ダウンロード中... 45%" + progress bar (buttons hidden)
-3. **Ready**: "更新の準備ができました" + [再起動] [後で]
+1. Notification: "v0.2.0 が利用可能です" + [今すぐ更新] [後で]
+2. Downloading: "ダウンロード中... 45%" + progress bar (buttons hidden)
+3. Ready: "更新の準備ができました" + [再起動] [後で]
 
 #### New file: `src/hooks/use-updater.ts`
 
@@ -130,8 +130,9 @@ Tauri イベントの listen + invoke ロジック:
 - アプリ起動時: `check_for_update` を invoke → 戻り値が非 null なら通知トースト表示
 - `update-download-progress` イベント → 進捗トースト更新
 - `update-ready` イベント → 再起動確認トースト表示
-- Menu action `check-for-updates`（`menu-action` イベント経由）→ `check_for_update` を invoke
 - 「後で」ボタン: トーストを消去するのみ。次回アプリ起動時に再チェックされる
+
+注: メニューからの手動チェック（`check-for-updates`）は `lib/actions.ts` の `executeAction` が担当する。`use-updater.ts` は起動時チェックとイベントリスナーのみ。
 
 #### Existing file changes
 
@@ -182,23 +183,22 @@ Tauri イベントの listen + invoke ロジック:
 
 ### Frontend
 
-- `@tauri-apps/plugin-updater` を `pnpm add` で明示的にインストール（Rust plugin とは別に JS バインディングが必要）。
+- 追加の npm パッケージ不要。Rust command を `@tauri-apps/api/core` の `invoke` で呼び、イベントは `@tauri-apps/api/event` の `listen` で受信する（既存パターン）。
 
 ## File Change Summary
 
-| File                                  | Change                                                                       |
-| ------------------------------------- | ---------------------------------------------------------------------------- |
-| `src-tauri/Cargo.toml`                | Add `tauri-plugin-updater`                                                   |
-| `src-tauri/tauri.conf.json`           | Add updater plugin config with endpoint + pubkey                             |
-| `src-tauri/capabilities/default.json` | Add `updater:default` permission                                             |
-| `src-tauri/src/commands/updater.rs`   | **New** — check_for_update, download_and_install_update commands             |
-| `src-tauri/src/commands/mod.rs`       | Register updater module                                                      |
-| `src-tauri/src/lib.rs`                | Register updater commands + plugin                                           |
-| `src-tauri/src/menu.rs`               | Add "Check for Updates..." menu item + event handler                         |
-| `.github/workflows/release.yml`       | Add signing env vars                                                         |
-| `src/stores/ui-store.ts`              | Extend toast types                                                           |
-| `src/hooks/use-updater.ts`            | **New** — updater event listener + invoke logic                              |
-| `src/api/tauri-commands.ts`           | Add `checkForUpdate`, `downloadAndInstallUpdate` wrappers                    |
-| `src/components/app-shell.tsx`        | Call `useUpdater()` + Toast inline component (action buttons + progress bar) |
-| `src/lib/actions.ts`                  | Add `"check-for-updates"` to `AppAction` + `executeAction`                   |
-| `package.json`                        | Add `@tauri-apps/plugin-updater`                                             |
+| File                                  | Change                                                                                                     |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `src-tauri/Cargo.toml`                | Add `tauri-plugin-updater`                                                                                 |
+| `src-tauri/tauri.conf.json`           | Add updater plugin config with endpoint + pubkey                                                           |
+| `src-tauri/capabilities/default.json` | Add `updater:default` permission                                                                           |
+| `src-tauri/src/commands/updater.rs`   | New — check_for_update, download_and_install_update commands                                               |
+| `src-tauri/src/commands/mod.rs`       | Register updater module                                                                                    |
+| `src-tauri/src/lib.rs`                | Register updater commands + plugin                                                                         |
+| `src-tauri/src/menu.rs`               | Add "Check for Updates..." menu item + event handler                                                       |
+| `.github/workflows/release.yml`       | Add signing env vars                                                                                       |
+| `src/stores/ui-store.ts`              | Extend toast types                                                                                         |
+| `src/hooks/use-updater.ts`            | New — updater event listener + invoke logic                                                                |
+| `src/api/tauri-commands.ts`           | Add `checkForUpdate`, `downloadAndInstallUpdate` wrappers                                                  |
+| `src/components/app-shell.tsx`        | Call `useUpdater()` + Toast inline component (action buttons + progress bar)                               |
+| `src/lib/actions.ts`                  | Add `"check-for-updates"` to `AppAction` + `executeAction` (既存 `never` 網羅性チェックが case 漏れを防止) |
