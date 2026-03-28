@@ -10,6 +10,7 @@ node = "24"
 pnpm = "latest"
 rust = "stable"
 taplo = "latest"
+"pipx:yamllint" = "latest"
 
 # ========================================
 # フォーマット（自動修正）
@@ -57,7 +58,7 @@ run = "taplo fmt --check mise.toml src-tauri/Cargo.toml"
 
 [tasks.lint]
 description = "All lint checks"
-depends = ["lint:types", "lint:biome", "lint:clippy"]
+depends = ["lint:types", "lint:biome", "lint:clippy", "lint:yaml"]
 
 [tasks."lint:types"]
 description = "TypeScript type check"
@@ -70,6 +71,10 @@ run = "pnpm run lint"
 [tasks."lint:clippy"]
 description = "Rust clippy"
 run = "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
+
+[tasks."lint:yaml"]
+description = "YAML lint check"
+run = "yamllint -c .yamllint .github/"
 
 [tasks."lint:actions"]
 description = "GitHub Actions workflow check (actionlint)"
