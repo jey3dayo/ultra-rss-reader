@@ -30,11 +30,16 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                 .await;
 
             match result {
-                Ok(Ok(())) => {
+                Ok(Ok(true)) => {
                     tracing::info!("Background sync completed successfully");
                     if let Err(e) = app_handle.emit("sync-completed", ()) {
                         tracing::warn!("Failed to emit sync-completed event: {e}");
                     }
+                }
+                Ok(Ok(false)) => {
+                    tracing::info!(
+                        "Background sync skipped because another sync is already in progress"
+                    );
                 }
                 Ok(Err(e)) => {
                     tracing::warn!("Background sync failed: {e}");

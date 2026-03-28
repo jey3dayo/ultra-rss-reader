@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
-use tauri::State;
+use tauri::{Emitter, State};
 
 use crate::commands::dto::{AppError, FeedDto, FolderDto};
 use crate::commands::AppState;
@@ -27,6 +27,9 @@ use crate::repository::folder::FolderRepository;
 use crate::repository::pending_mutation::PendingMutationRepository;
 use crate::repository::preference::PreferenceRepository;
 use tracing::warn;
+
+use crate::commands::dto::DiscoveredFeedDto;
+use crate::infra::feed_discovery;
 
 fn lock_db(db: &Mutex<DbManager>) -> Result<std::sync::MutexGuard<'_, DbManager>, AppError> {
     db.lock().map_err(|e| AppError::UserVisible {
@@ -54,6 +57,34 @@ pub fn list_feeds(
     let repo = SqliteFeedRepository::new(db.reader());
     let feeds = repo.find_by_account(&AccountId(account_id))?;
     Ok(feeds.into_iter().map(FeedDto::from).collect())
+}
+
+#[tauri::command]
+pub fn create_folder(
+    state: State<'_, AppState>,
+    account_id: String,
+    name: String,
+) -> Result<FolderDto, AppError> {
+    use crate::domain::folder::Folder;
+
+    let db = lock_db(&state.db)?;
+    let account_id = AccountId(account_id);
+    let folder_repo = SqliteFolderRepository::new(db.writer());
+
+    // Determine next sort_order
+    let existing = folder_repo.find_by_account(&account_id)?;
+    let sort_order = existing.len() as i32;
+
+    // NOTE: Local-only folder; remote sync will be handled in a future iteration
+    let folder = Folder {
+        id: FolderId::new(),
+        account_id,
+        remote_id: None,
+        name,
+        sort_order,
+    };
+    folder_repo.save(&folder)?;
+    Ok(FolderDto::from(folder))
 }
 
 #[tauri::command]
@@ -460,14 +491,14 @@ impl Drop for SyncGuard<'_> {
 /// Run a full sync for all accounts. Shared by `trigger_sync` command and the background scheduler.
 ///
 /// Uses `syncing` as a concurrent-execution guard: if another sync is already
-/// in progress the call returns `Ok(())` immediately (skip, not error).
-pub async fn run_full_sync(db: &Mutex<DbManager>, syncing: &AtomicBool) -> Result<(), AppError> {
+/// in progress the call returns `Ok(false)` immediately (skip, not error).
+pub async fn run_full_sync(db: &Mutex<DbManager>, syncing: &AtomicBool) -> Result<bool, AppError> {
     if syncing
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         .is_err()
     {
         tracing::info!("Sync already in progress, skipping");
-        return Ok(());
+        return Ok(false);
     }
     let _guard = SyncGuard(syncing);
 
@@ -519,7 +550,7 @@ pub async fn run_full_sync(db: &Mutex<DbManager>, syncing: &AtomicBool) -> Resul
             }
         }
     }
-    Ok(())
+    Ok(true)
 }
 
 /// Get the minimum sync interval from all accounts (defaults to 3600s if no accounts).
@@ -546,6 +577,19 @@ pub fn get_min_sync_interval(db: &Mutex<DbManager>) -> std::time::Duration {
 }
 
 #[tauri::command]
-pub async fn trigger_sync(state: State<'_, AppState>) -> Result<(), AppError> {
-    run_full_sync(&state.db, &state.syncing).await
+pub async fn discover_feeds(url: String) -> Result<Vec<DiscoveredFeedDto>, AppError> {
+    let feeds = feed_discovery::discover_feeds(&url).await?;
+    Ok(feeds.into_iter().map(DiscoveredFeedDto::from).collect())
+}
+
+#[tauri::command]
+pub async fn trigger_sync(
+    app_handle: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<bool, AppError> {
+    let did_sync = run_full_sync(&state.db, &state.syncing).await?;
+    if did_sync {
+        let _ = app_handle.emit("sync-completed", ());
+    }
+    Ok(did_sync)
 }

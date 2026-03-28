@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "",
+        "title": "Ultra RSS Reader",
         "width": 1400,
         "height": 900,
         "titleBarStyle": "Overlay"

@@ -41,8 +41,14 @@ pub async fn run_sync_loop(
                     account_id: account_id.clone(),
                 });
                 match run_full_sync(db, syncing).await {
-                    Ok(()) => {
+                    Ok(true) => {
                         let _ = event_tx.send(AppEvent::SyncCompleted { account_id });
+                    }
+                    Ok(false) => {
+                        info!(
+                            "SyncAccount {} skipped because another sync is already in progress",
+                            account_id.0
+                        );
                     }
                     Err(e) => {
                         warn!("SyncAccount {} failed: {e}", account_id.0);

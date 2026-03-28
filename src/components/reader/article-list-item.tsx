@@ -1,5 +1,6 @@
+import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { UnreadIcon } from "@/components/icons";
+import { UnreadIcon } from "@/components/shared/article-state-icon";
 import { formatArticleTime } from "@/lib/article-list";
 import { stripHtmlTags } from "@/lib/html";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ export function ArticleListItem({
   feedName,
   onSelect,
 }: ArticleListItemProps) {
+  const { t } = useTranslation("reader");
   const isUnread = !article.is_read;
   const isRead = article.is_read;
 
@@ -34,7 +36,7 @@ export function ArticleListItem({
       data-article-id={article.id}
       role="option"
       aria-selected={isSelected}
-      aria-label={`${article.title}${isRead ? "" : " (unread)"}${article.is_starred ? " (starred)" : ""}`}
+      aria-label={`${article.title}${isRead ? "" : ` ${t("unread_suffix")}`}${article.is_starred ? ` ${t("starred_suffix")}` : ""}`}
       onClick={onSelect}
       className={cn(
         "flex w-full flex-col gap-1 px-4 py-3 text-left transition-colors",

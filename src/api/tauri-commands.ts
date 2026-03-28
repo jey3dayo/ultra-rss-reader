@@ -2,12 +2,13 @@ import { Result } from "@praha/byethrow";
 import { invoke } from "@tauri-apps/api/core";
 
 // Error type from Rust backend
-export type AppError = { type: "UserVisible"; message: string } | { type: "Retryable"; message: string };
+type AppError = { type: "UserVisible"; message: string } | { type: "Retryable"; message: string };
 
 export type AccountDto = {
   id: string;
   kind: string;
   name: string;
+  server_url: string | null;
   sync_interval_secs: number;
   sync_on_wake: boolean;
   keep_read_items_days: number;
@@ -37,6 +38,7 @@ export type ArticleDto = {
 };
 
 export type TagDto = { id: string; name: string; color: string | null };
+export type DiscoveredFeedDto = { url: string; title: string };
 
 function toAppError(cmd: string, error: unknown): AppError {
   console.error(`[tauri-commands] ${cmd} failed:`, error);
@@ -80,10 +82,18 @@ export const updateAccountSync = (
   keepReadItemsDays: number,
 ) => safeInvoke<AccountDto>("update_account_sync", { accountId, syncIntervalSecs, syncOnWake, keepReadItemsDays });
 
+export const renameAccount = (accountId: string, name: string) =>
+  safeInvoke<AccountDto>("rename_account", { accountId, name });
+
 export const deleteAccount = (accountId: string) => safeInvoke<void>("delete_account", { accountId });
+
+export const discoverFeeds = (url: string) => safeInvoke<DiscoveredFeedDto[]>("discover_feeds", { url });
 
 export const addLocalFeed = (accountId: string, url: string) =>
   safeInvoke<FeedDto>("add_local_feed", { accountId, url });
+
+export const createFolder = (accountId: string, name: string) =>
+  safeInvoke<FolderDto>("create_folder", { accountId, name });
 
 export const deleteFeed = (feedId: string) => safeInvoke<void>("delete_feed", { feedId });
 export const renameFeed = (feedId: string, title: string) => safeInvoke<void>("rename_feed", { feedId, title });
@@ -93,7 +103,7 @@ export const updateFeedFolder = (feedId: string, folderId: string | null) =>
 
 export const openInBrowser = (url: string) => safeInvoke<void>("open_in_browser", { url });
 
-export const triggerSync = () => safeInvoke<void>("trigger_sync");
+export const triggerSync = () => safeInvoke<boolean>("trigger_sync");
 
 export const exportOpml = (accountId: string) => safeInvoke<string>("export_opml", { accountId });
 
@@ -103,6 +113,7 @@ export const setPreference = (key: string, value: string) => safeInvoke<void>("s
 // Tags
 export const listTags = () => safeInvoke<TagDto[]>("list_tags");
 export const createTag = (name: string, color?: string) => safeInvoke<TagDto>("create_tag", { name, color });
+export const renameTag = (tagId: string, name: string) => safeInvoke<TagDto>("rename_tag", { tagId, name });
 export const deleteTag = (tagId: string) => safeInvoke<void>("delete_tag", { tagId });
 export const tagArticle = (articleId: string, tagId: string) => safeInvoke<void>("tag_article", { articleId, tagId });
 export const untagArticle = (articleId: string, tagId: string) =>
@@ -110,3 +121,4 @@ export const untagArticle = (articleId: string, tagId: string) =>
 export const getArticleTags = (articleId: string) => safeInvoke<TagDto[]>("get_article_tags", { articleId });
 export const listArticlesByTag = (tagId: string, offset?: number, limit?: number) =>
   safeInvoke<ArticleDto[]>("list_articles_by_tag", { tagId, offset, limit });
+export const getTagArticleCounts = () => safeInvoke<Record<string, number>>("get_tag_article_counts");

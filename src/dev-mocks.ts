@@ -4,11 +4,12 @@
  */
 
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
-import type { AccountDto, FeedDto, TagDto } from "./api/tauri-commands";
+import type { AccountDto, FeedDto, FolderDto, TagDto } from "./api/tauri-commands";
 import { mockAccounts, mockArticles, mockArticleTags, mockFeeds, mockFolders, mockTags } from "./dev-mock-data";
 
 let nextAccountId = 100;
 let nextFeedId = 100;
+let nextFolderId = 100;
 let nextTagId = 100;
 const mockPreferences = new Map<string, string>();
 
@@ -38,6 +39,7 @@ export function setupDevMocks() {
           id: `dev-acc-${nextAccountId++}`,
           kind: String(args.kind ?? "Local"),
           name: String(args.name ?? "Dev Account"),
+          server_url: (args.serverUrl as string) ?? null,
           sync_interval_secs: 3600,
           sync_on_wake: false,
           keep_read_items_days: 30,
@@ -56,6 +58,14 @@ export function setupDevMocks() {
         return target ?? null;
       }
 
+      case "rename_account": {
+        const target = mockAccounts.find((a) => a.id === args.accountId);
+        if (target) {
+          target.name = String(args.name);
+        }
+        return target ?? null;
+      }
+
       case "delete_account": {
         const idx = mockAccounts.findIndex((a) => a.id === args.accountId);
         if (idx >= 0) mockAccounts.splice(idx, 1);
@@ -64,6 +74,17 @@ export function setupDevMocks() {
 
       case "list_folders":
         return mockFolders.filter((f) => f.account_id === args.accountId);
+
+      case "create_folder": {
+        const folder: FolderDto = {
+          id: `dev-folder-${nextFolderId++}`,
+          account_id: String(args.accountId),
+          name: String(args.name ?? ""),
+          sort_order: mockFolders.filter((f) => f.account_id === args.accountId).length,
+        };
+        mockFolders.push(folder);
+        return folder;
+      }
 
       case "list_feeds":
         return mockFeeds.filter((f) => f.account_id === args.accountId);
@@ -185,6 +206,15 @@ export function setupDevMocks() {
         return tag;
       }
 
+      case "rename_tag": {
+        const renameIdx = mockTags.findIndex((t) => t.id === args.tagId);
+        if (renameIdx >= 0) {
+          mockTags[renameIdx].name = String(args.name);
+          return mockTags[renameIdx];
+        }
+        return null;
+      }
+
       case "delete_tag": {
         const tagIdx = mockTags.findIndex((t) => t.id === args.tagId);
         if (tagIdx >= 0) mockTags.splice(tagIdx, 1);
@@ -246,6 +276,19 @@ export function setupDevMocks() {
         return null;
       }
 
+      case "discover_feeds": {
+        const discoverUrl = String(args.url ?? "");
+        // Simulate discovery: if URL looks like a feed, return it directly
+        if (/\.(xml|rss|atom|json)$/i.test(discoverUrl) || /\/feed\/?$/i.test(discoverUrl)) {
+          return [{ url: discoverUrl, title: "" }];
+        }
+        // Otherwise simulate finding feeds on a site
+        return [
+          { url: `${discoverUrl.replace(/\/$/, "")}/feed`, title: "Main Feed" },
+          { url: `${discoverUrl.replace(/\/$/, "")}/comments/feed`, title: "Comments Feed" },
+        ];
+      }
+
       case "open_in_browser": {
         const url = args.url as string | undefined;
         if (url) window.open(url, "_blank");
@@ -253,6 +296,7 @@ export function setupDevMocks() {
       }
 
       case "trigger_sync":
+        return true;
       case "import_opml":
         return null;
 

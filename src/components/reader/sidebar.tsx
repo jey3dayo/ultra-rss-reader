@@ -1,7 +1,9 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
+import { listen } from "@tauri-apps/api/event";
 import { ChevronDown, Plus, RefreshCw, Settings } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { triggerSync } from "@/api/tauri-commands";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
@@ -11,6 +13,7 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { useTagArticleCounts, useTags } from "@/hooks/use-tags";
+import i18n from "@/lib/i18n";
 import { groupFeedsByFolder } from "@/lib/sidebar";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -20,25 +23,28 @@ import { FeedItem } from "./feed-item";
 import { FolderSection } from "./folder-section";
 import { TagContextMenuContent } from "./tag-context-menu";
 
-function formatLastSynced(date: Date | null): string {
-  if (!date) return "Not synced yet";
+function useFormatLastSynced(date: Date | null): string {
+  const { t } = useTranslation("sidebar");
+  if (!date) return t("not_synced_yet");
   const hours = date.getHours().toString().padStart(2, "0");
   const minutes = date.getMinutes().toString().padStart(2, "0");
   const now = new Date();
   const isToday =
     date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
   if (isToday) {
-    return `Today at ${hours}:${minutes}`;
+    return t("today_at", { time: `${hours}:${minutes}` });
   }
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${monthNames[date.getMonth()]} ${date.getDate()} at ${hours}:${minutes}`;
+  const dateStr = date.toLocaleDateString(i18n.language, { month: "short", day: "numeric" });
+  return t("date_at", { date: dateStr, time: `${hours}:${minutes}` });
 }
 
 export function Sidebar() {
+  const { t } = useTranslation("sidebar");
   const [showAccountList, setShowAccountList] = useState(false);
   const [showAddFeed, setShowAddFeed] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const lastSyncedFormatted = useFormatLastSynced(lastSyncedAt);
   const [isTagsSectionOpen, setIsTagsSectionOpen] = useState(true);
   const accountDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -83,18 +89,36 @@ export function Sidebar() {
 
   const totalUnread = feeds?.reduce((sum, f) => sum + f.unread_count, 0) ?? 0;
 
+  useEffect(() => {
+    let cancelled = false;
+    let unlisten: (() => void) | undefined;
+
+    listen("sync-completed", () => {
+      setLastSyncedAt(new Date());
+    }).then((fn) => {
+      if (cancelled) fn();
+      else unlisten = fn;
+    });
+
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, []);
+
   const handleSync = async () => {
     if (isSyncing) return;
     setIsSyncing(true);
     Result.pipe(
       await triggerSync(),
-      Result.inspect(() => {
-        setLastSyncedAt(new Date());
-        showToast("Sync completed");
+      Result.inspect((didSync) => {
+        if (didSync) {
+          showToast(t("sync_completed"));
+        }
       }),
       Result.inspectError((e) => {
         console.error("Sync failed:", e);
-        showToast("Sync failed");
+        showToast(t("sync_failed"));
       }),
     );
     setIsSyncing(false);
@@ -118,7 +142,7 @@ export function Sidebar() {
             onClick={handleSync}
             disabled={isSyncing}
             className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            aria-label="Sync feeds"
+            aria-label={t("sync_feeds")}
           >
             <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
           </Button>
@@ -127,7 +151,7 @@ export function Sidebar() {
             size="icon-sm"
             onClick={() => selectedAccountId && setShowAddFeed(true)}
             className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            aria-label="Add feed"
+            aria-label={t("add_feed")}
           >
             <Plus className="h-4 w-4" />
           </Button>
@@ -142,10 +166,10 @@ export function Sidebar() {
           className={cn("text-left", hasMultipleAccounts ? "cursor-pointer" : "cursor-default")}
         >
           <h1 className="flex items-center gap-1 text-2xl font-bold text-sidebar-foreground">
-            {selectedAccount?.name ?? "Ultra RSS"}
+            {selectedAccount?.name ?? t("app_name")}
             {hasMultipleAccounts && <ChevronDown className="h-4 w-4 text-muted-foreground" />}
           </h1>
-          <p className="text-xs text-muted-foreground">{formatLastSynced(lastSyncedAt)}</p>
+          <p className="text-xs text-muted-foreground">{lastSyncedFormatted}</p>
         </button>
 
         {/* Account dropdown */}
@@ -185,7 +209,7 @@ export function Sidebar() {
             : "hover:bg-sidebar-accent/50",
         )}
       >
-        <span className="font-medium">Unread</span>
+        <span className="font-medium">{t("unread")}</span>
         {showUnreadCount && <span className="text-muted-foreground">{totalUnread.toLocaleString()}</span>}
       </button>
 
@@ -200,13 +224,13 @@ export function Sidebar() {
             : "hover:bg-sidebar-accent/50",
         )}
       >
-        <span className="font-medium">Starred</span>
+        <span className="font-medium">{t("starred")}</span>
       </button>
 
       {/* Feeds Section Header */}
       <div className="px-2 py-2">
         <div className="flex items-center justify-between px-2 py-1">
-          <span className="text-sm font-medium text-sidebar-foreground">Feeds</span>
+          <span className="text-sm font-medium text-sidebar-foreground">{t("feeds")}</span>
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
         </div>
       </div>
@@ -244,7 +268,7 @@ export function Sidebar() {
             </>
           ) : (
             selectedAccountId && (
-              <div className="px-2 py-4 text-center text-sm text-muted-foreground">Press + to add a feed</div>
+              <div className="px-2 py-4 text-center text-sm text-muted-foreground">{t("press_plus_to_add_feed")}</div>
             )
           )}
 
@@ -256,7 +280,7 @@ export function Sidebar() {
                 onClick={() => setIsTagsSectionOpen((v) => !v)}
                 className="mt-2 flex w-full items-center justify-between px-2 py-1"
               >
-                <span className="text-sm font-medium text-sidebar-foreground">Tags</span>
+                <span className="text-sm font-medium text-sidebar-foreground">{t("tags")}</span>
                 <ChevronDown
                   className={cn(
                     "h-4 w-4 text-muted-foreground transition-transform",
@@ -309,7 +333,7 @@ export function Sidebar() {
           className={controlChipVariants({ size: "comfortable", interaction: "action" })}
         >
           <Settings className={controlChipIconVariants({ size: "comfortable" })} />
-          <span>Settings</span>
+          <span>{t("settings")}</span>
         </Button>
       </div>
 

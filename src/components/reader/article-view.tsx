@@ -2,9 +2,10 @@ import { Toggle } from "@base-ui/react/toggle";
 import { Result } from "@praha/byethrow";
 import { ArrowLeft, Copy, ExternalLink, Globe, Plus, Star, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
-import { UnreadIcon } from "@/components/icons";
+import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
@@ -25,6 +26,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { BrowserView } from "./browser-view";
 
 function ArticleToolbar({ article }: { article: ArticleDto | null }) {
+  const { t } = useTranslation("reader");
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
   const openBrowser = useUiStore((s) => s.openBrowser);
@@ -46,7 +48,7 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
             size="icon"
             onClick={() => setFocusedPane("sidebar")}
             className="text-muted-foreground"
-            aria-label="Show sidebar"
+            aria-label={t("show_sidebar")}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -67,7 +69,7 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
             );
           }}
           disabled={!article}
-          aria-label="Toggle read"
+          aria-label={t("toggle_read")}
           className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
         >
           <UnreadIcon unread={!article?.is_read} className="h-3 w-3" />
@@ -78,14 +80,14 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
             if (!article) return;
             toggleStar.mutate(
               { id: article.id, starred: pressed },
-              { onSuccess: () => showToast(pressed ? "Starred" : "Unstarred") },
+              { onSuccess: () => showToast(pressed ? t("article_starred") : t("article_unstarred")) },
             );
           }}
           disabled={!article}
-          aria-label="Toggle star"
+          aria-label={t("toggle_star")}
           className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
         >
-          <Star className={article?.is_starred ? "h-4 w-4 fill-yellow-400 text-yellow-400" : "h-4 w-4"} />
+          <StarIcon starred={article?.is_starred ?? false} className="h-4 w-4" />
         </Toggle>
         {actionCopyLink === "true" && (
           <Button
@@ -94,12 +96,12 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
             onClick={() => {
               if (article?.url) {
                 navigator.clipboard.writeText(article.url);
-                showToast("Link copied");
+                showToast(t("link_copied"));
               }
             }}
             className="text-muted-foreground"
             disabled={!article?.url}
-            aria-label="Copy link"
+            aria-label={t("copy_link")}
           >
             <Copy className="h-4 w-4" />
           </Button>
@@ -111,7 +113,7 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
             onClick={() => article?.url && openBrowser(article.url)}
             className="text-muted-foreground"
             disabled={!article?.url}
-            aria-label="View in browser"
+            aria-label={t("view_in_browser")}
           >
             <Globe className="h-4 w-4" />
           </Button>
@@ -130,7 +132,7 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
             }}
             className="text-muted-foreground"
             disabled={!article?.url}
-            aria-label="Open in external browser"
+            aria-label={t("open_in_external_browser")}
           >
             <ExternalLink className="h-4 w-4" />
           </Button>
@@ -141,6 +143,8 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
 }
 
 function EmptyState() {
+  const { t } = useTranslation("reader");
+  const { t: ts } = useTranslation("sidebar");
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
       <ArticleToolbar article={null} />
@@ -148,14 +152,15 @@ function EmptyState() {
         <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-xl bg-muted/30">
           <Star className="h-10 w-10" />
         </div>
-        <h3 className="text-lg font-medium text-foreground">Ultra RSS</h3>
-        <p className="text-sm">Select an article to read</p>
+        <h3 className="text-lg font-medium text-foreground">{ts("app_name")}</h3>
+        <p className="text-sm">{t("select_article_to_read")}</p>
       </div>
     </div>
   );
 }
 
 function ArticleTagChips({ articleId }: { articleId: string }) {
+  const { t } = useTranslation("reader");
   const { data: articleTags } = useArticleTags(articleId);
   const { data: allTags } = useTags();
   const tagArticleMutation = useTagArticle();
@@ -176,8 +181,8 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
     return () => document.removeEventListener("mousedown", handler);
   }, [showPicker]);
 
-  const assignedTagIds = new Set(articleTags?.map((t) => t.id) ?? []);
-  const unassignedTags = (allTags ?? []).filter((t) => !assignedTagIds.has(t.id));
+  const assignedTagIds = new Set(articleTags?.map((tag) => tag.id) ?? []);
+  const unassignedTags = (allTags ?? []).filter((tag) => !assignedTagIds.has(tag.id));
 
   const handleCreateAndAssign = () => {
     const name = newTagName.trim();
@@ -208,7 +213,7 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
             type="button"
             onClick={() => untagArticleMutation.mutate({ articleId, tagId: tag.id })}
             className="ml-0.5 text-muted-foreground hover:text-foreground"
-            aria-label={`Remove tag ${tag.name}`}
+            aria-label={t("remove_tag", { name: tag.name })}
           >
             <X className="h-3 w-3" />
           </button>
@@ -219,7 +224,7 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
           type="button"
           onClick={() => setShowPicker((v) => !v)}
           className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-muted-foreground text-muted-foreground hover:border-foreground hover:text-foreground"
-          aria-label="Add tag"
+          aria-label={t("add_tag")}
         >
           <Plus className="h-3 w-3" />
         </button>
@@ -253,7 +258,7 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleCreateAndAssign();
                 }}
-                placeholder="New tag..."
+                placeholder={t("new_tag_placeholder")}
                 className="flex-1 rounded border-none bg-transparent px-1 py-1 text-xs outline-none placeholder:text-muted-foreground"
               />
               <Button

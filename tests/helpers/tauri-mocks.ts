@@ -8,6 +8,7 @@ export const sampleAccounts: AccountDto[] = [
     id: "acc-1",
     kind: "local",
     name: "Local",
+    server_url: null,
     sync_interval_secs: 3600,
     sync_on_wake: false,
     keep_read_items_days: 30,
@@ -16,6 +17,7 @@ export const sampleAccounts: AccountDto[] = [
     id: "acc-2",
     kind: "freshrss",
     name: "FreshRSS",
+    server_url: "https://freshrss.example.com",
     sync_interval_secs: 3600,
     sync_on_wake: false,
     keep_read_items_days: 30,
@@ -93,6 +95,7 @@ const defaultHandler: MockHandler = (cmd, args) => {
         id: "acc-new",
         kind: String(args.kind),
         name: String(args.name),
+        server_url: (args.serverUrl as string) ?? null,
         sync_interval_secs: 3600,
         sync_on_wake: false,
         keep_read_items_days: 30,
@@ -119,7 +122,7 @@ const defaultHandler: MockHandler = (cmd, args) => {
     case "open_in_browser":
       return null;
     case "trigger_sync":
-      return null;
+      return true;
     default:
       return null;
   }

@@ -1,10 +1,10 @@
 import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
-import { List, Star } from "lucide-react";
+import { List } from "lucide-react";
 import { useCallback } from "react";
-import { UnreadIcon } from "@/components/icons";
+import { useTranslation } from "react-i18next";
+import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
-import { cn } from "@/lib/utils";
 
 type ViewMode = "all" | "unread" | "starred";
 
@@ -14,12 +14,13 @@ type ArticleListFooterProps = {
 };
 
 const VIEW_MODES = [
-  { value: "starred", icon: Star, label: "STARRED" },
-  { value: "unread", icon: null, label: "UNREAD" },
-  { value: "all", icon: List, label: "ALL" },
+  { value: "starred", icon: "star", labelKey: "filter_starred" },
+  { value: "unread", icon: null, labelKey: "filter_unread" },
+  { value: "all", icon: "list", labelKey: "filter_all" },
 ] as const;
 
 export function ArticleListFooter({ viewMode, onSetViewMode }: ArticleListFooterProps) {
+  const { t } = useTranslation("reader");
   const handleChange = useCallback(
     (groupValue: string[]) => {
       const latest = groupValue[groupValue.length - 1] as ViewMode | undefined;
@@ -36,20 +37,17 @@ export function ArticleListFooter({ viewMode, onSetViewMode }: ArticleListFooter
             <Toggle
               key={mode.value}
               value={mode.value}
-              aria-label={mode.label}
+              aria-label={t(mode.labelKey)}
               className={controlChipVariants({ size: "compact", interaction: "toggle" })}
             >
-              {mode.icon ? (
-                <mode.icon
-                  className={cn(
-                    controlChipIconVariants({ size: "compact" }),
-                    mode.value === "starred" && viewMode === "starred" && "fill-yellow-400 text-yellow-400",
-                  )}
-                />
+              {mode.icon === "star" ? (
+                <StarIcon starred={viewMode === "starred"} className={controlChipIconVariants({ size: "compact" })} />
+              ) : mode.icon === "list" ? (
+                <List className={controlChipIconVariants({ size: "compact" })} />
               ) : (
                 <UnreadIcon unread className="h-3 w-3" />
               )}
-              {mode.label}
+              {t(mode.labelKey)}
             </Toggle>
           );
         })}
