@@ -303,6 +303,12 @@ export function setupDevMocks() {
         return null;
       case "add_to_reading_list":
         return null;
+      case "check_for_update":
+        return null;
+      case "download_and_install_update":
+        return null;
+      case "restart_app":
+        return null;
 
       default:
         return null;

@@ -1,2 +1,5 @@
 # Tauri auto-generated ACL schemas (large minified JSON, suppress diff noise)
 src-tauri/gen/schemas/*.json binary
+
+# Lock files — hide from GitHub PR diffs but keep text merge
+src-tauri/Cargo.lock linguist-generated=true
