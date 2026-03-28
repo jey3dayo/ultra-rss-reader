@@ -111,6 +111,14 @@ run = "dotenvx run -- cargo test --manifest-path src-tauri/Cargo.toml freshrss_l
 description = "Build frontend"
 run = ["pnpm build"]
 
+[tasks."build:app"]
+description = "Build native app for current platform (.app/.dmg on macOS, .msi/.exe on Windows)"
+run = "pnpm tauri build"
+
+[tasks."build:app:debug"]
+description = "Build native app in debug mode (faster, no optimizations)"
+run = "pnpm tauri build --debug"
+
 # ========================================
 # エイリアス（まとめ実行）
 # ========================================
