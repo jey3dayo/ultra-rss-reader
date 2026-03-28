@@ -2,10 +2,11 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
 import { ChevronDown, Plus, RefreshCw, Settings } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { triggerSync } from "@/api/tauri-commands";
+import { actionEvents } from "@/lib/actions";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -132,6 +133,50 @@ export function Sidebar() {
   const { feedsByFolder, unfolderedFeeds } = useMemo(() => groupFeedsByFolder(feedList), [feedList]);
 
   const selectedFeedId = selection.type === "feed" ? selection.feedId : null;
+
+  // Build a flat ordered feed list matching render order (folder feeds then unfoldered)
+  const orderedFeedIds = useMemo(() => {
+    const ids: string[] = [];
+    for (const folder of folderList) {
+      const folderFeeds = feedsByFolder.get(folder.id) ?? [];
+      for (const feed of folderFeeds) {
+        ids.push(feed.id);
+      }
+    }
+    for (const feed of unfolderedFeeds) {
+      ids.push(feed.id);
+    }
+    return ids;
+  }, [folderList, feedsByFolder, unfolderedFeeds]);
+
+  const navigateFeed = useCallback(
+    (direction: 1 | -1) => {
+      if (orderedFeedIds.length === 0) return;
+      const currentIndex = selectedFeedId ? orderedFeedIds.indexOf(selectedFeedId) : -1;
+      let nextIndex: number;
+      if (currentIndex === -1) {
+        // No feed selected: go to first (next) or last (prev)
+        nextIndex = direction === 1 ? 0 : orderedFeedIds.length - 1;
+      } else {
+        nextIndex = currentIndex + direction;
+        // Clamp to bounds
+        if (nextIndex < 0 || nextIndex >= orderedFeedIds.length) return;
+      }
+      const nextFeedId = orderedFeedIds[nextIndex];
+      if (nextFeedId) selectFeed(nextFeedId);
+    },
+    [orderedFeedIds, selectedFeedId, selectFeed],
+  );
+
+  // Listen for feed navigation events from keyboard shortcuts / menu
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const direction = (e as CustomEvent<1 | -1>).detail;
+      navigateFeed(direction);
+    };
+    window.addEventListener(actionEvents.navigateFeed, handler);
+    return () => window.removeEventListener(actionEvents.navigateFeed, handler);
+  }, [navigateFeed]);
 
   return (
     <div className="flex h-full w-[280px] flex-col border-r border-border bg-sidebar text-sidebar-foreground">

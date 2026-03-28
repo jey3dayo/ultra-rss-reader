@@ -119,6 +119,18 @@ export function executeAction(action: string): void {
       emitNavigationEvent(actionEvents.navigateFeed, 1);
       break;
 
+    // --- Browser ---
+    case "reload-webview": {
+      const iframe = document.querySelector<HTMLIFrameElement>("iframe");
+      if (iframe?.contentWindow) {
+        iframe.contentWindow.location.reload();
+      } else if (iframe) {
+        // Fallback: re-assign src to trigger reload
+        iframe.src = iframe.src;
+      }
+      break;
+    }
+
     // --- Article actions (reuse existing keyboard event system) ---
     case "open-in-reader":
       emitEvent(keyboardEvents.openInAppBrowser);

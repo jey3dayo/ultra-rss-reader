@@ -81,6 +81,9 @@
   "shortcuts": {
     "next_article": "Next article",
     "prev_article": "Previous article",
+    "next_feed": "Next feed",
+    "prev_feed": "Previous feed",
+    "reload_webview": "Reload browser view",
     "focus_sidebar": "Focus sidebar",
     "toggle_read": "Toggle read / unread",
     "toggle_star": "Toggle star",

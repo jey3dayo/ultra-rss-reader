@@ -60,6 +60,12 @@ export function useKeyboard() {
         case "navigate-article":
           window.dispatchEvent(new CustomEvent(navigateArticleEvent, { detail: resolvedAction.direction }));
           break;
+        case "navigate-feed":
+          executeAction(resolvedAction.direction === 1 ? "next-feed" : "prev-feed");
+          break;
+        case "reload-webview":
+          executeAction("reload-webview");
+          break;
       }
     };
 

@@ -81,6 +81,9 @@
   "shortcuts": {
     "next_article": "次の記事",
     "prev_article": "前の記事",
+    "next_feed": "次のフィード",
+    "prev_feed": "前のフィード",
+    "reload_webview": "ブラウザビューを再読み込み",
     "focus_sidebar": "サイドバーにフォーカス",
     "toggle_read": "既読/未読を切替",
     "toggle_star": "スターを切替",
