@@ -47,7 +47,12 @@ run = "pnpm markdownlint-cli2 '${MD_GLOB}' ${MD_EXCLUDE_NODE_MODULES} ${MD_EXCLU
 
 [tasks."format:check"]
 description = "Format check all (no writes)"
-depends = ["format:biome:check", "format:rust:check", "format:toml:check", "lint:md"]
+depends = [
+  "format:biome:check",
+  "format:rust:check",
+  "format:toml:check",
+  "lint:md",
+]
 
 [tasks."format:biome:check"]
 description = "Biome format + lint check (no writes)"
