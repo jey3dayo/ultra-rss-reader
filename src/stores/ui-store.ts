@@ -147,7 +147,8 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       else next.add(folderId);
       return { expandedFolderIds: next };
     }),
-  openSettings: (tab?: SettingsCategory) => set({ settingsOpen: true, settingsCategory: tab ?? "general" }),
+  openSettings: (tab?: SettingsCategory) =>
+    set((s) => ({ settingsOpen: true, settingsCategory: tab ?? s.settingsCategory })),
   openAddFeedDialog: () => set({ isAddFeedDialogOpen: true }),
   closeAddFeedDialog: () => set({ isAddFeedDialogOpen: false }),
   closeSettings: () =>
