@@ -14,9 +14,9 @@ TypeScriptフロントエンドのみ（Rust側は変更なし）。
 
 ### A. safeInvoke の改善（基盤レイヤー）
 
-**対象**: `src/api/tauri-commands.ts` — `safeInvoke` 関数
+対象: `src/api/tauri-commands.ts` — `safeInvoke` 関数
 
-**現状**:
+#### 現状
 
 ```typescript
 async function safeInvoke<T>(
@@ -37,11 +37,11 @@ async function safeInvoke<T>(
 }
 ```
 
-**改善方針**:
+#### 改善方針
 
 `Result.try` の `catch` ハンドラ内で直接 `AppError` を返す方式を採用する。`catch` でエラー変換とログ出力を一括で行うため、別途 `mapError` や `inspectError` を pipe する必要はない。
 
-**改善後コード**:
+#### 改善後コード
 
 ```typescript
 function toAppError(cmd: string, error: unknown): AppError {
@@ -62,7 +62,7 @@ function safeInvoke<T>(
 }
 ```
 
-**変更点**:
+#### 変更点
 
 - 戻り値の型が `Promise<Result.Result<T, AppError>>` → `Result.ResultAsync<T, AppError>` に変わる（実質的には同じ `Promise<Result<T, AppError>>`）
 - エラー変換ロジックを `toAppError` ヘルパーに抽出し、テスト可能に
@@ -72,9 +72,9 @@ function safeInvoke<T>(
 
 ### B. React Query hooks の改善
 
-**対象**: `src/hooks/use-accounts.ts`, `use-feeds.ts`, `use-articles.ts`
+対象: `src/hooks/use-accounts.ts`, `use-feeds.ts`, `use-articles.ts`
 
-**現状**: 全6箇所で同一パターンを繰り返し
+現状: 全6箇所で同一パターンを繰り返し
 
 ```typescript
 const result = await listAccounts();
@@ -82,14 +82,14 @@ if (Result.isFailure(result)) throw result.error;
 return result.value;
 ```
 
-**改善方針**:
+#### 改善方針
 
 - `Result.unwrap` で1行化（失敗時は自動的にthrow）
 - React Query は queryFn がthrowすればerror stateにするため、unwrapとの相性が良い
 - `unwrap` は `Result<T, E>` から `T` を返し、Failure時は `E` をthrowする。現行の `throw result.error` と同じ挙動
 - React Query の `error` に渡る型は `AppError` のまま維持される（`unwrap` がthrowするのは `error` フィールドの値そのもの）
 
-**改善後コード例** (`useAccounts`):
+#### 改善後コード例 (`useAccounts`)
 
 ```typescript
 export function useAccounts() {
@@ -100,7 +100,7 @@ export function useAccounts() {
 }
 ```
 
-**改善項目**:
+#### 改善項目
 
 | ID  | 箇所                        | 内容             | 使用API  |
 | --- | --------------------------- | ---------------- | -------- |
@@ -115,9 +115,9 @@ export function useAccounts() {
 
 ### C. コンポーネント内のResult処理改善
 
-**対象**: Result を直接扱うコンポーネント（リファクタ後の新構造に対応）
+対象: Result を直接扱うコンポーネント（リファクタ後の新構造に対応）
 
-**現状パターン（C1-C3共通）**:
+#### 現状パターン（C1-C3共通）
 
 ```typescript
 const result = await someCommand(args);
@@ -128,12 +128,12 @@ if (Result.isFailure(result)) {
 // 成功時の処理
 ```
 
-**改善方針**:
+#### 改善方針
 
 - `pipe` + `inspectError`（エラー通知）+ `inspect`（成功時処理）で宣言的に
 - カテゴリA完了後に実施（`safeInvoke` が `ResultAsync` を返すようになった前提）
 
-**改善項目**:
+#### 改善項目
 
 | ID  | 箇所 (ファイル)                                                            | 現状                      | 使用API                           |
 | --- | -------------------------------------------------------------------------- | ------------------------- | --------------------------------- |
@@ -144,7 +144,7 @@ if (Result.isFailure(result)) {
 | C5  | `App.triggerSync` (`App.tsx:11`)                                           | isFailure → console.error | `inspectError` で1行化            |
 | C6  | `BrowserView.handleOpenExternal` (`components/reader/browser-view.tsx:9`)  | Result戻り値を完全無視    | `inspectError` でエラー時ログ     |
 
-**改善後コード例** (`Sidebar.handleAddFeed`):
+#### 改善後コード例 (`Sidebar.handleAddFeed`)
 
 ```typescript
 const handleAddFeed = async () => {
@@ -169,9 +169,9 @@ const handleAddFeed = async () => {
 
 ### E. テストコードの改善
 
-**対象**: `src/__tests__/api/tauri-commands.test.ts`
+対象: `src/__tests__/api/tauri-commands.test.ts`
 
-**現状**:
+#### 現状
 
 ```typescript
 expect(Result.isSuccess(result)).toBe(true);
@@ -180,7 +180,7 @@ if (Result.isSuccess(result)) {
 }
 ```
 
-**改善方針**:
+#### 改善方針
 
 - `Result.unwrap` で成功値を直接取得（Failure時はthrow → テスト失敗）
 - `Result.unwrapError` でエラー値を直接取得（Success時はthrow → テスト失敗）

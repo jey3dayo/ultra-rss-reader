@@ -16,7 +16,7 @@ Currently only feed items have a context menu (Open site, Unsubscribe, Edit). No
 
 These operate on data already loaded in the UI. No backend changes needed.
 
-**1. Article Item Context Menu** (`article-context-menu.tsx` - new)
+#### 1. Article Item Context Menu (`article-context-menu.tsx` - new)
 
 - Toggle Read / Unread — `markArticleRead(id, !read)`
 - Toggle Star / Unstar — `toggleArticleStar(id, !starred)`
@@ -24,7 +24,7 @@ These operate on data already loaded in the UI. No backend changes needed.
 - Right-click does NOT change article selection state
 - Wrap each article row with `ContextMenu.Root` / `ContextMenu.Trigger`
 
-**2. Article List Context Menu** (`article-list-context-menu.tsx` - new)
+#### 2. Article List Context Menu (`article-list-context-menu.tsx` - new)
 
 - Mark All as Read — reuse existing `handleMarkAllRead` logic from article-list
 - Targets currently displayed/filtered articles (same as existing header button)
@@ -35,14 +35,14 @@ These operate on data already loaded in the UI. No backend changes needed.
 
 The backend `list_articles` has a default `limit=50`. Frontend cache may not contain all unread articles for a feed/folder. Dedicated backend commands are needed for correctness.
 
-**3. Feed Context Menu** (modify existing `feed-context-menu.tsx`)
+#### 3. Feed Context Menu (modify existing `feed-context-menu.tsx`)
 
 - Add "Mark All as Read" item before the separator
 - Calls new backend command `mark_feed_read(feed_id)`
 - Respects `ask_before_mark_all` preference
 - New TypeScript wrapper: `markFeedRead(feedId)` in `tauri-commands.ts`
 
-**4. Folder Context Menu** (`folder-context-menu.tsx` - new)
+#### 4. Folder Context Menu (`folder-context-menu.tsx` - new)
 
 - Mark All as Read — calls new backend command `mark_folder_read(folder_id)`
 - Respects `ask_before_mark_all` preference

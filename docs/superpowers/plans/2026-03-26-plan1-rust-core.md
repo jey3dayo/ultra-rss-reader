@@ -2,19 +2,19 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** ローカルフィード取得・保存・同期がテストで確認できるRustバックエンドを構築する
+Goal: ローカルフィード取得・保存・同期がテストで確認できるRustバックエンドを構築する
 
-**Architecture:** Tauri v2プロジェクトのRust側に、ドメインモデル → リポジトリ(SQLite) → LocalProvider → SyncEngine を積み上げる。各層はtrait境界で分離し、in-memoryモックでテスト可能。
+Architecture: Tauri v2プロジェクトのRust側に、ドメインモデル → リポジトリ(SQLite) → LocalProvider → SyncEngine を積み上げる。各層はtrait境界で分離し、in-memoryモックでテスト可能。
 
-**Tech Stack:** Rust, Tauri v2, rusqlite, feed-rs, reqwest, ammonia, tokio, tracing, keyring
+Tech Stack: Rust, Tauri v2, rusqlite, feed-rs, reqwest, ammonia, tokio, tracing, keyring
 
-**Spec:** `docs/superpowers/specs/2026-03-26-ultra-rss-reader-design.md`
+Spec: `docs/superpowers/specs/2026-03-26-ultra-rss-reader-design.md`
 
 ---
 
 ## File Structure
 
-```
+```text
 src-tauri/
 ├── Cargo.toml
 ├── tauri.conf.json
@@ -84,7 +84,7 @@ tests/                                   # Integration tests
 
 ## Task 1: Tauri v2 Project Scaffold
 
-**Files:**
+### Files
 
 - Create: `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, `src-tauri/build.rs`, `src-tauri/src/main.rs`, `src-tauri/src/lib.rs`
 - Create: `src/main.tsx` (minimal React entrypoint)
@@ -153,7 +153,7 @@ git add -A && git commit -m "feat: scaffold Tauri v2 + React + TypeScript projec
 
 ## Task 2: Domain Types & Error Model
 
-**Files:**
+### Files
 
 - Create: `src-tauri/src/domain/mod.rs`, `types.rs`, `error.rs`
 
@@ -279,7 +279,7 @@ git add src-tauri/src/domain/ src-tauri/src/lib.rs && git commit -m "feat: add d
 
 ## Task 3: Domain Entities (Account, Folder, Feed, Article)
 
-**Files:**
+### Files
 
 - Create: `src-tauri/src/domain/account.rs`, `folder.rs`, `feed.rs`, `article.rs`, `provider.rs`
 
@@ -376,7 +376,7 @@ git add src-tauri/src/domain/ && git commit -m "feat: add domain entities and ID
 
 ## Task 4: SQLite Schema & Migration Runner
 
-**Files:**
+### Files
 
 - Create: `src-tauri/migrations/V1__initial.sql`
 - Create: `src-tauri/src/infra/mod.rs`, `src-tauri/src/infra/db/mod.rs`, `connection.rs`, `migration.rs`
@@ -454,7 +454,7 @@ git add src-tauri/migrations/ src-tauri/src/infra/ && git commit -m "feat: add S
 
 ## Task 5: Repository Traits
 
-**Files:**
+### Files
 
 - Create: `src-tauri/src/repository/mod.rs`, `account.rs`, `folder.rs`, `feed.rs`, `article.rs`, `sync_state.rs`, `pending_mutation.rs`
 
@@ -492,7 +492,7 @@ git add src-tauri/src/repository/ && git commit -m "feat: add repository trait d
 
 ## Task 6: SQLite Repository Implementations
 
-**Files:**
+### Files
 
 - Create: `src-tauri/src/infra/db/sqlite_account.rs`, `sqlite_folder.rs`, `sqlite_feed.rs`, `sqlite_article.rs`, `sqlite_sync_state.rs`, `sqlite_pending_mutation.rs`
 
@@ -556,7 +556,7 @@ Test cases:
 
 ## Task 7: HTML Sanitizer
 
-**Files:**
+### Files
 
 - Create: `src-tauri/src/infra/sanitizer.rs`
 
@@ -609,7 +609,7 @@ git add src-tauri/src/infra/sanitizer.rs && git commit -m "feat: add HTML saniti
 
 ## Task 8: Feed Normalizer (feed-rs → RemoteEntry)
 
-**Files:**
+### Files
 
 - Create: `src-tauri/src/infra/provider/normalizer.rs`
 
@@ -661,7 +661,7 @@ git add src-tauri/src/infra/provider/ && git commit -m "feat: add feed normalize
 
 ## Task 9: LocalProvider
 
-**Files:**
+### Files
 
 - Create: `src-tauri/src/infra/provider/traits.rs`, `src-tauri/src/infra/provider/local.rs`
 
@@ -728,7 +728,7 @@ git add src-tauri/src/infra/provider/ && git commit -m "feat: add LocalProvider 
 
 ## Task 10: Event Bus (SyncCommand + AppEvent)
 
-**Files:**
+### Files
 
 - Create: `src-tauri/src/service/event_bus.rs`
 
@@ -768,7 +768,7 @@ git add src-tauri/src/service/ && git commit -m "feat: add event bus (SyncComman
 
 ## Task 11: SyncService & Sync Flow
 
-**Files:**
+### Files
 
 - Create: `src-tauri/src/service/sync_service.rs`, `sync_flow.rs`
 
@@ -821,7 +821,7 @@ git add src-tauri/src/service/ && git commit -m "feat: add SyncService and 6-ste
 
 ## Task 12: Housekeeping Service
 
-**Files:**
+### Files
 
 - Create: `src-tauri/src/service/housekeeping.rs`
 
@@ -841,7 +841,7 @@ git add src-tauri/src/service/housekeeping.rs && git commit -m "feat: add housek
 
 ## Task 13: Minimal Tauri Commands (smoke test)
 
-**Files:**
+### Files
 
 - Create: `src-tauri/src/commands/mod.rs`, `dto.rs`, `account_commands.rs`, `feed_commands.rs`, `article_commands.rs`
 
@@ -916,7 +916,7 @@ git add src-tauri/src/commands/ src-tauri/src/main.rs && git commit -m "feat: ad
 
 ## Task 14: End-to-End Integration Test
 
-**Files:**
+### Files
 
 - Create: `src-tauri/tests/integration_test.rs`
 
@@ -971,4 +971,4 @@ After completing all 14 tasks, the Rust core provides:
 | Error model (DomainError → AppError)                        | ✅     |
 | Integration test                                            | ✅     |
 
-**Next:** Plan 2 (Frontend) — React UI + 3-pane layout + Zustand state + TanStack Query
+Next: Plan 2 (Frontend) — React UI + 3-pane layout + Zustand state + TanStack Query

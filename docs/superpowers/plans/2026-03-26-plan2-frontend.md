@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Reeder風の3ペインレスポンシブUIを構築し、Plan 1のRustバックエンドと接続する
+Goal: Reeder風の3ペインレスポンシブUIを構築し、Plan 1のRustバックエンドと接続する
 
-**Architecture:** React + Zustand(UI state) + TanStack Query(server state) + Tauri invoke
+Architecture: React + Zustand(UI state) + TanStack Query(server state) + Tauri invoke
 
-**Tech Stack:** React 19, TypeScript, Zustand, TanStack Query, Tauri v2, CSS custom properties
+Tech Stack: React 19, TypeScript, Zustand, TanStack Query, Tauri v2, CSS custom properties
 
-**Spec:** `docs/superpowers/specs/2026-03-26-ultra-rss-reader-design.md` Section 7
+Spec: `docs/superpowers/specs/2026-03-26-ultra-rss-reader-design.md` Section 7
 
 ---
 

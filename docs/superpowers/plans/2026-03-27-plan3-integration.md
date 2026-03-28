@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans
 
-**Goal:** FreshRSS連携、OPML、ブラウザビュー、検索を実装しMVPを完成させる
+Goal: FreshRSS連携、OPML、ブラウザビュー、検索を実装しMVPを完成させる
 
-**Tech Stack:** Rust (Google Reader API client), Tauri WebView, OPML XML parser
+Tech Stack: Rust (Google Reader API client), Tauri WebView, OPML XML parser
 
-**Spec:** `docs/superpowers/specs/2026-03-26-ultra-rss-reader-design.md`
+Spec: `docs/superpowers/specs/2026-03-26-ultra-rss-reader-design.md`
 
 ---
 

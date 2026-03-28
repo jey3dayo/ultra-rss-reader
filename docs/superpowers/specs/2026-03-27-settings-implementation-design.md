@@ -16,7 +16,7 @@
 | Shortcuts           | 実装   | キーボードショートカット一覧（read-only）                       |
 | Actions and Sharing | 実装   | サービス一覧 + Show in toolbar トグル                           |
 
-**削除するタブ**: Animations, Gestures, Services（個人利用で不要）
+削除するタブ: Animations, Gestures, Services（個人利用で不要）
 
 ## 永続化
 

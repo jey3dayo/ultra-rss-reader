@@ -2,19 +2,19 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** macOSネイティブメニューバーに5つのメニュー（View / Accounts / Subscriptions / Item / Share）を追加し、既存キーボードショートカットと統合する。
+Goal: macOSネイティブメニューバーに5つのメニュー（View / Accounts / Subscriptions / Item / Share）を追加し、既存キーボードショートカットと統合する。
 
-**Architecture:** Rust側で`menu.rs`モジュールにメニュー構築を分離。メニューイベントは単一の`"menu-action"` Tauriイベントでフロントに転送。フロント側では`actions.ts`に共通アクションロジックを抽出し、キーボードショートカットとメニューの両方から呼び出す。
+Architecture: Rust側で`menu.rs`モジュールにメニュー構築を分離。メニューイベントは単一の`"menu-action"` Tauriイベントでフロントに転送。フロント側では`actions.ts`に共通アクションロジックを抽出し、キーボードショートカットとメニューの両方から呼び出す。
 
-**Tech Stack:** Tauri 2 Menu API (Rust), Zustand, React Query, tauri-plugin-clipboard-manager
+Tech Stack: Tauri 2 Menu API (Rust), Zustand, React Query, tauri-plugin-clipboard-manager
 
-**Spec:** `docs/superpowers/specs/2026-03-28-macos-native-menubar-design.md`
+Spec: `docs/superpowers/specs/2026-03-28-macos-native-menubar-design.md`
 
 ---
 
 ## Task 1: Rust — menu.rsモジュール作成（メニュー構築）
 
-**Files:**
+### Files
 
 - Create: `src-tauri/src/menu.rs`
 - Modify: `src-tauri/src/lib.rs`
@@ -170,7 +170,7 @@ app.set_menu(menu::build(&app.handle().clone())?)?;
 app.on_menu_event(move |app_handle, event| menu::handle_event(app_handle, event));
 ```
 
-5. 不要になった`use`文を削除
+1. 不要になった`use`文を削除
 
 - [ ] **Step 4: cargo checkでコンパイル確認**
 
@@ -188,7 +188,7 @@ rtk git commit -m "feat: add menu.rs module with full macOS native menu bar"
 
 ## Task 2: Rust — 新規Tauriコマンド（clipboard + reading list）
 
-**Files:**
+### Files
 
 - Modify: `src-tauri/Cargo.toml`
 - Modify: `src-tauri/tauri.conf.json`
@@ -292,7 +292,7 @@ rtk git commit -m "feat: add copy_to_clipboard and add_to_reading_list commands"
 
 ## Task 3: フロント — UI状態の引き上げ（openSettings拡張 + AddFeedDialog）
 
-**Files:**
+### Files
 
 - Modify: `src/stores/ui-store.ts`
 - Modify: `src/components/settings/settings-modal.tsx`
@@ -322,20 +322,20 @@ openSettings: (tab?: SettingsCategory) =>
 isAddFeedDialogOpen: boolean;
 ```
 
-2. `UiActions` interfaceに追加:
+1. `UiActions` interfaceに追加:
 
 ```typescript
 openAddFeedDialog: () => void;
 closeAddFeedDialog: () => void;
 ```
 
-3. `initialState` に追加:
+1. `initialState` に追加:
 
 ```typescript
 isAddFeedDialogOpen: false,
 ```
 
-4. 実装を追加:
+1. 実装を追加:
 
 ```typescript
 openAddFeedDialog: () => set({ isAddFeedDialogOpen: true }),
@@ -405,7 +405,7 @@ rtk git commit -m "feat: lift AddFeedDialog state to ui-store, extend openSettin
 
 ## Task 4: フロント — actions.ts共通アクションモジュール
 
-**Files:**
+### Files
 
 - Create: `src/lib/actions.ts`
 - Modify: `src/hooks/use-keyboard.ts`
@@ -633,7 +633,7 @@ rtk git commit -m "feat: create actions.ts shared action module, integrate with 
 
 ## Task 5: フロント — useMenuEventsフック + AppShell統合
 
-**Files:**
+### Files
 
 - Create: `src/hooks/use-menu-events.ts`
 - Modify: `src/components/reader/app-shell.tsx`
@@ -713,7 +713,7 @@ rtk git commit -m "feat: add useMenuEvents hook, integrate with AppShell"
 
 ## Task 6: フロント — tauri-commands.ts + Share actions接続
 
-**Files:**
+### Files
 
 - Modify: `src/api/tauri-commands.ts`
 - Modify: `src/lib/actions.ts`
@@ -784,7 +784,7 @@ rtk git commit -m "feat: connect Share menu actions to Tauri clipboard and readi
 
 ## Task 7: フロント — フィード/記事ナビゲーション + 新キーボードショートカット
 
-**Files:**
+### Files
 
 - Modify: `src/stores/ui-store.ts`
 - Modify: `src/lib/actions.ts`
@@ -847,7 +847,7 @@ rtk git commit -m "feat: add feed/article navigation, Ctrl+J/K shortcuts, R for 
 
 ## Task 8: 品質チェック + 最終検証
 
-**Files:** All modified files
+Files: All modified files
 
 - [ ] **Step 1: フォーマット**
 

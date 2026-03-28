@@ -6,9 +6,9 @@ Git タグ (`v*`) プッシュをトリガーに、GitHub Actions で macOS (Int
 
 ## ワークフロー構成
 
-**新規ファイル:** `.github/workflows/release.yml`
+新規ファイル: `.github/workflows/release.yml`
 
-```
+```text
 v* タグ push
   -> 3 並列ジョブ (macOS-arm64, macOS-x86_64, Windows-x86_64)
     -> 各 OS で tauri build
@@ -25,7 +25,7 @@ v* タグ push
 
 ## 使用アクション
 
-- **`tauri-apps/tauri-action@v0`** — Tauri 公式。ビルド + GitHub Release 作成 + アーティファクト添付を一括で行う
+- `tauri-apps/tauri-action@v0` — Tauri 公式。ビルド + GitHub Release 作成 + アーティファクト添付を一括で行う
 - 既存 CI (`ci.yml`) はそのまま維持。リリースワークフローは独立
 
 ## トリガー

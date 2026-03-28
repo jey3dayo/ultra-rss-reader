@@ -15,7 +15,7 @@ Inoreader は Google Reader API 互換のため、FreshRSS プロバイダをベ
 
 Inoreader は OAuth2 を使用。ただしMVPでは **API Token (AppID/AppKey + パスワード認証)** で実装する。
 
-```
+```http
 POST https://www.inoreader.com/accounts/ClientLogin
 Content-Type: application/x-www-form-urlencoded
 
@@ -58,7 +58,7 @@ FreshRSS と同じ認証フローだが、ベースURLが異なる。
 - メリット: DRY、保守性が高い
 - デメリット: 既存 FreshRSS コードの変更が必要
 
-**推奨: 案2**
+### 推奨: 案2
 
 ## 変更計画
 

@@ -26,7 +26,7 @@ Reeder準拠の2ペイン構成。左にカテゴリ、右にコンテンツ。
 
 2ペイン構成（モーダル/オーバーレイ）
 
-```
+```text
 ┌────────────────────────────────────────────┐
 │ ✕  Preferences                             │
 ├──────────┬─────────────────────────────────┤
@@ -42,7 +42,7 @@ Reeder準拠の2ペイン構成。左にカテゴリ、右にコンテンツ。
 
 #### 一覧画面
 
-```
+```text
 ACCOUNTS
 ┌────────────────────────────┐
 │ 📡 FreshRSS    jey3dayo  >│
@@ -55,7 +55,7 @@ ACCOUNTS
 
 右ペインがスタック遷移。「← Accounts」で戻る。
 
-```
+```text
 ← Accounts
 
 FreshRSS
@@ -77,7 +77,7 @@ Keep read items   1 month ▾
 
 「+ Add Account」クリック時、右ペインにフォーム表示。
 
-```
+```text
 ← Accounts
 
 Add Account
@@ -94,14 +94,14 @@ Username          [入力]  (FreshRSSの場合)
 
 MVPでは最小限。将来の拡張用プレースホルダー。
 
-```
+```text
 GENERAL
 Version           0.1.0
 ```
 
 ## コンポーネント構成
 
-```
+```text
 src/components/settings/
 ├── SettingsModal.tsx        # モーダルコンテナ（⌘,で開閉）
 ├── SettingsSidebar.tsx      # 左ペイン（General, Accounts）
