@@ -2,7 +2,7 @@ use tauri::menu::{
     AboutMetadataBuilder, CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder, PredefinedMenuItem,
     SubmenuBuilder,
 };
-use tauri::{AppHandle, Emitter, menu::Menu};
+use tauri::{menu::Menu, AppHandle, Emitter};
 
 /// Build the full application menu bar.
 pub fn build(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
@@ -49,10 +49,9 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let view_sort_unread = CheckMenuItemBuilder::with_id("view-sort-unread", "Sort Unread to Top")
         .checked(false)
         .build(app)?;
-    let view_group_by_feed =
-        CheckMenuItemBuilder::with_id("view-group-by-feed", "Group by Feed")
-            .checked(false)
-            .build(app)?;
+    let view_group_by_feed = CheckMenuItemBuilder::with_id("view-group-by-feed", "Group by Feed")
+        .checked(false)
+        .build(app)?;
     let view_fullscreen = MenuItemBuilder::with_id("view-fullscreen", "Full Screen")
         .accelerator("Ctrl+CmdOrCtrl+F")
         .build(app)?;
@@ -72,10 +71,8 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let accounts_sync = MenuItemBuilder::with_id("accounts-sync", "Sync All")
         .accelerator("CmdOrCtrl+R")
         .build(app)?;
-    let accounts_show =
-        MenuItemBuilder::with_id("accounts-show", "Show Accounts").build(app)?;
-    let accounts_add =
-        MenuItemBuilder::with_id("accounts-add", "Add Account...").build(app)?;
+    let accounts_show = MenuItemBuilder::with_id("accounts-show", "Show Accounts").build(app)?;
+    let accounts_add = MenuItemBuilder::with_id("accounts-add", "Add Account...").build(app)?;
 
     let accounts_submenu = SubmenuBuilder::new(app, "Accounts")
         .item(&accounts_sync)
@@ -85,12 +82,9 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         .build()?;
 
     // --- Subscriptions submenu ---
-    let subs_add =
-        MenuItemBuilder::with_id("subs-add", "Add Subscription...").build(app)?;
-    let subs_prev =
-        MenuItemBuilder::with_id("subs-prev", "Previous Feed").build(app)?;
-    let subs_next =
-        MenuItemBuilder::with_id("subs-next", "Next Feed").build(app)?;
+    let subs_add = MenuItemBuilder::with_id("subs-add", "Add Subscription...").build(app)?;
+    let subs_prev = MenuItemBuilder::with_id("subs-prev", "Previous Feed").build(app)?;
+    let subs_next = MenuItemBuilder::with_id("subs-next", "Next Feed").build(app)?;
 
     let subs_submenu = SubmenuBuilder::new(app, "Subscriptions")
         .item(&subs_add)
@@ -102,14 +96,10 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     // --- Item submenu ---
     // \t in labels displays key hints on the right side WITHOUT registering accelerators.
     // These keys are handled by the frontend.
-    let item_prev =
-        MenuItemBuilder::with_id("item-prev", "Previous\tK").build(app)?;
-    let item_next =
-        MenuItemBuilder::with_id("item-next", "Next\tJ").build(app)?;
-    let item_reader =
-        MenuItemBuilder::with_id("item-reader", "Open in Reader\tV").build(app)?;
-    let item_browser =
-        MenuItemBuilder::with_id("item-browser", "Open in Browser\tB").build(app)?;
+    let item_prev = MenuItemBuilder::with_id("item-prev", "Previous\tK").build(app)?;
+    let item_next = MenuItemBuilder::with_id("item-next", "Next\tJ").build(app)?;
+    let item_reader = MenuItemBuilder::with_id("item-reader", "Open in Reader\tV").build(app)?;
+    let item_browser = MenuItemBuilder::with_id("item-browser", "Open in Browser\tB").build(app)?;
     let item_toggle_star =
         MenuItemBuilder::with_id("item-toggle-star", "Toggle Star\tS").build(app)?;
     let item_toggle_read =
@@ -130,8 +120,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         .build()?;
 
     // --- Share submenu ---
-    let share_copy_link =
-        MenuItemBuilder::with_id("share-copy-link", "Copy Link").build(app)?;
+    let share_copy_link = MenuItemBuilder::with_id("share-copy-link", "Copy Link").build(app)?;
     let share_open_browser =
         MenuItemBuilder::with_id("share-open-browser", "Open in Browser").build(app)?;
 

@@ -258,9 +258,7 @@ function resolveActionForId(
     case "prev_feed":
       return Result.succeed({ type: "navigate-feed", direction: -1 });
     case "reload_webview":
-      return context.contentMode === "browser"
-        ? Result.succeed({ type: "reload-webview" })
-        : Result.fail("no_action");
+      return context.contentMode === "browser" ? Result.succeed({ type: "reload-webview" }) : Result.fail("no_action");
   }
 }
 

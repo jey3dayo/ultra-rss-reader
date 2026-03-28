@@ -287,17 +287,17 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         );
         let mut stmt = self.conn.prepare(&fts_sql)?;
         let fts_articles: Vec<Article> = stmt
-            .query_map(
-                params![account_id.0, fts_query],
-                row_to_article,
-            )?
+            .query_map(params![account_id.0, fts_query], row_to_article)?
             .collect::<Result<Vec<_>, _>>()?;
 
         // Always run LIKE search as well to catch CJK-mixed titles where FTS5
         // unicode61 tokenizer merges adjacent scripts into a single token
         // (e.g. "新型HomePod"). Merge results with deduplication by article id.
         // Escape SQL LIKE wildcards in the query to match literal characters.
-        let escaped_query = query.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_");
+        let escaped_query = query
+            .replace('\\', "\\\\")
+            .replace('%', "\\%")
+            .replace('_', "\\_");
         let like_pattern = format!("%{escaped_query}%");
         // Do not apply LIMIT/OFFSET here — pagination is applied after merging
         // with FTS results to avoid duplicate/missing rows across pages.
@@ -310,10 +310,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         );
         let mut stmt = self.conn.prepare(&like_sql)?;
         let like_articles: Vec<Article> = stmt
-            .query_map(
-                params![account_id.0, like_pattern],
-                row_to_article,
-            )?
+            .query_map(params![account_id.0, like_pattern], row_to_article)?
             .collect::<Result<Vec<_>, _>>()?;
 
         // Merge FTS and LIKE results, deduplicating by article id

@@ -64,7 +64,9 @@ pub fn set_preference(
     value: String,
 ) -> Result<(), AppError> {
     let is_allowed = ALLOWED_KEYS.contains(&key.as_str())
-        || ALLOWED_PREFIXES.iter().any(|prefix| key.starts_with(prefix));
+        || ALLOWED_PREFIXES
+            .iter()
+            .any(|prefix| key.starts_with(prefix));
     if !is_allowed {
         return Err(AppError::UserVisible {
             message: format!("Unknown preference key: {key}"),
