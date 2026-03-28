@@ -4,6 +4,7 @@ import { ChevronDown, Plus, RefreshCw, Settings } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { triggerSync } from "@/api/tauri-commands";
+import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccounts } from "@/hooks/use-accounts";
@@ -300,13 +301,14 @@ export function Sidebar() {
       </ScrollArea>
 
       {/* Bottom Settings Button */}
-      <div className="flex h-10 items-center border-t border-sidebar-border px-2">
+      <div className="flex h-10 items-center justify-center border-t border-sidebar-border px-2">
         <Button
           variant="ghost"
+          size="sm"
           onClick={openSettings}
-          className="flex w-full items-center gap-2 px-2 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          className={controlChipVariants({ size: "comfortable", interaction: "action" })}
         >
-          <Settings className="h-4 w-4" />
+          <Settings className={controlChipIconVariants({ size: "comfortable" })} />
           <span>Settings</span>
         </Button>
       </div>
