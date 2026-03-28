@@ -1,7 +1,65 @@
 import { Result } from "@praha/byethrow";
-import { keyboardEvents } from "@/lib/keyboard-shortcuts";
+import { keyboardEvents, type ViewMode } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+
+/** All valid action identifiers dispatched via executeAction. */
+export type AppAction =
+  | `set-filter-${ViewMode}`
+  | "toggle-sort-unread"
+  | "toggle-group-by-feed"
+  | "toggle-fullscreen"
+  | "sync-all"
+  | "open-settings"
+  | "open-settings-accounts"
+  | "open-settings-accounts-add"
+  | "open-add-feed"
+  | "prev-article"
+  | "next-article"
+  | "prev-feed"
+  | "next-feed"
+  | "reload-webview"
+  | "open-in-reader"
+  | "open-in-browser"
+  | "toggle-star"
+  | "toggle-read"
+  | "mark-all-read"
+  | "copy-link"
+  | "open-in-default-browser"
+  | "add-to-reading-list";
+
+/** Set of all valid action strings, used for runtime validation at IPC boundaries. */
+const appActions = new Set<string>([
+  "set-filter-unread",
+  "set-filter-all",
+  "set-filter-starred",
+  "toggle-sort-unread",
+  "toggle-group-by-feed",
+  "toggle-fullscreen",
+  "sync-all",
+  "open-settings",
+  "open-settings-accounts",
+  "open-settings-accounts-add",
+  "open-add-feed",
+  "prev-article",
+  "next-article",
+  "prev-feed",
+  "next-feed",
+  "reload-webview",
+  "open-in-reader",
+  "open-in-browser",
+  "toggle-star",
+  "toggle-read",
+  "mark-all-read",
+  "copy-link",
+  "open-in-default-browser",
+  "add-to-reading-list",
+]);
+
+/** Runtime type guard for validating action strings from external sources (e.g. Tauri IPC). */
+export function isAppAction(value: string): value is AppAction {
+  return appActions.has(value);
+}
 
 /** Custom DOM event names used by the action system. */
 export const actionEvents = {
@@ -41,7 +99,7 @@ async function toggleFullscreen(): Promise<void> {
  *
  * @param action - The action identifier string (e.g. "open-settings", "sync-all")
  */
-export function executeAction(action: string): void {
+export function executeAction(action: AppAction): void {
   const store = useUiStore.getState();
 
   switch (action) {
@@ -167,8 +225,10 @@ export function executeAction(action: string): void {
       emitEvent(keyboardEvents.addToReadingList);
       break;
 
-    default:
-      console.warn(`[actions] Unknown action: ${action}`);
+    default: {
+      const _exhaustive: never = action;
+      console.warn(`[actions] Unknown action: ${_exhaustive}`);
       break;
+    }
   }
 }

@@ -12,7 +12,7 @@ export const keyboardEvents = {
 } as const;
 
 type ContentMode = "empty" | "reader" | "browser" | "loading";
-type ViewMode = "all" | "unread" | "starred";
+export type ViewMode = "all" | "unread" | "starred";
 
 export type KeyboardAction =
   | { type: "open-settings" }
