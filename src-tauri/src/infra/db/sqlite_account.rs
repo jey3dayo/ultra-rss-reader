@@ -96,6 +96,14 @@ impl AccountRepository for SqliteAccountRepository<'_> {
         Ok(())
     }
 
+    fn rename(&self, id: &AccountId, name: &str) -> DomainResult<()> {
+        self.conn.execute(
+            "UPDATE accounts SET name = ?1 WHERE id = ?2",
+            params![name, id.0],
+        )?;
+        Ok(())
+    }
+
     fn delete(&self, id: &AccountId) -> DomainResult<()> {
         self.conn
             .execute("DELETE FROM accounts WHERE id = ?1", params![id.0])?;
