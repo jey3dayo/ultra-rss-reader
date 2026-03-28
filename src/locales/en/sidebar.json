@@ -1,0 +1,16 @@
+{
+  "app_name": "Ultra RSS",
+  "unread": "Unread",
+  "starred": "Starred",
+  "feeds": "Feeds",
+  "tags": "Tags",
+  "settings": "Settings",
+  "not_synced_yet": "Not synced yet",
+  "today_at": "Today at {{time}}",
+  "sync_feeds": "Sync feeds",
+  "add_feed": "Add feed",
+  "press_plus_to_add_feed": "Press + to add a feed",
+  "sync_completed": "Sync completed",
+  "sync_failed": "Sync failed",
+  "date_at": "{{date}} at {{time}}"
+}
