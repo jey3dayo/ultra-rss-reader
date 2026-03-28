@@ -125,3 +125,9 @@ export const getTagArticleCounts = () => safeInvoke<Record<string, number>>("get
 
 export const copyToClipboard = (text: string) => safeInvoke<void>("copy_to_clipboard", { text });
 export const addToReadingList = (url: string) => safeInvoke<void>("add_to_reading_list", { url });
+
+// Updater
+export type UpdateInfoDto = { version: string; body: string | null };
+export const checkForUpdate = () => safeInvoke<UpdateInfoDto | null>("check_for_update");
+export const downloadAndInstallUpdate = () => safeInvoke<void>("download_and_install_update");
+export const restartApp = () => safeInvoke<void>("restart_app");

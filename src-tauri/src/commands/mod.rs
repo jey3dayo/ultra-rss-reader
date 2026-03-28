@@ -6,6 +6,7 @@ pub mod opml_commands;
 pub mod preference_commands;
 pub mod share_commands;
 pub mod tag_commands;
+pub mod updater_commands;
 
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};

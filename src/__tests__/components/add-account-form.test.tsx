@@ -27,7 +27,7 @@ describe("AddAccountForm", () => {
     await user.click(screen.getByRole("button", { name: "Add" }));
 
     await waitFor(() => {
-      expect(useUiStore.getState().toastMessage).toBe("Server URL is required");
+      expect(useUiStore.getState().toastMessage).toEqual({ message: "Server URL is required" });
     });
     expect(addAccountCalls).toBe(0);
   });

@@ -26,7 +26,8 @@ export type AppAction =
   | "mark-all-read"
   | "copy-link"
   | "open-in-default-browser"
-  | "add-to-reading-list";
+  | "add-to-reading-list"
+  | "check-for-updates";
 
 /** Set of all valid action strings, used for runtime validation at IPC boundaries. */
 const appActions = new Set<string>([
@@ -54,6 +55,7 @@ const appActions = new Set<string>([
   "copy-link",
   "open-in-default-browser",
   "add-to-reading-list",
+  "check-for-updates",
 ]);
 
 /** Runtime type guard for validating action strings from external sources (e.g. Tauri IPC). */
@@ -224,6 +226,25 @@ export function executeAction(action: AppAction): void {
     case "add-to-reading-list":
       emitEvent(keyboardEvents.addToReadingList);
       break;
+
+    // --- Updater ---
+    case "check-for-updates": {
+      import("@/hooks/use-updater").then(({ performUpdateCheck, showUpdateAvailableToast }) => {
+        performUpdateCheck()
+          .then((info) => {
+            if (info) {
+              showUpdateAvailableToast(info.version);
+            } else {
+              store.showToast("最新バージョンです");
+            }
+          })
+          .catch((e: unknown) => {
+            console.error("Manual update check failed:", e);
+            store.showToast("アップデートの確認に失敗しました");
+          });
+      });
+      break;
+    }
 
     default: {
       const _exhaustive: never = action;

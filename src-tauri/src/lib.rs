@@ -8,6 +8,8 @@ pub mod service;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
+use commands::updater_commands::PendingUpdate;
+
 use commands::AppState;
 use infra::db::connection::DbManager;
 use infra::db::sqlite_preference::SqlitePreferenceRepository;
@@ -19,6 +21,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             // Initialize database first so preferences are available for menu construction
             let app_data_dir = app
@@ -45,6 +48,7 @@ pub fn run() {
                 db: Mutex::new(db),
                 syncing: Arc::new(AtomicBool::new(false)),
             });
+            app.manage(PendingUpdate(Arc::new(tokio::sync::Mutex::new(None))));
 
             // Start background periodic sync
             let state = app.state::<AppState>();
@@ -91,6 +95,9 @@ pub fn run() {
             commands::tag_commands::get_tag_article_counts,
             commands::share_commands::copy_to_clipboard,
             commands::share_commands::add_to_reading_list,
+            commands::updater_commands::check_for_update,
+            commands::updater_commands::download_and_install_update,
+            commands::updater_commands::restart_app,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

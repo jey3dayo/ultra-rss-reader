@@ -39,7 +39,7 @@ run = "taplo fmt mise.toml src-tauri/Cargo.toml"
 
 [tasks."format:md"]
 description = "Markdown format + lint autofix"
-run = "pnpm markdownlint-cli2 '${MD_GLOB}' ${MD_EXCLUDE_NODE_MODULES} ${MD_EXCLUDE_WORKTREES} --fix"
+run = 'pnpm markdownlint-cli2 "${MD_GLOB}" ${MD_EXCLUDE_NODE_MODULES} ${MD_EXCLUDE_WORKTREES} --fix'
 
 # ========================================
 # フォーマットチェック（書き込みなし、CI用）
@@ -88,7 +88,7 @@ run = "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
 
 [tasks."lint:md"]
 description = "Markdown lint check"
-run = "pnpm markdownlint-cli2 '${MD_GLOB}' ${MD_EXCLUDE_NODE_MODULES} ${MD_EXCLUDE_WORKTREES}"
+run = 'pnpm markdownlint-cli2 "${MD_GLOB}" ${MD_EXCLUDE_NODE_MODULES} ${MD_EXCLUDE_WORKTREES}'
 
 [tasks."lint:yaml"]
 description = "YAML lint check"

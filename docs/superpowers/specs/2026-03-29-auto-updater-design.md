@@ -8,7 +8,7 @@ Issue: #8
 
 アプリ起動時に GitHub Releases をチェックし、新バージョンがあればトースト通知でユーザーに伝える。メニューからの手動チェックも可能。
 
-```
+```text
 起動 → GitHub Releases JSON fetch → 新バージョン検出 → トースト通知
   → 「今すぐ更新」→ ダウンロード（進捗表示）→ 署名検証 → 再起動確認 → 再起動
 ```
@@ -59,13 +59,13 @@ Issue: #8
 
 `menu.rs` の App サブメニュー（Settings の下、separator の後）に:
 
-```
+```text
 Check for Updates...  (id: "check-for-updates")
 ```
 
 `handle_event` に `"check-for-updates" => "check-for-updates"` マッピングを追加。
 
-### メニューイベントフロー（既存パターンと統一）:
+### メニューイベントフロー（既存パターンと統一）
 
 1. Rust `handle_event` → `menu-action` イベントで `"check-for-updates"` を emit
 2. `use-menu-events.ts` が受信 → `executeAction("check-for-updates")` を呼び出し
