@@ -10,6 +10,7 @@ use crate::repository::preference::PreferenceRepository;
 /// Known preference keys. Reject unknown keys to prevent table pollution.
 const ALLOWED_KEYS: &[&str] = &[
     "theme",
+    "language",
     "unread_badge",
     "open_links",
     "open_links_background",
@@ -34,12 +35,17 @@ const ALLOWED_KEYS: &[&str] = &[
     "reading_sort",
     "after_reading",
     "scroll_to_top_on_change",
+    "sort_subscriptions",
+    "mark_article_as_read",
     "action_copy_link",
     "action_open_browser",
     "action_share",
     "inoreader_app_id",
     "inoreader_app_key",
 ];
+
+/// Key prefixes that are allowed dynamically (e.g. shortcut_next_article).
+const ALLOWED_PREFIXES: &[&str] = &["shortcut_"];
 
 #[tauri::command]
 pub fn get_preferences(state: State<'_, AppState>) -> Result<HashMap<String, String>, AppError> {
@@ -57,7 +63,9 @@ pub fn set_preference(
     key: String,
     value: String,
 ) -> Result<(), AppError> {
-    if !ALLOWED_KEYS.contains(&key.as_str()) {
+    let is_allowed = ALLOWED_KEYS.contains(&key.as_str())
+        || ALLOWED_PREFIXES.iter().any(|prefix| key.starts_with(prefix));
+    if !is_allowed {
         return Err(AppError::UserVisible {
             message: format!("Unknown preference key: {key}"),
         });
