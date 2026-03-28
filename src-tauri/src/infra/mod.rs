@@ -1,4 +1,5 @@
 pub mod db;
+pub mod feed_discovery;
 pub mod keyring_store;
 pub mod opml;
 pub mod provider;
