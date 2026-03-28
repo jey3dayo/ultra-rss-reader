@@ -27,6 +27,14 @@ paths:
 - タグ作成前に 3 箇所のバージョンが一致していることを確認する
 - セマンティックバージョニング (semver) に従う
 
+## 開発フロー（リリースノート自動生成の前提）
+
+- feature branch → PR → merge の運用を徹底する
+- main への直接コミットは避ける（`generateReleaseNotes` は PR ベースで生成するため、直接コミットはリリースノートに載らない）
+- PR 作成時に種別に応じたラベルを付与する
+- `.github/release.yml` でラベルごとにリリースノートを自動分類する
+- `skip-changelog` ラベルで特定 PR をリリースノートから除外できる
+
 ## コミット・ラベル・リリースノートの対応
 
 コミット prefix、PR ラベル、リリースノートカテゴリは一致させる。
@@ -38,10 +46,6 @@ paths:
 | `docs:`                      | `docs`     | 📚 Documentation       |
 | `chore:`/`refactor:`/`test:` | `chore`    | 🔧 Maintenance         |
 | (breaking change)            | `breaking` | 💥 Breaking Changes    |
-
-- PR 作成時に種別に応じたラベルを付与する
-- `.github/release.yml` でラベルごとにリリースノートを自動分類する
-- `skip-changelog` ラベルで特定 PR をリリースノートから除外できる
 
 ## 根拠
 

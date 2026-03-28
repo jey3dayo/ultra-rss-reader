@@ -4,6 +4,44 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-28
+
+### Features
+
+- macOS ネイティブメニューバー（View / Accounts / Subscriptions / Item / Share）(#6)
+- 自動アップデーター（tauri-plugin-updater + Ed25519 署名検証）(#9)
+- カスタムアプリアイコン (#10)
+- i18n 対応（日本語/英語切替、react-i18next + 言語設定永続化）
+- UI 刷新（About メニュー、オーバーレイタイトルバー、記事リストリデザイン）
+- アカウントリネーム機能 + server_url 表示
+- タグ管理 API（リネーム/削除、記事数取得）
+- カスタムキーボードショートカットのプリファレンス連携
+- 最近既読の記事トラッキング（recentlyReadIds）
+- ConfirmDialog（window.confirm を完全置換）
+- feed_discovery モジュール公開
+
+### Bug Fixes
+
+- スイッチコンポーネントのサイズ・パディング調整
+- アカウント名バリデーションをバイト数→文字数カウントに修正
+- フィードディスカバリーに SSRF 保護を追加
+- 検索ページネーション修正 + LIKE ワイルドカードエスケープ
+- プリファレンスキーの ALLOWED_KEYS 許可リスト更新
+- フィルターボタン順序修正（Unread → All → Starred）
+- 同期状態・共有記事アイコンの整列
+- createMutation の型安全性修正（TData ジェネリック追加）
+
+### Maintenance
+
+- Bionic Reading モジュール・設定を完全削除
+- React Query の createQuery/createMutation ファクトリ抽出
+- ハードコードされたショートカットラベルを i18n キーに置換
+- Unknown Feed のセンチネル値によるグルーピング改善
+- テストヘルパー（createWrapper）共通化
+- GitHub Actions リリースワークフロー整備
+
+## [0.1.0] - 2026-03-27
+
 ### Features
 
 - FreshRSS 双方向同期（既読/スター、フォルダ階層、ページネーション、バックグラウンド定期同期、sync-on-wake）

@@ -14,3 +14,9 @@
 
 - [x] アプリアイコンの作成・設定（PR #10）
 - [ ] ライトモード対応（OS テーマに応じたアイコン切替） #11
+
+## リリース運用
+
+- [x] v0.3.0 リリースノートを手動反映
+- [ ] 今後は feature branch → PR → merge の運用に切り替え（`generateReleaseNotes` + `release.yml` テンプレ活用）
+- [ ] PR 作成時にラベル自動付与の仕組み導入（actions/labeler 等）
