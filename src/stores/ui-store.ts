@@ -2,6 +2,18 @@ import { create } from "zustand";
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
+export type ToastAction = {
+  label: string;
+  onClick: () => void;
+};
+
+export type ToastData = {
+  message: string;
+  persistent?: boolean;
+  progress?: number;
+  actions?: ToastAction[];
+};
+
 type Selection =
   | { type: "feed"; feedId: string }
   | { type: "folder"; folderId: string }
@@ -29,7 +41,7 @@ interface UiState {
   settingsAccountId: string | null;
   settingsAddAccount: boolean;
   isAddFeedDialogOpen: boolean;
-  toastMessage: string | null;
+  toastMessage: ToastData | null;
   recentlyReadIds: Set<string>;
   confirmDialog: {
     open: boolean;
@@ -61,7 +73,7 @@ interface UiActions {
   setSettingsCategory: (cat: SettingsCategory) => void;
   setSettingsAccountId: (id: string | null) => void;
   setSettingsAddAccount: (show: boolean) => void;
-  showToast: (message: string) => void;
+  showToast: (message: string | ToastData) => void;
   clearToast: () => void;
   addRecentlyRead: (id: string) => void;
   clearRecentlyRead: () => void;
@@ -158,11 +170,14 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   setSettingsAddAccount: (show) => set({ settingsAddAccount: show, settingsAccountId: null }),
   showToast: (message) => {
     if (toastTimer) clearTimeout(toastTimer);
-    set({ toastMessage: message });
-    toastTimer = setTimeout(() => {
-      set({ toastMessage: null });
-      toastTimer = null;
-    }, 4000);
+    const data: ToastData = typeof message === "string" ? { message } : message;
+    set({ toastMessage: data });
+    if (!data.persistent) {
+      toastTimer = setTimeout(() => {
+        set({ toastMessage: null });
+        toastTimer = null;
+      }, 4000);
+    }
   },
   clearToast: () => set({ toastMessage: null }),
   addRecentlyRead: (id) =>

@@ -20,10 +20,14 @@ pub fn build(app: &AppHandle, prefs: &HashMap<String, String>) -> tauri::Result<
         .accelerator("CmdOrCtrl+,")
         .build(app)?;
 
+    let check_updates_item =
+        MenuItemBuilder::with_id("check-for-updates", "Check for Updates...").build(app)?;
+
     let app_submenu = SubmenuBuilder::new(app, "Ultra RSS Reader")
         .item(&about_item)
         .separator()
         .item(&settings_item)
+        .item(&check_updates_item)
         .separator()
         .quit()
         .build()?;
@@ -206,6 +210,7 @@ pub fn handle_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
         "share-copy-link" => "copy-link",
         "share-open-browser" => "open-in-default-browser",
         "share-reading-list" => "add-to-reading-list",
+        "check-for-updates" => "check-for-updates",
         "settings" => "open-settings",
         _ => return,
     };

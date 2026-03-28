@@ -19,6 +19,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             // Initialize database first so preferences are available for menu construction
             let app_data_dir = app
@@ -91,6 +92,9 @@ pub fn run() {
             commands::tag_commands::get_tag_article_counts,
             commands::share_commands::copy_to_clipboard,
             commands::share_commands::add_to_reading_list,
+            commands::updater_commands::check_for_update,
+            commands::updater_commands::download_and_install_update,
+            commands::updater_commands::restart_app,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

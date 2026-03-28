@@ -26,7 +26,8 @@ export type AppAction =
   | "mark-all-read"
   | "copy-link"
   | "open-in-default-browser"
-  | "add-to-reading-list";
+  | "add-to-reading-list"
+  | "check-for-updates";
 
 /** Set of all valid action strings, used for runtime validation at IPC boundaries. */
 const appActions = new Set<string>([
@@ -54,6 +55,7 @@ const appActions = new Set<string>([
   "copy-link",
   "open-in-default-browser",
   "add-to-reading-list",
+  "check-for-updates",
 ]);
 
 /** Runtime type guard for validating action strings from external sources (e.g. Tauri IPC). */
@@ -224,6 +226,30 @@ export function executeAction(action: AppAction): void {
     case "add-to-reading-list":
       emitEvent(keyboardEvents.addToReadingList);
       break;
+
+    // --- Updater ---
+    case "check-for-updates": {
+      import("@/api/tauri-commands").then(({ checkForUpdate }) => {
+        checkForUpdate().then((result) =>
+          Result.pipe(
+            result,
+            Result.inspect((info) => {
+              if (info) {
+                // Delegate to use-updater's toast pattern via a custom event
+                window.dispatchEvent(new CustomEvent("ultra-rss:update-available", { detail: info }));
+              } else {
+                store.showToast("最新バージョンです");
+              }
+            }),
+            Result.inspectError((e) => {
+              console.error("Manual update check failed:", e);
+              store.showToast("アップデートの確認に失敗しました");
+            }),
+          ),
+        );
+      });
+      break;
+    }
 
     default: {
       const _exhaustive: never = action;

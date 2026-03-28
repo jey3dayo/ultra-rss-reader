@@ -45,7 +45,7 @@ cd src-tauri && cargo check
 
 変更された4ファイルをステージして以下のメッセージでコミット:
 
-```
+```text
 release: v{new_version}
 ```
 

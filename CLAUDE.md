@@ -10,7 +10,7 @@ Desktop RSS feed reader built with Tauri 2 (Rust backend) + React 19 (TypeScript
 - Database: SQLite via rusqlite (embedded)
 - Providers: Local RSS feeds, FreshRSS (GReader API)
 - UI: Base UI (`@base-ui/react`) headless primitives + shadcn (base-nova) theme/config layer
-- Secrets: dotenvx (.env encryption), keyring (OS credential store)
+- Secrets: dotenvx (.env encryption), keyring (OS credential store), 1Password (signing keys & CI secrets)
 
 ## Commands
 
