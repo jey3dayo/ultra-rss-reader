@@ -4,6 +4,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-03-29
+
+### Features
+
+- PR Insights Labeler ワークフロー追加
+
+### Bug Fixes
+
+- アプリアイコンを透過 PNG に変換（白背景の除去）
+- リリースワークフロー CI 失敗の修正とビルドスクリプト承認
+
+### Maintenance
+
+- GitHub Actions を Node.js 24 互換バージョンにアップグレード
+- リリースマトリクスから macos-13 x86_64 を削除
+
 ## [0.3.0] - 2026-03-28
 
 ### Features
