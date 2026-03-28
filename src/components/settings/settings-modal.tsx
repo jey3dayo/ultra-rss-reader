@@ -1,6 +1,4 @@
-import { listen } from "@tauri-apps/api/event";
 import { BookOpen, Palette, Plus, Rss, Settings, Share2, X } from "lucide-react";
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { AccountDetail } from "@/components/settings/account-detail";
 import { ActionsSettings } from "@/components/settings/actions-settings";
@@ -94,29 +92,6 @@ export function SettingsModal() {
       icon: <Share2 className="h-5 w-5" />,
     },
   ];
-
-  // Listen for Tauri menu event
-  useEffect(() => {
-    let cancelled = false;
-    let unlisten: (() => void) | undefined;
-    listen<string>("menu-action", (event) => {
-      const action = event.payload;
-      if (action === "open-settings") {
-        openSettings();
-      } else if (action === "open-settings-accounts") {
-        openSettings("accounts");
-      }
-    })
-      .then((fn) => {
-        if (cancelled) fn();
-        else unlisten = fn;
-      })
-      .catch(() => {}); // Ignore in browser mode
-    return () => {
-      cancelled = true;
-      unlisten?.();
-    };
-  }, [openSettings]);
 
   return (
     <Dialog open={settingsOpen} onOpenChange={(open) => (!open ? closeSettings() : openSettings())}>

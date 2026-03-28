@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useEffect, useMemo } from "react";
+import { executeAction } from "@/lib/actions";
 import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
@@ -39,13 +40,13 @@ export function useKeyboard() {
 
       switch (resolvedAction.type) {
         case "open-settings":
-          store.openSettings();
+          executeAction("open-settings");
           break;
         case "emit":
           emitKeyboardEvent(resolvedAction.eventName);
           break;
         case "set-view-mode":
-          store.setViewMode(resolvedAction.mode);
+          executeAction(`set-filter-${resolvedAction.mode}`);
           break;
         case "close-browser":
           store.closeBrowser();

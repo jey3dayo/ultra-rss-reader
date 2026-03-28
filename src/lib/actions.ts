@@ -1,0 +1,150 @@
+import { Result } from "@praha/byethrow";
+import { keyboardEvents } from "@/lib/keyboard-shortcuts";
+import { usePreferencesStore } from "@/stores/preferences-store";
+import { useUiStore } from "@/stores/ui-store";
+
+/** Custom DOM event names used by the action system. */
+export const actionEvents = {
+  navigateFeed: "ultra-rss:navigate-feed",
+} as const;
+
+/** Emit a keyboard-style DOM event that existing components already listen for. */
+function emitEvent(name: string): void {
+  window.dispatchEvent(new Event(name));
+}
+
+/** Emit a navigation event with a direction detail. */
+function emitNavigationEvent(name: string, direction: 1 | -1): void {
+  window.dispatchEvent(new CustomEvent(name, { detail: direction }));
+}
+
+const NAVIGATE_ARTICLE_EVENT = "ultra-rss:navigate-article";
+
+/**
+ * Toggle a boolean preference value.
+ * Reads the current value from the preferences store and flips it.
+ */
+function toggleBoolPref(key: string, defaultValue: string): void {
+  const prefs = usePreferencesStore.getState().prefs;
+  const current = prefs[key] ?? defaultValue;
+  usePreferencesStore.getState().setPref(key, current === "true" ? "false" : "true");
+}
+
+/**
+ * Toggle fullscreen mode via the Tauri window API.
+ * Silently no-ops in browser (non-Tauri) contexts.
+ */
+async function toggleFullscreen(): Promise<void> {
+  try {
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    const win = getCurrentWindow();
+    const isFullscreen = await win.isFullscreen();
+    await win.setFullscreen(!isFullscreen);
+  } catch {
+    // Non-Tauri context (browser dev mode) — no-op
+  }
+}
+
+/**
+ * Central action dispatcher.
+ * Both keyboard shortcuts and native menu events call into this function.
+ *
+ * @param action - The action identifier string (e.g. "open-settings", "sync-all")
+ */
+export function executeAction(action: string): void {
+  const store = useUiStore.getState();
+
+  switch (action) {
+    // --- View filters ---
+    case "set-filter-unread":
+      store.setViewMode("unread");
+      break;
+    case "set-filter-all":
+      store.setViewMode("all");
+      break;
+    case "set-filter-starred":
+      store.setViewMode("starred");
+      break;
+
+    // --- Preference toggles ---
+    case "toggle-sort-unread":
+      toggleBoolPref("sort_unread", "newest_first");
+      break;
+    case "toggle-group-by-feed":
+      toggleBoolPref("group_by", "date");
+      break;
+
+    // --- Window ---
+    case "toggle-fullscreen":
+      toggleFullscreen();
+      break;
+
+    // --- Sync ---
+    case "sync-all": {
+      import("@/api/tauri-commands").then(({ triggerSync }) => {
+        triggerSync().then((result) =>
+          Result.pipe(
+            result,
+            Result.inspectError((e) => console.error("Menu sync failed:", e)),
+          ),
+        );
+      });
+      break;
+    }
+
+    // --- Settings & dialogs ---
+    case "open-settings":
+      store.openSettings();
+      break;
+    case "open-settings-accounts":
+      store.openSettings("accounts");
+      break;
+    case "open-add-feed":
+      store.openAddFeedDialog();
+      break;
+
+    // --- Article navigation ---
+    case "prev-article":
+      emitNavigationEvent(NAVIGATE_ARTICLE_EVENT, -1);
+      break;
+    case "next-article":
+      emitNavigationEvent(NAVIGATE_ARTICLE_EVENT, 1);
+      break;
+
+    // --- Feed navigation ---
+    case "prev-feed":
+      emitNavigationEvent(actionEvents.navigateFeed, -1);
+      break;
+    case "next-feed":
+      emitNavigationEvent(actionEvents.navigateFeed, 1);
+      break;
+
+    // --- Article actions (reuse existing keyboard event system) ---
+    case "open-in-reader":
+      emitEvent(keyboardEvents.openInAppBrowser);
+      break;
+    case "open-in-browser":
+      emitEvent(keyboardEvents.openExternalBrowser);
+      break;
+    case "toggle-star":
+      emitEvent(keyboardEvents.toggleStar);
+      break;
+    case "toggle-read":
+      emitEvent(keyboardEvents.toggleRead);
+      break;
+    case "mark-all-read":
+      emitEvent(keyboardEvents.markAllRead);
+      break;
+
+    // --- Placeholder actions (connected in Task 6) ---
+    case "copy-link":
+    case "open-in-default-browser":
+    case "add-to-reading-list":
+      // Will be connected when share actions are implemented
+      break;
+
+    default:
+      console.warn(`[actions] Unknown action: ${action}`);
+      break;
+  }
+}
