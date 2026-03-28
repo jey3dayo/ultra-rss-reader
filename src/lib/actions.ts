@@ -81,7 +81,13 @@ export function executeAction(action: string): void {
         triggerSync().then((result) =>
           Result.pipe(
             result,
-            Result.inspectError((e) => console.error("Menu sync failed:", e)),
+            Result.inspect((synced) => {
+              store.showToast(synced ? "Sync completed" : "Sync already in progress");
+            }),
+            Result.inspectError((e) => {
+              console.error("Menu sync failed:", e);
+              store.showToast(`Sync failed: ${e.message}`);
+            }),
           ),
         );
       });
@@ -94,6 +100,10 @@ export function executeAction(action: string): void {
       break;
     case "open-settings-accounts":
       store.openSettings("accounts");
+      break;
+    case "open-settings-accounts-add":
+      store.openSettings("accounts");
+      store.setSettingsAddAccount(true);
       break;
     case "open-add-feed":
       store.openAddFeedDialog();
