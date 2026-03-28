@@ -1,9 +1,11 @@
+import { Toggle } from "@base-ui/react/toggle";
 import { Result } from "@praha/byethrow";
-import { ArrowLeft, Circle, Copy, Plus, Share, Star, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, Copy, ExternalLink, Globe, Plus, Star, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
-import { Button } from "@/components/ui/button";
+import { UnreadIcon } from "@/components/icons";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -16,8 +18,8 @@ import {
   useUntagArticle,
 } from "@/hooks/use-tags";
 import { findSelectedArticle, formatArticleDate, shouldOpenExternalBrowser } from "@/lib/article-view";
-import { applyBionicReading } from "@/lib/bionic-reading";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
+import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { BrowserView } from "./browser-view";
@@ -28,13 +30,15 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
   const openBrowser = useUiStore((s) => s.openBrowser);
   const layoutMode = useUiStore((s) => s.layoutMode);
   const setFocusedPane = useUiStore((s) => s.setFocusedPane);
+  const showToast = useUiStore((s) => s.showToast);
+  const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
   const actionCopyLink = usePreferencesStore((s) => s.prefs.action_copy_link ?? "true");
   const actionOpenBrowser = usePreferencesStore((s) => s.prefs.action_open_browser ?? "true");
   const actionShare = usePreferencesStore((s) => s.prefs.action_share ?? "false");
   const showSidebarButton = layoutMode !== "wide";
 
   return (
-    <div className="flex h-12 items-center justify-between border-b border-border px-4">
+    <div data-tauri-drag-region className="flex h-12 items-center justify-between border-b border-border px-4">
       <div>
         {showSidebarButton && (
           <Button
@@ -49,31 +53,50 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
         )}
       </div>
       <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => article && setRead.mutate({ id: article.id, read: !article.is_read })}
-          className="text-muted-foreground"
+        <Toggle
+          pressed={article?.is_read ?? false}
+          onPressedChange={(pressed) => {
+            if (!article) return;
+            setRead.mutate(
+              { id: article.id, read: pressed },
+              {
+                onSuccess: () => {
+                  if (pressed) addRecentlyRead(article.id);
+                },
+              },
+            );
+          }}
           disabled={!article}
           aria-label="Toggle read"
+          className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
         >
-          <Circle className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => article && toggleStar.mutate({ id: article.id, starred: !article.is_starred })}
-          className="text-muted-foreground"
+          <UnreadIcon unread={!article?.is_read} className="h-3 w-3" />
+        </Toggle>
+        <Toggle
+          pressed={article?.is_starred ?? false}
+          onPressedChange={(pressed) => {
+            if (!article) return;
+            toggleStar.mutate(
+              { id: article.id, starred: pressed },
+              { onSuccess: () => showToast(pressed ? "Starred" : "Unstarred") },
+            );
+          }}
           disabled={!article}
           aria-label="Toggle star"
+          className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
         >
-          <Star className="h-4 w-4" />
-        </Button>
+          <Star className={article?.is_starred ? "h-4 w-4 fill-yellow-400 text-yellow-400" : "h-4 w-4"} />
+        </Toggle>
         {actionCopyLink === "true" && (
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => article?.url && navigator.clipboard.writeText(article.url)}
+            onClick={() => {
+              if (article?.url) {
+                navigator.clipboard.writeText(article.url);
+                showToast("Link copied");
+              }
+            }}
             className="text-muted-foreground"
             disabled={!article?.url}
             aria-label="Copy link"
@@ -88,9 +111,9 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
             onClick={() => article?.url && openBrowser(article.url)}
             className="text-muted-foreground"
             disabled={!article?.url}
-            aria-label="Open in browser"
+            aria-label="View in browser"
           >
-            <span className="text-xs font-bold">BR</span>
+            <Globe className="h-4 w-4" />
           </Button>
         )}
         {actionShare === "true" && (
@@ -107,9 +130,9 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
             }}
             className="text-muted-foreground"
             disabled={!article?.url}
-            aria-label="Share article"
+            aria-label="Open in external browser"
           >
-            <Share className="h-4 w-4" />
+            <ExternalLink className="h-4 w-4" />
           </Button>
         )}
       </div>
@@ -254,28 +277,33 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
   const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const cmdClickBrowser = usePreferencesStore((s) => s.prefs.cmd_click_browser ?? "false");
-  const bionicEnabled = usePreferencesStore((s) => s.prefs.bionic_reading ?? "false") === "true";
-  const bionicFixation = Number(usePreferencesStore((s) => s.prefs.bionic_fixation ?? "3"));
-
-  const contentHtml = useMemo(
-    () => (bionicEnabled ? applyBionicReading(article.content_sanitized, bionicFixation) : article.content_sanitized),
-    [article.content_sanitized, bionicEnabled, bionicFixation],
-  );
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
   const openBrowserView = useUiStore((s) => s.openBrowser);
+  const selectFeed = useUiStore((s) => s.selectFeed);
+  const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
 
-  // Auto mark as read when article is displayed
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally trigger only on article change and preference
+  // Auto mark as read only when a new article is opened (article.id changes).
+  // Must NOT depend on article.is_read — otherwise manually marking unread
+  // re-triggers this effect and immediately marks it read again.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally trigger only on article.id change
   useEffect(() => {
     if (afterReading === "mark_as_read" && article && !article.is_read) {
-      setRead.mutate({ id: article.id, read: true });
+      setRead.mutate({ id: article.id, read: true }, { onSuccess: () => addRecentlyRead(article.id) });
     }
-  }, [afterReading, article?.id, article?.is_read, setRead]);
+  }, [afterReading, article?.id]);
 
   useEffect(() => {
     const handleToggleRead = () => {
-      setRead.mutate({ id: article.id, read: !article.is_read });
+      const markingAsRead = !article.is_read;
+      setRead.mutate(
+        { id: article.id, read: markingAsRead },
+        {
+          onSuccess: () => {
+            if (markingAsRead) addRecentlyRead(article.id);
+          },
+        },
+      );
     };
     const handleToggleStar = () => {
       toggleStar.mutate({ id: article.id, starred: !article.is_starred });
@@ -305,7 +333,16 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
       window.removeEventListener(keyboardEvents.openInAppBrowser, handleOpenInAppBrowser);
       window.removeEventListener(keyboardEvents.openExternalBrowser, handleOpenExternalBrowser);
     };
-  }, [article.id, article.is_read, article.is_starred, article.url, openBrowserView, setRead, toggleStar]);
+  }, [
+    article.id,
+    article.is_read,
+    article.is_starred,
+    article.url,
+    openBrowserView,
+    setRead,
+    toggleStar,
+    addRecentlyRead,
+  ]);
 
   const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -335,13 +372,29 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
           <p className="mb-2 text-xs tracking-wider text-muted-foreground">{formatArticleDate(article.published_at)}</p>
 
           {/* Title */}
-          <h1 className="mb-4 text-2xl font-bold leading-tight text-foreground">{article.title}</h1>
+          <h1
+            className={`mb-4 text-2xl font-bold leading-tight text-foreground${article.url ? " cursor-pointer hover:underline" : ""}`}
+            onClick={() => article.url && openBrowserView(article.url)}
+            onKeyDown={(e) => {
+              if (article.url && (e.key === "Enter" || e.key === " ")) openBrowserView(article.url);
+            }}
+          >
+            {article.title}
+          </h1>
 
           {/* Author & Feed */}
           {(article.author || feedName) && (
             <div className="mb-4 text-sm text-muted-foreground">
               {article.author && <p className="uppercase tracking-wide">{article.author}</p>}
-              {feedName && <p className="text-xs">{feedName}</p>}
+              {feedName && (
+                <button
+                  type="button"
+                  className="cursor-pointer text-xs hover:underline"
+                  onClick={() => selectFeed(article.feed_id)}
+                >
+                  {feedName}
+                </button>
+              )}
             </div>
           )}
 
@@ -364,7 +417,7 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
             className="prose prose-invert max-w-none text-base leading-relaxed text-foreground/90"
             onClick={handleContentClick}
             // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML is pre-sanitized by Rust backend
-            dangerouslySetInnerHTML={{ __html: contentHtml }}
+            dangerouslySetInnerHTML={{ __html: article.content_sanitized }}
           />
         </article>
       </ScrollArea>

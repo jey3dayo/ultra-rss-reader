@@ -1,5 +1,6 @@
+import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
-import { ChevronDown, Plus, RefreshCw, Settings, Tag } from "lucide-react";
+import { ChevronDown, Plus, RefreshCw, Settings } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { triggerSync } from "@/api/tauri-commands";
@@ -8,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
-import { useTags } from "@/hooks/use-tags";
+import { useTagArticleCounts, useTags } from "@/hooks/use-tags";
 import { groupFeedsByFolder } from "@/lib/sidebar";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -16,10 +17,28 @@ import { useUiStore } from "@/stores/ui-store";
 import { AddFeedDialog } from "./add-feed-dialog";
 import { FeedItem } from "./feed-item";
 import { FolderSection } from "./folder-section";
+import { TagContextMenuContent } from "./tag-context-menu";
+
+function formatLastSynced(date: Date | null): string {
+  if (!date) return "Not synced yet";
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const now = new Date();
+  const isToday =
+    date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
+  if (isToday) {
+    return `Today at ${hours}:${minutes}`;
+  }
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${monthNames[date.getMonth()]} ${date.getDate()} at ${hours}:${minutes}`;
+}
 
 export function Sidebar() {
   const [showAccountList, setShowAccountList] = useState(false);
   const [showAddFeed, setShowAddFeed] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const [isTagsSectionOpen, setIsTagsSectionOpen] = useState(true);
   const accountDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close account dropdown on click outside
@@ -43,9 +62,11 @@ export function Sidebar() {
   const expandedFolderIds = useUiStore((s) => s.expandedFolderIds);
   const toggleFolder = useUiStore((s) => s.toggleFolder);
   const openSettings = useUiStore((s) => s.openSettings);
+  const showToast = useUiStore((s) => s.showToast);
   const { data: feeds } = useFeeds(selectedAccountId);
   const { data: folders } = useFolders(selectedAccountId);
   const { data: tags } = useTags();
+  const { data: tagArticleCounts } = useTagArticleCounts();
   const showUnreadCount = usePreferencesStore((s) => (s.prefs.show_unread_count ?? "true") === "true");
   const displayFavicons = usePreferencesStore((s) => (s.prefs.display_favicons ?? "true") === "true");
 
@@ -62,10 +83,20 @@ export function Sidebar() {
   const totalUnread = feeds?.reduce((sum, f) => sum + f.unread_count, 0) ?? 0;
 
   const handleSync = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
     Result.pipe(
       await triggerSync(),
-      Result.inspectError((e) => console.error("Sync failed:", e)),
+      Result.inspect(() => {
+        setLastSyncedAt(new Date());
+        showToast("Sync completed");
+      }),
+      Result.inspectError((e) => {
+        console.error("Sync failed:", e);
+        showToast("Sync failed");
+      }),
     );
+    setIsSyncing(false);
   };
 
   const feedList: FeedDto[] = feeds ?? [];
@@ -77,22 +108,18 @@ export function Sidebar() {
 
   return (
     <div className="flex h-full w-[280px] flex-col border-r border-border bg-sidebar text-sidebar-foreground">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-3 w-3 items-center justify-center rounded-full bg-red-500" />
-          <div className="flex h-3 w-3 items-center justify-center rounded-full bg-yellow-500" />
-          <div className="flex h-3 w-3 items-center justify-center rounded-full bg-green-500" />
-        </div>
+      {/* Header - left padding for macOS traffic lights, draggable for window move */}
+      <div data-tauri-drag-region className="flex h-12 items-center justify-end px-4 pl-20">
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon-sm"
             onClick={handleSync}
+            disabled={isSyncing}
             className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
             aria-label="Sync feeds"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
           </Button>
           <Button
             variant="ghost"
@@ -113,11 +140,11 @@ export function Sidebar() {
           onClick={() => hasMultipleAccounts && setShowAccountList((v) => !v)}
           className={cn("text-left", hasMultipleAccounts ? "cursor-pointer" : "cursor-default")}
         >
-          <h1 className="flex items-center gap-1 text-xl font-semibold text-sidebar-foreground">
+          <h1 className="flex items-center gap-1 text-2xl font-bold text-sidebar-foreground">
             {selectedAccount?.name ?? "Ultra RSS"}
             {hasMultipleAccounts && <ChevronDown className="h-4 w-4 text-muted-foreground" />}
           </h1>
-          <p className="text-xs text-muted-foreground">Today</p>
+          <p className="text-xs text-muted-foreground">{formatLastSynced(lastSyncedAt)}</p>
         </button>
 
         {/* Account dropdown */}
@@ -223,42 +250,61 @@ export function Sidebar() {
           {/* Tags Section */}
           {tags && tags.length > 0 && (
             <>
-              <div className="mt-2 flex items-center justify-between px-2 py-1">
+              <button
+                type="button"
+                onClick={() => setIsTagsSectionOpen((v) => !v)}
+                className="mt-2 flex w-full items-center justify-between px-2 py-1"
+              >
                 <span className="text-sm font-medium text-sidebar-foreground">Tags</span>
-                <Tag className="h-4 w-4 text-muted-foreground" />
-              </div>
-              {tags.map((tag) => (
-                <button
-                  type="button"
-                  key={tag.id}
-                  onClick={() => selectTag(tag.id)}
+                <ChevronDown
                   className={cn(
-                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm",
-                    selection.type === "tag" && selection.tagId === tag.id
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                    "h-4 w-4 text-muted-foreground transition-transform",
+                    !isTagsSectionOpen && "-rotate-90",
                   )}
-                >
-                  {tag.color && (
-                    <span
-                      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: tag.color }}
-                    />
-                  )}
-                  <span className="truncate">{tag.name}</span>
-                </button>
-              ))}
+                />
+              </button>
+              {isTagsSectionOpen &&
+                tags.map((tag) => (
+                  <ContextMenu.Root key={tag.id}>
+                    <ContextMenu.Trigger
+                      render={
+                        <button
+                          type="button"
+                          onClick={() => selectTag(tag.id)}
+                          className={cn(
+                            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm",
+                            selection.type === "tag" && selection.tagId === tag.id
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                          )}
+                        />
+                      }
+                    >
+                      {tag.color && (
+                        <span
+                          className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: tag.color }}
+                        />
+                      )}
+                      <span className="flex-1 truncate text-left">{tag.name}</span>
+                      {tagArticleCounts?.[tag.id] != null && tagArticleCounts[tag.id] > 0 && (
+                        <span className="text-muted-foreground">{tagArticleCounts[tag.id].toLocaleString()}</span>
+                      )}
+                    </ContextMenu.Trigger>
+                    <TagContextMenuContent tag={tag} />
+                  </ContextMenu.Root>
+                ))}
             </>
           )}
         </div>
       </ScrollArea>
 
       {/* Bottom Settings Button */}
-      <div className="border-t border-sidebar-border p-2">
+      <div className="flex h-10 items-center border-t border-sidebar-border px-2">
         <Button
           variant="ghost"
           onClick={openSettings}
-          className="flex w-full items-center gap-2 px-2 py-2 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          className="flex w-full items-center gap-2 px-2 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
         >
           <Settings className="h-4 w-4" />
           <span>Settings</span>

@@ -1,4 +1,4 @@
-import { CheckCircle, Search, X } from "lucide-react";
+import { CheckCheck, Search, X } from "lucide-react";
 import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -28,8 +28,8 @@ export function ArticleListHeader({
 }: ArticleListHeaderProps) {
   return (
     <>
-      {/* Header Toolbar */}
-      <div className="flex h-12 items-center justify-between border-b border-border px-3">
+      {/* Header Toolbar - draggable for window move */}
+      <div data-tauri-drag-region className="flex h-12 items-center justify-end border-b border-border px-3">
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -38,10 +38,8 @@ export function ArticleListHeader({
             onClick={onMarkAllRead}
             className="text-muted-foreground"
           >
-            <CheckCircle className="h-4 w-4" />
+            <CheckCheck className="h-4 w-4" />
           </Button>
-        </div>
-        <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"

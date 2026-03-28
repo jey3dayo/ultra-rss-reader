@@ -9,7 +9,9 @@ use std::sync::{Arc, Mutex};
 
 use commands::AppState;
 use infra::db::connection::DbManager;
-use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+use tauri::menu::{
+    AboutMetadataBuilder, MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder,
+};
 use tauri::{Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -21,7 +23,16 @@ pub fn run() {
             let settings_item =
                 MenuItemBuilder::with_id("settings", "Settings...\tCtrl+,").build(app)?;
 
+            let about_metadata = AboutMetadataBuilder::new()
+                .name(Some("Ultra RSS Reader"))
+                .version(Some("0.1.0"))
+                .copyright(Some("Copyright © 2026 jey3dayo"))
+                .build();
+            let about_item = PredefinedMenuItem::about(app, None, Some(about_metadata))?;
+
             let app_submenu = SubmenuBuilder::new(app, "Ultra RSS Reader")
+                .item(&about_item)
+                .separator()
                 .item(&settings_item)
                 .separator()
                 .quit()
@@ -80,13 +91,16 @@ pub fn run() {
             commands::account_commands::list_accounts,
             commands::account_commands::add_account,
             commands::account_commands::update_account_sync,
+            commands::account_commands::rename_account,
             commands::account_commands::delete_account,
             commands::feed_commands::list_folders,
+            commands::feed_commands::create_folder,
             commands::feed_commands::list_feeds,
             commands::feed_commands::add_local_feed,
             commands::feed_commands::delete_feed,
             commands::feed_commands::rename_feed,
             commands::feed_commands::update_feed_folder,
+            commands::feed_commands::discover_feeds,
             commands::feed_commands::trigger_sync,
             commands::article_commands::list_articles,
             commands::article_commands::list_account_articles,
@@ -103,11 +117,13 @@ pub fn run() {
             commands::preference_commands::set_preference,
             commands::tag_commands::list_tags,
             commands::tag_commands::create_tag,
+            commands::tag_commands::rename_tag,
             commands::tag_commands::delete_tag,
             commands::tag_commands::tag_article,
             commands::tag_commands::untag_article,
             commands::tag_commands::get_article_tags,
             commands::tag_commands::list_articles_by_tag,
+            commands::tag_commands::get_tag_article_counts,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
