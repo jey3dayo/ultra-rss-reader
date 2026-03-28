@@ -91,6 +91,42 @@ pub fn update_account_sync(
 }
 
 #[tauri::command]
+pub fn rename_account(
+    state: State<'_, AppState>,
+    account_id: String,
+    name: String,
+) -> Result<AccountDto, AppError> {
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Err(AppError::UserVisible {
+            message: "Account name cannot be empty".into(),
+        });
+    }
+    if name.chars().count() > 100 {
+        return Err(AppError::UserVisible {
+            message: "Account name must be 100 characters or less".into(),
+        });
+    }
+    let repo = SqliteAccountRepository::new(db.writer());
+    let id = AccountId(account_id);
+    // Check for duplicate name
+    let all_accounts = repo.find_all()?;
+    if all_accounts.iter().any(|a| a.id != id && a.name == name) {
+        return Err(AppError::UserVisible {
+            message: format!("Account name \"{name}\" is already in use"),
+        });
+    }
+    repo.rename(&id, &name)?;
+    let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
+        message: "Account not found".into(),
+    })?;
+    Ok(AccountDto::from(account))
+}
+
+#[tauri::command]
 pub fn delete_account(state: State<'_, AppState>, account_id: String) -> Result<(), AppError> {
     // Clean up keyring entry (log warning on unexpected errors)
     if let Err(e) = keyring_store::delete_password(&account_id) {
