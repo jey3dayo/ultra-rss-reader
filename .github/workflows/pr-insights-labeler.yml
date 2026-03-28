@@ -1,0 +1,38 @@
+name: PR Insights Labeler
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  label:
+    name: Label PR with Insights
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Apply PR Insights Labels
+        uses: jey3dayo/pr-insights-labeler@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+          file_size_limit: "100KB"
+          file_lines_limit: "500"
+          pr_additions_limit: "5000"
+          pr_files_limit: "50"
+
+          additional_exclude_patterns: |
+            src/generated/**
+            src/components/ui/**
+            pnpm-lock.yaml
+            src-tauri/target/**
+          language: "ja"
