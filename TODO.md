@@ -192,3 +192,13 @@
   - 記事クリック時にサイドバー＋記事リストを隠して記事ビューを最大化
 - [ ] 記事ビュー右上のアクションメニューにワイドスクリーン/フルスクリーン切替ボタンを追加
 - [ ] Settings > Reading にデフォルト表示モード設定を追加（通常/ワイド/フルスクリーン）
+
+### window.confirm() を自前ダイアログに置換
+
+- [ ] ConfirmDialogコンポーネント作成（既存Dialog UIを活用）
+- [ ] ui-storeにconfirmダイアログのグローバルステート追加（message, onConfirm, open）
+- [ ] AppShellにConfirmDialogを配置
+- [ ] window.confirm() の全3箇所を置換:
+  - article-list.tsx: 全既読確認
+  - feed-context-menu.tsx: フィード全既読確認
+  - folder-context-menu.tsx: フォルダ全既読確認
