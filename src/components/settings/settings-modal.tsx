@@ -1,4 +1,5 @@
 import { BookOpen, Palette, Plus, Rss, Settings, Share2, X } from "lucide-react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { AccountDetail } from "@/components/settings/account-detail";
 import { ActionsSettings } from "@/components/settings/actions-settings";
@@ -62,6 +63,17 @@ export function SettingsModal() {
   const setSettingsAccountId = useUiStore((s) => s.setSettingsAccountId);
   const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
   const { data: accounts } = useAccounts();
+
+  // Auto-select first account when navigating to accounts section via menu
+  useEffect(() => {
+    if (settingsCategory === "accounts" && !settingsAccountId && !settingsAddAccount) {
+      if (accounts && accounts.length > 0) {
+        setSettingsAccountId(accounts[0].id);
+      } else {
+        setSettingsAddAccount(true);
+      }
+    }
+  }, [settingsCategory, settingsAccountId, settingsAddAccount, accounts, setSettingsAccountId, setSettingsAddAccount]);
 
   const navItems: NavItem[] = [
     {
