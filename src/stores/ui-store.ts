@@ -12,7 +12,7 @@ type Selection =
 type LayoutMode = "wide" | "compact" | "mobile";
 type FocusedPane = "sidebar" | "list" | "content";
 type ContentMode = "empty" | "reader" | "browser" | "loading";
-export type SettingsCategory = "general" | "appearance" | "reading" | "bionic-reading" | "shortcuts" | "actions";
+export type SettingsCategory = "general" | "appearance" | "reading" | "shortcuts" | "actions";
 interface UiState {
   layoutMode: LayoutMode;
   focusedPane: FocusedPane;
@@ -29,6 +29,7 @@ interface UiState {
   settingsAccountId: string | null;
   settingsAddAccount: boolean;
   toastMessage: string | null;
+  recentlyReadIds: Set<string>;
 }
 
 interface UiActions {
@@ -54,6 +55,8 @@ interface UiActions {
   setSettingsAddAccount: (show: boolean) => void;
   showToast: (message: string) => void;
   clearToast: () => void;
+  addRecentlyRead: (id: string) => void;
+  clearRecentlyRead: () => void;
 }
 
 const initialState: UiState = {
@@ -72,6 +75,7 @@ const initialState: UiState = {
   settingsAccountId: null,
   settingsAddAccount: false,
   toastMessage: null,
+  recentlyReadIds: new Set(),
 };
 
 export const useUiStore = create<UiState & UiActions>()((set) => ({
@@ -79,20 +83,50 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   setLayoutMode: (mode) => set({ layoutMode: mode }),
   setFocusedPane: (pane) => set({ focusedPane: pane }),
   selectAccount: (id) =>
-    set({ selectedAccountId: id, selection: { type: "all" }, selectedArticleId: null, contentMode: "empty" }),
+    set({
+      selectedAccountId: id,
+      selection: { type: "all" },
+      selectedArticleId: null,
+      contentMode: "empty",
+      recentlyReadIds: new Set(),
+    }),
   selectFeed: (feedId) =>
-    set({ selection: { type: "feed", feedId }, selectedArticleId: null, contentMode: "empty", focusedPane: "list" }),
+    set({
+      selection: { type: "feed", feedId },
+      selectedArticleId: null,
+      contentMode: "empty",
+      focusedPane: "list",
+      recentlyReadIds: new Set(),
+    }),
   selectFolder: (folderId) =>
-    set({ selection: { type: "folder", folderId }, selectedArticleId: null, contentMode: "empty" }),
-  selectSmartView: (kind) => set({ selection: { type: "smart", kind }, selectedArticleId: null, contentMode: "empty" }),
+    set({
+      selection: { type: "folder", folderId },
+      selectedArticleId: null,
+      contentMode: "empty",
+      recentlyReadIds: new Set(),
+    }),
+  selectSmartView: (kind) =>
+    set({
+      selection: { type: "smart", kind },
+      selectedArticleId: null,
+      contentMode: "empty",
+      recentlyReadIds: new Set(),
+    }),
   selectTag: (tagId) =>
-    set({ selection: { type: "tag", tagId }, selectedArticleId: null, contentMode: "empty", focusedPane: "list" }),
-  selectAll: () => set({ selection: { type: "all" }, selectedArticleId: null, contentMode: "empty" }),
+    set({
+      selection: { type: "tag", tagId },
+      selectedArticleId: null,
+      contentMode: "empty",
+      focusedPane: "list",
+      recentlyReadIds: new Set(),
+    }),
+  selectAll: () =>
+    set({ selection: { type: "all" }, selectedArticleId: null, contentMode: "empty", recentlyReadIds: new Set() }),
   selectArticle: (id) => set({ selectedArticleId: id, contentMode: "reader", focusedPane: "content" }),
   clearArticle: () => set({ selectedArticleId: null, contentMode: "empty" }),
   openBrowser: (url) => set({ contentMode: "browser", browserUrl: url }),
   closeBrowser: () => set((s) => ({ contentMode: s.selectedArticleId ? "reader" : "empty", browserUrl: null })),
-  setViewMode: (mode) => set({ viewMode: mode }),
+  setViewMode: (mode) => set({ viewMode: mode, recentlyReadIds: new Set() }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   toggleFolder: (folderId) =>
     set((s) => {
@@ -116,4 +150,11 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     }, 4000);
   },
   clearToast: () => set({ toastMessage: null }),
+  addRecentlyRead: (id) =>
+    set((s) => {
+      const next = new Set(s.recentlyReadIds);
+      next.add(id);
+      return { recentlyReadIds: next };
+    }),
+  clearRecentlyRead: () => set({ recentlyReadIds: new Set() }),
 }));
