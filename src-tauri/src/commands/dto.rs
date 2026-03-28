@@ -37,6 +37,7 @@ pub struct AccountDto {
     pub id: String,
     pub kind: String,
     pub name: String,
+    pub server_url: Option<String>,
     pub sync_interval_secs: i64,
     pub sync_on_wake: bool,
     pub keep_read_items_days: i64,
@@ -83,6 +84,21 @@ pub struct TagDto {
     pub color: Option<String>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct DiscoveredFeedDto {
+    pub url: String,
+    pub title: String,
+}
+
+impl From<crate::infra::feed_discovery::DiscoveredFeed> for DiscoveredFeedDto {
+    fn from(f: crate::infra::feed_discovery::DiscoveredFeed) -> Self {
+        Self {
+            url: f.url,
+            title: f.title,
+        }
+    }
+}
+
 impl From<crate::domain::tag::Tag> for TagDto {
     fn from(t: crate::domain::tag::Tag) -> Self {
         Self {
@@ -99,6 +115,7 @@ impl From<crate::domain::account::Account> for AccountDto {
             id: a.id.0,
             kind: format!("{:?}", a.kind),
             name: a.name,
+            server_url: a.server_url,
             sync_interval_secs: a.sync_interval_secs,
             sync_on_wake: a.sync_on_wake,
             keep_read_items_days: a.keep_read_items_days,
