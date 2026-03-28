@@ -59,6 +59,13 @@ describe("executeAction", () => {
       expect(useUiStore.getState().settingsCategory).toBe("accounts");
     });
 
+    it("opens settings at accounts tab with add account form", () => {
+      executeAction("open-settings-accounts-add");
+      expect(useUiStore.getState().settingsOpen).toBe(true);
+      expect(useUiStore.getState().settingsCategory).toBe("accounts");
+      expect(useUiStore.getState().settingsAddAccount).toBe(true);
+    });
+
     it("opens add feed dialog", () => {
       executeAction("open-add-feed");
       expect(useUiStore.getState().isAddFeedDialogOpen).toBe(true);
