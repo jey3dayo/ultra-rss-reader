@@ -14,6 +14,7 @@ type SelectVisibleArticlesParams = {
   showSearch: boolean;
   searchQuery: string;
   sortUnread: string;
+  recentlyReadIds?: ReadonlySet<string>;
 };
 
 type GroupArticlesParams = {
@@ -59,6 +60,7 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
     showSearch,
     searchQuery,
     sortUnread,
+    recentlyReadIds,
   } = params;
 
   let list: ArticleDto[];
@@ -68,7 +70,8 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
     list = [...(tagArticles ?? [])];
   } else {
     const all = feedId ? (articles ?? []) : (accountArticles ?? []);
-    if (viewMode === "unread") list = all.filter((article) => !article.is_read);
+    if (viewMode === "unread")
+      list = all.filter((article) => !article.is_read || (recentlyReadIds?.has(article.id) ?? false));
     else if (viewMode === "starred") list = all.filter((article) => article.is_starred);
     else list = [...all];
   }
@@ -96,7 +99,9 @@ export function groupArticles(params: GroupArticlesParams): Record<string, Artic
   const groups: Record<string, ArticleDto[]> = {};
   for (const article of articles) {
     const group =
-      groupBy === "feed" ? (feedNameMap.get(article.feed_id) ?? "Unknown Feed") : getDateGroup(article.published_at);
+      groupBy === "feed"
+        ? (feedNameMap.get(article.feed_id) ?? "__unknown_feed__")
+        : getDateGroup(article.published_at);
     if (!groups[group]) groups[group] = [];
     groups[group].push(article);
   }
