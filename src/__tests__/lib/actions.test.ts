@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { AppAction } from "@/lib/actions";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -16,11 +17,13 @@ vi.mock("@/stores/preferences-store", () => {
 });
 
 // Dynamic import of actions after mocks are set up
-let executeAction: (action: string) => void;
+let executeAction: (action: AppAction) => void;
+let isAppAction: (value: string) => value is AppAction;
 
 beforeEach(async () => {
   const mod = await import("@/lib/actions");
   executeAction = mod.executeAction;
+  isAppAction = mod.isAppAction;
 });
 
 afterEach(() => {
@@ -189,13 +192,16 @@ describe("executeAction", () => {
     });
   });
 
-  describe("unknown actions", () => {
-    it("logs a warning for unknown actions", () => {
-      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  describe("isAppAction", () => {
+    it("returns true for valid actions", () => {
+      expect(isAppAction("open-settings")).toBe(true);
+      expect(isAppAction("sync-all")).toBe(true);
+      expect(isAppAction("set-filter-unread")).toBe(true);
+    });
 
-      executeAction("unknown-action");
-
-      expect(warnSpy).toHaveBeenCalledWith("[actions] Unknown action: unknown-action");
+    it("returns false for unknown actions", () => {
+      expect(isAppAction("unknown-action")).toBe(false);
+      expect(isAppAction("")).toBe(false);
     });
   });
 });
