@@ -1,9 +1,11 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccountArticles, useArticles, useMarkAllRead, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
+import { navigateArticleEvent } from "@/hooks/use-keyboard";
 import { useArticlesByTag } from "@/hooks/use-tags";
 import {
   countUnreadArticles,
@@ -22,6 +24,8 @@ import { ArticleListItem } from "./article-list-item";
 import { contextMenuStyles } from "./context-menu-styles";
 
 export function ArticleList() {
+  const { t } = useTranslation("reader");
+  const { t: tc } = useTranslation("common");
   const selection = useUiStore((s) => s.selection);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
@@ -33,6 +37,7 @@ export function ArticleList() {
   const dimArchived = usePreferencesStore((s) => s.prefs.dim_archived ?? "true");
   const textPreview = usePreferencesStore((s) => s.prefs.text_preview ?? "true");
   const imagePreviews = usePreferencesStore((s) => s.prefs.image_previews ?? "medium");
+  const recentlyReadIds = useUiStore((s) => s.recentlyReadIds);
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
   const { data: articles, isLoading } = useArticles(feedId);
@@ -59,11 +64,11 @@ export function ArticleList() {
   }, [feeds]);
 
   const feedName = useMemo(() => {
-    if (selection.type === "feed") return "Articles";
-    if (selection.type === "smart") return selection.kind === "unread" ? "Unread" : "Starred";
-    if (selection.type === "tag") return "Tagged Articles";
-    return "All Articles";
-  }, [selection]);
+    if (selection.type === "feed") return t("articles");
+    if (selection.type === "smart") return selection.kind === "unread" ? t("unread") : t("starred");
+    if (selection.type === "tag") return t("tagged_articles");
+    return t("all_articles");
+  }, [selection, t]);
 
   const filteredArticles = useMemo(() => {
     return selectVisibleArticles({
@@ -77,6 +82,7 @@ export function ArticleList() {
       showSearch,
       searchQuery,
       sortUnread,
+      recentlyReadIds,
     });
   }, [
     accountArticles,
@@ -89,6 +95,7 @@ export function ArticleList() {
     searchQuery,
     searchResults,
     sortUnread,
+    recentlyReadIds,
   ]);
 
   const unreadCount = useMemo(() => {
@@ -107,6 +114,7 @@ export function ArticleList() {
   const scrollToTopOnChange = usePreferencesStore((s) => s.prefs.scroll_to_top_on_change ?? "true");
   const askBeforeMarkAll = usePreferencesStore((s) => s.prefs.ask_before_mark_all ?? "true");
   const markAllRead = useMarkAllRead();
+  const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to top when selection changes
   useEffect(() => {
@@ -119,10 +127,11 @@ export function ArticleList() {
     const unreadIds = getUnreadArticleIds(filteredArticles);
     if (unreadIds.length === 0) return;
     if (askBeforeMarkAll === "true") {
-      if (!window.confirm(`Mark ${unreadIds.length} articles as read?`)) return;
+      if (!window.confirm(t("confirm_mark_read", { count: unreadIds.length }))) return;
     }
+    for (const id of unreadIds) addRecentlyRead(id);
     markAllRead.mutate(unreadIds);
-  }, [askBeforeMarkAll, filteredArticles, markAllRead]);
+  }, [askBeforeMarkAll, filteredArticles, markAllRead, addRecentlyRead, t]);
 
   const openSearch = useCallback(() => {
     setShowSearch(true);
@@ -156,19 +165,12 @@ export function ArticleList() {
   );
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
-      if (e.key === "j") {
-        e.preventDefault();
-        navigateArticle(1);
-      } else if (e.key === "k") {
-        e.preventDefault();
-        navigateArticle(-1);
-      }
+    const handler = (e: Event) => {
+      const direction = (e as CustomEvent<1 | -1>).detail;
+      navigateArticle(direction);
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener(navigateArticleEvent, handler);
+    return () => window.removeEventListener(navigateArticleEvent, handler);
   }, [navigateArticle]);
 
   useEffect(() => {
@@ -203,18 +205,24 @@ export function ArticleList() {
       <ContextMenu.Root>
         <ContextMenu.Trigger render={<div />} className="flex-1 overflow-hidden">
           <ScrollArea className="h-full">
-            <div ref={listRef} role="listbox" aria-label="Article list" className="pb-4">
+            <div ref={listRef} role="listbox" aria-label={t("article_list")} className="pb-4">
               {isLoading || isLoadingAccountArticles || isLoadingTagArticles ? (
-                <div className="p-6 text-center text-muted-foreground">Loading...</div>
+                <div className="p-6 text-center text-muted-foreground">{tc("loading")}</div>
               ) : filteredArticles.length === 0 ? (
-                <div className="p-6 text-center text-muted-foreground">No articles</div>
+                <div className="p-6 text-center text-muted-foreground">{t("no_articles")}</div>
               ) : (
                 Object.entries(groupedArticles).map(([groupLabel, groupArticles]) => (
                   <div key={groupLabel}>
                     {groupBy !== "none" && (
                       <div className="sticky top-0 bg-card px-4 py-2">
                         <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                          {groupLabel}
+                          {groupLabel === "TODAY"
+                            ? t("today")
+                            : groupLabel === "YESTERDAY"
+                              ? t("yesterday")
+                              : groupLabel === "__unknown_feed__"
+                                ? t("unknown_feed")
+                                : groupLabel}
                         </span>
                       </div>
                     )}
@@ -224,6 +232,7 @@ export function ArticleList() {
                         <ArticleListItem
                           article={article}
                           isSelected={selectedArticleId === article.id}
+                          isRecentlyRead={recentlyReadIds.has(article.id)}
                           dimArchived={dimArchived}
                           textPreview={textPreview}
                           imagePreviews={imagePreviews}
@@ -242,7 +251,7 @@ export function ArticleList() {
           <ContextMenu.Positioner>
             <ContextMenu.Popup className={contextMenuStyles.popup}>
               <ContextMenu.Item className={contextMenuStyles.item} onClick={handleMarkAllRead}>
-                Mark All as Read
+                {t("mark_all_as_read")}
               </ContextMenu.Item>
             </ContextMenu.Popup>
           </ContextMenu.Positioner>

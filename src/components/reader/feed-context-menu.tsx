@@ -2,6 +2,7 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { deleteFeed, openInBrowser } from "@/api/tauri-commands";
 import { useMarkFeedRead } from "@/hooks/use-articles";
@@ -13,6 +14,7 @@ import { RenameDialog } from "./rename-feed-dialog";
 import { UnsubscribeDialog } from "./unsubscribe-feed-dialog";
 
 export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
+  const { t } = useTranslation("reader");
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showUnsubscribeDialog, setShowUnsubscribeDialog] = useState(false);
   const qc = useQueryClient();
@@ -38,7 +40,7 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
   const handleMarkAllRead = () => {
     if (feed.unread_count === 0) return;
     if (askBeforeMarkAll === "true") {
-      if (!window.confirm(`Mark ${feed.unread_count} articles in "${feed.title}" as read?`)) return;
+      if (!window.confirm(t("confirm_mark_feed_read", { count: feed.unread_count, title: feed.title }))) return;
     }
     markFeedRead.mutate(feed.id);
   };
@@ -48,9 +50,9 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
       await deleteFeed(feed.id),
       Result.inspect(() => {
         qc.invalidateQueries({ queryKey: ["feeds"] });
-        showToast(`Unsubscribed from ${feed.title}`);
+        showToast(t("unsubscribed_from", { title: feed.title }));
       }),
-      Result.inspectError((e) => showToast(`Failed to unsubscribe: ${e.message}`)),
+      Result.inspectError((e) => showToast(t("failed_to_unsubscribe", { message: e.message }))),
     );
     setShowUnsubscribeDialog(false);
   };
@@ -61,17 +63,17 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
         <ContextMenu.Positioner>
           <ContextMenu.Popup className={contextMenuStyles.popup}>
             <ContextMenu.Item className={contextMenuStyles.item} onClick={handleOpenSite}>
-              Open {siteHost}
+              {t("open_site", { host: siteHost })}
             </ContextMenu.Item>
             <ContextMenu.Item className={contextMenuStyles.item} onClick={handleMarkAllRead}>
-              Mark All as Read
+              {t("mark_all_as_read")}
             </ContextMenu.Item>
             <ContextMenu.Separator className={contextMenuStyles.separator} />
             <ContextMenu.Item className={contextMenuStyles.item} onClick={() => setShowUnsubscribeDialog(true)}>
-              Unsubscribe...
+              {t("unsubscribe_ellipsis")}
             </ContextMenu.Item>
             <ContextMenu.Item className={contextMenuStyles.item} onClick={() => setShowRenameDialog(true)}>
-              Edit...
+              {t("edit_ellipsis")}
             </ContextMenu.Item>
           </ContextMenu.Popup>
         </ContextMenu.Positioner>

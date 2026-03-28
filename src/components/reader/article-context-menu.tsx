@@ -3,14 +3,24 @@ import { Result } from "@praha/byethrow";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
 import { useSetRead, useToggleStar } from "@/hooks/use-articles";
+import { useUiStore } from "@/stores/ui-store";
 import { contextMenuStyles } from "./context-menu-styles";
 
 export function ArticleContextMenu({ article, children }: { article: ArticleDto; children: React.ReactNode }) {
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
+  const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
 
   const handleToggleRead = () => {
-    setRead.mutate({ id: article.id, read: !article.is_read });
+    const markingAsRead = !article.is_read;
+    setRead.mutate(
+      { id: article.id, read: markingAsRead },
+      {
+        onSuccess: () => {
+          if (markingAsRead) addRecentlyRead(article.id);
+        },
+      },
+    );
   };
 
   const handleToggleStar = () => {

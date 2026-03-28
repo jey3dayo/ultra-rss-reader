@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { renameFeed, updateFeedFolder } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,8 @@ export function RenameDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation("reader");
+  const { t: tc } = useTranslation("common");
   const [title, setTitle] = useState(feed.title);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(feed.folder_id);
   const [loading, setLoading] = useState(false);
@@ -45,19 +48,17 @@ export function RenameDialog({
     }
     setLoading(true);
 
-    // Rename if title changed
     if (trimmed !== feed.title) {
       Result.pipe(
         await renameFeed(feed.id, trimmed),
-        Result.inspectError((e) => showToast(`Failed to rename: ${e.message}`)),
+        Result.inspectError((e) => showToast(t("failed_to_rename", { message: e.message }))),
       );
     }
 
-    // Update folder if changed
     if (selectedFolderId !== feed.folder_id) {
       Result.pipe(
         await updateFeedFolder(feed.id, selectedFolderId),
-        Result.inspectError((e) => showToast(`Failed to update folder: ${e.message}`)),
+        Result.inspectError((e) => showToast(t("failed_to_update_folder", { message: e.message }))),
       );
     }
 
@@ -70,7 +71,7 @@ export function RenameDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false} className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Feed</DialogTitle>
+          <DialogTitle>{t("edit_feed")}</DialogTitle>
         </DialogHeader>
         <form
           onSubmit={(e) => {
@@ -80,7 +81,7 @@ export function RenameDialog({
           className="space-y-4"
         >
           <label className="block text-sm text-muted-foreground">
-            Title
+            {t("title")}
             <input
               ref={inputRef}
               name="feed-title"
@@ -94,7 +95,7 @@ export function RenameDialog({
 
           {folders && folders.length > 0 && (
             <label className="block text-sm text-muted-foreground">
-              Folder
+              {t("folder")}
               <select
                 name="feed-folder"
                 value={selectedFolderId ?? ""}
@@ -102,7 +103,7 @@ export function RenameDialog({
                 className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm text-foreground shadow-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={loading}
               >
-                <option value="">No folder</option>
+                <option value="">{t("no_folder")}</option>
                 {folders.map((f) => (
                   <option key={f.id} value={f.id}>
                     {f.name}
@@ -114,10 +115,10 @@ export function RenameDialog({
         </form>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            Cancel
+            {tc("cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={!title.trim() || loading}>
-            {loading ? "Saving..." : "Save"}
+            {loading ? tc("saving") : tc("save")}
           </Button>
         </DialogFooter>
       </DialogContent>

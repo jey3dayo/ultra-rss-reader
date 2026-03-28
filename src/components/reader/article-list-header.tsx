@@ -1,5 +1,6 @@
 import { CheckCheck, Search, X } from "lucide-react";
 import type { RefObject } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ export function ArticleListHeader({
   onCloseSearch,
   onSearchQueryChange,
 }: ArticleListHeaderProps) {
+  const { t } = useTranslation("reader");
   return (
     <>
       {/* Header Toolbar - draggable for window move */}
@@ -34,7 +36,7 @@ export function ArticleListHeader({
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Mark all as read"
+            aria-label={t("mark_all_as_read")}
             onClick={onMarkAllRead}
             className="text-muted-foreground"
           >
@@ -44,7 +46,7 @@ export function ArticleListHeader({
             variant="ghost"
             size="icon"
             onClick={onToggleSearch}
-            aria-label="Search articles"
+            aria-label={t("search_articles")}
             className={cn("text-muted-foreground", showSearch && "text-foreground")}
           >
             <Search className="h-4 w-4" />
@@ -54,7 +56,7 @@ export function ArticleListHeader({
               variant="ghost"
               size="icon"
               onClick={onCloseSearch}
-              aria-label="Close search"
+              aria-label={t("close_search")}
               className="text-muted-foreground"
             >
               <X className="h-4 w-4" />
@@ -72,7 +74,7 @@ export function ArticleListHeader({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
-            placeholder="Search articles..."
+            placeholder={t("search_articles_placeholder")}
             className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
           />
         </div>
@@ -81,7 +83,7 @@ export function ArticleListHeader({
       {/* Feed Title */}
       <div className="border-b border-border px-4 py-3">
         <h2 className="text-lg font-semibold text-foreground">{feedName}</h2>
-        <p className="text-xs text-muted-foreground">{unreadCount} Unread Items</p>
+        <p className="text-xs text-muted-foreground">{t("unread_items", { count: unreadCount })}</p>
       </div>
     </>
   );
