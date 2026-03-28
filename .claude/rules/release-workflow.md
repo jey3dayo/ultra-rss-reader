@@ -1,6 +1,8 @@
 ---
 paths:
   - ".github/workflows/release.yml"
+  - ".github/release.yml"
+  - ".github/PULL_REQUEST_TEMPLATE.md"
   - "src-tauri/tauri.conf.json"
   - "src-tauri/Cargo.toml"
   - "package.json"
@@ -24,6 +26,22 @@ paths:
 - バージョンは `tauri.conf.json` の `version`、`Cargo.toml` の `version`、`package.json` の `version` の 3 箇所で管理される
 - タグ作成前に 3 箇所のバージョンが一致していることを確認する
 - セマンティックバージョニング (semver) に従う
+
+## コミット・ラベル・リリースノートの対応
+
+コミット prefix、PR ラベル、リリースノートカテゴリは一致させる。
+
+| コミット prefix              | PR ラベル  | リリースノートカテゴリ |
+| ---------------------------- | ---------- | ---------------------- |
+| `feat:`                      | `feature`  | 🚀 Features            |
+| `fix:`                       | `fix`      | 🐛 Bug Fixes           |
+| `docs:`                      | `docs`     | 📚 Documentation       |
+| `chore:`/`refactor:`/`test:` | `chore`    | 🔧 Maintenance         |
+| (breaking change)            | `breaking` | 💥 Breaking Changes    |
+
+- PR 作成時に種別に応じたラベルを付与する
+- `.github/release.yml` でラベルごとにリリースノートを自動分類する
+- `skip-changelog` ラベルで特定 PR をリリースノートから除外できる
 
 ## 根拠
 
