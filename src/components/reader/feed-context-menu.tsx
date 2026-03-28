@@ -19,6 +19,7 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
   const [showUnsubscribeDialog, setShowUnsubscribeDialog] = useState(false);
   const qc = useQueryClient();
   const showToast = useUiStore((s) => s.showToast);
+  const showConfirm = useUiStore((s) => s.showConfirm);
   const askBeforeMarkAll = usePreferencesStore((s) => s.prefs.ask_before_mark_all ?? "true");
   const markFeedRead = useMarkFeedRead();
 
@@ -39,10 +40,12 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
 
   const handleMarkAllRead = () => {
     if (feed.unread_count === 0) return;
+    const doMark = () => markFeedRead.mutate(feed.id);
     if (askBeforeMarkAll === "true") {
-      if (!window.confirm(t("confirm_mark_feed_read", { count: feed.unread_count, title: feed.title }))) return;
+      showConfirm(t("confirm_mark_feed_read", { count: feed.unread_count, title: feed.title }), doMark);
+    } else {
+      doMark();
     }
-    markFeedRead.mutate(feed.id);
   };
 
   const handleConfirmUnsubscribe = async () => {

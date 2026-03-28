@@ -38,6 +38,7 @@ export function ArticleList() {
   const textPreview = usePreferencesStore((s) => s.prefs.text_preview ?? "true");
   const imagePreviews = usePreferencesStore((s) => s.prefs.image_previews ?? "medium");
   const recentlyReadIds = useUiStore((s) => s.recentlyReadIds);
+  const showConfirm = useUiStore((s) => s.showConfirm);
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
   const { data: articles, isLoading } = useArticles(feedId);
@@ -123,15 +124,21 @@ export function ArticleList() {
     }
   }, [selection, scrollToTopOnChange]);
 
-  const handleMarkAllRead = useCallback(async () => {
+  const doMarkAllRead = useCallback(() => {
+    const unreadIds = getUnreadArticleIds(filteredArticles);
+    for (const id of unreadIds) addRecentlyRead(id);
+    markAllRead.mutate(unreadIds);
+  }, [filteredArticles, markAllRead, addRecentlyRead]);
+
+  const handleMarkAllRead = useCallback(() => {
     const unreadIds = getUnreadArticleIds(filteredArticles);
     if (unreadIds.length === 0) return;
     if (askBeforeMarkAll === "true") {
-      if (!window.confirm(t("confirm_mark_read", { count: unreadIds.length }))) return;
+      showConfirm(t("confirm_mark_read", { count: unreadIds.length }), doMarkAllRead);
+    } else {
+      doMarkAllRead();
     }
-    for (const id of unreadIds) addRecentlyRead(id);
-    markAllRead.mutate(unreadIds);
-  }, [askBeforeMarkAll, filteredArticles, markAllRead, addRecentlyRead, t]);
+  }, [askBeforeMarkAll, filteredArticles, showConfirm, doMarkAllRead, t]);
 
   const openSearch = useCallback(() => {
     setShowSearch(true);
