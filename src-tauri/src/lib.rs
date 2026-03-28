@@ -10,6 +10,8 @@ use std::sync::{Arc, Mutex};
 
 use commands::AppState;
 use infra::db::connection::DbManager;
+use infra::db::sqlite_preference::SqlitePreferenceRepository;
+use repository::preference::PreferenceRepository;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -18,11 +20,7 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            let handle = app.handle().clone();
-            app.set_menu(menu::build(&handle)?)?;
-            app.on_menu_event(move |app_handle, event| {
-                menu::handle_event(app_handle, event);
-            });
+            // Initialize database first so preferences are available for menu construction
             let app_data_dir = app
                 .path()
                 .app_data_dir()
@@ -30,6 +28,19 @@ pub fn run() {
             std::fs::create_dir_all(&app_data_dir).expect("Failed to create app data dir");
             let db_path = app_data_dir.join("ultra-rss-reader.db");
             let db = DbManager::new(&db_path).expect("Failed to initialize database");
+
+            // Read initial preferences for menu CheckMenuItem states
+            let prefs = {
+                let repo = SqlitePreferenceRepository::new(db.reader());
+                repo.get_all().unwrap_or_default()
+            };
+
+            let handle = app.handle().clone();
+            app.set_menu(menu::build(&handle, &prefs)?)?;
+            app.on_menu_event(move |app_handle, event| {
+                menu::handle_event(app_handle, event);
+            });
+
             app.manage(AppState {
                 db: Mutex::new(db),
                 syncing: Arc::new(AtomicBool::new(false)),

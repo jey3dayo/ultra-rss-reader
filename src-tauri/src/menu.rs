@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use tauri::menu::{
     AboutMetadataBuilder, CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder, PredefinedMenuItem,
     SubmenuBuilder,
@@ -5,7 +7,8 @@ use tauri::menu::{
 use tauri::{menu::Menu, AppHandle, Emitter, Manager};
 
 /// Build the full application menu bar.
-pub fn build(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+/// `prefs` is used to set initial CheckMenuItem states from persisted preferences.
+pub fn build(app: &AppHandle, prefs: &HashMap<String, String>) -> tauri::Result<Menu<tauri::Wry>> {
     // --- App submenu ---
     let about_metadata = AboutMetadataBuilder::new()
         .name(Some("Ultra RSS Reader"))
@@ -46,11 +49,15 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let view_starred = MenuItemBuilder::with_id("view-starred", "Starred")
         .accelerator("CmdOrCtrl+3")
         .build(app)?;
+    let sort_unread_checked = prefs
+        .get("sort_unread")
+        .is_some_and(|v| v != "newest_first");
+    let group_by_feed_checked = prefs.get("group_by").is_some_and(|v| v == "feed");
     let view_sort_unread = CheckMenuItemBuilder::with_id("view-sort-unread", "Sort Unread to Top")
-        .checked(false)
+        .checked(sort_unread_checked)
         .build(app)?;
     let view_group_by_feed = CheckMenuItemBuilder::with_id("view-group-by-feed", "Group by Feed")
-        .checked(false)
+        .checked(group_by_feed_checked)
         .build(app)?;
     let view_fullscreen = MenuItemBuilder::with_id("view-fullscreen", "Full Screen")
         .accelerator("Ctrl+CmdOrCtrl+F")
