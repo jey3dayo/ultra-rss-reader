@@ -4,7 +4,7 @@ import { ArrowLeft, Copy, ExternalLink, Globe, Plus, Star, X } from "lucide-reac
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { openInBrowser } from "@/api/tauri-commands";
+import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -327,16 +327,48 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
         ),
       );
     };
+    const handleCopyLink = () => {
+      if (!article.url) return;
+      const showToast = useUiStore.getState().showToast;
+      void copyToClipboard(article.url).then((result) =>
+        Result.pipe(
+          result,
+          Result.inspect(() => showToast("Link copied")),
+          Result.inspectError((e) => {
+            console.error("Copy failed:", e);
+            showToast(e.message);
+          }),
+        ),
+      );
+    };
+    const handleAddToReadingList = () => {
+      if (!article.url) return;
+      const showToast = useUiStore.getState().showToast;
+      void addToReadingList(article.url).then((result) =>
+        Result.pipe(
+          result,
+          Result.inspect(() => showToast("Added to Reading List")),
+          Result.inspectError((e) => {
+            console.error("Add to reading list failed:", e);
+            showToast(e.message);
+          }),
+        ),
+      );
+    };
 
     window.addEventListener(keyboardEvents.toggleRead, handleToggleRead);
     window.addEventListener(keyboardEvents.toggleStar, handleToggleStar);
     window.addEventListener(keyboardEvents.openInAppBrowser, handleOpenInAppBrowser);
     window.addEventListener(keyboardEvents.openExternalBrowser, handleOpenExternalBrowser);
+    window.addEventListener(keyboardEvents.copyLink, handleCopyLink);
+    window.addEventListener(keyboardEvents.addToReadingList, handleAddToReadingList);
     return () => {
       window.removeEventListener(keyboardEvents.toggleRead, handleToggleRead);
       window.removeEventListener(keyboardEvents.toggleStar, handleToggleStar);
       window.removeEventListener(keyboardEvents.openInAppBrowser, handleOpenInAppBrowser);
       window.removeEventListener(keyboardEvents.openExternalBrowser, handleOpenExternalBrowser);
+      window.removeEventListener(keyboardEvents.copyLink, handleCopyLink);
+      window.removeEventListener(keyboardEvents.addToReadingList, handleAddToReadingList);
     };
   }, [
     article.id,

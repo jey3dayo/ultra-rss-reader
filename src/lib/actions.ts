@@ -136,11 +136,15 @@ export function executeAction(action: string): void {
       emitEvent(keyboardEvents.markAllRead);
       break;
 
-    // --- Placeholder actions (connected in Task 6) ---
+    // --- Share actions ---
     case "copy-link":
+      emitEvent(keyboardEvents.copyLink);
+      break;
     case "open-in-default-browser":
+      emitEvent(keyboardEvents.openExternalBrowser);
+      break;
     case "add-to-reading-list":
-      // Will be connected when share actions are implemented
+      emitEvent(keyboardEvents.addToReadingList);
       break;
 
     default:

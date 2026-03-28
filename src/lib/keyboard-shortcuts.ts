@@ -7,6 +7,8 @@ export const keyboardEvents = {
   openExternalBrowser: "ultra-rss:open-external-browser",
   markAllRead: "ultra-rss:mark-all-read",
   focusSearch: "ultra-rss:focus-search",
+  copyLink: "ultra-rss:copy-link",
+  addToReadingList: "ultra-rss:add-to-reading-list",
 } as const;
 
 type ContentMode = "empty" | "reader" | "browser" | "loading";
