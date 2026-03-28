@@ -299,6 +299,10 @@ export function setupDevMocks() {
         return true;
       case "import_opml":
         return null;
+      case "copy_to_clipboard":
+        return null;
+      case "add_to_reading_list":
+        return null;
 
       default:
         return null;

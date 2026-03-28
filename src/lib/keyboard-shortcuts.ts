@@ -7,10 +7,12 @@ export const keyboardEvents = {
   openExternalBrowser: "ultra-rss:open-external-browser",
   markAllRead: "ultra-rss:mark-all-read",
   focusSearch: "ultra-rss:focus-search",
+  copyLink: "ultra-rss:copy-link",
+  addToReadingList: "ultra-rss:add-to-reading-list",
 } as const;
 
 type ContentMode = "empty" | "reader" | "browser" | "loading";
-type ViewMode = "all" | "unread" | "starred";
+export type ViewMode = "all" | "unread" | "starred";
 
 export type KeyboardAction =
   | { type: "open-settings" }
@@ -20,6 +22,8 @@ export type KeyboardAction =
   | { type: "clear-article" }
   | { type: "focus-sidebar" }
   | { type: "navigate-article"; direction: 1 | -1 }
+  | { type: "navigate-feed"; direction: 1 | -1 }
+  | { type: "reload-webview" }
   | { type: "noop" };
 
 export type KeyboardActionSkipReason = "ignored_input" | "missing_selected_article" | "no_action";
@@ -28,6 +32,9 @@ export type KeyboardActionSkipReason = "ignored_input" | "missing_selected_artic
 export type ShortcutActionId =
   | "next_article"
   | "prev_article"
+  | "next_feed"
+  | "prev_feed"
+  | "reload_webview"
   | "focus_sidebar"
   | "toggle_read"
   | "toggle_star"
@@ -42,6 +49,9 @@ export type ShortcutActionId =
 export type ShortcutLabelKey =
   | "shortcuts.next_article"
   | "shortcuts.prev_article"
+  | "shortcuts.next_feed"
+  | "shortcuts.prev_feed"
+  | "shortcuts.reload_webview"
   | "shortcuts.focus_sidebar"
   | "shortcuts.toggle_read"
   | "shortcuts.toggle_star"
@@ -78,6 +88,24 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
     labelKey: "shortcuts.prev_article",
     categoryKey: "shortcuts.category_navigation",
     defaultKey: "k",
+  },
+  {
+    id: "next_feed",
+    labelKey: "shortcuts.next_feed",
+    categoryKey: "shortcuts.category_navigation",
+    defaultKey: "\u2318+j",
+  },
+  {
+    id: "prev_feed",
+    labelKey: "shortcuts.prev_feed",
+    categoryKey: "shortcuts.category_navigation",
+    defaultKey: "\u2318+k",
+  },
+  {
+    id: "reload_webview",
+    labelKey: "shortcuts.reload_webview",
+    categoryKey: "shortcuts.category_actions",
+    defaultKey: "r",
   },
   {
     id: "focus_sidebar",
@@ -225,6 +253,12 @@ function resolveActionForId(
       return Result.succeed({ type: "navigate-article", direction: 1 });
     case "prev_article":
       return Result.succeed({ type: "navigate-article", direction: -1 });
+    case "next_feed":
+      return Result.succeed({ type: "navigate-feed", direction: 1 });
+    case "prev_feed":
+      return Result.succeed({ type: "navigate-feed", direction: -1 });
+    case "reload_webview":
+      return context.contentMode === "browser" ? Result.succeed({ type: "reload-webview" }) : Result.fail("no_action");
   }
 }
 
@@ -252,8 +286,9 @@ export function resolveKeyboardAction(
     return Result.fail("ignored_input");
   }
 
-  // Look up the plain key first, then the normalized (with modifiers) form
-  const actionId = map.get(key) ?? map.get(normalized);
+  // Look up the normalized (with modifiers) form first, then the plain key
+  // This ensures Ctrl+J resolves to next_feed before j resolves to next_article
+  const actionId = map.get(normalized) ?? map.get(key);
   if (actionId && actionId !== "open_settings") {
     return resolveActionForId(actionId, { selectedArticleId, contentMode, viewMode });
   }

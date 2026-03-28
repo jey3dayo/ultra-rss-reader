@@ -5,11 +5,17 @@
 [env]
 _.path = ["./node_modules/.bin"]
 
+# Markdown lint/format
+MD_GLOB = "**/*.md"
+MD_EXCLUDE_NODE_MODULES = "#**/node_modules/**"
+MD_EXCLUDE_WORKTREES = "#**/.worktrees/**"
+
 [tools]
 node = "24"
 pnpm = "latest"
 rust = "stable"
 taplo = "latest"
+"pipx:yamllint" = "latest"
 
 # ========================================
 # フォーマット（自動修正）
@@ -17,7 +23,7 @@ taplo = "latest"
 
 [tasks.format]
 description = "Format all (TS + Rust + TOML)"
-depends = ["format:biome", "format:rust", "format:toml"]
+depends = ["format:biome", "format:rust", "format:toml", "format:md"]
 
 [tasks."format:biome"]
 description = "Biome format + lint + import sort autofix"
@@ -31,13 +37,22 @@ run = "cargo fmt --manifest-path src-tauri/Cargo.toml --all"
 description = "TOML format"
 run = "taplo fmt mise.toml src-tauri/Cargo.toml"
 
+[tasks."format:md"]
+description = "Markdown format + lint autofix"
+run = "pnpm markdownlint-cli2 '${MD_GLOB}' ${MD_EXCLUDE_NODE_MODULES} ${MD_EXCLUDE_WORKTREES} --fix"
+
 # ========================================
 # フォーマットチェック（書き込みなし、CI用）
 # ========================================
 
 [tasks."format:check"]
 description = "Format check all (no writes)"
-depends = ["format:biome:check", "format:rust:check", "format:toml:check"]
+depends = [
+  "format:biome:check",
+  "format:rust:check",
+  "format:toml:check",
+  "lint:md",
+]
 
 [tasks."format:biome:check"]
 description = "Biome format + lint check (no writes)"
@@ -57,7 +72,7 @@ run = "taplo fmt --check mise.toml src-tauri/Cargo.toml"
 
 [tasks.lint]
 description = "All lint checks"
-depends = ["lint:types", "lint:biome", "lint:clippy"]
+depends = ["lint:types", "lint:biome", "lint:clippy", "lint:md", "lint:yaml"]
 
 [tasks."lint:types"]
 description = "TypeScript type check"
@@ -70,6 +85,14 @@ run = "pnpm run lint"
 [tasks."lint:clippy"]
 description = "Rust clippy"
 run = "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
+
+[tasks."lint:md"]
+description = "Markdown lint check"
+run = "pnpm markdownlint-cli2 '${MD_GLOB}' ${MD_EXCLUDE_NODE_MODULES} ${MD_EXCLUDE_WORKTREES}"
+
+[tasks."lint:yaml"]
+description = "YAML lint check"
+run = "yamllint -c .yamllint .github/"
 
 [tasks."lint:actions"]
 description = "GitHub Actions workflow check (actionlint)"
@@ -110,6 +133,14 @@ run = "dotenvx run -- cargo test --manifest-path src-tauri/Cargo.toml freshrss_l
 [tasks.build]
 description = "Build frontend"
 run = ["pnpm build"]
+
+[tasks."build:app"]
+description = "Build native app for current platform (.app/.dmg on macOS, .msi/.exe on Windows)"
+run = "pnpm tauri build"
+
+[tasks."build:app:debug"]
+description = "Build native app in debug mode (faster, no optimizations)"
+run = "pnpm tauri build --debug"
 
 # ========================================
 # エイリアス（まとめ実行）

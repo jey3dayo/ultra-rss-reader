@@ -1,5 +1,6 @@
 import { useBreakpoint } from "../hooks/use-breakpoint";
 import { useKeyboard } from "../hooks/use-keyboard";
+import { useMenuEvents } from "../hooks/use-menu-events";
 import { useUiStore } from "../stores/ui-store";
 import { AppLayout } from "./app-layout";
 import { SettingsModal } from "./settings/settings-modal";
@@ -26,6 +27,7 @@ function Toast() {
 export function AppShell() {
   useBreakpoint();
   useKeyboard();
+  useMenuEvents();
 
   return (
     <div className="flex h-full flex-col">

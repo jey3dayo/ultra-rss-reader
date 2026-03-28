@@ -1,4 +1,3 @@
-import { listen } from "@tauri-apps/api/event";
 import { BookOpen, Palette, Plus, Rss, Settings, Share2, X } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -65,6 +64,17 @@ export function SettingsModal() {
   const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
   const { data: accounts } = useAccounts();
 
+  // Auto-select first account when navigating to accounts section via menu
+  useEffect(() => {
+    if (settingsCategory === "accounts" && !settingsAccountId && !settingsAddAccount) {
+      if (accounts && accounts.length > 0) {
+        setSettingsAccountId(accounts[0].id);
+      } else {
+        setSettingsAddAccount(true);
+      }
+    }
+  }, [settingsCategory, settingsAccountId, settingsAddAccount, accounts, setSettingsAccountId, setSettingsAddAccount]);
+
   const navItems: NavItem[] = [
     {
       id: "general",
@@ -94,22 +104,6 @@ export function SettingsModal() {
       icon: <Share2 className="h-5 w-5" />,
     },
   ];
-
-  // Listen for Tauri menu event
-  useEffect(() => {
-    let cancelled = false;
-    let unlisten: (() => void) | undefined;
-    listen("open-settings", () => openSettings())
-      .then((fn) => {
-        if (cancelled) fn();
-        else unlisten = fn;
-      })
-      .catch(() => {}); // Ignore in browser mode
-    return () => {
-      cancelled = true;
-      unlisten?.();
-    };
-  }, [openSettings]);
 
   return (
     <Dialog open={settingsOpen} onOpenChange={(open) => (!open ? closeSettings() : openSettings())}>

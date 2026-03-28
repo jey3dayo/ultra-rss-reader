@@ -26,13 +26,19 @@ pnpm tauri dev          # Run the app in dev mode
 
 Always run `mise run check` before committing.
 
+## Task Management
+
+- `TODO.md`: Track in-progress and upcoming tasks.
+- `CHANGELOG.md`: Record completed features and fixes in Keep a Changelog format.
+- Once a batch of work stabilizes, move finished items from TODO.md to CHANGELOG.md.
+
 ## Architecture
 
 ### Rust Backend (src-tauri/src/)
 
 Layered architecture with strict dependency direction:
 
-```
+```text
 Commands (IPC boundary) -> Service -> Repository (traits) -> Domain
                                           |
                                         Infra (SQLite, HTTP, providers)

@@ -122,3 +122,6 @@ export const getArticleTags = (articleId: string) => safeInvoke<TagDto[]>("get_a
 export const listArticlesByTag = (tagId: string, offset?: number, limit?: number) =>
   safeInvoke<ArticleDto[]>("list_articles_by_tag", { tagId, offset, limit });
 export const getTagArticleCounts = () => safeInvoke<Record<string, number>>("get_tag_article_counts");
+
+export const copyToClipboard = (text: string) => safeInvoke<void>("copy_to_clipboard", { text });
+export const addToReadingList = (url: string) => safeInvoke<void>("add_to_reading_list", { url });

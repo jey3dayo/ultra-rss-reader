@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod domain;
 pub mod infra;
+pub mod menu;
 pub mod repository;
 pub mod service;
 
@@ -9,66 +10,17 @@ use std::sync::{Arc, Mutex};
 
 use commands::AppState;
 use infra::db::connection::DbManager;
-use tauri::menu::{
-    AboutMetadataBuilder, MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder,
-};
-use tauri::{Emitter, Manager};
+use infra::db::sqlite_preference::SqlitePreferenceRepository;
+use repository::preference::PreferenceRepository;
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            // App menu with Settings
-            let settings_item =
-                MenuItemBuilder::with_id("settings", "Settings...\tCtrl+,").build(app)?;
-
-            let about_metadata = AboutMetadataBuilder::new()
-                .name(Some("Ultra RSS Reader"))
-                .version(Some("0.1.0"))
-                .copyright(Some("Copyright © 2026 jey3dayo"))
-                .build();
-            let about_item = PredefinedMenuItem::about(app, None, Some(about_metadata))?;
-
-            let app_submenu = SubmenuBuilder::new(app, "Ultra RSS Reader")
-                .item(&about_item)
-                .separator()
-                .item(&settings_item)
-                .separator()
-                .quit()
-                .build()?;
-
-            let edit_submenu = SubmenuBuilder::new(app, "Edit")
-                .undo()
-                .redo()
-                .separator()
-                .cut()
-                .copy()
-                .paste()
-                .select_all()
-                .build()?;
-
-            let menu = MenuBuilder::new(app)
-                .item(&app_submenu)
-                .item(&edit_submenu)
-                .build()?;
-
-            app.set_menu(menu)?;
-
-            app.on_menu_event(move |app_handle, event| {
-                let id = event.id().as_ref();
-                tracing::info!("Menu event: {}", id);
-                if id == "settings" {
-                    if let Some(window) = app_handle.get_webview_window("main") {
-                        match window.emit("open-settings", ()) {
-                            Ok(_) => tracing::info!("Emitted open-settings event"),
-                            Err(e) => tracing::error!("Failed to emit: {}", e),
-                        }
-                    } else {
-                        tracing::error!("Could not find main window");
-                    }
-                }
-            });
+            // Initialize database first so preferences are available for menu construction
             let app_data_dir = app
                 .path()
                 .app_data_dir()
@@ -76,6 +28,19 @@ pub fn run() {
             std::fs::create_dir_all(&app_data_dir).expect("Failed to create app data dir");
             let db_path = app_data_dir.join("ultra-rss-reader.db");
             let db = DbManager::new(&db_path).expect("Failed to initialize database");
+
+            // Read initial preferences for menu CheckMenuItem states
+            let prefs = {
+                let repo = SqlitePreferenceRepository::new(db.reader());
+                repo.get_all().unwrap_or_default()
+            };
+
+            let handle = app.handle().clone();
+            app.set_menu(menu::build(&handle, &prefs)?)?;
+            app.on_menu_event(move |app_handle, event| {
+                menu::handle_event(app_handle, event);
+            });
+
             app.manage(AppState {
                 db: Mutex::new(db),
                 syncing: Arc::new(AtomicBool::new(false)),
@@ -124,6 +89,8 @@ pub fn run() {
             commands::tag_commands::get_article_tags,
             commands::tag_commands::list_articles_by_tag,
             commands::tag_commands::get_tag_article_counts,
+            commands::share_commands::copy_to_clipboard,
+            commands::share_commands::add_to_reading_list,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

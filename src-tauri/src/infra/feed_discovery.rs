@@ -93,7 +93,7 @@ fn is_private_host(host: &str) -> bool {
                 v4.is_loopback()           // 127.0.0.0/8
                     || v4.is_private()     // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
                     || v4.is_unspecified() // 0.0.0.0
-                    || v4.is_link_local()  // 169.254.0.0/16
+                    || v4.is_link_local() // 169.254.0.0/16
             }
             std::net::IpAddr::V6(v6) => {
                 v6.is_loopback()       // ::1

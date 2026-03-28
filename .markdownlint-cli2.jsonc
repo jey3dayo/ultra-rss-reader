@@ -1,0 +1,23 @@
+{
+  "config": {
+    "default": true,
+    "MD013": false,
+    "MD031": true,
+    "MD032": true,
+    "MD033": false,
+    "MD034": false,
+    "MD041": false,
+    "MD024": {
+      "siblings_only": true,
+    },
+  },
+  "globs": ["**/*.md"],
+  "ignores": [
+    "node_modules",
+    "dist",
+    "target",
+    ".worktrees",
+    ".kiro",
+    ".plans",
+  ],
+}

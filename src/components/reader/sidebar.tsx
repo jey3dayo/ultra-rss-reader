@@ -2,7 +2,7 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
 import { ChevronDown, Plus, RefreshCw, Settings } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { triggerSync } from "@/api/tauri-commands";
@@ -13,6 +13,7 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { useTagArticleCounts, useTags } from "@/hooks/use-tags";
+import { actionEvents } from "@/lib/actions";
 import i18n from "@/lib/i18n";
 import { groupFeedsByFolder } from "@/lib/sidebar";
 import { cn } from "@/lib/utils";
@@ -41,7 +42,6 @@ function useFormatLastSynced(date: Date | null): string {
 export function Sidebar() {
   const { t } = useTranslation("sidebar");
   const [showAccountList, setShowAccountList] = useState(false);
-  const [showAddFeed, setShowAddFeed] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const lastSyncedFormatted = useFormatLastSynced(lastSyncedAt);
@@ -69,6 +69,9 @@ export function Sidebar() {
   const expandedFolderIds = useUiStore((s) => s.expandedFolderIds);
   const toggleFolder = useUiStore((s) => s.toggleFolder);
   const openSettings = useUiStore((s) => s.openSettings);
+  const isAddFeedDialogOpen = useUiStore((s) => s.isAddFeedDialogOpen);
+  const openAddFeedDialog = useUiStore((s) => s.openAddFeedDialog);
+  const closeAddFeedDialog = useUiStore((s) => s.closeAddFeedDialog);
   const showToast = useUiStore((s) => s.showToast);
   const { data: feeds } = useFeeds(selectedAccountId);
   const { data: folders } = useFolders(selectedAccountId);
@@ -131,6 +134,50 @@ export function Sidebar() {
 
   const selectedFeedId = selection.type === "feed" ? selection.feedId : null;
 
+  // Build a flat ordered feed list matching render order (folder feeds then unfoldered)
+  const orderedFeedIds = useMemo(() => {
+    const ids: string[] = [];
+    for (const folder of folderList) {
+      const folderFeeds = feedsByFolder.get(folder.id) ?? [];
+      for (const feed of folderFeeds) {
+        ids.push(feed.id);
+      }
+    }
+    for (const feed of unfolderedFeeds) {
+      ids.push(feed.id);
+    }
+    return ids;
+  }, [folderList, feedsByFolder, unfolderedFeeds]);
+
+  const navigateFeed = useCallback(
+    (direction: 1 | -1) => {
+      if (orderedFeedIds.length === 0) return;
+      const currentIndex = selectedFeedId ? orderedFeedIds.indexOf(selectedFeedId) : -1;
+      let nextIndex: number;
+      if (currentIndex === -1) {
+        // No feed selected: go to first (next) or last (prev)
+        nextIndex = direction === 1 ? 0 : orderedFeedIds.length - 1;
+      } else {
+        nextIndex = currentIndex + direction;
+        // Clamp to bounds
+        if (nextIndex < 0 || nextIndex >= orderedFeedIds.length) return;
+      }
+      const nextFeedId = orderedFeedIds[nextIndex];
+      if (nextFeedId) selectFeed(nextFeedId);
+    },
+    [orderedFeedIds, selectedFeedId, selectFeed],
+  );
+
+  // Listen for feed navigation events from keyboard shortcuts / menu
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const direction = (e as CustomEvent<1 | -1>).detail;
+      navigateFeed(direction);
+    };
+    window.addEventListener(actionEvents.navigateFeed, handler);
+    return () => window.removeEventListener(actionEvents.navigateFeed, handler);
+  }, [navigateFeed]);
+
   return (
     <div className="flex h-full w-[280px] flex-col border-r border-border bg-sidebar text-sidebar-foreground">
       {/* Header - left padding for macOS traffic lights, draggable for window move */}
@@ -149,7 +196,7 @@ export function Sidebar() {
           <Button
             variant="ghost"
             size="icon-sm"
-            onClick={() => selectedAccountId && setShowAddFeed(true)}
+            onClick={() => selectedAccountId && openAddFeedDialog()}
             className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
             aria-label={t("add_feed")}
           >
@@ -329,7 +376,7 @@ export function Sidebar() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={openSettings}
+          onClick={() => openSettings()}
           className={controlChipVariants({ size: "comfortable", interaction: "action" })}
         >
           <Settings className={controlChipIconVariants({ size: "comfortable" })} />
@@ -338,7 +385,11 @@ export function Sidebar() {
       </div>
 
       {selectedAccountId && (
-        <AddFeedDialog open={showAddFeed} onOpenChange={setShowAddFeed} accountId={selectedAccountId} />
+        <AddFeedDialog
+          open={isAddFeedDialogOpen}
+          onOpenChange={(open) => (open ? openAddFeedDialog() : closeAddFeedDialog())}
+          accountId={selectedAccountId}
+        />
       )}
     </div>
   );
