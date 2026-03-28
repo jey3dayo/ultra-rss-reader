@@ -124,9 +124,11 @@ export function executeAction(action: string): void {
       const iframe = document.querySelector<HTMLIFrameElement>("iframe");
       if (iframe?.contentWindow) {
         iframe.contentWindow.location.reload();
-      } else if (iframe) {
-        // Fallback: re-assign src to trigger reload
-        iframe.src = iframe.src;
+      } else if (iframe?.src) {
+        // Fallback: force reload by re-setting src
+        const currentSrc = iframe.src;
+        iframe.src = "";
+        iframe.src = currentSrc;
       }
       break;
     }
