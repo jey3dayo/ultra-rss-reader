@@ -99,7 +99,14 @@ export function SettingsModal() {
   useEffect(() => {
     let cancelled = false;
     let unlisten: (() => void) | undefined;
-    listen("open-settings", () => openSettings())
+    listen<string>("menu-action", (event) => {
+      const action = event.payload;
+      if (action === "open-settings") {
+        openSettings();
+      } else if (action === "open-settings-accounts") {
+        openSettings("accounts");
+      }
+    })
       .then((fn) => {
         if (cancelled) fn();
         else unlisten = fn;

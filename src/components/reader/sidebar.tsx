@@ -41,7 +41,6 @@ function useFormatLastSynced(date: Date | null): string {
 export function Sidebar() {
   const { t } = useTranslation("sidebar");
   const [showAccountList, setShowAccountList] = useState(false);
-  const [showAddFeed, setShowAddFeed] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const lastSyncedFormatted = useFormatLastSynced(lastSyncedAt);
@@ -69,6 +68,9 @@ export function Sidebar() {
   const expandedFolderIds = useUiStore((s) => s.expandedFolderIds);
   const toggleFolder = useUiStore((s) => s.toggleFolder);
   const openSettings = useUiStore((s) => s.openSettings);
+  const isAddFeedDialogOpen = useUiStore((s) => s.isAddFeedDialogOpen);
+  const openAddFeedDialog = useUiStore((s) => s.openAddFeedDialog);
+  const closeAddFeedDialog = useUiStore((s) => s.closeAddFeedDialog);
   const showToast = useUiStore((s) => s.showToast);
   const { data: feeds } = useFeeds(selectedAccountId);
   const { data: folders } = useFolders(selectedAccountId);
@@ -149,7 +151,7 @@ export function Sidebar() {
           <Button
             variant="ghost"
             size="icon-sm"
-            onClick={() => selectedAccountId && setShowAddFeed(true)}
+            onClick={() => selectedAccountId && openAddFeedDialog()}
             className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
             aria-label={t("add_feed")}
           >
@@ -329,7 +331,7 @@ export function Sidebar() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={openSettings}
+          onClick={() => openSettings()}
           className={controlChipVariants({ size: "comfortable", interaction: "action" })}
         >
           <Settings className={controlChipIconVariants({ size: "comfortable" })} />
@@ -338,7 +340,11 @@ export function Sidebar() {
       </div>
 
       {selectedAccountId && (
-        <AddFeedDialog open={showAddFeed} onOpenChange={setShowAddFeed} accountId={selectedAccountId} />
+        <AddFeedDialog
+          open={isAddFeedDialogOpen}
+          onOpenChange={(open) => (open ? openAddFeedDialog() : closeAddFeedDialog())}
+          accountId={selectedAccountId}
+        />
       )}
     </div>
   );

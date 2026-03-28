@@ -12,7 +12,7 @@ type Selection =
 type LayoutMode = "wide" | "compact" | "mobile";
 type FocusedPane = "sidebar" | "list" | "content";
 type ContentMode = "empty" | "reader" | "browser" | "loading";
-export type SettingsCategory = "general" | "appearance" | "reading" | "shortcuts" | "actions";
+export type SettingsCategory = "general" | "appearance" | "reading" | "shortcuts" | "actions" | "accounts";
 interface UiState {
   layoutMode: LayoutMode;
   focusedPane: FocusedPane;
@@ -28,6 +28,7 @@ interface UiState {
   settingsCategory: SettingsCategory;
   settingsAccountId: string | null;
   settingsAddAccount: boolean;
+  isAddFeedDialogOpen: boolean;
   toastMessage: string | null;
   recentlyReadIds: Set<string>;
   confirmDialog: {
@@ -53,8 +54,10 @@ interface UiActions {
   setViewMode: (mode: "all" | "unread" | "starred") => void;
   setSearchQuery: (query: string) => void;
   toggleFolder: (folderId: string) => void;
-  openSettings: () => void;
+  openSettings: (tab?: SettingsCategory) => void;
   closeSettings: () => void;
+  openAddFeedDialog: () => void;
+  closeAddFeedDialog: () => void;
   setSettingsCategory: (cat: SettingsCategory) => void;
   setSettingsAccountId: (id: string | null) => void;
   setSettingsAddAccount: (show: boolean) => void;
@@ -81,6 +84,7 @@ const initialState: UiState = {
   settingsCategory: "general",
   settingsAccountId: null,
   settingsAddAccount: false,
+  isAddFeedDialogOpen: false,
   toastMessage: null,
   recentlyReadIds: new Set(),
   confirmDialog: { open: false, message: "", onConfirm: null },
@@ -143,7 +147,9 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       else next.add(folderId);
       return { expandedFolderIds: next };
     }),
-  openSettings: () => set({ settingsOpen: true }),
+  openSettings: (tab?: SettingsCategory) => set({ settingsOpen: true, settingsCategory: tab ?? "general" }),
+  openAddFeedDialog: () => set({ isAddFeedDialogOpen: true }),
+  closeAddFeedDialog: () => set({ isAddFeedDialogOpen: false }),
   closeSettings: () =>
     set({ settingsOpen: false, settingsCategory: "general", settingsAccountId: null, settingsAddAccount: false }),
   setSettingsCategory: (cat) => set({ settingsCategory: cat, settingsAccountId: null, settingsAddAccount: false }),
