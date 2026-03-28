@@ -14,8 +14,10 @@ pub async fn copy_to_clipboard(app: tauri::AppHandle, text: String) -> Result<()
 #[cfg(target_os = "macos")]
 #[tauri::command]
 pub async fn add_to_reading_list(url: String) -> Result<(), AppError> {
-    let escaped_url = url.replace('\\', "\\\\").replace('"', "\\\"");
-    let script = format!(r#"tell application "Safari" to add reading list item "{escaped_url}""#,);
+    let escaped_url = url.replace('\\', "\\\\").replace('"', "\" & quote & \"");
+    let script = format!(
+        r#"tell application "Safari" to add reading list item ("{escaped_url}")"#,
+    );
     let output = std::process::Command::new("osascript")
         .arg("-e")
         .arg(&script)

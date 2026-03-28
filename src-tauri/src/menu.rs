@@ -12,7 +12,7 @@ pub fn build(app: &AppHandle, prefs: &HashMap<String, String>) -> tauri::Result<
     // --- App submenu ---
     let about_metadata = AboutMetadataBuilder::new()
         .name(Some("Ultra RSS Reader"))
-        .version(Some("0.1.0"))
+        .version(Some(env!("CARGO_PKG_VERSION")))
         .copyright(Some("Copyright © 2026 jey3dayo"))
         .build();
     let about_item = PredefinedMenuItem::about(app, None, Some(about_metadata))?;
