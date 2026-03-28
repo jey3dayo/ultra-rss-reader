@@ -8,6 +8,8 @@ pub mod service;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
+use commands::updater_commands::PendingUpdate;
+
 use commands::AppState;
 use infra::db::connection::DbManager;
 use infra::db::sqlite_preference::SqlitePreferenceRepository;
