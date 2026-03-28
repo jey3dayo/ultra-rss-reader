@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   listAccountArticles,
   listArticles,
@@ -11,6 +11,7 @@ import {
   searchArticles,
   toggleArticleStar,
 } from "@/api/tauri-commands";
+import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
 
 function invalidateArticleQueries(qc: QueryClient) {
@@ -25,37 +26,19 @@ export const useArticles = createQuery("articles", listArticles);
 
 export const useAccountArticles = createQuery("accountArticles", listAccountArticles);
 
-export function useSetRead() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, read }: { id: string; read: boolean }) => markArticleRead(id, read).then(Result.unwrap()),
-    onSuccess: () => invalidateArticleQueries(qc),
-  });
-}
+export const useSetRead = createMutation(
+  ({ id, read }: { id: string; read: boolean }) => markArticleRead(id, read),
+  invalidateArticleQueries,
+);
 
-export function useMarkAllRead() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (articleIds: string[]) => markArticlesRead(articleIds).then(Result.unwrap()),
-    onSuccess: () => invalidateArticleQueries(qc),
-  });
-}
+export const useMarkAllRead = createMutation(
+  (articleIds: string[]) => markArticlesRead(articleIds),
+  invalidateArticleQueries,
+);
 
-export function useMarkFeedRead() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (feedId: string) => markFeedRead(feedId).then(Result.unwrap()),
-    onSuccess: () => invalidateArticleQueries(qc),
-  });
-}
+export const useMarkFeedRead = createMutation(markFeedRead, invalidateArticleQueries);
 
-export function useMarkFolderRead() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (folderId: string) => markFolderRead(folderId).then(Result.unwrap()),
-    onSuccess: () => invalidateArticleQueries(qc),
-  });
-}
+export const useMarkFolderRead = createMutation(markFolderRead, invalidateArticleQueries);
 
 export function useSearchArticles(accountId: string | null, query: string) {
   return useQuery({
@@ -65,11 +48,7 @@ export function useSearchArticles(accountId: string | null, query: string) {
   });
 }
 
-export function useToggleStar() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, starred }: { id: string; starred: boolean }) =>
-      toggleArticleStar(id, starred).then(Result.unwrap()),
-    onSuccess: () => invalidateArticleQueries(qc),
-  });
-}
+export const useToggleStar = createMutation(
+  ({ id, starred }: { id: string; starred: boolean }) => toggleArticleStar(id, starred),
+  invalidateArticleQueries,
+);

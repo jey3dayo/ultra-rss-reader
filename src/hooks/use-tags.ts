@@ -1,6 +1,8 @@
 import { Result } from "@praha/byethrow";
+import type { QueryClient } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createTag, getArticleTags, listArticlesByTag, listTags, tagArticle, untagArticle } from "@/api/tauri-commands";
+import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
 
 export function useTags() {
@@ -24,28 +26,17 @@ export function useCreateTag() {
   });
 }
 
-function useInvalidateArticleTagQueries() {
-  const qc = useQueryClient();
-  return () => {
-    qc.invalidateQueries({ queryKey: ["articleTags"] });
-    qc.invalidateQueries({ queryKey: ["articlesByTag"] });
-  };
+function invalidateArticleTagQueries(qc: QueryClient) {
+  qc.invalidateQueries({ queryKey: ["articleTags"] });
+  qc.invalidateQueries({ queryKey: ["articlesByTag"] });
 }
 
-export function useTagArticle() {
-  const onSuccess = useInvalidateArticleTagQueries();
-  return useMutation({
-    mutationFn: ({ articleId, tagId }: { articleId: string; tagId: string }) =>
-      tagArticle(articleId, tagId).then(Result.unwrap()),
-    onSuccess,
-  });
-}
+export const useTagArticle = createMutation(
+  ({ articleId, tagId }: { articleId: string; tagId: string }) => tagArticle(articleId, tagId),
+  invalidateArticleTagQueries,
+);
 
-export function useUntagArticle() {
-  const onSuccess = useInvalidateArticleTagQueries();
-  return useMutation({
-    mutationFn: ({ articleId, tagId }: { articleId: string; tagId: string }) =>
-      untagArticle(articleId, tagId).then(Result.unwrap()),
-    onSuccess,
-  });
-}
+export const useUntagArticle = createMutation(
+  ({ articleId, tagId }: { articleId: string; tagId: string }) => untagArticle(articleId, tagId),
+  invalidateArticleTagQueries,
+);
