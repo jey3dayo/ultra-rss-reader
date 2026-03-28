@@ -48,6 +48,7 @@ pub fn run() {
                 db: Mutex::new(db),
                 syncing: Arc::new(AtomicBool::new(false)),
             });
+            app.manage(PendingUpdate(Arc::new(tokio::sync::Mutex::new(None))));
 
             // Start background periodic sync
             let state = app.state::<AppState>();

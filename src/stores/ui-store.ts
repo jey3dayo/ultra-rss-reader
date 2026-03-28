@@ -10,7 +10,7 @@ export type ToastAction = {
 export type ToastData = {
   message: string;
   persistent?: boolean;
-  progress?: number;
+  progress?: number | null;
   actions?: ToastAction[];
 };
 

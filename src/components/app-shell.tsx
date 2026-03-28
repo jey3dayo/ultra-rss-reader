@@ -26,12 +26,16 @@ function Toast() {
           &times;
         </button>
       </div>
-      {progress != null && (
+      {progress !== undefined && (
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-all duration-200"
-            style={{ width: `${progress}%` }}
-          />
+          {progress != null ? (
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-200"
+              style={{ width: `${progress}%` }}
+            />
+          ) : (
+            <div className="h-full w-1/3 animate-pulse rounded-full bg-primary" />
+          )}
         </div>
       )}
       {actions && actions.length > 0 && (

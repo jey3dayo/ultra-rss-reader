@@ -229,24 +229,19 @@ export function executeAction(action: AppAction): void {
 
     // --- Updater ---
     case "check-for-updates": {
-      import("@/api/tauri-commands").then(({ checkForUpdate }) => {
-        checkForUpdate().then((result) =>
-          Result.pipe(
-            result,
-            Result.inspect((info) => {
-              if (info) {
-                // Delegate to use-updater's toast pattern via a custom event
-                window.dispatchEvent(new CustomEvent("ultra-rss:update-available", { detail: info }));
-              } else {
-                store.showToast("最新バージョンです");
-              }
-            }),
-            Result.inspectError((e) => {
-              console.error("Manual update check failed:", e);
-              store.showToast("アップデートの確認に失敗しました");
-            }),
-          ),
-        );
+      import("@/hooks/use-updater").then(({ performUpdateCheck, showUpdateAvailableToast }) => {
+        performUpdateCheck()
+          .then((info) => {
+            if (info) {
+              showUpdateAvailableToast(info.version);
+            } else {
+              store.showToast("最新バージョンです");
+            }
+          })
+          .catch((e: unknown) => {
+            console.error("Manual update check failed:", e);
+            store.showToast("アップデートの確認に失敗しました");
+          });
       });
       break;
     }

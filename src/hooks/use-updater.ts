@@ -4,7 +4,10 @@ import { useEffect } from "react";
 import { checkForUpdate, downloadAndInstallUpdate, restartApp } from "@/api/tauri-commands";
 import { useUiStore } from "@/stores/ui-store";
 
-function showUpdateAvailableToast(version: string): void {
+/** Guard against concurrent check_for_update calls. */
+let checkInFlight = false;
+
+export function showUpdateAvailableToast(version: string): void {
   const store = useUiStore.getState();
   store.showToast({
     message: `v${version} が利用可能です`,
@@ -67,29 +70,46 @@ function showRestartToast(): void {
   });
 }
 
+/**
+ * Perform an update check with concurrency guard.
+ * Returns the update info if available, null otherwise.
+ * Rejects if the check fails.
+ */
+export async function performUpdateCheck(): Promise<{ version: string; body: string | null } | null> {
+  if (checkInFlight) return null;
+  checkInFlight = true;
+  try {
+    const result = await checkForUpdate();
+    return Result.pipe(
+      result,
+      Result.map((info) => info),
+      Result.unwrap(),
+    );
+  } finally {
+    checkInFlight = false;
+  }
+}
+
 export function useUpdater(): void {
   useEffect(() => {
     // Startup check (silent on failure)
-    checkForUpdate().then((result) =>
-      Result.pipe(
-        result,
-        Result.inspect((info) => {
-          if (info) {
-            showUpdateAvailableToast(info.version);
-          }
-        }),
-        Result.inspectError((e) => {
-          console.warn("Startup update check failed (silent):", e);
-        }),
-      ),
-    );
+    performUpdateCheck()
+      .then((info) => {
+        if (info) {
+          showUpdateAvailableToast(info.version);
+        }
+      })
+      .catch((e: unknown) => {
+        console.warn("Startup update check failed (silent):", e);
+      });
 
     // Listen for download progress events
-    const progressUnlisten = listen<{ percent: number }>("update-download-progress", (event) => {
+    const progressUnlisten = listen<{ percent: number | null }>("update-download-progress", (event) => {
       const store = useUiStore.getState();
       const percent = event.payload.percent;
+      const message = percent != null ? `ダウンロード中... ${percent}%` : "ダウンロード中...";
       store.showToast({
-        message: `ダウンロード中... ${percent}%`,
+        message,
         persistent: true,
         progress: percent,
       });
@@ -100,17 +120,9 @@ export function useUpdater(): void {
       showRestartToast();
     });
 
-    // Listen for manual update check results from executeAction
-    const handleUpdateAvailable = (event: Event) => {
-      const detail = (event as CustomEvent<{ version: string }>).detail;
-      showUpdateAvailableToast(detail.version);
-    };
-    window.addEventListener("ultra-rss:update-available", handleUpdateAvailable);
-
     return () => {
       progressUnlisten.then((fn) => fn()).catch(() => {});
       readyUnlisten.then((fn) => fn()).catch(() => {});
-      window.removeEventListener("ultra-rss:update-available", handleUpdateAvailable);
     };
   }, []);
 }
