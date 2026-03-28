@@ -176,3 +176,19 @@
   - Item: Previous/Next(K/J), Show Article(I), Reader View(G), Bionic Reading(⌥G), View in Browser(V), Open in Arc(B), Filter(F), Tags(T), Unstar(S), Mark as Unread(M), Mark All as Read(A), Clear(C)
   - Share: Copy Link, Add to Reading List, AirDrop, Mail, Notes, Open in Safari/Chrome/Firefox
 - [x] i18n対応（UIテキストを日本語/英語切替可能に、react-i18next導入。tauri-plugin-i18nはコミュニティ製で成熟度低のため非採用）
+
+## 新機能要望
+
+### コマンドモード
+
+- [ ] コマンドパレット（⌘K等で起動）の導入
+  - フィード/記事/設定への素早いアクセス
+  - アクション実行（同期、全既読、フィルター切替等）
+
+### ワイドスクリーン/フルスクリーン記事ビュー
+
+- [ ] フィード編集ダイアログに表示モード設定を追加（フィード単位でワイドスクリーン ON/OFF）
+  - 漫画フィード等、画像主体のコンテンツ向け
+  - 記事クリック時にサイドバー＋記事リストを隠して記事ビューを最大化
+- [ ] 記事ビュー右上のアクションメニューにワイドスクリーン/フルスクリーン切替ボタンを追加
+- [ ] Settings > Reading にデフォルト表示モード設定を追加（通常/ワイド/フルスクリーン）
