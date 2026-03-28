@@ -2,7 +2,7 @@ use tauri::menu::{
     AboutMetadataBuilder, CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder, PredefinedMenuItem,
     SubmenuBuilder,
 };
-use tauri::{menu::Menu, AppHandle, Emitter};
+use tauri::{menu::Menu, AppHandle, Emitter, Manager};
 
 /// Build the full application menu bar.
 pub fn build(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
@@ -149,9 +149,34 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         .build()
 }
 
+/// Toggle the checked state of a `CheckMenuItem` identified by `menu_id`.
+fn toggle_check_menu_item(app: &AppHandle, menu_id: &str) {
+    let Some(window) = app.get_webview_window("main") else {
+        tracing::warn!("Cannot toggle menu item '{menu_id}': main window not found");
+        return;
+    };
+    let Some(menu) = window.menu() else {
+        tracing::warn!("Cannot toggle menu item '{menu_id}': no menu on main window");
+        return;
+    };
+    if let Some(item) = menu.get(menu_id) {
+        if let Some(check_item) = item.as_check_menuitem() {
+            match check_item.is_checked() {
+                Ok(checked) => {
+                    if let Err(e) = check_item.set_checked(!checked) {
+                        tracing::warn!("Failed to set_checked for '{menu_id}': {e}");
+                    }
+                }
+                Err(e) => tracing::warn!("Failed to read checked state for '{menu_id}': {e}"),
+            }
+        }
+    }
+}
+
 /// Handle menu events by emitting a `menu-action` event to the frontend.
 pub fn handle_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
-    let action = match event.id().as_ref() {
+    let menu_id = event.id();
+    let action = match menu_id.as_ref() {
         "view-unread" => "set-filter-unread",
         "view-all" => "set-filter-all",
         "view-starred" => "set-filter-starred",
@@ -160,7 +185,7 @@ pub fn handle_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
         "view-fullscreen" => "toggle-fullscreen",
         "accounts-sync" => "sync-all",
         "accounts-show" => "open-settings-accounts",
-        "accounts-add" => "open-settings-accounts",
+        "accounts-add" => "open-settings-accounts-add",
         "subs-add" => "open-add-feed",
         "subs-prev" => "prev-feed",
         "subs-next" => "next-feed",
@@ -177,6 +202,15 @@ pub fn handle_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
         "settings" => "open-settings",
         _ => return,
     };
+
+    // Toggle checked state for CheckMenuItem entries
+    match menu_id.as_ref() {
+        "view-sort-unread" | "view-group-by-feed" => {
+            toggle_check_menu_item(app, menu_id.as_ref());
+        }
+        _ => {}
+    }
+
     if let Err(e) = app.emit("menu-action", action) {
         tracing::error!("Failed to emit menu-action '{}': {}", action, e);
     }
