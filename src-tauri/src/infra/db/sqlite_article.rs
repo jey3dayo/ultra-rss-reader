@@ -268,34 +268,66 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
             .map(|c| format!("a.{c}"))
             .collect::<Vec<_>>()
             .join(", ");
-        // Escape FTS5 special characters by wrapping each term in double quotes
+
+        // Try FTS5 first for performance
         let fts_query = query
             .split_whitespace()
             .map(|term| format!("\"{term}\""))
             .collect::<Vec<_>>()
             .join(" ");
-        let sql = format!(
+        // Do not apply LIMIT/OFFSET per-query — pagination is applied after
+        // merging FTS and LIKE results to ensure correct page boundaries.
+        let fts_sql = format!(
             "SELECT {select_cols_prefixed} FROM articles a
              JOIN feeds f ON a.feed_id = f.id
              JOIN articles_fts fts ON a.rowid = fts.rowid
              WHERE f.account_id = ?1
              AND articles_fts MATCH ?2
-             ORDER BY fts.rank
-             LIMIT ?3 OFFSET ?4"
+             ORDER BY fts.rank"
         );
-        let mut stmt = self.conn.prepare(&sql)?;
-        let articles = stmt
+        let mut stmt = self.conn.prepare(&fts_sql)?;
+        let fts_articles: Vec<Article> = stmt
             .query_map(
-                params![
-                    account_id.0,
-                    fts_query,
-                    pagination.limit as i64,
-                    pagination.offset as i64
-                ],
+                params![account_id.0, fts_query],
                 row_to_article,
             )?
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(articles)
+
+        // Always run LIKE search as well to catch CJK-mixed titles where FTS5
+        // unicode61 tokenizer merges adjacent scripts into a single token
+        // (e.g. "新型HomePod"). Merge results with deduplication by article id.
+        // Escape SQL LIKE wildcards in the query to match literal characters.
+        let escaped_query = query.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_");
+        let like_pattern = format!("%{escaped_query}%");
+        // Do not apply LIMIT/OFFSET here — pagination is applied after merging
+        // with FTS results to avoid duplicate/missing rows across pages.
+        let like_sql = format!(
+            "SELECT {select_cols_prefixed} FROM articles a
+             JOIN feeds f ON a.feed_id = f.id
+             WHERE f.account_id = ?1
+             AND (a.title LIKE ?2 ESCAPE '\\' OR a.content_sanitized LIKE ?2 ESCAPE '\\')
+             ORDER BY a.published_at DESC"
+        );
+        let mut stmt = self.conn.prepare(&like_sql)?;
+        let like_articles: Vec<Article> = stmt
+            .query_map(
+                params![account_id.0, like_pattern],
+                row_to_article,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+
+        // Merge FTS and LIKE results, deduplicating by article id
+        let mut seen = std::collections::HashSet::new();
+        let mut merged = Vec::with_capacity(fts_articles.len() + like_articles.len());
+        for article in fts_articles.into_iter().chain(like_articles) {
+            if seen.insert(article.id.0.clone()) {
+                merged.push(article);
+            }
+        }
+        // Apply pagination after merging to ensure correct page boundaries
+        let start = pagination.offset.min(merged.len());
+        let end = (start + pagination.limit).min(merged.len());
+        Ok(merged[start..end].to_vec())
     }
 }
 
@@ -690,5 +722,44 @@ mod tests {
             .search(&account2, "Shared", &Pagination::default())
             .unwrap();
         assert_eq!(results2.len(), 1);
+    }
+
+    #[test]
+    fn search_finds_cjk_mixed_title_via_like_fallback() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        // CJK characters adjacent to ASCII cause FTS5 unicode61 tokenizer to
+        // merge them into a single token (e.g. "新型HomePod"), making a pure
+        // FTS MATCH on "HomePod" miss. The LIKE fallback should find it.
+        let a1 = make_article(&feed_id, "新型HomePod/mini発表");
+        let a2 = make_article(&feed_id, "Unrelated Article");
+        repo.upsert(&[a1, a2]).unwrap();
+
+        let results = repo
+            .search(&account_id, "HomePod", &Pagination::default())
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "新型HomePod/mini発表");
+    }
+
+    #[test]
+    fn search_finds_pure_cjk_query() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let a1 = make_article(&feed_id, "日本語の記事タイトル");
+        let a2 = make_article(&feed_id, "English Only Title");
+        repo.upsert(&[a1, a2]).unwrap();
+
+        let results = repo
+            .search(&account_id, "記事", &Pagination::default())
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "日本語の記事タイトル");
     }
 }
