@@ -135,3 +135,44 @@
 - [x] TS: tauri-commands に updateFeedFolder ラッパー追加
 - [x] UI: rename-feed-dialog にフォルダ一覧 + 選択UI追加
 - [x] dev-mock: update_feed_folder ハンドラ追加
+
+## Reeder比較レビュー（2026-03-28）
+
+### バグ・壊れている機能（高優先）
+
+- [x] 記事リストのプレビューにHTMLタグが生表示される（HTMLストリップ処理の欠落）
+- [x] 検索が機能していない（FTS5+LIKEフォールバックで日本語混在テキスト対応）
+- [x] 記事ビューのアクションボタンが状態を反映しない（既読/未読・スターのアイコン切替なし）
+- [x] BRボタンの用途が間違っている（Bionic ReadingトグルであるべきがWebView開く機能に）
+- [x] 設定画面のトグルスイッチ表示崩れ（OFF状態に隙間） + デフォルト値を全てONに変更
+
+### UX改善（中優先）
+
+- [x] フィルターボタンの遷移UX改善（中央ボタンでSTARRED → UNREAD → ALLサイクル）
+- [x] 同期ボタンのフィードバック不足（ローディングアニメーション + 完了通知）
+- [x] 最終同期時刻の表示（「Today」→「Today at 16:11」形式）
+- [x] 外部ブラウザで開くボタンの欠落（BRとは別にExternalLinkアイコンで分離）
+- [x] 記事ヘッダーにリンクがない（タイトルクリック→WebView、フィード名→フィードへ移動）
+- [x] Unreadビューで既読記事が即消えする（グレーアウトして残し、画面遷移時に消す）
+- [x] 記事リストツールバーに全既読ボタンがない（常時アクセス可能にする）
+- [x] 設定画面のアクションボタンのデザイン改善（link variant → outline/destructive）
+
+### 機能追加（中〜低優先）
+
+- [x] フィード新規追加ダイアログにフォルダ選択を追加（既存フォルダ一覧 + 新規フォルダ作成）
+- [x] フィードディスカバリー（サイトURLからRSSフィードを自動検出、HTMLのlink[rel=alternate]探索）
+- [x] タグセクションのUI改善（アコーディオン折りたたみ + 記事数表示）
+- [x] タグのコンテキストメニューに編集・削除を追加
+- [x] ショートカットキーのカスタマイズ（表示のみ→変更可能に、カテゴリ別表示、重複検出、Reset to Defaults）
+- [x] アカウント名のリネーム機能（設定画面のDescription編集可能化 + バリデーション）
+- [x] アカウント設定にServer URL表示、READINGセクション追加（Reeder参考）
+
+### 大規模タスク（独立spec推奨）
+
+- [ ] macOSネイティブメニューバーの活用（View/Accounts/Subscriptions/Item/Shareメニュー構成）
+  - View: Filter(⌘1/2/3), Theme, Layout, Sort Unread Items, Group Items, Full Screen
+  - Accounts: Sync All(R), Show Accounts(U), Add Account, アカウント切替(⌘1/2)
+  - Subscriptions: Sync(R), Previous/Next(P/N), Toggle Folder, Add Subscription(X)
+  - Item: Previous/Next(K/J), Show Article(I), Reader View(G), Bionic Reading(⌥G), View in Browser(V), Open in Arc(B), Filter(F), Tags(T), Unstar(S), Mark as Unread(M), Mark All as Read(A), Clear(C)
+  - Share: Copy Link, Add to Reading List, AirDrop, Mail, Notes, Open in Safari/Chrome/Firefox
+- [x] i18n対応（UIテキストを日本語/英語切替可能に、react-i18next導入。tauri-plugin-i18nはコミュニティ製で成熟度低のため非採用）
