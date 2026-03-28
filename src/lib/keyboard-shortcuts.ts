@@ -286,8 +286,9 @@ export function resolveKeyboardAction(
     return Result.fail("ignored_input");
   }
 
-  // Look up the plain key first, then the normalized (with modifiers) form
-  const actionId = map.get(key) ?? map.get(normalized);
+  // Look up the normalized (with modifiers) form first, then the plain key
+  // This ensures Ctrl+J resolves to next_feed before j resolves to next_article
+  const actionId = map.get(normalized) ?? map.get(key);
   if (actionId && actionId !== "open_settings") {
     return resolveActionForId(actionId, { selectedArticleId, contentMode, viewMode });
   }

@@ -21,16 +21,6 @@ function emitNavigationEvent(name: string, direction: 1 | -1): void {
 const NAVIGATE_ARTICLE_EVENT = "ultra-rss:navigate-article";
 
 /**
- * Toggle a boolean preference value.
- * Reads the current value from the preferences store and flips it.
- */
-function toggleBoolPref(key: string, defaultValue: string): void {
-  const prefs = usePreferencesStore.getState().prefs;
-  const current = prefs[key] ?? defaultValue;
-  usePreferencesStore.getState().setPref(key, current === "true" ? "false" : "true");
-}
-
-/**
  * Toggle fullscreen mode via the Tauri window API.
  * Silently no-ops in browser (non-Tauri) contexts.
  */
@@ -67,12 +57,18 @@ export function executeAction(action: string): void {
       break;
 
     // --- Preference toggles ---
-    case "toggle-sort-unread":
-      toggleBoolPref("sort_unread", "newest_first");
+    case "toggle-sort-unread": {
+      const current = usePreferencesStore.getState().prefs.sort_unread ?? "newest_first";
+      usePreferencesStore
+        .getState()
+        .setPref("sort_unread", current === "newest_first" ? "oldest_first" : "newest_first");
       break;
-    case "toggle-group-by-feed":
-      toggleBoolPref("group_by", "date");
+    }
+    case "toggle-group-by-feed": {
+      const current = usePreferencesStore.getState().prefs.group_by ?? "date";
+      usePreferencesStore.getState().setPref("group_by", current === "date" ? "feed" : "date");
       break;
+    }
 
     // --- Window ---
     case "toggle-fullscreen":
