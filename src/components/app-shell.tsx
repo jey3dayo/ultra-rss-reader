@@ -3,6 +3,7 @@ import { useKeyboard } from "../hooks/use-keyboard";
 import { useUiStore } from "../stores/ui-store";
 import { AppLayout } from "./app-layout";
 import { SettingsModal } from "./settings/settings-modal";
+import { ConfirmDialog } from "./ui/confirm-dialog";
 
 function Toast() {
   const { toastMessage, clearToast } = useUiStore();
@@ -30,6 +31,7 @@ export function AppShell() {
     <div className="flex h-full flex-col">
       <AppLayout />
       <SettingsModal />
+      <ConfirmDialog />
       <Toast />
     </div>
   );

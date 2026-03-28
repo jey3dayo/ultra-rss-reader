@@ -30,6 +30,11 @@ interface UiState {
   settingsAddAccount: boolean;
   toastMessage: string | null;
   recentlyReadIds: Set<string>;
+  confirmDialog: {
+    open: boolean;
+    message: string;
+    onConfirm: (() => void) | null;
+  };
 }
 
 interface UiActions {
@@ -57,6 +62,8 @@ interface UiActions {
   clearToast: () => void;
   addRecentlyRead: (id: string) => void;
   clearRecentlyRead: () => void;
+  showConfirm: (message: string, onConfirm: () => void) => void;
+  closeConfirm: () => void;
 }
 
 const initialState: UiState = {
@@ -76,6 +83,7 @@ const initialState: UiState = {
   settingsAddAccount: false,
   toastMessage: null,
   recentlyReadIds: new Set(),
+  confirmDialog: { open: false, message: "", onConfirm: null },
 };
 
 export const useUiStore = create<UiState & UiActions>()((set) => ({
@@ -157,4 +165,6 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       return { recentlyReadIds: next };
     }),
   clearRecentlyRead: () => set({ recentlyReadIds: new Set() }),
+  showConfirm: (message, onConfirm) => set({ confirmDialog: { open: true, message, onConfirm } }),
+  closeConfirm: () => set({ confirmDialog: { open: false, message: "", onConfirm: null } }),
 }));

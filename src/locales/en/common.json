@@ -6,5 +6,7 @@
   "add": "Add",
   "close": "Close",
   "loading": "Loading...",
+  "confirm": "Confirm",
+  "ok": "OK",
   "failed_to_save_setting": "Failed to save setting: {{message}}"
 }
