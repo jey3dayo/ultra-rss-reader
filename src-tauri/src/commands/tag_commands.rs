@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use tauri::State;
 
 use crate::commands::dto::{AppError, ArticleDto, TagDto};
@@ -73,6 +75,52 @@ pub fn create_tag(
 }
 
 #[tauri::command]
+pub fn rename_tag(
+    state: State<'_, AppState>,
+    tag_id: String,
+    name: String,
+) -> Result<TagDto, AppError> {
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Err(AppError::UserVisible {
+            message: "Tag name cannot be empty".to_string(),
+        });
+    }
+    if name.chars().count() > 50 {
+        return Err(AppError::UserVisible {
+            message: "Tag name must be 50 characters or less".to_string(),
+        });
+    }
+
+    let db = lock_db(&state.db)?;
+    let repo = SqliteTagRepository::new(db.writer());
+
+    // Find current tag to preserve color
+    let tags = repo.find_all()?;
+    let current = tags
+        .iter()
+        .find(|t| t.id.0 == tag_id)
+        .ok_or_else(|| AppError::UserVisible {
+            message: "Tag not found".to_string(),
+        })?;
+
+    // Check for duplicate tag name (case-sensitive)
+    if tags.iter().any(|t| t.name == name && t.id.0 != tag_id) {
+        return Err(AppError::UserVisible {
+            message: format!("Tag name \"{name}\" already exists"),
+        });
+    }
+
+    let updated = Tag {
+        id: current.id.clone(),
+        name,
+        color: current.color.clone(),
+    };
+    repo.save(&updated)?;
+    Ok(TagDto::from(updated))
+}
+
+#[tauri::command]
 pub fn delete_tag(state: State<'_, AppState>, tag_id: String) -> Result<(), AppError> {
     let db = lock_db(&state.db)?;
     let repo = SqliteTagRepository::new(db.writer());
@@ -130,4 +178,14 @@ pub fn list_articles_by_tag(
     };
     let articles = repo.find_articles_by_tag(&TagId(tag_id), &pagination)?;
     Ok(articles.into_iter().map(ArticleDto::from).collect())
+}
+
+#[tauri::command]
+pub fn get_tag_article_counts(
+    state: State<'_, AppState>,
+) -> Result<HashMap<String, usize>, AppError> {
+    let db = lock_db(&state.db)?;
+    let repo = SqliteTagRepository::new(db.reader());
+    let counts = repo.count_articles_per_tag()?;
+    Ok(counts.into_iter().map(|(id, c)| (id.0, c)).collect())
 }

@@ -1,7 +1,17 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createTag, getArticleTags, listArticlesByTag, listTags, tagArticle, untagArticle } from "@/api/tauri-commands";
+import {
+  createTag,
+  deleteTag,
+  getArticleTags,
+  getTagArticleCounts,
+  listArticlesByTag,
+  listTags,
+  renameTag,
+  tagArticle,
+  untagArticle,
+} from "@/api/tauri-commands";
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
 
@@ -9,6 +19,13 @@ export function useTags() {
   return useQuery({
     queryKey: ["tags"],
     queryFn: () => listTags().then(Result.unwrap()),
+  });
+}
+
+export function useTagArticleCounts() {
+  return useQuery({
+    queryKey: ["tagArticleCounts"],
+    queryFn: () => getTagArticleCounts().then(Result.unwrap()),
   });
 }
 
@@ -29,6 +46,7 @@ export function useCreateTag() {
 function invalidateArticleTagQueries(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: ["articleTags"] });
   qc.invalidateQueries({ queryKey: ["articlesByTag"] });
+  qc.invalidateQueries({ queryKey: ["tagArticleCounts"] });
 }
 
 export const useTagArticle = createMutation(
@@ -40,3 +58,17 @@ export const useUntagArticle = createMutation(
   ({ articleId, tagId }: { articleId: string; tagId: string }) => untagArticle(articleId, tagId),
   invalidateArticleTagQueries,
 );
+
+function invalidateTagQueries(qc: QueryClient) {
+  qc.invalidateQueries({ queryKey: ["tags"] });
+  qc.invalidateQueries({ queryKey: ["articleTags"] });
+  qc.invalidateQueries({ queryKey: ["articlesByTag"] });
+  qc.invalidateQueries({ queryKey: ["tagArticleCounts"] });
+}
+
+export const useRenameTag = createMutation(
+  ({ tagId, name }: { tagId: string; name: string }) => renameTag(tagId, name),
+  invalidateTagQueries,
+);
+
+export const useDeleteTag = createMutation(({ tagId }: { tagId: string }) => deleteTag(tagId), invalidateTagQueries);

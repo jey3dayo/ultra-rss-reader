@@ -18,4 +18,6 @@ pub trait TagRepository {
         tag_id: &TagId,
         pagination: &Pagination,
     ) -> DomainResult<Vec<Article>>;
+    /// Returns article counts per tag as (tag_id, count) pairs.
+    fn count_articles_per_tag(&self) -> DomainResult<Vec<(TagId, usize)>>;
 }

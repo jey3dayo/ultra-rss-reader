@@ -149,6 +149,20 @@ impl TagRepository for SqliteTagRepository<'_> {
             .collect::<Result<Vec<_>, _>>()?;
         Ok(articles)
     }
+
+    fn count_articles_per_tag(&self) -> DomainResult<Vec<(TagId, usize)>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT tag_id, COUNT(*) FROM article_tags GROUP BY tag_id")?;
+        let counts = stmt
+            .query_map([], |row| {
+                let tag_id: String = row.get(0)?;
+                let count: i64 = row.get(1)?;
+                Ok((TagId(tag_id), count as usize))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(counts)
+    }
 }
 
 #[cfg(test)]
