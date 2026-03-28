@@ -15,6 +15,7 @@ use tauri::Manager;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let handle = app.handle().clone();
@@ -77,6 +78,8 @@ pub fn run() {
             commands::tag_commands::get_article_tags,
             commands::tag_commands::list_articles_by_tag,
             commands::tag_commands::get_tag_article_counts,
+            commands::share_commands::copy_to_clipboard,
+            commands::share_commands::add_to_reading_list,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
