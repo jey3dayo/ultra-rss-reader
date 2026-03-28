@@ -1,0 +1,2 @@
+# Tauri auto-generated ACL schemas (large minified JSON, suppress diff noise)
+src-tauri/gen/schemas/*.json binary
