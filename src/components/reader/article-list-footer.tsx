@@ -14,9 +14,9 @@ type ArticleListFooterProps = {
 };
 
 const VIEW_MODES = [
-  { value: "starred", icon: "star", labelKey: "filter_starred" },
   { value: "unread", icon: null, labelKey: "filter_unread" },
   { value: "all", icon: "list", labelKey: "filter_all" },
+  { value: "starred", icon: "star", labelKey: "filter_starred" },
 ] as const;
 
 export function ArticleListFooter({ viewMode, onSetViewMode }: ArticleListFooterProps) {
