@@ -42,7 +42,7 @@ describe("Form fields", () => {
   it("add feed dialog input exposes a name attribute", () => {
     render(<AddFeedDialog open={true} onOpenChange={() => {}} accountId="acc-1" />, { wrapper: createWrapper() });
 
-    expect(screen.getByPlaceholderText("https://example.com/feed.xml")).toHaveAttribute("name");
+    expect(screen.getByPlaceholderText("Feed or Site URL")).toHaveAttribute("name");
   });
 
   it("rename feed dialog input exposes a name attribute", () => {

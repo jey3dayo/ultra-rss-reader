@@ -87,4 +87,106 @@ describe("article-list utils", () => {
 
     expect(Result.unwrapError(result)).toBe("no_articles");
   });
+
+  it("keeps recently-read articles in unread view", () => {
+    const readArticle: ArticleDto = {
+      ...sampleArticles[0],
+      id: "recently-read",
+      is_read: true,
+      published_at: "2026-03-25T12:00:00Z",
+    };
+    const unreadArticle: ArticleDto = {
+      ...sampleArticles[0],
+      id: "still-unread",
+      is_read: false,
+      published_at: "2026-03-25T11:00:00Z",
+    };
+    const oldReadArticle: ArticleDto = {
+      ...sampleArticles[1],
+      id: "old-read",
+      is_read: true,
+      published_at: "2026-03-24T08:00:00Z",
+    };
+
+    const recentlyReadIds = new Set(["recently-read"]);
+
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [readArticle, unreadArticle, oldReadArticle],
+      tagArticles: [],
+      searchResults: [],
+      feedId: null,
+      tagId: null,
+      viewMode: "unread",
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+      recentlyReadIds,
+    });
+
+    expect(result.map((a) => a.id)).toEqual(["recently-read", "still-unread"]);
+  });
+
+  it("excludes recently-read articles from unread view when recentlyReadIds is not provided", () => {
+    const readArticle: ArticleDto = {
+      ...sampleArticles[0],
+      id: "read-article",
+      is_read: true,
+      published_at: "2026-03-25T12:00:00Z",
+    };
+    const unreadArticle: ArticleDto = {
+      ...sampleArticles[0],
+      id: "unread-article",
+      is_read: false,
+      published_at: "2026-03-25T11:00:00Z",
+    };
+
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [readArticle, unreadArticle],
+      tagArticles: [],
+      searchResults: [],
+      feedId: null,
+      tagId: null,
+      viewMode: "unread",
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+    });
+
+    expect(result.map((a) => a.id)).toEqual(["unread-article"]);
+  });
+
+  it("keeps recently-read articles in unread view with feed-specific articles", () => {
+    const readArticle: ArticleDto = {
+      ...sampleArticles[0],
+      id: "feed-recently-read",
+      is_read: true,
+      published_at: "2026-03-25T12:00:00Z",
+    };
+    const unreadArticle: ArticleDto = {
+      ...sampleArticles[0],
+      id: "feed-unread",
+      is_read: false,
+      published_at: "2026-03-25T11:00:00Z",
+    };
+
+    const recentlyReadIds = new Set(["feed-recently-read"]);
+
+    const result = selectVisibleArticles({
+      articles: [readArticle, unreadArticle],
+      accountArticles: [],
+      tagArticles: [],
+      searchResults: [],
+      feedId: "feed-1",
+      tagId: null,
+      viewMode: "unread",
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+      recentlyReadIds,
+    });
+
+    expect(result.map((a) => a.id)).toEqual(["feed-recently-read", "feed-unread"]);
+  });
 });
