@@ -1,7 +1,10 @@
 import { Result } from "@praha/byethrow";
-import { useEffect } from "react";
-import { type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
+import { useEffect, useMemo } from "react";
+import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
+
+export const navigateArticleEvent = "ultra-rss:navigate-article";
 
 function emitKeyboardEvent(name: (typeof keyboardEvents)[keyof typeof keyboardEvents]) {
   window.dispatchEvent(new Event(name));
@@ -9,6 +12,9 @@ function emitKeyboardEvent(name: (typeof keyboardEvents)[keyof typeof keyboardEv
 
 export function useKeyboard() {
   const store = useUiStore();
+  const prefs = usePreferencesStore((s) => s.prefs);
+
+  const keyToAction = useMemo(() => buildKeyToActionMap(prefs), [prefs]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -21,6 +27,7 @@ export function useKeyboard() {
         selectedArticleId: store.selectedArticleId,
         contentMode: store.contentMode,
         viewMode: store.viewMode,
+        keyToAction,
       });
 
       if (Result.isFailure(action)) {
@@ -49,10 +56,13 @@ export function useKeyboard() {
         case "focus-sidebar":
           store.setFocusedPane("sidebar");
           break;
+        case "navigate-article":
+          window.dispatchEvent(new CustomEvent(navigateArticleEvent, { detail: resolvedAction.direction }));
+          break;
       }
     };
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [store]);
+  }, [store, keyToAction]);
 }
