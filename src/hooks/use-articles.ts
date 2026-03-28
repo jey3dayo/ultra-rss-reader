@@ -10,7 +10,8 @@ import {
   markFolderRead,
   searchArticles,
   toggleArticleStar,
-} from "../api/tauri-commands";
+} from "@/api/tauri-commands";
+import { createQuery } from "@/hooks/create-query";
 
 function invalidateArticleQueries(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: ["articles"] });
@@ -20,29 +21,9 @@ function invalidateArticleQueries(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: ["search"] });
 }
 
-export function useArticles(feedId: string | null) {
-  return useQuery({
-    queryKey: ["articles", feedId],
-    queryFn: () => listArticles(feedId as string).then(Result.unwrap()),
-    enabled: !!feedId,
-  });
-}
+export const useArticles = createQuery("articles", listArticles);
 
-export function useAccountArticles(accountId: string | null) {
-  return useQuery({
-    queryKey: ["accountArticles", accountId],
-    queryFn: () => listAccountArticles(accountId as string).then(Result.unwrap()),
-    enabled: !!accountId,
-  });
-}
-
-export function useMarkRead() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (articleId: string) => markArticleRead(articleId, true).then(Result.unwrap()),
-    onSuccess: () => invalidateArticleQueries(qc),
-  });
-}
+export const useAccountArticles = createQuery("accountArticles", listAccountArticles);
 
 export function useSetRead() {
   const qc = useQueryClient();

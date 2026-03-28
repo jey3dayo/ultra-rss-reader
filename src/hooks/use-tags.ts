@@ -1,14 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  createTag,
-  deleteTag,
-  getArticleTags,
-  listArticlesByTag,
-  listTags,
-  tagArticle,
-  untagArticle,
-} from "../api/tauri-commands";
+import { createTag, getArticleTags, listArticlesByTag, listTags, tagArticle, untagArticle } from "@/api/tauri-commands";
+import { createQuery } from "@/hooks/create-query";
 
 export function useTags() {
   return useQuery({
@@ -17,21 +10,9 @@ export function useTags() {
   });
 }
 
-export function useArticleTags(articleId: string | null) {
-  return useQuery({
-    queryKey: ["articleTags", articleId],
-    queryFn: () => getArticleTags(articleId as string).then(Result.unwrap()),
-    enabled: !!articleId,
-  });
-}
+export const useArticleTags = createQuery("articleTags", getArticleTags);
 
-export function useArticlesByTag(tagId: string | null) {
-  return useQuery({
-    queryKey: ["articlesByTag", tagId],
-    queryFn: () => listArticlesByTag(tagId as string).then(Result.unwrap()),
-    enabled: !!tagId,
-  });
-}
+export const useArticlesByTag = createQuery("articlesByTag", listArticlesByTag);
 
 export function useCreateTag() {
   const qc = useQueryClient();
@@ -39,18 +20,6 @@ export function useCreateTag() {
     mutationFn: ({ name, color }: { name: string; color?: string }) => createTag(name, color).then(Result.unwrap()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tags"] });
-    },
-  });
-}
-
-export function useDeleteTag() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (tagId: string) => deleteTag(tagId).then(Result.unwrap()),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["tags"] });
-      qc.invalidateQueries({ queryKey: ["articleTags"] });
-      qc.invalidateQueries({ queryKey: ["articlesByTag"] });
     },
   });
 }

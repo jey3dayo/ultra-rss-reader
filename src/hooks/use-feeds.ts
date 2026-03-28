@@ -1,11 +1,4 @@
-import { Result } from "@praha/byethrow";
-import { useQuery } from "@tanstack/react-query";
-import { listFeeds } from "../api/tauri-commands";
+import { listFeeds } from "@/api/tauri-commands";
+import { createQuery } from "@/hooks/create-query";
 
-export function useFeeds(accountId: string | null) {
-  return useQuery({
-    queryKey: ["feeds", accountId],
-    queryFn: () => listFeeds(accountId as string).then(Result.unwrap()),
-    enabled: !!accountId,
-  });
-}
+export const useFeeds = createQuery("feeds", listFeeds);
