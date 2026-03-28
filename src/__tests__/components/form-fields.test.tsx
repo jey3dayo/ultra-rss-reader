@@ -1,4 +1,3 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
@@ -6,19 +5,8 @@ import { AddFeedDialog } from "@/components/reader/add-feed-dialog";
 import { RenameDialog } from "@/components/reader/rename-feed-dialog";
 import { AddAccountForm } from "@/components/settings/add-account-form";
 import { SettingsSelect } from "@/components/settings/settings-components";
+import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleFeeds } from "../../../tests/helpers/tauri-mocks";
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-    },
-  });
-
-  return function Wrapper({ children }: { children: React.ReactNode }) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-  };
-}
 
 describe("Form fields", () => {
   it("settings select exposes a name attribute", () => {

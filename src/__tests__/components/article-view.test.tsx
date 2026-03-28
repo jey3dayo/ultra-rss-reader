@@ -1,21 +1,10 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ArticleView } from "@/components/reader/article-view";
 import { useUiStore } from "@/stores/ui-store";
+import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-    },
-  });
-  return function Wrapper({ children }: { children: React.ReactNode }) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-  };
-}
 
 describe("ArticleView", () => {
   beforeEach(() => {

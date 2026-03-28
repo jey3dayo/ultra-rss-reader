@@ -1,27 +1,15 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AppShell } from "@/components/app-shell";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 type MockCall = {
   cmd: string;
   args: Record<string, unknown>;
 };
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-    },
-  });
-
-  return function Wrapper({ children }: { children: React.ReactNode }) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-  };
-}
 
 function renderAppShell(calls: MockCall[]) {
   setupTauriMocks((cmd, args) => {
