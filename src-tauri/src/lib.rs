@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod domain;
 pub mod infra;
+pub mod menu;
 pub mod repository;
 pub mod service;
 
@@ -9,65 +10,17 @@ use std::sync::{Arc, Mutex};
 
 use commands::AppState;
 use infra::db::connection::DbManager;
-use tauri::menu::{
-    AboutMetadataBuilder, MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder,
-};
-use tauri::{Emitter, Manager};
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            // App menu with Settings
-            let settings_item =
-                MenuItemBuilder::with_id("settings", "Settings...\tCtrl+,").build(app)?;
-
-            let about_metadata = AboutMetadataBuilder::new()
-                .name(Some("Ultra RSS Reader"))
-                .version(Some("0.1.0"))
-                .copyright(Some("Copyright © 2026 jey3dayo"))
-                .build();
-            let about_item = PredefinedMenuItem::about(app, None, Some(about_metadata))?;
-
-            let app_submenu = SubmenuBuilder::new(app, "Ultra RSS Reader")
-                .item(&about_item)
-                .separator()
-                .item(&settings_item)
-                .separator()
-                .quit()
-                .build()?;
-
-            let edit_submenu = SubmenuBuilder::new(app, "Edit")
-                .undo()
-                .redo()
-                .separator()
-                .cut()
-                .copy()
-                .paste()
-                .select_all()
-                .build()?;
-
-            let menu = MenuBuilder::new(app)
-                .item(&app_submenu)
-                .item(&edit_submenu)
-                .build()?;
-
-            app.set_menu(menu)?;
-
+            let handle = app.handle().clone();
+            app.set_menu(menu::build(&handle)?)?;
             app.on_menu_event(move |app_handle, event| {
-                let id = event.id().as_ref();
-                tracing::info!("Menu event: {}", id);
-                if id == "settings" {
-                    if let Some(window) = app_handle.get_webview_window("main") {
-                        match window.emit("open-settings", ()) {
-                            Ok(_) => tracing::info!("Emitted open-settings event"),
-                            Err(e) => tracing::error!("Failed to emit: {}", e),
-                        }
-                    } else {
-                        tracing::error!("Could not find main window");
-                    }
-                }
+                menu::handle_event(app_handle, event);
             });
             let app_data_dir = app
                 .path()
