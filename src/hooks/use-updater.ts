@@ -4,8 +4,10 @@ import { useEffect } from "react";
 import { checkForUpdate, downloadAndInstallUpdate, restartApp } from "@/api/tauri-commands";
 import { useUiStore } from "@/stores/ui-store";
 
-/** Guard against concurrent check_for_update calls. */
-let checkInFlight = false;
+type UpdateInfo = { version: string; body: string | null };
+
+/** Share a single in-flight update check across startup and manual triggers. */
+let checkInFlight: Promise<UpdateInfo | null> | null = null;
 
 export function showUpdateAvailableToast(version: string): void {
   const store = useUiStore.getState();
@@ -75,18 +77,22 @@ function showRestartToast(): void {
  * Returns the update info if available, null otherwise.
  * Rejects if the check fails.
  */
-export async function performUpdateCheck(): Promise<{ version: string; body: string | null } | null> {
-  if (checkInFlight) return null;
-  checkInFlight = true;
-  try {
+export async function performUpdateCheck(): Promise<UpdateInfo | null> {
+  if (checkInFlight) return checkInFlight;
+
+  checkInFlight = (async () => {
     const result = await checkForUpdate();
     return Result.pipe(
       result,
       Result.map((info) => info),
       Result.unwrap(),
     );
+  })();
+
+  try {
+    return await checkInFlight;
   } finally {
-    checkInFlight = false;
+    checkInFlight = null;
   }
 }
 

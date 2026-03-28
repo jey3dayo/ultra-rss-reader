@@ -55,4 +55,4 @@ jobs:
           releaseDraft: true
           releaseGenerateReleaseNotes: true
           prerelease: false
-          args: ${{ matrix.args }}
+          args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json
