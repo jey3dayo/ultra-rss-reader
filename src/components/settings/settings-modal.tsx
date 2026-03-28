@@ -1,11 +1,11 @@
 import { listen } from "@tauri-apps/api/event";
 import { BookOpen, Palette, Plus, Rss, Settings, Share2, X } from "lucide-react";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { AccountDetail } from "@/components/settings/account-detail";
 import { ActionsSettings } from "@/components/settings/actions-settings";
 import { AddAccountForm } from "@/components/settings/add-account-form";
 import { AppearanceSettings } from "@/components/settings/appearance-settings";
-import { BionicReadingSettings } from "@/components/settings/bionic-reading-settings";
 import { GeneralSettings } from "@/components/settings/general-settings";
 import { ReadingSettings } from "@/components/settings/reading-settings";
 import { ShortcutsSettings } from "@/components/settings/shortcuts-settings";
@@ -22,39 +22,6 @@ interface NavItem {
   label: string;
   icon: React.ReactNode;
 }
-
-const navItems: NavItem[] = [
-  {
-    id: "general",
-    label: "General",
-    icon: <Settings className="h-5 w-5" />,
-  },
-  {
-    id: "appearance",
-    label: "Appearance",
-    icon: <Palette className="h-5 w-5" />,
-  },
-  {
-    id: "reading",
-    label: "Reading",
-    icon: <BookOpen className="h-5 w-5" />,
-  },
-  {
-    id: "bionic-reading",
-    label: "Bionic Reading",
-    icon: <span className="flex h-5 w-5 items-center justify-center text-[11px] font-bold leading-none">BR</span>,
-  },
-  {
-    id: "shortcuts",
-    label: "Shortcuts",
-    icon: <span className="flex h-5 w-5 items-center justify-center text-[11px] font-bold leading-none">&#8984;</span>,
-  },
-  {
-    id: "actions",
-    label: "Actions and Sharing",
-    icon: <Share2 className="h-5 w-5" />,
-  },
-];
 
 function SettingsContent({
   settingsAccountId,
@@ -76,8 +43,6 @@ function SettingsContent({
       return <AppearanceSettings />;
     case "reading":
       return <ReadingSettings />;
-    case "bionic-reading":
-      return <BionicReadingSettings />;
     case "shortcuts":
       return <ShortcutsSettings />;
     case "actions":
@@ -88,6 +53,7 @@ function SettingsContent({
 }
 
 export function SettingsModal() {
+  const { t } = useTranslation("settings");
   const settingsOpen = useUiStore((s) => s.settingsOpen);
   const settingsCategory = useUiStore((s) => s.settingsCategory);
   const settingsAccountId = useUiStore((s) => s.settingsAccountId);
@@ -98,6 +64,36 @@ export function SettingsModal() {
   const setSettingsAccountId = useUiStore((s) => s.setSettingsAccountId);
   const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
   const { data: accounts } = useAccounts();
+
+  const navItems: NavItem[] = [
+    {
+      id: "general",
+      label: t("nav.general"),
+      icon: <Settings className="h-5 w-5" />,
+    },
+    {
+      id: "appearance",
+      label: t("nav.appearance"),
+      icon: <Palette className="h-5 w-5" />,
+    },
+    {
+      id: "reading",
+      label: t("nav.reading"),
+      icon: <BookOpen className="h-5 w-5" />,
+    },
+    {
+      id: "shortcuts",
+      label: t("nav.shortcuts"),
+      icon: (
+        <span className="flex h-5 w-5 items-center justify-center text-[11px] font-bold leading-none">&#8984;</span>
+      ),
+    },
+    {
+      id: "actions",
+      label: t("nav.actions"),
+      icon: <Share2 className="h-5 w-5" />,
+    },
+  ];
 
   // Listen for Tauri menu event
   useEffect(() => {
@@ -129,12 +125,12 @@ export function SettingsModal() {
               variant="ghost"
               size="icon-sm"
               onClick={closeSettings}
-              aria-label="Close preferences"
+              aria-label={t("close_preferences")}
               className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
             >
               <X className="h-4 w-4" />
             </Button>
-            <DialogTitle className="text-base font-medium">Preferences</DialogTitle>
+            <DialogTitle className="text-base font-medium">{t("preferences")}</DialogTitle>
           </DialogHeader>
 
           {/* Navigation */}
@@ -194,7 +190,7 @@ export function SettingsModal() {
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
                 <Plus className="h-4 w-4" />
               </span>
-              Add Account...
+              {t("add_account_ellipsis")}
             </button>
           </div>
         </div>

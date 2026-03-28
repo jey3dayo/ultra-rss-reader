@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useReducer } from "react";
+import { useTranslation } from "react-i18next";
 import { addAccount } from "@/api/tauri-commands";
 import { SectionHeading } from "@/components/settings/settings-components";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,8 @@ import {
 import { useUiStore } from "@/stores/ui-store";
 
 export function AddAccountForm() {
+  const { t } = useTranslation("settings");
+  const { t: tc } = useTranslation("common");
   const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
   const setSettingsAccountId = useUiStore((s) => s.setSettingsAccountId);
   const qc = useQueryClient();
@@ -33,7 +36,7 @@ export function AddAccountForm() {
 
     Result.pipe(
       await addAccount(payload.kind, payload.name, payload.serverUrl, payload.username, payload.password),
-      Result.inspectError((e) => useUiStore.getState().showToast(`Failed to add account: ${e.message}`)),
+      Result.inspectError((e) => useUiStore.getState().showToast(t("account.failed_to_add", { message: e.message }))),
       Result.inspect((account) => {
         qc.invalidateQueries({ queryKey: ["accounts"] });
         qc.invalidateQueries({ queryKey: ["feeds"] });
@@ -46,25 +49,25 @@ export function AddAccountForm() {
 
   return (
     <div className="p-6">
-      <h2 className="mb-6 text-center text-lg font-semibold">Add Account</h2>
+      <h2 className="mb-6 text-center text-lg font-semibold">{t("account.heading")}</h2>
 
       <section className="mb-6">
-        <SectionHeading>Account</SectionHeading>
+        <SectionHeading>{t("account.account")}</SectionHeading>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-          <span className="text-sm text-foreground">Type</span>
+          <span className="text-sm text-foreground">{t("account.type")}</span>
           <select
             name="account-type"
             value={form.kind}
             onChange={(e) => dispatch({ type: "setKind", value: e.target.value as AddAccountProviderKind })}
             className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
           >
-            <option value="Local">Local Feeds</option>
-            <option value="FreshRss">FreshRSS</option>
-            <option value="Inoreader">Inoreader</option>
+            <option value="Local">{t("account.local_feeds")}</option>
+            <option value="FreshRss">{t("account.freshrss")}</option>
+            <option value="Inoreader">{t("account.inoreader")}</option>
           </select>
         </div>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-          <span className="text-sm text-foreground">Name</span>
+          <span className="text-sm text-foreground">{t("account.name")}</span>
           <input
             name="account-name"
             value={form.name}
@@ -80,12 +83,12 @@ export function AddAccountForm() {
           <SectionHeading>{formConfig.sectionHeading}</SectionHeading>
           {formConfig.showServerUrl && (
             <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-              <span className="text-sm text-foreground">Server URL</span>
+              <span className="text-sm text-foreground">{t("account.server_url")}</span>
               <input
                 name="server-url"
                 value={form.serverUrl}
                 onChange={(e) => dispatch({ type: "setField", field: "serverUrl", value: e.target.value })}
-                placeholder="https://your-freshrss.com"
+                placeholder={t("account.server_url_placeholder")}
                 className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
               />
             </div>
@@ -100,7 +103,7 @@ export function AddAccountForm() {
             />
           </div>
           <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-            <span className="text-sm text-foreground">Password</span>
+            <span className="text-sm text-foreground">{t("account.password")}</span>
             <input
               name="password"
               type="password"
@@ -113,9 +116,9 @@ export function AddAccountForm() {
       )}
 
       <div className="flex gap-3">
-        <Button onClick={handleSubmit}>Add</Button>
+        <Button onClick={handleSubmit}>{tc("add")}</Button>
         <Button variant="outline" onClick={() => setSettingsAddAccount(false)}>
-          Cancel
+          {tc("cancel")}
         </Button>
       </div>
     </div>

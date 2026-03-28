@@ -1,27 +1,16 @@
 import { Copy, ExternalLink, Globe } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { SectionHeading } from "@/components/settings/settings-components";
 import { Switch } from "@/components/ui/switch";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
-interface ServiceEntry {
-  label: string;
-  prefKey: string;
-  icon: React.ReactNode;
-}
-
-const serviceEntries: ServiceEntry[] = [
-  { label: "Copy Link", prefKey: "action_copy_link", icon: <Copy className="h-5 w-5" /> },
-  { label: "Open in Browser", prefKey: "action_open_browser", icon: <Globe className="h-5 w-5" /> },
-  { label: "Share", prefKey: "action_share", icon: <ExternalLink className="h-5 w-5" /> },
-];
-
-function ServiceSwitch({ prefKey }: { prefKey: string }) {
+function ServiceSwitch({ prefKey, showLabel }: { prefKey: string; showLabel: string }) {
   const value = usePreferencesStore((s) => s.prefs[prefKey]);
   const setPref = usePreferencesStore((s) => s.setPref);
   const checked = value === "true";
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-muted-foreground">Show in toolbar</span>
+      <span className="text-xs text-muted-foreground">{showLabel}</span>
       <Switch
         checked={checked}
         onCheckedChange={(v) => setPref(prefKey, String(v))}
@@ -32,19 +21,31 @@ function ServiceSwitch({ prefKey }: { prefKey: string }) {
 }
 
 export function ActionsSettings() {
+  const { t } = useTranslation("settings");
+
+  const serviceEntries = [
+    { label: t("actions.copy_link"), prefKey: "action_copy_link", icon: <Copy className="h-5 w-5" /> },
+    { label: t("actions.open_in_browser"), prefKey: "action_open_browser", icon: <Globe className="h-5 w-5" /> },
+    {
+      label: t("actions.open_in_external_browser"),
+      prefKey: "action_share",
+      icon: <ExternalLink className="h-5 w-5" />,
+    },
+  ];
+
   return (
     <div className="p-6">
-      <h2 className="mb-6 text-center text-lg font-semibold">Actions and Sharing</h2>
+      <h2 className="mb-6 text-center text-lg font-semibold">{t("actions.heading")}</h2>
 
       <section>
-        <SectionHeading>Services</SectionHeading>
+        <SectionHeading>{t("actions.services")}</SectionHeading>
         {serviceEntries.map((svc) => (
           <div key={svc.prefKey} className="flex min-h-[56px] items-center gap-3 border-b border-border py-3">
             <span className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
               {svc.icon}
             </span>
             <span className="flex-1 text-sm text-foreground">{svc.label}</span>
-            <ServiceSwitch prefKey={svc.prefKey} />
+            <ServiceSwitch prefKey={svc.prefKey} showLabel={t("actions.show_in_toolbar")} />
           </div>
         ))}
       </section>

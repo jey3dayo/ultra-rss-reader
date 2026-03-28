@@ -1,64 +1,78 @@
+import { useTranslation } from "react-i18next";
 import { SectionHeading, SettingsSelect, SettingsSwitch } from "@/components/settings/settings-components";
 
 export function GeneralSettings() {
+  const { t } = useTranslation("settings");
+
   return (
     <div className="p-6">
-      <h2 className="mb-6 text-center text-lg font-semibold">General</h2>
+      <h2 className="mb-6 text-center text-lg font-semibold">{t("general.heading")}</h2>
 
       <section className="mb-6">
-        <SectionHeading>App Icon</SectionHeading>
+        <SectionHeading>{t("general.language")}</SectionHeading>
         <SettingsSelect
-          label="Unread count badge"
+          label={t("general.language")}
+          prefKey="language"
+          options={[
+            { value: "system", label: t("general.system_default") },
+            { value: "en", label: "English" },
+            { value: "ja", label: "日本語" },
+          ]}
+        />
+      </section>
+
+      <section className="mb-6">
+        <SectionHeading>{t("general.app_icon")}</SectionHeading>
+        <SettingsSelect
+          label={t("general.unread_count_badge")}
           prefKey="unread_badge"
           options={[
-            { value: "dont_display", label: "Don't display" },
-            { value: "all_unread", label: "All unread" },
-            { value: "only_inbox", label: "Only inbox" },
+            { value: "dont_display", label: t("general.dont_display") },
+            { value: "all_unread", label: t("general.all_unread") },
+            { value: "only_inbox", label: t("general.only_inbox") },
           ]}
         />
       </section>
 
       <section className="mb-6">
-        <SectionHeading>Browser</SectionHeading>
+        <SectionHeading>{t("general.browser")}</SectionHeading>
         <SettingsSelect
-          label="Open links"
+          label={t("general.open_links")}
           prefKey="open_links"
           options={[
-            { value: "in_app", label: "In-app browser" },
-            { value: "default_browser", label: "Default browser" },
+            { value: "in_app", label: t("general.in_app_browser") },
+            { value: "default_browser", label: t("general.default_browser") },
           ]}
         />
-        <SettingsSwitch label="Open links in background" prefKey="open_links_background" />
-        <p className="mt-2 text-xs text-muted-foreground">
-          Please note that some third-party browsers do not support opening links in the background.
-        </p>
+        <SettingsSwitch label={t("general.open_links_in_background")} prefKey="open_links_background" />
+        <p className="mt-2 text-xs text-muted-foreground">{t("general.open_links_background_note")}</p>
       </section>
 
       <section className="mb-6">
-        <SectionHeading>Article List</SectionHeading>
+        <SectionHeading>{t("general.article_list")}</SectionHeading>
         <SettingsSelect
-          label="Sort unread items"
+          label={t("general.sort_unread_items")}
           prefKey="sort_unread"
           options={[
-            { value: "newest_first", label: "Newest first" },
-            { value: "oldest_first", label: "Oldest first" },
+            { value: "newest_first", label: t("general.newest_first") },
+            { value: "oldest_first", label: t("general.oldest_first") },
           ]}
         />
         <SettingsSelect
-          label="Group by"
+          label={t("general.group_by")}
           prefKey="group_by"
           options={[
-            { value: "date", label: "Date" },
-            { value: "feed", label: "Feed" },
-            { value: "none", label: "None" },
+            { value: "date", label: t("general.date") },
+            { value: "feed", label: t("general.feed") },
+            { value: "none", label: t("general.none") },
           ]}
         />
-        <SettingsSwitch label={"\u2318-click opens in-app browser"} prefKey="cmd_click_browser" />
+        <SettingsSwitch label={t("general.cmd_click_browser")} prefKey="cmd_click_browser" />
       </section>
 
       <section>
-        <SectionHeading>Mark All As Read</SectionHeading>
-        <SettingsSwitch label="Ask before" prefKey="ask_before_mark_all" />
+        <SectionHeading>{t("general.mark_all_as_read")}</SectionHeading>
+        <SettingsSwitch label={t("general.ask_before")} prefKey="ask_before_mark_all" />
       </section>
     </div>
   );

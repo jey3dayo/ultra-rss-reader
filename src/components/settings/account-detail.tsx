@@ -1,24 +1,64 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { AccountDto } from "@/api/tauri-commands";
-import { deleteAccount, exportOpml, updateAccountSync } from "@/api/tauri-commands";
-import { SectionHeading, SettingsRow } from "@/components/settings/settings-components";
+import { deleteAccount, exportOpml, renameAccount, updateAccountSync } from "@/api/tauri-commands";
+import { SectionHeading, SettingsRow, SettingsSelect } from "@/components/settings/settings-components";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useUiStore } from "@/stores/ui-store";
 
 export function AccountDetail() {
+  const { t } = useTranslation("settings");
+  const { t: tc } = useTranslation("common");
   const settingsAccountId = useUiStore((s) => s.settingsAccountId);
   const setSettingsAccountId = useUiStore((s) => s.setSettingsAccountId);
   const { data: accounts } = useAccounts();
   const qc = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const account = accounts?.find((a) => a.id === settingsAccountId);
 
   if (!account) return null;
+
+  const startEditingName = () => {
+    setNameDraft(account.name);
+    setEditingName(true);
+    // Focus the input after render
+    requestAnimationFrame(() => nameInputRef.current?.focus());
+  };
+
+  const commitRename = async () => {
+    const trimmed = nameDraft.trim();
+    if (!trimmed || trimmed === account.name) {
+      setEditingName(false);
+      return;
+    }
+    Result.pipe(
+      await renameAccount(account.id, trimmed),
+      Result.inspectError((e) =>
+        useUiStore.getState().showToast(t("account.failed_to_rename", { message: e.message })),
+      ),
+      Result.inspect((updated) => {
+        qc.setQueryData<AccountDto[]>(["accounts"], (prev) => prev?.map((a) => (a.id === updated.id ? updated : a)));
+      }),
+    );
+    setEditingName(false);
+  };
+
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      commitRename();
+    } else if (e.key === "Escape") {
+      setEditingName(false);
+    }
+  };
 
   const handleSyncUpdate = async (partial: {
     syncIntervalSecs?: number;
@@ -32,7 +72,9 @@ export function AccountDetail() {
         partial.syncOnWake ?? account.sync_on_wake,
         partial.keepReadItemsDays ?? account.keep_read_items_days,
       ),
-      Result.inspectError((e) => useUiStore.getState().showToast(`Failed to update sync settings: ${e.message}`)),
+      Result.inspectError((e) =>
+        useUiStore.getState().showToast(t("account.failed_to_update_sync", { message: e.message })),
+      ),
       Result.inspect((updated) => {
         // Immediately update cache with returned DTO to prevent race conditions
         qc.setQueryData<AccountDto[]>(["accounts"], (prev) => prev?.map((a) => (a.id === updated.id ? updated : a)));
@@ -43,7 +85,9 @@ export function AccountDetail() {
   const handleExportOpml = async () => {
     Result.pipe(
       await exportOpml(account.id),
-      Result.inspectError((e) => useUiStore.getState().showToast(`Failed to export OPML: ${e.message}`)),
+      Result.inspectError((e) =>
+        useUiStore.getState().showToast(t("account.failed_to_export_opml", { message: e.message })),
+      ),
       Result.inspect((opmlString) => {
         const blob = new Blob([opmlString], { type: "application/xml" });
         const url = URL.createObjectURL(blob);
@@ -60,7 +104,9 @@ export function AccountDetail() {
   const handleDelete = async () => {
     Result.pipe(
       await deleteAccount(account.id),
-      Result.inspectError((e) => useUiStore.getState().showToast(`Failed to delete account: ${e.message}`)),
+      Result.inspectError((e) =>
+        useUiStore.getState().showToast(t("account.failed_to_delete", { message: e.message })),
+      ),
       Result.inspect(() => {
         qc.invalidateQueries({ queryKey: ["accounts"] });
         qc.invalidateQueries({ queryKey: ["feeds"] });
@@ -69,42 +115,87 @@ export function AccountDetail() {
     );
   };
 
+  const sortSubscriptionsOptions = [
+    { value: "folders_first", label: t("account.folders_first") },
+    { value: "alphabetical", label: t("account.alphabetical") },
+    { value: "newest_first", label: t("account.newest_first") },
+    { value: "oldest_first", label: t("account.oldest_first") },
+  ];
+
+  const markAsReadOptions = [
+    { value: "on_open", label: t("account.on_open") },
+    { value: "manual", label: t("account.manual") },
+  ];
+
   return (
     <div className="p-6">
       <h2 className="mb-2 text-center text-lg font-semibold">{account.name}</h2>
       <p className="mb-6 text-center text-sm text-muted-foreground">{account.kind}</p>
 
       <section className="mb-6">
-        <SectionHeading>General</SectionHeading>
-        <SettingsRow label="Description" value={account.name} type="text" />
+        <SectionHeading>{t("account.general")}</SectionHeading>
+        <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
+          <span className="text-sm text-foreground">{t("account.description")}</span>
+          {editingName ? (
+            <input
+              ref={nameInputRef}
+              type="text"
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              onBlur={commitRename}
+              onKeyDown={handleNameKeyDown}
+              className="rounded-md border border-border bg-background px-2 py-1 text-right text-sm text-muted-foreground outline-none focus:border-accent"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={startEditingName}
+              className="cursor-pointer text-sm text-muted-foreground hover:text-foreground"
+              title={t("account.click_to_edit")}
+            >
+              {account.name}
+            </button>
+          )}
+        </div>
         <SettingsRow
-          label="Type"
-          value={account.kind === "FreshRss" ? "FreshRSS" : account.kind === "Inoreader" ? "Inoreader" : "Local"}
+          label={t("account.type")}
+          value={
+            account.kind === "FreshRss"
+              ? t("account.freshrss")
+              : account.kind === "Inoreader"
+                ? t("account.inoreader")
+                : t("account.local")
+          }
           type="text"
         />
-        {account.kind === "Inoreader" && <SettingsRow label="Server" value="inoreader.com" type="text" />}
+        {account.kind === "Inoreader" && (
+          <SettingsRow label={t("account.server")} value={t("account.inoreader_server")} type="text" />
+        )}
+        {account.kind === "FreshRss" && account.server_url && (
+          <SettingsRow label={t("account.server")} value={account.server_url} type="text" truncate />
+        )}
       </section>
 
       <section className="mb-6">
-        <SectionHeading>Syncing</SectionHeading>
+        <SectionHeading>{t("account.syncing")}</SectionHeading>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-          <span className="text-sm text-foreground">Sync</span>
+          <span className="text-sm text-foreground">{t("account.sync")}</span>
           <select
             name="sync-interval"
             value={String(account.sync_interval_secs)}
             onChange={(e) => handleSyncUpdate({ syncIntervalSecs: Number(e.target.value) })}
             className="rounded-md border border-border bg-background px-2 py-1 text-sm text-muted-foreground"
           >
-            <option value="900">Every 15 minutes</option>
-            <option value="1800">Every 30 minutes</option>
-            <option value="3600">Every hour</option>
-            <option value="7200">Every 2 hours</option>
-            <option value="14400">Every 4 hours</option>
-            <option value="86400">Once a day</option>
+            <option value="900">{t("account.every_15_minutes")}</option>
+            <option value="1800">{t("account.every_30_minutes")}</option>
+            <option value="3600">{t("account.every_hour")}</option>
+            <option value="7200">{t("account.every_2_hours")}</option>
+            <option value="14400">{t("account.every_4_hours")}</option>
+            <option value="86400">{t("account.once_a_day")}</option>
           </select>
         </div>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-          <span className="text-sm text-foreground">Sync on wake up from sleep</span>
+          <span className="text-sm text-foreground">{t("account.sync_on_wake")}</span>
           <Switch
             checked={account.sync_on_wake}
             onCheckedChange={(v) => handleSyncUpdate({ syncOnWake: v })}
@@ -112,43 +203,63 @@ export function AccountDetail() {
           />
         </div>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-          <span className="text-sm text-foreground">Keep read items</span>
+          <span className="text-sm text-foreground">{t("account.keep_read_items")}</span>
           <select
             name="keep-read-items"
             value={String(account.keep_read_items_days)}
             onChange={(e) => handleSyncUpdate({ keepReadItemsDays: Number(e.target.value) })}
             className="rounded-md border border-border bg-background px-2 py-1 text-sm text-muted-foreground"
           >
-            <option value="7">1 week</option>
-            <option value="14">2 weeks</option>
-            <option value="30">1 month</option>
-            <option value="90">3 months</option>
-            <option value="180">6 months</option>
-            <option value="365">1 year</option>
-            <option value="0">Forever</option>
+            <option value="7">{t("account.one_week")}</option>
+            <option value="14">{t("account.two_weeks")}</option>
+            <option value="30">{t("account.one_month")}</option>
+            <option value="90">{t("account.three_months")}</option>
+            <option value="180">{t("account.six_months")}</option>
+            <option value="365">{t("account.one_year")}</option>
+            <option value="0">{t("account.forever")}</option>
           </select>
         </div>
       </section>
 
+      {/* TODO: sort_subscriptions and mark_article_as_read are persisted but not yet
+           wired to runtime behavior. Wire sidebar sort and article-view read-on-open
+           to these keys when implementing account-level reading preferences. */}
+      <section className="mb-6">
+        <SectionHeading>
+          {t("account.reading")}{" "}
+          <span className="text-xs font-normal text-muted-foreground">{t("account.applies_to_all")}</span>
+        </SectionHeading>
+        <SettingsSelect
+          label={t("account.sort_subscriptions")}
+          prefKey="sort_subscriptions"
+          options={sortSubscriptionsOptions}
+        />
+        <SettingsSelect
+          label={t("account.mark_article_as_read")}
+          prefKey="mark_article_as_read"
+          options={markAsReadOptions}
+        />
+      </section>
+
       <div className="mt-6 border-t border-border pt-6">
-        <Button variant="link" onClick={handleExportOpml} className="mb-4 h-auto p-0 text-sm text-foreground">
-          Export OPML
+        <Button variant="outline" onClick={handleExportOpml} className="text-sm">
+          {t("account.export_opml")}
         </Button>
       </div>
 
       <div className="mt-2 border-t border-border pt-6">
         {!confirmDelete ? (
-          <Button variant="link" onClick={() => setConfirmDelete(true)} className="h-auto p-0 text-sm text-destructive">
-            Delete Account
+          <Button variant="destructive" onClick={() => setConfirmDelete(true)} className="text-sm">
+            {t("account.delete_account")}
           </Button>
         ) : (
           <div className="flex items-center gap-3">
-            <span className="text-sm text-destructive">Delete this account?</span>
+            <span className="text-sm text-destructive">{t("account.confirm_delete")}</span>
             <Button variant="destructive" size="sm" onClick={handleDelete}>
-              Delete
+              {tc("delete")}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setConfirmDelete(false)}>
-              Cancel
+              {tc("cancel")}
             </Button>
           </div>
         )}

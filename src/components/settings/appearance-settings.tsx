@@ -1,86 +1,89 @@
+import { useTranslation } from "react-i18next";
 import { SectionHeading, SettingsSelect, SettingsSwitch } from "@/components/settings/settings-components";
 
 export function AppearanceSettings() {
+  const { t } = useTranslation("settings");
+
   return (
     <div className="p-6">
-      <h2 className="mb-6 text-center text-lg font-semibold">Appearance</h2>
+      <h2 className="mb-6 text-center text-lg font-semibold">{t("appearance.heading")}</h2>
 
       <section className="mb-6">
-        <SectionHeading>General</SectionHeading>
+        <SectionHeading>{t("appearance.general")}</SectionHeading>
         <SettingsSelect
-          label="List selection style"
+          label={t("appearance.list_selection_style")}
           prefKey="list_selection_style"
           options={[
-            { value: "modern", label: "Modern" },
-            { value: "classic", label: "Classic" },
+            { value: "modern", label: t("appearance.modern") },
+            { value: "classic", label: t("appearance.classic") },
           ]}
         />
         <SettingsSelect
-          label="Layout"
+          label={t("appearance.layout")}
           prefKey="layout"
           options={[
-            { value: "automatic", label: "Automatic" },
-            { value: "wide", label: "Wide" },
-            { value: "compact", label: "Compact" },
+            { value: "automatic", label: t("appearance.automatic") },
+            { value: "wide", label: t("appearance.wide") },
+            { value: "compact", label: t("appearance.compact") },
           ]}
         />
         <SettingsSelect
-          label="Theme"
+          label={t("appearance.theme")}
           prefKey="theme"
           options={[
-            { value: "light", label: "Light" },
-            { value: "dark", label: "Dark" },
-            { value: "system", label: "Automatic" },
+            { value: "light", label: t("appearance.light") },
+            { value: "dark", label: t("appearance.dark") },
+            { value: "system", label: t("appearance.automatic") },
           ]}
         />
-        <SettingsSwitch label="Opaque sidebars" prefKey="opaque_sidebars" />
-        <SettingsSwitch label="Grayscale favicons" prefKey="grayscale_favicons" />
+        <SettingsSwitch label={t("appearance.opaque_sidebars")} prefKey="opaque_sidebars" />
+        <SettingsSwitch label={t("appearance.grayscale_favicons")} prefKey="grayscale_favicons" />
       </section>
 
       <section className="mb-6">
-        <SectionHeading>Text</SectionHeading>
+        <SectionHeading>{t("appearance.text")}</SectionHeading>
         <SettingsSelect
-          label="App font style"
+          label={t("appearance.app_font_style")}
           prefKey="font_style"
           options={[
-            { value: "sans_serif", label: "Sans-serif" },
-            { value: "serif", label: "Serif" },
-            { value: "monospace", label: "Monospace" },
+            { value: "sans_serif", label: t("appearance.sans_serif") },
+            { value: "serif", label: t("appearance.serif") },
+            { value: "monospace", label: t("appearance.monospace") },
           ]}
         />
         <SettingsSelect
-          label="Font size"
+          label={t("appearance.font_size")}
           prefKey="font_size"
           options={[
-            { value: "small", label: "S" },
-            { value: "medium", label: "M" },
-            { value: "large", label: "L" },
+            { value: "small", label: t("appearance.size_s") },
+            { value: "medium", label: t("appearance.size_m") },
+            { value: "large", label: t("appearance.size_l") },
           ]}
         />
       </section>
 
       <section className="mb-6">
-        <SectionHeading>Display Counts</SectionHeading>
-        <SettingsSwitch label="Starred list" prefKey="show_starred_count" />
-        <SettingsSwitch label="Unread list" prefKey="show_unread_count" />
-        <SettingsSwitch label="All items list" prefKey="show_all_count" />
+        <SectionHeading>{t("appearance.display_counts")}</SectionHeading>
+        <SettingsSwitch label={t("appearance.starred_list")} prefKey="show_starred_count" />
+        <SettingsSwitch label={t("appearance.unread_list")} prefKey="show_unread_count" />
+        <SettingsSwitch label={t("appearance.all_items_list")} prefKey="show_all_count" />
       </section>
 
       <section>
-        <SectionHeading>Article List</SectionHeading>
+        <SectionHeading>{t("appearance.article_list")}</SectionHeading>
         <SettingsSelect
-          label="Image previews"
+          label={t("appearance.image_previews")}
           prefKey="image_previews"
           options={[
-            { value: "off", label: "Off" },
-            { value: "small", label: "Small" },
-            { value: "medium", label: "Medium" },
-            { value: "large", label: "Large" },
+            { value: "off", label: t("appearance.off") },
+            { value: "small", label: t("appearance.small") },
+            { value: "medium", label: t("appearance.medium") },
+            { value: "large", label: t("appearance.large") },
           ]}
         />
-        <SettingsSwitch label="Display favicons" prefKey="display_favicons" />
-        <SettingsSwitch label="Text preview" prefKey="text_preview" />
-        <SettingsSwitch label="Dim archived articles" prefKey="dim_archived" />
+        <SettingsSwitch label={t("appearance.display_favicons")} prefKey="display_favicons" />
+        <SettingsSwitch label={t("appearance.text_preview")} prefKey="text_preview" />
+        <SettingsSwitch label={t("appearance.dim_archived_articles")} prefKey="dim_archived" />
       </section>
     </div>
   );
