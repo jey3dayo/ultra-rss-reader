@@ -81,46 +81,6 @@ describe("ArticleView", () => {
     });
   });
 
-  it("toggles the current feed into widescreen mode from the display mode group", async () => {
-    const calls: MockCall[] = [];
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
-
-      switch (cmd) {
-        case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
-        case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
-        case "list_tags":
-          return [];
-        case "get_article_tags":
-          return [];
-        case "update_feed_display_mode":
-          return null;
-        default:
-          return null;
-      }
-    });
-
-    useUiStore.getState().selectAccount("acc-1");
-    useUiStore.getState().selectFeed("feed-1");
-    useUiStore.getState().selectArticle("art-1");
-
-    const user = userEvent.setup();
-    render(<ArticleView />, { wrapper: createWrapper() });
-
-    await user.click(await screen.findByRole("button", { name: "Widescreen" }));
-
-    await waitFor(() => {
-      expect(calls).toContainEqual({
-        cmd: "update_feed_display_mode",
-        args: { feedId: "feed-1", displayMode: "widescreen" },
-      });
-      expect(useUiStore.getState().contentMode).toBe("browser");
-      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
-    });
-  });
-
   it("shows tooltips for icon-only article toolbar actions", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");

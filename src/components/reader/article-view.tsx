@@ -1,12 +1,10 @@
 import { Menu } from "@base-ui/react/menu";
 import { Result } from "@praha/byethrow";
-import { useQueryClient } from "@tanstack/react-query";
 import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { addToReadingList, copyToClipboard, openInBrowser, updateFeedDisplayMode } from "@/api/tauri-commands";
-import { DisplayModeToggleGroup, type ReaderDisplayMode } from "@/components/reader/display-mode-toggle-group";
+import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AppTooltip } from "@/components/ui/tooltip";
 import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
@@ -36,54 +34,25 @@ import { ArticleToolbarView } from "./article-toolbar-view";
 import { BrowserView } from "./browser-view";
 import { contextMenuStyles } from "./context-menu-styles";
 
-function ArticleToolbar({
-  article,
-  feedId,
-  feedDisplayMode,
-}: {
-  article: ArticleDto | null;
-  feedId: string | null;
-  feedDisplayMode: string;
-}) {
+function ArticleToolbar({ article }: { article: ArticleDto | null }) {
   const { t } = useTranslation("reader");
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
   const openBrowser = useUiStore((s) => s.openBrowser);
-  const closeBrowser = useUiStore((s) => s.closeBrowser);
   const clearArticle = useUiStore((s) => s.clearArticle);
   const layoutMode = useUiStore((s) => s.layoutMode);
   const showToast = useUiStore((s) => s.showToast);
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
-  const qc = useQueryClient();
   const actionCopyLink = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_copy_link"));
   const actionOpenBrowser = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_open_browser"));
   const actionShare = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share"));
   const actionShareMenu = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share_menu"));
-  const isWidescreen = feedDisplayMode === "widescreen";
-  const currentDisplayMode: ReaderDisplayMode = isWidescreen ? "widescreen" : "normal";
 
   const handleCloseView = () => {
     clearArticle();
     if (layoutMode !== "wide") {
       useUiStore.getState().setFocusedPane("list");
     }
-  };
-
-  const handleSetDisplayMode = async (nextMode: ReaderDisplayMode) => {
-    if (!feedId) return;
-    Result.pipe(
-      await updateFeedDisplayMode(feedId, nextMode),
-      Result.inspect(() => {
-        void qc.invalidateQueries({ queryKey: ["feeds"] });
-        if (nextMode !== "normal" && article?.url) {
-          openBrowser(article.url);
-        }
-        if (nextMode === "normal") {
-          closeBrowser();
-        }
-      }),
-      Result.inspectError((e) => showToast(t("failed_to_update_display_mode", { message: e.message }))),
-    );
   };
 
   return (
@@ -99,13 +68,7 @@ function ArticleToolbar({
       canOpenInBrowser={Boolean(article?.url)}
       showOpenInExternalBrowserButton={actionShare === "true"}
       canOpenInExternalBrowser={Boolean(article?.url)}
-      displayModeControl={
-        <DisplayModeToggleGroup
-          value={currentDisplayMode}
-          onValueChange={handleSetDisplayMode}
-          disabled={!feedId || !article?.url}
-        />
-      }
+      displayModeControl={null}
       shareMenuControl={
         actionShareMenu === "true" ? (
           <Menu.Root>
@@ -239,7 +202,7 @@ function EmptyState() {
   const { t } = useTranslation("reader");
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
-      <ArticleToolbar article={null} feedId={null} feedDisplayMode="normal" />
+      <ArticleToolbar article={null} />
       <ArticleEmptyStateView message={t("select_article_to_read")} />
     </div>
   );
@@ -307,15 +270,7 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
   );
 }
 
-function ArticleReader({
-  article,
-  feedName,
-  feedDisplayMode,
-}: {
-  article: ArticleDto;
-  feedName?: string;
-  feedDisplayMode: string;
-}) {
+function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: string }) {
   const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const cmdClickBrowser = usePreferencesStore((s) => s.prefs.cmd_click_browser ?? "false");
@@ -442,7 +397,7 @@ function ArticleReader({
 
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
-      <ArticleToolbar article={article} feedId={article.feed_id} feedDisplayMode={feedDisplayMode} />
+      <ArticleToolbar article={article} />
       <ScrollArea className="flex-1">
         <article className="mx-auto max-w-3xl px-8 py-8">
           <ArticleMetaView
@@ -591,5 +546,5 @@ export function ArticleView() {
 
   const feedName = feeds?.find((f) => f.id === article.feed_id)?.title;
 
-  return <ArticleReader article={article} feedName={feedName} feedDisplayMode={selectedFeedDisplayMode} />;
+  return <ArticleReader article={article} feedName={feedName} />;
 }
