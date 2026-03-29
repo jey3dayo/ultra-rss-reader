@@ -42,6 +42,9 @@ export function useKeyboard() {
         case "open-settings":
           executeAction("open-settings");
           break;
+        case "open-command-palette":
+          executeAction("open-command-palette");
+          break;
         case "emit":
           emitKeyboardEvent(resolvedAction.eventName);
           break;

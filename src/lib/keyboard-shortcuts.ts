@@ -16,6 +16,7 @@ export type ViewMode = "all" | "unread" | "starred";
 
 export type KeyboardAction =
   | { type: "open-settings" }
+  | { type: "open-command-palette" }
   | { type: "emit"; eventName: (typeof keyboardEvents)[keyof typeof keyboardEvents] }
   | { type: "set-view-mode"; mode: ViewMode }
   | { type: "close-browser" }
@@ -44,6 +45,7 @@ export type ShortcutActionId =
   | "cycle_filter"
   | "search"
   | "close_or_clear"
+  | "open_command_palette"
   | "open_settings";
 
 export type ShortcutLabelKey =
@@ -61,6 +63,7 @@ export type ShortcutLabelKey =
   | "shortcuts.cycle_filter"
   | "shortcuts.search"
   | "shortcuts.close_or_clear"
+  | "shortcuts.open_command_palette"
   | "shortcuts.open_settings";
 
 export type ShortcutCategoryKey =
@@ -142,6 +145,12 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
   },
   { id: "search", labelKey: "shortcuts.search", categoryKey: "shortcuts.category_global", defaultKey: "/" },
   {
+    id: "open_command_palette",
+    labelKey: "shortcuts.open_command_palette",
+    categoryKey: "shortcuts.category_global",
+    defaultKey: "\u2318+k",
+  },
+  {
     id: "close_or_clear",
     labelKey: "shortcuts.close_or_clear",
     categoryKey: "shortcuts.category_global",
@@ -221,6 +230,8 @@ function resolveActionForId(
   switch (actionId) {
     case "open_settings":
       return Result.succeed({ type: "open-settings" });
+    case "open_command_palette":
+      return Result.succeed({ type: "open-command-palette" });
     case "toggle_read":
       return context.selectedArticleId
         ? Result.succeed({ type: "emit", eventName: keyboardEvents.toggleRead })
@@ -276,6 +287,9 @@ export function resolveKeyboardAction(
   const settingsActionId = map.get(normalized);
   if (settingsActionId === "open_settings") {
     return Result.succeed({ type: "open-settings" });
+  }
+  if (settingsActionId === "open_command_palette") {
+    return Result.succeed({ type: "open-command-palette" });
   }
   // Also keep legacy check for ⌘, (always works regardless of mapping)
   if (key === "," && (metaKey || ctrlKey)) {

@@ -231,4 +231,17 @@ describe("useKeyboard", () => {
       expect(input).toHaveFocus();
     });
   });
+
+  it("pressing Cmd+K opens the command palette", async () => {
+    const calls: MockCall[] = [];
+    renderAppShell(calls);
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().commandPaletteOpen).toBe(true);
+    });
+  });
 });

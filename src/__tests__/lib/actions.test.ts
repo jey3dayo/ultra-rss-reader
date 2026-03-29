@@ -21,6 +21,7 @@ let executeAction: (action: AppAction) => void;
 let isAppAction: (value: string) => value is AppAction;
 
 beforeEach(async () => {
+  useUiStore.setState(useUiStore.getInitialState());
   const mod = await import("@/lib/actions");
   executeAction = mod.executeAction;
   isAppAction = mod.isAppAction;
@@ -72,6 +73,16 @@ describe("executeAction", () => {
     it("opens add feed dialog", () => {
       executeAction("open-add-feed");
       expect(useUiStore.getState().isAddFeedDialogOpen).toBe(true);
+    });
+  });
+
+  describe("command palette actions", () => {
+    it("toggles commandPaletteOpen when opening the command palette", () => {
+      expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+
+      executeAction("open-command-palette");
+
+      expect(useUiStore.getState().commandPaletteOpen).toBe(true);
     });
   });
 
@@ -197,6 +208,7 @@ describe("executeAction", () => {
       expect(isAppAction("open-settings")).toBe(true);
       expect(isAppAction("sync-all")).toBe(true);
       expect(isAppAction("set-filter-unread")).toBe(true);
+      expect(isAppAction("open-command-palette")).toBe(true);
     });
 
     it("returns false for unknown actions", () => {

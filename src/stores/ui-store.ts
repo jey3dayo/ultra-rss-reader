@@ -40,6 +40,7 @@ interface UiState {
   settingsCategory: SettingsCategory;
   settingsAccountId: string | null;
   settingsAddAccount: boolean;
+  commandPaletteOpen: boolean;
   isAddFeedDialogOpen: boolean;
   toastMessage: ToastData | null;
   recentlyReadIds: Set<string>;
@@ -73,6 +74,9 @@ interface UiActions {
   setSettingsCategory: (cat: SettingsCategory) => void;
   setSettingsAccountId: (id: string | null) => void;
   setSettingsAddAccount: (show: boolean) => void;
+  openCommandPalette: () => void;
+  closeCommandPalette: () => void;
+  toggleCommandPalette: () => void;
   showToast: (message: string | ToastData) => void;
   clearToast: () => void;
   addRecentlyRead: (id: string) => void;
@@ -96,6 +100,7 @@ const initialState: UiState = {
   settingsCategory: "general",
   settingsAccountId: null,
   settingsAddAccount: false,
+  commandPaletteOpen: false,
   isAddFeedDialogOpen: false,
   toastMessage: null,
   recentlyReadIds: new Set(),
@@ -179,6 +184,9 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   setSettingsCategory: (cat) => set({ settingsCategory: cat, settingsAccountId: null, settingsAddAccount: false }),
   setSettingsAccountId: (id) => set({ settingsAccountId: id, settingsAddAccount: false }),
   setSettingsAddAccount: (show) => set({ settingsAddAccount: show, settingsAccountId: null }),
+  openCommandPalette: () => set({ commandPaletteOpen: true }),
+  closeCommandPalette: () => set({ commandPaletteOpen: false }),
+  toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
   showToast: (message) => {
     if (toastTimer) clearTimeout(toastTimer);
     const data: ToastData = typeof message === "string" ? { message } : message;

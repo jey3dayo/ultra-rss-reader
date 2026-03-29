@@ -11,6 +11,25 @@ describe("useUiStore", () => {
     expect(s.layoutMode).toBe("wide");
     expect(s.contentMode).toBe("empty");
     expect(s.selection).toEqual({ type: "all" });
+    expect(s.commandPaletteOpen).toBe(false);
+  });
+
+  it("openCommandPalette sets true", () => {
+    useUiStore.getState().openCommandPalette();
+    expect(useUiStore.getState().commandPaletteOpen).toBe(true);
+  });
+
+  it("closeCommandPalette sets false", () => {
+    useUiStore.getState().openCommandPalette();
+    useUiStore.getState().closeCommandPalette();
+    expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+  });
+
+  it("toggleCommandPalette toggles open state", () => {
+    useUiStore.getState().toggleCommandPalette();
+    expect(useUiStore.getState().commandPaletteOpen).toBe(true);
+    useUiStore.getState().toggleCommandPalette();
+    expect(useUiStore.getState().commandPaletteOpen).toBe(false);
   });
 
   it("selectFeed updates selection", () => {
