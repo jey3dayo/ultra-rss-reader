@@ -1,22 +1,11 @@
-import { Result } from "@praha/byethrow";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { ArticleView } from "@/components/reader/article-view";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
-
-const { isFullscreenMock, setFullscreenMock } = vi.hoisted(() => ({
-  isFullscreenMock: vi.fn(),
-  setFullscreenMock: vi.fn(),
-}));
-
-vi.mock("@/lib/windows", () => ({
-  isWindowFullscreen: isFullscreenMock,
-  setWindowFullscreen: setFullscreenMock,
-}));
 
 type MockCall = {
   cmd: string;
@@ -25,10 +14,6 @@ type MockCall = {
 
 describe("ArticleView", () => {
   beforeEach(() => {
-    isFullscreenMock.mockReset();
-    setFullscreenMock.mockReset();
-    isFullscreenMock.mockResolvedValue(Result.succeed(false));
-    setFullscreenMock.mockResolvedValue(Result.succeed(undefined));
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: false });
     setupTauriMocks((cmd, args) => {
@@ -52,7 +37,7 @@ describe("ArticleView", () => {
     });
   });
 
-  it("shows a sidebar return button in compact layout", async () => {
+  it("uses the close button to return to the list in compact layout", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
@@ -61,11 +46,12 @@ describe("ArticleView", () => {
     const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    const button = await screen.findByRole("button", { name: "Show sidebar" });
+    const button = await screen.findByRole("button", { name: "Close view" });
     await user.click(button);
 
     await waitFor(() => {
-      expect(useUiStore.getState().focusedPane).toBe("sidebar");
+      expect(useUiStore.getState().focusedPane).toBe("list");
+      expect(useUiStore.getState().contentMode).toBe("empty");
     });
   });
 
@@ -135,21 +121,6 @@ describe("ArticleView", () => {
     });
   });
 
-  it("enters fullscreen from the display mode group", async () => {
-    useUiStore.getState().selectAccount("acc-1");
-    useUiStore.getState().selectFeed("feed-1");
-    useUiStore.getState().selectArticle("art-1");
-
-    const user = userEvent.setup();
-    render(<ArticleView />, { wrapper: createWrapper() });
-
-    await user.click(await screen.findByRole("button", { name: "Fullscreen" }));
-
-    await waitFor(() => {
-      expect(setFullscreenMock).toHaveBeenCalledWith(true);
-    });
-  });
-
   it("shows tooltips for icon-only article toolbar actions", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
@@ -161,6 +132,22 @@ describe("ArticleView", () => {
     await user.hover(await screen.findByRole("button", { name: "Copy link" }));
 
     expect(await screen.findByText("Copy link")).toBeInTheDocument();
+  });
+
+  it("uses the close button as UI navigation back from the reader", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+
+    const user = userEvent.setup();
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Close view" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("empty");
+      expect(useUiStore.getState().selectedArticleId).toBeNull();
+    });
   });
 
   it("exposes the tag picker expanded state and closes it with Escape", async () => {
@@ -358,43 +345,6 @@ describe("ArticleView", () => {
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("browser");
       expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
-    });
-  });
-
-  it("auto-opens fullscreen mode from the reading preference", async () => {
-    setupTauriMocks((cmd, args) => {
-      switch (cmd) {
-        case "list_account_articles":
-          return sampleArticles;
-        case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
-        case "list_tags":
-          return [];
-        case "get_article_tags":
-          return [];
-        default:
-          return null;
-      }
-    });
-
-    useUiStore.setState({
-      ...useUiStore.getInitialState(),
-      selectedAccountId: "acc-1",
-      selection: { type: "all" },
-      selectedArticleId: "art-1",
-      contentMode: "reader",
-    });
-    usePreferencesStore.setState({
-      prefs: { reader_view: "fullscreen" },
-      loaded: true,
-    });
-
-    render(<ArticleView />, { wrapper: createWrapper() });
-
-    await waitFor(() => {
-      expect(useUiStore.getState().contentMode).toBe("browser");
-      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
-      expect(setFullscreenMock).toHaveBeenCalledWith(true);
     });
   });
 

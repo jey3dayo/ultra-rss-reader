@@ -1,16 +1,16 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ExternalLink, Globe } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, RotateCcw, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { checkBrowserEmbedSupport, openInBrowser, updateFeedDisplayMode } from "@/api/tauri-commands";
+import { checkBrowserEmbedSupport, openInBrowser } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
+import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { useAccountArticles, useArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useArticlesByTag } from "@/hooks/use-tags";
-import { executeAction } from "@/lib/actions";
-import { resolveSelectedFeedDisplayMode, resolveSelectedFeedId } from "@/lib/article-view";
-import { cn } from "@/lib/utils";
+import { resolveSelectedFeedDisplayMode } from "@/lib/article-view";
+import { goBackInWebview, goForwardInWebview, reloadWebview } from "@/lib/webview-history";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -41,15 +41,6 @@ export function BrowserView() {
       tagArticles,
       feeds,
     }) === "widescreen";
-  const resolvedFeedId = resolveSelectedFeedId({
-    selectedArticleId,
-    selectionFeedId: feedId,
-    feedId,
-    tagId,
-    articles,
-    accountArticles,
-    tagArticles,
-  });
 
   useEffect(() => {
     if (!browserUrl) return;
@@ -95,65 +86,87 @@ export function BrowserView() {
     );
   };
 
-  const handleToggleWidescreen = async () => {
-    if (!resolvedFeedId) return;
-    const nextDisplayMode = isWidescreen ? "normal" : "widescreen";
-    Result.pipe(
-      await updateFeedDisplayMode(resolvedFeedId, nextDisplayMode),
-      Result.inspect(() => {
-        void qc.invalidateQueries({ queryKey: ["feeds"] });
-        if (nextDisplayMode === "normal") {
-          closeBrowser();
-        }
-      }),
-      Result.inspectError((e) => console.error("Failed to update display mode:", e)),
-    );
-  };
-
   return (
     <div className="flex h-full flex-col bg-background">
       {/* Toolbar */}
-      <div className="flex h-12 items-center gap-3 border-b border-border px-4">
-        {!isWidescreen && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={closeBrowser}
-            className="text-muted-foreground"
-            aria-label={t("back")}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        )}
+      <div className="grid h-12 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-border px-4">
+        <TooltipProvider>
+          <AppTooltip label={t("close_view")}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={closeBrowser}
+              className="text-muted-foreground"
+              aria-label={t("close_view")}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </AppTooltip>
+        </TooltipProvider>
         <span className="flex-1 truncate text-xs text-muted-foreground">{browserUrl}</span>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleToggleWidescreen}
-          className={cn("text-muted-foreground", isWidescreen && "bg-muted text-foreground")}
-          aria-label={t("toggle_widescreen_mode")}
-          disabled={!resolvedFeedId}
-        >
-          <Globe className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => executeAction("toggle-fullscreen")}
-          className="text-muted-foreground"
-          aria-label={t("toggle_fullscreen")}
-        >
-          <ExternalLink className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleOpenExternal}
-          className="text-muted-foreground"
-          aria-label={t("open_in_external_browser")}
-        >
-          <ExternalLink className="h-4 w-4" />
-        </Button>
+        <TooltipProvider>
+          <div className="flex items-center justify-end gap-2">
+            <AppTooltip label={t("web_back")}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={async () => {
+                  Result.pipe(
+                    await goBackInWebview(),
+                    Result.inspectError(() => {}),
+                  );
+                }}
+                className="text-muted-foreground"
+                aria-label={t("web_back")}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </AppTooltip>
+            <AppTooltip label={t("web_forward")}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={async () => {
+                  Result.pipe(
+                    await goForwardInWebview(),
+                    Result.inspectError(() => {}),
+                  );
+                }}
+                className="text-muted-foreground"
+                aria-label={t("web_forward")}
+              >
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </AppTooltip>
+            <AppTooltip label={t("reload_page")}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={async () => {
+                  Result.pipe(
+                    await reloadWebview(),
+                    Result.inspectError(() => {}),
+                  );
+                }}
+                className="text-muted-foreground"
+                aria-label={t("reload_page")}
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </AppTooltip>
+            <AppTooltip label={t("open_in_external_browser")}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleOpenExternal}
+                className="text-muted-foreground"
+                aria-label={t("open_in_external_browser")}
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </AppTooltip>
+          </div>
+        </TooltipProvider>
       </div>
 
       {isLoading && (

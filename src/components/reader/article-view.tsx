@@ -2,7 +2,7 @@ import { Menu } from "@base-ui/react/menu";
 import { Toggle } from "@base-ui/react/toggle";
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, BookmarkPlus, Copy, ExternalLink, Globe, Mail, Plus, Share, X } from "lucide-react";
+import { BookmarkPlus, Copy, ExternalLink, Globe, Mail, Plus, Share, X } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
@@ -31,7 +31,6 @@ import {
 } from "@/lib/article-view";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
-import { isWindowFullscreen, setWindowFullscreen } from "@/lib/windows";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { BrowserView } from "./browser-view";
@@ -51,8 +50,8 @@ function ArticleToolbar({
   const toggleStar = useToggleStar();
   const openBrowser = useUiStore((s) => s.openBrowser);
   const closeBrowser = useUiStore((s) => s.closeBrowser);
+  const clearArticle = useUiStore((s) => s.clearArticle);
   const layoutMode = useUiStore((s) => s.layoutMode);
-  const setFocusedPane = useUiStore((s) => s.setFocusedPane);
   const showToast = useUiStore((s) => s.showToast);
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
   const qc = useQueryClient();
@@ -60,40 +59,22 @@ function ArticleToolbar({
   const actionOpenBrowser = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_open_browser"));
   const actionShare = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share"));
   const actionShareMenu = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share_menu"));
-  const showSidebarButton = layoutMode !== "wide";
   const isWidescreen = feedDisplayMode === "widescreen";
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const currentDisplayMode: ReaderDisplayMode = isWidescreen ? "widescreen" : "normal";
 
-  useEffect(() => {
-    let cancelled = false;
-    void isWindowFullscreen().then((result) =>
-      Result.pipe(
-        result,
-        Result.inspect((fullscreen) => {
-          if (!cancelled) {
-            setIsFullscreen(fullscreen);
-          }
-        }),
-      ),
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const currentDisplayMode: ReaderDisplayMode = isFullscreen ? "fullscreen" : isWidescreen ? "widescreen" : "normal";
+  const handleCloseView = () => {
+    clearArticle();
+    if (layoutMode !== "wide") {
+      useUiStore.getState().setFocusedPane("list");
+    }
+  };
 
   const handleSetDisplayMode = async (nextMode: ReaderDisplayMode) => {
     if (!feedId) return;
-    const nextFeedDisplayMode = nextMode === "normal" ? "normal" : "widescreen";
     Result.pipe(
-      await updateFeedDisplayMode(feedId, nextFeedDisplayMode),
-      Result.inspect(async () => {
+      await updateFeedDisplayMode(feedId, nextMode),
+      Result.inspect(() => {
         void qc.invalidateQueries({ queryKey: ["feeds"] });
-        Result.pipe(
-          await setWindowFullscreen(nextMode === "fullscreen"),
-          Result.inspect(() => setIsFullscreen(nextMode === "fullscreen")),
-        );
         if (nextMode !== "normal" && article?.url) {
           openBrowser(article.url);
         }
@@ -108,17 +89,17 @@ function ArticleToolbar({
   return (
     <div data-tauri-drag-region className="flex h-12 items-center justify-between border-b border-border px-4">
       <div>
-        {showSidebarButton && (
+        {article && (
           <TooltipProvider>
-            <AppTooltip label={t("show_sidebar")}>
+            <AppTooltip label={t("close_view")}>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setFocusedPane("sidebar")}
+                onClick={handleCloseView}
                 className="text-muted-foreground"
-                aria-label={t("show_sidebar")}
+                aria-label={t("close_view")}
               >
-                <ArrowLeft className="h-4 w-4" />
+                <X className="h-4 w-4" />
               </Button>
             </AppTooltip>
           </TooltipProvider>
@@ -755,8 +736,7 @@ export function ArticleView() {
       return;
     }
 
-    const shouldAutoOpen =
-      readerViewPref === "widescreen" || readerViewPref === "fullscreen" || selectedFeedDisplayMode === "widescreen";
+    const shouldAutoOpen = readerViewPref === "widescreen" || selectedFeedDisplayMode === "widescreen";
     if (!shouldAutoOpen || selectedArticleId === prevArticleIdRef.current || contentMode !== "reader") {
       return;
     }
@@ -777,14 +757,6 @@ export function ArticleView() {
     prevArticleIdRef.current = selectedArticleId;
     if (article.url) {
       openBrowser(article.url);
-      if (readerViewPref === "fullscreen") {
-        void (async () => {
-          Result.pipe(
-            await setWindowFullscreen(true),
-            Result.inspectError(() => {}),
-          );
-        })();
-      }
     }
   }, [
     selectedArticleId,

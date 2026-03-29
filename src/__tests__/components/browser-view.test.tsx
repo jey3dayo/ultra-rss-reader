@@ -1,12 +1,32 @@
+import { Result } from "@praha/byethrow";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
+const { backMock, forwardMock, reloadMock } = vi.hoisted(() => ({
+  backMock: vi.fn(),
+  forwardMock: vi.fn(),
+  reloadMock: vi.fn(),
+}));
+
+vi.mock("@/lib/webview-history", () => ({
+  goBackInWebview: backMock,
+  goForwardInWebview: forwardMock,
+  reloadWebview: reloadMock,
+}));
+
 describe("BrowserView", () => {
   beforeEach(() => {
+    backMock.mockReset();
+    forwardMock.mockReset();
+    reloadMock.mockReset();
+    backMock.mockResolvedValue(Result.succeed(undefined));
+    forwardMock.mockResolvedValue(Result.succeed(undefined));
+    reloadMock.mockResolvedValue(Result.succeed(undefined));
     useUiStore.setState(useUiStore.getInitialState());
     setupTauriMocks((cmd, args) => {
       if (cmd === "list_feeds") {
@@ -135,28 +155,7 @@ describe("BrowserView", () => {
     });
   });
 
-  it("can turn widescreen mode off from the browser toolbar", async () => {
-    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
-
-      if (cmd === "list_feeds") {
-        return sampleFeeds
-          .filter((feed) => feed.account_id === args.accountId)
-          .map((feed) => (feed.id === "feed-1" ? { ...feed, display_mode: "widescreen" } : feed));
-      }
-      if (cmd === "list_articles") {
-        return sampleArticles.filter((article) => article.feed_id === args.feedId);
-      }
-      if (cmd === "check_browser_embed_support") {
-        return true;
-      }
-      if (cmd === "update_feed_display_mode") {
-        return null;
-      }
-      return null;
-    });
-
+  it("shows UI close on the left and web history controls on the right", async () => {
     useUiStore.setState({
       selectedAccountId: "acc-1",
       selection: { type: "feed", feedId: "feed-1" },
@@ -165,22 +164,17 @@ describe("BrowserView", () => {
       browserUrl: "https://example.com/1",
     });
 
-    const user = fireEvent;
+    const user = userEvent.setup();
     render(<BrowserView />, { wrapper: createWrapper() });
 
-    const toggleButton = await screen.findByRole("button", { name: "Toggle widescreen mode" });
-    await waitFor(() => {
-      expect(toggleButton).toHaveClass("bg-muted");
-    });
+    expect(screen.queryByRole("group", { name: "Display Mode" })).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Web back" }));
+    await user.click(await screen.findByRole("button", { name: "Web forward" }));
+    await user.click(await screen.findByRole("button", { name: "Reload page" }));
 
-    user.click(toggleButton);
-
-    await waitFor(() => {
-      expect(calls).toContainEqual({
-        cmd: "update_feed_display_mode",
-        args: { feedId: "feed-1", displayMode: "normal" },
-      });
-      expect(useUiStore.getState().contentMode).toBe("reader");
-    });
+    expect(backMock).toHaveBeenCalledTimes(1);
+    expect(forwardMock).toHaveBeenCalledTimes(1);
+    expect(reloadMock).toHaveBeenCalledTimes(1);
+    expect(await screen.findByRole("button", { name: "Close view" })).toBeInTheDocument();
   });
 });
