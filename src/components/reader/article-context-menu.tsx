@@ -5,7 +5,7 @@ import { openInBrowser } from "@/api/tauri-commands";
 import { useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { contextMenuStyles } from "./context-menu-styles";
+import { ArticleContextMenuView } from "./article-context-menu-view";
 
 export function ArticleContextMenu({ article, children }: { article: ArticleDto; children: React.ReactNode }) {
   const setRead = useSetRead();
@@ -44,26 +44,14 @@ export function ArticleContextMenu({ article, children }: { article: ArticleDto;
     <ContextMenu.Root>
       {/* biome-ignore lint/a11y/noStaticElementInteractions: Base UI render prop requires event handler on static element to prevent parent context menu trigger */}
       <ContextMenu.Trigger render={<div onContextMenu={(e) => e.stopPropagation()} />}>{children}</ContextMenu.Trigger>
-      <ContextMenu.Portal>
-        <ContextMenu.Positioner>
-          <ContextMenu.Popup className={contextMenuStyles.popup}>
-            <ContextMenu.Item className={contextMenuStyles.item} onClick={handleToggleRead}>
-              {article.is_read ? "Mark as Unread" : "Mark as Read"}
-            </ContextMenu.Item>
-            <ContextMenu.Item className={contextMenuStyles.item} onClick={handleToggleStar}>
-              {article.is_starred ? "Unstar" : "Star"}
-            </ContextMenu.Item>
-            {article.url && (
-              <>
-                <ContextMenu.Separator className={contextMenuStyles.separator} />
-                <ContextMenu.Item className={contextMenuStyles.item} onClick={handleOpenInBrowser}>
-                  Open in Browser
-                </ContextMenu.Item>
-              </>
-            )}
-          </ContextMenu.Popup>
-        </ContextMenu.Positioner>
-      </ContextMenu.Portal>
+      <ArticleContextMenuView
+        toggleReadLabel={article.is_read ? "Mark as Unread" : "Mark as Read"}
+        toggleStarLabel={article.is_starred ? "Unstar" : "Star"}
+        openInBrowserLabel={article.url ? "Open in Browser" : undefined}
+        onToggleRead={handleToggleRead}
+        onToggleStar={handleToggleStar}
+        onOpenInBrowser={article.url ? handleOpenInBrowser : undefined}
+      />
     </ContextMenu.Root>
   );
 }

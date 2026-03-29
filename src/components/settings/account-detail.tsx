@@ -1,14 +1,10 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { useId, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AccountDto } from "@/api/tauri-commands";
 import { deleteAccount, exportOpml, renameAccount, updateAccountSync } from "@/api/tauri-commands";
-import { SectionHeading, SettingsRow } from "@/components/settings/settings-components";
-import { GradientSwitch } from "@/components/shared/gradient-switch";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AccountDetailView } from "@/components/settings/account-detail-view";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -23,8 +19,6 @@ export function AccountDetail() {
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
-  const syncLabelId = useId();
-  const keepReadItemsLabelId = useId();
 
   const account = accounts?.find((a) => a.id === settingsAccountId);
 
@@ -136,133 +130,73 @@ export function AccountDetail() {
     { value: "365", label: t("account.one_year") },
     { value: "0", label: t("account.forever") },
   ];
-  const getSyncIntervalLabel = (value: string | null) =>
-    syncIntervalOptions.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
-  const getKeepReadItemsLabel = (value: string | null) =>
-    keepReadItemsOptions.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
-
   return (
-    <div className="p-6">
-      <h2 className="mb-2 text-center text-lg font-semibold">{account.name}</h2>
-      <p className="mb-6 text-center text-sm text-muted-foreground">{account.kind}</p>
-
-      <section className="mb-6">
-        <SectionHeading>{t("account.general")}</SectionHeading>
-        <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-          <span className="text-sm text-foreground">{t("account.description")}</span>
-          {editingName ? (
-            <Input
-              ref={nameInputRef}
-              type="text"
-              value={nameDraft}
-              onChange={(e) => setNameDraft(e.target.value)}
-              onBlur={commitRename}
-              onKeyDown={handleNameKeyDown}
-              className="h-auto w-auto border-border bg-background px-2 py-1 text-right text-sm text-muted-foreground"
-            />
-          ) : (
-            <button
-              type="button"
-              onClick={startEditingName}
-              className="cursor-pointer text-sm text-muted-foreground hover:text-foreground"
-              title={t("account.click_to_edit")}
-            >
-              {account.name}
-            </button>
-          )}
-        </div>
-        <SettingsRow
-          label={t("account.type")}
-          value={
-            account.kind === "FreshRss"
-              ? t("account.freshrss")
-              : account.kind === "Inoreader"
-                ? t("account.inoreader")
-                : t("account.local")
-          }
-          type="text"
-        />
-        {account.kind === "Inoreader" && (
-          <SettingsRow label={t("account.server")} value={t("account.inoreader_server")} type="text" />
-        )}
-        {account.kind === "FreshRss" && account.server_url && (
-          <SettingsRow label={t("account.server")} value={account.server_url} type="text" truncate />
-        )}
-      </section>
-
-      <section className="mb-6">
-        <SectionHeading>{t("account.syncing")}</SectionHeading>
-        <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-          <span id={syncLabelId} className="text-sm text-foreground">
-            {t("account.sync")}
-          </span>
-          <Select
-            name="sync-interval"
-            value={String(account.sync_interval_secs)}
-            onValueChange={(v) => v !== null && handleSyncUpdate({ syncIntervalSecs: Number(v) })}
-          >
-            <SelectTrigger aria-labelledby={syncLabelId}>
-              <SelectValue>{(value: string | null) => getSyncIntervalLabel(value)}</SelectValue>
-            </SelectTrigger>
-            <SelectPopup>
-              {syncIntervalOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectPopup>
-          </Select>
-        </div>
-        <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-          <span className="text-sm text-foreground">{t("account.sync_on_wake")}</span>
-          <GradientSwitch checked={account.sync_on_wake} onCheckedChange={(v) => handleSyncUpdate({ syncOnWake: v })} />
-        </div>
-        <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-          <span id={keepReadItemsLabelId} className="text-sm text-foreground">
-            {t("account.keep_read_items")}
-          </span>
-          <Select
-            name="keep-read-items"
-            value={String(account.keep_read_items_days)}
-            onValueChange={(v) => v !== null && handleSyncUpdate({ keepReadItemsDays: Number(v) })}
-          >
-            <SelectTrigger aria-labelledby={keepReadItemsLabelId}>
-              <SelectValue>{(value: string | null) => getKeepReadItemsLabel(value)}</SelectValue>
-            </SelectTrigger>
-            <SelectPopup>
-              {keepReadItemsOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectPopup>
-          </Select>
-        </div>
-      </section>
-
-      <div className="mt-6 border-t border-border pt-6">
-        <Button variant="outline" onClick={handleExportOpml} className="text-sm">
-          {t("account.export_opml")}
-        </Button>
-      </div>
-
-      <div className="mt-2 border-t border-border pt-6">
-        {!confirmDelete ? (
-          <Button variant="destructive" onClick={() => setConfirmDelete(true)} className="text-sm">
-            {t("account.delete_account")}
-          </Button>
-        ) : (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-destructive">{t("account.confirm_delete")}</span>
-            <Button variant="destructive" size="sm" onClick={handleDelete}>
-              {tc("delete")}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setConfirmDelete(false)}>
-              {tc("cancel")}
-            </Button>
-          </div>
-        )}
-      </div>
-    </div>
+    <AccountDetailView
+      title={account.name}
+      subtitle={account.kind}
+      generalSection={{
+        heading: t("account.general"),
+        nameLabel: t("account.description"),
+        nameValue: account.name,
+        editNameTitle: t("account.click_to_edit"),
+        isEditingName: editingName,
+        nameDraft,
+        nameInputRef,
+        infoRows: [
+          {
+            label: t("account.type"),
+            value:
+              account.kind === "FreshRss"
+                ? t("account.freshrss")
+                : account.kind === "Inoreader"
+                  ? t("account.inoreader")
+                  : t("account.local"),
+          },
+          ...(account.kind === "Inoreader"
+            ? [{ label: t("account.server"), value: t("account.inoreader_server") }]
+            : []),
+          ...(account.kind === "FreshRss" && account.server_url
+            ? [{ label: t("account.server"), value: account.server_url, truncate: true }]
+            : []),
+        ],
+        onStartEditingName: startEditingName,
+        onNameDraftChange: setNameDraft,
+        onCommitName: commitRename,
+        onNameKeyDown: handleNameKeyDown,
+      }}
+      syncSection={{
+        heading: t("account.syncing"),
+        syncInterval: {
+          name: "sync-interval",
+          label: t("account.sync"),
+          value: String(account.sync_interval_secs),
+          options: syncIntervalOptions,
+          onChange: (value) => handleSyncUpdate({ syncIntervalSecs: Number(value) }),
+        },
+        syncOnWake: {
+          label: t("account.sync_on_wake"),
+          checked: account.sync_on_wake,
+          onChange: (value) => handleSyncUpdate({ syncOnWake: value }),
+        },
+        keepReadItems: {
+          name: "keep-read-items",
+          label: t("account.keep_read_items"),
+          value: String(account.keep_read_items_days),
+          options: keepReadItemsOptions,
+          onChange: (value) => handleSyncUpdate({ keepReadItemsDays: Number(value) }),
+        },
+      }}
+      dangerZone={{
+        exportLabel: t("account.export_opml"),
+        deleteLabel: !confirmDelete ? t("account.delete_account") : tc("delete"),
+        cancelLabel: tc("cancel"),
+        confirmDeleteLabel: t("account.confirm_delete"),
+        isConfirmingDelete: confirmDelete,
+        onExport: handleExportOpml,
+        onRequestDelete: () => setConfirmDelete(true),
+        onConfirmDelete: handleDelete,
+        onCancelDelete: () => setConfirmDelete(false),
+      }}
+    />
   );
 }

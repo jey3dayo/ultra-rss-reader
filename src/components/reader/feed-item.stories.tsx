@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import type { FeedDto } from "@/api/tauri-commands";
-import { FeedItem } from "./feed-item";
+import { FeedItemView } from "./feed-item";
 
 const baseFeed: FeedDto = {
   id: "feed-1",
@@ -15,8 +15,8 @@ const baseFeed: FeedDto = {
 };
 
 const meta = {
-  title: "Reader/FeedItem",
-  component: FeedItem,
+  title: "Reader/FeedItemView",
+  component: FeedItemView,
   tags: ["autodocs"],
   args: {
     onSelect: fn(),
@@ -28,7 +28,7 @@ const meta = {
       </div>
     ),
   ],
-} satisfies Meta<typeof FeedItem>;
+} satisfies Meta<typeof FeedItemView>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -100,7 +100,7 @@ export const MultipleFeeds: Story = {
     return (
       <div className="flex flex-col gap-0.5">
         {feeds.map((feed, i) => (
-          <FeedItem key={feed.id} feed={feed} isSelected={i === 0} onSelect={fn()} displayFavicons={true} />
+          <FeedItemView key={feed.id} feed={feed} isSelected={i === 0} onSelect={fn()} displayFavicons={true} />
         ))}
       </div>
     );

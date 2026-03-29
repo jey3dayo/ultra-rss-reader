@@ -1,5 +1,3 @@
-import { Radio } from "@base-ui/react/radio";
-import { RadioGroup } from "@base-ui/react/radio-group";
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState } from "react";
@@ -11,19 +9,9 @@ import {
   discoverFeeds,
   updateFeedFolder,
 } from "@/api/tauri-commands";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFolders } from "@/hooks/use-folders";
 import { useUiStore } from "@/stores/ui-store";
+import { AddFeedDialogView } from "./add-feed-dialog-view";
 
 const NEW_FOLDER_VALUE = "__new__";
 
@@ -68,8 +56,6 @@ export function AddFeedDialog({
     ...((folders ?? []).map((folder) => ({ value: folder.id, label: folder.name })) ?? []),
     { value: NEW_FOLDER_VALUE, label: t("new_folder") },
   ];
-  const getFolderLabel = (value: string | null) =>
-    folderOptions.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
   const trimmedUrl = url.trim();
   const hasManualUrl = trimmedUrl.length > 0;
   const isManualUrlValid = !hasManualUrl || isValidFeedUrl(trimmedUrl);
@@ -217,129 +203,60 @@ export function AddFeedDialog({
     discovering ||
     (isCreatingFolder && !newFolderName.trim());
 
+  const discoveredFeedOptions = discoveredFeeds.map((feed) => ({
+    value: feed.url,
+    label: feed.title || feed.url,
+  }));
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t("add_feed")}</DialogTitle>
-          <DialogDescription>{t("add_feed_description")}</DialogDescription>
-        </DialogHeader>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSubmit();
-          }}
-          className="space-y-4"
-        >
-          <div className="flex gap-2">
-            <Input
-              ref={inputRef}
-              name="feed-url"
-              type="url"
-              value={url}
-              onChange={(e) => {
-                setUrl(e.target.value);
-                setDiscoveredFeeds([]);
-                setSelectedFeedUrl(null);
-                setError(null);
-              }}
-              placeholder={t("feed_or_site_url")}
-              disabled={loading || discovering}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleDiscover}
-              disabled={!hasManualUrl || !isManualUrlValid || loading || discovering}
-              className="shrink-0"
-            >
-              {discovering ? t("discovering") : t("discover")}
-            </Button>
-          </div>
-
-          {discoveredFeeds.length > 0 && (
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">{t("feeds_found", { count: discoveredFeeds.length })}</p>
-              <RadioGroup
-                name="discovered-feed"
-                value={selectedFeedUrl ?? ""}
-                onValueChange={(v) => setSelectedFeedUrl(v)}
-                className="max-h-32 overflow-y-auto rounded-md border border-input"
-              >
-                {discoveredFeeds.map((feed) => (
-                  // biome-ignore lint/a11y/noLabelWithoutControl: Radio.Root renders a hidden input but Biome cannot trace namespace components
-                  <label
-                    key={feed.url}
-                    className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-accent ${
-                      selectedFeedUrl === feed.url ? "bg-accent" : ""
-                    }`}
-                  >
-                    <Radio.Root
-                      value={feed.url}
-                      aria-label={feed.title || feed.url}
-                      className="flex size-4 items-center justify-center rounded-full border border-primary"
-                    >
-                      <Radio.Indicator className="size-2 rounded-full bg-primary" />
-                    </Radio.Root>
-                    <span className="truncate">{feed.title || feed.url}</span>
-                  </label>
-                ))}
-              </RadioGroup>
-            </div>
-          )}
-
-          <div className="block text-sm text-muted-foreground">
-            <span id={folderLabelId} className="mb-1 block">
-              {t("folder")}
-            </span>
-            <Select
-              name="feed-folder"
-              value={isCreatingFolder ? NEW_FOLDER_VALUE : (selectedFolderId ?? "")}
-              onValueChange={(v) => v !== null && handleFolderChange(v)}
-              disabled={loading}
-            >
-              <SelectTrigger aria-labelledby={folderLabelId} className="mt-1 w-full">
-                <SelectValue>{(value: string | null) => getFolderLabel(value)}</SelectValue>
-              </SelectTrigger>
-              <SelectPopup>
-                {folderOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectPopup>
-            </Select>
-          </div>
-
-          {isCreatingFolder && (
-            <label className="block text-sm text-muted-foreground">
-              {t("folder_name")}
-              <Input
-                ref={newFolderInputRef}
-                name="new-folder-name"
-                type="text"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                placeholder={t("enter_folder_name")}
-                className="mt-1"
-                disabled={loading}
-              />
-            </label>
-          )}
-
-          {successMessage && !error && <p className="mt-2 text-sm text-green-400">{successMessage}</p>}
-          {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
-        </form>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            {tc("cancel")}
-          </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitDisabled}>
-            {loading ? t("adding") : tc("add")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <AddFeedDialogView
+      open={open}
+      onOpenChange={onOpenChange}
+      url={url}
+      onUrlChange={(nextUrl) => {
+        setUrl(nextUrl);
+        setDiscoveredFeeds([]);
+        setSelectedFeedUrl(null);
+      }}
+      onDiscover={handleDiscover}
+      discovering={discovering}
+      loading={loading}
+      discoveredFeedsFoundLabel={
+        discoveredFeeds.length > 0 ? t("feeds_found", { count: discoveredFeeds.length }) : null
+      }
+      discoveredFeedOptions={discoveredFeedOptions}
+      selectedFeedUrl={selectedFeedUrl ?? ""}
+      onSelectedFeedUrlChange={setSelectedFeedUrl}
+      folderSelectProps={{
+        labelId: folderLabelId,
+        label: t("folder"),
+        value: isCreatingFolder ? NEW_FOLDER_VALUE : (selectedFolderId ?? ""),
+        options: folderOptions,
+        disabled: loading,
+        isCreatingFolder,
+        newFolderLabel: t("folder_name"),
+        newFolderName,
+        newFolderPlaceholder: t("enter_folder_name"),
+        onValueChange: handleFolderChange,
+        onNewFolderNameChange: setNewFolderName,
+        newFolderInputRef,
+      }}
+      error={error}
+      successMessage={successMessage}
+      isDiscoverDisabled={!hasManualUrl || !isManualUrlValid || loading || discovering}
+      isSubmitDisabled={isSubmitDisabled}
+      labels={{
+        title: t("add_feed"),
+        description: t("add_feed_description"),
+        urlPlaceholder: t("feed_or_site_url"),
+        discover: t("discover"),
+        discovering: t("discovering"),
+        cancel: tc("cancel"),
+        add: tc("add"),
+        adding: t("adding"),
+      }}
+      inputRef={inputRef}
+      onSubmit={handleSubmit}
+    />
   );
 }

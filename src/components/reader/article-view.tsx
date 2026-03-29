@@ -1,18 +1,14 @@
 import { Menu } from "@base-ui/react/menu";
-import { Toggle } from "@base-ui/react/toggle";
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { BookmarkPlus, Copy, ExternalLink, Globe, Mail, Plus, Share, X } from "lucide-react";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { addToReadingList, copyToClipboard, openInBrowser, updateFeedDisplayMode } from "@/api/tauri-commands";
 import { DisplayModeToggleGroup, type ReaderDisplayMode } from "@/components/reader/display-mode-toggle-group";
-import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
+import { AppTooltip } from "@/components/ui/tooltip";
 import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import {
@@ -30,9 +26,13 @@ import {
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
-import { cn } from "@/lib/utils";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+import { ArticleContentView } from "./article-content-view";
+import { ArticleEmptyStateView } from "./article-empty-state-view";
+import { ArticleMetaView } from "./article-meta-view";
+import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-tag-picker-view";
+import { ArticleToolbarView } from "./article-toolbar-view";
 import { BrowserView } from "./browser-view";
 import { contextMenuStyles } from "./context-menu-styles";
 
@@ -87,204 +87,151 @@ function ArticleToolbar({
   };
 
   return (
-    <div data-tauri-drag-region className="flex h-12 items-center justify-between border-b border-border px-4">
-      <div>
-        {article && (
-          <TooltipProvider>
-            <AppTooltip label={t("close_view")}>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleCloseView}
-                className="text-muted-foreground"
-                aria-label={t("close_view")}
+    <ArticleToolbarView
+      showCloseButton={article !== null}
+      canToggleRead={article !== null}
+      canToggleStar={article !== null}
+      isRead={article?.is_read ?? false}
+      isStarred={article?.is_starred ?? false}
+      showCopyLinkButton={actionCopyLink === "true"}
+      canCopyLink={Boolean(article?.url)}
+      showOpenInBrowserButton={actionOpenBrowser === "true"}
+      canOpenInBrowser={Boolean(article?.url)}
+      showOpenInExternalBrowserButton={actionShare === "true"}
+      canOpenInExternalBrowser={Boolean(article?.url)}
+      displayModeControl={
+        <DisplayModeToggleGroup
+          value={currentDisplayMode}
+          onValueChange={handleSetDisplayMode}
+          disabled={!feedId || !article?.url}
+        />
+      }
+      shareMenuControl={
+        actionShareMenu === "true" ? (
+          <Menu.Root>
+            <AppTooltip label={t("share")}>
+              <Menu.Trigger
+                render={
+                  <button
+                    type="button"
+                    className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={!article?.url}
+                    aria-label={t("share")}
+                  />
+                }
               >
-                <X className="h-4 w-4" />
-              </Button>
+                <Share className="h-4 w-4" />
+              </Menu.Trigger>
             </AppTooltip>
-          </TooltipProvider>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <TooltipProvider>
-          <AppTooltip label={t("toggle_read")}>
-            <Toggle
-              pressed={article?.is_read ?? false}
-              onPressedChange={(pressed) => {
-                if (!article) return;
-                setRead.mutate(
-                  { id: article.id, read: pressed },
-                  {
-                    onSuccess: () => {
-                      if (pressed) addRecentlyRead(article.id);
-                    },
-                  },
-                );
-              }}
-              disabled={!article}
-              aria-label={t("toggle_read")}
-              className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
-            >
-              <UnreadIcon unread={!article?.is_read} className="h-3 w-3" />
-            </Toggle>
-          </AppTooltip>
-          <AppTooltip label={t("toggle_star")}>
-            <Toggle
-              pressed={article?.is_starred ?? false}
-              onPressedChange={(pressed) => {
-                if (!article) return;
-                toggleStar.mutate(
-                  { id: article.id, starred: pressed },
-                  { onSuccess: () => showToast(pressed ? t("article_starred") : t("article_unstarred")) },
-                );
-              }}
-              disabled={!article}
-              aria-label={t("toggle_star")}
-              className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
-            >
-              <StarIcon starred={article?.is_starred ?? false} className="h-4 w-4" />
-            </Toggle>
-          </AppTooltip>
-          <DisplayModeToggleGroup
-            value={currentDisplayMode}
-            onValueChange={handleSetDisplayMode}
-            disabled={!feedId || !article?.url}
-          />
-          {actionCopyLink === "true" && (
-            <AppTooltip label={t("copy_link")}>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (article?.url) {
-                    navigator.clipboard.writeText(article.url);
-                    showToast(t("link_copied"));
-                  }
-                }}
-                className="text-muted-foreground"
-                disabled={!article?.url}
-                aria-label={t("copy_link")}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </AppTooltip>
-          )}
-          {actionOpenBrowser === "true" && (
-            <AppTooltip label={t("view_in_browser")}>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => article?.url && openBrowser(article.url)}
-                className="text-muted-foreground"
-                disabled={!article?.url}
-                aria-label={t("view_in_browser")}
-              >
-                <Globe className="h-4 w-4" />
-              </Button>
-            </AppTooltip>
-          )}
-          {actionShare === "true" && (
-            <AppTooltip label={t("open_in_external_browser")}>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={async () => {
-                  if (article?.url) {
-                    const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-                    Result.pipe(
-                      await openInBrowser(article.url, bg),
-                      Result.inspectError((e) => console.error("Failed to open in browser:", e)),
-                    );
-                  }
-                }}
-                className="text-muted-foreground"
-                disabled={!article?.url}
-                aria-label={t("open_in_external_browser")}
-              >
-                <ExternalLink className="h-4 w-4" />
-              </Button>
-            </AppTooltip>
-          )}
-          {actionShareMenu === "true" && (
-            <Menu.Root>
-              <AppTooltip label={t("share")}>
-                <Menu.Trigger
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground"
-                      disabled={!article?.url}
-                      aria-label={t("share")}
-                    />
-                  }
-                >
-                  <Share className="h-4 w-4" />
-                </Menu.Trigger>
-              </AppTooltip>
-              <Menu.Portal>
-                <Menu.Positioner sideOffset={4}>
-                  <Menu.Popup className={contextMenuStyles.popup}>
-                    <Menu.Item
-                      className={contextMenuStyles.item}
-                      onSelect={async () => {
-                        if (!article?.url) return;
-                        Result.pipe(
-                          await copyToClipboard(article.url),
-                          Result.inspect(() => showToast(t("link_copied"))),
-                          Result.inspectError((e) => {
-                            console.error("Copy failed:", e);
-                            showToast(e.message);
-                          }),
-                        );
-                      }}
-                    >
-                      <Copy className="mr-2 h-4 w-4" />
-                      {t("copy_link")}
-                    </Menu.Item>
-                    <Menu.Item
-                      className={contextMenuStyles.item}
-                      onSelect={async () => {
-                        if (!article?.url) return;
-                        Result.pipe(
-                          await addToReadingList(article.url),
-                          Result.inspect(() => showToast(t("added_to_reading_list"))),
-                          Result.inspectError((e) => {
-                            console.error("Add to reading list failed:", e);
-                            showToast(e.message);
-                          }),
-                        );
-                      }}
-                    >
-                      <BookmarkPlus className="mr-2 h-4 w-4" />
-                      {t("add_to_reading_list")}
-                    </Menu.Item>
-                    <Menu.Separator className={contextMenuStyles.separator} />
-                    <Menu.Item
-                      className={contextMenuStyles.item}
-                      onSelect={async () => {
-                        if (!article?.url) return;
-                        const mailto = `mailto:?subject=${encodeURIComponent(article.title)}&body=${encodeURIComponent(article.url)}`;
-                        Result.pipe(
-                          await openInBrowser(mailto, false),
-                          Result.inspectError((e) => {
-                            console.error("Failed to open email client:", e);
-                            showToast(e.message);
-                          }),
-                        );
-                      }}
-                    >
-                      <Mail className="mr-2 h-4 w-4" />
-                      {t("share_via_email")}
-                    </Menu.Item>
-                  </Menu.Popup>
-                </Menu.Positioner>
-              </Menu.Portal>
-            </Menu.Root>
-          )}
-        </TooltipProvider>
-      </div>
-    </div>
+            <Menu.Portal>
+              <Menu.Positioner sideOffset={4}>
+                <Menu.Popup className={contextMenuStyles.popup}>
+                  <Menu.Item
+                    className={contextMenuStyles.item}
+                    onSelect={async () => {
+                      if (!article?.url) return;
+                      Result.pipe(
+                        await copyToClipboard(article.url),
+                        Result.inspect(() => showToast(t("link_copied"))),
+                        Result.inspectError((e) => {
+                          console.error("Copy failed:", e);
+                          showToast(e.message);
+                        }),
+                      );
+                    }}
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    {t("copy_link")}
+                  </Menu.Item>
+                  <Menu.Item
+                    className={contextMenuStyles.item}
+                    onSelect={async () => {
+                      if (!article?.url) return;
+                      Result.pipe(
+                        await addToReadingList(article.url),
+                        Result.inspect(() => showToast(t("added_to_reading_list"))),
+                        Result.inspectError((e) => {
+                          console.error("Add to reading list failed:", e);
+                          showToast(e.message);
+                        }),
+                      );
+                    }}
+                  >
+                    <BookmarkPlus className="mr-2 h-4 w-4" />
+                    {t("add_to_reading_list")}
+                  </Menu.Item>
+                  <Menu.Separator className={contextMenuStyles.separator} />
+                  <Menu.Item
+                    className={contextMenuStyles.item}
+                    onSelect={async () => {
+                      if (!article?.url) return;
+                      const mailto = `mailto:?subject=${encodeURIComponent(article.title)}&body=${encodeURIComponent(article.url)}`;
+                      Result.pipe(
+                        await openInBrowser(mailto, false),
+                        Result.inspectError((e) => {
+                          console.error("Failed to open email client:", e);
+                          showToast(e.message);
+                        }),
+                      );
+                    }}
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    {t("share_via_email")}
+                  </Menu.Item>
+                </Menu.Popup>
+              </Menu.Positioner>
+            </Menu.Portal>
+          </Menu.Root>
+        ) : null
+      }
+      labels={{
+        closeView: t("close_view"),
+        toggleRead: t("toggle_read"),
+        toggleStar: t("toggle_star"),
+        copyLink: t("copy_link"),
+        viewInBrowser: t("view_in_browser"),
+        openInExternalBrowser: t("open_in_external_browser"),
+      }}
+      onCloseView={handleCloseView}
+      onToggleRead={(pressed) => {
+        if (!article) return;
+        setRead.mutate(
+          { id: article.id, read: pressed },
+          {
+            onSuccess: () => {
+              if (pressed) addRecentlyRead(article.id);
+            },
+          },
+        );
+      }}
+      onToggleStar={(pressed) => {
+        if (!article) return;
+        toggleStar.mutate(
+          { id: article.id, starred: pressed },
+          { onSuccess: () => showToast(pressed ? t("article_starred") : t("article_unstarred")) },
+        );
+      }}
+      onCopyLink={() => {
+        if (article?.url) {
+          navigator.clipboard.writeText(article.url);
+          showToast(t("link_copied"));
+        }
+      }}
+      onOpenInBrowser={() => {
+        if (article?.url) {
+          openBrowser(article.url);
+        }
+      }}
+      onOpenInExternalBrowser={async () => {
+        if (article?.url) {
+          const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
+          Result.pipe(
+            await openInBrowser(article.url, bg),
+            Result.inspectError((e) => console.error("Failed to open in browser:", e)),
+          );
+        }
+      }}
+    />
   );
 }
 
@@ -293,11 +240,17 @@ function EmptyState() {
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
       <ArticleToolbar article={null} feedId={null} feedDisplayMode="normal" />
-      <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground">
-        <p className="text-sm">{t("select_article_to_read")}</p>
-      </div>
+      <ArticleEmptyStateView message={t("select_article_to_read")} />
     </div>
   );
+}
+
+function toArticleTagPickerTagView(tag: { id: string; name: string; color: string | null }): ArticleTagPickerTagView {
+  return {
+    id: tag.id,
+    name: tag.name,
+    color: tag.color,
+  };
 }
 
 function ArticleTagChips({ articleId }: { articleId: string }) {
@@ -309,47 +262,12 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
   const createTagMutation = useCreateTag();
   const [showPicker, setShowPicker] = useState(false);
   const [newTagName, setNewTagName] = useState("");
-  const pickerRef = useRef<HTMLDivElement>(null);
-  const pickerTriggerRef = useRef<HTMLButtonElement>(null);
-  const newTagInputRef = useRef<HTMLInputElement>(null);
-  const tagOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const pickerId = useId();
-
-  const closePicker = useCallback((restoreFocus = false) => {
-    setShowPicker(false);
-    if (restoreFocus) {
-      requestAnimationFrame(() => pickerTriggerRef.current?.focus());
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!showPicker) return;
-    const handler = (e: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
-        closePicker();
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showPicker, closePicker]);
 
   const assignedTagIds = new Set(articleTags?.map((tag) => tag.id) ?? []);
-  const unassignedTags = (allTags ?? []).filter((tag) => !assignedTagIds.has(tag.id));
+  const assignedTags = (articleTags ?? []).map(toArticleTagPickerTagView);
+  const unassignedTags = (allTags ?? []).filter((tag) => !assignedTagIds.has(tag.id)).map(toArticleTagPickerTagView);
 
-  useEffect(() => {
-    if (!showPicker) return;
-
-    requestAnimationFrame(() => {
-      if (unassignedTags.length > 0) {
-        tagOptionRefs.current[0]?.focus();
-        return;
-      }
-      newTagInputRef.current?.focus();
-    });
-  }, [showPicker, unassignedTags.length]);
-
-  const handleCreateAndAssign = () => {
-    const name = newTagName.trim();
+  const handleCreateAndAssign = (name: string) => {
     if (!name) return;
     createTagMutation.mutate(
       { name },
@@ -357,144 +275,35 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
         onSuccess: (tag) => {
           tagArticleMutation.mutate({ articleId, tagId: tag.id });
           setNewTagName("");
-          closePicker();
+          setShowPicker(false);
         },
       },
     );
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {articleTags?.map((tag) => (
-        <span
-          key={tag.id}
-          className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground"
-        >
-          {tag.color && (
-            <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: tag.color }} />
-          )}
-          {tag.name}
-          <button
-            type="button"
-            onClick={() => untagArticleMutation.mutate({ articleId, tagId: tag.id })}
-            className="ml-0.5 inline-flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label={t("remove_tag", { name: tag.name })}
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </span>
-      ))}
-      <div ref={pickerRef} className="relative">
-        <button
-          ref={pickerTriggerRef}
-          type="button"
-          onClick={() => setShowPicker((v) => !v)}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowDown" && !showPicker) {
-              e.preventDefault();
-              e.stopPropagation();
-              setShowPicker(true);
-            }
-            if (e.key === "Escape" && showPicker) {
-              e.preventDefault();
-              e.stopPropagation();
-              closePicker(true);
-            }
-          }}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-muted-foreground text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
-          aria-label={t("add_tag")}
-          aria-haspopup="listbox"
-          aria-expanded={showPicker}
-          aria-controls={pickerId}
-        >
-          <Plus className="h-3 w-3" />
-        </button>
-        {showPicker && (
-          <div
-            id={pickerId}
-            role="listbox"
-            aria-label={t("available_tags")}
-            className="absolute top-full left-0 z-50 mt-1 min-w-[180px] rounded-lg border border-border bg-popover p-1 shadow-lg"
-            onKeyDown={(e) => {
-              const currentIndex = tagOptionRefs.current.indexOf(document.activeElement as HTMLButtonElement);
-              if (e.key === "Escape") {
-                e.preventDefault();
-                e.stopPropagation();
-                closePicker(true);
-              }
-              if (e.key === "ArrowDown" && unassignedTags.length > 0) {
-                e.preventDefault();
-                e.stopPropagation();
-                const nextIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
-                tagOptionRefs.current[nextIndex % unassignedTags.length]?.focus();
-              }
-              if (e.key === "ArrowUp" && unassignedTags.length > 0) {
-                e.preventDefault();
-                e.stopPropagation();
-                const nextIndex = currentIndex >= 0 ? currentIndex - 1 : unassignedTags.length - 1;
-                tagOptionRefs.current[(nextIndex + unassignedTags.length) % unassignedTags.length]?.focus();
-              }
-            }}
-          >
-            {unassignedTags.map((tag, index) => (
-              <button
-                type="button"
-                key={tag.id}
-                ref={(element) => {
-                  tagOptionRefs.current[index] = element;
-                }}
-                role="option"
-                aria-selected="false"
-                onClick={() => {
-                  tagArticleMutation.mutate({ articleId, tagId: tag.id });
-                  closePicker();
-                }}
-                className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm text-popover-foreground hover:bg-accent"
-              >
-                {tag.color && (
-                  <span
-                    className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: tag.color }}
-                  />
-                )}
-                {tag.name}
-              </button>
-            ))}
-            <div className="flex items-center gap-1 border-t border-border px-2 pt-1">
-              <Input
-                ref={newTagInputRef}
-                name="new-tag"
-                type="text"
-                value={newTagName}
-                onChange={(e) => setNewTagName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.stopPropagation();
-                    handleCreateAndAssign();
-                  }
-                  if (e.key === "Escape") {
-                    e.stopPropagation();
-                    closePicker(true);
-                  }
-                }}
-                placeholder={t("new_tag_placeholder")}
-                className="h-auto flex-1 rounded border-none bg-transparent px-1 py-1 text-xs shadow-none ring-0 focus-visible:ring-0"
-              />
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={handleCreateAndAssign}
-                disabled={!newTagName.trim()}
-                className="h-5 w-5 text-muted-foreground"
-                aria-label={t("create_tag")}
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    <ArticleTagPickerView
+      assignedTags={assignedTags}
+      availableTags={unassignedTags}
+      newTagName={newTagName}
+      isExpanded={showPicker}
+      labels={{
+        addTag: t("add_tag"),
+        availableTags: t("available_tags"),
+        newTagPlaceholder: t("new_tag_placeholder"),
+        createTag: t("create_tag"),
+        removeTag: (name) => t("remove_tag", { name }),
+      }}
+      onExpandedChange={setShowPicker}
+      onNewTagNameChange={setNewTagName}
+      onAssignTag={(tagId) => {
+        tagArticleMutation.mutate({ articleId, tagId });
+      }}
+      onRemoveTag={(tagId) => {
+        untagArticleMutation.mutate({ articleId, tagId });
+      }}
+      onCreateTag={handleCreateAndAssign}
+    />
   );
 }
 
@@ -636,67 +445,49 @@ function ArticleReader({
       <ArticleToolbar article={article} feedId={article.feed_id} feedDisplayMode={feedDisplayMode} />
       <ScrollArea className="flex-1">
         <article className="mx-auto max-w-3xl px-8 py-8">
-          <div className="mb-4">
-            <p className="mb-2 text-xs tracking-wider text-muted-foreground">
-              {formatArticleDate(article.published_at)}
-            </p>
-            <h1 className="mb-2 text-2xl font-bold leading-tight text-foreground">
-              {articleUrl ? (
-                <button
-                  type="button"
-                  className="-mx-4 block w-[calc(100%+2rem)] rounded-lg px-4 py-3 text-left transition-colors hover:bg-muted/50"
-                  onClick={() => openBrowserView(articleUrl)}
-                  onAuxClick={(e) => {
+          <ArticleMetaView
+            title={article.title}
+            author={article.author}
+            feedName={feedName}
+            publishedLabel={formatArticleDate(article.published_at)}
+            onTitleClick={
+              articleUrl
+                ? () => {
+                    openBrowserView(articleUrl);
+                  }
+                : undefined
+            }
+            onTitleAuxClick={
+              articleUrl
+                ? (e) => {
                     if (e.button === 1) {
                       e.preventDefault();
                       const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
                       void openInBrowser(articleUrl, bg);
                     }
-                  }}
-                >
-                  {article.title}
-                </button>
-              ) : (
-                article.title
-              )}
-            </h1>
-            {(article.author || feedName) && (
-              <div className="text-sm text-muted-foreground">
-                {article.author && <p className="uppercase tracking-wide">{article.author}</p>}
-                {feedName && (
-                  <button
-                    type="button"
-                    className="cursor-pointer text-xs hover:underline"
-                    onClick={() => selectFeed(article.feed_id)}
-                  >
-                    {feedName}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+                  }
+                : undefined
+            }
+            onFeedClick={
+              feedName
+                ? () => {
+                    selectFeed(article.feed_id);
+                  }
+                : undefined
+            }
+          />
 
           {/* Tags */}
           <div className="mb-8">
             <ArticleTagChips articleId={article.id} />
           </div>
 
-          {/* Featured Image */}
-          {article.thumbnail && (
-            <div className="relative mb-8 aspect-video w-full overflow-hidden rounded-lg">
-              <img src={article.thumbnail} alt="" className="h-full w-full object-cover" />
-            </div>
-          )}
-
           {/* Content */}
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: click handler intercepts anchor navigation in sanitized HTML */}
           {/* biome-ignore lint/a11y/noStaticElementInteractions: click handler intercepts anchor navigation in sanitized HTML */}
-          <div
-            className="prose prose-invert max-w-none text-base leading-relaxed text-foreground/90"
-            onClick={handleContentClick}
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML is pre-sanitized by Rust backend
-            dangerouslySetInnerHTML={{ __html: article.content_sanitized }}
-          />
+          <div onClick={handleContentClick}>
+            <ArticleContentView thumbnailUrl={article.thumbnail} contentHtml={article.content_sanitized} />
+          </div>
         </article>
       </ScrollArea>
     </div>

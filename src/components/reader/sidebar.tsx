@@ -1,7 +1,6 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
-import { ChevronDown, Plus, RefreshCw, Settings } from "lucide-react";
+import { ChevronDown, Settings } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
@@ -20,10 +19,15 @@ import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+import { AccountSwitcherView } from "./account-switcher-view";
 import { AddFeedDialog } from "./add-feed-dialog";
-import { FeedItem } from "./feed-item";
-import { FolderSection } from "./folder-section";
+import { FeedContextMenuContent } from "./feed-context-menu";
+import { type FeedTreeFolderViewModel, FeedTreeView } from "./feed-tree-view";
+import { FolderContextMenuContent } from "./folder-context-menu";
+import { SidebarHeaderView } from "./sidebar-header-view";
+import { type SmartViewItemViewModel, SmartViewsView } from "./smart-views-view";
 import { TagContextMenuContent } from "./tag-context-menu";
+import { type TagListItemViewModel, TagListView } from "./tag-list-view";
 
 function useFormatLastSynced(date: Date | null): string {
   const { t } = useTranslation("sidebar");
@@ -90,7 +94,6 @@ export function Sidebar() {
   const grayscaleFavicons = usePreferencesStore((s) => (s.prefs.grayscale_favicons ?? "false") === "true");
   const sortSubscriptions = usePreferencesStore((s) => s.prefs.sort_subscriptions ?? "folders_first");
   const opaqueSidebars = usePreferencesStore((s) => (s.prefs.opaque_sidebars ?? "false") === "true");
-  const layoutMode = useUiStore((s) => s.layoutMode);
 
   // Auto-select first account if none selected
   useEffect(() => {
@@ -100,36 +103,33 @@ export function Sidebar() {
   }, [selectedAccountId, accounts, selectAccount]);
 
   const selectedAccount = accounts?.find((a) => a.id === selectedAccountId);
-  const hasMultipleAccounts = accounts && accounts.length > 1;
 
   const closeAccountList = useCallback((restoreFocus = false) => {
     setShowAccountList(false);
     if (restoreFocus) {
       accountTriggerRef.current?.focus();
-      requestAnimationFrame(() => accountTriggerRef.current?.focus());
     }
   }, []);
 
-  const focusAccountItem = useCallback(
-    (index: number) => {
-      if (!accounts || accounts.length === 0) return;
-      const normalizedIndex = (index + accounts.length) % accounts.length;
-      accountItemRefs.current[normalizedIndex]?.focus();
-    },
-    [accounts],
-  );
-
-  useEffect(() => {
-    if (!showAccountList || !accounts || accounts.length === 0) return;
-
-    requestAnimationFrame(() => {
-      const selectedIndex = accounts.findIndex((account) => account.id === selectedAccountId);
-      focusAccountItem(selectedIndex >= 0 ? selectedIndex : 0);
-    });
-  }, [showAccountList, accounts, selectedAccountId, focusAccountItem]);
-
   const totalUnread = feeds?.reduce((sum, f) => sum + f.unread_count, 0) ?? 0;
   const starredCount = useMemo(() => accountArticles?.filter((a) => a.is_starred).length ?? 0, [accountArticles]);
+  const selectedSmartViewKind = selection.type === "smart" ? selection.kind : null;
+  const smartViews: SmartViewItemViewModel[] = [
+    {
+      kind: "unread",
+      label: t("unread"),
+      count: totalUnread,
+      showCount: showUnreadCount,
+      isSelected: selectedSmartViewKind === "unread",
+    },
+    {
+      kind: "starred",
+      label: t("starred"),
+      count: starredCount,
+      showCount: showStarredCount && starredCount > 0,
+      isSelected: selectedSmartViewKind === "starred",
+    },
+  ];
 
   useEffect(() => {
     let cancelled = false;
@@ -166,6 +166,15 @@ export function Sidebar() {
     setIsSyncing(false);
   };
 
+  const handleAddFeed = useCallback(() => {
+    if (selectedAccountId) {
+      openAddFeedDialog();
+    } else {
+      openSettings("accounts");
+      setSettingsAddAccount(true);
+    }
+  }, [openAddFeedDialog, openSettings, selectedAccountId, setSettingsAddAccount]);
+
   const feedList: FeedDto[] = feeds ?? [];
   const folderList: FolderDto[] = folders ?? [];
 
@@ -189,6 +198,52 @@ export function Sidebar() {
   const unfolderedFeeds = useMemo(() => sortFeeds(rawUnfolderedFeeds), [rawUnfolderedFeeds, sortFeeds]);
 
   const selectedFeedId = selection.type === "feed" ? selection.feedId : null;
+  const feedTreeFolders = useMemo<FeedTreeFolderViewModel[]>(
+    () =>
+      sortedFolderList
+        .map((folder) => {
+          const folderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
+          const folderUnread = folderFeeds.reduce((sum, feed) => sum + feed.unread_count, 0);
+          return {
+            id: folder.id,
+            name: folder.name,
+            accountId: folder.account_id,
+            sortOrder: folder.sort_order,
+            unreadCount: folderUnread,
+            isExpanded: expandedFolderIds.has(folder.id),
+            feeds: folderFeeds.map((feed) => ({
+              id: feed.id,
+              accountId: feed.account_id,
+              folderId: feed.folder_id,
+              title: feed.title,
+              url: feed.url,
+              siteUrl: feed.site_url,
+              unreadCount: feed.unread_count,
+              displayMode: feed.display_mode,
+              isSelected: selectedFeedId === feed.id,
+              grayscaleFavicon: grayscaleFavicons,
+            })),
+          };
+        })
+        .filter((folder) => folder.feeds.length > 0),
+    [expandedFolderIds, feedsByFolder, grayscaleFavicons, selectedFeedId, sortFeeds, sortedFolderList],
+  );
+  const unfolderedFeedViews = useMemo(
+    () =>
+      unfolderedFeeds.map((feed) => ({
+        id: feed.id,
+        accountId: feed.account_id,
+        folderId: feed.folder_id,
+        title: feed.title,
+        url: feed.url,
+        siteUrl: feed.site_url,
+        unreadCount: feed.unread_count,
+        displayMode: feed.display_mode,
+        isSelected: selectedFeedId === feed.id,
+        grayscaleFavicon: grayscaleFavicons,
+      })),
+    [grayscaleFavicons, selectedFeedId, unfolderedFeeds],
+  );
 
   // Build a flat ordered feed list matching render order (folder feeds then unfoldered)
   const orderedFeedIds = useMemo(() => {
@@ -238,157 +293,38 @@ export function Sidebar() {
     <div
       className={cn(
         "flex h-full flex-col border-r border-border bg-sidebar text-sidebar-foreground",
-        layoutMode === "mobile" ? "w-full" : "w-[280px]",
         opaqueSidebars && "bg-opacity-100",
       )}
     >
-      {/* Header - left padding for macOS traffic lights, draggable for window move */}
-      <div data-tauri-drag-region className="flex h-12 items-center justify-end px-4 pl-20">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={handleSync}
-            disabled={isSyncing}
-            className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            aria-label={t("sync_feeds")}
-          >
-            <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => {
-              if (selectedAccountId) {
-                openAddFeedDialog();
-              } else {
-                openSettings("accounts");
-                setSettingsAddAccount(true);
-              }
-            }}
-            className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            aria-label={t("add_feed")}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
+      <div data-tauri-drag-region>
+        <SidebarHeaderView
+          isSyncing={isSyncing}
+          onSync={handleSync}
+          onAddFeed={handleAddFeed}
+          syncButtonLabel={t("sync_feeds")}
+          addFeedButtonLabel={t("add_feed")}
+        />
       </div>
 
-      {/* Account Name with Switcher */}
-      <div ref={accountDropdownRef} className="relative px-4 pb-1">
-        <button
-          ref={accountTriggerRef}
-          type="button"
-          onClick={() => hasMultipleAccounts && setShowAccountList((v) => !v)}
-          onKeyDown={(e) => {
-            if (!hasMultipleAccounts) return;
-            if (e.key === "ArrowDown") {
-              e.preventDefault();
-              setShowAccountList(true);
-            }
-            if (e.key === "Escape" && showAccountList) {
-              e.preventDefault();
-              closeAccountList(true);
-            }
-          }}
-          className={cn("text-left", hasMultipleAccounts ? "cursor-pointer" : "cursor-default")}
-          aria-haspopup={hasMultipleAccounts ? "menu" : undefined}
-          aria-expanded={hasMultipleAccounts ? showAccountList : undefined}
-          aria-controls={hasMultipleAccounts ? accountMenuId : undefined}
-        >
-          <h1 className="flex items-center gap-1 text-2xl font-bold text-sidebar-foreground">
-            {selectedAccount?.name ?? t("app_name")}
-            {hasMultipleAccounts && <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-          </h1>
-          <p className="text-xs text-muted-foreground">{lastSyncedFormatted}</p>
-        </button>
-
-        {/* Account dropdown */}
-        {showAccountList && accounts && (
-          <div
-            id={accountMenuId}
-            role="menu"
-            aria-label={t("accounts")}
-            className="absolute top-full left-0 z-50 min-w-[180px] rounded-lg border border-border bg-sidebar p-1 shadow-lg"
-            onKeyDown={(e) => {
-              if (!accounts.length) return;
-
-              const currentIndex = accountItemRefs.current.indexOf(document.activeElement as HTMLButtonElement);
-              if (e.key === "Escape") {
-                e.preventDefault();
-                closeAccountList(true);
-              }
-              if (e.key === "ArrowDown") {
-                e.preventDefault();
-                focusAccountItem(currentIndex >= 0 ? currentIndex + 1 : 0);
-              }
-              if (e.key === "ArrowUp") {
-                e.preventDefault();
-                focusAccountItem(currentIndex >= 0 ? currentIndex - 1 : accounts.length - 1);
-              }
-            }}
-          >
-            {accounts.map((acc, index) => (
-              <button
-                type="button"
-                key={acc.id}
-                ref={(element) => {
-                  accountItemRefs.current[index] = element;
-                }}
-                onClick={() => {
-                  selectAccount(acc.id);
-                  closeAccountList();
-                }}
-                role="menuitemradio"
-                aria-checked={acc.id === selectedAccountId}
-                className={cn(
-                  "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm",
-                  acc.id === selectedAccountId
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                )}
-              >
-                {acc.name}
-                <span className="text-xs text-muted-foreground">{acc.kind}</span>
-              </button>
-            ))}
-          </div>
-        )}
+      <div ref={accountDropdownRef}>
+        <AccountSwitcherView
+          title={selectedAccount?.name ?? t("app_name")}
+          lastSyncedLabel={lastSyncedFormatted}
+          accounts={accounts ?? []}
+          selectedAccountId={selectedAccountId}
+          isExpanded={showAccountList}
+          menuId={accountMenuId}
+          menuLabel={t("accounts")}
+          triggerRef={accountTriggerRef}
+          itemRefs={accountItemRefs}
+          onToggle={() => setShowAccountList((v) => !v)}
+          onSelectAccount={selectAccount}
+          onClose={closeAccountList}
+        />
       </div>
 
-      {/* Unread Smart View */}
-      <button
-        type="button"
-        onClick={() => selectSmartView("unread")}
-        className={cn(
-          "mx-2 my-1 flex items-center justify-between rounded-md px-2 py-2 text-sm",
-          selection.type === "smart" && selection.kind === "unread"
-            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-            : "hover:bg-sidebar-accent/50",
-        )}
-      >
-        <span className="font-medium">{t("unread")}</span>
-        {showUnreadCount && <span className="text-muted-foreground">{totalUnread.toLocaleString()}</span>}
-      </button>
+      <SmartViewsView views={smartViews} onSelectSmartView={selectSmartView} />
 
-      {/* Starred Smart View */}
-      <button
-        type="button"
-        onClick={() => selectSmartView("starred")}
-        className={cn(
-          "mx-2 my-0.5 flex items-center justify-between rounded-md px-2 py-2 text-sm",
-          selection.type === "smart" && selection.kind === "starred"
-            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-            : "hover:bg-sidebar-accent/50",
-        )}
-      >
-        <span className="font-medium">{t("starred")}</span>
-        {showStarredCount && starredCount > 0 && (
-          <span className="text-muted-foreground">{starredCount.toLocaleString()}</span>
-        )}
-      </button>
-
-      {/* Feeds Section Header */}
       <div className="px-2 py-2">
         <button
           type="button"
@@ -402,122 +338,72 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Scrollable Feed List */}
       <ScrollArea className="flex-1">
         <div className="pb-4">
-          <div className="space-y-0.5 px-2">
-            {feedList.length > 0 ? (
-              isFeedsSectionOpen && (
-                <>
-                  {sortedFolderList.map((folder) => {
-                    const folderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
-                    if (folderFeeds.length === 0) return null;
-                    return (
-                      <FolderSection
-                        key={folder.id}
-                        folder={folder}
-                        feeds={folderFeeds}
-                        isExpanded={expandedFolderIds.has(folder.id)}
-                        onToggle={toggleFolder}
-                        selectedFeedId={selectedFeedId}
-                        onSelectFeed={selectFeed}
-                        displayFavicons={displayFavicons}
-                        grayscaleFavicons={grayscaleFavicons}
-                      />
-                    );
-                  })}
-                  {unfolderedFeeds.map((feed) => (
-                    <FeedItem
-                      key={feed.id}
-                      feed={feed}
-                      isSelected={selectedFeedId === feed.id}
-                      onSelect={selectFeed}
-                      displayFavicons={displayFavicons}
-                      grayscaleFavicons={grayscaleFavicons}
-                    />
-                  ))}
-                </>
-              )
-            ) : (
-              <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                {selectedAccountId ? (
-                  t("press_plus_to_add_feed")
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
+          <FeedTreeView
+            isOpen={isFeedsSectionOpen}
+            folders={feedTreeFolders}
+            unfolderedFeeds={unfolderedFeedViews}
+            onToggleFolder={toggleFolder}
+            onSelectFeed={selectFeed}
+            displayFavicons={displayFavicons}
+            emptyState={
+              selectedAccountId
+                ? { kind: "message", message: t("press_plus_to_add_feed") }
+                : {
+                    kind: "action",
+                    label: t("add_account_to_start"),
+                    onAction: () => {
                       openSettings("accounts");
                       setSettingsAddAccount(true);
-                    }}
-                    className="text-muted-foreground underline decoration-muted-foreground/50 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/50"
-                  >
-                    {t("add_account_to_start")}
-                  </button>
-                )}
-              </div>
+                    },
+                  }
+            }
+            renderFolderContextMenu={(folder) => (
+              <FolderContextMenuContent
+                folder={{
+                  id: folder.id,
+                  account_id: folder.accountId,
+                  name: folder.name,
+                  sort_order: folder.sortOrder,
+                }}
+                folderUnread={folder.unreadCount}
+              />
             )}
-          </div>
+            renderFeedContextMenu={(feed) => (
+              <FeedContextMenuContent
+                feed={{
+                  id: feed.id,
+                  account_id: feed.accountId,
+                  folder_id: feed.folderId,
+                  title: feed.title,
+                  url: feed.url,
+                  site_url: feed.siteUrl,
+                  unread_count: feed.unreadCount,
+                  display_mode: feed.displayMode,
+                }}
+              />
+            )}
+          />
 
-          {/* Tags Section */}
-          {tags && tags.length > 0 && (
-            <>
-              <div className="px-2 py-2">
-                <button
-                  type="button"
-                  onClick={() => setIsTagsSectionOpen((v) => !v)}
-                  className="flex w-full items-center justify-between px-2 py-1"
-                >
-                  <span className="text-sm font-medium text-sidebar-foreground">{t("tags")}</span>
-                  <ChevronDown
-                    className={cn(
-                      "h-4 w-4 text-muted-foreground transition-transform",
-                      !isTagsSectionOpen && "-rotate-90",
-                    )}
-                  />
-                </button>
-              </div>
-              {isTagsSectionOpen && (
-                <div className="space-y-0.5 px-2">
-                  {tags.map((tag) => (
-                    <ContextMenu.Root key={tag.id}>
-                      <ContextMenu.Trigger
-                        render={
-                          <button
-                            type="button"
-                            onClick={() => selectTag(tag.id)}
-                            className={cn(
-                              "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm",
-                              selection.type === "tag" && selection.tagId === tag.id
-                                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                                : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                            )}
-                          />
-                        }
-                      >
-                        <div className="flex items-center gap-2 truncate">
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-                            {tag.color && (
-                              <span
-                                className="inline-block h-2.5 w-2.5 rounded-full"
-                                style={{ backgroundColor: tag.color }}
-                              />
-                            )}
-                          </span>
-                          <span className="truncate">{tag.name}</span>
-                        </div>
-                        {tagArticleCounts?.[tag.id] != null && tagArticleCounts[tag.id] > 0 && (
-                          <span className="ml-2 shrink-0 text-muted-foreground">
-                            {tagArticleCounts[tag.id].toLocaleString()}
-                          </span>
-                        )}
-                      </ContextMenu.Trigger>
-                      <TagContextMenuContent tag={tag} />
-                    </ContextMenu.Root>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
+          <TagListView
+            tagsLabel={t("tags")}
+            isOpen={isTagsSectionOpen}
+            onToggleOpen={() => setIsTagsSectionOpen((v) => !v)}
+            tags={(tags ?? []).map(
+              (tag): TagListItemViewModel => ({
+                id: tag.id,
+                name: tag.name,
+                color: tag.color,
+                articleCount: tagArticleCounts?.[tag.id] ?? 0,
+                isSelected: selection.type === "tag" && selection.tagId === tag.id,
+              }),
+            )}
+            onSelectTag={selectTag}
+            renderContextMenu={(tag) => (
+              <TagContextMenuContent tag={{ id: tag.id, name: tag.name, color: tag.color }} />
+            )}
+          />
         </div>
       </ScrollArea>
 
