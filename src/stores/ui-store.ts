@@ -110,6 +110,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     set({
       selectedAccountId: id,
       selection: { type: "all" },
+      viewMode: "all",
       selectedArticleId: null,
       contentMode: "empty",
       recentlyReadIds: new Set(),
@@ -117,6 +118,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   selectFeed: (feedId) =>
     set({
       selection: { type: "feed", feedId },
+      viewMode: "all",
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
@@ -125,6 +127,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   selectFolder: (folderId) =>
     set({
       selection: { type: "folder", folderId },
+      viewMode: "all",
       selectedArticleId: null,
       contentMode: "empty",
       recentlyReadIds: new Set(),
@@ -132,6 +135,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   selectSmartView: (kind) =>
     set({
       selection: { type: "smart", kind },
+      viewMode: kind,
       selectedArticleId: null,
       contentMode: "empty",
       recentlyReadIds: new Set(),
@@ -139,13 +143,20 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   selectTag: (tagId) =>
     set({
       selection: { type: "tag", tagId },
+      viewMode: "all",
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
       recentlyReadIds: new Set(),
     }),
   selectAll: () =>
-    set({ selection: { type: "all" }, selectedArticleId: null, contentMode: "empty", recentlyReadIds: new Set() }),
+    set({
+      selection: { type: "all" },
+      viewMode: "all",
+      selectedArticleId: null,
+      contentMode: "empty",
+      recentlyReadIds: new Set(),
+    }),
   selectArticle: (id) => set({ selectedArticleId: id, contentMode: "reader", focusedPane: "content" }),
   clearArticle: () => set({ selectedArticleId: null, contentMode: "empty" }),
   openBrowser: (url) => set({ contentMode: "browser", browserUrl: url }),
