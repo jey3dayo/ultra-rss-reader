@@ -44,5 +44,5 @@
 ## リリース運用
 
 - [x] v0.3.0 リリースノートを手動反映
-- [ ] 今後は feature branch → PR → merge の運用に切り替え（`generateReleaseNotes` + `release.yml` テンプレ活用）
+- [x] feature branch → PR → merge の運用（`release.yml` テンプレ + labeler 導入済み）
 - [x] PR 作成時にラベル自動付与の仕組み導入（actions/labeler）
