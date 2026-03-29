@@ -1,126 +1,74 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
-import { useEffect, useRef, useState } from "react";
-import { Trans, useTranslation } from "react-i18next";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { TagDto } from "@/api/tauri-commands";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { useDeleteTag, useRenameTag } from "@/hooks/use-tags";
 import { useUiStore } from "@/stores/ui-store";
-import { contextMenuStyles } from "./context-menu-styles";
+import { DeleteTagDialogView } from "./delete-tag-dialog-view";
+import { RenameTagDialogView } from "./rename-tag-dialog-view";
+import { TagContextMenuView } from "./tag-context-menu-view";
 
-function RenameTagDialog({
-  tag,
-  open,
-  onOpenChange,
-}: {
-  tag: TagDto;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
+export function TagContextMenuContent({ tag }: { tag: TagDto }) {
   const { t } = useTranslation("reader");
-  const { t: tc } = useTranslation("common");
-  const [name, setName] = useState(tag.name);
-  const [loading, setLoading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [renameName, setRenameName] = useState(tag.name);
+  const [renameError, setRenameError] = useState<string | null>(null);
   const showToast = useUiStore((s) => s.showToast);
   const renameTag = useRenameTag();
+  const deleteTag = useDeleteTag();
 
   useEffect(() => {
-    if (open) {
-      setName(tag.name);
-      setLoading(false);
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      });
-    }
-  }, [open, tag.name]);
-
-  const handleSubmit = () => {
-    const trimmed = name.trim();
-    if (!trimmed || trimmed === tag.name) {
-      onOpenChange(false);
+    if (!showRenameDialog) {
       return;
     }
-    setLoading(true);
+
+    setRenameName(tag.name);
+    setRenameError(null);
+  }, [showRenameDialog, tag.name]);
+
+  const handleRenameOpenChange = (open: boolean) => {
+    setShowRenameDialog(open);
+    if (!open) {
+      setRenameError(null);
+    }
+  };
+
+  const handleDeleteOpenChange = (open: boolean) => {
+    setShowDeleteDialog(open);
+  };
+
+  const handleRenameSubmit = () => {
+    const trimmed = renameName.trim();
+    if (!trimmed || trimmed === tag.name) {
+      handleRenameOpenChange(false);
+      return;
+    }
+
+    setRenameError(null);
     renameTag.mutate(
       { tagId: tag.id, name: trimmed },
       {
         onSuccess: () => {
-          onOpenChange(false);
+          handleRenameOpenChange(false);
         },
-        onError: (e: unknown) => {
-          const message = e instanceof Error ? e.message : String(e);
+        onError: (error: unknown) => {
+          const message = error instanceof Error ? error.message : String(error);
+          setRenameError(message);
           showToast(t("failed_to_rename_tag", { message }));
-          setLoading(false);
         },
       },
     );
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t("rename_tag")}</DialogTitle>
-        </DialogHeader>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSubmit();
-          }}
-          className="space-y-4"
-        >
-          <label className="block text-sm text-muted-foreground">
-            {t("name")}
-            <Input
-              ref={inputRef}
-              name="tag-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1"
-              disabled={loading}
-            />
-          </label>
-        </form>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            {tc("cancel")}
-          </Button>
-          <Button onClick={handleSubmit} disabled={!name.trim() || loading}>
-            {loading ? tc("saving") : tc("save")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function DeleteTagDialog({
-  tag,
-  open,
-  onOpenChange,
-}: {
-  tag: TagDto;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const { t } = useTranslation("reader");
-  const { t: tc } = useTranslation("common");
-  const showToast = useUiStore((s) => s.showToast);
-  const deleteTagMutation = useDeleteTag();
-
-  const handleConfirm = () => {
-    deleteTagMutation.mutate(
+  const handleDeleteConfirm = () => {
+    deleteTag.mutate(
       { tagId: tag.id },
       {
         onSuccess: () => {
-          onOpenChange(false);
+          handleDeleteOpenChange(false);
         },
-        onError: (e: unknown) => {
-          const message = e instanceof Error ? e.message : String(e);
+        onError: (error: unknown) => {
+          const message = error instanceof Error ? error.message : String(error);
           showToast(t("failed_to_delete_tag", { message }));
         },
       },
@@ -128,53 +76,24 @@ function DeleteTagDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t("delete_tag")}</DialogTitle>
-        </DialogHeader>
-        <p className="text-sm text-muted-foreground">
-          <Trans i18nKey="confirm_delete_tag" ns="reader" values={{ name: tag.name }}>
-            Are you sure you want to delete <strong>{{ name: tag.name } as never}</strong>? This tag will be removed
-            from all articles.
-          </Trans>
-        </p>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {tc("cancel")}
-          </Button>
-          <Button variant="destructive" onClick={handleConfirm}>
-            {tc("delete")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-export function TagContextMenuContent({ tag }: { tag: TagDto }) {
-  const { t } = useTranslation("reader");
-  const [showRenameDialog, setShowRenameDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-
-  return (
     <>
-      <ContextMenu.Portal>
-        <ContextMenu.Positioner>
-          <ContextMenu.Popup className={contextMenuStyles.popup}>
-            <ContextMenu.Item className={contextMenuStyles.item} onClick={() => setShowRenameDialog(true)}>
-              {t("rename_ellipsis")}
-            </ContextMenu.Item>
-            <ContextMenu.Separator className={contextMenuStyles.separator} />
-            <ContextMenu.Item className={contextMenuStyles.item} onClick={() => setShowDeleteDialog(true)}>
-              {t("delete_ellipsis")}
-            </ContextMenu.Item>
-          </ContextMenu.Popup>
-        </ContextMenu.Positioner>
-      </ContextMenu.Portal>
-
-      <RenameTagDialog tag={tag} open={showRenameDialog} onOpenChange={setShowRenameDialog} />
-      <DeleteTagDialog tag={tag} open={showDeleteDialog} onOpenChange={setShowDeleteDialog} />
+      <TagContextMenuView onRename={() => handleRenameOpenChange(true)} onDelete={() => handleDeleteOpenChange(true)} />
+      <RenameTagDialogView
+        open={showRenameDialog}
+        name={renameName}
+        loading={renameTag.isPending}
+        error={renameError}
+        onOpenChange={handleRenameOpenChange}
+        onNameChange={setRenameName}
+        onSubmit={handleRenameSubmit}
+      />
+      <DeleteTagDialogView
+        open={showDeleteDialog}
+        tagName={tag.name}
+        loading={deleteTag.isPending}
+        onOpenChange={handleDeleteOpenChange}
+        onConfirm={handleDeleteConfirm}
+      />
     </>
   );
 }
