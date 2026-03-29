@@ -1,7 +1,7 @@
 import { Copy, ExternalLink, Globe, Share } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SectionHeading } from "@/components/settings/settings-components";
-import { Switch } from "@/components/ui/switch";
+import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 
 function ServiceSwitch({ prefKey, showLabel }: { prefKey: string; showLabel: string }) {
@@ -10,7 +10,7 @@ function ServiceSwitch({ prefKey, showLabel }: { prefKey: string; showLabel: str
   return (
     <div className="flex items-center gap-2">
       <span className="text-xs text-muted-foreground">{showLabel}</span>
-      <Switch checked={checked} onCheckedChange={(v) => setPref(prefKey, String(v))} />
+      <GradientSwitch checked={checked} onCheckedChange={(v) => setPref(prefKey, String(v))} />
     </div>
   );
 }

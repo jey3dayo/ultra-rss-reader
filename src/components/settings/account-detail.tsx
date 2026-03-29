@@ -5,10 +5,10 @@ import { useTranslation } from "react-i18next";
 import type { AccountDto } from "@/api/tauri-commands";
 import { deleteAccount, exportOpml, renameAccount, updateAccountSync } from "@/api/tauri-commands";
 import { SectionHeading, SettingsRow } from "@/components/settings/settings-components";
+import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -215,10 +215,7 @@ export function AccountDetail() {
         </div>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
           <span className="text-sm text-foreground">{t("account.sync_on_wake")}</span>
-          <Switch
-            checked={account.sync_on_wake}
-            onCheckedChange={(v) => handleSyncUpdate({ syncOnWake: v })}
-          />
+          <GradientSwitch checked={account.sync_on_wake} onCheckedChange={(v) => handleSyncUpdate({ syncOnWake: v })} />
         </div>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
           <span id={keepReadItemsLabelId} className="text-sm text-foreground">
