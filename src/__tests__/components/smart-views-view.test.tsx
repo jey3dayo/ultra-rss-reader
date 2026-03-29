@@ -10,13 +10,10 @@ describe("SmartViewsView", () => {
 
     render(
       <SmartViewsView
-        unreadLabel="Unread"
-        starredLabel="Starred"
-        unreadCount={12}
-        starredCount={3}
-        showUnreadCount={true}
-        showStarredCount={true}
-        selectedKind="unread"
+        views={[
+          { kind: "unread", label: "Unread", count: 12, showCount: true, isSelected: true },
+          { kind: "starred", label: "Starred", count: 3, showCount: true, isSelected: false },
+        ]}
         onSelectSmartView={onSelectSmartView}
       />,
     );

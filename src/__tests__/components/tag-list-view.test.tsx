@@ -3,10 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { TagListView } from "@/components/reader/tag-list-view";
 
-vi.mock("@/components/reader/tag-context-menu", () => ({
-  TagContextMenuContent: () => null,
-}));
-
 describe("TagListView", () => {
   it("renders tag rows with counts and selects the clicked tag", async () => {
     const user = userEvent.setup();
@@ -15,13 +11,14 @@ describe("TagListView", () => {
     render(
       <TagListView
         tagsLabel="Tags"
-        isOpen={true}
-        onToggleOpen={vi.fn()}
         tags={[
           { id: "tag-1", name: "Later", color: "#3b82f6", articleCount: 2, isSelected: true },
           { id: "tag-2", name: "Work", color: null, articleCount: 0, isSelected: false },
         ]}
+        isOpen={true}
+        onToggleOpen={vi.fn()}
         onSelectTag={onSelectTag}
+        renderContextMenu={() => <div />}
       />,
     );
 

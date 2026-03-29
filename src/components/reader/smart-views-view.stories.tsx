@@ -7,13 +7,10 @@ const meta = {
   component: SmartViewsView,
   tags: ["autodocs"],
   args: {
-    unreadLabel: "Unread",
-    starredLabel: "Starred",
-    unreadCount: 12,
-    starredCount: 3,
-    showUnreadCount: true,
-    showStarredCount: true,
-    selectedKind: "unread",
+    views: [
+      { kind: "unread", label: "Unread", count: 12, showCount: true, isSelected: true },
+      { kind: "starred", label: "Starred", count: 3, showCount: true, isSelected: false },
+    ],
     onSelectSmartView: fn(),
   },
   decorators: [
@@ -32,6 +29,9 @@ export const Default: Story = {};
 
 export const StarredSelected: Story = {
   args: {
-    selectedKind: "starred",
+    views: [
+      { kind: "unread", label: "Unread", count: 12, showCount: true, isSelected: false },
+      { kind: "starred", label: "Starred", count: 3, showCount: true, isSelected: true },
+    ],
   },
 };

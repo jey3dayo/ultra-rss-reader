@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
-import { Settings } from "lucide-react";
+import { ChevronDown, Settings } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
@@ -21,9 +21,12 @@ import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { AccountSwitcherView } from "./account-switcher-view";
 import { AddFeedDialog } from "./add-feed-dialog";
+import { FeedContextMenuContent } from "./feed-context-menu";
 import { type FeedTreeFolderViewModel, FeedTreeView } from "./feed-tree-view";
+import { FolderContextMenuContent } from "./folder-context-menu";
 import { SidebarHeaderView } from "./sidebar-header-view";
-import { SmartViewsView } from "./smart-views-view";
+import { type SmartViewItemViewModel, SmartViewsView } from "./smart-views-view";
+import { TagContextMenuContent } from "./tag-context-menu";
 import { type TagListItemViewModel, TagListView } from "./tag-list-view";
 
 function useFormatLastSynced(date: Date | null): string {
@@ -110,6 +113,23 @@ export function Sidebar() {
 
   const totalUnread = feeds?.reduce((sum, f) => sum + f.unread_count, 0) ?? 0;
   const starredCount = useMemo(() => accountArticles?.filter((a) => a.is_starred).length ?? 0, [accountArticles]);
+  const selectedSmartViewKind = selection.type === "smart" ? selection.kind : null;
+  const smartViews: SmartViewItemViewModel[] = [
+    {
+      kind: "unread",
+      label: t("unread"),
+      count: totalUnread,
+      showCount: showUnreadCount,
+      isSelected: selectedSmartViewKind === "unread",
+    },
+    {
+      kind: "starred",
+      label: t("starred"),
+      count: starredCount,
+      showCount: showStarredCount && starredCount > 0,
+      isSelected: selectedSmartViewKind === "starred",
+    },
+  ];
 
   useEffect(() => {
     let cancelled = false;
@@ -178,6 +198,46 @@ export function Sidebar() {
   const unfolderedFeeds = useMemo(() => sortFeeds(rawUnfolderedFeeds), [rawUnfolderedFeeds, sortFeeds]);
 
   const selectedFeedId = selection.type === "feed" ? selection.feedId : null;
+  const feedTreeFolders = useMemo<FeedTreeFolderViewModel[]>(
+    () =>
+      sortedFolderList
+        .map((folder) => {
+          const folderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
+          const folderUnread = folderFeeds.reduce((sum, feed) => sum + feed.unread_count, 0);
+          return {
+            id: folder.id,
+            name: folder.name,
+            unreadCount: folderUnread,
+            isExpanded: expandedFolderIds.has(folder.id),
+            feeds: folderFeeds.map((feed) => ({
+              id: feed.id,
+              title: feed.title,
+              url: feed.url,
+              siteUrl: feed.site_url,
+              unreadCount: feed.unread_count,
+              displayMode: feed.display_mode,
+              isSelected: selectedFeedId === feed.id,
+              grayscaleFavicon: grayscaleFavicons,
+            })),
+          };
+        })
+        .filter((folder) => folder.feeds.length > 0),
+    [expandedFolderIds, feedsByFolder, grayscaleFavicons, selectedFeedId, sortFeeds, sortedFolderList],
+  );
+  const unfolderedFeedViews = useMemo(
+    () =>
+      unfolderedFeeds.map((feed) => ({
+        id: feed.id,
+        title: feed.title,
+        url: feed.url,
+        siteUrl: feed.site_url,
+        unreadCount: feed.unread_count,
+        displayMode: feed.display_mode,
+        isSelected: selectedFeedId === feed.id,
+        grayscaleFavicon: grayscaleFavicons,
+      })),
+    [grayscaleFavicons, selectedFeedId, unfolderedFeeds],
+  );
 
   // Build a flat ordered feed list matching render order (folder feeds then unfoldered)
   const orderedFeedIds = useMemo(() => {
@@ -257,56 +317,62 @@ export function Sidebar() {
         />
       </div>
 
-      {/* Scrollable Feed List */}
+      <SmartViewsView views={smartViews} onSelectSmartView={selectSmartView} />
+
+      <div className="px-2 py-2">
+        <button
+          type="button"
+          onClick={() => setIsFeedsSectionOpen((v) => !v)}
+          className="flex w-full items-center justify-between px-2 py-1"
+        >
+          <span className="text-sm font-medium text-sidebar-foreground">{t("feeds")}</span>
+          <ChevronDown
+            className={cn("h-4 w-4 text-muted-foreground transition-transform", !isFeedsSectionOpen && "-rotate-90")}
+          />
+        </button>
+      </div>
+
       <ScrollArea className="flex-1">
         <div className="pb-4">
-          <SmartViewsView
-            unreadLabel={t("unread")}
-            starredLabel={t("starred")}
-            unreadCount={totalUnread}
-            starredCount={starredCount}
-            showUnreadCount={showUnreadCount}
-            showStarredCount={showStarredCount}
-            selectedKind={selection.type === "smart" ? selection.kind : null}
-            onSelectSmartView={selectSmartView}
-          />
-
           <FeedTreeView
-            feedsLabel={t("feeds")}
             isOpen={isFeedsSectionOpen}
-            onToggleOpen={() => setIsFeedsSectionOpen((v) => !v)}
-            folders={sortedFolderList
-              .map((folder): FeedTreeFolderViewModel => {
-                const folderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
-                return {
-                  folder,
-                  feeds: folderFeeds,
-                  isExpanded: expandedFolderIds.has(folder.id),
-                };
-              })
-              .filter(({ feeds }) => feeds.length > 0)}
-            unfolderedFeeds={unfolderedFeeds}
-            selectedFeedId={selectedFeedId}
+            folders={feedTreeFolders}
+            unfolderedFeeds={unfolderedFeedViews}
             onToggleFolder={toggleFolder}
             onSelectFeed={selectFeed}
             displayFavicons={displayFavicons}
-            grayscaleFavicons={grayscaleFavicons}
             emptyState={
-              selectedAccountId ? (
-                t("press_plus_to_add_feed")
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    openSettings("accounts");
-                    setSettingsAddAccount(true);
-                  }}
-                  className="text-muted-foreground underline decoration-muted-foreground/50 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/50"
-                >
-                  {t("add_account_to_start")}
-                </button>
-              )
+              selectedAccountId
+                ? { kind: "message", message: t("press_plus_to_add_feed") }
+                : {
+                    kind: "action",
+                    label: t("add_account_to_start"),
+                    onAction: () => {
+                      openSettings("accounts");
+                      setSettingsAddAccount(true);
+                    },
+                  }
             }
+            renderFolderContextMenu={(folder) => (
+              <FolderContextMenuContent
+                folder={{ id: folder.id, account_id: selectedAccountId ?? "", name: folder.name, sort_order: 0 }}
+                folderUnread={folder.unreadCount}
+              />
+            )}
+            renderFeedContextMenu={(feed) => (
+              <FeedContextMenuContent
+                feed={{
+                  id: feed.id,
+                  account_id: selectedAccountId ?? "",
+                  folder_id: null,
+                  title: feed.title,
+                  url: feed.url,
+                  site_url: feed.siteUrl,
+                  unread_count: feed.unreadCount,
+                  display_mode: feed.displayMode,
+                }}
+              />
+            )}
           />
 
           <TagListView
@@ -315,12 +381,17 @@ export function Sidebar() {
             onToggleOpen={() => setIsTagsSectionOpen((v) => !v)}
             tags={(tags ?? []).map(
               (tag): TagListItemViewModel => ({
-                ...tag,
+                id: tag.id,
+                name: tag.name,
+                color: tag.color,
                 articleCount: tagArticleCounts?.[tag.id] ?? 0,
                 isSelected: selection.type === "tag" && selection.tagId === tag.id,
               }),
             )}
             onSelectTag={selectTag}
+            renderContextMenu={(tag) => (
+              <TagContextMenuContent tag={{ id: tag.id, name: tag.name, color: tag.color }} />
+            )}
           />
         </div>
       </ScrollArea>

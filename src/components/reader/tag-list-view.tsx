@@ -1,10 +1,12 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown } from "lucide-react";
-import type { TagDto } from "@/api/tauri-commands";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { TagContextMenuContent } from "./tag-context-menu";
 
-export type TagListItemViewModel = TagDto & {
+export type TagListItemViewModel = {
+  id: string;
+  name: string;
+  color: string | null;
   articleCount: number;
   isSelected: boolean;
 };
@@ -15,9 +17,17 @@ export type TagListViewProps = {
   onToggleOpen: () => void;
   tags: TagListItemViewModel[];
   onSelectTag: (tagId: string) => void;
+  renderContextMenu?: (tag: TagListItemViewModel) => ReactNode;
 };
 
-export function TagListView({ tagsLabel, isOpen, onToggleOpen, tags, onSelectTag }: TagListViewProps) {
+export function TagListView({
+  tagsLabel,
+  isOpen,
+  onToggleOpen,
+  tags,
+  onSelectTag,
+  renderContextMenu,
+}: TagListViewProps) {
   if (tags.length === 0) return null;
 
   return (
@@ -58,7 +68,7 @@ export function TagListView({ tagsLabel, isOpen, onToggleOpen, tags, onSelectTag
                   <span className="ml-2 shrink-0 text-muted-foreground">{tag.articleCount.toLocaleString()}</span>
                 )}
               </ContextMenu.Trigger>
-              <TagContextMenuContent tag={tag} />
+              {renderContextMenu?.(tag)}
             </ContextMenu.Root>
           ))}
         </div>

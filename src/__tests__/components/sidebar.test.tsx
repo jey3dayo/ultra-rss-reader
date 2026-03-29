@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "@/components/reader/sidebar";
+import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
@@ -23,6 +24,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 describe("Sidebar", () => {
   beforeEach(() => {
     syncCompletedListener = null;
+    useUiStore.setState(useUiStore.getInitialState());
     setupTauriMocks();
   });
 
@@ -36,6 +38,20 @@ describe("Sidebar", () => {
     render(<Sidebar />, { wrapper: createWrapper() });
     expect(screen.getByText("Unread")).toBeInTheDocument();
     expect(screen.getByText("Starred")).toBeInTheDocument();
+  });
+
+  it("keeps smart views and the feeds header outside the scroll area and delegates smart view selection", async () => {
+    const user = userEvent.setup();
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const unreadButton = screen.getByRole("button", { name: /Unread/ });
+    const feedsHeader = screen.getByRole("button", { name: "Feeds" });
+
+    expect(unreadButton.closest('[data-slot="scroll-area"]')).toBeNull();
+    expect(feedsHeader.closest('[data-slot="scroll-area"]')).toBeNull();
+
+    await user.click(unreadButton);
+    expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "unread" });
   });
 
   it("renders feeds after data loads", async () => {
