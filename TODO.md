@@ -21,25 +21,25 @@
 
 ### General
 
-- [ ] `unread_badge` — アプリアイコンの未読バッジ表示（Dock バッジ等）
-- [ ] `sort_subscriptions` — サイドバーのフィード並び順（folders_first / alphabetical / newest / oldest）
-- [ ] `mark_article_as_read` — 既読マークのタイミング制御（on_open / manual）。現在は `after_reading` のみ機能
+- [ ] `unread_badge` — アプリアイコンの未読バッジ表示（Dock バッジ等）。Tauri ネイティブ API 必要
+- [x] `sort_subscriptions` — サイドバーのフィード並び順（folders_first / alphabetical / newest / oldest）
+- [x] `mark_article_as_read` — 既読マークのタイミング制御（on_open / manual）
 
 ### Appearance
 
-- [ ] `list_selection_style` — 記事リストの選択スタイル（Modern / Classic）
-- [ ] `layout` — レイアウト設定（Automatic / Wide / Compact）。現在はウィンドウ幅で自動決定のみ
-- [ ] `opaque_sidebars` — サイドバーの不透明化
-- [ ] `grayscale_favicons` — favicon のグレースケール表示
-- [ ] `font_style` — アプリ全体のフォントファミリー切り替え
-- [ ] `font_size` — アプリ全体のフォントサイズ変更
-- [ ] `show_starred_count` — サイドバーのスター付き件数表示
-- [ ] `show_all_count` — サイドバーの全件数表示
+- [x] `list_selection_style` — 記事リストの選択スタイル（Modern / Classic）
+- [x] `layout` — レイアウト設定（Automatic / Wide / Compact）
+- [x] `opaque_sidebars` — サイドバーの不透明化
+- [x] `grayscale_favicons` — favicon のグレースケール表示
+- [x] `font_style` — アプリ全体のフォントファミリー切り替え
+- [x] `font_size` — アプリ全体のフォントサイズ変更
+- [x] `show_starred_count` — サイドバーのスター付き件数表示
+- [x] `show_all_count` — 削除（「All」ビューがサイドバーに存在しないため不要）
 
 ### Reading
 
-- [ ] `reader_view` — リーダービュー機能
-- [ ] `reading_sort` — 記事閲覧時のソート順（`sort_unread` とは別キー）
+- [x] `reader_view` — リーダービュー機能
+- [x] `reading_sort` — 記事閲覧時のソート順（`sort_unread` のフォールバック）
 
 ## リリース運用
 
