@@ -117,17 +117,6 @@ Commands (IPC boundary)
 
 Error mapping: `DomainError` → `AppError` at the command boundary (`Network` → `Retryable`, others → `UserVisible`).
 
-### Sync & Concurrency
-
-| Mechanism                  | Location                     | Purpose                                                           |
-| -------------------------- | ---------------------------- | ----------------------------------------------------------------- |
-| `AtomicBool` + `SyncGuard` | `commands/feed_commands.rs`  | Prevents overlapping sync runs (scheduler vs manual trigger)      |
-| WAL journal mode           | `infra/db/connection.rs`     | Allows concurrent reads during writes                             |
-| `busy_timeout = 5000`      | `infra/db/connection.rs`     | Retries on lock contention for up to 5 seconds                    |
-| Reader/writer split        | `DbManager`                  | Dedicated connections for reads and writes                        |
-| Scoped `Mutex` locks       | All command handlers         | Locks released before `.await` points (see `rust-async-mutex.md`) |
-| Pending mutations dedup    | `sqlite_pending_mutation.rs` | Latest mutation wins per `(account_id, remote_entry_id)`          |
-
 ### TypeScript Frontend (`src/`)
 
 | Path                    | Responsibility                                                                              |

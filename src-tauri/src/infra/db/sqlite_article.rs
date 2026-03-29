@@ -389,7 +389,7 @@ mod tests {
         let repo = SqliteArticleRepository::new(db.writer());
 
         let article = make_article(&feed_id, "New Article");
-        repo.upsert(std::slice::from_ref(&article)).unwrap();
+        repo.upsert(&[article.clone()]).unwrap();
 
         let found = repo.find_by_feed(&feed_id, &Pagination::default()).unwrap();
         assert_eq!(found.len(), 1);
@@ -406,7 +406,7 @@ mod tests {
         let mut article = make_article(&feed_id, "Article");
         article.is_read = false;
         article.is_starred = false;
-        repo.upsert(std::slice::from_ref(&article)).unwrap();
+        repo.upsert(&[article.clone()]).unwrap();
 
         // Mark as read and starred
         repo.mark_as_read(&article.id, true).unwrap();
@@ -416,7 +416,7 @@ mod tests {
         article.title = "Updated Title".to_string();
         article.is_read = false;
         article.is_starred = false;
-        repo.upsert(std::slice::from_ref(&article)).unwrap();
+        repo.upsert(&[article.clone()]).unwrap();
 
         let found = repo.find_by_feed(&feed_id, &Pagination::default()).unwrap();
         assert_eq!(found[0].title, "Updated Title");
@@ -505,7 +505,7 @@ mod tests {
         let repo = SqliteArticleRepository::new(db.writer());
 
         let article = make_article(&feed_id, "Article");
-        repo.upsert(std::slice::from_ref(&article)).unwrap();
+        repo.upsert(&[article.clone()]).unwrap();
 
         repo.mark_as_read(&article.id, true).unwrap();
         let found = repo.find_by_feed(&feed_id, &Pagination::default()).unwrap();
