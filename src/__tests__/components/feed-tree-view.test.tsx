@@ -62,6 +62,7 @@ describe("FeedTreeView", () => {
     expect(screen.getByText("Work")).toBeInTheDocument();
     expect(screen.getByText("Alpha")).toBeInTheDocument();
     expect(screen.getByText("Beta")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Work/ })).toHaveAttribute("aria-expanded", "true");
 
     await user.click(screen.getByRole("button", { name: /Work/ }));
     await user.click(screen.getByRole("button", { name: /Alpha/ }));
