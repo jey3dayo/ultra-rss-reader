@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { ReadingSettingsView } from "@/components/settings/reading-settings-view";
-import { usePreferencesStore } from "@/stores/preferences-store";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 
 export function ReadingSettings() {
   const { t } = useTranslation("settings");
@@ -20,7 +20,7 @@ export function ReadingSettings() {
               type: "select",
               name: "reader_view",
               label: t("reading.default_display_mode"),
-              value: prefs.reader_view ?? "",
+              value: resolvePreferenceValue(prefs, "reader_view"),
               options: [
                 { value: "normal", label: t("reading.normal") },
                 { value: "widescreen", label: t("reading.widescreen") },
@@ -32,7 +32,7 @@ export function ReadingSettings() {
               type: "select",
               name: "reading_sort",
               label: t("reading.sort"),
-              value: prefs.reading_sort ?? "",
+              value: resolvePreferenceValue(prefs, "reading_sort"),
               options: [
                 { value: "newest_first", label: t("reading.newest_first") },
                 { value: "oldest_first", label: t("reading.oldest_first") },
@@ -44,7 +44,7 @@ export function ReadingSettings() {
               type: "select",
               name: "after_reading",
               label: t("reading.after_reading"),
-              value: prefs.after_reading ?? "",
+              value: resolvePreferenceValue(prefs, "after_reading"),
               options: [
                 { value: "mark_as_read", label: t("reading.mark_as_read") },
                 { value: "do_nothing", label: t("reading.do_nothing") },
@@ -62,7 +62,7 @@ export function ReadingSettings() {
               id: "scroll-to-top-on-change",
               type: "switch",
               label: t("reading.scroll_to_top_on_feed_change"),
-              checked: prefs.scroll_to_top_on_change === "true",
+              checked: resolvePreferenceValue(prefs, "scroll_to_top_on_change") === "true",
               onChange: (checked) => setPref("scroll_to_top_on_change", String(checked)),
             },
           ],

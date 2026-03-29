@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { GeneralSettingsView } from "@/components/settings/general-settings-view";
-import { usePreferencesStore } from "@/stores/preferences-store";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 
 export function GeneralSettings() {
   const { t } = useTranslation("settings");
@@ -20,7 +20,7 @@ export function GeneralSettings() {
               type: "select",
               name: "language",
               label: t("general.language"),
-              value: prefs.language ?? "",
+              value: resolvePreferenceValue(prefs, "language"),
               options: [
                 { value: "system", label: t("general.system_default") },
                 { value: "en", label: "English" },
@@ -39,7 +39,7 @@ export function GeneralSettings() {
               type: "select",
               name: "unread_badge",
               label: t("general.unread_count_badge"),
-              value: prefs.unread_badge ?? "",
+              value: resolvePreferenceValue(prefs, "unread_badge"),
               options: [
                 { value: "dont_display", label: t("general.dont_display") },
                 { value: "all_unread", label: t("general.all_unread") },
@@ -59,7 +59,7 @@ export function GeneralSettings() {
               type: "select",
               name: "open_links",
               label: t("general.open_links"),
-              value: prefs.open_links ?? "",
+              value: resolvePreferenceValue(prefs, "open_links"),
               options: [
                 { value: "in_app", label: t("general.in_app_browser") },
                 { value: "default_browser", label: t("general.default_browser") },
@@ -70,7 +70,7 @@ export function GeneralSettings() {
               id: "open-links-background",
               type: "switch",
               label: t("general.open_links_in_background"),
-              checked: prefs.open_links_background === "true",
+              checked: resolvePreferenceValue(prefs, "open_links_background") === "true",
               onChange: (checked) => setPref("open_links_background", String(checked)),
             },
           ],
@@ -84,7 +84,7 @@ export function GeneralSettings() {
               type: "select",
               name: "sort_unread",
               label: t("general.sort_unread_items"),
-              value: prefs.sort_unread ?? "",
+              value: resolvePreferenceValue(prefs, "sort_unread"),
               options: [
                 { value: "newest_first", label: t("general.newest_first") },
                 { value: "oldest_first", label: t("general.oldest_first") },
@@ -96,7 +96,7 @@ export function GeneralSettings() {
               type: "select",
               name: "group_by",
               label: t("general.group_by"),
-              value: prefs.group_by ?? "",
+              value: resolvePreferenceValue(prefs, "group_by"),
               options: [
                 { value: "date", label: t("general.date") },
                 { value: "feed", label: t("general.feed") },
@@ -109,7 +109,7 @@ export function GeneralSettings() {
               type: "select",
               name: "sort_subscriptions",
               label: t("general.sort_subscriptions"),
-              value: prefs.sort_subscriptions ?? "",
+              value: resolvePreferenceValue(prefs, "sort_subscriptions"),
               options: [
                 { value: "folders_first", label: t("general.folders_first") },
                 { value: "alphabetical", label: t("general.alphabetical") },
@@ -123,7 +123,7 @@ export function GeneralSettings() {
               type: "select",
               name: "mark_article_as_read",
               label: t("general.mark_article_as_read"),
-              value: prefs.mark_article_as_read ?? "",
+              value: resolvePreferenceValue(prefs, "mark_article_as_read"),
               options: [
                 { value: "on_open", label: t("general.on_open") },
                 { value: "manual", label: t("general.manual") },
@@ -134,7 +134,7 @@ export function GeneralSettings() {
               id: "cmd-click-browser",
               type: "switch",
               label: t("general.cmd_click_browser"),
-              checked: prefs.cmd_click_browser === "true",
+              checked: resolvePreferenceValue(prefs, "cmd_click_browser") === "true",
               onChange: (checked) => setPref("cmd_click_browser", String(checked)),
             },
           ],
@@ -147,7 +147,7 @@ export function GeneralSettings() {
               id: "ask-before-mark-all",
               type: "switch",
               label: t("general.ask_before"),
-              checked: prefs.ask_before_mark_all === "true",
+              checked: resolvePreferenceValue(prefs, "ask_before_mark_all") === "true",
               onChange: (checked) => setPref("ask_before_mark_all", String(checked)),
             },
           ],

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { AppearanceSettingsView } from "@/components/settings/appearance-settings-view";
-import { usePreferencesStore } from "@/stores/preferences-store";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 
 export function AppearanceSettings() {
   const { t } = useTranslation("settings");
@@ -20,7 +20,7 @@ export function AppearanceSettings() {
               type: "select",
               name: "list_selection_style",
               label: t("appearance.list_selection_style"),
-              value: prefs.list_selection_style ?? "",
+              value: resolvePreferenceValue(prefs, "list_selection_style"),
               options: [
                 { value: "modern", label: t("appearance.modern") },
                 { value: "classic", label: t("appearance.classic") },
@@ -32,7 +32,7 @@ export function AppearanceSettings() {
               type: "select",
               name: "layout",
               label: t("appearance.layout"),
-              value: prefs.layout ?? "",
+              value: resolvePreferenceValue(prefs, "layout"),
               options: [
                 { value: "automatic", label: t("appearance.automatic") },
                 { value: "wide", label: t("appearance.wide") },
@@ -45,7 +45,7 @@ export function AppearanceSettings() {
               type: "select",
               name: "theme",
               label: t("appearance.theme"),
-              value: prefs.theme ?? "",
+              value: resolvePreferenceValue(prefs, "theme"),
               options: [
                 { value: "light", label: t("appearance.light") },
                 { value: "dark", label: t("appearance.dark") },
@@ -57,14 +57,14 @@ export function AppearanceSettings() {
               id: "opaque-sidebars",
               type: "switch",
               label: t("appearance.opaque_sidebars"),
-              checked: prefs.opaque_sidebars === "true",
+              checked: resolvePreferenceValue(prefs, "opaque_sidebars") === "true",
               onChange: (checked) => setPref("opaque_sidebars", String(checked)),
             },
             {
               id: "grayscale-favicons",
               type: "switch",
               label: t("appearance.grayscale_favicons"),
-              checked: prefs.grayscale_favicons === "true",
+              checked: resolvePreferenceValue(prefs, "grayscale_favicons") === "true",
               onChange: (checked) => setPref("grayscale_favicons", String(checked)),
             },
           ],
@@ -78,7 +78,7 @@ export function AppearanceSettings() {
               type: "select",
               name: "font_style",
               label: t("appearance.app_font_style"),
-              value: prefs.font_style ?? "",
+              value: resolvePreferenceValue(prefs, "font_style"),
               options: [
                 { value: "sans_serif", label: t("appearance.sans_serif") },
                 { value: "serif", label: t("appearance.serif") },
@@ -91,7 +91,7 @@ export function AppearanceSettings() {
               type: "select",
               name: "font_size",
               label: t("appearance.font_size"),
-              value: prefs.font_size ?? "",
+              value: resolvePreferenceValue(prefs, "font_size"),
               options: [
                 { value: "small", label: t("appearance.size_s") },
                 { value: "medium", label: t("appearance.size_m") },
@@ -109,14 +109,14 @@ export function AppearanceSettings() {
               id: "show-starred-count",
               type: "switch",
               label: t("appearance.starred_list"),
-              checked: prefs.show_starred_count === "true",
+              checked: resolvePreferenceValue(prefs, "show_starred_count") === "true",
               onChange: (checked) => setPref("show_starred_count", String(checked)),
             },
             {
               id: "show-unread-count",
               type: "switch",
               label: t("appearance.unread_list"),
-              checked: prefs.show_unread_count === "true",
+              checked: resolvePreferenceValue(prefs, "show_unread_count") === "true",
               onChange: (checked) => setPref("show_unread_count", String(checked)),
             },
           ],
@@ -130,7 +130,7 @@ export function AppearanceSettings() {
               type: "select",
               name: "image_previews",
               label: t("appearance.image_previews"),
-              value: prefs.image_previews ?? "",
+              value: resolvePreferenceValue(prefs, "image_previews"),
               options: [
                 { value: "off", label: t("appearance.off") },
                 { value: "small", label: t("appearance.small") },
@@ -143,21 +143,21 @@ export function AppearanceSettings() {
               id: "display-favicons",
               type: "switch",
               label: t("appearance.display_favicons"),
-              checked: prefs.display_favicons === "true",
+              checked: resolvePreferenceValue(prefs, "display_favicons") === "true",
               onChange: (checked) => setPref("display_favicons", String(checked)),
             },
             {
               id: "text-preview",
               type: "switch",
               label: t("appearance.text_preview"),
-              checked: prefs.text_preview === "true",
+              checked: resolvePreferenceValue(prefs, "text_preview") === "true",
               onChange: (checked) => setPref("text_preview", String(checked)),
             },
             {
               id: "dim-archived",
               type: "switch",
               label: t("appearance.dim_archived_articles"),
-              checked: prefs.dim_archived === "true",
+              checked: resolvePreferenceValue(prefs, "dim_archived") === "true",
               onChange: (checked) => setPref("dim_archived", String(checked)),
             },
           ],
