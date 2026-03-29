@@ -1,94 +1,96 @@
 ---
 allowed-tools: Bash, Read, Edit, Glob, Grep
-description: "Release: version bump, release notes generation, tag, push, trigger GitHub Release workflow"
+description: "Release: version bump, release notes, tag, push, trigger GitHub Release workflow"
 ---
 
 # Release Command
 
-バージョンを bump し、リリースノートを自動生成し、タグを作成して push する。GitHub Actions の release workflow が発火してクロスプラットフォームビルド + ドラフト GitHub Release が作成される。
+バージョンを bump し、リリースノートを自動生成し、タグを作成して push する。
+GitHub Actions の release workflow が発火してクロスプラットフォームビルド + ドラフト GitHub Release が作成される。
 
 ## 引数
 
-$ARGUMENTS (patch, minor, major のいずれか。省略時は patch)
+$ARGUMENTS (patch, minor, major のいずれか。省略時は対話で選択)
 
-## 手順
+## 実行フロー
 
-### 1. 事前チェック
+**3フェーズ構造。各フェーズ内は一括実行し、フェーズ間でユーザー確認を挟む。ステップを飛ばさないこと。**
 
-以下をすべて確認し、1つでも失敗したら中止して理由を報告する:
+---
 
-- 現在のブランチが `main` であること (`git branch --show-current`)
-- uncommitted changes がないこと (`git status --porcelain` が空)
-- `mise run check` が成功すること（format + lint + test）
+### Phase 1: 事前チェック＋バージョン決定
 
-### 2. 現在バージョンの取得
+以下をすべて実行し、1つでも失敗したら中止して理由を報告する:
 
-`package.json` から現在のバージョンを読み取る。
+1. 現在のブランチが `main` であること (`git branch --show-current`)
+2. `git fetch origin main` でリモート最新化し、ローカルが `origin/main` と一致すること (`git rev-parse HEAD` と `git rev-parse origin/main` を比較。behind している場合はエラー終了)
+3. uncommitted changes がないこと (`git status --porcelain` が空)
+4. `mise run check` が成功すること（format + lint + test）
+5. `package.json` から現在のバージョンを読み取る
 
-### 3. バージョン bump
+**🔸 ユーザー確認①:** bump 種別を選択（patch / minor / major）。$ARGUMENTS で指定済みならスキップ。
 
-引数（デフォルト: patch）に基づいて新しいバージョンを計算し、以下の3ファイルを更新する:
+---
+
+### Phase 2: 変更生成＋リリースノート
+
+以下を一括実行する:
+
+#### 2a. バージョン bump
+
+引数に基づいて新しいバージョンを計算し、以下の3ファイルを更新する:
 
 - `package.json` — `"version": "x.y.z"`
 - `src-tauri/Cargo.toml` — `version = "x.y.z"`（`[package]` セクション内）
 - `src-tauri/tauri.conf.json` — `"version": "x.y.z"`
 
-### 4. Cargo.lock 更新
+#### 2b. Cargo.lock 更新
 
 ```bash
 cd src-tauri && cargo check
 ```
 
-で Cargo.lock にバージョン変更を反映する。
+#### 2c. リリースノート生成
 
-### 5. リリースノート自動生成
+前回のタグから現在までのコミットログを分析する。
 
-前回のタグから現在までのコミットログを分析し、リリースノートを生成する。
-
-#### 5a. コミットログ収集
+**コミットログ収集:**
 
 ```bash
-git log {previous_tag}..HEAD --oneline --no-merges
+# 前回タグ取得（v* パターンでリリースタグのみ）
+PREV_TAG=$(git describe --tags --abbrev=0 --match "v*" 2>/dev/null)
+
+# コミットログ取得
+if [ -n "$PREV_TAG" ]; then
+  git log ${PREV_TAG}..HEAD --oneline --no-merges
+else
+  # 初回リリース: 全コミット
+  git log --oneline --no-merges
+fi
 ```
 
-前回のタグは `git describe --tags --abbrev=0 HEAD~1` で取得する。タグがない場合は全コミットを対象とする。
+**コミットをカテゴリ分類:**
 
-#### 5b. コミットをカテゴリ分類
-
-コミット prefix に基づいて以下のカテゴリに分類する:
-
-| prefix                       | カテゴリ            |
-| ---------------------------- | ------------------- |
-| `feat:`                      | 🚀 Features         |
-| `fix:`                       | 🐛 Bug Fixes        |
-| `docs:`                      | 📚 Documentation    |
-| `chore:`/`refactor:`/`test:` | 🔧 Maintenance      |
-| (breaking change)            | 💥 Breaking Changes |
+| prefix                                                | GitHub Release カテゴリ | CHANGELOG カテゴリ |
+| ----------------------------------------------------- | ----------------------- | ------------------ |
+| `feat:`                                               | 🚀 Features             | Features           |
+| `fix:`                                                | 🐛 Bug Fixes            | Bug Fixes          |
+| `docs:`                                               | 📚 Documentation        | Documentation      |
+| `chore:`/`refactor:`/`test:`/`ci:`                    | 🔧 Maintenance          | Maintenance        |
+| `feat!:`/`fix!:` 等 (`!` 付き)                        | 💥 Breaking Changes     | Breaking Changes   |
+| その他（prefix なし、`perf:`, `build:`, `style:` 等） | 🔧 Maintenance          | Maintenance        |
 
 - `release:`, `merge:` prefix のコミットは除外する
 - PR 番号（`(#N)`）があればそのまま含める
 - 空のカテゴリはセクションごと省略する
 
-#### 5c. リリースノートテキスト生成
+**対象コミットが 0 件の場合はエラーとして中止し、理由を報告する。**
 
-以下の形式で生成する:
+注: バージョン bump はまだ未コミットのため、リリースノートの対象には含まれない（意図通り）。
 
-```markdown
-## 🚀 Features
+#### 2d. CHANGELOG.md 更新
 
-- macOS ネイティブメニューバー (#6)
-- ...
-
-## 🐛 Bug Fixes
-
-- ...
-```
-
-生成したテキストをユーザーに表示し、内容を確認してもらう。修正指示があれば反映する。
-
-### 6. CHANGELOG.md 更新
-
-`CHANGELOG.md` の `## [Unreleased]` セクションの直後に新バージョンのセクションを追加する:
+`## [Unreleased]` の直後に新バージョンセクションを挿入し、`[Unreleased]` 内の既存内容は空にする:
 
 ```markdown
 ## [Unreleased]
@@ -98,38 +100,35 @@ git log {previous_tag}..HEAD --oneline --no-merges
 ### Features
 
 - ...
-
-### Bug Fixes
-
-- ...
 ```
 
-- カテゴリ名は CHANGELOG 形式に合わせる（絵文字なし: Features, Bug Fixes, Documentation, Maintenance）
-- 空のカテゴリは省略する
+カテゴリ名は絵文字なし。`[Unreleased]` が見つからない場合は、ファイルヘッダー直後に `## [Unreleased]` + 新バージョンセクションの両方を挿入する。
 
-### 7. TODO.md 更新
+#### 2e. TODO.md 更新
 
-`TODO.md` にリリース関連の完了タスクがあれば `[x]` にマークする。該当がなければスキップ。
+リリースに含まれる内容に対応するタスクがあれば `[x]` にマーク。該当なしならスキップ。
 
-### 8. コミット
+**🔸 ユーザー確認②:** 生成されたリリースノートを表示し、内容を確認してもらう。修正指示があれば反映する。
 
-変更されたファイル（バージョン 3 ファイル + Cargo.lock + CHANGELOG.md + TODO.md）をステージして以下のメッセージでコミット:
+---
+
+### Phase 3: コミット＋タグ＋公開
+
+#### 3a. コミット＋タグ作成
+
+1. 変更されたファイルをステージしてコミット:
 
 ```text
 release: v{new_version}
 ```
 
-### 9. タグ作成
-
-annotated タグを作成する（`--follow-tags` で push されるために必要）:
+2. annotated タグを作成する:
 
 ```bash
 git tag -a v{new_version} -m "v{new_version}"
 ```
 
-### 10. ユーザー確認
-
-push 前に以下を表示してユーザーの確認を求める:
+**🔸 ユーザー確認③:** push 前に以下を表示してユーザーの確認を求める:
 
 - 旧バージョン → 新バージョン
 - リリースノート（カテゴリ分類済み）
@@ -137,18 +136,21 @@ push 前に以下を表示してユーザーの確認を求める:
 - タグ名
 - "push してよいですか？" と確認
 
-### 11. push
+#### 3b. push
 
 ユーザーが承認したら:
 
 ```bash
-git push origin main --follow-tags
+# atomic push（branch + tag を同時に。片方だけ通る壊れた状態を防ぐ）
+git push --atomic origin main v{new_version}
+# --atomic 非対応の場合のフォールバック:
+# git push origin main --follow-tags
 ```
 
-push 後、タグがリモートに存在するか確認する:
+push 後、タグがリモートに存在するか完全一致で確認する:
 
 ```bash
-git ls-remote --tags origin | grep v{new_version}
+git ls-remote --tags origin | grep "refs/tags/v{new_version}$"
 ```
 
 もしタグが見つからない場合は明示的に push する:
@@ -157,19 +159,15 @@ git ls-remote --tags origin | grep v{new_version}
 git push origin v{new_version}
 ```
 
-これにより既存の `.github/workflows/release.yml` が `v*` タグで発火する。
+#### 3c. GitHub Release ノート反映
 
-### 12. GitHub Release ノート反映
+`gh release edit v{new_version} --notes "..."` でリリースノート（絵文字付きカテゴリ）を反映する。
 
-ドラフト Release が作成されたら、ステップ 5 で生成したリリースノートを GitHub Release の body に反映する:
+Release がまだ存在しない場合（GitHub Actions 未完了）は `gh release create v{new_version} --draft --notes "..."` で先にドラフト作成する。
 
-```bash
-gh release edit v{new_version} --notes "..."
-```
+**責務分担:** CLI がリリースノート本文を管理し、`release.yml` の `tauri-action` はアーティファクト添付のみを担当する。
 
-PR ベースの `generateReleaseNotes` が空になる場合があるため（直接コミット時）、常にコミットログベースのノートで上書きする。
-
-### 13. 完了報告
+#### 3d. 完了報告
 
 - push したコミットとタグを報告
 - GitHub Actions のワークフロー URL を表示（`gh run list --workflow=release.yml --limit=1`）
