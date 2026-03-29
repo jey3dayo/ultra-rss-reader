@@ -361,7 +361,12 @@ export function Sidebar() {
             }
             renderFolderContextMenu={(folder) => (
               <FolderContextMenuContent
-                folder={{ id: folder.id, account_id: folder.accountId, name: folder.name, sort_order: folder.sortOrder }}
+                folder={{
+                  id: folder.id,
+                  account_id: folder.accountId,
+                  name: folder.name,
+                  sort_order: folder.sortOrder,
+                }}
                 folderUnread={folder.unreadCount}
               />
             )}
