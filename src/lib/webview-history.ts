@@ -29,13 +29,21 @@ export function reloadWebview() {
   return Result.try({
     try: async () => {
       const iframe = Result.unwrap(getIframe());
-      if (iframe.contentWindow) {
-        iframe.contentWindow.location.reload();
-      } else if (iframe.src) {
-        const currentSrc = iframe.src;
-        iframe.src = "";
-        iframe.src = currentSrc;
-      }
+      // cross-origin では contentWindow.location.reload() が SecurityError になるため
+      // src を再設定してリロードする
+      const currentSrc = iframe.src;
+      iframe.src = "";
+      iframe.src = currentSrc;
+    },
+    catch: (error) => (error instanceof Error ? error : new Error(String(error))),
+  });
+}
+
+export function stopWebview() {
+  return Result.try({
+    try: async () => {
+      const iframe = Result.unwrap(getIframe());
+      iframe.src = "about:blank";
     },
     catch: (error) => (error instanceof Error ? error : new Error(String(error))),
   });
