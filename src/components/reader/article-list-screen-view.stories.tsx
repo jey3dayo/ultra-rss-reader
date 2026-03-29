@@ -1,13 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fn } from "storybook/test";
 import { ArticleListScreenView } from "./article-list-screen-view";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: false },
-  },
-});
 
 const articleFixture = {
   id: "art-1",
@@ -56,11 +49,9 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <QueryClientProvider client={queryClient}>
-        <div className="h-[480px] w-[380px] overflow-hidden border border-border bg-card">
-          <Story />
-        </div>
-      </QueryClientProvider>
+      <div className="h-[480px] w-[380px] overflow-hidden border border-border bg-card">
+        <Story />
+      </div>
     ),
   ],
 } satisfies Meta<typeof ArticleListScreenView>;

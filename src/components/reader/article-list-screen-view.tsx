@@ -1,4 +1,5 @@
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
+import type { ArticleDto } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArticleGroupsView, type ArticleGroupsViewGroup } from "./article-groups-view";
 
@@ -14,6 +15,7 @@ export type ArticleListScreenViewProps = {
   imagePreviews: string;
   selectionStyle: string;
   onSelectArticle: (articleId: string) => void;
+  renderRow?: (params: { article: ArticleDto; articleId: string; content: ReactNode }) => ReactNode;
 };
 
 export function ArticleListScreenView({
@@ -28,6 +30,7 @@ export function ArticleListScreenView({
   imagePreviews,
   selectionStyle,
   onSelectArticle,
+  renderRow,
 }: ArticleListScreenViewProps) {
   return (
     <ScrollArea className="h-full">
@@ -44,6 +47,7 @@ export function ArticleListScreenView({
             imagePreviews={imagePreviews}
             selectionStyle={selectionStyle}
             onSelectArticle={onSelectArticle}
+            renderRow={renderRow}
           />
         )}
       </div>

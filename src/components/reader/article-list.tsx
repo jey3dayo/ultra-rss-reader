@@ -16,6 +16,7 @@ import {
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+import { ArticleContextMenu } from "./article-context-menu";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 import { ArticleListFooter } from "./article-list-footer";
 import { ArticleListHeader } from "./article-list-header";
@@ -244,6 +245,7 @@ export function ArticleList() {
             imagePreviews={imagePreviews}
             selectionStyle={selectionStyle}
             onSelectArticle={selectArticle}
+            renderRow={({ article, content }) => <ArticleContextMenu article={article}>{content}</ArticleContextMenu>}
           />
         </ContextMenu.Trigger>
         <ContextMenu.Portal>

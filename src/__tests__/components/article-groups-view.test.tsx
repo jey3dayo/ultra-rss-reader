@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ArticleGroupsView } from "@/components/reader/article-groups-view";
-import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleArticles } from "../../../tests/helpers/tauri-mocks";
 
 describe("ArticleGroupsView", () => {
@@ -38,12 +37,13 @@ describe("ArticleGroupsView", () => {
         imagePreviews="off"
         selectionStyle="modern"
         onSelectArticle={onSelectArticle}
+        renderRow={({ articleId, content }) => <div data-testid={`row-${articleId}`}>{content}</div>}
       />,
-      { wrapper: createWrapper() },
     );
 
     expect(screen.getAllByText("Tech Blog").length).toBeGreaterThan(0);
     expect(screen.getByRole("option", { name: /Second Article/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByTestId(`row-${sampleArticles[0].id}`)).toBeInTheDocument();
 
     await user.click(screen.getByRole("option", { name: /First Article/i }));
 
@@ -73,8 +73,8 @@ describe("ArticleGroupsView", () => {
         imagePreviews="off"
         selectionStyle="classic"
         onSelectArticle={vi.fn()}
+        renderRow={({ content }) => content}
       />,
-      { wrapper: createWrapper() },
     );
 
     expect(screen.queryByText("Unused")).not.toBeInTheDocument();

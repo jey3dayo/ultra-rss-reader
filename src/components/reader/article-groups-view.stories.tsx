@@ -1,13 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fn } from "storybook/test";
 import { ArticleGroupsView } from "./article-groups-view";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: false },
-  },
-});
 
 const articleFixtures = [
   {
@@ -79,11 +72,9 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <QueryClientProvider client={queryClient}>
-        <div className="w-[380px] bg-card">
-          <Story />
-        </div>
-      </QueryClientProvider>
+      <div className="w-[380px] bg-card">
+        <Story />
+      </div>
     ),
   ],
 } satisfies Meta<typeof ArticleGroupsView>;

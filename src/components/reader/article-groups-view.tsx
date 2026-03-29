@@ -1,5 +1,5 @@
+import type { ReactNode } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { ArticleContextMenu } from "./article-context-menu";
 import { ArticleListItem } from "./article-list-item";
 
 export type ArticleGroupsViewItem = {
@@ -23,6 +23,7 @@ export type ArticleGroupsViewProps = {
   imagePreviews: string;
   selectionStyle: string;
   onSelectArticle: (articleId: string) => void;
+  renderRow?: (params: { article: ArticleDto; articleId: string; content: ReactNode }) => ReactNode;
 };
 
 export function ArticleGroupsView({
@@ -32,6 +33,7 @@ export function ArticleGroupsView({
   imagePreviews,
   selectionStyle,
   onSelectArticle,
+  renderRow,
 }: ArticleGroupsViewProps) {
   return groups.map((group) => (
     <div key={group.id}>
@@ -42,19 +44,25 @@ export function ArticleGroupsView({
       )}
 
       {group.items.map((item) => (
-        <ArticleContextMenu key={item.article.id} article={item.article}>
-          <ArticleListItem
-            article={item.article}
-            isSelected={item.isSelected}
-            isRecentlyRead={item.isRecentlyRead}
-            dimArchived={dimArchived}
-            textPreview={textPreview}
-            imagePreviews={imagePreviews}
-            selectionStyle={selectionStyle}
-            feedName={item.feedName}
-            onSelect={() => onSelectArticle(item.article.id)}
-          />
-        </ArticleContextMenu>
+        <div key={item.article.id}>
+          {(renderRow ?? (({ content }) => content))({
+            article: item.article,
+            articleId: item.article.id,
+            content: (
+              <ArticleListItem
+                article={item.article}
+                isSelected={item.isSelected}
+                isRecentlyRead={item.isRecentlyRead}
+                dimArchived={dimArchived}
+                textPreview={textPreview}
+                imagePreviews={imagePreviews}
+                selectionStyle={selectionStyle}
+                feedName={item.feedName}
+                onSelect={() => onSelectArticle(item.article.id)}
+              />
+            ),
+          })}
+        </div>
       ))}
     </div>
   ));
