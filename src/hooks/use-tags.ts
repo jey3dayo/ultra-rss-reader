@@ -67,7 +67,7 @@ function invalidateTagQueries(qc: QueryClient) {
 }
 
 export const useRenameTag = createMutation(
-  ({ tagId, name }: { tagId: string; name: string }) => renameTag(tagId, name),
+  ({ tagId, name, color }: { tagId: string; name: string; color?: string | null }) => renameTag(tagId, name, color),
   invalidateTagQueries,
 );
 

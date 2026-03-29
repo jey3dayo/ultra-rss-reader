@@ -107,6 +107,7 @@ export const updateFeedDisplayMode = (feedId: string, displayMode: string) =>
 
 export const openInBrowser = (url: string, background?: boolean) =>
   safeInvoke<void>("open_in_browser", { url, background });
+export const checkBrowserEmbedSupport = (url: string) => safeInvoke<boolean>("check_browser_embed_support", { url });
 
 export const triggerSync = () => safeInvoke<boolean>("trigger_sync");
 
@@ -118,7 +119,8 @@ export const setPreference = (key: string, value: string) => safeInvoke<void>("s
 // Tags
 export const listTags = () => safeInvoke<TagDto[]>("list_tags");
 export const createTag = (name: string, color?: string) => safeInvoke<TagDto>("create_tag", { name, color });
-export const renameTag = (tagId: string, name: string) => safeInvoke<TagDto>("rename_tag", { tagId, name });
+export const renameTag = (tagId: string, name: string, color?: string | null) =>
+  safeInvoke<TagDto>("rename_tag", { tagId, name, color });
 export const deleteTag = (tagId: string) => safeInvoke<void>("delete_tag", { tagId });
 export const tagArticle = (articleId: string, tagId: string) => safeInvoke<void>("tag_article", { articleId, tagId });
 export const untagArticle = (articleId: string, tagId: string) =>

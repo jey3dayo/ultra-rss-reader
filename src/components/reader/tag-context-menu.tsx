@@ -6,10 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useDeleteTag, useRenameTag } from "@/hooks/use-tags";
+import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { contextMenuStyles } from "./context-menu-styles";
 
-function RenameTagDialog({
+const TAG_COLOR_PRESETS = [
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#06b6d4",
+  "#3b82f6",
+  "#8b5cf6",
+  "#ec4899",
+  "#6b7280",
+];
+
+function EditTagDialog({
   tag,
   open,
   onOpenChange,
@@ -21,6 +34,7 @@ function RenameTagDialog({
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
   const [name, setName] = useState(tag.name);
+  const [color, setColor] = useState<string | null>(tag.color);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const showToast = useUiStore((s) => s.showToast);
@@ -29,23 +43,30 @@ function RenameTagDialog({
   useEffect(() => {
     if (open) {
       setName(tag.name);
+      setColor(tag.color);
       setLoading(false);
       requestAnimationFrame(() => {
         inputRef.current?.focus();
         inputRef.current?.select();
       });
     }
-  }, [open, tag.name]);
+  }, [open, tag.name, tag.color]);
 
   const handleSubmit = () => {
     const trimmed = name.trim();
-    if (!trimmed || trimmed === tag.name) {
+    if (!trimmed) {
+      onOpenChange(false);
+      return;
+    }
+    const nameChanged = trimmed !== tag.name;
+    const colorChanged = color !== tag.color;
+    if (!nameChanged && !colorChanged) {
       onOpenChange(false);
       return;
     }
     setLoading(true);
     renameTag.mutate(
-      { tagId: tag.id, name: trimmed },
+      { tagId: tag.id, name: trimmed, color: color ?? undefined },
       {
         onSuccess: () => {
           onOpenChange(false);
@@ -63,7 +84,7 @@ function RenameTagDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false} className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t("rename_tag")}</DialogTitle>
+          <DialogTitle>{t("edit_tag")}</DialogTitle>
         </DialogHeader>
         <form
           onSubmit={(e) => {
@@ -84,6 +105,38 @@ function RenameTagDialog({
               disabled={loading}
             />
           </label>
+          <div className="space-y-1.5">
+            <span className="block text-sm text-muted-foreground">{t("color")}</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                title={t("no_color")}
+                className={cn(
+                  "h-6 w-6 rounded-full border-2 transition-[box-shadow]",
+                  color === null
+                    ? "border-primary ring-2 ring-primary/30"
+                    : "border-muted-foreground/30 hover:border-muted-foreground/60",
+                )}
+                onClick={() => setColor(null)}
+              >
+                <span className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">✕</span>
+              </button>
+              {TAG_COLOR_PRESETS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={cn(
+                    "h-6 w-6 rounded-full border-2 transition-[box-shadow]",
+                    color === c
+                      ? "border-primary ring-2 ring-primary/30"
+                      : "border-transparent hover:border-muted-foreground/40",
+                  )}
+                  style={{ backgroundColor: c }}
+                  onClick={() => setColor(c)}
+                />
+              ))}
+            </div>
+          </div>
         </form>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
@@ -163,7 +216,7 @@ export function TagContextMenuContent({ tag }: { tag: TagDto }) {
         <ContextMenu.Positioner>
           <ContextMenu.Popup className={contextMenuStyles.popup}>
             <ContextMenu.Item className={contextMenuStyles.item} onClick={() => setShowRenameDialog(true)}>
-              {t("rename_ellipsis")}
+              {t("edit_ellipsis")}
             </ContextMenu.Item>
             <ContextMenu.Separator className={contextMenuStyles.separator} />
             <ContextMenu.Item className={contextMenuStyles.item} onClick={() => setShowDeleteDialog(true)}>
@@ -173,7 +226,7 @@ export function TagContextMenuContent({ tag }: { tag: TagDto }) {
         </ContextMenu.Positioner>
       </ContextMenu.Portal>
 
-      <RenameTagDialog tag={tag} open={showRenameDialog} onOpenChange={setShowRenameDialog} />
+      <EditTagDialog tag={tag} open={showRenameDialog} onOpenChange={setShowRenameDialog} />
       <DeleteTagDialog tag={tag} open={showDeleteDialog} onOpenChange={setShowDeleteDialog} />
     </>
   );
