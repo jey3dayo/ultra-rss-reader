@@ -8,12 +8,16 @@ export function SettingsSwitch({ label, prefKey }: { label: string; prefKey: str
   const value = usePreferencesStore((s) => s.prefs[prefKey]);
   const setPref = usePreferencesStore((s) => s.setPref);
   const checked = value === "true";
+  const labelId = useId();
   return (
     <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-      <span className="text-sm text-foreground">{label}</span>
+      <span id={labelId} className="text-sm text-foreground">
+        {label}
+      </span>
       <Switch
         checked={checked}
         onCheckedChange={(v) => setPref(prefKey, String(v))}
+        aria-labelledby={labelId}
         className="data-[state=checked]:bg-ring"
       />
     </div>

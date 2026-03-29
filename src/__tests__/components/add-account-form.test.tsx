@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AddAccountForm } from "@/components/settings/add-account-form";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
@@ -67,5 +67,50 @@ describe("AddAccountForm", () => {
     expect(screen.getByDisplayValue("https://example.com")).toBeInTheDocument();
     expect(container.querySelector('input[name="username"]')).toHaveValue("alice");
     expect(container.querySelector('input[name="password"]')).toHaveValue("secret");
+  });
+
+  it("submits from the form and disables controls while the request is pending", async () => {
+    let resolveAddAccount: ((value: unknown) => void) | null = null;
+    const addAccountCalls = vi.fn();
+
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "add_account") {
+        addAccountCalls(args);
+        return new Promise((resolve) => {
+          resolveAddAccount = resolve;
+        });
+      }
+      return null;
+    });
+
+    const user = userEvent.setup();
+    render(<AddAccountForm />, { wrapper: createWrapper() });
+
+    await user.type(screen.getByLabelText("Name"), "Work RSS");
+    await user.keyboard("{Enter}");
+
+    const addButton = screen.getByRole("button", { name: "Adding..." });
+    expect(addAccountCalls).toHaveBeenCalledTimes(1);
+    expect(addButton).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(screen.getByLabelText("Name")).toBeDisabled();
+
+    if (!resolveAddAccount) {
+      throw new Error("add_account did not start");
+    }
+
+    resolveAddAccount({
+      id: "acc-new",
+      kind: "Local",
+      name: "Work RSS",
+      server_url: null,
+      sync_interval_secs: 3600,
+      sync_on_wake: false,
+      keep_read_items_days: 30,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Add" })).not.toBeDisabled();
+    });
   });
 });

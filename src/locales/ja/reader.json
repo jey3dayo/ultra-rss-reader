@@ -34,6 +34,7 @@
   "browser_view": "ブラウザビュー",
   "remove_tag": "タグ {{name}} を削除",
   "add_tag": "タグを追加",
+  "available_tags": "利用可能なタグ",
   "new_tag_placeholder": "新しいタグ...",
   "mark_as_unread": "未読にする",
   "mark_as_read": "既読にする",

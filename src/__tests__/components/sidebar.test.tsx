@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "@/components/reader/sidebar";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 let syncCompletedListener: (() => void) | null = null;
 
@@ -63,6 +64,35 @@ describe("Sidebar", () => {
     expect(fives.length).toBeGreaterThanOrEqual(1);
   });
 
+  it("uses the same section wrapper for feeds and tags headers", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_tags":
+          return [{ id: "tag-1", name: "Later", color: "#3b82f6" }];
+        case "get_tag_article_counts":
+          return { "tag-1": 2 };
+        default:
+          return null;
+      }
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const feedsHeader = await screen.findByRole("button", { name: "Feeds" });
+    const tagsHeader = await screen.findByRole("button", { name: "Tags" });
+
+    expect(feedsHeader.parentElement).toHaveClass("px-2", "py-2");
+    expect(tagsHeader.parentElement).toHaveClass("px-2", "py-2");
+  });
+
   it("does not update last synced time when sync is skipped", async () => {
     setupTauriMocks((cmd) => {
       if (cmd === "trigger_sync") return false;
@@ -90,5 +120,26 @@ describe("Sidebar", () => {
     await waitFor(() => {
       expect(screen.getByText(/Today at /)).toBeInTheDocument();
     });
+  });
+
+  it("opens the account switcher with expanded state and closes it on Escape", async () => {
+    const user = userEvent.setup();
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const trigger = await screen.findByRole("button", { name: /Local/ });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(trigger);
+
+    const menu = await screen.findByRole("menu", { name: "Accounts" });
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(menu).toBeInTheDocument();
+
+    fireEvent.keyDown(menu, { key: "Escape" });
+
+    await waitFor(() => {
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
+    expect(trigger).toHaveFocus();
   });
 });

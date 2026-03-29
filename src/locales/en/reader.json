@@ -34,6 +34,7 @@
   "browser_view": "Browser View",
   "remove_tag": "Remove tag {{name}}",
   "add_tag": "Add tag",
+  "available_tags": "Available tags",
   "new_tag_placeholder": "New tag...",
   "mark_as_unread": "Mark as Unread",
   "mark_as_read": "Mark as Read",

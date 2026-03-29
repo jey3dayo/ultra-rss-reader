@@ -2,7 +2,7 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
 import { ChevronDown, Plus, RefreshCw, Settings } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { triggerSync } from "@/api/tauri-commands";
@@ -49,6 +49,9 @@ export function Sidebar() {
   const [isFeedsSectionOpen, setIsFeedsSectionOpen] = useState(true);
   const [isTagsSectionOpen, setIsTagsSectionOpen] = useState(true);
   const accountDropdownRef = useRef<HTMLDivElement>(null);
+  const accountTriggerRef = useRef<HTMLButtonElement>(null);
+  const accountItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const accountMenuId = useId();
 
   // Close account dropdown on click outside
   useEffect(() => {
@@ -97,6 +100,31 @@ export function Sidebar() {
 
   const selectedAccount = accounts?.find((a) => a.id === selectedAccountId);
   const hasMultipleAccounts = accounts && accounts.length > 1;
+
+  const closeAccountList = useCallback((restoreFocus = false) => {
+    setShowAccountList(false);
+    if (restoreFocus) {
+      requestAnimationFrame(() => accountTriggerRef.current?.focus());
+    }
+  }, []);
+
+  const focusAccountItem = useCallback(
+    (index: number) => {
+      if (!accounts || accounts.length === 0) return;
+      const normalizedIndex = (index + accounts.length) % accounts.length;
+      accountItemRefs.current[normalizedIndex]?.focus();
+    },
+    [accounts],
+  );
+
+  useEffect(() => {
+    if (!showAccountList || !accounts || accounts.length === 0) return;
+
+    requestAnimationFrame(() => {
+      const selectedIndex = accounts.findIndex((account) => account.id === selectedAccountId);
+      focusAccountItem(selectedIndex >= 0 ? selectedIndex : 0);
+    });
+  }, [showAccountList, accounts, selectedAccountId, focusAccountItem]);
 
   const totalUnread = feeds?.reduce((sum, f) => sum + f.unread_count, 0) ?? 0;
   const starredCount = useMemo(() => accountArticles?.filter((a) => a.is_starred).length ?? 0, [accountArticles]);
@@ -255,9 +283,24 @@ export function Sidebar() {
       {/* Account Name with Switcher */}
       <div ref={accountDropdownRef} className="relative px-4 pb-1">
         <button
+          ref={accountTriggerRef}
           type="button"
           onClick={() => hasMultipleAccounts && setShowAccountList((v) => !v)}
+          onKeyDown={(e) => {
+            if (!hasMultipleAccounts) return;
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setShowAccountList(true);
+            }
+            if (e.key === "Escape" && showAccountList) {
+              e.preventDefault();
+              closeAccountList(true);
+            }
+          }}
           className={cn("text-left", hasMultipleAccounts ? "cursor-pointer" : "cursor-default")}
+          aria-haspopup={hasMultipleAccounts ? "menu" : undefined}
+          aria-expanded={hasMultipleAccounts ? showAccountList : undefined}
+          aria-controls={hasMultipleAccounts ? accountMenuId : undefined}
         >
           <h1 className="flex items-center gap-1 text-2xl font-bold text-sidebar-foreground">
             {selectedAccount?.name ?? t("app_name")}
@@ -268,15 +311,42 @@ export function Sidebar() {
 
         {/* Account dropdown */}
         {showAccountList && accounts && (
-          <div className="absolute top-full left-0 z-50 min-w-[180px] rounded-lg border border-border bg-sidebar p-1 shadow-lg">
-            {accounts.map((acc) => (
+          <div
+            id={accountMenuId}
+            role="menu"
+            aria-label={t("accounts")}
+            className="absolute top-full left-0 z-50 min-w-[180px] rounded-lg border border-border bg-sidebar p-1 shadow-lg"
+            onKeyDown={(e) => {
+              if (!accounts.length) return;
+
+              const currentIndex = accountItemRefs.current.indexOf(document.activeElement as HTMLButtonElement);
+              if (e.key === "Escape") {
+                e.preventDefault();
+                closeAccountList(true);
+              }
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                focusAccountItem(currentIndex >= 0 ? currentIndex + 1 : 0);
+              }
+              if (e.key === "ArrowUp") {
+                e.preventDefault();
+                focusAccountItem(currentIndex >= 0 ? currentIndex - 1 : accounts.length - 1);
+              }
+            }}
+          >
+            {accounts.map((acc, index) => (
               <button
                 type="button"
                 key={acc.id}
+                ref={(element) => {
+                  accountItemRefs.current[index] = element;
+                }}
                 onClick={() => {
                   selectAccount(acc.id);
-                  setShowAccountList(false);
+                  closeAccountList();
                 }}
+                role="menuitemradio"
+                aria-checked={acc.id === selectedAccountId}
                 className={cn(
                   "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm",
                   acc.id === selectedAccountId
@@ -340,109 +410,116 @@ export function Sidebar() {
 
       {/* Scrollable Feed List */}
       <ScrollArea className="flex-1">
-        <div className="space-y-0.5 px-2 pb-4">
-          {feedList.length > 0 ? (
-            isFeedsSectionOpen && (
-              <>
-                {sortedFolderList.map((folder) => {
-                  const folderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
-                  if (folderFeeds.length === 0) return null;
-                  return (
-                    <FolderSection
-                      key={folder.id}
-                      folder={folder}
-                      feeds={folderFeeds}
-                      isExpanded={expandedFolderIds.has(folder.id)}
-                      onToggle={toggleFolder}
-                      selectedFeedId={selectedFeedId}
-                      onSelectFeed={selectFeed}
+        <div className="pb-4">
+          <div className="space-y-0.5 px-2">
+            {feedList.length > 0 ? (
+              isFeedsSectionOpen && (
+                <>
+                  {sortedFolderList.map((folder) => {
+                    const folderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
+                    if (folderFeeds.length === 0) return null;
+                    return (
+                      <FolderSection
+                        key={folder.id}
+                        folder={folder}
+                        feeds={folderFeeds}
+                        isExpanded={expandedFolderIds.has(folder.id)}
+                        onToggle={toggleFolder}
+                        selectedFeedId={selectedFeedId}
+                        onSelectFeed={selectFeed}
+                        displayFavicons={displayFavicons}
+                        grayscaleFavicons={grayscaleFavicons}
+                      />
+                    );
+                  })}
+                  {unfolderedFeeds.map((feed) => (
+                    <FeedItem
+                      key={feed.id}
+                      feed={feed}
+                      isSelected={selectedFeedId === feed.id}
+                      onSelect={selectFeed}
                       displayFavicons={displayFavicons}
                       grayscaleFavicons={grayscaleFavicons}
                     />
-                  );
-                })}
-                {unfolderedFeeds.map((feed) => (
-                  <FeedItem
-                    key={feed.id}
-                    feed={feed}
-                    isSelected={selectedFeedId === feed.id}
-                    onSelect={selectFeed}
-                    displayFavicons={displayFavicons}
-                    grayscaleFavicons={grayscaleFavicons}
-                  />
-                ))}
-              </>
-            )
-          ) : (
-            <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-              {selectedAccountId ? (
-                t("press_plus_to_add_feed")
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    openSettings("accounts");
-                    setSettingsAddAccount(true);
-                  }}
-                  className="text-muted-foreground underline decoration-muted-foreground/50 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/50"
-                >
-                  {t("add_account_to_start")}
-                </button>
-              )}
-            </div>
-          )}
+                  ))}
+                </>
+              )
+            ) : (
+              <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                {selectedAccountId ? (
+                  t("press_plus_to_add_feed")
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openSettings("accounts");
+                      setSettingsAddAccount(true);
+                    }}
+                    className="text-muted-foreground underline decoration-muted-foreground/50 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/50"
+                  >
+                    {t("add_account_to_start")}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Tags Section */}
           {tags && tags.length > 0 && (
             <>
-              <button
-                type="button"
-                onClick={() => setIsTagsSectionOpen((v) => !v)}
-                className="mt-2 flex w-full items-center justify-between px-2 py-1"
-              >
-                <span className="text-sm font-medium text-sidebar-foreground">{t("tags")}</span>
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 text-muted-foreground transition-transform",
-                    !isTagsSectionOpen && "-rotate-90",
-                  )}
-                />
-              </button>
-              {isTagsSectionOpen &&
-                tags.map((tag) => (
-                  <ContextMenu.Root key={tag.id}>
-                    <ContextMenu.Trigger
-                      render={
-                        <button
-                          type="button"
-                          onClick={() => selectTag(tag.id)}
-                          className={cn(
-                            "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm",
-                            selection.type === "tag" && selection.tagId === tag.id
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                              : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                          )}
-                        />
-                      }
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        {tag.color && (
-                          <span
-                            className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                            style={{ backgroundColor: tag.color }}
+              <div className="px-2 py-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTagsSectionOpen((v) => !v)}
+                  className="flex w-full items-center justify-between px-2 py-1"
+                >
+                  <span className="text-sm font-medium text-sidebar-foreground">{t("tags")}</span>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 text-muted-foreground transition-transform",
+                      !isTagsSectionOpen && "-rotate-90",
+                    )}
+                  />
+                </button>
+              </div>
+              {isTagsSectionOpen && (
+                <div className="space-y-0.5 px-2">
+                  {tags.map((tag) => (
+                    <ContextMenu.Root key={tag.id}>
+                      <ContextMenu.Trigger
+                        render={
+                          <button
+                            type="button"
+                            onClick={() => selectTag(tag.id)}
+                            className={cn(
+                              "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm",
+                              selection.type === "tag" && selection.tagId === tag.id
+                                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                                : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                            )}
                           />
+                        }
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          {tag.color && (
+                            <span
+                              className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                              style={{ backgroundColor: tag.color }}
+                            />
+                          )}
+                          <span className="truncate">{tag.name}</span>
+                        </div>
+                        {tagArticleCounts?.[tag.id] != null && tagArticleCounts[tag.id] > 0 && (
+                          <span className="ml-2 shrink-0 text-muted-foreground">
+                            {tagArticleCounts[tag.id].toLocaleString()}
+                          </span>
                         )}
-                        <span className="truncate">{tag.name}</span>
-                      </div>
-                      {tagArticleCounts?.[tag.id] != null && tagArticleCounts[tag.id] > 0 && (
-                        <span className="ml-2 shrink-0 text-muted-foreground">
-                          {tagArticleCounts[tag.id].toLocaleString()}
-                        </span>
-                      )}
-                    </ContextMenu.Trigger>
-                    <TagContextMenuContent tag={tag} />
-                  </ContextMenu.Root>
-                ))}
+                      </ContextMenu.Trigger>
+                      <TagContextMenuContent tag={tag} />
+                    </ContextMenu.Root>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </div>

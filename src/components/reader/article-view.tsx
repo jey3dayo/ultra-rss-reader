@@ -1,7 +1,7 @@
 import { Toggle } from "@base-ui/react/toggle";
 import { Result } from "@praha/byethrow";
 import { ArrowLeft, Copy, ExternalLink, Globe, Plus, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
@@ -166,20 +166,43 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
   const [showPicker, setShowPicker] = useState(false);
   const [newTagName, setNewTagName] = useState("");
   const pickerRef = useRef<HTMLDivElement>(null);
+  const pickerTriggerRef = useRef<HTMLButtonElement>(null);
+  const newTagInputRef = useRef<HTMLInputElement>(null);
+  const tagOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const pickerId = useId();
+
+  const closePicker = useCallback((restoreFocus = false) => {
+    setShowPicker(false);
+    if (restoreFocus) {
+      requestAnimationFrame(() => pickerTriggerRef.current?.focus());
+    }
+  }, []);
 
   useEffect(() => {
     if (!showPicker) return;
     const handler = (e: MouseEvent) => {
       if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
-        setShowPicker(false);
+        closePicker();
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [showPicker]);
+  }, [showPicker, closePicker]);
 
   const assignedTagIds = new Set(articleTags?.map((tag) => tag.id) ?? []);
   const unassignedTags = (allTags ?? []).filter((tag) => !assignedTagIds.has(tag.id));
+
+  useEffect(() => {
+    if (!showPicker) return;
+
+    requestAnimationFrame(() => {
+      if (unassignedTags.length > 0) {
+        tagOptionRefs.current[0]?.focus();
+        return;
+      }
+      newTagInputRef.current?.focus();
+    });
+  }, [showPicker, unassignedTags.length]);
 
   const handleCreateAndAssign = () => {
     const name = newTagName.trim();
@@ -190,6 +213,7 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
         onSuccess: (tag) => {
           tagArticleMutation.mutate({ articleId, tagId: tag.id });
           setNewTagName("");
+          closePicker();
         },
       },
     );
@@ -218,22 +242,62 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
       ))}
       <div ref={pickerRef} className="relative">
         <button
+          ref={pickerTriggerRef}
           type="button"
           onClick={() => setShowPicker((v) => !v)}
-          className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-muted-foreground text-muted-foreground hover:border-foreground hover:text-foreground"
+          onKeyDown={(e) => {
+            if (e.key === "ArrowDown" && !showPicker) {
+              e.preventDefault();
+              setShowPicker(true);
+            }
+            if (e.key === "Escape" && showPicker) {
+              e.preventDefault();
+              closePicker(true);
+            }
+          }}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-muted-foreground text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
           aria-label={t("add_tag")}
+          aria-haspopup="listbox"
+          aria-expanded={showPicker}
+          aria-controls={pickerId}
         >
           <Plus className="h-3 w-3" />
         </button>
         {showPicker && (
-          <div className="absolute top-full left-0 z-50 mt-1 min-w-[180px] rounded-lg border border-border bg-popover p-1 shadow-lg">
-            {unassignedTags.map((tag) => (
+          <div
+            id={pickerId}
+            role="listbox"
+            aria-label={t("available_tags")}
+            className="absolute top-full left-0 z-50 mt-1 min-w-[180px] rounded-lg border border-border bg-popover p-1 shadow-lg"
+            onKeyDown={(e) => {
+              const currentIndex = tagOptionRefs.current.indexOf(document.activeElement as HTMLButtonElement);
+              if (e.key === "Escape") {
+                e.preventDefault();
+                closePicker(true);
+              }
+              if (e.key === "ArrowDown" && unassignedTags.length > 0) {
+                e.preventDefault();
+                const nextIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
+                tagOptionRefs.current[nextIndex % unassignedTags.length]?.focus();
+              }
+              if (e.key === "ArrowUp" && unassignedTags.length > 0) {
+                e.preventDefault();
+                const nextIndex = currentIndex >= 0 ? currentIndex - 1 : unassignedTags.length - 1;
+                tagOptionRefs.current[(nextIndex + unassignedTags.length) % unassignedTags.length]?.focus();
+              }
+            }}
+          >
+            {unassignedTags.map((tag, index) => (
               <button
                 type="button"
                 key={tag.id}
+                ref={(element) => {
+                  tagOptionRefs.current[index] = element;
+                }}
+                role="option"
                 onClick={() => {
                   tagArticleMutation.mutate({ articleId, tagId: tag.id });
-                  setShowPicker(false);
+                  closePicker();
                 }}
                 className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm text-popover-foreground hover:bg-accent"
               >
@@ -248,12 +312,14 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
             ))}
             <div className="flex items-center gap-1 border-t border-border px-2 pt-1">
               <Input
+                ref={newTagInputRef}
                 name="new-tag"
                 type="text"
                 value={newTagName}
                 onChange={(e) => setNewTagName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleCreateAndAssign();
+                  if (e.key === "Escape") closePicker(true);
                 }}
                 placeholder={t("new_tag_placeholder")}
                 className="h-auto flex-1 rounded border-none bg-transparent px-1 py-1 text-xs shadow-none ring-0 focus-visible:ring-0"
@@ -284,6 +350,7 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
   const openBrowserView = useUiStore((s) => s.openBrowser);
   const selectFeed = useUiStore((s) => s.selectFeed);
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
+  const articleUrl = article.url;
 
   // Auto mark as read only when a new article is opened (article.id changes).
   // Must NOT depend on article.is_read — otherwise manually marking unread
@@ -404,31 +471,30 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
       <ArticleToolbar article={article} />
       <ScrollArea className="flex-1">
         <article className="mx-auto max-w-3xl px-8 py-8">
-          {/* Title block — date, title, author & feed as a clickable group */}
-          {/* biome-ignore lint/a11y/useSemanticElements: complex click behavior (middle-click, keyboard) doesn't map to a simple <a> */}
-          <div
-            role="link"
-            tabIndex={article.url ? 0 : undefined}
-            className={cn(
-              "-mx-4 mb-4 rounded-lg px-4 py-3 transition-colors",
-              article.url && "cursor-pointer hover:bg-muted/50",
-            )}
-            onClick={() => article.url && openBrowserView(article.url)}
-            onAuxClick={(e) => {
-              if (e.button === 1 && article.url) {
-                e.preventDefault();
-                const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-                openInBrowser(article.url, bg);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (article.url && (e.key === "Enter" || e.key === " ")) openBrowserView(article.url);
-            }}
-          >
+          <div className="mb-4">
             <p className="mb-2 text-xs tracking-wider text-muted-foreground">
               {formatArticleDate(article.published_at)}
             </p>
-            <h1 className="mb-2 text-2xl font-bold leading-tight text-foreground">{article.title}</h1>
+            <h1 className="mb-2 text-2xl font-bold leading-tight text-foreground">
+              {articleUrl ? (
+                <button
+                  type="button"
+                  className="-mx-4 block w-[calc(100%+2rem)] rounded-lg px-4 py-3 text-left transition-colors hover:bg-muted/50"
+                  onClick={() => openBrowserView(articleUrl)}
+                  onAuxClick={(e) => {
+                    if (e.button === 1) {
+                      e.preventDefault();
+                      const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
+                      void openInBrowser(articleUrl, bg);
+                    }
+                  }}
+                >
+                  {article.title}
+                </button>
+              ) : (
+                article.title
+              )}
+            </h1>
             {(article.author || feedName) && (
               <div className="text-sm text-muted-foreground">
                 {article.author && <p className="uppercase tracking-wide">{article.author}</p>}
@@ -436,10 +502,7 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
                   <button
                     type="button"
                     className="cursor-pointer text-xs hover:underline"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      selectFeed(article.feed_id);
-                    }}
+                    onClick={() => selectFeed(article.feed_id)}
                   >
                     {feedName}
                   </button>
