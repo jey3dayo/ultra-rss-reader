@@ -93,6 +93,38 @@ describe("Sidebar", () => {
     expect(tagsHeader.parentElement).toHaveClass("px-2", "py-2");
   });
 
+  it("uses the same leading icon slot width for feeds and tags", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_tags":
+          return [{ id: "tag-1", name: "Later", color: "#3b82f6" }];
+        case "get_tag_article_counts":
+          return { "tag-1": 2 };
+        default:
+          return null;
+      }
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const feedLabel = await screen.findByText("Tech Blog");
+    const tagLabel = await screen.findByText("Later");
+
+    const feedLeadingSlot = feedLabel.parentElement?.firstElementChild;
+    const tagLeadingSlot = tagLabel.parentElement?.firstElementChild;
+
+    expect(feedLeadingSlot).toHaveClass("h-5", "w-5", "shrink-0");
+    expect(tagLeadingSlot).toHaveClass("h-5", "w-5", "shrink-0");
+  });
+
   it("does not update last synced time when sync is skipped", async () => {
     setupTauriMocks((cmd) => {
       if (cmd === "trigger_sync") return false;

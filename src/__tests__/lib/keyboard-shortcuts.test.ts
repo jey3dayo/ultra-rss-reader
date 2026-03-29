@@ -18,6 +18,36 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrap(result)).toEqual({ type: "open-settings" });
   });
 
+  it("resolves Cmd+K to open-command-palette", () => {
+    const result = resolveKeyboardAction({
+      key: "k",
+      metaKey: true,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrap(result)).toEqual({ type: "open-command-palette" });
+  });
+
+  it("resolves Cmd+Shift+K to navigate-feed backward", () => {
+    const result = resolveKeyboardAction({
+      key: "k",
+      metaKey: true,
+      ctrlKey: false,
+      shiftKey: true,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrap(result)).toEqual({ type: "navigate-feed", direction: -1 });
+  });
+
   it("ignores shortcuts when a text input is focused", () => {
     const result = resolveKeyboardAction({
       key: "m",
