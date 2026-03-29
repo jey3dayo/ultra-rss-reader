@@ -38,13 +38,3 @@ export function reloadWebview() {
     catch: (error) => (error instanceof Error ? error : new Error(String(error))),
   });
 }
-
-export function stopWebview() {
-  return Result.try({
-    try: async () => {
-      const iframe = Result.unwrap(getIframe());
-      iframe.src = "about:blank";
-    },
-    catch: (error) => (error instanceof Error ? error : new Error(String(error))),
-  });
-}
