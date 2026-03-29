@@ -1,4 +1,3 @@
-import type { KeyboardEvent } from "react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
@@ -10,7 +9,12 @@ import {
 } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
-function normalizeRecordedKey(e: Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey">): string | null {
+type RecordedKeyEvent = Pick<
+  globalThis.KeyboardEvent,
+  "key" | "metaKey" | "ctrlKey" | "shiftKey" | "preventDefault" | "stopPropagation"
+>;
+
+function normalizeRecordedKey(e: Pick<RecordedKeyEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey">): string | null {
   // Ignore bare modifier keys
   if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return null;
 
@@ -76,7 +80,7 @@ export function ShortcutsSettings() {
   }, []);
 
   const handleBadgeKeyDown = useCallback(
-    (id: ShortcutActionId, event: KeyboardEvent<HTMLButtonElement>) => {
+    (id: ShortcutActionId, event: RecordedKeyEvent) => {
       if (recordingId !== id) return;
 
       event.preventDefault();
@@ -131,7 +135,7 @@ export function ShortcutsSettings() {
               isRecording: recordingId === definition.id,
               conflictLabel: conflict ? t("shortcuts.conflict", { name: conflict }) : null,
               onStartRecording: () => handleStartRecording(definition.id),
-              onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => handleBadgeKeyDown(definition.id, event),
+              onKeyDown: (event: globalThis.KeyboardEvent) => handleBadgeKeyDown(definition.id, event),
             };
           }),
       }))}

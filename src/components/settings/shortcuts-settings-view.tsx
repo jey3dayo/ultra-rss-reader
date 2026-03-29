@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from "react";
+import { useEffect, useRef } from "react";
 import { SectionHeading } from "@/components/settings/settings-components";
 import { Button } from "@/components/ui/button";
 
@@ -10,7 +10,7 @@ export type ShortcutsSettingsItem = {
   isLocked?: boolean;
   conflictLabel?: string | null;
   onStartRecording?: () => void;
-  onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void;
+  onKeyDown?: (event: globalThis.KeyboardEvent) => void;
 };
 
 export type ShortcutsSettingsCategory = {
@@ -30,13 +30,28 @@ export type ShortcutsSettingsViewProps = {
 };
 
 function ShortcutKeyBadge({ item, pressAKeyLabel }: { item: ShortcutsSettingsItem; pressAKeyLabel: string }) {
+  const badgeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!item.isRecording) return;
+
+    badgeRef.current?.focus();
+
+    const handler = (event: globalThis.KeyboardEvent) => {
+      item.onKeyDown?.(event);
+    };
+
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
+  }, [item.isRecording, item.onKeyDown]);
+
   return (
     <div className="flex flex-col items-end gap-1">
       <button
+        ref={badgeRef}
         type="button"
         data-testid={`shortcut-badge-${item.id}`}
         onClick={item.onStartRecording}
-        onKeyDown={item.onKeyDown}
         className={`rounded-md border px-2.5 py-1 font-mono text-sm transition-colors ${
           item.isRecording
             ? "animate-pulse border-ring bg-ring/20 text-foreground"

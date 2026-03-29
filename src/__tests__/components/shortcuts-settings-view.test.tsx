@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
@@ -60,12 +60,44 @@ describe("ShortcutsSettingsView", () => {
     expect(screen.getByRole("button", { name: "Reset to defaults" })).toBeDisabled();
   });
 
-  it("delegates recorded key presses and reset actions", async () => {
+  it("focuses the active badge and captures the next window key press while recording", async () => {
     const user = userEvent.setup();
+    const onStartRecording = vi.fn();
     const onRecordKeyDown = vi.fn();
     const onResetAll = vi.fn();
 
-    render(
+    const { rerender } = render(
+      <ShortcutsSettingsView
+        title="Shortcuts"
+        conflictMessage={null}
+        pressAKeyLabel="Press a key"
+        resetLabel="Reset to defaults"
+        resetDisabled={false}
+        onResetAll={onResetAll}
+        categories={[
+          {
+            id: "navigation",
+            heading: "Navigation",
+            items: [
+              {
+                id: "next_article",
+                label: "Next article",
+                displayKey: "J",
+                isRecording: false,
+                onStartRecording,
+                onKeyDown: onRecordKeyDown,
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "J" }));
+
+    expect(onStartRecording).toHaveBeenCalledTimes(1);
+
+    rerender(
       <ShortcutsSettingsView
         title="Shortcuts"
         conflictMessage={null}
@@ -83,7 +115,7 @@ describe("ShortcutsSettingsView", () => {
                 label: "Next article",
                 displayKey: "J",
                 isRecording: true,
-                onStartRecording: () => {},
+                onStartRecording,
                 onKeyDown: onRecordKeyDown,
               },
             ],
@@ -92,13 +124,25 @@ describe("ShortcutsSettingsView", () => {
       />,
     );
 
-    fireEvent.keyDown(screen.getByRole("button", { name: "Press a key" }), {
+    const recordingButton = screen.getByRole("button", { name: "Press a key" });
+
+    await waitFor(() => {
+      expect(recordingButton).toHaveFocus();
+    });
+
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "K",
+        metaKey: true,
+      }),
+    );
+    fireEvent.keyDown(recordingButton, {
       key: "K",
       metaKey: true,
     });
     await user.click(screen.getByRole("button", { name: "Reset to defaults" }));
 
-    expect(onRecordKeyDown).toHaveBeenCalledTimes(1);
+    expect(onRecordKeyDown).toHaveBeenCalledTimes(2);
     expect(onResetAll).toHaveBeenCalledTimes(1);
   });
 });
