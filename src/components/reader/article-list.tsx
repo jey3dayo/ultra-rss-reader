@@ -32,11 +32,12 @@ export function ArticleList() {
   const selectArticle = useUiStore((s) => s.selectArticle);
   const viewMode = useUiStore((s) => s.viewMode);
   const setViewMode = useUiStore((s) => s.setViewMode);
-  const sortUnread = usePreferencesStore((s) => s.prefs.sort_unread ?? "newest_first");
+  const sortUnread = usePreferencesStore((s) => s.prefs.reading_sort ?? s.prefs.sort_unread ?? "newest_first");
   const groupBy = usePreferencesStore((s) => s.prefs.group_by ?? "date");
   const dimArchived = usePreferencesStore((s) => s.prefs.dim_archived ?? "true");
   const textPreview = usePreferencesStore((s) => s.prefs.text_preview ?? "true");
   const imagePreviews = usePreferencesStore((s) => s.prefs.image_previews ?? "medium");
+  const selectionStyle = usePreferencesStore((s) => s.prefs.list_selection_style ?? "modern");
   const recentlyReadIds = useUiStore((s) => s.recentlyReadIds);
   const showConfirm = useUiStore((s) => s.showConfirm);
   const feedId = selection.type === "feed" ? selection.feedId : null;
@@ -243,6 +244,7 @@ export function ArticleList() {
                           dimArchived={dimArchived}
                           textPreview={textPreview}
                           imagePreviews={imagePreviews}
+                          selectionStyle={selectionStyle}
                           feedName={feedNameMap.get(article.feed_id)}
                           onSelect={() => selectArticle(article.id)}
                         />

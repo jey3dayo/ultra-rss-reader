@@ -12,6 +12,7 @@ type ArticleListItemProps = {
   dimArchived: string;
   textPreview: string;
   imagePreviews: string;
+  selectionStyle: string;
   feedName: string | undefined;
   onSelect: () => void;
 };
@@ -23,6 +24,7 @@ export function ArticleListItem({
   dimArchived,
   textPreview,
   imagePreviews,
+  selectionStyle,
   feedName,
   onSelect,
 }: ArticleListItemProps) {
@@ -40,7 +42,10 @@ export function ArticleListItem({
       onClick={onSelect}
       className={cn(
         "flex w-full flex-col gap-1 px-4 py-3 text-left transition-colors",
-        isSelected ? "bg-muted" : "hover:bg-muted/50",
+        selectionStyle === "classic"
+          ? cn(isSelected && "border-l-2 border-primary bg-primary/10")
+          : cn(isSelected && "bg-muted"),
+        !isSelected && "hover:bg-muted/50",
         isRead && !isSelected && (isRecentlyRead || dimArchived === "true") && "opacity-50",
       )}
     >
