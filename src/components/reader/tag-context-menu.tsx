@@ -4,6 +4,7 @@ import { Trans, useTranslation } from "react-i18next";
 import type { TagDto } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { useDeleteTag, useRenameTag } from "@/hooks/use-tags";
 import { useUiStore } from "@/stores/ui-store";
 import { contextMenuStyles } from "./context-menu-styles";
@@ -73,13 +74,13 @@ function RenameTagDialog({
         >
           <label className="block text-sm text-muted-foreground">
             {t("name")}
-            <input
+            <Input
               ref={inputRef}
               name="tag-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm text-foreground shadow-xs outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-1"
               disabled={loading}
             />
           </label>

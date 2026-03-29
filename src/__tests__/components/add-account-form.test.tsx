@@ -6,6 +6,11 @@ import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
+async function selectAccountType(user: ReturnType<typeof userEvent.setup>, optionName: string) {
+  await user.click(screen.getByRole("combobox"));
+  await user.click(await screen.findByRole("option", { name: optionName }));
+}
+
 describe("AddAccountForm", () => {
   beforeEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
@@ -23,7 +28,7 @@ describe("AddAccountForm", () => {
     const user = userEvent.setup();
     render(<AddAccountForm />, { wrapper: createWrapper() });
 
-    await user.selectOptions(screen.getByRole("combobox"), "FreshRss");
+    await selectAccountType(user, "FreshRSS");
     await user.click(screen.getByRole("button", { name: "Add" }));
 
     await waitFor(() => {
@@ -36,7 +41,7 @@ describe("AddAccountForm", () => {
     const user = userEvent.setup();
     const { container } = render(<AddAccountForm />, { wrapper: createWrapper() });
 
-    await user.selectOptions(screen.getByRole("combobox"), "FreshRss");
+    await selectAccountType(user, "FreshRSS");
     await user.type(screen.getByPlaceholderText("FreshRss"), "Work RSS");
     await user.type(screen.getByPlaceholderText("https://your-freshrss.com"), "https://example.com");
 
@@ -50,13 +55,13 @@ describe("AddAccountForm", () => {
     await user.type(usernameInput, "alice");
     await user.type(passwordInput, "secret");
 
-    await user.selectOptions(screen.getByRole("combobox"), "Inoreader");
+    await selectAccountType(user, "Inoreader");
 
     expect(screen.getByDisplayValue("Work RSS")).toBeInTheDocument();
     expect(container.querySelector('input[name="email"]')).toHaveValue("alice");
     expect(container.querySelector('input[name="password"]')).toHaveValue("secret");
 
-    await user.selectOptions(screen.getByRole("combobox"), "FreshRss");
+    await selectAccountType(user, "FreshRSS");
 
     expect(screen.getByDisplayValue("Work RSS")).toBeInTheDocument();
     expect(screen.getByDisplayValue("https://example.com")).toBeInTheDocument();

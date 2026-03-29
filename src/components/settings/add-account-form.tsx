@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import { addAccount } from "@/api/tauri-commands";
 import { SectionHeading } from "@/components/settings/settings-components";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   type AddAccountProviderKind,
   addAccountFormInitialState,
@@ -55,25 +57,29 @@ export function AddAccountForm() {
         <SectionHeading>{t("account.account")}</SectionHeading>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
           <span className="text-sm text-foreground">{t("account.type")}</span>
-          <select
+          <Select
             name="account-type"
             value={form.kind}
-            onChange={(e) => dispatch({ type: "setKind", value: e.target.value as AddAccountProviderKind })}
-            className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+            onValueChange={(v) => v !== null && dispatch({ type: "setKind", value: v as AddAccountProviderKind })}
           >
-            <option value="Local">{t("account.local_feeds")}</option>
-            <option value="FreshRss">{t("account.freshrss")}</option>
-            <option value="Inoreader">{t("account.inoreader")}</option>
-          </select>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectPopup>
+              <SelectItem value="Local">{t("account.local_feeds")}</SelectItem>
+              <SelectItem value="FreshRss">{t("account.freshrss")}</SelectItem>
+              <SelectItem value="Inoreader">{t("account.inoreader")}</SelectItem>
+            </SelectPopup>
+          </Select>
         </div>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
           <span className="text-sm text-foreground">{t("account.name")}</span>
-          <input
+          <Input
             name="account-name"
             value={form.name}
             onChange={(e) => dispatch({ type: "setField", field: "name", value: e.target.value })}
             placeholder={form.kind}
-            className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+            className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
           />
         </div>
       </section>
@@ -84,32 +90,32 @@ export function AddAccountForm() {
           {formConfig.showServerUrl && (
             <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
               <span className="text-sm text-foreground">{t("account.server_url")}</span>
-              <input
+              <Input
                 name="server-url"
                 value={form.serverUrl}
                 onChange={(e) => dispatch({ type: "setField", field: "serverUrl", value: e.target.value })}
                 placeholder={t("account.server_url_placeholder")}
-                className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+                className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
               />
             </div>
           )}
           <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
             <span className="text-sm text-foreground">{formConfig.credentialLabel}</span>
-            <input
+            <Input
               name={formConfig.credentialName ?? undefined}
               value={form.username}
               onChange={(e) => dispatch({ type: "setField", field: "username", value: e.target.value })}
-              className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+              className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
             />
           </div>
           <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
             <span className="text-sm text-foreground">{t("account.password")}</span>
-            <input
+            <Input
               name="password"
               type="password"
               value={form.password}
               onChange={(e) => dispatch({ type: "setField", field: "password", value: e.target.value })}
-              className="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+              className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
             />
           </div>
         </section>

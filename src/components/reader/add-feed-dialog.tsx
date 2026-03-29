@@ -1,3 +1,5 @@
+import { Radio } from "@base-ui/react/radio";
+import { RadioGroup } from "@base-ui/react/radio-group";
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -18,6 +20,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFolders } from "@/hooks/use-folders";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -180,11 +184,6 @@ export function AddFeedDialog({
     setLoading(false);
   };
 
-  const selectClassName =
-    "mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm text-foreground shadow-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
-  const inputClassName =
-    "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm text-foreground shadow-xs outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
-
   const isSubmitDisabled =
     (!url.trim() && !selectedFeedUrl) || loading || discovering || (isCreatingFolder && !newFolderName.trim());
 
@@ -203,7 +202,7 @@ export function AddFeedDialog({
           className="space-y-4"
         >
           <div className="flex gap-2">
-            <input
+            <Input
               ref={inputRef}
               name="feed-url"
               type="url"
@@ -214,7 +213,6 @@ export function AddFeedDialog({
                 setSelectedFeedUrl(null);
               }}
               placeholder={t("feed_or_site_url")}
-              className={inputClassName}
               disabled={loading || discovering}
             />
             <Button
@@ -232,59 +230,67 @@ export function AddFeedDialog({
           {discoveredFeeds.length > 0 && (
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">{t("feeds_found", { count: discoveredFeeds.length })}</p>
-              <div className="max-h-32 overflow-y-auto rounded-md border border-input">
+              <RadioGroup
+                name="discovered-feed"
+                value={selectedFeedUrl ?? ""}
+                onValueChange={(v) => setSelectedFeedUrl(v)}
+                className="max-h-32 overflow-y-auto rounded-md border border-input"
+              >
                 {discoveredFeeds.map((feed) => (
+                  // biome-ignore lint/a11y/noLabelWithoutControl: Radio.Root renders a hidden input but Biome cannot trace namespace components
                   <label
                     key={feed.url}
                     className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-accent ${
                       selectedFeedUrl === feed.url ? "bg-accent" : ""
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name="discovered-feed"
+                    <Radio.Root
                       value={feed.url}
-                      checked={selectedFeedUrl === feed.url}
-                      onChange={() => setSelectedFeedUrl(feed.url)}
-                      className="accent-primary"
-                    />
+                      className="flex size-4 items-center justify-center rounded-full border border-primary"
+                    >
+                      <Radio.Indicator className="size-2 rounded-full bg-primary" />
+                    </Radio.Root>
                     <span className="truncate">{feed.title || feed.url}</span>
                   </label>
                 ))}
-              </div>
+              </RadioGroup>
             </div>
           )}
 
-          <label className="block text-sm text-muted-foreground">
-            {t("folder")}
-            <select
+          <div className="block text-sm text-muted-foreground">
+            <span className="mb-1 block">{t("folder")}</span>
+            <Select
               name="feed-folder"
               value={isCreatingFolder ? NEW_FOLDER_VALUE : (selectedFolderId ?? "")}
-              onChange={(e) => handleFolderChange(e.target.value)}
-              className={selectClassName}
+              onValueChange={(v) => v !== null && handleFolderChange(v)}
               disabled={loading}
             >
-              <option value="">{t("no_folder")}</option>
-              {folders?.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-              <option value={NEW_FOLDER_VALUE}>{t("new_folder")}</option>
-            </select>
-          </label>
+              <SelectTrigger className="mt-1 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectPopup>
+                <SelectItem value="">{t("no_folder")}</SelectItem>
+                {folders?.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>
+                    {f.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value={NEW_FOLDER_VALUE}>{t("new_folder")}</SelectItem>
+              </SelectPopup>
+            </Select>
+          </div>
 
           {isCreatingFolder && (
             <label className="block text-sm text-muted-foreground">
               {t("folder_name")}
-              <input
+              <Input
                 ref={newFolderInputRef}
                 name="new-folder-name"
                 type="text"
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
                 placeholder={t("enter_folder_name")}
-                className={`mt-1 ${inputClassName}`}
+                className="mt-1"
                 disabled={loading}
               />
             </label>

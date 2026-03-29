@@ -2,6 +2,7 @@ import { CheckCheck, Search, X } from "lucide-react";
 import type { RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 type ArticleListHeaderProps = {
@@ -68,14 +69,13 @@ export function ArticleListHeader({
       {/* Search Bar */}
       {showSearch && (
         <div className="border-b border-border px-4 py-2">
-          <input
+          <Input
             ref={searchInputRef}
             name="article-search"
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
             placeholder={t("search_articles_placeholder")}
-            className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
           />
         </div>
       )}

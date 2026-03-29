@@ -15,6 +15,17 @@
 - [x] アプリアイコンの作成・設定（PR #10）
 - [ ] ライトモード対応（OS テーマに応じたアイコン切替） #11
 
+## フォーム要素の Base UI 移行
+
+ネイティブ HTML フォーム要素を Base UI プリミティブに統一する。
+
+- [x] `src/components/ui/input.tsx` — Base UI Input ラッパー作成
+- [x] 全 `<input>` を Input コンポーネントに置換（13箇所）
+- [x] `src/components/ui/select.tsx` — Base UI Select compound component 作成
+- [x] SettingsSelect を Base UI Select に移行（設定画面全体に波及）
+- [x] 残りの `<select>` を個別移行（account-detail, add-account-form, add-feed-dialog, rename-feed-dialog）
+- [x] Radio → Base UI RadioGroup 移行（add-feed-dialog）
+
 ## 設定の未実装項目
 
 設定 UI に表示されているが、アプリの動作に反映されていない項目。

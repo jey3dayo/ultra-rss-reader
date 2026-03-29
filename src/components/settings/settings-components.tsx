@@ -1,3 +1,4 @@
+import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -37,18 +38,18 @@ export function SettingsSelect({
   return (
     <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
       <span className="text-sm text-foreground">{label}</span>
-      <select
-        name={prefKey}
-        value={value}
-        onChange={(e) => setPref(prefKey, e.target.value)}
-        className="min-w-[140px] rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/50"
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+      <Select name={prefKey} value={value} onValueChange={(v) => v !== null && setPref(prefKey, v)}>
+        <SelectTrigger className="min-w-[140px]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectPopup>
+          {options.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectPopup>
+      </Select>
     </div>
   );
 }

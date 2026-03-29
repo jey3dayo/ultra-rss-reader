@@ -8,9 +8,14 @@ import { SettingsSelect } from "@/components/settings/settings-components";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleFeeds } from "../../../tests/helpers/tauri-mocks";
 
+async function selectAccountType(user: ReturnType<typeof userEvent.setup>, optionName: string) {
+  await user.click(screen.getByRole("combobox"));
+  await user.click(await screen.findByRole("option", { name: optionName }));
+}
+
 describe("Form fields", () => {
   it("settings select exposes a name attribute", () => {
-    render(
+    const { container } = render(
       <SettingsSelect
         label="Open links"
         prefKey="open_links"
@@ -22,17 +27,17 @@ describe("Form fields", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(screen.getByRole("combobox")).toHaveAttribute("name");
+    expect(container.querySelector('input[name="open_links"]')).not.toBeNull();
   });
 
   it("add account form inputs expose name attributes", async () => {
     const user = userEvent.setup();
     const { container } = render(<AddAccountForm />, { wrapper: createWrapper() });
 
-    expect(screen.getByRole("combobox")).toHaveAttribute("name");
+    expect(container.querySelector('input[name="account-type"]')).not.toBeNull();
     expect(screen.getByPlaceholderText("Local")).toHaveAttribute("name");
 
-    await user.selectOptions(screen.getByRole("combobox"), "FreshRss");
+    await selectAccountType(user, "FreshRSS");
 
     expect(screen.getByPlaceholderText("https://your-freshrss.com")).toHaveAttribute("name");
     expect(container.querySelector('input[name="username"]')).not.toBeNull();

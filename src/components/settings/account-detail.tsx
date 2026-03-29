@@ -6,6 +6,8 @@ import type { AccountDto } from "@/api/tauri-commands";
 import { deleteAccount, exportOpml, renameAccount, updateAccountSync } from "@/api/tauri-commands";
 import { SectionHeading, SettingsRow } from "@/components/settings/settings-components";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useUiStore } from "@/stores/ui-store";
@@ -125,14 +127,14 @@ export function AccountDetail() {
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
           <span className="text-sm text-foreground">{t("account.description")}</span>
           {editingName ? (
-            <input
+            <Input
               ref={nameInputRef}
               type="text"
               value={nameDraft}
               onChange={(e) => setNameDraft(e.target.value)}
               onBlur={commitRename}
               onKeyDown={handleNameKeyDown}
-              className="rounded-md border border-border bg-background px-2 py-1 text-right text-sm text-muted-foreground outline-none focus:border-ring"
+              className="h-auto w-auto border-border bg-background px-2 py-1 text-right text-sm text-muted-foreground"
             />
           ) : (
             <button
@@ -168,19 +170,23 @@ export function AccountDetail() {
         <SectionHeading>{t("account.syncing")}</SectionHeading>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
           <span className="text-sm text-foreground">{t("account.sync")}</span>
-          <select
+          <Select
             name="sync-interval"
             value={String(account.sync_interval_secs)}
-            onChange={(e) => handleSyncUpdate({ syncIntervalSecs: Number(e.target.value) })}
-            className="rounded-md border border-border bg-background px-2 py-1 text-sm text-muted-foreground"
+            onValueChange={(v) => v !== null && handleSyncUpdate({ syncIntervalSecs: Number(v) })}
           >
-            <option value="900">{t("account.every_15_minutes")}</option>
-            <option value="1800">{t("account.every_30_minutes")}</option>
-            <option value="3600">{t("account.every_hour")}</option>
-            <option value="7200">{t("account.every_2_hours")}</option>
-            <option value="14400">{t("account.every_4_hours")}</option>
-            <option value="86400">{t("account.once_a_day")}</option>
-          </select>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectPopup>
+              <SelectItem value="900">{t("account.every_15_minutes")}</SelectItem>
+              <SelectItem value="1800">{t("account.every_30_minutes")}</SelectItem>
+              <SelectItem value="3600">{t("account.every_hour")}</SelectItem>
+              <SelectItem value="7200">{t("account.every_2_hours")}</SelectItem>
+              <SelectItem value="14400">{t("account.every_4_hours")}</SelectItem>
+              <SelectItem value="86400">{t("account.once_a_day")}</SelectItem>
+            </SelectPopup>
+          </Select>
         </div>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
           <span className="text-sm text-foreground">{t("account.sync_on_wake")}</span>
@@ -192,20 +198,24 @@ export function AccountDetail() {
         </div>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
           <span className="text-sm text-foreground">{t("account.keep_read_items")}</span>
-          <select
+          <Select
             name="keep-read-items"
             value={String(account.keep_read_items_days)}
-            onChange={(e) => handleSyncUpdate({ keepReadItemsDays: Number(e.target.value) })}
-            className="rounded-md border border-border bg-background px-2 py-1 text-sm text-muted-foreground"
+            onValueChange={(v) => v !== null && handleSyncUpdate({ keepReadItemsDays: Number(v) })}
           >
-            <option value="7">{t("account.one_week")}</option>
-            <option value="14">{t("account.two_weeks")}</option>
-            <option value="30">{t("account.one_month")}</option>
-            <option value="90">{t("account.three_months")}</option>
-            <option value="180">{t("account.six_months")}</option>
-            <option value="365">{t("account.one_year")}</option>
-            <option value="0">{t("account.forever")}</option>
-          </select>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectPopup>
+              <SelectItem value="7">{t("account.one_week")}</SelectItem>
+              <SelectItem value="14">{t("account.two_weeks")}</SelectItem>
+              <SelectItem value="30">{t("account.one_month")}</SelectItem>
+              <SelectItem value="90">{t("account.three_months")}</SelectItem>
+              <SelectItem value="180">{t("account.six_months")}</SelectItem>
+              <SelectItem value="365">{t("account.one_year")}</SelectItem>
+              <SelectItem value="0">{t("account.forever")}</SelectItem>
+            </SelectPopup>
+          </Select>
         </div>
       </section>
 
