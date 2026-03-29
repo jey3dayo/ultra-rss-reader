@@ -1,3 +1,4 @@
+pub mod backup;
 pub mod connection;
 pub mod migration;
 pub mod sqlite_account;

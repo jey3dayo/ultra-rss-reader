@@ -14,6 +14,8 @@ pub enum DomainError {
     Validation(String),
     #[error("Keychain error: {0}")]
     Keychain(String),
+    #[error("Migration error: {0}")]
+    Migration(String),
 }
 
 pub type DomainResult<T> = Result<T, DomainError>;

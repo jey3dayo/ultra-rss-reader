@@ -30,7 +30,18 @@ pub fn run() {
                 .expect("Failed to resolve app data dir");
             std::fs::create_dir_all(&app_data_dir).expect("Failed to create app data dir");
             let db_path = app_data_dir.join("ultra-rss-reader.db");
-            let db = DbManager::new(&db_path).expect("Failed to initialize database");
+            let db = match DbManager::new(&db_path) {
+                Ok(db) => db,
+                Err(e) => {
+                    tracing::error!("Database initialization failed: {e}");
+                    panic!(
+                        "Failed to initialize database: {e}\n\
+                         Database path: {}\n\
+                         If the problem persists, try deleting the database file and restarting.",
+                        db_path.display()
+                    );
+                }
+            };
 
             // Read initial preferences for menu CheckMenuItem states
             let prefs = {
