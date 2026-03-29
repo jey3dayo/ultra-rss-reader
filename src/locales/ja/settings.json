@@ -139,7 +139,7 @@
     "error_auth": "認証に失敗しました。ユーザー名とAPIパスワードを確認してください",
     "error_auth_hint_freshrss": "FreshRSSのプロフィール設定からAPIパスワードを設定する必要があります",
     "general": "一般",
-    "description": "説明",
+    "description": "名前",
     "click_to_edit": "クリックして編集",
     "server": "サーバー",
     "inoreader_server": "inoreader.com",

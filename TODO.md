@@ -44,6 +44,10 @@
   - Rust 側: `WebviewWindowBuilder` で子 webview を動的作成、イベントをフロントエンドに通知
   - フロント側: Tauri コマンド経由で webview を制御（`go_back`, `go_forward`, `reload`, `close`）
 
+## フォントスタイル設定が反映されない
+
+- [x] `body` の `font-family: var(--font-sans)` がハードコードされており、Tailwind クラスによる切り替えが効かない → `font-family: inherit` に変更して解決
+
 ## キーチェーンアクセスのタイミング改善
 
 - [ ] 起動直後の自動同期でキーチェーンダイアログが出るのを回避する（ユーザーが不信感を持つ）

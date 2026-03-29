@@ -56,7 +56,7 @@ export function AccountGeneralSectionView({
           <button
             type="button"
             onClick={onStartEditingName}
-            className="cursor-pointer text-sm text-muted-foreground hover:text-foreground"
+            className="cursor-pointer rounded-md border border-transparent px-2 py-1 text-sm text-muted-foreground hover:border-border hover:text-foreground"
             title={editNameTitle}
           >
             {nameValue}

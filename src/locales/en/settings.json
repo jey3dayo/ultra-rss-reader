@@ -139,7 +139,7 @@
     "error_auth": "Authentication failed. Please check your username and API password",
     "error_auth_hint_freshrss": "You need to set an API password in FreshRSS Profile settings",
     "general": "General",
-    "description": "Description",
+    "description": "Name",
     "click_to_edit": "Click to edit",
     "server": "Server",
     "inoreader_server": "inoreader.com",
