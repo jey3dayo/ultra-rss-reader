@@ -4,6 +4,39 @@
  */
 
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import {
+  addAccountArgs,
+  addLocalFeedArgs,
+  checkBrowserEmbedSupportArgs,
+  createFolderArgs,
+  createTagArgs,
+  deleteAccountArgs,
+  deleteFeedArgs,
+  deleteTagArgs,
+  discoverFeedsArgs,
+  getArticleTagsArgs,
+  listAccountArticlesArgs,
+  listArticlesArgs,
+  listArticlesByTagArgs,
+  listFeedsArgs,
+  listFoldersArgs,
+  markArticleReadArgs,
+  markArticlesReadArgs,
+  markFeedReadArgs,
+  markFolderReadArgs,
+  openInBrowserArgs,
+  renameAccountArgs,
+  renameFeedArgs,
+  renameTagArgs,
+  searchArticlesArgs,
+  setPreferenceArgs,
+  tagArticleArgs,
+  toggleArticleStarArgs,
+  untagArticleArgs,
+  updateAccountSyncArgs,
+  updateFeedDisplayModeArgs,
+  updateFeedFolderArgs,
+} from "./api/schemas";
 import type { AccountDto, FeedDto, FolderDto, TagDto } from "./api/tauri-commands";
 import { mockAccounts, mockArticles, mockArticleTags, mockFeeds, mockFolders, mockTags } from "./dev-mock-data";
 
@@ -28,18 +61,17 @@ export function setupDevMocks() {
 
   mockWindows("main");
   mockIPC((cmd, payload) => {
-    const args = payload as Record<string, unknown>;
-
     switch (cmd) {
       case "list_accounts":
         return mockAccounts;
 
       case "add_account": {
+        const { kind, name, serverUrl } = addAccountArgs.parse(payload);
         const account: AccountDto = {
           id: `dev-acc-${nextAccountId++}`,
-          kind: String(args.kind ?? "Local"),
-          name: String(args.name ?? "Dev Account"),
-          server_url: (args.serverUrl as string) ?? null,
+          kind,
+          name,
+          server_url: serverUrl ?? null,
           sync_interval_secs: 3600,
           sync_on_wake: false,
           keep_read_items_days: 30,
@@ -49,56 +81,64 @@ export function setupDevMocks() {
       }
 
       case "update_account_sync": {
-        const target = mockAccounts.find((a) => a.id === args.accountId);
+        const { accountId, syncIntervalSecs, syncOnWake, keepReadItemsDays } = updateAccountSyncArgs.parse(payload);
+        const target = mockAccounts.find((a) => a.id === accountId);
         if (target) {
-          target.sync_interval_secs = Number(args.syncIntervalSecs);
-          target.sync_on_wake = Boolean(args.syncOnWake);
-          target.keep_read_items_days = Number(args.keepReadItemsDays);
+          target.sync_interval_secs = syncIntervalSecs;
+          target.sync_on_wake = syncOnWake;
+          target.keep_read_items_days = keepReadItemsDays;
         }
         return target ?? null;
       }
 
       case "rename_account": {
-        const target = mockAccounts.find((a) => a.id === args.accountId);
+        const { accountId, name } = renameAccountArgs.parse(payload);
+        const target = mockAccounts.find((a) => a.id === accountId);
         if (target) {
-          target.name = String(args.name);
+          target.name = name;
         }
         return target ?? null;
       }
 
       case "delete_account": {
-        const idx = mockAccounts.findIndex((a) => a.id === args.accountId);
+        const { accountId } = deleteAccountArgs.parse(payload);
+        const idx = mockAccounts.findIndex((a) => a.id === accountId);
         if (idx >= 0) mockAccounts.splice(idx, 1);
         return null;
       }
 
-      case "list_folders":
-        return mockFolders.filter((f) => f.account_id === args.accountId);
+      case "list_folders": {
+        const { accountId } = listFoldersArgs.parse(payload);
+        return mockFolders.filter((f) => f.account_id === accountId);
+      }
 
       case "create_folder": {
+        const { accountId, name } = createFolderArgs.parse(payload);
         const folder: FolderDto = {
           id: `dev-folder-${nextFolderId++}`,
-          account_id: String(args.accountId),
-          name: String(args.name ?? ""),
-          sort_order: mockFolders.filter((f) => f.account_id === args.accountId).length,
+          account_id: accountId,
+          name,
+          sort_order: mockFolders.filter((f) => f.account_id === accountId).length,
         };
         mockFolders.push(folder);
         return folder;
       }
 
-      case "list_feeds":
-        return mockFeeds.filter((f) => f.account_id === args.accountId);
+      case "list_feeds": {
+        const { accountId } = listFeedsArgs.parse(payload);
+        return mockFeeds.filter((f) => f.account_id === accountId);
+      }
 
       case "add_local_feed": {
+        const { accountId, url } = addLocalFeedArgs.parse(payload);
         const feedId = `dev-feed-${nextFeedId++}`;
-        const feedUrl = String(args.url ?? "");
         const feed: FeedDto = {
           id: feedId,
-          account_id: String(args.accountId),
+          account_id: accountId,
           folder_id: null,
-          title: titleFromUrl(feedUrl),
-          url: feedUrl,
-          site_url: feedUrl,
+          title: titleFromUrl(url),
+          url,
+          site_url: url,
           unread_count: 3,
           display_mode: "normal",
         };
@@ -111,10 +151,10 @@ export function setupDevMocks() {
           mockArticles.push({
             id: `${feedId}-art-${i}`,
             feed_id: feedId,
-            title: `Sample article ${i + 1} from ${feedUrl}`,
-            content_sanitized: `<p>This is a sample article fetched from ${feedUrl}.</p>`,
+            title: `Sample article ${i + 1} from ${url}`,
+            content_sanitized: `<p>This is a sample article fetched from ${url}.</p>`,
             summary: `Sample summary for article ${i + 1}`,
-            url: `${feedUrl}#article-${i}`,
+            url: `${url}#article-${i}`,
             author: null,
             published_at: pubDate.toISOString(),
             thumbnail: null,
@@ -126,27 +166,31 @@ export function setupDevMocks() {
       }
 
       case "list_articles": {
-        const feedId = args.feedId as string;
+        const { feedId } = listArticlesArgs.parse(payload);
         return mockArticles.filter((a) => a.feed_id === feedId);
       }
 
       case "list_account_articles": {
-        const feedIds = mockFeeds.filter((f) => f.account_id === args.accountId).map((f) => f.id);
+        const { accountId } = listAccountArticlesArgs.parse(payload);
+        const feedIds = mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id);
         return mockArticles.filter((a) => feedIds.includes(a.feed_id));
       }
 
-      case "search_articles":
-        return mockArticles.filter((a) => a.title.toLowerCase().includes(String(args.query ?? "").toLowerCase()));
+      case "search_articles": {
+        const { query } = searchArticlesArgs.parse(payload);
+        return mockArticles.filter((a) => a.title.toLowerCase().includes(query.toLowerCase()));
+      }
 
       case "mark_article_read": {
-        const art = mockArticles.find((a) => a.id === args.articleId);
-        if (art) art.is_read = (args.read as boolean | undefined) ?? true;
+        const { articleId, read } = markArticleReadArgs.parse(payload);
+        const art = mockArticles.find((a) => a.id === articleId);
+        if (art) art.is_read = read ?? true;
         return null;
       }
 
       case "mark_articles_read": {
-        const ids = args.articleIds as string[];
-        for (const id of ids) {
+        const { articleIds } = markArticlesReadArgs.parse(payload);
+        for (const id of articleIds) {
           const art = mockArticles.find((a) => a.id === id);
           if (art) art.is_read = true;
         }
@@ -154,14 +198,16 @@ export function setupDevMocks() {
       }
 
       case "mark_feed_read": {
+        const { feedId } = markFeedReadArgs.parse(payload);
         for (const art of mockArticles) {
-          if (art.feed_id === args.feedId) art.is_read = true;
+          if (art.feed_id === feedId) art.is_read = true;
         }
         return null;
       }
 
       case "mark_folder_read": {
-        const folderFeedIds = mockFeeds.filter((f) => f.folder_id === args.folderId).map((f) => f.id);
+        const { folderId } = markFolderReadArgs.parse(payload);
+        const folderFeedIds = mockFeeds.filter((f) => f.folder_id === folderId).map((f) => f.id);
         for (const art of mockArticles) {
           if (folderFeedIds.includes(art.feed_id)) art.is_read = true;
         }
@@ -169,8 +215,9 @@ export function setupDevMocks() {
       }
 
       case "toggle_article_star": {
-        const art = mockArticles.find((a) => a.id === args.articleId);
-        if (art) art.is_starred = args.starred as boolean;
+        const { articleId, starred } = toggleArticleStarArgs.parse(payload);
+        const art = mockArticles.find((a) => a.id === articleId);
+        if (art) art.is_starred = starred;
         return null;
       }
 
@@ -178,7 +225,8 @@ export function setupDevMocks() {
         return Object.fromEntries(mockPreferences);
 
       case "set_preference": {
-        mockPreferences.set(String(args.key), String(args.value));
+        const { key, value } = setPreferenceArgs.parse(payload);
+        mockPreferences.set(key, value);
         return null;
       }
 
@@ -198,63 +246,70 @@ export function setupDevMocks() {
         return mockTags;
 
       case "create_tag": {
+        const { name, color } = createTagArgs.parse(payload);
         const tag: TagDto = {
           id: `dev-tag-${nextTagId++}`,
-          name: String(args.name ?? ""),
-          color: (args.color as string) ?? null,
+          name,
+          color: color ?? null,
         };
         mockTags.push(tag);
         return tag;
       }
 
       case "rename_tag": {
-        const renameIdx = mockTags.findIndex((t) => t.id === args.tagId);
+        const { tagId, name } = renameTagArgs.parse(payload);
+        const renameIdx = mockTags.findIndex((t) => t.id === tagId);
         if (renameIdx >= 0) {
-          mockTags[renameIdx].name = String(args.name);
+          mockTags[renameIdx].name = name;
           return mockTags[renameIdx];
         }
         return null;
       }
 
       case "delete_tag": {
-        const tagIdx = mockTags.findIndex((t) => t.id === args.tagId);
+        const { tagId } = deleteTagArgs.parse(payload);
+        const tagIdx = mockTags.findIndex((t) => t.id === tagId);
         if (tagIdx >= 0) mockTags.splice(tagIdx, 1);
         // Remove associated article_tags
         for (let i = mockArticleTags.length - 1; i >= 0; i--) {
-          if (mockArticleTags[i].tag_id === args.tagId) mockArticleTags.splice(i, 1);
+          if (mockArticleTags[i].tag_id === tagId) mockArticleTags.splice(i, 1);
         }
         return null;
       }
 
       case "tag_article": {
-        const exists = mockArticleTags.some((at) => at.article_id === args.articleId && at.tag_id === args.tagId);
+        const { articleId, tagId } = tagArticleArgs.parse(payload);
+        const exists = mockArticleTags.some((at) => at.article_id === articleId && at.tag_id === tagId);
         if (!exists) {
           mockArticleTags.push({
-            article_id: String(args.articleId),
-            tag_id: String(args.tagId),
+            article_id: articleId,
+            tag_id: tagId,
           });
         }
         return null;
       }
 
       case "untag_article": {
-        const atIdx = mockArticleTags.findIndex((at) => at.article_id === args.articleId && at.tag_id === args.tagId);
+        const { articleId, tagId } = untagArticleArgs.parse(payload);
+        const atIdx = mockArticleTags.findIndex((at) => at.article_id === articleId && at.tag_id === tagId);
         if (atIdx >= 0) mockArticleTags.splice(atIdx, 1);
         return null;
       }
 
       case "get_article_tags": {
-        const tagIds = mockArticleTags.filter((at) => at.article_id === args.articleId).map((at) => at.tag_id);
+        const { articleId } = getArticleTagsArgs.parse(payload);
+        const tagIds = mockArticleTags.filter((at) => at.article_id === articleId).map((at) => at.tag_id);
         return mockTags.filter((t) => tagIds.includes(t.id));
       }
 
       case "list_articles_by_tag": {
-        const articleIds = mockArticleTags.filter((at) => at.tag_id === args.tagId).map((at) => at.article_id);
+        const { tagId } = listArticlesByTagArgs.parse(payload);
+        const articleIds = mockArticleTags.filter((at) => at.tag_id === tagId).map((at) => at.article_id);
         return mockArticles.filter((a) => articleIds.includes(a.id));
       }
 
       case "check_browser_embed_support": {
-        const url = String(args.url ?? "");
+        const { url } = checkBrowserEmbedSupportArgs.parse(payload);
         try {
           const host = new URL(url).hostname;
           return !host.endsWith("note.com");
@@ -264,7 +319,8 @@ export function setupDevMocks() {
       }
 
       case "delete_feed": {
-        const feedIdx = mockFeeds.findIndex((f) => f.id === args.feedId);
+        const { feedId } = deleteFeedArgs.parse(payload);
+        const feedIdx = mockFeeds.findIndex((f) => f.id === feedId);
         if (feedIdx >= 0) {
           const removed = mockFeeds.splice(feedIdx, 1)[0];
           // Remove associated articles
@@ -276,39 +332,42 @@ export function setupDevMocks() {
       }
 
       case "rename_feed": {
-        const feed = mockFeeds.find((f) => f.id === args.feedId);
-        if (feed) feed.title = String(args.title);
+        const { feedId, title } = renameFeedArgs.parse(payload);
+        const feed = mockFeeds.find((f) => f.id === feedId);
+        if (feed) feed.title = title;
         return null;
       }
 
       case "update_feed_folder": {
-        const targetFeed = mockFeeds.find((f) => f.id === args.feedId);
-        if (targetFeed) targetFeed.folder_id = (args.folderId as string) ?? null;
+        const { feedId, folderId } = updateFeedFolderArgs.parse(payload);
+        const targetFeed = mockFeeds.find((f) => f.id === feedId);
+        if (targetFeed) targetFeed.folder_id = folderId;
         return null;
       }
 
       case "update_feed_display_mode": {
-        const dmFeed = mockFeeds.find((f) => f.id === args.feedId);
-        if (dmFeed) dmFeed.display_mode = String(args.displayMode ?? "normal");
+        const { feedId, displayMode } = updateFeedDisplayModeArgs.parse(payload);
+        const dmFeed = mockFeeds.find((f) => f.id === feedId);
+        if (dmFeed) dmFeed.display_mode = displayMode;
         return null;
       }
 
       case "discover_feeds": {
-        const discoverUrl = String(args.url ?? "");
+        const { url } = discoverFeedsArgs.parse(payload);
         // Simulate discovery: if URL looks like a feed, return it directly
-        if (/\.(xml|rss|atom|json)$/i.test(discoverUrl) || /\/feed\/?$/i.test(discoverUrl)) {
-          return [{ url: discoverUrl, title: "" }];
+        if (/\.(xml|rss|atom|json)$/i.test(url) || /\/feed\/?$/i.test(url)) {
+          return [{ url, title: "" }];
         }
         // Otherwise simulate finding feeds on a site
         return [
-          { url: `${discoverUrl.replace(/\/$/, "")}/feed`, title: "Main Feed" },
-          { url: `${discoverUrl.replace(/\/$/, "")}/comments/feed`, title: "Comments Feed" },
+          { url: `${url.replace(/\/$/, "")}/feed`, title: "Main Feed" },
+          { url: `${url.replace(/\/$/, "")}/comments/feed`, title: "Comments Feed" },
         ];
       }
 
       case "open_in_browser": {
-        const url = args.url as string | undefined;
-        if (url) window.open(url, "_blank");
+        const { url } = openInBrowserArgs.parse(payload);
+        window.open(url, "_blank");
         return null;
       }
 

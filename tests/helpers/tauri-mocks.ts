@@ -1,4 +1,5 @@
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { commandArgsSchemas } from "@/api/schemas";
 import type { AccountDto, ArticleDto, FeedDto } from "@/api/tauri-commands";
 
 // --- Sample data ---
@@ -80,6 +81,14 @@ export const sampleArticles: ArticleDto[] = [
 
 type MockHandler = (cmd: string, args: Record<string, unknown>) => unknown;
 
+function validateArgs(cmd: string, payload: unknown): Record<string, unknown> {
+  const schema = commandArgsSchemas[cmd];
+  if (schema) {
+    return schema.parse(payload) as Record<string, unknown>;
+  }
+  return (payload ?? {}) as Record<string, unknown>;
+}
+
 const defaultHandler: MockHandler = (cmd, args) => {
   switch (cmd) {
     case "list_accounts":
@@ -97,7 +106,7 @@ const defaultHandler: MockHandler = (cmd, args) => {
         id: "acc-new",
         kind: String(args.kind),
         name: String(args.name),
-        server_url: (args.serverUrl as string) ?? null,
+        server_url: args.serverUrl != null ? String(args.serverUrl) : null,
         sync_interval_secs: 3600,
         sync_on_wake: false,
         keep_read_items_days: 30,
@@ -140,7 +149,7 @@ const defaultHandler: MockHandler = (cmd, args) => {
 export function setupTauriMocks(handler?: MockHandler): void {
   mockWindows("main");
   mockIPC((cmd, payload) => {
-    const args = (payload ?? {}) as Record<string, unknown>;
+    const args = validateArgs(cmd, payload);
     if (handler) {
       return handler(cmd, args);
     }

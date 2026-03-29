@@ -106,3 +106,14 @@ describe("safeInvoke response validation", () => {
     expect(error.message).toContain("validation failed");
   });
 });
+
+describe("setupTauriMocks validates args for custom handler", () => {
+  it("passes validated args to custom handler", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_articles") return [];
+      return null;
+    });
+    const ok = Result.unwrap(await listArticles("feed-1"));
+    expect(ok).toEqual([]);
+  });
+});
