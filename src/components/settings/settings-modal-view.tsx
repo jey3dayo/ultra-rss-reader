@@ -51,7 +51,7 @@ export function SettingsModalView({
         </div>
 
         <div className="flex flex-1 flex-col overflow-hidden bg-popover">
-          <ScrollArea className="flex-1 overflow-hidden">{content}</ScrollArea>
+          <ScrollArea className="flex-1">{content}</ScrollArea>
         </div>
       </DialogContent>
     </Dialog>
