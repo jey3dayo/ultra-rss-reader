@@ -1,7 +1,6 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
-import { ChevronDown, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
@@ -22,10 +21,10 @@ import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { AccountSwitcherView } from "./account-switcher-view";
 import { AddFeedDialog } from "./add-feed-dialog";
-import { FeedItem } from "./feed-item";
-import { FolderSection } from "./folder-section";
+import { type FeedTreeFolderViewModel, FeedTreeView } from "./feed-tree-view";
 import { SidebarHeaderView } from "./sidebar-header-view";
-import { TagContextMenuContent } from "./tag-context-menu";
+import { SmartViewsView } from "./smart-views-view";
+import { type TagListItemViewModel, TagListView } from "./tag-list-view";
 
 function useFormatLastSynced(date: Date | null): string {
   const { t } = useTranslation("sidebar");
@@ -258,168 +257,71 @@ export function Sidebar() {
         />
       </div>
 
-      {/* Unread Smart View */}
-      <button
-        type="button"
-        onClick={() => selectSmartView("unread")}
-        className={cn(
-          "mx-2 my-1 flex items-center justify-between rounded-md px-2 py-2 text-sm",
-          selection.type === "smart" && selection.kind === "unread"
-            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-            : "hover:bg-sidebar-accent/50",
-        )}
-      >
-        <span className="font-medium">{t("unread")}</span>
-        {showUnreadCount && <span className="text-muted-foreground">{totalUnread.toLocaleString()}</span>}
-      </button>
-
-      {/* Starred Smart View */}
-      <button
-        type="button"
-        onClick={() => selectSmartView("starred")}
-        className={cn(
-          "mx-2 my-0.5 flex items-center justify-between rounded-md px-2 py-2 text-sm",
-          selection.type === "smart" && selection.kind === "starred"
-            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-            : "hover:bg-sidebar-accent/50",
-        )}
-      >
-        <span className="font-medium">{t("starred")}</span>
-        {showStarredCount && starredCount > 0 && (
-          <span className="text-muted-foreground">{starredCount.toLocaleString()}</span>
-        )}
-      </button>
-
-      {/* Feeds Section Header */}
-      <div className="px-2 py-2">
-        <button
-          type="button"
-          onClick={() => setIsFeedsSectionOpen((v) => !v)}
-          className="flex w-full items-center justify-between px-2 py-1"
-        >
-          <span className="text-sm font-medium text-sidebar-foreground">{t("feeds")}</span>
-          <ChevronDown
-            className={cn("h-4 w-4 text-muted-foreground transition-transform", !isFeedsSectionOpen && "-rotate-90")}
-          />
-        </button>
-      </div>
-
       {/* Scrollable Feed List */}
       <ScrollArea className="flex-1">
         <div className="pb-4">
-          <div className="space-y-0.5 px-2">
-            {feedList.length > 0 ? (
-              isFeedsSectionOpen && (
-                <>
-                  {sortedFolderList.map((folder) => {
-                    const folderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
-                    if (folderFeeds.length === 0) return null;
-                    return (
-                      <FolderSection
-                        key={folder.id}
-                        folder={folder}
-                        feeds={folderFeeds}
-                        isExpanded={expandedFolderIds.has(folder.id)}
-                        onToggle={toggleFolder}
-                        selectedFeedId={selectedFeedId}
-                        onSelectFeed={selectFeed}
-                        displayFavicons={displayFavicons}
-                        grayscaleFavicons={grayscaleFavicons}
-                      />
-                    );
-                  })}
-                  {unfolderedFeeds.map((feed) => (
-                    <FeedItem
-                      key={feed.id}
-                      feed={feed}
-                      isSelected={selectedFeedId === feed.id}
-                      onSelect={selectFeed}
-                      displayFavicons={displayFavicons}
-                      grayscaleFavicons={grayscaleFavicons}
-                    />
-                  ))}
-                </>
-              )
-            ) : (
-              <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                {selectedAccountId ? (
-                  t("press_plus_to_add_feed")
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      openSettings("accounts");
-                      setSettingsAddAccount(true);
-                    }}
-                    className="text-muted-foreground underline decoration-muted-foreground/50 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/50"
-                  >
-                    {t("add_account_to_start")}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          <SmartViewsView
+            unreadLabel={t("unread")}
+            starredLabel={t("starred")}
+            unreadCount={totalUnread}
+            starredCount={starredCount}
+            showUnreadCount={showUnreadCount}
+            showStarredCount={showStarredCount}
+            selectedKind={selection.type === "smart" ? selection.kind : null}
+            onSelectSmartView={selectSmartView}
+          />
 
-          {/* Tags Section */}
-          {tags && tags.length > 0 && (
-            <>
-              <div className="px-2 py-2">
+          <FeedTreeView
+            feedsLabel={t("feeds")}
+            isOpen={isFeedsSectionOpen}
+            onToggleOpen={() => setIsFeedsSectionOpen((v) => !v)}
+            folders={sortedFolderList
+              .map((folder): FeedTreeFolderViewModel => {
+                const folderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
+                return {
+                  folder,
+                  feeds: folderFeeds,
+                  isExpanded: expandedFolderIds.has(folder.id),
+                };
+              })
+              .filter(({ feeds }) => feeds.length > 0)}
+            unfolderedFeeds={unfolderedFeeds}
+            selectedFeedId={selectedFeedId}
+            onToggleFolder={toggleFolder}
+            onSelectFeed={selectFeed}
+            displayFavicons={displayFavicons}
+            grayscaleFavicons={grayscaleFavicons}
+            emptyState={
+              selectedAccountId ? (
+                t("press_plus_to_add_feed")
+              ) : (
                 <button
                   type="button"
-                  onClick={() => setIsTagsSectionOpen((v) => !v)}
-                  className="flex w-full items-center justify-between px-2 py-1"
+                  onClick={() => {
+                    openSettings("accounts");
+                    setSettingsAddAccount(true);
+                  }}
+                  className="text-muted-foreground underline decoration-muted-foreground/50 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/50"
                 >
-                  <span className="text-sm font-medium text-sidebar-foreground">{t("tags")}</span>
-                  <ChevronDown
-                    className={cn(
-                      "h-4 w-4 text-muted-foreground transition-transform",
-                      !isTagsSectionOpen && "-rotate-90",
-                    )}
-                  />
+                  {t("add_account_to_start")}
                 </button>
-              </div>
-              {isTagsSectionOpen && (
-                <div className="space-y-0.5 px-2">
-                  {tags.map((tag) => (
-                    <ContextMenu.Root key={tag.id}>
-                      <ContextMenu.Trigger
-                        render={
-                          <button
-                            type="button"
-                            onClick={() => selectTag(tag.id)}
-                            className={cn(
-                              "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm",
-                              selection.type === "tag" && selection.tagId === tag.id
-                                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                                : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                            )}
-                          />
-                        }
-                      >
-                        <div className="flex items-center gap-2 truncate">
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-                            {tag.color && (
-                              <span
-                                className="inline-block h-2.5 w-2.5 rounded-full"
-                                style={{ backgroundColor: tag.color }}
-                              />
-                            )}
-                          </span>
-                          <span className="truncate">{tag.name}</span>
-                        </div>
-                        {tagArticleCounts?.[tag.id] != null && tagArticleCounts[tag.id] > 0 && (
-                          <span className="ml-2 shrink-0 text-muted-foreground">
-                            {tagArticleCounts[tag.id].toLocaleString()}
-                          </span>
-                        )}
-                      </ContextMenu.Trigger>
-                      <TagContextMenuContent tag={tag} />
-                    </ContextMenu.Root>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
+              )
+            }
+          />
+
+          <TagListView
+            tagsLabel={t("tags")}
+            isOpen={isTagsSectionOpen}
+            onToggleOpen={() => setIsTagsSectionOpen((v) => !v)}
+            tags={(tags ?? []).map(
+              (tag): TagListItemViewModel => ({
+                ...tag,
+                articleCount: tagArticleCounts?.[tag.id] ?? 0,
+                isSelected: selection.type === "tag" && selection.tagId === tag.id,
+              }),
+            )}
+            onSelectTag={selectTag}
+          />
         </div>
       </ScrollArea>
 
