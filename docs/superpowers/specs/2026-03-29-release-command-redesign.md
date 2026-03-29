@@ -37,9 +37,10 @@
    - `src-tauri/Cargo.toml` — `version = "x.y.z"`（`[package]` セクション内）
    - `src-tauri/tauri.conf.json` — `"version": "x.y.z"`
 2. `cd src-tauri && cargo check` で Cargo.lock 更新
-3. コミットログからリリースノート生成
-4. CHANGELOG.md 更新
-5. TODO.md 更新（該当タスクがあれば `[x]` にマーク）
+3. コミットログからリリースノート生成（注: バージョン bump はまだ未コミットのため対象外。意図通り）
+4. 対象コミットが 0 件の場合はエラーとして中止し理由を報告する
+5. CHANGELOG.md 更新
+6. TODO.md 更新（該当タスクがあれば `[x]` にマーク）
 
 **ユーザー確認②:** 生成されたリリースノートを表示し、修正指示があれば反映。
 
@@ -61,7 +62,7 @@
 
 3. `git push origin main --follow-tags`
 4. `git ls-remote --tags origin | grep v{version}` でタグ到達確認。不在なら `git push origin v{version}`
-5. `gh release edit v{version} --notes "..."` でリリースノート反映
+5. `gh release edit v{version} --notes "..."` でリリースノート反映。Release がまだ存在しない場合（GitHub Actions 未完了）は `gh release create v{version} --draft --notes "..."` で先にドラフト作成する
 6. 完了報告: コミット、タグ、GitHub Actions ワークフロー URL
 
 ## リリースノート生成ルール
@@ -72,7 +73,7 @@
 git log {previous_tag}..HEAD --oneline --no-merges
 ```
 
-前回タグは `git describe --tags --abbrev=0 HEAD~1` で取得。タグがない場合は全コミットを対象。
+前回タグは `git describe --tags --abbrev=0` で取得（Phase 2 時点ではまだタグ未作成のため、直近の既存タグが返る）。タグがない場合は全コミットを対象。
 
 ### カテゴリ分類
 
@@ -102,7 +103,7 @@ git log {previous_tag}..HEAD --oneline --no-merges
 - ...
 ```
 
-`[Unreleased]` の直後に新バージョンセクションを挿入。カテゴリ名は絵文字なし。
+`[Unreleased]` の直後に新バージョンセクションを挿入。カテゴリ名は絵文字なし。`[Unreleased]` セクションが見つからない場合は、ファイルヘッダー直後に `## [Unreleased]` + 新バージョンセクションの両方を挿入する。
 
 ### GitHub Release 更新形式
 
