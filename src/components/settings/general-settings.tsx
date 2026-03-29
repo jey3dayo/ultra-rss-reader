@@ -50,6 +50,33 @@ export function GeneralSettings() {
           ],
         },
         {
+          id: "sidebar",
+          heading: t("general.sidebar"),
+          controls: [
+            {
+              id: "show-sidebar-unread",
+              type: "switch",
+              label: t("general.show_unread"),
+              checked: resolvePreferenceValue(prefs, "show_sidebar_unread") === "true",
+              onChange: (checked) => setPref("show_sidebar_unread", String(checked)),
+            },
+            {
+              id: "show-sidebar-starred",
+              type: "switch",
+              label: t("general.show_starred"),
+              checked: resolvePreferenceValue(prefs, "show_sidebar_starred") === "true",
+              onChange: (checked) => setPref("show_sidebar_starred", String(checked)),
+            },
+            {
+              id: "show-sidebar-tags",
+              type: "switch",
+              label: t("general.show_tags"),
+              checked: resolvePreferenceValue(prefs, "show_sidebar_tags") === "true",
+              onChange: (checked) => setPref("show_sidebar_tags", String(checked)),
+            },
+          ],
+        },
+        {
           id: "browser",
           heading: t("general.browser"),
           note: t("general.open_links_background_note"),
