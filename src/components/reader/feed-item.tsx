@@ -6,7 +6,7 @@ import { extractSiteHost } from "@/lib/feed";
 import { cn } from "@/lib/utils";
 import { FeedContextMenuContent } from "./feed-context-menu";
 
-function FeedFavicon({ feed }: { feed: FeedDto }) {
+function FeedFavicon({ feed, grayscale = false }: { feed: FeedDto; grayscale?: boolean }) {
   const [failed, setFailed] = useState(false);
   let host: string | null = null;
   Result.pipe(
@@ -28,7 +28,7 @@ function FeedFavicon({ feed }: { feed: FeedDto }) {
     <img
       src={`https://www.google.com/s2/favicons?domain=${host}&sz=32`}
       alt=""
-      className="h-4 w-4 shrink-0 rounded"
+      className={cn("h-4 w-4 shrink-0 rounded", grayscale && "grayscale")}
       onError={() => setFailed(true)}
     />
   );
@@ -39,11 +39,13 @@ export function FeedItem({
   isSelected,
   onSelect,
   displayFavicons,
+  grayscaleFavicons = false,
 }: {
   feed: FeedDto;
   isSelected: boolean;
   onSelect: (feedId: string) => void;
   displayFavicons: boolean;
+  grayscaleFavicons?: boolean;
 }) {
   return (
     <ContextMenu.Root>
@@ -56,7 +58,7 @@ export function FeedItem({
         )}
       >
         <div className="flex items-center gap-2 truncate">
-          {displayFavicons && <FeedFavicon feed={feed} />}
+          {displayFavicons && <FeedFavicon feed={feed} grayscale={grayscaleFavicons} />}
           <span className="truncate">{feed.title}</span>
         </div>
         {feed.unread_count > 0 && <span className="ml-2 shrink-0 text-muted-foreground">{feed.unread_count}</span>}

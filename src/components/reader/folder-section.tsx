@@ -13,6 +13,7 @@ export function FolderSection({
   selectedFeedId,
   onSelectFeed,
   displayFavicons,
+  grayscaleFavicons = false,
 }: {
   folder: FolderDto;
   feeds: FeedDto[];
@@ -21,6 +22,7 @@ export function FolderSection({
   selectedFeedId: string | null;
   onSelectFeed: (feedId: string) => void;
   displayFavicons: boolean;
+  grayscaleFavicons?: boolean;
 }) {
   const folderUnread = feeds.reduce((sum, f) => sum + f.unread_count, 0);
 
@@ -50,6 +52,7 @@ export function FolderSection({
               isSelected={selectedFeedId === feed.id}
               onSelect={onSelectFeed}
               displayFavicons={displayFavicons}
+              grayscaleFavicons={grayscaleFavicons}
             />
           ))}
         </div>
