@@ -13,7 +13,6 @@ describe("DeleteTagDialogView", () => {
       <DeleteTagDialogView
         open={true}
         tagName="Work"
-        loading={false}
         onOpenChange={onOpenChange}
         onConfirm={onConfirm}
       />,
@@ -28,14 +27,5 @@ describe("DeleteTagDialogView", () => {
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onOpenChange).toHaveBeenCalledWith(false);
-  });
-
-  it("keeps the actions enabled while loading", () => {
-    render(
-      <DeleteTagDialogView open={true} tagName="Work" loading={true} onOpenChange={vi.fn()} onConfirm={vi.fn()} />,
-    );
-
-    expect(screen.getByRole("button", { name: "Delete" })).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: "Cancel" })).not.toBeDisabled();
   });
 });

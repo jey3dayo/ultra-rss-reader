@@ -5,13 +5,11 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 export function DeleteTagDialogView({
   open,
   tagName,
-  loading,
   onOpenChange,
   onConfirm,
 }: {
   open: boolean;
   tagName: string;
-  loading: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 }) {

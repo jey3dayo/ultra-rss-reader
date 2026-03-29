@@ -82,7 +82,6 @@ export function TagContextMenuContent({ tag }: { tag: TagDto }) {
       <DeleteTagDialogView
         open={showDeleteDialog}
         tagName={tag.name}
-        loading={deleteTag.isPending}
         onOpenChange={handleDeleteOpenChange}
         onConfirm={handleDeleteConfirm}
       />
