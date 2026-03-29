@@ -12,7 +12,7 @@ export function SettingsSwitch({ label, prefKey }: { label: string; prefKey: str
       <Switch
         checked={checked}
         onCheckedChange={(v) => setPref(prefKey, String(v))}
-        className="data-[state=checked]:bg-accent"
+        className="data-[state=checked]:bg-ring"
       />
     </div>
   );
@@ -70,7 +70,7 @@ export function SettingsRow(props: SettingsRowProps) {
     <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
       <span className="text-sm text-foreground">{props.label}</span>
       {props.type === "switch" && (
-        <Switch checked={props.checked} disabled className="data-[state=checked]:bg-accent" />
+        <Switch checked={props.checked} disabled className="data-[state=checked]:bg-ring" />
       )}
       {props.type === "select" && <span className="text-sm text-muted-foreground">{props.value} &#9662;</span>}
       {props.type === "text" && (

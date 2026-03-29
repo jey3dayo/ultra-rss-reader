@@ -14,7 +14,7 @@ function ServiceSwitch({ prefKey, showLabel }: { prefKey: string; showLabel: str
       <Switch
         checked={checked}
         onCheckedChange={(v) => setPref(prefKey, String(v))}
-        className="data-[state=checked]:bg-accent"
+        className="data-[state=checked]:bg-ring"
       />
     </div>
   );

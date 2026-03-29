@@ -77,12 +77,12 @@ function ShortcutKeyBadge({
         type="button"
         data-testid={`shortcut-badge-${actionId}`}
         onClick={onStartRecording}
-        className={`rounded border px-2 py-1 font-mono text-xs transition-colors ${
+        className={`rounded-md border px-2.5 py-1 font-mono text-sm transition-colors ${
           isRecording
-            ? "border-accent bg-accent/20 text-accent-foreground animate-pulse"
+            ? "border-ring bg-ring/20 text-foreground animate-pulse"
             : conflict
               ? "border-destructive bg-destructive/10 text-destructive"
-              : "border-border bg-muted text-muted-foreground hover:border-accent hover:bg-accent/10 cursor-pointer"
+              : "border-border bg-muted text-muted-foreground hover:border-ring hover:bg-ring/10 cursor-pointer"
         }`}
       >
         {isRecording ? pressAKeyLabel : formatKeyForDisplay(currentKey)}
@@ -183,7 +183,7 @@ export function ShortcutsSettings() {
                 >
                   <span className="text-sm text-foreground">{tReader(def.labelKey)}</span>
                   {def.id === "open_settings" ? (
-                    <kbd className="rounded border border-border bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">
+                    <kbd className="rounded-md border border-border bg-muted px-2.5 py-1 font-mono text-sm text-muted-foreground">
                       {formatKeyForDisplay(currentKey)}
                     </kbd>
                   ) : (
@@ -205,13 +205,11 @@ export function ShortcutsSettings() {
         </section>
       ))}
 
-      {hasCustomBindings && (
-        <div className="flex justify-center pt-2">
-          <Button variant="outline" size="sm" onClick={handleResetAll}>
-            {t("shortcuts.reset_to_defaults")}
-          </Button>
-        </div>
-      )}
+      <div className="flex justify-center border-t border-border pt-6">
+        <Button variant="outline" size="sm" onClick={handleResetAll} disabled={!hasCustomBindings}>
+          {t("shortcuts.reset_to_defaults")}
+        </Button>
+      </div>
     </div>
   );
 }

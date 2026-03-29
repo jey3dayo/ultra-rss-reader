@@ -17,12 +17,12 @@
   --color-secondary-foreground: oklch(0.92 0 0);
   --color-muted: oklch(0.26 0 0);
   --color-muted-foreground: oklch(0.6 0 0);
-  --color-accent: oklch(0.65 0.2 25);
-  --color-accent-foreground: oklch(0.98 0 0);
+  --color-accent: oklch(0.26 0 0);
+  --color-accent-foreground: oklch(0.92 0 0);
   --color-destructive: oklch(0.55 0.2 25);
   --color-border: oklch(0.28 0 0);
   --color-input: oklch(0.28 0 0);
-  --color-ring: oklch(0.65 0.2 25);
+  --color-ring: oklch(0.65 0.15 250);
   --color-sidebar: oklch(0.16 0 0);
   --color-sidebar-foreground: oklch(0.92 0 0);
   --color-sidebar-accent: oklch(0.24 0 0);
