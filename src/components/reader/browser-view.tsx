@@ -20,6 +20,7 @@ export function BrowserView() {
   const historyIndex = useRef(0);
   const historySize = useRef(1);
   const isHistoryNav = useRef(false);
+  const initialLoadDone = useRef(false);
 
   const updateNavButtons = useCallback(() => {
     setCanGoBack(historyIndex.current > 0);
@@ -33,6 +34,7 @@ export function BrowserView() {
     historyIndex.current = 0;
     historySize.current = 1;
     isHistoryNav.current = false;
+    initialLoadDone.current = false;
     updateNavButtons();
 
     let cancelled = false;
@@ -56,15 +58,14 @@ export function BrowserView() {
   const handleIframeLoad = () => {
     setIsLoading(false);
 
-    if (isHistoryNav.current) {
+    if (!initialLoadDone.current) {
+      initialLoadDone.current = true;
+    } else if (isHistoryNav.current) {
       isHistoryNav.current = false;
-    } else if (historySize.current > 0) {
-      // New navigation (user clicked a link) — not the initial load
-      const isInitialLoad = historyIndex.current === 0 && historySize.current === 1;
-      if (!isInitialLoad) {
-        historyIndex.current += 1;
-        historySize.current = historyIndex.current + 1;
-      }
+    } else {
+      // New navigation (user clicked a link inside iframe)
+      historyIndex.current += 1;
+      historySize.current = historyIndex.current + 1;
     }
     updateNavButtons();
 
