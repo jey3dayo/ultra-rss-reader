@@ -84,6 +84,7 @@ export function setupDevMocks() {
           id: `dev-acc-${nextAccountId++}`,
           kind,
           name,
+          username: null,
           server_url: serverUrl ?? null,
           sync_interval_secs: 3600,
           sync_on_wake: false,
