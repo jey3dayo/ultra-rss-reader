@@ -114,7 +114,8 @@
     "show_in_toolbar": "Show in toolbar",
     "copy_link": "Copy Link",
     "open_in_browser": "Open in Browser",
-    "open_in_external_browser": "Open in External Browser"
+    "open_in_external_browser": "Open in External Browser",
+    "share_menu": "Share Menu"
   },
   "account": {
     "heading": "Add Account",
