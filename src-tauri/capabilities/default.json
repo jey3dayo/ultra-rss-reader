@@ -7,6 +7,7 @@
     "core:default",
     "opener:default",
     "clipboard-manager:allow-write-text",
-    "updater:default"
+    "updater:default",
+    "core:window:allow-set-badge-count"
   ]
 }

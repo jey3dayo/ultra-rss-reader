@@ -1,3 +1,4 @@
+import { useBadge } from "../hooks/use-badge";
 import { useBreakpoint } from "../hooks/use-breakpoint";
 import { useKeyboard } from "../hooks/use-keyboard";
 import { useMenuEvents } from "../hooks/use-menu-events";
@@ -57,6 +58,7 @@ function Toast() {
 }
 
 export function AppShell() {
+  useBadge();
   useBreakpoint();
   useKeyboard();
   useMenuEvents();
