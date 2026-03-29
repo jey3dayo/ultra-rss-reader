@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { SidebarNavButton } from "./sidebar-nav-button";
 
 export type SmartViewKind = "unread" | "starred";
 
@@ -17,22 +17,18 @@ export type SmartViewsViewProps = {
 
 export function SmartViewsView({ views, onSelectSmartView }: SmartViewsViewProps) {
   return (
-    <div className="space-y-0.5">
-      {views.map((view, index) => (
-        <button
+    <div className="space-y-0.5 px-2 py-1">
+      {views.map((view) => (
+        <SidebarNavButton
           key={view.kind}
-          type="button"
           onClick={() => onSelectSmartView(view.kind)}
           aria-pressed={view.isSelected}
-          className={cn(
-            "flex items-center justify-between rounded-md px-2 py-2 text-sm",
-            view.isSelected ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50",
-            index === 0 ? "mx-2 my-1" : "mx-2 my-0.5",
-          )}
+          selected={view.isSelected}
+          size="default"
+          trailing={view.showCount ? view.count.toLocaleString() : undefined}
         >
           <span className="font-medium">{view.label}</span>
-          {view.showCount && <span className="text-muted-foreground">{view.count.toLocaleString()}</span>}
-        </button>
+        </SidebarNavButton>
       ))}
     </div>
   );

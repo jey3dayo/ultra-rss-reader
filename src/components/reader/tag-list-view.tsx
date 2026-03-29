@@ -2,6 +2,7 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { SidebarNavButton } from "./sidebar-nav-button";
 
 export type TagListItemViewModel = {
   id: string;
@@ -44,29 +45,20 @@ export function TagListView({
             <ContextMenu.Root key={tag.id}>
               <ContextMenu.Trigger
                 render={
-                  <button
-                    type="button"
+                  <SidebarNavButton
                     onClick={() => onSelectTag(tag.id)}
-                    className={cn(
-                      "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm",
-                      tag.isSelected
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                    )}
+                    selected={tag.isSelected}
+                    trailing={tag.articleCount > 0 ? tag.articleCount.toLocaleString() : undefined}
+                    className={!tag.isSelected ? "text-sidebar-foreground" : undefined}
                   />
                 }
               >
-                <div className="flex items-center gap-2 truncate">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-                    {tag.color && (
-                      <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: tag.color }} />
-                    )}
-                  </span>
-                  <span className="truncate">{tag.name}</span>
-                </div>
-                {tag.articleCount > 0 && (
-                  <span className="ml-2 shrink-0 text-muted-foreground">{tag.articleCount.toLocaleString()}</span>
-                )}
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                  {tag.color && (
+                    <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: tag.color }} />
+                  )}
+                </span>
+                <span className="truncate">{tag.name}</span>
               </ContextMenu.Trigger>
               {renderContextMenu?.(tag)}
             </ContextMenu.Root>

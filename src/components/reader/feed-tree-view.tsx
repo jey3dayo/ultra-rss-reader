@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { extractSiteHost } from "@/lib/feed";
 import { cn } from "@/lib/utils";
+import { SidebarNavButton } from "./sidebar-nav-button";
 
 export type FeedTreeFeedViewModel = {
   id: string;
@@ -101,22 +102,22 @@ function FeedRow({
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger
-        render={<button type="button" />}
+        render={
+          <SidebarNavButton
+            selected={feed.isSelected}
+            trailing={feed.unreadCount > 0 ? feed.unreadCount.toLocaleString() : undefined}
+          />
+        }
         onClick={() => onSelectFeed(feed.id)}
-        className={cn(
-          "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm",
-          feed.isSelected ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50",
-        )}
       >
-        <div className="flex items-center gap-2 truncate">
+        <>
           {displayFavicons && (
             <span className="flex h-5 w-5 shrink-0 items-center justify-center">
               <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.siteUrl} grayscale={feed.grayscaleFavicon} />
             </span>
           )}
           <span className="truncate">{feed.title}</span>
-        </div>
-        {feed.unreadCount > 0 && <span className="ml-2 shrink-0 text-muted-foreground">{feed.unreadCount}</span>}
+        </>
       </ContextMenu.Trigger>
       {renderFeedContextMenu?.(feed)}
     </ContextMenu.Root>
@@ -142,18 +143,17 @@ function FolderSection({
     <div>
       <ContextMenu.Root>
         <ContextMenu.Trigger
-          render={<button type="button" />}
+          render={
+            <SidebarNavButton
+              aria-expanded={folder.isExpanded}
+              contentClassName="gap-1"
+              trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
+            />
+          }
           onClick={() => onToggleFolder(folder.id)}
-          aria-expanded={folder.isExpanded}
-          className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/50"
         >
-          <div className="flex items-center gap-1">
-            {folder.isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-            <span className="font-medium">{folder.name}</span>
-          </div>
-          {folder.unreadCount > 0 && (
-            <span className="text-muted-foreground">{folder.unreadCount.toLocaleString()}</span>
-          )}
+          {folder.isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          <span className="font-medium">{folder.name}</span>
         </ContextMenu.Trigger>
         {renderFolderContextMenu?.(folder)}
       </ContextMenu.Root>
