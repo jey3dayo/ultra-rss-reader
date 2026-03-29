@@ -4,7 +4,7 @@
 
 **Goal:** Settings > General から `Unread` / `Starred` / `Tags` のサイドバー表示を個別に切り替えられるようにし、非表示化で現在選択中の項目が無効になった場合は安全に fallback させる
 
-**Architecture:** preference 追加と Settings UI は既存の `preferences-store` + `GeneralSettings` パターンに沿って実装する。実際の表示制御と fallback は `sidebar.tsx` に閉じ込め、`ui-store` の selection 型は増やさず既存 action を使って遷移する。テストは store / settings component / sidebar component の既存層に分けて追加する。
+**Architecture:** preference 追加と Settings UI は既存の `preferences-store` + `GeneralSettings` パターンに沿って実装する。永続化のため `src-tauri` 側の preference allowlist も同時更新する。実際の表示制御と fallback は `sidebar.tsx` に閉じ込めるが、active state 判定は `selection` だけでなく `viewMode` も見る。`ui-store` の selection 型は増やさず既存 action と `setViewMode("all")` を使って遷移する。テストは store / settings component / sidebar component の既存層に分けて追加する。
 
 **Tech Stack:** React 19, TypeScript, Zustand, TanStack Query, react-i18next, Vitest, Testing Library
 
@@ -15,6 +15,7 @@
 | Action | Path | Responsibility |
 | --- | --- | --- |
 | Modify | `src/stores/preferences-store.ts` | `show_sidebar_unread` / `show_sidebar_starred` / `show_sidebar_tags` の schema・default・normalize を追加 |
+| Modify | `src-tauri/src/commands/preference_commands.rs` | 新 preference key を `ALLOWED_KEYS` に追加して永続化を通す |
 | Modify | `src/__tests__/stores/preferences-store.test.ts` | 新 preference の既定値と不正値 fallback を検証 |
 | Modify | `src/components/settings/general-settings.tsx` | General settings に sidebar section visibility スイッチを追加 |
 | Modify | `src/locales/en/settings.json` | Settings > General の英語ラベルを追加 |
@@ -25,11 +26,12 @@
 
 ---
 
-## Task 1: Sidebar visibility preference を store に追加する
+## Task 1: Sidebar visibility preference を store と backend allowlist に追加する
 
 ### Files
 
 - Modify: `src/stores/preferences-store.ts`
+- Modify: `src-tauri/src/commands/preference_commands.rs`
 - Modify: `src/__tests__/stores/preferences-store.test.ts`
 
 - [ ] **Step 1: preference store の失敗テストを追加する**
@@ -56,7 +58,7 @@ Run: `pnpm vitest run src/__tests__/stores/preferences-store.test.ts`
 
 Expected: FAIL with `Expected: "true"` / `Received: ""` for the new preference keys
 
-- [ ] **Step 3: preference schema と default を追加する**
+- [ ] **Step 3: preference schema / default と backend allowlist を追加する**
 
 `src/stores/preferences-store.ts` に追加:
 
@@ -82,6 +84,19 @@ const corePreferenceDefaults = {
 - `normalizePreferenceValue()` と `resolvePreferenceValue()` の既存 fallback 経路に自然に乗せる
 - store action は増やさず、既存の `setPref()` をそのまま使う
 
+`src-tauri/src/commands/preference_commands.rs` の `ALLOWED_KEYS` にも追加:
+
+```rs
+"show_sidebar_unread",
+"show_sidebar_starred",
+"show_sidebar_tags",
+```
+
+ポイント:
+
+- frontend store だけ更新すると `set_preference` が `Unknown preference key` を返して保存に失敗する
+- 新 preference key は TypeScript 側と Rust 側で同じタイミングで追加する
+
 - [ ] **Step 4: preference store テストを再実行する**
 
 Run: `pnpm vitest run src/__tests__/stores/preferences-store.test.ts`
@@ -91,7 +106,7 @@ Expected: PASS
 - [ ] **Step 5: コミットする**
 
 ```bash
-git add src/stores/preferences-store.ts src/__tests__/stores/preferences-store.test.ts
+git add src/stores/preferences-store.ts src-tauri/src/commands/preference_commands.rs src/__tests__/stores/preferences-store.test.ts
 git commit -m "feat: add sidebar visibility preferences"
 ```
 
@@ -283,7 +298,7 @@ it("hides configurable sections while keeping accounts and feeds visible", async
   expect(screen.queryByRole("button", { name: "Tags" })).not.toBeInTheDocument();
 });
 
-it("falls back away from hidden sidebar selections and does not auto-restore", async () => {
+it("falls back away from hidden sidebar states, including viewMode-only flows", async () => {
   setupTauriMocks((cmd, args) => {
     switch (cmd) {
       case "list_accounts":
@@ -304,7 +319,7 @@ it("falls back away from hidden sidebar selections and does not auto-restore", a
   useUiStore.setState({
     ...useUiStore.getState(),
     selectedAccountId: "acc-1",
-    selection: { type: "smart", kind: "starred" },
+    selection: { type: "feed", feedId: "feed-1" },
     viewMode: "starred",
   });
 
@@ -313,9 +328,11 @@ it("falls back away from hidden sidebar selections and does not auto-restore", a
   usePreferencesStore.getState().setPref("show_sidebar_starred", "false");
 
   await waitFor(() => {
-    expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "unread" });
+    expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+    expect(useUiStore.getState().viewMode).toBe("all");
   });
 
+  useUiStore.getState().selectSmartView("unread");
   usePreferencesStore.getState().setPref("show_sidebar_unread", "false");
 
   await waitFor(() => {
@@ -332,7 +349,7 @@ it("falls back away from hidden sidebar selections and does not auto-restore", a
 
 Run: `pnpm vitest run src/__tests__/components/sidebar.test.tsx`
 
-Expected: FAIL because `Unread` / `Starred` / `Tags` are still rendered and selection does not fallback
+Expected: FAIL because `Unread` / `Starred` / `Tags` are still rendered and hidden state does not fallback
 
 - [ ] **Step 3: sidebar.tsx に visibility flag と fallback effect を実装する**
 
@@ -347,6 +364,8 @@ const showSidebarStarred = usePreferencesStore(
 );
 const showSidebarTags = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "show_sidebar_tags") === "true");
 const selectAll = useUiStore((s) => s.selectAll);
+const viewMode = useUiStore((s) => s.viewMode);
+const setViewMode = useUiStore((s) => s.setViewMode);
 ```
 
 smart view filter:
@@ -371,6 +390,10 @@ fallback effect:
 
 ```tsx
 const firstFeedId = orderedFeedIds[0] ?? null;
+const hasSmartUnreadSelection = selection.type === "smart" && selection.kind === "unread";
+const hasSmartStarredSelection = selection.type === "smart" && selection.kind === "starred";
+const hasFilterOnlyUnread = viewMode === "unread" && !hasSmartUnreadSelection;
+const hasFilterOnlyStarred = viewMode === "starred" && !hasSmartStarredSelection;
 
 useEffect(() => {
   const fallbackToFeedOrAll = () => {
@@ -381,7 +404,12 @@ useEffect(() => {
     selectAll();
   };
 
-  if (selection.type === "smart" && selection.kind === "starred" && !showSidebarStarred) {
+  if (hasFilterOnlyStarred && !showSidebarStarred) {
+    setViewMode("all");
+    return;
+  }
+
+  if (hasSmartStarredSelection && !showSidebarStarred) {
     if (showSidebarUnread) selectSmartView("unread");
     else fallbackToFeedOrAll();
     return;
@@ -393,10 +421,29 @@ useEffect(() => {
     return;
   }
 
-  if (selection.type === "smart" && selection.kind === "unread" && !showSidebarUnread) {
+  if (hasFilterOnlyUnread && !showSidebarUnread) {
+    setViewMode("all");
+    return;
+  }
+
+  if (hasSmartUnreadSelection && !showSidebarUnread) {
     fallbackToFeedOrAll();
   }
-}, [firstFeedId, selectAll, selectFeed, selectSmartView, selection, showSidebarStarred, showSidebarTags, showSidebarUnread]);
+}, [
+  firstFeedId,
+  hasFilterOnlyStarred,
+  hasFilterOnlyUnread,
+  hasSmartStarredSelection,
+  hasSmartUnreadSelection,
+  selectAll,
+  selectFeed,
+  selectSmartView,
+  selection,
+  setViewMode,
+  showSidebarStarred,
+  showSidebarTags,
+  showSidebarUnread,
+]);
 ```
 
 render 部分は次のように変更:
@@ -418,7 +465,9 @@ render 部分は次のように変更:
 
 ポイント:
 
-- `selection` がまだ有効なケースでは effect で何もしない
+- `selection` と `viewMode` を合わせて active state を判定する
+- menu / keyboard / `cycle_filter` の `viewMode` のみ変更する経路も取りこぼさない
+- filter だけが hidden になったケースでは `selection` を維持したまま `setViewMode("all")` へ戻す
 - `selectAll()` を「feed が一つもない場合の既存 safe default」として使う
 - `TagListView` 自体は変更せず、visibility policy を `sidebar.tsx` に閉じ込める
 
