@@ -1,5 +1,10 @@
 import { Plus, Rss } from "lucide-react";
+import { SERVICE_CATEGORIES } from "@/components/settings/service-picker";
 import { cn } from "@/lib/utils";
+
+const ACCOUNT_ICON_BG: Record<string, string> = Object.fromEntries(
+  SERVICE_CATEGORIES.flatMap((cat) => cat.services.map((s) => [s.kind, s.iconBg])),
+);
 
 export type AccountNavItem = {
   id: string;
@@ -35,8 +40,13 @@ export function AccountsNavView({
             account.isActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50",
           )}
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <Rss className="h-4 w-4" />
+          <span
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-full",
+              ACCOUNT_ICON_BG[account.kind] ?? "bg-muted",
+            )}
+          >
+            <Rss className="h-4 w-4 text-white" />
           </span>
           <div className="flex flex-col items-start">
             <span className="font-medium">{account.name}</span>
