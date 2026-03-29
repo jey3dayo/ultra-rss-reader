@@ -22,4 +22,11 @@ describe("SettingsModal", () => {
 
     expect(await screen.findByRole("button", { name: "Close preferences" })).toBeInTheDocument();
   });
+
+  it("renders fetched accounts in the accounts navigation", async () => {
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("button", { name: /Local/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /FreshRSS/i })).toBeInTheDocument();
+  });
 });

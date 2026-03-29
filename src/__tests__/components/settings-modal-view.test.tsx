@@ -1,0 +1,49 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { SettingsModalView } from "@/components/settings/settings-modal-view";
+
+describe("SettingsModalView", () => {
+  it("renders header, navigation slots, and content", () => {
+    const onClose = vi.fn();
+    const onOpenChange = vi.fn();
+
+    render(
+      <SettingsModalView
+        open={true}
+        title="Preferences"
+        closeLabel="Close preferences"
+        navigation={<div data-testid="settings-nav">Settings navigation</div>}
+        accountsNavigation={<div data-testid="accounts-nav">Accounts navigation</div>}
+        content={<div>Settings content</div>}
+        onClose={onClose}
+        onOpenChange={onOpenChange}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Preferences" })).toBeInTheDocument();
+    expect(screen.getByTestId("settings-nav")).toHaveTextContent("Settings navigation");
+    expect(screen.getByTestId("accounts-nav")).toHaveTextContent("Accounts navigation");
+    expect(screen.getByText("Settings content")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Close preferences" }));
+
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("does not render dialog content when closed", () => {
+    render(
+      <SettingsModalView
+        open={false}
+        title="Preferences"
+        closeLabel="Close preferences"
+        navigation={<div>Settings navigation</div>}
+        accountsNavigation={<div>Accounts navigation</div>}
+        content={<div>Settings content</div>}
+        onClose={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});
