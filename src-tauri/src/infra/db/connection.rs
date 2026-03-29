@@ -20,7 +20,7 @@ impl DbManager {
         Self::apply_pragmas(&reader)?;
 
         let mut manager = Self { writer, reader };
-        super::migration::run_migrations(&mut manager.writer)?;
+        let _result = super::migration::run_migrations(&mut manager.writer)?;
         Ok(manager)
     }
 
@@ -37,7 +37,7 @@ impl DbManager {
         Self::apply_pragmas(&reader)?;
 
         let mut manager = Self { writer, reader };
-        super::migration::run_migrations(&mut manager.writer)?;
+        let _result = super::migration::run_migrations(&mut manager.writer)?;
         Ok(manager)
     }
 

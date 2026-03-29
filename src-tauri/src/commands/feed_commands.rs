@@ -656,4 +656,14 @@ mod tests {
         assert!(result1, "first sync should execute");
         assert!(!result2, "concurrent sync should be skipped");
     }
+
+    #[test]
+    fn sync_guard_resets_on_drop() {
+        let syncing = AtomicBool::new(true);
+        {
+            let _guard = SyncGuard(&syncing);
+            assert!(syncing.load(Ordering::SeqCst));
+        } // _guard dropped here
+        assert!(!syncing.load(Ordering::SeqCst), "flag should be false after guard drop");
+    }
 }
