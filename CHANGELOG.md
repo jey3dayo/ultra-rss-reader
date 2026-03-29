@@ -4,15 +4,65 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-03-30
+
 ### Features
 
-- コマンドパレット（⌘K）でフィード/記事/設定への素早いアクセス + アクション実行
-- フォーム要素の Base UI 移行（Input, Select, RadioGroup）
-- 設定項目の動作反映（unread_badge, sort_subscriptions, mark_article_as_read, list_selection_style, layout, opaque_sidebars, grayscale_favicons, font_style, font_size, show_starred_count, reader_view, reading_sort）
+- コマンドパレット（⌘Shift+K）でフィード/記事/設定への素早いアクセス + アクション実行
+- Zod による IPC リクエスト/レスポンスバリデーション（safeInvoke）
+- スライディングペーンのトランジションアニメーション（モバイル/コンパクト）
+- DB バックアップ/リストア機能と初期化時の自動統合
+- 同期の排他制御（concurrent sync prevention）
+- シェアメニュー（ツールバー + 設定トグル）
+- タグカラーピッカー
+- サービスピッカー（アカウント追加の2ステップフロー）
+- GradientSwitch コンポーネント（Base UI ダークテーマスタイル）
+- サイドバーセクションの表示/非表示設定
+- フィードごとの表示モード切替
+- 確認ダイアログのリデザイン（アイコン対応）
+- アカウント認証情報の編集機能
+- ツールチップ追加（記事リストヘッダー/サイドバー）
+- リロード/停止ボタンのトグル表示
+- FreshRSS/Inoreader 接続バリデーション
+- 署名付き開発ビルドタスク（Keychain ダイアログ回避）
+- 各種設定項目の動作反映（unread_badge, font_style, font_size, layout, grayscale_favicons, sidebar preferences 等）
+- 初回ユーザー向けアカウント追加ガイダンス
+- macOS バックグラウンドでのリンク開放
+- フィードセクション折りたたみ
+- Dock アンリードバッジ
+- ショートカットリセット確認ダイアログ
+- テーマ連動アプリアイコン切替
+
+### Bug Fixes
+
+- GReader アイテム ID の正規化で既読状態が正しく同期
+- GReader ストリーム取得上限を 50→200 に拡大
+- webview の font-family 継承修正
+- アカウント「説明」→「名前」ラベルリネームと編集ヒント改善
+- gradient-switch OFF 状態の修正
+- クロスオリジン iframe リロード修正
+- settings ScrollArea のスクロール修正
+- ブラウザ back/forward ボタンの disabled 状態修正
+- macOS アプリアイコンの角丸マスク適用
+- Select ポップアップの z-index 修正（Dialog overlay 対応）
+- ウィンドウドラッグの有効化（タイトルバー/サイドバーヘッダー）
+- フィード未読数の再計算修正（既読マーク後）
+- 「お気に入り」→「スター」表記統一
+- サブスクリプションソート順の保持
+- タグピッカー Escape キーのスコープ修正
+- ブラウザビューの embed フォールバック改善
+- カラートークンの体系化（accent, ring, destructive）
 
 ### Maintenance
 
-- feature branch → PR → merge 運用確立（release.yml テンプレ + labeler）
+- フォーム要素の Base UI 移行（Input, Select, RadioGroup）
+- Storybook コンポーネント分離
+- SidebarNavButton 共通コンポーネント抽出
+- feed-tree-view の冗長フラグメント除去
+- PR labeler ワークフロー追加
+- feature branch → PR → merge 運用確立
+- リリースコマンドの3フェーズ構造リデザイン
+- テストカバレッジ改善（コマンドパレット、確認ダイアログ、同期排他制御等）
 
 ## [0.3.1] - 2026-03-29
 
