@@ -25,7 +25,11 @@ fn auxiliary_backup_path(db_path: &Path, ext: &str, schema_version: i32) -> Path
 pub fn create_backup(db_path: &Path, schema_version: i32) -> DomainResult<PathBuf> {
     let dest = backup_path(db_path, schema_version);
 
-    info!("Creating DB backup: {} -> {}", db_path.display(), dest.display());
+    info!(
+        "Creating DB backup: {} -> {}",
+        db_path.display(),
+        dest.display()
+    );
 
     fs::copy(db_path, &dest).map_err(|e| {
         DomainError::Migration(format!(
@@ -83,14 +87,11 @@ pub fn restore_backup(db_path: &Path, backup: &Path, backup_version: i32) -> Dom
 
 /// Remove old backup files, keeping only the most recent `keep` backups.
 pub fn cleanup_old_backups(db_path: &Path, keep: usize) -> DomainResult<()> {
-    let dir = db_path.parent().ok_or_else(|| {
-        DomainError::Migration("Cannot determine backup directory".to_string())
-    })?;
+    let dir = db_path
+        .parent()
+        .ok_or_else(|| DomainError::Migration("Cannot determine backup directory".to_string()))?;
 
-    let db_name = db_path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("");
+    let db_name = db_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
     let prefix = format!("{db_name}.backup-v");
 
