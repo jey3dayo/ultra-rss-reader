@@ -91,6 +91,34 @@ pub fn update_account_sync(
 }
 
 #[tauri::command]
+pub fn update_account_credentials(
+    state: State<'_, AppState>,
+    account_id: String,
+    server_url: Option<String>,
+    username: Option<String>,
+    password: Option<String>,
+) -> Result<AccountDto, AppError> {
+    let id = AccountId(account_id);
+
+    // Update password in keyring if provided
+    if let Some(ref pw) = password {
+        if !pw.is_empty() {
+            keyring_store::set_password(id.as_ref(), pw)?;
+        }
+    }
+
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let repo = SqliteAccountRepository::new(db.writer());
+    repo.update_credentials(&id, server_url.as_deref(), username.as_deref())?;
+    let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
+        message: "Account not found".into(),
+    })?;
+    Ok(AccountDto::from(account))
+}
+
+#[tauri::command]
 pub fn rename_account(
     state: State<'_, AppState>,
     account_id: String,

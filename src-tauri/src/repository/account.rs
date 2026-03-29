@@ -13,6 +13,12 @@ pub trait AccountRepository {
         sync_on_wake: bool,
         keep_read_items_days: i64,
     ) -> DomainResult<()>;
+    fn update_credentials(
+        &self,
+        id: &AccountId,
+        server_url: Option<&str>,
+        username: Option<&str>,
+    ) -> DomainResult<()>;
     fn rename(&self, id: &AccountId, name: &str) -> DomainResult<()>;
     fn delete(&self, id: &AccountId) -> DomainResult<()>;
 }

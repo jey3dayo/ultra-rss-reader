@@ -96,6 +96,19 @@ impl AccountRepository for SqliteAccountRepository<'_> {
         Ok(())
     }
 
+    fn update_credentials(
+        &self,
+        id: &AccountId,
+        server_url: Option<&str>,
+        username: Option<&str>,
+    ) -> DomainResult<()> {
+        self.conn.execute(
+            "UPDATE accounts SET server_url = ?1, username = ?2 WHERE id = ?3",
+            params![server_url, username, id.0],
+        )?;
+        Ok(())
+    }
+
     fn rename(&self, id: &AccountId, name: &str) -> DomainResult<()> {
         self.conn.execute(
             "UPDATE accounts SET name = ?1 WHERE id = ?2",
