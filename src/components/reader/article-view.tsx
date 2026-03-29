@@ -275,7 +275,7 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
 }
 
 function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: string }) {
-  const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
+  const markArticleAsRead = usePreferencesStore((s) => s.prefs.mark_article_as_read ?? "on_open");
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const cmdClickBrowser = usePreferencesStore((s) => s.prefs.cmd_click_browser ?? "false");
   const setRead = useSetRead();
@@ -289,10 +289,10 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
   // re-triggers this effect and immediately marks it read again.
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally trigger only on article.id change
   useEffect(() => {
-    if (afterReading === "mark_as_read" && article && !article.is_read) {
+    if (markArticleAsRead === "on_open" && article && !article.is_read) {
       setRead.mutate({ id: article.id, read: true }, { onSuccess: () => addRecentlyRead(article.id) });
     }
-  }, [afterReading, article?.id]);
+  }, [markArticleAsRead, article?.id]);
 
   useEffect(() => {
     const handleToggleRead = () => {
@@ -477,12 +477,51 @@ export function ArticleView() {
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selection = useUiStore((s) => s.selection);
+  const openBrowser = useUiStore((s) => s.openBrowser);
+  const readerViewPref = usePreferencesStore((s) => s.prefs.reader_view ?? "off");
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
   const { data: articles } = useArticles(feedId);
   const { data: accountArticles } = useAccountArticles(selectedAccountId);
   const { data: tagArticles } = useArticlesByTag(tagId);
   const { data: feeds } = useFeeds(selectedAccountId);
+
+  // When reader_view is "on", auto-open article URL in browser view
+  const prevArticleIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      readerViewPref === "on" &&
+      selectedArticleId &&
+      selectedArticleId !== prevArticleIdRef.current &&
+      contentMode === "reader"
+    ) {
+      const articleResult = findSelectedArticle({
+        selectedArticleId,
+        feedId,
+        tagId,
+        articles,
+        accountArticles,
+        tagArticles,
+      });
+      if (Result.isSuccess(articleResult)) {
+        const article = Result.unwrap(articleResult);
+        if (article.url) {
+          openBrowser(article.url);
+        }
+      }
+    }
+    prevArticleIdRef.current = selectedArticleId;
+  }, [
+    selectedArticleId,
+    readerViewPref,
+    contentMode,
+    feedId,
+    tagId,
+    articles,
+    accountArticles,
+    tagArticles,
+    openBrowser,
+  ]);
 
   if (contentMode === "browser") {
     return <BrowserView />;
