@@ -501,12 +501,14 @@ export function Sidebar() {
                         }
                       >
                         <div className="flex items-center gap-2 truncate">
-                          {tag.color && (
-                            <span
-                              className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                              style={{ backgroundColor: tag.color }}
-                            />
-                          )}
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                            {tag.color && (
+                              <span
+                                className="inline-block h-2.5 w-2.5 rounded-full"
+                                style={{ backgroundColor: tag.color }}
+                              />
+                            )}
+                          </span>
                           <span className="truncate">{tag.name}</span>
                         </div>
                         {tagArticleCounts?.[tag.id] != null && tagArticleCounts[tag.id] > 0 && (

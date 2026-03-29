@@ -47,6 +47,8 @@ export function FeedItem({
   displayFavicons: boolean;
   grayscaleFavicons?: boolean;
 }) {
+  const leadingVisualSlotClass = "flex h-5 w-5 shrink-0 items-center justify-center";
+
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger
@@ -58,7 +60,11 @@ export function FeedItem({
         )}
       >
         <div className="flex items-center gap-2 truncate">
-          {displayFavicons && <FeedFavicon feed={feed} grayscale={grayscaleFavicons} />}
+          {displayFavicons && (
+            <span className={leadingVisualSlotClass}>
+              <FeedFavicon feed={feed} grayscale={grayscaleFavicons} />
+            </span>
+          )}
           <span className="truncate">{feed.title}</span>
         </div>
         {feed.unread_count > 0 && <span className="ml-2 shrink-0 text-muted-foreground">{feed.unread_count}</span>}
