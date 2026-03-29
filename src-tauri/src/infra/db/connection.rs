@@ -16,62 +16,82 @@ impl DbManager {
         // Check if this is a fresh database (file doesn't exist yet)
         let is_fresh = !db_path.exists();
 
-        // Phase 1: Open a temporary connection to check schema version
-        let probe = Connection::open(db_path)?;
-        probe.execute_batch("PRAGMA busy_timeout = 5000;")?;
-        let current_version = super::migration::get_schema_version(&probe);
+        // Phase 1: Open writer and check schema version
+        let writer = Connection::open(db_path)?;
+        Self::apply_pragmas(&writer)?;
+        let current_version = super::migration::get_schema_version(&writer);
         let needs_migration = current_version < super::migration::LATEST_VERSION;
-        drop(probe);
 
         // Phase 2: Backup before migration (skip for fresh/empty DB)
         if needs_migration && !is_fresh {
+            // Drop writer before backup to ensure WAL is checkpointed
+            drop(writer);
             super::backup::create_backup(db_path, current_version)?;
+            // Re-open writer after backup
+            let writer = Connection::open(db_path)?;
+            Self::apply_pragmas(&writer)?;
+            let reader = Connection::open(db_path)?;
+            Self::apply_pragmas(&reader)?;
+            let mut manager = Self { writer, reader };
+            Self::run_migrations_with_restore(&mut manager, db_path, current_version)?;
+            Ok(manager)
+        } else {
+            // No migration needed, or fresh DB — just open and migrate
+            let reader = Connection::open(db_path)?;
+            Self::apply_pragmas(&reader)?;
+            let mut manager = Self { writer, reader };
+            match super::migration::run_migrations(&mut manager.writer) {
+                Ok(_) => Ok(manager),
+                Err(e) => Err(DomainError::Migration(format!("Migration failed: {e}"))),
+            }
         }
+    }
 
-        // Phase 3: Open connections and run migrations
-        let writer = Connection::open(db_path)?;
-        Self::apply_pragmas(&writer)?;
-        let reader = Connection::open(db_path)?;
-        Self::apply_pragmas(&reader)?;
-
-        let mut manager = Self { writer, reader };
-
+    /// Run migrations with automatic restore on failure.
+    /// On success, cleans up old backups. On failure, restores from backup
+    /// and returns an error (fail-fast rather than running with an old schema).
+    fn run_migrations_with_restore(
+        manager: &mut Self,
+        db_path: &Path,
+        backup_version: i32,
+    ) -> DomainResult<()> {
         match super::migration::run_migrations(&mut manager.writer) {
             Ok(result) => {
                 if result.migrated() {
-                    // Clean up old backups, keep last 3
                     if let Err(e) = super::backup::cleanup_old_backups(db_path, 3) {
                         tracing::warn!("Failed to clean up old backups: {e}");
                     }
                 }
-                Ok(manager)
+                Ok(())
             }
             Err(e) => {
-                // Migration failed — attempt restore from backup
                 tracing::error!("Migration failed: {e}");
-                let backup = super::backup::backup_path(db_path, current_version);
+                let backup = super::backup::backup_path(db_path, backup_version);
                 if backup.exists() {
-                    tracing::info!("Attempting restore from backup v{current_version}...");
-                    drop(manager); // Release DB connections before file operations
+                    tracing::info!("Attempting restore from backup v{backup_version}...");
+                    // Release DB connections before file operations
+                    let writer = Connection::open(":memory:").unwrap();
+                    let reader = Connection::open(":memory:").unwrap();
+                    let old_writer = std::mem::replace(&mut manager.writer, writer);
+                    let old_reader = std::mem::replace(&mut manager.reader, reader);
+                    drop(old_writer);
+                    drop(old_reader);
+
                     if let Err(restore_err) =
-                        super::backup::restore_backup(db_path, &backup, current_version)
+                        super::backup::restore_backup(db_path, &backup, backup_version)
                     {
-                        tracing::error!("Restore also failed: {restore_err}");
                         return Err(DomainError::Migration(format!(
                             "Migration failed ({e}) and restore failed ({restore_err}). \
                              Manual intervention required."
                         )));
                     }
-                    // Re-open with restored (pre-migration) schema and continue
-                    tracing::warn!(
-                        "Database restored to v{current_version} after migration failure. \
-                         Running with older schema."
-                    );
-                    let writer = Connection::open(db_path)?;
-                    Self::apply_pragmas(&writer)?;
-                    let reader = Connection::open(db_path)?;
-                    Self::apply_pragmas(&reader)?;
-                    Ok(Self { writer, reader })
+
+                    // Restore succeeded but return error — don't run with old schema
+                    Err(DomainError::Migration(format!(
+                        "Migration to v{} failed: {e}. Database restored to v{backup_version}. \
+                         Please update the application or contact support.",
+                        super::migration::LATEST_VERSION
+                    )))
                 } else {
                     Err(DomainError::Migration(format!(
                         "Migration failed: {e}. No backup available for restore."
@@ -242,27 +262,29 @@ mod tests {
         // 2. Create backup at v4
         // 3. Try V5 (ALTER TABLE ADD COLUMN display_mode) → FAIL (column exists)
         // 4. Restore from backup (v4)
-        // 5. Return Ok with restored DB
-        let db = DbManager::new(&db_path).unwrap();
+        // 5. Return Err (fail-fast, don't run with old schema)
+        let result = DbManager::new(&db_path);
+        assert!(
+            result.is_err(),
+            "Should fail after migration failure + restore"
+        );
+        let err_msg = format!("{}", result.err().unwrap());
+        assert!(
+            err_msg.contains("restored to v4"),
+            "Error should mention restore: {err_msg}"
+        );
 
-        // Verify data survived
-        let name: String = db
-            .reader()
+        // Verify backup was restored — data should be intact
+        let conn = rusqlite::Connection::open(&db_path).unwrap();
+        let name: String = conn
             .query_row("SELECT name FROM accounts WHERE id = 'a1'", [], |row| {
                 row.get(0)
             })
             .unwrap();
         assert_eq!(name, "Test");
 
-        // Verify schema version is 4 (restored state — v5 row was deleted before backup)
-        let version: i32 = db
-            .reader()
-            .query_row(
-                "SELECT version FROM schema_version ORDER BY version DESC LIMIT 1",
-                [],
-                |row| row.get(0),
-            )
-            .unwrap();
+        // Verify schema version is 4 (restored state)
+        let version = super::super::migration::get_schema_version(&conn);
         assert_eq!(version, 4, "Should be restored to v4");
     }
 

@@ -643,7 +643,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn concurrent_syncs_only_one_executes() {
+    async fn second_sync_skips_when_flag_already_set() {
         let db = Mutex::new(DbManager::new_in_memory().unwrap());
         let syncing = AtomicBool::new(false);
 

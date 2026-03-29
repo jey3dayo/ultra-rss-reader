@@ -12,11 +12,12 @@ pub fn backup_path(db_path: &Path, schema_version: i32) -> PathBuf {
     PathBuf::from(name)
 }
 
-/// Generate WAL/SHM backup path for a given extension and version.
-fn auxiliary_backup_path(db_path: &Path, ext: &str, schema_version: i32) -> PathBuf {
-    let aux = db_path.with_extension(ext);
-    let mut name = aux.as_os_str().to_owned();
-    name.push(format!(".backup-v{schema_version}"));
+/// Generate WAL/SHM backup path by appending suffix to the full filename.
+/// SQLite names auxiliary files by appending `-wal`/`-shm` to the full path,
+/// so we must append rather than replace the extension.
+fn auxiliary_backup_path(db_path: &Path, suffix: &str, schema_version: i32) -> PathBuf {
+    let mut name = db_path.as_os_str().to_owned();
+    name.push(format!("-{suffix}.backup-v{schema_version}"));
     PathBuf::from(name)
 }
 
@@ -39,10 +40,12 @@ pub fn create_backup(db_path: &Path, schema_version: i32) -> DomainResult<PathBu
     })?;
 
     // Copy WAL and SHM if they exist (SQLite WAL mode)
-    for ext in &["db-wal", "db-shm"] {
-        let src = db_path.with_extension(ext);
+    for suffix in &["wal", "shm"] {
+        let mut src_name = db_path.as_os_str().to_owned();
+        src_name.push(format!("-{suffix}"));
+        let src = PathBuf::from(src_name);
         if src.exists() {
-            let aux_dest = auxiliary_backup_path(db_path, ext, schema_version);
+            let aux_dest = auxiliary_backup_path(db_path, suffix, schema_version);
             fs::copy(&src, &aux_dest).map_err(|e| {
                 DomainError::Migration(format!("Failed to backup {}: {e}", src.display()))
             })?;
@@ -69,9 +72,11 @@ pub fn restore_backup(db_path: &Path, backup: &Path, backup_version: i32) -> Dom
     })?;
 
     // Restore or remove WAL/SHM
-    for ext in &["db-wal", "db-shm"] {
-        let aux_current = db_path.with_extension(ext);
-        let aux_backup = auxiliary_backup_path(db_path, ext, backup_version);
+    for suffix in &["wal", "shm"] {
+        let mut aux_name = db_path.as_os_str().to_owned();
+        aux_name.push(format!("-{suffix}"));
+        let aux_current = PathBuf::from(aux_name);
+        let aux_backup = auxiliary_backup_path(db_path, suffix, backup_version);
         if aux_backup.exists() {
             fs::copy(&aux_backup, &aux_current).map_err(|e| {
                 DomainError::Migration(format!("Failed to restore {}: {e}", aux_current.display()))
@@ -118,8 +123,8 @@ pub fn cleanup_old_backups(db_path: &Path, keep: usize) -> DomainResult<()> {
             warn!("Failed to remove old backup {}: {e}", bp.display());
         }
         // Also remove WAL/SHM backups
-        for ext in &["db-wal", "db-shm"] {
-            let _ = fs::remove_file(auxiliary_backup_path(db_path, ext, *v));
+        for suffix in &["wal", "shm"] {
+            let _ = fs::remove_file(auxiliary_backup_path(db_path, suffix, *v));
         }
     }
 
@@ -149,8 +154,17 @@ mod tests {
     fn auxiliary_backup_path_for_wal() {
         let path = Path::new("/tmp/app.db");
         assert_eq!(
-            auxiliary_backup_path(path, "db-wal", 2),
+            auxiliary_backup_path(path, "wal", 2),
             PathBuf::from("/tmp/app.db-wal.backup-v2")
+        );
+    }
+
+    #[test]
+    fn auxiliary_backup_path_works_for_non_db_extension() {
+        let path = Path::new("/tmp/app.sqlite");
+        assert_eq!(
+            auxiliary_backup_path(path, "wal", 2),
+            PathBuf::from("/tmp/app.sqlite-wal.backup-v2")
         );
     }
 
@@ -165,19 +179,24 @@ mod tests {
     #[test]
     fn create_backup_copies_wal_and_shm() {
         let (_dir, db_path) = setup_temp_db();
-        let wal_path = db_path.with_extension("db-wal");
-        let shm_path = db_path.with_extension("db-shm");
+        // SQLite appends -wal/-shm to the full filename
+        let mut wal_name = db_path.as_os_str().to_owned();
+        wal_name.push("-wal");
+        let wal_path = PathBuf::from(wal_name);
+        let mut shm_name = db_path.as_os_str().to_owned();
+        shm_name.push("-shm");
+        let shm_path = PathBuf::from(shm_name);
         fs::write(&wal_path, b"wal data").unwrap();
         fs::write(&shm_path, b"shm data").unwrap();
 
         let bp = create_backup(&db_path, 2).unwrap();
         assert!(bp.exists());
         assert_eq!(
-            fs::read(auxiliary_backup_path(&db_path, "db-wal", 2)).unwrap(),
+            fs::read(auxiliary_backup_path(&db_path, "wal", 2)).unwrap(),
             b"wal data"
         );
         assert_eq!(
-            fs::read(auxiliary_backup_path(&db_path, "db-shm", 2)).unwrap(),
+            fs::read(auxiliary_backup_path(&db_path, "shm", 2)).unwrap(),
             b"shm data"
         );
     }
@@ -205,7 +224,9 @@ mod tests {
         let (_dir, db_path) = setup_temp_db();
         let bp = create_backup(&db_path, 1).unwrap();
         // Create stale WAL that has no backup counterpart
-        let wal_path = db_path.with_extension("db-wal");
+        let mut wal_name = db_path.as_os_str().to_owned();
+        wal_name.push("-wal");
+        let wal_path = PathBuf::from(wal_name);
         fs::write(&wal_path, b"stale wal").unwrap();
         restore_backup(&db_path, &bp, 1).unwrap();
         // Stale WAL should be removed (no WAL backup existed for v1)
