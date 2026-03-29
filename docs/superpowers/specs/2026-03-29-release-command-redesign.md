@@ -22,9 +22,10 @@
 以下を一括実行する:
 
 1. 現在のブランチが `main` であることを確認
-2. uncommitted changes がないことを確認
-3. `mise run check` を実行（format + lint + test）
-4. `package.json` から現在のバージョンを取得
+2. `git fetch origin main` でリモート最新化し、ローカルが `origin/main` と一致することを確認（behind している場合はエラー終了）
+3. uncommitted changes がないことを確認
+4. `mise run check` を実行（format + lint + test）
+5. `package.json` から現在のバージョンを取得
 
 **ユーザー確認①:** bump 種別を選択（patch / minor / major）。引数で指定済みならスキップ。
 
@@ -60,9 +61,9 @@
 
 承認後:
 
-3. `git push origin main --follow-tags`
-4. `git ls-remote --tags origin | grep v{version}` でタグ到達確認。不在なら `git push origin v{version}`
-5. `gh release edit v{version} --notes "..."` でリリースノート反映。Release がまだ存在しない場合（GitHub Actions 未完了）は `gh release create v{version} --draft --notes "..."` で先にドラフト作成する
+3. `git push --atomic origin main v{version}`（branch と tag を atomic に push。片方だけ通る壊れた状態を防ぐ）。`--atomic` 非対応の場合は `git push origin main --follow-tags` にフォールバック
+4. `git ls-remote --tags origin | grep "refs/tags/v{version}$"` でタグ到達を完全一致確認。不在なら `git push origin v{version}`
+5. `gh release edit v{version} --notes "..."` でリリースノート反映。Release がまだ存在しない場合（GitHub Actions 未完了）は `gh release create v{version} --draft --notes "..."` で先にドラフト作成する。**責務分担:** CLI がリリースノート本文を管理し、`release.yml` の `tauri-action` はアーティファクト添付のみを担当する
 6. 完了報告: コミット、タグ、GitHub Actions ワークフロー URL
 
 ## リリースノート生成ルール
@@ -73,17 +74,18 @@
 git log {previous_tag}..HEAD --oneline --no-merges
 ```
 
-前回タグは `git describe --tags --abbrev=0` で取得（Phase 2 時点ではまだタグ未作成のため、直近の既存タグが返る）。タグがない場合は全コミットを対象。
+前回タグは `git describe --tags --abbrev=0 --match "v*"` で取得（`v*` パターンでリリースタグのみに限定。Phase 2 時点ではまだタグ未作成のため、直近の既存リリースタグが返る）。タグがない場合（初回リリース）は `git log --oneline --no-merges` で全コミットを対象とする。
 
 ### カテゴリ分類
 
-| prefix                             | GitHub Release カテゴリ | CHANGELOG カテゴリ |
-| ---------------------------------- | ----------------------- | ------------------ |
-| `feat:`                            | 🚀 Features             | Features           |
-| `fix:`                             | 🐛 Bug Fixes            | Bug Fixes          |
-| `docs:`                            | 📚 Documentation        | Documentation      |
-| `chore:`/`refactor:`/`test:`/`ci:` | 🔧 Maintenance          | Maintenance        |
-| breaking change                    | 💥 Breaking Changes     | Breaking Changes   |
+| prefix                                                | GitHub Release カテゴリ | CHANGELOG カテゴリ |
+| ----------------------------------------------------- | ----------------------- | ------------------ |
+| `feat:`                                               | 🚀 Features             | Features           |
+| `fix:`                                                | 🐛 Bug Fixes            | Bug Fixes          |
+| `docs:`                                               | 📚 Documentation        | Documentation      |
+| `chore:`/`refactor:`/`test:`/`ci:`                    | 🔧 Maintenance          | Maintenance        |
+| `feat!:`/`fix!:` 等 (`!` 付き)                        | 💥 Breaking Changes     | Breaking Changes   |
+| その他（prefix なし、`perf:`, `build:`, `style:` 等） | 🔧 Maintenance          | Maintenance        |
 
 ### 除外ルール
 
@@ -103,7 +105,7 @@ git log {previous_tag}..HEAD --oneline --no-merges
 - ...
 ```
 
-`[Unreleased]` の直後に新バージョンセクションを挿入。カテゴリ名は絵文字なし。`[Unreleased]` セクションが見つからない場合は、ファイルヘッダー直後に `## [Unreleased]` + 新バージョンセクションの両方を挿入する。
+`[Unreleased]` の直後に新バージョンセクションを挿入し、`[Unreleased]` セクション内の既存内容は空にする（新バージョンに移動済みのため）。カテゴリ名は絵文字なし。`[Unreleased]` セクションが見つからない場合は、ファイルヘッダー直後に `## [Unreleased]` + 新バージョンセクションの両方を挿入する。
 
 ### GitHub Release 更新形式
 
@@ -118,5 +120,6 @@ git log {previous_tag}..HEAD --oneline --no-merges
 ## タグ push の安全策
 
 - `git tag -a -m` で annotated タグを作成（`--follow-tags` 対応）
-- push 後に `git ls-remote --tags` でリモート到達を確認
+- `git push --atomic` で branch と tag を同時に push（非対応なら `--follow-tags` にフォールバック）
+- push 後に `git ls-remote --tags` で完全一致確認
 - 不在時は `git push origin v{version}` でフォールバック
