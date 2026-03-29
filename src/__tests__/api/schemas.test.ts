@@ -1,0 +1,109 @@
+import { describe, expect, it } from "vitest";
+import {
+  AccountDtoSchema,
+  AppErrorSchema,
+  ArticleDtoSchema,
+  DiscoveredFeedDtoSchema,
+  FeedDtoSchema,
+  FolderDtoSchema,
+  TagDtoSchema,
+  UpdateInfoDtoSchema,
+} from "@/api/schemas";
+
+describe("DTO schemas", () => {
+  it("parses valid AccountDto", () => {
+    const data = {
+      id: "acc-1",
+      kind: "local",
+      name: "Local",
+      server_url: null,
+      sync_interval_secs: 3600,
+      sync_on_wake: false,
+      keep_read_items_days: 30,
+    };
+    expect(AccountDtoSchema.parse(data)).toEqual(data);
+  });
+  it("rejects AccountDto with missing fields", () => {
+    expect(() => AccountDtoSchema.parse({ id: "acc-1" })).toThrow();
+  });
+  it("parses valid FolderDto", () => {
+    const data = { id: "f-1", account_id: "acc-1", name: "Tech", sort_order: 0 };
+    expect(FolderDtoSchema.parse(data)).toEqual(data);
+  });
+  it("parses valid FeedDto", () => {
+    const data = {
+      id: "feed-1",
+      account_id: "acc-1",
+      folder_id: null,
+      title: "Blog",
+      url: "https://example.com/feed.xml",
+      site_url: "https://example.com",
+      unread_count: 5,
+      display_mode: "normal",
+    };
+    expect(FeedDtoSchema.parse(data)).toEqual(data);
+  });
+  it("parses valid ArticleDto", () => {
+    const data = {
+      id: "art-1",
+      feed_id: "feed-1",
+      title: "Hello",
+      content_sanitized: "<p>Hi</p>",
+      summary: null,
+      url: null,
+      author: null,
+      published_at: "2026-03-25T10:00:00Z",
+      thumbnail: null,
+      is_read: false,
+      is_starred: false,
+    };
+    expect(ArticleDtoSchema.parse(data)).toEqual(data);
+  });
+  it("parses valid TagDto", () => {
+    expect(TagDtoSchema.parse({ id: "tag-1", name: "Important", color: "#ff0000" })).toEqual({
+      id: "tag-1",
+      name: "Important",
+      color: "#ff0000",
+    });
+  });
+  it("parses TagDto with null color", () => {
+    expect(TagDtoSchema.parse({ id: "tag-1", name: "Important", color: null })).toEqual({
+      id: "tag-1",
+      name: "Important",
+      color: null,
+    });
+  });
+  it("parses valid DiscoveredFeedDto", () => {
+    expect(DiscoveredFeedDtoSchema.parse({ url: "https://example.com/feed.xml", title: "Blog" })).toEqual({
+      url: "https://example.com/feed.xml",
+      title: "Blog",
+    });
+  });
+  it("parses valid UpdateInfoDto", () => {
+    expect(UpdateInfoDtoSchema.parse({ version: "1.0.0", body: "Release notes" })).toEqual({
+      version: "1.0.0",
+      body: "Release notes",
+    });
+  });
+  it("parses UpdateInfoDto with null body", () => {
+    expect(UpdateInfoDtoSchema.parse({ version: "1.0.0", body: null })).toEqual({ version: "1.0.0", body: null });
+  });
+});
+
+describe("AppErrorSchema", () => {
+  it("parses UserVisible error", () => {
+    expect(AppErrorSchema.parse({ type: "UserVisible", message: "Something went wrong" })).toEqual({
+      type: "UserVisible",
+      message: "Something went wrong",
+    });
+  });
+  it("parses Retryable error", () => {
+    expect(AppErrorSchema.parse({ type: "Retryable", message: "Network timeout" })).toEqual({
+      type: "Retryable",
+      message: "Network timeout",
+    });
+  });
+  it("rejects unknown error type", () => {
+    expect(() => AppErrorSchema.parse({ type: "Unknown", message: "?" })).toThrow();
+  });
+});
