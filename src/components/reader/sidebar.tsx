@@ -105,6 +105,7 @@ export function Sidebar() {
   const closeAccountList = useCallback((restoreFocus = false) => {
     setShowAccountList(false);
     if (restoreFocus) {
+      accountTriggerRef.current?.focus();
       requestAnimationFrame(() => accountTriggerRef.current?.focus());
     }
   }, []);
