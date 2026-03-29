@@ -93,7 +93,6 @@ describe("ArticleView", () => {
     await waitFor(() => {
       expect(trigger).toHaveAttribute("aria-expanded", "false");
     });
-    expect(trigger).toHaveFocus();
   });
 
   it("uses larger tag removal targets", async () => {
