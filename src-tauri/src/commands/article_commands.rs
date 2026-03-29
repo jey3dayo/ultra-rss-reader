@@ -1,5 +1,4 @@
 use reqwest::header::{HeaderMap, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
-use reqwest::StatusCode;
 use tauri::State;
 
 use crate::commands::dto::{AppError, ArticleDto};
@@ -68,10 +67,7 @@ pub async fn check_browser_embed_support(url: String) -> Result<bool, AppError> 
         .build()
         .map_err(DomainError::from)?;
 
-    let response = match client.head(&url).send().await {
-        Ok(response) if response.status() != StatusCode::METHOD_NOT_ALLOWED => response,
-        Ok(_) | Err(_) => client.get(&url).send().await.map_err(DomainError::from)?,
-    };
+    let response = client.get(&url).send().await.map_err(DomainError::from)?;
 
     let headers = response.headers();
     Ok(!(has_blocking_x_frame_options(headers) || has_blocking_frame_ancestors(headers)))
@@ -310,6 +306,8 @@ pub fn search_articles(
 #[cfg(test)]
 mod tests {
     use super::{has_blocking_frame_ancestors, has_blocking_x_frame_options};
+    use super::check_browser_embed_support;
+    use mockito::Server;
     use reqwest::header::{HeaderMap, HeaderValue, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
 
     #[test]
@@ -342,5 +340,22 @@ mod tests {
         );
 
         assert!(has_blocking_frame_ancestors(&headers));
+    }
+
+    #[tokio::test]
+    async fn embed_support_uses_get_response_headers() {
+        let mut server = Server::new_async().await;
+        let _mock = server
+            .mock("GET", "/article")
+            .with_status(200)
+            .with_header("x-frame-options", "SAMEORIGIN")
+            .create_async()
+            .await;
+
+        let supported = check_browser_embed_support(format!("{}/article", server.url()))
+            .await
+            .expect("embed check should succeed");
+
+        assert!(!supported);
     }
 }

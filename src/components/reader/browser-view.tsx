@@ -11,15 +11,6 @@ import { resolveSelectedFeedDisplayMode } from "@/lib/article-view";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-function isEmbeddedBrowserError(iframe: HTMLIFrameElement): boolean {
-  try {
-    const loadedHref = iframe.contentWindow?.location?.href;
-    return typeof loadedHref === "string" && loadedHref.startsWith("chrome-error://");
-  } catch {
-    return false;
-  }
-}
-
 export function BrowserView() {
   const { t } = useTranslation("reader");
   const { browserUrl, closeBrowser } = useUiStore();
@@ -129,10 +120,7 @@ export function BrowserView() {
               title={t("browser_view")}
               className="h-full w-full border-none bg-white"
               sandbox="allow-same-origin allow-scripts allow-popups"
-              onLoad={(event) => {
-                setEmbedBlocked(isEmbeddedBrowserError(event.currentTarget));
-                setIsLoading(false);
-              }}
+              onLoad={() => setIsLoading(false)}
               onError={() => {
                 setEmbedBlocked(true);
                 setIsLoading(false);
