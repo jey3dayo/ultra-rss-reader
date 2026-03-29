@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
+  <defs>
+    <!-- Light background gradient -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#F5F5F5"/>
+      <stop offset="100%" stop-color="#E0E4EA"/>
+    </linearGradient>
+    <!-- Copper/rose-gold gradient for RSS symbol -->
+    <linearGradient id="copper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#D4956E"/>
+      <stop offset="50%" stop-color="#B87550"/>
+      <stop offset="100%" stop-color="#9A5A3A"/>
+    </linearGradient>
+    <!-- Dark navy lines -->
+    <linearGradient id="lines" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3D5068"/>
+      <stop offset="100%" stop-color="#2A3A50"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Full square light background -->
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- Three horizontal lines (article list) -->
+  <rect x="120" y="340" width="420" height="56" rx="28" fill="url(#lines)"/>
+  <rect x="120" y="460" width="350" height="56" rx="28" fill="url(#lines)"/>
+  <rect x="120" y="590" width="390" height="56" rx="28" fill="url(#lines)"/>
+
+  <!-- RSS symbol (top-right area) -->
+  <g transform="translate(480, 80)">
+    <circle cx="80" cy="380" r="56" fill="url(#copper)"/>
+    <path d="M80 240 A140 140 0 0 1 220 380" stroke="url(#copper)" stroke-width="56" stroke-linecap="round" fill="none"/>
+    <path d="M80 100 A280 280 0 0 1 360 380" stroke="url(#copper)" stroke-width="56" stroke-linecap="round" fill="none"/>
+  </g>
+</svg>

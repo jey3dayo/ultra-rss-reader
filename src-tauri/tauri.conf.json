@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/niccokunzmann/tauri/tauri-v2.5.0/crates/tauri-cli/schema.json",
   "productName": "Ultra RSS Reader",
   "version": "0.3.1",
-  "identifier": "com.ultra-rss-reader.app",
+  "identifier": "com.ultra-rss-reader.dev",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -35,7 +35,6 @@
     ]
   },
   "plugins": {
-    "clipboard-manager": {},
     "updater": {
       "endpoints": [
         "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json"
