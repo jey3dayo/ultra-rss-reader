@@ -1,11 +1,8 @@
 import { Result } from "@praha/byethrow";
-import { Plus, X } from "lucide-react";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -29,6 +26,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { ArticleContentView } from "./article-content-view";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticleMetaView } from "./article-meta-view";
+import { ArticleTagPickerView } from "./article-tag-picker-view";
 import { ArticleToolbarView } from "./article-toolbar-view";
 import { BrowserView } from "./browser-view";
 
@@ -129,47 +127,11 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
   const createTagMutation = useCreateTag();
   const [showPicker, setShowPicker] = useState(false);
   const [newTagName, setNewTagName] = useState("");
-  const pickerRef = useRef<HTMLDivElement>(null);
-  const pickerTriggerRef = useRef<HTMLButtonElement>(null);
-  const newTagInputRef = useRef<HTMLInputElement>(null);
-  const tagOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const pickerId = useId();
-
-  const closePicker = useCallback((restoreFocus = false) => {
-    setShowPicker(false);
-    if (restoreFocus) {
-      requestAnimationFrame(() => pickerTriggerRef.current?.focus());
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!showPicker) return;
-    const handler = (e: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
-        closePicker();
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showPicker, closePicker]);
 
   const assignedTagIds = new Set(articleTags?.map((tag) => tag.id) ?? []);
   const unassignedTags = (allTags ?? []).filter((tag) => !assignedTagIds.has(tag.id));
 
-  useEffect(() => {
-    if (!showPicker) return;
-
-    requestAnimationFrame(() => {
-      if (unassignedTags.length > 0) {
-        tagOptionRefs.current[0]?.focus();
-        return;
-      }
-      newTagInputRef.current?.focus();
-    });
-  }, [showPicker, unassignedTags.length]);
-
-  const handleCreateAndAssign = () => {
-    const name = newTagName.trim();
+  const handleCreateAndAssign = (name: string) => {
     if (!name) return;
     createTagMutation.mutate(
       { name },
@@ -177,142 +139,35 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
         onSuccess: (tag) => {
           tagArticleMutation.mutate({ articleId, tagId: tag.id });
           setNewTagName("");
-          closePicker();
+          setShowPicker(false);
         },
       },
     );
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {articleTags?.map((tag) => (
-        <span
-          key={tag.id}
-          className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground"
-        >
-          {tag.color && (
-            <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: tag.color }} />
-          )}
-          {tag.name}
-          <button
-            type="button"
-            onClick={() => untagArticleMutation.mutate({ articleId, tagId: tag.id })}
-            className="ml-0.5 inline-flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label={t("remove_tag", { name: tag.name })}
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </span>
-      ))}
-      <div ref={pickerRef} className="relative">
-        <button
-          ref={pickerTriggerRef}
-          type="button"
-          onClick={() => setShowPicker((v) => !v)}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowDown" && !showPicker) {
-              e.preventDefault();
-              e.stopPropagation();
-              setShowPicker(true);
-            }
-            if (e.key === "Escape" && showPicker) {
-              e.preventDefault();
-              e.stopPropagation();
-              closePicker(true);
-            }
-          }}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-muted-foreground text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
-          aria-label={t("add_tag")}
-          aria-haspopup="listbox"
-          aria-expanded={showPicker}
-          aria-controls={pickerId}
-        >
-          <Plus className="h-3 w-3" />
-        </button>
-        {showPicker && (
-          <div
-            id={pickerId}
-            role="listbox"
-            aria-label={t("available_tags")}
-            className="absolute top-full left-0 z-50 mt-1 min-w-[180px] rounded-lg border border-border bg-popover p-1 shadow-lg"
-            onKeyDown={(e) => {
-              const currentIndex = tagOptionRefs.current.indexOf(document.activeElement as HTMLButtonElement);
-              if (e.key === "Escape") {
-                e.preventDefault();
-                e.stopPropagation();
-                closePicker(true);
-              }
-              if (e.key === "ArrowDown" && unassignedTags.length > 0) {
-                e.preventDefault();
-                e.stopPropagation();
-                const nextIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
-                tagOptionRefs.current[nextIndex % unassignedTags.length]?.focus();
-              }
-              if (e.key === "ArrowUp" && unassignedTags.length > 0) {
-                e.preventDefault();
-                e.stopPropagation();
-                const nextIndex = currentIndex >= 0 ? currentIndex - 1 : unassignedTags.length - 1;
-                tagOptionRefs.current[(nextIndex + unassignedTags.length) % unassignedTags.length]?.focus();
-              }
-            }}
-          >
-            {unassignedTags.map((tag, index) => (
-              <button
-                type="button"
-                key={tag.id}
-                ref={(element) => {
-                  tagOptionRefs.current[index] = element;
-                }}
-                role="option"
-                onClick={() => {
-                  tagArticleMutation.mutate({ articleId, tagId: tag.id });
-                  closePicker();
-                }}
-                className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm text-popover-foreground hover:bg-accent"
-              >
-                {tag.color && (
-                  <span
-                    className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: tag.color }}
-                  />
-                )}
-                {tag.name}
-              </button>
-            ))}
-            <div className="flex items-center gap-1 border-t border-border px-2 pt-1">
-              <Input
-                ref={newTagInputRef}
-                name="new-tag"
-                type="text"
-                value={newTagName}
-                onChange={(e) => setNewTagName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.stopPropagation();
-                    handleCreateAndAssign();
-                  }
-                  if (e.key === "Escape") {
-                    e.stopPropagation();
-                    closePicker(true);
-                  }
-                }}
-                placeholder={t("new_tag_placeholder")}
-                className="h-auto flex-1 rounded border-none bg-transparent px-1 py-1 text-xs shadow-none ring-0 focus-visible:ring-0"
-              />
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={handleCreateAndAssign}
-                disabled={!newTagName.trim()}
-                className="h-5 w-5 text-muted-foreground"
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    <ArticleTagPickerView
+      assignedTags={articleTags ?? []}
+      availableTags={unassignedTags}
+      newTagName={newTagName}
+      isExpanded={showPicker}
+      labels={{
+        addTag: t("add_tag"),
+        availableTags: t("available_tags"),
+        newTagPlaceholder: t("new_tag_placeholder"),
+        createTag: t("add_tag"),
+        removeTag: (name) => t("remove_tag", { name }),
+      }}
+      onExpandedChange={setShowPicker}
+      onNewTagNameChange={setNewTagName}
+      onAssignTag={(tagId) => {
+        tagArticleMutation.mutate({ articleId, tagId });
+      }}
+      onRemoveTag={(tagId) => {
+        untagArticleMutation.mutate({ articleId, tagId });
+      }}
+      onCreateTag={handleCreateAndAssign}
+    />
   );
 }
 
