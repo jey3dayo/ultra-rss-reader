@@ -305,8 +305,8 @@ pub fn search_articles(
 
 #[cfg(test)]
 mod tests {
-    use super::{has_blocking_frame_ancestors, has_blocking_x_frame_options};
     use super::check_browser_embed_support;
+    use super::{has_blocking_frame_ancestors, has_blocking_x_frame_options};
     use mockito::Server;
     use reqwest::header::{HeaderMap, HeaderValue, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
 
