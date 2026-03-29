@@ -50,9 +50,9 @@ paths:
 
 `/release` コマンドは 3 フェーズで構成される:
 
-1. **Phase 1: Pre-checks + Version** — バージョン一致確認、ブランチ・ワークツリー確認、バージョンバンプ
-2. **Phase 2: Changes + Release Notes** — CHANGELOG 生成、リリースノート作成（`gh release edit/create` 経由）
-3. **Phase 3: Commit + Tag + Publish** — コミット、タグ作成、プッシュ、GitHub Release ワークフローのトリガー
+1. Phase 1: Pre-checks + Version — バージョン一致確認、ブランチ・ワークツリー確認、バージョンバンプ
+2. Phase 2: Changes + Release Notes — CHANGELOG 生成、リリースノート作成（`gh release edit/create` 経由）
+3. Phase 3: Commit + Tag + Publish — コミット、タグ作成、プッシュ、GitHub Release ワークフローのトリガー
 
 ## 根拠
 
