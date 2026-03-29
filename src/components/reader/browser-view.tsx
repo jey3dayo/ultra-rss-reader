@@ -3,6 +3,7 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { openInBrowser } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 export function BrowserView() {
@@ -11,8 +12,9 @@ export function BrowserView() {
   if (!browserUrl) return null;
 
   const handleOpenExternal = async () => {
+    const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
     Result.pipe(
-      await openInBrowser(browserUrl),
+      await openInBrowser(browserUrl, bg),
       Result.inspectError((e) => console.error("Failed to open in browser:", e)),
     );
   };

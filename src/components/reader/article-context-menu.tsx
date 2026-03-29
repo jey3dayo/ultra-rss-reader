@@ -3,6 +3,7 @@ import { Result } from "@praha/byethrow";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
 import { useSetRead, useToggleStar } from "@/hooks/use-articles";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { contextMenuStyles } from "./context-menu-styles";
 
@@ -29,7 +30,8 @@ export function ArticleContextMenu({ article, children }: { article: ArticleDto;
 
   const handleOpenInBrowser = () => {
     if (article.url) {
-      openInBrowser(article.url).then((result) =>
+      const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
+      openInBrowser(article.url, bg).then((result) =>
         Result.pipe(
           result,
           Result.inspectError((e) => console.error("Failed to open browser:", e)),

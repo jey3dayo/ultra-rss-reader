@@ -10,10 +10,21 @@ use crate::repository::article::{ArticleRepository, Pagination};
 use crate::repository::pending_mutation::{PendingMutation, PendingMutationRepository};
 
 #[tauri::command]
-pub fn open_in_browser(url: String) -> Result<(), AppError> {
-    open::that(&url).map_err(|e| AppError::UserVisible {
-        message: format!("Failed to open browser: {e}"),
-    })?;
+pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppError> {
+    if background.unwrap_or(false) && cfg!(target_os = "macos") {
+        // macOS: use `open -g` to open in background
+        std::process::Command::new("open")
+            .arg("-g")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| AppError::UserVisible {
+                message: format!("Failed to open browser: {e}"),
+            })?;
+    } else {
+        open::that(&url).map_err(|e| AppError::UserVisible {
+            message: format!("Failed to open browser: {e}"),
+        })?;
+    }
     Ok(())
 }
 

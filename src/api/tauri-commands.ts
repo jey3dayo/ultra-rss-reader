@@ -101,7 +101,8 @@ export const renameFeed = (feedId: string, title: string) => safeInvoke<void>("r
 export const updateFeedFolder = (feedId: string, folderId: string | null) =>
   safeInvoke<void>("update_feed_folder", { feedId, folderId });
 
-export const openInBrowser = (url: string) => safeInvoke<void>("open_in_browser", { url });
+export const openInBrowser = (url: string, background?: boolean) =>
+  safeInvoke<void>("open_in_browser", { url, background });
 
 export const triggerSync = () => safeInvoke<boolean>("trigger_sync");
 

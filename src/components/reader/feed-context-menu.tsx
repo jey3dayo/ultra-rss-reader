@@ -29,7 +29,8 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
   const handleOpenSite = () => {
     const url = feed.site_url || feed.url;
     if (url) {
-      openInBrowser(url).then((result) =>
+      const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
+      openInBrowser(url, bg).then((result) =>
         Result.pipe(
           result,
           Result.inspectError((e) => console.error("Failed to open site:", e)),
