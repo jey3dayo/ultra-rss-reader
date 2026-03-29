@@ -21,7 +21,7 @@
 
 ### General
 
-- [ ] `unread_badge` — アプリアイコンの未読バッジ表示（Dock バッジ等）。Tauri ネイティブ API 必要
+- [x] `unread_badge` — アプリアイコンの未読バッジ表示（Dock バッジ）
 - [x] `sort_subscriptions` — サイドバーのフィード並び順（folders_first / alphabetical / newest / oldest）
 - [x] `mark_article_as_read` — 既読マークのタイミング制御（on_open / manual）
 
