@@ -35,7 +35,6 @@
     ]
   },
   "plugins": {
-    "clipboard-manager": {},
     "updater": {
       "endpoints": [
         "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json"
