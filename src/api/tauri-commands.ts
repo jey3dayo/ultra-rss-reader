@@ -1,140 +1,272 @@
 import { Result } from "@praha/byethrow";
 import { invoke } from "@tauri-apps/api/core";
+import { z } from "zod";
 
-// Error type from Rust backend
-type AppError = { type: "UserVisible"; message: string } | { type: "Retryable"; message: string };
+import {
+  type AccountDto,
+  AccountDtoSchema,
+  type AppError,
+  AppErrorSchema,
+  type ArticleDto,
+  ArticleDtoSchema,
+  addAccountArgs,
+  addLocalFeedArgs,
+  addToReadingListArgs,
+  checkBrowserEmbedSupportArgs,
+  copyToClipboardArgs,
+  createFolderArgs,
+  createTagArgs,
+  type DiscoveredFeedDto,
+  DiscoveredFeedDtoSchema,
+  deleteAccountArgs,
+  deleteFeedArgs,
+  deleteTagArgs,
+  discoverFeedsArgs,
+  exportOpmlArgs,
+  type FeedDto,
+  FeedDtoSchema,
+  type FolderDto,
+  FolderDtoSchema,
+  getArticleTagsArgs,
+  listAccountArticlesArgs,
+  listArticlesArgs,
+  listArticlesByTagArgs,
+  listFeedsArgs,
+  listFoldersArgs,
+  markArticleReadArgs,
+  markArticlesReadArgs,
+  markFeedReadArgs,
+  markFolderReadArgs,
+  openInBrowserArgs,
+  renameAccountArgs,
+  renameFeedArgs,
+  renameTagArgs,
+  searchArticlesArgs,
+  setPreferenceArgs,
+  type TagDto,
+  TagDtoSchema,
+  tagArticleArgs,
+  toggleArticleStarArgs,
+  type UpdateInfoDto,
+  UpdateInfoDtoSchema,
+  untagArticleArgs,
+  updateAccountSyncArgs,
+  updateFeedDisplayModeArgs,
+  updateFeedFolderArgs,
+} from "@/api/schemas";
 
-export type AccountDto = {
-  id: string;
-  kind: string;
-  name: string;
-  server_url: string | null;
-  sync_interval_secs: number;
-  sync_on_wake: boolean;
-  keep_read_items_days: number;
+// Re-export types so existing consumers don't break
+export type { AccountDto, AppError, ArticleDto, DiscoveredFeedDto, FeedDto, FolderDto, TagDto, UpdateInfoDto };
+
+// --- safeInvoke infrastructure ---
+
+type InvokeSchemas<R extends z.ZodType = z.ZodType> = {
+  response: R;
+  args?: z.ZodType;
 };
-export type FolderDto = { id: string; account_id: string; name: string; sort_order: number };
-export type FeedDto = {
-  id: string;
-  account_id: string;
-  folder_id: string | null;
-  title: string;
-  url: string;
-  site_url: string;
-  unread_count: number;
-  display_mode: string;
-};
-export type ArticleDto = {
-  id: string;
-  feed_id: string;
-  title: string;
-  content_sanitized: string;
-  summary: string | null;
-  url: string | null;
-  author: string | null;
-  published_at: string;
-  thumbnail: string | null;
-  is_read: boolean;
-  is_starred: boolean;
-};
 
-export type TagDto = { id: string; name: string; color: string | null };
-export type DiscoveredFeedDto = { url: string; title: string };
-
-function toAppError(cmd: string, error: unknown): AppError {
-  console.error(`[tauri-commands] ${cmd} failed:`, error);
-  return typeof error === "object" && error !== null && "type" in error
-    ? (error as AppError)
-    : { type: "UserVisible", message: String(error) };
+function isSchemas(v: unknown): v is InvokeSchemas {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    "response" in v &&
+    typeof ((v as Record<string, unknown>).response as Record<string, unknown>)?.parse === "function"
+  );
 }
 
-function safeInvoke<T>(cmd: string, args?: Record<string, unknown>): Result.ResultAsync<T, AppError> {
+function toAppError(cmd: string, error: unknown): AppError {
+  if (error instanceof Error && "issues" in error) {
+    const zodErr = error as { issues: Array<{ path: (string | number)[]; message: string }> };
+    const detail = zodErr.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", ");
+    console.error(`[tauri-commands] ${cmd} validation failed:`, detail);
+    return { type: "UserVisible", message: `Response validation failed: ${detail}` };
+  }
+  console.error(`[tauri-commands] ${cmd} failed:`, error);
+  const result = AppErrorSchema.safeParse(error);
+  return result.success ? result.data : { type: "UserVisible", message: String(error) };
+}
+
+// Overload: with schemas (recommended)
+function safeInvoke<R extends z.ZodType>(
+  cmd: string,
+  schemas: InvokeSchemas<R>,
+  args?: Record<string, unknown>,
+): Result.ResultAsync<z.output<R>, AppError>;
+
+// Overload: without schemas (backward compat)
+function safeInvoke<T>(cmd: string, args?: Record<string, unknown>): Result.ResultAsync<T, AppError>;
+
+// Implementation
+function safeInvoke(
+  cmd: string,
+  schemasOrArgs?: InvokeSchemas | Record<string, unknown>,
+  maybeArgs?: Record<string, unknown>,
+): Result.ResultAsync<unknown, AppError> {
+  const schemas = isSchemas(schemasOrArgs) ? schemasOrArgs : undefined;
+  const args = isSchemas(schemasOrArgs) ? maybeArgs : schemasOrArgs;
+
   return Result.try({
-    try: () => invoke<T>(cmd, args),
+    try: async () => {
+      const validatedArgs = schemas?.args && args ? schemas.args.parse(args) : args;
+      const raw = await invoke(cmd, validatedArgs);
+      return schemas?.response ? schemas.response.parse(raw) : raw;
+    },
     catch: (error) => toAppError(cmd, error),
   });
 }
 
-// Commands
-export const listAccounts = () => safeInvoke<AccountDto[]>("list_accounts");
-export const listFolders = (accountId: string) => safeInvoke<FolderDto[]>("list_folders", { accountId });
-export const listFeeds = (accountId: string) => safeInvoke<FeedDto[]>("list_feeds", { accountId });
+// --- Commands ---
+
+export const listAccounts = () => safeInvoke("list_accounts", { response: z.array(AccountDtoSchema) });
+
+export const listFolders = (accountId: string) =>
+  safeInvoke("list_folders", { response: z.array(FolderDtoSchema), args: listFoldersArgs }, { accountId });
+
+export const listFeeds = (accountId: string) =>
+  safeInvoke("list_feeds", { response: z.array(FeedDtoSchema), args: listFeedsArgs }, { accountId });
+
 export const listArticles = (feedId: string, offset?: number, limit?: number) =>
-  safeInvoke<ArticleDto[]>("list_articles", { feedId, offset, limit });
+  safeInvoke(
+    "list_articles",
+    { response: z.array(ArticleDtoSchema), args: listArticlesArgs },
+    { feedId, offset, limit },
+  );
+
 export const listAccountArticles = (accountId: string, offset?: number, limit?: number) =>
-  safeInvoke<ArticleDto[]>("list_account_articles", { accountId, offset, limit });
+  safeInvoke(
+    "list_account_articles",
+    { response: z.array(ArticleDtoSchema), args: listAccountArticlesArgs },
+    { accountId, offset, limit },
+  );
+
 export const markArticleRead = (articleId: string, read = true) =>
-  safeInvoke<void>("mark_article_read", { articleId, read });
-export const markArticlesRead = (articleIds: string[]) => safeInvoke<void>("mark_articles_read", { articleIds });
+  safeInvoke("mark_article_read", { response: z.null(), args: markArticleReadArgs }, { articleId, read });
+
+export const markArticlesRead = (articleIds: string[]) =>
+  safeInvoke("mark_articles_read", { response: z.null(), args: markArticlesReadArgs }, { articleIds });
+
 export const toggleArticleStar = (articleId: string, starred: boolean) =>
-  safeInvoke<void>("toggle_article_star", { articleId, starred });
-export const markFeedRead = (feedId: string) => safeInvoke<void>("mark_feed_read", { feedId });
-export const markFolderRead = (folderId: string) => safeInvoke<void>("mark_folder_read", { folderId });
+  safeInvoke("toggle_article_star", { response: z.null(), args: toggleArticleStarArgs }, { articleId, starred });
+
+export const markFeedRead = (feedId: string) =>
+  safeInvoke("mark_feed_read", { response: z.null(), args: markFeedReadArgs }, { feedId });
+
+export const markFolderRead = (folderId: string) =>
+  safeInvoke("mark_folder_read", { response: z.null(), args: markFolderReadArgs }, { folderId });
+
 export const searchArticles = (accountId: string, query: string, offset?: number, limit?: number) =>
-  safeInvoke<ArticleDto[]>("search_articles", { accountId, query, offset, limit });
+  safeInvoke(
+    "search_articles",
+    { response: z.array(ArticleDtoSchema), args: searchArticlesArgs },
+    { accountId, query, offset, limit },
+  );
 
 export const addAccount = (kind: string, name: string, serverUrl?: string, username?: string, password?: string) =>
-  safeInvoke<AccountDto>("add_account", { kind, name, serverUrl, username, password });
+  safeInvoke(
+    "add_account",
+    { response: AccountDtoSchema, args: addAccountArgs },
+    { kind, name, serverUrl, username, password },
+  );
 
 export const updateAccountSync = (
   accountId: string,
   syncIntervalSecs: number,
   syncOnWake: boolean,
   keepReadItemsDays: number,
-) => safeInvoke<AccountDto>("update_account_sync", { accountId, syncIntervalSecs, syncOnWake, keepReadItemsDays });
+) =>
+  safeInvoke(
+    "update_account_sync",
+    { response: AccountDtoSchema, args: updateAccountSyncArgs },
+    { accountId, syncIntervalSecs, syncOnWake, keepReadItemsDays },
+  );
 
 export const renameAccount = (accountId: string, name: string) =>
-  safeInvoke<AccountDto>("rename_account", { accountId, name });
+  safeInvoke("rename_account", { response: AccountDtoSchema, args: renameAccountArgs }, { accountId, name });
 
-export const deleteAccount = (accountId: string) => safeInvoke<void>("delete_account", { accountId });
+export const deleteAccount = (accountId: string) =>
+  safeInvoke("delete_account", { response: z.null(), args: deleteAccountArgs }, { accountId });
 
-export const discoverFeeds = (url: string) => safeInvoke<DiscoveredFeedDto[]>("discover_feeds", { url });
+export const discoverFeeds = (url: string) =>
+  safeInvoke("discover_feeds", { response: z.array(DiscoveredFeedDtoSchema), args: discoverFeedsArgs }, { url });
 
 export const addLocalFeed = (accountId: string, url: string) =>
-  safeInvoke<FeedDto>("add_local_feed", { accountId, url });
+  safeInvoke("add_local_feed", { response: FeedDtoSchema, args: addLocalFeedArgs }, { accountId, url });
 
 export const createFolder = (accountId: string, name: string) =>
-  safeInvoke<FolderDto>("create_folder", { accountId, name });
+  safeInvoke("create_folder", { response: FolderDtoSchema, args: createFolderArgs }, { accountId, name });
 
-export const deleteFeed = (feedId: string) => safeInvoke<void>("delete_feed", { feedId });
-export const renameFeed = (feedId: string, title: string) => safeInvoke<void>("rename_feed", { feedId, title });
+export const deleteFeed = (feedId: string) =>
+  safeInvoke("delete_feed", { response: z.null(), args: deleteFeedArgs }, { feedId });
+
+export const renameFeed = (feedId: string, title: string) =>
+  safeInvoke("rename_feed", { response: z.null(), args: renameFeedArgs }, { feedId, title });
 
 export const updateFeedFolder = (feedId: string, folderId: string | null) =>
-  safeInvoke<void>("update_feed_folder", { feedId, folderId });
+  safeInvoke("update_feed_folder", { response: z.null(), args: updateFeedFolderArgs }, { feedId, folderId });
 
 export const updateFeedDisplayMode = (feedId: string, displayMode: string) =>
-  safeInvoke<void>("update_feed_display_mode", { feedId, displayMode });
+  safeInvoke(
+    "update_feed_display_mode",
+    { response: z.null(), args: updateFeedDisplayModeArgs },
+    { feedId, displayMode },
+  );
 
 export const openInBrowser = (url: string, background?: boolean) =>
-  safeInvoke<void>("open_in_browser", { url, background });
-export const checkBrowserEmbedSupport = (url: string) => safeInvoke<boolean>("check_browser_embed_support", { url });
+  safeInvoke("open_in_browser", { response: z.null(), args: openInBrowserArgs }, { url, background });
 
-export const triggerSync = () => safeInvoke<boolean>("trigger_sync");
+export const checkBrowserEmbedSupport = (url: string) =>
+  safeInvoke("check_browser_embed_support", { response: z.boolean(), args: checkBrowserEmbedSupportArgs }, { url });
 
-export const exportOpml = (accountId: string) => safeInvoke<string>("export_opml", { accountId });
+export const triggerSync = () => safeInvoke("trigger_sync", { response: z.boolean() });
 
-export const getPreferences = () => safeInvoke<Record<string, string>>("get_preferences");
-export const setPreference = (key: string, value: string) => safeInvoke<void>("set_preference", { key, value });
+export const exportOpml = (accountId: string) =>
+  safeInvoke("export_opml", { response: z.string(), args: exportOpmlArgs }, { accountId });
+
+export const getPreferences = () => safeInvoke("get_preferences", { response: z.record(z.string(), z.string()) });
+
+export const setPreference = (key: string, value: string) =>
+  safeInvoke("set_preference", { response: z.null(), args: setPreferenceArgs }, { key, value });
 
 // Tags
-export const listTags = () => safeInvoke<TagDto[]>("list_tags");
-export const createTag = (name: string, color?: string) => safeInvoke<TagDto>("create_tag", { name, color });
-export const renameTag = (tagId: string, name: string, color?: string | null) =>
-  safeInvoke<TagDto>("rename_tag", { tagId, name, color });
-export const deleteTag = (tagId: string) => safeInvoke<void>("delete_tag", { tagId });
-export const tagArticle = (articleId: string, tagId: string) => safeInvoke<void>("tag_article", { articleId, tagId });
-export const untagArticle = (articleId: string, tagId: string) =>
-  safeInvoke<void>("untag_article", { articleId, tagId });
-export const getArticleTags = (articleId: string) => safeInvoke<TagDto[]>("get_article_tags", { articleId });
-export const listArticlesByTag = (tagId: string, offset?: number, limit?: number) =>
-  safeInvoke<ArticleDto[]>("list_articles_by_tag", { tagId, offset, limit });
-export const getTagArticleCounts = () => safeInvoke<Record<string, number>>("get_tag_article_counts");
+export const listTags = () => safeInvoke("list_tags", { response: z.array(TagDtoSchema) });
 
-export const copyToClipboard = (text: string) => safeInvoke<void>("copy_to_clipboard", { text });
-export const addToReadingList = (url: string) => safeInvoke<void>("add_to_reading_list", { url });
+export const createTag = (name: string, color?: string) =>
+  safeInvoke("create_tag", { response: TagDtoSchema, args: createTagArgs }, { name, color });
+
+export const renameTag = (tagId: string, name: string, color?: string | null) =>
+  safeInvoke("rename_tag", { response: TagDtoSchema, args: renameTagArgs }, { tagId, name, color });
+
+export const deleteTag = (tagId: string) =>
+  safeInvoke("delete_tag", { response: z.null(), args: deleteTagArgs }, { tagId });
+
+export const tagArticle = (articleId: string, tagId: string) =>
+  safeInvoke("tag_article", { response: z.null(), args: tagArticleArgs }, { articleId, tagId });
+
+export const untagArticle = (articleId: string, tagId: string) =>
+  safeInvoke("untag_article", { response: z.null(), args: untagArticleArgs }, { articleId, tagId });
+
+export const getArticleTags = (articleId: string) =>
+  safeInvoke("get_article_tags", { response: z.array(TagDtoSchema), args: getArticleTagsArgs }, { articleId });
+
+export const listArticlesByTag = (tagId: string, offset?: number, limit?: number) =>
+  safeInvoke(
+    "list_articles_by_tag",
+    { response: z.array(ArticleDtoSchema), args: listArticlesByTagArgs },
+    { tagId, offset, limit },
+  );
+
+export const getTagArticleCounts = () =>
+  safeInvoke("get_tag_article_counts", { response: z.record(z.string(), z.number()) });
+
+export const copyToClipboard = (text: string) =>
+  safeInvoke("copy_to_clipboard", { response: z.null(), args: copyToClipboardArgs }, { text });
+
+export const addToReadingList = (url: string) =>
+  safeInvoke("add_to_reading_list", { response: z.null(), args: addToReadingListArgs }, { url });
 
 // Updater
-export type UpdateInfoDto = { version: string; body: string | null };
-export const checkForUpdate = () => safeInvoke<UpdateInfoDto | null>("check_for_update");
-export const downloadAndInstallUpdate = () => safeInvoke<void>("download_and_install_update");
-export const restartApp = () => safeInvoke<void>("restart_app");
+export const checkForUpdate = () => safeInvoke("check_for_update", { response: UpdateInfoDtoSchema.nullable() });
+
+export const downloadAndInstallUpdate = () => safeInvoke("download_and_install_update", { response: z.null() });
+
+export const restartApp = () => safeInvoke("restart_app", { response: z.null() });

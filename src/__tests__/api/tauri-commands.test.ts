@@ -92,3 +92,17 @@ describe("tauri-commands with custom handler", () => {
     expect(error.message).toBe("Connection failed");
   });
 });
+
+describe("safeInvoke response validation", () => {
+  it("returns error when response shape is invalid", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") return [{ id: "acc-1" }]; // missing fields
+      return null;
+    });
+    const result = await listAccounts();
+    expect(Result.isFailure(result)).toBe(true);
+    const error = Result.unwrapError(result);
+    expect(error.type).toBe("UserVisible");
+    expect(error.message).toContain("validation failed");
+  });
+});
