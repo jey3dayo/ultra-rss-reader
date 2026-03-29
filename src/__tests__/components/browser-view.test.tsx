@@ -168,13 +168,17 @@ describe("BrowserView", () => {
     render(<BrowserView />, { wrapper: createWrapper() });
 
     expect(screen.queryByRole("group", { name: "Display Mode" })).not.toBeInTheDocument();
-    await user.click(await screen.findByRole("button", { name: "Web back" }));
-    await user.click(await screen.findByRole("button", { name: "Web forward" }));
-    await user.click(await screen.findByRole("button", { name: "Reload page" }));
 
-    expect(backMock).toHaveBeenCalledTimes(1);
-    expect(forwardMock).toHaveBeenCalledTimes(1);
+    // Back/Forward are disabled when there's no navigation history
+    const backButton = await screen.findByRole("button", { name: "Web back" });
+    const forwardButton = await screen.findByRole("button", { name: "Web forward" });
+    expect(backButton).toBeDisabled();
+    expect(forwardButton).toBeDisabled();
+
+    // Reload is always enabled
+    await user.click(await screen.findByRole("button", { name: "Reload page" }));
     expect(reloadMock).toHaveBeenCalledTimes(1);
+
     expect(await screen.findByRole("button", { name: "Close view" })).toBeInTheDocument();
   });
 });
