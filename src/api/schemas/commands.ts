@@ -1,0 +1,210 @@
+import { z } from "zod";
+
+// --- listFolders / listFeeds ---
+export const listFoldersArgs = z.object({ accountId: z.string() });
+export const listFeedsArgs = z.object({ accountId: z.string() });
+
+// --- listArticles ---
+export const listArticlesArgs = z.object({
+  feedId: z.string(),
+  offset: z.number().optional(),
+  limit: z.number().optional(),
+});
+
+// --- listAccountArticles ---
+export const listAccountArticlesArgs = z.object({
+  accountId: z.string(),
+  offset: z.number().optional(),
+  limit: z.number().optional(),
+});
+
+// --- searchArticles ---
+export const searchArticlesArgs = z.object({
+  accountId: z.string(),
+  query: z.string(),
+  offset: z.number().optional(),
+  limit: z.number().optional(),
+});
+
+// --- markArticleRead ---
+export const markArticleReadArgs = z.object({
+  articleId: z.string(),
+  read: z.boolean().optional(),
+});
+
+// --- markArticlesRead ---
+export const markArticlesReadArgs = z.object({ articleIds: z.array(z.string()) });
+
+// --- toggleArticleStar ---
+export const toggleArticleStarArgs = z.object({
+  articleId: z.string(),
+  starred: z.boolean(),
+});
+
+// --- markFeedRead ---
+export const markFeedReadArgs = z.object({ feedId: z.string() });
+
+// --- markFolderRead ---
+export const markFolderReadArgs = z.object({ folderId: z.string() });
+
+// --- addAccount ---
+export const addAccountArgs = z.object({
+  kind: z.string(),
+  name: z.string(),
+  serverUrl: z.string().optional(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+});
+
+// --- updateAccountSync ---
+export const updateAccountSyncArgs = z.object({
+  accountId: z.string(),
+  syncIntervalSecs: z.number(),
+  syncOnWake: z.boolean(),
+  keepReadItemsDays: z.number(),
+});
+
+// --- renameAccount ---
+export const renameAccountArgs = z.object({
+  accountId: z.string(),
+  name: z.string(),
+});
+
+// --- deleteAccount ---
+export const deleteAccountArgs = z.object({ accountId: z.string() });
+
+// --- discoverFeeds ---
+export const discoverFeedsArgs = z.object({ url: z.string() });
+
+// --- addLocalFeed ---
+export const addLocalFeedArgs = z.object({
+  accountId: z.string(),
+  url: z.string(),
+});
+
+// --- createFolder ---
+export const createFolderArgs = z.object({
+  accountId: z.string(),
+  name: z.string(),
+});
+
+// --- deleteFeed ---
+export const deleteFeedArgs = z.object({ feedId: z.string() });
+
+// --- renameFeed ---
+export const renameFeedArgs = z.object({
+  feedId: z.string(),
+  title: z.string(),
+});
+
+// --- updateFeedFolder ---
+export const updateFeedFolderArgs = z.object({
+  feedId: z.string(),
+  folderId: z.string().nullable(),
+});
+
+// --- updateFeedDisplayMode ---
+export const updateFeedDisplayModeArgs = z.object({
+  feedId: z.string(),
+  displayMode: z.string(),
+});
+
+// --- openInBrowser ---
+export const openInBrowserArgs = z.object({
+  url: z.string(),
+  background: z.boolean().optional(),
+});
+
+// --- checkBrowserEmbedSupport ---
+export const checkBrowserEmbedSupportArgs = z.object({ url: z.string() });
+
+// --- exportOpml ---
+export const exportOpmlArgs = z.object({ accountId: z.string() });
+
+// --- setPreference ---
+export const setPreferenceArgs = z.object({
+  key: z.string(),
+  value: z.string(),
+});
+
+// --- copyToClipboard ---
+export const copyToClipboardArgs = z.object({ text: z.string() });
+
+// --- addToReadingList ---
+export const addToReadingListArgs = z.object({ url: z.string() });
+
+// --- createTag ---
+export const createTagArgs = z.object({
+  name: z.string(),
+  color: z.string().optional(),
+});
+
+// --- renameTag ---
+export const renameTagArgs = z.object({
+  tagId: z.string(),
+  name: z.string(),
+  color: z.string().nullish(),
+});
+
+// --- deleteTag ---
+export const deleteTagArgs = z.object({ tagId: z.string() });
+
+// --- tagArticle ---
+export const tagArticleArgs = z.object({
+  articleId: z.string(),
+  tagId: z.string(),
+});
+
+// --- untagArticle ---
+export const untagArticleArgs = z.object({
+  articleId: z.string(),
+  tagId: z.string(),
+});
+
+// --- getArticleTags ---
+export const getArticleTagsArgs = z.object({ articleId: z.string() });
+
+// --- listArticlesByTag ---
+export const listArticlesByTagArgs = z.object({
+  tagId: z.string(),
+  offset: z.number().optional(),
+  limit: z.number().optional(),
+});
+
+// Registry: command names (snake_case) -> schema (only commands with args)
+export const commandArgsSchemas: Record<string, z.ZodType> = {
+  list_folders: listFoldersArgs,
+  list_feeds: listFeedsArgs,
+  list_articles: listArticlesArgs,
+  list_account_articles: listAccountArticlesArgs,
+  search_articles: searchArticlesArgs,
+  mark_article_read: markArticleReadArgs,
+  mark_articles_read: markArticlesReadArgs,
+  toggle_article_star: toggleArticleStarArgs,
+  mark_feed_read: markFeedReadArgs,
+  mark_folder_read: markFolderReadArgs,
+  add_account: addAccountArgs,
+  update_account_sync: updateAccountSyncArgs,
+  rename_account: renameAccountArgs,
+  delete_account: deleteAccountArgs,
+  discover_feeds: discoverFeedsArgs,
+  add_local_feed: addLocalFeedArgs,
+  create_folder: createFolderArgs,
+  delete_feed: deleteFeedArgs,
+  rename_feed: renameFeedArgs,
+  update_feed_folder: updateFeedFolderArgs,
+  update_feed_display_mode: updateFeedDisplayModeArgs,
+  open_in_browser: openInBrowserArgs,
+  check_browser_embed_support: checkBrowserEmbedSupportArgs,
+  export_opml: exportOpmlArgs,
+  set_preference: setPreferenceArgs,
+  copy_to_clipboard: copyToClipboardArgs,
+  add_to_reading_list: addToReadingListArgs,
+  create_tag: createTagArgs,
+  rename_tag: renameTagArgs,
+  delete_tag: deleteTagArgs,
+  tag_article: tagArticleArgs,
+  untag_article: untagArticleArgs,
+  get_article_tags: getArticleTagsArgs,
+  list_articles_by_tag: listArticlesByTagArgs,
+};

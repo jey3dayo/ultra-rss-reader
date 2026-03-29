@@ -3,10 +3,15 @@ import {
   AccountDtoSchema,
   AppErrorSchema,
   ArticleDtoSchema,
+  addAccountArgs,
+  commandArgsSchemas,
   DiscoveredFeedDtoSchema,
   FeedDtoSchema,
   FolderDtoSchema,
+  listArticlesArgs,
+  markArticleReadArgs,
   TagDtoSchema,
+  toggleArticleStarArgs,
   UpdateInfoDtoSchema,
 } from "@/api/schemas";
 
@@ -105,5 +110,38 @@ describe("AppErrorSchema", () => {
   });
   it("rejects unknown error type", () => {
     expect(() => AppErrorSchema.parse({ type: "Unknown", message: "?" })).toThrow();
+  });
+});
+
+describe("command args schemas", () => {
+  it("parses listArticlesArgs", () => {
+    expect(listArticlesArgs.parse({ feedId: "f-1" })).toEqual({ feedId: "f-1" });
+  });
+  it("parses listArticlesArgs with optional fields", () => {
+    expect(listArticlesArgs.parse({ feedId: "f-1", offset: 0, limit: 20 })).toEqual({
+      feedId: "f-1",
+      offset: 0,
+      limit: 20,
+    });
+  });
+  it("rejects listArticlesArgs with missing feedId", () => {
+    expect(() => listArticlesArgs.parse({})).toThrow();
+  });
+  it("parses markArticleReadArgs with optional read", () => {
+    expect(markArticleReadArgs.parse({ articleId: "a-1" })).toEqual({ articleId: "a-1" });
+  });
+  it("parses toggleArticleStarArgs", () => {
+    expect(toggleArticleStarArgs.parse({ articleId: "a-1", starred: true })).toEqual({
+      articleId: "a-1",
+      starred: true,
+    });
+  });
+  it("parses addAccountArgs", () => {
+    expect(addAccountArgs.parse({ kind: "local", name: "Test" })).toEqual({ kind: "local", name: "Test" });
+  });
+  it("commandArgsSchemas maps command names to schemas", () => {
+    expect(commandArgsSchemas.list_articles).toBeDefined();
+    expect(commandArgsSchemas.mark_article_read).toBeDefined();
+    expect(commandArgsSchemas.list_accounts).toBeUndefined(); // no args
   });
 });
