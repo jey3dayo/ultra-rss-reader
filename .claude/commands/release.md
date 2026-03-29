@@ -122,7 +122,7 @@ fi
 release: v{new_version}
 ```
 
-2. annotated タグを作成する:
+1. annotated タグを作成する:
 
 ```bash
 git tag -a v{new_version} -m "v{new_version}"
