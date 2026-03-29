@@ -25,9 +25,10 @@ It supports local feeds and FreshRSS, stores data in SQLite, and keeps credentia
 | Layer                | Technology                                            |
 | -------------------- | ----------------------------------------------------- |
 | Desktop runtime      | Tauri 2 (Rust)                                        |
-| Frontend build       | Vite + React 19 + TypeScript                          |
+| Frontend build       | Vite 8 + React 19 + TypeScript 6                      |
 | State management     | Zustand (UI) + TanStack React Query (data)            |
 | Styling              | Tailwind CSS v4 + Base UI headless primitives         |
+| i18n                 | i18next + react-i18next                               |
 | Database             | SQLite via rusqlite (embedded, bundled)               |
 | Async runtime        | Tokio                                                 |
 | HTTP client          | Reqwest                                               |
@@ -35,6 +36,7 @@ It supports local feeds and FreshRSS, stores data in SQLite, and keeps credentia
 | Error handling       | thiserror (Rust) / `@praha/byethrow` Result type (TS) |
 | Linting / formatting | Biome + Clippy + cargo fmt + taplo                    |
 | Testing              | Vitest + cargo test + Playwright (E2E)                |
+| Component dev        | Storybook 10                                          |
 | Package manager      | pnpm (managed via mise)                               |
 
 ## Prerequisites
@@ -60,11 +62,11 @@ pnpm tauri dev
 
 ## Development Modes
 
-| Goal | Command | Notes |
-| --- | --- | --- |
-| Live desktop development | `pnpm tauri dev` | Recommended default. Launches the Tauri shell and connects it to the Vite dev server with hot reload. |
-| Web-only frontend debugging | `pnpm dev` | Starts the Vite dev server on `http://localhost:1420` without the Tauri shell. |
-| Preview the production frontend build | `pnpm build && pnpm preview` | Serves the current `dist/` output. Rebuild before previewing new changes. |
+| Goal                                  | Command                      | Notes                                                                                                 |
+| ------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Live desktop development              | `pnpm tauri dev`             | Recommended default. Launches the Tauri shell and connects it to the Vite dev server with hot reload. |
+| Web-only frontend debugging           | `pnpm dev`                   | Starts the Vite dev server on `http://localhost:1420` without the Tauri shell.                        |
+| Preview the production frontend build | `pnpm build && pnpm preview` | Serves the current `dist/` output. Rebuild before previewing new changes.                             |
 
 `pnpm preview` is intentionally different from `pnpm tauri dev`:
 
