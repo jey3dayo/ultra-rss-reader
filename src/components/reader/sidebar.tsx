@@ -17,7 +17,7 @@ import { actionEvents } from "@/lib/actions";
 import i18n from "@/lib/i18n";
 import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
 import { cn } from "@/lib/utils";
-import { usePreferencesStore } from "@/stores/preferences-store";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { AccountSwitcherView } from "./account-switcher-view";
 import { AddFeedDialog } from "./add-feed-dialog";
@@ -72,9 +72,12 @@ export function Sidebar() {
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectAccount = useUiStore((s) => s.selectAccount);
   const selection = useUiStore((s) => s.selection);
+  const viewMode = useUiStore((s) => s.viewMode);
   const selectFeed = useUiStore((s) => s.selectFeed);
+  const selectAll = useUiStore((s) => s.selectAll);
   const selectSmartView = useUiStore((s) => s.selectSmartView);
   const selectTag = useUiStore((s) => s.selectTag);
+  const setViewMode = useUiStore((s) => s.setViewMode);
   const expandedFolderIds = useUiStore((s) => s.expandedFolderIds);
   const toggleFolder = useUiStore((s) => s.toggleFolder);
   const openSettings = useUiStore((s) => s.openSettings);
@@ -90,6 +93,11 @@ export function Sidebar() {
   const { data: accountArticles } = useAccountArticles(selectedAccountId);
   const showUnreadCount = usePreferencesStore((s) => (s.prefs.show_unread_count ?? "true") === "true");
   const showStarredCount = usePreferencesStore((s) => (s.prefs.show_starred_count ?? "true") === "true");
+  const showSidebarUnread = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "show_sidebar_unread") === "true");
+  const showSidebarStarred = usePreferencesStore(
+    (s) => resolvePreferenceValue(s.prefs, "show_sidebar_starred") === "true",
+  );
+  const showSidebarTags = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "show_sidebar_tags") === "true");
   const displayFavicons = usePreferencesStore((s) => (s.prefs.display_favicons ?? "true") === "true");
   const grayscaleFavicons = usePreferencesStore((s) => (s.prefs.grayscale_favicons ?? "false") === "true");
   const sortSubscriptions = usePreferencesStore((s) => s.prefs.sort_subscriptions ?? "folders_first");
@@ -130,6 +138,11 @@ export function Sidebar() {
       isSelected: selectedSmartViewKind === "starred",
     },
   ];
+  const visibleSmartViews = smartViews.filter((view) => {
+    if (view.kind === "unread") return showSidebarUnread;
+    if (view.kind === "starred") return showSidebarStarred;
+    return true;
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -259,6 +272,67 @@ export function Sidebar() {
     }
     return ids;
   }, [sortedFolderList, feedsByFolder, unfolderedFeeds, sortFeeds]);
+  const firstFeedId = orderedFeedIds[0] ?? null;
+  const hasSmartUnreadSelection = selection.type === "smart" && selection.kind === "unread";
+  const hasSmartStarredSelection = selection.type === "smart" && selection.kind === "starred";
+  const hasFilterOnlyUnread = viewMode === "unread" && !hasSmartUnreadSelection;
+  const hasFilterOnlyStarred = viewMode === "starred" && !hasSmartStarredSelection;
+
+  useEffect(() => {
+    const fallbackToFeedOrAll = () => {
+      if (firstFeedId) {
+        selectFeed(firstFeedId);
+        return;
+      }
+      selectAll();
+    };
+
+    if (hasFilterOnlyStarred && !showSidebarStarred) {
+      setViewMode("all");
+      return;
+    }
+
+    if (hasSmartStarredSelection && !showSidebarStarred) {
+      if (showSidebarUnread) {
+        selectSmartView("unread");
+      } else {
+        fallbackToFeedOrAll();
+      }
+      return;
+    }
+
+    if (selection.type === "tag" && !showSidebarTags) {
+      if (showSidebarUnread) {
+        selectSmartView("unread");
+      } else {
+        fallbackToFeedOrAll();
+      }
+      return;
+    }
+
+    if (hasFilterOnlyUnread && !showSidebarUnread) {
+      setViewMode("all");
+      return;
+    }
+
+    if (hasSmartUnreadSelection && !showSidebarUnread) {
+      fallbackToFeedOrAll();
+    }
+  }, [
+    firstFeedId,
+    hasFilterOnlyStarred,
+    hasFilterOnlyUnread,
+    hasSmartStarredSelection,
+    hasSmartUnreadSelection,
+    selectAll,
+    selectFeed,
+    selectSmartView,
+    selection,
+    setViewMode,
+    showSidebarStarred,
+    showSidebarTags,
+    showSidebarUnread,
+  ]);
 
   const navigateFeed = useCallback(
     (direction: 1 | -1) => {
@@ -323,7 +397,7 @@ export function Sidebar() {
         />
       </div>
 
-      <SmartViewsView views={smartViews} onSelectSmartView={selectSmartView} />
+      <SmartViewsView views={visibleSmartViews} onSelectSmartView={selectSmartView} />
 
       <div className="px-2 py-2">
         <button
@@ -386,24 +460,26 @@ export function Sidebar() {
             )}
           />
 
-          <TagListView
-            tagsLabel={t("tags")}
-            isOpen={isTagsSectionOpen}
-            onToggleOpen={() => setIsTagsSectionOpen((v) => !v)}
-            tags={(tags ?? []).map(
-              (tag): TagListItemViewModel => ({
-                id: tag.id,
-                name: tag.name,
-                color: tag.color,
-                articleCount: tagArticleCounts?.[tag.id] ?? 0,
-                isSelected: selection.type === "tag" && selection.tagId === tag.id,
-              }),
-            )}
-            onSelectTag={selectTag}
-            renderContextMenu={(tag) => (
-              <TagContextMenuContent tag={{ id: tag.id, name: tag.name, color: tag.color }} />
-            )}
-          />
+          {showSidebarTags && (
+            <TagListView
+              tagsLabel={t("tags")}
+              isOpen={isTagsSectionOpen}
+              onToggleOpen={() => setIsTagsSectionOpen((v) => !v)}
+              tags={(tags ?? []).map(
+                (tag): TagListItemViewModel => ({
+                  id: tag.id,
+                  name: tag.name,
+                  color: tag.color,
+                  articleCount: tagArticleCounts?.[tag.id] ?? 0,
+                  isSelected: selection.type === "tag" && selection.tagId === tag.id,
+                }),
+              )}
+              onSelectTag={selectTag}
+              renderContextMenu={(tag) => (
+                <TagContextMenuContent tag={{ id: tag.id, name: tag.name, color: tag.color }} />
+              )}
+            />
+          )}
         </div>
       </ScrollArea>
 

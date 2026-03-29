@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "@/components/reader/sidebar";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleAccounts, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
@@ -34,6 +35,7 @@ describe("Sidebar", () => {
     syncCompletedListener = null;
     renderedFeedContextMenuFeeds.length = 0;
     useUiStore.setState(useUiStore.getInitialState());
+    usePreferencesStore.setState({ prefs: {}, loaded: true });
     setupTauriMocks();
   });
 
@@ -160,5 +162,87 @@ describe("Sidebar", () => {
       expect(trigger).toHaveAttribute("aria-expanded", "false");
     });
     expect(trigger).toHaveFocus();
+  });
+
+  it("hides configurable sections while keeping accounts and feeds visible", async () => {
+    usePreferencesStore.setState({
+      prefs: {
+        show_sidebar_unread: "false",
+        show_sidebar_starred: "false",
+        show_sidebar_tags: "false",
+      },
+      loaded: true,
+    });
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [{ id: "tag-1", name: "Important", color: "#ff0000" }];
+        case "get_tag_article_counts":
+          return { "tag-1": 2 };
+        default:
+          return null;
+      }
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("button", { name: /Local/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Feeds" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Unread/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Starred/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Tags" })).not.toBeInTheDocument();
+  });
+
+  it("falls back away from hidden sidebar states, including viewMode-only flows", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [{ id: "tag-1", name: "Important", color: "#ff0000" }];
+        case "get_tag_article_counts":
+          return { "tag-1": 2 };
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      viewMode: "starred",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    usePreferencesStore.getState().setPref("show_sidebar_starred", "false");
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+      expect(useUiStore.getState().viewMode).toBe("all");
+    });
+
+    useUiStore.getState().selectSmartView("unread");
+    usePreferencesStore.getState().setPref("show_sidebar_unread", "false");
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+    });
+
+    usePreferencesStore.getState().setPref("show_sidebar_unread", "true");
+
+    expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
   });
 });
