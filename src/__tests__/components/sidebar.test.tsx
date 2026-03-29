@@ -7,6 +7,7 @@ import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 let syncCompletedListener: (() => void) | null = null;
+const renderedFeedContextMenuFeeds: Array<{ id: string; folder_id: string | null }> = [];
 
 vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn(async (eventName: string, callback: () => void) => {
@@ -21,9 +22,17 @@ vi.mock("@tauri-apps/api/event", () => ({
   }),
 }));
 
+vi.mock("@/components/reader/feed-context-menu", () => ({
+  FeedContextMenuContent: ({ feed }: { feed: { id: string; folder_id: string | null } }) => {
+    renderedFeedContextMenuFeeds.push(feed);
+    return null;
+  },
+}));
+
 describe("Sidebar", () => {
   beforeEach(() => {
     syncCompletedListener = null;
+    renderedFeedContextMenuFeeds.length = 0;
     useUiStore.setState(useUiStore.getInitialState());
     setupTauriMocks();
   });
@@ -52,6 +61,40 @@ describe("Sidebar", () => {
 
     await user.click(unreadButton);
     expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "unread" });
+  });
+
+  it("preserves folder_id when opening feed context menus for folder-backed feeds", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
+        case "list_feeds":
+          return [
+            {
+              ...sampleFeeds[0],
+              folder_id: "folder-1",
+              title: "Folder Feed",
+            },
+          ];
+        case "list_account_articles":
+          return [];
+        default:
+          return null;
+      }
+    });
+    useUiStore.setState({
+      ...useUiStore.getState(),
+      expandedFolderIds: new Set(["folder-1"]),
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await screen.findByRole("button", { name: /Folder Feed/ });
+    expect(renderedFeedContextMenuFeeds).toContainEqual(
+      expect.objectContaining({ id: "feed-1", folder_id: "folder-1" }),
+    );
   });
 
   it("renders feeds after data loads", async () => {

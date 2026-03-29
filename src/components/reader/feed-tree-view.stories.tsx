@@ -12,11 +12,14 @@ const meta = {
       {
         id: "folder-1",
         name: "Work",
+        accountId: "acc-1",
         unreadCount: 4,
         isExpanded: true,
         feeds: [
           {
             id: "feed-1",
+            accountId: "acc-1",
+            folderId: "folder-1",
             title: "Alpha",
             url: "https://example.com/alpha.xml",
             siteUrl: "https://example.com/alpha",
@@ -31,6 +34,8 @@ const meta = {
     unfolderedFeeds: [
       {
         id: "feed-2",
+        accountId: "acc-1",
+        folderId: null,
         title: "Beta",
         url: "https://example.com/beta.xml",
         siteUrl: "https://example.com/beta",

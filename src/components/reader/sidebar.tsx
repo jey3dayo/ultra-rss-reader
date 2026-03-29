@@ -207,10 +207,13 @@ export function Sidebar() {
           return {
             id: folder.id,
             name: folder.name,
+            accountId: folder.account_id,
             unreadCount: folderUnread,
             isExpanded: expandedFolderIds.has(folder.id),
             feeds: folderFeeds.map((feed) => ({
               id: feed.id,
+              accountId: feed.account_id,
+              folderId: feed.folder_id,
               title: feed.title,
               url: feed.url,
               siteUrl: feed.site_url,
@@ -228,6 +231,8 @@ export function Sidebar() {
     () =>
       unfolderedFeeds.map((feed) => ({
         id: feed.id,
+        accountId: feed.account_id,
+        folderId: feed.folder_id,
         title: feed.title,
         url: feed.url,
         siteUrl: feed.site_url,
@@ -355,7 +360,7 @@ export function Sidebar() {
             }
             renderFolderContextMenu={(folder) => (
               <FolderContextMenuContent
-                folder={{ id: folder.id, account_id: selectedAccountId ?? "", name: folder.name, sort_order: 0 }}
+                folder={{ id: folder.id, account_id: folder.accountId, name: folder.name, sort_order: 0 }}
                 folderUnread={folder.unreadCount}
               />
             )}
@@ -363,8 +368,8 @@ export function Sidebar() {
               <FeedContextMenuContent
                 feed={{
                   id: feed.id,
-                  account_id: selectedAccountId ?? "",
-                  folder_id: null,
+                  account_id: feed.accountId,
+                  folder_id: feed.folderId,
                   title: feed.title,
                   url: feed.url,
                   site_url: feed.siteUrl,

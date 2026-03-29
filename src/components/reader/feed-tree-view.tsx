@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 
 export type FeedTreeFeedViewModel = {
   id: string;
+  accountId: string;
+  folderId: string | null;
   title: string;
   url: string;
   siteUrl: string;
@@ -19,6 +21,7 @@ export type FeedTreeFeedViewModel = {
 export type FeedTreeFolderViewModel = {
   id: string;
   name: string;
+  accountId: string;
   unreadCount: number;
   isExpanded: boolean;
   feeds: FeedTreeFeedViewModel[];

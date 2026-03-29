@@ -8,6 +8,7 @@ describe("FeedTreeView", () => {
     const user = userEvent.setup();
     const onToggleFolder = vi.fn();
     const onSelectFeed = vi.fn();
+    const renderFeedContextMenu = vi.fn(() => <div />);
 
     render(
       <FeedTreeView
@@ -16,11 +17,14 @@ describe("FeedTreeView", () => {
           {
             id: "folder-1",
             name: "Work",
+            accountId: "acc-1",
             unreadCount: 4,
             isExpanded: true,
             feeds: [
               {
                 id: "feed-1",
+                accountId: "acc-1",
+                folderId: "folder-1",
                 title: "Alpha",
                 url: "https://example.com/alpha.xml",
                 siteUrl: "https://example.com/alpha",
@@ -35,6 +39,8 @@ describe("FeedTreeView", () => {
         unfolderedFeeds={[
           {
             id: "feed-2",
+            accountId: "acc-1",
+            folderId: null,
             title: "Beta",
             url: "https://example.com/beta.xml",
             siteUrl: "https://example.com/beta",
@@ -49,7 +55,7 @@ describe("FeedTreeView", () => {
         displayFavicons={false}
         emptyState={{ kind: "message", message: "No feeds yet" }}
         renderFolderContextMenu={() => <div />}
-        renderFeedContextMenu={() => <div />}
+        renderFeedContextMenu={renderFeedContextMenu}
       />,
     );
 
@@ -64,6 +70,8 @@ describe("FeedTreeView", () => {
     expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
     expect(onSelectFeed).toHaveBeenNthCalledWith(1, "feed-1");
     expect(onSelectFeed).toHaveBeenNthCalledWith(2, "feed-2");
+    expect(renderFeedContextMenu).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-1", folderId: "folder-1" }));
+    expect(renderFeedContextMenu).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-2", folderId: null }));
   });
 
   it("renders the empty action when there are no feeds", async () => {
