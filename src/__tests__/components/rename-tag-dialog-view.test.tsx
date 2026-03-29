@@ -34,7 +34,7 @@ describe("RenameTagDialogView", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it("disables saving for blank names and shows inline errors", () => {
+  it("disables saving for blank names without rendering inline errors", () => {
     render(
       <RenameTagDialogView
         open={true}
@@ -48,6 +48,6 @@ describe("RenameTagDialogView", () => {
     );
 
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
-    expect(screen.getByText("Tag already exists")).toBeInTheDocument();
+    expect(screen.queryByText("Tag already exists")).not.toBeInTheDocument();
   });
 });

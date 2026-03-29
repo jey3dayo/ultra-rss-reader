@@ -31,10 +31,10 @@ export function DeleteTagDialogView({
           </Trans>
         </p>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             {tc("cancel")}
           </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={loading}>
+          <Button variant="destructive" onClick={onConfirm}>
             {tc("delete")}
           </Button>
         </DialogFooter>

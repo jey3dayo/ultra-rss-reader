@@ -10,7 +10,6 @@ const meta = {
     open: true,
     name: "Work",
     loading: false,
-    error: null,
     onOpenChange: fn(),
     onNameChange: fn(),
     onSubmit: fn(),
@@ -21,12 +20,6 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
-
-export const ErrorState: Story = {
-  args: {
-    error: "Tag already exists",
-  },
-};
 
 export const Loading: Story = {
   args: {

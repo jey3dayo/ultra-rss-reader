@@ -12,7 +12,6 @@ export function TagContextMenuContent({ tag }: { tag: TagDto }) {
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [renameName, setRenameName] = useState(tag.name);
-  const [renameError, setRenameError] = useState<string | null>(null);
   const showToast = useUiStore((s) => s.showToast);
   const renameTag = useRenameTag();
   const deleteTag = useDeleteTag();
@@ -23,14 +22,10 @@ export function TagContextMenuContent({ tag }: { tag: TagDto }) {
     }
 
     setRenameName(tag.name);
-    setRenameError(null);
   }, [showRenameDialog, tag.name]);
 
   const handleRenameOpenChange = (open: boolean) => {
     setShowRenameDialog(open);
-    if (!open) {
-      setRenameError(null);
-    }
   };
 
   const handleDeleteOpenChange = (open: boolean) => {
@@ -44,7 +39,6 @@ export function TagContextMenuContent({ tag }: { tag: TagDto }) {
       return;
     }
 
-    setRenameError(null);
     renameTag.mutate(
       { tagId: tag.id, name: trimmed },
       {
@@ -53,7 +47,6 @@ export function TagContextMenuContent({ tag }: { tag: TagDto }) {
         },
         onError: (error: unknown) => {
           const message = error instanceof Error ? error.message : String(error);
-          setRenameError(message);
           showToast(t("failed_to_rename_tag", { message }));
         },
       },
@@ -82,7 +75,6 @@ export function TagContextMenuContent({ tag }: { tag: TagDto }) {
         open={showRenameDialog}
         name={renameName}
         loading={renameTag.isPending}
-        error={renameError}
         onOpenChange={handleRenameOpenChange}
         onNameChange={setRenameName}
         onSubmit={handleRenameSubmit}

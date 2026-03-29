@@ -8,7 +8,6 @@ export function RenameTagDialogView({
   open,
   name,
   loading,
-  error,
   onOpenChange,
   onNameChange,
   onSubmit,
@@ -16,7 +15,7 @@ export function RenameTagDialogView({
   open: boolean;
   name: string;
   loading: boolean;
-  error: string | null;
+  error?: string | null;
   onOpenChange: (open: boolean) => void;
   onNameChange: (value: string) => void;
   onSubmit: () => void;
@@ -61,7 +60,6 @@ export function RenameTagDialogView({
               disabled={loading}
             />
           </label>
-          {error && <p className="text-sm text-destructive">{error}</p>}
         </form>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
