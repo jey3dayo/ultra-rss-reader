@@ -6,7 +6,8 @@ const meta = {
   component: ArticleContentView,
   tags: ["autodocs"],
   args: {
-    thumbnailUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&h=675&fit=crop",
+    thumbnailUrl:
+      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 675'%3E%3Crect width='1200' height='675' fill='%23111827'/%3E%3Crect x='72' y='72' width='1056' height='531' rx='24' fill='%231f2937' stroke='%23374151' stroke-width='8'/%3E%3Ccircle cx='240' cy='220' r='72' fill='%23f59e0b' opacity='0.9'/%3E%3Cpath d='M160 500L360 320L500 440L660 260L900 500Z' fill='%2334d399' opacity='0.9'/%3E%3Ctext x='96' y='592' fill='%23f9fafb' font-family='sans-serif' font-size='56' font-weight='700'%3EStorybook Fixture Thumbnail%3C/text%3E%3C/svg%3E",
     contentHtml:
       "<p>Hello <strong>world</strong>.</p><p>This view renders only the thumbnail and sanitized article HTML.</p>",
   },

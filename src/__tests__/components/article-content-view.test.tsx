@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ArticleContentView } from "@/components/reader/article-content-view";
+import articleContentViewStories from "@/components/reader/article-content-view.stories";
 
 describe("ArticleContentView", () => {
   it("renders a thumbnail and sanitized html content", () => {
@@ -22,5 +23,10 @@ describe("ArticleContentView", () => {
 
     expect(container.querySelector("img")).toBeNull();
     expect(screen.getByText("Only text")).toBeInTheDocument();
+  });
+
+  it("uses a fixture-only thumbnail in storybook", () => {
+    expect(articleContentViewStories.args?.thumbnailUrl).toBeTruthy();
+    expect(articleContentViewStories.args?.thumbnailUrl).not.toMatch(/^https?:\/\//);
   });
 });
