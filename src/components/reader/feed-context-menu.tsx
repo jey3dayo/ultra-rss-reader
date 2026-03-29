@@ -43,7 +43,9 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
     if (feed.unread_count === 0) return;
     const doMark = () => markFeedRead.mutate(feed.id);
     if (askBeforeMarkAll === "true") {
-      showConfirm(t("confirm_mark_feed_read", { count: feed.unread_count }), doMark, tc("mark_as_read_action"));
+      showConfirm(t("confirm_mark_feed_read", { count: feed.unread_count }), doMark, {
+        actionLabel: tc("mark_as_read_action"),
+      });
     } else {
       doMark();
     }
