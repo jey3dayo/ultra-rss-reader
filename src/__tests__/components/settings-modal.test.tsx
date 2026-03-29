@@ -1,25 +1,14 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ActionsSettings } from "@/components/settings/actions-settings";
 import { ReadingSettings } from "@/components/settings/reading-settings";
 import { SettingsModal } from "@/components/settings/settings-modal";
+import type { SettingsModalViewProps } from "@/components/settings/settings-modal-view";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleAccounts, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
-
-type SettingsModalViewProps = {
-  open: boolean;
-  title: string;
-  closeLabel: string;
-  navigation: ReactNode;
-  accountsNavigation: ReactNode;
-  content: ReactNode;
-  onClose: () => void;
-  onOpenChange: (open: boolean) => void;
-};
 
 vi.mock("@/components/settings/settings-modal-view", () => ({
   SettingsModalView: ({
