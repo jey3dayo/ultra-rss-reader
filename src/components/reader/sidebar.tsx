@@ -90,6 +90,7 @@ export function Sidebar() {
   const grayscaleFavicons = usePreferencesStore((s) => (s.prefs.grayscale_favicons ?? "false") === "true");
   const sortSubscriptions = usePreferencesStore((s) => s.prefs.sort_subscriptions ?? "folders_first");
   const opaqueSidebars = usePreferencesStore((s) => (s.prefs.opaque_sidebars ?? "false") === "true");
+  const layoutMode = useUiStore((s) => s.layoutMode);
 
   // Auto-select first account if none selected
   useEffect(() => {
@@ -235,7 +236,8 @@ export function Sidebar() {
   return (
     <div
       className={cn(
-        "flex h-full w-[280px] flex-col border-r border-border bg-sidebar text-sidebar-foreground",
+        "flex h-full flex-col border-r border-border bg-sidebar text-sidebar-foreground",
+        layoutMode === "mobile" ? "w-full" : "w-[280px]",
         opaqueSidebars && "bg-opacity-100",
       )}
     >

@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { resolveLayout } from "../hooks/use-layout";
 import { useUiStore } from "../stores/ui-store";
 import { ArticleList } from "./reader/article-list";
@@ -7,16 +8,17 @@ import { Sidebar } from "./reader/sidebar";
 export function AppLayout() {
   const { layoutMode, focusedPane, contentMode } = useUiStore();
   const panes = resolveLayout(layoutMode, focusedPane, contentMode);
+  const isMobile = layoutMode === "mobile";
 
   return (
     <div className="flex h-full overflow-hidden">
       {panes.includes("sidebar") && (
-        <div className="w-[280px] shrink-0">
+        <div className={cn(isMobile ? "w-full" : "w-[280px] shrink-0")}>
           <Sidebar />
         </div>
       )}
       {panes.includes("list") && (
-        <div className="w-[380px] shrink-0">
+        <div className={cn(isMobile ? "w-full" : "w-[380px] shrink-0")}>
           <ArticleList />
         </div>
       )}
