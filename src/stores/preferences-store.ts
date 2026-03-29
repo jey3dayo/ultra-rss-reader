@@ -69,6 +69,7 @@ const preferenceSchemas = {
   action_copy_link: booleanStringSchema,
   action_open_browser: booleanStringSchema,
   action_share: booleanStringSchema,
+  action_share_menu: booleanStringSchema,
 } as const;
 
 type KnownPreferenceKey = keyof typeof preferenceSchemas;
@@ -111,6 +112,7 @@ const corePreferenceDefaults = {
   action_copy_link: "true",
   action_open_browser: "true",
   action_share: "true",
+  action_share_menu: "true",
 } satisfies { [K in KnownPreferenceKey]: z.input<(typeof preferenceSchemas)[K]> };
 
 export const preferenceDefaults: Record<string, string> = {
