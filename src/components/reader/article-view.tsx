@@ -1,12 +1,10 @@
-import { Toggle } from "@base-ui/react/toggle";
 import { Result } from "@praha/byethrow";
-import { ArrowLeft, Copy, ExternalLink, Globe, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
-import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
@@ -26,9 +24,12 @@ import {
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
-import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+import { ArticleContentView } from "./article-content-view";
+import { ArticleEmptyStateView } from "./article-empty-state-view";
+import { ArticleMetaView } from "./article-meta-view";
+import { ArticleToolbarView } from "./article-toolbar-view";
 import { BrowserView } from "./browser-view";
 
 function ArticleToolbar({ article }: { article: ArticleDto | null }) {
@@ -46,106 +47,66 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
   const showSidebarButton = layoutMode !== "wide";
 
   return (
-    <div data-tauri-drag-region className="flex h-12 items-center justify-between border-b border-border px-4">
-      <div>
-        {showSidebarButton && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setFocusedPane("sidebar")}
-            className="text-muted-foreground"
-            aria-label={t("show_sidebar")}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <Toggle
-          pressed={article?.is_read ?? false}
-          onPressedChange={(pressed) => {
-            if (!article) return;
-            setRead.mutate(
-              { id: article.id, read: pressed },
-              {
-                onSuccess: () => {
-                  if (pressed) addRecentlyRead(article.id);
-                },
-              },
-            );
-          }}
-          disabled={!article}
-          aria-label={t("toggle_read")}
-          className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
-        >
-          <UnreadIcon unread={!article?.is_read} className="h-3 w-3" />
-        </Toggle>
-        <Toggle
-          pressed={article?.is_starred ?? false}
-          onPressedChange={(pressed) => {
-            if (!article) return;
-            toggleStar.mutate(
-              { id: article.id, starred: pressed },
-              { onSuccess: () => showToast(pressed ? t("article_starred") : t("article_unstarred")) },
-            );
-          }}
-          disabled={!article}
-          aria-label={t("toggle_star")}
-          className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
-        >
-          <StarIcon starred={article?.is_starred ?? false} className="h-4 w-4" />
-        </Toggle>
-        {actionCopyLink === "true" && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              if (article?.url) {
-                navigator.clipboard.writeText(article.url);
-                showToast(t("link_copied"));
-              }
-            }}
-            className="text-muted-foreground"
-            disabled={!article?.url}
-            aria-label={t("copy_link")}
-          >
-            <Copy className="h-4 w-4" />
-          </Button>
-        )}
-        {actionOpenBrowser === "true" && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => article?.url && openBrowser(article.url)}
-            className="text-muted-foreground"
-            disabled={!article?.url}
-            aria-label={t("view_in_browser")}
-          >
-            <Globe className="h-4 w-4" />
-          </Button>
-        )}
-        {actionShare === "true" && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={async () => {
-              if (article?.url) {
-                const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-                Result.pipe(
-                  await openInBrowser(article.url, bg),
-                  Result.inspectError((e) => console.error("Failed to open in browser:", e)),
-                );
-              }
-            }}
-            className="text-muted-foreground"
-            disabled={!article?.url}
-            aria-label={t("open_in_external_browser")}
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-    </div>
+    <ArticleToolbarView
+      showSidebarButton={showSidebarButton}
+      canToggleRead={article !== null}
+      canToggleStar={article !== null}
+      isRead={article?.is_read ?? false}
+      isStarred={article?.is_starred ?? false}
+      showCopyLinkButton={actionCopyLink === "true"}
+      canCopyLink={Boolean(article?.url)}
+      showOpenInBrowserButton={actionOpenBrowser === "true"}
+      canOpenInBrowser={Boolean(article?.url)}
+      showOpenInExternalBrowserButton={actionShare === "true"}
+      canOpenInExternalBrowser={Boolean(article?.url)}
+      labels={{
+        showSidebar: t("show_sidebar"),
+        toggleRead: t("toggle_read"),
+        toggleStar: t("toggle_star"),
+        copyLink: t("copy_link"),
+        viewInBrowser: t("view_in_browser"),
+        openInExternalBrowser: t("open_in_external_browser"),
+      }}
+      onShowSidebar={() => setFocusedPane("sidebar")}
+      onToggleRead={(pressed) => {
+        if (!article) return;
+        setRead.mutate(
+          { id: article.id, read: pressed },
+          {
+            onSuccess: () => {
+              if (pressed) addRecentlyRead(article.id);
+            },
+          },
+        );
+      }}
+      onToggleStar={(pressed) => {
+        if (!article) return;
+        toggleStar.mutate(
+          { id: article.id, starred: pressed },
+          { onSuccess: () => showToast(pressed ? t("article_starred") : t("article_unstarred")) },
+        );
+      }}
+      onCopyLink={() => {
+        if (article?.url) {
+          navigator.clipboard.writeText(article.url);
+          showToast(t("link_copied"));
+        }
+      }}
+      onOpenInBrowser={() => {
+        if (article?.url) {
+          openBrowser(article.url);
+        }
+      }}
+      onOpenInExternalBrowser={async () => {
+        if (article?.url) {
+          const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
+          Result.pipe(
+            await openInBrowser(article.url, bg),
+            Result.inspectError((e) => console.error("Failed to open in browser:", e)),
+          );
+        }
+      }}
+    />
   );
 }
 
@@ -154,9 +115,7 @@ function EmptyState() {
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
       <ArticleToolbar article={null} />
-      <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground">
-        <p className="text-sm">{t("select_article_to_read")}</p>
-      </div>
+      <ArticleEmptyStateView message={t("select_article_to_read")} />
     </div>
   );
 }
@@ -487,67 +446,49 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
       <ArticleToolbar article={article} />
       <ScrollArea className="flex-1">
         <article className="mx-auto max-w-3xl px-8 py-8">
-          <div className="mb-4">
-            <p className="mb-2 text-xs tracking-wider text-muted-foreground">
-              {formatArticleDate(article.published_at)}
-            </p>
-            <h1 className="mb-2 text-2xl font-bold leading-tight text-foreground">
-              {articleUrl ? (
-                <button
-                  type="button"
-                  className="-mx-4 block w-[calc(100%+2rem)] rounded-lg px-4 py-3 text-left transition-colors hover:bg-muted/50"
-                  onClick={() => openBrowserView(articleUrl)}
-                  onAuxClick={(e) => {
+          <ArticleMetaView
+            title={article.title}
+            author={article.author}
+            feedName={feedName}
+            publishedLabel={formatArticleDate(article.published_at)}
+            onTitleClick={
+              articleUrl
+                ? () => {
+                    openBrowserView(articleUrl);
+                  }
+                : undefined
+            }
+            onTitleAuxClick={
+              articleUrl
+                ? (e) => {
                     if (e.button === 1) {
                       e.preventDefault();
                       const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
                       void openInBrowser(articleUrl, bg);
                     }
-                  }}
-                >
-                  {article.title}
-                </button>
-              ) : (
-                article.title
-              )}
-            </h1>
-            {(article.author || feedName) && (
-              <div className="text-sm text-muted-foreground">
-                {article.author && <p className="uppercase tracking-wide">{article.author}</p>}
-                {feedName && (
-                  <button
-                    type="button"
-                    className="cursor-pointer text-xs hover:underline"
-                    onClick={() => selectFeed(article.feed_id)}
-                  >
-                    {feedName}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+                  }
+                : undefined
+            }
+            onFeedClick={
+              feedName
+                ? () => {
+                    selectFeed(article.feed_id);
+                  }
+                : undefined
+            }
+          />
 
           {/* Tags */}
           <div className="mb-8">
             <ArticleTagChips articleId={article.id} />
           </div>
 
-          {/* Featured Image */}
-          {article.thumbnail && (
-            <div className="relative mb-8 aspect-video w-full overflow-hidden rounded-lg">
-              <img src={article.thumbnail} alt="" className="h-full w-full object-cover" />
-            </div>
-          )}
-
           {/* Content */}
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: click handler intercepts anchor navigation in sanitized HTML */}
           {/* biome-ignore lint/a11y/noStaticElementInteractions: click handler intercepts anchor navigation in sanitized HTML */}
-          <div
-            className="prose prose-invert max-w-none text-base leading-relaxed text-foreground/90"
-            onClick={handleContentClick}
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML is pre-sanitized by Rust backend
-            dangerouslySetInnerHTML={{ __html: article.content_sanitized }}
-          />
+          <div onClick={handleContentClick}>
+            <ArticleContentView thumbnailUrl={article.thumbnail} contentHtml={article.content_sanitized} />
+          </div>
         </article>
       </ScrollArea>
     </div>
