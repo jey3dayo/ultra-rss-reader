@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** ⌘K でアクション・フィード・記事を統合検索できるコマンドパレットを追加する。
+Goal: ⌘K でアクション・フィード・記事を統合検索できるコマンドパレットを追加する。
 
-**Architecture:** cmdk ライブラリを Base UI Dialog でラップした Command コンポーネントを新設。プレフィックス（`>` `@` `#`）によるフィルタ切替と、最近のアクション履歴（localStorage）を持つ。記事検索は既存の FTS5+LIKE ハイブリッドをそのまま利用。
+Architecture: cmdk ライブラリを Base UI Dialog でラップした Command コンポーネントを新設。プレフィックス（`>` `@` `#`）によるフィルタ切替と、最近のアクション履歴（localStorage）を持つ。記事検索は既存の FTS5+LIKE ハイブリッドをそのまま利用。
 
-**Tech Stack:** cmdk, @base-ui/react, Zustand, React Query, react-i18next, Tailwind CSS
+Tech Stack: cmdk, @base-ui/react, Zustand, React Query, react-i18next, Tailwind CSS
 
-**Spec:** `docs/superpowers/specs/2026-03-29-command-palette-design.md`
+Spec: `docs/superpowers/specs/2026-03-29-command-palette-design.md`
 
 ---
 
@@ -43,7 +43,7 @@
 
 ## Task 1: cmdk 依存のインストール
 
-**Files:**
+### Files
 
 - Modify: `package.json`
 
@@ -72,7 +72,7 @@ git commit -m "feat: add cmdk dependency for command palette"
 
 ## Task 2: UI Store に commandPaletteOpen 状態を追加
 
-**Files:**
+### Files
 
 - Modify: `src/stores/ui-store.ts`
 - Test: `src/__tests__/stores/ui-store.test.ts`
@@ -162,7 +162,7 @@ git commit -m "feat: add commandPaletteOpen state to ui-store"
 
 ## Task 3: AppAction に open-command-palette を追加
 
-**Files:**
+### Files
 
 - Modify: `src/lib/actions.ts`
 - Test: `src/__tests__/lib/actions.test.ts`
@@ -232,7 +232,7 @@ git commit -m "feat: add open-command-palette action"
 
 ## Task 4: ⌘K キーボードショートカットを追加
 
-**Files:**
+### Files
 
 - Modify: `src/lib/keyboard-shortcuts.ts`
 - Modify: `src/hooks/use-keyboard.ts`
@@ -326,7 +326,7 @@ git commit -m "feat: add Cmd+K shortcut for command palette"
 
 ## Task 5: Command UI コンポーネントを作成
 
-**Files:**
+### Files
 
 - Create: `src/components/ui/command.tsx`
 - Reference: `mock/components/ui/command.tsx` (移植元), `src/components/ui/dialog.tsx` (Base UI パターン)
@@ -380,7 +380,7 @@ git commit -m "feat: add Command UI component (cmdk + Base UI Dialog)"
 
 ## Task 6: useCommandHistory フックを作成
 
-**Files:**
+### Files
 
 - Create: `src/hooks/use-command-history.ts`
 - Create: `src/__tests__/hooks/use-command-history.test.ts`
@@ -496,7 +496,7 @@ git commit -m "feat: add useCommandHistory hook for recent actions"
 
 ## Task 7: useCommandSearch フックを作成
 
-**Files:**
+### Files
 
 - Create: `src/hooks/use-command-search.ts`
 - Create: `src/__tests__/hooks/use-command-search.test.ts`
@@ -642,7 +642,7 @@ git commit -m "feat: add useCommandSearch hook with prefix parsing"
 
 ## Task 8: i18n 文字列を追加
 
-**Files:**
+### Files
 
 - Modify: `src/locales/ja/reader.json`
 - Modify: `src/locales/en/reader.json`
@@ -710,7 +710,7 @@ git commit -m "feat: add command palette i18n strings"
 
 ## Task 9: CommandPalette コンポーネントを作成
 
-**Files:**
+### Files
 
 - Create: `src/components/reader/command-palette.tsx`
 - Reference: `src/components/ui/command.tsx` (UI primitives), `src/lib/actions.ts` (action list), `src/hooks/use-command-search.ts`, `src/hooks/use-command-history.ts`
@@ -957,7 +957,7 @@ export function CommandPalette() {
 }
 ```
 
-**注意:** `useState` を React からインポートすること。import 行の冒頭を確認:
+注意: `useState` を React からインポートすること。import 行の冒頭を確認:
 
 ```typescript
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
@@ -982,7 +982,7 @@ git commit -m "feat: add CommandPalette component with grouped search"
 
 ## Task 10: AppShell にパレットを配置
 
-**Files:**
+### Files
 
 - Modify: `src/components/app-shell.tsx`
 
@@ -1019,7 +1019,7 @@ git commit -m "feat: mount CommandPalette in AppShell"
 
 ## Task 11: 品質チェック + 動作確認
 
-**Files:** すべて
+Files: すべて
 
 - [ ] **Step 1: フォーマット**
 
