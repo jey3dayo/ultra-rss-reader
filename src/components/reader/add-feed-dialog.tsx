@@ -27,6 +27,15 @@ import { useUiStore } from "@/stores/ui-store";
 
 const NEW_FOLDER_VALUE = "__new__";
 
+function isValidFeedUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function AddFeedDialog({
   open,
   onOpenChange,
@@ -61,6 +70,9 @@ export function AddFeedDialog({
   ];
   const getFolderLabel = (value: string | null) =>
     folderOptions.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
+  const trimmedUrl = url.trim();
+  const hasManualUrl = trimmedUrl.length > 0;
+  const isManualUrlValid = !hasManualUrl || isValidFeedUrl(trimmedUrl);
 
   useEffect(() => {
     if (open) {
@@ -96,8 +108,11 @@ export function AddFeedDialog({
   };
 
   const handleDiscover = async () => {
-    const trimmed = url.trim();
-    if (!trimmed) return;
+    if (!hasManualUrl || !isManualUrlValid) {
+      setError(t("invalid_feed_url"));
+      setSuccessMessage(null);
+      return;
+    }
     setDiscovering(true);
     setError(null);
     setSuccessMessage(null);
@@ -105,7 +120,7 @@ export function AddFeedDialog({
     setSelectedFeedUrl(null);
 
     Result.pipe(
-      await discoverFeeds(trimmed),
+      await discoverFeeds(trimmedUrl),
       Result.inspect((feeds) => {
         if (feeds.length === 0) {
           setDiscoveredFeeds([]);
@@ -134,6 +149,10 @@ export function AddFeedDialog({
   const handleSubmit = async () => {
     const feedUrl = getFeedUrl();
     if (!feedUrl) return;
+    if (!selectedFeedUrl && !isValidFeedUrl(feedUrl)) {
+      setError(t("invalid_feed_url"));
+      return;
+    }
     setLoading(true);
     setError(null);
 
@@ -193,7 +212,10 @@ export function AddFeedDialog({
   };
 
   const isSubmitDisabled =
-    (!url.trim() && !selectedFeedUrl) || loading || discovering || (isCreatingFolder && !newFolderName.trim());
+    (!selectedFeedUrl && (!hasManualUrl || !isManualUrlValid)) ||
+    loading ||
+    discovering ||
+    (isCreatingFolder && !newFolderName.trim());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -219,6 +241,7 @@ export function AddFeedDialog({
                 setUrl(e.target.value);
                 setDiscoveredFeeds([]);
                 setSelectedFeedUrl(null);
+                setError(null);
               }}
               placeholder={t("feed_or_site_url")}
               disabled={loading || discovering}
@@ -228,7 +251,7 @@ export function AddFeedDialog({
               variant="outline"
               size="sm"
               onClick={handleDiscover}
-              disabled={!url.trim() || loading || discovering}
+              disabled={!hasManualUrl || !isManualUrlValid || loading || discovering}
               className="shrink-0"
             >
               {discovering ? t("discovering") : t("discover")}

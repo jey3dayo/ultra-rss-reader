@@ -113,6 +113,19 @@ describe("ArticleView", () => {
     expect(removeButton).toHaveClass("size-6");
   });
 
+  it("gives the new-tag submit button an accessible name", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+
+    const user = userEvent.setup();
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Add tag" }));
+
+    expect(await screen.findByRole("button", { name: "Create tag" })).toBeDisabled();
+  });
+
   it("does not auto-mark the article as read when after_reading is do_nothing", async () => {
     const calls: MockCall[] = [];
     setupTauriMocks((cmd, args) => {

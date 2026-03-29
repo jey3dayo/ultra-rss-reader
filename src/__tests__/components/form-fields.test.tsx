@@ -144,6 +144,21 @@ describe("Form fields", () => {
     });
   });
 
+  it("add feed dialog rejects invalid manual URLs before discovery or submit", async () => {
+    const user = userEvent.setup();
+
+    render(<AddFeedDialog open={true} onOpenChange={() => {}} accountId="acc-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    const input = screen.getByPlaceholderText("Feed or Site URL");
+    await user.type(input, "example.com");
+
+    expect(input).toBeInvalid();
+    expect(screen.getByRole("button", { name: "Discover" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+  });
+
   it("rename feed dialog input exposes a name attribute", () => {
     render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={() => {}} />, { wrapper: createWrapper() });
 
