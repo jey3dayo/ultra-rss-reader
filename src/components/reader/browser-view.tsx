@@ -90,7 +90,10 @@ export function BrowserView() {
   return (
     <div className="flex h-full flex-col bg-background">
       {/* Toolbar */}
-      <div data-tauri-drag-region className="grid h-12 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-border px-4">
+      <div
+        data-tauri-drag-region
+        className="grid h-12 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-border px-4"
+      >
         <TooltipProvider>
           <AppTooltip label={t("close_view")}>
             <Button
