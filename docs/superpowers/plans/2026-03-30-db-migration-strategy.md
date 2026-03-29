@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** デスクトップアプリのマイグレーション失敗からユーザーデータを保護するため、自動バックアップ・ロールバック・バージョンスキップ対応を実装する
+Goal: デスクトップアプリのマイグレーション失敗からユーザーデータを保護するため、自動バックアップ・ロールバック・バージョンスキップ対応を実装する
 
-**Architecture:** マイグレーション実行前に SQLite ファイルをコピーしてバックアップし、失敗時はバックアップから自動復元する。既存の `run_migrations()` を拡張し、バックアップ・復元ロジックを `DbManager::new()` のエントリポイントに集約する。バージョンスキップは既存の `if current_version < N` パターンが順次適用を保証するため、テストで確認する。復元成功時はアプリを古いスキーマで起動し、ログで通知する。
+Architecture: マイグレーション実行前に SQLite ファイルをコピーしてバックアップし、失敗時はバックアップから自動復元する。既存の `run_migrations()` を拡張し、バックアップ・復元ロジックを `DbManager::new()` のエントリポイントに集約する。バージョンスキップは既存の `if current_version < N` パターンが順次適用を保証するため、テストで確認する。復元成功時はアプリを古いスキーマで起動し、ログで通知する。
 
-**Tech Stack:** Rust, rusqlite, std::fs (ファイルコピー), tempfile (テスト用)
+Tech Stack: Rust, rusqlite, std::fs (ファイルコピー), tempfile (テスト用)
 
 ---
 
@@ -26,7 +26,7 @@
 
 ## Task 1: DomainError に Migration バリアントを追加
 
-**Files:**
+### Files
 
 - Modify: `src-tauri/src/domain/error.rs:4-17`
 
@@ -77,7 +77,7 @@ rtk git commit -m "feat: add Migration variant to DomainError"
 
 ## Task 2: バックアップ・復元モジュールの作成
 
-**Files:**
+### Files
 
 - Create: `src-tauri/src/infra/db/backup.rs`
 - Modify: `src-tauri/src/infra/db/mod.rs`
@@ -368,7 +368,7 @@ rtk git commit -m "feat: add database backup and restore module"
 
 ## Task 3: マイグレーション関数にログとバージョン情報返却を追加
 
-**Files:**
+### Files
 
 - Modify: `src-tauri/src/infra/db/migration.rs`
 
@@ -472,7 +472,7 @@ rtk git commit -m "feat: return MigrationResult from run_migrations with version
 
 ## Task 4: DbManager にバックアップ統合
 
-**Files:**
+### Files
 
 - Modify: `src-tauri/src/infra/db/connection.rs`
 
@@ -599,7 +599,7 @@ pub fn new(db_path: &Path) -> DomainResult<Self> {
 }
 ```
 
-**設計判断:** 復元成功時は `Ok(manager)` を返してアプリを古いスキーマで起動する。ユーザーのデータを失わない方がクラッシュより良い。将来の新機能は使えないが、既存データの閲覧は可能。
+設計判断: 復元成功時は `Ok(manager)` を返してアプリを古いスキーマで起動する。ユーザーのデータを失わない方がクラッシュより良い。将来の新機能は使えないが、既存データの閲覧は可能。
 
 - [ ] **Step 4: テスト実行 — PASS**
 
@@ -617,7 +617,7 @@ rtk git commit -m "feat: integrate backup/restore into DbManager initialization"
 
 ## Task 5: バージョンスキップと復元の統合テスト
 
-**Files:**
+### Files
 
 - Modify: `src-tauri/src/infra/db/migration.rs` (テスト追加)
 - Modify: `src-tauri/src/infra/db/connection.rs` (復元テスト追加)
@@ -801,7 +801,7 @@ rtk git commit -m "test: add version skip and migration failure restore tests"
 
 ## Task 6: `lib.rs` のエラーハンドリング改善
 
-**Files:**
+### Files
 
 - Modify: `src-tauri/src/lib.rs:33`
 
@@ -903,5 +903,5 @@ Issue #13 をクローズする PR を作成する準備が完了。全タスク
 
 ## スコープ外（意図的に除外）
 
-- **マイグレーションのトランザクション化**: 各マイグレーション SQL は `execute_batch` で実行される。SQLite の `execute_batch` はトランザクション境界を持たないが、バックアップ＋復元で同等の安全性を確保。将来の改善として各マイグレーションを個別トランザクションで包むことは検討可能。
-- **フロントエンドへのマイグレーション状態通知**: 現時点ではマイグレーションはアプリ起動前に完了するため、UI 通知は不要。将来的に必要になった場合は別 Issue で対応。
+- マイグレーションのトランザクション化: 各マイグレーション SQL は `execute_batch` で実行される。SQLite の `execute_batch` はトランザクション境界を持たないが、バックアップ＋復元で同等の安全性を確保。将来の改善として各マイグレーションを個別トランザクションで包むことは検討可能。
+- フロントエンドへのマイグレーション状態通知: 現時点ではマイグレーションはアプリ起動前に完了するため、UI 通知は不要。将来的に必要になった場合は別 Issue で対応。

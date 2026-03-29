@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Issue #12 — 同期の排他制御が正しく機能していることをテストで証明し、ドキュメント化する
+Goal: Issue #12 — 同期の排他制御が正しく機能していることをテストで証明し、ドキュメント化する
 
-**Architecture:** 既存の `AtomicBool` + `SyncGuard` RAII パターンは正しく実装されている。WAL モード・busy_timeout・reader/writer 分離も設定済み。不足しているのは (1) 並行実行防止のテスト、(2) pending mutations の重複排除テスト、(3) 同期戦略のドキュメント化。
+Architecture: 既存の `AtomicBool` + `SyncGuard` RAII パターンは正しく実装されている。WAL モード・busy_timeout・reader/writer 分離も設定済み。不足しているのは (1) 並行実行防止のテスト、(2) pending mutations の重複排除テスト、(3) 同期戦略のドキュメント化。
 
-**Tech Stack:** Rust, tokio, rusqlite, std::sync::atomic
+Tech Stack: Rust, tokio, rusqlite, std::sync::atomic
 
 ---
 
@@ -23,7 +23,7 @@
 | Mutex の .await 越し保持禁止ルール | `.claude/rules/rust-async-mutex.md` | ✅   |
 | pending mutations の dedup on save | `sqlite_pending_mutation.rs:36-52`  | ✅   |
 
-**不足しているもの:**
+### 不足しているもの
 
 1. `run_full_sync` の並行実行防止が動作することのテスト
 2. `SyncGuard` がパニック時にも正しくリセットすることのテスト
@@ -33,7 +33,7 @@
 
 ### Task 1: run_full_sync の並行実行防止テスト
 
-**Files:**
+### Files
 
 - Modify: `src-tauri/src/commands/feed_commands.rs` (テスト追加)
 
@@ -130,7 +130,7 @@ rtk git commit -m "test: add concurrent sync prevention tests for run_full_sync"
 
 ### Task 2: SyncGuard のパニック安全性テスト
 
-**Files:**
+### Files
 
 - Modify: `src-tauri/src/commands/feed_commands.rs` (テスト追加)
 
@@ -164,7 +164,7 @@ rtk git commit -m "test: verify SyncGuard RAII resets flag on drop"
 
 ### Task 3: 同期アーキテクチャのドキュメント化
 
-**Files:**
+### Files
 
 - Modify: `README.md` (Architecture セクションにサブセクション追加)
 

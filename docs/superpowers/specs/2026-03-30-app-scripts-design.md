@@ -28,8 +28,8 @@
 
 ### 変更対象
 
-- **mise.toml**: `build:app` → `app:build`, `build:app:debug` → `app:build:debug` にリネーム。`app:dev`, `app:dev:browser`, `app:icon` を新規追加
-- **package.json**: `"tauri": "tauri"` パススルーは残す（mise 未登録のサブコマンド用）
+- mise.toml: `build:app` → `app:build`, `build:app:debug` → `app:build:debug` にリネーム。`app:dev`, `app:dev:browser`, `app:icon` を新規追加
+- package.json: `"tauri": "tauri"` パススルーは残す（mise 未登録のサブコマンド用）
 
 ### 変更しないもの
 
