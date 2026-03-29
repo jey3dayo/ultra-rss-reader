@@ -12,7 +12,10 @@ mise run format         # Biome + cargo fmt + taplo
 mise run lint           # tsc --noEmit + Biome lint + Clippy (-D warnings)
 mise run test           # Vitest + cargo test
 mise run test:live      # FreshRSS integration tests (requires .env credentials)
-pnpm tauri dev          # Run the app in dev mode
+mise run app:dev        # Run the app in dev mode
+mise run app:dev:browser # Browser UI testing (http://127.0.0.1:4173/)
+mise run app:build      # Build native app for current platform
+mise run app:icon       # Generate app icons
 ```
 
 Always run `mise run check` before committing.
