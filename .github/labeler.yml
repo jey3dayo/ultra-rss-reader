@@ -1,0 +1,43 @@
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/**"
+          - "index.html"
+          - "vite.config.ts"
+          - "tsconfig*.json"
+          - "biome.json"
+
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src-tauri/**"
+
+ui:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/components/**"
+          - "src/styles/**"
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "docs/**"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "pnpm-lock.yaml"
+          - "package.json"
+          - "src-tauri/Cargo.toml"
+          - "src-tauri/Cargo.lock"
+
+i18n:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/locales/**"
