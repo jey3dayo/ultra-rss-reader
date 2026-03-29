@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -35,12 +36,18 @@ export function SettingsSelect({
 }) {
   const value = usePreferencesStore((s) => s.prefs[prefKey]) ?? "";
   const setPref = usePreferencesStore((s) => s.setPref);
+  const labelId = useId();
+  const getOptionLabel = (selectedValue: string | null) =>
+    options.find((option) => option.value === (selectedValue ?? ""))?.label ?? selectedValue ?? "";
+
   return (
     <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-      <span className="text-sm text-foreground">{label}</span>
+      <span id={labelId} className="text-sm text-foreground">
+        {label}
+      </span>
       <Select name={prefKey} value={value} onValueChange={(v) => v !== null && setPref(prefKey, v)}>
-        <SelectTrigger className="min-w-[140px]">
-          <SelectValue />
+        <SelectTrigger aria-labelledby={labelId} className="min-w-[140px]">
+          <SelectValue>{(selectedValue: string | null) => getOptionLabel(selectedValue)}</SelectValue>
         </SelectTrigger>
         <SelectPopup>
           {options.map((opt) => (

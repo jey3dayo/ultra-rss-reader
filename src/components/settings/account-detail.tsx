@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AccountDto } from "@/api/tauri-commands";
 import { deleteAccount, exportOpml, renameAccount, updateAccountSync } from "@/api/tauri-commands";
@@ -23,6 +23,8 @@ export function AccountDetail() {
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const syncLabelId = useId();
+  const keepReadItemsLabelId = useId();
 
   const account = accounts?.find((a) => a.id === settingsAccountId);
 
@@ -117,6 +119,28 @@ export function AccountDetail() {
     );
   };
 
+  const syncIntervalOptions = [
+    { value: "900", label: t("account.every_15_minutes") },
+    { value: "1800", label: t("account.every_30_minutes") },
+    { value: "3600", label: t("account.every_hour") },
+    { value: "7200", label: t("account.every_2_hours") },
+    { value: "14400", label: t("account.every_4_hours") },
+    { value: "86400", label: t("account.once_a_day") },
+  ];
+  const keepReadItemsOptions = [
+    { value: "7", label: t("account.one_week") },
+    { value: "14", label: t("account.two_weeks") },
+    { value: "30", label: t("account.one_month") },
+    { value: "90", label: t("account.three_months") },
+    { value: "180", label: t("account.six_months") },
+    { value: "365", label: t("account.one_year") },
+    { value: "0", label: t("account.forever") },
+  ];
+  const getSyncIntervalLabel = (value: string | null) =>
+    syncIntervalOptions.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
+  const getKeepReadItemsLabel = (value: string | null) =>
+    keepReadItemsOptions.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
+
   return (
     <div className="p-6">
       <h2 className="mb-2 text-center text-lg font-semibold">{account.name}</h2>
@@ -169,22 +193,23 @@ export function AccountDetail() {
       <section className="mb-6">
         <SectionHeading>{t("account.syncing")}</SectionHeading>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-          <span className="text-sm text-foreground">{t("account.sync")}</span>
+          <span id={syncLabelId} className="text-sm text-foreground">
+            {t("account.sync")}
+          </span>
           <Select
             name="sync-interval"
             value={String(account.sync_interval_secs)}
             onValueChange={(v) => v !== null && handleSyncUpdate({ syncIntervalSecs: Number(v) })}
           >
-            <SelectTrigger>
-              <SelectValue />
+            <SelectTrigger aria-labelledby={syncLabelId}>
+              <SelectValue>{(value: string | null) => getSyncIntervalLabel(value)}</SelectValue>
             </SelectTrigger>
             <SelectPopup>
-              <SelectItem value="900">{t("account.every_15_minutes")}</SelectItem>
-              <SelectItem value="1800">{t("account.every_30_minutes")}</SelectItem>
-              <SelectItem value="3600">{t("account.every_hour")}</SelectItem>
-              <SelectItem value="7200">{t("account.every_2_hours")}</SelectItem>
-              <SelectItem value="14400">{t("account.every_4_hours")}</SelectItem>
-              <SelectItem value="86400">{t("account.once_a_day")}</SelectItem>
+              {syncIntervalOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectPopup>
           </Select>
         </div>
@@ -197,23 +222,23 @@ export function AccountDetail() {
           />
         </div>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-          <span className="text-sm text-foreground">{t("account.keep_read_items")}</span>
+          <span id={keepReadItemsLabelId} className="text-sm text-foreground">
+            {t("account.keep_read_items")}
+          </span>
           <Select
             name="keep-read-items"
             value={String(account.keep_read_items_days)}
             onValueChange={(v) => v !== null && handleSyncUpdate({ keepReadItemsDays: Number(v) })}
           >
-            <SelectTrigger>
-              <SelectValue />
+            <SelectTrigger aria-labelledby={keepReadItemsLabelId}>
+              <SelectValue>{(value: string | null) => getKeepReadItemsLabel(value)}</SelectValue>
             </SelectTrigger>
             <SelectPopup>
-              <SelectItem value="7">{t("account.one_week")}</SelectItem>
-              <SelectItem value="14">{t("account.two_weeks")}</SelectItem>
-              <SelectItem value="30">{t("account.one_month")}</SelectItem>
-              <SelectItem value="90">{t("account.three_months")}</SelectItem>
-              <SelectItem value="180">{t("account.six_months")}</SelectItem>
-              <SelectItem value="365">{t("account.one_year")}</SelectItem>
-              <SelectItem value="0">{t("account.forever")}</SelectItem>
+              {keepReadItemsOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectPopup>
           </Select>
         </div>

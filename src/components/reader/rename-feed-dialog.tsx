@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { renameFeed, updateFeedDisplayMode, updateFeedFolder } from "@/api/tauri-commands";
@@ -30,6 +30,20 @@ export function RenameDialog({
   const qc = useQueryClient();
   const showToast = useUiStore((s) => s.showToast);
   const { data: folders } = useFolders(feed.account_id);
+  const displayModeLabelId = useId();
+  const folderLabelId = useId();
+  const displayModeOptions = [
+    { value: "normal", label: t("display_mode_normal") },
+    { value: "widescreen", label: t("display_mode_widescreen") },
+  ];
+  const folderOptions = [
+    { value: "", label: t("no_folder") },
+    ...((folders ?? []).map((folder) => ({ value: folder.id, label: folder.name })) ?? []),
+  ];
+  const getDisplayModeLabel = (value: string | null) =>
+    displayModeOptions.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
+  const getFolderLabel = (value: string | null) =>
+    folderOptions.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
 
   useEffect(() => {
     if (open) {
@@ -105,40 +119,46 @@ export function RenameDialog({
           </label>
 
           <div className="block text-sm text-muted-foreground">
-            <span className="mb-1 block">{t("display_mode")}</span>
+            <span id={displayModeLabelId} className="mb-1 block">
+              {t("display_mode")}
+            </span>
             <Select
               name="feed-display-mode"
               value={displayMode}
               onValueChange={(v) => setDisplayMode(v ?? "normal")}
               disabled={loading}
             >
-              <SelectTrigger className="mt-1 w-full">
-                <SelectValue />
+              <SelectTrigger aria-labelledby={displayModeLabelId} className="mt-1 w-full">
+                <SelectValue>{(value: string | null) => getDisplayModeLabel(value)}</SelectValue>
               </SelectTrigger>
               <SelectPopup>
-                <SelectItem value="normal">{t("display_mode_normal")}</SelectItem>
-                <SelectItem value="widescreen">{t("display_mode_widescreen")}</SelectItem>
+                {displayModeOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectPopup>
             </Select>
           </div>
 
           {folders && folders.length > 0 && (
             <div className="block text-sm text-muted-foreground">
-              <span className="mb-1 block">{t("folder")}</span>
+              <span id={folderLabelId} className="mb-1 block">
+                {t("folder")}
+              </span>
               <Select
                 name="feed-folder"
                 value={selectedFolderId ?? ""}
                 onValueChange={(v) => setSelectedFolderId(v || null)}
                 disabled={loading}
               >
-                <SelectTrigger className="mt-1 w-full">
-                  <SelectValue />
+                <SelectTrigger aria-labelledby={folderLabelId} className="mt-1 w-full">
+                  <SelectValue>{(value: string | null) => getFolderLabel(value)}</SelectValue>
                 </SelectTrigger>
                 <SelectPopup>
-                  <SelectItem value="">{t("no_folder")}</SelectItem>
-                  {folders.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>
-                      {f.name}
+                  {folderOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
                     </SelectItem>
                   ))}
                 </SelectPopup>

@@ -2,7 +2,7 @@ import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   addLocalFeed,
@@ -53,6 +53,14 @@ export function AddFeedDialog({
   const qc = useQueryClient();
   const showToast = useUiStore((s) => s.showToast);
   const { data: folders } = useFolders(accountId);
+  const folderLabelId = useId();
+  const folderOptions = [
+    { value: "", label: t("no_folder") },
+    ...((folders ?? []).map((folder) => ({ value: folder.id, label: folder.name })) ?? []),
+    { value: NEW_FOLDER_VALUE, label: t("new_folder") },
+  ];
+  const getFolderLabel = (value: string | null) =>
+    folderOptions.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
 
   useEffect(() => {
     if (open) {
@@ -246,6 +254,7 @@ export function AddFeedDialog({
                   >
                     <Radio.Root
                       value={feed.url}
+                      aria-label={feed.title || feed.url}
                       className="flex size-4 items-center justify-center rounded-full border border-primary"
                     >
                       <Radio.Indicator className="size-2 rounded-full bg-primary" />
@@ -258,24 +267,24 @@ export function AddFeedDialog({
           )}
 
           <div className="block text-sm text-muted-foreground">
-            <span className="mb-1 block">{t("folder")}</span>
+            <span id={folderLabelId} className="mb-1 block">
+              {t("folder")}
+            </span>
             <Select
               name="feed-folder"
               value={isCreatingFolder ? NEW_FOLDER_VALUE : (selectedFolderId ?? "")}
               onValueChange={(v) => v !== null && handleFolderChange(v)}
               disabled={loading}
             >
-              <SelectTrigger className="mt-1 w-full">
-                <SelectValue />
+              <SelectTrigger aria-labelledby={folderLabelId} className="mt-1 w-full">
+                <SelectValue>{(value: string | null) => getFolderLabel(value)}</SelectValue>
               </SelectTrigger>
               <SelectPopup>
-                <SelectItem value="">{t("no_folder")}</SelectItem>
-                {folders?.map((f) => (
-                  <SelectItem key={f.id} value={f.id}>
-                    {f.name}
+                {folderOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
                   </SelectItem>
                 ))}
-                <SelectItem value={NEW_FOLDER_VALUE}>{t("new_folder")}</SelectItem>
               </SelectPopup>
             </Select>
           </div>

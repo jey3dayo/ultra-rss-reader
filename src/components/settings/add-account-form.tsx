@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { useMemo, useReducer } from "react";
+import { useId, useMemo, useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import { addAccount } from "@/api/tauri-commands";
 import { SectionHeading } from "@/components/settings/settings-components";
@@ -25,6 +25,14 @@ export function AddAccountForm() {
   const qc = useQueryClient();
   const [form, dispatch] = useReducer(addAccountFormReducer, addAccountFormInitialState);
   const formConfig = useMemo(() => getAddAccountFormConfig(form.kind), [form.kind]);
+  const accountTypeLabelId = useId();
+  const accountTypeOptions = [
+    { value: "Local", label: t("account.local_feeds") },
+    { value: "FreshRss", label: t("account.freshrss") },
+    { value: "Inoreader", label: t("account.inoreader") },
+  ];
+  const getAccountTypeLabel = (value: string | null) =>
+    accountTypeOptions.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
 
   const handleSubmit = async () => {
     const payloadResult = buildAddAccountPayload(form);
@@ -56,19 +64,23 @@ export function AddAccountForm() {
       <section className="mb-6">
         <SectionHeading>{t("account.account")}</SectionHeading>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-          <span className="text-sm text-foreground">{t("account.type")}</span>
+          <span id={accountTypeLabelId} className="text-sm text-foreground">
+            {t("account.type")}
+          </span>
           <Select
             name="account-type"
             value={form.kind}
             onValueChange={(v) => v !== null && dispatch({ type: "setKind", value: v as AddAccountProviderKind })}
           >
-            <SelectTrigger>
-              <SelectValue />
+            <SelectTrigger aria-labelledby={accountTypeLabelId}>
+              <SelectValue>{(value: string | null) => getAccountTypeLabel(value)}</SelectValue>
             </SelectTrigger>
             <SelectPopup>
-              <SelectItem value="Local">{t("account.local_feeds")}</SelectItem>
-              <SelectItem value="FreshRss">{t("account.freshrss")}</SelectItem>
-              <SelectItem value="Inoreader">{t("account.inoreader")}</SelectItem>
+              {accountTypeOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectPopup>
           </Select>
         </div>
