@@ -471,14 +471,14 @@ impl FeedProvider for GReaderProvider {
             .item_refs
             .unwrap_or_default()
             .into_iter()
-            .map(|r| r.id)
+            .map(|r| normalize_item_id(&r.id))
             .collect();
 
         let starred_ids = starred_resp
             .item_refs
             .unwrap_or_default()
             .into_iter()
-            .map(|r| r.id)
+            .map(|r| normalize_item_id(&r.id))
             .collect();
 
         Ok(RemoteState {
@@ -611,6 +611,23 @@ fn urlencoded(s: &str) -> String {
             _ => format!("%{b:02X}"),
         })
         .collect()
+}
+
+/// Convert short-form decimal item ID (from `stream/items/ids`) to the
+/// canonical long-form tag URI used by `stream/contents`.
+///
+/// Example: `"1774810819788671"` → `"tag:google.com,2005:reader/item/00064e2e5874ff7f"`
+///
+/// Already long-form or non-numeric IDs are returned unchanged.
+fn normalize_item_id(id: &str) -> String {
+    const TAG_PREFIX: &str = "tag:google.com,2005:reader/item/";
+    if id.starts_with(TAG_PREFIX) {
+        return id.to_string();
+    }
+    match id.parse::<u64>() {
+        Ok(n) => format!("{TAG_PREFIX}{n:016x}"),
+        Err(_) => id.to_string(),
+    }
 }
 
 #[cfg(test)]
@@ -967,5 +984,32 @@ mod tests {
 
         provider.push_mutations(&mutations).await.unwrap();
         mark_read_mock.assert_async().await;
+    }
+
+    #[test]
+    fn normalize_item_id_converts_decimal_to_long_form() {
+        assert_eq!(
+            normalize_item_id("1774810819788671"),
+            "tag:google.com,2005:reader/item/00064e2e5874ff7f"
+        );
+    }
+
+    #[test]
+    fn normalize_item_id_passes_through_long_form() {
+        let long = "tag:google.com,2005:reader/item/00064e2e5874ff7f";
+        assert_eq!(normalize_item_id(long), long);
+    }
+
+    #[test]
+    fn normalize_item_id_passes_through_non_numeric() {
+        assert_eq!(normalize_item_id("some-other-id"), "some-other-id");
+    }
+
+    #[test]
+    fn normalize_item_id_handles_zero() {
+        assert_eq!(
+            normalize_item_id("0"),
+            "tag:google.com,2005:reader/item/0000000000000000"
+        );
     }
 }
