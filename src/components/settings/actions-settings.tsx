@@ -1,4 +1,4 @@
-import { Copy, ExternalLink, Globe } from "lucide-react";
+import { Copy, ExternalLink, Globe, Share } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SectionHeading } from "@/components/settings/settings-components";
 import { Switch } from "@/components/ui/switch";
@@ -29,6 +29,11 @@ export function ActionsSettings() {
       label: t("actions.open_in_external_browser"),
       prefKey: "action_share",
       icon: <ExternalLink className="h-5 w-5" />,
+    },
+    {
+      label: t("actions.share_menu"),
+      prefKey: "action_share_menu",
+      icon: <Share className="h-5 w-5" />,
     },
   ];
 
