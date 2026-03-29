@@ -28,7 +28,7 @@
 
 - [x] Settings の Select / Switch が未保存時でも既定値を正しく表示するようにする（現状は UI と実際の挙動がズレる）
 - [x] Settings > Actions の既定値を利用側と統一する（`action_share` の既定値が設定ストアとツールバーで不一致）
-- [ ] Settings > General > 未読バッジ「受信トレイのみ」を実装する（現状は `すべての未読` と同じ集計）
+- [x] Settings > General > 未読バッジ「受信トレイのみ」を実装する（現状は `すべての未読` と同じ集計）
 - [x] Settings > General > 記事を既読にする（`mark_article_as_read`）を実装するか、未使用設定として整理する
 
 ## ペイン遷移アニメーション
