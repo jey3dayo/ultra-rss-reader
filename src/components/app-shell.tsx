@@ -5,6 +5,7 @@ import { useMenuEvents } from "../hooks/use-menu-events";
 import { useUpdater } from "../hooks/use-updater";
 import { useUiStore } from "../stores/ui-store";
 import { AppLayout } from "./app-layout";
+import { CommandPalette } from "./reader/command-palette";
 import { SettingsModal } from "./settings/settings-modal";
 import { ConfirmDialog } from "./ui/confirm-dialog";
 
@@ -70,6 +71,7 @@ export function AppShell() {
       <SettingsModal />
       <ConfirmDialog />
       <Toast />
+      <CommandPalette />
     </div>
   );
 }
