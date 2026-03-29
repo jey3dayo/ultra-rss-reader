@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { ArrowLeft, ArrowRight, ExternalLink, RotateCcw, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { checkBrowserEmbedSupport, openInBrowser } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,26 @@ export function BrowserView() {
   const { browserUrl, closeBrowser } = useUiStore();
   const [isLoading, setIsLoading] = useState(true);
   const [embedBlocked, setEmbedBlocked] = useState(false);
+  const [canGoBack, setCanGoBack] = useState(false);
+  const [canGoForward, setCanGoForward] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const historyIndex = useRef(0);
+  const historySize = useRef(1);
+  const isHistoryNav = useRef(false);
+
+  const updateNavButtons = useCallback(() => {
+    setCanGoBack(historyIndex.current > 0);
+    setCanGoForward(historyIndex.current < historySize.current - 1);
+  }, []);
 
   useEffect(() => {
     if (!browserUrl) return;
     setIsLoading(true);
     setEmbedBlocked(false);
+    historyIndex.current = 0;
+    historySize.current = 1;
+    isHistoryNav.current = false;
+    updateNavButtons();
 
     let cancelled = false;
 
@@ -35,12 +49,24 @@ export function BrowserView() {
     return () => {
       cancelled = true;
     };
-  }, [browserUrl]);
+  }, [browserUrl, updateNavButtons]);
 
   if (!browserUrl) return null;
 
   const handleIframeLoad = () => {
     setIsLoading(false);
+
+    if (isHistoryNav.current) {
+      isHistoryNav.current = false;
+    } else if (historySize.current > 0) {
+      // New navigation (user clicked a link) — not the initial load
+      const isInitialLoad = historyIndex.current === 0 && historySize.current === 1;
+      if (!isInitialLoad) {
+        historyIndex.current += 1;
+        historySize.current = historyIndex.current + 1;
+      }
+    }
+    updateNavButtons();
 
     try {
       const currentUrl = iframeRef.current?.contentWindow?.location.href;
@@ -84,7 +110,11 @@ export function BrowserView() {
               <Button
                 variant="ghost"
                 size="icon"
+                disabled={!canGoBack}
                 onClick={async () => {
+                  isHistoryNav.current = true;
+                  historyIndex.current -= 1;
+                  updateNavButtons();
                   Result.pipe(
                     await goBackInWebview(),
                     Result.inspectError(() => {}),
@@ -100,7 +130,11 @@ export function BrowserView() {
               <Button
                 variant="ghost"
                 size="icon"
+                disabled={!canGoForward}
                 onClick={async () => {
+                  isHistoryNav.current = true;
+                  historyIndex.current += 1;
+                  updateNavButtons();
                   Result.pipe(
                     await goForwardInWebview(),
                     Result.inspectError(() => {}),
