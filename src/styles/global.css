@@ -85,7 +85,7 @@
 body {
   background: var(--color-background);
   color: var(--color-foreground);
-  font-family: var(--font-sans);
+  font-family: inherit;
   -webkit-font-smoothing: antialiased;
 }
 
