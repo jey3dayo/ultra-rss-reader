@@ -67,6 +67,24 @@ export function GeneralSettings() {
             { value: "none", label: t("general.none") },
           ]}
         />
+        <SettingsSelect
+          label={t("general.sort_subscriptions")}
+          prefKey="sort_subscriptions"
+          options={[
+            { value: "folders_first", label: t("general.folders_first") },
+            { value: "alphabetical", label: t("general.alphabetical") },
+            { value: "newest_first", label: t("general.newest_first") },
+            { value: "oldest_first", label: t("general.oldest_first") },
+          ]}
+        />
+        <SettingsSelect
+          label={t("general.mark_article_as_read")}
+          prefKey="mark_article_as_read"
+          options={[
+            { value: "on_open", label: t("general.on_open") },
+            { value: "manual", label: t("general.manual") },
+          ]}
+        />
         <SettingsSwitch label={t("general.cmd_click_browser")} prefKey="cmd_click_browser" />
       </section>
 

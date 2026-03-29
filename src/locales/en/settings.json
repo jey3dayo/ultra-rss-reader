@@ -33,6 +33,12 @@
     "feed": "Feed",
     "none": "None",
     "cmd_click_browser": "\u2318-click opens in-app browser",
+    "sort_subscriptions": "Sort subscriptions",
+    "folders_first": "Folders first",
+    "alphabetical": "Alphabetical",
+    "mark_article_as_read": "Mark article as read",
+    "on_open": "On open",
+    "manual": "Manual",
     "mark_all_as_read": "Mark All As Read",
     "ask_before": "Ask before"
   },

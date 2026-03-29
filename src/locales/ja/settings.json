@@ -33,6 +33,12 @@
     "feed": "フィード",
     "none": "なし",
     "cmd_click_browser": "\u2318クリックでアプリ内ブラウザを開く",
+    "sort_subscriptions": "購読の並び順",
+    "folders_first": "フォルダ優先",
+    "alphabetical": "アルファベット順",
+    "mark_article_as_read": "記事を既読にする",
+    "on_open": "開いた時",
+    "manual": "手動",
     "mark_all_as_read": "すべて既読にする",
     "ask_before": "実行前に確認する"
   },
