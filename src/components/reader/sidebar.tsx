@@ -16,7 +16,7 @@ import { useFolders } from "@/hooks/use-folders";
 import { useTagArticleCounts, useTags } from "@/hooks/use-tags";
 import { actionEvents } from "@/lib/actions";
 import i18n from "@/lib/i18n";
-import { groupFeedsByFolder } from "@/lib/sidebar";
+import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -180,16 +180,7 @@ export function Sidebar() {
   }, [folderList, sortSubscriptions]);
 
   const sortFeeds = useCallback(
-    (feeds: FeedDto[]): FeedDto[] => {
-      if (sortSubscriptions === "alphabetical") {
-        return [...feeds].sort((a, b) => a.title.localeCompare(b.title));
-      }
-      if (sortSubscriptions === "newest_first" || sortSubscriptions === "oldest_first") {
-        const dir = sortSubscriptions === "newest_first" ? -1 : 1;
-        return [...feeds].sort((a, b) => a.title.localeCompare(b.title) * dir);
-      }
-      return feeds;
-    },
+    (feeds: FeedDto[]): FeedDto[] => sortFeedsByPreference(feeds, sortSubscriptions),
     [sortSubscriptions],
   );
 
