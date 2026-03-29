@@ -2,7 +2,6 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccountArticles, useArticles, useMarkAllRead, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { navigateArticleEvent } from "@/hooks/use-keyboard";
@@ -17,10 +16,10 @@ import {
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { ArticleContextMenu } from "./article-context-menu";
+import type { ArticleGroupsViewGroup } from "./article-groups-view";
 import { ArticleListFooter } from "./article-list-footer";
 import { ArticleListHeader } from "./article-list-header";
-import { ArticleListItem } from "./article-list-item";
+import { ArticleListScreenView } from "./article-list-screen-view";
 import { contextMenuStyles } from "./context-menu-styles";
 
 export function ArticleList() {
@@ -111,6 +110,27 @@ export function ArticleList() {
       feedNameMap,
     });
   }, [filteredArticles, groupBy, feedNameMap]);
+
+  const articleGroups = useMemo<ArticleGroupsViewGroup[]>(() => {
+    return Object.entries(groupedArticles).map(([groupLabel, groupArticles]) => ({
+      id: groupLabel,
+      label:
+        groupLabel === "TODAY"
+          ? t("today")
+          : groupLabel === "YESTERDAY"
+            ? t("yesterday")
+            : groupLabel === "__unknown_feed__"
+              ? t("unknown_feed")
+              : groupLabel,
+      showLabel: groupBy !== "none",
+      items: groupArticles.map((article) => ({
+        article,
+        feedName: feedNameMap.get(article.feed_id),
+        isSelected: selectedArticleId === article.id,
+        isRecentlyRead: recentlyReadIds.has(article.id),
+      })),
+    }));
+  }, [feedNameMap, groupBy, groupedArticles, recentlyReadIds, selectedArticleId, t]);
 
   const listRef = useRef<HTMLDivElement>(null);
   const scrollToTopOnChange = usePreferencesStore((s) => s.prefs.scroll_to_top_on_change ?? "true");
@@ -212,49 +232,19 @@ export function ArticleList() {
       {/* Article List */}
       <ContextMenu.Root>
         <ContextMenu.Trigger render={<div />} className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full">
-            <div ref={listRef} role="listbox" aria-label={t("article_list")} className="pb-4">
-              {isLoading || isLoadingAccountArticles || isLoadingTagArticles ? (
-                <div className="p-6 text-center text-muted-foreground">{tc("loading")}</div>
-              ) : filteredArticles.length === 0 ? (
-                <div className="p-6 text-center text-muted-foreground">{t("no_articles")}</div>
-              ) : (
-                Object.entries(groupedArticles).map(([groupLabel, groupArticles]) => (
-                  <div key={groupLabel}>
-                    {groupBy !== "none" && (
-                      <div className="sticky top-0 bg-card px-4 py-2">
-                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                          {groupLabel === "TODAY"
-                            ? t("today")
-                            : groupLabel === "YESTERDAY"
-                              ? t("yesterday")
-                              : groupLabel === "__unknown_feed__"
-                                ? t("unknown_feed")
-                                : groupLabel}
-                        </span>
-                      </div>
-                    )}
-
-                    {groupArticles.map((article) => (
-                      <ArticleContextMenu key={article.id} article={article}>
-                        <ArticleListItem
-                          article={article}
-                          isSelected={selectedArticleId === article.id}
-                          isRecentlyRead={recentlyReadIds.has(article.id)}
-                          dimArchived={dimArchived}
-                          textPreview={textPreview}
-                          imagePreviews={imagePreviews}
-                          selectionStyle={selectionStyle}
-                          feedName={feedNameMap.get(article.feed_id)}
-                          onSelect={() => selectArticle(article.id)}
-                        />
-                      </ArticleContextMenu>
-                    ))}
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
+          <ArticleListScreenView
+            listAriaLabel={t("article_list")}
+            listRef={listRef}
+            isLoading={isLoading || isLoadingAccountArticles || isLoadingTagArticles}
+            loadingMessage={tc("loading")}
+            emptyMessage={t("no_articles")}
+            groups={articleGroups}
+            dimArchived={dimArchived}
+            textPreview={textPreview}
+            imagePreviews={imagePreviews}
+            selectionStyle={selectionStyle}
+            onSelectArticle={selectArticle}
+          />
         </ContextMenu.Trigger>
         <ContextMenu.Portal>
           <ContextMenu.Positioner>
