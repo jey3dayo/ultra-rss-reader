@@ -218,7 +218,7 @@ export function AccountDetail() {
           <Switch
             checked={account.sync_on_wake}
             onCheckedChange={(v) => handleSyncUpdate({ syncOnWake: v })}
-            className="data-[state=checked]:bg-ring"
+            className="data-checked:bg-ring"
           />
         </div>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
