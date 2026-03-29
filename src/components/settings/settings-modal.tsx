@@ -190,8 +190,8 @@ export function SettingsModal() {
         </div>
 
         {/* Content Area */}
-        <div className="flex flex-1 flex-col bg-popover">
-          <ScrollArea className="flex-1">
+        <div className="flex flex-1 flex-col overflow-hidden bg-popover">
+          <ScrollArea className="flex-1 overflow-hidden">
             <SettingsContent
               settingsAccountId={settingsAccountId}
               settingsAddAccount={settingsAddAccount}
