@@ -9,7 +9,11 @@ import { AppearanceSettings } from "@/components/settings/appearance-settings";
 import { GeneralSettings } from "@/components/settings/general-settings";
 import { ReadingSettings } from "@/components/settings/reading-settings";
 import { SettingsModalView } from "@/components/settings/settings-modal-view";
-import { type SettingsNavItem, SettingsNavView } from "@/components/settings/settings-nav-view";
+import {
+  type SettingsNavItem,
+  type SettingsNavItemId,
+  SettingsNavView,
+} from "@/components/settings/settings-nav-view";
 import { ShortcutsSettings } from "@/components/settings/shortcuts-settings";
 import { useAccounts } from "@/hooks/use-accounts";
 import type { SettingsCategory } from "@/stores/ui-store";
@@ -43,6 +47,14 @@ function SettingsContent({
       return <GeneralSettings />;
   }
 }
+
+const settingsCategoryByNavId: Record<string, SettingsCategory> = {
+  general: "general",
+  appearance: "appearance",
+  reading: "reading",
+  shortcuts: "shortcuts",
+  actions: "actions",
+};
 
 export function SettingsModal() {
   const { t } = useTranslation("settings");
@@ -110,12 +122,18 @@ export function SettingsModal() {
     isActive: settingsAccountId === account.id,
   }));
 
+  const handleSelectCategory = (categoryId: SettingsNavItemId) => {
+    const nextCategory = settingsCategoryByNavId[categoryId];
+    if (!nextCategory) return;
+    setSettingsCategory(nextCategory);
+  };
+
   return (
     <SettingsModalView
       open={settingsOpen}
       title={t("preferences")}
       closeLabel={t("close_preferences")}
-      navigation={<SettingsNavView items={navItems} onSelectCategory={setSettingsCategory} />}
+      navigation={<SettingsNavView items={navItems} onSelectCategory={handleSelectCategory} />}
       accountsNavigation={
         <AccountsNavView
           accounts={accountItems}

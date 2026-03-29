@@ -13,8 +13,8 @@ describe("SettingsNavView", () => {
         isActive: true,
       },
       {
-        id: "appearance",
-        label: "Appearance",
+        id: "custom-category",
+        label: "Custom category",
         icon: <span aria-hidden="true">A</span>,
         isActive: false,
       },
@@ -23,13 +23,13 @@ describe("SettingsNavView", () => {
     render(<SettingsNavView items={items} onSelectCategory={onSelectCategory} />);
 
     const generalButton = screen.getByRole("button", { name: "General" });
-    const appearanceButton = screen.getByRole("button", { name: "Appearance" });
+    const appearanceButton = screen.getByRole("button", { name: "Custom category" });
 
     expect(generalButton).toHaveClass("bg-sidebar-accent");
     expect(appearanceButton).not.toHaveClass("bg-sidebar-accent");
 
     fireEvent.click(appearanceButton);
 
-    expect(onSelectCategory).toHaveBeenCalledWith("appearance");
+    expect(onSelectCategory).toHaveBeenCalledWith("custom-category");
   });
 });

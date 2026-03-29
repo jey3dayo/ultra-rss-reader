@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import type { SettingsCategory } from "@/stores/ui-store";
+
+export type SettingsNavItemId = string;
 
 export type SettingsNavItem = {
-  id: SettingsCategory;
+  id: SettingsNavItemId;
   label: string;
   icon: ReactNode;
   isActive: boolean;
@@ -11,7 +12,7 @@ export type SettingsNavItem = {
 
 type SettingsNavViewProps = {
   items: SettingsNavItem[];
-  onSelectCategory: (category: SettingsCategory) => void;
+  onSelectCategory: (categoryId: SettingsNavItemId) => void;
 };
 
 export function SettingsNavView({ items, onSelectCategory }: SettingsNavViewProps) {
