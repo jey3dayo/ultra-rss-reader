@@ -142,6 +142,17 @@ run = ["pnpm build"]
 description = "Run native app in dev mode"
 run = "pnpm tauri dev"
 
+[tasks."app:dev:signed"]
+description = "Build, codesign, and run native app (no Keychain dialog)"
+run = """
+pnpm dev &
+DEV_PID=$!
+cargo build --manifest-path src-tauri/Cargo.toml
+codesign -s "UltraRSSReader-Dev" -f src-tauri/target/debug/ultra-rss-reader
+src-tauri/target/debug/ultra-rss-reader
+kill $DEV_PID 2>/dev/null || true
+"""
+
 [tasks."app:dev:browser"]
 description = "Run frontend dev server for browser UI testing"
 run = "pnpm dev --host 127.0.0.1 --port 4173 --strictPort"
