@@ -99,6 +99,7 @@ pub fn run() {
             commands::feed_commands::trigger_sync,
             commands::article_commands::list_articles,
             commands::article_commands::list_account_articles,
+            commands::article_commands::count_account_unread_articles,
             commands::article_commands::mark_article_read,
             commands::article_commands::mark_articles_read,
             commands::article_commands::mark_feed_read,

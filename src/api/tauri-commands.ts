@@ -14,6 +14,7 @@ import {
   addToReadingListArgs,
   checkBrowserEmbedSupportArgs,
   copyToClipboardArgs,
+  countAccountUnreadArticlesArgs,
   createFolderArgs,
   createTagArgs,
   type DiscoveredFeedDto,
@@ -137,6 +138,13 @@ export const listAccountArticles = (accountId: string, offset?: number, limit?: 
     "list_account_articles",
     { response: z.array(ArticleDtoSchema), args: listAccountArticlesArgs },
     { accountId, offset, limit },
+  );
+
+export const countAccountUnreadArticles = (accountId: string) =>
+  safeInvoke(
+    "count_account_unread_articles",
+    { response: z.number().int(), args: countAccountUnreadArticlesArgs },
+    { accountId },
   );
 
 export const markArticleRead = (articleId: string, read = true) =>

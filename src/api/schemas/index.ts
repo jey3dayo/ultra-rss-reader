@@ -7,6 +7,7 @@ export {
   checkBrowserEmbedSupportArgs,
   commandArgsSchemas,
   copyToClipboardArgs,
+  countAccountUnreadArticlesArgs,
   createFolderArgs,
   createTagArgs,
   deleteAccountArgs,

@@ -8,6 +8,7 @@ import {
   addAccountArgs,
   addLocalFeedArgs,
   checkBrowserEmbedSupportArgs,
+  countAccountUnreadArticlesArgs,
   createFolderArgs,
   createTagArgs,
   deleteAccountArgs,
@@ -59,6 +60,11 @@ function recalcUnread(feedId: string) {
   if (feed) {
     feed.unread_count = mockArticles.filter((a) => a.feed_id === feedId && !a.is_read).length;
   }
+}
+
+function countUnreadByAccount(accountId: string) {
+  const feedIds = mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id);
+  return mockArticles.filter((article) => feedIds.includes(article.feed_id) && !article.is_read).length;
 }
 
 export function setupDevMocks() {
@@ -181,6 +187,11 @@ export function setupDevMocks() {
         const { accountId } = listAccountArticlesArgs.parse(payload);
         const feedIds = mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id);
         return mockArticles.filter((a) => feedIds.includes(a.feed_id));
+      }
+
+      case "count_account_unread_articles": {
+        const { accountId } = countAccountUnreadArticlesArgs.parse(payload);
+        return countUnreadByAccount(accountId);
       }
 
       case "search_articles": {

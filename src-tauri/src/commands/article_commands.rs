@@ -114,6 +114,19 @@ pub fn list_account_articles(
 }
 
 #[tauri::command]
+pub fn count_account_unread_articles(
+    state: State<'_, AppState>,
+    account_id: String,
+) -> Result<i32, AppError> {
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let repo = SqliteArticleRepository::new(db.reader());
+    let unread_count = repo.count_unread_by_account(&AccountId(account_id))?;
+    Ok(unread_count)
+}
+
+#[tauri::command]
 pub fn mark_article_read(
     state: State<'_, AppState>,
     article_id: String,

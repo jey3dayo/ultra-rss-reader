@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   addAccount,
+  countAccountUnreadArticles,
   listAccountArticles,
   listAccounts,
   listArticles,
@@ -54,6 +55,13 @@ describe("tauri-commands with mockIPC", () => {
       const value = Result.unwrap(await listAccountArticles("acc-1"));
       expect(value).toEqual(sampleArticles);
       expect(value).toHaveLength(2);
+    });
+  });
+
+  describe("countAccountUnreadArticles", () => {
+    it("returns unread count for a given account", async () => {
+      const value = Result.unwrap(await countAccountUnreadArticles("acc-1"));
+      expect(value).toBe(1);
     });
   });
 

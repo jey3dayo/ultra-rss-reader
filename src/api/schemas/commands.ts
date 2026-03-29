@@ -18,6 +18,9 @@ export const listAccountArticlesArgs = z.object({
   limit: z.number().optional(),
 });
 
+// --- countAccountUnreadArticles ---
+export const countAccountUnreadArticlesArgs = z.object({ accountId: z.string() });
+
 // --- searchArticles ---
 export const searchArticlesArgs = z.object({
   accountId: z.string(),
@@ -177,6 +180,7 @@ export const commandArgsSchemas: Record<string, z.ZodType> = {
   list_feeds: listFeedsArgs,
   list_articles: listArticlesArgs,
   list_account_articles: listAccountArticlesArgs,
+  count_account_unread_articles: countAccountUnreadArticlesArgs,
   search_articles: searchArticlesArgs,
   mark_article_read: markArticleReadArgs,
   mark_articles_read: markArticlesReadArgs,
