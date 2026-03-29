@@ -45,10 +45,10 @@ export const DisabledChecked: Story = {
 
 export const WithLabel: Story = {
   render: (args) => (
-    <label className="flex items-center gap-3 text-sm text-foreground">
-      <GradientSwitch {...args} />
-      バックグラウンドでリンクを開く
-    </label>
+    <div className="flex items-center gap-3 text-sm text-foreground">
+      <GradientSwitch {...args} aria-label="バックグラウンドでリンクを開く" />
+      <span>バックグラウンドでリンクを開く</span>
+    </div>
   ),
   args: {
     defaultChecked: true,
