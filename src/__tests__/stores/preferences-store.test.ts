@@ -19,4 +19,16 @@ describe("usePreferencesStore preferences", () => {
     expect(resolvePreferenceValue({ reader_view: "auto" }, "reader_view")).toBe("normal");
     expect(resolvePreferenceValue({ reader_view: "cinema" }, "reader_view")).toBe("normal");
   });
+
+  it("defaults sidebar section visibility preferences to true", () => {
+    expect(resolvePreferenceValue({}, "show_sidebar_unread")).toBe("true");
+    expect(resolvePreferenceValue({}, "show_sidebar_starred")).toBe("true");
+    expect(resolvePreferenceValue({}, "show_sidebar_tags")).toBe("true");
+  });
+
+  it("normalizes invalid sidebar visibility preferences back to true", () => {
+    expect(resolvePreferenceValue({ show_sidebar_unread: "maybe" }, "show_sidebar_unread")).toBe("true");
+    expect(resolvePreferenceValue({ show_sidebar_starred: "nope" }, "show_sidebar_starred")).toBe("true");
+    expect(resolvePreferenceValue({ show_sidebar_tags: "unset" }, "show_sidebar_tags")).toBe("true");
+  });
 });
