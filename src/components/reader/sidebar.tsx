@@ -10,6 +10,7 @@ import { controlChipIconVariants, controlChipVariants } from "@/components/share
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccounts } from "@/hooks/use-accounts";
+import { useAccountArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { useTagArticleCounts, useTags } from "@/hooks/use-tags";
@@ -79,8 +80,13 @@ export function Sidebar() {
   const { data: folders } = useFolders(selectedAccountId);
   const { data: tags } = useTags();
   const { data: tagArticleCounts } = useTagArticleCounts();
+  const { data: accountArticles } = useAccountArticles(selectedAccountId);
   const showUnreadCount = usePreferencesStore((s) => (s.prefs.show_unread_count ?? "true") === "true");
+  const showStarredCount = usePreferencesStore((s) => (s.prefs.show_starred_count ?? "true") === "true");
   const displayFavicons = usePreferencesStore((s) => (s.prefs.display_favicons ?? "true") === "true");
+  const grayscaleFavicons = usePreferencesStore((s) => (s.prefs.grayscale_favicons ?? "false") === "true");
+  const sortSubscriptions = usePreferencesStore((s) => s.prefs.sort_subscriptions ?? "folders_first");
+  const opaqueSidebars = usePreferencesStore((s) => (s.prefs.opaque_sidebars ?? "false") === "true");
 
   // Auto-select first account if none selected
   useEffect(() => {
@@ -93,6 +99,7 @@ export function Sidebar() {
   const hasMultipleAccounts = accounts && accounts.length > 1;
 
   const totalUnread = feeds?.reduce((sum, f) => sum + f.unread_count, 0) ?? 0;
+  const starredCount = useMemo(() => accountArticles?.filter((a) => a.is_starred).length ?? 0, [accountArticles]);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,15 +139,41 @@ export function Sidebar() {
   const feedList: FeedDto[] = feeds ?? [];
   const folderList: FolderDto[] = folders ?? [];
 
-  const { feedsByFolder, unfolderedFeeds } = useMemo(() => groupFeedsByFolder(feedList), [feedList]);
+  const { feedsByFolder, unfolderedFeeds: rawUnfolderedFeeds } = useMemo(
+    () => groupFeedsByFolder(feedList),
+    [feedList],
+  );
+
+  const sortedFolderList = useMemo(() => {
+    if (sortSubscriptions === "alphabetical") {
+      return [...folderList].sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return folderList;
+  }, [folderList, sortSubscriptions]);
+
+  const sortFeeds = useCallback(
+    (feeds: FeedDto[]): FeedDto[] => {
+      if (sortSubscriptions === "alphabetical") {
+        return [...feeds].sort((a, b) => a.title.localeCompare(b.title));
+      }
+      if (sortSubscriptions === "newest_first" || sortSubscriptions === "oldest_first") {
+        const dir = sortSubscriptions === "newest_first" ? -1 : 1;
+        return [...feeds].sort((a, b) => a.title.localeCompare(b.title) * dir);
+      }
+      return feeds;
+    },
+    [sortSubscriptions],
+  );
+
+  const unfolderedFeeds = useMemo(() => sortFeeds(rawUnfolderedFeeds), [rawUnfolderedFeeds, sortFeeds]);
 
   const selectedFeedId = selection.type === "feed" ? selection.feedId : null;
 
   // Build a flat ordered feed list matching render order (folder feeds then unfoldered)
   const orderedFeedIds = useMemo(() => {
     const ids: string[] = [];
-    for (const folder of folderList) {
-      const folderFeeds = feedsByFolder.get(folder.id) ?? [];
+    for (const folder of sortedFolderList) {
+      const folderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
       for (const feed of folderFeeds) {
         ids.push(feed.id);
       }
@@ -149,7 +182,7 @@ export function Sidebar() {
       ids.push(feed.id);
     }
     return ids;
-  }, [folderList, feedsByFolder, unfolderedFeeds]);
+  }, [sortedFolderList, feedsByFolder, unfolderedFeeds, sortFeeds]);
 
   const navigateFeed = useCallback(
     (direction: 1 | -1) => {
@@ -181,7 +214,12 @@ export function Sidebar() {
   }, [navigateFeed]);
 
   return (
-    <div className="flex h-full w-[280px] flex-col border-r border-border bg-sidebar text-sidebar-foreground">
+    <div
+      className={cn(
+        "flex h-full w-[280px] flex-col border-r border-border bg-sidebar text-sidebar-foreground",
+        opaqueSidebars && "bg-opacity-100",
+      )}
+    >
       {/* Header - left padding for macOS traffic lights, draggable for window move */}
       <div data-tauri-drag-region className="flex h-12 items-center justify-end px-4 pl-20">
         <div className="flex items-center gap-2">
@@ -281,6 +319,9 @@ export function Sidebar() {
         )}
       >
         <span className="font-medium">{t("starred")}</span>
+        {showStarredCount && starredCount > 0 && (
+          <span className="text-muted-foreground">{starredCount.toLocaleString()}</span>
+        )}
       </button>
 
       {/* Feeds Section Header */}
@@ -303,8 +344,8 @@ export function Sidebar() {
           {feedList.length > 0 ? (
             isFeedsSectionOpen && (
               <>
-                {folderList.map((folder) => {
-                  const folderFeeds = feedsByFolder.get(folder.id) ?? [];
+                {sortedFolderList.map((folder) => {
+                  const folderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
                   if (folderFeeds.length === 0) return null;
                   return (
                     <FolderSection
@@ -316,6 +357,7 @@ export function Sidebar() {
                       selectedFeedId={selectedFeedId}
                       onSelectFeed={selectFeed}
                       displayFavicons={displayFavicons}
+                      grayscaleFavicons={grayscaleFavicons}
                     />
                   );
                 })}
@@ -326,6 +368,7 @@ export function Sidebar() {
                     isSelected={selectedFeedId === feed.id}
                     onSelect={selectFeed}
                     displayFavicons={displayFavicons}
+                    grayscaleFavicons={grayscaleFavicons}
                   />
                 ))}
               </>
