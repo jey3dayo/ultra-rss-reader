@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use chrono::DateTime;
 use reqwest::header::HeaderValue;
 use serde::Deserialize;
+use std::time::Duration;
 
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::*;
@@ -101,6 +102,8 @@ const STATE_READ: &str = "user/-/state/com.google/read";
 const STATE_STARRED: &str = "user/-/state/com.google/starred";
 const STATE_READING_LIST: &str = "user/-/state/com.google/reading-list";
 const LABEL_PREFIX: &str = "user/-/label/";
+const STREAM_CONTENTS_LIMIT: u32 = 200;
+const STREAM_IDS_LIMIT: u32 = 10000;
 
 // --- Provider ---
 
@@ -129,7 +132,10 @@ impl GReaderProvider {
             auth_base: format!("{base}/api/greader.php"),
             app_id: None,
             app_key: None,
-            http_client: reqwest::Client::new(),
+            http_client: reqwest::Client::builder()
+                .timeout(Duration::from_secs(15))
+                .build()
+                .unwrap_or_default(),
             auth_token: None,
         }
     }
@@ -144,7 +150,10 @@ impl GReaderProvider {
             auth_base: "https://www.inoreader.com".to_string(),
             app_id,
             app_key,
-            http_client: reqwest::Client::new(),
+            http_client: reqwest::Client::builder()
+                .timeout(Duration::from_secs(15))
+                .build()
+                .unwrap_or_default(),
             auth_token: None,
         }
     }
@@ -368,7 +377,7 @@ impl FeedProvider for GReaderProvider {
         };
 
         let mut url = format!(
-            "{}?output=json&n=50",
+            "{}?output=json&n={STREAM_CONTENTS_LIMIT}",
             self.api_url(&format!(
                 "/reader/api/0/stream/contents/{}",
                 urlencoded(&stream_id)
@@ -416,7 +425,7 @@ impl FeedProvider for GReaderProvider {
 
     async fn pull_state(&self) -> DomainResult<RemoteState> {
         let read_url = format!(
-            "{}?output=json&n=10000",
+            "{}?output=json&n={STREAM_IDS_LIMIT}",
             self.api_url(&format!(
                 "/reader/api/0/stream/items/ids?s={}",
                 urlencoded(STATE_READ)
@@ -424,7 +433,7 @@ impl FeedProvider for GReaderProvider {
         );
 
         let starred_url = format!(
-            "{}?output=json&n=10000",
+            "{}?output=json&n={STREAM_IDS_LIMIT}",
             self.api_url(&format!(
                 "/reader/api/0/stream/items/ids?s={}",
                 urlencoded(STATE_STARRED)
