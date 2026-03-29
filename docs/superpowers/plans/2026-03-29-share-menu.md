@@ -14,7 +14,7 @@ Spec: `docs/superpowers/specs/2026-03-29-share-menu-design.md`
 
 ## Task 1: i18n キーの追加
 
-### Files:
+### Files
 
 - Modify: `src/locales/en/reader.json`
 - Modify: `src/locales/ja/reader.json`
@@ -70,7 +70,7 @@ git commit -m "feat: add i18n keys for share menu"
 
 ## Task 2: preferences に `action_share_menu` を追加
 
-### Files:
+### Files
 
 - Modify: `src/stores/preferences-store.ts`
 
@@ -106,7 +106,7 @@ git commit -m "feat: add action_share_menu preference"
 
 ## Task 3: 共有メニューコンポーネントの実装
 
-### Files:
+### Files
 
 - Modify: `src/components/reader/article-view.tsx`
 
@@ -231,7 +231,7 @@ import { contextMenuStyles } from "./context-menu-styles";
 }
 ```
 
-### 注意点:
+### 注意点
 
 - `resolvePreferenceValue` は既に import 済み
 - `copyToClipboard`, `addToReadingList`, `openInBrowser` は既に import 済み
@@ -268,7 +268,7 @@ git commit -m "feat: add share menu to article toolbar"
 
 ## Task 4: Settings に共有メニュートグルを追加
 
-### Files:
+### Files
 
 - Modify: `src/components/settings/actions-settings.tsx`
 
@@ -306,7 +306,7 @@ git commit -m "feat: add share menu toggle to actions settings"
 
 ## Task 5: テストの追加
 
-### Files:
+### Files
 
 - Modify: `src/__tests__/components/article-view.test.tsx`
 
