@@ -35,7 +35,7 @@ export const addAccountFormInitialState: AddAccountFormState = {
 export function addAccountFormReducer(state: AddAccountFormState, action: AddAccountFormAction): AddAccountFormState {
   switch (action.type) {
     case "setKind":
-      return { ...addAccountFormInitialState, kind: action.value };
+      return { ...state, kind: action.value };
     case "setField":
       return { ...state, [action.field]: action.value };
   }

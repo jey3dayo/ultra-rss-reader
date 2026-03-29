@@ -31,4 +31,36 @@ describe("AddAccountForm", () => {
     });
     expect(addAccountCalls).toBe(0);
   });
+
+  it("preserves entered values when switching providers", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<AddAccountForm />, { wrapper: createWrapper() });
+
+    await user.selectOptions(screen.getByRole("combobox"), "FreshRss");
+    await user.type(screen.getByPlaceholderText("FreshRss"), "Work RSS");
+    await user.type(screen.getByPlaceholderText("https://your-freshrss.com"), "https://example.com");
+
+    const usernameInput = container.querySelector<HTMLInputElement>('input[name="username"]');
+    const passwordInput = container.querySelector<HTMLInputElement>('input[name="password"]');
+
+    if (!usernameInput || !passwordInput) {
+      throw new Error("credentials inputs were not rendered");
+    }
+
+    await user.type(usernameInput, "alice");
+    await user.type(passwordInput, "secret");
+
+    await user.selectOptions(screen.getByRole("combobox"), "Inoreader");
+
+    expect(screen.getByDisplayValue("Work RSS")).toBeInTheDocument();
+    expect(container.querySelector('input[name="email"]')).toHaveValue("alice");
+    expect(container.querySelector('input[name="password"]')).toHaveValue("secret");
+
+    await user.selectOptions(screen.getByRole("combobox"), "FreshRss");
+
+    expect(screen.getByDisplayValue("Work RSS")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("https://example.com")).toBeInTheDocument();
+    expect(container.querySelector('input[name="username"]')).toHaveValue("alice");
+    expect(container.querySelector('input[name="password"]')).toHaveValue("secret");
+  });
 });
