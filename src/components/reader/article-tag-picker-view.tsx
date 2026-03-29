@@ -84,13 +84,25 @@ export function ArticleTagPickerView({
 
     hasFocusedOnOpenRef.current = true;
 
-    requestAnimationFrame(() => {
+    const frameId = requestAnimationFrame(() => {
+      const activeElement = document.activeElement;
+      if (
+        activeElement &&
+        activeElement !== document.body &&
+        activeElement !== triggerRef.current &&
+        pickerRef.current?.contains(activeElement)
+      ) {
+        return;
+      }
+
       if (availableTags.length > 0) {
         tagOptionRefs.current[0]?.focus();
         return;
       }
       newTagInputRef.current?.focus();
     });
+
+    return () => cancelAnimationFrame(frameId);
   }, [isExpanded, availableTags.length]);
 
   useEffect(() => {

@@ -36,7 +36,7 @@ Spec: `docs/superpowers/specs/2026-03-30-zod-ipc-validation-design.md`
 
 ### Task 1: DTO Schema Files
 
-### Files
+### Task 1 Files
 
 - Create: `src/api/schemas/account.ts`
 - Create: `src/api/schemas/folder.ts`
@@ -347,7 +347,7 @@ rtk git commit -m "feat: add Zod DTO schemas for IPC validation"
 
 ### Task 2: Command Args Schemas
 
-### Files
+### Task 2 Files
 
 - Create: `src/api/schemas/commands.ts`
 - Modify: `src/api/schemas/index.ts`
@@ -651,7 +651,7 @@ rtk git commit -m "feat: add command args schemas with registry"
 
 ### Task 3: safeInvoke + toAppError Refactor
 
-### Files
+### Task 3 Files
 
 - Modify: `src/api/tauri-commands.ts:1-56`
 - Modify: `src/__tests__/api/tauri-commands.test.ts`
@@ -916,7 +916,7 @@ rtk git commit -m "feat: safeInvoke with Zod request+response validation"
 
 ### Task 4: dev-mocks Migration
 
-### Files
+### Task 4 Files
 
 - Modify: `src/dev-mocks.ts:1-334`
 
@@ -1009,7 +1009,7 @@ rtk git commit -m "refactor: replace as casts with Zod parse in dev-mocks"
 
 ### Task 5: Test Helper Migration
 
-### Files
+### Task 5 Files
 
 - Modify: `tests/helpers/tauri-mocks.ts:1-157`
 
@@ -1113,7 +1113,7 @@ rtk git commit -m "refactor: add args validation to test mock helper"
 
 ### Task 6: Remove Old Type Definitions + Final Cleanup
 
-### Files
+### Task 6 Files
 
 - Modify: `src/api/tauri-commands.ts` — verify no hand-written DTO types remain
 - Verify: All consumers import types from `@/api/tauri-commands` (re-exported from schemas)

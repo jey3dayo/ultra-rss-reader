@@ -21,7 +21,7 @@
 
 ### File Structure
 
-```
+```text
 src/api/schemas/
   account.ts         # AccountDtoSchema, AccountDto
   folder.ts          # FolderDtoSchema, FolderDto
@@ -37,7 +37,7 @@ src/api/schemas/
 
 ### Dependency Flow
 
-```
+```text
 src/api/schemas/*.ts  → zod を import、スキーマ定義
 src/api/tauri-commands.ts → schemas/ からスキーマを import、z も import（配列/nullable 合成用）
 src/dev-mocks.ts → schemas/ から引数スキーマを import

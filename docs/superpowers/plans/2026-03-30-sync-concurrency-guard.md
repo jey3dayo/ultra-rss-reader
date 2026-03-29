@@ -33,7 +33,7 @@ Tech Stack: Rust, tokio, rusqlite, std::sync::atomic
 
 ### Task 1: run_full_sync の並行実行防止テスト
 
-### Files
+### Task 1 Files
 
 - Modify: `src-tauri/src/commands/feed_commands.rs` (テスト追加)
 
@@ -130,7 +130,7 @@ rtk git commit -m "test: add concurrent sync prevention tests for run_full_sync"
 
 ### Task 2: SyncGuard のパニック安全性テスト
 
-### Files
+### Task 2 Files
 
 - Modify: `src-tauri/src/commands/feed_commands.rs` (テスト追加)
 
@@ -164,7 +164,7 @@ rtk git commit -m "test: verify SyncGuard RAII resets flag on drop"
 
 ### Task 3: 同期アーキテクチャのドキュメント化
 
-### Files
+### Task 3 Files
 
 - Modify: `README.md` (Architecture セクションにサブセクション追加)
 
