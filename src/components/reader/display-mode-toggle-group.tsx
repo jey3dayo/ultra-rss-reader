@@ -1,6 +1,6 @@
 import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
-import { FileText, PanelsTopLeft } from "lucide-react";
+import { Columns3, Expand } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
@@ -17,8 +17,8 @@ export function DisplayModeToggleGroup({
 }) {
   const { t } = useTranslation("reader");
   const options: Array<{ value: ReaderDisplayMode; label: string; icon: React.ReactNode }> = [
-    { value: "normal", label: t("display_mode_normal"), icon: <FileText className="h-4 w-4" /> },
-    { value: "widescreen", label: t("display_mode_widescreen"), icon: <PanelsTopLeft className="h-4 w-4" /> },
+    { value: "normal", label: t("display_mode_normal"), icon: <Columns3 className="h-4 w-4" /> },
+    { value: "widescreen", label: t("display_mode_widescreen"), icon: <Expand className="h-4 w-4" /> },
   ];
 
   return (
