@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AccountDto } from "@/api/tauri-commands";
 import { deleteAccount, exportOpml, renameAccount, updateAccountSync } from "@/api/tauri-commands";
-import { SectionHeading, SettingsRow, SettingsSelect } from "@/components/settings/settings-components";
+import { SectionHeading, SettingsRow } from "@/components/settings/settings-components";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useAccounts } from "@/hooks/use-accounts";
@@ -115,18 +115,6 @@ export function AccountDetail() {
     );
   };
 
-  const sortSubscriptionsOptions = [
-    { value: "folders_first", label: t("account.folders_first") },
-    { value: "alphabetical", label: t("account.alphabetical") },
-    { value: "newest_first", label: t("account.newest_first") },
-    { value: "oldest_first", label: t("account.oldest_first") },
-  ];
-
-  const markAsReadOptions = [
-    { value: "on_open", label: t("account.on_open") },
-    { value: "manual", label: t("account.manual") },
-  ];
-
   return (
     <div className="p-6">
       <h2 className="mb-2 text-center text-lg font-semibold">{account.name}</h2>
@@ -144,7 +132,7 @@ export function AccountDetail() {
               onChange={(e) => setNameDraft(e.target.value)}
               onBlur={commitRename}
               onKeyDown={handleNameKeyDown}
-              className="rounded-md border border-border bg-background px-2 py-1 text-right text-sm text-muted-foreground outline-none focus:border-accent"
+              className="rounded-md border border-border bg-background px-2 py-1 text-right text-sm text-muted-foreground outline-none focus:border-ring"
             />
           ) : (
             <button
@@ -199,7 +187,7 @@ export function AccountDetail() {
           <Switch
             checked={account.sync_on_wake}
             onCheckedChange={(v) => handleSyncUpdate({ syncOnWake: v })}
-            className="data-[state=checked]:bg-accent"
+            className="data-[state=checked]:bg-ring"
           />
         </div>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
@@ -219,26 +207,6 @@ export function AccountDetail() {
             <option value="0">{t("account.forever")}</option>
           </select>
         </div>
-      </section>
-
-      {/* TODO: sort_subscriptions and mark_article_as_read are persisted but not yet
-           wired to runtime behavior. Wire sidebar sort and article-view read-on-open
-           to these keys when implementing account-level reading preferences. */}
-      <section className="mb-6">
-        <SectionHeading>
-          {t("account.reading")}{" "}
-          <span className="text-xs font-normal text-muted-foreground">{t("account.applies_to_all")}</span>
-        </SectionHeading>
-        <SettingsSelect
-          label={t("account.sort_subscriptions")}
-          prefKey="sort_subscriptions"
-          options={sortSubscriptionsOptions}
-        />
-        <SettingsSelect
-          label={t("account.mark_article_as_read")}
-          prefKey="mark_article_as_read"
-          options={markAsReadOptions}
-        />
       </section>
 
       <div className="mt-6 border-t border-border pt-6">
