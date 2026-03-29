@@ -118,6 +118,7 @@ const defaultHandler: MockHandler = (cmd, args) => {
         url: args.url,
         site_url: args.url,
         unread_count: 0,
+        display_mode: "normal",
       };
     case "delete_account":
       return null;

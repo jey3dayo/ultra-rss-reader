@@ -95,11 +95,12 @@ describe("AddAccountForm", () => {
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
     expect(screen.getByLabelText("Name")).toBeDisabled();
 
-    if (!resolveAddAccount) {
+    const resolve = resolveAddAccount as ((value: unknown) => void) | null;
+    if (!resolve) {
       throw new Error("add_account did not start");
     }
 
-    resolveAddAccount({
+    resolve({
       id: "acc-new",
       kind: "Local",
       name: "Work RSS",
