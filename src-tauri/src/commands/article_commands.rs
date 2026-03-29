@@ -1,3 +1,5 @@
+use reqwest::header::{HeaderMap, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
+use reqwest::StatusCode;
 use tauri::State;
 
 use crate::commands::dto::{AppError, ArticleDto};
@@ -26,6 +28,53 @@ pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppE
         })?;
     }
     Ok(())
+}
+
+fn has_blocking_x_frame_options(headers: &HeaderMap) -> bool {
+    headers
+        .get_all(X_FRAME_OPTIONS)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .map(str::trim)
+        .any(|value| !value.is_empty())
+}
+
+fn has_blocking_frame_ancestors(headers: &HeaderMap) -> bool {
+    headers
+        .get_all(CONTENT_SECURITY_POLICY)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .any(|policy| {
+            policy
+                .split(';')
+                .map(str::trim)
+                .find_map(|directive| {
+                    directive
+                        .strip_prefix("frame-ancestors")
+                        .or_else(|| directive.strip_prefix("Frame-Ancestors"))
+                })
+                .map(|value| {
+                    let sources = value.split_whitespace();
+                    !sources.into_iter().any(|source| source == "*")
+                })
+                .unwrap_or(false)
+        })
+}
+
+#[tauri::command]
+pub async fn check_browser_embed_support(url: String) -> Result<bool, AppError> {
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::limited(5))
+        .build()
+        .map_err(DomainError::from)?;
+
+    let response = match client.head(&url).send().await {
+        Ok(response) if response.status() != StatusCode::METHOD_NOT_ALLOWED => response,
+        Ok(_) | Err(_) => client.get(&url).send().await.map_err(DomainError::from)?,
+    };
+
+    let headers = response.headers();
+    Ok(!(has_blocking_x_frame_options(headers) || has_blocking_frame_ancestors(headers)))
 }
 
 #[tauri::command]
@@ -256,4 +305,42 @@ pub fn search_articles(
     };
     let articles = repo.search(&AccountId(account_id), &query, &pagination)?;
     Ok(articles.into_iter().map(ArticleDto::from).collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{has_blocking_frame_ancestors, has_blocking_x_frame_options};
+    use reqwest::header::{HeaderMap, HeaderValue, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
+
+    #[test]
+    fn x_frame_options_blocks_embedding() {
+        let mut headers = HeaderMap::new();
+        headers.insert(X_FRAME_OPTIONS, HeaderValue::from_static("SAMEORIGIN"));
+
+        assert!(has_blocking_x_frame_options(&headers));
+    }
+
+    #[test]
+    fn frame_ancestors_wildcard_does_not_block_embedding() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            CONTENT_SECURITY_POLICY,
+            HeaderValue::from_static("default-src 'self'; frame-ancestors *"),
+        );
+
+        assert!(!has_blocking_frame_ancestors(&headers));
+    }
+
+    #[test]
+    fn frame_ancestors_self_blocks_embedding() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            CONTENT_SECURITY_POLICY,
+            HeaderValue::from_static(
+                "default-src 'self'; frame-ancestors 'self' https://example.com",
+            ),
+        );
+
+        assert!(has_blocking_frame_ancestors(&headers));
+    }
 }

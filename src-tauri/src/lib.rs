@@ -80,6 +80,7 @@ pub fn run() {
             commands::article_commands::mark_folder_read,
             commands::article_commands::toggle_article_star,
             commands::article_commands::open_in_browser,
+            commands::article_commands::check_browser_embed_support,
             commands::opml_commands::import_opml,
             commands::opml_commands::export_opml,
             commands::article_commands::search_articles,

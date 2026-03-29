@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { openInBrowser } from "@/api/tauri-commands";
+import { checkBrowserEmbedSupport, openInBrowser } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { useAccountArticles, useArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -11,10 +11,20 @@ import { resolveSelectedFeedDisplayMode } from "@/lib/article-view";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
+function isEmbeddedBrowserError(iframe: HTMLIFrameElement): boolean {
+  try {
+    const loadedHref = iframe.contentWindow?.location?.href;
+    return typeof loadedHref === "string" && loadedHref.startsWith("chrome-error://");
+  } catch {
+    return false;
+  }
+}
+
 export function BrowserView() {
   const { t } = useTranslation("reader");
   const { browserUrl, closeBrowser } = useUiStore();
   const [isLoading, setIsLoading] = useState(true);
+  const [embedBlocked, setEmbedBlocked] = useState(false);
   const selection = useUiStore((s) => s.selection);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
@@ -39,6 +49,22 @@ export function BrowserView() {
   useEffect(() => {
     if (!browserUrl) return;
     setIsLoading(true);
+    setEmbedBlocked(false);
+
+    let cancelled = false;
+
+    void checkBrowserEmbedSupport(browserUrl).then((result) => {
+      if (cancelled) return;
+
+      if (Result.isSuccess(result) && Result.unwrap(result) === false) {
+        setEmbedBlocked(true);
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [browserUrl]);
 
   if (!browserUrl) return null;
@@ -87,14 +113,34 @@ export function BrowserView() {
 
       {/* Iframe */}
       <div className="relative flex-1">
-        <iframe
-          src={browserUrl}
-          title={t("browser_view")}
-          className="h-full w-full border-none bg-white"
-          sandbox="allow-same-origin allow-scripts allow-popups"
-          onLoad={() => setIsLoading(false)}
-        />
-        {isLoading && <div className="pointer-events-none absolute inset-0 bg-background/20" />}
+        {embedBlocked ? (
+          <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+            <p className="text-sm font-medium text-foreground">{t("browser_embed_blocked")}</p>
+            <p className="max-w-md text-sm text-muted-foreground">{t("browser_embed_blocked_hint")}</p>
+            <Button variant="outline" onClick={handleOpenExternal}>
+              <ExternalLink className="h-4 w-4" />
+              {t("open_in_external_browser")}
+            </Button>
+          </div>
+        ) : (
+          <>
+            <iframe
+              src={browserUrl}
+              title={t("browser_view")}
+              className="h-full w-full border-none bg-white"
+              sandbox="allow-same-origin allow-scripts allow-popups"
+              onLoad={(event) => {
+                setEmbedBlocked(isEmbeddedBrowserError(event.currentTarget));
+                setIsLoading(false);
+              }}
+              onError={() => {
+                setEmbedBlocked(true);
+                setIsLoading(false);
+              }}
+            />
+            {isLoading && <div className="pointer-events-none absolute inset-0 bg-background/20" />}
+          </>
+        )}
       </div>
     </div>
   );

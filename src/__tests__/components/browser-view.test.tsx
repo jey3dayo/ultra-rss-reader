@@ -12,6 +12,9 @@ describe("BrowserView", () => {
       if (cmd === "list_feeds") {
         return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
       }
+      if (cmd === "check_browser_embed_support") {
+        return true;
+      }
       return null;
     });
   });
@@ -37,6 +40,39 @@ describe("BrowserView", () => {
     fireEvent.load(iframe);
 
     expect(screen.queryByText("Loading page...")).not.toBeInTheDocument();
+  });
+
+  it("shows an external-browser fallback when the iframe resolves to a browser error page", async () => {
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "list_feeds") {
+        return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+      }
+      if (cmd === "check_browser_embed_support") {
+        return false;
+      }
+      return null;
+    });
+
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      contentMode: "browser",
+      browserUrl: "https://note.com/article",
+    });
+
+    const { container } = render(<BrowserView />, { wrapper: createWrapper() });
+
+    const iframe = container.querySelector("iframe");
+    if (!iframe) {
+      throw new Error("iframe was not rendered");
+    }
+
+    fireEvent.load(iframe);
+
+    await waitFor(() => {
+      expect(screen.getByText("This page can't be shown in the in-app browser.")).toBeInTheDocument();
+      expect(screen.getByText("Open it in your external browser instead.")).toBeInTheDocument();
+    });
   });
 
   it("keeps widescreen browser chrome hidden outside direct feed selection", async () => {

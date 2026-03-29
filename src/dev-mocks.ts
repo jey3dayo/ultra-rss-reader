@@ -253,6 +253,16 @@ export function setupDevMocks() {
         return mockArticles.filter((a) => articleIds.includes(a.id));
       }
 
+      case "check_browser_embed_support": {
+        const url = String(args.url ?? "");
+        try {
+          const host = new URL(url).hostname;
+          return !host.endsWith("note.com");
+        } catch {
+          return true;
+        }
+      }
+
       case "delete_feed": {
         const feedIdx = mockFeeds.findIndex((f) => f.id === args.feedId);
         if (feedIdx >= 0) {
