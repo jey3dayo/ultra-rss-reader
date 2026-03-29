@@ -4,12 +4,9 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { renameFeed, updateFeedDisplayMode, updateFeedFolder } from "@/api/tauri-commands";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFolders } from "@/hooks/use-folders";
 import { useUiStore } from "@/stores/ui-store";
+import { RenameFeedDialogView } from "./rename-feed-dialog-view";
 
 export function RenameDialog({
   feed,
@@ -30,7 +27,6 @@ export function RenameDialog({
   const qc = useQueryClient();
   const showToast = useUiStore((s) => s.showToast);
   const { data: folders } = useFolders(feed.account_id);
-  const displayModeLabelId = useId();
   const folderLabelId = useId();
   const displayModeOptions = [
     { value: "normal", label: t("display_mode_normal") },
@@ -40,10 +36,6 @@ export function RenameDialog({
     { value: "", label: t("no_folder") },
     ...((folders ?? []).map((folder) => ({ value: folder.id, label: folder.name })) ?? []),
   ];
-  const getDisplayModeLabel = (value: string | null) =>
-    displayModeOptions.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
-  const getFolderLabel = (value: string | null) =>
-    folderOptions.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
 
   useEffect(() => {
     if (open) {
@@ -93,88 +85,42 @@ export function RenameDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t("edit_feed")}</DialogTitle>
-        </DialogHeader>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSubmit();
-          }}
-          className="space-y-4"
-        >
-          <label className="block text-sm text-muted-foreground">
-            {t("title")}
-            <Input
-              ref={inputRef}
-              name="feed-title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="mt-1"
-              disabled={loading}
-            />
-          </label>
-
-          <div className="block text-sm text-muted-foreground">
-            <span id={displayModeLabelId} className="mb-1 block">
-              {t("display_mode")}
-            </span>
-            <Select
-              name="feed-display-mode"
-              value={displayMode}
-              onValueChange={(v) => setDisplayMode(v ?? "normal")}
-              disabled={loading}
-            >
-              <SelectTrigger aria-labelledby={displayModeLabelId} className="mt-1 w-full">
-                <SelectValue>{(value: string | null) => getDisplayModeLabel(value)}</SelectValue>
-              </SelectTrigger>
-              <SelectPopup>
-                {displayModeOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectPopup>
-            </Select>
-          </div>
-
-          {folders && folders.length > 0 && (
-            <div className="block text-sm text-muted-foreground">
-              <span id={folderLabelId} className="mb-1 block">
-                {t("folder")}
-              </span>
-              <Select
-                name="feed-folder"
-                value={selectedFolderId ?? ""}
-                onValueChange={(v) => setSelectedFolderId(v || null)}
-                disabled={loading}
-              >
-                <SelectTrigger aria-labelledby={folderLabelId} className="mt-1 w-full">
-                  <SelectValue>{(value: string | null) => getFolderLabel(value)}</SelectValue>
-                </SelectTrigger>
-                <SelectPopup>
-                  {folderOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectPopup>
-              </Select>
-            </div>
-          )}
-        </form>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            {tc("cancel")}
-          </Button>
-          <Button onClick={handleSubmit} disabled={!title.trim() || loading}>
-            {loading ? tc("saving") : tc("save")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <RenameFeedDialogView
+      open={open}
+      title={title}
+      loading={loading}
+      displayMode={displayMode}
+      displayModeOptions={displayModeOptions}
+      onOpenChange={onOpenChange}
+      onTitleChange={setTitle}
+      onDisplayModeChange={setDisplayMode}
+      folderSelectProps={
+        folders && folders.length > 0
+          ? {
+              labelId: folderLabelId,
+              label: t("folder"),
+              value: selectedFolderId ?? "",
+              options: folderOptions,
+              disabled: loading,
+              isCreatingFolder: false,
+              newFolderLabel: "",
+              newFolderName: "",
+              newFolderPlaceholder: "",
+              onValueChange: (value) => setSelectedFolderId(value || null),
+              onNewFolderNameChange: () => {},
+            }
+          : undefined
+      }
+      labels={{
+        title: t("edit_feed"),
+        titleField: t("title"),
+        displayMode: t("display_mode"),
+        cancel: tc("cancel"),
+        save: tc("save"),
+        saving: tc("saving"),
+      }}
+      inputRef={inputRef}
+      onSubmit={handleSubmit}
+    />
   );
 }

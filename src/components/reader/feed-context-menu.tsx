@@ -1,4 +1,3 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -9,7 +8,7 @@ import { useMarkFeedRead } from "@/hooks/use-articles";
 import { extractSiteHost } from "@/lib/feed";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { contextMenuStyles } from "./context-menu-styles";
+import { FeedContextMenuView } from "./feed-context-menu-view";
 import { RenameDialog } from "./rename-feed-dialog";
 import { UnsubscribeDialog } from "./unsubscribe-feed-dialog";
 
@@ -63,25 +62,16 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
 
   return (
     <>
-      <ContextMenu.Portal>
-        <ContextMenu.Positioner>
-          <ContextMenu.Popup className={contextMenuStyles.popup}>
-            <ContextMenu.Item className={contextMenuStyles.item} onClick={handleOpenSite}>
-              {t("open_site", { host: siteHost })}
-            </ContextMenu.Item>
-            <ContextMenu.Item className={contextMenuStyles.item} onClick={handleMarkAllRead}>
-              {t("mark_all_as_read")}
-            </ContextMenu.Item>
-            <ContextMenu.Separator className={contextMenuStyles.separator} />
-            <ContextMenu.Item className={contextMenuStyles.item} onClick={() => setShowUnsubscribeDialog(true)}>
-              {t("unsubscribe_ellipsis")}
-            </ContextMenu.Item>
-            <ContextMenu.Item className={contextMenuStyles.item} onClick={() => setShowRenameDialog(true)}>
-              {t("edit_ellipsis")}
-            </ContextMenu.Item>
-          </ContextMenu.Popup>
-        </ContextMenu.Positioner>
-      </ContextMenu.Portal>
+      <FeedContextMenuView
+        openSiteLabel={t("open_site", { host: siteHost })}
+        markAllReadLabel={t("mark_all_as_read")}
+        unsubscribeLabel={t("unsubscribe_ellipsis")}
+        editLabel={t("edit_ellipsis")}
+        onOpenSite={handleOpenSite}
+        onMarkAllRead={handleMarkAllRead}
+        onUnsubscribe={() => setShowUnsubscribeDialog(true)}
+        onEdit={() => setShowRenameDialog(true)}
+      />
 
       <RenameDialog feed={feed} open={showRenameDialog} onOpenChange={setShowRenameDialog} />
       <UnsubscribeDialog

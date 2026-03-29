@@ -1,10 +1,9 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
 import { useTranslation } from "react-i18next";
 import type { FolderDto } from "@/api/tauri-commands";
 import { useMarkFolderRead } from "@/hooks/use-articles";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { contextMenuStyles } from "./context-menu-styles";
+import { FolderContextMenuView } from "./folder-context-menu-view";
 
 export function FolderContextMenuContent({ folder, folderUnread }: { folder: FolderDto; folderUnread: number }) {
   const { t } = useTranslation("reader");
@@ -22,15 +21,5 @@ export function FolderContextMenuContent({ folder, folderUnread }: { folder: Fol
     }
   };
 
-  return (
-    <ContextMenu.Portal>
-      <ContextMenu.Positioner>
-        <ContextMenu.Popup className={contextMenuStyles.popup}>
-          <ContextMenu.Item className={contextMenuStyles.item} onClick={handleMarkAllRead}>
-            {t("mark_all_as_read")}
-          </ContextMenu.Item>
-        </ContextMenu.Popup>
-      </ContextMenu.Positioner>
-    </ContextMenu.Portal>
-  );
+  return <FolderContextMenuView markAllReadLabel={t("mark_all_as_read")} onMarkAllRead={handleMarkAllRead} />;
 }
