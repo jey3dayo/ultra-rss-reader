@@ -11,10 +11,29 @@ use std::sync::{Arc, Mutex};
 use commands::updater_commands::PendingUpdate;
 
 use commands::AppState;
+use domain::error::DomainError;
 use infra::db::connection::DbManager;
 use infra::db::sqlite_preference::SqlitePreferenceRepository;
 use repository::preference::PreferenceRepository;
 use tauri::Manager;
+
+fn database_init_error_message(error: &DomainError, db_path: &std::path::Path) -> String {
+    match error {
+        DomainError::Migration(_) => format!(
+            "Failed to initialize database: {error}\n\
+             Database path: {}\n\
+             The database may already have been restored automatically. Do not delete the database file.\n\
+             Please update the application or contact support.",
+            db_path.display()
+        ),
+        _ => format!(
+            "Failed to initialize database: {error}\n\
+             Database path: {}\n\
+             If the problem persists, try deleting the database file and restarting.",
+            db_path.display()
+        ),
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -34,12 +53,7 @@ pub fn run() {
                 Ok(db) => db,
                 Err(e) => {
                     tracing::error!("Database initialization failed: {e}");
-                    panic!(
-                        "Failed to initialize database: {e}\n\
-                         Database path: {}\n\
-                         If the problem persists, try deleting the database file and restarting.",
-                        db_path.display()
-                    );
+                    panic!("{}", database_init_error_message(&e, &db_path));
                 }
             };
 
@@ -114,4 +128,40 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::database_init_error_message;
+    use crate::domain::error::DomainError;
+
+    #[test]
+    fn migration_error_message_does_not_suggest_deleting_restored_database() {
+        let message = database_init_error_message(
+            &DomainError::Migration(
+                "Migration to v5 failed: duplicate column. Database restored to v4.".to_string(),
+            ),
+            Path::new("/tmp/ultra-rss-reader.db"),
+        );
+
+        assert!(
+            !message.contains("try deleting the database file"),
+            "migration recovery message should not suggest deleting the restored database: {message}"
+        );
+    }
+
+    #[test]
+    fn non_migration_error_message_keeps_database_deletion_guidance() {
+        let message = database_init_error_message(
+            &DomainError::Persistence("database is locked".to_string()),
+            Path::new("/tmp/ultra-rss-reader.db"),
+        );
+
+        assert!(
+            message.contains("try deleting the database file"),
+            "non-migration init errors should keep the existing recovery guidance: {message}"
+        );
+    }
 }
