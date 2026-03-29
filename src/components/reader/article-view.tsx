@@ -1,15 +1,18 @@
+import { Menu } from "@base-ui/react/menu";
 import { Toggle } from "@base-ui/react/toggle";
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Copy, ExternalLink, Globe, Plus, X } from "lucide-react";
+import { ArrowLeft, BookmarkPlus, Copy, ExternalLink, Globe, Mail, Plus, Share, X } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { addToReadingList, copyToClipboard, openInBrowser, updateFeedDisplayMode } from "@/api/tauri-commands";
+import { DisplayModeToggleGroup, type ReaderDisplayMode } from "@/components/reader/display-mode-toggle-group";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import {
@@ -20,7 +23,6 @@ import {
   useTags,
   useUntagArticle,
 } from "@/hooks/use-tags";
-import { executeAction } from "@/lib/actions";
 import {
   findSelectedArticle,
   formatArticleDate,
@@ -29,22 +31,11 @@ import {
 } from "@/lib/article-view";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
+import { isWindowFullscreen, setWindowFullscreen } from "@/lib/windows";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { BrowserView } from "./browser-view";
-
-async function ensureFullscreenEnabled(): Promise<void> {
-  try {
-    const { getCurrentWindow } = await import("@tauri-apps/api/window");
-    const win = getCurrentWindow();
-    const isFullscreen = await win.isFullscreen();
-    if (!isFullscreen) {
-      await win.setFullscreen(true);
-    }
-  } catch {
-    // Browser dev mode: no-op
-  }
-}
+import { contextMenuStyles } from "./context-menu-styles";
 
 function ArticleToolbar({
   article,
@@ -68,20 +59,45 @@ function ArticleToolbar({
   const actionCopyLink = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_copy_link"));
   const actionOpenBrowser = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_open_browser"));
   const actionShare = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share"));
+  const actionShareMenu = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share_menu"));
   const showSidebarButton = layoutMode !== "wide";
   const isWidescreen = feedDisplayMode === "widescreen";
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const handleToggleWidescreen = async (pressed: boolean) => {
+  useEffect(() => {
+    let cancelled = false;
+    void isWindowFullscreen().then((result) =>
+      Result.pipe(
+        result,
+        Result.inspect((fullscreen) => {
+          if (!cancelled) {
+            setIsFullscreen(fullscreen);
+          }
+        }),
+      ),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const currentDisplayMode: ReaderDisplayMode = isFullscreen ? "fullscreen" : isWidescreen ? "widescreen" : "normal";
+
+  const handleSetDisplayMode = async (nextMode: ReaderDisplayMode) => {
     if (!feedId) return;
-    const nextDisplayMode = pressed ? "widescreen" : "normal";
+    const nextFeedDisplayMode = nextMode === "normal" ? "normal" : "widescreen";
     Result.pipe(
-      await updateFeedDisplayMode(feedId, nextDisplayMode),
-      Result.inspect(() => {
+      await updateFeedDisplayMode(feedId, nextFeedDisplayMode),
+      Result.inspect(async () => {
         void qc.invalidateQueries({ queryKey: ["feeds"] });
-        if (nextDisplayMode === "widescreen" && article?.url) {
+        Result.pipe(
+          await setWindowFullscreen(nextMode === "fullscreen"),
+          Result.inspect(() => setIsFullscreen(nextMode === "fullscreen")),
+        );
+        if (nextMode !== "normal" && article?.url) {
           openBrowser(article.url);
         }
-        if (nextDisplayMode === "normal") {
+        if (nextMode === "normal") {
           closeBrowser();
         }
       }),
@@ -93,119 +109,217 @@ function ArticleToolbar({
     <div data-tauri-drag-region className="flex h-12 items-center justify-between border-b border-border px-4">
       <div>
         {showSidebarButton && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setFocusedPane("sidebar")}
-            className="text-muted-foreground"
-            aria-label={t("show_sidebar")}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+          <TooltipProvider>
+            <AppTooltip
+              label={t("show_sidebar")}
+              children={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setFocusedPane("sidebar")}
+                  className="text-muted-foreground"
+                  aria-label={t("show_sidebar")}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              }
+            />
+          </TooltipProvider>
         )}
       </div>
       <div className="flex items-center gap-2">
-        <Toggle
-          pressed={article?.is_read ?? false}
-          onPressedChange={(pressed) => {
-            if (!article) return;
-            setRead.mutate(
-              { id: article.id, read: pressed },
-              {
-                onSuccess: () => {
-                  if (pressed) addRecentlyRead(article.id);
-                },
-              },
-            );
-          }}
-          disabled={!article}
-          aria-label={t("toggle_read")}
-          className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
-        >
-          <UnreadIcon unread={!article?.is_read} className="h-3 w-3" />
-        </Toggle>
-        <Toggle
-          pressed={article?.is_starred ?? false}
-          onPressedChange={(pressed) => {
-            if (!article) return;
-            toggleStar.mutate(
-              { id: article.id, starred: pressed },
-              { onSuccess: () => showToast(pressed ? t("article_starred") : t("article_unstarred")) },
-            );
-          }}
-          disabled={!article}
-          aria-label={t("toggle_star")}
-          className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
-        >
-          <StarIcon starred={article?.is_starred ?? false} className="h-4 w-4" />
-        </Toggle>
-        {actionCopyLink === "true" && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              if (article?.url) {
-                navigator.clipboard.writeText(article.url);
-                showToast(t("link_copied"));
+        <TooltipProvider>
+          <AppTooltip
+            label={t("toggle_read")}
+            children={
+              <Toggle
+                pressed={article?.is_read ?? false}
+                onPressedChange={(pressed) => {
+                  if (!article) return;
+                  setRead.mutate(
+                    { id: article.id, read: pressed },
+                    {
+                      onSuccess: () => {
+                        if (pressed) addRecentlyRead(article.id);
+                      },
+                    },
+                  );
+                }}
+                disabled={!article}
+                aria-label={t("toggle_read")}
+                className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
+              >
+                <UnreadIcon unread={!article?.is_read} className="h-3 w-3" />
+              </Toggle>
+            }
+          />
+          <AppTooltip
+            label={t("toggle_star")}
+            children={
+              <Toggle
+                pressed={article?.is_starred ?? false}
+                onPressedChange={(pressed) => {
+                  if (!article) return;
+                  toggleStar.mutate(
+                    { id: article.id, starred: pressed },
+                    { onSuccess: () => showToast(pressed ? t("article_starred") : t("article_unstarred")) },
+                  );
+                }}
+                disabled={!article}
+                aria-label={t("toggle_star")}
+                className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
+              >
+                <StarIcon starred={article?.is_starred ?? false} className="h-4 w-4" />
+              </Toggle>
+            }
+          />
+          <DisplayModeToggleGroup
+            value={currentDisplayMode}
+            onValueChange={handleSetDisplayMode}
+            disabled={!feedId || !article?.url}
+          />
+          {actionCopyLink === "true" && (
+            <AppTooltip
+              label={t("copy_link")}
+              children={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    if (article?.url) {
+                      navigator.clipboard.writeText(article.url);
+                      showToast(t("link_copied"));
+                    }
+                  }}
+                  className="text-muted-foreground"
+                  disabled={!article?.url}
+                  aria-label={t("copy_link")}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
               }
-            }}
-            className="text-muted-foreground"
-            disabled={!article?.url}
-            aria-label={t("copy_link")}
-          >
-            <Copy className="h-4 w-4" />
-          </Button>
-        )}
-        {actionOpenBrowser === "true" && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => article?.url && openBrowser(article.url)}
-            className="text-muted-foreground"
-            disabled={!article?.url}
-            aria-label={t("view_in_browser")}
-          >
-            <Globe className="h-4 w-4" />
-          </Button>
-        )}
-        <Toggle
-          pressed={isWidescreen}
-          onPressedChange={handleToggleWidescreen}
-          disabled={!feedId}
-          aria-label={t("toggle_widescreen_mode")}
-          className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
-        >
-          <Globe className="h-4 w-4" />
-        </Toggle>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => executeAction("toggle-fullscreen")}
-          className="text-muted-foreground"
-          aria-label={t("toggle_fullscreen")}
-        >
-          <ExternalLink className="h-4 w-4" />
-        </Button>
-        {actionShare === "true" && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={async () => {
-              if (article?.url) {
-                const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-                Result.pipe(
-                  await openInBrowser(article.url, bg),
-                  Result.inspectError((e) => console.error("Failed to open in browser:", e)),
-                );
+            />
+          )}
+          {actionOpenBrowser === "true" && (
+            <AppTooltip
+              label={t("view_in_browser")}
+              children={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => article?.url && openBrowser(article.url)}
+                  className="text-muted-foreground"
+                  disabled={!article?.url}
+                  aria-label={t("view_in_browser")}
+                >
+                  <Globe className="h-4 w-4" />
+                </Button>
               }
-            }}
-            className="text-muted-foreground"
-            disabled={!article?.url}
-            aria-label={t("open_in_external_browser")}
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Button>
-        )}
+            />
+          )}
+          {actionShare === "true" && (
+            <AppTooltip
+              label={t("open_in_external_browser")}
+              children={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={async () => {
+                    if (article?.url) {
+                      const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
+                      Result.pipe(
+                        await openInBrowser(article.url, bg),
+                        Result.inspectError((e) => console.error("Failed to open in browser:", e)),
+                      );
+                    }
+                  }}
+                  className="text-muted-foreground"
+                  disabled={!article?.url}
+                  aria-label={t("open_in_external_browser")}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              }
+            />
+          )}
+          {actionShareMenu === "true" && (
+            <Menu.Root>
+              <AppTooltip
+                label={t("share")}
+                children={
+                  <Menu.Trigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground"
+                        disabled={!article?.url}
+                        aria-label={t("share")}
+                      />
+                    }
+                  >
+                    <Share className="h-4 w-4" />
+                  </Menu.Trigger>
+                }
+              />
+              <Menu.Portal>
+                <Menu.Positioner sideOffset={4}>
+                  <Menu.Popup className={contextMenuStyles.popup}>
+                    <Menu.Item
+                      className={contextMenuStyles.item}
+                      onSelect={async () => {
+                        if (!article?.url) return;
+                        Result.pipe(
+                          await copyToClipboard(article.url),
+                          Result.inspect(() => showToast(t("link_copied"))),
+                          Result.inspectError((e) => {
+                            console.error("Copy failed:", e);
+                            showToast(e.message);
+                          }),
+                        );
+                      }}
+                    >
+                      <Copy className="mr-2 h-4 w-4" />
+                      {t("copy_link")}
+                    </Menu.Item>
+                    <Menu.Item
+                      className={contextMenuStyles.item}
+                      onSelect={async () => {
+                        if (!article?.url) return;
+                        Result.pipe(
+                          await addToReadingList(article.url),
+                          Result.inspect(() => showToast(t("added_to_reading_list"))),
+                          Result.inspectError((e) => {
+                            console.error("Add to reading list failed:", e);
+                            showToast(e.message);
+                          }),
+                        );
+                      }}
+                    >
+                      <BookmarkPlus className="mr-2 h-4 w-4" />
+                      {t("add_to_reading_list")}
+                    </Menu.Item>
+                    <Menu.Separator className={contextMenuStyles.separator} />
+                    <Menu.Item
+                      className={contextMenuStyles.item}
+                      onSelect={async () => {
+                        if (!article?.url) return;
+                        const mailto = `mailto:?subject=${encodeURIComponent(article.title)}&body=${encodeURIComponent(article.url)}`;
+                        Result.pipe(
+                          await openInBrowser(mailto, false),
+                          Result.inspectError((e) => console.error("Failed to open email client:", e)),
+                        );
+                      }}
+                    >
+                      <Mail className="mr-2 h-4 w-4" />
+                      {t("share_via_email")}
+                    </Menu.Item>
+                  </Menu.Popup>
+                </Menu.Positioner>
+              </Menu.Portal>
+            </Menu.Root>
+          )}
+        </TooltipProvider>
       </div>
     </div>
   );
@@ -682,7 +796,9 @@ export function ArticleView() {
     if (article.url) {
       openBrowser(article.url);
       if (readerViewPref === "fullscreen") {
-        void ensureFullscreenEnabled();
+        void (async () => {
+          Result.pipe(await setWindowFullscreen(true), Result.inspectError(() => {}));
+        })();
       }
     }
   }, [
