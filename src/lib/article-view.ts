@@ -32,7 +32,7 @@ export function findSelectedArticle(params: FindSelectedArticleParams): Result.R
 
 export function shouldOpenExternalBrowser(params: LinkNavigationParams): boolean {
   const { openLinks, cmdClickBrowser, metaKey, ctrlKey } = params;
-  return (cmdClickBrowser === "true" && (metaKey || ctrlKey)) || openLinks === "external";
+  return (cmdClickBrowser === "true" && (metaKey || ctrlKey)) || openLinks === "default_browser";
 }
 
 export function formatArticleDate(dateStr: string): string {

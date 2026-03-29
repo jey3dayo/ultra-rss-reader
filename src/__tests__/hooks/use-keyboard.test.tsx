@@ -195,7 +195,7 @@ describe("useKeyboard", () => {
     await waitFor(() => {
       expect(calls).toContainEqual({
         cmd: "open_in_browser",
-        args: { url: "https://example.com/1" },
+        args: { url: "https://example.com/1", background: false },
       });
     });
   });

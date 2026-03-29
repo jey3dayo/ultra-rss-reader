@@ -59,7 +59,7 @@ describe("article-view utils", () => {
   it("uses the external browser when the preference requires it", () => {
     expect(
       shouldOpenExternalBrowser({
-        openLinks: "external",
+        openLinks: "default_browser",
         cmdClickBrowser: "false",
         metaKey: false,
         ctrlKey: false,
