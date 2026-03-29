@@ -1,6 +1,5 @@
 import { Plus, X } from "lucide-react";
 import { useCallback, useEffect, useId, useRef } from "react";
-import type { TagDto } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -12,9 +11,15 @@ export type ArticleTagPickerViewLabels = {
   removeTag: (name: string) => string;
 };
 
+export type ArticleTagPickerTagView = {
+  id: string;
+  name: string;
+  color: string | null;
+};
+
 export type ArticleTagPickerViewProps = {
-  assignedTags: TagDto[];
-  availableTags: TagDto[];
+  assignedTags: ArticleTagPickerTagView[];
+  availableTags: ArticleTagPickerTagView[];
   newTagName: string;
   isExpanded: boolean;
   labels: ArticleTagPickerViewLabels;

@@ -26,7 +26,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { ArticleContentView } from "./article-content-view";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticleMetaView } from "./article-meta-view";
-import { ArticleTagPickerView } from "./article-tag-picker-view";
+import { ArticleTagPickerView, type ArticleTagPickerTagView } from "./article-tag-picker-view";
 import { ArticleToolbarView } from "./article-toolbar-view";
 import { BrowserView } from "./browser-view";
 
@@ -118,6 +118,14 @@ function EmptyState() {
   );
 }
 
+function toArticleTagPickerTagView(tag: { id: string; name: string; color: string | null }): ArticleTagPickerTagView {
+  return {
+    id: tag.id,
+    name: tag.name,
+    color: tag.color,
+  };
+}
+
 function ArticleTagChips({ articleId }: { articleId: string }) {
   const { t } = useTranslation("reader");
   const { data: articleTags } = useArticleTags(articleId);
@@ -129,7 +137,8 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
   const [newTagName, setNewTagName] = useState("");
 
   const assignedTagIds = new Set(articleTags?.map((tag) => tag.id) ?? []);
-  const unassignedTags = (allTags ?? []).filter((tag) => !assignedTagIds.has(tag.id));
+  const assignedTags = (articleTags ?? []).map(toArticleTagPickerTagView);
+  const unassignedTags = (allTags ?? []).filter((tag) => !assignedTagIds.has(tag.id)).map(toArticleTagPickerTagView);
 
   const handleCreateAndAssign = (name: string) => {
     if (!name) return;
@@ -147,7 +156,7 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
 
   return (
     <ArticleTagPickerView
-      assignedTags={articleTags ?? []}
+      assignedTags={assignedTags}
       availableTags={unassignedTags}
       newTagName={newTagName}
       isExpanded={showPicker}

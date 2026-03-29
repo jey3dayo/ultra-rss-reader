@@ -3,6 +3,7 @@ import { useState } from "react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ArticleTagPickerView } from "@/components/reader/article-tag-picker-view";
+import articleTagPickerViewSource from "@/components/reader/article-tag-picker-view.tsx?raw";
 
 describe("ArticleTagPickerView", () => {
   it("renders assigned tags and forwards remove and assign actions", async () => {
@@ -157,5 +158,10 @@ describe("ArticleTagPickerView", () => {
     await user.keyboard("{Enter}");
 
     expect(onCreateTag).toHaveBeenCalledWith("Fresh");
+  });
+
+  it("keeps the view independent from the tauri api layer", () => {
+    expect(articleTagPickerViewSource).not.toContain("@/api/tauri-commands");
+    expect(articleTagPickerViewSource).toContain("export type ArticleTagPickerTagView");
   });
 });
