@@ -66,7 +66,6 @@ export function AppearanceSettings() {
         <SectionHeading>{t("appearance.display_counts")}</SectionHeading>
         <SettingsSwitch label={t("appearance.starred_list")} prefKey="show_starred_count" />
         <SettingsSwitch label={t("appearance.unread_list")} prefKey="show_unread_count" />
-        <SettingsSwitch label={t("appearance.all_items_list")} prefKey="show_all_count" />
       </section>
 
       <section>

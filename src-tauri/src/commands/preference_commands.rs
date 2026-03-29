@@ -26,7 +26,6 @@ const ALLOWED_KEYS: &[&str] = &[
     "font_size",
     "show_starred_count",
     "show_unread_count",
-    "show_all_count",
     "image_previews",
     "display_favicons",
     "text_preview",
