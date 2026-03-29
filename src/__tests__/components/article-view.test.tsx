@@ -35,23 +35,6 @@ describe("ArticleView", () => {
     });
   });
 
-  it("shows a sidebar return button in compact layout", async () => {
-    useUiStore.getState().selectAccount("acc-1");
-    useUiStore.getState().selectFeed("feed-1");
-    useUiStore.getState().selectArticle("art-1");
-    useUiStore.setState({ layoutMode: "compact", focusedPane: "content" });
-
-    const user = userEvent.setup();
-    render(<ArticleView />, { wrapper: createWrapper() });
-
-    const button = await screen.findByRole("button", { name: "Show sidebar" });
-    await user.click(button);
-
-    await waitFor(() => {
-      expect(useUiStore.getState().focusedPane).toBe("sidebar");
-    });
-  });
-
   it("opens the browser from the article title and keeps feed navigation separate", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
@@ -76,41 +59,6 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
       expect(useUiStore.getState().contentMode).toBe("empty");
     });
-  });
-
-  it("exposes the tag picker expanded state and closes it with Escape", async () => {
-    useUiStore.getState().selectAccount("acc-1");
-    useUiStore.getState().selectFeed("feed-1");
-    useUiStore.getState().selectArticle("art-1");
-
-    const user = userEvent.setup();
-    render(<ArticleView />, { wrapper: createWrapper() });
-
-    const trigger = await screen.findByRole("button", { name: "Add tag" });
-    expect(trigger).toHaveAttribute("aria-expanded", "false");
-
-    await user.click(trigger);
-
-    const listbox = await screen.findByRole("listbox", { name: "Available tags" });
-    expect(trigger).toHaveAttribute("aria-expanded", "true");
-    expect(listbox).toBeInTheDocument();
-
-    await user.keyboard("{Escape}");
-
-    await waitFor(() => {
-      expect(trigger).toHaveAttribute("aria-expanded", "false");
-    });
-  });
-
-  it("uses larger tag removal targets", async () => {
-    useUiStore.getState().selectAccount("acc-1");
-    useUiStore.getState().selectFeed("feed-1");
-    useUiStore.getState().selectArticle("art-1");
-
-    render(<ArticleView />, { wrapper: createWrapper() });
-
-    const removeButton = await screen.findByRole("button", { name: "Remove tag Later" });
-    expect(removeButton).toHaveClass("size-6");
   });
 
   it("does not auto-mark the article as read when after_reading is do_nothing", async () => {

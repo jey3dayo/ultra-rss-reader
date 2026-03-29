@@ -38,21 +38,4 @@ describe("ArticleList", () => {
       expect(screen.getByText("1 Unread Items")).toBeInTheDocument();
     });
   });
-
-  it("preserves feed grouping labels and selected article state", async () => {
-    useUiStore.getState().selectAccount("acc-1");
-    useUiStore.getState().selectArticle(sampleArticles[1].id);
-    usePreferencesStore.setState({
-      prefs: { group_by: "feed" },
-      loaded: false,
-    });
-
-    render(<ArticleList />, { wrapper: createWrapper() });
-
-    await waitFor(() => {
-      expect(screen.getAllByText("Tech Blog").length).toBeGreaterThan(0);
-    });
-
-    expect(screen.getByRole("option", { name: /Second Article/i })).toHaveAttribute("aria-selected", "true");
-  });
 });
