@@ -119,18 +119,6 @@ export function GeneralSettings() {
               onChange: (value) => setPref("sort_subscriptions", value),
             },
             {
-              id: "mark-article-as-read",
-              type: "select",
-              name: "mark_article_as_read",
-              label: t("general.mark_article_as_read"),
-              value: resolvePreferenceValue(prefs, "mark_article_as_read"),
-              options: [
-                { value: "on_open", label: t("general.on_open") },
-                { value: "manual", label: t("general.manual") },
-              ],
-              onChange: (value) => setPref("mark_article_as_read", value),
-            },
-            {
               id: "cmd-click-browser",
               type: "switch",
               label: t("general.cmd_click_browser"),

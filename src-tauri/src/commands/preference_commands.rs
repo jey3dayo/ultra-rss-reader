@@ -35,7 +35,6 @@ const ALLOWED_KEYS: &[&str] = &[
     "after_reading",
     "scroll_to_top_on_change",
     "sort_subscriptions",
-    "mark_article_as_read",
     "action_copy_link",
     "action_open_browser",
     "action_share",

@@ -20,7 +20,6 @@ const fontSizeSchema = z.enum(["small", "medium", "large"]);
 const imagePreviewsSchema = z.enum(["off", "small", "medium", "large"]);
 const afterReadingSchema = z.enum(["mark_as_read", "do_nothing", "archive"]);
 const sortSubscriptionsSchema = z.enum(["folders_first", "alphabetical", "newest_first", "oldest_first"]);
-const markArticleAsReadSchema = z.enum(["on_open", "manual"]);
 const readerViewModeSchema = z.enum(["normal", "widescreen"]);
 const persistedReaderViewSchema = z
   .enum(["normal", "widescreen", "fullscreen", "off", "on", "auto"])
@@ -66,7 +65,6 @@ const preferenceSchemas = {
   after_reading: afterReadingSchema,
   scroll_to_top_on_change: booleanStringSchema,
   sort_subscriptions: sortSubscriptionsSchema,
-  mark_article_as_read: markArticleAsReadSchema,
   action_copy_link: booleanStringSchema,
   action_open_browser: booleanStringSchema,
   action_share: booleanStringSchema,
@@ -108,7 +106,6 @@ const corePreferenceDefaults = {
   scroll_to_top_on_change: "true",
   // Account-level reading preferences
   sort_subscriptions: "folders_first",
-  mark_article_as_read: "on_open",
   // Actions
   action_copy_link: "true",
   action_open_browser: "true",
