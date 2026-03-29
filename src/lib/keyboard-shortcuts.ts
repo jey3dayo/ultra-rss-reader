@@ -102,7 +102,7 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
     id: "prev_feed",
     labelKey: "shortcuts.prev_feed",
     categoryKey: "shortcuts.category_navigation",
-    defaultKey: "\u2318+k",
+    defaultKey: "\u2318+Shift+K",
   },
   {
     id: "reload_webview",
@@ -287,9 +287,6 @@ export function resolveKeyboardAction(
   const settingsActionId = map.get(normalized);
   if (settingsActionId === "open_settings") {
     return Result.succeed({ type: "open-settings" });
-  }
-  if (settingsActionId === "open_command_palette") {
-    return Result.succeed({ type: "open-command-palette" });
   }
   // Also keep legacy check for ⌘, (always works regardless of mapping)
   if (key === "," && (metaKey || ctrlKey)) {
