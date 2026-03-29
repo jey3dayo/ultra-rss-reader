@@ -13,4 +13,5 @@ pub struct Feed {
     pub site_url: String,
     pub icon: Option<Vec<u8>>,
     pub unread_count: i32,
+    pub display_mode: String,
 }

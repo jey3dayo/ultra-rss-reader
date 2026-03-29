@@ -69,6 +69,7 @@ pub fn run() {
             commands::feed_commands::delete_feed,
             commands::feed_commands::rename_feed,
             commands::feed_commands::update_feed_folder,
+            commands::feed_commands::update_feed_display_mode,
             commands::feed_commands::discover_feeds,
             commands::feed_commands::trigger_sync,
             commands::article_commands::list_articles,

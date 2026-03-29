@@ -60,6 +60,7 @@ pub struct FeedDto {
     pub url: String,
     pub site_url: String,
     pub unread_count: i32,
+    pub display_mode: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -144,6 +145,7 @@ impl From<crate::domain::feed::Feed> for FeedDto {
             url: f.url,
             site_url: f.site_url,
             unread_count: f.unread_count,
+            display_mode: f.display_mode,
         }
     }
 }

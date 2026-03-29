@@ -22,6 +22,7 @@ export type FeedDto = {
   url: string;
   site_url: string;
   unread_count: number;
+  display_mode: string;
 };
 export type ArticleDto = {
   id: string;
@@ -100,6 +101,9 @@ export const renameFeed = (feedId: string, title: string) => safeInvoke<void>("r
 
 export const updateFeedFolder = (feedId: string, folderId: string | null) =>
   safeInvoke<void>("update_feed_folder", { feedId, folderId });
+
+export const updateFeedDisplayMode = (feedId: string, displayMode: string) =>
+  safeInvoke<void>("update_feed_display_mode", { feedId, displayMode });
 
 export const openInBrowser = (url: string, background?: boolean) =>
   safeInvoke<void>("open_in_browser", { url, background });

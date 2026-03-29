@@ -3,9 +3,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
-import { renameFeed, updateFeedFolder } from "@/api/tauri-commands";
+import { renameFeed, updateFeedDisplayMode, updateFeedFolder } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFolders } from "@/hooks/use-folders";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -22,6 +24,7 @@ export function RenameDialog({
   const { t: tc } = useTranslation("common");
   const [title, setTitle] = useState(feed.title);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(feed.folder_id);
+  const [displayMode, setDisplayMode] = useState(feed.display_mode ?? "normal");
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
@@ -32,13 +35,14 @@ export function RenameDialog({
     if (open) {
       setTitle(feed.title);
       setSelectedFolderId(feed.folder_id);
+      setDisplayMode(feed.display_mode ?? "normal");
       setLoading(false);
       requestAnimationFrame(() => {
         inputRef.current?.focus();
         inputRef.current?.select();
       });
     }
-  }, [open, feed.title, feed.folder_id]);
+  }, [open, feed.title, feed.folder_id, feed.display_mode]);
 
   const handleSubmit = async () => {
     const trimmed = title.trim();
@@ -62,6 +66,13 @@ export function RenameDialog({
       );
     }
 
+    if (displayMode !== (feed.display_mode ?? "normal")) {
+      Result.pipe(
+        await updateFeedDisplayMode(feed.id, displayMode),
+        Result.inspectError((e) => showToast(t("failed_to_update_display_mode", { message: e.message }))),
+      );
+    }
+
     qc.invalidateQueries({ queryKey: ["feeds"] });
     setLoading(false);
     onOpenChange(false);
@@ -82,35 +93,57 @@ export function RenameDialog({
         >
           <label className="block text-sm text-muted-foreground">
             {t("title")}
-            <input
+            <Input
               ref={inputRef}
               name="feed-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm text-foreground shadow-xs outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-1"
               disabled={loading}
             />
           </label>
 
+          <div className="block text-sm text-muted-foreground">
+            <span className="mb-1 block">{t("display_mode")}</span>
+            <Select
+              name="feed-display-mode"
+              value={displayMode}
+              onValueChange={(v) => setDisplayMode(v ?? "normal")}
+              disabled={loading}
+            >
+              <SelectTrigger className="mt-1 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectPopup>
+                <SelectItem value="normal">{t("display_mode_normal")}</SelectItem>
+                <SelectItem value="widescreen">{t("display_mode_widescreen")}</SelectItem>
+              </SelectPopup>
+            </Select>
+          </div>
+
           {folders && folders.length > 0 && (
-            <label className="block text-sm text-muted-foreground">
-              {t("folder")}
-              <select
+            <div className="block text-sm text-muted-foreground">
+              <span className="mb-1 block">{t("folder")}</span>
+              <Select
                 name="feed-folder"
                 value={selectedFolderId ?? ""}
-                onChange={(e) => setSelectedFolderId(e.target.value || null)}
-                className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm text-foreground shadow-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                onValueChange={(v) => setSelectedFolderId(v || null)}
                 disabled={loading}
               >
-                <option value="">{t("no_folder")}</option>
-                {folders.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <SelectTrigger className="mt-1 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectPopup>
+                  <SelectItem value="">{t("no_folder")}</SelectItem>
+                  {folders.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.name}
+                    </SelectItem>
+                  ))}
+                </SelectPopup>
+              </Select>
+            </div>
           )}
         </form>
         <DialogFooter>

@@ -68,6 +68,7 @@ async fn local_feed_e2e() {
             site_url: "https://example.com".into(),
             icon: None,
             unread_count: 0,
+            display_mode: "normal".into(),
         })
         .unwrap();
 

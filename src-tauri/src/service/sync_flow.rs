@@ -90,6 +90,7 @@ pub async fn sync_account(
                 site_url: rs.site_url,
                 icon: None,
                 unread_count: 0,
+                display_mode: "normal".to_string(),
             };
             feed_repo.save(&feed)?;
         }

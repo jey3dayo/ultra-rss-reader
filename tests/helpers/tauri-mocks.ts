@@ -33,6 +33,7 @@ export const sampleFeeds: FeedDto[] = [
     url: "https://example.com/feed.xml",
     site_url: "https://example.com",
     unread_count: 5,
+    display_mode: "normal",
   },
   {
     id: "feed-2",
@@ -42,6 +43,7 @@ export const sampleFeeds: FeedDto[] = [
     url: "https://example.com/news.xml",
     site_url: "https://example.com",
     unread_count: 0,
+    display_mode: "normal",
   },
 ];
 

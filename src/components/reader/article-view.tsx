@@ -7,6 +7,7 @@ import type { ArticleDto } from "@/api/tauri-commands";
 import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -246,7 +247,7 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
               </button>
             ))}
             <div className="flex items-center gap-1 border-t border-border px-2 pt-1">
-              <input
+              <Input
                 name="new-tag"
                 type="text"
                 value={newTagName}
@@ -255,7 +256,7 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
                   if (e.key === "Enter") handleCreateAndAssign();
                 }}
                 placeholder={t("new_tag_placeholder")}
-                className="flex-1 rounded border-none bg-transparent px-1 py-1 text-xs outline-none placeholder:text-muted-foreground"
+                className="h-auto flex-1 rounded border-none bg-transparent px-1 py-1 text-xs shadow-none ring-0 focus-visible:ring-0"
               />
               <Button
                 variant="ghost"
@@ -404,8 +405,10 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
       <ScrollArea className="flex-1">
         <article className="mx-auto max-w-3xl px-8 py-8">
           {/* Title block — date, title, author & feed as a clickable group */}
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled via onKeyDown */}
+          {/* biome-ignore lint/a11y/useSemanticElements: complex click behavior (middle-click, keyboard) doesn't map to a simple <a> */}
           <div
+            role="link"
+            tabIndex={article.url ? 0 : undefined}
             className={cn(
               "-mx-4 mb-4 rounded-lg px-4 py-3 transition-colors",
               article.url && "cursor-pointer hover:bg-muted/50",
@@ -486,11 +489,16 @@ export function ArticleView() {
   const { data: tagArticles } = useArticlesByTag(tagId);
   const { data: feeds } = useFeeds(selectedAccountId);
 
-  // When reader_view is "on", auto-open article URL in browser view
+  // Determine if the current feed is in widescreen mode
+  const selectedFeedDisplayMode =
+    feedId && feeds ? (feeds.find((f) => f.id === feedId)?.display_mode ?? "normal") : "normal";
+
+  // When reader_view is "on" or feed is widescreen, auto-open article URL in browser view
   const prevArticleIdRef = useRef<string | null>(null);
   useEffect(() => {
+    const shouldAutoOpen = readerViewPref === "on" || selectedFeedDisplayMode === "widescreen";
     if (
-      readerViewPref === "on" &&
+      shouldAutoOpen &&
       selectedArticleId &&
       selectedArticleId !== prevArticleIdRef.current &&
       contentMode === "reader"
@@ -514,6 +522,7 @@ export function ArticleView() {
   }, [
     selectedArticleId,
     readerViewPref,
+    selectedFeedDisplayMode,
     contentMode,
     feedId,
     tagId,

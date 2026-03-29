@@ -16,4 +16,5 @@ pub trait FeedRepository {
     fn delete(&self, feed_id: &FeedId) -> DomainResult<()>;
     fn rename(&self, feed_id: &FeedId, title: &str) -> DomainResult<()>;
     fn update_folder(&self, feed_id: &FeedId, folder_id: Option<&FolderId>) -> DomainResult<()>;
+    fn update_display_mode(&self, feed_id: &FeedId, display_mode: &str) -> DomainResult<()>;
 }

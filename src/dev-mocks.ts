@@ -100,6 +100,7 @@ export function setupDevMocks() {
           url: feedUrl,
           site_url: feedUrl,
           unread_count: 3,
+          display_mode: "normal",
         };
         mockFeeds.push(feed);
         // Generate sample articles for the new feed
@@ -273,6 +274,12 @@ export function setupDevMocks() {
       case "update_feed_folder": {
         const targetFeed = mockFeeds.find((f) => f.id === args.feedId);
         if (targetFeed) targetFeed.folder_id = (args.folderId as string) ?? null;
+        return null;
+      }
+
+      case "update_feed_display_mode": {
+        const dmFeed = mockFeeds.find((f) => f.id === args.feedId);
+        if (dmFeed) dmFeed.display_mode = String(args.displayMode ?? "normal");
         return null;
       }
 

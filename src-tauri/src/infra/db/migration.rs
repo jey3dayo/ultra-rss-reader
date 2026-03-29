@@ -6,6 +6,7 @@ const MIGRATION_V1: &str = include_str!("../../../migrations/V1__initial.sql");
 const MIGRATION_V2: &str = include_str!("../../../migrations/V2__preferences.sql");
 const MIGRATION_V3: &str = include_str!("../../../migrations/V3__fts5.sql");
 const MIGRATION_V4: &str = include_str!("../../../migrations/V4__tags.sql");
+const MIGRATION_V5: &str = include_str!("../../../migrations/V5__feed_display_mode.sql");
 
 pub fn run_migrations(conn: &mut Connection) -> DomainResult<()> {
     let current_version = get_schema_version(conn);
@@ -21,6 +22,9 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<()> {
     }
     if current_version < 4 {
         conn.execute_batch(MIGRATION_V4)?;
+    }
+    if current_version < 5 {
+        conn.execute_batch(MIGRATION_V5)?;
     }
 
     Ok(())

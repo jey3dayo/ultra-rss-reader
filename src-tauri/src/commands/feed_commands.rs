@@ -142,6 +142,7 @@ pub async fn add_local_feed(
         site_url: sub.site_url,
         icon: None,
         unread_count: 0,
+        display_mode: "normal".to_string(),
     };
 
     {
@@ -316,13 +317,17 @@ async fn sync_greader_feeds(
                     .as_ref()
                     .and_then(|rid| folder_remote_id_map.get(rid))
                     .cloned()
-                    .or_else(|| existing.and_then(|f| f.folder_id)),
+                    .or_else(|| existing.as_ref().and_then(|f| f.folder_id.clone())),
                 remote_id: Some(rs.remote_id.clone()),
                 title: rs.title.clone(),
                 url: rs.url.clone(),
                 site_url: rs.site_url.clone(),
                 icon: None,
                 unread_count: 0,
+                display_mode: existing
+                    .as_ref()
+                    .map(|f| f.display_mode.clone())
+                    .unwrap_or_else(|| "normal".to_string()),
             };
             feed_repo.save(&feed)?;
         }
@@ -574,6 +579,18 @@ pub fn get_min_sync_interval(db: &Mutex<DbManager>) -> std::time::Duration {
         .unwrap_or(DEFAULT_INTERVAL_SECS);
 
     std::time::Duration::from_secs(secs)
+}
+
+#[tauri::command]
+pub fn update_feed_display_mode(
+    state: State<'_, AppState>,
+    feed_id: String,
+    display_mode: String,
+) -> Result<(), AppError> {
+    let db = lock_db(&state.db)?;
+    let repo = SqliteFeedRepository::new(db.writer());
+    repo.update_display_mode(&FeedId(feed_id), &display_mode)?;
+    Ok(())
 }
 
 #[tauri::command]
