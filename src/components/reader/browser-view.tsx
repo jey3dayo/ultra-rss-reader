@@ -17,11 +17,13 @@ export function BrowserView() {
   const { data: feeds } = useFeeds(selectedAccountId);
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const isWidescreen = feedId && feeds ? feeds.find((f) => f.id === feedId)?.display_mode === "widescreen" : false;
-  if (!browserUrl) return null;
 
   useEffect(() => {
+    if (!browserUrl) return;
     setIsLoading(true);
   }, [browserUrl]);
+
+  if (!browserUrl) return null;
 
   const handleOpenExternal = async () => {
     const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
