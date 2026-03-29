@@ -96,6 +96,15 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         Ok(articles)
     }
 
+    fn count_unread_by_account(&self, account_id: &AccountId) -> DomainResult<i32> {
+        let count = self.conn.query_row(
+            "SELECT COUNT(*) FROM articles a JOIN feeds f ON a.feed_id = f.id WHERE f.account_id = ?1 AND a.is_read = 0",
+            params![account_id.0],
+            |row| row.get(0),
+        )?;
+        Ok(count)
+    }
+
     fn upsert(&self, articles: &[Article]) -> DomainResult<()> {
         let tx = self.conn.unchecked_transaction()?;
         {
@@ -495,6 +504,31 @@ mod tests {
         assert_eq!(found.len(), 2);
         assert_eq!(found[0].title, "Article 2");
         assert_eq!(found[1].title, "Article 1");
+    }
+
+    #[test]
+    fn count_unread_by_account_counts_only_unread_in_selected_account() {
+        let db = test_db();
+        let account_a = insert_test_account(&db);
+        let account_b = insert_test_account(&db);
+        let feed_a1 = insert_test_feed(&db, &account_a);
+        let feed_a2 = insert_test_feed(&db, &account_a);
+        let feed_b = insert_test_feed(&db, &account_b);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut unread_a1 = make_article(&feed_a1, "Unread A1");
+        unread_a1.is_read = false;
+        let mut unread_a2 = make_article(&feed_a2, "Unread A2");
+        unread_a2.is_read = false;
+        let mut read_a = make_article(&feed_a1, "Read A");
+        read_a.is_read = true;
+        let mut unread_b = make_article(&feed_b, "Unread B");
+        unread_b.is_read = false;
+
+        repo.upsert(&[unread_a1, unread_a2, read_a, unread_b])
+            .unwrap();
+
+        assert_eq!(repo.count_unread_by_account(&account_a).unwrap(), 2);
     }
 
     #[test]
