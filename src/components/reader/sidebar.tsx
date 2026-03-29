@@ -93,7 +93,9 @@ export function Sidebar() {
   const { data: accountArticles } = useAccountArticles(selectedAccountId);
   const showUnreadCount = usePreferencesStore((s) => (s.prefs.show_unread_count ?? "true") === "true");
   const showStarredCount = usePreferencesStore((s) => (s.prefs.show_starred_count ?? "true") === "true");
-  const showSidebarUnread = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "show_sidebar_unread") === "true");
+  const showSidebarUnread = usePreferencesStore(
+    (s) => resolvePreferenceValue(s.prefs, "show_sidebar_unread") === "true",
+  );
   const showSidebarStarred = usePreferencesStore(
     (s) => resolvePreferenceValue(s.prefs, "show_sidebar_starred") === "true",
   );
