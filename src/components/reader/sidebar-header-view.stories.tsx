@@ -7,7 +7,6 @@ const meta = {
   component: SidebarHeaderView,
   tags: ["autodocs"],
   args: {
-    lastSyncedLabel: "Not synced yet",
     isSyncing: false,
     onSync: fn(),
     onAddFeed: fn(),
@@ -30,7 +29,6 @@ export const Default: Story = {};
 
 export const Syncing: Story = {
   args: {
-    lastSyncedLabel: "Today at 10:42",
     isSyncing: true,
   },
 };

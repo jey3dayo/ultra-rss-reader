@@ -31,6 +31,7 @@ const meta = {
   tags: ["autodocs"],
   args: {
     title: "Ultra RSS",
+    lastSyncedLabel: "Today at 10:42",
     accounts: sampleAccounts,
     selectedAccountId: "acc-1",
     isExpanded: false,
@@ -65,6 +66,7 @@ export const Expanded: Story = {
 export const SingleAccount: Story = {
   args: {
     accounts: [sampleAccounts[0]],
+    lastSyncedLabel: "Not synced yet",
     isExpanded: false,
   },
 };

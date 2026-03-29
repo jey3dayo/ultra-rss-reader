@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 type AccountSwitcherViewProps = {
   title: string;
+  lastSyncedLabel: string;
   accounts: AccountDto[];
   selectedAccountId: string | null;
   isExpanded: boolean;
@@ -26,6 +27,7 @@ function focusAccountItem(itemRefs: RefObject<Array<HTMLButtonElement | null>>, 
 
 export function AccountSwitcherView({
   title,
+  lastSyncedLabel,
   accounts,
   selectedAccountId,
   isExpanded,
@@ -75,6 +77,7 @@ export function AccountSwitcherView({
           {selectedAccount?.name ?? title}
           {hasMultipleAccounts && <ChevronDown className="h-4 w-4 text-muted-foreground" />}
         </h1>
+        <p className="text-xs text-muted-foreground">{lastSyncedLabel}</p>
       </button>
 
       {isExpanded && accounts.length > 0 && (

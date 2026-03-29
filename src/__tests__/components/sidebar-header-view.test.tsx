@@ -11,7 +11,6 @@ describe("SidebarHeaderView", () => {
 
     render(
       <SidebarHeaderView
-        lastSyncedLabel="Not synced yet"
         isSyncing={false}
         onSync={onSync}
         onAddFeed={onAddFeed}
@@ -19,8 +18,6 @@ describe("SidebarHeaderView", () => {
         addFeedButtonLabel="Add feed"
       />,
     );
-
-    expect(screen.getByText("Not synced yet")).toBeInTheDocument();
 
     await user.click(screen.getByLabelText("Sync feeds"));
     await user.click(screen.getByLabelText("Add feed"));

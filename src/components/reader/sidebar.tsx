@@ -233,29 +233,29 @@ export function Sidebar() {
     >
       <div data-tauri-drag-region>
         <SidebarHeaderView
-          lastSyncedLabel={lastSyncedFormatted}
           isSyncing={isSyncing}
           onSync={handleSync}
           onAddFeed={handleAddFeed}
           syncButtonLabel={t("sync_feeds")}
           addFeedButtonLabel={t("add_feed")}
-        >
-          <div ref={accountDropdownRef}>
-            <AccountSwitcherView
-              title={selectedAccount?.name ?? t("app_name")}
-              accounts={accounts ?? []}
-              selectedAccountId={selectedAccountId}
-              isExpanded={showAccountList}
-              menuId={accountMenuId}
-              menuLabel={t("accounts")}
-              triggerRef={accountTriggerRef}
-              itemRefs={accountItemRefs}
-              onToggle={() => setShowAccountList((v) => !v)}
-              onSelectAccount={selectAccount}
-              onClose={closeAccountList}
-            />
-          </div>
-        </SidebarHeaderView>
+        />
+      </div>
+
+      <div ref={accountDropdownRef}>
+        <AccountSwitcherView
+          title={selectedAccount?.name ?? t("app_name")}
+          lastSyncedLabel={lastSyncedFormatted}
+          accounts={accounts ?? []}
+          selectedAccountId={selectedAccountId}
+          isExpanded={showAccountList}
+          menuId={accountMenuId}
+          menuLabel={t("accounts")}
+          triggerRef={accountTriggerRef}
+          itemRefs={accountItemRefs}
+          onToggle={() => setShowAccountList((v) => !v)}
+          onSelectAccount={selectAccount}
+          onClose={closeAccountList}
+        />
       </div>
 
       {/* Unread Smart View */}

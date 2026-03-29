@@ -17,6 +17,7 @@ describe("AccountSwitcherView", () => {
     render(
       <AccountSwitcherView
         title="Ultra RSS"
+        lastSyncedLabel="Not synced yet"
         accounts={sampleAccounts}
         selectedAccountId="acc-1"
         isExpanded={true}
@@ -51,6 +52,7 @@ describe("AccountSwitcherView", () => {
     render(
       <AccountSwitcherView
         title="Ultra RSS"
+        lastSyncedLabel="Not synced yet"
         accounts={sampleAccounts}
         selectedAccountId="acc-1"
         isExpanded={true}
@@ -68,6 +70,8 @@ describe("AccountSwitcherView", () => {
     const firstItem = screen.getByRole("menuitemradio", { name: /Local/ });
     const secondItem = screen.getByRole("menuitemradio", { name: /FreshRSS/ });
 
+    expect(screen.getByRole("button", { name: /Local/ })).toBeInTheDocument();
+    expect(screen.getByText("Not synced yet")).toBeInTheDocument();
     firstItem.focus();
     fireEvent.keyDown(menu, { key: "ArrowDown" });
     expect(secondItem).toHaveFocus();
