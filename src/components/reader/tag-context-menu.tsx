@@ -66,7 +66,7 @@ function EditTagDialog({
     }
     setLoading(true);
     renameTag.mutate(
-      { tagId: tag.id, name: trimmed, color: color ?? undefined },
+      { tagId: tag.id, name: trimmed, color },
       {
         onSuccess: () => {
           onOpenChange(false);

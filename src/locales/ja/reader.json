@@ -85,7 +85,6 @@
   "name": "名前",
   "color": "カラー",
   "no_color": "なし",
-  "rename_ellipsis": "名前を変更...",
   "delete_ellipsis": "削除...",
   "delete_tag": "タグを削除",
   "confirm_delete_tag": "<strong>{{name}}</strong> を削除しますか？このタグはすべての記事から削除されます。",

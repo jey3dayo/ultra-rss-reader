@@ -85,7 +85,6 @@
   "name": "Name",
   "color": "Color",
   "no_color": "No color",
-  "rename_ellipsis": "Rename...",
   "delete_ellipsis": "Delete...",
   "delete_tag": "Delete Tag",
   "confirm_delete_tag": "Are you sure you want to delete <strong>{{name}}</strong>? This tag will be removed from all articles.",
