@@ -67,3 +67,85 @@ pub fn get_schema_version(conn: &Connection) -> i32 {
     )
     .unwrap_or(0)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusqlite::Connection;
+
+    fn open_in_memory() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        conn
+    }
+
+    #[test]
+    fn fresh_db_migrates_to_latest() {
+        let mut conn = open_in_memory();
+        let result = run_migrations(&mut conn).unwrap();
+        assert_eq!(result.from_version, 0);
+        assert_eq!(result.to_version, LATEST_VERSION);
+        assert!(result.migrated());
+    }
+
+    #[test]
+    fn already_current_is_noop() {
+        let mut conn = open_in_memory();
+        run_migrations(&mut conn).unwrap();
+        let result = run_migrations(&mut conn).unwrap();
+        assert_eq!(result.from_version, LATEST_VERSION);
+        assert_eq!(result.to_version, LATEST_VERSION);
+        assert!(!result.migrated());
+    }
+
+    #[test]
+    fn version_skip_v1_to_latest() {
+        let mut conn = open_in_memory();
+        conn.execute_batch(MIGRATION_V1).unwrap();
+        assert_eq!(get_schema_version(&conn), 1);
+
+        let result = run_migrations(&mut conn).unwrap();
+        assert_eq!(result.from_version, 1);
+        assert_eq!(result.to_version, LATEST_VERSION);
+        assert!(result.migrated());
+
+        // Verify V2 (preferences) was applied
+        let pref_count: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='preferences'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(pref_count, 1);
+
+        // Verify V4 (tags) was applied
+        let tag_count: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='tags'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(tag_count, 1);
+    }
+
+    #[test]
+    fn version_skip_v3_to_latest() {
+        let mut conn = open_in_memory();
+        conn.execute_batch(MIGRATION_V1).unwrap();
+        conn.execute_batch(MIGRATION_V2).unwrap();
+        conn.execute_batch(MIGRATION_V3).unwrap();
+        assert_eq!(get_schema_version(&conn), 3);
+
+        let result = run_migrations(&mut conn).unwrap();
+        assert_eq!(result.from_version, 3);
+        assert_eq!(result.to_version, LATEST_VERSION);
+
+        // Verify V5 (display_mode) was applied
+        let has_display_mode: bool = conn
+            .prepare("SELECT display_mode FROM feeds LIMIT 0")
+            .is_ok();
+        assert!(has_display_mode, "V5 display_mode column should exist");
+    }
+}

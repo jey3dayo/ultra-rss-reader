@@ -214,6 +214,59 @@ mod tests {
     }
 
     #[test]
+    fn migration_failure_restores_from_backup() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+
+        // Create a DB at v5
+        let db = DbManager::new(&db_path).unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES ('a1', 'Local', 'Test')",
+                [],
+            )
+            .unwrap();
+        drop(db);
+
+        // Manually set version back to 4 — V5 adds display_mode column which already exists,
+        // so the migration will fail with "duplicate column name"
+        {
+            let conn = rusqlite::Connection::open(&db_path).unwrap();
+            conn.execute("DELETE FROM schema_version WHERE version = 5", [])
+                .unwrap();
+            drop(conn);
+        }
+
+        // DbManager::new will:
+        // 1. See version=4, needs migration
+        // 2. Create backup at v4
+        // 3. Try V5 (ALTER TABLE ADD COLUMN display_mode) → FAIL (column exists)
+        // 4. Restore from backup (v4)
+        // 5. Return Ok with restored DB
+        let db = DbManager::new(&db_path).unwrap();
+
+        // Verify data survived
+        let name: String = db
+            .reader()
+            .query_row("SELECT name FROM accounts WHERE id = 'a1'", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(name, "Test");
+
+        // Verify schema version is 4 (restored state — v5 row was deleted before backup)
+        let version: i32 = db
+            .reader()
+            .query_row(
+                "SELECT version FROM schema_version ORDER BY version DESC LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(version, 4, "Should be restored to v4");
+    }
+
+    #[test]
     fn cascade_delete_works() {
         let db = DbManager::new_in_memory().unwrap();
         db.writer()
