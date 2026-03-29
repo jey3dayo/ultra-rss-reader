@@ -5,10 +5,10 @@ import { useKeyboard } from "../hooks/use-keyboard";
 import { useMenuEvents } from "../hooks/use-menu-events";
 import { useUpdater } from "../hooks/use-updater";
 import { useUiStore } from "../stores/ui-store";
+import { AppConfirmDialog } from "./app-confirm-dialog";
 import { AppLayout } from "./app-layout";
 import { CommandPalette } from "./reader/command-palette";
 import { SettingsModal } from "./settings/settings-modal";
-import { ConfirmDialog } from "./ui/confirm-dialog";
 
 function Toast() {
   const { toastMessage, clearToast } = useUiStore();
@@ -72,7 +72,7 @@ export function AppShell() {
     <div className="flex h-full flex-col">
       <AppLayout />
       <SettingsModal />
-      <ConfirmDialog />
+      <AppConfirmDialog />
       <Toast />
       {commandPaletteOpen ? <CommandPalette /> : null}
     </div>

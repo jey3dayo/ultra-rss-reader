@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import { create } from "zustand";
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
@@ -48,6 +49,7 @@ interface UiState {
     open: boolean;
     message: string;
     actionLabel: string | null;
+    icon: ComponentType<{ className?: string }> | null;
     onConfirm: (() => void) | null;
   };
 }
@@ -82,7 +84,11 @@ interface UiActions {
   clearToast: () => void;
   addRecentlyRead: (id: string) => void;
   clearRecentlyRead: () => void;
-  showConfirm: (message: string, onConfirm: () => void, actionLabel?: string) => void;
+  showConfirm: (
+    message: string,
+    onConfirm: () => void,
+    options?: { actionLabel?: string; icon?: ComponentType<{ className?: string }> },
+  ) => void;
   closeConfirm: () => void;
 }
 
@@ -105,7 +111,7 @@ const initialState: UiState = {
   isAddFeedDialogOpen: false,
   toastMessage: null,
   recentlyReadIds: new Set(),
-  confirmDialog: { open: false, message: "", actionLabel: null, onConfirm: null },
+  confirmDialog: { open: false, message: "", actionLabel: null, icon: null, onConfirm: null },
 };
 
 export const useUiStore = create<UiState & UiActions>()((set) => ({
@@ -211,7 +217,16 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       return { recentlyReadIds: next };
     }),
   clearRecentlyRead: () => set({ recentlyReadIds: new Set() }),
-  showConfirm: (message, onConfirm, actionLabel) =>
-    set({ confirmDialog: { open: true, message, actionLabel: actionLabel ?? null, onConfirm } }),
-  closeConfirm: () => set({ confirmDialog: { open: false, message: "", actionLabel: null, onConfirm: null } }),
+  showConfirm: (message, onConfirm, options) =>
+    set({
+      confirmDialog: {
+        open: true,
+        message,
+        actionLabel: options?.actionLabel ?? null,
+        icon: options?.icon ?? null,
+        onConfirm,
+      },
+    }),
+  closeConfirm: () =>
+    set({ confirmDialog: { open: false, message: "", actionLabel: null, icon: null, onConfirm: null } }),
 }));
