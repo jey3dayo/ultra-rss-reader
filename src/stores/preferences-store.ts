@@ -21,12 +21,13 @@ const imagePreviewsSchema = z.enum(["off", "small", "medium", "large"]);
 const afterReadingSchema = z.enum(["mark_as_read", "do_nothing", "archive"]);
 const sortSubscriptionsSchema = z.enum(["folders_first", "alphabetical", "newest_first", "oldest_first"]);
 const markArticleAsReadSchema = z.enum(["on_open", "manual"]);
-const readerViewModeSchema = z.enum(["normal", "widescreen", "fullscreen"]);
+const readerViewModeSchema = z.enum(["normal", "widescreen"]);
 const persistedReaderViewSchema = z
   .enum(["normal", "widescreen", "fullscreen", "off", "on", "auto"])
   .transform((value): z.infer<typeof readerViewModeSchema> => {
     switch (value) {
       case "on":
+      case "fullscreen":
         return "widescreen";
       case "off":
       case "auto":

@@ -16,7 +16,6 @@ export function ReadingSettings() {
           options={[
             { value: "normal", label: t("reading.normal") },
             { value: "widescreen", label: t("reading.widescreen") },
-            { value: "fullscreen", label: t("reading.fullscreen") },
           ]}
         />
         <SettingsSelect
