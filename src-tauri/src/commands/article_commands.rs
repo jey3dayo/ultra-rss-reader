@@ -6,8 +6,10 @@ use crate::commands::AppState;
 use crate::domain::error::DomainError;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
+use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
 use crate::repository::article::{ArticleRepository, Pagination};
+use crate::repository::feed::FeedRepository;
 use crate::repository::pending_mutation::{PendingMutation, PendingMutationRepository};
 
 #[tauri::command]
@@ -125,6 +127,18 @@ pub fn mark_article_read(
     let read = read.unwrap_or(true);
     repo.mark_as_read(&article_id, read)?;
 
+    // Recalculate unread count for the affected feed
+    let feed_id_str: String = db
+        .writer()
+        .query_row(
+            "SELECT feed_id FROM articles WHERE id = ?1",
+            rusqlite::params![article_id.0],
+            |row| row.get(0),
+        )
+        .map_err(DomainError::from)?;
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    feed_repo.recalculate_unread_count(&FeedId(feed_id_str))?;
+
     // Queue pending mutation for FreshRSS accounts
     let mutation_type = if read { "mark_read" } else { "mark_unread" };
     maybe_queue_mutation(db.writer(), &article_id, mutation_type)?;
@@ -143,6 +157,31 @@ pub fn mark_articles_read(
     let ids: Vec<ArticleId> = article_ids.iter().map(|id| ArticleId(id.clone())).collect();
     let repo = SqliteArticleRepository::new(db.writer());
     repo.mark_many_as_read(&ids)?;
+
+    // Recalculate unread counts for affected feeds
+    if !ids.is_empty() {
+        let placeholders: Vec<String> = ids
+            .iter()
+            .enumerate()
+            .map(|(i, _)| format!("?{}", i + 1))
+            .collect();
+        let sql = format!(
+            "SELECT DISTINCT feed_id FROM articles WHERE id IN ({})",
+            placeholders.join(", ")
+        );
+        let mut stmt = db.writer().prepare(&sql).map_err(DomainError::from)?;
+        let params: Vec<&dyn rusqlite::ToSql> =
+            ids.iter().map(|id| &id.0 as &dyn rusqlite::ToSql).collect();
+        let feed_ids: Vec<String> = stmt
+            .query_map(params.as_slice(), |row| row.get::<_, String>(0))
+            .map_err(DomainError::from)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(DomainError::from)?;
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        for fid in feed_ids {
+            feed_repo.recalculate_unread_count(&FeedId(fid))?;
+        }
+    }
 
     // Queue pending mutations for FreshRSS/Inoreader articles
     for id in &ids {
@@ -177,6 +216,10 @@ pub fn mark_feed_read(state: State<'_, AppState>, feed_id: String) -> Result<(),
 
     let repo = SqliteArticleRepository::new(db.writer());
     repo.mark_feed_as_read(&feed_id)?;
+
+    // Recalculate unread count for the feed
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    feed_repo.recalculate_unread_count(&feed_id)?;
 
     // Queue pending mutations only for newly-marked articles
     for article_id in &newly_read_ids {
@@ -213,6 +256,23 @@ pub fn mark_folder_read(state: State<'_, AppState>, folder_id: String) -> Result
 
     let repo = SqliteArticleRepository::new(db.writer());
     repo.mark_folder_as_read(&folder_id)?;
+
+    // Recalculate unread counts for all feeds in the folder
+    let mut stmt = db
+        .writer()
+        .prepare("SELECT id FROM feeds WHERE folder_id = ?1")
+        .map_err(DomainError::from)?;
+    let folder_feed_ids: Vec<String> = stmt
+        .query_map(rusqlite::params![folder_id.0], |row| {
+            row.get::<_, String>(0)
+        })
+        .map_err(DomainError::from)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(DomainError::from)?;
+    let feed_repo = SqliteFeedRepository::new(db.writer());
+    for fid in folder_feed_ids {
+        feed_repo.recalculate_unread_count(&FeedId(fid))?;
+    }
 
     // Queue pending mutations only for newly-marked articles
     for article_id in &newly_read_ids {

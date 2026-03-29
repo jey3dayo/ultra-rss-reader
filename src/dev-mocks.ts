@@ -54,6 +54,13 @@ function titleFromUrl(feedUrl: string): string {
   }
 }
 
+function recalcUnread(feedId: string) {
+  const feed = mockFeeds.find((f) => f.id === feedId);
+  if (feed) {
+    feed.unread_count = mockArticles.filter((a) => a.feed_id === feedId && !a.is_read).length;
+  }
+}
+
 export function setupDevMocks() {
   if (window.__TAURI_INTERNALS__) return;
 
@@ -184,16 +191,24 @@ export function setupDevMocks() {
       case "mark_article_read": {
         const { articleId, read } = markArticleReadArgs.parse(payload);
         const art = mockArticles.find((a) => a.id === articleId);
-        if (art) art.is_read = read ?? true;
+        if (art) {
+          art.is_read = read ?? true;
+          recalcUnread(art.feed_id);
+        }
         return null;
       }
 
       case "mark_articles_read": {
         const { articleIds } = markArticlesReadArgs.parse(payload);
+        const affectedFeedIds = new Set<string>();
         for (const id of articleIds) {
           const art = mockArticles.find((a) => a.id === id);
-          if (art) art.is_read = true;
+          if (art) {
+            art.is_read = true;
+            affectedFeedIds.add(art.feed_id);
+          }
         }
+        for (const fid of affectedFeedIds) recalcUnread(fid);
         return null;
       }
 
@@ -202,6 +217,7 @@ export function setupDevMocks() {
         for (const art of mockArticles) {
           if (art.feed_id === feedId) art.is_read = true;
         }
+        recalcUnread(feedId);
         return null;
       }
 
@@ -211,6 +227,7 @@ export function setupDevMocks() {
         for (const art of mockArticles) {
           if (folderFeedIds.includes(art.feed_id)) art.is_read = true;
         }
+        for (const fid of folderFeedIds) recalcUnread(fid);
         return null;
       }
 
