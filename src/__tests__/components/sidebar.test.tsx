@@ -27,8 +27,9 @@ describe("Sidebar", () => {
   });
 
   it("renders the sidebar heading", () => {
-    render(<Sidebar />, { wrapper: createWrapper() });
+    const { container } = render(<Sidebar />, { wrapper: createWrapper() });
     expect(screen.getByText("Ultra RSS")).toBeInTheDocument();
+    expect(container.querySelector("[data-tauri-drag-region]")).toBeInTheDocument();
   });
 
   it("renders smart view items (Unread and Starred buttons)", () => {

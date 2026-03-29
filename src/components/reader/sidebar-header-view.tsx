@@ -28,7 +28,7 @@ export function SidebarHeaderView({
 }: SidebarHeaderViewProps) {
   return (
     <>
-      <div data-tauri-drag-region className="flex h-12 items-center justify-end px-4 pl-20">
+      <div className="flex h-12 items-center justify-end px-4 pl-20">
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
