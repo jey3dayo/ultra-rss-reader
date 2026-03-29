@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveLayout } from "../../hooks/use-layout";
+import { computeTranslateX, isPaneVisible, resolveLayout } from "../../hooks/use-layout";
 
 describe("resolveLayout", () => {
   it("wide: 3 panes", () => {
@@ -20,5 +20,65 @@ describe("resolveLayout", () => {
 
   it("mobile: single pane", () => {
     expect(resolveLayout("mobile", "list", "reader")).toEqual(["list"]);
+  });
+});
+
+describe("computeTranslateX", () => {
+  it("mobile+sidebar: 0%", () => {
+    expect(computeTranslateX("mobile", "sidebar")).toBe("0%");
+  });
+
+  it("mobile+list: -100%", () => {
+    expect(computeTranslateX("mobile", "list")).toBe("-100%");
+  });
+
+  it("mobile+content: -200%", () => {
+    expect(computeTranslateX("mobile", "content")).toBe("-200%");
+  });
+
+  it("compact+sidebar: 0px", () => {
+    expect(computeTranslateX("compact", "sidebar")).toBe("0px");
+  });
+
+  it("compact+list: 0px", () => {
+    expect(computeTranslateX("compact", "list")).toBe("0px");
+  });
+
+  it("compact+content: -280px", () => {
+    expect(computeTranslateX("compact", "content")).toBe("-280px");
+  });
+});
+
+describe("isPaneVisible", () => {
+  describe("mobile", () => {
+    it.each([
+      ["sidebar", "sidebar", true],
+      ["sidebar", "list", false],
+      ["sidebar", "content", false],
+      ["list", "sidebar", false],
+      ["list", "list", true],
+      ["list", "content", false],
+      ["content", "sidebar", false],
+      ["content", "list", false],
+      ["content", "content", true],
+    ] as const)("focusedPane=%s pane=%s → %s", (focusedPane, pane, expected) => {
+      expect(isPaneVisible("mobile", focusedPane, pane)).toBe(expected);
+    });
+  });
+
+  describe("compact", () => {
+    it.each([
+      ["sidebar", "sidebar", true],
+      ["sidebar", "list", true],
+      ["sidebar", "content", false],
+      ["list", "sidebar", true],
+      ["list", "list", true],
+      ["list", "content", false],
+      ["content", "sidebar", false],
+      ["content", "list", true],
+      ["content", "content", true],
+    ] as const)("focusedPane=%s pane=%s → %s", (focusedPane, pane, expected) => {
+      expect(isPaneVisible("compact", focusedPane, pane)).toBe(expected);
+    });
   });
 });
