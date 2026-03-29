@@ -22,7 +22,7 @@ Tech Stack: Claude Code slash command (Markdown), GitHub Actions (YAML), git
 
 ### Task 1: コマンド定義の書き換え
 
-### Files
+### Files (Task 1)
 
 - Rewrite: `.claude/commands/release.md`
 
@@ -227,7 +227,7 @@ git commit -m "feat: redesign release command with 3-phase structure"
 
 ### Task 2: release.yml の generateReleaseNotes 無効化
 
-### Files
+### Files (Task 2)
 
 - Modify: `.github/workflows/release.yml`
 
@@ -260,7 +260,7 @@ git commit -m "ci: disable generateReleaseNotes in release workflow (CLI manages
 
 ### Task 3: release-workflow.md ルール更新
 
-### Files
+### Files (Task 3)
 
 - Modify: `.claude/rules/release-workflow.md`
 
