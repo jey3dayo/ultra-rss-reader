@@ -168,6 +168,15 @@
     "failed_to_rename": "Failed to rename account: {{message}}",
     "failed_to_update_sync": "Failed to update sync settings: {{message}}",
     "failed_to_export_opml": "Failed to export OPML: {{message}}",
-    "failed_to_delete": "Failed to delete account: {{message}}"
+    "failed_to_delete": "Failed to delete account: {{message}}",
+    "category_local": "Local",
+    "category_self_hosted": "Self-Hosted",
+    "category_services": "Services",
+    "local_desc": "On My Mac",
+    "freshrss_desc": "freshrss.org",
+    "fever": "Fever",
+    "fever_desc": "Deprecated. Not recommended.",
+    "inoreader_desc": "inoreader.com",
+    "back_to_services": "Back to service selection"
   }
 }

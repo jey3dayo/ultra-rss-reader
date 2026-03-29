@@ -168,6 +168,15 @@
     "failed_to_rename": "アカウント名の変更に失敗しました: {{message}}",
     "failed_to_update_sync": "同期設定の更新に失敗しました: {{message}}",
     "failed_to_export_opml": "OPMLのエクスポートに失敗しました: {{message}}",
-    "failed_to_delete": "アカウントの削除に失敗しました: {{message}}"
+    "failed_to_delete": "アカウントの削除に失敗しました: {{message}}",
+    "category_local": "ローカル",
+    "category_self_hosted": "セルフホスト",
+    "category_services": "サービス",
+    "local_desc": "このMac上",
+    "freshrss_desc": "freshrss.org",
+    "fever": "Fever",
+    "fever_desc": "非推奨",
+    "inoreader_desc": "inoreader.com",
+    "back_to_services": "サービス選択に戻る"
   }
 }
