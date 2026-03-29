@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `reader` / `settings` UI を Storybook と Vitest で独立検証できる `View` 単位へ切り出し、既存の巨大コンポーネントを薄い `Container` に整理する。
+Goal: `reader` / `settings` UI を Storybook と Vitest で独立検証できる `View` 単位へ切り出し、既存の巨大コンポーネントを薄い `Container` に整理する。
 
-**Architecture:** 既存の公開コンポーネント (`sidebar.tsx`, `article-view.tsx` など) は当面 `Container` として残し、表示責務だけを sibling file の `*-view.tsx` へ抽出する。外部依存は `Container` に閉じ込め、`View` は fixture だけで Storybook 表示できる props 形へ正規化する。各バッチで View test、Container test、Storybook story、`dev-browser` smoke を揃えて進める。
+Architecture: 既存の公開コンポーネント (`sidebar.tsx`, `article-view.tsx` など) は当面 `Container` として残し、表示責務だけを sibling file の `*-view.tsx` へ抽出する。外部依存は `Container` に閉じ込め、`View` は fixture だけで Storybook 表示できる props 形へ正規化する。各バッチで View test、Container test、Storybook story、`dev-browser` smoke を揃えて進める。
 
-**Tech Stack:** React 19, TypeScript, Vitest, Testing Library, Storybook 10, dev-browser, Zustand, React Query, react-i18next, Tailwind CSS, Base UI
+Tech Stack: React 19, TypeScript, Vitest, Testing Library, Storybook 10, dev-browser, Zustand, React Query, react-i18next, Tailwind CSS, Base UI
 
-**Spec:** `docs/superpowers/specs/2026-03-29-storybook-component-isolation-design.md`
+Spec: `docs/superpowers/specs/2026-03-29-storybook-component-isolation-design.md`
 
 ---
 
@@ -156,7 +156,7 @@ Expected: 対象 story URL と Storybook title が表示される
 
 ## Task 1: Sidebar Header と Account Switcher の View を抽出する
 
-**Files:**
+### Files
 
 - Create: `src/components/reader/sidebar-header-view.tsx`
 - Create: `src/components/reader/account-switcher-view.tsx`
@@ -204,7 +204,7 @@ git commit -m "refactor: extract sidebar header views"
 
 ## Task 2: Sidebar の Smart View / FeedTree / TagList を抽出する
 
-**Files:**
+### Files
 
 - Create: `src/components/reader/smart-views-view.tsx`
 - Create: `src/components/reader/feed-tree-view.tsx`
@@ -253,7 +253,7 @@ git commit -m "refactor: isolate sidebar list views"
 
 ## Task 3: Article Toolbar / Meta / Content / Empty State を抽出する
 
-**Files:**
+### Files
 
 - Create: `src/components/reader/article-toolbar-view.tsx`
 - Create: `src/components/reader/article-meta-view.tsx`
@@ -301,7 +301,7 @@ git commit -m "refactor: extract article reader views"
 
 ## Task 4: Article Tag Picker View を抽出する
 
-**Files:**
+### Files
 
 - Create: `src/components/reader/article-tag-picker-view.tsx`
 - Create: `src/components/reader/article-tag-picker-view.stories.tsx`
@@ -346,7 +346,7 @@ git commit -m "refactor: isolate article tag picker view"
 
 ## Task 5: Article List Screen / Groups View を抽出する
 
-**Files:**
+### Files
 
 - Create: `src/components/reader/article-list-screen-view.tsx`
 - Create: `src/components/reader/article-groups-view.tsx`
@@ -392,7 +392,7 @@ git commit -m "refactor: isolate article list views"
 
 ## Task 6: Add Feed Dialog の View を抽出する
 
-**Files:**
+### Files
 
 - Create: `src/components/reader/discovered-feed-options-view.tsx`
 - Create: `src/components/reader/folder-select-view.tsx`
@@ -439,7 +439,7 @@ git commit -m "refactor: isolate add feed dialog views"
 
 ## Task 7: Tag Context Menu の View を抽出する
 
-**Files:**
+### Files
 
 - Create: `src/components/reader/rename-tag-dialog-view.tsx`
 - Create: `src/components/reader/delete-tag-dialog-view.tsx`
@@ -485,7 +485,7 @@ git commit -m "refactor: isolate tag context menu views"
 
 ## Task 8: Settings Modal の View を抽出する
 
-**Files:**
+### Files
 
 - Create: `src/components/settings/settings-nav-view.tsx`
 - Create: `src/components/settings/accounts-nav-view.tsx`
@@ -532,7 +532,7 @@ git commit -m "refactor: isolate settings modal views"
 
 ## Task 9: Account Detail の View を抽出する
 
-**Files:**
+### Files
 
 - Create: `src/components/settings/account-general-section-view.tsx`
 - Create: `src/components/settings/account-sync-section-view.tsx`
@@ -579,7 +579,7 @@ git commit -m "refactor: isolate account detail views"
 
 ## Task 10: Remaining Reader Dialogs と Context Menus を順次 View 化する
 
-**Files:**
+### Files
 
 - Modify: `src/components/reader/rename-feed-dialog.tsx`
 - Modify: `src/components/reader/unsubscribe-feed-dialog.tsx`
@@ -619,7 +619,7 @@ git commit -m "refactor: isolate remaining reader dialogs and menus"
 
 ## Task 11: Remaining Reader List Building Blocks を View 化する
 
-**Files:**
+### Files
 
 - Modify: `src/components/reader/feed-item.tsx`
 - Modify: `src/components/reader/folder-section.tsx`
@@ -657,7 +657,7 @@ git commit -m "refactor: isolate reader list building blocks"
 
 ## Task 12: Remaining Settings Forms を順次 View 化する
 
-**Files:**
+### Files
 
 - Modify: `src/components/settings/add-account-form.tsx`
 - Modify: `src/components/settings/general-settings.tsx`
@@ -698,7 +698,7 @@ git commit -m "refactor: isolate remaining settings form views"
 
 ## Task 13: Container test と story naming を整える
 
-**Files:**
+### Files
 
 - Modify: `src/__tests__/components/sidebar.test.tsx`
 - Modify: `src/__tests__/components/article-view.test.tsx`
@@ -738,7 +738,7 @@ git commit -m "test: align container tests with isolated views"
 
 ## Task 14: Final Verification
 
-**Files:**
+### Files
 
 - Verify only
 
