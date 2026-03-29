@@ -20,6 +20,8 @@ describe("SmartViewsView", () => {
 
     expect(screen.getByRole("button", { name: /Unread/ })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: /Starred/ })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: /Unread/ })).toHaveClass("w-full");
+    expect(screen.getByRole("button", { name: /Starred/ })).toHaveClass("w-full");
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
 
