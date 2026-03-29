@@ -35,4 +35,5 @@ jobs:
             src/components/ui/**
             pnpm-lock.yaml
             src-tauri/target/**
+            docs/superpowers/plans/**
           language: "ja"
