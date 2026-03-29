@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SectionHeading } from "@/components/settings/settings-components";
-import { Button } from "@/components/ui/button";
+import { ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
 import {
   formatKeyForDisplay,
   type ShortcutActionId,
@@ -10,7 +10,7 @@ import {
 } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
-function normalizeRecordedKey(e: KeyboardEvent): string | null {
+function normalizeRecordedKey(e: Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey">): string | null {
   // Ignore bare modifier keys
   if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return null;
 
@@ -19,77 +19,6 @@ function normalizeRecordedKey(e: KeyboardEvent): string | null {
   if (e.shiftKey) parts.push("Shift");
   parts.push(e.key.length === 1 && e.shiftKey ? e.key.toUpperCase() : e.key);
   return parts.join("+");
-}
-
-interface ShortcutKeyBadgeProps {
-  actionId: ShortcutActionId;
-  currentKey: string;
-  isRecording: boolean;
-  conflict: string | null;
-  onStartRecording: () => void;
-  onKeyRecorded: (key: string) => void;
-  onCancel: () => void;
-  pressAKeyLabel: string;
-  conflictLabel: string;
-}
-
-function ShortcutKeyBadge({
-  actionId,
-  currentKey,
-  isRecording,
-  conflict,
-  onStartRecording,
-  onKeyRecorded,
-  onCancel,
-  pressAKeyLabel,
-  conflictLabel,
-}: ShortcutKeyBadgeProps) {
-  const badgeRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!isRecording) return;
-
-    badgeRef.current?.focus();
-
-    const handler = (e: KeyboardEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (e.key === "Escape") {
-        onCancel();
-        return;
-      }
-
-      const recorded = normalizeRecordedKey(e);
-      if (recorded) {
-        onKeyRecorded(recorded);
-      }
-    };
-
-    window.addEventListener("keydown", handler, true);
-    return () => window.removeEventListener("keydown", handler, true);
-  }, [isRecording, onCancel, onKeyRecorded]);
-
-  return (
-    <div className="flex flex-col items-end gap-1">
-      <button
-        ref={badgeRef}
-        type="button"
-        data-testid={`shortcut-badge-${actionId}`}
-        onClick={onStartRecording}
-        className={`rounded-md border px-2.5 py-1 font-mono text-sm transition-colors ${
-          isRecording
-            ? "border-ring bg-ring/20 text-foreground animate-pulse"
-            : conflict
-              ? "border-destructive bg-destructive/10 text-destructive"
-              : "border-border bg-muted text-muted-foreground hover:border-ring hover:bg-ring/10 cursor-pointer"
-        }`}
-      >
-        {isRecording ? pressAKeyLabel : formatKeyForDisplay(currentKey)}
-      </button>
-      {conflict && !isRecording && <span className="text-[10px] text-destructive">{conflictLabel}</span>}
-    </div>
-  );
 }
 
 export function ShortcutsSettings() {
@@ -146,6 +75,26 @@ export function ShortcutsSettings() {
     setRecordingId(null);
   }, []);
 
+  const handleBadgeKeyDown = useCallback(
+    (id: ShortcutActionId, event: KeyboardEvent<HTMLButtonElement>) => {
+      if (recordingId !== id) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (event.key === "Escape") {
+        handleCancel();
+        return;
+      }
+
+      const recorded = normalizeRecordedKey(event);
+      if (recorded) {
+        handleKeyRecorded(id, recorded);
+      }
+    },
+    [handleCancel, handleKeyRecorded, recordingId],
+  );
+
   const handleResetAll = useCallback(() => {
     for (const def of shortcutDefinitions) {
       setPref(shortcutPrefKey(def.id), def.defaultKey);
@@ -158,58 +107,34 @@ export function ShortcutsSettings() {
   });
 
   return (
-    <div className="p-6">
-      <h2 className="mb-6 text-center text-lg font-semibold">{t("shortcuts.heading")}</h2>
+    <ShortcutsSettingsView
+      title={t("shortcuts.heading")}
+      conflictMessage={conflictMessage}
+      pressAKeyLabel={t("shortcuts.press_a_key")}
+      resetLabel={t("shortcuts.reset_to_defaults")}
+      resetDisabled={!hasCustomBindings}
+      onResetAll={handleResetAll}
+      categories={categories.map((category) => ({
+        id: category,
+        heading: tReader(category),
+        items: shortcutDefinitions
+          .filter((definition) => definition.categoryKey === category)
+          .map((definition) => {
+            const currentKey = getKey(definition.id);
+            const conflict = findConflict(definition.id, currentKey);
 
-      {conflictMessage && (
-        <div className="mb-4 rounded-md border border-destructive bg-destructive/10 px-4 py-2 text-sm text-destructive">
-          {conflictMessage}
-        </div>
-      )}
-
-      {categories.map((cat) => (
-        <section key={cat} className="mb-6">
-          <SectionHeading>{tReader(cat)}</SectionHeading>
-          {shortcutDefinitions
-            .filter((d) => d.categoryKey === cat)
-            .map((def) => {
-              const currentKey = getKey(def.id);
-              const conflict = findConflict(def.id, currentKey);
-
-              return (
-                <div
-                  key={def.id}
-                  className="flex min-h-[44px] items-center justify-between border-b border-border py-3"
-                >
-                  <span className="text-sm text-foreground">{tReader(def.labelKey)}</span>
-                  {def.id === "open_settings" ? (
-                    <kbd className="rounded-md border border-border bg-muted px-2.5 py-1 font-mono text-sm text-muted-foreground">
-                      {formatKeyForDisplay(currentKey)}
-                    </kbd>
-                  ) : (
-                    <ShortcutKeyBadge
-                      actionId={def.id}
-                      currentKey={currentKey}
-                      isRecording={recordingId === def.id}
-                      conflict={conflict}
-                      onStartRecording={() => handleStartRecording(def.id)}
-                      onKeyRecorded={(key) => handleKeyRecorded(def.id, key)}
-                      onCancel={handleCancel}
-                      pressAKeyLabel={t("shortcuts.press_a_key")}
-                      conflictLabel={t("shortcuts.conflict", { name: conflict ?? "" })}
-                    />
-                  )}
-                </div>
-              );
-            })}
-        </section>
-      ))}
-
-      <div className="flex justify-center border-t border-border pt-6">
-        <Button variant="outline" size="sm" onClick={handleResetAll} disabled={!hasCustomBindings}>
-          {t("shortcuts.reset_to_defaults")}
-        </Button>
-      </div>
-    </div>
+            return {
+              id: definition.id,
+              label: tReader(definition.labelKey),
+              displayKey: formatKeyForDisplay(currentKey),
+              isLocked: definition.id === "open_settings",
+              isRecording: recordingId === definition.id,
+              conflictLabel: conflict ? t("shortcuts.conflict", { name: conflict }) : null,
+              onStartRecording: () => handleStartRecording(definition.id),
+              onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => handleBadgeKeyDown(definition.id, event),
+            };
+          }),
+      }))}
+    />
   );
 }
