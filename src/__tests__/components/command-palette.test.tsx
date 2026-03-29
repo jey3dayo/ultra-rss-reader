@@ -54,6 +54,14 @@ describe("CommandPalette", () => {
     expect(screen.queryByRole("option", { name: /Tech Blog/ })).not.toBeInTheDocument();
   });
 
+  it("falls back to the normal action list when history is empty", async () => {
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Open settings/ })).toBeInTheDocument();
+    expect(screen.queryByText("Recent Actions")).not.toBeInTheDocument();
+  });
+
   it("selecting a feed updates selection and closes the palette", async () => {
     const user = userEvent.setup();
     render(<CommandPalette />, { wrapper: createWrapper() });

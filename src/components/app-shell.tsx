@@ -64,6 +64,7 @@ export function AppShell() {
   useKeyboard();
   useMenuEvents();
   useUpdater();
+  const commandPaletteOpen = useUiStore((state) => state.commandPaletteOpen);
 
   return (
     <div className="flex h-full flex-col">
@@ -71,7 +72,7 @@ export function AppShell() {
       <SettingsModal />
       <ConfirmDialog />
       <Toast />
-      <CommandPalette />
+      {commandPaletteOpen ? <CommandPalette /> : null}
     </div>
   );
 }

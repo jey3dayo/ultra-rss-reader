@@ -252,5 +252,6 @@ describe("useKeyboard", () => {
     await waitFor(() => {
       expect(useUiStore.getState().commandPaletteOpen).toBe(true);
     });
+    expect(await screen.findByPlaceholderText("Search commands...")).toBeInTheDocument();
   });
 });

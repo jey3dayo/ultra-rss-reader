@@ -67,6 +67,10 @@ function parseHistoryEntry(value: string): HistoryEntry | null {
   return null;
 }
 
+function getCommandItemValue(kind: HistoryEntry["kind"], id: string): string {
+  return `${kind}:${id}`;
+}
+
 export function CommandPalette() {
   const { t } = useTranslation("reader");
   const { t: tSidebar } = useTranslation("sidebar");
@@ -140,7 +144,7 @@ export function CommandPalette() {
       .filter((action): action is PaletteAction => action != null);
   }, [actions]);
 
-  const showRecentActions = prefix === null && query.length === 0;
+  const showRecentActions = prefix === null && query.length === 0 && recentActions.length > 0;
   const showActions = prefix === null || prefix === ">";
   const showFeeds = prefix === null || prefix === "@";
   const showTags = prefix === null || prefix === "#";
@@ -210,7 +214,7 @@ export function CommandPalette() {
                   return (
                     <CommandItem
                       key={`recent-${action.id}`}
-                      value={action.label}
+                      value={getCommandItemValue("action", action.id)}
                       onSelect={() => handleActionSelect(action.id)}
                     >
                       <Icon />
@@ -227,7 +231,11 @@ export function CommandPalette() {
                 {filteredActions.map((action) => {
                   const Icon = action.icon;
                   return (
-                    <CommandItem key={action.id} value={action.label} onSelect={() => handleActionSelect(action.id)}>
+                    <CommandItem
+                      key={action.id}
+                      value={getCommandItemValue("action", action.id)}
+                      onSelect={() => handleActionSelect(action.id)}
+                    >
                       <Icon />
                       <span>{action.label}</span>
                       {action.shortcut ? <CommandShortcut>{action.shortcut}</CommandShortcut> : null}
@@ -240,7 +248,11 @@ export function CommandPalette() {
             {!showRecentActions && showFeeds && filteredFeeds.length > 0 ? (
               <CommandGroup heading={t("command_palette.feeds")}>
                 {filteredFeeds.map((feed) => (
-                  <CommandItem key={feed.id} value={feed.title} onSelect={() => handleFeedSelect(feed.id)}>
+                  <CommandItem
+                    key={feed.id}
+                    value={getCommandItemValue("feed", feed.id)}
+                    onSelect={() => handleFeedSelect(feed.id)}
+                  >
                     <RssIcon />
                     <span>{feed.title}</span>
                   </CommandItem>
@@ -251,7 +263,11 @@ export function CommandPalette() {
             {!showRecentActions && showTags && filteredTags.length > 0 ? (
               <CommandGroup heading={t("command_palette.tags")}>
                 {filteredTags.map((tag) => (
-                  <CommandItem key={tag.id} value={tag.name} onSelect={() => handleTagSelect(tag.id)}>
+                  <CommandItem
+                    key={tag.id}
+                    value={getCommandItemValue("tag", tag.id)}
+                    onSelect={() => handleTagSelect(tag.id)}
+                  >
                     <HashIcon />
                     <span>{tag.name}</span>
                   </CommandItem>
@@ -264,7 +280,7 @@ export function CommandPalette() {
                 {articles.map((article) => (
                   <CommandItem
                     key={article.id}
-                    value={article.title}
+                    value={getCommandItemValue("article", article.id)}
                     onSelect={() => handleArticleSelect(article.feed_id, article.id)}
                   >
                     <NewspaperIcon />
