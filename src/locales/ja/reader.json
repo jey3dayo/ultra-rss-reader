@@ -1,7 +1,7 @@
 {
   "articles": "記事",
   "unread": "未読",
-  "starred": "スター付き",
+  "starred": "スター",
   "tagged_articles": "タグ付き記事",
   "all_articles": "すべての記事",
   "no_articles": "記事がありません",
@@ -20,7 +20,7 @@
   "yesterday": "昨日",
   "unknown_feed": "不明なフィード",
   "unread_suffix": "(未読)",
-  "starred_suffix": "(スター付き)",
+  "starred_suffix": "(スター)",
   "show_sidebar": "サイドバーを表示",
   "close_view": "表示を閉じる",
   "toggle_widescreen_mode": "ワイドスクリーンを切り替え",
