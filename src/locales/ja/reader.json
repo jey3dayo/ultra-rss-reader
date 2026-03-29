@@ -87,6 +87,19 @@
   "failed_to_rename_tag": "タグ名の変更に失敗しました: {{message}}",
   "failed_to_delete_tag": "タグの削除に失敗しました: {{message}}",
   "confirm_unsubscribe": "<strong>{{title}}</strong> の購読を解除しますか？このフィードのすべての記事が削除されます。",
+  "command_palette": {
+    "placeholder": "コマンドを検索...",
+    "no_results": "結果が見つかりません",
+    "recent_actions": "最近のアクション",
+    "actions": "アクション",
+    "feeds": "フィード",
+    "articles": "記事",
+    "tags": "タグ",
+    "online_results": "オンライン結果",
+    "prefix_hint_actions": "アクション",
+    "prefix_hint_feeds": "フィード",
+    "prefix_hint_tags": "タグ"
+  },
   "shortcuts": {
     "next_article": "次の記事",
     "prev_article": "前の記事",

@@ -87,6 +87,19 @@
   "failed_to_rename_tag": "Failed to rename tag: {{message}}",
   "failed_to_delete_tag": "Failed to delete tag: {{message}}",
   "confirm_unsubscribe": "Are you sure you want to unsubscribe from <strong>{{title}}</strong>? All articles from this feed will be deleted.",
+  "command_palette": {
+    "placeholder": "Search commands...",
+    "no_results": "No results found",
+    "recent_actions": "Recent Actions",
+    "actions": "Actions",
+    "feeds": "Feeds",
+    "articles": "Articles",
+    "tags": "Tags",
+    "online_results": "Online Results",
+    "prefix_hint_actions": "Actions",
+    "prefix_hint_feeds": "Feeds",
+    "prefix_hint_tags": "Tags"
+  },
   "shortcuts": {
     "next_article": "Next article",
     "prev_article": "Previous article",
