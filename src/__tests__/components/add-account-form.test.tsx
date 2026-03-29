@@ -76,7 +76,7 @@ describe("AddAccountForm", () => {
     setupTauriMocks((cmd, args) => {
       if (cmd === "add_account") {
         addAccountCalls(args);
-        return new Promise((resolve) => {
+        return new Promise<unknown>((resolve) => {
           resolveAddAccount = resolve;
         });
       }
