@@ -9,14 +9,7 @@ describe("DeleteTagDialogView", () => {
     const onOpenChange = vi.fn();
     const onConfirm = vi.fn();
 
-    render(
-      <DeleteTagDialogView
-        open={true}
-        tagName="Work"
-        onOpenChange={onOpenChange}
-        onConfirm={onConfirm}
-      />,
-    );
+    render(<DeleteTagDialogView open={true} tagName="Work" onOpenChange={onOpenChange} onConfirm={onConfirm} />);
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("Delete Tag")).toBeInTheDocument();

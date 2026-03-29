@@ -9,11 +9,7 @@ import { AppearanceSettings } from "@/components/settings/appearance-settings";
 import { GeneralSettings } from "@/components/settings/general-settings";
 import { ReadingSettings } from "@/components/settings/reading-settings";
 import { SettingsModalView } from "@/components/settings/settings-modal-view";
-import {
-  type SettingsNavItem,
-  type SettingsNavItemId,
-  SettingsNavView,
-} from "@/components/settings/settings-nav-view";
+import { type SettingsNavItem, type SettingsNavItemId, SettingsNavView } from "@/components/settings/settings-nav-view";
 import { ShortcutsSettings } from "@/components/settings/shortcuts-settings";
 import { useAccounts } from "@/hooks/use-accounts";
 import type { SettingsCategory } from "@/stores/ui-store";
