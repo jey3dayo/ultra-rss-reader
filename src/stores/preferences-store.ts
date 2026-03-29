@@ -27,7 +27,6 @@ const defaults: Record<string, string> = {
   font_size: "medium",
   show_starred_count: "true",
   show_unread_count: "true",
-  show_all_count: "true",
   image_previews: "medium",
   display_favicons: "true",
   text_preview: "true",
@@ -84,6 +83,36 @@ function applyTheme(theme: Theme): void {
   }
 }
 
+const fontStyleClasses: Record<string, string> = {
+  sans_serif: "font-sans",
+  serif: "font-serif",
+  monospace: "font-mono",
+};
+
+const fontSizeClasses: Record<string, string> = {
+  small: "text-sm",
+  medium: "text-base",
+  large: "text-lg",
+};
+
+function applyFontStyle(style: string): void {
+  const root = document.documentElement;
+  for (const cls of Object.values(fontStyleClasses)) {
+    root.classList.remove(cls);
+  }
+  const cls = fontStyleClasses[style] ?? fontStyleClasses.sans_serif;
+  root.classList.add(cls);
+}
+
+function applyFontSize(size: string): void {
+  const root = document.documentElement;
+  for (const cls of Object.values(fontSizeClasses)) {
+    root.classList.remove(cls);
+  }
+  const cls = fontSizeClasses[size] ?? fontSizeClasses.medium;
+  root.classList.add(cls);
+}
+
 function applyLanguage(language: string): void {
   if (language === "system") {
     const detected = navigator.language.startsWith("ja") ? "ja" : "en";
@@ -106,6 +135,8 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
         const theme = (data.theme ?? defaults.theme) as Theme;
         applyTheme(theme);
         applyLanguage(data.language ?? defaults.language);
+        applyFontStyle(data.font_style ?? defaults.font_style);
+        applyFontSize(data.font_size ?? defaults.font_size);
       }),
       Result.inspectError((e) => {
         console.error("Failed to load preferences:", e);
@@ -126,6 +157,12 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
     }
     if (key === "language") {
       applyLanguage(value);
+    }
+    if (key === "font_style") {
+      applyFontStyle(value);
+    }
+    if (key === "font_size") {
+      applyFontSize(value);
     }
 
     // Fire and forget — notify user on failure
