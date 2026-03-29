@@ -26,7 +26,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { ArticleContentView } from "./article-content-view";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticleMetaView } from "./article-meta-view";
-import { ArticleTagPickerView, type ArticleTagPickerTagView } from "./article-tag-picker-view";
+import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-tag-picker-view";
 import { ArticleToolbarView } from "./article-toolbar-view";
 import { BrowserView } from "./browser-view";
 
