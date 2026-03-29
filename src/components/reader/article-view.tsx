@@ -248,10 +248,12 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
           onKeyDown={(e) => {
             if (e.key === "ArrowDown" && !showPicker) {
               e.preventDefault();
+              e.stopPropagation();
               setShowPicker(true);
             }
             if (e.key === "Escape" && showPicker) {
               e.preventDefault();
+              e.stopPropagation();
               closePicker(true);
             }
           }}
@@ -273,15 +275,18 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
               const currentIndex = tagOptionRefs.current.indexOf(document.activeElement as HTMLButtonElement);
               if (e.key === "Escape") {
                 e.preventDefault();
+                e.stopPropagation();
                 closePicker(true);
               }
               if (e.key === "ArrowDown" && unassignedTags.length > 0) {
                 e.preventDefault();
+                e.stopPropagation();
                 const nextIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
                 tagOptionRefs.current[nextIndex % unassignedTags.length]?.focus();
               }
               if (e.key === "ArrowUp" && unassignedTags.length > 0) {
                 e.preventDefault();
+                e.stopPropagation();
                 const nextIndex = currentIndex >= 0 ? currentIndex - 1 : unassignedTags.length - 1;
                 tagOptionRefs.current[(nextIndex + unassignedTags.length) % unassignedTags.length]?.focus();
               }
@@ -318,8 +323,14 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
                 value={newTagName}
                 onChange={(e) => setNewTagName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") handleCreateAndAssign();
-                  if (e.key === "Escape") closePicker(true);
+                  if (e.key === "Enter") {
+                    e.stopPropagation();
+                    handleCreateAndAssign();
+                  }
+                  if (e.key === "Escape") {
+                    e.stopPropagation();
+                    closePicker(true);
+                  }
                 }}
                 placeholder={t("new_tag_placeholder")}
                 className="h-auto flex-1 rounded border-none bg-transparent px-1 py-1 text-xs shadow-none ring-0 focus-visible:ring-0"

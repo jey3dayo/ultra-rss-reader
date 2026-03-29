@@ -254,4 +254,73 @@ describe("useKeyboard", () => {
     });
     expect(await screen.findByPlaceholderText("Search commands...")).toBeInTheDocument();
   });
+
+  it("pressing Escape in the tag picker closes the picker without clearing the article", async () => {
+    const calls: MockCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_folders":
+        case "search_articles":
+          return [];
+        case "list_tags":
+          return [
+            { id: "tag-1", name: "Later", color: null },
+            { id: "tag-2", name: "Important", color: "#ff0000" },
+          ];
+        case "get_article_tags":
+          return [{ id: "tag-1", name: "Later", color: null }];
+        case "mark_article_read":
+        case "mark_articles_read":
+        case "toggle_article_star":
+        case "open_in_browser":
+        case "trigger_sync":
+          return null;
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "wide",
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+    });
+    usePreferencesStore.setState({
+      prefs: {
+        after_reading: "do_nothing",
+        ask_before_mark_all: "false",
+      },
+      loaded: true,
+    });
+
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Add tag" }));
+    const listbox = await screen.findByRole("listbox", { name: "Available tags" });
+
+    fireEvent.keyDown(listbox, { key: "Escape" });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("listbox", { name: "Available tags" })).not.toBeInTheDocument();
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(useUiStore.getState().contentMode).toBe("reader");
+    });
+  });
 });
