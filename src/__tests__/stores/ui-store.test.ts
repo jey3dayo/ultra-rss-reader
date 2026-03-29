@@ -63,4 +63,22 @@ describe("useUiStore", () => {
     useUiStore.getState().toggleFolder("f1");
     expect(useUiStore.getState().expandedFolderIds.has("f1")).toBe(false);
   });
+
+  it("focuses the list pane for list-oriented selections", () => {
+    useUiStore.getState().setFocusedPane("sidebar");
+    useUiStore.getState().selectAccount("acc-1");
+    expect(useUiStore.getState().focusedPane).toBe("list");
+
+    useUiStore.getState().setFocusedPane("sidebar");
+    useUiStore.getState().selectFolder("folder-1");
+    expect(useUiStore.getState().focusedPane).toBe("list");
+
+    useUiStore.getState().setFocusedPane("sidebar");
+    useUiStore.getState().selectSmartView("unread");
+    expect(useUiStore.getState().focusedPane).toBe("list");
+
+    useUiStore.getState().setFocusedPane("sidebar");
+    useUiStore.getState().selectAll();
+    expect(useUiStore.getState().focusedPane).toBe("list");
+  });
 });
