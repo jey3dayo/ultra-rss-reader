@@ -4,6 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Features
+
+- コマンドパレット（⌘K）でフィード/記事/設定への素早いアクセス + アクション実行
+- フォーム要素の Base UI 移行（Input, Select, RadioGroup）
+- 設定項目の動作反映（unread_badge, sort_subscriptions, mark_article_as_read, list_selection_style, layout, opaque_sidebars, grayscale_favicons, font_style, font_size, show_starred_count, reader_view, reading_sort）
+
+### Maintenance
+
+- feature branch → PR → merge 運用確立（release.yml テンプレ + labeler）
+
 ## [0.3.1] - 2026-03-29
 
 ### Features
