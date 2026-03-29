@@ -9,6 +9,7 @@
   "loading": "Loading...",
   "confirm": "Confirm",
   "ok": "OK",
+  "mark_as_read_action": "Mark as Read",
   "back": "Back",
   "failed_to_save_setting": "Failed to save setting: {{message}}"
 }

@@ -47,6 +47,7 @@ interface UiState {
   confirmDialog: {
     open: boolean;
     message: string;
+    actionLabel: string | null;
     onConfirm: (() => void) | null;
   };
 }
@@ -81,7 +82,7 @@ interface UiActions {
   clearToast: () => void;
   addRecentlyRead: (id: string) => void;
   clearRecentlyRead: () => void;
-  showConfirm: (message: string, onConfirm: () => void) => void;
+  showConfirm: (message: string, onConfirm: () => void, actionLabel?: string) => void;
   closeConfirm: () => void;
 }
 
@@ -104,7 +105,7 @@ const initialState: UiState = {
   isAddFeedDialogOpen: false,
   toastMessage: null,
   recentlyReadIds: new Set(),
-  confirmDialog: { open: false, message: "", onConfirm: null },
+  confirmDialog: { open: false, message: "", actionLabel: null, onConfirm: null },
 };
 
 export const useUiStore = create<UiState & UiActions>()((set) => ({
@@ -210,6 +211,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       return { recentlyReadIds: next };
     }),
   clearRecentlyRead: () => set({ recentlyReadIds: new Set() }),
-  showConfirm: (message, onConfirm) => set({ confirmDialog: { open: true, message, onConfirm } }),
-  closeConfirm: () => set({ confirmDialog: { open: false, message: "", onConfirm: null } }),
+  showConfirm: (message, onConfirm, actionLabel) =>
+    set({ confirmDialog: { open: true, message, actionLabel: actionLabel ?? null, onConfirm } }),
+  closeConfirm: () => set({ confirmDialog: { open: false, message: "", actionLabel: null, onConfirm: null } }),
 }));

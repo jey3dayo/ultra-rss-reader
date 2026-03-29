@@ -9,6 +9,7 @@
   "loading": "読み込み中...",
   "confirm": "確認",
   "ok": "OK",
+  "mark_as_read_action": "既読にする",
   "back": "戻る",
   "failed_to_save_setting": "設定の保存に失敗しました: {{message}}"
 }

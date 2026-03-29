@@ -7,6 +7,7 @@ import { FolderContextMenuView } from "./folder-context-menu-view";
 
 export function FolderContextMenuContent({ folder, folderUnread }: { folder: FolderDto; folderUnread: number }) {
   const { t } = useTranslation("reader");
+  const { t: tc } = useTranslation("common");
   const askBeforeMarkAll = usePreferencesStore((s) => s.prefs.ask_before_mark_all ?? "true");
   const showConfirm = useUiStore((s) => s.showConfirm);
   const markFolderRead = useMarkFolderRead();
@@ -15,7 +16,7 @@ export function FolderContextMenuContent({ folder, folderUnread }: { folder: Fol
     if (folderUnread === 0) return;
     const doMark = () => markFolderRead.mutate(folder.id);
     if (askBeforeMarkAll === "true") {
-      showConfirm(t("confirm_mark_folder_read", { count: folderUnread, name: folder.name }), doMark);
+      showConfirm(t("confirm_mark_folder_read", { count: folderUnread }), doMark, tc("mark_as_read_action"));
     } else {
       doMark();
     }

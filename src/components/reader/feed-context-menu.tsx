@@ -14,6 +14,7 @@ import { UnsubscribeDialog } from "./unsubscribe-feed-dialog";
 
 export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
   const { t } = useTranslation("reader");
+  const { t: tc } = useTranslation("common");
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showUnsubscribeDialog, setShowUnsubscribeDialog] = useState(false);
   const qc = useQueryClient();
@@ -42,7 +43,7 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
     if (feed.unread_count === 0) return;
     const doMark = () => markFeedRead.mutate(feed.id);
     if (askBeforeMarkAll === "true") {
-      showConfirm(t("confirm_mark_feed_read", { count: feed.unread_count, title: feed.title }), doMark);
+      showConfirm(t("confirm_mark_feed_read", { count: feed.unread_count }), doMark, tc("mark_as_read_action"));
     } else {
       doMark();
     }

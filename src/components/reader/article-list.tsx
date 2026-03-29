@@ -158,11 +158,11 @@ export function ArticleList() {
     const unreadIds = getUnreadArticleIds(filteredArticles);
     if (unreadIds.length === 0) return;
     if (askBeforeMarkAll === "true") {
-      showConfirm(t("confirm_mark_read", { count: unreadIds.length }), doMarkAllRead);
+      showConfirm(t("confirm_mark_read", { count: unreadIds.length }), doMarkAllRead, tc("mark_as_read_action"));
     } else {
       doMarkAllRead();
     }
-  }, [askBeforeMarkAll, filteredArticles, showConfirm, doMarkAllRead, t]);
+  }, [askBeforeMarkAll, filteredArticles, showConfirm, doMarkAllRead, t, tc]);
 
   const openSearch = useCallback(() => {
     setShowSearch(true);
