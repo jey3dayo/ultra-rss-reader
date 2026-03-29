@@ -39,6 +39,7 @@ export function AddFeedDialog({
   const [newFolderName, setNewFolderName] = useState("");
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [discovering, setDiscovering] = useState(false);
   const [discoveredFeeds, setDiscoveredFeeds] = useState<DiscoveredFeedDto[]>([]);
@@ -56,6 +57,7 @@ export function AddFeedDialog({
       setNewFolderName("");
       setIsCreatingFolder(false);
       setError(null);
+      setSuccessMessage(null);
       setLoading(false);
       setDiscovering(false);
       setDiscoveredFeeds([]);
@@ -86,6 +88,7 @@ export function AddFeedDialog({
     if (!trimmed) return;
     setDiscovering(true);
     setError(null);
+    setSuccessMessage(null);
     setDiscoveredFeeds([]);
     setSelectedFeedUrl(null);
 
@@ -95,9 +98,11 @@ export function AddFeedDialog({
         if (feeds.length === 0) {
           setDiscoveredFeeds([]);
           setSelectedFeedUrl(null);
+          setSuccessMessage(t("feed_url_ready"));
         } else if (feeds.length === 1) {
           setDiscoveredFeeds(feeds[0].title ? feeds : []);
           setSelectedFeedUrl(feeds[0].url);
+          setSuccessMessage(t("feed_detected"));
         } else {
           setDiscoveredFeeds(feeds);
           setSelectedFeedUrl(feeds[0].url);
@@ -178,7 +183,7 @@ export function AddFeedDialog({
   const selectClassName =
     "mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm text-foreground shadow-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
   const inputClassName =
-    "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+    "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm text-foreground shadow-xs outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
 
   const isSubmitDisabled =
     (!url.trim() && !selectedFeedUrl) || loading || discovering || (isCreatingFolder && !newFolderName.trim());
@@ -285,6 +290,7 @@ export function AddFeedDialog({
             </label>
           )}
 
+          {successMessage && !error && <p className="mt-2 text-sm text-green-400">{successMessage}</p>}
           {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
         </form>
         <DialogFooter>

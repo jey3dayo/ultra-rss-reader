@@ -52,6 +52,8 @@
   "folder_name": "Folder Name",
   "enter_folder_name": "Enter folder name",
   "adding": "Adding...",
+  "feed_url_ready": "Ready to add as feed URL",
+  "feed_detected": "Feed detected",
   "discovery_failed": "Discovery failed: {{message}}",
   "failed_to_create_folder": "Failed to create folder: {{message}}",
   "failed_to_add_feed": "Failed to add feed: {{message}}",

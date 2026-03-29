@@ -52,6 +52,8 @@
   "folder_name": "フォルダ名",
   "enter_folder_name": "フォルダ名を入力",
   "adding": "追加中...",
+  "feed_url_ready": "フィードURLとして追加できます",
+  "feed_detected": "フィードを検出しました",
   "discovery_failed": "検出に失敗しました: {{message}}",
   "failed_to_create_folder": "フォルダの作成に失敗しました: {{message}}",
   "failed_to_add_feed": "フィードの追加に失敗しました: {{message}}",
