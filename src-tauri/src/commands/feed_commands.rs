@@ -636,7 +636,10 @@ mod tests {
         let result = run_full_sync(&db, &syncing).await;
 
         assert!(result.is_ok());
-        assert!(!syncing.load(Ordering::SeqCst), "syncing flag should be reset after sync");
+        assert!(
+            !syncing.load(Ordering::SeqCst),
+            "syncing flag should be reset after sync"
+        );
     }
 
     #[tokio::test]
@@ -664,6 +667,9 @@ mod tests {
             let _guard = SyncGuard(&syncing);
             assert!(syncing.load(Ordering::SeqCst));
         } // _guard dropped here
-        assert!(!syncing.load(Ordering::SeqCst), "flag should be false after guard drop");
+        assert!(
+            !syncing.load(Ordering::SeqCst),
+            "flag should be false after guard drop"
+        );
     }
 }
