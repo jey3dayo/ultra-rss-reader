@@ -1,7 +1,7 @@
 import { useId } from "react";
 import { SectionHeading } from "@/components/settings/settings-components";
+import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 
 export type SettingsPageOption = {
   value: string;
@@ -83,12 +83,11 @@ function SettingsPageSwitchRow({ control }: { control: SettingsPageSwitchControl
       <span id={labelId} className="text-sm text-foreground">
         {control.label}
       </span>
-      <Switch
+      <GradientSwitch
         checked={control.checked}
         onCheckedChange={(checked) => control.onChange(checked)}
         disabled={control.disabled}
         aria-labelledby={labelId}
-        className="data-[state=checked]:bg-ring"
       />
     </div>
   );
