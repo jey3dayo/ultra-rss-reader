@@ -15,8 +15,9 @@ async function setBadgeCount(count: number | undefined): Promise<void> {
 
 export function useBadge() {
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
-  const { data: feeds } = useFeeds(selectedAccountId);
   const badgePref = usePreferencesStore((s) => s.prefs.unread_badge ?? "dont_display");
+  const feedAccountId = badgePref === "all_unread" ? selectedAccountId : null;
+  const { data: feeds } = useFeeds(feedAccountId);
   const { data: accountUnreadCount } = useAccountUnreadCount(
     selectedAccountId,
     badgePref === "only_inbox" && selectedAccountId !== null,

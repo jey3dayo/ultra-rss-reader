@@ -133,6 +133,7 @@ describe("AddFeedDialog", () => {
       args: { feedId: "feed-new", folderId: "folder-new" },
     });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["feeds"] });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["accountUnreadCount"] });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["folders"] });
   });
 });
