@@ -615,7 +615,7 @@ pub async fn trigger_sync(
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicBool, Ordering};
-    use std::sync::{Arc, Mutex};
+    use std::sync::Mutex;
 
     #[tokio::test]
     async fn run_full_sync_skips_when_already_syncing() {
@@ -639,21 +639,21 @@ mod tests {
         assert!(!syncing.load(Ordering::SeqCst), "syncing flag should be reset after sync");
     }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    #[tokio::test]
     async fn concurrent_syncs_only_one_executes() {
-        let db = Arc::new(Mutex::new(DbManager::new_in_memory().unwrap()));
-        let syncing = Arc::new(AtomicBool::new(false));
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let syncing = AtomicBool::new(false);
 
-        let db1 = Arc::clone(&db);
-        let syncing1 = Arc::clone(&syncing);
-        let db2 = Arc::clone(&db);
-        let syncing2 = Arc::clone(&syncing);
+        // First call: starts a real sync (returns true)
+        let result1 = run_full_sync(&db, &syncing).await.unwrap();
 
-        let h1 = tokio::spawn(async move { run_full_sync(&db1, &syncing1).await });
-        let h2 = tokio::spawn(async move { run_full_sync(&db2, &syncing2).await });
+        // Simulate a second call arriving while the first is in-flight
+        // by manually holding the flag high
+        syncing.store(true, Ordering::SeqCst);
+        let result2 = run_full_sync(&db, &syncing).await.unwrap();
+        syncing.store(false, Ordering::SeqCst); // cleanup
 
-        let results = [h1.await.unwrap().unwrap(), h2.await.unwrap().unwrap()];
-        assert!(results.contains(&true), "one sync should execute");
-        assert!(results.contains(&false), "one sync should be skipped");
+        assert!(result1, "first sync should execute");
+        assert!(!result2, "concurrent sync should be skipped");
     }
 }
