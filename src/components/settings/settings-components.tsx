@@ -41,7 +41,7 @@ export function SettingsSelect({
         name={prefKey}
         value={value}
         onChange={(e) => setPref(prefKey, e.target.value)}
-        className="rounded-md border border-border bg-background px-2 py-1 text-sm text-muted-foreground"
+        className="min-w-[140px] rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/50"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
