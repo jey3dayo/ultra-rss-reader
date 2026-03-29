@@ -1,13 +1,16 @@
 import { Result } from "@praha/byethrow";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, ExternalLink, Globe } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { checkBrowserEmbedSupport, openInBrowser } from "@/api/tauri-commands";
+import { checkBrowserEmbedSupport, openInBrowser, updateFeedDisplayMode } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { useAccountArticles, useArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useArticlesByTag } from "@/hooks/use-tags";
-import { resolveSelectedFeedDisplayMode } from "@/lib/article-view";
+import { executeAction } from "@/lib/actions";
+import { resolveSelectedFeedDisplayMode, resolveSelectedFeedId } from "@/lib/article-view";
+import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -17,6 +20,7 @@ export function BrowserView() {
   const [isLoading, setIsLoading] = useState(true);
   const [embedBlocked, setEmbedBlocked] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const qc = useQueryClient();
   const selection = useUiStore((s) => s.selection);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
@@ -37,6 +41,15 @@ export function BrowserView() {
       tagArticles,
       feeds,
     }) === "widescreen";
+  const resolvedFeedId = resolveSelectedFeedId({
+    selectedArticleId,
+    selectionFeedId: feedId,
+    feedId,
+    tagId,
+    articles,
+    accountArticles,
+    tagArticles,
+  });
 
   useEffect(() => {
     if (!browserUrl) return;
@@ -82,6 +95,21 @@ export function BrowserView() {
     );
   };
 
+  const handleToggleWidescreen = async () => {
+    if (!resolvedFeedId) return;
+    const nextDisplayMode = isWidescreen ? "normal" : "widescreen";
+    Result.pipe(
+      await updateFeedDisplayMode(resolvedFeedId, nextDisplayMode),
+      Result.inspect(() => {
+        void qc.invalidateQueries({ queryKey: ["feeds"] });
+        if (nextDisplayMode === "normal") {
+          closeBrowser();
+        }
+      }),
+      Result.inspectError((e) => console.error("Failed to update display mode:", e)),
+    );
+  };
+
   return (
     <div className="flex h-full flex-col bg-background">
       {/* Toolbar */}
@@ -98,6 +126,25 @@ export function BrowserView() {
           </Button>
         )}
         <span className="flex-1 truncate text-xs text-muted-foreground">{browserUrl}</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleToggleWidescreen}
+          className={cn("text-muted-foreground", isWidescreen && "bg-muted text-foreground")}
+          aria-label={t("toggle_widescreen_mode")}
+          disabled={!resolvedFeedId}
+        >
+          <Globe className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => executeAction("toggle-fullscreen")}
+          className="text-muted-foreground"
+          aria-label={t("toggle_fullscreen")}
+        >
+          <ExternalLink className="h-4 w-4" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"

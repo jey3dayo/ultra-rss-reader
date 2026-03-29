@@ -1,10 +1,11 @@
 import { Toggle } from "@base-ui/react/toggle";
 import { Result } from "@praha/byethrow";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Copy, ExternalLink, Globe, Plus, X } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
+import { addToReadingList, copyToClipboard, openInBrowser, updateFeedDisplayMode } from "@/api/tauri-commands";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ import {
   useTags,
   useUntagArticle,
 } from "@/hooks/use-tags";
+import { executeAction } from "@/lib/actions";
 import {
   findSelectedArticle,
   formatArticleDate,
@@ -27,23 +29,65 @@ import {
 } from "@/lib/article-view";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
-import { usePreferencesStore } from "@/stores/preferences-store";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { BrowserView } from "./browser-view";
 
-function ArticleToolbar({ article }: { article: ArticleDto | null }) {
+async function ensureFullscreenEnabled(): Promise<void> {
+  try {
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    const win = getCurrentWindow();
+    const isFullscreen = await win.isFullscreen();
+    if (!isFullscreen) {
+      await win.setFullscreen(true);
+    }
+  } catch {
+    // Browser dev mode: no-op
+  }
+}
+
+function ArticleToolbar({
+  article,
+  feedId,
+  feedDisplayMode,
+}: {
+  article: ArticleDto | null;
+  feedId: string | null;
+  feedDisplayMode: string;
+}) {
   const { t } = useTranslation("reader");
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
   const openBrowser = useUiStore((s) => s.openBrowser);
+  const closeBrowser = useUiStore((s) => s.closeBrowser);
   const layoutMode = useUiStore((s) => s.layoutMode);
   const setFocusedPane = useUiStore((s) => s.setFocusedPane);
   const showToast = useUiStore((s) => s.showToast);
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
-  const actionCopyLink = usePreferencesStore((s) => s.prefs.action_copy_link ?? "true");
-  const actionOpenBrowser = usePreferencesStore((s) => s.prefs.action_open_browser ?? "true");
-  const actionShare = usePreferencesStore((s) => s.prefs.action_share ?? "false");
+  const qc = useQueryClient();
+  const actionCopyLink = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_copy_link"));
+  const actionOpenBrowser = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_open_browser"));
+  const actionShare = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share"));
   const showSidebarButton = layoutMode !== "wide";
+  const isWidescreen = feedDisplayMode === "widescreen";
+
+  const handleToggleWidescreen = async (pressed: boolean) => {
+    if (!feedId) return;
+    const nextDisplayMode = pressed ? "widescreen" : "normal";
+    Result.pipe(
+      await updateFeedDisplayMode(feedId, nextDisplayMode),
+      Result.inspect(() => {
+        void qc.invalidateQueries({ queryKey: ["feeds"] });
+        if (nextDisplayMode === "widescreen" && article?.url) {
+          openBrowser(article.url);
+        }
+        if (nextDisplayMode === "normal") {
+          closeBrowser();
+        }
+      }),
+      Result.inspectError((e) => showToast(t("failed_to_update_display_mode", { message: e.message }))),
+    );
+  };
 
   return (
     <div data-tauri-drag-region className="flex h-12 items-center justify-between border-b border-border px-4">
@@ -124,6 +168,24 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
             <Globe className="h-4 w-4" />
           </Button>
         )}
+        <Toggle
+          pressed={isWidescreen}
+          onPressedChange={handleToggleWidescreen}
+          disabled={!feedId}
+          aria-label={t("toggle_widescreen_mode")}
+          className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
+        >
+          <Globe className="h-4 w-4" />
+        </Toggle>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => executeAction("toggle-fullscreen")}
+          className="text-muted-foreground"
+          aria-label={t("toggle_fullscreen")}
+        >
+          <ExternalLink className="h-4 w-4" />
+        </Button>
         {actionShare === "true" && (
           <Button
             variant="ghost"
@@ -153,7 +215,7 @@ function EmptyState() {
   const { t } = useTranslation("reader");
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
-      <ArticleToolbar article={null} />
+      <ArticleToolbar article={null} feedId={null} feedDisplayMode="normal" />
       <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground">
         <p className="text-sm">{t("select_article_to_read")}</p>
       </div>
@@ -305,6 +367,7 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
                   tagOptionRefs.current[index] = element;
                 }}
                 role="option"
+                aria-selected="false"
                 onClick={() => {
                   tagArticleMutation.mutate({ articleId, tagId: tag.id });
                   closePicker();
@@ -358,7 +421,15 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
   );
 }
 
-function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: string }) {
+function ArticleReader({
+  article,
+  feedName,
+  feedDisplayMode,
+}: {
+  article: ArticleDto;
+  feedName?: string;
+  feedDisplayMode: string;
+}) {
   const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const cmdClickBrowser = usePreferencesStore((s) => s.prefs.cmd_click_browser ?? "false");
@@ -485,7 +556,7 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
 
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
-      <ArticleToolbar article={article} />
+      <ArticleToolbar article={article} feedId={article.feed_id} feedDisplayMode={feedDisplayMode} />
       <ScrollArea className="flex-1">
         <article className="mx-auto max-w-3xl px-8 py-8">
           <div className="mb-4">
@@ -561,7 +632,7 @@ export function ArticleView() {
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selection = useUiStore((s) => s.selection);
   const openBrowser = useUiStore((s) => s.openBrowser);
-  const readerViewPref = usePreferencesStore((s) => s.prefs.reader_view ?? "off");
+  const readerViewPref = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "reader_view"));
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
   const { data: articles } = useArticles(feedId);
@@ -588,7 +659,8 @@ export function ArticleView() {
       return;
     }
 
-    const shouldAutoOpen = readerViewPref === "on" || selectedFeedDisplayMode === "widescreen";
+    const shouldAutoOpen =
+      readerViewPref === "widescreen" || readerViewPref === "fullscreen" || selectedFeedDisplayMode === "widescreen";
     if (!shouldAutoOpen || selectedArticleId === prevArticleIdRef.current || contentMode !== "reader") {
       return;
     }
@@ -609,6 +681,9 @@ export function ArticleView() {
     prevArticleIdRef.current = selectedArticleId;
     if (article.url) {
       openBrowser(article.url);
+      if (readerViewPref === "fullscreen") {
+        void ensureFullscreenEnabled();
+      }
     }
   }, [
     selectedArticleId,
@@ -652,5 +727,5 @@ export function ArticleView() {
 
   const feedName = feeds?.find((f) => f.id === article.feed_id)?.title;
 
-  return <ArticleReader article={article} feedName={feedName} />;
+  return <ArticleReader article={article} feedName={feedName} feedDisplayMode={selectedFeedDisplayMode} />;
 }

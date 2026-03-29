@@ -11,12 +11,12 @@ export function ReadingSettings() {
       <section className="mb-6">
         <SectionHeading>{t("reading.general")}</SectionHeading>
         <SettingsSelect
-          label={t("reading.reader_view")}
+          label={t("reading.default_display_mode")}
           prefKey="reader_view"
           options={[
-            { value: "off", label: t("reading.off") },
-            { value: "on", label: t("reading.on") },
-            { value: "auto", label: t("reading.automatic") },
+            { value: "normal", label: t("reading.normal") },
+            { value: "widescreen", label: t("reading.widescreen") },
+            { value: "fullscreen", label: t("reading.fullscreen") },
           ]}
         />
         <SettingsSelect

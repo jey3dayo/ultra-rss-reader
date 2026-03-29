@@ -22,6 +22,8 @@
   "unread_suffix": "(unread)",
   "starred_suffix": "(starred)",
   "show_sidebar": "Show sidebar",
+  "toggle_widescreen_mode": "Toggle widescreen mode",
+  "toggle_fullscreen": "Toggle fullscreen",
   "toggle_read": "Toggle read",
   "toggle_star": "Toggle star",
   "copy_link": "Copy link",

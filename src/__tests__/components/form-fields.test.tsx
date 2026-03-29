@@ -59,7 +59,7 @@ describe("Form fields", () => {
   });
 
   it("settings select exposes an accessible name and selected label", () => {
-    usePreferencesStore.setState({ prefs: { open_links: "external" }, loaded: true });
+    usePreferencesStore.setState({ prefs: { open_links: "default_browser" }, loaded: true });
 
     render(
       <SettingsSelect
@@ -67,7 +67,7 @@ describe("Form fields", () => {
         prefKey="open_links"
         options={[
           { value: "in_app", label: "In-app browser" },
-          { value: "external", label: "Default browser" },
+          { value: "default_browser", label: "Default browser" },
         ]}
       />,
       { wrapper: createWrapper() },
@@ -76,12 +76,36 @@ describe("Form fields", () => {
     expect(screen.getByRole("combobox", { name: "Open links" })).toHaveTextContent("Default browser");
   });
 
+  it("settings select falls back to the default option label when the preference is unset", () => {
+    render(
+      <SettingsSelect
+        label="Open links"
+        prefKey="open_links"
+        options={[
+          { value: "in_app", label: "In-app browser" },
+          { value: "default_browser", label: "Default browser" },
+        ]}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByRole("combobox", { name: "Open links" })).toHaveTextContent("In-app browser");
+  });
+
   it("settings switch is associated with its label", () => {
     render(<SettingsSwitch label="Open links in background" prefKey="open_links_background" />, {
       wrapper: createWrapper(),
     });
 
     expect(screen.getByRole("switch", { name: "Open links in background" })).toBeInTheDocument();
+  });
+
+  it("settings switch falls back to the default checked state when the preference is unset", () => {
+    render(<SettingsSwitch label="Ask before" prefKey="ask_before_mark_all" />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(screen.getByRole("switch", { name: "Ask before" })).toBeChecked();
   });
 
   it("add account form inputs expose name attributes", async () => {

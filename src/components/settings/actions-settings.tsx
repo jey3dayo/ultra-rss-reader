@@ -2,12 +2,11 @@ import { Copy, ExternalLink, Globe } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SectionHeading } from "@/components/settings/settings-components";
 import { Switch } from "@/components/ui/switch";
-import { usePreferencesStore } from "@/stores/preferences-store";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 
 function ServiceSwitch({ prefKey, showLabel }: { prefKey: string; showLabel: string }) {
-  const value = usePreferencesStore((s) => s.prefs[prefKey]);
+  const checked = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, prefKey) === "true");
   const setPref = usePreferencesStore((s) => s.setPref);
-  const checked = value === "true";
   return (
     <div className="flex items-center gap-2">
       <span className="text-xs text-muted-foreground">{showLabel}</span>

@@ -22,6 +22,8 @@
   "unread_suffix": "(未読)",
   "starred_suffix": "(スター付き)",
   "show_sidebar": "サイドバーを表示",
+  "toggle_widescreen_mode": "ワイドスクリーンを切り替え",
+  "toggle_fullscreen": "フルスクリーンを切り替え",
   "toggle_read": "既読/未読を切替",
   "toggle_star": "スターを切替",
   "copy_link": "リンクをコピー",

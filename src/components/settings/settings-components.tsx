@@ -2,12 +2,11 @@ import { useId } from "react";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { usePreferencesStore } from "@/stores/preferences-store";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 
 export function SettingsSwitch({ label, prefKey }: { label: string; prefKey: string }) {
-  const value = usePreferencesStore((s) => s.prefs[prefKey]);
+  const checked = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, prefKey) === "true");
   const setPref = usePreferencesStore((s) => s.setPref);
-  const checked = value === "true";
   const labelId = useId();
   return (
     <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
@@ -38,7 +37,7 @@ export function SettingsSelect({
   prefKey: string;
   options: SelectOption[];
 }) {
-  const value = usePreferencesStore((s) => s.prefs[prefKey]) ?? "";
+  const value = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, prefKey));
   const setPref = usePreferencesStore((s) => s.setPref);
   const labelId = useId();
   const getOptionLabel = (selectedValue: string | null) =>
