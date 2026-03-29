@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { ArrowLeft, ExternalLink } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { checkBrowserEmbedSupport, openInBrowser } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ export function BrowserView() {
   const { browserUrl, closeBrowser } = useUiStore();
   const [isLoading, setIsLoading] = useState(true);
   const [embedBlocked, setEmbedBlocked] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const selection = useUiStore((s) => s.selection);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
@@ -59,6 +60,19 @@ export function BrowserView() {
   }, [browserUrl]);
 
   if (!browserUrl) return null;
+
+  const handleIframeLoad = () => {
+    setIsLoading(false);
+
+    try {
+      const currentUrl = iframeRef.current?.contentWindow?.location.href;
+      if (currentUrl?.startsWith("chrome-error://")) {
+        setEmbedBlocked(true);
+      }
+    } catch {
+      // Cross-origin frames are expected. Ignore and keep the embed visible.
+    }
+  };
 
   const handleOpenExternal = async () => {
     const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
@@ -116,11 +130,12 @@ export function BrowserView() {
         ) : (
           <>
             <iframe
+              ref={iframeRef}
               src={browserUrl}
               title={t("browser_view")}
               className="h-full w-full border-none bg-white"
               sandbox="allow-same-origin allow-scripts allow-popups"
-              onLoad={() => setIsLoading(false)}
+              onLoad={handleIframeLoad}
               onError={() => {
                 setEmbedBlocked(true);
                 setIsLoading(false);

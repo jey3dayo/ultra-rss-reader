@@ -75,6 +75,37 @@ describe("BrowserView", () => {
     });
   });
 
+  it("shows the fallback when the iframe lands on a chrome error page after load", async () => {
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      contentMode: "browser",
+      browserUrl: "https://www3.nhk.or.jp/news/html/example.html",
+    });
+
+    const { container } = render(<BrowserView />, { wrapper: createWrapper() });
+
+    const iframe = container.querySelector("iframe");
+    if (!iframe) {
+      throw new Error("iframe was not rendered");
+    }
+
+    Object.defineProperty(iframe, "contentWindow", {
+      configurable: true,
+      value: {
+        location: {
+          href: "chrome-error://chromewebdata/",
+        },
+      },
+    });
+
+    fireEvent.load(iframe);
+
+    await waitFor(() => {
+      expect(screen.getByText("This page can't be shown in the in-app browser.")).toBeInTheDocument();
+    });
+  });
+
   it("keeps widescreen browser chrome hidden outside direct feed selection", async () => {
     setupTauriMocks((cmd, args) => {
       if (cmd === "list_feeds") {
