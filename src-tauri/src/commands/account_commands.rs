@@ -7,8 +7,12 @@ use crate::domain::account::Account;
 use crate::domain::provider::ProviderKind;
 use crate::domain::types::AccountId;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
+use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
 use crate::infra::keyring_store;
+use crate::infra::provider::greader::GReaderProvider;
+use crate::infra::provider::traits::{Credentials, FeedProvider};
 use crate::repository::account::AccountRepository;
+use crate::repository::preference::PreferenceRepository;
 
 #[tauri::command]
 pub fn list_accounts(state: State<'_, AppState>) -> Result<Vec<AccountDto>, AppError> {
@@ -21,7 +25,7 @@ pub fn list_accounts(state: State<'_, AppState>) -> Result<Vec<AccountDto>, AppE
 }
 
 #[tauri::command]
-pub fn add_account(
+pub async fn add_account(
     state: State<'_, AppState>,
     kind: String,
     name: String,
@@ -50,6 +54,39 @@ pub fn add_account(
         sync_on_wake: false,
         keep_read_items_days: 30,
     };
+
+    // Validate connection for remote providers (no DB lock held during .await)
+    if matches!(
+        account.kind,
+        ProviderKind::FreshRss | ProviderKind::Inoreader
+    ) {
+        let mut provider = match account.kind {
+            ProviderKind::FreshRss => {
+                GReaderProvider::for_freshrss(account.server_url.as_deref().unwrap_or_default())
+            }
+            ProviderKind::Inoreader => {
+                let (app_id, app_key) = {
+                    let db_guard = state.db.lock().map_err(|e| AppError::UserVisible {
+                        message: format!("Lock error: {e}"),
+                    })?;
+                    let pref_repo = SqlitePreferenceRepository::new(db_guard.reader());
+                    (
+                        pref_repo.get("inoreader_app_id").unwrap_or(None),
+                        pref_repo.get("inoreader_app_key").unwrap_or(None),
+                    )
+                }; // DB lock dropped here before .await
+                GReaderProvider::for_inoreader(app_id, app_key)
+            }
+            _ => unreachable!(),
+        };
+
+        provider
+            .authenticate(&Credentials {
+                token: account.username.clone(),
+                password: password.clone(),
+            })
+            .await?;
+    }
 
     // Store password in OS keyring BEFORE DB save (fail fast)
     if matches!(

@@ -62,7 +62,18 @@ export function AccountConfigForm({ kind, onBack }: { kind: AddAccountProviderKi
     Result.pipe(
       await addAccount(payload.kind, payload.name, payload.serverUrl, payload.username, payload.password),
       Result.inspectError((e) => {
-        const message = t("account.failed_to_add", { message: e.message });
+        const appError = e as { type?: string; message: string };
+        let message: string;
+        if (appError.type === "Retryable") {
+          message = t("account.error_network");
+        } else if (appError.message.toLowerCase().includes("auth")) {
+          message = t("account.error_auth");
+          if (kind === "FreshRss") {
+            message += `\n${t("account.error_auth_hint_freshrss")}`;
+          }
+        } else {
+          message = t("account.failed_to_add", { message: e.message });
+        }
         setErrorMessage(message);
         useUiStore.getState().showToast(message);
       }),
@@ -187,7 +198,7 @@ export function AccountConfigForm({ kind, onBack }: { kind: AddAccountProviderKi
 
         <div className="flex gap-3">
           <Button type="submit" disabled={submitting}>
-            {submitting ? tc("adding") : tc("add")}
+            {submitting ? (formConfig.requiresCredentials ? tc("connection_testing") : tc("adding")) : tc("add")}
           </Button>
           <Button variant="outline" type="button" onClick={() => setSettingsAddAccount(false)} disabled={submitting}>
             {tc("cancel")}
