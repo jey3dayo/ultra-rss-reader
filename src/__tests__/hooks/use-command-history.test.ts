@@ -1,0 +1,67 @@
+import { beforeEach, describe, expect, it } from "vitest";
+import { addToHistory, clearHistory, getHistory, HISTORY_KEY, MAX_HISTORY } from "../../hooks/use-command-history";
+
+describe("use-command-history", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("returns an empty array when history is missing", () => {
+    expect(getHistory()).toEqual([]);
+  });
+
+  it("returns an empty array for invalid stored data", () => {
+    localStorage.setItem(HISTORY_KEY, "not-json");
+
+    expect(getHistory()).toEqual([]);
+  });
+
+  it("returns an empty array for non-array stored data", () => {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify({ id: "feed-1" }));
+
+    expect(getHistory()).toEqual([]);
+  });
+
+  it("adds items to the front of history", () => {
+    addToHistory("feed-1");
+    addToHistory("feed-2");
+
+    expect(getHistory()).toEqual(["feed-2", "feed-1"]);
+  });
+
+  it("deduplicates existing items by moving them to the front", () => {
+    addToHistory("feed-1");
+    addToHistory("feed-2");
+    addToHistory("feed-1");
+
+    expect(getHistory()).toEqual(["feed-1", "feed-2"]);
+  });
+
+  it("caps history to the maximum size", () => {
+    for (let index = 0; index < MAX_HISTORY + 2; index += 1) {
+      addToHistory(`item-${index}`);
+    }
+
+    expect(getHistory()).toHaveLength(MAX_HISTORY);
+    expect(getHistory()).toEqual([
+      "item-11",
+      "item-10",
+      "item-9",
+      "item-8",
+      "item-7",
+      "item-6",
+      "item-5",
+      "item-4",
+      "item-3",
+      "item-2",
+    ]);
+  });
+
+  it("clears the stored history entry", () => {
+    addToHistory("feed-1");
+    clearHistory();
+
+    expect(localStorage.getItem(HISTORY_KEY)).toBeNull();
+    expect(getHistory()).toEqual([]);
+  });
+});
