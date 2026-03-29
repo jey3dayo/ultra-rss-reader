@@ -61,10 +61,10 @@
 
 承認後:
 
-3. `git push --atomic origin main v{version}`（branch と tag を atomic に push。片方だけ通る壊れた状態を防ぐ）。`--atomic` 非対応の場合は `git push origin main --follow-tags` にフォールバック
-4. `git ls-remote --tags origin | grep "refs/tags/v{version}$"` でタグ到達を完全一致確認。不在なら `git push origin v{version}`
-5. `gh release edit v{version} --notes "..."` でリリースノート反映。Release がまだ存在しない場合（GitHub Actions 未完了）は `gh release create v{version} --draft --notes "..."` で先にドラフト作成する。**責務分担:** CLI がリリースノート本文を管理し、`release.yml` の `tauri-action` はアーティファクト添付のみを担当する
-6. 完了報告: コミット、タグ、GitHub Actions ワークフロー URL
+1. `git push --atomic origin main v{version}`（branch と tag を atomic に push。片方だけ通る壊れた状態を防ぐ）。`--atomic` 非対応の場合は `git push origin main --follow-tags` にフォールバック
+2. `git ls-remote --tags origin | grep "refs/tags/v{version}$"` でタグ到達を完全一致確認。不在なら `git push origin v{version}`
+3. `gh release edit v{version} --notes "..."` でリリースノート反映。Release がまだ存在しない場合（GitHub Actions 未完了）は `gh release create v{version} --draft --notes "..."` で先にドラフト作成する。**責務分担:** CLI がリリースノート本文を管理し、`release.yml` の `tauri-action` はアーティファクト添付のみを担当する
+4. 完了報告: コミット、タグ、GitHub Actions ワークフロー URL
 
 ## リリースノート生成ルール
 
