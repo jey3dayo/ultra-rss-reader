@@ -107,7 +107,7 @@ function safeInvoke(
 
   return Result.try({
     try: async () => {
-      const validatedArgs = schemas?.args && args ? schemas.args.parse(args) : args;
+      const validatedArgs = schemas?.args && args ? (schemas.args.parse(args) as Record<string, unknown>) : args;
       const raw = await invoke(cmd, validatedArgs);
       return schemas?.response ? schemas.response.parse(raw) : raw;
     },
