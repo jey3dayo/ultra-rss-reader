@@ -1,7 +1,9 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { updateFeedDisplayMode } from "@/api/tauri-commands";
 import { useAccountArticles, useArticles, useMarkAllRead, useSearchArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { navigateArticleEvent } from "@/hooks/use-keyboard";
@@ -23,6 +25,7 @@ import { ArticleListFooter } from "./article-list-footer";
 import { ArticleListHeader } from "./article-list-header";
 import { ArticleListScreenView } from "./article-list-screen-view";
 import { contextMenuStyles } from "./context-menu-styles";
+import { DisplayModeToggleGroup, type ReaderDisplayMode } from "./display-mode-toggle-group";
 
 export function ArticleList() {
   const { t } = useTranslation("reader");
@@ -42,6 +45,8 @@ export function ArticleList() {
   const selectionStyle = usePreferencesStore((s) => s.prefs.list_selection_style ?? "modern");
   const recentlyReadIds = useUiStore((s) => s.recentlyReadIds);
   const showConfirm = useUiStore((s) => s.showConfirm);
+  const qc = useQueryClient();
+  const closeBrowser = useUiStore((s) => s.closeBrowser);
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
   const { data: articles, isLoading } = useArticles(feedId);
@@ -148,6 +153,26 @@ export function ArticleList() {
     }
   }, [selection, scrollToTopOnChange]);
 
+  const selectedFeed = useMemo(() => feeds?.find((f) => f.id === feedId), [feeds, feedId]);
+  const currentDisplayMode: ReaderDisplayMode = selectedFeed?.display_mode === "widescreen" ? "widescreen" : "normal";
+
+  const handleSetDisplayMode = useCallback(
+    async (nextMode: ReaderDisplayMode) => {
+      if (!feedId) return;
+      Result.pipe(
+        await updateFeedDisplayMode(feedId, nextMode),
+        Result.inspect(() => {
+          void qc.invalidateQueries({ queryKey: ["feeds"] });
+          if (nextMode === "normal") {
+            closeBrowser();
+          }
+        }),
+        Result.inspectError((e) => console.error("Failed to update display mode:", e)),
+      );
+    },
+    [feedId, qc, closeBrowser],
+  );
+
   const doMarkAllRead = useCallback(() => {
     const unreadIds = getUnreadArticleIds(filteredArticles);
     for (const id of unreadIds) addRecentlyRead(id);
@@ -158,7 +183,9 @@ export function ArticleList() {
     const unreadIds = getUnreadArticleIds(filteredArticles);
     if (unreadIds.length === 0) return;
     if (askBeforeMarkAll === "true") {
-      showConfirm(t("confirm_mark_read", { count: unreadIds.length }), doMarkAllRead, tc("mark_as_read_action"));
+      showConfirm(t("confirm_mark_read", { count: unreadIds.length }), doMarkAllRead, {
+        actionLabel: tc("mark_as_read_action"),
+      });
     } else {
       doMarkAllRead();
     }
@@ -231,6 +258,11 @@ export function ArticleList() {
         feedName={feedName}
         unreadCount={unreadCount}
         searchInputRef={searchInputRef}
+        displayModeControl={
+          feedId ? (
+            <DisplayModeToggleGroup value={currentDisplayMode} onValueChange={handleSetDisplayMode} />
+          ) : undefined
+        }
         onMarkAllRead={handleMarkAllRead}
         onToggleSearch={handleToggleSearch}
         onCloseSearch={handleCloseSearch}

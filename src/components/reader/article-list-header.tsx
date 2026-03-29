@@ -11,6 +11,7 @@ type ArticleListHeaderProps = {
   feedName: string;
   unreadCount: number;
   searchInputRef: RefObject<HTMLInputElement | null>;
+  displayModeControl?: React.ReactNode;
   onMarkAllRead: () => void;
   onToggleSearch: () => void;
   onCloseSearch: () => void;
@@ -23,6 +24,7 @@ export function ArticleListHeader({
   feedName,
   unreadCount,
   searchInputRef,
+  displayModeControl,
   onMarkAllRead,
   onToggleSearch,
   onCloseSearch,
@@ -34,6 +36,7 @@ export function ArticleListHeader({
       {/* Header Toolbar - draggable for window move */}
       <div data-tauri-drag-region className="flex h-12 items-center justify-end border-b border-border px-3">
         <div className="flex items-center gap-2">
+          {displayModeControl}
           <Button
             variant="ghost"
             size="icon"
