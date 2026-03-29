@@ -110,14 +110,12 @@ function FeedRow({
         }
         onClick={() => onSelectFeed(feed.id)}
       >
-        <>
-          {displayFavicons && (
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-              <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.siteUrl} grayscale={feed.grayscaleFavicon} />
-            </span>
-          )}
-          <span className="truncate">{feed.title}</span>
-        </>
+        {displayFavicons && (
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+            <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.siteUrl} grayscale={feed.grayscaleFavicon} />
+          </span>
+        )}
+        <span className="truncate">{feed.title}</span>
       </ContextMenu.Trigger>
       {renderFeedContextMenu?.(feed)}
     </ContextMenu.Root>
