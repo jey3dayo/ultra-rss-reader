@@ -134,13 +134,29 @@ run = "dotenvx run -- cargo test --manifest-path src-tauri/Cargo.toml freshrss_l
 description = "Build frontend"
 run = ["pnpm build"]
 
-[tasks."build:app"]
+# ========================================
+# アプリ（Tauri）
+# ========================================
+
+[tasks."app:dev"]
+description = "Run native app in dev mode"
+run = "pnpm tauri dev"
+
+[tasks."app:dev:browser"]
+description = "Run frontend dev server for browser UI testing"
+run = "pnpm dev --host 127.0.0.1 --port 4173 --strictPort"
+
+[tasks."app:build"]
 description = "Build native app for current platform (.app/.dmg on macOS, .msi/.exe on Windows)"
 run = "pnpm tauri build"
 
-[tasks."build:app:debug"]
+[tasks."app:build:debug"]
 description = "Build native app in debug mode (faster, no optimizations)"
 run = "pnpm tauri build --debug"
+
+[tasks."app:icon"]
+description = "Generate app icons from source image"
+run = "pnpm tauri icon"
 
 # ========================================
 # エイリアス（まとめ実行）
