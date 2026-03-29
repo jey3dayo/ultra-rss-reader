@@ -233,7 +233,7 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
           <button
             type="button"
             onClick={() => untagArticleMutation.mutate({ articleId, tagId: tag.id })}
-            className="ml-0.5 text-muted-foreground hover:text-foreground"
+            className="ml-0.5 inline-flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label={t("remove_tag", { name: tag.name })}
           >
             <X className="h-3 w-3" />

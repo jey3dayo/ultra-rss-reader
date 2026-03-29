@@ -32,6 +32,8 @@
   "open_in_external_browser": "Open in external browser",
   "back": "Back",
   "browser_view": "Browser View",
+  "browser_loading": "Loading page...",
+  "browser_loading_hint": "If this takes too long, open it in your external browser.",
   "remove_tag": "Remove tag {{name}}",
   "add_tag": "Add tag",
   "available_tags": "Available tags",

@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { ArrowLeft, ExternalLink } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { openInBrowser } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
@@ -10,12 +11,17 @@ import { useUiStore } from "@/stores/ui-store";
 export function BrowserView() {
   const { t } = useTranslation("reader");
   const { browserUrl, closeBrowser } = useUiStore();
+  const [isLoading, setIsLoading] = useState(true);
   const selection = useUiStore((s) => s.selection);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const { data: feeds } = useFeeds(selectedAccountId);
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const isWidescreen = feedId && feeds ? feeds.find((f) => f.id === feedId)?.display_mode === "widescreen" : false;
   if (!browserUrl) return null;
+
+  useEffect(() => {
+    setIsLoading(true);
+  }, [browserUrl]);
 
   const handleOpenExternal = async () => {
     const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
@@ -52,13 +58,24 @@ export function BrowserView() {
         </Button>
       </div>
 
+      {isLoading && (
+        <div className="border-b border-border bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
+          <p>{t("browser_loading")}</p>
+          <p>{t("browser_loading_hint")}</p>
+        </div>
+      )}
+
       {/* Iframe */}
-      <iframe
-        src={browserUrl}
-        title={t("browser_view")}
-        className="flex-1 border-none bg-white"
-        sandbox="allow-same-origin allow-scripts allow-popups"
-      />
+      <div className="relative flex-1">
+        <iframe
+          src={browserUrl}
+          title={t("browser_view")}
+          className="h-full w-full border-none bg-white"
+          sandbox="allow-same-origin allow-scripts allow-popups"
+          onLoad={() => setIsLoading(false)}
+        />
+        {isLoading && <div className="pointer-events-none absolute inset-0 bg-background/20" />}
+      </div>
     </div>
   );
 }

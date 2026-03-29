@@ -95,4 +95,15 @@ describe("ArticleView", () => {
     });
     expect(trigger).toHaveFocus();
   });
+
+  it("uses larger tag removal targets", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    const removeButton = await screen.findByRole("button", { name: "Remove tag Later" });
+    expect(removeButton).toHaveClass("size-6");
+  });
 });
