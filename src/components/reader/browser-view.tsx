@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { openInBrowser } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
+import { useAccountArticles, useArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
+import { useArticlesByTag } from "@/hooks/use-tags";
+import { resolveSelectedFeedDisplayMode } from "@/lib/article-view";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -13,10 +16,25 @@ export function BrowserView() {
   const { browserUrl, closeBrowser } = useUiStore();
   const [isLoading, setIsLoading] = useState(true);
   const selection = useUiStore((s) => s.selection);
+  const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
-  const { data: feeds } = useFeeds(selectedAccountId);
   const feedId = selection.type === "feed" ? selection.feedId : null;
-  const isWidescreen = feedId && feeds ? feeds.find((f) => f.id === feedId)?.display_mode === "widescreen" : false;
+  const tagId = selection.type === "tag" ? selection.tagId : null;
+  const { data: articles } = useArticles(feedId);
+  const { data: accountArticles } = useAccountArticles(selectedAccountId);
+  const { data: tagArticles } = useArticlesByTag(tagId);
+  const { data: feeds } = useFeeds(selectedAccountId);
+  const isWidescreen =
+    resolveSelectedFeedDisplayMode({
+      selectedArticleId,
+      selectionFeedId: feedId,
+      feedId,
+      tagId,
+      articles,
+      accountArticles,
+      tagArticles,
+      feeds,
+    }) === "widescreen";
 
   useEffect(() => {
     if (!browserUrl) return;

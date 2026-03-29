@@ -1,9 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 describe("BrowserView", () => {
   beforeEach(() => {
@@ -37,5 +37,34 @@ describe("BrowserView", () => {
     fireEvent.load(iframe);
 
     expect(screen.queryByText("Loading page...")).not.toBeInTheDocument();
+  });
+
+  it("keeps widescreen browser chrome hidden outside direct feed selection", async () => {
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "list_feeds") {
+        return sampleFeeds
+          .filter((feed) => feed.account_id === args.accountId)
+          .map((feed) => (feed.id === "feed-1" ? { ...feed, display_mode: "widescreen" } : feed));
+      }
+      if (cmd === "list_account_articles") {
+        return sampleArticles;
+      }
+      return null;
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "all" },
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserView />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
+    });
   });
 });

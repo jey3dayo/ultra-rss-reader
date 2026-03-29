@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import type { ArticleDto } from "@/api/tauri-commands";
+import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 
 type FindSelectedArticleParams = {
   selectedArticleId: string | null;
@@ -17,6 +17,11 @@ type LinkNavigationParams = {
   ctrlKey: boolean;
 };
 
+type ResolveFeedDisplayModeParams = FindSelectedArticleParams & {
+  selectionFeedId: string | null;
+  feeds: FeedDto[] | undefined;
+};
+
 export function findSelectedArticle(params: FindSelectedArticleParams): Result.Result<ArticleDto, "article_not_found"> {
   const { selectedArticleId, feedId, tagId, articles, accountArticles, tagArticles } = params;
 
@@ -28,6 +33,19 @@ export function findSelectedArticle(params: FindSelectedArticleParams): Result.R
   const article = sourceArticles?.find((candidate) => candidate.id === selectedArticleId);
 
   return article ? Result.succeed(article) : Result.fail("article_not_found");
+}
+
+export function resolveSelectedFeedDisplayMode(params: ResolveFeedDisplayModeParams): string {
+  const { selectionFeedId, feeds, ...articleParams } = params;
+  const articleResult = findSelectedArticle(articleParams);
+  const resolvedFeedId =
+    selectionFeedId ?? (Result.isSuccess(articleResult) ? Result.unwrap(articleResult).feed_id : null);
+
+  if (!resolvedFeedId || !feeds) {
+    return "normal";
+  }
+
+  return feeds.find((feed) => feed.id === resolvedFeedId)?.display_mode ?? "normal";
 }
 
 export function shouldOpenExternalBrowser(params: LinkNavigationParams): boolean {

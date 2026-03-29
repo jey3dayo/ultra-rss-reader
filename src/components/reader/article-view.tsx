@@ -19,7 +19,12 @@ import {
   useTags,
   useUntagArticle,
 } from "@/hooks/use-tags";
-import { findSelectedArticle, formatArticleDate, shouldOpenExternalBrowser } from "@/lib/article-view";
+import {
+  findSelectedArticle,
+  formatArticleDate,
+  resolveSelectedFeedDisplayMode,
+  shouldOpenExternalBrowser,
+} from "@/lib/article-view";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -353,7 +358,7 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
 }
 
 function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: string }) {
-  const markArticleAsRead = usePreferencesStore((s) => s.prefs.mark_article_as_read ?? "on_open");
+  const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const cmdClickBrowser = usePreferencesStore((s) => s.prefs.cmd_click_browser ?? "false");
   const setRead = useSetRead();
@@ -368,10 +373,10 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
   // re-triggers this effect and immediately marks it read again.
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally trigger only on article.id change
   useEffect(() => {
-    if (markArticleAsRead === "on_open" && article && !article.is_read) {
+    if (afterReading === "mark_as_read" && article && !article.is_read) {
       setRead.mutate({ id: article.id, read: true }, { onSuccess: () => addRecentlyRead(article.id) });
     }
-  }, [markArticleAsRead, article?.id]);
+  }, [afterReading, article?.id]);
 
   useEffect(() => {
     const handleToggleRead = () => {
@@ -563,36 +568,47 @@ export function ArticleView() {
   const { data: tagArticles } = useArticlesByTag(tagId);
   const { data: feeds } = useFeeds(selectedAccountId);
 
-  // Determine if the current feed is in widescreen mode
-  const selectedFeedDisplayMode =
-    feedId && feeds ? (feeds.find((f) => f.id === feedId)?.display_mode ?? "normal") : "normal";
+  const selectedFeedDisplayMode = resolveSelectedFeedDisplayMode({
+    selectedArticleId,
+    selectionFeedId: feedId,
+    feedId,
+    tagId,
+    articles,
+    accountArticles,
+    tagArticles,
+    feeds,
+  });
 
   // When reader_view is "on" or feed is widescreen, auto-open article URL in browser view
   const prevArticleIdRef = useRef<string | null>(null);
   useEffect(() => {
-    const shouldAutoOpen = readerViewPref === "on" || selectedFeedDisplayMode === "widescreen";
-    if (
-      shouldAutoOpen &&
-      selectedArticleId &&
-      selectedArticleId !== prevArticleIdRef.current &&
-      contentMode === "reader"
-    ) {
-      const articleResult = findSelectedArticle({
-        selectedArticleId,
-        feedId,
-        tagId,
-        articles,
-        accountArticles,
-        tagArticles,
-      });
-      if (Result.isSuccess(articleResult)) {
-        const article = Result.unwrap(articleResult);
-        if (article.url) {
-          openBrowser(article.url);
-        }
-      }
+    if (!selectedArticleId) {
+      prevArticleIdRef.current = null;
+      return;
     }
+
+    const shouldAutoOpen = readerViewPref === "on" || selectedFeedDisplayMode === "widescreen";
+    if (!shouldAutoOpen || selectedArticleId === prevArticleIdRef.current || contentMode !== "reader") {
+      return;
+    }
+
+    const articleResult = findSelectedArticle({
+      selectedArticleId,
+      feedId,
+      tagId,
+      articles,
+      accountArticles,
+      tagArticles,
+    });
+    if (Result.isFailure(articleResult)) {
+      return;
+    }
+
+    const article = Result.unwrap(articleResult);
     prevArticleIdRef.current = selectedArticleId;
+    if (article.url) {
+      openBrowser(article.url);
+    }
   }, [
     selectedArticleId,
     readerViewPref,
