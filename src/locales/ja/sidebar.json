@@ -12,5 +12,6 @@
   "press_plus_to_add_feed": "+ でフィードを追加",
   "sync_completed": "同期完了",
   "sync_failed": "同期に失敗しました",
-  "date_at": "{{date}} {{time}}"
+  "date_at": "{{date}} {{time}}",
+  "add_account_to_start": "アカウントを追加して始めましょう"
 }

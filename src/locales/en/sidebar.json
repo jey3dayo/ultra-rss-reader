@@ -12,5 +12,6 @@
   "press_plus_to_add_feed": "Press + to add a feed",
   "sync_completed": "Sync completed",
   "sync_failed": "Sync failed",
-  "date_at": "{{date}} at {{time}}"
+  "date_at": "{{date}} at {{time}}",
+  "add_account_to_start": "Add an account to get started"
 }
