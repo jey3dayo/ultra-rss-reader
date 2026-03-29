@@ -50,6 +50,7 @@
 
 ## キーチェーンアクセスのタイミング改善
 
+- [x] dev ビルドで毎回 Keychain ダイアログが出る → 自己署名証明書 `UltraRSSReader-Dev` で署名し、`mise run app:dev:signed` で回避
 - [ ] 起動直後の自動同期でキーチェーンダイアログが出るのを回避する（ユーザーが不信感を持つ）
   - 現状: `sync_scheduler` が `initial_interval` 後に自動で同期開始 → `keyring_store::get_password` でダイアログ表示
   - 改善案: フロントエンドからの初回マニュアル同期完了まで、バックグラウンドスケジューラーの同期を遅延させる
