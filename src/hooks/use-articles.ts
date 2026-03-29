@@ -17,6 +17,7 @@ import { createQuery } from "@/hooks/create-query";
 function invalidateArticleQueries(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: ["articles"] });
   qc.invalidateQueries({ queryKey: ["accountArticles"] });
+  qc.invalidateQueries({ queryKey: ["accountUnreadCount"] });
   qc.invalidateQueries({ queryKey: ["feeds"] });
   qc.invalidateQueries({ queryKey: ["articlesByTag"] });
   qc.invalidateQueries({ queryKey: ["search"] });

@@ -192,6 +192,7 @@ export function AddFeedDialog({
     }
 
     qc.invalidateQueries({ queryKey: ["feeds"] });
+    qc.invalidateQueries({ queryKey: ["accountUnreadCount"] });
     qc.invalidateQueries({ queryKey: ["folders"] });
     onOpenChange(false);
     setLoading(false);

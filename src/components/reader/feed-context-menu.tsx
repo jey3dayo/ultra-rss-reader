@@ -54,6 +54,7 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
       await deleteFeed(feed.id),
       Result.inspect(() => {
         qc.invalidateQueries({ queryKey: ["feeds"] });
+        qc.invalidateQueries({ queryKey: ["accountUnreadCount"] });
         showToast(t("unsubscribed_from", { title: feed.title }));
       }),
       Result.inspectError((e) => showToast(t("failed_to_unsubscribe", { message: e.message }))),
