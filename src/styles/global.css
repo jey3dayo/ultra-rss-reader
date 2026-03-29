@@ -99,6 +99,7 @@ body,
 /* macOS overlay titlebar drag regions */
 [data-tauri-drag-region] {
   -webkit-app-region: drag;
+  app-region: drag;
 }
 
 [data-tauri-drag-region] button,
@@ -106,6 +107,7 @@ body,
 [data-tauri-drag-region] input,
 [data-tauri-drag-region] [role="button"] {
   -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 ::-webkit-scrollbar {
