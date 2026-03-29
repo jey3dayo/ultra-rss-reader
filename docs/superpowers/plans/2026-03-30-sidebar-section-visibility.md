@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Settings > General から `Unread` / `Starred` / `Tags` のサイドバー表示を個別に切り替えられるようにし、非表示化で現在選択中の項目が無効になった場合は安全に fallback させる
+Goal: Settings > General から `Unread` / `Starred` / `Tags` のサイドバー表示を個別に切り替えられるようにし、非表示化で現在選択中の項目が無効になった場合は安全に fallback させる
 
-**Architecture:** preference 追加と Settings UI は既存の `preferences-store` + `GeneralSettings` パターンに沿って実装する。永続化のため `src-tauri` 側の preference allowlist も同時更新する。実際の表示制御と fallback は `sidebar.tsx` に閉じ込めるが、active state 判定は `selection` だけでなく `viewMode` も見る。`ui-store` の selection 型は増やさず既存 action と `setViewMode("all")` を使って遷移する。テストは store / settings component / sidebar component の既存層に分けて追加する。
+Architecture: preference 追加と Settings UI は既存の `preferences-store` + `GeneralSettings` パターンに沿って実装する。永続化のため `src-tauri` 側の preference allowlist も同時更新する。実際の表示制御と fallback は `sidebar.tsx` に閉じ込めるが、active state 判定は `selection` だけでなく `viewMode` も見る。`ui-store` の selection 型は増やさず既存 action と `setViewMode("all")` を使って遷移する。テストは store / settings component / sidebar component の既存層に分けて追加する。
 
-**Tech Stack:** React 19, TypeScript, Zustand, TanStack Query, react-i18next, Vitest, Testing Library
+Tech Stack: React 19, TypeScript, Zustand, TanStack Query, react-i18next, Vitest, Testing Library
 
 ---
 

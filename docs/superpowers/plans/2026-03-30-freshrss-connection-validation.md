@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** FreshRSS/Inoreader アカウント追加時に、保存前に接続テスト（authenticate）を実行し、成功時のみ保存する。失敗時は段階的エラーメッセージを表示する。
+Goal: FreshRSS/Inoreader アカウント追加時に、保存前に接続テスト（authenticate）を実行し、成功時のみ保存する。失敗時は段階的エラーメッセージを表示する。
 
-**Architecture:** 既存の `add_account` Tauri コマンドを `pub fn` → `pub async fn` に変更し、`GReaderProvider::authenticate()` を DB 保存前に呼び出す。フロントエンドは保存ボタンにスピナーを表示し、Rust 側で組み立てたエラーメッセージをトーストで表示する。
+Architecture: 既存の `add_account` Tauri コマンドを `pub fn` → `pub async fn` に変更し、`GReaderProvider::authenticate()` を DB 保存前に呼び出す。フロントエンドは保存ボタンにスピナーを表示し、Rust 側で組み立てたエラーメッセージをトーストで表示する。
 
-**Tech Stack:** Tauri 2 (Rust), React 19, TypeScript, reqwest, i18next, Vitest
+Tech Stack: Tauri 2 (Rust), React 19, TypeScript, reqwest, i18next, Vitest
 
-**Spec:** `docs/superpowers/specs/2026-03-30-freshrss-connection-validation-design.md`
+Spec: `docs/superpowers/specs/2026-03-30-freshrss-connection-validation-design.md`
 
 ---
 
@@ -28,7 +28,7 @@
 
 ### Task 1: i18n キーの追加
 
-**Files:**
+### Files:
 
 - Modify: `src/locales/ja/common.json`
 - Modify: `src/locales/en/common.json`
@@ -78,11 +78,11 @@ git commit -m "feat: add i18n keys for connection validation messages"
 
 ### Task 2: Rust — `add_account` を async 化し認証テストを追加
 
-**Files:**
+### Files:
 
 - Modify: `src-tauri/src/commands/account_commands.rs:23-71`
 
-**背景:**
+### 背景:
 
 - 現在の `add_account` は `pub fn`（同期関数）。`authenticate()` は `async fn` なので async 化が必要。
 - Tauri 2 は `#[tauri::command]` で `async fn` をサポート。`feed_commands.rs` の `trigger_sync` が同パターン。
@@ -243,11 +243,11 @@ git commit -m "feat: validate connection before saving account (add_account asyn
 
 ### Task 3: フロントエンド — ボタンテキストとエラーハンドリング改善
 
-**Files:**
+### Files:
 
 - Modify: `src/components/settings/account-config-form.tsx:48-79,188-194`
 
-**背景:**
+### 背景:
 
 - 現在のボタンは `submitting ? "追加中..." : "追加"`。リモートプロバイダの場合は `"接続を確認中..."` に変更。
 - エラーハンドリングは既存の `Result.inspectError` 内で `AppError.type` を見て分岐。
@@ -343,11 +343,11 @@ git commit -m "feat: show connection testing spinner and categorized error messa
 
 ### Task 4: テスト — 接続失敗時のエラー表示テスト
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/add-account-form.test.tsx`
 
-**背景:**
+### 背景:
 
 - 既存テストでは `addAccount` の成功パス＋バリデーション失敗をテスト済み。
 - 接続失敗（Rust 側から `AppError` が返る）ケースを追加。

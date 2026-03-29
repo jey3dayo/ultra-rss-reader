@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Settings > General > 未読バッジの `only_inbox` を、feed 合算ではなく Rust 側のアカウント単位未読件数 query で動作させる
+Goal: Settings > General > 未読バッジの `only_inbox` を、feed 合算ではなく Rust 側のアカウント単位未読件数 query で動作させる
 
-**Architecture:** Rust の article repository にアカウント未読件数 read query を追加し、Tauri command と TypeScript wrapper 経由で `useBadge` から参照する。`all_unread` は既存の `feeds.unread_count` 合算を維持し、`only_inbox` のときだけ専用 query を使う。件数が変わる mutation / add-feed / delete-feed の invalidate 経路に新しい query key を追加して整合性を保つ。
+Architecture: Rust の article repository にアカウント未読件数 read query を追加し、Tauri command と TypeScript wrapper 経由で `useBadge` から参照する。`all_unread` は既存の `feeds.unread_count` 合算を維持し、`only_inbox` のときだけ専用 query を使う。件数が変わる mutation / add-feed / delete-feed の invalidate 経路に新しい query key を追加して整合性を保つ。
 
-**Tech Stack:** Rust, rusqlite, Tauri 2 commands, React 19, TanStack Query, Vitest
+Tech Stack: Rust, rusqlite, Tauri 2 commands, React 19, TanStack Query, Vitest
 
 ---
 
