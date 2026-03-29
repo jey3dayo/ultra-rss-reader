@@ -10,11 +10,7 @@ function ServiceSwitch({ prefKey, showLabel }: { prefKey: string; showLabel: str
   return (
     <div className="flex items-center gap-2">
       <span className="text-xs text-muted-foreground">{showLabel}</span>
-      <Switch
-        checked={checked}
-        onCheckedChange={(v) => setPref(prefKey, String(v))}
-        className="data-checked:bg-ring"
-      />
+      <Switch checked={checked} onCheckedChange={(v) => setPref(prefKey, String(v))} />
     </div>
   );
 }

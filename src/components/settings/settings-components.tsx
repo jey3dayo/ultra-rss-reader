@@ -17,7 +17,6 @@ export function SettingsSwitch({ label, prefKey }: { label: string; prefKey: str
         checked={checked}
         onCheckedChange={(v) => setPref(prefKey, String(v))}
         aria-labelledby={labelId}
-        className="data-checked:bg-ring"
       />
     </div>
   );
@@ -80,7 +79,7 @@ export function SettingsRow(props: SettingsRowProps) {
   return (
     <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
       <span className="text-sm text-foreground">{props.label}</span>
-      {props.type === "switch" && <Switch checked={props.checked} disabled className="data-checked:bg-ring" />}
+      {props.type === "switch" && <Switch checked={props.checked} disabled />}
       {props.type === "select" && <span className="text-sm text-muted-foreground">{props.value} &#9662;</span>}
       {props.type === "text" && (
         <span className={cn("text-sm text-muted-foreground", props.truncate && "max-w-[200px] truncate")}>
