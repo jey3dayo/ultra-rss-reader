@@ -2,6 +2,11 @@
 
 Desktop RSS feed reader built with Tauri 2 (Rust) + React 19 (TypeScript) + SQLite.
 
+## Overview
+
+Ultra RSS Reader is a desktop-first RSS reader with a Rust/Tauri runtime and a React frontend.
+It supports local feeds and FreshRSS, stores data in SQLite, and keeps credentials in the OS keyring.
+
 ## Features
 
 - Multiple providers — Local RSS/Atom feeds and FreshRSS (Google Reader API)
@@ -46,9 +51,26 @@ Desktop RSS feed reader built with Tauri 2 (Rust) + React 19 (TypeScript) + SQLi
 mise install
 pnpm install
 
-# Run in development mode (hot reload)
+# Run the desktop app in development mode
 pnpm tauri dev
 ```
+
+`pnpm tauri dev` is the default development entry point. In this project, Tauri starts the Vite dev server with
+`beforeDevCommand` and loads the frontend from `devUrl` (`http://localhost:1420`).
+
+## Development Modes
+
+| Goal | Command | Notes |
+| --- | --- | --- |
+| Live desktop development | `pnpm tauri dev` | Recommended default. Launches the Tauri shell and connects it to the Vite dev server with hot reload. |
+| Web-only frontend debugging | `pnpm dev` | Starts the Vite dev server on `http://localhost:1420` without the Tauri shell. |
+| Preview the production frontend build | `pnpm build && pnpm preview` | Serves the current `dist/` output. Rebuild before previewing new changes. |
+
+`pnpm preview` is intentionally different from `pnpm tauri dev`:
+
+- `pnpm tauri dev` is for day-to-day UI development.
+- `pnpm preview` serves the built `dist/` directory and will show stale output until `pnpm build` is run again.
+- Use `pnpm preview` to sanity-check the production bundle, not as a replacement for the normal dev workflow.
 
 ## Development Commands
 
@@ -62,6 +84,11 @@ mise run test:live    # FreshRSS integration tests (requires .env credentials)
 ```
 
 Always run `mise run check` before committing.
+
+## Troubleshooting
+
+- If the app looks stale during development, make sure you are using `pnpm tauri dev` or `pnpm dev`, not `pnpm preview`.
+- If `pnpm preview` does not reflect a recent frontend change, run `pnpm build` first so `dist/` is regenerated.
 
 ## Architecture
 
