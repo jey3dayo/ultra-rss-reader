@@ -80,7 +80,13 @@ export function ShortcutsSettingsView({
 }: ShortcutsSettingsViewProps) {
   return (
     <div className="p-6">
-      <h2 className="mb-6 text-center text-lg font-semibold">{title}</h2>
+      <div className="mb-6 flex items-center justify-between">
+        <div />
+        <h2 className="text-lg font-semibold">{title}</h2>
+        <Button variant="outline" size="sm" onClick={onResetAll} disabled={resetDisabled}>
+          {resetLabel}
+        </Button>
+      </div>
 
       {conflictMessage && (
         <div className="mb-4 rounded-md border border-destructive bg-destructive/10 px-4 py-2 text-sm text-destructive">
@@ -105,12 +111,6 @@ export function ShortcutsSettingsView({
           ))}
         </section>
       ))}
-
-      <div className="flex justify-center border-t border-border pt-6">
-        <Button variant="outline" size="sm" onClick={onResetAll} disabled={resetDisabled}>
-          {resetLabel}
-        </Button>
-      </div>
     </div>
   );
 }

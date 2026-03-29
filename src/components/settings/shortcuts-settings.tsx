@@ -1,3 +1,4 @@
+import { RotateCcw } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
@@ -8,6 +9,7 @@ import {
   shortcutPrefKey,
 } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
+import { useUiStore } from "@/stores/ui-store";
 
 type RecordedKeyEvent = Pick<
   globalThis.KeyboardEvent,
@@ -99,11 +101,20 @@ export function ShortcutsSettings() {
     [handleCancel, handleKeyRecorded, recordingId],
   );
 
-  const handleResetAll = useCallback(() => {
+  const showConfirm = useUiStore((s) => s.showConfirm);
+
+  const doResetAll = useCallback(() => {
     for (const def of shortcutDefinitions) {
       setPref(shortcutPrefKey(def.id), def.defaultKey);
     }
   }, [setPref]);
+
+  const handleResetAll = useCallback(() => {
+    showConfirm(t("shortcuts.confirm_reset"), doResetAll, {
+      actionLabel: t("shortcuts.reset_to_defaults"),
+      icon: RotateCcw,
+    });
+  }, [showConfirm, doResetAll, t]);
 
   const hasCustomBindings = shortcutDefinitions.some((def) => {
     const current = prefs[shortcutPrefKey(def.id)];
