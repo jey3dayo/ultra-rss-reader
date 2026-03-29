@@ -1,6 +1,6 @@
 import { Toggle } from "@base-ui/react/toggle";
 import { Result } from "@praha/byethrow";
-import { ArrowLeft, Copy, ExternalLink, Globe, Plus, Star, X } from "lucide-react";
+import { ArrowLeft, Copy, ExternalLink, Globe, Plus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
@@ -124,8 +124,9 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
             size="icon"
             onClick={async () => {
               if (article?.url) {
+                const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
                 Result.pipe(
-                  await openInBrowser(article.url),
+                  await openInBrowser(article.url, bg),
                   Result.inspectError((e) => console.error("Failed to open in browser:", e)),
                 );
               }
@@ -144,15 +145,10 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
 
 function EmptyState() {
   const { t } = useTranslation("reader");
-  const { t: ts } = useTranslation("sidebar");
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
       <ArticleToolbar article={null} />
       <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground">
-        <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-xl bg-muted/30">
-          <Star className="h-10 w-10" />
-        </div>
-        <h3 className="text-lg font-medium text-foreground">{ts("app_name")}</h3>
         <p className="text-sm">{t("select_article_to_read")}</p>
       </div>
     </div>
@@ -320,7 +316,8 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
     };
     const handleOpenExternalBrowser = () => {
       if (!article.url) return;
-      openInBrowser(article.url).then((result) =>
+      const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
+      openInBrowser(article.url, bg).then((result) =>
         Result.pipe(
           result,
           Result.inspectError((e) => console.error("Failed to open in browser:", e)),
@@ -394,7 +391,8 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
       ctrlKey: e.ctrlKey,
     });
     if (useExternal) {
-      openInBrowser(anchor.href);
+      const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
+      openInBrowser(anchor.href, bg);
     } else {
       openBrowserView(anchor.href);
     }
@@ -405,35 +403,47 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
       <ArticleToolbar article={article} />
       <ScrollArea className="flex-1">
         <article className="mx-auto max-w-3xl px-8 py-8">
-          {/* Date */}
-          <p className="mb-2 text-xs tracking-wider text-muted-foreground">{formatArticleDate(article.published_at)}</p>
-
-          {/* Title */}
-          <h1
-            className={`mb-4 text-2xl font-bold leading-tight text-foreground${article.url ? " cursor-pointer hover:underline" : ""}`}
+          {/* Title block — date, title, author & feed as a clickable group */}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled via onKeyDown */}
+          <div
+            className={cn(
+              "-mx-4 mb-4 rounded-lg px-4 py-3 transition-colors",
+              article.url && "cursor-pointer hover:bg-muted/50",
+            )}
             onClick={() => article.url && openBrowserView(article.url)}
+            onAuxClick={(e) => {
+              if (e.button === 1 && article.url) {
+                e.preventDefault();
+                const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
+                openInBrowser(article.url, bg);
+              }
+            }}
             onKeyDown={(e) => {
               if (article.url && (e.key === "Enter" || e.key === " ")) openBrowserView(article.url);
             }}
           >
-            {article.title}
-          </h1>
-
-          {/* Author & Feed */}
-          {(article.author || feedName) && (
-            <div className="mb-4 text-sm text-muted-foreground">
-              {article.author && <p className="uppercase tracking-wide">{article.author}</p>}
-              {feedName && (
-                <button
-                  type="button"
-                  className="cursor-pointer text-xs hover:underline"
-                  onClick={() => selectFeed(article.feed_id)}
-                >
-                  {feedName}
-                </button>
-              )}
-            </div>
-          )}
+            <p className="mb-2 text-xs tracking-wider text-muted-foreground">
+              {formatArticleDate(article.published_at)}
+            </p>
+            <h1 className="mb-2 text-2xl font-bold leading-tight text-foreground">{article.title}</h1>
+            {(article.author || feedName) && (
+              <div className="text-sm text-muted-foreground">
+                {article.author && <p className="uppercase tracking-wide">{article.author}</p>}
+                {feedName && (
+                  <button
+                    type="button"
+                    className="cursor-pointer text-xs hover:underline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      selectFeed(article.feed_id);
+                    }}
+                  >
+                    {feedName}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Tags */}
           <div className="mb-8">
