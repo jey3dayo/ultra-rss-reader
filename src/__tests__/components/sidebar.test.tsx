@@ -121,8 +121,8 @@ describe("Sidebar", () => {
     const feedLeadingSlot = feedLabel.parentElement?.firstElementChild;
     const tagLeadingSlot = tagLabel.parentElement?.firstElementChild;
 
-    expect(feedLeadingSlot).toHaveClass("h-5", "w-5", "shrink-0");
-    expect(tagLeadingSlot).toHaveClass("h-5", "w-5", "shrink-0");
+    expect(feedLeadingSlot).toHaveClass("h-5", "w-5", "shrink-0", "justify-center");
+    expect(tagLeadingSlot).toHaveClass("h-5", "w-5", "shrink-0", "justify-center");
   });
 
   it("does not update last synced time when sync is skipped", async () => {
