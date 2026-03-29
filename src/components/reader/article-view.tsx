@@ -110,158 +110,137 @@ function ArticleToolbar({
       <div>
         {showSidebarButton && (
           <TooltipProvider>
-            <AppTooltip
-              label={t("show_sidebar")}
-              children={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setFocusedPane("sidebar")}
-                  className="text-muted-foreground"
-                  aria-label={t("show_sidebar")}
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              }
-            />
+            <AppTooltip label={t("show_sidebar")}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setFocusedPane("sidebar")}
+                className="text-muted-foreground"
+                aria-label={t("show_sidebar")}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </AppTooltip>
           </TooltipProvider>
         )}
       </div>
       <div className="flex items-center gap-2">
         <TooltipProvider>
-          <AppTooltip
-            label={t("toggle_read")}
-            children={
-              <Toggle
-                pressed={article?.is_read ?? false}
-                onPressedChange={(pressed) => {
-                  if (!article) return;
-                  setRead.mutate(
-                    { id: article.id, read: pressed },
-                    {
-                      onSuccess: () => {
-                        if (pressed) addRecentlyRead(article.id);
-                      },
+          <AppTooltip label={t("toggle_read")}>
+            <Toggle
+              pressed={article?.is_read ?? false}
+              onPressedChange={(pressed) => {
+                if (!article) return;
+                setRead.mutate(
+                  { id: article.id, read: pressed },
+                  {
+                    onSuccess: () => {
+                      if (pressed) addRecentlyRead(article.id);
                     },
-                  );
-                }}
-                disabled={!article}
-                aria-label={t("toggle_read")}
-                className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
-              >
-                <UnreadIcon unread={!article?.is_read} className="h-3 w-3" />
-              </Toggle>
-            }
-          />
-          <AppTooltip
-            label={t("toggle_star")}
-            children={
-              <Toggle
-                pressed={article?.is_starred ?? false}
-                onPressedChange={(pressed) => {
-                  if (!article) return;
-                  toggleStar.mutate(
-                    { id: article.id, starred: pressed },
-                    { onSuccess: () => showToast(pressed ? t("article_starred") : t("article_unstarred")) },
-                  );
-                }}
-                disabled={!article}
-                aria-label={t("toggle_star")}
-                className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
-              >
-                <StarIcon starred={article?.is_starred ?? false} className="h-4 w-4" />
-              </Toggle>
-            }
-          />
+                  },
+                );
+              }}
+              disabled={!article}
+              aria-label={t("toggle_read")}
+              className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
+            >
+              <UnreadIcon unread={!article?.is_read} className="h-3 w-3" />
+            </Toggle>
+          </AppTooltip>
+          <AppTooltip label={t("toggle_star")}>
+            <Toggle
+              pressed={article?.is_starred ?? false}
+              onPressedChange={(pressed) => {
+                if (!article) return;
+                toggleStar.mutate(
+                  { id: article.id, starred: pressed },
+                  { onSuccess: () => showToast(pressed ? t("article_starred") : t("article_unstarred")) },
+                );
+              }}
+              disabled={!article}
+              aria-label={t("toggle_star")}
+              className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
+            >
+              <StarIcon starred={article?.is_starred ?? false} className="h-4 w-4" />
+            </Toggle>
+          </AppTooltip>
           <DisplayModeToggleGroup
             value={currentDisplayMode}
             onValueChange={handleSetDisplayMode}
             disabled={!feedId || !article?.url}
           />
           {actionCopyLink === "true" && (
-            <AppTooltip
-              label={t("copy_link")}
-              children={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    if (article?.url) {
-                      navigator.clipboard.writeText(article.url);
-                      showToast(t("link_copied"));
-                    }
-                  }}
-                  className="text-muted-foreground"
-                  disabled={!article?.url}
-                  aria-label={t("copy_link")}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              }
-            />
+            <AppTooltip label={t("copy_link")}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (article?.url) {
+                    navigator.clipboard.writeText(article.url);
+                    showToast(t("link_copied"));
+                  }
+                }}
+                className="text-muted-foreground"
+                disabled={!article?.url}
+                aria-label={t("copy_link")}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </AppTooltip>
           )}
           {actionOpenBrowser === "true" && (
-            <AppTooltip
-              label={t("view_in_browser")}
-              children={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => article?.url && openBrowser(article.url)}
-                  className="text-muted-foreground"
-                  disabled={!article?.url}
-                  aria-label={t("view_in_browser")}
-                >
-                  <Globe className="h-4 w-4" />
-                </Button>
-              }
-            />
+            <AppTooltip label={t("view_in_browser")}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => article?.url && openBrowser(article.url)}
+                className="text-muted-foreground"
+                disabled={!article?.url}
+                aria-label={t("view_in_browser")}
+              >
+                <Globe className="h-4 w-4" />
+              </Button>
+            </AppTooltip>
           )}
           {actionShare === "true" && (
-            <AppTooltip
-              label={t("open_in_external_browser")}
-              children={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={async () => {
-                    if (article?.url) {
-                      const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-                      Result.pipe(
-                        await openInBrowser(article.url, bg),
-                        Result.inspectError((e) => console.error("Failed to open in browser:", e)),
-                      );
-                    }
-                  }}
-                  className="text-muted-foreground"
-                  disabled={!article?.url}
-                  aria-label={t("open_in_external_browser")}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
-              }
-            />
+            <AppTooltip label={t("open_in_external_browser")}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={async () => {
+                  if (article?.url) {
+                    const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
+                    Result.pipe(
+                      await openInBrowser(article.url, bg),
+                      Result.inspectError((e) => console.error("Failed to open in browser:", e)),
+                    );
+                  }
+                }}
+                className="text-muted-foreground"
+                disabled={!article?.url}
+                aria-label={t("open_in_external_browser")}
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </AppTooltip>
           )}
           {actionShareMenu === "true" && (
             <Menu.Root>
-              <AppTooltip
-                label={t("share")}
-                children={
-                  <Menu.Trigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground"
-                        disabled={!article?.url}
-                        aria-label={t("share")}
-                      />
-                    }
-                  >
-                    <Share className="h-4 w-4" />
-                  </Menu.Trigger>
-                }
-              />
+              <AppTooltip label={t("share")}>
+                <Menu.Trigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground"
+                      disabled={!article?.url}
+                      aria-label={t("share")}
+                    />
+                  }
+                >
+                  <Share className="h-4 w-4" />
+                </Menu.Trigger>
+              </AppTooltip>
               <Menu.Portal>
                 <Menu.Positioner sideOffset={4}>
                   <Menu.Popup className={contextMenuStyles.popup}>
@@ -307,7 +286,10 @@ function ArticleToolbar({
                         const mailto = `mailto:?subject=${encodeURIComponent(article.title)}&body=${encodeURIComponent(article.url)}`;
                         Result.pipe(
                           await openInBrowser(mailto, false),
-                          Result.inspectError((e) => console.error("Failed to open email client:", e)),
+                          Result.inspectError((e) => {
+                            console.error("Failed to open email client:", e);
+                            showToast(e.message);
+                          }),
                         );
                       }}
                     >
@@ -797,7 +779,10 @@ export function ArticleView() {
       openBrowser(article.url);
       if (readerViewPref === "fullscreen") {
         void (async () => {
-          Result.pipe(await setWindowFullscreen(true), Result.inspectError(() => {}));
+          Result.pipe(
+            await setWindowFullscreen(true),
+            Result.inspectError(() => {}),
+          );
         })();
       }
     }
