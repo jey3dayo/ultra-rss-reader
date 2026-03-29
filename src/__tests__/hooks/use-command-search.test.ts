@@ -1,5 +1,6 @@
+import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { parsePrefix } from "../../hooks/use-command-search";
+import { parsePrefix, useCommandSearch } from "../../hooks/use-command-search";
 
 describe("parsePrefix", () => {
   it("returns null prefix for plain text", () => {
@@ -24,5 +25,23 @@ describe("parsePrefix", () => {
 
   it("supports a prefix with no query", () => {
     expect(parsePrefix("@")).toEqual({ prefix: "@", query: "" });
+  });
+});
+
+describe("useCommandSearch", () => {
+  it("returns the immediate prefix and query and exposes deferredQuery", () => {
+    const { result, rerender } = renderHook(({ input }) => useCommandSearch(input), {
+      initialProps: { input: "   >   refresh" },
+    });
+
+    expect(result.current.prefix).toBe(">");
+    expect(result.current.query).toBe("refresh");
+    expect(result.current.deferredQuery).toBe("refresh");
+
+    rerender({ input: "@ inbox" });
+
+    expect(result.current.prefix).toBe("@");
+    expect(result.current.query).toBe("inbox");
+    expect(typeof result.current.deferredQuery).toBe("string");
   });
 });

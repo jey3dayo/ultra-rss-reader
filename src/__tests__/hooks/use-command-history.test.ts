@@ -1,9 +1,13 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { addToHistory, clearHistory, getHistory, HISTORY_KEY, MAX_HISTORY } from "../../hooks/use-command-history";
 
 describe("use-command-history", () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("returns an empty array when history is missing", () => {
@@ -62,6 +66,15 @@ describe("use-command-history", () => {
     clearHistory();
 
     expect(localStorage.getItem(HISTORY_KEY)).toBeNull();
+    expect(getHistory()).toEqual([]);
+  });
+
+  it("fails safely when storage write throws", () => {
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("storage unavailable");
+    });
+
+    expect(() => addToHistory("feed-1")).not.toThrow();
     expect(getHistory()).toEqual([]);
   });
 });
