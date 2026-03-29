@@ -610,3 +610,50 @@ pub async fn trigger_sync(
     }
     Ok(did_sync)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::{Arc, Mutex};
+
+    #[tokio::test]
+    async fn run_full_sync_skips_when_already_syncing() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let syncing = AtomicBool::new(true); // already syncing
+
+        let result = run_full_sync(&db, &syncing).await;
+
+        assert!(result.is_ok());
+        assert!(!result.unwrap(), "should skip when sync in progress");
+    }
+
+    #[tokio::test]
+    async fn run_full_sync_resets_flag_after_completion() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let syncing = AtomicBool::new(false);
+
+        let result = run_full_sync(&db, &syncing).await;
+
+        assert!(result.is_ok());
+        assert!(!syncing.load(Ordering::SeqCst), "syncing flag should be reset after sync");
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn concurrent_syncs_only_one_executes() {
+        let db = Arc::new(Mutex::new(DbManager::new_in_memory().unwrap()));
+        let syncing = Arc::new(AtomicBool::new(false));
+
+        let db1 = Arc::clone(&db);
+        let syncing1 = Arc::clone(&syncing);
+        let db2 = Arc::clone(&db);
+        let syncing2 = Arc::clone(&syncing);
+
+        let h1 = tokio::spawn(async move { run_full_sync(&db1, &syncing1).await });
+        let h2 = tokio::spawn(async move { run_full_sync(&db2, &syncing2).await });
+
+        let results = [h1.await.unwrap().unwrap(), h2.await.unwrap().unwrap()];
+        assert!(results.contains(&true), "one sync should execute");
+        assert!(results.contains(&false), "one sync should be skipped");
+    }
+}
