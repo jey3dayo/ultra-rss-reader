@@ -212,8 +212,6 @@ Release がまだ存在しない場合（GitHub Actions 未完了）は `gh rele
 - GitHub Release URL を表示
 - ドラフト Release のリリースノートを確認し、問題なければ Publish する旨を案内
 
-````
-
 - [ ] **Step 3: 書き換えた内容を確認**
 
 Read: `.claude/commands/release.md` で全文を確認し、旧ステップが残っていないこと、3フェーズ構造になっていることを検証。
