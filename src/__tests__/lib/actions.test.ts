@@ -1,7 +1,14 @@
+import { Result } from "@praha/byethrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppAction } from "@/lib/actions";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
+
+const reloadWebviewMock = vi.fn(async () => Result.succeed(undefined));
+
+vi.mock("@/lib/webview-history", () => ({
+  reloadWebview: reloadWebviewMock,
+}));
 
 // Mock preferences store
 vi.mock("@/stores/preferences-store", () => {
@@ -29,6 +36,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  reloadWebviewMock.mockClear();
 });
 
 describe("executeAction", () => {
@@ -190,6 +198,12 @@ describe("executeAction", () => {
   });
 
   describe("placeholder actions", () => {
+    it("reuses reloadWebview for reload-webview", () => {
+      executeAction("reload-webview");
+
+      expect(reloadWebviewMock).toHaveBeenCalledTimes(1);
+    });
+
     it("does not throw for copy-link", () => {
       expect(() => executeAction("copy-link")).not.toThrow();
     });

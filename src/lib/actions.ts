@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { triggerSync } from "@/api/tauri-commands";
 import { performUpdateCheck, showUpdateAvailableToast } from "@/hooks/use-updater";
 import { keyboardEvents, type ViewMode } from "@/lib/keyboard-shortcuts";
+import { reloadWebview } from "@/lib/webview-history";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -191,18 +192,16 @@ export function executeAction(action: AppAction): void {
       break;
 
     // --- Browser ---
-    case "reload-webview": {
-      const iframe = document.querySelector<HTMLIFrameElement>("iframe");
-      if (iframe?.contentWindow) {
-        iframe.contentWindow.location.reload();
-      } else if (iframe?.src) {
-        // Fallback: force reload by re-setting src
-        const currentSrc = iframe.src;
-        iframe.src = "";
-        iframe.src = currentSrc;
-      }
+    case "reload-webview":
+      void reloadWebview().then((result) => {
+        Result.pipe(
+          result,
+          Result.inspectError((error) => {
+            console.error("Menu webview reload failed:", error);
+          }),
+        );
+      });
       break;
-    }
 
     // --- Article actions (reuse existing keyboard event system) ---
     case "open-in-reader":
