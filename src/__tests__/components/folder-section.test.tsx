@@ -39,8 +39,7 @@ describe("FolderSectionView", () => {
     const user = userEvent.setup();
     const onToggle = vi.fn();
     const onSelectFeed = vi.fn();
-
-    render(
+    const { container } = render(
       <FolderSectionView
         folder={baseFolder}
         feeds={feeds}
@@ -49,19 +48,20 @@ describe("FolderSectionView", () => {
         selectedFeedId="feed-2"
         onSelectFeed={onSelectFeed}
         displayFavicons={false}
-        hasContextMenu={true}
       />,
     );
 
     const trigger = screen.getByRole("button", { name: /Work/i });
+    const feedButton = screen.getByRole("button", { name: /Beta/i });
 
     expect(trigger).toHaveAttribute("aria-expanded", "true");
-    expect(trigger).toHaveAttribute("aria-haspopup", "menu");
     expect(screen.getByText("12")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Beta/i })).toHaveClass("bg-sidebar-accent");
+    expect(feedButton).toHaveClass("bg-sidebar-accent");
+    expect(feedButton).not.toHaveAttribute("aria-haspopup");
+    expect(container.querySelector('[data-slot="collapsible-content"]')).not.toBeNull();
 
     await user.click(trigger);
-    await user.click(screen.getByRole("button", { name: /Beta/i }));
+    await user.click(feedButton);
 
     expect(onToggle).toHaveBeenCalledWith("folder-1");
     expect(onSelectFeed).toHaveBeenCalledWith("feed-2");

@@ -1,6 +1,6 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import type { FeedDto } from "@/api/tauri-commands";
 import { extractSiteHost } from "@/lib/feed";
 import { cn } from "@/lib/utils";
@@ -40,30 +40,27 @@ export type FeedItemViewProps = {
   onSelect: (feedId: string) => void;
   displayFavicons: boolean;
   grayscaleFavicons?: boolean;
-  hasContextMenu?: boolean;
-  renderButton?: (props: {
-    children: ReactNode;
-    className: string;
-    hasContextMenu: boolean;
-    onClick: () => void;
-  }) => ReactNode;
 };
 
-export function FeedItemView({
-  feed,
-  isSelected,
-  onSelect,
-  displayFavicons,
-  grayscaleFavicons = false,
-  hasContextMenu = false,
-  renderButton,
-}: FeedItemViewProps) {
-  const leadingVisualSlotClass = "flex h-5 w-5 shrink-0 items-center justify-center";
-  const className = cn(
+function getFeedItemClassName(isSelected: boolean) {
+  return cn(
     "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm",
     isSelected ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50",
   );
-  const content = (
+}
+
+function FeedItemContent({
+  feed,
+  displayFavicons,
+  grayscaleFavicons,
+}: {
+  feed: FeedDto;
+  displayFavicons: boolean;
+  grayscaleFavicons: boolean;
+}) {
+  const leadingVisualSlotClass = "flex h-5 w-5 shrink-0 items-center justify-center";
+
+  return (
     <>
       <div className="flex items-center gap-2 truncate">
         {displayFavicons && (
@@ -76,46 +73,37 @@ export function FeedItemView({
       {feed.unread_count > 0 && <span className="ml-2 shrink-0 text-muted-foreground">{feed.unread_count}</span>}
     </>
   );
-  const handleClick = () => onSelect(feed.id);
+}
 
-  if (renderButton) {
-    return renderButton({
-      children: content,
-      className,
-      hasContextMenu,
-      onClick: handleClick,
-    });
-  }
-
+export function FeedItemView({
+  feed,
+  isSelected,
+  onSelect,
+  displayFavicons,
+  grayscaleFavicons = false,
+}: FeedItemViewProps) {
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className={className}
-      aria-haspopup={hasContextMenu ? "menu" : undefined}
-    >
-      {content}
+    <button type="button" onClick={() => onSelect(feed.id)} className={getFeedItemClassName(isSelected)}>
+      <FeedItemContent feed={feed} displayFavicons={displayFavicons} grayscaleFavicons={grayscaleFavicons} />
     </button>
   );
 }
 
-export function FeedItem(props: Omit<FeedItemViewProps, "hasContextMenu" | "renderButton">) {
+export function FeedItem(props: FeedItemViewProps) {
   return (
     <ContextMenu.Root>
-      <FeedItemView
-        {...props}
-        hasContextMenu={true}
-        renderButton={({ children, className, hasContextMenu, onClick }) => (
-          <ContextMenu.Trigger
-            render={<button type="button" />}
-            onClick={onClick}
-            className={className}
-            aria-haspopup={hasContextMenu ? "menu" : undefined}
-          >
-            {children}
-          </ContextMenu.Trigger>
-        )}
-      />
+      <ContextMenu.Trigger
+        render={<button type="button" />}
+        onClick={() => props.onSelect(props.feed.id)}
+        className={getFeedItemClassName(props.isSelected)}
+        aria-haspopup="menu"
+      >
+        <FeedItemContent
+          feed={props.feed}
+          displayFavicons={props.displayFavicons}
+          grayscaleFavicons={props.grayscaleFavicons ?? false}
+        />
+      </ContextMenu.Trigger>
       <FeedContextMenuContent feed={props.feed} />
     </ContextMenu.Root>
   );

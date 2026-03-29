@@ -20,20 +20,12 @@ describe("FeedItemView", () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
 
-    render(
-      <FeedItemView
-        feed={baseFeed}
-        isSelected={true}
-        onSelect={onSelect}
-        displayFavicons={false}
-        hasContextMenu={true}
-      />,
-    );
+    render(<FeedItemView feed={baseFeed} isSelected={true} onSelect={onSelect} displayFavicons={false} />);
 
     const button = screen.getByRole("button", { name: /AUTOMATON/i });
 
     expect(button).toHaveClass("bg-sidebar-accent");
-    expect(button).toHaveAttribute("aria-haspopup", "menu");
+    expect(button).not.toHaveAttribute("aria-haspopup");
     expect(screen.getByText("42")).toBeInTheDocument();
 
     await user.click(button);

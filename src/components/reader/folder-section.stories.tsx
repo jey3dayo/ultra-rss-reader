@@ -55,7 +55,6 @@ const meta = {
     selectedFeedId: "feed-1",
     onSelectFeed: fn(),
     displayFavicons: true,
-    hasContextMenu: true,
   },
   decorators: [
     (Story) => (

@@ -20,7 +20,6 @@ const meta = {
   tags: ["autodocs"],
   args: {
     onSelect: fn(),
-    hasContextMenu: true,
   },
   decorators: [
     (Story) => (
@@ -101,14 +100,7 @@ export const MultipleFeeds: Story = {
     return (
       <div className="flex flex-col gap-0.5">
         {feeds.map((feed, i) => (
-          <FeedItemView
-            key={feed.id}
-            feed={feed}
-            isSelected={i === 0}
-            onSelect={fn()}
-            displayFavicons={true}
-            hasContextMenu={true}
-          />
+          <FeedItemView key={feed.id} feed={feed} isSelected={i === 0} onSelect={fn()} displayFavicons={true} />
         ))}
       </div>
     );

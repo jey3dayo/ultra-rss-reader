@@ -1,7 +1,7 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import type { ReactNode } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { FeedItem, FeedItemView } from "./feed-item";
 import { FolderContextMenuContent } from "./folder-context-menu";
 
@@ -18,16 +18,31 @@ export type FolderSectionViewProps = {
   onSelectFeed: (feedId: string) => void;
   displayFavicons: boolean;
   grayscaleFavicons?: boolean;
-  hasContextMenu?: boolean;
-  renderTrigger?: (props: {
-    children: ReactNode;
-    className: string;
-    hasContextMenu: boolean;
-    isExpanded: boolean;
-    onClick: () => void;
-  }) => ReactNode;
-  renderFeedItem?: (feed: FeedDto) => ReactNode;
 };
+
+function getFolderTriggerClassName() {
+  return "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/50";
+}
+
+function FolderSectionTriggerContent({
+  folderName,
+  folderUnread,
+  isExpanded,
+}: {
+  folderName: string;
+  folderUnread: number;
+  isExpanded: boolean;
+}) {
+  return (
+    <>
+      <div className="flex items-center gap-1">
+        {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        <span className="font-medium">{folderName}</span>
+      </div>
+      {folderUnread > 0 && <span className="text-muted-foreground">{folderUnread.toLocaleString()}</span>}
+    </>
+  );
+}
 
 export function FolderSectionView({
   folder,
@@ -38,103 +53,72 @@ export function FolderSectionView({
   onSelectFeed,
   displayFavicons,
   grayscaleFavicons = false,
-  hasContextMenu = false,
-  renderTrigger,
-  renderFeedItem,
 }: FolderSectionViewProps) {
   const folderUnread = getFolderUnreadCount(feeds);
-  const className =
-    "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/50";
-  const triggerContent = (
-    <>
-      <div className="flex items-center gap-1">
-        {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-        <span className="font-medium">{folder.name}</span>
-      </div>
-      {folderUnread > 0 && <span className="text-muted-foreground">{folderUnread.toLocaleString()}</span>}
-    </>
-  );
-  const handleToggle = () => onToggle(folder.id);
-
-  const trigger = renderTrigger ? (
-    renderTrigger({
-      children: triggerContent,
-      className,
-      hasContextMenu,
-      isExpanded,
-      onClick: handleToggle,
-    })
-  ) : (
-    <button
-      type="button"
-      onClick={handleToggle}
-      aria-expanded={isExpanded}
-      aria-haspopup={hasContextMenu ? "menu" : undefined}
-      className={className}
-    >
-      {triggerContent}
-    </button>
-  );
 
   return (
-    <div>
-      {trigger}
-      {isExpanded && (
+    <Collapsible open={isExpanded}>
+      <CollapsibleTrigger
+        onClick={() => onToggle(folder.id)}
+        className={getFolderTriggerClassName()}
+        aria-expanded={isExpanded}
+      >
+        <FolderSectionTriggerContent folderName={folder.name} folderUnread={folderUnread} isExpanded={isExpanded} />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
         <div className="space-y-0.5 pl-3">
-          {feeds.map((feed) =>
-            renderFeedItem ? (
-              renderFeedItem(feed)
-            ) : (
-              <FeedItemView
-                key={feed.id}
-                feed={feed}
-                isSelected={selectedFeedId === feed.id}
-                onSelect={onSelectFeed}
-                displayFavicons={displayFavicons}
-                grayscaleFavicons={grayscaleFavicons}
-                hasContextMenu={true}
-              />
-            ),
-          )}
+          {feeds.map((feed) => (
+            <FeedItemView
+              key={feed.id}
+              feed={feed}
+              isSelected={selectedFeedId === feed.id}
+              onSelect={onSelectFeed}
+              displayFavicons={displayFavicons}
+              grayscaleFavicons={grayscaleFavicons}
+            />
+          ))}
         </div>
-      )}
-    </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
-export function FolderSection(
-  props: Omit<FolderSectionViewProps, "hasContextMenu" | "renderTrigger" | "renderFeedItem">,
-) {
+export function FolderSection(props: FolderSectionViewProps) {
   const folderUnread = getFolderUnreadCount(props.feeds);
 
   return (
-    <ContextMenu.Root>
-      <FolderSectionView
-        {...props}
-        hasContextMenu={true}
-        renderTrigger={({ children, className, hasContextMenu, isExpanded, onClick }) => (
-          <ContextMenu.Trigger
-            render={<button type="button" />}
-            onClick={onClick}
-            className={className}
-            aria-expanded={isExpanded}
-            aria-haspopup={hasContextMenu ? "menu" : undefined}
+    <Collapsible open={props.isExpanded}>
+      <ContextMenu.Root>
+        <ContextMenu.Trigger render={<div />}>
+          <CollapsibleTrigger
+            onClick={() => props.onToggle(props.folder.id)}
+            className={getFolderTriggerClassName()}
+            aria-expanded={props.isExpanded}
+            aria-haspopup="menu"
           >
-            {children}
-          </ContextMenu.Trigger>
-        )}
-        renderFeedItem={(feed) => (
-          <FeedItem
-            key={feed.id}
-            feed={feed}
-            isSelected={props.selectedFeedId === feed.id}
-            onSelect={props.onSelectFeed}
-            displayFavicons={props.displayFavicons}
-            grayscaleFavicons={props.grayscaleFavicons}
-          />
-        )}
-      />
-      <FolderContextMenuContent folder={props.folder} folderUnread={folderUnread} />
-    </ContextMenu.Root>
+            <FolderSectionTriggerContent
+              folderName={props.folder.name}
+              folderUnread={folderUnread}
+              isExpanded={props.isExpanded}
+            />
+          </CollapsibleTrigger>
+        </ContextMenu.Trigger>
+        <FolderContextMenuContent folder={props.folder} folderUnread={folderUnread} />
+      </ContextMenu.Root>
+      <CollapsibleContent>
+        <div className="space-y-0.5 pl-3">
+          {props.feeds.map((feed) => (
+            <FeedItem
+              key={feed.id}
+              feed={feed}
+              isSelected={props.selectedFeedId === feed.id}
+              onSelect={props.onSelectFeed}
+              displayFavicons={props.displayFavicons}
+              grayscaleFavicons={props.grayscaleFavicons}
+            />
+          ))}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
