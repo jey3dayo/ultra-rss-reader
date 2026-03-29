@@ -22,6 +22,7 @@ export type FeedTreeFolderViewModel = {
   id: string;
   name: string;
   accountId: string;
+  sortOrder: number;
   unreadCount: number;
   isExpanded: boolean;
   feeds: FeedTreeFeedViewModel[];

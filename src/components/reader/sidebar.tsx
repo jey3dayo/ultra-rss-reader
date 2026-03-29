@@ -208,6 +208,7 @@ export function Sidebar() {
             id: folder.id,
             name: folder.name,
             accountId: folder.account_id,
+            sortOrder: folder.sort_order,
             unreadCount: folderUnread,
             isExpanded: expandedFolderIds.has(folder.id),
             feeds: folderFeeds.map((feed) => ({
@@ -360,7 +361,7 @@ export function Sidebar() {
             }
             renderFolderContextMenu={(folder) => (
               <FolderContextMenuContent
-                folder={{ id: folder.id, account_id: folder.accountId, name: folder.name, sort_order: 0 }}
+                folder={{ id: folder.id, account_id: folder.accountId, name: folder.name, sort_order: folder.sortOrder }}
                 folderUnread={folder.unreadCount}
               />
             )}

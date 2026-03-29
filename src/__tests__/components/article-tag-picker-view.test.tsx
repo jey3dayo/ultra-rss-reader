@@ -164,4 +164,59 @@ describe("ArticleTagPickerView", () => {
     expect(articleTagPickerViewSource).not.toContain("@/api/tauri-commands");
     expect(articleTagPickerViewSource).toContain("export type ArticleTagPickerTagView");
   });
+
+  it("does not steal focus again when available tags change while open", async () => {
+    const user = userEvent.setup();
+
+    const { rerender } = render(
+      <ArticleTagPickerView
+        assignedTags={[]}
+        availableTags={[
+          { id: "tag-1", name: "Later", color: null },
+          { id: "tag-2", name: "Important", color: "#ff0000" },
+        ]}
+        newTagName=""
+        isExpanded
+        labels={{
+          addTag: "Add tag",
+          availableTags: "Available tags",
+          newTagPlaceholder: "Create tag",
+          createTag: "Create tag",
+          removeTag: (name) => `Remove tag ${name}`,
+        }}
+        onExpandedChange={vi.fn()}
+        onNewTagNameChange={vi.fn()}
+        onAssignTag={vi.fn()}
+        onRemoveTag={vi.fn()}
+        onCreateTag={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByRole("textbox");
+    await user.click(input);
+    expect(input).toHaveFocus();
+
+    rerender(
+      <ArticleTagPickerView
+        assignedTags={[]}
+        availableTags={[{ id: "tag-1", name: "Later", color: null }]}
+        newTagName=""
+        isExpanded
+        labels={{
+          addTag: "Add tag",
+          availableTags: "Available tags",
+          newTagPlaceholder: "Create tag",
+          createTag: "Create tag",
+          removeTag: (name) => `Remove tag ${name}`,
+        }}
+        onExpandedChange={vi.fn()}
+        onNewTagNameChange={vi.fn()}
+        onAssignTag={vi.fn()}
+        onRemoveTag={vi.fn()}
+        onCreateTag={vi.fn()}
+      />,
+    );
+
+    expect(input).toHaveFocus();
+  });
 });

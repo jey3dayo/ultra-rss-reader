@@ -74,7 +74,9 @@ export function AddFeedDialogView({
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            onSubmit();
+            if (!isSubmitDisabled) {
+              onSubmit();
+            }
           }}
           className="space-y-4"
         >

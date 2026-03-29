@@ -18,6 +18,7 @@ describe("FeedTreeView", () => {
             id: "folder-1",
             name: "Work",
             accountId: "acc-1",
+            sortOrder: 0,
             unreadCount: 4,
             isExpanded: true,
             feeds: [

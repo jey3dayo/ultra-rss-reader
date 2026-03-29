@@ -87,4 +87,57 @@ describe("AddFeedDialogView", () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
+
+  it("does not submit the form when submission is disabled", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    render(
+      <AddFeedDialogView
+        open={true}
+        onOpenChange={vi.fn()}
+        url="example.com"
+        onUrlChange={vi.fn()}
+        onDiscover={vi.fn()}
+        discovering={false}
+        loading={false}
+        discoveredFeedsFoundLabel={null}
+        discoveredFeedOptions={[]}
+        selectedFeedUrl=""
+        onSelectedFeedUrlChange={vi.fn()}
+        folderSelectProps={{
+          labelId: "folder-label",
+          label: "Folder",
+          value: "",
+          options: [{ value: "", label: "No folder" }],
+          disabled: false,
+          isCreatingFolder: false,
+          newFolderLabel: "Folder name",
+          newFolderName: "",
+          newFolderPlaceholder: "Enter folder name",
+          onValueChange: vi.fn(),
+          onNewFolderNameChange: vi.fn(),
+        }}
+        error="Invalid URL"
+        successMessage={null}
+        isDiscoverDisabled={true}
+        isSubmitDisabled={true}
+        labels={{
+          title: "Add Feed",
+          description: "Add a feed from a URL or website",
+          urlPlaceholder: "Feed or Site URL",
+          discover: "Discover",
+          discovering: "Discovering",
+          cancel: "Cancel",
+          add: "Add",
+          adding: "Adding",
+        }}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    await user.type(screen.getByPlaceholderText("Feed or Site URL"), "{Enter}");
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
 });

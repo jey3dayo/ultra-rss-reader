@@ -48,6 +48,7 @@ export function ArticleTagPickerView({
   const newTagInputRef = useRef<HTMLInputElement>(null);
   const tagOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const restoreFocusOnCloseRef = useRef(false);
+  const hasFocusedOnOpenRef = useRef(false);
 
   const closePicker = useCallback(
     (restoreFocus = false) => {
@@ -79,7 +80,9 @@ export function ArticleTagPickerView({
   }, [isExpanded, closePicker]);
 
   useEffect(() => {
-    if (!isExpanded) return;
+    if (!isExpanded || hasFocusedOnOpenRef.current) return;
+
+    hasFocusedOnOpenRef.current = true;
 
     requestAnimationFrame(() => {
       if (availableTags.length > 0) {
@@ -89,6 +92,12 @@ export function ArticleTagPickerView({
       newTagInputRef.current?.focus();
     });
   }, [isExpanded, availableTags.length]);
+
+  useEffect(() => {
+    if (!isExpanded) {
+      hasFocusedOnOpenRef.current = false;
+    }
+  }, [isExpanded]);
 
   const handleCreateTag = () => {
     const trimmedName = newTagName.trim();
