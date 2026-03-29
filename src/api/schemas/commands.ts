@@ -67,6 +67,14 @@ export const updateAccountSyncArgs = z.object({
   keepReadItemsDays: z.number(),
 });
 
+// --- updateAccountCredentials ---
+export const updateAccountCredentialsArgs = z.object({
+  accountId: z.string(),
+  serverUrl: z.string().optional(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+});
+
 // --- renameAccount ---
 export const renameAccountArgs = z.object({
   accountId: z.string(),
@@ -189,6 +197,7 @@ export const commandArgsSchemas: Record<string, z.ZodType> = {
   mark_folder_read: markFolderReadArgs,
   add_account: addAccountArgs,
   update_account_sync: updateAccountSyncArgs,
+  update_account_credentials: updateAccountCredentialsArgs,
   rename_account: renameAccountArgs,
   delete_account: deleteAccountArgs,
   discover_feeds: discoverFeedsArgs,

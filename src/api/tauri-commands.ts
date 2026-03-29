@@ -51,6 +51,7 @@ import {
   type UpdateInfoDto,
   UpdateInfoDtoSchema,
   untagArticleArgs,
+  updateAccountCredentialsArgs,
   updateAccountSyncArgs,
   updateFeedDisplayModeArgs,
   updateFeedFolderArgs,
@@ -186,6 +187,13 @@ export const updateAccountSync = (
     "update_account_sync",
     { response: AccountDtoSchema, args: updateAccountSyncArgs },
     { accountId, syncIntervalSecs, syncOnWake, keepReadItemsDays },
+  );
+
+export const updateAccountCredentials = (accountId: string, serverUrl?: string, username?: string, password?: string) =>
+  safeInvoke(
+    "update_account_credentials",
+    { response: AccountDtoSchema, args: updateAccountCredentialsArgs },
+    { accountId, serverUrl, username, password },
   );
 
 export const renameAccount = (accountId: string, name: string) =>

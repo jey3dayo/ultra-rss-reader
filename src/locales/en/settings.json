@@ -107,7 +107,8 @@
     "press_a_key": "Press a key...",
     "conflict": "Conflict: {{name}}",
     "conflict_message": "\"{{key}}\" is already assigned to \"{{name}}\". Change that shortcut first.",
-    "reset_to_defaults": "Reset to Defaults"
+    "reset_to_defaults": "Reset to Defaults",
+    "confirm_reset": "Reset all shortcuts to defaults?"
   },
   "actions": {
     "heading": "Actions and Sharing",
@@ -130,6 +131,9 @@
     "server_url": "Server URL",
     "server_url_placeholder": "https://your-freshrss.com",
     "password": "Password",
+    "password_placeholder": "Enter new password",
+    "username": "Username",
+    "credentials": "Credentials",
     "failed_to_add": "Failed to add account: {{message}}",
     "general": "General",
     "description": "Description",

@@ -34,6 +34,7 @@ export {
   tagArticleArgs,
   toggleArticleStarArgs,
   untagArticleArgs,
+  updateAccountCredentialsArgs,
   updateAccountSyncArgs,
   updateFeedDisplayModeArgs,
   updateFeedFolderArgs,

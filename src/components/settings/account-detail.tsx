@@ -3,7 +3,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AccountDto } from "@/api/tauri-commands";
-import { deleteAccount, exportOpml, renameAccount, updateAccountSync } from "@/api/tauri-commands";
+import {
+  deleteAccount,
+  exportOpml,
+  renameAccount,
+  updateAccountCredentials,
+  updateAccountSync,
+} from "@/api/tauri-commands";
+import { AccountCredentialsSectionView } from "@/components/settings/account-credentials-section-view";
 import { AccountDetailView } from "@/components/settings/account-detail-view";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useUiStore } from "@/stores/ui-store";
@@ -19,6 +26,9 @@ export function AccountDetail() {
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const [credServerUrl, setCredServerUrl] = useState<string | null>(null);
+  const [credUsername, setCredUsername] = useState<string | null>(null);
+  const [credPassword, setCredPassword] = useState("");
 
   const account = accounts?.find((a) => a.id === settingsAccountId);
 
@@ -76,6 +86,34 @@ export function AccountDetail() {
       Result.inspect((updated) => {
         // Immediately update cache with returned DTO to prevent race conditions
         qc.setQueryData<AccountDto[]>(["accounts"], (prev) => prev?.map((a) => (a.id === updated.id ? updated : a)));
+      }),
+    );
+  };
+
+  const requiresCredentials = account.kind === "FreshRss" || account.kind === "Inoreader";
+
+  const commitCredentials = async () => {
+    const serverUrl = credServerUrl ?? account.server_url ?? undefined;
+    const username = credUsername ?? account.username ?? undefined;
+    const password = credPassword || undefined;
+
+    // Only update if something actually changed
+    const serverUrlChanged = credServerUrl !== null && credServerUrl !== (account.server_url ?? "");
+    const usernameChanged = credUsername !== null && credUsername !== (account.username ?? "");
+    const passwordChanged = credPassword !== "";
+
+    if (!serverUrlChanged && !usernameChanged && !passwordChanged) return;
+
+    Result.pipe(
+      await updateAccountCredentials(account.id, serverUrl, username, password),
+      Result.inspectError((e) =>
+        useUiStore.getState().showToast(t("account.failed_to_update_sync", { message: e.message })),
+      ),
+      Result.inspect((updated) => {
+        qc.setQueryData<AccountDto[]>(["accounts"], (prev) => prev?.map((a) => (a.id === updated.id ? updated : a)));
+        setCredServerUrl(null);
+        setCredUsername(null);
+        setCredPassword("");
       }),
     );
   };
@@ -152,18 +190,33 @@ export function AccountDetail() {
                   ? t("account.inoreader")
                   : t("account.local"),
           },
-          ...(account.kind === "Inoreader"
-            ? [{ label: t("account.server"), value: t("account.inoreader_server") }]
-            : []),
-          ...(account.kind === "FreshRss" && account.server_url
-            ? [{ label: t("account.server"), value: account.server_url, truncate: true }]
-            : []),
         ],
         onStartEditingName: startEditingName,
         onNameDraftChange: setNameDraft,
         onCommitName: commitRename,
         onNameKeyDown: handleNameKeyDown,
       }}
+      credentialsSection={
+        requiresCredentials ? (
+          <AccountCredentialsSectionView
+            heading={account.kind === "FreshRss" ? "SERVER" : t("account.credentials")}
+            serverUrlLabel={account.kind === "FreshRss" ? t("account.server_url") : undefined}
+            serverUrlValue={credServerUrl ?? account.server_url ?? ""}
+            serverUrlPlaceholder={t("account.server_url_placeholder")}
+            onServerUrlChange={account.kind === "FreshRss" ? setCredServerUrl : undefined}
+            onServerUrlBlur={commitCredentials}
+            usernameLabel={t("account.username")}
+            usernameValue={credUsername ?? account.username ?? ""}
+            onUsernameChange={setCredUsername}
+            onUsernameBlur={commitCredentials}
+            passwordLabel={t("account.password")}
+            passwordValue={credPassword}
+            passwordPlaceholder={t("account.password_placeholder")}
+            onPasswordChange={setCredPassword}
+            onPasswordBlur={commitCredentials}
+          />
+        ) : undefined
+      }
       syncSection={{
         heading: t("account.syncing"),
         syncInterval: {

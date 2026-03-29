@@ -107,7 +107,8 @@
     "press_a_key": "キーを押してください...",
     "conflict": "競合: {{name}}",
     "conflict_message": "「{{key}}」は「{{name}}」に割り当て済みです。先にそのショートカットを変更してください。",
-    "reset_to_defaults": "初期設定に戻す"
+    "reset_to_defaults": "初期設定に戻す",
+    "confirm_reset": "すべてのショートカットを初期設定に戻しますか？"
   },
   "actions": {
     "heading": "アクションと共有",
@@ -130,6 +131,9 @@
     "server_url": "サーバーURL",
     "server_url_placeholder": "https://your-freshrss.com",
     "password": "パスワード",
+    "password_placeholder": "新しいパスワードを入力",
+    "username": "ユーザー名",
+    "credentials": "認証情報",
     "failed_to_add": "アカウントの追加に失敗しました: {{message}}",
     "general": "一般",
     "description": "説明",

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { AccountDangerZoneView, type AccountDangerZoneViewProps } from "@/components/settings/account-danger-zone-view";
 import {
   AccountGeneralSectionView,
@@ -12,6 +13,7 @@ export type AccountDetailViewProps = {
   title: string;
   subtitle: string;
   generalSection: AccountGeneralSectionViewProps;
+  credentialsSection?: ReactNode;
   syncSection: AccountSyncSectionViewProps;
   dangerZone: AccountDangerZoneViewProps;
 };
@@ -20,6 +22,7 @@ export function AccountDetailView({
   title,
   subtitle,
   generalSection,
+  credentialsSection,
   syncSection,
   dangerZone,
 }: AccountDetailViewProps) {
@@ -29,6 +32,7 @@ export function AccountDetailView({
       <p className="mb-6 text-center text-sm text-muted-foreground">{subtitle}</p>
 
       <AccountGeneralSectionView {...generalSection} />
+      {credentialsSection}
       <AccountSyncSectionView {...syncSection} />
       <AccountDangerZoneView {...dangerZone} />
     </div>
