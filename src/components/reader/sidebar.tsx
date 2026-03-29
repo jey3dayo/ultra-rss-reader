@@ -291,7 +291,7 @@ export function Sidebar() {
   return (
     <div
       className={cn(
-        "flex h-full w-[280px] flex-col border-r border-border bg-sidebar text-sidebar-foreground",
+        "flex h-full flex-col border-r border-border bg-sidebar text-sidebar-foreground",
         opaqueSidebars && "bg-opacity-100",
       )}
     >

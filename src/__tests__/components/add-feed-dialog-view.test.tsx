@@ -53,6 +53,7 @@ describe("AddFeedDialogView", () => {
         }}
         error={null}
         successMessage="Feed detected"
+        isDiscoverDisabled={false}
         isSubmitDisabled={false}
         labels={{
           title: "Add Feed",

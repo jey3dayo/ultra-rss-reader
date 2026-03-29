@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `.claude/commands/release.md` を3フェーズ構造に書き換え、ステップ飛ばし・リリースノート漏れ・タグ push 失敗を根本的に防止する
+Goal: `.claude/commands/release.md` を3フェーズ構造に書き換え、ステップ飛ばし・リリースノート漏れ・タグ push 失敗を根本的に防止する
 
-**Architecture:** 既存コマンド定義ファイル1つを全面書き換え。加えて `release.yml` の `generateReleaseNotes` を無効化し、CLI 側にリリースノート責務を一本化する。`release-workflow.md` ルールファイルも新設計に同期させる。
+Architecture: 既存コマンド定義ファイル1つを全面書き換え。加えて `release.yml` の `generateReleaseNotes` を無効化し、CLI 側にリリースノート責務を一本化する。`release-workflow.md` ルールファイルも新設計に同期させる。
 
-**Tech Stack:** Claude Code slash command (Markdown), GitHub Actions (YAML), git
+Tech Stack: Claude Code slash command (Markdown), GitHub Actions (YAML), git
 
 ---
 
@@ -22,7 +22,7 @@
 
 ### Task 1: コマンド定義の書き換え
 
-**Files:**
+### Files (Task 1)
 
 - Rewrite: `.claude/commands/release.md`
 
@@ -94,7 +94,7 @@ cd src-tauri && cargo check
 
 前回のタグから現在までのコミットログを分析する。
 
-**コミットログ収集:**
+### コミットログ収集
 
 ```bash
 # 前回タグ取得（v* パターンでリリースタグのみ）
@@ -109,7 +109,7 @@ else
 fi
 ```
 
-**コミットをカテゴリ分類:**
+### コミットをカテゴリ分類
 
 | prefix                                                | GitHub Release カテゴリ | CHANGELOG カテゴリ |
 | ----------------------------------------------------- | ----------------------- | ------------------ |
@@ -124,7 +124,7 @@ fi
 - PR 番号（`(#N)`）があればそのまま含める
 - 空のカテゴリはセクションごと省略する
 
-**対象コミットが 0 件の場合はエラーとして中止し、理由を報告する。**
+### 対象コミットが 0 件の場合はエラーとして中止し、理由を報告する
 
 #### 2d. CHANGELOG.md 更新
 
@@ -146,7 +146,7 @@ fi
 
 リリースに含まれる内容に対応するタスクがあれば `[x]` にマーク。該当なしならスキップ。
 
-**🔸 ユーザー確認②:** 生成されたリリースノートを表示し、内容を確認してもらう。修正指示があれば反映する。
+🔸 ユーザー確認②: 生成されたリリースノートを表示し、内容を確認してもらう。修正指示があれば反映する。
 
 ---
 
@@ -166,7 +166,7 @@ release: v{new_version}
 git tag -a v{new_version} -m "v{new_version}"
 ```
 
-**🔸 ユーザー確認③:** push 前に以下を表示してユーザーの確認を求める:
+🔸 ユーザー確認③: push 前に以下を表示してユーザーの確認を求める:
 
 - 旧バージョン → 新バージョン
 - リリースノート（カテゴリ分類済み）
@@ -203,7 +203,7 @@ git push origin v{new_version}
 
 Release がまだ存在しない場合（GitHub Actions 未完了）は `gh release create v{new_version} --draft --notes "..."` で先にドラフト作成する。
 
-**責務分担:** CLI がリリースノート本文を管理し、`release.yml` の `tauri-action` はアーティファクト添付のみを担当する。
+責務分担: CLI がリリースノート本文を管理し、`release.yml` の `tauri-action` はアーティファクト添付のみを担当する。
 
 #### 3d. 完了報告
 
@@ -227,7 +227,7 @@ git commit -m "feat: redesign release command with 3-phase structure"
 
 ### Task 2: release.yml の generateReleaseNotes 無効化
 
-**Files:**
+### Files (Task 2)
 
 - Modify: `.github/workflows/release.yml`
 
@@ -260,7 +260,7 @@ git commit -m "ci: disable generateReleaseNotes in release workflow (CLI manages
 
 ### Task 3: release-workflow.md ルール更新
 
-**Files:**
+### Files (Task 3)
 
 - Modify: `.claude/rules/release-workflow.md`
 

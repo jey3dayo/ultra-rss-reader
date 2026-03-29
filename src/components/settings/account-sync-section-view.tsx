@@ -1,7 +1,7 @@
 import { useId } from "react";
 import { SectionHeading } from "@/components/settings/settings-components";
+import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 
 export type AccountSelectOption = {
   value: string;
@@ -74,11 +74,10 @@ export function AccountSyncSectionView({
       <AccountSelectRow control={syncInterval} labelId={syncIntervalLabelId} />
       <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
         <span className="text-sm text-foreground">{syncOnWake.label}</span>
-        <Switch
+        <GradientSwitch
           checked={syncOnWake.checked}
           onCheckedChange={(checked) => syncOnWake.onChange(checked)}
           aria-label={syncOnWake.label}
-          className="data-[state=checked]:bg-ring"
         />
       </div>
       <AccountSelectRow control={keepReadItems} labelId={keepReadItemsLabelId} />

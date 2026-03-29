@@ -43,6 +43,7 @@ const meta = {
     },
     error: null,
     successMessage: "Feed detected",
+    isDiscoverDisabled: false,
     isSubmitDisabled: false,
     labels: {
       title: "Add Feed",
@@ -66,6 +67,7 @@ export const Default: Story = {};
 
 export const CreatingFolder: Story = {
   args: {
+    isDiscoverDisabled: false,
     folderSelectProps: {
       labelId: "folder-story-label",
       label: "Folder",
@@ -92,6 +94,7 @@ export const CreatingFolder: Story = {
 export const Loading: Story = {
   args: {
     loading: true,
+    isDiscoverDisabled: true,
     isSubmitDisabled: true,
     folderSelectProps: {
       labelId: "folder-story-label",

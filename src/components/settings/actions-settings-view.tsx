@@ -1,5 +1,5 @@
 import { SectionHeading } from "@/components/settings/settings-components";
-import { Switch } from "@/components/ui/switch";
+import { GradientSwitch } from "@/components/shared/gradient-switch";
 
 export type ActionsSettingsService = {
   id: string;
@@ -31,11 +31,10 @@ export function ActionsSettingsView({ title, heading, toggleLabel, services }: A
             <span className="flex-1 text-sm text-foreground">{service.label}</span>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">{toggleLabel}</span>
-              <Switch
+              <GradientSwitch
                 checked={service.checked}
                 onCheckedChange={(checked) => service.onCheckedChange(checked)}
                 aria-label={toggleLabel}
-                className="data-[state=checked]:bg-ring"
               />
             </div>
           </div>

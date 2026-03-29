@@ -23,7 +23,7 @@
   --color-border: oklch(0.28 0 0);
   --color-input: oklch(0.28 0 0);
   --color-ring: oklch(0.65 0.15 250);
-  --color-sidebar: oklch(0.16 0 0);
+  --color-sidebar: oklch(0.18 0 0);
   --color-sidebar-foreground: oklch(0.92 0 0);
   --color-sidebar-accent: oklch(0.24 0 0);
   --color-sidebar-accent-foreground: oklch(0.92 0 0);
@@ -41,7 +41,7 @@
 
 /* Legacy tokens for existing components */
 :root {
-  --bg-sidebar: #1a1a1a;
+  --bg-sidebar: #1e1e1e;
   --bg-list: #222222;
   --bg-content: #1e1e1e;
   --bg-hover: #2a2a2a;

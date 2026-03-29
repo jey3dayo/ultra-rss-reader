@@ -124,6 +124,8 @@ const defaultHandler: MockHandler = (cmd, args) => {
       return null;
     case "open_in_browser":
       return null;
+    case "check_browser_embed_support":
+      return true;
     case "trigger_sync":
       return true;
     default:

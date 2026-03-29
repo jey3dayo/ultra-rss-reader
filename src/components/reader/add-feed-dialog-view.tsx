@@ -38,6 +38,7 @@ export function AddFeedDialogView({
   folderSelectProps,
   error,
   successMessage,
+  isDiscoverDisabled,
   isSubmitDisabled,
   labels,
   inputRef,
@@ -57,6 +58,7 @@ export function AddFeedDialogView({
   folderSelectProps: FolderSelectViewProps;
   error: string | null;
   successMessage: string | null;
+  isDiscoverDisabled: boolean;
   isSubmitDisabled: boolean;
   labels: AddFeedDialogViewLabels;
   inputRef?: RefObject<HTMLInputElement | null>;
@@ -91,7 +93,7 @@ export function AddFeedDialogView({
               variant="outline"
               size="sm"
               onClick={onDiscover}
-              disabled={!url.trim() || loading || discovering}
+              disabled={isDiscoverDisabled}
               className="shrink-0"
             >
               {discovering ? labels.discovering : labels.discover}

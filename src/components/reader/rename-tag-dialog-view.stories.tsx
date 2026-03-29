@@ -9,7 +9,11 @@ const meta = {
   args: {
     open: true,
     name: "Work",
+    color: null,
     loading: false,
+    onColorChange: fn(),
+    colorOptions: ["#ef4444", "#3b82f6", "#22c55e"],
+    noColorLabel: "No color",
     onOpenChange: fn(),
     onNameChange: fn(),
     onSubmit: fn(),

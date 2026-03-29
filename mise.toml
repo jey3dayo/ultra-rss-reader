@@ -108,15 +108,15 @@ depends = ["test:rust", "test:unit"]
 
 [tasks."test:rust"]
 description = "Run Rust tests"
-run = "cargo test --manifest-path src-tauri/Cargo.toml"
+run = "cargo test --manifest-path src-tauri/Cargo.toml -- --format terse"
 
 [tasks."test:unit"]
 description = "Run Vitest unit tests"
-run = "pnpm run test"
+run = "pnpm run test -- --reporter=dot"
 
 [tasks."test:e2e"]
 description = "Run Playwright E2E tests"
-run = "pnpm exec playwright test"
+run = "pnpm exec playwright test --reporter=dot"
 
 [tasks."test:all"]
 description = "Run all tests including E2E"
@@ -124,7 +124,7 @@ depends = ["test:rust", "test:unit", "test:e2e"]
 
 [tasks."test:live"]
 description = "Run FreshRSS live integration tests (requires .env with credentials)"
-run = "dotenvx run -- cargo test --manifest-path src-tauri/Cargo.toml freshrss_live -- --ignored --nocapture"
+run = "dotenvx run -- cargo test --manifest-path src-tauri/Cargo.toml freshrss_live -- --ignored --nocapture --format terse"
 
 # ========================================
 # ビルド

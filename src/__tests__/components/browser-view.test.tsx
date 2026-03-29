@@ -1,16 +1,39 @@
+import { Result } from "@praha/byethrow";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
+const { backMock, forwardMock, reloadMock } = vi.hoisted(() => ({
+  backMock: vi.fn(),
+  forwardMock: vi.fn(),
+  reloadMock: vi.fn(),
+}));
+
+vi.mock("@/lib/webview-history", () => ({
+  goBackInWebview: backMock,
+  goForwardInWebview: forwardMock,
+  reloadWebview: reloadMock,
+}));
+
 describe("BrowserView", () => {
   beforeEach(() => {
+    backMock.mockReset();
+    forwardMock.mockReset();
+    reloadMock.mockReset();
+    backMock.mockResolvedValue(Result.succeed(undefined));
+    forwardMock.mockResolvedValue(Result.succeed(undefined));
+    reloadMock.mockResolvedValue(Result.succeed(undefined));
     useUiStore.setState(useUiStore.getInitialState());
     setupTauriMocks((cmd, args) => {
       if (cmd === "list_feeds") {
         return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+      }
+      if (cmd === "check_browser_embed_support") {
+        return true;
       }
       return null;
     });
@@ -37,6 +60,70 @@ describe("BrowserView", () => {
     fireEvent.load(iframe);
 
     expect(screen.queryByText("Loading page...")).not.toBeInTheDocument();
+  });
+
+  it("shows an external-browser fallback when the iframe resolves to a browser error page", async () => {
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "list_feeds") {
+        return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+      }
+      if (cmd === "check_browser_embed_support") {
+        return false;
+      }
+      return null;
+    });
+
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      contentMode: "browser",
+      browserUrl: "https://note.com/article",
+    });
+
+    const { container } = render(<BrowserView />, { wrapper: createWrapper() });
+
+    const iframe = container.querySelector("iframe");
+    if (!iframe) {
+      throw new Error("iframe was not rendered");
+    }
+
+    fireEvent.load(iframe);
+
+    await waitFor(() => {
+      expect(screen.getByText("This page can't be shown in the in-app browser.")).toBeInTheDocument();
+      expect(screen.getByText("Open it in your external browser instead.")).toBeInTheDocument();
+    });
+  });
+
+  it("shows the fallback when the iframe lands on a chrome error page after load", async () => {
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      contentMode: "browser",
+      browserUrl: "https://www3.nhk.or.jp/news/html/example.html",
+    });
+
+    const { container } = render(<BrowserView />, { wrapper: createWrapper() });
+
+    const iframe = container.querySelector("iframe");
+    if (!iframe) {
+      throw new Error("iframe was not rendered");
+    }
+
+    Object.defineProperty(iframe, "contentWindow", {
+      configurable: true,
+      value: {
+        location: {
+          href: "chrome-error://chromewebdata/",
+        },
+      },
+    });
+
+    fireEvent.load(iframe);
+
+    await waitFor(() => {
+      expect(screen.getByText("This page can't be shown in the in-app browser.")).toBeInTheDocument();
+    });
   });
 
   it("keeps widescreen browser chrome hidden outside direct feed selection", async () => {
@@ -66,5 +153,28 @@ describe("BrowserView", () => {
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
     });
+  });
+
+  it("shows UI close on the left and web history controls on the right", async () => {
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/1",
+    });
+
+    const user = userEvent.setup();
+    render(<BrowserView />, { wrapper: createWrapper() });
+
+    expect(screen.queryByRole("group", { name: "Display Mode" })).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Web back" }));
+    await user.click(await screen.findByRole("button", { name: "Web forward" }));
+    await user.click(await screen.findByRole("button", { name: "Reload page" }));
+
+    expect(backMock).toHaveBeenCalledTimes(1);
+    expect(forwardMock).toHaveBeenCalledTimes(1);
+    expect(reloadMock).toHaveBeenCalledTimes(1);
+    expect(await screen.findByRole("button", { name: "Close view" })).toBeInTheDocument();
   });
 });

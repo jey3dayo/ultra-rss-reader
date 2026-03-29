@@ -14,11 +14,6 @@ const sampleFolders = [
   { id: "folder-2", account_id: "acc-1", name: "Personal", sort_order: 1 },
 ];
 
-async function selectAccountType(user: ReturnType<typeof userEvent.setup>, optionName: string) {
-  await user.click(screen.getByRole("combobox"));
-  await user.click(await screen.findByRole("option", { name: optionName }));
-}
-
 describe("Form fields", () => {
   beforeEach(() => {
     usePreferencesStore.setState({ prefs: {}, loaded: true });
@@ -59,7 +54,7 @@ describe("Form fields", () => {
   });
 
   it("settings select exposes an accessible name and selected label", () => {
-    usePreferencesStore.setState({ prefs: { open_links: "external" }, loaded: true });
+    usePreferencesStore.setState({ prefs: { open_links: "default_browser" }, loaded: true });
 
     render(
       <SettingsSelect
@@ -67,13 +62,29 @@ describe("Form fields", () => {
         prefKey="open_links"
         options={[
           { value: "in_app", label: "In-app browser" },
-          { value: "external", label: "Default browser" },
+          { value: "default_browser", label: "Default browser" },
         ]}
       />,
       { wrapper: createWrapper() },
     );
 
     expect(screen.getByRole("combobox", { name: "Open links" })).toHaveTextContent("Default browser");
+  });
+
+  it("settings select falls back to the default option label when the preference is unset", () => {
+    render(
+      <SettingsSelect
+        label="Open links"
+        prefKey="open_links"
+        options={[
+          { value: "in_app", label: "In-app browser" },
+          { value: "default_browser", label: "Default browser" },
+        ]}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByRole("combobox", { name: "Open links" })).toHaveTextContent("In-app browser");
   });
 
   it("settings switch is associated with its label", () => {
@@ -84,28 +95,33 @@ describe("Form fields", () => {
     expect(screen.getByRole("switch", { name: "Open links in background" })).toBeInTheDocument();
   });
 
-  it("add account form inputs expose name attributes", async () => {
+  it("settings switch falls back to the default checked state when the preference is unset", () => {
+    render(<SettingsSwitch label="Ask before" prefKey="ask_before_mark_all" />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(screen.getByRole("switch", { name: "Ask before" })).toBeChecked();
+  });
+
+  it("add account form inputs expose name attributes after service selection", async () => {
     const user = userEvent.setup();
-    const { container } = render(<AddAccountForm />, { wrapper: createWrapper() });
+    render(<AddAccountForm />, { wrapper: createWrapper() });
 
-    expect(container.querySelector('input[name="account-type"]')).not.toBeNull();
+    // Select FreshRSS from the service picker
+    await user.click(screen.getByRole("button", { name: /FreshRSS/ }));
+
     expect(screen.getByLabelText("Name")).toHaveAttribute("name");
-
-    await selectAccountType(user, "FreshRSS");
-
     expect(screen.getByLabelText("Server URL")).toHaveAttribute("name");
     expect(screen.getByLabelText("Username")).toHaveAttribute("name");
     expect(screen.getByLabelText("Password")).toHaveAttribute("name");
   });
 
-  it("add account provider select shows the selected option label", async () => {
-    const user = userEvent.setup();
-
+  it("add account service picker shows available services", () => {
     render(<AddAccountForm />, { wrapper: createWrapper() });
 
-    await selectAccountType(user, "FreshRSS");
-
-    expect(screen.getByRole("combobox", { name: "Type" })).toHaveTextContent("FreshRSS");
+    expect(screen.getByRole("button", { name: /Local Feeds/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /FreshRSS/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Inoreader/ })).toBeInTheDocument();
   });
 
   it("add feed dialog input exposes a name attribute", () => {
@@ -142,6 +158,21 @@ describe("Form fields", () => {
       expect(document.body.querySelector('[role="radio"][aria-label="Tech Blog"]')).not.toBeNull();
       expect(document.body.querySelector('[role="radio"][aria-label="News Feed"]')).not.toBeNull();
     });
+  });
+
+  it("add feed dialog rejects invalid manual URLs before discovery or submit", async () => {
+    const user = userEvent.setup();
+
+    render(<AddFeedDialog open={true} onOpenChange={() => {}} accountId="acc-1" />, {
+      wrapper: createWrapper(),
+    });
+
+    const input = screen.getByPlaceholderText("Feed or Site URL");
+    await user.type(input, "example.com");
+
+    expect(input).toBeInvalid();
+    expect(screen.getByRole("button", { name: "Discover" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
   });
 
   it("rename feed dialog input exposes a name attribute", () => {

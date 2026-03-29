@@ -84,6 +84,10 @@
     "heading": "閲覧",
     "general": "一般",
     "reader_view": "リーダービュー",
+    "default_display_mode": "デフォルト表示モード",
+    "normal": "通常",
+    "widescreen": "ワイド",
+    "fullscreen": "フルスクリーン",
     "off": "オフ",
     "on": "オン",
     "automatic": "自動",
@@ -110,7 +114,8 @@
     "show_in_toolbar": "ツールバーに表示",
     "copy_link": "リンクをコピー",
     "open_in_browser": "ブラウザで開く",
-    "open_in_external_browser": "外部ブラウザで開く"
+    "open_in_external_browser": "外部ブラウザで開く",
+    "share_menu": "共有メニュー"
   },
   "account": {
     "heading": "アカウントを追加",
@@ -163,6 +168,15 @@
     "failed_to_rename": "アカウント名の変更に失敗しました: {{message}}",
     "failed_to_update_sync": "同期設定の更新に失敗しました: {{message}}",
     "failed_to_export_opml": "OPMLのエクスポートに失敗しました: {{message}}",
-    "failed_to_delete": "アカウントの削除に失敗しました: {{message}}"
+    "failed_to_delete": "アカウントの削除に失敗しました: {{message}}",
+    "category_local": "ローカル",
+    "category_self_hosted": "セルフホスト",
+    "category_services": "サービス",
+    "local_desc": "このMac上",
+    "freshrss_desc": "freshrss.org",
+    "fever": "Fever",
+    "fever_desc": "非推奨",
+    "inoreader_desc": "inoreader.com",
+    "back_to_services": "サービス選択に戻る"
   }
 }

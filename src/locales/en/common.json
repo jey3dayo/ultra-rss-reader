@@ -9,5 +9,6 @@
   "loading": "Loading...",
   "confirm": "Confirm",
   "ok": "OK",
+  "back": "Back",
   "failed_to_save_setting": "Failed to save setting: {{message}}"
 }

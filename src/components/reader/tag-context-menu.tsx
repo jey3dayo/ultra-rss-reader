@@ -7,11 +7,24 @@ import { DeleteTagDialogView } from "./delete-tag-dialog-view";
 import { RenameTagDialogView } from "./rename-tag-dialog-view";
 import { TagContextMenuView } from "./tag-context-menu-view";
 
+const TAG_COLOR_PRESETS = [
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#06b6d4",
+  "#3b82f6",
+  "#8b5cf6",
+  "#ec4899",
+  "#6b7280",
+];
+
 export function TagContextMenuContent({ tag }: { tag: TagDto }) {
   const { t } = useTranslation("reader");
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [renameName, setRenameName] = useState(tag.name);
+  const [renameColor, setRenameColor] = useState<string | null>(tag.color);
   const showToast = useUiStore((s) => s.showToast);
   const renameTag = useRenameTag();
   const deleteTag = useDeleteTag();
@@ -22,7 +35,8 @@ export function TagContextMenuContent({ tag }: { tag: TagDto }) {
     }
 
     setRenameName(tag.name);
-  }, [showRenameDialog, tag.name]);
+    setRenameColor(tag.color);
+  }, [showRenameDialog, tag.color, tag.name]);
 
   const handleRenameOpenChange = (open: boolean) => {
     setShowRenameDialog(open);
@@ -34,13 +48,15 @@ export function TagContextMenuContent({ tag }: { tag: TagDto }) {
 
   const handleRenameSubmit = () => {
     const trimmed = renameName.trim();
-    if (!trimmed || trimmed === tag.name) {
+    const nameChanged = trimmed !== tag.name;
+    const colorChanged = renameColor !== tag.color;
+    if (!trimmed || (!nameChanged && !colorChanged)) {
       handleRenameOpenChange(false);
       return;
     }
 
     renameTag.mutate(
-      { tagId: tag.id, name: trimmed },
+      { tagId: tag.id, name: trimmed, color: renameColor },
       {
         onSuccess: () => {
           handleRenameOpenChange(false);
@@ -74,9 +90,13 @@ export function TagContextMenuContent({ tag }: { tag: TagDto }) {
       <RenameTagDialogView
         open={showRenameDialog}
         name={renameName}
+        color={renameColor}
         loading={renameTag.isPending}
         onOpenChange={handleRenameOpenChange}
         onNameChange={setRenameName}
+        onColorChange={setRenameColor}
+        colorOptions={TAG_COLOR_PRESETS}
+        noColorLabel={t("no_color")}
         onSubmit={handleRenameSubmit}
       />
       <DeleteTagDialogView

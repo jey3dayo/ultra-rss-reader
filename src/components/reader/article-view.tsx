@@ -1,9 +1,14 @@
+import { Menu } from "@base-ui/react/menu";
 import { Result } from "@praha/byethrow";
+import { useQueryClient } from "@tanstack/react-query";
+import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
+import { addToReadingList, copyToClipboard, openInBrowser, updateFeedDisplayMode } from "@/api/tauri-commands";
+import { DisplayModeToggleGroup, type ReaderDisplayMode } from "@/components/reader/display-mode-toggle-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AppTooltip } from "@/components/ui/tooltip";
 import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import {
@@ -21,7 +26,7 @@ import {
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
-import { usePreferencesStore } from "@/stores/preferences-store";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContentView } from "./article-content-view";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
@@ -29,24 +34,61 @@ import { ArticleMetaView } from "./article-meta-view";
 import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-tag-picker-view";
 import { ArticleToolbarView } from "./article-toolbar-view";
 import { BrowserView } from "./browser-view";
+import { contextMenuStyles } from "./context-menu-styles";
 
-function ArticleToolbar({ article }: { article: ArticleDto | null }) {
+function ArticleToolbar({
+  article,
+  feedId,
+  feedDisplayMode,
+}: {
+  article: ArticleDto | null;
+  feedId: string | null;
+  feedDisplayMode: string;
+}) {
   const { t } = useTranslation("reader");
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
   const openBrowser = useUiStore((s) => s.openBrowser);
+  const closeBrowser = useUiStore((s) => s.closeBrowser);
+  const clearArticle = useUiStore((s) => s.clearArticle);
   const layoutMode = useUiStore((s) => s.layoutMode);
-  const setFocusedPane = useUiStore((s) => s.setFocusedPane);
   const showToast = useUiStore((s) => s.showToast);
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
-  const actionCopyLink = usePreferencesStore((s) => s.prefs.action_copy_link ?? "true");
-  const actionOpenBrowser = usePreferencesStore((s) => s.prefs.action_open_browser ?? "true");
-  const actionShare = usePreferencesStore((s) => s.prefs.action_share ?? "false");
-  const showSidebarButton = layoutMode !== "wide";
+  const qc = useQueryClient();
+  const actionCopyLink = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_copy_link"));
+  const actionOpenBrowser = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_open_browser"));
+  const actionShare = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share"));
+  const actionShareMenu = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share_menu"));
+  const isWidescreen = feedDisplayMode === "widescreen";
+  const currentDisplayMode: ReaderDisplayMode = isWidescreen ? "widescreen" : "normal";
+
+  const handleCloseView = () => {
+    clearArticle();
+    if (layoutMode !== "wide") {
+      useUiStore.getState().setFocusedPane("list");
+    }
+  };
+
+  const handleSetDisplayMode = async (nextMode: ReaderDisplayMode) => {
+    if (!feedId) return;
+    Result.pipe(
+      await updateFeedDisplayMode(feedId, nextMode),
+      Result.inspect(() => {
+        void qc.invalidateQueries({ queryKey: ["feeds"] });
+        if (nextMode !== "normal" && article?.url) {
+          openBrowser(article.url);
+        }
+        if (nextMode === "normal") {
+          closeBrowser();
+        }
+      }),
+      Result.inspectError((e) => showToast(t("failed_to_update_display_mode", { message: e.message }))),
+    );
+  };
 
   return (
     <ArticleToolbarView
-      showSidebarButton={showSidebarButton}
+      showCloseButton={article !== null}
       canToggleRead={article !== null}
       canToggleStar={article !== null}
       isRead={article?.is_read ?? false}
@@ -57,15 +99,100 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
       canOpenInBrowser={Boolean(article?.url)}
       showOpenInExternalBrowserButton={actionShare === "true"}
       canOpenInExternalBrowser={Boolean(article?.url)}
+      displayModeControl={
+        <DisplayModeToggleGroup
+          value={currentDisplayMode}
+          onValueChange={handleSetDisplayMode}
+          disabled={!feedId || !article?.url}
+        />
+      }
+      shareMenuControl={
+        actionShareMenu === "true" ? (
+          <Menu.Root>
+            <AppTooltip label={t("share")}>
+              <Menu.Trigger
+                render={
+                  <button
+                    type="button"
+                    className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={!article?.url}
+                    aria-label={t("share")}
+                  />
+                }
+              >
+                <Share className="h-4 w-4" />
+              </Menu.Trigger>
+            </AppTooltip>
+            <Menu.Portal>
+              <Menu.Positioner sideOffset={4}>
+                <Menu.Popup className={contextMenuStyles.popup}>
+                  <Menu.Item
+                    className={contextMenuStyles.item}
+                    onSelect={async () => {
+                      if (!article?.url) return;
+                      Result.pipe(
+                        await copyToClipboard(article.url),
+                        Result.inspect(() => showToast(t("link_copied"))),
+                        Result.inspectError((e) => {
+                          console.error("Copy failed:", e);
+                          showToast(e.message);
+                        }),
+                      );
+                    }}
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    {t("copy_link")}
+                  </Menu.Item>
+                  <Menu.Item
+                    className={contextMenuStyles.item}
+                    onSelect={async () => {
+                      if (!article?.url) return;
+                      Result.pipe(
+                        await addToReadingList(article.url),
+                        Result.inspect(() => showToast(t("added_to_reading_list"))),
+                        Result.inspectError((e) => {
+                          console.error("Add to reading list failed:", e);
+                          showToast(e.message);
+                        }),
+                      );
+                    }}
+                  >
+                    <BookmarkPlus className="mr-2 h-4 w-4" />
+                    {t("add_to_reading_list")}
+                  </Menu.Item>
+                  <Menu.Separator className={contextMenuStyles.separator} />
+                  <Menu.Item
+                    className={contextMenuStyles.item}
+                    onSelect={async () => {
+                      if (!article?.url) return;
+                      const mailto = `mailto:?subject=${encodeURIComponent(article.title)}&body=${encodeURIComponent(article.url)}`;
+                      Result.pipe(
+                        await openInBrowser(mailto, false),
+                        Result.inspectError((e) => {
+                          console.error("Failed to open email client:", e);
+                          showToast(e.message);
+                        }),
+                      );
+                    }}
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    {t("share_via_email")}
+                  </Menu.Item>
+                </Menu.Popup>
+              </Menu.Positioner>
+            </Menu.Portal>
+          </Menu.Root>
+        ) : null
+      }
       labels={{
-        showSidebar: t("show_sidebar"),
+        closeView: t("close_view"),
         toggleRead: t("toggle_read"),
         toggleStar: t("toggle_star"),
         copyLink: t("copy_link"),
         viewInBrowser: t("view_in_browser"),
         openInExternalBrowser: t("open_in_external_browser"),
       }}
-      onShowSidebar={() => setFocusedPane("sidebar")}
+      onCloseView={handleCloseView}
       onToggleRead={(pressed) => {
         if (!article) return;
         setRead.mutate(
@@ -112,7 +239,7 @@ function EmptyState() {
   const { t } = useTranslation("reader");
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
-      <ArticleToolbar article={null} />
+      <ArticleToolbar article={null} feedId={null} feedDisplayMode="normal" />
       <ArticleEmptyStateView message={t("select_article_to_read")} />
     </div>
   );
@@ -164,7 +291,7 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
         addTag: t("add_tag"),
         availableTags: t("available_tags"),
         newTagPlaceholder: t("new_tag_placeholder"),
-        createTag: t("add_tag"),
+        createTag: t("create_tag"),
         removeTag: (name) => t("remove_tag", { name }),
       }}
       onExpandedChange={setShowPicker}
@@ -180,7 +307,15 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
   );
 }
 
-function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: string }) {
+function ArticleReader({
+  article,
+  feedName,
+  feedDisplayMode,
+}: {
+  article: ArticleDto;
+  feedName?: string;
+  feedDisplayMode: string;
+}) {
   const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const cmdClickBrowser = usePreferencesStore((s) => s.prefs.cmd_click_browser ?? "false");
@@ -307,7 +442,7 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
 
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
-      <ArticleToolbar article={article} />
+      <ArticleToolbar article={article} feedId={article.feed_id} feedDisplayMode={feedDisplayMode} />
       <ScrollArea className="flex-1">
         <article className="mx-auto max-w-3xl px-8 py-8">
           <ArticleMetaView
@@ -365,7 +500,7 @@ export function ArticleView() {
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selection = useUiStore((s) => s.selection);
   const openBrowser = useUiStore((s) => s.openBrowser);
-  const readerViewPref = usePreferencesStore((s) => s.prefs.reader_view ?? "off");
+  const readerViewPref = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "reader_view"));
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
   const { data: articles } = useArticles(feedId);
@@ -392,7 +527,7 @@ export function ArticleView() {
       return;
     }
 
-    const shouldAutoOpen = readerViewPref === "on" || selectedFeedDisplayMode === "widescreen";
+    const shouldAutoOpen = readerViewPref === "widescreen" || selectedFeedDisplayMode === "widescreen";
     if (!shouldAutoOpen || selectedArticleId === prevArticleIdRef.current || contentMode !== "reader") {
       return;
     }
@@ -456,5 +591,5 @@ export function ArticleView() {
 
   const feedName = feeds?.find((f) => f.id === article.feed_id)?.title;
 
-  return <ArticleReader article={article} feedName={feedName} />;
+  return <ArticleReader article={article} feedName={feedName} feedDisplayMode={selectedFeedDisplayMode} />;
 }

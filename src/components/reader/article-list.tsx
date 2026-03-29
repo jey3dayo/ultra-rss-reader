@@ -14,6 +14,7 @@ import {
   selectVisibleArticles,
 } from "@/lib/article-list";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
+import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenu } from "./article-context-menu";
@@ -32,6 +33,7 @@ export function ArticleList() {
   const selectArticle = useUiStore((s) => s.selectArticle);
   const viewMode = useUiStore((s) => s.viewMode);
   const setViewMode = useUiStore((s) => s.setViewMode);
+  const layoutMode = useUiStore((s) => s.layoutMode);
   const sortUnread = usePreferencesStore((s) => s.prefs.reading_sort ?? s.prefs.sort_unread ?? "newest_first");
   const groupBy = usePreferencesStore((s) => s.prefs.group_by ?? "date");
   const dimArchived = usePreferencesStore((s) => s.prefs.dim_archived ?? "true");
@@ -217,7 +219,12 @@ export function ArticleList() {
   }, [handleMarkAllRead, openSearch]);
 
   return (
-    <div className="flex h-full w-[380px] flex-col border-r border-border bg-card">
+    <div
+      className={cn(
+        "flex h-full flex-col border-r border-border bg-card",
+        layoutMode === "mobile" ? "w-full" : "w-[380px]",
+      )}
+    >
       <ArticleListHeader
         showSearch={showSearch}
         searchQuery={searchQuery}

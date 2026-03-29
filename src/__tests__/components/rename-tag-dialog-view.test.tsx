@@ -14,10 +14,13 @@ describe("RenameTagDialogView", () => {
       <RenameTagDialogView
         open={true}
         name="Work"
+        color={null}
         loading={false}
-        error={null}
         onOpenChange={onOpenChange}
         onNameChange={onNameChange}
+        onColorChange={vi.fn()}
+        colorOptions={["#ef4444", "#3b82f6"]}
+        noColorLabel="No color"
         onSubmit={onSubmit}
       />,
     );
@@ -39,10 +42,13 @@ describe("RenameTagDialogView", () => {
       <RenameTagDialogView
         open={true}
         name="   "
+        color={null}
         loading={false}
-        error="Tag already exists"
         onOpenChange={vi.fn()}
         onNameChange={vi.fn()}
+        onColorChange={vi.fn()}
+        colorOptions={["#ef4444", "#3b82f6"]}
+        noColorLabel="No color"
         onSubmit={vi.fn()}
       />,
     );

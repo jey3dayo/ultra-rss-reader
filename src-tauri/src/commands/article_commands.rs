@@ -1,3 +1,4 @@
+use reqwest::header::{HeaderMap, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
 use tauri::State;
 
 use crate::commands::dto::{AppError, ArticleDto};
@@ -26,6 +27,50 @@ pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppE
         })?;
     }
     Ok(())
+}
+
+fn has_blocking_x_frame_options(headers: &HeaderMap) -> bool {
+    headers
+        .get_all(X_FRAME_OPTIONS)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .map(str::trim)
+        .any(|value| !value.is_empty())
+}
+
+fn has_blocking_frame_ancestors(headers: &HeaderMap) -> bool {
+    headers
+        .get_all(CONTENT_SECURITY_POLICY)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .any(|policy| {
+            policy
+                .split(';')
+                .map(str::trim)
+                .find_map(|directive| {
+                    directive
+                        .strip_prefix("frame-ancestors")
+                        .or_else(|| directive.strip_prefix("Frame-Ancestors"))
+                })
+                .map(|value| {
+                    let sources = value.split_whitespace();
+                    !sources.into_iter().any(|source| source == "*")
+                })
+                .unwrap_or(false)
+        })
+}
+
+#[tauri::command]
+pub async fn check_browser_embed_support(url: String) -> Result<bool, AppError> {
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::limited(5))
+        .build()
+        .map_err(DomainError::from)?;
+
+    let response = client.get(&url).send().await.map_err(DomainError::from)?;
+
+    let headers = response.headers();
+    Ok(!(has_blocking_x_frame_options(headers) || has_blocking_frame_ancestors(headers)))
 }
 
 #[tauri::command]
@@ -256,4 +301,61 @@ pub fn search_articles(
     };
     let articles = repo.search(&AccountId(account_id), &query, &pagination)?;
     Ok(articles.into_iter().map(ArticleDto::from).collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::check_browser_embed_support;
+    use super::{has_blocking_frame_ancestors, has_blocking_x_frame_options};
+    use mockito::Server;
+    use reqwest::header::{HeaderMap, HeaderValue, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
+
+    #[test]
+    fn x_frame_options_blocks_embedding() {
+        let mut headers = HeaderMap::new();
+        headers.insert(X_FRAME_OPTIONS, HeaderValue::from_static("SAMEORIGIN"));
+
+        assert!(has_blocking_x_frame_options(&headers));
+    }
+
+    #[test]
+    fn frame_ancestors_wildcard_does_not_block_embedding() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            CONTENT_SECURITY_POLICY,
+            HeaderValue::from_static("default-src 'self'; frame-ancestors *"),
+        );
+
+        assert!(!has_blocking_frame_ancestors(&headers));
+    }
+
+    #[test]
+    fn frame_ancestors_self_blocks_embedding() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            CONTENT_SECURITY_POLICY,
+            HeaderValue::from_static(
+                "default-src 'self'; frame-ancestors 'self' https://example.com",
+            ),
+        );
+
+        assert!(has_blocking_frame_ancestors(&headers));
+    }
+
+    #[tokio::test]
+    async fn embed_support_uses_get_response_headers() {
+        let mut server = Server::new_async().await;
+        let _mock = server
+            .mock("GET", "/article")
+            .with_status(200)
+            .with_header("x-frame-options", "SAMEORIGIN")
+            .create_async()
+            .await;
+
+        let supported = check_browser_embed_support(format!("{}/article", server.url()))
+            .await
+            .expect("embed check should succeed");
+
+        assert!(!supported);
+    }
 }

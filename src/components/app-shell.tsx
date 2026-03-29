@@ -1,3 +1,4 @@
+import { useAppIconTheme } from "../hooks/use-app-icon-theme";
 import { useBadge } from "../hooks/use-badge";
 import { useBreakpoint } from "../hooks/use-breakpoint";
 import { useKeyboard } from "../hooks/use-keyboard";
@@ -59,6 +60,7 @@ function Toast() {
 }
 
 export function AppShell() {
+  useAppIconTheme();
   useBadge();
   useBreakpoint();
   useKeyboard();

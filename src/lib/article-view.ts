@@ -35,11 +35,16 @@ export function findSelectedArticle(params: FindSelectedArticleParams): Result.R
   return article ? Result.succeed(article) : Result.fail("article_not_found");
 }
 
-export function resolveSelectedFeedDisplayMode(params: ResolveFeedDisplayModeParams): string {
-  const { selectionFeedId, feeds, ...articleParams } = params;
+export function resolveSelectedFeedId(params: Omit<ResolveFeedDisplayModeParams, "feeds">): string | null {
+  const { selectionFeedId, ...articleParams } = params;
   const articleResult = findSelectedArticle(articleParams);
-  const resolvedFeedId =
-    selectionFeedId ?? (Result.isSuccess(articleResult) ? Result.unwrap(articleResult).feed_id : null);
+
+  return selectionFeedId ?? (Result.isSuccess(articleResult) ? Result.unwrap(articleResult).feed_id : null);
+}
+
+export function resolveSelectedFeedDisplayMode(params: ResolveFeedDisplayModeParams): string {
+  const { feeds, ...feedParams } = params;
+  const resolvedFeedId = resolveSelectedFeedId(feedParams);
 
   if (!resolvedFeedId || !feeds) {
     return "normal";

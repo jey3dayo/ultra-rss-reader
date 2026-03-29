@@ -79,6 +79,7 @@ pub fn rename_tag(
     state: State<'_, AppState>,
     tag_id: String,
     name: String,
+    color: Option<String>,
 ) -> Result<TagDto, AppError> {
     let name = name.trim().to_string();
     if name.is_empty() {
@@ -91,11 +92,18 @@ pub fn rename_tag(
             message: "Tag name must be 50 characters or less".to_string(),
         });
     }
+    if let Some(ref c) = color {
+        if !validate_color(c) {
+            return Err(AppError::UserVisible {
+                message: "Color must be a valid hex color (e.g. #ff0000)".to_string(),
+            });
+        }
+    }
 
     let db = lock_db(&state.db)?;
     let repo = SqliteTagRepository::new(db.writer());
 
-    // Find current tag to preserve color
+    // Find current tag
     let tags = repo.find_all()?;
     let current = tags
         .iter()
@@ -114,7 +122,7 @@ pub fn rename_tag(
     let updated = Tag {
         id: current.id.clone(),
         name,
-        color: current.color.clone(),
+        color,
     };
     repo.save(&updated)?;
     Ok(TagDto::from(updated))

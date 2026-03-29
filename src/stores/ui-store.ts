@@ -118,6 +118,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       viewMode: "all",
       selectedArticleId: null,
       contentMode: "empty",
+      focusedPane: "list",
       recentlyReadIds: new Set(),
     }),
   selectFeed: (feedId) =>
@@ -135,6 +136,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       viewMode: "all",
       selectedArticleId: null,
       contentMode: "empty",
+      focusedPane: "list",
       recentlyReadIds: new Set(),
     }),
   selectSmartView: (kind) =>
@@ -143,6 +145,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       viewMode: kind,
       selectedArticleId: null,
       contentMode: "empty",
+      focusedPane: "list",
       recentlyReadIds: new Set(),
     }),
   selectTag: (tagId) =>
@@ -160,6 +163,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       viewMode: "all",
       selectedArticleId: null,
       contentMode: "empty",
+      focusedPane: "list",
       recentlyReadIds: new Set(),
     }),
   selectArticle: (id) => set({ selectedArticleId: id, contentMode: "reader", focusedPane: "content" }),

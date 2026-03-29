@@ -10,7 +10,7 @@ export function TagContextMenuView({ onRename, onDelete }: { onRename: () => voi
       <ContextMenu.Positioner>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
           <ContextMenu.Item className={contextMenuStyles.item} onClick={onRename}>
-            {t("rename_ellipsis")}
+            {t("edit_ellipsis")}
           </ContextMenu.Item>
           <ContextMenu.Separator className={contextMenuStyles.separator} />
           <ContextMenu.Item className={contextMenuStyles.item} onClick={onDelete}>

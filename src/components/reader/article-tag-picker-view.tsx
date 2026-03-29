@@ -178,6 +178,7 @@ export function ArticleTagPickerView({
                   tagOptionRefs.current[index] = element;
                 }}
                 role="option"
+                aria-selected="false"
                 onClick={() => {
                   onAssignTag(tag.id);
                   onExpandedChange(false);

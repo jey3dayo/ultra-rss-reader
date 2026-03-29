@@ -1,13 +1,83 @@
 import { Result } from "@praha/byethrow";
 import i18n from "i18next";
+import { z } from "zod";
 import { create } from "zustand";
 import { getPreferences, setPreference } from "@/api/tauri-commands";
 import { shortcutDefaults } from "@/lib/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
 
-type Theme = "light" | "dark" | "system";
+const themeSchema = z.enum(["light", "dark", "system"]);
+const languageSchema = z.enum(["system", "en", "ja"]);
+const unreadBadgeSchema = z.enum(["dont_display", "all_unread", "only_inbox"]);
+const openLinksSchema = z.enum(["in_app", "default_browser"]);
+const booleanStringSchema = z.enum(["true", "false"]);
+const sortOrderSchema = z.enum(["newest_first", "oldest_first"]);
+const groupBySchema = z.enum(["date", "feed", "none"]);
+const listSelectionStyleSchema = z.enum(["modern", "classic"]);
+const layoutSchema = z.enum(["automatic", "wide", "compact"]);
+const fontStyleSchema = z.enum(["sans_serif", "serif", "monospace"]);
+const fontSizeSchema = z.enum(["small", "medium", "large"]);
+const imagePreviewsSchema = z.enum(["off", "small", "medium", "large"]);
+const afterReadingSchema = z.enum(["mark_as_read", "do_nothing", "archive"]);
+const sortSubscriptionsSchema = z.enum(["folders_first", "alphabetical", "newest_first", "oldest_first"]);
+const markArticleAsReadSchema = z.enum(["on_open", "manual"]);
+const readerViewModeSchema = z.enum(["normal", "widescreen"]);
+const persistedReaderViewSchema = z
+  .enum(["normal", "widescreen", "fullscreen", "off", "on", "auto"])
+  .transform((value): z.infer<typeof readerViewModeSchema> => {
+    switch (value) {
+      case "on":
+      case "fullscreen":
+        return "widescreen";
+      case "off":
+      case "auto":
+        return "normal";
+      default:
+        return value;
+    }
+  });
 
-const defaults: Record<string, string> = {
+export type Theme = z.infer<typeof themeSchema>;
+
+const preferenceSchemas = {
+  language: languageSchema,
+  unread_badge: unreadBadgeSchema,
+  open_links: openLinksSchema,
+  open_links_background: booleanStringSchema,
+  sort_unread: sortOrderSchema,
+  group_by: groupBySchema,
+  cmd_click_browser: booleanStringSchema,
+  ask_before_mark_all: booleanStringSchema,
+  list_selection_style: listSelectionStyleSchema,
+  layout: layoutSchema,
+  theme: themeSchema,
+  opaque_sidebars: booleanStringSchema,
+  grayscale_favicons: booleanStringSchema,
+  font_style: fontStyleSchema,
+  font_size: fontSizeSchema,
+  show_starred_count: booleanStringSchema,
+  show_unread_count: booleanStringSchema,
+  image_previews: imagePreviewsSchema,
+  display_favicons: booleanStringSchema,
+  text_preview: booleanStringSchema,
+  dim_archived: booleanStringSchema,
+  reader_view: persistedReaderViewSchema,
+  reading_sort: sortOrderSchema,
+  after_reading: afterReadingSchema,
+  scroll_to_top_on_change: booleanStringSchema,
+  sort_subscriptions: sortSubscriptionsSchema,
+  mark_article_as_read: markArticleAsReadSchema,
+  action_copy_link: booleanStringSchema,
+  action_open_browser: booleanStringSchema,
+  action_share: booleanStringSchema,
+  action_share_menu: booleanStringSchema,
+} as const;
+
+type KnownPreferenceKey = keyof typeof preferenceSchemas;
+type PreferenceValue<K extends KnownPreferenceKey> = z.output<(typeof preferenceSchemas)[K]>;
+const objectHasOwnProperty = Object.prototype.hasOwnProperty;
+
+const corePreferenceDefaults = {
   // General
   language: "system",
   unread_badge: "dont_display",
@@ -32,18 +102,22 @@ const defaults: Record<string, string> = {
   text_preview: "true",
   dim_archived: "true",
   // Reading
-  reader_view: "off",
+  reader_view: "normal",
   reading_sort: "newest_first",
   after_reading: "mark_as_read",
   scroll_to_top_on_change: "true",
   // Account-level reading preferences
   sort_subscriptions: "folders_first",
-  mark_article_as_read: "mark_as_read",
+  mark_article_as_read: "on_open",
   // Actions
   action_copy_link: "true",
   action_open_browser: "true",
   action_share: "true",
-  // Shortcuts
+  action_share_menu: "true",
+} satisfies { [K in KnownPreferenceKey]: z.input<(typeof preferenceSchemas)[K]> };
+
+export const preferenceDefaults: Record<string, string> = {
+  ...corePreferenceDefaults,
   ...shortcutDefaults,
 };
 
@@ -60,8 +134,39 @@ interface PreferencesActions {
   groupBy: () => string;
 }
 
-function get(prefs: Record<string, string>, key: string): string {
-  return prefs[key] ?? defaults[key] ?? "";
+function isKnownPreferenceKey(key: string): key is KnownPreferenceKey {
+  return objectHasOwnProperty.call(preferenceSchemas, key);
+}
+
+function parsePreferenceValue<K extends KnownPreferenceKey>(key: K, value: string): PreferenceValue<K> | null {
+  const schema = preferenceSchemas[key] as (typeof preferenceSchemas)[K];
+  const result = schema.safeParse(value);
+  return result.success ? (result.data as PreferenceValue<K>) : null;
+}
+
+function normalizePreferenceValue<K extends KnownPreferenceKey>(key: K, value: string): PreferenceValue<K>;
+function normalizePreferenceValue(key: string, value: string): string;
+function normalizePreferenceValue(key: string, value: string): string {
+  if (!isKnownPreferenceKey(key)) {
+    return value;
+  }
+
+  const parsedValue = parsePreferenceValue(key, value);
+  if (parsedValue !== null) {
+    return parsedValue;
+  }
+
+  const parsedDefault = parsePreferenceValue(key, corePreferenceDefaults[key]);
+  return parsedDefault ?? "";
+}
+
+export function resolvePreferenceValue<K extends KnownPreferenceKey>(
+  prefs: Record<string, string>,
+  key: K,
+): PreferenceValue<K>;
+export function resolvePreferenceValue(prefs: Record<string, string>, key: string): string;
+export function resolvePreferenceValue(prefs: Record<string, string>, key: string): string {
+  return normalizePreferenceValue(key, prefs[key] ?? preferenceDefaults[key] ?? "");
 }
 
 let systemThemeCleanup: (() => void) | null = null;
@@ -132,41 +237,42 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
       result,
       Result.inspect((data) => {
         set({ prefs: data, loaded: true });
-        const theme = (data.theme ?? defaults.theme) as Theme;
+        const theme = resolvePreferenceValue(data, "theme");
         applyTheme(theme);
-        applyLanguage(data.language ?? defaults.language);
-        applyFontStyle(data.font_style ?? defaults.font_style);
-        applyFontSize(data.font_size ?? defaults.font_size);
+        applyLanguage(resolvePreferenceValue(data, "language"));
+        applyFontStyle(resolvePreferenceValue(data, "font_style"));
+        applyFontSize(resolvePreferenceValue(data, "font_size"));
       }),
       Result.inspectError((e) => {
         console.error("Failed to load preferences:", e);
         set({ loaded: true });
-        applyTheme((defaults.theme ?? "dark") as Theme);
-        applyLanguage(defaults.language);
+        applyTheme(resolvePreferenceValue({}, "theme"));
+        applyLanguage(resolvePreferenceValue({}, "language"));
       }),
     );
   },
 
   setPref: (key, value) => {
+    const normalizedValue = normalizePreferenceValue(key, value);
     set((state) => ({
-      prefs: { ...state.prefs, [key]: value },
+      prefs: { ...state.prefs, [key]: normalizedValue },
     }));
 
     if (key === "theme") {
-      applyTheme(value as Theme);
+      applyTheme(resolvePreferenceValue({ theme: normalizedValue }, "theme"));
     }
     if (key === "language") {
-      applyLanguage(value);
+      applyLanguage(normalizedValue);
     }
     if (key === "font_style") {
-      applyFontStyle(value);
+      applyFontStyle(normalizedValue);
     }
     if (key === "font_size") {
-      applyFontSize(value);
+      applyFontSize(normalizedValue);
     }
 
     // Fire and forget — notify user on failure
-    setPreference(key, value).then((result) =>
+    setPreference(key, normalizedValue).then((result) =>
       Result.pipe(
         result,
         Result.inspectError((e: { message: string }) => {
@@ -177,7 +283,7 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
     );
   },
 
-  theme: () => get(getState().prefs, "theme") as Theme,
-  sortUnread: () => get(getState().prefs, "sort_unread"),
-  groupBy: () => get(getState().prefs, "group_by"),
+  theme: () => resolvePreferenceValue(getState().prefs, "theme") as Theme,
+  sortUnread: () => resolvePreferenceValue(getState().prefs, "sort_unread"),
+  groupBy: () => resolvePreferenceValue(getState().prefs, "group_by"),
 }));
