@@ -41,6 +41,7 @@
   "web_back": "Web back",
   "web_forward": "Web forward",
   "reload_page": "Reload page",
+  "stop_loading": "Stop loading",
   "browser_view": "Browser View",
   "browser_loading": "Loading page...",
   "browser_loading_hint": "If this takes too long, open it in your external browser.",

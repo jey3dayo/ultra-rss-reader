@@ -1,11 +1,11 @@
 import { Result } from "@praha/byethrow";
-import { ArrowLeft, ArrowRight, ExternalLink, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, RotateCcw, Square, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { checkBrowserEmbedSupport, openInBrowser } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
-import { goBackInWebview, goForwardInWebview, reloadWebview } from "@/lib/webview-history";
+import { goBackInWebview, goForwardInWebview, reloadWebview, stopWebview } from "@/lib/webview-history";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -147,20 +147,29 @@ export function BrowserView() {
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </AppTooltip>
-            <AppTooltip label={t("reload_page")}>
+            <AppTooltip label={isLoading ? t("stop_loading") : t("reload_page")}>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={async () => {
-                  Result.pipe(
-                    await reloadWebview(),
-                    Result.inspectError(() => {}),
-                  );
+                  if (isLoading) {
+                    Result.pipe(
+                      await stopWebview(),
+                      Result.inspectError(() => {}),
+                    );
+                    setIsLoading(false);
+                  } else {
+                    setIsLoading(true);
+                    Result.pipe(
+                      await reloadWebview(),
+                      Result.inspectError(() => {}),
+                    );
+                  }
                 }}
                 className="text-muted-foreground"
-                aria-label={t("reload_page")}
+                aria-label={isLoading ? t("stop_loading") : t("reload_page")}
               >
-                <RotateCcw className="h-4 w-4" />
+                {isLoading ? <Square className="h-3.5 w-3.5" /> : <RotateCcw className="h-4 w-4" />}
               </Button>
             </AppTooltip>
             <AppTooltip label={t("open_in_external_browser")}>
