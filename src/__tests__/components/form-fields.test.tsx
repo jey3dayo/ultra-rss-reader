@@ -14,11 +14,6 @@ const sampleFolders = [
   { id: "folder-2", account_id: "acc-1", name: "Personal", sort_order: 1 },
 ];
 
-async function selectAccountType(user: ReturnType<typeof userEvent.setup>, optionName: string) {
-  await user.click(screen.getByRole("combobox"));
-  await user.click(await screen.findByRole("option", { name: optionName }));
-}
-
 describe("Form fields", () => {
   beforeEach(() => {
     usePreferencesStore.setState({ prefs: {}, loaded: true });
@@ -108,28 +103,25 @@ describe("Form fields", () => {
     expect(screen.getByRole("switch", { name: "Ask before" })).toBeChecked();
   });
 
-  it("add account form inputs expose name attributes", async () => {
+  it("add account form inputs expose name attributes after service selection", async () => {
     const user = userEvent.setup();
-    const { container } = render(<AddAccountForm />, { wrapper: createWrapper() });
+    render(<AddAccountForm />, { wrapper: createWrapper() });
 
-    expect(container.querySelector('input[name="account-type"]')).not.toBeNull();
+    // Select FreshRSS from the service picker
+    await user.click(screen.getByRole("button", { name: /FreshRSS/ }));
+
     expect(screen.getByLabelText("Name")).toHaveAttribute("name");
-
-    await selectAccountType(user, "FreshRSS");
-
     expect(screen.getByLabelText("Server URL")).toHaveAttribute("name");
     expect(screen.getByLabelText("Username")).toHaveAttribute("name");
     expect(screen.getByLabelText("Password")).toHaveAttribute("name");
   });
 
-  it("add account provider select shows the selected option label", async () => {
-    const user = userEvent.setup();
-
+  it("add account service picker shows available services", () => {
     render(<AddAccountForm />, { wrapper: createWrapper() });
 
-    await selectAccountType(user, "FreshRSS");
-
-    expect(screen.getByRole("combobox", { name: "Type" })).toHaveTextContent("FreshRSS");
+    expect(screen.getByRole("button", { name: /Local Feeds/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /FreshRSS/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Inoreader/ })).toBeInTheDocument();
   });
 
   it("add feed dialog input exposes a name attribute", () => {

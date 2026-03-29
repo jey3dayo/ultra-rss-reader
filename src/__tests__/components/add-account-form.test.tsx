@@ -6,14 +6,45 @@ import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
-async function selectAccountType(user: ReturnType<typeof userEvent.setup>, optionName: string) {
-  await user.click(screen.getByRole("combobox"));
-  await user.click(await screen.findByRole("option", { name: optionName }));
+async function selectService(user: ReturnType<typeof userEvent.setup>, serviceName: string) {
+  await user.click(screen.getByRole("button", { name: new RegExp(serviceName) }));
 }
 
 describe("AddAccountForm", () => {
   beforeEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
+  });
+
+  it("renders the service picker with categories", () => {
+    render(<AddAccountForm />, { wrapper: createWrapper() });
+
+    expect(screen.getByText("Local Feeds")).toBeInTheDocument();
+    expect(screen.getByText("FreshRSS")).toBeInTheDocument();
+    expect(screen.getByText("Inoreader")).toBeInTheDocument();
+    expect(screen.getByText("Fever")).toBeInTheDocument();
+  });
+
+  it("shows Fever as disabled", () => {
+    render(<AddAccountForm />, { wrapper: createWrapper() });
+
+    const feverButton = screen.getByRole("button", { name: /Fever/ });
+    expect(feverButton).toBeDisabled();
+  });
+
+  it("navigates to config form on service selection and back", async () => {
+    const user = userEvent.setup();
+    render(<AddAccountForm />, { wrapper: createWrapper() });
+
+    await selectService(user, "FreshRSS");
+
+    expect(screen.getByLabelText("Name")).toBeInTheDocument();
+    expect(screen.getByLabelText("Server URL")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Back/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Local Feeds")).toBeInTheDocument();
+    });
   });
 
   it("shows a toast and skips the IPC call when FreshRSS fields are missing", async () => {
@@ -28,7 +59,7 @@ describe("AddAccountForm", () => {
     const user = userEvent.setup();
     render(<AddAccountForm />, { wrapper: createWrapper() });
 
-    await selectAccountType(user, "FreshRSS");
+    await selectService(user, "FreshRSS");
     await user.click(screen.getByRole("button", { name: "Add" }));
 
     await waitFor(() => {
@@ -37,39 +68,7 @@ describe("AddAccountForm", () => {
     expect(addAccountCalls).toBe(0);
   });
 
-  it("preserves entered values when switching providers", async () => {
-    const user = userEvent.setup();
-    const { container } = render(<AddAccountForm />, { wrapper: createWrapper() });
-
-    await selectAccountType(user, "FreshRSS");
-    await user.type(screen.getByPlaceholderText("FreshRss"), "Work RSS");
-    await user.type(screen.getByPlaceholderText("https://your-freshrss.com"), "https://example.com");
-
-    const usernameInput = container.querySelector<HTMLInputElement>('input[name="username"]');
-    const passwordInput = container.querySelector<HTMLInputElement>('input[name="password"]');
-
-    if (!usernameInput || !passwordInput) {
-      throw new Error("credentials inputs were not rendered");
-    }
-
-    await user.type(usernameInput, "alice");
-    await user.type(passwordInput, "secret");
-
-    await selectAccountType(user, "Inoreader");
-
-    expect(screen.getByDisplayValue("Work RSS")).toBeInTheDocument();
-    expect(container.querySelector('input[name="email"]')).toHaveValue("alice");
-    expect(container.querySelector('input[name="password"]')).toHaveValue("secret");
-
-    await selectAccountType(user, "FreshRSS");
-
-    expect(screen.getByDisplayValue("Work RSS")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("https://example.com")).toBeInTheDocument();
-    expect(container.querySelector('input[name="username"]')).toHaveValue("alice");
-    expect(container.querySelector('input[name="password"]')).toHaveValue("secret");
-  });
-
-  it("submits from the form and disables controls while the request is pending", async () => {
+  it("submits Local account and disables controls while the request is pending", async () => {
     let resolveAddAccount: ((value: unknown) => void) | null = null;
     const addAccountCalls = vi.fn();
 
@@ -86,6 +85,7 @@ describe("AddAccountForm", () => {
     const user = userEvent.setup();
     render(<AddAccountForm />, { wrapper: createWrapper() });
 
+    await selectService(user, "Local Feeds");
     await user.type(screen.getByLabelText("Name"), "Work RSS");
     await user.keyboard("{Enter}");
 
