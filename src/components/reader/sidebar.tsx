@@ -1,7 +1,7 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
-import { ChevronDown, Plus, RefreshCw, Settings } from "lucide-react";
+import { ChevronDown, Settings } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
@@ -20,9 +20,11 @@ import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+import { AccountSwitcherView } from "./account-switcher-view";
 import { AddFeedDialog } from "./add-feed-dialog";
 import { FeedItem } from "./feed-item";
 import { FolderSection } from "./folder-section";
+import { SidebarHeaderView } from "./sidebar-header-view";
 import { TagContextMenuContent } from "./tag-context-menu";
 
 function useFormatLastSynced(date: Date | null): string {
@@ -99,32 +101,13 @@ export function Sidebar() {
   }, [selectedAccountId, accounts, selectAccount]);
 
   const selectedAccount = accounts?.find((a) => a.id === selectedAccountId);
-  const hasMultipleAccounts = accounts && accounts.length > 1;
 
   const closeAccountList = useCallback((restoreFocus = false) => {
     setShowAccountList(false);
     if (restoreFocus) {
-      requestAnimationFrame(() => accountTriggerRef.current?.focus());
+      accountTriggerRef.current?.focus();
     }
   }, []);
-
-  const focusAccountItem = useCallback(
-    (index: number) => {
-      if (!accounts || accounts.length === 0) return;
-      const normalizedIndex = (index + accounts.length) % accounts.length;
-      accountItemRefs.current[normalizedIndex]?.focus();
-    },
-    [accounts],
-  );
-
-  useEffect(() => {
-    if (!showAccountList || !accounts || accounts.length === 0) return;
-
-    requestAnimationFrame(() => {
-      const selectedIndex = accounts.findIndex((account) => account.id === selectedAccountId);
-      focusAccountItem(selectedIndex >= 0 ? selectedIndex : 0);
-    });
-  }, [showAccountList, accounts, selectedAccountId, focusAccountItem]);
 
   const totalUnread = feeds?.reduce((sum, f) => sum + f.unread_count, 0) ?? 0;
   const starredCount = useMemo(() => accountArticles?.filter((a) => a.is_starred).length ?? 0, [accountArticles]);
@@ -163,6 +146,15 @@ export function Sidebar() {
     );
     setIsSyncing(false);
   };
+
+  const handleAddFeed = useCallback(() => {
+    if (selectedAccountId) {
+      openAddFeedDialog();
+    } else {
+      openSettings("accounts");
+      setSettingsAddAccount(true);
+    }
+  }, [openAddFeedDialog, openSettings, selectedAccountId, setSettingsAddAccount]);
 
   const feedList: FeedDto[] = feeds ?? [];
   const folderList: FolderDto[] = folders ?? [];
@@ -239,119 +231,30 @@ export function Sidebar() {
         opaqueSidebars && "bg-opacity-100",
       )}
     >
-      {/* Header - left padding for macOS traffic lights, draggable for window move */}
-      <div data-tauri-drag-region className="flex h-12 items-center justify-end px-4 pl-20">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={handleSync}
-            disabled={isSyncing}
-            className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            aria-label={t("sync_feeds")}
-          >
-            <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => {
-              if (selectedAccountId) {
-                openAddFeedDialog();
-              } else {
-                openSettings("accounts");
-                setSettingsAddAccount(true);
-              }
-            }}
-            className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            aria-label={t("add_feed")}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+      <SidebarHeaderView
+        lastSyncedLabel={lastSyncedFormatted}
+        isSyncing={isSyncing}
+        onSync={handleSync}
+        onAddFeed={handleAddFeed}
+        syncButtonLabel={t("sync_feeds")}
+        addFeedButtonLabel={t("add_feed")}
+      >
+        <div ref={accountDropdownRef}>
+          <AccountSwitcherView
+            title={selectedAccount?.name ?? t("app_name")}
+            accounts={accounts ?? []}
+            selectedAccountId={selectedAccountId}
+            isExpanded={showAccountList}
+            menuId={accountMenuId}
+            menuLabel={t("accounts")}
+            triggerRef={accountTriggerRef}
+            itemRefs={accountItemRefs}
+            onToggle={() => setShowAccountList((v) => !v)}
+            onSelectAccount={selectAccount}
+            onClose={closeAccountList}
+          />
         </div>
-      </div>
-
-      {/* Account Name with Switcher */}
-      <div ref={accountDropdownRef} className="relative px-4 pb-1">
-        <button
-          ref={accountTriggerRef}
-          type="button"
-          onClick={() => hasMultipleAccounts && setShowAccountList((v) => !v)}
-          onKeyDown={(e) => {
-            if (!hasMultipleAccounts) return;
-            if (e.key === "ArrowDown") {
-              e.preventDefault();
-              setShowAccountList(true);
-            }
-            if (e.key === "Escape" && showAccountList) {
-              e.preventDefault();
-              closeAccountList(true);
-            }
-          }}
-          className={cn("text-left", hasMultipleAccounts ? "cursor-pointer" : "cursor-default")}
-          aria-haspopup={hasMultipleAccounts ? "menu" : undefined}
-          aria-expanded={hasMultipleAccounts ? showAccountList : undefined}
-          aria-controls={hasMultipleAccounts ? accountMenuId : undefined}
-        >
-          <h1 className="flex items-center gap-1 text-2xl font-bold text-sidebar-foreground">
-            {selectedAccount?.name ?? t("app_name")}
-            {hasMultipleAccounts && <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-          </h1>
-          <p className="text-xs text-muted-foreground">{lastSyncedFormatted}</p>
-        </button>
-
-        {/* Account dropdown */}
-        {showAccountList && accounts && (
-          <div
-            id={accountMenuId}
-            role="menu"
-            aria-label={t("accounts")}
-            className="absolute top-full left-0 z-50 min-w-[180px] rounded-lg border border-border bg-sidebar p-1 shadow-lg"
-            onKeyDown={(e) => {
-              if (!accounts.length) return;
-
-              const currentIndex = accountItemRefs.current.indexOf(document.activeElement as HTMLButtonElement);
-              if (e.key === "Escape") {
-                e.preventDefault();
-                closeAccountList(true);
-              }
-              if (e.key === "ArrowDown") {
-                e.preventDefault();
-                focusAccountItem(currentIndex >= 0 ? currentIndex + 1 : 0);
-              }
-              if (e.key === "ArrowUp") {
-                e.preventDefault();
-                focusAccountItem(currentIndex >= 0 ? currentIndex - 1 : accounts.length - 1);
-              }
-            }}
-          >
-            {accounts.map((acc, index) => (
-              <button
-                type="button"
-                key={acc.id}
-                ref={(element) => {
-                  accountItemRefs.current[index] = element;
-                }}
-                onClick={() => {
-                  selectAccount(acc.id);
-                  closeAccountList();
-                }}
-                role="menuitemradio"
-                aria-checked={acc.id === selectedAccountId}
-                className={cn(
-                  "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm",
-                  acc.id === selectedAccountId
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                )}
-              >
-                {acc.name}
-                <span className="text-xs text-muted-foreground">{acc.kind}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      </SidebarHeaderView>
 
       {/* Unread Smart View */}
       <button
