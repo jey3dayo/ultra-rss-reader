@@ -45,6 +45,7 @@ export function Sidebar() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const lastSyncedFormatted = useFormatLastSynced(lastSyncedAt);
+  const [isFeedsSectionOpen, setIsFeedsSectionOpen] = useState(true);
   const [isTagsSectionOpen, setIsTagsSectionOpen] = useState(true);
   const accountDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -72,6 +73,7 @@ export function Sidebar() {
   const isAddFeedDialogOpen = useUiStore((s) => s.isAddFeedDialogOpen);
   const openAddFeedDialog = useUiStore((s) => s.openAddFeedDialog);
   const closeAddFeedDialog = useUiStore((s) => s.closeAddFeedDialog);
+  const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
   const showToast = useUiStore((s) => s.showToast);
   const { data: feeds } = useFeeds(selectedAccountId);
   const { data: folders } = useFolders(selectedAccountId);
@@ -196,7 +198,14 @@ export function Sidebar() {
           <Button
             variant="ghost"
             size="icon-sm"
-            onClick={() => selectedAccountId && openAddFeedDialog()}
+            onClick={() => {
+              if (selectedAccountId) {
+                openAddFeedDialog();
+              } else {
+                openSettings("accounts");
+                setSettingsAddAccount(true);
+              }
+            }}
             className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
             aria-label={t("add_feed")}
           >
@@ -276,47 +285,68 @@ export function Sidebar() {
 
       {/* Feeds Section Header */}
       <div className="px-2 py-2">
-        <div className="flex items-center justify-between px-2 py-1">
+        <button
+          type="button"
+          onClick={() => setIsFeedsSectionOpen((v) => !v)}
+          className="flex w-full items-center justify-between px-2 py-1"
+        >
           <span className="text-sm font-medium text-sidebar-foreground">{t("feeds")}</span>
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        </div>
+          <ChevronDown
+            className={cn("h-4 w-4 text-muted-foreground transition-transform", !isFeedsSectionOpen && "-rotate-90")}
+          />
+        </button>
       </div>
 
       {/* Scrollable Feed List */}
       <ScrollArea className="flex-1">
         <div className="space-y-0.5 px-2 pb-4">
           {feedList.length > 0 ? (
-            <>
-              {folderList.map((folder) => {
-                const folderFeeds = feedsByFolder.get(folder.id) ?? [];
-                if (folderFeeds.length === 0) return null;
-                return (
-                  <FolderSection
-                    key={folder.id}
-                    folder={folder}
-                    feeds={folderFeeds}
-                    isExpanded={expandedFolderIds.has(folder.id)}
-                    onToggle={toggleFolder}
-                    selectedFeedId={selectedFeedId}
-                    onSelectFeed={selectFeed}
+            isFeedsSectionOpen && (
+              <>
+                {folderList.map((folder) => {
+                  const folderFeeds = feedsByFolder.get(folder.id) ?? [];
+                  if (folderFeeds.length === 0) return null;
+                  return (
+                    <FolderSection
+                      key={folder.id}
+                      folder={folder}
+                      feeds={folderFeeds}
+                      isExpanded={expandedFolderIds.has(folder.id)}
+                      onToggle={toggleFolder}
+                      selectedFeedId={selectedFeedId}
+                      onSelectFeed={selectFeed}
+                      displayFavicons={displayFavicons}
+                    />
+                  );
+                })}
+                {unfolderedFeeds.map((feed) => (
+                  <FeedItem
+                    key={feed.id}
+                    feed={feed}
+                    isSelected={selectedFeedId === feed.id}
+                    onSelect={selectFeed}
                     displayFavicons={displayFavicons}
                   />
-                );
-              })}
-              {unfolderedFeeds.map((feed) => (
-                <FeedItem
-                  key={feed.id}
-                  feed={feed}
-                  isSelected={selectedFeedId === feed.id}
-                  onSelect={selectFeed}
-                  displayFavicons={displayFavicons}
-                />
-              ))}
-            </>
-          ) : (
-            selectedAccountId && (
-              <div className="px-2 py-4 text-center text-sm text-muted-foreground">{t("press_plus_to_add_feed")}</div>
+                ))}
+              </>
             )
+          ) : (
+            <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+              {selectedAccountId ? (
+                t("press_plus_to_add_feed")
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    openSettings("accounts");
+                    setSettingsAddAccount(true);
+                  }}
+                  className="text-muted-foreground underline decoration-muted-foreground/50 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/50"
+                >
+                  {t("add_account_to_start")}
+                </button>
+              )}
+            </div>
           )}
 
           {/* Tags Section */}
@@ -344,7 +374,7 @@ export function Sidebar() {
                           type="button"
                           onClick={() => selectTag(tag.id)}
                           className={cn(
-                            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm",
+                            "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm",
                             selection.type === "tag" && selection.tagId === tag.id
                               ? "bg-sidebar-accent text-sidebar-accent-foreground"
                               : "text-sidebar-foreground hover:bg-sidebar-accent/50",
@@ -352,15 +382,19 @@ export function Sidebar() {
                         />
                       }
                     >
-                      {tag.color && (
-                        <span
-                          className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: tag.color }}
-                        />
-                      )}
-                      <span className="flex-1 truncate text-left">{tag.name}</span>
+                      <div className="flex items-center gap-2 truncate">
+                        {tag.color && (
+                          <span
+                            className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: tag.color }}
+                          />
+                        )}
+                        <span className="truncate">{tag.name}</span>
+                      </div>
                       {tagArticleCounts?.[tag.id] != null && tagArticleCounts[tag.id] > 0 && (
-                        <span className="text-muted-foreground">{tagArticleCounts[tag.id].toLocaleString()}</span>
+                        <span className="ml-2 shrink-0 text-muted-foreground">
+                          {tagArticleCounts[tag.id].toLocaleString()}
+                        </span>
                       )}
                     </ContextMenu.Trigger>
                     <TagContextMenuContent tag={tag} />
