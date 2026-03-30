@@ -24,6 +24,7 @@ import {
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
+import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContentView } from "./article-content-view";
@@ -47,6 +48,7 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
   const actionOpenBrowser = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_open_browser"));
   const actionShare = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share"));
   const actionShareMenu = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share_menu"));
+  const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
 
   const handleCloseView = () => {
     clearArticle();
@@ -106,23 +108,25 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
                     <Copy className="mr-2 h-4 w-4" />
                     {t("copy_link")}
                   </Menu.Item>
-                  <Menu.Item
-                    className={contextMenuStyles.item}
-                    onSelect={async () => {
-                      if (!article?.url) return;
-                      Result.pipe(
-                        await addToReadingList(article.url),
-                        Result.inspect(() => showToast(t("added_to_reading_list"))),
-                        Result.inspectError((e) => {
-                          console.error("Add to reading list failed:", e);
-                          showToast(e.message);
-                        }),
-                      );
-                    }}
-                  >
-                    <BookmarkPlus className="mr-2 h-4 w-4" />
-                    {t("add_to_reading_list")}
-                  </Menu.Item>
+                  {supportsReadingList ? (
+                    <Menu.Item
+                      className={contextMenuStyles.item}
+                      onSelect={async () => {
+                        if (!article?.url) return;
+                        Result.pipe(
+                          await addToReadingList(article.url),
+                          Result.inspect(() => showToast(t("added_to_reading_list"))),
+                          Result.inspectError((e) => {
+                            console.error("Add to reading list failed:", e);
+                            showToast(e.message);
+                          }),
+                        );
+                      }}
+                    >
+                      <BookmarkPlus className="mr-2 h-4 w-4" />
+                      {t("add_to_reading_list")}
+                    </Menu.Item>
+                  ) : null}
                   <Menu.Separator className={contextMenuStyles.separator} />
                   <Menu.Item
                     className={contextMenuStyles.item}
@@ -282,6 +286,7 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
   const openBrowserView = useUiStore((s) => s.openBrowser);
   const selectFeed = useUiStore((s) => s.selectFeed);
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
+  const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
   const articleUrl = article.url;
 
   const openArticleUrl = (url: string, metaKey = false, ctrlKey = false) => {
@@ -367,7 +372,7 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
       );
     };
     const handleAddToReadingList = () => {
-      if (!article.url) return;
+      if (!supportsReadingList || !article.url) return;
       const showToast = useUiStore.getState().showToast;
       void addToReadingList(article.url).then((result) =>
         Result.pipe(
@@ -404,6 +409,7 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
     setRead,
     toggleStar,
     addRecentlyRead,
+    supportsReadingList,
   ]);
 
   const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
