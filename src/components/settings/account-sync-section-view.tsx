@@ -1,6 +1,7 @@
 import { useId } from "react";
 import { SectionHeading } from "@/components/settings/settings-components";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
+import { Button } from "@/components/ui/button";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type AccountSelectOption = {
@@ -27,6 +28,10 @@ export type AccountSyncSectionViewProps = {
   syncInterval: AccountSelectControl;
   syncOnWake: AccountSwitchControl;
   keepReadItems: AccountSelectControl;
+  syncNowLabel?: string;
+  syncingLabel?: string;
+  onSyncNow?: () => void;
+  isSyncing?: boolean;
 };
 
 function getOptionLabel(options: AccountSelectOption[], value: string | null) {
@@ -64,6 +69,10 @@ export function AccountSyncSectionView({
   syncInterval,
   syncOnWake,
   keepReadItems,
+  syncNowLabel,
+  syncingLabel,
+  onSyncNow,
+  isSyncing,
 }: AccountSyncSectionViewProps) {
   const syncIntervalLabelId = useId();
   const keepReadItemsLabelId = useId();
@@ -81,6 +90,13 @@ export function AccountSyncSectionView({
         />
       </div>
       <AccountSelectRow control={keepReadItems} labelId={keepReadItemsLabelId} />
+      {onSyncNow && (
+        <div className="pt-3">
+          <Button size="sm" onClick={onSyncNow} disabled={isSyncing}>
+            {isSyncing ? syncingLabel : syncNowLabel}
+          </Button>
+        </div>
+      )}
     </section>
   );
 }
