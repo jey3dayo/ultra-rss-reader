@@ -19,13 +19,19 @@ use repository::preference::PreferenceRepository;
 use tauri::Manager;
 
 fn database_init_error_message(error: &DomainError, db_path: &std::path::Path) -> String {
+    let backups_dir = db_path
+        .parent()
+        .map(|p| p.join("backups"))
+        .unwrap_or_default();
     match error {
         DomainError::Migration(_) => format!(
             "Failed to initialize database: {error}\n\
              Database path: {}\n\
+             Backup directory: {}\n\
              The database may already have been restored automatically. Do not delete the database file.\n\
              Please update the application or contact support.",
-            db_path.display()
+            db_path.display(),
+            backups_dir.display()
         ),
         _ => format!(
             "Failed to initialize database: {error}\n\

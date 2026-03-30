@@ -26,14 +26,19 @@ impl DbManager {
         if needs_migration && !is_fresh {
             // Drop writer before backup to ensure WAL is checkpointed
             drop(writer);
-            super::backup::create_backup(db_path, current_version)?;
+            let backup_file = super::backup::create_backup(db_path, current_version)?;
             // Re-open writer after backup
             let writer = Connection::open(db_path)?;
             Self::apply_pragmas(&writer)?;
             let reader = Connection::open(db_path)?;
             Self::apply_pragmas(&reader)?;
             let mut manager = Self { writer, reader };
-            Self::run_migrations_with_restore(&mut manager, db_path, current_version)?;
+            Self::run_migrations_with_restore(
+                &mut manager,
+                db_path,
+                &backup_file,
+                current_version,
+            )?;
             Ok(manager)
         } else {
             // No migration needed, or fresh DB — just open and migrate
@@ -53,6 +58,7 @@ impl DbManager {
     fn run_migrations_with_restore(
         manager: &mut Self,
         db_path: &Path,
+        backup_file: &Path,
         backup_version: i32,
     ) -> DomainResult<()> {
         match super::migration::run_migrations(&mut manager.writer) {
@@ -66,9 +72,8 @@ impl DbManager {
             }
             Err(e) => {
                 tracing::error!("Migration failed: {e}");
-                let backup = super::backup::backup_path(db_path, backup_version);
-                if backup.exists() {
-                    tracing::info!("Attempting restore from backup v{backup_version}...");
+                if backup_file.exists() {
+                    tracing::info!("Attempting restore from backup: {}", backup_file.display());
                     // Release DB connections before file operations
                     let writer = Connection::open(":memory:").unwrap();
                     let reader = Connection::open(":memory:").unwrap();
@@ -77,9 +82,7 @@ impl DbManager {
                     drop(old_writer);
                     drop(old_reader);
 
-                    if let Err(restore_err) =
-                        super::backup::restore_backup(db_path, &backup, backup_version)
-                    {
+                    if let Err(restore_err) = super::backup::restore_backup(db_path, backup_file) {
                         return Err(DomainError::Migration(format!(
                             "Migration failed ({e}) and restore failed ({restore_err}). \
                              Manual intervention required."
@@ -89,8 +92,9 @@ impl DbManager {
                     // Restore succeeded but return error — don't run with old schema
                     Err(DomainError::Migration(format!(
                         "Migration to v{} failed: {e}. Database restored to v{backup_version}. \
-                         Please update the application or contact support.",
-                        super::migration::LATEST_VERSION
+                         Backup: {}. Please update the application or contact support.",
+                        super::migration::LATEST_VERSION,
+                        backup_file.display()
                     )))
                 } else {
                     Err(DomainError::Migration(format!(
