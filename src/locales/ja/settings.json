@@ -204,6 +204,10 @@
     "vacuum_description": "データベースを最適化して未使用領域を回収します。",
     "vacuuming": "最適化中...",
     "vacuum_success": "データベースを最適化しました ({{saved}})",
-    "vacuum_failed": "最適化に失敗しました: {{message}}"
+    "vacuum_failed": "最適化に失敗しました: {{message}}",
+    "logs": "ログ",
+    "open_log_dir": "ログフォルダを開く",
+    "open_log_dir_description": "トラブルシューティング用のアプリケーションログファイルを確認します。",
+    "open_log_dir_failed": "ログフォルダを開けませんでした: {{message}}"
   }
 }
