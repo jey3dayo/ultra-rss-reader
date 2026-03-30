@@ -128,7 +128,7 @@ const initialState: UiState = {
   selectedAccountId: null,
   selection: { type: "all" },
   selectedArticleId: null,
-  viewMode: "all",
+  viewMode: "unread",
   searchQuery: "",
   browserUrl: null,
   expandedFolderIds: new Set(),
@@ -160,7 +160,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     set({
       selectedAccountId: id,
       selection: { type: "all" },
-      viewMode: "all",
+      viewMode: "unread",
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
@@ -169,7 +169,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   selectFeed: (feedId) =>
     set({
       selection: { type: "feed", feedId },
-      viewMode: "all",
+      viewMode: "unread",
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
@@ -178,7 +178,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   selectFolder: (folderId) =>
     set({
       selection: { type: "folder", folderId },
-      viewMode: "all",
+      viewMode: "unread",
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
@@ -196,7 +196,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   selectTag: (tagId) =>
     set({
       selection: { type: "tag", tagId },
-      viewMode: "all",
+      viewMode: "unread",
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
@@ -205,7 +205,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   selectAll: () =>
     set({
       selection: { type: "all" },
-      viewMode: "all",
+      viewMode: "unread",
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
