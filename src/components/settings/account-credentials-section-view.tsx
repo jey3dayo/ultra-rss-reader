@@ -1,4 +1,5 @@
 import { SectionHeading } from "@/components/settings/settings-components";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export type AccountCredentialsSectionViewProps = {
@@ -16,7 +17,12 @@ export type AccountCredentialsSectionViewProps = {
   passwordValue: string;
   passwordPlaceholder: string;
   onPasswordChange: (value: string) => void;
+  onPasswordFocus?: () => void;
   onPasswordBlur: () => void;
+  testConnectionLabel?: string;
+  testingConnectionLabel?: string;
+  onTestConnection?: () => void;
+  isTestingConnection?: boolean;
 };
 
 export function AccountCredentialsSectionView({
@@ -34,7 +40,12 @@ export function AccountCredentialsSectionView({
   passwordValue,
   passwordPlaceholder,
   onPasswordChange,
+  onPasswordFocus,
   onPasswordBlur,
+  testConnectionLabel,
+  testingConnectionLabel,
+  onTestConnection,
+  isTestingConnection,
 }: AccountCredentialsSectionViewProps) {
   return (
     <section className="mb-6">
@@ -66,11 +77,19 @@ export function AccountCredentialsSectionView({
           type="password"
           value={passwordValue}
           onChange={(e) => onPasswordChange(e.target.value)}
+          onFocus={onPasswordFocus}
           onBlur={onPasswordBlur}
           placeholder={passwordPlaceholder}
           className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
         />
       </div>
+      {onTestConnection && (
+        <div className="pt-3">
+          <Button size="sm" onClick={onTestConnection} disabled={isTestingConnection}>
+            {isTestingConnection ? testingConnectionLabel : testConnectionLabel}
+          </Button>
+        </div>
+      )}
     </section>
   );
 }
