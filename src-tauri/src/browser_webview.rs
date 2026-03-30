@@ -151,12 +151,12 @@ pub fn emit_browser_webview_state<R: Runtime>(window: &Window<R>, state: &Browse
 }
 
 pub fn navigation_availability<R: Runtime>(
-    webview: &Webview<R>,
+    _webview: &Webview<R>,
 ) -> Option<BrowserNavigationAvailability> {
     #[cfg(target_os = "macos")]
     {
         let (tx, rx) = std::sync::mpsc::channel();
-        if webview
+        if _webview
             .with_webview(move |platform_webview| unsafe {
                 let view: &objc2_web_kit::WKWebView = &*platform_webview.inner().cast();
                 let _ = tx.send(BrowserNavigationAvailability {
@@ -171,6 +171,42 @@ pub fn navigation_availability<R: Runtime>(
             }
         }
     }
+
+    #[cfg(windows)]
+    {
+        let (tx, rx) = std::sync::mpsc::channel();
+        if _webview
+            .with_webview(move |platform_webview| unsafe {
+                let availability =
+                    platform_webview
+                        .controller()
+                        .CoreWebView2()
+                        .ok()
+                        .and_then(|core_webview| {
+                            let mut can_go_back = Default::default();
+                            let mut can_go_forward = Default::default();
+
+                            if core_webview.CanGoBack(&mut can_go_back).is_err()
+                                || core_webview.CanGoForward(&mut can_go_forward).is_err()
+                            {
+                                return None;
+                            }
+
+                            Some(BrowserNavigationAvailability {
+                                can_go_back: can_go_back.as_bool(),
+                                can_go_forward: can_go_forward.as_bool(),
+                            })
+                        });
+                let _ = tx.send(availability);
+            })
+            .is_ok()
+        {
+            if let Ok(availability) = rx.recv() {
+                return availability;
+            }
+        }
+    }
+
     None
 }
 
@@ -184,7 +220,29 @@ pub fn go_back<R: Runtime>(webview: &Webview<R>) -> tauri::Result<()> {
         Ok(())
     }
 
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(windows)]
+    {
+        let (tx, rx) = std::sync::mpsc::channel();
+        webview.with_webview(move |platform_webview| unsafe {
+            let result = platform_webview
+                .controller()
+                .CoreWebView2()
+                .and_then(|core_webview| core_webview.GoBack())
+                .map_err(|error| error.to_string());
+            let _ = tx.send(result);
+        })?;
+
+        match rx.recv() {
+            Ok(Ok(())) => Ok(()),
+            Ok(Err(message)) => Err(std::io::Error::other(message).into()),
+            Err(error) => Err(std::io::Error::other(format!(
+                "Failed to receive WebView2 back navigation result: {error}"
+            ))
+            .into()),
+        }
+    }
+
+    #[cfg(all(not(target_os = "macos"), not(windows)))]
     {
         webview.eval("window.history.back();")
     }
@@ -200,7 +258,29 @@ pub fn go_forward<R: Runtime>(webview: &Webview<R>) -> tauri::Result<()> {
         Ok(())
     }
 
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(windows)]
+    {
+        let (tx, rx) = std::sync::mpsc::channel();
+        webview.with_webview(move |platform_webview| unsafe {
+            let result = platform_webview
+                .controller()
+                .CoreWebView2()
+                .and_then(|core_webview| core_webview.GoForward())
+                .map_err(|error| error.to_string());
+            let _ = tx.send(result);
+        })?;
+
+        match rx.recv() {
+            Ok(Ok(())) => Ok(()),
+            Ok(Err(message)) => Err(std::io::Error::other(message).into()),
+            Err(error) => Err(std::io::Error::other(format!(
+                "Failed to receive WebView2 forward navigation result: {error}"
+            ))
+            .into()),
+        }
+    }
+
+    #[cfg(all(not(target_os = "macos"), not(windows)))]
     {
         webview.eval("window.history.forward();")
     }

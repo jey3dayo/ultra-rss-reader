@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- Windows のブラウザビューで WebView2 の戻る/進む可否とネイティブ履歴操作を使うようにし、インストーラに WebView2 bootstrapper を同梱するようにした
+
 ## [0.5.0] - 2026-03-30
 
 ### Features
