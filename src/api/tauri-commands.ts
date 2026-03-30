@@ -353,3 +353,6 @@ export const restartApp = () => safeInvoke("restart_app", { response: z.null() }
 export const getDatabaseInfo = () => safeInvoke("get_database_info", { response: DatabaseInfoDtoSchema });
 
 export const vacuumDatabase = () => safeInvoke("vacuum_database", { response: DatabaseInfoDtoSchema });
+
+// Logs
+export const getLogDir = () => safeInvoke("get_log_dir", { response: z.string() });
