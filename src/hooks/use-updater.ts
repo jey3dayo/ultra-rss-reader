@@ -31,6 +31,29 @@ export function showUpdateAvailableToast(version: string): void {
   });
 }
 
+function showUpdateFailureToast(message: string): void {
+  const store = useUiStore.getState();
+  console.error("Update download failed:", message);
+  store.showToast({
+    message: "アップデートに失敗しました。現在のバージョンを引き続き使用します。",
+    persistent: true,
+    actions: [
+      {
+        label: "もう一度確認",
+        onClick: () => {
+          void runManualUpdateCheck();
+        },
+      },
+      {
+        label: "閉じる",
+        onClick: () => {
+          store.clearToast();
+        },
+      },
+    ],
+  });
+}
+
 function startDownload(): void {
   const store = useUiStore.getState();
   store.showToast({
@@ -43,8 +66,7 @@ function startDownload(): void {
     Result.pipe(
       result,
       Result.inspectError((e) => {
-        console.error("Update download failed:", e);
-        store.showToast(`アップデートのダウンロードに失敗しました: ${e.message}`);
+        showUpdateFailureToast(e.message);
       }),
     ),
   );
@@ -93,6 +115,22 @@ export async function performUpdateCheck(): Promise<UpdateInfo | null> {
     return await checkInFlight;
   } finally {
     checkInFlight = null;
+  }
+}
+
+export async function runManualUpdateCheck(): Promise<void> {
+  const store = useUiStore.getState();
+
+  try {
+    const info = await performUpdateCheck();
+    if (info) {
+      showUpdateAvailableToast(info.version);
+      return;
+    }
+    store.showToast("最新バージョンです");
+  } catch (e: unknown) {
+    console.error("Manual update check failed:", e);
+    store.showToast("アップデートの確認に失敗しました");
   }
 }
 

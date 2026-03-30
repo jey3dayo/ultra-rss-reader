@@ -18,6 +18,16 @@ vi.mock("@tauri-apps/api/event", () => ({
 
 type UpdateInfo = { version: string; body: string | null } | null;
 
+async function getUiStore() {
+  const { useUiStore } = await import("@/stores/ui-store");
+  return useUiStore;
+}
+
+async function flushAsyncWork(): Promise<void> {
+  await Promise.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 function createDeferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
   let reject!: (reason?: unknown) => void;
@@ -52,5 +62,50 @@ describe("performUpdateCheck", () => {
 
     await expect(firstCheck).resolves.toEqual({ version: "1.2.3", body: null });
     await expect(secondCheck).resolves.toEqual({ version: "1.2.3", body: null });
+  });
+
+  it("shows a fallback toast that keeps the current version when download fails", async () => {
+    mockDownloadAndInstallUpdate.mockResolvedValue(Result.fail({ type: "UserVisible", message: "network down" }));
+
+    const { showUpdateAvailableToast } = await import("@/hooks/use-updater");
+    const useUiStore = await getUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    showUpdateAvailableToast("1.2.3");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+    await flushAsyncWork();
+
+    expect(useUiStore.getState().toastMessage?.message).toContain("現在のバージョンを引き続き使用します");
+    expect(useUiStore.getState().toastMessage?.persistent).toBe(true);
+    expect(useUiStore.getState().toastMessage?.actions?.some((action) => action.label === "もう一度確認")).toBe(true);
+  });
+
+  it("re-checks updates from the fallback toast instead of auto-retrying the download", async () => {
+    mockDownloadAndInstallUpdate.mockResolvedValue(Result.fail({ type: "UserVisible", message: "network down" }));
+    mockCheckForUpdate.mockResolvedValue(Result.succeed({ version: "1.2.4", body: null }));
+
+    const { showUpdateAvailableToast } = await import("@/hooks/use-updater");
+    const useUiStore = await getUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    showUpdateAvailableToast("1.2.3");
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "今すぐ更新")
+      ?.onClick();
+    await flushAsyncWork();
+
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "もう一度確認")
+      ?.onClick();
+    await flushAsyncWork();
+
+    expect(mockDownloadAndInstallUpdate).toHaveBeenCalledTimes(1);
+    expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.4 が利用可能です");
   });
 });
