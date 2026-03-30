@@ -141,7 +141,9 @@ export function executeAction(action: AppAction): void {
 
     // --- Sync ---
     case "sync-all": {
-      triggerSync().then((result) =>
+      store.setAppLoading(true);
+      triggerSync().then((result) => {
+        store.setAppLoading(false);
         Result.pipe(
           result,
           Result.inspect((synced) => {
@@ -151,8 +153,8 @@ export function executeAction(action: AppAction): void {
             console.error("Menu sync failed:", e);
             store.showToast(`Sync failed: ${e.message}`);
           }),
-        ),
-      );
+        );
+      });
       break;
     }
 
