@@ -213,6 +213,7 @@ export function AccountDetail() {
     { value: "7", label: t("account.one_week") },
     { value: "14", label: t("account.two_weeks") },
     { value: "30", label: t("account.one_month") },
+    { value: "60", label: t("account.sixty_days") },
     { value: "90", label: t("account.three_months") },
     { value: "180", label: t("account.six_months") },
     { value: "365", label: t("account.one_year") },
