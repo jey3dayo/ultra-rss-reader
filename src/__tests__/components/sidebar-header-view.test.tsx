@@ -9,7 +9,7 @@ describe("SidebarHeaderView", () => {
     const onSync = vi.fn();
     const onAddFeed = vi.fn();
 
-    render(
+    const { container } = render(
       <SidebarHeaderView
         isSyncing={false}
         onSync={onSync}
@@ -18,6 +18,9 @@ describe("SidebarHeaderView", () => {
         addFeedButtonLabel="Add feed"
       />,
     );
+
+    expect(container.firstElementChild).not.toHaveAttribute("data-tauri-drag-region");
+    expect(container.querySelector("[data-tauri-drag-region]")).not.toBeNull();
 
     await user.click(screen.getByLabelText("Sync feeds"));
     await user.click(screen.getByLabelText("Add feed"));
