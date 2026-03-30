@@ -70,6 +70,27 @@ fn current_or_loading_state(
     }
 }
 
+fn notify_browser_window_closed(app_handle: &tauri::AppHandle) {
+    let should_emit = {
+        let app_state = app_handle.state::<AppState>();
+        let should_emit = if let Ok(mut tracker) = app_state.browser_webview.lock() {
+            if tracker.snapshot().is_none() {
+                false
+            } else {
+                tracker.clear();
+                true
+            }
+        } else {
+            false
+        };
+        should_emit
+    };
+
+    if should_emit {
+        emit_browser_webview_closed(app_handle);
+    }
+}
+
 fn show_and_focus_browser_window(browser_window: &WebviewWindow) -> Result<(), AppError> {
     let is_minimized = browser_window.is_minimized().map_err(|error| {
         browser_webview_error(format!("Failed to inspect browser window state: {error}"))
@@ -143,11 +164,11 @@ fn create_browser_window(
     .map_err(|error| browser_webview_error(format!("Failed to create browser window: {error}")))?;
 
     browser_window.on_window_event(move |event| {
-        if matches!(event, WindowEvent::Destroyed) {
-            if let Ok(mut tracker) = close_app_handle.state::<AppState>().browser_webview.lock() {
-                tracker.clear();
-            }
-            emit_browser_webview_closed(&close_app_handle);
+        if matches!(
+            event,
+            WindowEvent::CloseRequested { .. } | WindowEvent::Destroyed
+        ) {
+            notify_browser_window_closed(&close_app_handle);
         }
     });
 
@@ -155,7 +176,7 @@ fn create_browser_window(
 
     let result = tracker_start(state, &app_handle, url);
     if result.is_err() {
-        let _ = browser_window.close();
+        let _ = browser_window.destroy();
     }
     result
 }
@@ -282,8 +303,8 @@ mod tests {
 #[tauri::command]
 pub fn close_browser_webview(window: Window, state: State<'_, AppState>) -> Result<(), AppError> {
     if let Some(browser_window) = browser_window(window.app_handle()) {
-        browser_window.close().map_err(|error| {
-            browser_webview_error(format!("Failed to close browser window: {error}"))
+        browser_window.destroy().map_err(|error| {
+            browser_webview_error(format!("Failed to destroy browser window: {error}"))
         })?;
     }
 
