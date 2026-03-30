@@ -3,9 +3,9 @@ import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/App";
 
-const { loadPreferencesMock, triggerAutomaticSyncMock, listAccountsMock } = vi.hoisted(() => ({
+const { loadPreferencesMock, syncAccountMock, listAccountsMock } = vi.hoisted(() => ({
   loadPreferencesMock: vi.fn(),
-  triggerAutomaticSyncMock: vi.fn(() => Promise.resolve(Result.succeed(true))),
+  syncAccountMock: vi.fn(() => Promise.resolve(Result.succeed(true))),
   listAccountsMock: vi.fn(() => Promise.resolve(Result.succeed([]))),
 }));
 
@@ -20,7 +20,7 @@ vi.mock("@/stores/preferences-store", () => ({
 
 vi.mock("@/api/tauri-commands", () => ({
   listAccounts: listAccountsMock,
-  triggerAutomaticSync: triggerAutomaticSyncMock,
+  syncAccount: syncAccountMock,
 }));
 
 vi.mock("@tauri-apps/api/event", () => ({
@@ -30,7 +30,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 describe("App", () => {
   beforeEach(() => {
     loadPreferencesMock.mockClear();
-    triggerAutomaticSyncMock.mockClear();
+    syncAccountMock.mockClear();
     listAccountsMock.mockClear();
   });
 
@@ -40,6 +40,6 @@ describe("App", () => {
     await waitFor(() => {
       expect(loadPreferencesMock).toHaveBeenCalledTimes(1);
     });
-    expect(triggerAutomaticSyncMock).not.toHaveBeenCalled();
+    expect(syncAccountMock).not.toHaveBeenCalled();
   });
 });

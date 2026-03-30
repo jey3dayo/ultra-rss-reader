@@ -53,3 +53,19 @@
 ## URL スキーム境界の明確化
 
 - [x] アプリ内ブラウザと外部ブラウザ起動で許可する URL スキームを明示的に制限する（http/https のみ）
+
+## tracing の初期化と観測性確保
+
+- [x] `tracing_subscriber::fmt::init()` を `run()` 先頭で呼び出す（現状 tracing ログが全て黙殺されている）
+- [ ] リリースビルドではファイルログ出力を検討する（ユーザーがログを添付してサポート依頼できる導線）
+
+## アカウント単位の同期ポリシー遵守
+
+- [x] `get_min_sync_interval` の全アカウント最小値方式を見直し、アカウントごとの interval を尊重する
+- [x] `sync_state` の `error_count` / `next_retry_at` を使った exponential backoff を実装する
+- [x] wake 復帰時の同期を `sync_on_wake: true` のアカウントのみに絞る
+
+## リリース用 bundle identifier の確定
+
+- [x] `tauri.release.conf.json` で production 用 identifier `com.jey3dayo.ultra-rss-reader` を上書き
+- [ ] 変更後、updater endpoint・OS 上のアプリ識別・データディレクトリへの影響を確認する

@@ -123,7 +123,7 @@ fn enable_automatic_sync(
 }
 
 /// Sync a single account, returning Ok(()) on success or Err on failure.
-async fn sync_account(db: &Mutex<DbManager>, account: &Account) -> Result<(), AppError> {
+pub(crate) async fn sync_account(db: &Mutex<DbManager>, account: &Account) -> Result<(), AppError> {
     match account.kind {
         ProviderKind::Local => {
             let provider = LocalProvider::new();
@@ -275,29 +275,6 @@ pub(crate) async fn run_automatic_sync_with_progress(
     }
 
     run_full_sync_with_progress(db, syncing, reporter).await
-}
-
-/// Get the minimum sync interval from all accounts (defaults to 3600s if no accounts).
-pub fn get_min_sync_interval(db: &Mutex<DbManager>) -> std::time::Duration {
-    const DEFAULT_INTERVAL_SECS: u64 = 3600;
-
-    let secs = lock_db(db)
-        .ok()
-        .and_then(|db_guard| {
-            let repo = SqliteAccountRepository::new(db_guard.reader());
-            repo.find_all().ok()
-        })
-        .and_then(|accounts| {
-            accounts
-                .iter()
-                .map(|a| a.sync_interval_secs)
-                .filter(|&s| s > 0)
-                .min()
-        })
-        .map(|s| s as u64)
-        .unwrap_or(DEFAULT_INTERVAL_SECS);
-
-    std::time::Duration::from_secs(secs)
 }
 
 /// Purge old read articles based on each account's `keep_read_items_days` setting.

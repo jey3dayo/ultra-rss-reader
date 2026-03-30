@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef } from "react";
-import { listAccounts, triggerAutomaticSync } from "./api/tauri-commands";
+import { listAccounts, syncAccount } from "./api/tauri-commands";
 import { AppShell } from "./components/app-shell";
 import { usePreferencesStore } from "./stores/preferences-store";
 
@@ -30,8 +30,10 @@ function AppInner() {
       Result.pipe(
         result,
         Result.inspect((accounts) => {
-          if (accounts.some((a) => a.sync_on_wake)) {
-            triggerAutomaticSync();
+          for (const account of accounts) {
+            if (account.sync_on_wake) {
+              syncAccount(account.id);
+            }
           }
         }),
       ),
