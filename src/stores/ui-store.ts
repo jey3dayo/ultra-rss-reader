@@ -41,6 +41,8 @@ interface UiState {
   settingsCategory: SettingsCategory;
   settingsAccountId: string | null;
   settingsAddAccount: boolean;
+  settingsLoading: boolean;
+  appLoading: boolean;
   commandPaletteOpen: boolean;
   isAddFeedDialogOpen: boolean;
   toastMessage: ToastData | null;
@@ -66,6 +68,7 @@ interface UiActions {
   selectArticle: (id: string) => void;
   clearArticle: () => void;
   openBrowser: (url: string) => void;
+  setBrowserUrl: (url: string | null) => void;
   closeBrowser: () => void;
   setViewMode: (mode: "all" | "unread" | "starred") => void;
   setSearchQuery: (query: string) => void;
@@ -77,6 +80,8 @@ interface UiActions {
   setSettingsCategory: (cat: SettingsCategory) => void;
   setSettingsAccountId: (id: string | null) => void;
   setSettingsAddAccount: (show: boolean) => void;
+  setSettingsLoading: (loading: boolean) => void;
+  setAppLoading: (loading: boolean) => void;
   openCommandPalette: () => void;
   closeCommandPalette: () => void;
   toggleCommandPalette: () => void;
@@ -107,6 +112,8 @@ const initialState: UiState = {
   settingsCategory: "general",
   settingsAccountId: null,
   settingsAddAccount: false,
+  settingsLoading: false,
+  appLoading: false,
   commandPaletteOpen: false,
   isAddFeedDialogOpen: false,
   toastMessage: null,
@@ -176,6 +183,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   selectArticle: (id) => set({ selectedArticleId: id, contentMode: "reader", focusedPane: "content" }),
   clearArticle: () => set({ selectedArticleId: null, contentMode: "empty" }),
   openBrowser: (url) => set({ contentMode: "browser", browserUrl: url }),
+  setBrowserUrl: (url) => set((s) => ({ browserUrl: url, contentMode: url ? "browser" : s.contentMode })),
   closeBrowser: () => set((s) => ({ contentMode: s.selectedArticleId ? "reader" : "empty", browserUrl: null })),
   setViewMode: (mode) => set({ viewMode: mode, recentlyReadIds: new Set() }),
   setSearchQuery: (query) => set({ searchQuery: query }),
@@ -195,6 +203,8 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   setSettingsCategory: (cat) => set({ settingsCategory: cat, settingsAccountId: null, settingsAddAccount: false }),
   setSettingsAccountId: (id) => set({ settingsAccountId: id, settingsAddAccount: false }),
   setSettingsAddAccount: (show) => set({ settingsAddAccount: show, settingsAccountId: null }),
+  setSettingsLoading: (loading) => set({ settingsLoading: loading }),
+  setAppLoading: (loading) => set({ appLoading: loading }),
   openCommandPalette: () => set({ commandPaletteOpen: true }),
   closeCommandPalette: () => set({ commandPaletteOpen: false }),
   toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
