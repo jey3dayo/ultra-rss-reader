@@ -142,8 +142,29 @@ const defaultHandler: MockHandler = (cmd, args) => {
       return null;
     case "check_browser_embed_support":
       return true;
+    case "create_or_update_browser_webview":
+      return {
+        url: args.url,
+        can_go_back: false,
+        can_go_forward: false,
+        is_loading: true,
+      };
+    case "go_back_browser_webview":
+    case "go_forward_browser_webview":
+    case "reload_browser_webview":
+      return {
+        url: "https://example.com/article",
+        can_go_back: false,
+        can_go_forward: false,
+        is_loading: false,
+      };
+    case "set_browser_webview_bounds":
+    case "close_browser_webview":
+      return null;
     case "trigger_sync":
       return true;
+    case "trigger_automatic_sync":
+      return false;
     default:
       return null;
   }

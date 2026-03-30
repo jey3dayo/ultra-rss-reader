@@ -57,6 +57,13 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().contentMode).toBe("reader");
   });
 
+  it("setBrowserUrl keeps browser mode in sync with in-webview navigation", () => {
+    useUiStore.getState().openBrowser("https://ex.com/1");
+    useUiStore.getState().setBrowserUrl("https://ex.com/2");
+    expect(useUiStore.getState().browserUrl).toBe("https://ex.com/2");
+    expect(useUiStore.getState().contentMode).toBe("browser");
+  });
+
   it("toggleFolder adds and removes", () => {
     useUiStore.getState().toggleFolder("f1");
     expect(useUiStore.getState().expandedFolderIds.has("f1")).toBe(true);

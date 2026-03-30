@@ -1,95 +1,195 @@
 import { Result } from "@praha/byethrow";
+import { listen } from "@tauri-apps/api/event";
 import { ArrowLeft, ArrowRight, ExternalLink, RotateCcw, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { checkBrowserEmbedSupport, openInBrowser } from "@/api/tauri-commands";
+import {
+  type BrowserWebviewBounds,
+  type BrowserWebviewState,
+  closeBrowserWebview,
+  createOrUpdateBrowserWebview,
+  goBackBrowserWebview,
+  goForwardBrowserWebview,
+  openInBrowser,
+  reloadBrowserWebview,
+  setBrowserWebviewBounds,
+} from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
-import { goBackInWebview, goForwardInWebview, reloadWebview } from "@/lib/webview-history";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
+const browserWebviewStateChangedEvent = "browser-webview-state-changed";
+
+function toBrowserWebviewBounds(element: HTMLElement): BrowserWebviewBounds {
+  const rect = element.getBoundingClientRect();
+  return {
+    x: Math.max(0, Math.round(rect.left)),
+    y: Math.max(0, Math.round(rect.top)),
+    width: Math.max(0, Math.round(rect.width)),
+    height: Math.max(0, Math.round(rect.height)),
+  };
+}
+
+function initialBrowserState(url: string): BrowserWebviewState {
+  return {
+    url,
+    can_go_back: false,
+    can_go_forward: false,
+    is_loading: true,
+  };
+}
+
 export function BrowserView() {
   const { t } = useTranslation("reader");
-  const { browserUrl, closeBrowser } = useUiStore();
-  const [isLoading, setIsLoading] = useState(true);
-  const [embedBlocked, setEmbedBlocked] = useState(false);
-  const [canGoBack, setCanGoBack] = useState(false);
-  const [canGoForward, setCanGoForward] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const historyIndex = useRef(0);
-  const historySize = useRef(1);
-  const isHistoryNav = useRef(false);
-  const initialLoadDone = useRef(false);
+  const browserUrl = useUiStore((s) => s.browserUrl);
+  const closeBrowser = useUiStore((s) => s.closeBrowser);
+  const setBrowserUrl = useUiStore((s) => s.setBrowserUrl);
+  const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
+  const browserStateRef = useRef<BrowserWebviewState | null>(null);
+  const listenerReadyRef = useRef<Promise<void> | null>(null);
+  const unlistenRef = useRef<(() => void) | null>(null);
 
-  const updateNavButtons = useCallback(() => {
-    setCanGoBack(historyIndex.current > 0);
-    setCanGoForward(historyIndex.current < historySize.current - 1);
-  }, []);
-
-  useEffect(() => {
-    if (!browserUrl) return;
-    setIsLoading(true);
-    setEmbedBlocked(false);
-    historyIndex.current = 0;
-    historySize.current = 1;
-    isHistoryNav.current = false;
-    initialLoadDone.current = false;
-    updateNavButtons();
-
+  useLayoutEffect(() => {
     let cancelled = false;
 
-    void checkBrowserEmbedSupport(browserUrl).then((result) => {
+    listenerReadyRef.current = listen<BrowserWebviewState>(browserWebviewStateChangedEvent, ({ payload }) => {
       if (cancelled) return;
-
-      if (Result.isSuccess(result) && Result.unwrap(result) === false) {
-        setEmbedBlocked(true);
-        setIsLoading(false);
+      browserStateRef.current = payload;
+      setBrowserState(payload);
+      setBrowserUrl(payload.url);
+      setErrorMessage(null);
+    }).then((cleanup) => {
+      if (cancelled) {
+        cleanup();
+        return;
       }
+      unlistenRef.current = cleanup;
+    });
+
+    return () => {
+      cancelled = true;
+      unlistenRef.current?.();
+      unlistenRef.current = null;
+      listenerReadyRef.current = null;
+    };
+  }, [setBrowserUrl]);
+
+  const syncBrowserWebview = useCallback(async () => {
+    if (!browserUrl || !hostRef.current) return;
+    const requestedUrl = browserUrl;
+
+    Result.pipe(
+      await createOrUpdateBrowserWebview(requestedUrl, toBrowserWebviewBounds(hostRef.current)),
+      Result.inspect((state) => {
+        if (useUiStore.getState().browserUrl !== requestedUrl) {
+          return;
+        }
+        const previousState = browserStateRef.current;
+        if (previousState && (previousState.url !== requestedUrl || (!previousState.is_loading && state.is_loading))) {
+          return;
+        }
+        browserStateRef.current = state;
+        setBrowserState(state);
+        setBrowserUrl(state.url);
+        setErrorMessage(null);
+      }),
+      Result.inspectError((error) => {
+        console.error("Failed to create inline browser webview:", error);
+        setErrorMessage(error.message);
+      }),
+    );
+  }, [browserUrl, setBrowserUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!browserUrl) return undefined;
+
+    setBrowserState((state) => {
+      const nextState = state?.url === browserUrl ? state : initialBrowserState(browserUrl);
+      browserStateRef.current = nextState;
+      return nextState;
+    });
+    setErrorMessage(null);
+
+    void (listenerReadyRef.current ?? Promise.resolve()).then(() => {
+      if (cancelled) return;
+      void syncBrowserWebview();
     });
 
     return () => {
       cancelled = true;
     };
-  }, [browserUrl, updateNavButtons]);
+  }, [browserUrl, syncBrowserWebview]);
+
+  useEffect(() => {
+    if (!browserUrl || !hostRef.current) return;
+
+    const element = hostRef.current;
+    const updateBounds = () => {
+      void setBrowserWebviewBounds(toBrowserWebviewBounds(element)).then((result) => {
+        Result.pipe(
+          result,
+          Result.inspectError((error) => {
+            console.error("Failed to update browser webview bounds:", error);
+          }),
+        );
+      });
+    };
+
+    updateBounds();
+
+    if (typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
+
+    const observer = new ResizeObserver(() => {
+      updateBounds();
+    });
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [browserUrl]);
+
+  useEffect(() => {
+    return () => {
+      void closeBrowserWebview().then((result) => {
+        Result.pipe(
+          result,
+          Result.inspectError((error) => {
+            console.error("Failed to close inline browser webview:", error);
+          }),
+        );
+      });
+    };
+  }, []);
 
   if (!browserUrl) return null;
 
-  const handleIframeLoad = () => {
-    setIsLoading(false);
-
-    if (!initialLoadDone.current) {
-      initialLoadDone.current = true;
-    } else if (isHistoryNav.current) {
-      isHistoryNav.current = false;
-    } else {
-      // New navigation (user clicked a link inside iframe)
-      historyIndex.current += 1;
-      historySize.current = historyIndex.current + 1;
-    }
-    updateNavButtons();
-
-    try {
-      const currentUrl = iframeRef.current?.contentWindow?.location.href;
-      if (currentUrl?.startsWith("chrome-error://")) {
-        setEmbedBlocked(true);
-      }
-    } catch {
-      // Cross-origin frames are expected. Ignore and keep the embed visible.
-    }
-  };
+  const currentUrl = browserState?.url ?? browserUrl;
+  const canGoBack = browserState?.can_go_back ?? false;
+  const canGoForward = browserState?.can_go_forward ?? false;
+  const isLoading = browserState?.is_loading ?? true;
 
   const handleOpenExternal = async () => {
     const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
     Result.pipe(
-      await openInBrowser(browserUrl, bg),
-      Result.inspectError((e) => console.error("Failed to open in browser:", e)),
+      await openInBrowser(currentUrl, bg),
+      Result.inspectError((error) => console.error("Failed to open in browser:", error)),
     );
+  };
+
+  const handleClose = () => {
+    closeBrowser();
   };
 
   return (
     <div className="flex h-full flex-col bg-background">
-      {/* Toolbar */}
       <div
         data-tauri-drag-region
         className="grid h-12 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-border px-4"
@@ -99,7 +199,7 @@ export function BrowserView() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={closeBrowser}
+              onClick={handleClose}
               className="text-muted-foreground"
               aria-label={t("close_view")}
             >
@@ -107,7 +207,7 @@ export function BrowserView() {
             </Button>
           </AppTooltip>
         </TooltipProvider>
-        <span className="flex-1 truncate text-xs text-muted-foreground">{browserUrl}</span>
+        <span className="flex-1 truncate text-xs text-muted-foreground">{currentUrl}</span>
         <TooltipProvider>
           <div className="flex items-center justify-end gap-2">
             <AppTooltip label={t("web_back")}>
@@ -116,12 +216,16 @@ export function BrowserView() {
                 size="icon"
                 disabled={!canGoBack}
                 onClick={async () => {
-                  isHistoryNav.current = true;
-                  historyIndex.current -= 1;
-                  updateNavButtons();
                   Result.pipe(
-                    await goBackInWebview(),
-                    Result.inspectError(() => {}),
+                    await goBackBrowserWebview(),
+                    Result.inspect((state) => {
+                      browserStateRef.current = state;
+                      setBrowserState(state);
+                      setBrowserUrl(state.url);
+                    }),
+                    Result.inspectError((error) => {
+                      console.error("Failed to navigate back in inline browser webview:", error);
+                    }),
                   );
                 }}
                 className="text-muted-foreground"
@@ -136,12 +240,16 @@ export function BrowserView() {
                 size="icon"
                 disabled={!canGoForward}
                 onClick={async () => {
-                  isHistoryNav.current = true;
-                  historyIndex.current += 1;
-                  updateNavButtons();
                   Result.pipe(
-                    await goForwardInWebview(),
-                    Result.inspectError(() => {}),
+                    await goForwardBrowserWebview(),
+                    Result.inspect((state) => {
+                      browserStateRef.current = state;
+                      setBrowserState(state);
+                      setBrowserUrl(state.url);
+                    }),
+                    Result.inspectError((error) => {
+                      console.error("Failed to navigate forward in inline browser webview:", error);
+                    }),
                   );
                 }}
                 className="text-muted-foreground"
@@ -155,10 +263,21 @@ export function BrowserView() {
                 variant="ghost"
                 size="icon"
                 onClick={async () => {
-                  setIsLoading(true);
+                  setBrowserState((state) => {
+                    const nextState = state ? { ...state, is_loading: true } : initialBrowserState(browserUrl);
+                    browserStateRef.current = nextState;
+                    return nextState;
+                  });
                   Result.pipe(
-                    await reloadWebview(),
-                    Result.inspectError(() => {}),
+                    await reloadBrowserWebview(),
+                    Result.inspect((state) => {
+                      browserStateRef.current = state;
+                      setBrowserState(state);
+                      setBrowserUrl(state.url);
+                    }),
+                    Result.inspectError((error) => {
+                      console.error("Failed to reload inline browser webview:", error);
+                    }),
                   );
                 }}
                 className="text-muted-foreground"
@@ -189,33 +308,18 @@ export function BrowserView() {
         </div>
       )}
 
-      {/* Iframe */}
-      <div className="relative flex-1">
-        {embedBlocked ? (
+      <div ref={hostRef} className="relative flex-1">
+        {errorMessage ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
             <p className="text-sm font-medium text-foreground">{t("browser_embed_blocked")}</p>
-            <p className="max-w-md text-sm text-muted-foreground">{t("browser_embed_blocked_hint")}</p>
+            <p className="max-w-md text-sm text-muted-foreground">{errorMessage}</p>
             <Button variant="outline" onClick={handleOpenExternal}>
               <ExternalLink className="h-4 w-4" />
               {t("open_in_external_browser")}
             </Button>
           </div>
         ) : (
-          <>
-            <iframe
-              ref={iframeRef}
-              src={browserUrl}
-              title={t("browser_view")}
-              className="h-full w-full border-none bg-white"
-              sandbox="allow-same-origin allow-scripts allow-popups"
-              onLoad={handleIframeLoad}
-              onError={() => {
-                setEmbedBlocked(true);
-                setIsLoading(false);
-              }}
-            />
-            {isLoading && <div className="pointer-events-none absolute inset-0 bg-background/20" />}
-          </>
+          isLoading && <div className="pointer-events-none absolute inset-0 bg-background/20" />
         )}
       </div>
     </div>

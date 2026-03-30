@@ -1,5 +1,4 @@
-import { Result } from "@praha/byethrow";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
@@ -7,39 +6,75 @@ import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
-const { backMock, forwardMock, reloadMock } = vi.hoisted(() => ({
-  backMock: vi.fn(),
-  forwardMock: vi.fn(),
-  reloadMock: vi.fn(),
-}));
+const { listenMock, registeredHandlers } = vi.hoisted(() => {
+  const handlers = new Map<string, (event: { payload: unknown }) => void>();
+  return {
+    listenMock: vi.fn(async (eventName: string, handler: (event: { payload: unknown }) => void) => {
+      handlers.set(eventName, handler);
+      return () => {
+        handlers.delete(eventName);
+      };
+    }),
+    registeredHandlers: handlers,
+  };
+});
 
-vi.mock("@/lib/webview-history", () => ({
-  goBackInWebview: backMock,
-  goForwardInWebview: forwardMock,
-  reloadWebview: reloadMock,
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: listenMock,
 }));
 
 describe("BrowserView", () => {
   beforeEach(() => {
-    backMock.mockReset();
-    forwardMock.mockReset();
-    reloadMock.mockReset();
-    backMock.mockResolvedValue(Result.succeed(undefined));
-    forwardMock.mockResolvedValue(Result.succeed(undefined));
-    reloadMock.mockResolvedValue(Result.succeed(undefined));
+    listenMock.mockClear();
+    registeredHandlers.clear();
     useUiStore.setState(useUiStore.getInitialState());
+    const commands: Array<{ cmd: string; args: Record<string, unknown> }> = [];
     setupTauriMocks((cmd, args) => {
+      commands.push({ cmd, args });
       if (cmd === "list_feeds") {
         return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
       }
-      if (cmd === "check_browser_embed_support") {
-        return true;
+      if (cmd === "create_or_update_browser_webview") {
+        return {
+          url: args.url,
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: true,
+        };
+      }
+      if (cmd === "go_back_browser_webview") {
+        return {
+          url: "https://example.com/article",
+          can_go_back: false,
+          can_go_forward: true,
+          is_loading: false,
+        };
+      }
+      if (cmd === "go_forward_browser_webview") {
+        return {
+          url: "https://example.com/article",
+          can_go_back: true,
+          can_go_forward: false,
+          is_loading: false,
+        };
+      }
+      if (cmd === "reload_browser_webview") {
+        return {
+          url: "https://example.com/article",
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: false,
+        };
+      }
+      if (cmd === "close_browser_webview" || cmd === "set_browser_webview_bounds") {
+        return null;
       }
       return null;
     });
+    Object.assign(globalThis, { __browserCommands: commands });
   });
 
-  it("shows loading guidance until the iframe finishes loading", async () => {
+  it("creates the inline browser webview on mount and keeps the loading hint visible until finish", async () => {
     useUiStore.setState({
       selectedAccountId: "acc-1",
       selection: { type: "feed", feedId: "feed-1" },
@@ -47,28 +82,64 @@ describe("BrowserView", () => {
       browserUrl: "https://example.com/article",
     });
 
-    const { container } = render(<BrowserView />, { wrapper: createWrapper() });
+    render(<BrowserView />, { wrapper: createWrapper() });
 
     expect(screen.getByText("Loading page...")).toBeInTheDocument();
     expect(screen.getByText("If this takes too long, open it in your external browser.")).toBeInTheDocument();
 
-    const iframe = container.querySelector("iframe");
-    if (!iframe) {
-      throw new Error("iframe was not rendered");
-    }
+    await waitFor(() => {
+      const commands = (
+        globalThis as typeof globalThis & {
+          __browserCommands: Array<{ cmd: string; args: Record<string, unknown> }>;
+        }
+      ).__browserCommands;
+      expect(commands.some(({ cmd }) => cmd === "create_or_update_browser_webview")).toBe(true);
+    });
 
-    fireEvent.load(iframe);
+    await waitFor(() => {
+      expect(registeredHandlers.has("browser-webview-state-changed")).toBe(true);
+    });
+
+    await act(async () => {
+      registeredHandlers.get("browser-webview-state-changed")?.({
+        payload: {
+          url: "https://example.com/article",
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: false,
+        },
+      });
+    });
 
     expect(screen.queryByText("Loading page...")).not.toBeInTheDocument();
   });
 
-  it("shows an external-browser fallback when the iframe resolves to a browser error page", async () => {
+  it("registers the browser-webview listener before creating the inline webview", async () => {
+    let listenerReadyWhenCreate = false;
+
     setupTauriMocks((cmd, args) => {
+      if (cmd === "create_or_update_browser_webview") {
+        listenerReadyWhenCreate = registeredHandlers.has("browser-webview-state-changed");
+        registeredHandlers.get("browser-webview-state-changed")?.({
+          payload: {
+            url: String(args.url),
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: false,
+          },
+        });
+        return {
+          url: args.url,
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: true,
+        };
+      }
+      if (cmd === "set_browser_webview_bounds" || cmd === "close_browser_webview") {
+        return null;
+      }
       if (cmd === "list_feeds") {
         return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
-      }
-      if (cmd === "check_browser_embed_support") {
-        return false;
       }
       return null;
     });
@@ -77,52 +148,17 @@ describe("BrowserView", () => {
       selectedAccountId: "acc-1",
       selection: { type: "feed", feedId: "feed-1" },
       contentMode: "browser",
-      browserUrl: "https://note.com/article",
+      browserUrl: "https://example.com/article",
     });
 
-    const { container } = render(<BrowserView />, { wrapper: createWrapper() });
-
-    const iframe = container.querySelector("iframe");
-    if (!iframe) {
-      throw new Error("iframe was not rendered");
-    }
-
-    fireEvent.load(iframe);
+    render(<BrowserView />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText("This page can't be shown in the in-app browser.")).toBeInTheDocument();
-      expect(screen.getByText("Open it in your external browser instead.")).toBeInTheDocument();
+      expect(listenerReadyWhenCreate).toBe(true);
     });
-  });
-
-  it("shows the fallback when the iframe lands on a chrome error page after load", async () => {
-    useUiStore.setState({
-      selectedAccountId: "acc-1",
-      selection: { type: "feed", feedId: "feed-1" },
-      contentMode: "browser",
-      browserUrl: "https://www3.nhk.or.jp/news/html/example.html",
-    });
-
-    const { container } = render(<BrowserView />, { wrapper: createWrapper() });
-
-    const iframe = container.querySelector("iframe");
-    if (!iframe) {
-      throw new Error("iframe was not rendered");
-    }
-
-    Object.defineProperty(iframe, "contentWindow", {
-      configurable: true,
-      value: {
-        location: {
-          href: "chrome-error://chromewebdata/",
-        },
-      },
-    });
-
-    fireEvent.load(iframe);
 
     await waitFor(() => {
-      expect(screen.getByText("This page can't be shown in the in-app browser.")).toBeInTheDocument();
+      expect(screen.queryByText("Loading page...")).not.toBeInTheDocument();
     });
   });
 
@@ -155,7 +191,44 @@ describe("BrowserView", () => {
     });
   });
 
-  it("shows UI close on the left and web history controls on the right", async () => {
+  it("updates the visible URL and enabled history controls from browser-webview-state events", async () => {
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/1",
+    });
+
+    render(<BrowserView />, { wrapper: createWrapper() });
+
+    expect(screen.queryByRole("group", { name: "Display Mode" })).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(registeredHandlers.has("browser-webview-state-changed")).toBe(true);
+    });
+
+    await act(async () => {
+      registeredHandlers.get("browser-webview-state-changed")?.({
+        payload: {
+          url: "https://example.com/2",
+          can_go_back: true,
+          can_go_forward: false,
+          is_loading: false,
+        },
+      });
+    });
+
+    expect(screen.getByText("https://example.com/2")).toBeInTheDocument();
+
+    const backButton = await screen.findByRole("button", { name: "Web back" });
+    const forwardButton = await screen.findByRole("button", { name: "Web forward" });
+    expect(backButton).toBeEnabled();
+    expect(forwardButton).toBeDisabled();
+    expect(await screen.findByRole("button", { name: "Close view" })).toBeInTheDocument();
+  });
+
+  it("dispatches browser navigation commands to Tauri", async () => {
     useUiStore.setState({
       selectedAccountId: "acc-1",
       selection: { type: "feed", feedId: "feed-1" },
@@ -167,18 +240,78 @@ describe("BrowserView", () => {
     const user = userEvent.setup();
     render(<BrowserView />, { wrapper: createWrapper() });
 
-    expect(screen.queryByRole("group", { name: "Display Mode" })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(registeredHandlers.has("browser-webview-state-changed")).toBe(true);
+    });
 
-    // Back/Forward are disabled when there's no navigation history
-    const backButton = await screen.findByRole("button", { name: "Web back" });
-    const forwardButton = await screen.findByRole("button", { name: "Web forward" });
-    expect(backButton).toBeDisabled();
-    expect(forwardButton).toBeDisabled();
+    await act(async () => {
+      registeredHandlers.get("browser-webview-state-changed")?.({
+        payload: {
+          url: "https://example.com/2",
+          can_go_back: true,
+          can_go_forward: true,
+          is_loading: false,
+        },
+      });
+    });
 
-    // Reload is always enabled
+    await user.click(await screen.findByRole("button", { name: "Web back" }));
+    await user.click(await screen.findByRole("button", { name: "Web forward" }));
     await user.click(await screen.findByRole("button", { name: "Reload page" }));
-    expect(reloadMock).toHaveBeenCalledTimes(1);
 
-    expect(await screen.findByRole("button", { name: "Close view" })).toBeInTheDocument();
+    const commands = (
+      globalThis as typeof globalThis & {
+        __browserCommands: Array<{ cmd: string; args: Record<string, unknown> }>;
+      }
+    ).__browserCommands.map(({ cmd }) => cmd);
+
+    expect(commands).toContain("go_back_browser_webview");
+    expect(commands).toContain("go_forward_browser_webview");
+    expect(commands).toContain("reload_browser_webview");
+  });
+
+  it("closes the inline browser webview when unmounted", async () => {
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    const view = render(<BrowserView />, { wrapper: createWrapper() });
+    view.unmount();
+
+    await waitFor(() => {
+      const commands = (
+        globalThis as typeof globalThis & {
+          __browserCommands: Array<{ cmd: string; args: Record<string, unknown> }>;
+        }
+      ).__browserCommands;
+      expect(commands.some(({ cmd }) => cmd === "close_browser_webview")).toBe(true);
+    });
+  });
+
+  it("closes the browser webview only once across explicit close and eventual unmount", async () => {
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    const user = userEvent.setup();
+    const view = render(<BrowserView />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Close view" }));
+    view.unmount();
+
+    await waitFor(() => {
+      const commands = (
+        globalThis as typeof globalThis & {
+          __browserCommands: Array<{ cmd: string; args: Record<string, unknown> }>;
+        }
+      ).__browserCommands.filter(({ cmd }) => cmd === "close_browser_webview");
+      expect(commands).toHaveLength(1);
+    });
   });
 });

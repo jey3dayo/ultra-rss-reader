@@ -493,6 +493,19 @@ impl Drop for SyncGuard<'_> {
     }
 }
 
+fn is_automatic_sync_enabled(automatic_sync_enabled: &AtomicBool) -> bool {
+    automatic_sync_enabled.load(Ordering::SeqCst)
+}
+
+fn enable_automatic_sync(
+    automatic_sync_enabled: &AtomicBool,
+    automatic_sync_notify: &tokio::sync::Notify,
+) {
+    if !automatic_sync_enabled.swap(true, Ordering::SeqCst) {
+        automatic_sync_notify.notify_waiters();
+    }
+}
+
 /// Run a full sync for all accounts. Shared by `trigger_sync` command and the background scheduler.
 ///
 /// Uses `syncing` as a concurrent-execution guard: if another sync is already
@@ -558,6 +571,19 @@ pub async fn run_full_sync(db: &Mutex<DbManager>, syncing: &AtomicBool) -> Resul
     Ok(true)
 }
 
+pub async fn run_automatic_sync(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    automatic_sync_enabled: &AtomicBool,
+) -> Result<bool, AppError> {
+    if !is_automatic_sync_enabled(automatic_sync_enabled) {
+        tracing::info!("Automatic sync is disabled until the first manual sync completes");
+        return Ok(false);
+    }
+
+    run_full_sync(db, syncing).await
+}
+
 /// Get the minimum sync interval from all accounts (defaults to 3600s if no accounts).
 pub fn get_min_sync_interval(db: &Mutex<DbManager>) -> std::time::Duration {
     const DEFAULT_INTERVAL_SECS: u64 = 3600;
@@ -605,6 +631,27 @@ pub async fn trigger_sync(
     state: State<'_, AppState>,
 ) -> Result<bool, AppError> {
     let did_sync = run_full_sync(&state.db, &state.syncing).await?;
+    if did_sync {
+        enable_automatic_sync(
+            state.automatic_sync_enabled.as_ref(),
+            state.automatic_sync_notify.as_ref(),
+        );
+        let _ = app_handle.emit("sync-completed", ());
+    }
+    Ok(did_sync)
+}
+
+#[tauri::command]
+pub async fn trigger_automatic_sync(
+    app_handle: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<bool, AppError> {
+    let did_sync = run_automatic_sync(
+        &state.db,
+        &state.syncing,
+        state.automatic_sync_enabled.as_ref(),
+    )
+    .await?;
     if did_sync {
         let _ = app_handle.emit("sync-completed", ());
     }
@@ -660,6 +707,42 @@ mod tests {
         assert!(!result2, "concurrent sync should be skipped");
     }
 
+    #[tokio::test]
+    async fn run_automatic_sync_skips_until_manual_sync_enabled() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let syncing = AtomicBool::new(false);
+        let automatic_sync_enabled = AtomicBool::new(false);
+
+        let result = run_automatic_sync(&db, &syncing, &automatic_sync_enabled).await;
+
+        assert!(result.is_ok());
+        assert!(
+            !result.unwrap(),
+            "automatic sync should stay locked initially"
+        );
+        assert!(
+            !syncing.load(Ordering::SeqCst),
+            "automatic sync should not set the syncing flag when locked"
+        );
+    }
+
+    #[tokio::test]
+    async fn run_automatic_sync_runs_after_manual_sync_enabled() {
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let syncing = AtomicBool::new(false);
+        let automatic_sync_enabled = AtomicBool::new(true);
+
+        let result = run_automatic_sync(&db, &syncing, &automatic_sync_enabled)
+            .await
+            .unwrap();
+
+        assert!(result, "automatic sync should run after unlock");
+        assert!(
+            !syncing.load(Ordering::SeqCst),
+            "syncing flag should be reset after automatic sync"
+        );
+    }
+
     #[test]
     fn sync_guard_resets_on_drop() {
         let syncing = AtomicBool::new(true);
@@ -671,5 +754,21 @@ mod tests {
             !syncing.load(Ordering::SeqCst),
             "flag should be false after guard drop"
         );
+    }
+
+    #[tokio::test]
+    async fn enable_automatic_sync_notifies_waiters_only_once() {
+        let automatic_sync_enabled = AtomicBool::new(false);
+        let automatic_sync_notify = tokio::sync::Notify::new();
+
+        let waiter = automatic_sync_notify.notified();
+        enable_automatic_sync(&automatic_sync_enabled, &automatic_sync_notify);
+
+        tokio::time::timeout(std::time::Duration::from_millis(50), waiter)
+            .await
+            .expect("waiter should be notified after enabling automatic sync");
+
+        enable_automatic_sync(&automatic_sync_enabled, &automatic_sync_notify);
+        assert!(automatic_sync_enabled.load(Ordering::SeqCst));
     }
 }
