@@ -4,6 +4,8 @@
     "windows": [
       {
         "title": "",
+        "width": 1400,
+        "height": 900,
         "titleBarStyle": "Overlay"
       }
     ]
