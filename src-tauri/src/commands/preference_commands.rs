@@ -43,6 +43,7 @@ const ALLOWED_KEYS: &[&str] = &[
     "action_share",
     "inoreader_app_id",
     "inoreader_app_key",
+    "selected_account_id",
 ];
 
 /// Key prefixes that are allowed dynamically (e.g. shortcut_next_article).

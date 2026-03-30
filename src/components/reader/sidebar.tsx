@@ -105,12 +105,15 @@ export function Sidebar() {
   const sortSubscriptions = usePreferencesStore((s) => s.prefs.sort_subscriptions ?? "folders_first");
   const opaqueSidebars = usePreferencesStore((s) => (s.prefs.opaque_sidebars ?? "false") === "true");
 
-  // Auto-select first account if none selected
+  const savedAccountId = usePreferencesStore((s) => s.prefs.selected_account_id ?? "");
+  const setPref = usePreferencesStore((s) => s.setPref);
+
+  // Restore saved account or auto-select first account
   useEffect(() => {
-    if (!selectedAccountId && accounts && accounts.length > 0) {
-      selectAccount(accounts[0].id);
-    }
-  }, [selectedAccountId, accounts, selectAccount]);
+    if (selectedAccountId || !accounts || accounts.length === 0) return;
+    const restored = savedAccountId && accounts.some((a) => a.id === savedAccountId);
+    selectAccount(restored ? savedAccountId : accounts[0].id);
+  }, [selectedAccountId, accounts, selectAccount, savedAccountId]);
 
   const selectedAccount = accounts?.find((a) => a.id === selectedAccountId);
 
@@ -404,7 +407,10 @@ export function Sidebar() {
           triggerRef={accountTriggerRef}
           itemRefs={accountItemRefs}
           onToggle={() => setShowAccountList((v) => !v)}
-          onSelectAccount={selectAccount}
+          onSelectAccount={(id) => {
+            selectAccount(id);
+            setPref("selected_account_id", id);
+          }}
           onClose={closeAccountList}
         />
       </div>
