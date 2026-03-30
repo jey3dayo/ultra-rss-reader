@@ -104,4 +104,41 @@ describe("ArticleToolbarView", () => {
     expect(screen.queryByRole("button", { name: "View in browser" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open in external browser" })).not.toBeInTheDocument();
   });
+
+  it("limits the drag region to the center spacer so action buttons stay clickable on overlay title bars", () => {
+    const { container } = render(
+      <ArticleToolbarView
+        showCloseButton
+        canToggleRead
+        canToggleStar
+        isRead={false}
+        isStarred={false}
+        showCopyLinkButton
+        canCopyLink
+        showOpenInBrowserButton
+        canOpenInBrowser
+        showOpenInExternalBrowserButton
+        canOpenInExternalBrowser
+        labels={{
+          closeView: "Close view",
+          toggleRead: "Toggle read",
+          toggleStar: "Toggle star",
+          copyLink: "Copy link",
+          viewInBrowser: "View in browser",
+          openInExternalBrowser: "Open in external browser",
+        }}
+        onCloseView={vi.fn()}
+        onToggleRead={vi.fn()}
+        onToggleStar={vi.fn()}
+        onCopyLink={vi.fn()}
+        onOpenInBrowser={vi.fn()}
+        onOpenInExternalBrowser={vi.fn()}
+      />,
+    );
+
+    const dragRegions = container.querySelectorAll("[data-tauri-drag-region]");
+    expect(dragRegions).toHaveLength(1);
+    expect(dragRegions[0]).not.toContain(screen.getByRole("button", { name: "View in browser" }));
+    expect(dragRegions[0]).not.toContain(screen.getByRole("button", { name: "Open in external browser" }));
+  });
 });
