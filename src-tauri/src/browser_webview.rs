@@ -1,8 +1,9 @@
 use serde::Serialize;
-use tauri::{Emitter, Manager, Runtime, Webview, Window};
+use tauri::{AppHandle, Emitter, Manager, Runtime, WebviewWindow};
 
-pub const INLINE_BROWSER_WEBVIEW_LABEL: &str = "inline-browser";
+pub const BROWSER_WINDOW_LABEL: &str = "browser-window";
 pub const BROWSER_WEBVIEW_STATE_CHANGED_EVENT: &str = "browser-webview-state-changed";
+pub const BROWSER_WEBVIEW_CLOSED_EVENT: &str = "browser-webview-closed";
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct BrowserWebviewState {
@@ -142,21 +143,28 @@ impl BrowserWebviewTracker {
     }
 }
 
-pub fn inline_browser_webview<R: Runtime>(window: &Window<R>) -> Option<Webview<R>> {
-    window.get_webview(INLINE_BROWSER_WEBVIEW_LABEL)
+pub fn browser_window<R: Runtime, M: Manager<R>>(manager: &M) -> Option<WebviewWindow<R>> {
+    manager.get_webview_window(BROWSER_WINDOW_LABEL)
 }
 
-pub fn emit_browser_webview_state<R: Runtime>(window: &Window<R>, state: &BrowserWebviewState) {
-    let _ = window.emit(BROWSER_WEBVIEW_STATE_CHANGED_EVENT, state.clone());
+pub fn emit_browser_webview_state<R: Runtime>(
+    app_handle: &AppHandle<R>,
+    state: &BrowserWebviewState,
+) {
+    let _ = app_handle.emit(BROWSER_WEBVIEW_STATE_CHANGED_EVENT, state.clone());
+}
+
+pub fn emit_browser_webview_closed<R: Runtime>(app_handle: &AppHandle<R>) {
+    let _ = app_handle.emit(BROWSER_WEBVIEW_CLOSED_EVENT, ());
 }
 
 pub fn navigation_availability<R: Runtime>(
-    _webview: &Webview<R>,
+    _browser_window: &WebviewWindow<R>,
 ) -> Option<BrowserNavigationAvailability> {
     #[cfg(target_os = "macos")]
     {
         let (tx, rx) = std::sync::mpsc::channel();
-        if _webview
+        if _browser_window
             .with_webview(move |platform_webview| unsafe {
                 let view: &objc2_web_kit::WKWebView = &*platform_webview.inner().cast();
                 let _ = tx.send(BrowserNavigationAvailability {
@@ -174,10 +182,10 @@ pub fn navigation_availability<R: Runtime>(
     None
 }
 
-pub fn go_back<R: Runtime>(webview: &Webview<R>) -> tauri::Result<()> {
+pub fn go_back<R: Runtime>(browser_window: &WebviewWindow<R>) -> tauri::Result<()> {
     #[cfg(target_os = "macos")]
     {
-        webview.with_webview(|platform_webview| unsafe {
+        browser_window.with_webview(|platform_webview| unsafe {
             let view: &objc2_web_kit::WKWebView = &*platform_webview.inner().cast();
             let _ = view.goBack();
         })?;
@@ -186,14 +194,14 @@ pub fn go_back<R: Runtime>(webview: &Webview<R>) -> tauri::Result<()> {
 
     #[cfg(not(target_os = "macos"))]
     {
-        webview.eval("window.history.back();")
+        browser_window.eval("window.history.back();")
     }
 }
 
-pub fn go_forward<R: Runtime>(webview: &Webview<R>) -> tauri::Result<()> {
+pub fn go_forward<R: Runtime>(browser_window: &WebviewWindow<R>) -> tauri::Result<()> {
     #[cfg(target_os = "macos")]
     {
-        webview.with_webview(|platform_webview| unsafe {
+        browser_window.with_webview(|platform_webview| unsafe {
             let view: &objc2_web_kit::WKWebView = &*platform_webview.inner().cast();
             let _ = view.goForward();
         })?;
@@ -202,7 +210,7 @@ pub fn go_forward<R: Runtime>(webview: &Webview<R>) -> tauri::Result<()> {
 
     #[cfg(not(target_os = "macos"))]
     {
-        webview.eval("window.history.forward();")
+        browser_window.eval("window.history.forward();")
     }
 }
 

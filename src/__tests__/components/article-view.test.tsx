@@ -20,6 +20,8 @@ describe("ArticleView", () => {
       switch (cmd) {
         case "list_articles":
           return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles;
         case "list_feeds":
           return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_tags":
@@ -29,6 +31,13 @@ describe("ArticleView", () => {
           ];
         case "get_article_tags":
           return [{ id: "tag-1", name: "Later", color: null }];
+        case "create_or_update_browser_webview":
+          return {
+            url: args.url,
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+          };
         case "update_feed_display_mode":
           return null;
         default:
@@ -69,6 +78,9 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().contentMode).toBe("browser");
       expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
     });
+
+    expect(screen.getByRole("heading", { level: 1, name: "First Article" })).toBeInTheDocument();
+    expect(screen.getByText("Browser View")).toBeInTheDocument();
 
     useUiStore.getState().closeBrowser();
 

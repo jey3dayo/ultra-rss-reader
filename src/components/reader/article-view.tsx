@@ -1,7 +1,7 @@
 import { Menu } from "@base-ui/react/menu";
 import { Result } from "@praha/byethrow";
 import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
@@ -198,11 +198,12 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
   );
 }
 
-function EmptyState() {
+function EmptyState({ browserView }: { browserView?: ReactNode }) {
   const { t } = useTranslation("reader");
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
       <ArticleToolbar article={null} />
+      {browserView}
       <ArticleEmptyStateView message={t("select_article_to_read")} />
     </div>
   );
@@ -270,7 +271,15 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
   );
 }
 
-function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: string }) {
+function ArticleReader({
+  article,
+  feedName,
+  browserView,
+}: {
+  article: ArticleDto;
+  feedName?: string;
+  browserView?: ReactNode;
+}) {
   const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const cmdClickBrowser = usePreferencesStore((s) => s.prefs.cmd_click_browser ?? "false");
@@ -398,6 +407,7 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
       <ArticleToolbar article={article} />
+      {browserView}
       <ScrollArea className="flex-1">
         <article className="mx-auto max-w-3xl px-8 py-8">
           <ArticleMetaView
@@ -517,12 +527,10 @@ export function ArticleView() {
     openBrowser,
   ]);
 
-  if (contentMode === "browser") {
-    return <BrowserView />;
-  }
+  const browserView = contentMode === "browser" ? <BrowserView /> : null;
 
   if (contentMode === "empty" || !selectedArticleId) {
-    return <EmptyState />;
+    return <EmptyState browserView={browserView} />;
   }
 
   const articleResult = findSelectedArticle({
@@ -536,8 +544,9 @@ export function ArticleView() {
 
   if (Result.isFailure(articleResult)) {
     return (
-      <div className="flex h-full flex-1 flex-col items-center justify-center bg-background text-muted-foreground">
-        Article not found
+      <div className="flex h-full flex-1 flex-col bg-background">
+        {browserView}
+        <div className="flex flex-1 items-center justify-center text-muted-foreground">Article not found</div>
       </div>
     );
   }
@@ -546,5 +555,5 @@ export function ArticleView() {
 
   const feedName = feeds?.find((f) => f.id === article.feed_id)?.title;
 
-  return <ArticleReader article={article} feedName={feedName} />;
+  return <ArticleReader article={article} feedName={feedName} browserView={browserView} />;
 }

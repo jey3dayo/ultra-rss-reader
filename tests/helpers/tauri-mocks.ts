@@ -160,7 +160,6 @@ const defaultHandler: MockHandler = (cmd, args) => {
         can_go_forward: false,
         is_loading: false,
       };
-    case "set_browser_webview_bounds":
     case "close_browser_webview":
       return null;
     case "trigger_sync":

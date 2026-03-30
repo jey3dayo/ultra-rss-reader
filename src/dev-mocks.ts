@@ -32,7 +32,6 @@ import {
   renameFeedArgs,
   renameTagArgs,
   searchArticlesArgs,
-  setBrowserWebviewBoundsArgs,
   setPreferenceArgs,
   tagArticleArgs,
   toggleArticleStarArgs,
@@ -381,11 +380,6 @@ export function setupDevMocks() {
           can_go_forward: false,
           is_loading: true,
         };
-      }
-
-      case "set_browser_webview_bounds": {
-        setBrowserWebviewBoundsArgs.parse(payload);
-        return null;
       }
 
       case "delete_feed": {

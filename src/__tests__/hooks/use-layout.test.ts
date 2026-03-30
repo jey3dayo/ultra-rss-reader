@@ -6,8 +6,8 @@ describe("resolveLayout", () => {
     expect(resolveLayout("wide", "sidebar", "reader")).toEqual(["sidebar", "list", "content"]);
   });
 
-  it("wide+browser: hides sidebar", () => {
-    expect(resolveLayout("wide", "sidebar", "browser")).toEqual(["list", "content"]);
+  it("wide+browser: keeps the reader layout because browsing happens in a separate window", () => {
+    expect(resolveLayout("wide", "sidebar", "browser")).toEqual(["sidebar", "list", "content"]);
   });
 
   it("compact+sidebar: sidebar+list", () => {

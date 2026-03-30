@@ -5,10 +5,10 @@ type FocusedPane = "sidebar" | "list" | "content";
 export function resolveLayout(
   layoutMode: "wide" | "compact" | "mobile",
   focusedPane: FocusedPane,
-  contentMode: string,
+  _contentMode: string,
 ): Pane[] {
   if (layoutMode === "wide") {
-    return contentMode === "browser" ? ["list", "content"] : ["sidebar", "list", "content"];
+    return ["sidebar", "list", "content"];
   }
   if (layoutMode === "compact") {
     return focusedPane === "content" ? ["list", "content"] : ["sidebar", "list"];

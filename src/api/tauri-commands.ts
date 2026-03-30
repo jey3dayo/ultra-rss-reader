@@ -12,7 +12,6 @@ import {
   addAccountArgs,
   addLocalFeedArgs,
   addToReadingListArgs,
-  browserWebviewBoundsArgs,
   checkBrowserEmbedSupportArgs,
   copyToClipboardArgs,
   countAccountUnreadArticlesArgs,
@@ -49,7 +48,6 @@ import {
   renameTagArgs,
   SyncResultSchema,
   searchArticlesArgs,
-  setBrowserWebviewBoundsArgs,
   setPreferenceArgs,
   syncAccountArgs,
   type TagDto,
@@ -66,7 +64,6 @@ import {
   updateFeedFolderArgs,
 } from "@/api/schemas";
 
-const BrowserWebviewBoundsSchema = browserWebviewBoundsArgs;
 const BrowserWebviewStateSchema = z.object({
   url: z.string(),
   can_go_back: z.boolean(),
@@ -74,7 +71,6 @@ const BrowserWebviewStateSchema = z.object({
   is_loading: z.boolean(),
 });
 
-export type BrowserWebviewBounds = z.infer<typeof BrowserWebviewBoundsSchema>;
 export type BrowserWebviewState = z.infer<typeof BrowserWebviewStateSchema>;
 
 // Re-export types so existing consumers don't break
@@ -266,15 +262,12 @@ export const openInBrowser = (url: string, background?: boolean) =>
 export const checkBrowserEmbedSupport = (url: string) =>
   safeInvoke("check_browser_embed_support", { response: z.boolean(), args: checkBrowserEmbedSupportArgs }, { url });
 
-export const createOrUpdateBrowserWebview = (url: string, bounds: BrowserWebviewBounds) =>
+export const createOrUpdateBrowserWebview = (url: string) =>
   safeInvoke(
     "create_or_update_browser_webview",
     { response: BrowserWebviewStateSchema, args: createOrUpdateBrowserWebviewArgs },
-    { url, bounds },
+    { url },
   );
-
-export const setBrowserWebviewBounds = (bounds: BrowserWebviewBounds) =>
-  safeInvoke("set_browser_webview_bounds", { response: z.null(), args: setBrowserWebviewBoundsArgs }, { bounds });
 
 export const goBackBrowserWebview = () =>
   safeInvoke("go_back_browser_webview", { response: BrowserWebviewStateSchema });

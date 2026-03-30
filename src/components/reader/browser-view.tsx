@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, ExternalLink, RotateCcw, X } from "lucide-react"
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  type BrowserWebviewBounds,
+  type AppError,
   type BrowserWebviewState,
   closeBrowserWebview,
   createOrUpdateBrowserWebview,
@@ -12,7 +12,6 @@ import {
   goForwardBrowserWebview,
   openInBrowser,
   reloadBrowserWebview,
-  setBrowserWebviewBounds,
 } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
@@ -20,16 +19,7 @@ import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 const browserWebviewStateChangedEvent = "browser-webview-state-changed";
-
-function toBrowserWebviewBounds(element: HTMLElement): BrowserWebviewBounds {
-  const rect = element.getBoundingClientRect();
-  return {
-    x: Math.max(0, Math.round(rect.left)),
-    y: Math.max(0, Math.round(rect.top)),
-    width: Math.max(0, Math.round(rect.width)),
-    height: Math.max(0, Math.round(rect.height)),
-  };
-}
+const browserWebviewClosedEvent = "browser-webview-closed";
 
 function initialBrowserState(url: string): BrowserWebviewState {
   return {
@@ -49,8 +39,6 @@ function mergeBrowserState(
     return nextState;
   }
 
-  // Ignore subresource/iframe loading transitions that momentarily replace the
-  // main document URL after the top-level page already finished loading.
   if (!previousState.is_loading && nextState.is_loading && previousState.url !== nextState.url) {
     return {
       ...previousState,
@@ -59,8 +47,6 @@ function mergeBrowserState(
     };
   }
 
-  // Protect the user-intended top-level URL while the initial page load is
-  // still in progress and subresources start navigating to unrelated URLs.
   if (
     previousState.is_loading &&
     nextState.is_loading &&
@@ -81,62 +67,96 @@ export function BrowserView() {
   const { t } = useTranslation("reader");
   const browserUrl = useUiStore((s) => s.browserUrl);
   const closeBrowser = useUiStore((s) => s.closeBrowser);
+  const showToast = useUiStore((s) => s.showToast);
   const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const hostRef = useRef<HTMLDivElement>(null);
   const browserStateRef = useRef<BrowserWebviewState | null>(null);
   const listenerReadyRef = useRef<Promise<void> | null>(null);
-  const unlistenRef = useRef<(() => void) | null>(null);
+  const unlistenRef = useRef<Array<() => void>>([]);
+
+  const fallbackToExternalBrowser = useCallback(
+    async (url: string, error: AppError) => {
+      console.error("Failed to open dedicated browser window:", error);
+      const fallbackResult = await openInBrowser(url, false);
+
+      Result.pipe(
+        fallbackResult,
+        Result.inspect(() => {
+          showToast(t("browser_window_fallback"));
+        }),
+        Result.inspectError((fallbackError) => {
+          console.error("Failed to open fallback external browser:", fallbackError);
+          showToast(fallbackError.message);
+        }),
+      );
+
+      closeBrowser();
+    },
+    [closeBrowser, showToast, t],
+  );
 
   useLayoutEffect(() => {
     let cancelled = false;
 
-    listenerReadyRef.current = listen<BrowserWebviewState>(browserWebviewStateChangedEvent, ({ payload }) => {
-      if (cancelled) return;
-      const nextState = mergeBrowserState(browserStateRef.current, payload, useUiStore.getState().browserUrl ?? "");
-      browserStateRef.current = nextState;
-      setBrowserState(nextState);
-      setErrorMessage(null);
-    }).then((cleanup) => {
+    listenerReadyRef.current = Promise.all([
+      listen<BrowserWebviewState>(browserWebviewStateChangedEvent, ({ payload }) => {
+        if (cancelled) return;
+        const nextState = mergeBrowserState(browserStateRef.current, payload, useUiStore.getState().browserUrl ?? "");
+        browserStateRef.current = nextState;
+        setBrowserState(nextState);
+      }),
+      listen(browserWebviewClosedEvent, () => {
+        if (cancelled) return;
+        useUiStore.getState().closeBrowser();
+      }),
+    ]).then((cleanups) => {
       if (cancelled) {
-        cleanup();
+        cleanups.forEach((cleanup) => {
+          cleanup();
+        });
         return;
       }
-      unlistenRef.current = cleanup;
+      unlistenRef.current = cleanups;
     });
 
     return () => {
       cancelled = true;
-      unlistenRef.current?.();
-      unlistenRef.current = null;
+      unlistenRef.current.forEach((cleanup) => {
+        cleanup();
+      });
+      unlistenRef.current = [];
       listenerReadyRef.current = null;
     };
   }, []);
 
-  const syncBrowserWebview = useCallback(async () => {
-    if (!browserUrl || !hostRef.current) return;
-    const requestedUrl = browserUrl;
+  const syncBrowserWindow = useCallback(
+    async (requestedUrl: string) => {
+      const result = await createOrUpdateBrowserWebview(requestedUrl);
 
-    Result.pipe(
-      await createOrUpdateBrowserWebview(requestedUrl, toBrowserWebviewBounds(hostRef.current)),
-      Result.inspect((state) => {
-        if (useUiStore.getState().browserUrl !== requestedUrl) {
-          return;
-        }
-        const previousState = browserStateRef.current;
-        if (previousState && (previousState.url !== requestedUrl || (!previousState.is_loading && state.is_loading))) {
-          return;
-        }
-        browserStateRef.current = state;
-        setBrowserState(state);
-        setErrorMessage(null);
-      }),
-      Result.inspectError((error) => {
-        console.error("Failed to create inline browser webview:", error);
-        setErrorMessage(error.message);
-      }),
-    );
-  }, [browserUrl]);
+      Result.pipe(
+        result,
+        Result.inspect((state) => {
+          if (useUiStore.getState().browserUrl !== requestedUrl) {
+            return;
+          }
+
+          const previousState = browserStateRef.current;
+          if (
+            previousState &&
+            (previousState.url !== requestedUrl || (!previousState.is_loading && state.is_loading))
+          ) {
+            return;
+          }
+
+          browserStateRef.current = state;
+          setBrowserState(state);
+        }),
+        Result.inspectError(async (error) => {
+          await fallbackToExternalBrowser(requestedUrl, error);
+        }),
+      );
+    },
+    [fallbackToExternalBrowser],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -148,48 +168,16 @@ export function BrowserView() {
       browserStateRef.current = nextState;
       return nextState;
     });
-    setErrorMessage(null);
 
     void (listenerReadyRef.current ?? Promise.resolve()).then(() => {
       if (cancelled) return;
-      void syncBrowserWebview();
+      void syncBrowserWindow(browserUrl);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [browserUrl, syncBrowserWebview]);
-
-  useEffect(() => {
-    if (!browserUrl || !hostRef.current) return;
-
-    const element = hostRef.current;
-    const updateBounds = () => {
-      void setBrowserWebviewBounds(toBrowserWebviewBounds(element)).then((result) => {
-        Result.pipe(
-          result,
-          Result.inspectError((error) => {
-            console.error("Failed to update browser webview bounds:", error);
-          }),
-        );
-      });
-    };
-
-    updateBounds();
-
-    if (typeof ResizeObserver === "undefined") {
-      return undefined;
-    }
-
-    const observer = new ResizeObserver(() => {
-      updateBounds();
-    });
-    observer.observe(element);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [browserUrl]);
+  }, [browserUrl, syncBrowserWindow]);
 
   useEffect(() => {
     return () => {
@@ -197,7 +185,7 @@ export function BrowserView() {
         Result.pipe(
           result,
           Result.inspectError((error) => {
-            console.error("Failed to close inline browser webview:", error);
+            console.error("Failed to close browser window:", error);
           }),
         );
       });
@@ -219,48 +207,41 @@ export function BrowserView() {
     );
   };
 
-  const handleClose = () => {
-    closeBrowser();
+  const handleBrowserCommand = async (command: () => Promise<Result.Result<BrowserWebviewState, AppError>>) => {
+    const result = await command();
+    Result.pipe(
+      result,
+      Result.inspect((state) => {
+        browserStateRef.current = state;
+        setBrowserState(state);
+      }),
+      Result.inspectError(async (error) => {
+        await fallbackToExternalBrowser(currentUrl, error);
+      }),
+    );
   };
 
   return (
-    <div className="flex h-full flex-col bg-background">
-      <div
-        data-tauri-drag-region
-        className="grid h-12 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-border px-4"
-      >
+    <div className="border-b border-border bg-muted/20 px-4 py-3">
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
+            {t("browser_view")}
+          </p>
+          <p className="truncate text-sm text-foreground">{currentUrl}</p>
+          <p className="text-xs text-muted-foreground">{isLoading ? t("browser_loading") : t("browser_window_hint")}</p>
+          {isLoading && <p className="mt-1 text-xs text-muted-foreground">{t("browser_loading_hint")}</p>}
+        </div>
+
         <TooltipProvider>
-          <AppTooltip label={t("close_view")}>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleClose}
-              className="text-muted-foreground"
-              aria-label={t("close_view")}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </AppTooltip>
-        </TooltipProvider>
-        <span className="flex-1 truncate text-xs text-muted-foreground">{currentUrl}</span>
-        <TooltipProvider>
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center gap-1">
             <AppTooltip label={t("web_back")}>
               <Button
                 variant="ghost"
                 size="icon"
                 disabled={!canGoBack}
-                onClick={async () => {
-                  Result.pipe(
-                    await goBackBrowserWebview(),
-                    Result.inspect((state) => {
-                      browserStateRef.current = state;
-                      setBrowserState(state);
-                    }),
-                    Result.inspectError((error) => {
-                      console.error("Failed to navigate back in inline browser webview:", error);
-                    }),
-                  );
+                onClick={() => {
+                  void handleBrowserCommand(goBackBrowserWebview);
                 }}
                 className="text-muted-foreground"
                 aria-label={t("web_back")}
@@ -273,17 +254,8 @@ export function BrowserView() {
                 variant="ghost"
                 size="icon"
                 disabled={!canGoForward}
-                onClick={async () => {
-                  Result.pipe(
-                    await goForwardBrowserWebview(),
-                    Result.inspect((state) => {
-                      browserStateRef.current = state;
-                      setBrowserState(state);
-                    }),
-                    Result.inspectError((error) => {
-                      console.error("Failed to navigate forward in inline browser webview:", error);
-                    }),
-                  );
+                onClick={() => {
+                  void handleBrowserCommand(goForwardBrowserWebview);
                 }}
                 className="text-muted-foreground"
                 aria-label={t("web_forward")}
@@ -295,22 +267,13 @@ export function BrowserView() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={async () => {
+                onClick={() => {
                   setBrowserState((state) => {
                     const nextState = state ? { ...state, is_loading: true } : initialBrowserState(browserUrl);
                     browserStateRef.current = nextState;
                     return nextState;
                   });
-                  Result.pipe(
-                    await reloadBrowserWebview(),
-                    Result.inspect((state) => {
-                      browserStateRef.current = state;
-                      setBrowserState(state);
-                    }),
-                    Result.inspectError((error) => {
-                      console.error("Failed to reload inline browser webview:", error);
-                    }),
-                  );
+                  void handleBrowserCommand(reloadBrowserWebview);
                 }}
                 className="text-muted-foreground"
                 aria-label={t("reload_page")}
@@ -329,30 +292,19 @@ export function BrowserView() {
                 <ExternalLink className="h-4 w-4" />
               </Button>
             </AppTooltip>
+            <AppTooltip label={t("close_browser_window")}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={closeBrowser}
+                className="text-muted-foreground"
+                aria-label={t("close_browser_window")}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </AppTooltip>
           </div>
         </TooltipProvider>
-      </div>
-
-      {isLoading && (
-        <div className="border-b border-border bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
-          <p>{t("browser_loading")}</p>
-          <p>{t("browser_loading_hint")}</p>
-        </div>
-      )}
-
-      <div ref={hostRef} className="relative flex-1">
-        {errorMessage ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-            <p className="text-sm font-medium text-foreground">{t("browser_embed_blocked")}</p>
-            <p className="max-w-md text-sm text-muted-foreground">{errorMessage}</p>
-            <Button variant="outline" onClick={handleOpenExternal}>
-              <ExternalLink className="h-4 w-4" />
-              {t("open_in_external_browser")}
-            </Button>
-          </div>
-        ) : (
-          isLoading && <div className="pointer-events-none absolute inset-0 bg-background/20" />
-        )}
       </div>
     </div>
   );
