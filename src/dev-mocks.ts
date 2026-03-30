@@ -273,7 +273,7 @@ export function setupDevMocks() {
             supports_background_browser_open: false,
             supports_runtime_window_icon_replacement: true,
             supports_native_browser_navigation: true,
-            uses_dev_file_credentials: true,
+            uses_dev_file_credentials: false,
           },
         };
 

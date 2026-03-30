@@ -96,18 +96,17 @@ describe("DTO schemas", () => {
     expect(UpdateInfoDtoSchema.parse({ version: "1.0.0", body: null })).toEqual({ version: "1.0.0", body: null });
   });
   it("parses platform info response", () => {
-    expect(
-      PlatformInfoSchema.parse({
-        kind: "windows",
-        capabilities: {
-          supports_reading_list: false,
-          supports_background_browser_open: false,
-          supports_runtime_window_icon_replacement: true,
-          supports_native_browser_navigation: true,
-          uses_dev_file_credentials: true,
-        },
-      }),
-    ).toBeTruthy();
+    const data = {
+      kind: "windows",
+      capabilities: {
+        supports_reading_list: false,
+        supports_background_browser_open: false,
+        supports_runtime_window_icon_replacement: true,
+        supports_native_browser_navigation: true,
+        uses_dev_file_credentials: false,
+      },
+    };
+    expect(PlatformInfoSchema.parse(data)).toEqual(data);
   });
 });
 

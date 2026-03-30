@@ -124,7 +124,16 @@ describe("tauri-commands with mockIPC", () => {
   describe("getPlatformInfo", () => {
     it("returns platform info from getPlatformInfo", async () => {
       const value = Result.unwrap(await getPlatformInfo());
-      expect(value.kind).toBe("windows");
+      expect(value).toEqual({
+        kind: "windows",
+        capabilities: {
+          supports_reading_list: false,
+          supports_background_browser_open: false,
+          supports_runtime_window_icon_replacement: true,
+          supports_native_browser_navigation: true,
+          uses_dev_file_credentials: false,
+        },
+      });
     });
   });
 });
