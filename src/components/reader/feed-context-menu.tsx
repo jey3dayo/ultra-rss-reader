@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { deleteFeed, openInBrowser } from "@/api/tauri-commands";
 import { useMarkFeedRead } from "@/hooks/use-articles";
+import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { extractSiteHost } from "@/lib/feed";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -14,13 +15,11 @@ import { UnsubscribeDialog } from "./unsubscribe-feed-dialog";
 
 export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
   const { t } = useTranslation("reader");
-  const { t: tc } = useTranslation("common");
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showUnsubscribeDialog, setShowUnsubscribeDialog] = useState(false);
   const qc = useQueryClient();
   const showToast = useUiStore((s) => s.showToast);
-  const showConfirm = useUiStore((s) => s.showConfirm);
-  const askBeforeMarkAll = usePreferencesStore((s) => s.prefs.ask_before_mark_all ?? "true");
+  const confirmMarkAllRead = useConfirmMarkAllRead();
   const markFeedRead = useMarkFeedRead();
 
   const hostResult = extractSiteHost(feed.site_url, feed.url);
@@ -40,15 +39,10 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
   };
 
   const handleMarkAllRead = () => {
-    if (feed.unread_count === 0) return;
-    const doMark = () => markFeedRead.mutate(feed.id);
-    if (askBeforeMarkAll === "true") {
-      showConfirm(t("confirm_mark_feed_read", { count: feed.unread_count }), doMark, {
-        actionLabel: tc("mark_as_read_action"),
-      });
-    } else {
-      doMark();
-    }
+    confirmMarkAllRead({
+      count: feed.unread_count,
+      onConfirm: () => markFeedRead.mutate(feed.id),
+    });
   };
 
   const handleConfirmUnsubscribe = async () => {

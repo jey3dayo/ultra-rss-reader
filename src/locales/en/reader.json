@@ -83,8 +83,6 @@
   "unsubscribed_from": "Unsubscribed from {{title}}",
   "failed_to_unsubscribe": "Failed to unsubscribe: {{message}}",
   "confirm_mark_read": "Mark {{count}} articles as read?",
-  "confirm_mark_feed_read": "Mark {{count}} articles as read?",
-  "confirm_mark_folder_read": "Mark {{count}} articles as read?",
   "edit_feed": "Edit Feed",
   "title": "Title",
   "display_mode": "Display Mode",

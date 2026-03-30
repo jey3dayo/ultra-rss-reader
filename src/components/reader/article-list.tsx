@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { updateFeedDisplayMode } from "@/api/tauri-commands";
 import { useAccountArticles, useArticles, useMarkAllRead, useSearchArticles } from "@/hooks/use-articles";
+import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeeds } from "@/hooks/use-feeds";
 import { navigateArticleEvent } from "@/hooks/use-keyboard";
 import { useArticlesByTag } from "@/hooks/use-tags";
@@ -38,7 +39,7 @@ export function ArticleList() {
   const imagePreviews = usePreferencesStore((s) => s.prefs.image_previews ?? "medium");
   const selectionStyle = usePreferencesStore((s) => s.prefs.list_selection_style ?? "modern");
   const recentlyReadIds = useUiStore((s) => s.recentlyReadIds);
-  const showConfirm = useUiStore((s) => s.showConfirm);
+  const confirmMarkAllRead = useConfirmMarkAllRead();
   const qc = useQueryClient();
   const closeBrowser = useUiStore((s) => s.closeBrowser);
   const feedId = selection.type === "feed" ? selection.feedId : null;
@@ -125,7 +126,6 @@ export function ArticleList() {
 
   const listRef = useRef<HTMLDivElement>(null);
   const scrollToTopOnChange = usePreferencesStore((s) => s.prefs.scroll_to_top_on_change ?? "true");
-  const askBeforeMarkAll = usePreferencesStore((s) => s.prefs.ask_before_mark_all ?? "true");
   const markAllRead = useMarkAllRead();
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
 
@@ -164,15 +164,8 @@ export function ArticleList() {
 
   const handleMarkAllRead = useCallback(() => {
     const unreadIds = getUnreadArticleIds(filteredArticles);
-    if (unreadIds.length === 0) return;
-    if (askBeforeMarkAll === "true") {
-      showConfirm(t("confirm_mark_read", { count: unreadIds.length }), doMarkAllRead, {
-        actionLabel: tc("mark_as_read_action"),
-      });
-    } else {
-      doMarkAllRead();
-    }
-  }, [askBeforeMarkAll, filteredArticles, showConfirm, doMarkAllRead, t, tc]);
+    confirmMarkAllRead({ count: unreadIds.length, onConfirm: doMarkAllRead });
+  }, [filteredArticles, confirmMarkAllRead, doMarkAllRead]);
 
   const openSearch = useCallback(() => {
     setShowSearch(true);
