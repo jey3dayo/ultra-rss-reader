@@ -5,10 +5,14 @@ use std::sync::Mutex;
 use futures::FutureExt;
 use tauri::{AppHandle, Emitter, Manager};
 
+use crate::commands::dto::SyncProgressKind;
 use crate::commands::sync_commands::{
-    get_min_sync_interval, purge_old_articles, run_automatic_sync,
+    get_min_sync_interval, purge_old_articles, run_automatic_sync_with_progress,
+    SyncProgressReporter,
 };
 use crate::infra::db::connection::DbManager;
+use crate::infra::db::sqlite_account::SqliteAccountRepository;
+use crate::repository::account::AccountRepository;
 
 /// Start a background task that periodically syncs all accounts.
 ///
@@ -33,10 +37,24 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
             let interval = get_min_sync_interval(&state.db);
             tokio::time::sleep(interval).await;
 
-            let result = AssertUnwindSafe(run_automatic_sync(
+            let reporter =
+                SyncProgressReporter::new(app_handle.clone(), SyncProgressKind::Automatic, {
+                    state
+                        .db
+                        .lock()
+                        .ok()
+                        .map(|db_guard| {
+                            let repo = SqliteAccountRepository::new(db_guard.reader());
+                            repo.find_all().unwrap_or_default()
+                        })
+                        .map(|accounts| accounts.len())
+                        .unwrap_or(0)
+                });
+            let result = AssertUnwindSafe(run_automatic_sync_with_progress(
                 &state.db,
                 &state.syncing,
                 state.automatic_sync_enabled.as_ref(),
+                Some(reporter),
             ))
             .catch_unwind()
             .await;

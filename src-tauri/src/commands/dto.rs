@@ -38,6 +38,34 @@ pub struct AccountSyncError {
     pub message: String,
 }
 
+#[derive(Debug, Serialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum SyncProgressStage {
+    Started,
+    AccountStarted,
+    AccountFinished,
+    Finished,
+}
+
+#[derive(Debug, Serialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum SyncProgressKind {
+    ManualAll,
+    ManualAccount,
+    Automatic,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct SyncProgressEvent {
+    pub stage: SyncProgressStage,
+    pub kind: SyncProgressKind,
+    pub total: usize,
+    pub completed: usize,
+    pub account_id: Option<String>,
+    pub account_name: Option<String>,
+    pub success: Option<bool>,
+}
+
 impl std::fmt::Display for AppError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

@@ -1,10 +1,12 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 
-use tauri::{Emitter, State};
+use tauri::{AppHandle, Emitter, State};
 use tracing::warn;
 
-use crate::commands::dto::{AccountSyncError, AppError, SyncResult};
+use crate::commands::dto::{
+    AccountSyncError, AppError, SyncProgressEvent, SyncProgressKind, SyncProgressStage, SyncResult,
+};
 use crate::commands::AppState;
 use crate::domain::account::Account;
 use crate::domain::provider::ProviderKind;
@@ -30,6 +32,80 @@ struct SyncGuard<'a>(&'a AtomicBool);
 impl Drop for SyncGuard<'_> {
     fn drop(&mut self) {
         self.0.store(false, Ordering::SeqCst);
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct SyncProgressReporter {
+    app_handle: AppHandle,
+    kind: SyncProgressKind,
+    total: usize,
+    completed: Arc<AtomicUsize>,
+}
+
+impl SyncProgressReporter {
+    pub(crate) fn new(app_handle: AppHandle, kind: SyncProgressKind, total: usize) -> Self {
+        Self {
+            app_handle,
+            kind,
+            total,
+            completed: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+
+    fn emit(
+        &self,
+        stage: SyncProgressStage,
+        completed: usize,
+        account: Option<&Account>,
+        success: Option<bool>,
+    ) {
+        if let Err(e) = self.app_handle.emit(
+            "sync-progress",
+            SyncProgressEvent {
+                stage,
+                kind: self.kind,
+                total: self.total,
+                completed,
+                account_id: account.map(|account| account.id.as_ref().to_string()),
+                account_name: account.map(|account| account.name.clone()),
+                success,
+            },
+        ) {
+            warn!("Failed to emit sync-progress event: {e}");
+        }
+    }
+
+    fn emit_started(&self, account: Option<&Account>) {
+        self.emit(SyncProgressStage::Started, 0, account, None);
+    }
+
+    fn emit_account_started(&self, account: &Account) {
+        self.emit(
+            SyncProgressStage::AccountStarted,
+            self.completed.load(Ordering::SeqCst),
+            Some(account),
+            None,
+        );
+    }
+
+    fn emit_account_finished(&self, account: &Account, success: bool) {
+        let completed = self.completed.fetch_add(1, Ordering::SeqCst) + 1;
+        self.emit(
+            SyncProgressStage::AccountFinished,
+            completed,
+            Some(account),
+            Some(success),
+        );
+    }
+
+    fn emit_finished(&self, success: bool) {
+        self.emit(
+            SyncProgressStage::Finished,
+            self.completed.load(Ordering::SeqCst),
+            None,
+            Some(success),
+        );
     }
 }
 
@@ -89,6 +165,14 @@ pub async fn run_full_sync(
     db: &Mutex<DbManager>,
     syncing: &AtomicBool,
 ) -> Result<SyncResult, AppError> {
+    run_full_sync_with_progress(db, syncing, None).await
+}
+
+async fn run_full_sync_with_progress(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    reporter: Option<SyncProgressReporter>,
+) -> Result<SyncResult, AppError> {
     if syncing
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         .is_err()
@@ -113,14 +197,30 @@ pub async fn run_full_sync(
     let mut succeeded = 0usize;
     let mut failed = Vec::new();
 
+    if let Some(reporter) = reporter.as_ref() {
+        reporter.emit_started(None);
+    }
+
     // Sync accounts concurrently using join_all
     let futures: Vec<_> = accounts
-        .iter()
-        .map(|account| sync_account(db, account))
+        .into_iter()
+        .map(|account| {
+            let reporter = reporter.clone();
+            async move {
+                if let Some(reporter) = reporter.as_ref() {
+                    reporter.emit_account_started(&account);
+                }
+                let result = sync_account(db, &account).await;
+                if let Some(reporter) = reporter.as_ref() {
+                    reporter.emit_account_finished(&account, result.is_ok());
+                }
+                (account, result)
+            }
+        })
         .collect();
     let results = futures::future::join_all(futures).await;
 
-    for (account, result) in accounts.iter().zip(results) {
+    for (account, result) in results {
         match result {
             Ok(()) => succeeded += 1,
             Err(e) => {
@@ -138,6 +238,10 @@ pub async fn run_full_sync(
         }
     }
 
+    if let Some(reporter) = reporter.as_ref() {
+        reporter.emit_finished(failed.is_empty());
+    }
+
     Ok(SyncResult {
         synced: true,
         total,
@@ -151,6 +255,15 @@ pub async fn run_automatic_sync(
     syncing: &AtomicBool,
     automatic_sync_enabled: &AtomicBool,
 ) -> Result<SyncResult, AppError> {
+    run_automatic_sync_with_progress(db, syncing, automatic_sync_enabled, None).await
+}
+
+pub(crate) async fn run_automatic_sync_with_progress(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    automatic_sync_enabled: &AtomicBool,
+    reporter: Option<SyncProgressReporter>,
+) -> Result<SyncResult, AppError> {
     if !is_automatic_sync_enabled(automatic_sync_enabled) {
         tracing::info!("Automatic sync is disabled until the first manual sync completes");
         return Ok(SyncResult {
@@ -161,7 +274,7 @@ pub async fn run_automatic_sync(
         });
     }
 
-    run_full_sync(db, syncing).await
+    run_full_sync_with_progress(db, syncing, reporter).await
 }
 
 /// Get the minimum sync interval from all accounts (defaults to 3600s if no accounts).
@@ -237,7 +350,12 @@ pub async fn trigger_sync(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<SyncResult, AppError> {
-    let result = run_full_sync(&state.db, &state.syncing).await?;
+    let reporter = SyncProgressReporter::new(app_handle.clone(), SyncProgressKind::ManualAll, {
+        let db_guard = lock_db(&state.db)?;
+        let account_repo = SqliteAccountRepository::new(db_guard.reader());
+        account_repo.find_all()?.len()
+    });
+    let result = run_full_sync_with_progress(&state.db, &state.syncing, Some(reporter)).await?;
     if result.synced {
         enable_automatic_sync(
             state.automatic_sync_enabled.as_ref(),
@@ -253,10 +371,16 @@ pub async fn trigger_automatic_sync(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<SyncResult, AppError> {
-    let result = run_automatic_sync(
+    let reporter = SyncProgressReporter::new(app_handle.clone(), SyncProgressKind::Automatic, {
+        let db_guard = lock_db(&state.db)?;
+        let account_repo = SqliteAccountRepository::new(db_guard.reader());
+        account_repo.find_all()?.len()
+    });
+    let result = run_automatic_sync_with_progress(
         &state.db,
         &state.syncing,
         state.automatic_sync_enabled.as_ref(),
+        Some(reporter),
     )
     .await?;
     if result.synced {
@@ -280,6 +404,10 @@ pub async fn trigger_sync_account(
                 message: format!("Account not found: {}", account_id.as_ref()),
             })?
     };
+    let reporter =
+        SyncProgressReporter::new(app_handle.clone(), SyncProgressKind::ManualAccount, 1);
+    reporter.emit_started(Some(&account));
+    reporter.emit_account_started(&account);
     let name = account.name.clone();
     let mut result = SyncResult {
         synced: true,
@@ -288,7 +416,10 @@ pub async fn trigger_sync_account(
         failed: Vec::new(),
     };
     match sync_account(&state.db, &account).await {
-        Ok(()) => result.succeeded = 1,
+        Ok(()) => {
+            result.succeeded = 1;
+            reporter.emit_account_finished(&account, true);
+        }
         Err(e) => {
             warn!("Sync failed for account '{}': {e}", name);
             result.failed.push(AccountSyncError {
@@ -296,8 +427,10 @@ pub async fn trigger_sync_account(
                 account_name: name,
                 message: e.to_string(),
             });
+            reporter.emit_account_finished(&account, false);
         }
     }
+    reporter.emit_finished(result.failed.is_empty());
     if result.succeeded > 0 {
         let _ = app_handle.emit("sync-completed", ());
     }
