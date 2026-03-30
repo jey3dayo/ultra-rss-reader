@@ -22,6 +22,22 @@ impl From<DomainError> for AppError {
     }
 }
 
+#[derive(Debug, Serialize, Clone)]
+pub struct SyncResult {
+    /// Whether any sync actually ran (false = skipped because already in progress)
+    pub synced: bool,
+    pub total: usize,
+    pub succeeded: usize,
+    pub failed: Vec<AccountSyncError>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct AccountSyncError {
+    pub account_id: String,
+    pub account_name: String,
+    pub message: String,
+}
+
 impl std::fmt::Display for AppError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
