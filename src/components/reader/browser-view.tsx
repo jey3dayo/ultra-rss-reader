@@ -40,11 +40,47 @@ function initialBrowserState(url: string): BrowserWebviewState {
   };
 }
 
+function mergeBrowserState(
+  previousState: BrowserWebviewState | null,
+  nextState: BrowserWebviewState,
+  intendedUrl: string,
+): BrowserWebviewState {
+  if (!previousState) {
+    return nextState;
+  }
+
+  // Ignore subresource/iframe loading transitions that momentarily replace the
+  // main document URL after the top-level page already finished loading.
+  if (!previousState.is_loading && nextState.is_loading && previousState.url !== nextState.url) {
+    return {
+      ...previousState,
+      can_go_back: nextState.can_go_back,
+      can_go_forward: nextState.can_go_forward,
+    };
+  }
+
+  // Protect the user-intended top-level URL while the initial page load is
+  // still in progress and subresources start navigating to unrelated URLs.
+  if (
+    previousState.is_loading &&
+    nextState.is_loading &&
+    previousState.url === intendedUrl &&
+    nextState.url !== intendedUrl
+  ) {
+    return {
+      ...previousState,
+      can_go_back: nextState.can_go_back,
+      can_go_forward: nextState.can_go_forward,
+    };
+  }
+
+  return nextState;
+}
+
 export function BrowserView() {
   const { t } = useTranslation("reader");
   const browserUrl = useUiStore((s) => s.browserUrl);
   const closeBrowser = useUiStore((s) => s.closeBrowser);
-  const setBrowserUrl = useUiStore((s) => s.setBrowserUrl);
   const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const hostRef = useRef<HTMLDivElement>(null);
@@ -57,9 +93,9 @@ export function BrowserView() {
 
     listenerReadyRef.current = listen<BrowserWebviewState>(browserWebviewStateChangedEvent, ({ payload }) => {
       if (cancelled) return;
-      browserStateRef.current = payload;
-      setBrowserState(payload);
-      setBrowserUrl(payload.url);
+      const nextState = mergeBrowserState(browserStateRef.current, payload, useUiStore.getState().browserUrl ?? "");
+      browserStateRef.current = nextState;
+      setBrowserState(nextState);
       setErrorMessage(null);
     }).then((cleanup) => {
       if (cancelled) {
@@ -75,7 +111,7 @@ export function BrowserView() {
       unlistenRef.current = null;
       listenerReadyRef.current = null;
     };
-  }, [setBrowserUrl]);
+  }, []);
 
   const syncBrowserWebview = useCallback(async () => {
     if (!browserUrl || !hostRef.current) return;
@@ -93,7 +129,6 @@ export function BrowserView() {
         }
         browserStateRef.current = state;
         setBrowserState(state);
-        setBrowserUrl(state.url);
         setErrorMessage(null);
       }),
       Result.inspectError((error) => {
@@ -101,7 +136,7 @@ export function BrowserView() {
         setErrorMessage(error.message);
       }),
     );
-  }, [browserUrl, setBrowserUrl]);
+  }, [browserUrl]);
 
   useEffect(() => {
     let cancelled = false;
@@ -221,7 +256,6 @@ export function BrowserView() {
                     Result.inspect((state) => {
                       browserStateRef.current = state;
                       setBrowserState(state);
-                      setBrowserUrl(state.url);
                     }),
                     Result.inspectError((error) => {
                       console.error("Failed to navigate back in inline browser webview:", error);
@@ -245,7 +279,6 @@ export function BrowserView() {
                     Result.inspect((state) => {
                       browserStateRef.current = state;
                       setBrowserState(state);
-                      setBrowserUrl(state.url);
                     }),
                     Result.inspectError((error) => {
                       console.error("Failed to navigate forward in inline browser webview:", error);
@@ -273,7 +306,6 @@ export function BrowserView() {
                     Result.inspect((state) => {
                       browserStateRef.current = state;
                       setBrowserState(state);
-                      setBrowserUrl(state.url);
                     }),
                     Result.inspectError((error) => {
                       console.error("Failed to reload inline browser webview:", error);

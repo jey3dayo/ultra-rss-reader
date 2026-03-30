@@ -228,6 +228,189 @@ describe("BrowserView", () => {
     expect(await screen.findByRole("button", { name: "Close view" })).toBeInTheDocument();
   });
 
+  it("does not re-navigate the top-level webview when an iframe URL is reported", async () => {
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserView />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(registeredHandlers.has("browser-webview-state-changed")).toBe(true);
+    });
+
+    const commands = (
+      globalThis as typeof globalThis & {
+        __browserCommands: Array<{ cmd: string; args: Record<string, unknown> }>;
+      }
+    ).__browserCommands;
+
+    await waitFor(() => {
+      expect(commands.filter(({ cmd }) => cmd === "create_or_update_browser_webview")).toHaveLength(1);
+    });
+
+    const iframeUrl = "https://tpc.googlesyndication.com/safeframe/1-0-0/html/container.html";
+
+    await act(async () => {
+      registeredHandlers.get("browser-webview-state-changed")?.({
+        payload: {
+          url: iframeUrl,
+          can_go_back: true,
+          can_go_forward: false,
+          is_loading: true,
+        },
+      });
+    });
+
+    expect(screen.getByText("https://example.com/article")).toBeInTheDocument();
+    expect(screen.queryByText(iframeUrl)).not.toBeInTheDocument();
+    expect(screen.getByText("Loading page...")).toBeInTheDocument();
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    const createCommands = commands.filter(({ cmd }) => cmd === "create_or_update_browser_webview");
+    expect(createCommands).toHaveLength(1);
+    expect(createCommands[0]?.args.url).toBe("https://example.com/article");
+  });
+
+  it("keeps the top-level URL and loaded state when a different loading URL is reported after finish", async () => {
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://togetter.com/li/123456",
+    });
+
+    render(<BrowserView />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(registeredHandlers.has("browser-webview-state-changed")).toBe(true);
+    });
+
+    await act(async () => {
+      registeredHandlers.get("browser-webview-state-changed")?.({
+        payload: {
+          url: "https://togetter.com/li/123456",
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: false,
+        },
+      });
+    });
+
+    expect(screen.getByText("https://togetter.com/li/123456")).toBeInTheDocument();
+    expect(screen.queryByText("Loading page...")).not.toBeInTheDocument();
+
+    await act(async () => {
+      registeredHandlers.get("browser-webview-state-changed")?.({
+        payload: {
+          url: "https://gum.criteo.com/syncframe?origin=criteoPrebidAdapter",
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: true,
+        },
+      });
+    });
+
+    expect(screen.getByText("https://togetter.com/li/123456")).toBeInTheDocument();
+    expect(screen.queryByText("https://gum.criteo.com/syncframe?origin=criteoPrebidAdapter")).not.toBeInTheDocument();
+    expect(screen.queryByText("Loading page...")).not.toBeInTheDocument();
+  });
+
+  it("keeps the requested URL while the top-level page is still loading and a subresource URL is reported", async () => {
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://togetter.com/li/123456",
+    });
+
+    render(<BrowserView />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(registeredHandlers.has("browser-webview-state-changed")).toBe(true);
+    });
+
+    expect(screen.getByText("https://togetter.com/li/123456")).toBeInTheDocument();
+    expect(screen.getByText("Loading page...")).toBeInTheDocument();
+
+    await act(async () => {
+      registeredHandlers.get("browser-webview-state-changed")?.({
+        payload: {
+          url: "https://acdn.adnxs.com/dmp/async_usersync.html",
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: true,
+        },
+      });
+    });
+
+    expect(screen.getByText("https://togetter.com/li/123456")).toBeInTheDocument();
+    expect(screen.queryByText("https://acdn.adnxs.com/dmp/async_usersync.html")).not.toBeInTheDocument();
+    expect(screen.getByText("Loading page...")).toBeInTheDocument();
+  });
+
+  it("preserves history button state when ignoring subresource loading URLs", async () => {
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://togetter.com/li/123456",
+    });
+
+    const user = userEvent.setup();
+    render(<BrowserView />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(registeredHandlers.has("browser-webview-state-changed")).toBe(true);
+    });
+
+    await act(async () => {
+      registeredHandlers.get("browser-webview-state-changed")?.({
+        payload: {
+          url: "https://togetter.com/li/123456",
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: false,
+        },
+      });
+    });
+
+    await act(async () => {
+      registeredHandlers.get("browser-webview-state-changed")?.({
+        payload: {
+          url: "https://gum.criteo.com/syncframe?origin=criteoPrebidAdapter",
+          can_go_back: true,
+          can_go_forward: false,
+          is_loading: true,
+        },
+      });
+    });
+
+    const backButton = await screen.findByRole("button", { name: "Web back" });
+    const forwardButton = await screen.findByRole("button", { name: "Web forward" });
+    expect(backButton).toBeEnabled();
+    expect(forwardButton).toBeDisabled();
+
+    await user.click(backButton);
+
+    const commands = (
+      globalThis as typeof globalThis & {
+        __browserCommands: Array<{ cmd: string; args: Record<string, unknown> }>;
+      }
+    ).__browserCommands.map(({ cmd }) => cmd);
+    expect(commands).toContain("go_back_browser_webview");
+  });
+
   it("dispatches browser navigation commands to Tauri", async () => {
     useUiStore.setState({
       selectedAccountId: "acc-1",
