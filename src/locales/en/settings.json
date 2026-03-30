@@ -7,7 +7,8 @@
     "appearance": "Appearance",
     "reading": "Reading",
     "shortcuts": "Shortcuts",
-    "actions": "Actions and Sharing"
+    "actions": "Actions and Sharing",
+    "data": "Data"
   },
   "general": {
     "heading": "General",
@@ -41,14 +42,7 @@
     "folders_first": "Folders first",
     "alphabetical": "Alphabetical",
     "mark_all_as_read": "Mark All As Read",
-    "ask_before": "Ask before",
-    "data_management": "Data Management",
-    "database_size": "Database size",
-    "vacuum": "Optimize",
-    "vacuum_description": "Reclaim unused space by optimizing the database.",
-    "vacuuming": "Optimizing...",
-    "vacuum_success": "Database optimized ({{saved}})",
-    "vacuum_failed": "Optimization failed: {{message}}"
+    "ask_before": "Ask before"
   },
   "appearance": {
     "heading": "Appearance",
@@ -200,5 +194,16 @@
     "fever_desc": "Deprecated. Not recommended.",
     "inoreader_desc": "inoreader.com",
     "back_to_services": "Back to service selection"
+  },
+  "data": {
+    "heading": "Data Management",
+    "database": "Database",
+    "database_size": "Database size",
+    "optimization": "Optimization",
+    "vacuum": "Optimize",
+    "vacuum_description": "Reclaim unused space by optimizing the database.",
+    "vacuuming": "Optimizing...",
+    "vacuum_success": "Database optimized ({{saved}})",
+    "vacuum_failed": "Optimization failed: {{message}}"
   }
 }

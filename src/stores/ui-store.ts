@@ -25,7 +25,7 @@ type Selection =
 type LayoutMode = "wide" | "compact" | "mobile";
 type FocusedPane = "sidebar" | "list" | "content";
 type ContentMode = "empty" | "reader" | "browser" | "loading";
-export type SettingsCategory = "general" | "appearance" | "reading" | "shortcuts" | "actions" | "accounts";
+export type SettingsCategory = "general" | "appearance" | "reading" | "shortcuts" | "actions" | "data" | "accounts";
 interface UiState {
   layoutMode: LayoutMode;
   focusedPane: FocusedPane;

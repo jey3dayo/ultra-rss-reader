@@ -7,7 +7,8 @@
     "appearance": "外観",
     "reading": "閲覧",
     "shortcuts": "ショートカット",
-    "actions": "アクションと共有"
+    "actions": "アクションと共有",
+    "data": "データ管理"
   },
   "general": {
     "heading": "一般",
@@ -41,14 +42,7 @@
     "folders_first": "フォルダ優先",
     "alphabetical": "アルファベット順",
     "mark_all_as_read": "すべて既読にする",
-    "ask_before": "実行前に確認する",
-    "data_management": "データ管理",
-    "database_size": "データベースサイズ",
-    "vacuum": "最適化",
-    "vacuum_description": "データベースを最適化して未使用領域を回収します。",
-    "vacuuming": "最適化中...",
-    "vacuum_success": "データベースを最適化しました ({{saved}})",
-    "vacuum_failed": "最適化に失敗しました: {{message}}"
+    "ask_before": "実行前に確認する"
   },
   "appearance": {
     "heading": "外観",
@@ -200,5 +194,16 @@
     "fever_desc": "非推奨",
     "inoreader_desc": "inoreader.com",
     "back_to_services": "サービス選択に戻る"
+  },
+  "data": {
+    "heading": "データ管理",
+    "database": "データベース",
+    "database_size": "データベースサイズ",
+    "optimization": "最適化",
+    "vacuum": "最適化",
+    "vacuum_description": "データベースを最適化して未使用領域を回収します。",
+    "vacuuming": "最適化中...",
+    "vacuum_success": "データベースを最適化しました ({{saved}})",
+    "vacuum_failed": "最適化に失敗しました: {{message}}"
   }
 }
