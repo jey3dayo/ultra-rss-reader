@@ -66,6 +66,7 @@ interface UiActions {
   selectArticle: (id: string) => void;
   clearArticle: () => void;
   openBrowser: (url: string) => void;
+  setBrowserUrl: (url: string | null) => void;
   closeBrowser: () => void;
   setViewMode: (mode: "all" | "unread" | "starred") => void;
   setSearchQuery: (query: string) => void;
@@ -176,6 +177,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   selectArticle: (id) => set({ selectedArticleId: id, contentMode: "reader", focusedPane: "content" }),
   clearArticle: () => set({ selectedArticleId: null, contentMode: "empty" }),
   openBrowser: (url) => set({ contentMode: "browser", browserUrl: url }),
+  setBrowserUrl: (url) => set((s) => ({ browserUrl: url, contentMode: url ? "browser" : s.contentMode })),
   closeBrowser: () => set((s) => ({ contentMode: s.selectedArticleId ? "reader" : "empty", browserUrl: null })),
   setViewMode: (mode) => set({ viewMode: mode, recentlyReadIds: new Set() }),
   setSearchQuery: (query) => set({ searchQuery: query }),

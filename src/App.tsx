@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef } from "react";
-import { listAccounts, triggerSync } from "./api/tauri-commands";
+import { listAccounts, triggerAutomaticSync } from "./api/tauri-commands";
 import { AppShell } from "./components/app-shell";
 import { usePreferencesStore } from "./stores/preferences-store";
 
@@ -13,12 +13,6 @@ function AppInner() {
 
   useEffect(() => {
     loadPreferences();
-    triggerSync().then((result) =>
-      Result.pipe(
-        result,
-        Result.inspectError((e) => console.error("Initial sync failed:", e)),
-      ),
-    );
   }, [loadPreferences]);
 
   // Sync on wake: trigger sync when returning from sleep/suspend if any account has sync_on_wake enabled
@@ -37,7 +31,7 @@ function AppInner() {
         result,
         Result.inspect((accounts) => {
           if (accounts.some((a) => a.sync_on_wake)) {
-            triggerSync();
+            triggerAutomaticSync();
           }
         }),
       ),

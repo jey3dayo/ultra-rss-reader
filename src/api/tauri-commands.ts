@@ -12,10 +12,12 @@ import {
   addAccountArgs,
   addLocalFeedArgs,
   addToReadingListArgs,
+  browserWebviewBoundsArgs,
   checkBrowserEmbedSupportArgs,
   copyToClipboardArgs,
   countAccountUnreadArticlesArgs,
   createFolderArgs,
+  createOrUpdateBrowserWebviewArgs,
   createTagArgs,
   type DiscoveredFeedDto,
   DiscoveredFeedDtoSchema,
@@ -43,6 +45,7 @@ import {
   renameFeedArgs,
   renameTagArgs,
   searchArticlesArgs,
+  setBrowserWebviewBoundsArgs,
   setPreferenceArgs,
   type TagDto,
   TagDtoSchema,
@@ -56,6 +59,17 @@ import {
   updateFeedDisplayModeArgs,
   updateFeedFolderArgs,
 } from "@/api/schemas";
+
+const BrowserWebviewBoundsSchema = browserWebviewBoundsArgs;
+const BrowserWebviewStateSchema = z.object({
+  url: z.string(),
+  can_go_back: z.boolean(),
+  can_go_forward: z.boolean(),
+  is_loading: z.boolean(),
+});
+
+export type BrowserWebviewBounds = z.infer<typeof BrowserWebviewBoundsSchema>;
+export type BrowserWebviewState = z.infer<typeof BrowserWebviewStateSchema>;
 
 // Re-export types so existing consumers don't break
 export type { AccountDto, AppError, ArticleDto, DiscoveredFeedDto, FeedDto, FolderDto, TagDto, UpdateInfoDto };
@@ -233,7 +247,29 @@ export const openInBrowser = (url: string, background?: boolean) =>
 export const checkBrowserEmbedSupport = (url: string) =>
   safeInvoke("check_browser_embed_support", { response: z.boolean(), args: checkBrowserEmbedSupportArgs }, { url });
 
+export const createOrUpdateBrowserWebview = (url: string, bounds: BrowserWebviewBounds) =>
+  safeInvoke(
+    "create_or_update_browser_webview",
+    { response: BrowserWebviewStateSchema, args: createOrUpdateBrowserWebviewArgs },
+    { url, bounds },
+  );
+
+export const setBrowserWebviewBounds = (bounds: BrowserWebviewBounds) =>
+  safeInvoke("set_browser_webview_bounds", { response: z.null(), args: setBrowserWebviewBoundsArgs }, { bounds });
+
+export const goBackBrowserWebview = () =>
+  safeInvoke("go_back_browser_webview", { response: BrowserWebviewStateSchema });
+
+export const goForwardBrowserWebview = () =>
+  safeInvoke("go_forward_browser_webview", { response: BrowserWebviewStateSchema });
+
+export const reloadBrowserWebview = () => safeInvoke("reload_browser_webview", { response: BrowserWebviewStateSchema });
+
+export const closeBrowserWebview = () => safeInvoke("close_browser_webview", { response: z.null() });
+
 export const triggerSync = () => safeInvoke("trigger_sync", { response: z.boolean() });
+
+export const triggerAutomaticSync = () => safeInvoke("trigger_automatic_sync", { response: z.boolean() });
 
 export const exportOpml = (accountId: string) =>
   safeInvoke("export_opml", { response: z.string(), args: exportOpmlArgs }, { accountId });

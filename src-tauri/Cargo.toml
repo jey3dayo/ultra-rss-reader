@@ -12,7 +12,7 @@ crate-type = ["lib", "cdylib", "staticlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["image-png"] }
+tauri = { version = "2", features = ["image-png", "unstable"] }
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-updater = "2"
@@ -35,6 +35,9 @@ thiserror = "2"
 quick-xml = "0.36"
 open = "5"
 futures = "0.3.32"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-web-kit = "0.3.2"
 
 [dev-dependencies]
 mockito = "1"

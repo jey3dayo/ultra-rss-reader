@@ -4,10 +4,19 @@ import type { AppAction } from "@/lib/actions";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
 
-const reloadWebviewMock = vi.fn(async () => Result.succeed(undefined));
+const reloadBrowserWebviewMock = vi.fn(async () =>
+  Result.succeed({
+    url: "https://example.com/article",
+    can_go_back: false,
+    can_go_forward: false,
+    is_loading: false,
+  }),
+);
 
-vi.mock("@/lib/webview-history", () => ({
-  reloadWebview: reloadWebviewMock,
+vi.mock("@/api/tauri-commands", () => ({
+  reloadBrowserWebview: reloadBrowserWebviewMock,
+  triggerSync: vi.fn(async () => Result.succeed(true)),
+  listAccounts: vi.fn(async () => Result.succeed([])),
 }));
 
 // Mock preferences store
@@ -36,7 +45,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks();
-  reloadWebviewMock.mockClear();
+  reloadBrowserWebviewMock.mockClear();
 });
 
 describe("executeAction", () => {
@@ -198,10 +207,10 @@ describe("executeAction", () => {
   });
 
   describe("placeholder actions", () => {
-    it("reuses reloadWebview for reload-webview", () => {
+    it("reuses reloadBrowserWebview for reload-webview", () => {
       executeAction("reload-webview");
 
-      expect(reloadWebviewMock).toHaveBeenCalledTimes(1);
+      expect(reloadBrowserWebviewMock).toHaveBeenCalledTimes(1);
     });
 
     it("does not throw for copy-link", () => {

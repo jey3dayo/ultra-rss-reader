@@ -10,6 +10,7 @@ import {
   checkBrowserEmbedSupportArgs,
   countAccountUnreadArticlesArgs,
   createFolderArgs,
+  createOrUpdateBrowserWebviewArgs,
   createTagArgs,
   deleteAccountArgs,
   deleteFeedArgs,
@@ -30,6 +31,7 @@ import {
   renameFeedArgs,
   renameTagArgs,
   searchArticlesArgs,
+  setBrowserWebviewBoundsArgs,
   setPreferenceArgs,
   tagArticleArgs,
   toggleArticleStarArgs,
@@ -347,6 +349,21 @@ export function setupDevMocks() {
         }
       }
 
+      case "create_or_update_browser_webview": {
+        const { url } = createOrUpdateBrowserWebviewArgs.parse(payload);
+        return {
+          url,
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: true,
+        };
+      }
+
+      case "set_browser_webview_bounds": {
+        setBrowserWebviewBoundsArgs.parse(payload);
+        return null;
+      }
+
       case "delete_feed": {
         const { feedId } = deleteFeedArgs.parse(payload);
         const feedIdx = mockFeeds.findIndex((f) => f.id === feedId);
@@ -400,8 +417,23 @@ export function setupDevMocks() {
         return null;
       }
 
+      case "go_back_browser_webview":
+      case "go_forward_browser_webview":
+      case "reload_browser_webview":
+        return {
+          url: "https://example.com/article",
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: false,
+        };
+
+      case "close_browser_webview":
+        return null;
+
       case "trigger_sync":
         return true;
+      case "trigger_automatic_sync":
+        return false;
       case "import_opml":
         return null;
       case "copy_to_clipboard":
