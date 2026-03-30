@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** updater 公開鍵設定を自動チェックで固定し、更新失敗時に「現行版継続」と再確認導線を示す UX とテストを追加する。
+Goal: updater 公開鍵設定を自動チェックで固定し、更新失敗時に「現行版継続」と再確認導線を示す UX とテストを追加する。
 
-**Architecture:** 既存の Tauri updater 実装はそのまま使い、フロントエンド側で失敗時トーストと手動再確認フローを統一する。設定整合性は Vitest から `tauri.conf.json` と `release.yml` を直接検査し、フォールバック挙動は hook テストで固定する。
+Architecture: 既存の Tauri updater 実装はそのまま使い、フロントエンド側で失敗時トーストと手動再確認フローを統一する。設定整合性は Vitest から `tauri.conf.json` と `release.yml` を直接検査し、フォールバック挙動は hook テストで固定する。
 
-**Tech Stack:** React 19, TypeScript, Vitest, Zustand, Tauri updater, GitHub Actions YAML
+Tech Stack: React 19, TypeScript, Vitest, Zustand, Tauri updater, GitHub Actions YAML
 
 ---
 
@@ -32,7 +32,7 @@
 
 ### Task 1: Add Updater Config Guard Tests
 
-**Files:**
+### Files:
 
 - Create: `tests/updater-config.test.ts`
 - Inspect only: `src-tauri/tauri.conf.json`
@@ -95,7 +95,7 @@ git commit -m "test: guard updater signing config"
 
 ### Task 2: Lock the Failure UX with Tests First
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/hooks/use-updater.test.ts`
 - Modify: `src/hooks/use-updater.ts`
@@ -209,7 +209,7 @@ git commit -m "feat: add updater fallback recheck flow"
 
 ### Task 3: Final Verification and TODO Cleanup
 
-**Files:**
+### Files:
 
 - Modify: `TODO.md`
 - Verify: `tests/updater-config.test.ts`

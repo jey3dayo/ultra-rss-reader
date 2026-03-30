@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** DB マイグレーションを単一トランザクションで安全に実行し、失敗時はバックアップ/WAL を踏まえて復旧したうえで、ユーザーに誤解のない起動エラーメッセージを表示する。
+Goal: DB マイグレーションを単一トランザクションで安全に実行し、失敗時はバックアップ/WAL を踏まえて復旧したうえで、ユーザーに誤解のない起動エラーメッセージを表示する。
 
-**Architecture:** `src-tauri/src/infra/db/migration.rs` で migration 全体を 1 transaction に包み、`src-tauri/src/infra/db/connection.rs` で backup -> migrate -> detach connections -> restore -> fail-fast の順序を管理する。ユーザー向け案内は migration recovery の詳細を `connection.rs` で組み立て、`src-tauri/src/lib.rs` の起動失敗メッセージで包んで表示する。
+Architecture: `src-tauri/src/infra/db/migration.rs` で migration 全体を 1 transaction に包み、`src-tauri/src/infra/db/connection.rs` で backup -> migrate -> detach connections -> restore -> fail-fast の順序を管理する。ユーザー向け案内は migration recovery の詳細を `connection.rs` で組み立て、`src-tauri/src/lib.rs` の起動失敗メッセージで包んで表示する。
 
-**Tech Stack:** Rust, rusqlite, SQLite WAL, tempfile, tracing, Tauri 2
+Tech Stack: Rust, rusqlite, SQLite WAL, tempfile, tracing, Tauri 2
 
-**Spec:** `docs/superpowers/specs/2026-03-30-db-migration-recovery-design.md`
+Spec: `docs/superpowers/specs/2026-03-30-db-migration-recovery-design.md`
 
 ---
 
@@ -24,7 +24,8 @@
 
 ### Task 1: `migration.rs` を単一トランザクション化する
 
-**Files:**
+### Files:
+
 - Modify: `src-tauri/src/infra/db/migration.rs`
 
 - [ ] **Step 1: rollback を証明する失敗テストを追加**
@@ -123,6 +124,7 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
 ```
 
 実装時の注意:
+
 - `to_version` は `commit()` 後に読む
 - `?` で `rusqlite::Error -> Persistence` に落とさず、migration 経路では必ず `DomainError::Migration` に寄せる
 - 既存の `fresh_db_migrates_to_latest` / `already_current_is_noop` / `version_skip_*` テストはそのまま通す
@@ -158,7 +160,8 @@ git commit -m "fix: wrap db migrations in a transaction"
 
 ### Task 2: restore 前に接続を解放する不変条件をコード化する
 
-**Files:**
+### Files:
+
 - Modify: `src-tauri/src/infra/db/connection.rs`
 
 - [ ] **Step 1: 接続差し替え helper の失敗テストを追加**
@@ -180,6 +183,7 @@ fn detach_connections_for_restore_replaces_file_backed_handles() {
 ```
 
 狙い:
+
 - restore 前に file-backed connection が `:memory:` に差し替わることをコード上の不変条件にする
 - OS ロックを直接検証する代わりに、「restore 開始時点で manager が元 DB を握っていない」ことを証明する
 
@@ -227,6 +231,7 @@ if backup.exists() {
 ```
 
 実装時の注意:
+
 - `rollback` 自体は `run_migrations` の transaction drop/commit 失敗処理で完了するが、それだけでは file copy restore の前提条件として不十分
 - restore 前に `writer` / `reader` / transaction ハンドルの全てが drop 済みである順序を崩さない
 - `detach_connections_for_restore` 内でも `?` は `DomainError::Migration` ではなく `Persistence` に落ちるため、呼び出し側で `DomainError::Migration` に包み直すか、helper 内で明示的に `Migration` に変換する
@@ -272,7 +277,8 @@ git commit -m "fix: release sqlite connections before restore"
 
 ### Task 3: バックアップ有無で recovery メッセージを分岐させる
 
-**Files:**
+### Files:
+
 - Modify: `src-tauri/src/infra/db/connection.rs`
 - Modify: `src-tauri/src/lib.rs`
 
@@ -381,6 +387,7 @@ fn format_migration_failure_message(
 `run_migrations_with_restore` の各 branch をこの helper に寄せる。
 
 実装時の注意:
+
 - `Backup path:` は `backup.exists()` の場合だけ表示する
 - バックアップ未作成/未存在 branch では、存在しない path を案内しない
 - manual restore 文言は「DB ファイルを backup で置き換える」ではなく、「backup set を戻す」と書く
@@ -400,6 +407,7 @@ DomainError::Migration(_) => format!(
 ```
 
 実装時の注意:
+
 - 現在の `The database may already have been restored automatically.` は常に真ではないため削除する
 - restore 成功/失敗/未実施の詳細は `DomainError::Migration` の本文をそのまま表示する
 - 非 migration branch の削除案内は維持する
@@ -447,7 +455,8 @@ git commit -m "fix: clarify db migration recovery messaging"
 
 ### Task 4: 最終確認と handoff
 
-**Files:**
+### Files:
+
 - Modify: `src-tauri/src/infra/db/migration.rs`
 - Modify: `src-tauri/src/infra/db/connection.rs`
 - Modify: `src-tauri/src/lib.rs`
