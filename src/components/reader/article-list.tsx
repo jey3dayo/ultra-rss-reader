@@ -8,13 +8,7 @@ import { useAccountArticles, useArticles, useMarkAllRead, useSearchArticles } fr
 import { useFeeds } from "@/hooks/use-feeds";
 import { navigateArticleEvent } from "@/hooks/use-keyboard";
 import { useArticlesByTag } from "@/hooks/use-tags";
-import {
-  countUnreadArticles,
-  getAdjacentArticleId,
-  getUnreadArticleIds,
-  groupArticles,
-  selectVisibleArticles,
-} from "@/lib/article-list";
+import { getAdjacentArticleId, getUnreadArticleIds, groupArticles, selectVisibleArticles } from "@/lib/article-list";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -72,13 +66,6 @@ export function ArticleList() {
     return map;
   }, [feeds]);
 
-  const feedName = useMemo(() => {
-    if (selection.type === "feed") return t("articles");
-    if (selection.type === "smart") return selection.kind === "unread" ? t("unread") : t("starred");
-    if (selection.type === "tag") return t("tagged_articles");
-    return t("all_articles");
-  }, [selection, t]);
-
   const filteredArticles = useMemo(() => {
     return selectVisibleArticles({
       articles,
@@ -106,10 +93,6 @@ export function ArticleList() {
     sortUnread,
     recentlyReadIds,
   ]);
-
-  const unreadCount = useMemo(() => {
-    return countUnreadArticles(filteredArticles);
-  }, [filteredArticles]);
 
   const groupedArticles = useMemo(() => {
     return groupArticles({
@@ -255,8 +238,6 @@ export function ArticleList() {
       <ArticleListHeader
         showSearch={showSearch}
         searchQuery={searchQuery}
-        feedName={feedName}
-        unreadCount={unreadCount}
         searchInputRef={searchInputRef}
         displayModeControl={
           feedId ? (

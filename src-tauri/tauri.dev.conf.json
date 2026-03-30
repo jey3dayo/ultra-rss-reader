@@ -3,7 +3,8 @@
   "app": {
     "windows": [
       {
-        "title": "Ultra RSS Reader (Dev)"
+        "title": "",
+        "titleBarStyle": "Overlay"
       }
     ]
   }

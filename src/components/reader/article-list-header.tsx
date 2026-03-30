@@ -9,8 +9,6 @@ import { cn } from "@/lib/utils";
 type ArticleListHeaderProps = {
   showSearch: boolean;
   searchQuery: string;
-  feedName: string;
-  unreadCount: number;
   searchInputRef: RefObject<HTMLInputElement | null>;
   displayModeControl?: React.ReactNode;
   onMarkAllRead: () => void;
@@ -22,8 +20,6 @@ type ArticleListHeaderProps = {
 export function ArticleListHeader({
   showSearch,
   searchQuery,
-  feedName,
-  unreadCount,
   searchInputRef,
   displayModeControl,
   onMarkAllRead,
@@ -92,12 +88,6 @@ export function ArticleListHeader({
           />
         </div>
       )}
-
-      {/* Feed Title */}
-      <div className="border-b border-border px-4 py-3">
-        <h2 className="text-lg font-semibold text-foreground">{feedName}</h2>
-        <p className="text-xs text-muted-foreground">{t("unread_items", { count: unreadCount })}</p>
-      </div>
     </>
   );
 }

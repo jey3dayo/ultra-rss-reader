@@ -28,14 +28,14 @@ describe("ArticleList", () => {
     });
   });
 
-  it("shows unread count for the currently displayed tagged articles", async () => {
+  it("renders tagged articles in the list", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectTag("tag-1");
 
     render(<ArticleList />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText("1 Unread Items")).toBeInTheDocument();
+      expect(screen.getByText(sampleArticles[0].title)).toBeInTheDocument();
     });
   });
 });
