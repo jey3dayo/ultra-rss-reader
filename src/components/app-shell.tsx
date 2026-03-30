@@ -9,6 +9,7 @@ import { AppConfirmDialog } from "./app-confirm-dialog";
 import { AppLayout } from "./app-layout";
 import { CommandPalette } from "./reader/command-palette";
 import { SettingsModal } from "./settings/settings-modal";
+import { IndeterminateProgress } from "./shared/indeterminate-progress";
 
 function Toast() {
   const { toastMessage, clearToast } = useUiStore();
@@ -17,7 +18,7 @@ function Toast() {
   const { message, progress, actions } = toastMessage;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex max-w-sm flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground shadow-lg">
+    <div className="fixed bottom-4 right-4 z-[100] flex max-w-sm flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground shadow-lg">
       <div className="flex items-center gap-2">
         <span className="flex-1">{message}</span>
         <button
@@ -67,9 +68,11 @@ export function AppShell() {
   useMenuEvents();
   useUpdater();
   const commandPaletteOpen = useUiStore((state) => state.commandPaletteOpen);
+  const appLoading = useUiStore((state) => state.appLoading);
 
   return (
     <div className="flex h-full flex-col">
+      {appLoading && <IndeterminateProgress className="shrink-0" />}
       <AppLayout />
       <SettingsModal />
       <AppConfirmDialog />
