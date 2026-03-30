@@ -452,7 +452,7 @@ describe("ArticleView", () => {
     expect(screen.queryByText("Add to Reading List")).not.toBeInTheDocument();
   });
 
-  it("shows reading list action on macos", async () => {
+  it("shows reading list action when platform supports it", async () => {
     usePlatformStore.setState({
       platform: {
         kind: "macos",
@@ -524,6 +524,68 @@ describe("ArticleView", () => {
     expect(calls).not.toContainEqual({
       cmd: "add_to_reading_list",
       args: { url: "https://example.com/1" },
+    });
+  });
+
+  it("invokes add to reading list from keyboard shortcut when supported", async () => {
+    const calls: MockCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_tags":
+          return [
+            { id: "tag-1", name: "Later", color: null },
+            { id: "tag-2", name: "Important", color: "#ff0000" },
+          ];
+        case "get_article_tags":
+          return [{ id: "tag-1", name: "Later", color: null }];
+        case "add_to_reading_list":
+        case "update_feed_display_mode":
+          return null;
+        default:
+          return null;
+      }
+    });
+    usePlatformStore.setState({
+      platform: {
+        kind: "macos",
+        capabilities: {
+          supports_reading_list: true,
+          supports_background_browser_open: false,
+          supports_runtime_window_icon_replacement: true,
+          supports_native_browser_navigation: true,
+          uses_dev_file_credentials: false,
+        },
+      },
+      loaded: true,
+      loadError: false,
+      inFlightLoad: null,
+    });
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+
+    calls.length = 0;
+    window.dispatchEvent(new Event(keyboardEvents.addToReadingList));
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "add_to_reading_list",
+        args: { url: "https://example.com/1" },
+      });
     });
   });
 
