@@ -20,43 +20,47 @@ const defaultPlatformInfo: PlatformInfo = {
 type PlatformState = {
   platform: PlatformInfo;
   loaded: boolean;
+  loadError: boolean;
+  inFlightLoad: Promise<void> | null;
 };
 
 type PlatformActions = {
   loadPlatformInfo: () => Promise<void>;
 };
 
-let inFlightLoad: Promise<void> | null = null;
-
 export const usePlatformStore = create<PlatformState & PlatformActions>()((set, getState) => ({
   platform: defaultPlatformInfo,
   loaded: false,
+  loadError: false,
+  inFlightLoad: null,
 
   loadPlatformInfo: async () => {
-    if (getState().loaded) {
+    const state = getState();
+    if (state.loaded && !state.loadError) {
       return;
     }
-    if (inFlightLoad) {
-      return inFlightLoad;
+    if (state.inFlightLoad) {
+      return state.inFlightLoad;
     }
 
-    inFlightLoad = getPlatformInfo()
+    const request = getPlatformInfo()
       .then((result) => {
         Result.pipe(
           result,
           Result.inspect((platform) => {
-            set({ platform, loaded: true });
+            set({ platform, loaded: true, loadError: false });
           }),
           Result.inspectError((error) => {
             console.error("Failed to load platform info:", error);
-            set({ platform: defaultPlatformInfo, loaded: true });
+            set({ platform: defaultPlatformInfo, loaded: true, loadError: true });
           }),
         );
       })
       .finally(() => {
-        inFlightLoad = null;
+        set({ inFlightLoad: null });
       });
 
-    return inFlightLoad;
+    set({ inFlightLoad: request });
+    return request;
   },
 }));
