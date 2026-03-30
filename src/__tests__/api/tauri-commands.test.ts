@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   addAccount,
   countAccountUnreadArticles,
+  createOrUpdateBrowserWebview,
+  goBackBrowserWebview,
   listAccountArticles,
   listAccounts,
   listArticles,
@@ -84,6 +86,37 @@ describe("tauri-commands with mockIPC", () => {
   describe("markArticleRead", () => {
     it("succeeds without error", async () => {
       Result.unwrap(await markArticleRead("art-1"));
+    });
+  });
+
+  describe("browser webview commands", () => {
+    it("creates or updates the inline browser webview", async () => {
+      const value = Result.unwrap(
+        await createOrUpdateBrowserWebview("https://example.com/article", {
+          x: 12,
+          y: 34,
+          width: 640,
+          height: 480,
+        }),
+      );
+
+      expect(value).toEqual({
+        url: "https://example.com/article",
+        can_go_back: false,
+        can_go_forward: false,
+        is_loading: true,
+      });
+    });
+
+    it("returns the updated navigation state after go back", async () => {
+      const value = Result.unwrap(await goBackBrowserWebview());
+
+      expect(value).toEqual({
+        url: "https://example.com/article",
+        can_go_back: false,
+        can_go_forward: false,
+        is_loading: false,
+      });
     });
   });
 });

@@ -1,6 +1,6 @@
-import tauriConfigSource from "../src-tauri/tauri.conf.json?raw";
-import releaseWorkflowSource from "../.github/workflows/release.yml?raw";
 import { expect, test } from "vitest";
+import releaseWorkflowSource from "../.github/workflows/release.yml?raw";
+import tauriConfigSource from "../src-tauri/tauri.conf.json?raw";
 
 const latestUpdaterUrl = "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json";
 
