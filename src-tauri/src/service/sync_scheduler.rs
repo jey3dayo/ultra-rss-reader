@@ -1,7 +1,6 @@
 use std::panic::AssertUnwindSafe;
 use std::sync::atomic::Ordering;
 use std::sync::Mutex;
-use std::time::Duration;
 
 use futures::FutureExt;
 use tauri::{AppHandle, Emitter, Manager};
@@ -21,9 +20,11 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
         let state = app_handle.state::<crate::commands::AppState>();
         tracing::info!("Background sync is locked until the first manual sync completes");
 
-        while !state.automatic_sync_enabled.load(Ordering::SeqCst) {
-            tokio::time::sleep(Duration::from_secs(1)).await;
-        }
+        wait_for_automatic_sync_enabled(
+            state.automatic_sync_enabled.as_ref(),
+            state.automatic_sync_notify.as_ref(),
+        )
+        .await;
 
         loop {
             // Re-read interval each iteration for dynamic updates
@@ -59,4 +60,54 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
             }
         }
     });
+}
+
+pub async fn wait_for_automatic_sync_enabled(
+    automatic_sync_enabled: &std::sync::atomic::AtomicBool,
+    automatic_sync_notify: &tokio::sync::Notify,
+) {
+    while !automatic_sync_enabled.load(Ordering::SeqCst) {
+        automatic_sync_notify.notified().await;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::wait_for_automatic_sync_enabled;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use tokio::sync::Notify;
+
+    #[tokio::test]
+    async fn wait_for_automatic_sync_enabled_returns_immediately_when_already_enabled() {
+        let automatic_sync_enabled = AtomicBool::new(true);
+        let automatic_sync_notify = Notify::new();
+
+        tokio::time::timeout(
+            std::time::Duration::from_millis(50),
+            wait_for_automatic_sync_enabled(&automatic_sync_enabled, &automatic_sync_notify),
+        )
+        .await
+        .expect("should not wait when automatic sync is already enabled");
+    }
+
+    #[tokio::test]
+    async fn wait_for_automatic_sync_enabled_waits_for_notification() {
+        let automatic_sync_enabled = std::sync::Arc::new(AtomicBool::new(false));
+        let automatic_sync_notify = std::sync::Arc::new(Notify::new());
+
+        let enabled = automatic_sync_enabled.clone();
+        let notify = automatic_sync_notify.clone();
+        let waiter = tokio::spawn(async move {
+            wait_for_automatic_sync_enabled(enabled.as_ref(), notify.as_ref()).await;
+        });
+
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        automatic_sync_enabled.store(true, Ordering::SeqCst);
+        automatic_sync_notify.notify_waiters();
+
+        tokio::time::timeout(std::time::Duration::from_millis(50), waiter)
+            .await
+            .expect("waiter should complete after notify")
+            .expect("wait task should not panic");
+    }
 }

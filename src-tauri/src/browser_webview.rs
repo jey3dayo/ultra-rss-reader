@@ -152,7 +152,6 @@ pub fn emit_browser_webview_state<R: Runtime>(window: &Window<R>, state: &Browse
 
 pub fn navigation_availability<R: Runtime>(
     webview: &Webview<R>,
-    tracker: &BrowserWebviewTracker,
 ) -> Option<BrowserNavigationAvailability> {
     #[cfg(target_os = "macos")]
     {
@@ -172,8 +171,6 @@ pub fn navigation_availability<R: Runtime>(
             }
         }
     }
-
-    let _ = tracker;
     None
 }
 

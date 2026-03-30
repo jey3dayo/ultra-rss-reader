@@ -74,6 +74,7 @@ pub fn run() {
                 db: Mutex::new(db),
                 syncing: Arc::new(AtomicBool::new(false)),
                 automatic_sync_enabled: Arc::new(AtomicBool::new(false)),
+                automatic_sync_notify: Arc::new(tokio::sync::Notify::new()),
                 browser_webview: Mutex::new(browser_webview::BrowserWebviewTracker::default()),
             });
             app.manage(PendingUpdate(Arc::new(tokio::sync::Mutex::new(None))));

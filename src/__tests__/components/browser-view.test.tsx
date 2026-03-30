@@ -290,4 +290,28 @@ describe("BrowserView", () => {
       expect(commands.some(({ cmd }) => cmd === "close_browser_webview")).toBe(true);
     });
   });
+
+  it("closes the browser webview only once across explicit close and eventual unmount", async () => {
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    const user = userEvent.setup();
+    const view = render(<BrowserView />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Close view" }));
+    view.unmount();
+
+    await waitFor(() => {
+      const commands = (
+        globalThis as typeof globalThis & {
+          __browserCommands: Array<{ cmd: string; args: Record<string, unknown> }>;
+        }
+      ).__browserCommands.filter(({ cmd }) => cmd === "close_browser_webview");
+      expect(commands).toHaveLength(1);
+    });
+  });
 });

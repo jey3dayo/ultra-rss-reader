@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use tauri::{
-    webview::PageLoadEvent, Emitter, LogicalPosition, LogicalSize, Manager, State, Url,
-    WebviewBuilder, WebviewUrl, Window,
+    webview::PageLoadEvent, LogicalPosition, LogicalSize, Manager, State, Url, WebviewBuilder,
+    WebviewUrl, Window,
 };
 
 use crate::browser_webview::{
@@ -66,13 +66,12 @@ fn tracker_start(
 fn tracker_finish(
     state: &AppState,
     window: &Window,
-    webview: &tauri::Webview,
     url: String,
+    availability: Option<crate::browser_webview::BrowserNavigationAvailability>,
 ) -> Result<BrowserWebviewState, AppError> {
     let mut tracker = state.browser_webview.lock().map_err(|error| {
         browser_webview_error(format!("Browser webview state lock error: {error}"))
     })?;
-    let availability = navigation_availability(webview, &tracker);
     let next_state = tracker.finish(url, availability);
     emit_browser_webview_state(window, &next_state);
     Ok(next_state)
@@ -123,22 +122,23 @@ fn create_browser_webview(
     })
     .on_page_load(move |webview, payload| {
         let app_state = page_load_window.app_handle().state::<AppState>();
-        let next_state = {
-            let Ok(mut tracker) = app_state.browser_webview.lock() else {
-                return;
-            };
-            match payload.event() {
-                PageLoadEvent::Started => tracker.start(payload.url().to_string()),
-                PageLoadEvent::Finished => {
-                    let availability = navigation_availability(&webview, &tracker);
-                    tracker.finish(payload.url().to_string(), availability)
-                }
+        let result = match payload.event() {
+            PageLoadEvent::Started => {
+                tracker_start(&app_state, &page_load_window, payload.url().to_string())
+            }
+            PageLoadEvent::Finished => {
+                let _ = webview;
+                tracker_finish(
+                    &app_state,
+                    &page_load_window,
+                    payload.url().to_string(),
+                    None,
+                )
             }
         };
-        let _ = page_load_window.emit(
-            crate::browser_webview::BROWSER_WEBVIEW_STATE_CHANGED_EVENT,
-            next_state,
-        );
+        if let Err(error) = result {
+            tracing::warn!("Failed to update browser webview state on page load: {error}");
+        }
     });
 
     window
@@ -183,7 +183,12 @@ pub fn create_or_update_browser_webview(
             return Ok(next_state);
         }
 
-        return tracker_finish(&state, &window, &webview, current_url);
+        return tracker_finish(
+            &state,
+            &window,
+            current_url,
+            navigation_availability(&webview),
+        );
     }
 
     create_browser_webview(&window, &state, url, bounds)

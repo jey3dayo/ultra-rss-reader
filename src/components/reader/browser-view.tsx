@@ -185,14 +185,6 @@ export function BrowserView() {
   };
 
   const handleClose = () => {
-    void closeBrowserWebview().then((result) => {
-      Result.pipe(
-        result,
-        Result.inspectError((error) => {
-          console.error("Failed to close inline browser webview:", error);
-        }),
-      );
-    });
     closeBrowser();
   };
 
