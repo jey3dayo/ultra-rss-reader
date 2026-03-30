@@ -86,7 +86,7 @@
   "edit_feed": "Edit Feed",
   "title": "Title",
   "display_mode": "Display Mode",
-  "display_mode_normal": "Normal",
+  "display_mode_normal": "3-Pane",
   "display_mode_widescreen": "Widescreen",
   "display_mode_fullscreen": "Fullscreen",
   "failed_to_rename": "Failed to rename: {{message}}",

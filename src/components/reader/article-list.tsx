@@ -233,9 +233,7 @@ export function ArticleList() {
         searchQuery={searchQuery}
         searchInputRef={searchInputRef}
         displayModeControl={
-          feedId ? (
-            <DisplayModeToggleGroup value={currentDisplayMode} onValueChange={handleSetDisplayMode} />
-          ) : undefined
+          <DisplayModeToggleGroup value={currentDisplayMode} onValueChange={handleSetDisplayMode} disabled={!feedId} />
         }
         onMarkAllRead={handleMarkAllRead}
         onToggleSearch={handleToggleSearch}
