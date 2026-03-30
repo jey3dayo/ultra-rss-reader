@@ -39,9 +39,7 @@ function initialBrowserState(url: string): BrowserWebviewState {
   };
 }
 
-function hasRenderableBrowserWebviewBounds(
-  bounds: BrowserWebviewBounds | null,
-): bounds is BrowserWebviewBounds {
+function hasRenderableBrowserWebviewBounds(bounds: BrowserWebviewBounds | null): bounds is BrowserWebviewBounds {
   return bounds !== null && bounds.width > 0 && bounds.height > 0;
 }
 
@@ -86,6 +84,7 @@ export function BrowserView() {
   const { t } = useTranslation("reader");
   const browserUrl = useUiStore((s) => s.browserUrl);
   const closeBrowser = useUiStore((s) => s.closeBrowser);
+  const showToast = useUiStore((s) => s.showToast);
   const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hostBounds, setHostBounds] = useState<BrowserWebviewBounds | null>(null);
@@ -165,7 +164,7 @@ export function BrowserView() {
     return () => {
       cancelled = true;
     };
-  }, [browserUrl, hostBounds, syncBrowserWebview]);
+  }, [browserUrl, syncBrowserWebview]);
 
   useEffect(() => {
     if (!browserUrl || !hostRef.current) return;
@@ -215,7 +214,10 @@ export function BrowserView() {
     const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
     Result.pipe(
       await openInBrowser(currentUrl, bg),
-      Result.inspectError((error) => console.error("Failed to open in browser:", error)),
+      Result.inspectError((error) => {
+        console.error("Failed to open in browser:", error);
+        showToast(error.message);
+      }),
     );
   };
 
@@ -225,10 +227,7 @@ export function BrowserView() {
 
   return (
     <div className="flex h-full flex-col bg-background">
-      <div
-        data-tauri-drag-region
-        className="grid h-12 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-border px-4"
-      >
+      <div className="grid h-12 grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-border px-4">
         <TooltipProvider>
           <AppTooltip label={t("close_view")}>
             <Button
@@ -242,7 +241,9 @@ export function BrowserView() {
             </Button>
           </AppTooltip>
         </TooltipProvider>
-        <span className="flex-1 truncate text-xs text-muted-foreground">{currentUrl}</span>
+        <div data-tauri-drag-region aria-hidden="true" className="flex min-w-0 items-center">
+          <span className="flex-1 truncate text-xs text-muted-foreground">{currentUrl}</span>
+        </div>
         <TooltipProvider>
           <div className="flex items-center justify-end gap-2">
             <AppTooltip label={t("web_back")}>

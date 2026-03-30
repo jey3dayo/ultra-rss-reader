@@ -5,7 +5,7 @@ export type ArticleMetaViewProps = {
   author?: string | null;
   feedName?: string | null;
   publishedLabel: string;
-  onTitleClick?: () => void;
+  onTitleClick?: MouseEventHandler<HTMLButtonElement>;
   onTitleAuxClick?: MouseEventHandler<HTMLButtonElement>;
   onFeedClick?: () => void;
 };

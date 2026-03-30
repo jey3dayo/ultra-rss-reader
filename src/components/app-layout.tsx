@@ -1,5 +1,6 @@
 import { computeTranslateX, isPaneVisible, resolveLayout } from "../hooks/use-layout";
 import { cn } from "../lib/utils";
+import { shouldUseDesktopOverlayTitlebar } from "../lib/window-chrome";
 import { useUiStore } from "../stores/ui-store";
 import { ArticleList } from "./reader/article-list";
 import { ArticleView } from "./reader/article-view";
@@ -14,9 +15,10 @@ function SlidingPaneLayout({
 }) {
   const isMobile = layoutMode === "mobile";
   const translateX = computeTranslateX(layoutMode, focusedPane);
+  const overlayTitlebar = shouldUseDesktopOverlayTitlebar();
 
   return (
-    <div className="h-full overflow-hidden">
+    <div className={cn("h-full overflow-hidden", overlayTitlebar && "desktop-overlay-titlebar")}>
       <div
         className={cn(
           "flex h-full transition-transform duration-300 ease-in-out motion-reduce:duration-0",
@@ -52,11 +54,12 @@ function SlidingPaneLayout({
 
 export function AppLayout() {
   const { layoutMode, focusedPane, contentMode } = useUiStore();
+  const overlayTitlebar = shouldUseDesktopOverlayTitlebar();
 
   if (layoutMode === "wide") {
     const panes = resolveLayout(layoutMode, focusedPane, contentMode);
     return (
-      <div className="flex h-full overflow-hidden">
+      <div className={cn("flex h-full overflow-hidden", overlayTitlebar && "desktop-overlay-titlebar")}>
         {panes.includes("sidebar") && (
           <div className="w-[280px] shrink-0">
             <Sidebar />

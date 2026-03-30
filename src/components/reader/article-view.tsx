@@ -190,7 +190,10 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
           const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
           Result.pipe(
             await openInBrowser(article.url, bg),
-            Result.inspectError((e) => console.error("Failed to open in browser:", e)),
+            Result.inspectError((e) => {
+              console.error("Failed to open in browser:", e);
+              showToast(e.message);
+            }),
           );
         }
       }}
@@ -281,6 +284,31 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
   const articleUrl = article.url;
 
+  const openArticleUrl = (url: string, metaKey = false, ctrlKey = false) => {
+    const useExternal = shouldOpenExternalBrowser({
+      openLinks,
+      cmdClickBrowser,
+      metaKey,
+      ctrlKey,
+    });
+
+    if (useExternal) {
+      const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
+      void openInBrowser(url, bg).then((result) =>
+        Result.pipe(
+          result,
+          Result.inspectError((e) => {
+            console.error("Failed to open in browser:", e);
+            useUiStore.getState().showToast(e.message);
+          }),
+        ),
+      );
+      return;
+    }
+
+    openBrowserView(url);
+  };
+
   // Auto mark as read only when a new article is opened (article.id changes).
   // Must NOT depend on article.is_read — otherwise manually marking unread
   // re-triggers this effect and immediately marks it read again.
@@ -317,7 +345,10 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
       openInBrowser(article.url, bg).then((result) =>
         Result.pipe(
           result,
-          Result.inspectError((e) => console.error("Failed to open in browser:", e)),
+          Result.inspectError((e) => {
+            console.error("Failed to open in browser:", e);
+            useUiStore.getState().showToast(e.message);
+          }),
         ),
       );
     };
@@ -380,19 +411,7 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
     const anchor = target.closest("a");
     if (!anchor?.href) return;
     e.preventDefault();
-
-    const useExternal = shouldOpenExternalBrowser({
-      openLinks,
-      cmdClickBrowser,
-      metaKey: e.metaKey,
-      ctrlKey: e.ctrlKey,
-    });
-    if (useExternal) {
-      const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-      openInBrowser(anchor.href, bg);
-    } else {
-      openBrowserView(anchor.href);
-    }
+    openArticleUrl(anchor.href, e.metaKey, e.ctrlKey);
   };
 
   return (
@@ -407,8 +426,8 @@ function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: 
             publishedLabel={formatArticleDate(article.published_at)}
             onTitleClick={
               articleUrl
-                ? () => {
-                    openBrowserView(articleUrl);
+                ? (e) => {
+                    openArticleUrl(articleUrl, e.metaKey, e.ctrlKey);
                   }
                 : undefined
             }

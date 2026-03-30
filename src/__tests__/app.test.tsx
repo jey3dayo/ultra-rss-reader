@@ -1,6 +1,7 @@
 import { render } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AppLayout } from "@/components/app-layout";
+import { shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../tests/helpers/tauri-mocks";
@@ -63,5 +64,11 @@ describe("App", () => {
     expect(container.innerHTML).not.toContain("w-[calc(100%+280px)]");
     expect(container.innerHTML).toContain("w-[280px]");
     expect(container.innerHTML).toContain("w-[380px]");
+  });
+
+  it("uses overlay titlebar chrome only for macOS tauri windows", () => {
+    expect(shouldUseDesktopOverlayTitlebar({ platform: "MacIntel", hasTauriRuntime: true })).toBe(true);
+    expect(shouldUseDesktopOverlayTitlebar({ platform: "Win32", hasTauriRuntime: true })).toBe(false);
+    expect(shouldUseDesktopOverlayTitlebar({ platform: "MacIntel", hasTauriRuntime: false })).toBe(false);
   });
 });

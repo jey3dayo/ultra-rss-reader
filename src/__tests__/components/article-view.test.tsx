@@ -20,6 +20,10 @@ describe("ArticleView", () => {
       switch (cmd) {
         case "list_articles":
           return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
         case "list_feeds":
           return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_tags":
@@ -55,10 +59,76 @@ describe("ArticleView", () => {
     });
   });
 
-  it("opens the browser from the article title and keeps feed navigation separate", async () => {
+  it("opens the in-app browser from the article title when open_links is in_app", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
+    usePreferencesStore.setState({ prefs: { open_links: "in_app" }, loaded: true });
+
+    const user = userEvent.setup();
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "First Article" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+    });
+  });
+
+  it("opens the external browser from the article title when open_links is default_browser", async () => {
+    const calls: MockCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_tags":
+          return [
+            { id: "tag-1", name: "Later", color: null },
+            { id: "tag-2", name: "Important", color: "#ff0000" },
+          ];
+        case "get_article_tags":
+          return [{ id: "tag-1", name: "Later", color: null }];
+        case "update_feed_display_mode":
+        case "open_in_browser":
+          return null;
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+    usePreferencesStore.setState({ prefs: { open_links: "default_browser" }, loaded: true });
+
+    const user = userEvent.setup();
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    calls.length = 0;
+
+    await user.click(await screen.findByRole("button", { name: "First Article" }));
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "open_in_browser",
+        args: { url: "https://example.com/1", background: false },
+      });
+    });
+
+    expect(useUiStore.getState().contentMode).toBe("reader");
+    expect(useUiStore.getState().browserUrl).toBeNull();
+  });
+
+  it("keeps feed navigation separate after opening the article title in-app browser", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+    usePreferencesStore.setState({ prefs: { open_links: "in_app" }, loaded: true });
 
     const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
@@ -92,6 +162,95 @@ describe("ArticleView", () => {
     await user.hover(await screen.findByRole("button", { name: "Copy link" }));
 
     expect(await screen.findByText("Copy link")).toBeInTheDocument();
+  });
+
+  it("opens the external browser from the toolbar button", async () => {
+    const calls: MockCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_tags":
+          return [
+            { id: "tag-1", name: "Later", color: null },
+            { id: "tag-2", name: "Important", color: "#ff0000" },
+          ];
+        case "get_article_tags":
+          return [{ id: "tag-1", name: "Later", color: null }];
+        case "open_in_browser":
+        case "update_feed_display_mode":
+          return null;
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+
+    const user = userEvent.setup();
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    calls.length = 0;
+
+    await user.click(await screen.findByRole("button", { name: "Open in external browser" }));
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "open_in_browser",
+        args: { url: "https://example.com/1", background: false },
+      });
+    });
+  });
+
+  it("shows a toast when opening the external browser from the toolbar fails", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_tags":
+          return [
+            { id: "tag-1", name: "Later", color: null },
+            { id: "tag-2", name: "Important", color: "#ff0000" },
+          ];
+        case "get_article_tags":
+          return [{ id: "tag-1", name: "Later", color: null }];
+        case "open_in_browser":
+          throw { type: "UserVisible", message: "Could not launch browser" };
+        case "update_feed_display_mode":
+          return null;
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+
+    const user = userEvent.setup();
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Open in external browser" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage).toEqual({ message: "Could not launch browser" });
+    });
   });
 
   it("uses the close button as UI navigation back from the reader", async () => {

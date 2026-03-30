@@ -119,7 +119,11 @@ describe("BrowserView", () => {
       browserUrl: "https://example.com/article",
     });
 
-    render(<BrowserView />, { wrapper: createWrapper() });
+    const view = render(<BrowserView />, { wrapper: createWrapper() });
+
+    const header = view.container.firstElementChild?.firstElementChild;
+    expect(header).not.toHaveAttribute("data-tauri-drag-region");
+    expect(header?.querySelector("[data-tauri-drag-region]")).not.toBeNull();
 
     expect(screen.getByText("Loading page...")).toBeInTheDocument();
     expect(screen.getByText("If this takes too long, open it in your external browser.")).toBeInTheDocument();
@@ -529,6 +533,91 @@ describe("BrowserView", () => {
     expect(commands).toContain("go_back_browser_webview");
     expect(commands).toContain("go_forward_browser_webview");
     expect(commands).toContain("reload_browser_webview");
+  });
+
+  it("opens the current page in the external browser from the browser toolbar", async () => {
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/1",
+    });
+
+    const user = userEvent.setup();
+    render(<BrowserView />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(registeredHandlers.has("browser-webview-state-changed")).toBe(true);
+    });
+
+    await act(async () => {
+      registeredHandlers.get("browser-webview-state-changed")?.({
+        payload: {
+          url: "https://example.com/2",
+          can_go_back: true,
+          can_go_forward: true,
+          is_loading: false,
+        },
+      });
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Open in external browser" }));
+
+    const commands = (
+      globalThis as typeof globalThis & {
+        __browserCommands: Array<{ cmd: string; args: Record<string, unknown> }>;
+      }
+    ).__browserCommands;
+
+    expect(commands).toContainEqual({
+      cmd: "open_in_browser",
+      args: { url: "https://example.com/2", background: false },
+    });
+  });
+
+  it("shows a toast when opening the external browser from the browser toolbar fails", async () => {
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "list_feeds") {
+        return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+      }
+      if (cmd === "create_or_update_browser_webview") {
+        return {
+          url: args.url,
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: true,
+        };
+      }
+      if (cmd === "open_in_browser") {
+        throw { type: "UserVisible", message: "Could not launch browser" };
+      }
+      if (cmd === "close_browser_webview" || cmd === "set_browser_webview_bounds") {
+        return null;
+      }
+      return null;
+    });
+
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/1",
+    });
+
+    const user = userEvent.setup();
+    render(<BrowserView />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(registeredHandlers.has("browser-webview-state-changed")).toBe(true);
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Open in external browser" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage).toEqual({ message: "Could not launch browser" });
+    });
   });
 
   it("closes the inline browser webview when unmounted", async () => {

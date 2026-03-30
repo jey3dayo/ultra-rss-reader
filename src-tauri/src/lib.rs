@@ -3,6 +3,7 @@ pub mod commands;
 pub mod domain;
 pub mod infra;
 pub mod menu;
+pub mod platform;
 pub mod repository;
 pub mod service;
 
@@ -17,6 +18,15 @@ use infra::db::connection::DbManager;
 use infra::db::sqlite_preference::SqlitePreferenceRepository;
 use repository::preference::PreferenceRepository;
 use tauri::Manager;
+use tauri::TitleBarStyle;
+
+fn main_window_title_bar_style() -> TitleBarStyle {
+    if cfg!(target_os = "macos") {
+        TitleBarStyle::Overlay
+    } else {
+        TitleBarStyle::Visible
+    }
+}
 
 fn database_init_error_message(error: &DomainError, db_path: &std::path::Path) -> String {
     let backups_dir = db_path
@@ -83,6 +93,12 @@ pub fn run() {
             app.on_menu_event(move |app_handle, event| {
                 menu::handle_event(app_handle, event);
             });
+
+            if let Some(window) = app.get_webview_window("main") {
+                window
+                    .set_title_bar_style(main_window_title_bar_style())
+                    .expect("Failed to configure main window title bar style");
+            }
 
             app.manage(AppState {
                 db: Mutex::new(db),
@@ -165,8 +181,9 @@ pub fn run() {
 mod tests {
     use std::path::Path;
 
-    use super::database_init_error_message;
+    use super::{database_init_error_message, main_window_title_bar_style};
     use crate::domain::error::DomainError;
+    use tauri::TitleBarStyle;
 
     #[test]
     fn migration_error_message_does_not_suggest_deleting_restored_database() {
@@ -209,5 +226,16 @@ mod tests {
             message.contains("try deleting the database file"),
             "non-migration init errors should keep the existing recovery guidance: {message}"
         );
+    }
+
+    #[test]
+    fn main_window_title_bar_style_matches_platform_expectation() {
+        let expected = if cfg!(target_os = "macos") {
+            TitleBarStyle::Overlay
+        } else {
+            TitleBarStyle::Visible
+        };
+
+        assert_eq!(main_window_title_bar_style(), expected);
     }
 }
