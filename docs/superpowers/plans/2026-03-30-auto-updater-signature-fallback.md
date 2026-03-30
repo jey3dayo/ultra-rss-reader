@@ -32,7 +32,7 @@ Tech Stack: React 19, TypeScript, Vitest, Zustand, Tauri updater, GitHub Actions
 
 ### Task 1: Add Updater Config Guard Tests
 
-### Files
+### Task 1 Files
 
 - Create: `tests/updater-config.test.ts`
 - Inspect only: `src-tauri/tauri.conf.json`
@@ -95,7 +95,7 @@ git commit -m "test: guard updater signing config"
 
 ### Task 2: Lock the Failure UX with Tests First
 
-### Files
+### Task 2 Files
 
 - Modify: `src/__tests__/hooks/use-updater.test.ts`
 - Modify: `src/hooks/use-updater.ts`
@@ -209,7 +209,7 @@ git commit -m "feat: add updater fallback recheck flow"
 
 ### Task 3: Final Verification and TODO Cleanup
 
-### Files
+### Task 3 Files
 
 - Modify: `TODO.md`
 - Verify: `tests/updater-config.test.ts`
