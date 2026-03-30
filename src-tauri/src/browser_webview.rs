@@ -21,14 +21,55 @@ pub struct BrowserNavigationAvailability {
 #[derive(Debug, Default)]
 pub struct BrowserWebviewTracker {
     current: Option<BrowserWebviewState>,
+    history: Vec<String>,
+    history_index: usize,
+    pending_navigation: PendingNavigation,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+enum PendingNavigation {
+    #[default]
+    None,
+    New,
+    Back,
+    Forward,
+    Reload,
 }
 
 impl BrowserWebviewTracker {
+    fn flags_from_history(&self) -> BrowserNavigationAvailability {
+        if self.history.is_empty() {
+            return BrowserNavigationAvailability::default();
+        }
+
+        BrowserNavigationAvailability {
+            can_go_back: self.history_index > 0,
+            can_go_forward: self.history_index + 1 < self.history.len(),
+        }
+    }
+
     pub fn start(&mut self, url: String) -> BrowserWebviewState {
+        if self.history.is_empty() {
+            self.history.push(url.clone());
+            self.history_index = 0;
+            self.pending_navigation = PendingNavigation::Reload;
+        } else if self.history_index > 0 && self.history[self.history_index - 1] == url {
+            self.pending_navigation = PendingNavigation::Back;
+        } else if self.history_index + 1 < self.history.len()
+            && self.history[self.history_index + 1] == url
+        {
+            self.pending_navigation = PendingNavigation::Forward;
+        } else if self.history[self.history_index] == url {
+            self.pending_navigation = PendingNavigation::Reload;
+        } else {
+            self.pending_navigation = PendingNavigation::New;
+        }
+
+        let availability = self.flags_from_history();
         let state = BrowserWebviewState {
             url,
-            can_go_back: false,
-            can_go_forward: false,
+            can_go_back: availability.can_go_back,
+            can_go_forward: availability.can_go_forward,
             is_loading: true,
         };
         self.current = Some(state.clone());
@@ -38,12 +79,51 @@ impl BrowserWebviewTracker {
     pub fn finish(
         &mut self,
         url: String,
-        availability: BrowserNavigationAvailability,
+        availability: Option<BrowserNavigationAvailability>,
     ) -> BrowserWebviewState {
+        match self.pending_navigation {
+            PendingNavigation::None | PendingNavigation::Reload => {
+                if self.history.is_empty() {
+                    self.history.push(url.clone());
+                    self.history_index = 0;
+                } else {
+                    self.history[self.history_index] = url.clone();
+                }
+            }
+            PendingNavigation::New => {
+                self.history.truncate(self.history_index + 1);
+                self.history.push(url.clone());
+                self.history_index = self.history.len() - 1;
+            }
+            PendingNavigation::Back => {
+                if self.history_index > 0 {
+                    self.history_index -= 1;
+                }
+                if self.history.is_empty() {
+                    self.history.push(url.clone());
+                    self.history_index = 0;
+                } else {
+                    self.history[self.history_index] = url.clone();
+                }
+            }
+            PendingNavigation::Forward => {
+                if self.history_index + 1 < self.history.len() {
+                    self.history_index += 1;
+                }
+                if self.history.is_empty() {
+                    self.history.push(url.clone());
+                    self.history_index = 0;
+                } else {
+                    self.history[self.history_index] = url.clone();
+                }
+            }
+        }
+        self.pending_navigation = PendingNavigation::None;
+        let next_availability = availability.unwrap_or_else(|| self.flags_from_history());
         let state = BrowserWebviewState {
             url,
-            can_go_back: availability.can_go_back,
-            can_go_forward: availability.can_go_forward,
+            can_go_back: next_availability.can_go_back,
+            can_go_forward: next_availability.can_go_forward,
             is_loading: false,
         };
         self.current = Some(state.clone());
@@ -56,6 +136,9 @@ impl BrowserWebviewTracker {
 
     pub fn clear(&mut self) {
         self.current = None;
+        self.history.clear();
+        self.history_index = 0;
+        self.pending_navigation = PendingNavigation::None;
     }
 }
 
@@ -70,7 +153,7 @@ pub fn emit_browser_webview_state<R: Runtime>(window: &Window<R>, state: &Browse
 pub fn navigation_availability<R: Runtime>(
     webview: &Webview<R>,
     tracker: &BrowserWebviewTracker,
-) -> BrowserNavigationAvailability {
+) -> Option<BrowserNavigationAvailability> {
     #[cfg(target_os = "macos")]
     {
         let (tx, rx) = std::sync::mpsc::channel();
@@ -85,18 +168,13 @@ pub fn navigation_availability<R: Runtime>(
             .is_ok()
         {
             if let Ok(availability) = rx.recv() {
-                return availability;
+                return Some(availability);
             }
         }
     }
 
-    tracker
-        .snapshot()
-        .map(|state| BrowserNavigationAvailability {
-            can_go_back: state.can_go_back,
-            can_go_forward: state.can_go_forward,
-        })
-        .unwrap_or_default()
+    let _ = tracker;
+    None
 }
 
 pub fn go_back<R: Runtime>(webview: &Webview<R>) -> tauri::Result<()> {
@@ -154,16 +232,53 @@ mod tests {
 
         let state = tracker.finish(
             "https://example.com/next".to_string(),
-            BrowserNavigationAvailability {
+            Some(BrowserNavigationAvailability {
                 can_go_back: true,
                 can_go_forward: false,
-            },
+            }),
         );
 
         assert_eq!(state.url, "https://example.com/next");
         assert!(!state.is_loading);
         assert!(state.can_go_back);
         assert!(!state.can_go_forward);
+    }
+
+    #[test]
+    fn finish_enables_back_after_new_navigation_on_non_macos_fallback() {
+        let mut tracker = BrowserWebviewTracker::default();
+
+        tracker.start("https://example.com/article".to_string());
+        tracker.finish("https://example.com/article".to_string(), None);
+
+        tracker.start("https://example.com/next".to_string());
+        let state = tracker.finish("https://example.com/next".to_string(), None);
+
+        assert!(state.can_go_back);
+        assert!(!state.can_go_forward);
+    }
+
+    #[test]
+    fn finish_enables_forward_after_back_navigation_on_non_macos_fallback() {
+        let mut tracker = BrowserWebviewTracker::default();
+
+        tracker.start("https://example.com/article".to_string());
+        tracker.finish("https://example.com/article".to_string(), None);
+
+        tracker.start("https://example.com/next".to_string());
+        tracker.finish(
+            "https://example.com/next".to_string(),
+            Some(BrowserNavigationAvailability {
+                can_go_back: true,
+                can_go_forward: false,
+            }),
+        );
+
+        tracker.start("https://example.com/article".to_string());
+        let state = tracker.finish("https://example.com/article".to_string(), None);
+
+        assert!(!state.can_go_back);
+        assert!(state.can_go_forward);
     }
 
     #[test]

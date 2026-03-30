@@ -169,6 +169,13 @@ pub fn create_or_update_browser_webview(
             .to_string();
 
         if current_url != url {
+            state
+                .browser_webview
+                .lock()
+                .map_err(|error| {
+                    browser_webview_error(format!("Browser webview state lock error: {error}"))
+                })?
+                .clear();
             let next_state = tracker_start(&state, &window, url.clone())?;
             webview.navigate(external_url(&url)?).map_err(|error| {
                 browser_webview_error(format!("Failed to navigate browser webview: {error}"))

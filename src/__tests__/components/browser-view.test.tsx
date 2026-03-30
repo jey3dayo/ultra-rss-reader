@@ -114,6 +114,54 @@ describe("BrowserView", () => {
     expect(screen.queryByText("Loading page...")).not.toBeInTheDocument();
   });
 
+  it("registers the browser-webview listener before creating the inline webview", async () => {
+    let listenerReadyWhenCreate = false;
+
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "create_or_update_browser_webview") {
+        listenerReadyWhenCreate = registeredHandlers.has("browser-webview-state-changed");
+        registeredHandlers.get("browser-webview-state-changed")?.({
+          payload: {
+            url: String(args.url),
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: false,
+          },
+        });
+        return {
+          url: args.url,
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: true,
+        };
+      }
+      if (cmd === "set_browser_webview_bounds" || cmd === "close_browser_webview") {
+        return null;
+      }
+      if (cmd === "list_feeds") {
+        return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+      }
+      return null;
+    });
+
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserView />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(listenerReadyWhenCreate).toBe(true);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("Loading page...")).not.toBeInTheDocument();
+    });
+  });
+
   it("keeps widescreen browser chrome hidden outside direct feed selection", async () => {
     setupTauriMocks((cmd, args) => {
       if (cmd === "list_feeds") {
