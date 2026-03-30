@@ -20,7 +20,7 @@ FreshRSSアカウント追加時に、保存前に接続テスト（認証）を
 
 **`add_account` を `pub fn` → `pub async fn` に変更する。** Tauri 2 は async command をサポートしており、`trigger_sync` 等で既にパターンが確立されている。
 
-### `add_account` コマンドのフロー変更:
+### `add_account` コマンドのフロー変更
 
 ```text
 現在: parse kind → create Account → keyring保存 → DB保存 → return
@@ -36,7 +36,7 @@ FreshRSSアカウント追加時に、保存前に接続テスト（認証）を
 
 タイムアウト: 認証テスト用に `reqwest::Client` のタイムアウトを 15 秒に設定する。無応答サーバーに対してユーザーが無限に待つことを防止する。
 
-### エラーメッセージの段階的分類:
+### エラーメッセージの段階的分類
 
 | エラー種別       | Rustのエラー           | 意味                              |
 | ---------------- | ---------------------- | --------------------------------- |
@@ -45,20 +45,20 @@ FreshRSSアカウント追加時に、保存前に接続テスト（認証）を
 
 ### フロントエンド
 
-### フォームフロー:
+### フォームフロー
 
 ```text
 handleSubmit → setLoading(true) → addAccount() → 成功 → 画面遷移
                                                 → 失敗 → showToast(エラーメッセージ) → setLoading(false)
 ```
 
-### UI変更:
+### UI変更
 
 - 保存ボタン: loading状態でスピナー + 「接続を確認中...」テキスト + disabled
 - ローディング中はフォーム全体のinputもdisabled（二重送信防止）
 - エラー表示は既存の `showToast` を使用
 
-### エラー表示の組み立て:
+### エラー表示の組み立て
 
 Rust側でユーザー向けメッセージを組み立てて `AppError` の `message` に含めて返す。フロント側は `AppError.type` で分岐:
 
@@ -82,14 +82,14 @@ Rust側のメッセージ組み立て:
 
 ## 変更ファイル
 
-### 変更する:
+### 変更する
 
 - `src-tauri/src/commands/account_commands.rs` — `add_account` に認証テスト追加
 - `src/components/settings/add-account-form.tsx` — loading状態 + エラーハンドリング
 - `src/locales/ja/common.json` — エラーメッセージ追加
 - `src/locales/en/common.json` — エラーメッセージ追加
 
-### 変更しない:
+### 変更しない
 
 - `FeedProvider` トレイト — 既存の `authenticate()` を利用
 - `GReaderProvider` — 変更不要
