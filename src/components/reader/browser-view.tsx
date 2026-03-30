@@ -20,6 +20,7 @@ import { useUiStore } from "@/stores/ui-store";
 
 const browserWebviewStateChangedEvent = "browser-webview-state-changed";
 const browserWebviewClosedEvent = "browser-webview-closed";
+export const BROWSER_WINDOW_LOAD_TIMEOUT_MS = 10_000;
 
 function initialBrowserState(url: string): BrowserWebviewState {
   return {
@@ -72,9 +73,14 @@ export function BrowserView() {
   const browserStateRef = useRef<BrowserWebviewState | null>(null);
   const listenerReadyRef = useRef<Promise<void> | null>(null);
   const unlistenRef = useRef<Array<() => void>>([]);
+  const fallbackInFlightRef = useRef(false);
 
   const fallbackToExternalBrowser = useCallback(
     async (url: string, error: AppError) => {
+      if (fallbackInFlightRef.current) {
+        return;
+      }
+      fallbackInFlightRef.current = true;
       console.error("Failed to open dedicated browser window:", error);
       const fallbackResult = await openInBrowser(url, false);
 
@@ -93,6 +99,10 @@ export function BrowserView() {
     },
     [closeBrowser, showToast, t],
   );
+
+  useEffect(() => {
+    fallbackInFlightRef.current = false;
+  }, [browserUrl]);
 
   useLayoutEffect(() => {
     let cancelled = false;
@@ -198,6 +208,28 @@ export function BrowserView() {
   const canGoBack = browserState?.can_go_back ?? false;
   const canGoForward = browserState?.can_go_forward ?? false;
   const isLoading = browserState?.is_loading ?? true;
+
+  useEffect(() => {
+    if (!browserUrl || !isLoading) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      const activeUrl = useUiStore.getState().browserUrl;
+      if (activeUrl !== browserUrl || !browserStateRef.current?.is_loading) {
+        return;
+      }
+
+      void fallbackToExternalBrowser(browserUrl, {
+        type: "UserVisible",
+        message: `Timed out waiting for dedicated browser window to finish loading: ${browserUrl}`,
+      });
+    }, BROWSER_WINDOW_LOAD_TIMEOUT_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [browserUrl, fallbackToExternalBrowser, isLoading]);
 
   const handleOpenExternal = async () => {
     const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
