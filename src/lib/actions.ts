@@ -1,8 +1,7 @@
 import { Result } from "@praha/byethrow";
-import { triggerSync } from "@/api/tauri-commands";
-import { performUpdateCheck, showUpdateAvailableToast } from "@/hooks/use-updater";
+import { reloadBrowserWebview, triggerSync } from "@/api/tauri-commands";
+import { runManualUpdateCheck } from "@/hooks/use-updater";
 import { keyboardEvents, type ViewMode } from "@/lib/keyboard-shortcuts";
-import { reloadWebview } from "@/lib/webview-history";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -193,7 +192,7 @@ export function executeAction(action: AppAction): void {
 
     // --- Browser ---
     case "reload-webview":
-      void reloadWebview().then((result) => {
+      void reloadBrowserWebview().then((result) => {
         Result.pipe(
           result,
           Result.inspectError((error) => {
@@ -233,18 +232,7 @@ export function executeAction(action: AppAction): void {
 
     // --- Updater ---
     case "check-for-updates": {
-      performUpdateCheck()
-        .then((info) => {
-          if (info) {
-            showUpdateAvailableToast(info.version);
-          } else {
-            store.showToast("最新バージョンです");
-          }
-        })
-        .catch((e: unknown) => {
-          console.error("Manual update check failed:", e);
-          store.showToast("アップデートの確認に失敗しました");
-        });
+      void runManualUpdateCheck();
       break;
     }
 
