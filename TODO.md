@@ -43,3 +43,9 @@
 - [ ] ハウスキーピング処理を `sync_scheduler` に組み込む（`housekeeping.rs` は削除済み、パージ処理が未配線）
 - [ ] 記事の保持期間をユーザー設定で変更可能にすることを検討する
 - [ ] DB サイズ表示と手動 VACUUM オプションの提供を検討する
+
+## URL スキーム境界の明確化
+
+- [ ] アプリ内ブラウザと外部ブラウザ起動で許可する URL スキームを明示的に制限する
+  - 現状: `article.url` がほぼそのまま `open_in_browser` / `create_or_update_browser_webview` に渡る
+  - 改善案: inline webview は `http/https` のみ、外部起動は必要なスキームだけ許可する
