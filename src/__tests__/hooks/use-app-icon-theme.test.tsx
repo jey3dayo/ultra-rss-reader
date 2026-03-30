@@ -1,4 +1,4 @@
-import { render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAppIconTheme } from "@/hooks/use-app-icon-theme";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -57,6 +57,27 @@ async function flushAsyncWork(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+function setPlatformState({
+  loaded,
+  supportsRuntimeWindowIconReplacement,
+  kind = "windows",
+}: {
+  loaded: boolean;
+  supportsRuntimeWindowIconReplacement: boolean;
+  kind?: "windows" | "macos" | "linux" | "unknown";
+}) {
+  usePlatformStore.setState({
+    loaded,
+    platform: {
+      kind,
+      capabilities: {
+        ...defaultCapabilities,
+        supports_runtime_window_icon_replacement: supportsRuntimeWindowIconReplacement,
+      },
+    },
+  });
+}
+
 describe("useAppIconTheme", () => {
   beforeEach(() => {
     setIconMock.mockReset();
@@ -70,16 +91,7 @@ describe("useAppIconTheme", () => {
       vi.fn(() => createMatchMedia(false)),
     );
     usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
-    usePlatformStore.setState({
-      loaded: true,
-      platform: {
-        kind: "windows",
-        capabilities: {
-          ...defaultCapabilities,
-          supports_runtime_window_icon_replacement: true,
-        },
-      },
-    });
+    setPlatformState({ loaded: true, supportsRuntimeWindowIconReplacement: true });
 
     render(<HookHarness />);
 
@@ -95,16 +107,7 @@ describe("useAppIconTheme", () => {
       vi.fn(() => mql),
     );
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
-    usePlatformStore.setState({
-      loaded: true,
-      platform: {
-        kind: "windows",
-        capabilities: {
-          ...defaultCapabilities,
-          supports_runtime_window_icon_replacement: true,
-        },
-      },
-    });
+    setPlatformState({ loaded: true, supportsRuntimeWindowIconReplacement: true });
 
     render(<HookHarness />);
 
@@ -126,15 +129,10 @@ describe("useAppIconTheme", () => {
       vi.fn(() => mql),
     );
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
-    usePlatformStore.setState({
+    setPlatformState({
       loaded: true,
-      platform: {
-        kind: "macos",
-        capabilities: {
-          ...defaultCapabilities,
-          supports_runtime_window_icon_replacement: false,
-        },
-      },
+      kind: "macos",
+      supportsRuntimeWindowIconReplacement: false,
     });
 
     render(<HookHarness />);
@@ -151,21 +149,34 @@ describe("useAppIconTheme", () => {
       vi.fn(() => mql),
     );
     usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
-    usePlatformStore.setState({
-      loaded: false,
-      platform: {
-        kind: "windows",
-        capabilities: {
-          ...defaultCapabilities,
-          supports_runtime_window_icon_replacement: true,
-        },
-      },
-    });
+    setPlatformState({ loaded: false, supportsRuntimeWindowIconReplacement: true });
 
     render(<HookHarness />);
 
     await flushAsyncWork();
 
     expect(setIconMock).not.toHaveBeenCalled();
+  });
+
+  it("applies icon after platform info loads and runtime replacement becomes available", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => createMatchMedia(false)),
+    );
+    usePreferencesStore.setState({ prefs: { theme: "light" }, loaded: true });
+    setPlatformState({ loaded: false, supportsRuntimeWindowIconReplacement: true });
+
+    render(<HookHarness />);
+
+    await flushAsyncWork();
+    expect(setIconMock).not.toHaveBeenCalled();
+
+    act(() => {
+      setPlatformState({ loaded: true, supportsRuntimeWindowIconReplacement: true });
+    });
+
+    await waitFor(() => {
+      expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-light.png");
+    });
   });
 });
