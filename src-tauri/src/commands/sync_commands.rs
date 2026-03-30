@@ -35,8 +35,13 @@ fn is_automatic_sync_enabled(automatic_sync_enabled: &AtomicBool) -> bool {
     automatic_sync_enabled.load(Ordering::SeqCst)
 }
 
-fn enable_automatic_sync(automatic_sync_enabled: &AtomicBool) {
-    automatic_sync_enabled.store(true, Ordering::SeqCst);
+fn enable_automatic_sync(
+    automatic_sync_enabled: &AtomicBool,
+    automatic_sync_notify: &tokio::sync::Notify,
+) {
+    if !automatic_sync_enabled.swap(true, Ordering::SeqCst) {
+        automatic_sync_notify.notify_waiters();
+    }
 }
 
 /// Sync a single account, returning Ok(()) on success or Err on failure.
@@ -187,7 +192,10 @@ pub async fn trigger_sync(
 ) -> Result<SyncResult, AppError> {
     let result = run_full_sync(&state.db, &state.syncing).await?;
     if result.synced {
-        enable_automatic_sync(state.automatic_sync_enabled.as_ref());
+        enable_automatic_sync(
+            state.automatic_sync_enabled.as_ref(),
+            state.automatic_sync_notify.as_ref(),
+        );
         let _ = app_handle.emit("sync-completed", ());
     }
     Ok(result)
@@ -318,5 +326,21 @@ mod tests {
             !syncing.load(Ordering::SeqCst),
             "flag should be false after guard drop"
         );
+    }
+
+    #[tokio::test]
+    async fn enable_automatic_sync_notifies_waiters_only_once() {
+        let automatic_sync_enabled = AtomicBool::new(false);
+        let automatic_sync_notify = tokio::sync::Notify::new();
+
+        let waiter = automatic_sync_notify.notified();
+        enable_automatic_sync(&automatic_sync_enabled, &automatic_sync_notify);
+
+        tokio::time::timeout(std::time::Duration::from_millis(50), waiter)
+            .await
+            .expect("waiter should be notified after enabling automatic sync");
+
+        enable_automatic_sync(&automatic_sync_enabled, &automatic_sync_notify);
+        assert!(automatic_sync_enabled.load(Ordering::SeqCst));
     }
 }

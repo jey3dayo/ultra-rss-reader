@@ -48,24 +48,32 @@ export function BrowserView() {
   const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const hostRef = useRef<HTMLDivElement>(null);
+  const browserStateRef = useRef<BrowserWebviewState | null>(null);
+  const listenerReadyRef = useRef<Promise<void> | null>(null);
+  const unlistenRef = useRef<(() => void) | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     let cancelled = false;
-    let unlisten: (() => void) | undefined;
 
-    listen<BrowserWebviewState>(browserWebviewStateChangedEvent, ({ payload }) => {
+    listenerReadyRef.current = listen<BrowserWebviewState>(browserWebviewStateChangedEvent, ({ payload }) => {
       if (cancelled) return;
+      browserStateRef.current = payload;
       setBrowserState(payload);
       setBrowserUrl(payload.url);
       setErrorMessage(null);
     }).then((cleanup) => {
-      if (cancelled) cleanup();
-      else unlisten = cleanup;
+      if (cancelled) {
+        cleanup();
+        return;
+      }
+      unlistenRef.current = cleanup;
     });
 
     return () => {
       cancelled = true;
-      unlisten?.();
+      unlistenRef.current?.();
+      unlistenRef.current = null;
+      listenerReadyRef.current = null;
     };
   }, [setBrowserUrl]);
 
@@ -79,6 +87,11 @@ export function BrowserView() {
         if (useUiStore.getState().browserUrl !== requestedUrl) {
           return;
         }
+        const previousState = browserStateRef.current;
+        if (previousState && (previousState.url !== requestedUrl || (!previousState.is_loading && state.is_loading))) {
+          return;
+        }
+        browserStateRef.current = state;
         setBrowserState(state);
         setBrowserUrl(state.url);
         setErrorMessage(null);
@@ -90,13 +103,27 @@ export function BrowserView() {
     );
   }, [browserUrl, setBrowserUrl]);
 
-  useLayoutEffect(() => {
-    if (!browserUrl) return;
-    if (browserState?.url === browserUrl) return;
-    setBrowserState(initialBrowserState(browserUrl));
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!browserUrl) return undefined;
+
+    setBrowserState((state) => {
+      const nextState = state?.url === browserUrl ? state : initialBrowserState(browserUrl);
+      browserStateRef.current = nextState;
+      return nextState;
+    });
     setErrorMessage(null);
-    void syncBrowserWebview();
-  }, [browserState?.url, browserUrl, syncBrowserWebview]);
+
+    void (listenerReadyRef.current ?? Promise.resolve()).then(() => {
+      if (cancelled) return;
+      void syncBrowserWebview();
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [browserUrl, syncBrowserWebview]);
 
   useEffect(() => {
     if (!browserUrl || !hostRef.current) return;
@@ -158,14 +185,6 @@ export function BrowserView() {
   };
 
   const handleClose = () => {
-    void closeBrowserWebview().then((result) => {
-      Result.pipe(
-        result,
-        Result.inspectError((error) => {
-          console.error("Failed to close inline browser webview:", error);
-        }),
-      );
-    });
     closeBrowser();
   };
 
@@ -200,6 +219,7 @@ export function BrowserView() {
                   Result.pipe(
                     await goBackBrowserWebview(),
                     Result.inspect((state) => {
+                      browserStateRef.current = state;
                       setBrowserState(state);
                       setBrowserUrl(state.url);
                     }),
@@ -223,6 +243,7 @@ export function BrowserView() {
                   Result.pipe(
                     await goForwardBrowserWebview(),
                     Result.inspect((state) => {
+                      browserStateRef.current = state;
                       setBrowserState(state);
                       setBrowserUrl(state.url);
                     }),
@@ -242,12 +263,15 @@ export function BrowserView() {
                 variant="ghost"
                 size="icon"
                 onClick={async () => {
-                  setBrowserState((state) =>
-                    state ? { ...state, is_loading: true } : initialBrowserState(browserUrl),
-                  );
+                  setBrowserState((state) => {
+                    const nextState = state ? { ...state, is_loading: true } : initialBrowserState(browserUrl);
+                    browserStateRef.current = nextState;
+                    return nextState;
+                  });
                   Result.pipe(
                     await reloadBrowserWebview(),
                     Result.inspect((state) => {
+                      browserStateRef.current = state;
                       setBrowserState(state);
                       setBrowserUrl(state.url);
                     }),
