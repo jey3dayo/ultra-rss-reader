@@ -26,10 +26,7 @@
 
 - [x] `tauri.conf.json` の updater 設定で公開鍵が正しく設定されていることを確認する
 - [x] ダウンロード中断時のリトライ/レジューム戦略を検討する
-- [ ] アップデート失敗時のフォールバック動作をテストする
-  - 前提: GitHub Releases に署名付きバイナリを公開済みであること
-  - 実機テストが必要（署名不一致・ネットワーク切断・ダウンロード破損の各シナリオ）
-  - CI では再現困難、手動テスト手順書の作成が現実的
+- [ ] アップデート失敗時のフォールバック動作をテストする → [#18](https://github.com/jey3dayo/ultra-rss-reader/issues/18)
 
 ## 同期パフォーマンス改善
 
@@ -37,10 +34,7 @@
 - [x] 部分失敗時に失敗アカウント名をフロントに通知する（`SyncResult` 型導入）
 - [x] デッドコード削除: 本番未接続の `sync_service` / `event_bus` / `housekeeping` を除去
 - [x] アカウント単位の同期コマンドを追加し、選択中アカウントのみ同期できるようにする
-- [ ] 差分同期の最適化（最終同期時刻以降の変更のみ取得）
-  - 前提: GReader API の continuation token / since パラメータの仕様調査が必要
-  - `sync_state` テーブルに last_sync_cursor を保持する設計変更を伴う
-  - Local プロバイダーは RSS の `If-Modified-Since` / ETag 対応が必要
+- [ ] 差分同期の最適化（最終同期時刻以降の変更のみ取得） → [#17](https://github.com/jey3dayo/ultra-rss-reader/issues/17)
 - [x] 同期中の進捗をフロントに通知する（`SyncProgressEvent` + `sync-progress` イベント）
 
 ## データ肥大化とハウスキーピング戦略
@@ -77,7 +71,4 @@
 ## リリース用 bundle identifier の確定
 
 - [x] `tauri.release.conf.json` で production 用 identifier `com.jey3dayo.ultra-rss-reader` を上書き
-- [ ] 変更後、updater endpoint・OS 上のアプリ識別・データディレクトリへの影響を確認する
-  - 前提: リリースビルドを作成して実機インストールが必要
-  - 確認項目: Keychain エントリの service 名、app_data_dir パス、updater の CFBundleIdentifier 一致
-  - identifier 変更は既存ユーザーのデータ移行問題を伴うため v1.0 前に確定すべき
+- [ ] 変更後、updater endpoint・OS 上のアプリ識別・データディレクトリへの影響を確認する → [#19](https://github.com/jey3dayo/ultra-rss-reader/issues/19)
