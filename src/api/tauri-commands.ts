@@ -19,6 +19,8 @@ import {
   createFolderArgs,
   createOrUpdateBrowserWebviewArgs,
   createTagArgs,
+  type DatabaseInfoDto,
+  DatabaseInfoDtoSchema,
   type DiscoveredFeedDto,
   DiscoveredFeedDtoSchema,
   deleteAccountArgs,
@@ -76,7 +78,17 @@ export type BrowserWebviewBounds = z.infer<typeof BrowserWebviewBoundsSchema>;
 export type BrowserWebviewState = z.infer<typeof BrowserWebviewStateSchema>;
 
 // Re-export types so existing consumers don't break
-export type { AccountDto, AppError, ArticleDto, DiscoveredFeedDto, FeedDto, FolderDto, TagDto, UpdateInfoDto };
+export type {
+  AccountDto,
+  AppError,
+  ArticleDto,
+  DatabaseInfoDto,
+  DiscoveredFeedDto,
+  FeedDto,
+  FolderDto,
+  TagDto,
+  UpdateInfoDto,
+};
 
 // --- safeInvoke infrastructure ---
 
@@ -336,3 +348,8 @@ export const checkForUpdate = () => safeInvoke("check_for_update", { response: U
 export const downloadAndInstallUpdate = () => safeInvoke("download_and_install_update", { response: z.null() });
 
 export const restartApp = () => safeInvoke("restart_app", { response: z.null() });
+
+// Database
+export const getDatabaseInfo = () => safeInvoke("get_database_info", { response: DatabaseInfoDtoSchema });
+
+export const vacuumDatabase = () => safeInvoke("vacuum_database", { response: DatabaseInfoDtoSchema });

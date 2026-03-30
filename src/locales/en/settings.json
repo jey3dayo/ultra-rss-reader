@@ -41,7 +41,14 @@
     "folders_first": "Folders first",
     "alphabetical": "Alphabetical",
     "mark_all_as_read": "Mark All As Read",
-    "ask_before": "Ask before"
+    "ask_before": "Ask before",
+    "data_management": "Data Management",
+    "database_size": "Database size",
+    "vacuum": "Optimize",
+    "vacuum_description": "Reclaim unused space by optimizing the database.",
+    "vacuuming": "Optimizing...",
+    "vacuum_success": "Database optimized ({{saved}})",
+    "vacuum_failed": "Optimization failed: {{message}}"
   },
   "appearance": {
     "heading": "Appearance",

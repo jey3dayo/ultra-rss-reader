@@ -146,6 +146,8 @@ pub fn run() {
             commands::updater_commands::check_for_update,
             commands::updater_commands::download_and_install_update,
             commands::updater_commands::restart_app,
+            commands::database_commands::get_database_info,
+            commands::database_commands::vacuum_database,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

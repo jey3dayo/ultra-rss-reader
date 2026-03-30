@@ -465,6 +465,10 @@ export function setupDevMocks() {
         return null;
       case "add_to_reading_list":
         return null;
+      case "get_database_info":
+        return { db_size_bytes: 2_500_000, wal_size_bytes: 150_000, total_size_bytes: 2_650_000 };
+      case "vacuum_database":
+        return { db_size_bytes: 2_100_000, wal_size_bytes: 0, total_size_bytes: 2_100_000 };
       case "check_for_update":
         return null;
       case "download_and_install_update":

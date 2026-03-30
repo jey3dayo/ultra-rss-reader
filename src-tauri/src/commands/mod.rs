@@ -1,6 +1,7 @@
 pub mod account_commands;
 pub mod article_commands;
 pub mod browser_webview_commands;
+pub mod database_commands;
 pub mod dto;
 pub mod feed_commands;
 pub mod opml_commands;

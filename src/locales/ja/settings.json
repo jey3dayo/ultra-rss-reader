@@ -41,7 +41,14 @@
     "folders_first": "フォルダ優先",
     "alphabetical": "アルファベット順",
     "mark_all_as_read": "すべて既読にする",
-    "ask_before": "実行前に確認する"
+    "ask_before": "実行前に確認する",
+    "data_management": "データ管理",
+    "database_size": "データベースサイズ",
+    "vacuum": "最適化",
+    "vacuum_description": "データベースを最適化して未使用領域を回収します。",
+    "vacuuming": "最適化中...",
+    "vacuum_success": "データベースを最適化しました ({{saved}})",
+    "vacuum_failed": "最適化に失敗しました: {{message}}"
   },
   "appearance": {
     "heading": "外観",
