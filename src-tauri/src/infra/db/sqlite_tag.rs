@@ -3,7 +3,7 @@ use rusqlite::{params, Connection};
 use crate::domain::article::Article;
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::tag::Tag;
-use crate::domain::types::{ArticleId, FeedId, TagId};
+use crate::domain::types::{AccountId, ArticleId, FeedId, TagId};
 use crate::repository::article::Pagination;
 use crate::repository::tag::TagRepository;
 
@@ -133,34 +133,80 @@ impl TagRepository for SqliteTagRepository<'_> {
         &self,
         tag_id: &TagId,
         pagination: &Pagination,
+        account_id: Option<&AccountId>,
     ) -> DomainResult<Vec<Article>> {
-        let sql = format!(
-            "SELECT {ARTICLE_SELECT_COLS} FROM articles a \
-             JOIN article_tags at ON a.id = at.article_id \
-             WHERE at.tag_id = ?1 \
-             ORDER BY a.published_at DESC LIMIT ?2 OFFSET ?3"
-        );
+        let sql = match account_id {
+            Some(_) => format!(
+                "SELECT {ARTICLE_SELECT_COLS} FROM articles a \
+                 JOIN article_tags at ON a.id = at.article_id \
+                 JOIN feeds f ON a.feed_id = f.id \
+                 WHERE at.tag_id = ?1 AND f.account_id = ?4 \
+                 ORDER BY a.published_at DESC LIMIT ?2 OFFSET ?3"
+            ),
+            None => format!(
+                "SELECT {ARTICLE_SELECT_COLS} FROM articles a \
+                 JOIN article_tags at ON a.id = at.article_id \
+                 WHERE at.tag_id = ?1 \
+                 ORDER BY a.published_at DESC LIMIT ?2 OFFSET ?3"
+            ),
+        };
         let mut stmt = self.conn.prepare(&sql)?;
-        let articles = stmt
-            .query_map(
-                params![tag_id.0, pagination.limit as i64, pagination.offset as i64],
-                row_to_article,
-            )?
-            .collect::<Result<Vec<_>, _>>()?;
+        let articles = match account_id {
+            Some(aid) => stmt
+                .query_map(
+                    params![
+                        tag_id.0,
+                        pagination.limit as i64,
+                        pagination.offset as i64,
+                        aid.0
+                    ],
+                    row_to_article,
+                )?
+                .collect::<Result<Vec<_>, _>>()?,
+            None => stmt
+                .query_map(
+                    params![tag_id.0, pagination.limit as i64, pagination.offset as i64],
+                    row_to_article,
+                )?
+                .collect::<Result<Vec<_>, _>>()?,
+        };
         Ok(articles)
     }
 
-    fn count_articles_per_tag(&self) -> DomainResult<Vec<(TagId, usize)>> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT tag_id, COUNT(*) FROM article_tags GROUP BY tag_id")?;
-        let counts = stmt
-            .query_map([], |row| {
+    fn count_articles_per_tag(
+        &self,
+        account_id: Option<&AccountId>,
+    ) -> DomainResult<Vec<(TagId, usize)>> {
+        let (sql, use_account) = match account_id {
+            Some(_) => (
+                "SELECT at.tag_id, COUNT(*) FROM article_tags at \
+                 JOIN articles a ON at.article_id = a.id \
+                 JOIN feeds f ON a.feed_id = f.id \
+                 WHERE f.account_id = ?1 \
+                 GROUP BY at.tag_id",
+                true,
+            ),
+            None => (
+                "SELECT tag_id, COUNT(*) FROM article_tags GROUP BY tag_id",
+                false,
+            ),
+        };
+        let mut stmt = self.conn.prepare(sql)?;
+        let counts = if use_account {
+            stmt.query_map(params![account_id.unwrap().0], |row| {
                 let tag_id: String = row.get(0)?;
                 let count: i64 = row.get(1)?;
                 Ok((TagId(tag_id), count as usize))
             })?
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<Vec<_>, _>>()?
+        } else {
+            stmt.query_map([], |row| {
+                let tag_id: String = row.get(0)?;
+                let count: i64 = row.get(1)?;
+                Ok((TagId(tag_id), count as usize))
+            })?
+            .collect::<Result<Vec<_>, _>>()?
+        };
         Ok(counts)
     }
 }
@@ -282,7 +328,9 @@ mod tests {
             offset: 0,
             limit: 50,
         };
-        let articles = repo.find_articles_by_tag(&tag.id, &pagination).unwrap();
+        let articles = repo
+            .find_articles_by_tag(&tag.id, &pagination, None)
+            .unwrap();
         assert_eq!(articles.len(), 1);
         assert_eq!(articles[0].title, "Test Article");
     }
@@ -382,5 +430,131 @@ mod tests {
         let tags = repo.find_tags_for_article(&article_id).unwrap();
         assert_eq!(tags.len(), 1);
         assert_eq!(tags[0].name, "updated");
+    }
+
+    #[test]
+    fn count_articles_per_tag_filters_by_account() {
+        let db = test_db();
+        let (account_id, _, article_id) = insert_test_data(&db);
+
+        // Create a second account with its own feed and article
+        let account_id2 = AccountId::new();
+        let feed_id2 = FeedId::new();
+        let article_id2 = ArticleId("art-2".to_string());
+        let now = chrono::Utc::now().to_rfc3339();
+
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+                params![account_id2.0, "Local", "Other"],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, title, url) VALUES (?1, ?2, ?3, ?4)",
+                params![feed_id2.0, account_id2.0, "Feed2", "http://f2.com"],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, title, content_raw, content_sanitized, sanitizer_version, published_at, is_read, is_starred, fetched_at) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                params![article_id2.0, feed_id2.0, "Article 2", "", "", 1, now, false, false, now],
+            )
+            .unwrap();
+
+        let repo = SqliteTagRepository::new(db.writer());
+
+        let tag = Tag {
+            id: TagId::new(),
+            name: "shared".to_string(),
+            color: None,
+        };
+        repo.save(&tag).unwrap();
+        repo.tag_article(&article_id, &tag.id).unwrap();
+        repo.tag_article(&article_id2, &tag.id).unwrap();
+
+        // Without account filter: both articles counted
+        let counts = repo.count_articles_per_tag(None).unwrap();
+        let count = counts.iter().find(|(id, _)| id == &tag.id).unwrap().1;
+        assert_eq!(count, 2);
+
+        // With account filter: only first account's article
+        let counts = repo.count_articles_per_tag(Some(&account_id)).unwrap();
+        let count = counts.iter().find(|(id, _)| id == &tag.id).unwrap().1;
+        assert_eq!(count, 1);
+
+        // With second account filter: only second account's article
+        let counts = repo.count_articles_per_tag(Some(&account_id2)).unwrap();
+        let count = counts.iter().find(|(id, _)| id == &tag.id).unwrap().1;
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn find_articles_by_tag_filters_by_account() {
+        let db = test_db();
+        let (account_id, _, article_id) = insert_test_data(&db);
+
+        // Create a second account with its own feed and article
+        let account_id2 = AccountId::new();
+        let feed_id2 = FeedId::new();
+        let article_id2 = ArticleId("art-2".to_string());
+        let now = chrono::Utc::now().to_rfc3339();
+
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+                params![account_id2.0, "Local", "Other"],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, title, url) VALUES (?1, ?2, ?3, ?4)",
+                params![feed_id2.0, account_id2.0, "Feed2", "http://f2.com"],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, title, content_raw, content_sanitized, sanitizer_version, published_at, is_read, is_starred, fetched_at) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                params![article_id2.0, feed_id2.0, "Article 2", "", "", 1, now, false, false, now],
+            )
+            .unwrap();
+
+        let repo = SqliteTagRepository::new(db.writer());
+
+        let tag = Tag {
+            id: TagId::new(),
+            name: "multi".to_string(),
+            color: None,
+        };
+        repo.save(&tag).unwrap();
+        repo.tag_article(&article_id, &tag.id).unwrap();
+        repo.tag_article(&article_id2, &tag.id).unwrap();
+
+        let pagination = Pagination {
+            offset: 0,
+            limit: 50,
+        };
+
+        // Without account filter: both articles
+        let articles = repo
+            .find_articles_by_tag(&tag.id, &pagination, None)
+            .unwrap();
+        assert_eq!(articles.len(), 2);
+
+        // With account filter: only first account's article
+        let articles = repo
+            .find_articles_by_tag(&tag.id, &pagination, Some(&account_id))
+            .unwrap();
+        assert_eq!(articles.len(), 1);
+        assert_eq!(articles[0].title, "Test Article");
+
+        // With second account filter: only second account's article
+        let articles = repo
+            .find_articles_by_tag(&tag.id, &pagination, Some(&account_id2))
+            .unwrap();
+        assert_eq!(articles.len(), 1);
+        assert_eq!(articles[0].title, "Article 2");
     }
 }

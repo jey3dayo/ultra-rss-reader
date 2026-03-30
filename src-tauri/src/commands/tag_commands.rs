@@ -5,7 +5,7 @@ use tauri::State;
 use crate::commands::dto::{AppError, ArticleDto, TagDto};
 use crate::commands::AppState;
 use crate::domain::tag::Tag;
-use crate::domain::types::{ArticleId, TagId};
+use crate::domain::types::{AccountId, ArticleId, TagId};
 use crate::infra::db::sqlite_tag::SqliteTagRepository;
 use crate::repository::article::Pagination;
 use crate::repository::tag::TagRepository;
@@ -177,6 +177,7 @@ pub fn list_articles_by_tag(
     tag_id: String,
     offset: Option<usize>,
     limit: Option<usize>,
+    account_id: Option<String>,
 ) -> Result<Vec<ArticleDto>, AppError> {
     let db = lock_db(&state.db)?;
     let repo = SqliteTagRepository::new(db.reader());
@@ -184,16 +185,19 @@ pub fn list_articles_by_tag(
         offset: offset.unwrap_or(0),
         limit: limit.unwrap_or(50),
     };
-    let articles = repo.find_articles_by_tag(&TagId(tag_id), &pagination)?;
+    let aid = account_id.map(AccountId);
+    let articles = repo.find_articles_by_tag(&TagId(tag_id), &pagination, aid.as_ref())?;
     Ok(articles.into_iter().map(ArticleDto::from).collect())
 }
 
 #[tauri::command]
 pub fn get_tag_article_counts(
     state: State<'_, AppState>,
+    account_id: Option<String>,
 ) -> Result<HashMap<String, usize>, AppError> {
     let db = lock_db(&state.db)?;
     let repo = SqliteTagRepository::new(db.reader());
-    let counts = repo.count_articles_per_tag()?;
+    let aid = account_id.map(AccountId);
+    let counts = repo.count_articles_per_tag(aid.as_ref())?;
     Ok(counts.into_iter().map(|(id, c)| (id.0, c)).collect())
 }
