@@ -48,6 +48,7 @@ import {
   searchArticlesArgs,
   setBrowserWebviewBoundsArgs,
   setPreferenceArgs,
+  syncAccountArgs,
   type TagDto,
   TagDtoSchema,
   tagArticleArgs,
@@ -275,6 +276,9 @@ export const closeBrowserWebview = () => safeInvoke("close_browser_webview", { r
 export const triggerSync = () => safeInvoke("trigger_sync", { response: SyncResultSchema });
 
 export const triggerAutomaticSync = () => safeInvoke("trigger_automatic_sync", { response: SyncResultSchema });
+
+export const syncAccount = (accountId: string) =>
+  safeInvoke("trigger_sync_account", { response: SyncResultSchema, args: syncAccountArgs }, { accountId });
 
 export const exportOpml = (accountId: string) =>
   safeInvoke("export_opml", { response: z.string(), args: exportOpmlArgs }, { accountId });

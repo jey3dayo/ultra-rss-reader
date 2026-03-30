@@ -164,6 +164,7 @@ const defaultHandler: MockHandler = (cmd, args) => {
     case "close_browser_webview":
       return null;
     case "trigger_sync":
+    case "trigger_sync_account":
       return { synced: true, total: 1, succeeded: 1, failed: [] };
     case "trigger_automatic_sync":
       return { synced: false, total: 0, succeeded: 0, failed: [] };

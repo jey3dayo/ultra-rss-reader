@@ -205,8 +205,7 @@ pub fn purge_old_articles(db: &Mutex<DbManager>) {
         if account.keep_read_items_days <= 0 {
             continue;
         }
-        let cutoff =
-            chrono::Utc::now() - chrono::Duration::days(account.keep_read_items_days);
+        let cutoff = chrono::Utc::now() - chrono::Duration::days(account.keep_read_items_days);
         match lock_db(db) {
             Ok(g) => {
                 let repo = SqliteArticleRepository::new(g.writer());
@@ -261,6 +260,45 @@ pub async fn trigger_automatic_sync(
     )
     .await?;
     if result.synced {
+        let _ = app_handle.emit("sync-completed", ());
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+pub async fn trigger_sync_account(
+    app_handle: tauri::AppHandle,
+    state: State<'_, AppState>,
+    account_id: String,
+) -> Result<SyncResult, AppError> {
+    let account_id = crate::domain::types::AccountId(account_id);
+    let account = {
+        let db_guard = lock_db(&state.db)?;
+        let repo = SqliteAccountRepository::new(db_guard.reader());
+        repo.find_by_id(&account_id)?
+            .ok_or_else(|| AppError::UserVisible {
+                message: format!("Account not found: {}", account_id.as_ref()),
+            })?
+    };
+    let name = account.name.clone();
+    let mut result = SyncResult {
+        synced: true,
+        total: 1,
+        succeeded: 0,
+        failed: Vec::new(),
+    };
+    match sync_account(&state.db, &account).await {
+        Ok(()) => result.succeeded = 1,
+        Err(e) => {
+            warn!("Sync failed for account '{}': {e}", name);
+            result.failed.push(AccountSyncError {
+                account_id: account.id.as_ref().to_string(),
+                account_name: name,
+                message: e.to_string(),
+            });
+        }
+    }
+    if result.succeeded > 0 {
         let _ = app_handle.emit("sync-completed", ());
     }
     Ok(result)

@@ -7,8 +7,8 @@ import {
   deleteAccount,
   exportOpml,
   renameAccount,
+  syncAccount,
   testAccountConnection,
-  triggerSync,
   updateAccountCredentials,
   updateAccountSync,
 } from "@/api/tauri-commands";
@@ -147,7 +147,7 @@ export function AccountDetail() {
   const handleSyncNow = async () => {
     setSyncing(true);
     setSettingsLoading(true);
-    const result = await triggerSync();
+    const result = await syncAccount(account.id);
     setSyncing(false);
     setSettingsLoading(false);
     Result.pipe(

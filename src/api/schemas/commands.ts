@@ -88,6 +88,9 @@ export const renameAccountArgs = z.object({
   name: z.string(),
 });
 
+// --- syncAccount ---
+export const syncAccountArgs = z.object({ accountId: z.string() });
+
 // --- testAccountConnection ---
 export const testAccountConnectionArgs = z.object({ accountId: z.string() });
 
