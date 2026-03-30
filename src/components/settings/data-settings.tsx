@@ -37,20 +37,23 @@ export function DataSettings() {
     const sizeBefore = totalSize;
     setVacuuming(true);
     setSettingsLoading(true);
-    Result.pipe(
-      await vacuumDatabase(),
-      Result.inspect((info) => {
-        setTotalSize(info.total_size_bytes);
-        const saved = sizeBefore != null ? sizeBefore - info.total_size_bytes : 0;
-        showToast(t("data.vacuum_success", { saved: saved > 0 ? `-${formatBytes(saved)}` : formatBytes(0) }));
-      }),
-      Result.inspectError((e) => {
-        console.error("VACUUM failed:", e);
-        showToast(t("data.vacuum_failed", { message: e.message }));
-      }),
-    );
-    setVacuuming(false);
-    setSettingsLoading(false);
+    try {
+      Result.pipe(
+        await vacuumDatabase(),
+        Result.inspect((info) => {
+          setTotalSize(info.total_size_bytes);
+          const saved = sizeBefore != null ? sizeBefore - info.total_size_bytes : 0;
+          showToast(t("data.vacuum_success", { saved: saved > 0 ? `-${formatBytes(saved)}` : formatBytes(0) }));
+        }),
+        Result.inspectError((e) => {
+          console.error("VACUUM failed:", e);
+          showToast(t("data.vacuum_failed", { message: e.message }));
+        }),
+      );
+    } finally {
+      setVacuuming(false);
+      setSettingsLoading(false);
+    }
   };
 
   const openLogDir = async () => {

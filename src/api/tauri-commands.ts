@@ -43,6 +43,8 @@ import {
   markFeedReadArgs,
   markFolderReadArgs,
   openInBrowserArgs,
+  type PlatformInfo,
+  PlatformInfoSchema,
   renameAccountArgs,
   renameFeedArgs,
   renameTagArgs,
@@ -82,6 +84,7 @@ export type {
   DiscoveredFeedDto,
   FeedDto,
   FolderDto,
+  PlatformInfo,
   TagDto,
   UpdateInfoDto,
 };
@@ -334,6 +337,8 @@ export const copyToClipboard = (text: string) =>
 
 export const addToReadingList = (url: string) =>
   safeInvoke("add_to_reading_list", { response: z.null(), args: addToReadingListArgs }, { url });
+
+export const getPlatformInfo = () => safeInvoke("get_platform_info", { response: PlatformInfoSchema });
 
 // Updater
 export const checkForUpdate = () => safeInvoke("check_for_update", { response: UpdateInfoDtoSchema.nullable() });

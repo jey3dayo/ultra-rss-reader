@@ -395,15 +395,13 @@ export function Sidebar() {
         opaqueSidebars && "bg-opacity-100",
       )}
     >
-      <div data-tauri-drag-region>
-        <SidebarHeaderView
-          isSyncing={syncProgress.active}
-          onSync={handleSync}
-          onAddFeed={handleAddFeed}
-          syncButtonLabel={t("sync_feeds")}
-          addFeedButtonLabel={t("add_feed")}
-        />
-      </div>
+      <SidebarHeaderView
+        isSyncing={syncProgress.active}
+        onSync={handleSync}
+        onAddFeed={handleAddFeed}
+        syncButtonLabel={t("sync_feeds")}
+        addFeedButtonLabel={t("add_feed")}
+      />
 
       <div ref={accountDropdownRef}>
         <AccountSwitcherView

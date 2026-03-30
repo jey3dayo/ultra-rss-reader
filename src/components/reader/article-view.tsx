@@ -24,6 +24,7 @@ import {
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
+import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContentView } from "./article-content-view";
@@ -47,6 +48,7 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
   const actionOpenBrowser = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_open_browser"));
   const actionShare = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share"));
   const actionShareMenu = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share_menu"));
+  const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
 
   const handleCloseView = () => {
     clearArticle();
@@ -106,23 +108,25 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
                     <Copy className="mr-2 h-4 w-4" />
                     {t("copy_link")}
                   </Menu.Item>
-                  <Menu.Item
-                    className={contextMenuStyles.item}
-                    onSelect={async () => {
-                      if (!article?.url) return;
-                      Result.pipe(
-                        await addToReadingList(article.url),
-                        Result.inspect(() => showToast(t("added_to_reading_list"))),
-                        Result.inspectError((e) => {
-                          console.error("Add to reading list failed:", e);
-                          showToast(e.message);
-                        }),
-                      );
-                    }}
-                  >
-                    <BookmarkPlus className="mr-2 h-4 w-4" />
-                    {t("add_to_reading_list")}
-                  </Menu.Item>
+                  {supportsReadingList ? (
+                    <Menu.Item
+                      className={contextMenuStyles.item}
+                      onSelect={async () => {
+                        if (!article?.url) return;
+                        Result.pipe(
+                          await addToReadingList(article.url),
+                          Result.inspect(() => showToast(t("added_to_reading_list"))),
+                          Result.inspectError((e) => {
+                            console.error("Add to reading list failed:", e);
+                            showToast(e.message);
+                          }),
+                        );
+                      }}
+                    >
+                      <BookmarkPlus className="mr-2 h-4 w-4" />
+                      {t("add_to_reading_list")}
+                    </Menu.Item>
+                  ) : null}
                   <Menu.Separator className={contextMenuStyles.separator} />
                   <Menu.Item
                     className={contextMenuStyles.item}
@@ -190,7 +194,10 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
           const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
           Result.pipe(
             await openInBrowser(article.url, bg),
-            Result.inspectError((e) => console.error("Failed to open in browser:", e)),
+            Result.inspectError((e) => {
+              console.error("Failed to open in browser:", e);
+              showToast(e.message);
+            }),
           );
         }
       }}
@@ -288,7 +295,33 @@ function ArticleReader({
   const openBrowserView = useUiStore((s) => s.openBrowser);
   const selectFeed = useUiStore((s) => s.selectFeed);
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
+  const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
   const articleUrl = article.url;
+
+  const openArticleUrl = (url: string, metaKey = false, ctrlKey = false) => {
+    const useExternal = shouldOpenExternalBrowser({
+      openLinks,
+      cmdClickBrowser,
+      metaKey,
+      ctrlKey,
+    });
+
+    if (useExternal) {
+      const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
+      void openInBrowser(url, bg).then((result) =>
+        Result.pipe(
+          result,
+          Result.inspectError((e) => {
+            console.error("Failed to open in browser:", e);
+            useUiStore.getState().showToast(e.message);
+          }),
+        ),
+      );
+      return;
+    }
+
+    openBrowserView(url);
+  };
 
   // Auto mark as read only when a new article is opened (article.id changes).
   // Must NOT depend on article.is_read — otherwise manually marking unread
@@ -326,7 +359,10 @@ function ArticleReader({
       openInBrowser(article.url, bg).then((result) =>
         Result.pipe(
           result,
-          Result.inspectError((e) => console.error("Failed to open in browser:", e)),
+          Result.inspectError((e) => {
+            console.error("Failed to open in browser:", e);
+            useUiStore.getState().showToast(e.message);
+          }),
         ),
       );
     };
@@ -345,7 +381,7 @@ function ArticleReader({
       );
     };
     const handleAddToReadingList = () => {
-      if (!article.url) return;
+      if (!supportsReadingList || !article.url) return;
       const showToast = useUiStore.getState().showToast;
       void addToReadingList(article.url).then((result) =>
         Result.pipe(
@@ -382,6 +418,7 @@ function ArticleReader({
     setRead,
     toggleStar,
     addRecentlyRead,
+    supportsReadingList,
   ]);
 
   const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -389,19 +426,7 @@ function ArticleReader({
     const anchor = target.closest("a");
     if (!anchor?.href) return;
     e.preventDefault();
-
-    const useExternal = shouldOpenExternalBrowser({
-      openLinks,
-      cmdClickBrowser,
-      metaKey: e.metaKey,
-      ctrlKey: e.ctrlKey,
-    });
-    if (useExternal) {
-      const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-      openInBrowser(anchor.href, bg);
-    } else {
-      openBrowserView(anchor.href);
-    }
+    openArticleUrl(anchor.href, e.metaKey, e.ctrlKey);
   };
 
   return (
@@ -417,8 +442,8 @@ function ArticleReader({
             publishedLabel={formatArticleDate(article.published_at)}
             onTitleClick={
               articleUrl
-                ? () => {
-                    openBrowserView(articleUrl);
+                ? (e) => {
+                    openArticleUrl(articleUrl, e.metaKey, e.ctrlKey);
                   }
                 : undefined
             }

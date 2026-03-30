@@ -30,8 +30,8 @@ export function ArticleListHeader({
   const { t } = useTranslation("reader");
   return (
     <>
-      {/* Header Toolbar - draggable for window move */}
-      <div data-tauri-drag-region className="flex h-12 items-center justify-end border-b border-border px-3">
+      <div className="flex h-12 items-center border-b border-border px-3">
+        <div data-tauri-drag-region aria-hidden="true" className="h-full min-w-0 flex-1" />
         <TooltipProvider>
           <div className="flex items-center gap-2">
             {displayModeControl}

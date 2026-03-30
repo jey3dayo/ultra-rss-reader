@@ -1,13 +1,24 @@
 import { render } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AppLayout } from "@/components/app-layout";
+import { shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
+import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../tests/helpers/tauri-mocks";
 
+const defaultCapabilities = {
+  supports_reading_list: false,
+  supports_background_browser_open: false,
+  supports_runtime_window_icon_replacement: false,
+  supports_native_browser_navigation: false,
+  uses_dev_file_credentials: false,
+};
+
 describe("App", () => {
   beforeEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
+    usePlatformStore.setState(usePlatformStore.getInitialState());
     setupTauriMocks();
   });
 
@@ -49,6 +60,8 @@ describe("App", () => {
 
     const { container } = render(<AppLayout />, { wrapper: createWrapper() });
 
+    expect(container.firstElementChild).toHaveClass("desktop-titlebar-offset");
+
     const tray = container.firstElementChild?.firstElementChild;
     expect(tray).toHaveClass("w-[calc(100%+280px)]");
   });
@@ -58,10 +71,53 @@ describe("App", () => {
 
     const { container } = render(<AppLayout />, { wrapper: createWrapper() });
 
+    expect(container.firstElementChild).toHaveClass("desktop-titlebar-offset");
+
     // Wide mode has no sliding tray
     expect(container.innerHTML).not.toContain("w-[300%]");
     expect(container.innerHTML).not.toContain("w-[calc(100%+280px)]");
     expect(container.innerHTML).toContain("w-[280px]");
     expect(container.innerHTML).toContain("w-[380px]");
+  });
+
+  it("uses overlay titlebar only when tauri runtime is available on macos platform info", () => {
+    expect(
+      shouldUseDesktopOverlayTitlebar({
+        platformKind: usePlatformStore.getState().platform.kind,
+        hasTauriRuntime: true,
+      }),
+    ).toBe(false);
+
+    usePlatformStore.setState({
+      platform: {
+        kind: "macos",
+        capabilities: defaultCapabilities,
+      },
+      loaded: true,
+    });
+    expect(
+      shouldUseDesktopOverlayTitlebar({
+        platformKind: usePlatformStore.getState().platform.kind,
+        hasTauriRuntime: true,
+      }),
+    ).toBe(true);
+
+    usePlatformStore.setState({
+      platform: {
+        kind: "windows",
+        capabilities: {
+          ...defaultCapabilities,
+          supports_runtime_window_icon_replacement: true,
+          supports_native_browser_navigation: true,
+        },
+      },
+      loaded: true,
+    });
+    expect(
+      shouldUseDesktopOverlayTitlebar({
+        platformKind: usePlatformStore.getState().platform.kind,
+        hasTauriRuntime: true,
+      }),
+    ).toBe(false);
   });
 });

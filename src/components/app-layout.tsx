@@ -1,5 +1,7 @@
 import { computeTranslateX, isPaneVisible, resolveLayout } from "../hooks/use-layout";
 import { cn } from "../lib/utils";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "../lib/window-chrome";
+import { usePlatformStore } from "../stores/platform-store";
 import { useUiStore } from "../stores/ui-store";
 import { ArticleList } from "./reader/article-list";
 import { ArticleView } from "./reader/article-view";
@@ -8,15 +10,19 @@ import { Sidebar } from "./reader/sidebar";
 function SlidingPaneLayout({
   layoutMode,
   focusedPane,
+  overlayTitlebar,
 }: {
   layoutMode: "compact" | "mobile";
   focusedPane: "sidebar" | "list" | "content";
+  overlayTitlebar: boolean;
 }) {
   const isMobile = layoutMode === "mobile";
   const translateX = computeTranslateX(layoutMode, focusedPane);
 
   return (
-    <div className="h-full overflow-hidden">
+    <div
+      className={cn("desktop-titlebar-offset h-full overflow-hidden", overlayTitlebar && "desktop-overlay-titlebar")}
+    >
       <div
         className={cn(
           "flex h-full transition-transform duration-300 ease-in-out motion-reduce:duration-0",
@@ -51,12 +57,24 @@ function SlidingPaneLayout({
 }
 
 export function AppLayout() {
-  const { layoutMode, focusedPane, contentMode } = useUiStore();
+  const layoutMode = useUiStore((state) => state.layoutMode);
+  const focusedPane = useUiStore((state) => state.focusedPane);
+  const contentMode = useUiStore((state) => state.contentMode);
+  const platformKind = usePlatformStore((state) => state.platform.kind);
+  const overlayTitlebar = shouldUseDesktopOverlayTitlebar({
+    platformKind,
+    hasTauriRuntime: hasTauriRuntime(),
+  });
 
   if (layoutMode === "wide") {
     const panes = resolveLayout(layoutMode, focusedPane, contentMode);
     return (
-      <div className="flex h-full overflow-hidden">
+      <div
+        className={cn(
+          "desktop-titlebar-offset flex h-full overflow-hidden",
+          overlayTitlebar && "desktop-overlay-titlebar",
+        )}
+      >
         {panes.includes("sidebar") && (
           <div className="w-[280px] shrink-0">
             <Sidebar />
@@ -76,5 +94,5 @@ export function AppLayout() {
     );
   }
 
-  return <SlidingPaneLayout layoutMode={layoutMode} focusedPane={focusedPane} />;
+  return <SlidingPaneLayout layoutMode={layoutMode} focusedPane={focusedPane} overlayTitlebar={overlayTitlebar} />;
 }

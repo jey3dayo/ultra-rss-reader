@@ -14,7 +14,7 @@ describe("ArticleToolbarView", () => {
     const onOpenInBrowser = vi.fn();
     const onOpenInExternalBrowser = vi.fn();
 
-    render(
+    const { container } = render(
       <ArticleToolbarView
         showCloseButton
         canToggleRead
@@ -44,6 +44,9 @@ describe("ArticleToolbarView", () => {
         onOpenInExternalBrowser={onOpenInExternalBrowser}
       />,
     );
+
+    expect(container.firstElementChild).not.toHaveAttribute("data-tauri-drag-region");
+    expect(container.querySelector("[data-tauri-drag-region]")).not.toBeNull();
 
     const readButton = screen.getByRole("button", { name: "Toggle read" });
     const starButton = screen.getByRole("button", { name: "Toggle star" });

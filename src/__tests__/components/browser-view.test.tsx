@@ -326,6 +326,42 @@ describe("BrowserView", () => {
     );
   });
 
+  it("shows a toast when opening the current page in the external browser fails", async () => {
+    setupTauriMocks((cmd, args) => {
+      commands.push({ cmd, args });
+      if (cmd === "create_or_update_browser_webview") {
+        return {
+          url: args.url,
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: true,
+        };
+      }
+      if (cmd === "open_in_browser") {
+        throw { type: "UserVisible", message: "Could not launch browser" };
+      }
+      if (cmd === "close_browser_webview") {
+        return null;
+      }
+      return null;
+    });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    const user = userEvent.setup();
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Open in external browser" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage).toEqual({ message: "Could not launch browser" });
+    });
+  });
+
   it("falls back to the external browser when the dedicated window cannot be created", async () => {
     setupTauriMocks((cmd, args) => {
       commands.push({ cmd, args });

@@ -54,6 +54,7 @@
 
 /* Legacy tokens for existing components */
 :root {
+  --desktop-titlebar-offset: 44px;
   --bg-sidebar: #1e1e1e;
   --bg-list: #222222;
   --bg-content: #1e1e1e;
@@ -89,6 +90,11 @@
   --filterbar-height: 36px;
 }
 
+.desktop-titlebar-offset {
+  box-sizing: border-box;
+  padding-top: var(--desktop-titlebar-offset);
+}
+
 *,
 *::before,
 *::after {
@@ -110,15 +116,15 @@ body,
 }
 
 /* macOS overlay titlebar drag regions */
-[data-tauri-drag-region] {
+.desktop-overlay-titlebar [data-tauri-drag-region] {
   -webkit-app-region: drag;
   app-region: drag;
 }
 
-[data-tauri-drag-region] button,
-[data-tauri-drag-region] a,
-[data-tauri-drag-region] input,
-[data-tauri-drag-region] [role="button"] {
+.desktop-overlay-titlebar [data-tauri-drag-region] button,
+.desktop-overlay-titlebar [data-tauri-drag-region] a,
+.desktop-overlay-titlebar [data-tauri-drag-region] input,
+.desktop-overlay-titlebar [data-tauri-drag-region] [role="button"] {
   -webkit-app-region: no-drag;
   app-region: no-drag;
 }

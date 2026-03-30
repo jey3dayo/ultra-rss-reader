@@ -2,7 +2,9 @@ use serde::Serialize;
 use tauri::State;
 
 use crate::commands::dto::AppError;
+use crate::commands::try_lock_db;
 use crate::commands::AppState;
+use crate::infra::db::connection::DatabaseInfo;
 
 #[derive(Debug, Serialize)]
 pub struct DatabaseInfoDto {
@@ -14,60 +16,30 @@ pub struct DatabaseInfoDto {
     pub total_size_bytes: u64,
 }
 
+impl From<DatabaseInfo> for DatabaseInfoDto {
+    fn from(info: DatabaseInfo) -> Self {
+        Self {
+            db_size_bytes: info.db_size_bytes,
+            wal_size_bytes: info.wal_size_bytes,
+            total_size_bytes: info.total_size_bytes,
+        }
+    }
+}
+
 #[tauri::command]
 pub fn get_database_info(state: State<'_, AppState>) -> Result<DatabaseInfoDto, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
-    let db_path: String = db
-        .reader()
-        .query_row("PRAGMA database_list", [], |row| row.get(2))
-        .map_err(|e| AppError::UserVisible {
-            message: format!("Failed to get database path: {e}"),
-        })?;
-
-    let path = std::path::Path::new(&db_path);
-    let db_size_bytes = path.metadata().map(|m| m.len()).unwrap_or(0);
-
-    let wal_path = path.with_extension("db-wal");
-    let wal_size_bytes = wal_path.metadata().map(|m| m.len()).unwrap_or(0);
-
-    Ok(DatabaseInfoDto {
-        db_size_bytes,
-        wal_size_bytes,
-        total_size_bytes: db_size_bytes + wal_size_bytes,
-    })
+    let db = try_lock_db(&state.db)?;
+    Ok(db.database_info().map_err(AppError::from)?.into())
 }
 
 #[tauri::command]
 pub fn vacuum_database(state: State<'_, AppState>) -> Result<DatabaseInfoDto, AppError> {
-    let db = state.db.lock().map_err(|e| AppError::UserVisible {
-        message: format!("Lock error: {e}"),
-    })?;
+    if state.syncing.load(std::sync::atomic::Ordering::SeqCst) {
+        return Err(AppError::UserVisible {
+            message: "Database optimization is unavailable while syncing. Try again after sync completes.".to_string(),
+        });
+    }
 
-    db.writer()
-        .execute_batch("VACUUM")
-        .map_err(|e| AppError::UserVisible {
-            message: format!("VACUUM failed: {e}"),
-        })?;
-
-    // Return updated info after VACUUM
-    let db_path: String = db
-        .reader()
-        .query_row("PRAGMA database_list", [], |row| row.get(2))
-        .map_err(|e| AppError::UserVisible {
-            message: format!("Failed to get database path: {e}"),
-        })?;
-
-    let path = std::path::Path::new(&db_path);
-    let db_size_bytes = path.metadata().map(|m| m.len()).unwrap_or(0);
-
-    let wal_path = path.with_extension("db-wal");
-    let wal_size_bytes = wal_path.metadata().map(|m| m.len()).unwrap_or(0);
-
-    Ok(DatabaseInfoDto {
-        db_size_bytes,
-        wal_size_bytes,
-        total_size_bytes: db_size_bytes + wal_size_bytes,
-    })
+    let mut db = try_lock_db(&state.db)?;
+    Ok(db.vacuum().map_err(AppError::from)?.into())
 }

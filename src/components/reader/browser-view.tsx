@@ -100,10 +100,6 @@ export function BrowserView() {
     [closeBrowser, showToast, t],
   );
 
-  useEffect(() => {
-    fallbackInFlightRef.current = false;
-  }, [browserUrl]);
-
   useLayoutEffect(() => {
     let cancelled = false;
 
@@ -173,6 +169,8 @@ export function BrowserView() {
 
     if (!browserUrl) return undefined;
 
+    fallbackInFlightRef.current = false;
+
     setBrowserState((state) => {
       const nextState = state?.url === browserUrl ? state : initialBrowserState(browserUrl);
       browserStateRef.current = nextState;
@@ -202,9 +200,7 @@ export function BrowserView() {
     };
   }, []);
 
-  if (!browserUrl) return null;
-
-  const currentUrl = browserState?.url ?? browserUrl;
+  const currentUrl = browserState?.url ?? browserUrl ?? "";
   const canGoBack = browserState?.can_go_back ?? false;
   const canGoForward = browserState?.can_go_forward ?? false;
   const isLoading = browserState?.is_loading ?? true;
@@ -231,11 +227,16 @@ export function BrowserView() {
     };
   }, [browserUrl, fallbackToExternalBrowser, isLoading]);
 
+  if (!browserUrl) return null;
+
   const handleOpenExternal = async () => {
     const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
     Result.pipe(
       await openInBrowser(currentUrl, bg),
-      Result.inspectError((error) => console.error("Failed to open in browser:", error)),
+      Result.inspectError((error) => {
+        console.error("Failed to open in browser:", error);
+        showToast(error.message);
+      }),
     );
   };
 
