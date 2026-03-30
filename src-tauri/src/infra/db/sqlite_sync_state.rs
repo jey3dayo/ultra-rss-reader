@@ -17,19 +17,20 @@ impl<'a> SqliteSyncStateRepository<'a> {
 impl SyncStateRepository for SqliteSyncStateRepository<'_> {
     fn get(&self, account_id: &AccountId, scope_key: &str) -> DomainResult<Option<SyncState>> {
         let mut stmt = self.conn.prepare(
-            "SELECT account_id, scope_key, continuation, etag, last_modified, last_success_at, last_error, error_count, next_retry_at FROM sync_state WHERE account_id = ?1 AND scope_key = ?2",
+            "SELECT account_id, scope_key, timestamp_usec, continuation, etag, last_modified, last_success_at, last_error, error_count, next_retry_at FROM sync_state WHERE account_id = ?1 AND scope_key = ?2",
         )?;
         let mut rows = stmt.query_map(params![account_id.0, scope_key], |row| {
             Ok(SyncState {
                 account_id: AccountId(row.get(0)?),
                 scope_key: row.get(1)?,
-                continuation: row.get(2)?,
-                etag: row.get(3)?,
-                last_modified: row.get(4)?,
-                last_success_at: row.get(5)?,
-                last_error: row.get(6)?,
-                error_count: row.get(7)?,
-                next_retry_at: row.get(8)?,
+                timestamp_usec: row.get(2)?,
+                continuation: row.get(3)?,
+                etag: row.get(4)?,
+                last_modified: row.get(5)?,
+                last_success_at: row.get(6)?,
+                last_error: row.get(7)?,
+                error_count: row.get(8)?,
+                next_retry_at: row.get(9)?,
             })
         })?;
         match rows.next() {
@@ -40,10 +41,11 @@ impl SyncStateRepository for SqliteSyncStateRepository<'_> {
 
     fn save(&self, state: &SyncState) -> DomainResult<()> {
         self.conn.execute(
-            "INSERT OR REPLACE INTO sync_state (account_id, scope_key, continuation, etag, last_modified, last_success_at, last_error, error_count, next_retry_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            "INSERT OR REPLACE INTO sync_state (account_id, scope_key, timestamp_usec, continuation, etag, last_modified, last_success_at, last_error, error_count, next_retry_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             params![
                 state.account_id.0,
                 state.scope_key,
+                state.timestamp_usec,
                 state.continuation,
                 state.etag,
                 state.last_modified,
@@ -86,6 +88,7 @@ mod tests {
         let state = SyncState {
             account_id: account_id.clone(),
             scope_key: "all".to_string(),
+            timestamp_usec: Some(1_700_000_100_000_000),
             continuation: Some("cont-123".to_string()),
             etag: Some("etag-abc".to_string()),
             last_modified: None,
@@ -97,6 +100,7 @@ mod tests {
         repo.save(&state).unwrap();
 
         let found = repo.get(&account_id, "all").unwrap().unwrap();
+        assert_eq!(found.timestamp_usec, Some(1_700_000_100_000_000));
         assert_eq!(found.continuation, Some("cont-123".to_string()));
         assert_eq!(found.etag, Some("etag-abc".to_string()));
         assert_eq!(found.error_count, 0);
@@ -121,6 +125,7 @@ mod tests {
         let mut state = SyncState {
             account_id: account_id.clone(),
             scope_key: "all".to_string(),
+            timestamp_usec: None,
             continuation: None,
             etag: None,
             last_modified: None,
@@ -131,11 +136,13 @@ mod tests {
         };
         repo.save(&state).unwrap();
 
+        state.timestamp_usec = Some(1_700_000_200_000_000);
         state.continuation = Some("new-cont".to_string());
         state.error_count = 3;
         repo.save(&state).unwrap();
 
         let found = repo.get(&account_id, "all").unwrap().unwrap();
+        assert_eq!(found.timestamp_usec, Some(1_700_000_200_000_000));
         assert_eq!(found.continuation, Some("new-cont".to_string()));
         assert_eq!(found.error_count, 3);
     }

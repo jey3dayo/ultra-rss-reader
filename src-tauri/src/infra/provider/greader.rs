@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use chrono::DateTime;
 use reqwest::header::HeaderValue;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use std::time::Duration;
 
 use crate::domain::error::{DomainError, DomainResult};
@@ -53,6 +53,12 @@ struct GReaderItem {
     author: Option<String>,
     published: Option<i64>,
     updated: Option<i64>,
+    #[serde(
+        rename = "timestampUsec",
+        default,
+        deserialize_with = "deserialize_optional_i64_from_string_or_number"
+    )]
+    timestamp_usec: Option<i64>,
     origin: Option<GReaderOrigin>,
     categories: Vec<String>,
 }
@@ -185,6 +191,12 @@ impl GReaderProvider {
             .ok_or_else(|| DomainError::Auth("Not authenticated".into()))?;
         HeaderValue::from_str(&format!("GoogleLogin auth={token}"))
             .map_err(|e| DomainError::Auth(e.to_string()))
+    }
+
+    fn item_cursor_timestamp_usec(item: &GReaderItem) -> Option<i64> {
+        item.timestamp_usec
+            .or_else(|| item.updated.map(|ts| ts.saturating_mul(1_000_000)))
+            .or_else(|| item.published.map(|ts| ts.saturating_mul(1_000_000)))
     }
 
     fn map_item_to_entry(item: GReaderItem) -> Option<RemoteEntry> {
@@ -392,6 +404,9 @@ impl FeedProvider for GReaderProvider {
             if let Some(ref cont) = c.continuation {
                 url.push_str(&format!("&c={}", urlencoded(cont)));
             }
+            if let Some(since) = c.since {
+                url.push_str(&format!("&ot={}", since.timestamp_micros()));
+            }
         }
 
         let resp: StreamContentsResponse = self
@@ -404,11 +419,27 @@ impl FeedProvider for GReaderProvider {
             .json()
             .await?;
 
+        let next_since_usec = resp
+            .items
+            .iter()
+            .filter_map(Self::item_cursor_timestamp_usec)
+            .max();
         let has_more = resp.continuation.is_some();
-        let next_cursor = resp.continuation.map(|c| SyncCursor {
-            continuation: Some(c),
-            ..Default::default()
-        });
+        let next_cursor =
+            if resp.continuation.is_some() || next_since_usec.is_some() || cursor.is_some() {
+                Some(SyncCursor {
+                    continuation: resp.continuation,
+                    since: next_since_usec
+                        .and_then(DateTime::from_timestamp_micros)
+                        .or_else(|| cursor.as_ref().and_then(|current| current.since)),
+                    etag: cursor.as_ref().and_then(|current| current.etag.clone()),
+                    last_modified: cursor
+                        .as_ref()
+                        .and_then(|current| current.last_modified.clone()),
+                })
+            } else {
+                None
+            };
 
         let entries = resp
             .items
@@ -598,6 +629,30 @@ impl FeedProvider for GReaderProvider {
             .map_err(|e| DomainError::Network(e.to_string()))?;
 
         Ok(())
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum IntOrString {
+    Int(i64),
+    String(String),
+}
+
+fn deserialize_optional_i64_from_string_or_number<'de, D>(
+    deserializer: D,
+) -> Result<Option<i64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<IntOrString>::deserialize(deserializer)?;
+    match value {
+        Some(IntOrString::Int(value)) => Ok(Some(value)),
+        Some(IntOrString::String(value)) => value
+            .parse::<i64>()
+            .map(Some)
+            .map_err(serde::de::Error::custom),
+        None => Ok(None),
     }
 }
 
@@ -792,6 +847,7 @@ mod tests {
                             "summary": {"content": "Short summary"},
                             "content": {"content": "<p>Full content</p>"},
                             "author": "Alice",
+                            "timestampUsec": "1700000100000000",
                             "published": 1700000000,
                             "updated": 1700000100,
                             "origin": {
@@ -851,7 +907,65 @@ mod tests {
         assert!(result.has_more);
         let cursor = result.next_cursor.unwrap();
         assert_eq!(cursor.continuation.as_deref(), Some("page2token"));
+        assert_eq!(
+            cursor.since.map(|ts| ts.timestamp_micros()),
+            Some(1_700_000_100_000_000)
+        );
 
+        stream_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_includes_ot_when_since_cursor_is_present() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let stream_mock = server
+            .mock(
+                "GET",
+                mockito::Matcher::Regex(
+                    r"/api/greader.php/reader/api/0/stream/contents/.*".to_string(),
+                ),
+            )
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), "200".into()),
+                mockito::Matcher::UrlEncoded("c".into(), "page1".into()),
+                mockito::Matcher::UrlEncoded("ot".into(), "1700000100000000".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(r#"{ "items": [] }"#)
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let cursor = SyncCursor {
+            continuation: Some("page1".to_string()),
+            since: Some(DateTime::from_timestamp_micros(1_700_000_100_000_000).unwrap()),
+            etag: None,
+            last_modified: None,
+        };
+        let result = provider
+            .pull_entries(PullScope::All, Some(cursor))
+            .await
+            .unwrap();
+
+        assert!(!result.has_more);
+        assert!(result.entries.is_empty());
         stream_mock.assert_async().await;
     }
 

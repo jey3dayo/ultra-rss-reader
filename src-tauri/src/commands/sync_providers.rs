@@ -7,13 +7,14 @@ use crate::commands::dto::AppError;
 use crate::domain::account::Account;
 use crate::domain::article::{generate_entry_id, Article};
 use crate::domain::feed::Feed;
-use crate::domain::provider::{FeedIdentifier, Mutation, PullScope};
+use crate::domain::provider::{FeedIdentifier, Mutation, PullScope, SyncCursor};
 use crate::domain::types::{AccountId, FeedId, FolderId};
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_folder::SqliteFolderRepository;
 use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
+use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
 use crate::infra::keyring_store;
 use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::local::LocalProvider;
@@ -23,6 +24,7 @@ use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
 use crate::repository::pending_mutation::PendingMutationRepository;
+use crate::repository::sync_state::{SyncState, SyncStateRepository};
 
 use super::feed_commands::lock_db;
 
@@ -193,57 +195,8 @@ async fn sync_greader_feeds(
     };
 
     for feed in &feeds {
-        let scope = if let Some(ref remote_id) = feed.remote_id {
-            PullScope::Feed(FeedIdentifier::Remote {
-                remote_id: remote_id.clone(),
-            })
-        } else {
-            continue; // Skip feeds without remote_id for FreshRSS
-        };
-
-        let result = match provider.pull_entries(scope, None).await {
-            Ok(r) => r,
-            Err(e) => {
-                warn!("Failed to pull entries for feed {}: {e}", feed.url);
-                continue;
-            }
-        };
-
-        let articles: Vec<Article> = result
-            .entries
-            .iter()
-            .map(|entry| {
-                let id = generate_entry_id(
-                    account.id.as_ref(),
-                    entry.id.as_deref(),
-                    &feed.url,
-                    entry.url.as_deref(),
-                    Some(&entry.title),
-                );
-                Article {
-                    id,
-                    feed_id: feed.id.clone(),
-                    remote_id: entry.id.clone(),
-                    title: entry.title.clone(),
-                    content_raw: entry.content.clone(),
-                    content_sanitized: sanitizer::sanitize_html(&entry.content),
-                    sanitizer_version: sanitizer::SANITIZER_VERSION,
-                    summary: entry.summary.clone(),
-                    url: entry.url.clone(),
-                    author: entry.author.clone(),
-                    published_at: entry.published_at.unwrap_or_else(chrono::Utc::now),
-                    thumbnail: entry.thumbnail.clone(),
-                    is_read: entry.is_read.unwrap_or(false),
-                    is_starred: entry.is_starred.unwrap_or(false),
-                    fetched_at: chrono::Utc::now(),
-                }
-            })
-            .collect();
-
-        if !articles.is_empty() {
-            let db_guard = lock_db(db)?;
-            let article_repo = SqliteArticleRepository::new(db_guard.writer());
-            article_repo.upsert(&articles)?;
+        if let Err(e) = sync_greader_feed_entries(db, provider, account, feed).await {
+            warn!("Failed to pull entries for feed {}: {e}", feed.url);
         }
     }
 
@@ -331,6 +284,122 @@ async fn sync_greader_feeds(
             let _ = feed_repo.recalculate_unread_count(&feed.id);
         }
     }
+
+    Ok(())
+}
+
+fn feed_scope_key(remote_id: &str) -> String {
+    format!("feed:{remote_id}")
+}
+
+fn cursor_from_state(state: Option<&SyncState>) -> Option<SyncCursor> {
+    state.map(|state| SyncCursor {
+        continuation: state.continuation.clone(),
+        since: state
+            .timestamp_usec
+            .and_then(chrono::DateTime::from_timestamp_micros),
+        etag: state.etag.clone(),
+        last_modified: state.last_modified.clone(),
+    })
+}
+
+async fn sync_greader_feed_entries(
+    db: &Mutex<DbManager>,
+    provider: &GReaderProvider,
+    account: &Account,
+    feed: &Feed,
+) -> Result<(), AppError> {
+    let Some(remote_id) = feed.remote_id.as_ref() else {
+        return Ok(());
+    };
+
+    let scope_key = feed_scope_key(remote_id);
+    let saved_state = {
+        let db_guard = lock_db(db)?;
+        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+        sync_state_repo.get(&account.id, &scope_key)?
+    };
+    let initial_cursor = cursor_from_state(saved_state.as_ref());
+    let mut cursor = initial_cursor.clone();
+    let mut latest_timestamp_usec = saved_state.as_ref().and_then(|state| state.timestamp_usec);
+
+    loop {
+        let scope = PullScope::Feed(FeedIdentifier::Remote {
+            remote_id: remote_id.clone(),
+        });
+        let result = provider.pull_entries(scope, cursor.clone()).await?;
+
+        if let Some(next_cursor) = result.next_cursor.as_ref() {
+            if let Some(next_timestamp_usec) = next_cursor.since.map(|ts| ts.timestamp_micros()) {
+                latest_timestamp_usec = Some(
+                    latest_timestamp_usec
+                        .map(|current| current.max(next_timestamp_usec))
+                        .unwrap_or(next_timestamp_usec),
+                );
+            }
+        }
+
+        let articles: Vec<Article> = result
+            .entries
+            .iter()
+            .map(|entry| {
+                let id = generate_entry_id(
+                    account.id.as_ref(),
+                    entry.id.as_deref(),
+                    &feed.url,
+                    entry.url.as_deref(),
+                    Some(&entry.title),
+                );
+                Article {
+                    id,
+                    feed_id: feed.id.clone(),
+                    remote_id: entry.id.clone(),
+                    title: entry.title.clone(),
+                    content_raw: entry.content.clone(),
+                    content_sanitized: sanitizer::sanitize_html(&entry.content),
+                    sanitizer_version: sanitizer::SANITIZER_VERSION,
+                    summary: entry.summary.clone(),
+                    url: entry.url.clone(),
+                    author: entry.author.clone(),
+                    published_at: entry.published_at.unwrap_or_else(chrono::Utc::now),
+                    thumbnail: entry.thumbnail.clone(),
+                    is_read: entry.is_read.unwrap_or(false),
+                    is_starred: entry.is_starred.unwrap_or(false),
+                    fetched_at: chrono::Utc::now(),
+                }
+            })
+            .collect();
+
+        if !articles.is_empty() {
+            let db_guard = lock_db(db)?;
+            let article_repo = SqliteArticleRepository::new(db_guard.writer());
+            article_repo.upsert(&articles)?;
+        }
+
+        if !result.has_more {
+            break;
+        }
+
+        cursor = result.next_cursor.clone();
+    }
+
+    let next_state = SyncState {
+        account_id: account.id.clone(),
+        scope_key,
+        timestamp_usec: latest_timestamp_usec,
+        continuation: None,
+        etag: saved_state.as_ref().and_then(|state| state.etag.clone()),
+        last_modified: saved_state
+            .as_ref()
+            .and_then(|state| state.last_modified.clone()),
+        last_success_at: Some(chrono::Utc::now().to_rfc3339()),
+        last_error: None,
+        error_count: 0,
+        next_retry_at: None,
+    };
+    let db_guard = lock_db(db)?;
+    let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+    sync_state_repo.save(&next_state)?;
 
     Ok(())
 }

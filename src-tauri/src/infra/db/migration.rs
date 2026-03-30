@@ -8,6 +8,7 @@ const MIGRATION_V2: &str = include_str!("../../../migrations/V2__preferences.sql
 const MIGRATION_V3: &str = include_str!("../../../migrations/V3__fts5.sql");
 const MIGRATION_V4: &str = include_str!("../../../migrations/V4__tags.sql");
 const MIGRATION_V5: &str = include_str!("../../../migrations/V5__feed_display_mode.sql");
+const MIGRATION_V6: &str = include_str!("../../../migrations/V6__sync_state_timestamp_usec.sql");
 
 /// Result of a migration run.
 pub struct MigrationResult {
@@ -24,7 +25,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 5;
+pub const LATEST_VERSION: i32 = 6;
 
 pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     let tx = conn.transaction()?;
@@ -44,6 +45,9 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 5 {
         tx.execute_batch(MIGRATION_V5)?;
+    }
+    if from_version < 6 {
+        tx.execute_batch(MIGRATION_V6)?;
     }
 
     let to_version = get_schema_version(&tx);
@@ -149,6 +153,14 @@ mod tests {
             .prepare("SELECT display_mode FROM feeds LIMIT 0")
             .is_ok();
         assert!(has_display_mode, "V5 display_mode column should exist");
+
+        let has_timestamp_usec: bool = conn
+            .prepare("SELECT timestamp_usec FROM sync_state LIMIT 0")
+            .is_ok();
+        assert!(
+            has_timestamp_usec,
+            "latest sync_state cursor column should exist"
+        );
     }
 
     #[test]

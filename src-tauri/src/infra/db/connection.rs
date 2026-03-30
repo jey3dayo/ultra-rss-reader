@@ -172,7 +172,7 @@ mod tests {
     }
 
     #[test]
-    fn schema_version_is_5() {
+    fn schema_version_is_6() {
         let db = DbManager::new_in_memory().unwrap();
         let version: i32 = db
             .reader()
@@ -182,7 +182,7 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(version, 5);
+        assert_eq!(version, 6);
     }
 
     #[test]
@@ -236,8 +236,8 @@ mod tests {
         let _db2 = DbManager::new(&db_path).unwrap();
         drop(_db2);
 
-        let backup_v5 = crate::infra::db::backup::backup_path(&db_path, 5);
-        assert!(!backup_v5.exists(), "No backup when schema is current");
+        let backup_v6 = crate::infra::db::backup::backup_path(&db_path, 6);
+        assert!(!backup_v6.exists(), "No backup when schema is current");
     }
 
     #[test]
@@ -245,7 +245,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let db_path = dir.path().join("test.db");
 
-        // Create a DB at v5
+        // Create a DB at v6
         let db = DbManager::new(&db_path).unwrap();
         db.writer()
             .execute(
@@ -255,20 +255,20 @@ mod tests {
             .unwrap();
         drop(db);
 
-        // Manually set version back to 4 — V5 adds display_mode column which already exists,
+        // Manually set version back to 5 — V6 adds timestamp_usec column which already exists,
         // so the migration will fail with "duplicate column name"
         {
             let conn = rusqlite::Connection::open(&db_path).unwrap();
-            conn.execute("DELETE FROM schema_version WHERE version = 5", [])
+            conn.execute("DELETE FROM schema_version WHERE version = 6", [])
                 .unwrap();
             drop(conn);
         }
 
         // DbManager::new will:
-        // 1. See version=4, needs migration
-        // 2. Create backup at v4
-        // 3. Try V5 (ALTER TABLE ADD COLUMN display_mode) → FAIL (column exists)
-        // 4. Restore from backup (v4)
+        // 1. See version=5, needs migration
+        // 2. Create backup at v5
+        // 3. Try V6 (ALTER TABLE ADD COLUMN timestamp_usec) → FAIL (column exists)
+        // 4. Restore from backup (v5)
         // 5. Return Err (fail-fast, don't run with old schema)
         let result = DbManager::new(&db_path);
         assert!(
@@ -277,7 +277,7 @@ mod tests {
         );
         let err_msg = format!("{}", result.err().unwrap());
         assert!(
-            err_msg.contains("restored to v4"),
+            err_msg.contains("restored to v5"),
             "Error should mention restore: {err_msg}"
         );
 
@@ -290,9 +290,9 @@ mod tests {
             .unwrap();
         assert_eq!(name, "Test");
 
-        // Verify schema version is 4 (restored state)
+        // Verify schema version is 5 (restored state)
         let version = super::super::migration::get_schema_version(&conn);
-        assert_eq!(version, 4, "Should be restored to v4");
+        assert_eq!(version, 5, "Should be restored to v5");
     }
 
     #[test]

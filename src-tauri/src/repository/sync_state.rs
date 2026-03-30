@@ -5,6 +5,7 @@ use crate::domain::types::AccountId;
 pub struct SyncState {
     pub account_id: AccountId,
     pub scope_key: String,
+    pub timestamp_usec: Option<i64>,
     pub continuation: Option<String>,
     pub etag: Option<String>,
     pub last_modified: Option<String>,
