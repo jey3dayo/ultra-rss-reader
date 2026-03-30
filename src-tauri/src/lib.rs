@@ -1,3 +1,4 @@
+pub mod browser_webview;
 pub mod commands;
 pub mod domain;
 pub mod infra;
@@ -72,6 +73,8 @@ pub fn run() {
             app.manage(AppState {
                 db: Mutex::new(db),
                 syncing: Arc::new(AtomicBool::new(false)),
+                automatic_sync_enabled: Arc::new(AtomicBool::new(false)),
+                browser_webview: Mutex::new(browser_webview::BrowserWebviewTracker::default()),
             });
             app.manage(PendingUpdate(Arc::new(tokio::sync::Mutex::new(None))));
 
@@ -87,6 +90,7 @@ pub fn run() {
             commands::account_commands::update_account_sync,
             commands::account_commands::update_account_credentials,
             commands::account_commands::rename_account,
+            commands::account_commands::test_account_connection,
             commands::account_commands::delete_account,
             commands::feed_commands::list_folders,
             commands::feed_commands::create_folder,
@@ -97,7 +101,8 @@ pub fn run() {
             commands::feed_commands::update_feed_folder,
             commands::feed_commands::update_feed_display_mode,
             commands::feed_commands::discover_feeds,
-            commands::feed_commands::trigger_sync,
+            commands::sync_commands::trigger_sync,
+            commands::sync_commands::trigger_automatic_sync,
             commands::article_commands::list_articles,
             commands::article_commands::list_account_articles,
             commands::article_commands::count_account_unread_articles,
@@ -108,6 +113,12 @@ pub fn run() {
             commands::article_commands::toggle_article_star,
             commands::article_commands::open_in_browser,
             commands::article_commands::check_browser_embed_support,
+            commands::browser_webview_commands::create_or_update_browser_webview,
+            commands::browser_webview_commands::set_browser_webview_bounds,
+            commands::browser_webview_commands::go_back_browser_webview,
+            commands::browser_webview_commands::go_forward_browser_webview,
+            commands::browser_webview_commands::reload_browser_webview,
+            commands::browser_webview_commands::close_browser_webview,
             commands::opml_commands::import_opml,
             commands::opml_commands::export_opml,
             commands::article_commands::search_articles,

@@ -192,6 +192,69 @@ pub fn rename_account(
 }
 
 #[tauri::command]
+pub async fn test_account_connection(
+    state: State<'_, AppState>,
+    account_id: String,
+) -> Result<bool, AppError> {
+    let id = AccountId(account_id);
+
+    let (account, inoreader_creds) = {
+        let db = state.db.lock().map_err(|e| AppError::UserVisible {
+            message: format!("Lock error: {e}"),
+        })?;
+        let repo = SqliteAccountRepository::new(db.reader());
+        let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
+            message: "Account not found".into(),
+        })?;
+        let creds = if account.kind == ProviderKind::Inoreader {
+            let pref_repo = SqlitePreferenceRepository::new(db.reader());
+            (
+                pref_repo.get("inoreader_app_id").unwrap_or(None),
+                pref_repo.get("inoreader_app_key").unwrap_or(None),
+            )
+        } else {
+            (None, None)
+        };
+        (account, creds)
+    }; // DB lock dropped
+
+    if !matches!(
+        account.kind,
+        ProviderKind::FreshRss | ProviderKind::Inoreader
+    ) {
+        return Ok(true);
+    }
+
+    let username = account
+        .username
+        .as_deref()
+        .ok_or_else(|| AppError::UserVisible {
+            message: "Username is not configured".into(),
+        })?;
+
+    let password = keyring_store::get_password(id.as_ref())?;
+
+    let mut provider = match account.kind {
+        ProviderKind::FreshRss => {
+            GReaderProvider::for_freshrss(account.server_url.as_deref().unwrap_or_default())
+        }
+        ProviderKind::Inoreader => {
+            GReaderProvider::for_inoreader(inoreader_creds.0, inoreader_creds.1)
+        }
+        _ => unreachable!(),
+    };
+
+    provider
+        .authenticate(&Credentials {
+            token: Some(username.to_string()),
+            password: Some(password),
+        })
+        .await?;
+
+    Ok(true)
+}
+
+#[tauri::command]
 pub fn delete_account(state: State<'_, AppState>, account_id: String) -> Result<(), AppError> {
     // Clean up keyring entry (log warning on unexpected errors)
     if let Err(e) = keyring_store::delete_password(&account_id) {
