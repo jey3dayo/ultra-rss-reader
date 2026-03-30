@@ -142,6 +142,17 @@ const defaultHandler: MockHandler = (cmd, args) => {
       return null;
     case "open_in_browser":
       return null;
+    case "get_platform_info":
+      return {
+        kind: "windows",
+        capabilities: {
+          supports_reading_list: false,
+          supports_background_browser_open: false,
+          supports_runtime_window_icon_replacement: true,
+          supports_native_browser_navigation: true,
+          uses_dev_file_credentials: true,
+        },
+      };
     case "check_browser_embed_support":
       return true;
     case "create_or_update_browser_webview":

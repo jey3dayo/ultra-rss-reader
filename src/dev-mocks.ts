@@ -265,6 +265,18 @@ export function setupDevMocks() {
         return null;
       }
 
+      case "get_platform_info":
+        return {
+          kind: "windows",
+          capabilities: {
+            supports_reading_list: false,
+            supports_background_browser_open: false,
+            supports_runtime_window_icon_replacement: true,
+            supports_native_browser_navigation: true,
+            uses_dev_file_credentials: true,
+          },
+        };
+
       case "export_opml":
         return `<?xml version="1.0" encoding="UTF-8"?>
 <opml version="2.0">

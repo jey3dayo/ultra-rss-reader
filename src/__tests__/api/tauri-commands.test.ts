@@ -4,6 +4,7 @@ import {
   addAccount,
   countAccountUnreadArticles,
   createOrUpdateBrowserWebview,
+  getPlatformInfo,
   goBackBrowserWebview,
   listAccountArticles,
   listAccounts,
@@ -117,6 +118,13 @@ describe("tauri-commands with mockIPC", () => {
         can_go_forward: false,
         is_loading: false,
       });
+    });
+  });
+
+  describe("getPlatformInfo", () => {
+    it("returns platform info from getPlatformInfo", async () => {
+      const value = Result.unwrap(await getPlatformInfo());
+      expect(value.kind).toBe("windows");
     });
   });
 });

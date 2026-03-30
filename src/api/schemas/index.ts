@@ -50,6 +50,12 @@ export { type DiscoveredFeedDto, DiscoveredFeedDtoSchema } from "./discovered-fe
 export { type AppError, AppErrorSchema } from "./error";
 export { type FeedDto, FeedDtoSchema } from "./feed";
 export { type FolderDto, FolderDtoSchema } from "./folder";
+export {
+  type PlatformCapabilities,
+  PlatformCapabilitiesSchema,
+  type PlatformInfo,
+  PlatformInfoSchema,
+} from "./platform-info";
 export { type AccountSyncError, type SyncResultDto, SyncResultSchema } from "./sync-result";
 export { type TagDto, TagDtoSchema } from "./tag";
 export { type UpdateInfoDto, UpdateInfoDtoSchema } from "./update-info";
