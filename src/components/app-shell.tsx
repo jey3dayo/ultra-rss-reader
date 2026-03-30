@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { useAppIconTheme } from "../hooks/use-app-icon-theme";
 import { useBadge } from "../hooks/use-badge";
 import { useBreakpoint } from "../hooks/use-breakpoint";
 import { useKeyboard } from "../hooks/use-keyboard";
 import { useMenuEvents } from "../hooks/use-menu-events";
 import { useUpdater } from "../hooks/use-updater";
+import { usePlatformStore } from "../stores/platform-store";
 import { useUiStore } from "../stores/ui-store";
 import { AppConfirmDialog } from "./app-confirm-dialog";
 import { AppLayout } from "./app-layout";
@@ -67,8 +69,13 @@ export function AppShell() {
   useKeyboard();
   useMenuEvents();
   useUpdater();
+  const loadPlatformInfo = usePlatformStore((state) => state.loadPlatformInfo);
   const commandPaletteOpen = useUiStore((state) => state.commandPaletteOpen);
   const appLoading = useUiStore((state) => state.appLoading);
+
+  useEffect(() => {
+    loadPlatformInfo();
+  }, [loadPlatformInfo]);
 
   return (
     <div className="flex h-full flex-col">

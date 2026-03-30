@@ -2,13 +2,23 @@ import { render } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AppLayout } from "@/components/app-layout";
 import { shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
+import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../tests/helpers/tauri-mocks";
 
+const defaultCapabilities = {
+  supports_reading_list: false,
+  supports_background_browser_open: false,
+  supports_runtime_window_icon_replacement: false,
+  supports_native_browser_navigation: false,
+  uses_dev_file_credentials: false,
+};
+
 describe("App", () => {
   beforeEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
+    usePlatformStore.setState(usePlatformStore.getInitialState());
     setupTauriMocks();
   });
 
@@ -66,9 +76,44 @@ describe("App", () => {
     expect(container.innerHTML).toContain("w-[380px]");
   });
 
-  it("uses overlay titlebar chrome only for macOS tauri windows", () => {
-    expect(shouldUseDesktopOverlayTitlebar({ platform: "MacIntel", hasTauriRuntime: true })).toBe(true);
-    expect(shouldUseDesktopOverlayTitlebar({ platform: "Win32", hasTauriRuntime: true })).toBe(false);
-    expect(shouldUseDesktopOverlayTitlebar({ platform: "MacIntel", hasTauriRuntime: false })).toBe(false);
+  it("uses overlay titlebar only when tauri runtime is available on macos platform info", () => {
+    expect(
+      shouldUseDesktopOverlayTitlebar({
+        platformKind: usePlatformStore.getState().platform.kind,
+        hasTauriRuntime: true,
+      }),
+    ).toBe(false);
+
+    usePlatformStore.setState({
+      platform: {
+        kind: "macos",
+        capabilities: defaultCapabilities,
+      },
+      loaded: true,
+    });
+    expect(
+      shouldUseDesktopOverlayTitlebar({
+        platformKind: usePlatformStore.getState().platform.kind,
+        hasTauriRuntime: true,
+      }),
+    ).toBe(true);
+
+    usePlatformStore.setState({
+      platform: {
+        kind: "windows",
+        capabilities: {
+          ...defaultCapabilities,
+          supports_runtime_window_icon_replacement: true,
+          supports_native_browser_navigation: true,
+        },
+      },
+      loaded: true,
+    });
+    expect(
+      shouldUseDesktopOverlayTitlebar({
+        platformKind: usePlatformStore.getState().platform.kind,
+        hasTauriRuntime: true,
+      }),
+    ).toBe(false);
   });
 });

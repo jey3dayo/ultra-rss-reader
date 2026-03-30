@@ -1,6 +1,7 @@
 import { computeTranslateX, isPaneVisible, resolveLayout } from "../hooks/use-layout";
 import { cn } from "../lib/utils";
-import { shouldUseDesktopOverlayTitlebar } from "../lib/window-chrome";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "../lib/window-chrome";
+import { usePlatformStore } from "../stores/platform-store";
 import { useUiStore } from "../stores/ui-store";
 import { ArticleList } from "./reader/article-list";
 import { ArticleView } from "./reader/article-view";
@@ -9,13 +10,14 @@ import { Sidebar } from "./reader/sidebar";
 function SlidingPaneLayout({
   layoutMode,
   focusedPane,
+  overlayTitlebar,
 }: {
   layoutMode: "compact" | "mobile";
   focusedPane: "sidebar" | "list" | "content";
+  overlayTitlebar: boolean;
 }) {
   const isMobile = layoutMode === "mobile";
   const translateX = computeTranslateX(layoutMode, focusedPane);
-  const overlayTitlebar = shouldUseDesktopOverlayTitlebar();
 
   return (
     <div className={cn("h-full overflow-hidden", overlayTitlebar && "desktop-overlay-titlebar")}>
@@ -53,8 +55,14 @@ function SlidingPaneLayout({
 }
 
 export function AppLayout() {
-  const { layoutMode, focusedPane, contentMode } = useUiStore();
-  const overlayTitlebar = shouldUseDesktopOverlayTitlebar();
+  const layoutMode = useUiStore((state) => state.layoutMode);
+  const focusedPane = useUiStore((state) => state.focusedPane);
+  const contentMode = useUiStore((state) => state.contentMode);
+  const platformKind = usePlatformStore((state) => state.platform.kind);
+  const overlayTitlebar = shouldUseDesktopOverlayTitlebar({
+    platformKind,
+    hasTauriRuntime: hasTauriRuntime(),
+  });
 
   if (layoutMode === "wide") {
     const panes = resolveLayout(layoutMode, focusedPane, contentMode);
@@ -79,5 +87,5 @@ export function AppLayout() {
     );
   }
 
-  return <SlidingPaneLayout layoutMode={layoutMode} focusedPane={focusedPane} />;
+  return <SlidingPaneLayout layoutMode={layoutMode} focusedPane={focusedPane} overlayTitlebar={overlayTitlebar} />;
 }
