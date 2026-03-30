@@ -1,7 +1,7 @@
 use crate::domain::error::{DomainError, DomainResult};
 use crate::platform::{PlatformInfo, PlatformKind};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 const SERVICE: &str = "ultra-rss-reader";
 
@@ -18,11 +18,39 @@ fn dev_credentials_path_for_platform<F>(info: &PlatformInfo, get_env: F) -> Opti
 where
     F: Fn(&str) -> Option<String>,
 {
+    dev_credentials_path_for_platform_with_fs(info, get_env, Path::exists)
+}
+
+fn dev_credentials_path_for_platform_with_fs<F, E>(
+    info: &PlatformInfo,
+    get_env: F,
+    file_exists: E,
+) -> Option<PathBuf>
+where
+    F: Fn(&str) -> Option<String>,
+    E: Fn(&Path) -> bool,
+{
     if !info.capabilities.uses_dev_file_credentials {
         return None;
     }
-    let dir = dev_credentials_dir_for_kind_from_env(info.kind, get_env)?;
-    Some(dir.join("dev-credentials.json"))
+
+    let preferred_path = dev_credentials_dir_for_kind_from_env(info.kind, |key| get_env(key))?
+        .join("dev-credentials.json");
+    if info.kind == PlatformKind::Windows {
+        return Some(preferred_path);
+    }
+
+    let legacy_path = legacy_dev_credentials_path_from_env(|key| get_env(key));
+    if let Some(legacy_path) = legacy_path {
+        if legacy_path != preferred_path
+            && file_exists(legacy_path.as_path())
+            && !file_exists(preferred_path.as_path())
+        {
+            return Some(legacy_path);
+        }
+    }
+
+    Some(preferred_path)
 }
 
 fn dev_credentials_dir_for_kind_from_env<F>(kind: PlatformKind, get_env: F) -> Option<PathBuf>
@@ -68,6 +96,20 @@ where
             .join(".local")
             .join("share")
             .join("ultra-rss-reader"),
+    )
+}
+
+fn legacy_dev_credentials_path_from_env<F>(get_env: F) -> Option<PathBuf>
+where
+    F: Fn(&str) -> Option<String>,
+{
+    let home = get_env("HOME")?;
+    Some(
+        PathBuf::from(home)
+            .join(".local")
+            .join("share")
+            .join("ultra-rss-reader")
+            .join("dev-credentials.json"),
     )
 }
 
@@ -173,10 +215,13 @@ pub fn delete_password(account_id: &str) -> DomainResult<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{dev_credentials_dir_for_kind_from_env, dev_credentials_path_for_platform};
+    use super::{
+        dev_credentials_dir_for_kind_from_env, dev_credentials_path_for_platform,
+        dev_credentials_path_for_platform_with_fs,
+    };
     use crate::platform::{platform_info_for_kind, PlatformKind};
     use std::collections::HashMap;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     fn env_map(pairs: &[(&str, &str)]) -> HashMap<String, String> {
         pairs
@@ -300,6 +345,71 @@ mod tests {
             path,
             Some(PathBuf::from(
                 "/tmp/data-home/ultra-rss-reader/dev-credentials.json"
+            ))
+        );
+    }
+
+    #[test]
+    fn non_windows_uses_legacy_path_when_legacy_exists_and_preferred_is_missing() {
+        let mut info = platform_info_for_kind(PlatformKind::Linux);
+        info.capabilities.uses_dev_file_credentials = true;
+        let env = env_map(&[
+            ("ULTRA_RSS_DEV_CREDENTIALS", "1"),
+            ("XDG_DATA_HOME", "/tmp/new-data-home"),
+            ("HOME", "/Users/alice"),
+        ]);
+        let legacy = Path::new("/Users/alice/.local/share/ultra-rss-reader/dev-credentials.json");
+
+        let path = dev_credentials_path_for_platform_with_fs(
+            &info,
+            |key| env.get(key).cloned(),
+            |candidate| candidate == legacy,
+        );
+
+        assert_eq!(path, Some(legacy.to_path_buf()));
+    }
+
+    #[test]
+    fn non_windows_keeps_preferred_path_when_preferred_exists() {
+        let mut info = platform_info_for_kind(PlatformKind::Linux);
+        info.capabilities.uses_dev_file_credentials = true;
+        let env = env_map(&[
+            ("ULTRA_RSS_DEV_CREDENTIALS", "1"),
+            ("XDG_DATA_HOME", "/tmp/new-data-home"),
+            ("HOME", "/Users/alice"),
+        ]);
+        let preferred = Path::new("/tmp/new-data-home/ultra-rss-reader/dev-credentials.json");
+        let legacy = Path::new("/Users/alice/.local/share/ultra-rss-reader/dev-credentials.json");
+
+        let path = dev_credentials_path_for_platform_with_fs(
+            &info,
+            |key| env.get(key).cloned(),
+            |candidate| candidate == preferred || candidate == legacy,
+        );
+
+        assert_eq!(path, Some(preferred.to_path_buf()));
+    }
+
+    #[test]
+    fn windows_keeps_preferred_path_even_if_legacy_file_exists() {
+        let mut info = platform_info_for_kind(PlatformKind::Windows);
+        info.capabilities.uses_dev_file_credentials = true;
+        let env = env_map(&[
+            ("ULTRA_RSS_DEV_CREDENTIALS", "1"),
+            ("LOCALAPPDATA", r"C:\Users\alice\AppData\Local"),
+            ("HOME", r"C:\Users\alice"),
+        ]);
+
+        let path = dev_credentials_path_for_platform_with_fs(
+            &info,
+            |key| env.get(key).cloned(),
+            |_candidate| true,
+        );
+
+        assert_eq!(
+            path,
+            Some(PathBuf::from(
+                r"C:\Users\alice\AppData\Local\ultra-rss-reader\dev-credentials.json"
             ))
         );
     }
