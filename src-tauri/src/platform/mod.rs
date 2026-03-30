@@ -46,10 +46,7 @@ pub fn platform_info_for_kind(kind: PlatformKind) -> PlatformInfo {
         },
     };
 
-    PlatformInfo {
-        kind,
-        capabilities,
-    }
+    PlatformInfo { kind, capabilities }
 }
 
 fn uses_dev_file_credentials_from_env<F>(get_env: F) -> bool
