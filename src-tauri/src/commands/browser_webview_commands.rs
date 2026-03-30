@@ -26,8 +26,7 @@ fn browser_webview_error(message: impl Into<String>) -> AppError {
 }
 
 fn external_url(url: &str) -> Result<Url, AppError> {
-    url.parse()
-        .map_err(|error| browser_webview_error(format!("Invalid browser URL: {error}")))
+    crate::commands::parse_browser_http_url(url)
 }
 
 fn apply_bounds(webview: &tauri::Webview, bounds: BrowserWebviewBounds) -> Result<(), AppError> {
@@ -161,6 +160,8 @@ pub fn create_or_update_browser_webview(
     url: String,
     bounds: BrowserWebviewBounds,
 ) -> Result<BrowserWebviewState, AppError> {
+    crate::commands::parse_browser_http_url(&url)?;
+
     if let Some(webview) = inline_browser_webview(&window) {
         apply_bounds(&webview, bounds)?;
         let current_url = webview
@@ -255,6 +256,32 @@ pub fn reload_browser_webview(
         browser_webview_error(format!("Failed to reload browser webview: {error}"))
     })?;
     Ok(next_state)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::external_url;
+
+    #[test]
+    fn external_url_accepts_https_urls() {
+        let parsed = external_url("https://example.com/article").expect("https URL should parse");
+
+        assert_eq!(parsed.scheme(), "https");
+    }
+
+    #[test]
+    fn external_url_rejects_javascript_scheme() {
+        let result = external_url("javascript:alert('owned')");
+
+        assert!(result.is_err(), "javascript: URLs must be rejected");
+    }
+
+    #[test]
+    fn external_url_rejects_file_scheme() {
+        let result = external_url("file:///tmp/article.html");
+
+        assert!(result.is_err(), "file:// URLs must be rejected");
+    }
 }
 
 #[tauri::command]
