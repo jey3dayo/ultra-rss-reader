@@ -153,6 +153,19 @@ src-tauri/target/debug/ultra-rss-reader
 kill $DEV_PID 2>/dev/null || true
 """
 
+[tasks."app:open"]
+description = "Remove quarantine & ad-hoc sign, then open the installed app"
+run = """
+APP="/Applications/Ultra RSS Reader.app"
+if [ ! -d "$APP" ]; then
+  echo "Error: $APP not found" >&2
+  exit 1
+fi
+xattr -cr "$APP"
+codesign --force --deep --sign - "$APP"
+open "$APP"
+"""
+
 [tasks."app:dev:browser"]
 description = "Run frontend dev server for browser UI testing"
 run = "pnpm dev --host 127.0.0.1 --port 4173 --strictPort"
