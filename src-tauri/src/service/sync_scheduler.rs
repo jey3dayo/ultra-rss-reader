@@ -5,7 +5,7 @@ use std::sync::Mutex;
 use futures::FutureExt;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::commands::sync_commands::{get_min_sync_interval, run_automatic_sync};
+use crate::commands::sync_commands::{get_min_sync_interval, purge_old_articles, run_automatic_sync};
 use crate::infra::db::connection::DbManager;
 
 /// Start a background task that periodically syncs all accounts.
@@ -55,6 +55,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                     if let Err(e) = app_handle.emit("sync-completed", ()) {
                         tracing::warn!("Failed to emit sync-completed event: {e}");
                     }
+                    purge_old_articles(&state.db);
                 }
                 Ok(Ok(_)) => {
                     tracing::info!(

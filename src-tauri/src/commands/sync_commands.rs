@@ -10,11 +10,13 @@ use crate::domain::account::Account;
 use crate::domain::provider::ProviderKind;
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
+use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
 use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::local::LocalProvider;
 use crate::repository::account::AccountRepository;
+use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::preference::PreferenceRepository;
 
@@ -183,6 +185,52 @@ pub fn get_min_sync_interval(db: &Mutex<DbManager>) -> std::time::Duration {
         .unwrap_or(DEFAULT_INTERVAL_SECS);
 
     std::time::Duration::from_secs(secs)
+}
+
+/// Purge old read articles based on each account's `keep_read_items_days` setting.
+/// Called after background sync to prevent data bloat.
+pub fn purge_old_articles(db: &Mutex<DbManager>) {
+    let accounts = match lock_db(db).and_then(|g| {
+        let repo = SqliteAccountRepository::new(g.reader());
+        Ok(repo.find_all()?)
+    }) {
+        Ok(a) => a,
+        Err(e) => {
+            warn!("Failed to load accounts for purge: {e}");
+            return;
+        }
+    };
+
+    for account in &accounts {
+        if account.keep_read_items_days <= 0 {
+            continue;
+        }
+        let cutoff =
+            chrono::Utc::now() - chrono::Duration::days(account.keep_read_items_days);
+        match lock_db(db) {
+            Ok(g) => {
+                let repo = SqliteArticleRepository::new(g.writer());
+                match repo.purge_old_read(cutoff) {
+                    Ok(n) if n > 0 => {
+                        tracing::info!(
+                            "Purged {n} old read articles for account '{}'",
+                            account.name
+                        );
+                    }
+                    Ok(_) => {}
+                    Err(e) => {
+                        warn!(
+                            "Failed to purge articles for account '{}': {e}",
+                            account.name
+                        );
+                    }
+                }
+            }
+            Err(e) => {
+                warn!("Lock error during purge: {e}");
+            }
+        }
+    }
 }
 
 #[tauri::command]
