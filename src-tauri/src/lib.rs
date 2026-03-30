@@ -56,10 +56,17 @@ fn cleanup_old_logs(log_dir: &std::path::Path, max_age_days: u64) {
         Err(_) => return,
     };
     for entry in entries.flatten() {
+        let path = entry.path();
+        if path.file_name().is_some_and(|name| name == "app.log") {
+            continue;
+        }
         if let Ok(meta) = entry.metadata() {
+            if !meta.is_file() {
+                continue;
+            }
             if let Ok(modified) = meta.modified() {
                 if modified < cutoff {
-                    let _ = std::fs::remove_file(entry.path());
+                    let _ = std::fs::remove_file(path);
                 }
             }
         }
@@ -89,7 +96,7 @@ pub fn run() {
                 },
             ))
             .max_file_size(5_000_000) // ~5 MB
-            .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
+            .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepOne)
             .level(log::LevelFilter::Info)
             .timezone_strategy(tauri_plugin_log::TimezoneStrategy::UseLocal)
             .build(),

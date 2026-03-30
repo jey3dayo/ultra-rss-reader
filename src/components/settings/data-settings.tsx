@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getDatabaseInfo, getLogDir, vacuumDatabase } from "@/api/tauri-commands";
@@ -58,7 +58,7 @@ export function DataSettings() {
       await getLogDir(),
       Result.inspect(async (dir) => {
         try {
-          await revealItemInDir(dir);
+          await openPath(dir);
         } catch (e) {
           console.error("Failed to open log directory:", e);
           showToast(t("data.open_log_dir_failed", { message: String(e) }));

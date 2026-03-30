@@ -151,12 +151,12 @@ pub fn emit_browser_webview_state<R: Runtime>(window: &Window<R>, state: &Browse
 }
 
 pub fn navigation_availability<R: Runtime>(
-    webview: &Webview<R>,
+    _webview: &Webview<R>,
 ) -> Option<BrowserNavigationAvailability> {
     #[cfg(target_os = "macos")]
     {
         let (tx, rx) = std::sync::mpsc::channel();
-        if webview
+        if _webview
             .with_webview(move |platform_webview| unsafe {
                 let view: &objc2_web_kit::WKWebView = &*platform_webview.inner().cast();
                 let _ = tx.send(BrowserNavigationAvailability {
