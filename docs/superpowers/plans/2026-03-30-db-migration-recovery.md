@@ -24,7 +24,7 @@ Spec: `docs/superpowers/specs/2026-03-30-db-migration-recovery-design.md`
 
 ### Task 1: `migration.rs` を単一トランザクション化する
 
-### Files:
+### Files
 
 - Modify: `src-tauri/src/infra/db/migration.rs`
 
@@ -160,7 +160,7 @@ git commit -m "fix: wrap db migrations in a transaction"
 
 ### Task 2: restore 前に接続を解放する不変条件をコード化する
 
-### Files:
+### Files
 
 - Modify: `src-tauri/src/infra/db/connection.rs`
 
@@ -277,7 +277,7 @@ git commit -m "fix: release sqlite connections before restore"
 
 ### Task 3: バックアップ有無で recovery メッセージを分岐させる
 
-### Files:
+### Files
 
 - Modify: `src-tauri/src/infra/db/connection.rs`
 - Modify: `src-tauri/src/lib.rs`
@@ -455,7 +455,7 @@ git commit -m "fix: clarify db migration recovery messaging"
 
 ### Task 4: 最終確認と handoff
 
-### Files:
+### Files
 
 - Modify: `src-tauri/src/infra/db/migration.rs`
 - Modify: `src-tauri/src/infra/db/connection.rs`
