@@ -63,6 +63,7 @@ export function SettingsModal() {
   const setSettingsCategory = useUiStore((s) => s.setSettingsCategory);
   const setSettingsAccountId = useUiStore((s) => s.setSettingsAccountId);
   const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
+  const settingsLoading = useUiStore((s) => s.settingsLoading);
   const { data: accounts } = useAccounts();
 
   // Auto-select first account when navigating to accounts section via menu
@@ -146,6 +147,7 @@ export function SettingsModal() {
           settingsCategory={settingsCategory}
         />
       }
+      isLoading={settingsLoading}
       onClose={closeSettings}
       onOpenChange={(open) => (!open ? closeSettings() : openSettings())}
     />

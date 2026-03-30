@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
+import { IndeterminateProgress } from "@/components/shared/indeterminate-progress";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,6 +12,7 @@ export type SettingsModalViewProps = {
   navigation: ReactNode;
   accountsNavigation: ReactNode;
   content: ReactNode;
+  isLoading?: boolean;
   onClose: () => void;
   onOpenChange: (open: boolean) => void;
 };
@@ -22,6 +24,7 @@ export function SettingsModalView({
   navigation,
   accountsNavigation,
   content,
+  isLoading,
   onClose,
   onOpenChange,
 }: SettingsModalViewProps) {
@@ -31,6 +34,7 @@ export function SettingsModalView({
         className="flex h-[80vh] max-h-[720px] max-w-[920px] gap-0 overflow-hidden p-0 sm:max-w-[920px]"
         showCloseButton={false}
       >
+        {isLoading && <IndeterminateProgress className="absolute inset-x-0 top-0 z-10" />}
         <div className="flex w-[260px] flex-col border-r border-border bg-sidebar">
           <DialogHeader className="flex flex-row items-center gap-3 border-b border-border px-4 py-4">
             <Button
