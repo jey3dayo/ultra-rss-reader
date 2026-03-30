@@ -140,6 +140,9 @@ fn create_browser_webview(
         }
     });
 
+    #[cfg(windows)]
+    let builder = builder.focused(false);
+
     window
         .add_child(
             builder,

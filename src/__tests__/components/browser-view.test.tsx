@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
@@ -23,10 +23,42 @@ vi.mock("@tauri-apps/api/event", () => ({
   listen: listenMock,
 }));
 
+function createDomRect(width: number, height: number, left = 0, top = 0): DOMRect {
+  return {
+    x: left,
+    y: top,
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+    toJSON: () => ({}),
+  } as DOMRect;
+}
+
+let hostRect = createDomRect(960, 540);
+let resizeObserverCallback: ResizeObserverCallback | null = null;
+
 describe("BrowserView", () => {
   beforeEach(() => {
     listenMock.mockClear();
     registeredHandlers.clear();
+    hostRect = createDomRect(960, 540);
+    resizeObserverCallback = null;
+    vi.stubGlobal(
+      "ResizeObserver",
+      class ResizeObserver {
+        constructor(callback: ResizeObserverCallback) {
+          resizeObserverCallback = callback;
+        }
+
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(() => hostRect);
     useUiStore.setState(useUiStore.getInitialState());
     const commands: Array<{ cmd: string; args: Record<string, unknown> }> = [];
     setupTauriMocks((cmd, args) => {
@@ -72,6 +104,11 @@ describe("BrowserView", () => {
       return null;
     });
     Object.assign(globalThis, { __browserCommands: commands });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("creates the inline browser webview on mount and keeps the loading hint visible until finish", async () => {
@@ -356,6 +393,47 @@ describe("BrowserView", () => {
     expect(screen.getByText("https://togetter.com/li/123456")).toBeInTheDocument();
     expect(screen.queryByText("https://acdn.adnxs.com/dmp/async_usersync.html")).not.toBeInTheDocument();
     expect(screen.getByText("Loading page...")).toBeInTheDocument();
+  });
+
+  it("waits for non-zero host bounds before creating the inline browser webview", async () => {
+    hostRect = createDomRect(0, 0);
+
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserView />, { wrapper: createWrapper() });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const commands = (
+      globalThis as typeof globalThis & {
+        __browserCommands: Array<{ cmd: string; args: Record<string, unknown> }>;
+      }
+    ).__browserCommands;
+
+    expect(commands.some(({ cmd }) => cmd === "create_or_update_browser_webview")).toBe(false);
+
+    hostRect = createDomRect(800, 600);
+
+    await act(async () => {
+      resizeObserverCallback?.([], {} as ResizeObserver);
+    });
+
+    await waitFor(() => {
+      expect(commands.some(({ cmd }) => cmd === "create_or_update_browser_webview")).toBe(true);
+    });
+
+    expect(commands.find(({ cmd }) => cmd === "create_or_update_browser_webview")?.args.bounds).toMatchObject({
+      width: 800,
+      height: 600,
+    });
   });
 
   it("preserves history button state when ignoring subresource loading URLs", async () => {

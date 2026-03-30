@@ -12,7 +12,6 @@ import {
   goForwardBrowserWebview,
   openInBrowser,
   reloadBrowserWebview,
-  setBrowserWebviewBounds,
 } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
@@ -38,6 +37,12 @@ function initialBrowserState(url: string): BrowserWebviewState {
     can_go_forward: false,
     is_loading: true,
   };
+}
+
+function hasRenderableBrowserWebviewBounds(
+  bounds: BrowserWebviewBounds | null,
+): bounds is BrowserWebviewBounds {
+  return bounds !== null && bounds.width > 0 && bounds.height > 0;
 }
 
 function mergeBrowserState(
@@ -83,6 +88,7 @@ export function BrowserView() {
   const closeBrowser = useUiStore((s) => s.closeBrowser);
   const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [hostBounds, setHostBounds] = useState<BrowserWebviewBounds | null>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const browserStateRef = useRef<BrowserWebviewState | null>(null);
   const listenerReadyRef = useRef<Promise<void> | null>(null);
@@ -114,11 +120,12 @@ export function BrowserView() {
   }, []);
 
   const syncBrowserWebview = useCallback(async () => {
-    if (!browserUrl || !hostRef.current) return;
+    if (!browserUrl || !hasRenderableBrowserWebviewBounds(hostBounds)) return;
     const requestedUrl = browserUrl;
+    const requestedBounds = hostBounds;
 
     Result.pipe(
-      await createOrUpdateBrowserWebview(requestedUrl, toBrowserWebviewBounds(hostRef.current)),
+      await createOrUpdateBrowserWebview(requestedUrl, requestedBounds),
       Result.inspect((state) => {
         if (useUiStore.getState().browserUrl !== requestedUrl) {
           return;
@@ -136,7 +143,7 @@ export function BrowserView() {
         setErrorMessage(error.message);
       }),
     );
-  }, [browserUrl]);
+  }, [browserUrl, hostBounds]);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,21 +165,14 @@ export function BrowserView() {
     return () => {
       cancelled = true;
     };
-  }, [browserUrl, syncBrowserWebview]);
+  }, [browserUrl, hostBounds, syncBrowserWebview]);
 
   useEffect(() => {
     if (!browserUrl || !hostRef.current) return;
 
     const element = hostRef.current;
     const updateBounds = () => {
-      void setBrowserWebviewBounds(toBrowserWebviewBounds(element)).then((result) => {
-        Result.pipe(
-          result,
-          Result.inspectError((error) => {
-            console.error("Failed to update browser webview bounds:", error);
-          }),
-        );
-      });
+      setHostBounds(toBrowserWebviewBounds(element));
     };
 
     updateBounds();
