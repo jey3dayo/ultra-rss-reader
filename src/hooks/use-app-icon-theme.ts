@@ -6,7 +6,17 @@ import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preference
 const DARK_ICON_PATH = "/icons/app-icon-dark.png";
 const LIGHT_ICON_PATH = "/icons/app-icon-light.png";
 
+// macOS dev uses the runtime PNG in the Dock, which appears larger than the bundled .icns icon.
+function shouldSkipRuntimeIconReplacement() {
+  const platform = navigator.platform.toLowerCase();
+  return import.meta.env.DEV && platform.includes("mac");
+}
+
 async function setAppIcon(theme: "light" | "dark"): Promise<void> {
+  if (shouldSkipRuntimeIconReplacement()) {
+    return;
+  }
+
   Result.pipe(
     await setWindowIcon(theme === "light" ? LIGHT_ICON_PATH : DARK_ICON_PATH),
     Result.inspectError(() => {

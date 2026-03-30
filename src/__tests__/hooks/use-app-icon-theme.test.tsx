@@ -43,10 +43,23 @@ function createMatchMedia(matches: boolean) {
   };
 }
 
+function setNavigatorPlatform(platform: string) {
+  Object.defineProperty(window.navigator, "platform", {
+    value: platform,
+    configurable: true,
+  });
+}
+
+async function flushAsyncWork(): Promise<void> {
+  await Promise.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 describe("useAppIconTheme", () => {
   beforeEach(() => {
     setIconMock.mockReset();
     usePreferencesStore.setState({ prefs: {}, loaded: true });
+    setNavigatorPlatform("Linux x86_64");
   });
 
   it("uses the light icon when the theme is light", async () => {
@@ -82,5 +95,21 @@ describe("useAppIconTheme", () => {
     await waitFor(() => {
       expect(setIconMock).toHaveBeenCalledWith("/icons/app-icon-light.png");
     });
+  });
+
+  it("skips runtime icon replacement on macOS during dev", async () => {
+    const mql = createMatchMedia(true);
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => mql),
+    );
+    setNavigatorPlatform("MacIntel");
+    usePreferencesStore.setState({ prefs: { theme: "system" }, loaded: true });
+
+    render(<HookHarness />);
+
+    await flushAsyncWork();
+
+    expect(setIconMock).not.toHaveBeenCalled();
   });
 });
