@@ -15,8 +15,9 @@ use crate::repository::pending_mutation::{PendingMutation, PendingMutationReposi
 #[tauri::command]
 pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppError> {
     crate::commands::parse_browser_http_url(&url)?;
+    let platform_info = crate::platform::PlatformInfo::current();
 
-    if background.unwrap_or(false) && cfg!(target_os = "macos") {
+    if should_use_background_browser_open(background.unwrap_or(false), &platform_info) {
         // macOS: use `open -g` to open in background
         std::process::Command::new("open")
             .arg("-g")
@@ -31,6 +32,13 @@ pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppE
         })?;
     }
     Ok(())
+}
+
+fn should_use_background_browser_open(
+    background_requested: bool,
+    info: &crate::platform::PlatformInfo,
+) -> bool {
+    background_requested && info.capabilities.supports_background_browser_open
 }
 
 fn has_blocking_x_frame_options(headers: &HeaderMap) -> bool {
@@ -381,7 +389,11 @@ pub fn search_articles(
 #[cfg(test)]
 mod tests {
     use super::check_browser_embed_support;
-    use super::{has_blocking_frame_ancestors, has_blocking_x_frame_options};
+    use super::{
+        has_blocking_frame_ancestors, has_blocking_x_frame_options,
+        should_use_background_browser_open,
+    };
+    use crate::platform::{platform_info_for_kind, PlatformKind};
     use mockito::Server;
     use reqwest::header::{HeaderMap, HeaderValue, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
 
@@ -432,5 +444,20 @@ mod tests {
             .expect("embed check should succeed");
 
         assert!(!supported);
+    }
+
+    #[test]
+    fn background_open_is_used_only_when_requested_and_supported() {
+        let info = platform_info_for_kind(PlatformKind::Macos);
+
+        assert!(should_use_background_browser_open(true, &info));
+        assert!(!should_use_background_browser_open(false, &info));
+    }
+
+    #[test]
+    fn unsupported_platform_falls_back_to_normal_open() {
+        let info = platform_info_for_kind(PlatformKind::Windows);
+
+        assert!(!should_use_background_browser_open(true, &info));
     }
 }

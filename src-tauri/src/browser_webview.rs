@@ -150,9 +150,18 @@ pub fn emit_browser_webview_state<R: Runtime>(window: &Window<R>, state: &Browse
     let _ = window.emit(BROWSER_WEBVIEW_STATE_CHANGED_EVENT, state.clone());
 }
 
+fn supports_native_navigation(info: &crate::platform::PlatformInfo) -> bool {
+    info.capabilities.supports_native_browser_navigation
+}
+
 pub fn navigation_availability<R: Runtime>(
     _webview: &Webview<R>,
 ) -> Option<BrowserNavigationAvailability> {
+    let platform_info = crate::platform::PlatformInfo::current();
+    if !supports_native_navigation(&platform_info) {
+        return None;
+    }
+
     #[cfg(target_os = "macos")]
     {
         let (tx, rx) = std::sync::mpsc::channel();
@@ -288,7 +297,8 @@ pub fn go_forward<R: Runtime>(webview: &Webview<R>) -> tauri::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{BrowserNavigationAvailability, BrowserWebviewTracker};
+    use super::{supports_native_navigation, BrowserNavigationAvailability, BrowserWebviewTracker};
+    use crate::platform::{platform_info_for_kind, PlatformKind};
 
     #[test]
     fn start_marks_state_as_loading_and_resets_history_flags() {
@@ -366,5 +376,23 @@ mod tests {
         tracker.clear();
 
         assert!(tracker.snapshot().is_none());
+    }
+
+    #[test]
+    fn supports_native_navigation_on_macos_and_windows() {
+        let macos = platform_info_for_kind(PlatformKind::Macos);
+        let windows = platform_info_for_kind(PlatformKind::Windows);
+
+        assert!(supports_native_navigation(&macos));
+        assert!(supports_native_navigation(&windows));
+    }
+
+    #[test]
+    fn does_not_support_native_navigation_on_linux_or_unknown() {
+        let linux = platform_info_for_kind(PlatformKind::Linux);
+        let unknown = platform_info_for_kind(PlatformKind::Unknown);
+
+        assert!(!supports_native_navigation(&linux));
+        assert!(!supports_native_navigation(&unknown));
     }
 }
