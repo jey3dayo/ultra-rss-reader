@@ -167,6 +167,7 @@ pub fn run() {
             commands::tag_commands::get_tag_article_counts,
             commands::share_commands::copy_to_clipboard,
             commands::share_commands::add_to_reading_list,
+            commands::platform_commands::get_platform_info,
             commands::updater_commands::check_for_update,
             commands::updater_commands::download_and_install_update,
             commands::updater_commands::restart_app,

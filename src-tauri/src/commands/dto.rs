@@ -23,6 +23,55 @@ impl From<DomainError> for AppError {
 }
 
 #[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum PlatformKindDto {
+    Macos,
+    Windows,
+    Linux,
+    Unknown,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct PlatformCapabilitiesDto {
+    pub supports_reading_list: bool,
+    pub supports_background_browser_open: bool,
+    pub supports_runtime_window_icon_replacement: bool,
+    pub supports_native_browser_navigation: bool,
+    pub uses_dev_file_credentials: bool,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct PlatformInfoDto {
+    pub kind: PlatformKindDto,
+    pub capabilities: PlatformCapabilitiesDto,
+}
+
+impl From<crate::platform::PlatformInfo> for PlatformInfoDto {
+    fn from(info: crate::platform::PlatformInfo) -> Self {
+        let kind = match info.kind {
+            crate::platform::PlatformKind::Macos => PlatformKindDto::Macos,
+            crate::platform::PlatformKind::Windows => PlatformKindDto::Windows,
+            crate::platform::PlatformKind::Linux => PlatformKindDto::Linux,
+            crate::platform::PlatformKind::Unknown => PlatformKindDto::Unknown,
+        };
+
+        let capabilities = PlatformCapabilitiesDto {
+            supports_reading_list: info.capabilities.supports_reading_list,
+            supports_background_browser_open: info.capabilities.supports_background_browser_open,
+            supports_runtime_window_icon_replacement: info
+                .capabilities
+                .supports_runtime_window_icon_replacement,
+            supports_native_browser_navigation: info
+                .capabilities
+                .supports_native_browser_navigation,
+            uses_dev_file_credentials: info.capabilities.uses_dev_file_credentials,
+        };
+
+        Self { kind, capabilities }
+    }
+}
+
+#[derive(Debug, Serialize, Clone)]
 pub struct SyncResult {
     /// Whether any sync actually ran (false = skipped because already in progress)
     pub synced: bool,

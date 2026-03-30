@@ -5,6 +5,7 @@ pub mod database_commands;
 pub mod dto;
 pub mod feed_commands;
 pub mod opml_commands;
+pub mod platform_commands;
 pub mod preference_commands;
 pub mod share_commands;
 pub mod sync_commands;
