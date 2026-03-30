@@ -7,6 +7,8 @@ import {
   deleteAccount,
   exportOpml,
   renameAccount,
+  testAccountConnection,
+  triggerSync,
   updateAccountCredentials,
   updateAccountSync,
 } from "@/api/tauri-commands";
@@ -28,7 +30,10 @@ export function AccountDetail() {
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [credServerUrl, setCredServerUrl] = useState<string | null>(null);
   const [credUsername, setCredUsername] = useState<string | null>(null);
-  const [credPassword, setCredPassword] = useState("");
+  const [credPassword, setCredPassword] = useState<string | null>(null);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const setSettingsLoading = useUiStore((s) => s.setSettingsLoading);
 
   const account = accounts?.find((a) => a.id === settingsAccountId);
 
@@ -100,9 +105,12 @@ export function AccountDetail() {
     // Only update if something actually changed
     const serverUrlChanged = credServerUrl !== null && credServerUrl !== (account.server_url ?? "");
     const usernameChanged = credUsername !== null && credUsername !== (account.username ?? "");
-    const passwordChanged = credPassword !== "";
+    const passwordChanged = credPassword !== null && credPassword !== "";
 
-    if (!serverUrlChanged && !usernameChanged && !passwordChanged) return;
+    if (!serverUrlChanged && !usernameChanged && !passwordChanged) {
+      setCredPassword(null);
+      return;
+    }
 
     Result.pipe(
       await updateAccountCredentials(account.id, serverUrl, username, password),
@@ -113,7 +121,44 @@ export function AccountDetail() {
         qc.setQueryData<AccountDto[]>(["accounts"], (prev) => prev?.map((a) => (a.id === updated.id ? updated : a)));
         setCredServerUrl(null);
         setCredUsername(null);
-        setCredPassword("");
+        setCredPassword(null);
+        useUiStore.getState().showToast(t("account.credentials_saved"));
+      }),
+    );
+  };
+
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    setSettingsLoading(true);
+    const result = await testAccountConnection(account.id);
+    setTestingConnection(false);
+    setSettingsLoading(false);
+    Result.pipe(
+      result,
+      Result.inspectError((e) => {
+        useUiStore.getState().showToast(t("account.connection_failed", { message: e.message }));
+      }),
+      Result.inspect(() => {
+        useUiStore.getState().showToast(t("account.connection_success"));
+      }),
+    );
+  };
+
+  const handleSyncNow = async () => {
+    setSyncing(true);
+    setSettingsLoading(true);
+    const result = await triggerSync();
+    setSyncing(false);
+    setSettingsLoading(false);
+    Result.pipe(
+      result,
+      Result.inspectError((e) => {
+        useUiStore.getState().showToast(t("account.sync_failed", { message: e.message }));
+      }),
+      Result.inspect(() => {
+        qc.invalidateQueries({ queryKey: ["feeds"] });
+        qc.invalidateQueries({ queryKey: ["articles"] });
+        useUiStore.getState().showToast(t("account.sync_complete"));
       }),
     );
   };
@@ -210,10 +255,17 @@ export function AccountDetail() {
             onUsernameChange={setCredUsername}
             onUsernameBlur={commitCredentials}
             passwordLabel={t("account.password")}
-            passwordValue={credPassword}
+            passwordValue={credPassword === null ? "••••••••" : credPassword}
             passwordPlaceholder={t("account.password_placeholder")}
             onPasswordChange={setCredPassword}
+            onPasswordFocus={() => {
+              if (credPassword === null) setCredPassword("");
+            }}
             onPasswordBlur={commitCredentials}
+            testConnectionLabel={t("account.test_connection")}
+            testingConnectionLabel={t("account.testing_connection")}
+            onTestConnection={handleTestConnection}
+            isTestingConnection={testingConnection}
           />
         ) : undefined
       }
@@ -238,6 +290,10 @@ export function AccountDetail() {
           options: keepReadItemsOptions,
           onChange: (value) => handleSyncUpdate({ keepReadItemsDays: Number(value) }),
         },
+        syncNowLabel: t("account.sync_now"),
+        syncingLabel: t("account.syncing_now"),
+        onSyncNow: handleSyncNow,
+        isSyncing: syncing,
       }}
       dangerZone={{
         exportLabel: t("account.export_opml"),
