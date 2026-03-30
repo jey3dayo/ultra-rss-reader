@@ -84,15 +84,18 @@ impl DbManager {
 
                     if let Err(restore_err) = super::backup::restore_backup(db_path, backup_file) {
                         return Err(DomainError::Migration(format!(
-                            "Migration failed ({e}) and restore failed ({restore_err}). \
-                             Manual intervention required."
+                            "Migration failed ({e}) and automatic restore failed ({restore_err}). \
+                             Close the application and restore the backup manually from {} to {}.",
+                            backup_file.display(),
+                            db_path.display()
                         )));
                     }
 
                     // Restore succeeded but return error — don't run with old schema
                     Err(DomainError::Migration(format!(
                         "Migration to v{} failed: {e}. Database restored to v{backup_version}. \
-                         Backup: {}. Please update the application or contact support.",
+                         Backup: {}. If the application still does not start, close it and restore \
+                         the newest backup over the database file manually.",
                         super::migration::LATEST_VERSION,
                         backup_file.display()
                     )))

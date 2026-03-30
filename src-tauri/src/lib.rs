@@ -29,6 +29,7 @@ fn database_init_error_message(error: &DomainError, db_path: &std::path::Path) -
              Database path: {}\n\
              Backup directory: {}\n\
              The database may already have been restored automatically. Do not delete the database file.\n\
+             If the application still does not start, close it and restore the newest backup from the backup directory to the database path.\n\
              Please update the application or contact support.",
             db_path.display(),
             backups_dir.display()
@@ -172,6 +173,21 @@ mod tests {
         assert!(
             !message.contains("try deleting the database file"),
             "migration recovery message should not suggest deleting the restored database: {message}"
+        );
+    }
+
+    #[test]
+    fn migration_error_message_includes_restore_steps() {
+        let message = database_init_error_message(
+            &DomainError::Migration(
+                "Migration to v5 failed: duplicate column. Database restored to v4.".to_string(),
+            ),
+            Path::new("/tmp/ultra-rss-reader.db"),
+        );
+
+        assert!(
+            message.contains("restore the newest backup"),
+            "migration recovery message should explain how to restore manually: {message}"
         );
     }
 

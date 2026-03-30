@@ -27,25 +27,27 @@ impl MigrationResult {
 pub const LATEST_VERSION: i32 = 5;
 
 pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
-    let from_version = get_schema_version(conn);
+    let tx = conn.transaction()?;
+    let from_version = get_schema_version(&tx);
 
     if from_version < 1 {
-        conn.execute_batch(MIGRATION_V1)?;
+        tx.execute_batch(MIGRATION_V1)?;
     }
     if from_version < 2 {
-        conn.execute_batch(MIGRATION_V2)?;
+        tx.execute_batch(MIGRATION_V2)?;
     }
     if from_version < 3 {
-        conn.execute_batch(MIGRATION_V3)?;
+        tx.execute_batch(MIGRATION_V3)?;
     }
     if from_version < 4 {
-        conn.execute_batch(MIGRATION_V4)?;
+        tx.execute_batch(MIGRATION_V4)?;
     }
     if from_version < 5 {
-        conn.execute_batch(MIGRATION_V5)?;
+        tx.execute_batch(MIGRATION_V5)?;
     }
 
-    let to_version = get_schema_version(conn);
+    let to_version = get_schema_version(&tx);
+    tx.commit()?;
 
     if from_version < to_version {
         info!("Database migrated from v{from_version} to v{to_version}");
@@ -147,5 +149,54 @@ mod tests {
             .prepare("SELECT display_mode FROM feeds LIMIT 0")
             .is_ok();
         assert!(has_display_mode, "V5 display_mode column should exist");
+    }
+
+    #[test]
+    fn failed_migration_rolls_back_all_versions() {
+        let mut conn = open_in_memory();
+        conn.execute_batch(MIGRATION_V1).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE tags (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                color TEXT
+            );",
+        )
+        .unwrap();
+
+        let result = run_migrations(&mut conn);
+        assert!(
+            result.is_err(),
+            "migration should fail on conflicting tags table"
+        );
+        assert_eq!(
+            get_schema_version(&conn),
+            1,
+            "schema version should stay at the original version after rollback"
+        );
+
+        let preferences_count: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='preferences'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            preferences_count, 0,
+            "V2 changes should be rolled back when a later migration fails"
+        );
+
+        let fts_count: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='articles_fts'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            fts_count, 0,
+            "V3 changes should be rolled back when a later migration fails"
+        );
     }
 }
