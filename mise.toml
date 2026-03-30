@@ -140,7 +140,7 @@ run = ["pnpm build"]
 
 [tasks."app:dev"]
 description = "Run native app in dev mode"
-run = "pnpm tauri dev"
+run = "pnpm tauri dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:signed"]
 description = "Build, codesign, and run native app (no Keychain dialog)"
