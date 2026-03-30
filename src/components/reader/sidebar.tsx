@@ -163,22 +163,25 @@ export function Sidebar() {
     };
   }, []);
 
+  const setAppLoading = useUiStore((s) => s.setAppLoading);
+
   const handleSync = async () => {
     if (isSyncing) return;
     setIsSyncing(true);
+    setAppLoading(true);
+    const result = await triggerSync();
+    setIsSyncing(false);
+    setAppLoading(false);
     Result.pipe(
-      await triggerSync(),
+      result,
       Result.inspect((didSync) => {
-        if (didSync) {
-          showToast(t("sync_completed"));
-        }
+        showToast(didSync ? t("sync_completed") : t("sync_already_in_progress"));
       }),
       Result.inspectError((e) => {
         console.error("Sync failed:", e);
         showToast(t("sync_failed"));
       }),
     );
-    setIsSyncing(false);
   };
 
   const handleAddFeed = useCallback(() => {
