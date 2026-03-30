@@ -1,74 +1,20 @@
 # Ultra RSS Reader — TODO
 
-## ブラウザビューを Tauri Webview に置き換え
-
-- [x] iframe を廃止し、Tauri 2 の `WebviewBuilder` でネイティブ webview（macOS: WKWebView）をインライン配置する
-  - X-Frame-Options / CSP による埋め込みブロックを根本解消
-  - `can_go_back()` / `can_go_forward()` で正確なナビゲーション状態を取得
-  - ナビゲーションイベント（`on_navigation`）で URL 変更を追跡
-  - Rust 側: `WebviewWindowBuilder` で子 webview を動的作成、イベントをフロントエンドに通知
-  - フロント側: Tauri コマンド経由で webview を制御（`go_back`, `go_forward`, `reload`, `close`）
-
-## キーチェーンアクセスのタイミング改善
-
-- [x] 起動直後の自動同期でキーチェーンダイアログが出るのを回避する（ユーザーが不信感を持つ）
-  - 現状: `sync_scheduler` が `initial_interval` 後に自動で同期開始 → `keyring_store::get_password` でダイアログ表示
-  - 改善案: フロントエンドからの初回マニュアル同期完了まで、バックグラウンドスケジューラーの同期を遅延させる
-
-## DB マイグレーション失敗時のリカバリ戦略
-
-- [x] マイグレーションをトランザクションで包む
-  - 現状: `execute_batch` で実行しているが、途中失敗で DB が中間状態に陥る可能性がある
-- [x] マイグレーション実行前に自動バックアップを取る（backups/ に3世代保持、タイムスタンプ付き）
-- [x] マイグレーション失敗時にユーザーへ分かりやすいエラーメッセージとリストア手順を案内する
-
 ## 自動アップデートの署名検証とロールバック
 
-- [x] `tauri.conf.json` の updater 設定で公開鍵が正しく設定されていることを確認する
-- [x] ダウンロード中断時のリトライ/レジューム戦略を検討する
 - [ ] アップデート失敗時のフォールバック動作をテストする → [#18](https://github.com/jey3dayo/ultra-rss-reader/issues/18)
 
 ## 同期パフォーマンス改善
 
-- [x] 全アカウントの順次同期を並列化する（`futures::future::join_all`）
-- [x] 部分失敗時に失敗アカウント名をフロントに通知する（`SyncResult` 型導入）
-- [x] デッドコード削除: 本番未接続の `sync_service` / `event_bus` / `housekeeping` を除去
-- [x] アカウント単位の同期コマンドを追加し、選択中アカウントのみ同期できるようにする
 - [ ] 差分同期の最適化（最終同期時刻以降の変更のみ取得） → [#17](https://github.com/jey3dayo/ultra-rss-reader/issues/17)
-- [x] 同期中の進捗をフロントに通知する（`SyncProgressEvent` + `sync-progress` イベント）
-
-## データ肥大化とハウスキーピング戦略
-
-- [x] ハウスキーピング処理を `sync_scheduler` に組み込む（アカウント毎の `keep_read_items_days` で古い既読記事をパージ）
-- [x] 記事の保持期間をユーザー設定で変更可能にする（アカウント設定画面で 7日〜1年+無期限を選択可能）
-- [x] DB サイズ表示と手動 VACUUM オプションの提供を検討する
-
-## UI 改善
-
-- [x] 記事リストの Feed Title ヘッダー（フィード名 + 未読件数）を削除
-- [x] dev config で `titleBarStyle: Overlay` が欠落していた問題を修正
-- [x] 選択中のアカウントを `preferences` に永続化し、起動時に復元する
-- [x] タグの記事数・記事一覧をアカウントでフィルタリングする
-
-## URL スキーム境界の明確化
-
-- [x] アプリ内ブラウザと外部ブラウザ起動で許可する URL スキームを明示的に制限する（http/https のみ）
 
 ## tracing の初期化と観測性確保
 
-- [x] `tracing_subscriber::fmt::init()` を `run()` 先頭で呼び出す（現状 tracing ログが全て黙殺されている）
 - [ ] リリースビルドではファイルログ出力を検討する（ユーザーがログを添付してサポート依頼できる導線）
   - `tracing-appender` crate でローリングファイル出力を追加
   - ログローテーション（日次 or サイズベース）、保持期間の設計が必要
   - 設定画面からログディレクトリを開けると便利
 
-## アカウント単位の同期ポリシー遵守
-
-- [x] `get_min_sync_interval` の全アカウント最小値方式を見直し、アカウントごとの interval を尊重する
-- [x] `sync_state` の `error_count` / `next_retry_at` を使った exponential backoff を実装する
-- [x] wake 復帰時の同期を `sync_on_wake: true` のアカウントのみに絞る
-
 ## リリース用 bundle identifier の確定
 
-- [x] `tauri.release.conf.json` で production 用 identifier `com.jey3dayo.ultra-rss-reader` を上書き
 - [ ] 変更後、updater endpoint・OS 上のアプリ識別・データディレクトリへの影響を確認する → [#19](https://github.com/jey3dayo/ultra-rss-reader/issues/19)
