@@ -1,10 +1,17 @@
 use rusqlite::Connection;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::domain::error::{DomainError, DomainResult};
 
 static IN_MEMORY_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DatabaseInfo {
+    pub db_size_bytes: u64,
+    pub wal_size_bytes: u64,
+    pub total_size_bytes: u64,
+}
 
 pub struct DbManager {
     writer: Connection,
@@ -141,6 +148,112 @@ impl DbManager {
 
     pub fn reader(&self) -> &Connection {
         &self.reader
+    }
+
+    pub fn database_info(&self) -> DomainResult<DatabaseInfo> {
+        match self.database_path()? {
+            Some(path) => Ok(Self::database_info_from_path(&path)),
+            None => Self::database_info_from_connection(&self.writer),
+        }
+    }
+
+    pub fn vacuum(&mut self) -> DomainResult<DatabaseInfo> {
+        let Some(db_path) = self.database_path()? else {
+            self.writer.execute_batch("VACUUM")?;
+            return self.database_info();
+        };
+
+        self.replace_with_in_memory_connections()?;
+
+        let vacuum_result = Self::vacuum_file_database(&db_path);
+        let (writer, reader) = Self::open_file_connections(&db_path).unwrap_or_else(|reopen_err| {
+            panic!("Failed to reopen database connections after VACUUM: {reopen_err}")
+        });
+        self.writer = writer;
+        self.reader = reader;
+
+        match vacuum_result {
+            Ok(()) => self.database_info(),
+            Err(vacuum_err) => Err(vacuum_err),
+        }
+    }
+
+    fn database_path(&self) -> DomainResult<Option<PathBuf>> {
+        let db_path: String = self
+            .writer
+            .query_row("PRAGMA database_list", [], |row| row.get(2))?;
+
+        if db_path.is_empty() || db_path == ":memory:" || db_path.starts_with("file:memdb_") {
+            return Ok(None);
+        }
+
+        Ok(Some(PathBuf::from(db_path)))
+    }
+
+    fn database_info_from_path(path: &Path) -> DatabaseInfo {
+        let db_size_bytes = path.metadata().map(|metadata| metadata.len()).unwrap_or(0);
+        let wal_size_bytes = Self::wal_path(path)
+            .metadata()
+            .map(|metadata| metadata.len())
+            .unwrap_or(0);
+
+        DatabaseInfo {
+            db_size_bytes,
+            wal_size_bytes,
+            total_size_bytes: db_size_bytes + wal_size_bytes,
+        }
+    }
+
+    fn database_info_from_connection(conn: &Connection) -> DomainResult<DatabaseInfo> {
+        let page_count: i64 = conn.query_row("PRAGMA page_count", [], |row| row.get(0))?;
+        let page_size: i64 = conn.query_row("PRAGMA page_size", [], |row| row.get(0))?;
+        let db_size_bytes = u64::try_from(page_count.max(0)).unwrap_or(0)
+            * u64::try_from(page_size.max(0)).unwrap_or(0);
+
+        Ok(DatabaseInfo {
+            db_size_bytes,
+            wal_size_bytes: 0,
+            total_size_bytes: db_size_bytes,
+        })
+    }
+
+    fn wal_path(path: &Path) -> PathBuf {
+        let mut wal_path = path.as_os_str().to_os_string();
+        wal_path.push("-wal");
+        PathBuf::from(wal_path)
+    }
+
+    fn replace_with_in_memory_connections(&mut self) -> DomainResult<()> {
+        let writer_placeholder = Connection::open_in_memory()?;
+        let reader_placeholder = Connection::open_in_memory()?;
+
+        let old_writer = std::mem::replace(&mut self.writer, writer_placeholder);
+        let old_reader = std::mem::replace(&mut self.reader, reader_placeholder);
+        drop(old_writer);
+        drop(old_reader);
+
+        Ok(())
+    }
+
+    fn open_file_connections(db_path: &Path) -> DomainResult<(Connection, Connection)> {
+        let writer = Connection::open(db_path)?;
+        Self::apply_pragmas(&writer)?;
+
+        let reader = Connection::open(db_path)?;
+        Self::apply_pragmas(&reader)?;
+
+        Ok((writer, reader))
+    }
+
+    fn vacuum_file_database(db_path: &Path) -> DomainResult<()> {
+        let vacuum_conn = Connection::open(db_path)?;
+        Self::apply_pragmas(&vacuum_conn)?;
+        vacuum_conn.execute_batch(
+            "PRAGMA wal_checkpoint(TRUNCATE);
+             VACUUM;
+             PRAGMA wal_checkpoint(TRUNCATE);",
+        )?;
+        Ok(())
     }
 }
 
@@ -319,5 +432,43 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM feeds", [], |row| row.get(0))
             .unwrap();
         assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn vacuum_reopens_file_backed_connections_and_keeps_db_usable() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("vacuum-test.db");
+        let mut db = DbManager::new(&db_path).unwrap();
+
+        db.writer()
+            .execute_batch(
+                "CREATE TABLE IF NOT EXISTS vacuum_probe (
+                    id INTEGER PRIMARY KEY,
+                    payload TEXT NOT NULL
+                );
+                INSERT INTO vacuum_probe (payload) VALUES (hex(randomblob(4096)));
+                INSERT INTO vacuum_probe (payload) VALUES (hex(randomblob(4096)));
+                DELETE FROM vacuum_probe WHERE id = 1;",
+            )
+            .unwrap();
+
+        let before = db.database_info().unwrap();
+        let after = db.vacuum().unwrap();
+
+        db.writer()
+            .execute(
+                "INSERT INTO vacuum_probe (payload) VALUES ('after-vacuum')",
+                [],
+            )
+            .unwrap();
+
+        let count: i32 = db
+            .reader()
+            .query_row("SELECT COUNT(*) FROM vacuum_probe", [], |row| row.get(0))
+            .unwrap();
+
+        assert!(before.total_size_bytes > 0);
+        assert!(after.total_size_bytes > 0);
+        assert_eq!(count, 2, "DB should remain writable/readable after VACUUM");
     }
 }
