@@ -5,7 +5,9 @@ use std::sync::Mutex;
 use futures::FutureExt;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::commands::sync_commands::{get_min_sync_interval, purge_old_articles, run_automatic_sync};
+use crate::commands::sync_commands::{
+    get_min_sync_interval, purge_old_articles, run_automatic_sync,
+};
 use crate::infra::db::connection::DbManager;
 
 /// Start a background task that periodically syncs all accounts.
