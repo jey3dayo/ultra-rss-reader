@@ -35,7 +35,7 @@ pub fn platform_info_for_kind(kind: PlatformKind) -> PlatformInfo {
             supports_background_browser_open: false,
             supports_runtime_window_icon_replacement: true,
             supports_native_browser_navigation: true,
-            uses_dev_file_credentials: true,
+            uses_dev_file_credentials: false,
         },
         PlatformKind::Linux | PlatformKind::Unknown => PlatformCapabilities {
             supports_reading_list: false,
@@ -52,6 +52,13 @@ pub fn platform_info_for_kind(kind: PlatformKind) -> PlatformInfo {
     }
 }
 
+fn uses_dev_file_credentials_from_env<F>(get_env: F) -> bool
+where
+    F: Fn(&str) -> Option<String>,
+{
+    get_env("ULTRA_RSS_DEV_CREDENTIALS").is_some()
+}
+
 impl PlatformInfo {
     pub fn current() -> Self {
         let kind = if cfg!(target_os = "macos") {
@@ -64,13 +71,16 @@ impl PlatformInfo {
             PlatformKind::Unknown
         };
 
-        platform_info_for_kind(kind)
+        let mut info = platform_info_for_kind(kind);
+        info.capabilities.uses_dev_file_credentials =
+            uses_dev_file_credentials_from_env(|key| std::env::var(key).ok());
+        info
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{platform_info_for_kind, PlatformKind};
+    use super::{platform_info_for_kind, uses_dev_file_credentials_from_env, PlatformKind};
 
     #[test]
     fn macos_capabilities_enable_reading_list_and_background_open() {
@@ -100,5 +110,20 @@ mod tests {
             assert!(!info.capabilities.supports_native_browser_navigation);
             assert!(!info.capabilities.uses_dev_file_credentials);
         }
+    }
+
+    #[test]
+    fn dev_file_credentials_flag_is_enabled_only_when_env_var_exists() {
+        let enabled = uses_dev_file_credentials_from_env(|key| {
+            if key == "ULTRA_RSS_DEV_CREDENTIALS" {
+                Some("1".to_string())
+            } else {
+                None
+            }
+        });
+        let disabled = uses_dev_file_credentials_from_env(|_| None);
+
+        assert!(enabled);
+        assert!(!disabled);
     }
 }
