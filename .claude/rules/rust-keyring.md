@@ -13,9 +13,18 @@ paths:
 - アカウント削除時は keyring エントリも削除する（`delete_password` は NotFound を無視する）
 - keyring エラーは `DomainError::Keychain` にマッピングする
 
+## Dev モード（Keychain バイパス）
+
+環境変数 `ULTRA_RSS_DEV_CREDENTIALS=1`（`.env` で dotenvx 管理）がセットされている場合、OS Keychain の代わりに `~/.local/share/ultra-rss-reader/dev-credentials.json` にファイルベースで保存する。
+
+- `mise run app:dev` は `dotenvx run --` 経由で起動するため自動的に有効
+- `mise run app:dev:signed` や `mise run app:build` では無効（本番同等の Keychain を使用）
+- dev credentials ファイルはリポジトリ外に保存されるため `.gitignore` 不要
+
 ## 根拠
 
 認証情報を SQLite に平文保存すると、DB ファイルのコピーで漏洩する。OS keyring は macOS Keychain / Windows Credential Manager / Linux Secret Service を使い、OS レベルの暗号化で保護される。
+dev モードでは `cargo tauri dev` が毎回バイナリを再ビルドするため、macOS が未署名の新しいアプリとして扱い Keychain アクセスのたびに許可ダイアログが表示される。ファイルベースストアでこれを回避する。
 
 ## 例
 
