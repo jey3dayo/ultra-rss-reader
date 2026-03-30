@@ -17,6 +17,7 @@ import {
   deleteTagArgs,
   discoverFeedsArgs,
   getArticleTagsArgs,
+  getTagArticleCountsArgs,
   listAccountArticlesArgs,
   listArticlesArgs,
   listArticlesByTagArgs,
@@ -337,9 +338,29 @@ export function setupDevMocks() {
       }
 
       case "list_articles_by_tag": {
-        const { tagId } = listArticlesByTagArgs.parse(payload);
+        const { tagId, accountId } = listArticlesByTagArgs.parse(payload);
         const articleIds = mockArticleTags.filter((at) => at.tag_id === tagId).map((at) => at.article_id);
-        return mockArticles.filter((a) => articleIds.includes(a.id));
+        let filtered = mockArticles.filter((a) => articleIds.includes(a.id));
+        if (accountId) {
+          const feedIds = mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id);
+          filtered = filtered.filter((a) => feedIds.includes(a.feed_id));
+        }
+        return filtered;
+      }
+
+      case "get_tag_article_counts": {
+        const { accountId } = getTagArticleCountsArgs.parse(payload);
+        const counts: Record<string, number> = {};
+        for (const at of mockArticleTags) {
+          if (accountId) {
+            const article = mockArticles.find((a) => a.id === at.article_id);
+            if (!article) continue;
+            const feed = mockFeeds.find((f) => f.id === article.feed_id);
+            if (!feed || feed.account_id !== accountId) continue;
+          }
+          counts[at.tag_id] = (counts[at.tag_id] ?? 0) + 1;
+        }
+        return counts;
       }
 
       case "check_browser_embed_support": {

@@ -14,6 +14,8 @@ use crate::repository::pending_mutation::{PendingMutation, PendingMutationReposi
 
 #[tauri::command]
 pub fn open_in_browser(url: String, background: Option<bool>) -> Result<(), AppError> {
+    crate::commands::parse_browser_http_url(&url)?;
+
     if background.unwrap_or(false) && cfg!(target_os = "macos") {
         // macOS: use `open -g` to open in background
         std::process::Command::new("open")

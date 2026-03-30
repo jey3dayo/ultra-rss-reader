@@ -203,6 +203,12 @@ export const listArticlesByTagArgs = z.object({
   tagId: z.string(),
   offset: z.number().optional(),
   limit: z.number().optional(),
+  accountId: z.string().optional(),
+});
+
+// --- getTagArticleCounts ---
+export const getTagArticleCountsArgs = z.object({
+  accountId: z.string().optional(),
 });
 
 // Registry: command names (snake_case) -> schema (only commands with args)
@@ -246,4 +252,5 @@ export const commandArgsSchemas: Record<string, z.ZodType> = {
   untag_article: untagArticleArgs,
   get_article_tags: getArticleTagsArgs,
   list_articles_by_tag: listArticlesByTagArgs,
+  get_tag_article_counts: getTagArticleCountsArgs,
 };

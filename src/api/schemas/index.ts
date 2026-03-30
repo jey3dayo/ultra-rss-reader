@@ -18,6 +18,7 @@ export {
   discoverFeedsArgs,
   exportOpmlArgs,
   getArticleTagsArgs,
+  getTagArticleCountsArgs,
   listAccountArticlesArgs,
   listArticlesArgs,
   listArticlesByTagArgs,

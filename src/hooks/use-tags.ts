@@ -22,16 +22,23 @@ export function useTags() {
   });
 }
 
-export function useTagArticleCounts() {
+export function useTagArticleCounts(accountId: string | null | undefined) {
   return useQuery({
-    queryKey: ["tagArticleCounts"],
-    queryFn: () => getTagArticleCounts().then(Result.unwrap()),
+    queryKey: ["tagArticleCounts", accountId],
+    queryFn: () => getTagArticleCounts(accountId ?? undefined).then(Result.unwrap()),
   });
 }
 
 export const useArticleTags = createQuery("articleTags", getArticleTags);
 
-export const useArticlesByTag = createQuery("articlesByTag", listArticlesByTag);
+export function useArticlesByTag(tagId: string | null, accountId?: string | null) {
+  return useQuery({
+    queryKey: ["articlesByTag", tagId, accountId],
+    queryFn: () =>
+      listArticlesByTag(tagId as string, undefined, undefined, accountId ?? undefined).then(Result.unwrap()),
+    enabled: !!tagId,
+  });
+}
 
 export function useCreateTag() {
   const qc = useQueryClient();

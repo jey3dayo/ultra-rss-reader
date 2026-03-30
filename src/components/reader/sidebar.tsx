@@ -89,7 +89,7 @@ export function Sidebar() {
   const { data: feeds } = useFeeds(selectedAccountId);
   const { data: folders } = useFolders(selectedAccountId);
   const { data: tags } = useTags();
-  const { data: tagArticleCounts } = useTagArticleCounts();
+  const { data: tagArticleCounts } = useTagArticleCounts(selectedAccountId);
   const { data: accountArticles } = useAccountArticles(selectedAccountId);
   const showUnreadCount = usePreferencesStore((s) => (s.prefs.show_unread_count ?? "true") === "true");
   const showStarredCount = usePreferencesStore((s) => (s.prefs.show_starred_count ?? "true") === "true");

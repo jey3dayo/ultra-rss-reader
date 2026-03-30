@@ -460,7 +460,7 @@ export function ArticleView() {
   const tagId = selection.type === "tag" ? selection.tagId : null;
   const { data: articles } = useArticles(feedId);
   const { data: accountArticles } = useAccountArticles(selectedAccountId);
-  const { data: tagArticles } = useArticlesByTag(tagId);
+  const { data: tagArticles } = useArticlesByTag(tagId, selectedAccountId);
   const { data: feeds } = useFeeds(selectedAccountId);
 
   const selectedFeedDisplayMode = resolveSelectedFeedDisplayMode({

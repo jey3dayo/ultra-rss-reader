@@ -31,6 +31,7 @@ import {
   type FolderDto,
   FolderDtoSchema,
   getArticleTagsArgs,
+  getTagArticleCountsArgs,
   listAccountArticlesArgs,
   listArticlesArgs,
   listArticlesByTagArgs,
@@ -309,15 +310,19 @@ export const untagArticle = (articleId: string, tagId: string) =>
 export const getArticleTags = (articleId: string) =>
   safeInvoke("get_article_tags", { response: z.array(TagDtoSchema), args: getArticleTagsArgs }, { articleId });
 
-export const listArticlesByTag = (tagId: string, offset?: number, limit?: number) =>
+export const listArticlesByTag = (tagId: string, offset?: number, limit?: number, accountId?: string) =>
   safeInvoke(
     "list_articles_by_tag",
     { response: z.array(ArticleDtoSchema), args: listArticlesByTagArgs },
-    { tagId, offset, limit },
+    { tagId, offset, limit, accountId },
   );
 
-export const getTagArticleCounts = () =>
-  safeInvoke("get_tag_article_counts", { response: z.record(z.string(), z.number()) });
+export const getTagArticleCounts = (accountId?: string) =>
+  safeInvoke(
+    "get_tag_article_counts",
+    { response: z.record(z.string(), z.number()), args: getTagArticleCountsArgs },
+    { accountId },
+  );
 
 export const copyToClipboard = (text: string) =>
   safeInvoke("copy_to_clipboard", { response: z.null(), args: copyToClipboardArgs }, { text });
