@@ -116,7 +116,7 @@ describe("Sidebar", () => {
 
   it("does not update last synced time when sync is skipped", async () => {
     setupTauriMocks((cmd) => {
-      if (cmd === "trigger_sync") return false;
+      if (cmd === "trigger_sync") return { synced: false, total: 0, succeeded: 0, failed: [] };
       return null;
     });
 

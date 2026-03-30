@@ -146,8 +146,15 @@ export function executeAction(action: AppAction): void {
         store.setAppLoading(false);
         Result.pipe(
           result,
-          Result.inspect((synced) => {
-            store.showToast(synced ? "Sync completed" : "Sync already in progress");
+          Result.inspect((syncResult) => {
+            if (!syncResult.synced) {
+              store.showToast("Sync already in progress");
+            } else if (syncResult.failed.length > 0) {
+              const names = syncResult.failed.map((f) => f.account_name).join(", ");
+              store.showToast(`Sync failed for: ${names}`);
+            } else {
+              store.showToast("Sync completed");
+            }
           }),
           Result.inspectError((e) => {
             console.error("Menu sync failed:", e);

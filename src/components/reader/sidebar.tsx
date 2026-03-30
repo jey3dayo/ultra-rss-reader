@@ -174,8 +174,15 @@ export function Sidebar() {
     setAppLoading(false);
     Result.pipe(
       result,
-      Result.inspect((didSync) => {
-        showToast(didSync ? t("sync_completed") : t("sync_already_in_progress"));
+      Result.inspect((syncResult) => {
+        if (!syncResult.synced) {
+          showToast(t("sync_already_in_progress"));
+        } else if (syncResult.failed.length > 0) {
+          const names = syncResult.failed.map((f) => f.account_name).join(", ");
+          showToast(t("sync_partial_failure", { accounts: names }));
+        } else {
+          showToast(t("sync_completed"));
+        }
       }),
       Result.inspectError((e) => {
         console.error("Sync failed:", e);

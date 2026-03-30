@@ -44,6 +44,7 @@ import {
   renameAccountArgs,
   renameFeedArgs,
   renameTagArgs,
+  SyncResultSchema,
   searchArticlesArgs,
   setBrowserWebviewBoundsArgs,
   setPreferenceArgs,
@@ -271,9 +272,9 @@ export const reloadBrowserWebview = () => safeInvoke("reload_browser_webview", {
 
 export const closeBrowserWebview = () => safeInvoke("close_browser_webview", { response: z.null() });
 
-export const triggerSync = () => safeInvoke("trigger_sync", { response: z.boolean() });
+export const triggerSync = () => safeInvoke("trigger_sync", { response: SyncResultSchema });
 
-export const triggerAutomaticSync = () => safeInvoke("trigger_automatic_sync", { response: z.boolean() });
+export const triggerAutomaticSync = () => safeInvoke("trigger_automatic_sync", { response: SyncResultSchema });
 
 export const exportOpml = (accountId: string) =>
   safeInvoke("export_opml", { response: z.string(), args: exportOpmlArgs }, { accountId });

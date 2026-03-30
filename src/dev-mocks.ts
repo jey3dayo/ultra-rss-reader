@@ -434,9 +434,9 @@ export function setupDevMocks() {
         return null;
 
       case "trigger_sync":
-        return true;
+        return { synced: true, total: 1, succeeded: 1, failed: [] };
       case "trigger_automatic_sync":
-        return false;
+        return { synced: false, total: 0, succeeded: 0, failed: [] };
       case "import_opml":
         return null;
       case "copy_to_clipboard":

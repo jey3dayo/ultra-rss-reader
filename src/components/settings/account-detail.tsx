@@ -152,13 +152,18 @@ export function AccountDetail() {
     setSettingsLoading(false);
     Result.pipe(
       result,
-      Result.inspectError((e) => {
-        useUiStore.getState().showToast(t("account.sync_failed", { message: e.message }));
-      }),
-      Result.inspect(() => {
+      Result.inspect((syncResult) => {
         qc.invalidateQueries({ queryKey: ["feeds"] });
         qc.invalidateQueries({ queryKey: ["articles"] });
-        useUiStore.getState().showToast(t("account.sync_complete"));
+        if (syncResult.failed.length > 0) {
+          const names = syncResult.failed.map((f) => f.account_name).join(", ");
+          useUiStore.getState().showToast(t("account.sync_failed", { message: names }));
+        } else {
+          useUiStore.getState().showToast(t("account.sync_complete"));
+        }
+      }),
+      Result.inspectError((e) => {
+        useUiStore.getState().showToast(t("account.sync_failed", { message: e.message }));
       }),
     );
   };
