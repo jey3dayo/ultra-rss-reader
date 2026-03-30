@@ -13,6 +13,7 @@
   "add_feed": "Add feed",
   "press_plus_to_add_feed": "Press + to add a feed",
   "sync_completed": "Sync completed",
+  "sync_already_in_progress": "Sync already in progress",
   "sync_failed": "Sync failed",
   "date_at": "{{date}} at {{time}}",
   "add_account_to_start": "Add an account to get started"
