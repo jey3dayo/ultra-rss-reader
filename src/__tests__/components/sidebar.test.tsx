@@ -8,16 +8,33 @@ import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleAccounts, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 let syncCompletedListener: (() => void) | null = null;
+let syncProgressListener:
+  | ((event: {
+      stage: string;
+      kind: string;
+      total: number;
+      completed: number;
+      account_id?: string | null;
+      account_name?: string | null;
+      success?: boolean | null;
+    }) => void)
+  | null = null;
 const renderedFeedContextMenuFeeds: Array<{ id: string; folder_id: string | null }> = [];
 
 vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn(async (eventName: string, callback: () => void) => {
+  listen: vi.fn(async (eventName: string, callback: typeof syncCompletedListener | typeof syncProgressListener) => {
     if (eventName === "sync-completed") {
-      syncCompletedListener = callback;
+      syncCompletedListener = callback as typeof syncCompletedListener;
+    }
+    if (eventName === "sync-progress") {
+      syncProgressListener = callback as typeof syncProgressListener;
     }
     return () => {
       if (eventName === "sync-completed") {
         syncCompletedListener = null;
+      }
+      if (eventName === "sync-progress") {
+        syncProgressListener = null;
       }
     };
   }),
@@ -33,6 +50,7 @@ vi.mock("@/components/reader/feed-context-menu", () => ({
 describe("Sidebar", () => {
   beforeEach(() => {
     syncCompletedListener = null;
+    syncProgressListener = null;
     renderedFeedContextMenuFeeds.length = 0;
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: true });
@@ -140,6 +158,47 @@ describe("Sidebar", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Today at /)).toBeInTheDocument();
+    });
+  });
+
+  it("spins the sync button and enables app loading while sync-progress is active", async () => {
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const syncButton = await screen.findByRole("button", { name: "Sync feeds" });
+    const icon = syncButton.querySelector("svg");
+
+    expect(syncProgressListener).not.toBeNull();
+    expect(icon).not.toHaveClass("animate-spin");
+    expect(useUiStore.getState().appLoading).toBe(false);
+
+    syncProgressListener?.({
+      stage: "started",
+      kind: "manual_all",
+      total: 2,
+      completed: 0,
+      account_id: null,
+      account_name: null,
+      success: null,
+    });
+
+    await waitFor(() => {
+      expect(icon).toHaveClass("animate-spin");
+      expect(useUiStore.getState().appLoading).toBe(true);
+    });
+
+    syncProgressListener?.({
+      stage: "finished",
+      kind: "manual_all",
+      total: 2,
+      completed: 2,
+      account_id: null,
+      account_name: null,
+      success: true,
+    });
+
+    await waitFor(() => {
+      expect(icon).not.toHaveClass("animate-spin");
+      expect(useUiStore.getState().appLoading).toBe(false);
     });
   });
 

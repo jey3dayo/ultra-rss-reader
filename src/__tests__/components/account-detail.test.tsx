@@ -11,6 +11,7 @@ const accountDetailViewSpy = vi.fn();
 vi.mock("@/components/settings/account-detail-view", () => ({
   AccountDetailView: (props: {
     syncSection: {
+      isSyncing?: boolean;
       keepReadItems: {
         options: Array<{ value: string; label: string }>;
         onChange: (value: string) => void;
@@ -97,5 +98,43 @@ describe("AccountDetail", () => {
     });
 
     expect(accountDetailViewSpy).toHaveBeenCalled();
+  });
+
+  it("marks the sync section as syncing while global sync progress is active", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        return [
+          {
+            id: "acc-1",
+            kind: "Local",
+            name: "Local",
+            username: null,
+            server_url: null,
+            sync_interval_secs: 3600,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+          },
+        ];
+      }
+      return null;
+    });
+
+    useUiStore.setState({
+      syncProgress: {
+        active: true,
+        kind: "manual_all",
+        total: 2,
+        completed: 1,
+        activeAccountIds: new Set(),
+      },
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(accountDetailViewSpy).toHaveBeenCalled();
+      const lastCall = accountDetailViewSpy.mock.calls[accountDetailViewSpy.mock.calls.length - 1];
+      expect(lastCall?.[0].syncSection.isSyncing).toBe(true);
+    });
   });
 });

@@ -47,7 +47,6 @@ function useFormatLastSynced(date: Date | null): string {
 export function Sidebar() {
   const { t } = useTranslation("sidebar");
   const [showAccountList, setShowAccountList] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const lastSyncedFormatted = useFormatLastSynced(lastSyncedAt);
   const [isFeedsSectionOpen, setIsFeedsSectionOpen] = useState(true);
@@ -86,6 +85,9 @@ export function Sidebar() {
   const closeAddFeedDialog = useUiStore((s) => s.closeAddFeedDialog);
   const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
   const showToast = useUiStore((s) => s.showToast);
+  const syncProgress = useUiStore((s) => s.syncProgress);
+  const applySyncProgress = useUiStore((s) => s.applySyncProgress);
+  const clearSyncProgress = useUiStore((s) => s.clearSyncProgress);
   const { data: feeds } = useFeeds(selectedAccountId);
   const { data: folders } = useFolders(selectedAccountId);
   const { data: tags } = useTags();
@@ -152,9 +154,22 @@ export function Sidebar() {
   useEffect(() => {
     let cancelled = false;
     let unlisten: (() => void) | undefined;
+    let unlistenProgress: (() => void) | undefined;
+
+    listen("sync-progress", (event) => {
+      const payload =
+        typeof event === "object" && event !== null && "payload" in event
+          ? (event.payload as Parameters<typeof applySyncProgress>[0])
+          : (event as Parameters<typeof applySyncProgress>[0]);
+      applySyncProgress(payload);
+    }).then((fn) => {
+      if (cancelled) fn();
+      else unlistenProgress = fn;
+    });
 
     listen("sync-completed", () => {
       setLastSyncedAt(new Date());
+      clearSyncProgress();
     }).then((fn) => {
       if (cancelled) fn();
       else unlisten = fn;
@@ -163,18 +178,13 @@ export function Sidebar() {
     return () => {
       cancelled = true;
       unlisten?.();
+      unlistenProgress?.();
     };
-  }, []);
-
-  const setAppLoading = useUiStore((s) => s.setAppLoading);
+  }, [applySyncProgress, clearSyncProgress]);
 
   const handleSync = async () => {
-    if (isSyncing) return;
-    setIsSyncing(true);
-    setAppLoading(true);
+    if (syncProgress.active) return;
     const result = await triggerSync();
-    setIsSyncing(false);
-    setAppLoading(false);
     Result.pipe(
       result,
       Result.inspect((syncResult) => {
@@ -387,7 +397,7 @@ export function Sidebar() {
     >
       <div data-tauri-drag-region>
         <SidebarHeaderView
-          isSyncing={isSyncing}
+          isSyncing={syncProgress.active}
           onSync={handleSync}
           onAddFeed={handleAddFeed}
           syncButtonLabel={t("sync_feeds")}

@@ -32,12 +32,15 @@ export function AccountDetail() {
   const [credUsername, setCredUsername] = useState<string | null>(null);
   const [credPassword, setCredPassword] = useState<string | null>(null);
   const [testingConnection, setTestingConnection] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const setSettingsLoading = useUiStore((s) => s.setSettingsLoading);
+  const syncProgress = useUiStore((s) => s.syncProgress);
 
   const account = accounts?.find((a) => a.id === settingsAccountId);
 
   if (!account) return null;
+
+  const isSyncing =
+    syncProgress.active && (syncProgress.kind !== "manual_account" || syncProgress.activeAccountIds.has(account.id));
 
   const startEditingName = () => {
     setNameDraft(account.name);
@@ -145,10 +148,8 @@ export function AccountDetail() {
   };
 
   const handleSyncNow = async () => {
-    setSyncing(true);
     setSettingsLoading(true);
     const result = await syncAccount(account.id);
-    setSyncing(false);
     setSettingsLoading(false);
     Result.pipe(
       result,
@@ -299,7 +300,7 @@ export function AccountDetail() {
         syncNowLabel: t("account.sync_now"),
         syncingLabel: t("account.syncing_now"),
         onSyncNow: handleSyncNow,
-        isSyncing: syncing,
+        isSyncing,
       }}
       dangerZone={{
         exportLabel: t("account.export_opml"),

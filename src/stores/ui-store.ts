@@ -15,6 +15,27 @@ export type ToastData = {
   actions?: ToastAction[];
 };
 
+export type SyncProgressStage = "started" | "account_started" | "account_finished" | "finished";
+export type SyncProgressKind = "manual_all" | "manual_account" | "automatic";
+
+export type SyncProgressEvent = {
+  stage: SyncProgressStage;
+  kind: SyncProgressKind;
+  total: number;
+  completed: number;
+  account_id?: string | null;
+  account_name?: string | null;
+  success?: boolean | null;
+};
+
+type SyncProgressState = {
+  active: boolean;
+  kind: SyncProgressKind | null;
+  total: number;
+  completed: number;
+  activeAccountIds: Set<string>;
+};
+
 type Selection =
   | { type: "feed"; feedId: string }
   | { type: "folder"; folderId: string }
@@ -43,6 +64,7 @@ interface UiState {
   settingsAddAccount: boolean;
   settingsLoading: boolean;
   appLoading: boolean;
+  syncProgress: SyncProgressState;
   commandPaletteOpen: boolean;
   isAddFeedDialogOpen: boolean;
   toastMessage: ToastData | null;
@@ -82,6 +104,8 @@ interface UiActions {
   setSettingsAddAccount: (show: boolean) => void;
   setSettingsLoading: (loading: boolean) => void;
   setAppLoading: (loading: boolean) => void;
+  applySyncProgress: (event: SyncProgressEvent) => void;
+  clearSyncProgress: () => void;
   openCommandPalette: () => void;
   closeCommandPalette: () => void;
   toggleCommandPalette: () => void;
@@ -114,6 +138,13 @@ const initialState: UiState = {
   settingsAddAccount: false,
   settingsLoading: false,
   appLoading: false,
+  syncProgress: {
+    active: false,
+    kind: null,
+    total: 0,
+    completed: 0,
+    activeAccountIds: new Set(),
+  },
   commandPaletteOpen: false,
   isAddFeedDialogOpen: false,
   toastMessage: null,
@@ -205,6 +236,52 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   setSettingsAddAccount: (show) => set({ settingsAddAccount: show, settingsAccountId: null }),
   setSettingsLoading: (loading) => set({ settingsLoading: loading }),
   setAppLoading: (loading) => set({ appLoading: loading }),
+  applySyncProgress: (event) =>
+    set((state) => {
+      const activeAccountIds = new Set(state.syncProgress.activeAccountIds);
+      if (event.account_id) {
+        if (event.stage === "account_finished" || event.stage === "finished") {
+          activeAccountIds.delete(event.account_id);
+        } else {
+          activeAccountIds.add(event.account_id);
+        }
+      }
+
+      if (event.stage === "finished") {
+        return {
+          appLoading: false,
+          syncProgress: {
+            active: false,
+            kind: null,
+            total: 0,
+            completed: 0,
+            activeAccountIds: new Set(),
+          },
+        };
+      }
+
+      return {
+        appLoading: true,
+        syncProgress: {
+          active: true,
+          kind: event.kind,
+          total: event.total,
+          completed: event.completed,
+          activeAccountIds,
+        },
+      };
+    }),
+  clearSyncProgress: () =>
+    set({
+      appLoading: false,
+      syncProgress: {
+        active: false,
+        kind: null,
+        total: 0,
+        completed: 0,
+        activeAccountIds: new Set(),
+      },
+    }),
   openCommandPalette: () => set({ commandPaletteOpen: true }),
   closeCommandPalette: () => set({ commandPaletteOpen: false }),
   toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
