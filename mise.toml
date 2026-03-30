@@ -15,6 +15,7 @@ node = "24"
 pnpm = "latest"
 rust = "stable"
 taplo = "latest"
+rtk = "latest"
 "pipx:yamllint" = "latest"
 
 # ========================================
@@ -56,15 +57,15 @@ depends = [
 
 [tasks."format:biome:check"]
 description = "Biome format + lint check (no writes)"
-run = "biome check --formatter-enabled=true --linter-enabled=true ."
+run = "rtk err biome check --formatter-enabled=true --linter-enabled=true ."
 
 [tasks."format:rust:check"]
 description = "Rust format check (no writes)"
-run = "cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check"
+run = "rtk err cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check"
 
 [tasks."format:toml:check"]
 description = "TOML format check (no writes)"
-run = "taplo fmt --check mise.toml src-tauri/Cargo.toml"
+run = "rtk err taplo fmt --check mise.toml src-tauri/Cargo.toml"
 
 # ========================================
 # リント
@@ -76,15 +77,15 @@ depends = ["lint:types", "lint:biome", "lint:clippy", "lint:md", "lint:yaml"]
 
 [tasks."lint:types"]
 description = "TypeScript type check"
-run = "pnpm exec tsc --noEmit"
+run = "rtk pnpm exec tsc --noEmit"
 
 [tasks."lint:biome"]
 description = "Biome lint check"
-run = "pnpm run lint"
+run = "rtk pnpm run lint"
 
 [tasks."lint:clippy"]
 description = "Rust clippy"
-run = "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
+run = "rtk err cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
 
 [tasks."lint:md"]
 description = "Markdown lint check"
@@ -108,15 +109,15 @@ depends = ["test:rust", "test:unit"]
 
 [tasks."test:rust"]
 description = "Run Rust tests"
-run = "cargo test --manifest-path src-tauri/Cargo.toml -- --format terse"
+run = "rtk test cargo test --manifest-path src-tauri/Cargo.toml"
 
 [tasks."test:unit"]
 description = "Run Vitest unit tests"
-run = "pnpm run test -- --reporter=dot"
+run = "rtk test pnpm run test"
 
 [tasks."test:e2e"]
 description = "Run Playwright E2E tests"
-run = "pnpm exec playwright test --reporter=dot"
+run = "rtk test pnpm exec playwright test"
 
 [tasks."test:all"]
 description = "Run all tests including E2E"
@@ -124,7 +125,7 @@ depends = ["test:rust", "test:unit", "test:e2e"]
 
 [tasks."test:live"]
 description = "Run FreshRSS live integration tests (requires .env with credentials)"
-run = "dotenvx run -- cargo test --manifest-path src-tauri/Cargo.toml freshrss_live -- --ignored --nocapture --format terse"
+run = "dotenvx run -- rtk test cargo test --manifest-path src-tauri/Cargo.toml freshrss_live -- --ignored --nocapture"
 
 # ========================================
 # ビルド
