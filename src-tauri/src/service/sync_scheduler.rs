@@ -7,7 +7,8 @@ use std::time::{Duration, Instant};
 use futures::FutureExt;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::commands::sync_commands::{purge_old_articles, sync_account};
+use crate::commands::dto::SyncProgressKind;
+use crate::commands::sync_commands::{purge_old_articles, sync_account, SyncProgressReporter};
 use crate::domain::account::Account;
 use crate::domain::types::AccountId;
 use crate::infra::db::connection::DbManager;
@@ -103,9 +104,16 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
             }
 
             let mut any_synced = false;
+            let reporter = SyncProgressReporter::new(
+                app_handle.clone(),
+                SyncProgressKind::Automatic,
+                due_accounts.len(),
+            );
+            reporter.emit_started(None);
 
             for account in due_accounts {
                 let account_id_str = account.id.as_ref().to_string();
+                reporter.emit_account_started(account);
                 let result = AssertUnwindSafe(sync_account(&state.db, account))
                     .catch_unwind()
                     .await;
@@ -113,6 +121,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                 match result {
                     Ok(Ok(())) => {
                         tracing::info!("Background sync completed for account '{}'", account.name);
+                        reporter.emit_account_finished(account, true);
                         reset_error_count(&state.db, &account.id);
                         if let Some(schedule) = schedules.get_mut(&account_id_str) {
                             schedule.next_sync = Instant::now() + account_interval(account);
@@ -124,6 +133,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             "Background sync failed for account '{}': {e}",
                             account.name
                         );
+                        reporter.emit_account_finished(account, false);
                         let error_count = increment_error_count(&state.db, &account.id, &e);
                         let backoff = calculate_backoff(account, error_count);
                         if let Some(schedule) = schedules.get_mut(&account_id_str) {
@@ -141,12 +151,15 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             "Background sync panicked for account '{}', scheduler continues",
                             account.name
                         );
+                        reporter.emit_account_finished(account, false);
                         if let Some(schedule) = schedules.get_mut(&account_id_str) {
                             schedule.next_sync = Instant::now() + account_interval(account);
                         }
                     }
                 }
             }
+
+            reporter.emit_finished(any_synced);
 
             if any_synced {
                 if let Err(e) = app_handle.emit("sync-completed", ()) {

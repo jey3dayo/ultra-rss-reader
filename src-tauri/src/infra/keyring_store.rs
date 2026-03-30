@@ -31,8 +31,15 @@ fn write_dev_store(path: &PathBuf, store: &HashMap<String, String>) -> DomainRes
     }
     let json = serde_json::to_string_pretty(store)
         .map_err(|e| DomainError::Keychain(format!("Failed to serialize dev store: {e}")))?;
-    std::fs::write(path, json)
+    std::fs::write(path, &json)
         .map_err(|e| DomainError::Keychain(format!("Failed to write dev store: {e}")))?;
+    // Restrict file permissions to owner-only (0600) on Unix
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let perms = std::fs::Permissions::from_mode(0o600);
+        let _ = std::fs::set_permissions(path, perms);
+    }
     Ok(())
 }
 

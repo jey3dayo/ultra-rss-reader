@@ -76,11 +76,11 @@ impl SyncProgressReporter {
         }
     }
 
-    fn emit_started(&self, account: Option<&Account>) {
+    pub(crate) fn emit_started(&self, account: Option<&Account>) {
         self.emit(SyncProgressStage::Started, 0, account, None);
     }
 
-    fn emit_account_started(&self, account: &Account) {
+    pub(crate) fn emit_account_started(&self, account: &Account) {
         self.emit(
             SyncProgressStage::AccountStarted,
             self.completed.load(Ordering::SeqCst),
@@ -89,7 +89,7 @@ impl SyncProgressReporter {
         );
     }
 
-    fn emit_account_finished(&self, account: &Account, success: bool) {
+    pub(crate) fn emit_account_finished(&self, account: &Account, success: bool) {
         let completed = self.completed.fetch_add(1, Ordering::SeqCst) + 1;
         self.emit(
             SyncProgressStage::AccountFinished,
@@ -99,7 +99,7 @@ impl SyncProgressReporter {
         );
     }
 
-    fn emit_finished(&self, success: bool) {
+    pub(crate) fn emit_finished(&self, success: bool) {
         self.emit(
             SyncProgressStage::Finished,
             self.completed.load(Ordering::SeqCst),
@@ -372,6 +372,20 @@ pub async fn trigger_sync_account(
     state: State<'_, AppState>,
     account_id: String,
 ) -> Result<SyncResult, AppError> {
+    if state
+        .syncing
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        return Ok(SyncResult {
+            synced: false,
+            total: 0,
+            succeeded: 0,
+            failed: Vec::new(),
+        });
+    }
+    let _guard = SyncGuard(&state.syncing);
+
     let account_id = crate::domain::types::AccountId(account_id);
     let account = {
         let db_guard = lock_db(&state.db)?;
