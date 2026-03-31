@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { GeneralSettingsView } from "@/components/settings/general-settings-view";
+import { SHORTCUT_MODIFIER_BY_PLATFORM } from "@/constants/platform";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 
@@ -8,7 +9,7 @@ export function GeneralSettings() {
   const prefs = usePreferencesStore((s) => s.prefs);
   const setPref = usePreferencesStore((s) => s.setPref);
   const platformKind = usePlatformStore((s) => s.platform.kind);
-  const browserShortcutModifier = platformKind === "macos" ? "⌘" : "Ctrl";
+  const browserShortcutModifier = SHORTCUT_MODIFIER_BY_PLATFORM[platformKind];
 
   return (
     <GeneralSettingsView

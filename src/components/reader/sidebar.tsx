@@ -8,12 +8,12 @@ import { triggerSync } from "@/api/tauri-commands";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { APP_EVENTS } from "@/constants/events";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useAccountArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { useTagArticleCounts, useTags } from "@/hooks/use-tags";
-import { actionEvents } from "@/lib/actions";
 import i18n from "@/lib/i18n";
 import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
 import { cn } from "@/lib/utils";
@@ -384,8 +384,8 @@ export function Sidebar() {
       const direction = (e as CustomEvent<1 | -1>).detail;
       navigateFeed(direction);
     };
-    window.addEventListener(actionEvents.navigateFeed, handler);
-    return () => window.removeEventListener(actionEvents.navigateFeed, handler);
+    window.addEventListener(APP_EVENTS.navigateFeed, handler);
+    return () => window.removeEventListener(APP_EVENTS.navigateFeed, handler);
   }, [navigateFeed]);
 
   return (

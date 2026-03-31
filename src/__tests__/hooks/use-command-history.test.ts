@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { addToHistory, clearHistory, getHistory, HISTORY_KEY, MAX_HISTORY } from "../../hooks/use-command-history";
+import { MAX_COMMAND_HISTORY, STORAGE_KEYS } from "@/constants/storage";
+import { addToHistory, clearHistory, getHistory } from "../../hooks/use-command-history";
 
 describe("use-command-history", () => {
   beforeEach(() => {
@@ -15,13 +16,13 @@ describe("use-command-history", () => {
   });
 
   it("returns an empty array for invalid stored data", () => {
-    localStorage.setItem(HISTORY_KEY, "not-json");
+    localStorage.setItem(STORAGE_KEYS.commandHistory, "not-json");
 
     expect(getHistory()).toEqual([]);
   });
 
   it("returns an empty array for non-array stored data", () => {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify({ id: "feed-1" }));
+    localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify({ id: "feed-1" }));
 
     expect(getHistory()).toEqual([]);
   });
@@ -42,11 +43,11 @@ describe("use-command-history", () => {
   });
 
   it("caps history to the maximum size", () => {
-    for (let index = 0; index < MAX_HISTORY + 2; index += 1) {
+    for (let index = 0; index < MAX_COMMAND_HISTORY + 2; index += 1) {
       addToHistory(`item-${index}`);
     }
 
-    expect(getHistory()).toHaveLength(MAX_HISTORY);
+    expect(getHistory()).toHaveLength(MAX_COMMAND_HISTORY);
     expect(getHistory()).toEqual([
       "item-11",
       "item-10",
@@ -65,7 +66,7 @@ describe("use-command-history", () => {
     addToHistory("feed-1");
     clearHistory();
 
-    expect(localStorage.getItem(HISTORY_KEY)).toBeNull();
+    expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
     expect(getHistory()).toEqual([]);
   });
 

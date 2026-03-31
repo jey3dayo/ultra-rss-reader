@@ -1,5 +1,4 @@
-export const HISTORY_KEY = "ultra-rss:command-history";
-export const MAX_HISTORY = 10;
+import { MAX_COMMAND_HISTORY, STORAGE_KEYS } from "@/constants/storage";
 
 function readStorage(): Storage | null {
   if (typeof window === "undefined") {
@@ -16,7 +15,7 @@ export function getHistory(): string[] {
   }
 
   try {
-    const raw = storage.getItem(HISTORY_KEY);
+    const raw = storage.getItem(STORAGE_KEYS.commandHistory);
     if (!raw) {
       return [];
     }
@@ -39,8 +38,8 @@ export function addToHistory(id: string): void {
   }
 
   try {
-    const next = [id, ...getHistory().filter((entry) => entry !== id)].slice(0, MAX_HISTORY);
-    storage.setItem(HISTORY_KEY, JSON.stringify(next));
+    const next = [id, ...getHistory().filter((entry) => entry !== id)].slice(0, MAX_COMMAND_HISTORY);
+    storage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(next));
   } catch {
     // Ignore storage failures so the palette still works in constrained environments.
   }
@@ -53,7 +52,7 @@ export function clearHistory(): void {
   }
 
   try {
-    storage.removeItem(HISTORY_KEY);
+    storage.removeItem(STORAGE_KEYS.commandHistory);
   } catch {
     // Ignore storage failures so callers do not need to handle persistence errors.
   }

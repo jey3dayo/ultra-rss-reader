@@ -1,11 +1,10 @@
 import { Result } from "@praha/byethrow";
 import { useEffect, useMemo } from "react";
+import { APP_EVENTS } from "@/constants/events";
 import { executeAction } from "@/lib/actions";
 import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
-
-export const navigateArticleEvent = "ultra-rss:navigate-article";
 
 function emitKeyboardEvent(name: (typeof keyboardEvents)[keyof typeof keyboardEvents]) {
   window.dispatchEvent(new Event(name));
@@ -61,7 +60,7 @@ export function useKeyboard() {
           store.setFocusedPane("sidebar");
           break;
         case "navigate-article":
-          window.dispatchEvent(new CustomEvent(navigateArticleEvent, { detail: resolvedAction.direction }));
+          window.dispatchEvent(new CustomEvent(APP_EVENTS.navigateArticle, { detail: resolvedAction.direction }));
           break;
         case "navigate-feed":
           executeAction(resolvedAction.direction === 1 ? "next-feed" : "prev-feed");

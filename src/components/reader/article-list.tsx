@@ -4,10 +4,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { updateFeedDisplayMode } from "@/api/tauri-commands";
+import { APP_EVENTS } from "@/constants/events";
 import { useAccountArticles, useArticles, useMarkAllRead, useSearchArticles } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeeds } from "@/hooks/use-feeds";
-import { navigateArticleEvent } from "@/hooks/use-keyboard";
 import { useArticlesByTag } from "@/hooks/use-tags";
 import { getAdjacentArticleId, getUnreadArticleIds, groupArticles, selectVisibleArticles } from "@/lib/article-list";
 import { resolveEffectiveDisplayMode } from "@/lib/article-view";
@@ -224,8 +224,8 @@ export function ArticleList() {
       const direction = (e as CustomEvent<1 | -1>).detail;
       navigateArticle(direction);
     };
-    window.addEventListener(navigateArticleEvent, handler);
-    return () => window.removeEventListener(navigateArticleEvent, handler);
+    window.addEventListener(APP_EVENTS.navigateArticle, handler);
+    return () => window.removeEventListener(APP_EVENTS.navigateArticle, handler);
   }, [navigateArticle]);
 
   useEffect(() => {

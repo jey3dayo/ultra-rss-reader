@@ -15,12 +15,9 @@ import {
 } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
+import { BROWSER_WINDOW_EVENTS, BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-
-const browserWebviewStateChangedEvent = "browser-webview-state-changed";
-const browserWebviewClosedEvent = "browser-webview-closed";
-export const BROWSER_WINDOW_LOAD_TIMEOUT_MS = 10_000;
 
 function initialBrowserState(url: string): BrowserWebviewState {
   return {
@@ -104,13 +101,13 @@ export function BrowserView() {
     let cancelled = false;
 
     listenerReadyRef.current = Promise.all([
-      listen<BrowserWebviewState>(browserWebviewStateChangedEvent, ({ payload }) => {
+      listen<BrowserWebviewState>(BROWSER_WINDOW_EVENTS.stateChanged, ({ payload }) => {
         if (cancelled) return;
         const nextState = mergeBrowserState(browserStateRef.current, payload, useUiStore.getState().browserUrl ?? "");
         browserStateRef.current = nextState;
         setBrowserState(nextState);
       }),
-      listen(browserWebviewClosedEvent, () => {
+      listen(BROWSER_WINDOW_EVENTS.closed, () => {
         if (cancelled) return;
         useUiStore.getState().closeBrowser();
       }),

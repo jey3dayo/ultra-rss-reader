@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CommandPalette } from "@/components/reader/command-palette";
-import { HISTORY_KEY } from "@/hooks/use-command-history";
+import { STORAGE_KEYS } from "@/constants/storage";
 import * as actions from "@/lib/actions";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
@@ -45,7 +45,7 @@ describe("CommandPalette", () => {
   });
 
   it("shows recent actions when opened without a query", async () => {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(["action:open-settings"]));
+    localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(["action:open-settings"]));
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 

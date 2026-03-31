@@ -1,13 +1,11 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { BROWSER_WINDOW_LOAD_TIMEOUT_MS, BrowserView } from "@/components/reader/browser-view";
+import { BrowserView } from "@/components/reader/browser-view";
+import { BROWSER_WINDOW_EVENTS, BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
-
-const browserWebviewStateChangedEvent = "browser-webview-state-changed";
-const browserWebviewClosedEvent = "browser-webview-closed";
 
 type BrowserCommand = {
   cmd: string;
@@ -116,12 +114,12 @@ describe("BrowserView", () => {
     expect(commands.some(({ cmd }) => cmd === "set_browser_webview_bounds")).toBe(false);
 
     await waitFor(() => {
-      expect(registeredHandlers.has(browserWebviewStateChangedEvent)).toBe(true);
-      expect(registeredHandlers.has(browserWebviewClosedEvent)).toBe(true);
+      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.stateChanged)).toBe(true);
+      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.closed)).toBe(true);
     });
 
     await act(async () => {
-      registeredHandlers.get(browserWebviewStateChangedEvent)?.({
+      registeredHandlers.get(BROWSER_WINDOW_EVENTS.stateChanged)?.({
         payload: {
           url: "https://example.com/article",
           can_go_back: false,
@@ -141,8 +139,9 @@ describe("BrowserView", () => {
     setupTauriMocks((cmd, args) => {
       if (cmd === "create_or_update_browser_webview") {
         listenersReadyWhenCreate =
-          registeredHandlers.has(browserWebviewStateChangedEvent) && registeredHandlers.has(browserWebviewClosedEvent);
-        registeredHandlers.get(browserWebviewStateChangedEvent)?.({
+          registeredHandlers.has(BROWSER_WINDOW_EVENTS.stateChanged) &&
+          registeredHandlers.has(BROWSER_WINDOW_EVENTS.closed);
+        registeredHandlers.get(BROWSER_WINDOW_EVENTS.stateChanged)?.({
           payload: {
             url: String(args.url),
             can_go_back: false,
@@ -190,11 +189,11 @@ describe("BrowserView", () => {
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(registeredHandlers.has(browserWebviewStateChangedEvent)).toBe(true);
+      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.stateChanged)).toBe(true);
     });
 
     await act(async () => {
-      registeredHandlers.get(browserWebviewStateChangedEvent)?.({
+      registeredHandlers.get(BROWSER_WINDOW_EVENTS.stateChanged)?.({
         payload: {
           url: "https://example.com/2",
           can_go_back: true,
@@ -223,7 +222,7 @@ describe("BrowserView", () => {
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(registeredHandlers.has(browserWebviewStateChangedEvent)).toBe(true);
+      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.stateChanged)).toBe(true);
     });
 
     await waitFor(() => {
@@ -233,7 +232,7 @@ describe("BrowserView", () => {
     const iframeUrl = "https://tpc.googlesyndication.com/safeframe/1-0-0/html/container.html";
 
     await act(async () => {
-      registeredHandlers.get(browserWebviewStateChangedEvent)?.({
+      registeredHandlers.get(BROWSER_WINDOW_EVENTS.stateChanged)?.({
         payload: {
           url: iframeUrl,
           can_go_back: true,
@@ -260,11 +259,11 @@ describe("BrowserView", () => {
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(registeredHandlers.has(browserWebviewStateChangedEvent)).toBe(true);
+      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.stateChanged)).toBe(true);
     });
 
     await act(async () => {
-      registeredHandlers.get(browserWebviewStateChangedEvent)?.({
+      registeredHandlers.get(BROWSER_WINDOW_EVENTS.stateChanged)?.({
         payload: {
           url: "https://togetter.com/li/123456",
           can_go_back: false,
@@ -275,7 +274,7 @@ describe("BrowserView", () => {
     });
 
     await act(async () => {
-      registeredHandlers.get(browserWebviewStateChangedEvent)?.({
+      registeredHandlers.get(BROWSER_WINDOW_EVENTS.stateChanged)?.({
         payload: {
           url: "https://gum.criteo.com/syncframe?origin=criteoPrebidAdapter",
           can_go_back: true,
@@ -306,11 +305,11 @@ describe("BrowserView", () => {
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(registeredHandlers.has(browserWebviewStateChangedEvent)).toBe(true);
+      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.stateChanged)).toBe(true);
     });
 
     await act(async () => {
-      registeredHandlers.get(browserWebviewStateChangedEvent)?.({
+      registeredHandlers.get(BROWSER_WINDOW_EVENTS.stateChanged)?.({
         payload: {
           url: "https://example.com/2",
           can_go_back: true,
@@ -400,11 +399,11 @@ describe("BrowserView", () => {
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(registeredHandlers.has(browserWebviewClosedEvent)).toBe(true);
+      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.closed)).toBe(true);
     });
 
     await act(async () => {
-      registeredHandlers.get(browserWebviewClosedEvent)?.({ payload: null });
+      registeredHandlers.get(BROWSER_WINDOW_EVENTS.closed)?.({ payload: null });
     });
 
     await waitFor(() => {

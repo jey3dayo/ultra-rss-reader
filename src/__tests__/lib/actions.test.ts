@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { APP_EVENTS } from "@/constants/events";
 import type { AppAction } from "@/lib/actions";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
@@ -118,26 +119,26 @@ describe("executeAction", () => {
   describe("article navigation actions", () => {
     it("dispatches navigate-article event with direction -1 for prev-article", () => {
       const handler = vi.fn();
-      window.addEventListener("ultra-rss:navigate-article", handler);
+      window.addEventListener(APP_EVENTS.navigateArticle, handler);
 
       executeAction("prev-article");
 
       expect(handler).toHaveBeenCalledTimes(1);
       expect((handler.mock.calls[0][0] as CustomEvent).detail).toBe(-1);
 
-      window.removeEventListener("ultra-rss:navigate-article", handler);
+      window.removeEventListener(APP_EVENTS.navigateArticle, handler);
     });
 
     it("dispatches navigate-article event with direction 1 for next-article", () => {
       const handler = vi.fn();
-      window.addEventListener("ultra-rss:navigate-article", handler);
+      window.addEventListener(APP_EVENTS.navigateArticle, handler);
 
       executeAction("next-article");
 
       expect(handler).toHaveBeenCalledTimes(1);
       expect((handler.mock.calls[0][0] as CustomEvent).detail).toBe(1);
 
-      window.removeEventListener("ultra-rss:navigate-article", handler);
+      window.removeEventListener(APP_EVENTS.navigateArticle, handler);
     });
   });
 

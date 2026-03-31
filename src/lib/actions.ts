@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { reloadBrowserWebview, triggerSync } from "@/api/tauri-commands";
+import { APP_EVENTS } from "@/constants/events";
 import { runManualUpdateCheck } from "@/hooks/use-updater";
 import { keyboardEvents, type ViewMode } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -67,11 +68,6 @@ export function isAppAction(value: string): value is AppAction {
   return appActions.has(value);
 }
 
-/** Custom DOM event names used by the action system. */
-export const actionEvents = {
-  navigateFeed: "ultra-rss:navigate-feed",
-} as const;
-
 /** Emit a keyboard-style DOM event that existing components already listen for. */
 function emitEvent(name: string): void {
   window.dispatchEvent(new Event(name));
@@ -81,8 +77,6 @@ function emitEvent(name: string): void {
 function emitNavigationEvent(name: string, direction: 1 | -1): void {
   window.dispatchEvent(new CustomEvent(name, { detail: direction }));
 }
-
-const NAVIGATE_ARTICLE_EVENT = "ultra-rss:navigate-article";
 
 /**
  * Toggle fullscreen mode via the Tauri window API.
@@ -185,18 +179,18 @@ export function executeAction(action: AppAction): void {
 
     // --- Article navigation ---
     case "prev-article":
-      emitNavigationEvent(NAVIGATE_ARTICLE_EVENT, -1);
+      emitNavigationEvent(APP_EVENTS.navigateArticle, -1);
       break;
     case "next-article":
-      emitNavigationEvent(NAVIGATE_ARTICLE_EVENT, 1);
+      emitNavigationEvent(APP_EVENTS.navigateArticle, 1);
       break;
 
     // --- Feed navigation ---
     case "prev-feed":
-      emitNavigationEvent(actionEvents.navigateFeed, -1);
+      emitNavigationEvent(APP_EVENTS.navigateFeed, -1);
       break;
     case "next-feed":
-      emitNavigationEvent(actionEvents.navigateFeed, 1);
+      emitNavigationEvent(APP_EVENTS.navigateFeed, 1);
       break;
 
     // --- Browser ---

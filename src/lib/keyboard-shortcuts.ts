@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import type { PlatformInfo } from "@/api/schemas";
+import { SHORTCUT_MODIFIER_BY_PLATFORM } from "@/constants/platform";
 
 export const keyboardEvents = {
   toggleRead: "ultra-rss:toggle-read",
@@ -197,13 +198,9 @@ export function normalizeKeyFromEvent(e: {
   return parts.join("+");
 }
 
-function displayModifierForPlatform(platformKind: PlatformInfo["kind"]): string {
-  return platformKind === "macos" ? "\u2318" : "Ctrl";
-}
-
 /** Display-friendly format: "Shift+R" -> "Shift + R", "⌘," -> "⌘ ," */
 export function formatKeyForDisplay(key: string, platformKind: PlatformInfo["kind"]): string {
-  const modifier = displayModifierForPlatform(platformKind);
+  const modifier = SHORTCUT_MODIFIER_BY_PLATFORM[platformKind];
   const normalized = key.replace(/\u2318/g, modifier).replace(/\+/g, " + ");
   const modifierPattern = platformKind === "macos" ? /\u2318\s*\+?\s*/g : /Ctrl\s*\+?\s*/g;
   return normalized.replace(modifierPattern, `${modifier} `);
