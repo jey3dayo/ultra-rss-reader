@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
+import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { ArticleList } from "@/components/reader/article-list";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -89,6 +90,71 @@ describe("ArticleList", () => {
     await waitFor(() => {
       expect(useUiStore.getState().selectedArticleId).toBeNull();
       expect(useUiStore.getState().contentMode).toBe("empty");
+    });
+  });
+
+  it("removes articles from unread view after confirming mark all read", async () => {
+    let articles = [
+      { ...sampleArticles[0], is_read: false },
+      { ...sampleArticles[1], is_read: true },
+    ];
+    let feeds = sampleFeeds.map((feed) =>
+      feed.id === "feed-1"
+        ? {
+            ...feed,
+            unread_count: articles.filter((article) => article.feed_id === feed.id && !article.is_read).length,
+          }
+        : feed,
+    );
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return feeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_articles":
+          return articles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return articles.filter((article) =>
+            feeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_articles_by_tag":
+          return [];
+        case "search_articles":
+          return [];
+        case "mark_articles_read": {
+          const ids = new Set(args.articleIds as string[]);
+          articles = articles.map((article) => (ids.has(article.id) ? { ...article, is_read: true } : article));
+          feeds = feeds.map((feed) => ({
+            ...feed,
+            unread_count: articles.filter((article) => article.feed_id === feed.id && !article.is_read).length,
+          }));
+          return null;
+        }
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+
+    const user = userEvent.setup();
+    render(
+      <>
+        <ArticleList />
+        <AppConfirmDialog />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("First Article")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Mark all as read" }));
+    await user.click(screen.getByRole("button", { name: "Mark as Read" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("First Article")).not.toBeInTheDocument();
     });
   });
 });

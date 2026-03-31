@@ -148,7 +148,6 @@ export function ArticleList() {
   const listRef = useRef<HTMLDivElement>(null);
   const scrollToTopOnChange = usePreferencesStore((s) => s.prefs.scroll_to_top_on_change ?? "true");
   const markAllRead = useMarkAllRead();
-  const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to top when selection changes
   useEffect(() => {
@@ -179,9 +178,8 @@ export function ArticleList() {
 
   const doMarkAllRead = useCallback(() => {
     const unreadIds = getUnreadArticleIds(filteredArticles);
-    for (const id of unreadIds) addRecentlyRead(id);
     markAllRead.mutate(unreadIds);
-  }, [filteredArticles, markAllRead, addRecentlyRead]);
+  }, [filteredArticles, markAllRead]);
 
   const handleMarkAllRead = useCallback(() => {
     const unreadIds = getUnreadArticleIds(filteredArticles);
