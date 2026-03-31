@@ -10,9 +10,10 @@
 
 ---
 
-### Task 1: Add failing frontend regression tests
+## Task 1: Add failing frontend regression tests
 
 **Files:**
+
 - Modify: `src/__tests__/components/article-view.test.tsx`
 - Modify: `src/__tests__/components/rename-feed-dialog-view.test.tsx`
 - Modify: `src/__tests__/stores/preferences-store.test.ts`
@@ -22,9 +23,10 @@
 - [ ] **Step 3: Implement the minimum code needed to support the new behavior**
 - [ ] **Step 4: Re-run the same targeted tests and confirm they pass**
 
-### Task 2: Implement inherit-aware display mode resolution
+## Task 2: Implement inherit-aware display mode resolution
 
 **Files:**
+
 - Modify: `src/lib/article-view.ts`
 - Modify: `src/components/reader/article-view.tsx`
 - Modify: `src/components/reader/article-list.tsx`
@@ -37,9 +39,10 @@
 - [ ] **Step 3: Add the inherit option to the feed edit dialog**
 - [ ] **Step 4: Keep toolbar toggles writing explicit `normal` / `widescreen` overrides**
 
-### Task 3: Update backend defaults and persisted data
+## Task 3: Update backend defaults and persisted data
 
 **Files:**
+
 - Add: `src-tauri/migrations/V7__feed_display_mode_inherit.sql`
 - Modify: `src-tauri/src/infra/db/migration.rs`
 - Modify: `src-tauri/src/commands/feed_commands.rs`
@@ -52,9 +55,10 @@
 - [ ] **Step 3: Preserve explicit widescreen overrides during sync flows**
 - [ ] **Step 4: Run targeted Rust and frontend tests for the touched paths**
 
-### Task 4: Verify end-to-end behavior
+## Task 4: Verify end-to-end behavior
 
 **Files:**
+
 - Modify: `src/__tests__/components/article-view.test.tsx`
 - Modify: `src/__tests__/components/settings-modal.test.tsx`
 
