@@ -136,9 +136,7 @@ export const openInBrowserArgs = z.object({
 export const checkBrowserEmbedSupportArgs = z.object({ url: z.string() });
 
 // --- browser webview ---
-export const createOrUpdateBrowserWebviewArgs = z.object({
-  url: z.string(),
-});
+export const createOrUpdateBrowserWebviewArgs = z.object({ url: z.string() });
 
 // --- exportOpml ---
 export const exportOpmlArgs = z.object({ accountId: z.string() });

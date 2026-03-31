@@ -61,7 +61,7 @@ describe("ArticleView", () => {
         case "update_feed_display_mode":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
   });
@@ -122,7 +122,7 @@ describe("ArticleView", () => {
         case "open_in_browser":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -217,7 +217,7 @@ describe("ArticleView", () => {
         case "update_feed_display_mode":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -263,7 +263,7 @@ describe("ArticleView", () => {
         case "update_feed_display_mode":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -312,7 +312,7 @@ describe("ArticleView", () => {
         case "get_article_tags":
           return [];
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -352,7 +352,7 @@ describe("ArticleView", () => {
         case "get_article_tags":
           return [];
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -376,6 +376,44 @@ describe("ArticleView", () => {
     });
   });
 
+  it("keeps explicit 3-pane feeds in reader mode even when the global default is widescreen", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_feeds":
+          return sampleFeeds
+            .filter((feed) => feed.account_id === args.accountId)
+            .map((feed) => (feed.id === "feed-1" ? { ...feed, display_mode: "normal" } : feed));
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+    });
+    usePreferencesStore.setState({
+      prefs: { reader_view: "widescreen" },
+      loaded: true,
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+
+    expect(useUiStore.getState().contentMode).toBe("reader");
+    expect(useUiStore.getState().browserUrl).toBeNull();
+  });
+
   it("retries auto-open after account articles finish loading", async () => {
     let resolveAccountArticles: ((articles: typeof sampleArticles) => void) | undefined;
 
@@ -392,7 +430,7 @@ describe("ArticleView", () => {
         case "get_article_tags":
           return [];
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -515,7 +553,7 @@ describe("ArticleView", () => {
         case "update_feed_display_mode":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -562,7 +600,7 @@ describe("ArticleView", () => {
         case "update_feed_display_mode":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
     usePlatformStore.setState({

@@ -163,7 +163,7 @@ fn supports_native_navigation(info: &crate::platform::PlatformInfo) -> bool {
 }
 
 pub fn navigation_availability<R: Runtime>(
-    _browser_window: &WebviewWindow<R>,
+    browser_window: &WebviewWindow<R>,
 ) -> Option<BrowserNavigationAvailability> {
     let platform_info = crate::platform::PlatformInfo::current();
     if !supports_native_navigation(&platform_info) {
@@ -173,7 +173,7 @@ pub fn navigation_availability<R: Runtime>(
     #[cfg(target_os = "macos")]
     {
         let (tx, rx) = std::sync::mpsc::channel();
-        if _browser_window
+        if browser_window
             .with_webview(move |platform_webview| unsafe {
                 let view: &objc2_web_kit::WKWebView = &*platform_webview.inner().cast();
                 let _ = tx.send(BrowserNavigationAvailability {
@@ -192,7 +192,7 @@ pub fn navigation_availability<R: Runtime>(
     #[cfg(windows)]
     {
         let (tx, rx) = std::sync::mpsc::channel();
-        if _browser_window
+        if browser_window
             .with_webview(move |platform_webview| unsafe {
                 let availability =
                     platform_webview

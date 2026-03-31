@@ -194,4 +194,18 @@ describe("Form fields", () => {
     expect(await screen.findByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Widescreen");
     expect(await screen.findByRole("combobox", { name: "Folder" })).toHaveTextContent("Work");
   });
+
+  it("rename feed dialog offers a default display mode option for inheriting the global setting", async () => {
+    const user = userEvent.setup();
+
+    render(<RenameDialog feed={{ ...sampleFeeds[0], display_mode: "inherit" }} open={true} onOpenChange={() => {}} />, {
+      wrapper: createWrapper(),
+    });
+
+    await user.click(await screen.findByRole("combobox", { name: "Display Mode" }));
+
+    expect(await screen.findByRole("option", { name: "Default display mode" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "3-Pane" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Widescreen" })).toBeInTheDocument();
+  });
 });

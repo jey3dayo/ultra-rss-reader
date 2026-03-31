@@ -22,6 +22,17 @@ type ResolveFeedDisplayModeParams = FindSelectedArticleParams & {
   feeds: FeedDto[] | undefined;
 };
 
+export function resolveEffectiveDisplayMode(
+  feedDisplayMode: string | null | undefined,
+  defaultDisplayMode: string,
+): "normal" | "widescreen" {
+  if (feedDisplayMode === "normal" || feedDisplayMode === "widescreen") {
+    return feedDisplayMode;
+  }
+
+  return defaultDisplayMode === "widescreen" ? "widescreen" : "normal";
+}
+
 export function findSelectedArticle(params: FindSelectedArticleParams): Result.Result<ArticleDto, "article_not_found"> {
   const { selectedArticleId, feedId, tagId, articles, accountArticles, tagArticles } = params;
 
@@ -47,10 +58,10 @@ export function resolveSelectedFeedDisplayMode(params: ResolveFeedDisplayModePar
   const resolvedFeedId = resolveSelectedFeedId(feedParams);
 
   if (!resolvedFeedId || !feeds) {
-    return "normal";
+    return "inherit";
   }
 
-  return feeds.find((feed) => feed.id === resolvedFeedId)?.display_mode ?? "normal";
+  return feeds.find((feed) => feed.id === resolvedFeedId)?.display_mode ?? "inherit";
 }
 
 export function shouldOpenExternalBrowser(params: LinkNavigationParams): boolean {

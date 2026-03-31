@@ -20,6 +20,7 @@ import {
 import {
   findSelectedArticle,
   formatArticleDate,
+  resolveEffectiveDisplayMode,
   resolveSelectedFeedDisplayMode,
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
@@ -508,8 +509,9 @@ export function ArticleView() {
     tagArticles,
     feeds,
   });
+  const effectiveDisplayMode = resolveEffectiveDisplayMode(selectedFeedDisplayMode, readerViewPref);
 
-  // When reader_view is "on" or feed is widescreen, auto-open article URL in browser view
+  // Auto-open only when the effective mode resolves to widescreen.
   const prevArticleIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (!selectedArticleId) {
@@ -517,7 +519,7 @@ export function ArticleView() {
       return;
     }
 
-    const shouldAutoOpen = readerViewPref === "widescreen" || selectedFeedDisplayMode === "widescreen";
+    const shouldAutoOpen = effectiveDisplayMode === "widescreen";
     if (!shouldAutoOpen || selectedArticleId === prevArticleIdRef.current || contentMode !== "reader") {
       return;
     }
@@ -541,8 +543,7 @@ export function ArticleView() {
     }
   }, [
     selectedArticleId,
-    readerViewPref,
-    selectedFeedDisplayMode,
+    effectiveDisplayMode,
     contentMode,
     feedId,
     tagId,

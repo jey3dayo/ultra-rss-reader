@@ -9,6 +9,7 @@ const MIGRATION_V3: &str = include_str!("../../../migrations/V3__fts5.sql");
 const MIGRATION_V4: &str = include_str!("../../../migrations/V4__tags.sql");
 const MIGRATION_V5: &str = include_str!("../../../migrations/V5__feed_display_mode.sql");
 const MIGRATION_V6: &str = include_str!("../../../migrations/V6__sync_state_timestamp_usec.sql");
+const MIGRATION_V7: &str = include_str!("../../../migrations/V7__feed_display_mode_inherit.sql");
 
 /// Result of a migration run.
 pub struct MigrationResult {
@@ -25,7 +26,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 6;
+pub const LATEST_VERSION: i32 = 7;
 
 pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     let tx = conn.transaction()?;
@@ -48,6 +49,9 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 6 {
         tx.execute_batch(MIGRATION_V6)?;
+    }
+    if from_version < 7 {
+        tx.execute_batch(MIGRATION_V7)?;
     }
 
     let to_version = get_schema_version(&tx);
@@ -161,6 +165,41 @@ mod tests {
             has_timestamp_usec,
             "latest sync_state cursor column should exist"
         );
+    }
+
+    #[test]
+    fn v7_converts_legacy_normal_display_mode_to_inherit() {
+        let mut conn = open_in_memory();
+        conn.execute_batch(MIGRATION_V1).unwrap();
+        conn.execute_batch(MIGRATION_V2).unwrap();
+        conn.execute_batch(MIGRATION_V3).unwrap();
+        conn.execute_batch(MIGRATION_V4).unwrap();
+        conn.execute_batch(MIGRATION_V5).unwrap();
+        conn.execute_batch(MIGRATION_V6).unwrap();
+
+        conn.execute(
+            "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+            ("acc-1", "local", "Local"),
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO feeds (id, account_id, title, url, site_url, unread_count, display_mode) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            ("feed-1", "acc-1", "Tech Blog", "https://example.com/feed.xml", "https://example.com", 0, "normal"),
+        )
+        .unwrap();
+
+        let result = run_migrations(&mut conn).unwrap();
+        assert_eq!(result.from_version, 6);
+        assert_eq!(result.to_version, LATEST_VERSION);
+
+        let display_mode: String = conn
+            .query_row(
+                "SELECT display_mode FROM feeds WHERE id = ?1",
+                ("feed-1",),
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(display_mode, "inherit");
     }
 
     #[test]
