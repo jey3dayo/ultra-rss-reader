@@ -35,50 +35,91 @@ pub(super) async fn sync_local_feed(
     account_id: &AccountId,
     feed: &Feed,
 ) -> Result<(), AppError> {
+    let scope_key = local_feed_scope_key(&feed.url);
+    let saved_state = {
+        let db_guard = lock_db(db)?;
+        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+        sync_state_repo.get(account_id, &scope_key)?
+    };
     let scope = PullScope::Feed(FeedIdentifier::Local {
         feed_url: feed.url.clone(),
     });
 
-    let result = provider.pull_entries(scope, None).await?;
+    let result = provider
+        .pull_entries(
+            scope,
+            saved_state.as_ref().map(|state| SyncCursor {
+                continuation: None,
+                since: None,
+                etag: state.etag.clone(),
+                last_modified: state.last_modified.clone(),
+            }),
+        )
+        .await?;
 
-    let articles: Vec<Article> = result
-        .entries
-        .iter()
-        .map(|entry| {
-            let id = generate_entry_id(
-                account_id.as_ref(),
-                entry.id.as_deref(),
-                &feed.url,
-                entry.url.as_deref(),
-                Some(&entry.title),
-            );
-            Article {
-                id,
-                feed_id: feed.id.clone(),
-                remote_id: entry.id.clone(),
-                title: entry.title.clone(),
-                content_raw: entry.content.clone(),
-                content_sanitized: sanitizer::sanitize_html(&entry.content),
-                sanitizer_version: sanitizer::SANITIZER_VERSION,
-                summary: entry.summary.clone(),
-                url: entry.url.clone(),
-                author: entry.author.clone(),
-                published_at: entry.published_at.unwrap_or_else(chrono::Utc::now),
-                thumbnail: entry.thumbnail.clone(),
-                is_read: entry.is_read.unwrap_or(false),
-                is_starred: entry.is_starred.unwrap_or(false),
-                fetched_at: chrono::Utc::now(),
-            }
-        })
-        .collect();
+    if !result.not_modified {
+        let articles: Vec<Article> = result
+            .entries
+            .iter()
+            .map(|entry| {
+                let id = generate_entry_id(
+                    account_id.as_ref(),
+                    entry.id.as_deref(),
+                    &feed.url,
+                    entry.url.as_deref(),
+                    Some(&entry.title),
+                );
+                Article {
+                    id,
+                    feed_id: feed.id.clone(),
+                    remote_id: entry.id.clone(),
+                    title: entry.title.clone(),
+                    content_raw: entry.content.clone(),
+                    content_sanitized: sanitizer::sanitize_html(&entry.content),
+                    sanitizer_version: sanitizer::SANITIZER_VERSION,
+                    summary: entry.summary.clone(),
+                    url: entry.url.clone(),
+                    author: entry.author.clone(),
+                    published_at: entry.published_at.unwrap_or_else(chrono::Utc::now),
+                    thumbnail: entry.thumbnail.clone(),
+                    is_read: entry.is_read.unwrap_or(false),
+                    is_starred: entry.is_starred.unwrap_or(false),
+                    fetched_at: chrono::Utc::now(),
+                }
+            })
+            .collect();
 
-    if !articles.is_empty() {
-        let db_guard = lock_db(db)?;
-        let article_repo = SqliteArticleRepository::new(db_guard.writer());
-        let feed_repo_w = SqliteFeedRepository::new(db_guard.writer());
-        article_repo.upsert(&articles)?;
-        let _ = feed_repo_w.recalculate_unread_count(&feed.id);
+        if !articles.is_empty() {
+            let db_guard = lock_db(db)?;
+            let article_repo = SqliteArticleRepository::new(db_guard.writer());
+            let feed_repo_w = SqliteFeedRepository::new(db_guard.writer());
+            article_repo.upsert(&articles)?;
+            let _ = feed_repo_w.recalculate_unread_count(&feed.id);
+        }
     }
+
+    let next_state = SyncState {
+        account_id: account_id.clone(),
+        scope_key,
+        timestamp_usec: None,
+        continuation: None,
+        etag: result
+            .next_cursor
+            .as_ref()
+            .and_then(|cursor| cursor.etag.clone()),
+        last_modified: result
+            .next_cursor
+            .as_ref()
+            .and_then(|cursor| cursor.last_modified.clone()),
+        last_success_at: Some(chrono::Utc::now().to_rfc3339()),
+        last_error: None,
+        error_count: 0,
+        next_retry_at: None,
+    };
+    let db_guard = lock_db(db)?;
+    let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+    sync_state_repo.save(&next_state)?;
+
     Ok(())
 }
 
@@ -292,6 +333,10 @@ fn feed_scope_key(remote_id: &str) -> String {
     format!("feed:{remote_id}")
 }
 
+fn local_feed_scope_key(feed_url: &str) -> String {
+    format!("local_feed:{feed_url}")
+}
+
 fn cursor_from_state(state: Option<&SyncState>) -> Option<SyncCursor> {
     state.map(|state| SyncCursor {
         // Cross-sync resumes are timestamp-based. Continuation tokens are only
@@ -416,6 +461,32 @@ mod tests {
     use mockito::Matcher;
 
     const FEED_REMOTE_ID: &str = "feed/https://example.com/rss";
+    const LOCAL_ETAG_OLD: &str = "\"etag-old\"";
+    const LOCAL_ETAG_NEW: &str = "\"etag-new\"";
+    const LOCAL_LAST_MODIFIED_OLD: &str = "Wed, 01 Jan 2025 00:00:00 GMT";
+    const LOCAL_LAST_MODIFIED_NEW: &str = "Thu, 02 Jan 2025 00:00:00 GMT";
+    const LOCAL_RSS_INITIAL: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0">
+    <channel>
+        <title>Local Feed</title>
+        <item>
+            <title>Local Article</title>
+            <link>https://example.com/1</link>
+            <guid>local-guid-1</guid>
+        </item>
+    </channel>
+    </rss>"#;
+    const LOCAL_RSS_UPDATED: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0">
+    <channel>
+        <title>Local Feed</title>
+        <item>
+            <title>Local Article Updated</title>
+            <link>https://example.com/1</link>
+            <guid>local-guid-1</guid>
+        </item>
+    </channel>
+    </rss>"#;
 
     fn test_db() -> Mutex<DbManager> {
         Mutex::new(DbManager::new_in_memory().unwrap())
@@ -452,6 +523,47 @@ mod tests {
     fn insert_account_and_feed(db: &Mutex<DbManager>, server_url: &str) -> (Account, Feed) {
         let account = test_account(server_url);
         let feed = test_feed(&account.id);
+
+        let db_guard = db.lock().unwrap();
+        let account_repo = SqliteAccountRepository::new(db_guard.writer());
+        let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+        account_repo.save(&account).unwrap();
+        feed_repo.save(&feed).unwrap();
+
+        (account, feed)
+    }
+
+    fn test_local_account() -> Account {
+        Account {
+            id: AccountId::new(),
+            kind: ProviderKind::Local,
+            name: "Local".to_string(),
+            server_url: None,
+            username: None,
+            sync_interval_secs: 3600,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+        }
+    }
+
+    fn test_local_feed(account_id: &AccountId, feed_url: &str) -> Feed {
+        Feed {
+            id: FeedId::new(),
+            account_id: account_id.clone(),
+            folder_id: None,
+            remote_id: None,
+            title: "Local Feed".to_string(),
+            url: feed_url.to_string(),
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            unread_count: 0,
+            display_mode: "inherit".to_string(),
+        }
+    }
+
+    fn insert_local_account_and_feed(db: &Mutex<DbManager>, feed_url: &str) -> (Account, Feed) {
+        let account = test_local_account();
+        let feed = test_local_feed(&account.id, feed_url);
 
         let db_guard = db.lock().unwrap();
         let account_repo = SqliteAccountRepository::new(db_guard.writer());
@@ -763,5 +875,298 @@ mod tests {
         assert_eq!(state.last_error, saved_state.last_error);
         assert_eq!(state.error_count, saved_state.error_count);
         assert_eq!(state.next_retry_at, saved_state.next_retry_at);
+    }
+
+    #[tokio::test]
+    async fn sync_local_feed_initial_fetch_saves_articles_and_validators() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_header("etag", LOCAL_ETAG_NEW)
+            .with_header("last-modified", LOCAL_LAST_MODIFIED_NEW)
+            .with_body(LOCAL_RSS_INITIAL)
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_local_account_and_feed(&db, &feed_url);
+        let provider = LocalProvider::new();
+
+        sync_local_feed(&db, &provider, &account.id, &feed)
+            .await
+            .unwrap();
+
+        mock.assert_async().await;
+
+        let db_guard = db.lock().unwrap();
+        let article_repo = SqliteArticleRepository::new(db_guard.reader());
+        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let articles = article_repo
+            .find_by_feed(&feed.id, &Pagination::default())
+            .unwrap();
+        let state = sync_state_repo
+            .get(&account.id, &local_feed_scope_key(&feed.url))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(articles.len(), 1);
+        assert_eq!(articles[0].title, "Local Article");
+        assert_eq!(state.etag.as_deref(), Some(LOCAL_ETAG_NEW));
+        assert_eq!(
+            state.last_modified.as_deref(),
+            Some(LOCAL_LAST_MODIFIED_NEW)
+        );
+        assert_eq!(state.continuation, None);
+        assert_eq!(state.timestamp_usec, None);
+        assert_eq!(state.error_count, 0);
+        assert!(state.last_success_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn sync_local_feed_updates_validators_and_article_on_200_response() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .match_header("if-none-match", LOCAL_ETAG_OLD)
+            .match_header("if-modified-since", LOCAL_LAST_MODIFIED_OLD)
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_header("etag", LOCAL_ETAG_NEW)
+            .with_header("last-modified", LOCAL_LAST_MODIFIED_NEW)
+            .with_body(LOCAL_RSS_UPDATED)
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_local_account_and_feed(&db, &feed_url);
+        let existing_article = Article {
+            id: generate_entry_id(
+                account.id.as_ref(),
+                Some("local-guid-1"),
+                &feed.url,
+                Some("https://example.com/1"),
+                Some("Local Article"),
+            ),
+            feed_id: feed.id.clone(),
+            remote_id: Some("local-guid-1".to_string()),
+            title: "Local Article".to_string(),
+            content_raw: "old".to_string(),
+            content_sanitized: "old".to_string(),
+            sanitizer_version: sanitizer::SANITIZER_VERSION,
+            summary: None,
+            url: Some("https://example.com/1".to_string()),
+            author: None,
+            published_at: chrono::Utc::now(),
+            thumbnail: None,
+            is_read: false,
+            is_starred: false,
+            fetched_at: chrono::Utc::now(),
+        };
+        {
+            let db_guard = db.lock().unwrap();
+            let article_repo = SqliteArticleRepository::new(db_guard.writer());
+            let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+            article_repo.upsert(&[existing_article]).unwrap();
+            sync_state_repo
+                .save(&SyncState {
+                    account_id: account.id.clone(),
+                    scope_key: local_feed_scope_key(&feed.url),
+                    timestamp_usec: None,
+                    continuation: None,
+                    etag: Some(LOCAL_ETAG_OLD.to_string()),
+                    last_modified: Some(LOCAL_LAST_MODIFIED_OLD.to_string()),
+                    last_success_at: Some("2025-01-01T00:00:00Z".to_string()),
+                    last_error: Some("old error".to_string()),
+                    error_count: 2,
+                    next_retry_at: Some("2025-01-01T01:00:00Z".to_string()),
+                })
+                .unwrap();
+        }
+
+        let provider = LocalProvider::new();
+        sync_local_feed(&db, &provider, &account.id, &feed)
+            .await
+            .unwrap();
+
+        mock.assert_async().await;
+
+        let db_guard = db.lock().unwrap();
+        let article_repo = SqliteArticleRepository::new(db_guard.reader());
+        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let articles = article_repo
+            .find_by_feed(&feed.id, &Pagination::default())
+            .unwrap();
+        let state = sync_state_repo
+            .get(&account.id, &local_feed_scope_key(&feed.url))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(articles.len(), 1);
+        assert_eq!(articles[0].title, "Local Article Updated");
+        assert_eq!(state.etag.as_deref(), Some(LOCAL_ETAG_NEW));
+        assert_eq!(
+            state.last_modified.as_deref(),
+            Some(LOCAL_LAST_MODIFIED_NEW)
+        );
+        assert_eq!(state.error_count, 0);
+        assert_eq!(state.last_error, None);
+        assert_eq!(state.next_retry_at, None);
+        assert!(state.last_success_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn sync_local_feed_skips_upsert_when_server_returns_not_modified() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .match_header("if-none-match", LOCAL_ETAG_OLD)
+            .match_header("if-modified-since", LOCAL_LAST_MODIFIED_OLD)
+            .with_status(304)
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_local_account_and_feed(&db, &feed_url);
+        let existing_fetched_at = chrono::Utc::now() - chrono::Duration::days(1);
+        let existing_article = Article {
+            id: generate_entry_id(
+                account.id.as_ref(),
+                Some("local-guid-1"),
+                &feed.url,
+                Some("https://example.com/1"),
+                Some("Local Article"),
+            ),
+            feed_id: feed.id.clone(),
+            remote_id: Some("local-guid-1".to_string()),
+            title: "Local Article".to_string(),
+            content_raw: "old".to_string(),
+            content_sanitized: "old".to_string(),
+            sanitizer_version: sanitizer::SANITIZER_VERSION,
+            summary: None,
+            url: Some("https://example.com/1".to_string()),
+            author: None,
+            published_at: chrono::Utc::now() - chrono::Duration::days(2),
+            thumbnail: None,
+            is_read: false,
+            is_starred: false,
+            fetched_at: existing_fetched_at,
+        };
+        {
+            let db_guard = db.lock().unwrap();
+            let article_repo = SqliteArticleRepository::new(db_guard.writer());
+            let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+            article_repo.upsert(&[existing_article]).unwrap();
+            sync_state_repo
+                .save(&SyncState {
+                    account_id: account.id.clone(),
+                    scope_key: local_feed_scope_key(&feed.url),
+                    timestamp_usec: None,
+                    continuation: None,
+                    etag: Some(LOCAL_ETAG_OLD.to_string()),
+                    last_modified: Some(LOCAL_LAST_MODIFIED_OLD.to_string()),
+                    last_success_at: Some("2025-01-01T00:00:00Z".to_string()),
+                    last_error: Some("old error".to_string()),
+                    error_count: 3,
+                    next_retry_at: Some("2025-01-01T01:00:00Z".to_string()),
+                })
+                .unwrap();
+        }
+
+        let provider = LocalProvider::new();
+        sync_local_feed(&db, &provider, &account.id, &feed)
+            .await
+            .unwrap();
+
+        mock.assert_async().await;
+
+        let db_guard = db.lock().unwrap();
+        let article_repo = SqliteArticleRepository::new(db_guard.reader());
+        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let articles = article_repo
+            .find_by_feed(&feed.id, &Pagination::default())
+            .unwrap();
+        let state = sync_state_repo
+            .get(&account.id, &local_feed_scope_key(&feed.url))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(articles.len(), 1);
+        assert_eq!(articles[0].title, "Local Article");
+        assert_eq!(articles[0].fetched_at, existing_fetched_at);
+        assert_eq!(state.etag.as_deref(), Some(LOCAL_ETAG_OLD));
+        assert_eq!(
+            state.last_modified.as_deref(),
+            Some(LOCAL_LAST_MODIFIED_OLD)
+        );
+        assert_eq!(state.error_count, 0);
+        assert_eq!(state.last_error, None);
+        assert_eq!(state.next_retry_at, None);
+        assert!(state.last_success_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn sync_local_feed_clears_validators_when_server_does_not_support_them() {
+        let mut server = mockito::Server::new_async().await;
+        let feed_url = format!("{}/feed.xml", server.url());
+        let mock = server
+            .mock("GET", "/feed.xml")
+            .match_header("if-none-match", LOCAL_ETAG_OLD)
+            .match_header("if-modified-since", LOCAL_LAST_MODIFIED_OLD)
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_body(LOCAL_RSS_UPDATED)
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_local_account_and_feed(&db, &feed_url);
+        {
+            let db_guard = db.lock().unwrap();
+            let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+            sync_state_repo
+                .save(&SyncState {
+                    account_id: account.id.clone(),
+                    scope_key: local_feed_scope_key(&feed.url),
+                    timestamp_usec: None,
+                    continuation: None,
+                    etag: Some(LOCAL_ETAG_OLD.to_string()),
+                    last_modified: Some(LOCAL_LAST_MODIFIED_OLD.to_string()),
+                    last_success_at: Some("2025-01-01T00:00:00Z".to_string()),
+                    last_error: None,
+                    error_count: 0,
+                    next_retry_at: None,
+                })
+                .unwrap();
+        }
+
+        let provider = LocalProvider::new();
+        sync_local_feed(&db, &provider, &account.id, &feed)
+            .await
+            .unwrap();
+
+        mock.assert_async().await;
+
+        let db_guard = db.lock().unwrap();
+        let article_repo = SqliteArticleRepository::new(db_guard.reader());
+        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let articles = article_repo
+            .find_by_feed(&feed.id, &Pagination::default())
+            .unwrap();
+        let state = sync_state_repo
+            .get(&account.id, &local_feed_scope_key(&feed.url))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(articles.len(), 1);
+        assert_eq!(articles[0].title, "Local Article Updated");
+        assert_eq!(state.etag, None);
+        assert_eq!(state.last_modified, None);
+        assert_eq!(state.error_count, 0);
+        assert!(state.last_success_at.is_some());
     }
 }

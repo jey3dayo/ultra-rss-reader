@@ -453,6 +453,7 @@ impl FeedProvider for GReaderProvider {
             entries,
             next_cursor,
             has_more,
+            not_modified: false,
         })
     }
 

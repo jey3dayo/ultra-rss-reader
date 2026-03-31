@@ -35,6 +35,7 @@ pub struct PullResult {
     pub entries: Vec<RemoteEntry>,
     pub next_cursor: Option<SyncCursor>,
     pub has_more: bool,
+    pub not_modified: bool,
 }
 
 #[derive(Debug, Clone)]
