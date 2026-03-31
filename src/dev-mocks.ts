@@ -390,7 +390,7 @@ export function setupDevMocks() {
           url,
           can_go_back: false,
           can_go_forward: false,
-          is_loading: true,
+          is_loading: false,
         };
       }
 
