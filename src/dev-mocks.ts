@@ -159,7 +159,7 @@ export function setupDevMocks() {
           url,
           site_url: url,
           unread_count: 3,
-          display_mode: "normal",
+          display_mode: "inherit",
         };
         mockFeeds.push(feed);
         // Generate sample articles for the new feed

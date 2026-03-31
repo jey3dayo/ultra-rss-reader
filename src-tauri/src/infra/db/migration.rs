@@ -193,7 +193,11 @@ mod tests {
         assert_eq!(result.to_version, LATEST_VERSION);
 
         let display_mode: String = conn
-            .query_row("SELECT display_mode FROM feeds WHERE id = ?1", ("feed-1",), |row| row.get(0))
+            .query_row(
+                "SELECT display_mode FROM feeds WHERE id = ?1",
+                ("feed-1",),
+                |row| row.get(0),
+            )
             .unwrap();
         assert_eq!(display_mode, "inherit");
     }

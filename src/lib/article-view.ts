@@ -58,10 +58,10 @@ export function resolveSelectedFeedDisplayMode(params: ResolveFeedDisplayModePar
   const resolvedFeedId = resolveSelectedFeedId(feedParams);
 
   if (!resolvedFeedId || !feeds) {
-    return "normal";
+    return "inherit";
   }
 
-  return feeds.find((feed) => feed.id === resolvedFeedId)?.display_mode ?? "normal";
+  return feeds.find((feed) => feed.id === resolvedFeedId)?.display_mode ?? "inherit";
 }
 
 export function shouldOpenExternalBrowser(params: LinkNavigationParams): boolean {
