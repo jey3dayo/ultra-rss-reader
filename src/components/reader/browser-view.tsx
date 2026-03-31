@@ -252,90 +252,94 @@ export function BrowserView() {
   };
 
   return (
-    <div className="border-b border-border bg-muted/20 px-4 py-3">
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
-            {t("browser_view")}
-          </p>
-          <p className="truncate text-sm text-foreground">{currentUrl}</p>
-          <p className="text-xs text-muted-foreground">{isLoading ? t("browser_loading") : t("browser_window_hint")}</p>
-          {isLoading && <p className="mt-1 text-xs text-muted-foreground">{t("browser_loading_hint")}</p>}
-        </div>
-
-        <TooltipProvider>
-          <div className="flex items-center gap-1">
-            <AppTooltip label={t("web_back")}>
-              <Button
-                variant="ghost"
-                size="icon"
-                disabled={!canGoBack}
-                onClick={() => {
-                  void handleBrowserCommand(goBackBrowserWebview);
-                }}
-                className="text-muted-foreground"
-                aria-label={t("web_back")}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </AppTooltip>
-            <AppTooltip label={t("web_forward")}>
-              <Button
-                variant="ghost"
-                size="icon"
-                disabled={!canGoForward}
-                onClick={() => {
-                  void handleBrowserCommand(goForwardBrowserWebview);
-                }}
-                className="text-muted-foreground"
-                aria-label={t("web_forward")}
-              >
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </AppTooltip>
-            <AppTooltip label={t("reload_page")}>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setBrowserState((state) => {
-                    const nextState = state ? { ...state, is_loading: true } : initialBrowserState(browserUrl);
-                    browserStateRef.current = nextState;
-                    return nextState;
-                  });
-                  void handleBrowserCommand(reloadBrowserWebview);
-                }}
-                className="text-muted-foreground"
-                aria-label={t("reload_page")}
-              >
-                <RotateCcw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-              </Button>
-            </AppTooltip>
-            <AppTooltip label={t("open_in_external_browser")}>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleOpenExternal}
-                className="text-muted-foreground"
-                aria-label={t("open_in_external_browser")}
-              >
-                <ExternalLink className="h-4 w-4" />
-              </Button>
-            </AppTooltip>
-            <AppTooltip label={t("close_browser_window")}>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={closeBrowser}
-                className="text-muted-foreground"
-                aria-label={t("close_browser_window")}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </AppTooltip>
-          </div>
-        </TooltipProvider>
+    <div data-testid="browser-toolbar" className="flex h-12 items-center gap-3 border-b border-border px-4">
+      <div className="min-w-0 flex flex-1 items-center gap-2">
+        <p title={currentUrl} className="truncate text-sm text-foreground">
+          {currentUrl}
+        </p>
+        {isLoading && (
+          <span
+            data-testid="browser-loading-status"
+            aria-live="polite"
+            className="shrink-0 rounded-full border border-border/70 bg-muted/60 px-2 py-0.5 text-[11px] leading-none font-medium text-muted-foreground"
+          >
+            {t("browser_loading")}
+          </span>
+        )}
       </div>
+
+      <TooltipProvider>
+        <div className="flex items-center gap-1">
+          <AppTooltip label={t("web_back")}>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!canGoBack}
+              onClick={() => {
+                void handleBrowserCommand(goBackBrowserWebview);
+              }}
+              className="text-muted-foreground"
+              aria-label={t("web_back")}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </AppTooltip>
+          <AppTooltip label={t("web_forward")}>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!canGoForward}
+              onClick={() => {
+                void handleBrowserCommand(goForwardBrowserWebview);
+              }}
+              className="text-muted-foreground"
+              aria-label={t("web_forward")}
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </AppTooltip>
+          <AppTooltip label={t("reload_page")}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setBrowserState((state) => {
+                  const nextState = state ? { ...state, is_loading: true } : initialBrowserState(browserUrl);
+                  browserStateRef.current = nextState;
+                  return nextState;
+                });
+                void handleBrowserCommand(reloadBrowserWebview);
+              }}
+              className="text-muted-foreground"
+              aria-label={t("reload_page")}
+            >
+              <RotateCcw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+            </Button>
+          </AppTooltip>
+          <AppTooltip label={t("open_in_external_browser")}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleOpenExternal}
+              className="text-muted-foreground"
+              aria-label={t("open_in_external_browser")}
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          </AppTooltip>
+          <AppTooltip label={t("close_browser_window")}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={closeBrowser}
+              className="text-muted-foreground"
+              aria-label={t("close_browser_window")}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </AppTooltip>
+        </div>
+      </TooltipProvider>
     </div>
   );
 }

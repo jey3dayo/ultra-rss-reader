@@ -93,7 +93,7 @@ describe("BrowserView", () => {
     });
   });
 
-  it("opens the dedicated browser window on mount and keeps the loading hint visible until finish", async () => {
+  it("opens the dedicated browser window with a compact fixed-height toolbar", async () => {
     useUiStore.setState({
       selectedArticleId: "art-1",
       contentMode: "browser",
@@ -102,9 +102,12 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-    expect(screen.getByText("https://example.com/article")).toBeInTheDocument();
-    expect(screen.getByText("Loading page...")).toBeInTheDocument();
-    expect(screen.getByText("If this takes too long, open it in your external browser.")).toBeInTheDocument();
+    expect(screen.getByText("https://example.com/article")).toHaveAttribute("title", "https://example.com/article");
+    expect(screen.getByTestId("browser-toolbar")).toHaveClass("h-12");
+    expect(screen.getByTestId("browser-loading-status")).toHaveTextContent("Loading");
+    expect(screen.getByTestId("browser-loading-status")).toHaveAttribute("aria-live", "polite");
+    expect(screen.queryByText("Browser View")).not.toBeInTheDocument();
+    expect(screen.queryByText("If this takes too long, open it in your external browser.")).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(commands.some(({ cmd }) => cmd === "create_or_update_browser_webview")).toBe(true);
@@ -128,8 +131,8 @@ describe("BrowserView", () => {
       });
     });
 
-    expect(screen.queryByText("Loading page...")).not.toBeInTheDocument();
-    expect(screen.getByText("Showing in a separate window.")).toBeInTheDocument();
+    expect(screen.queryByTestId("browser-loading-status")).not.toBeInTheDocument();
+    expect(screen.queryByText("Showing in a separate window.")).not.toBeInTheDocument();
   });
 
   it("registers both browser window listeners before opening the dedicated window", async () => {
@@ -173,7 +176,7 @@ describe("BrowserView", () => {
     });
 
     await waitFor(() => {
-      expect(screen.queryByText("Loading page...")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("browser-loading-status")).not.toBeInTheDocument();
     });
   });
 
@@ -242,7 +245,7 @@ describe("BrowserView", () => {
 
     expect(screen.getByText("https://example.com/article")).toBeInTheDocument();
     expect(screen.queryByText(iframeUrl)).not.toBeInTheDocument();
-    expect(screen.getByText("Loading page...")).toBeInTheDocument();
+    expect(screen.getByTestId("browser-loading-status")).toHaveTextContent("Loading");
     expect(commands.filter(({ cmd }) => cmd === "create_or_update_browser_webview")).toHaveLength(1);
   });
 
@@ -350,6 +353,7 @@ describe("BrowserView", () => {
       expect(commands.map(({ cmd }) => cmd)).toContain("open_in_browser");
     });
 
+    expect(useUiStore.getState().toastMessage).toEqual({ message: "Opened in your external browser" });
     expect(useUiStore.getState().contentMode).toBe("reader");
     expect(useUiStore.getState().browserUrl).toBeNull();
   });
@@ -378,6 +382,7 @@ describe("BrowserView", () => {
       });
 
       expect(commands.map(({ cmd }) => cmd)).toContain("open_in_browser");
+      expect(useUiStore.getState().toastMessage).toEqual({ message: "Opened in your external browser" });
       expect(useUiStore.getState().contentMode).toBe("reader");
       expect(useUiStore.getState().browserUrl).toBeNull();
     } finally {
