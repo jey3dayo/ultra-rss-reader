@@ -13,6 +13,7 @@ tmp/
 .env.local
 # .env itself is encrypted by dotenvx and safe to commit
 .claude/worktrees/
+.worktrees/
 
 # Playwright
 test-results/
