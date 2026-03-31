@@ -89,6 +89,7 @@
   "edit_feed": "フィードを編集",
   "title": "タイトル",
   "display_mode": "表示モード",
+  "display_mode_default": "デフォルト表示モード",
   "display_mode_normal": "3ペイン",
   "display_mode_widescreen": "ワイドスクリーン",
   "display_mode_fullscreen": "全画面",

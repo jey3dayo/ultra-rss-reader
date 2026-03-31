@@ -89,6 +89,7 @@
   "edit_feed": "Edit Feed",
   "title": "Title",
   "display_mode": "Display Mode",
+  "display_mode_default": "Default display mode",
   "display_mode_normal": "3-Pane",
   "display_mode_widescreen": "Widescreen",
   "display_mode_fullscreen": "Fullscreen",

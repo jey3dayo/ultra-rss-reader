@@ -22,6 +22,17 @@ type ResolveFeedDisplayModeParams = FindSelectedArticleParams & {
   feeds: FeedDto[] | undefined;
 };
 
+export function resolveEffectiveDisplayMode(
+  feedDisplayMode: string | null | undefined,
+  defaultDisplayMode: string,
+): "normal" | "widescreen" {
+  if (feedDisplayMode === "normal" || feedDisplayMode === "widescreen") {
+    return feedDisplayMode;
+  }
+
+  return defaultDisplayMode === "widescreen" ? "widescreen" : "normal";
+}
+
 export function findSelectedArticle(params: FindSelectedArticleParams): Result.Result<ArticleDto, "article_not_found"> {
   const { selectedArticleId, feedId, tagId, articles, accountArticles, tagArticles } = params;
 

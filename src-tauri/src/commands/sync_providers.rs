@@ -181,7 +181,7 @@ async fn sync_greader_feeds(
                 display_mode: existing
                     .as_ref()
                     .map(|f| f.display_mode.clone())
-                    .unwrap_or_else(|| "normal".to_string()),
+                    .unwrap_or_else(|| "inherit".to_string()),
             };
             feed_repo.save(&feed)?;
         }

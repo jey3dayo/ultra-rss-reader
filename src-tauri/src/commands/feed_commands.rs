@@ -130,7 +130,7 @@ pub async fn add_local_feed(
         site_url: sub.site_url,
         icon: None,
         unread_count: 0,
-        display_mode: "normal".to_string(),
+        display_mode: "inherit".to_string(),
     };
 
     {
@@ -159,6 +159,11 @@ pub fn update_feed_display_mode(
     feed_id: String,
     display_mode: String,
 ) -> Result<(), AppError> {
+    if !matches!(display_mode.as_str(), "inherit" | "normal" | "widescreen") {
+        return Err(AppError::UserVisible {
+            message: format!("Unknown display mode: {display_mode}"),
+        });
+    }
     let db = lock_db(&state.db)?;
     let repo = SqliteFeedRepository::new(db.writer());
     repo.update_display_mode(&FeedId(feed_id), &display_mode)?;

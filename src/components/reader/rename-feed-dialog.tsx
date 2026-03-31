@@ -21,7 +21,7 @@ export function RenameDialog({
   const { t: tc } = useTranslation("common");
   const [title, setTitle] = useState(feed.title);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(feed.folder_id);
-  const [displayMode, setDisplayMode] = useState(feed.display_mode ?? "normal");
+  const [displayMode, setDisplayMode] = useState(feed.display_mode ?? "inherit");
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
@@ -29,6 +29,7 @@ export function RenameDialog({
   const { data: folders } = useFolders(feed.account_id);
   const folderLabelId = useId();
   const displayModeOptions = [
+    { value: "inherit", label: t("display_mode_default") },
     { value: "normal", label: t("display_mode_normal") },
     { value: "widescreen", label: t("display_mode_widescreen") },
   ];
@@ -41,7 +42,7 @@ export function RenameDialog({
     if (open) {
       setTitle(feed.title);
       setSelectedFolderId(feed.folder_id);
-      setDisplayMode(feed.display_mode ?? "normal");
+      setDisplayMode(feed.display_mode ?? "inherit");
       setLoading(false);
       requestAnimationFrame(() => {
         inputRef.current?.focus();
@@ -72,7 +73,7 @@ export function RenameDialog({
       );
     }
 
-    if (displayMode !== (feed.display_mode ?? "normal")) {
+    if (displayMode !== (feed.display_mode ?? "inherit")) {
       Result.pipe(
         await updateFeedDisplayMode(feed.id, displayMode),
         Result.inspectError((e) => showToast(t("failed_to_update_display_mode", { message: e.message }))),

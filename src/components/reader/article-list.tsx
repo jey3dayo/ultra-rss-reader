@@ -10,9 +10,10 @@ import { useFeeds } from "@/hooks/use-feeds";
 import { navigateArticleEvent } from "@/hooks/use-keyboard";
 import { useArticlesByTag } from "@/hooks/use-tags";
 import { getAdjacentArticleId, getUnreadArticleIds, groupArticles, selectVisibleArticles } from "@/lib/article-list";
+import { resolveEffectiveDisplayMode } from "@/lib/article-view";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
-import { usePreferencesStore } from "@/stores/preferences-store";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenu } from "./article-context-menu";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
@@ -34,6 +35,7 @@ export function ArticleList() {
   const layoutMode = useUiStore((s) => s.layoutMode);
   const sortUnread = usePreferencesStore((s) => s.prefs.reading_sort ?? s.prefs.sort_unread ?? "newest_first");
   const groupBy = usePreferencesStore((s) => s.prefs.group_by ?? "date");
+  const readerViewPref = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "reader_view"));
   const dimArchived = usePreferencesStore((s) => s.prefs.dim_archived ?? "true");
   const textPreview = usePreferencesStore((s) => s.prefs.text_preview ?? "true");
   const imagePreviews = usePreferencesStore((s) => s.prefs.image_previews ?? "medium");
@@ -138,7 +140,7 @@ export function ArticleList() {
   }, [selection, scrollToTopOnChange]);
 
   const selectedFeed = useMemo(() => feeds?.find((f) => f.id === feedId), [feeds, feedId]);
-  const currentDisplayMode: ReaderDisplayMode = selectedFeed?.display_mode === "widescreen" ? "widescreen" : "normal";
+  const currentDisplayMode: ReaderDisplayMode = resolveEffectiveDisplayMode(selectedFeed?.display_mode, readerViewPref);
 
   const handleSetDisplayMode = useCallback(
     async (nextMode: ReaderDisplayMode) => {
