@@ -20,6 +20,7 @@ import {
 import {
   findSelectedArticle,
   formatArticleDate,
+  resolveArticleDateLocale,
   resolveEffectiveDisplayMode,
   resolveSelectedFeedDisplayMode,
   shouldOpenExternalBrowser,
@@ -288,6 +289,7 @@ function ArticleReader({
   feedName?: string;
   browserView?: ReactNode;
 }) {
+  const { i18n } = useTranslation();
   const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const cmdClickBrowser = usePreferencesStore((s) => s.prefs.cmd_click_browser ?? "false");
@@ -440,7 +442,7 @@ function ArticleReader({
             title={article.title}
             author={article.author}
             feedName={feedName}
-            publishedLabel={formatArticleDate(article.published_at)}
+            publishedLabel={formatArticleDate(article.published_at, resolveArticleDateLocale(i18n.language))}
             onTitleClick={
               articleUrl
                 ? (e) => {

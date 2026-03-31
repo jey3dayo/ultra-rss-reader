@@ -69,14 +69,45 @@ export function shouldOpenExternalBrowser(params: LinkNavigationParams): boolean
   return (cmdClickBrowser === "true" && (metaKey || ctrlKey)) || openLinks === "default_browser";
 }
 
-export function formatArticleDate(dateStr: string): string {
+export function resolveArticleDateLocale(locale: string | undefined): string {
+  if (!locale) {
+    return "en";
+  }
+
+  const normalized = locale.toLowerCase();
+  if (normalized.startsWith("ja")) {
+    return "ja";
+  }
+
+  if (normalized.startsWith("en")) {
+    return locale;
+  }
+
+  return "en";
+}
+
+export function formatArticleDate(dateStr: string, locale = "en-US"): string {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) {
     return dateStr;
   }
+
+  const resolvedLocale = locale || "en-US";
+
+  if (!resolvedLocale.toLowerCase().startsWith("en")) {
+    return date.toLocaleString(resolvedLocale, {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
   return (
     date
-      .toLocaleDateString("en-US", {
+      .toLocaleDateString(resolvedLocale, {
         weekday: "long",
         year: "numeric",
         month: "long",
@@ -84,7 +115,7 @@ export function formatArticleDate(dateStr: string): string {
       })
       .toUpperCase() +
     " AT " +
-    date.toLocaleTimeString("en-US", {
+    date.toLocaleTimeString(resolvedLocale, {
       hour: "numeric",
       minute: "2-digit",
     })

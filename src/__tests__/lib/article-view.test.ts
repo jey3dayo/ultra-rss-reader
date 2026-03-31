@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   findSelectedArticle,
   formatArticleDate,
+  resolveArticleDateLocale,
   resolveEffectiveDisplayMode,
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
@@ -120,5 +121,35 @@ describe("formatArticleDate", () => {
     // Time portion should be present after "AT"
     const timePart = result.split("AT")[1].trim();
     expect(timePart).toBeTruthy();
+  });
+
+  it("formats Japanese UI dates with a Japanese locale", () => {
+    const result = formatArticleDate("2026-03-25T10:00:00Z", "ja");
+
+    expect(result).toContain("2026年");
+    expect(result).not.toContain("AT");
+    expect(result).not.toContain("MARCH");
+  });
+
+  it("respects English regional locales when formatting article dates", () => {
+    const result = formatArticleDate("2026-03-25T10:00:00Z", "en-GB");
+
+    expect(result).toContain("AT");
+    expect(result).toContain("25 MARCH 2026");
+  });
+});
+
+describe("resolveArticleDateLocale", () => {
+  it("maps Japanese locales to ja", () => {
+    expect(resolveArticleDateLocale("ja-JP")).toBe("ja");
+  });
+
+  it("preserves English regional locales", () => {
+    expect(resolveArticleDateLocale("en-GB")).toBe("en-GB");
+  });
+
+  it("falls back unsupported locales to en", () => {
+    expect(resolveArticleDateLocale("zh-CN")).toBe("en");
+    expect(resolveArticleDateLocale(undefined)).toBe("en");
   });
 });
