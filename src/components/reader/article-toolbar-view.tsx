@@ -60,7 +60,7 @@ export function ArticleToolbarView({
   onOpenInExternalBrowser,
 }: ArticleToolbarViewProps) {
   return (
-    <div className="grid h-12 grid-cols-[auto_1fr_auto] items-center border-b border-border px-4">
+    <div className="flex h-12 items-center border-b border-border px-4">
       <div className="flex items-center">
         {showCloseButton && (
           <TooltipProvider>
@@ -78,7 +78,7 @@ export function ArticleToolbarView({
           </TooltipProvider>
         )}
       </div>
-      <div data-tauri-drag-region aria-hidden="true" className="mx-3 h-full min-w-0" />
+      <div data-tauri-drag-region className="mx-3 h-full min-w-0 flex-1" />
       <div className="flex items-center gap-2">
         <TooltipProvider>
           <AppTooltip label={labels.toggleRead}>

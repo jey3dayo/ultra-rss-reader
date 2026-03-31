@@ -1,12 +1,5 @@
 import { z } from "zod";
 
-export const browserWebviewBoundsArgs = z.object({
-  x: z.number(),
-  y: z.number(),
-  width: z.number(),
-  height: z.number(),
-});
-
 // --- listFolders / listFeeds ---
 export const listFoldersArgs = z.object({ accountId: z.string() });
 export const listFeedsArgs = z.object({ accountId: z.string() });
@@ -143,14 +136,7 @@ export const openInBrowserArgs = z.object({
 export const checkBrowserEmbedSupportArgs = z.object({ url: z.string() });
 
 // --- browser webview ---
-export const createOrUpdateBrowserWebviewArgs = z.object({
-  url: z.string(),
-  bounds: browserWebviewBoundsArgs,
-});
-
-export const setBrowserWebviewBoundsArgs = z.object({
-  bounds: browserWebviewBoundsArgs,
-});
+export const createOrUpdateBrowserWebviewArgs = z.object({ url: z.string() });
 
 // --- exportOpml ---
 export const exportOpmlArgs = z.object({ accountId: z.string() });
@@ -240,7 +226,6 @@ export const commandArgsSchemas: Record<string, z.ZodType> = {
   open_in_browser: openInBrowserArgs,
   check_browser_embed_support: checkBrowserEmbedSupportArgs,
   create_or_update_browser_webview: createOrUpdateBrowserWebviewArgs,
-  set_browser_webview_bounds: setBrowserWebviewBoundsArgs,
   export_opml: exportOpmlArgs,
   set_preference: setPreferenceArgs,
   copy_to_clipboard: copyToClipboardArgs,

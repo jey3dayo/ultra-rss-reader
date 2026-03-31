@@ -91,15 +91,8 @@ describe("tauri-commands with mockIPC", () => {
   });
 
   describe("browser webview commands", () => {
-    it("creates or updates the inline browser webview", async () => {
-      const value = Result.unwrap(
-        await createOrUpdateBrowserWebview("https://example.com/article", {
-          x: 12,
-          y: 34,
-          width: 640,
-          height: 480,
-        }),
-      );
+    it("creates or updates the dedicated browser webview window", async () => {
+      const value = Result.unwrap(await createOrUpdateBrowserWebview("https://example.com/article"));
 
       expect(value).toEqual({
         url: "https://example.com/article",
