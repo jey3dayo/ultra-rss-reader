@@ -24,6 +24,23 @@
   - DOM 上は要素が存在するが、主要要素の `x` 座標が `-1125px` 付近までずれており表示領域に入ってこない
   - 768px では表示されるため、mobile layout への切替時の translate 計算か初期 focus pane の組み合わせを疑いたい
   - 候補箇所: `src/components/app-layout.tsx`, `src/hooks/use-layout.ts`, `src/stores/ui-store.ts`
+- [x] 幅 375px の初期表示でサイドバーと設定導線が画面外に退避し、フィード一覧から戻れない
+  - 再現: Playwright で viewport を `375x900` にして `http://127.0.0.1:4173/` または `http://127.0.0.1:4174/` を開く
+  - 初期表示では記事一覧だけが `x=0` に出る一方、`FreshRSS` は `x=-359px`、`設定` は `x=-221px`、同期/追加ボタンも `x<0` になり操作できない
+  - 記事を開いてから `表示を閉じる` を押してもサイドバーは画面内へ戻らず、mobile 幅で feed/account/settings に遷移できない
+  - 候補箇所: `src/components/app-layout.tsx`, `src/hooks/use-layout.ts`, `src/stores/ui-store.ts`
+- [x] 記事検索の入力欄が placeholder 依存で、スクリーンリーダー向けのラベルを持っていない
+  - 再現: ブラウザモード (`http://127.0.0.1:4173/`) でツールバーの `記事を検索` を押す
+  - Playwright で開いた input を確認すると `name=\"article-search\"` はあるが `label` / `aria-label` / `aria-labelledby` が付いておらず、placeholder の `記事を検索...` だけではアクセシブルネームにならない
+  - Web Interface Guidelines 的にも form control は label か `aria-label` が必要で、placeholder の三点リーダーも `...` ではなく `…` に寄せたい
+  - 候補箇所: `src/components/reader/article-list-header.tsx`, `src/locales/ja/reader.json`, `src/locales/en/reader.json`
+
+- [x] `未読` フィルタ中に `すべて既読にする` を実行しても、記事一覧がその場では空にならず read 済み記事が残る
+  - 再現: ブラウザモード (`http://127.0.0.1:4173/`) を開いた直後の `未読` フィルタで、ツールバーの `すべて既読にする` を押して確認ダイアログを確定する
+  - サイドバーの未読件数は `0` になるが、中央の一覧にはさっきまでの unread 記事がそのまま薄く残り、フィルタ条件と表示が食い違う
+  - Playwright では `containsFirstHeadlineAfterMarkAll = true` を確認済みで、一覧を見たまま誤操作しやすい
+  - `recentlyReadIds` を unread view にも残すロジックが bulk action でも効いている可能性が高い
+  - 候補箇所: `src/components/reader/article-list.tsx`, `src/lib/article-list.ts`, `src/__tests__/components/article-list.test.tsx`
 
 ## macOS / Windows 共存チェック
 
@@ -57,21 +74,6 @@
   - `src-tauri/src/lib.rs` では macOS だけ `Overlay`、それ以外は `Visible` を設定している
   - macOS 専用 config に分けるか runtime 設定に一本化して、将来の差分混入を防ぐ
 
-## 自動アップデートの署名検証とロールバック
-
-- [ ] アップデート失敗時のフォールバック動作をテストする → [#18](https://github.com/jey3dayo/ultra-rss-reader/issues/18)
-
-## 同期パフォーマンス改善
-
-- [ ] 差分同期の最適化（最終同期時刻以降の変更のみ取得） → [#17](https://github.com/jey3dayo/ultra-rss-reader/issues/17)
-
-## tracing の初期化と観測性確保
-
-- [ ] リリースビルドではファイルログ出力を検討する（ユーザーがログを添付してサポート依頼できる導線）
-  - `tracing-appender` crate でローリングファイル出力を追加
-  - ログローテーション（日次 or サイズベース）、保持期間の設計が必要
-  - 設定画面からログディレクトリを開けると便利
-
 ## premortem で見えた詰めどころ
 
 - [x] 同期失敗時の整合性ルールを明文化する
@@ -85,7 +87,3 @@
   - workflow を増やすか README を現状に合わせるか決める
 - [x] E2E / 手動確認の責務分担を決める
   - README に `test` / `test:e2e` / `test:live` / 手動確認の境界と verification matrix を追記した
-
-## リリース用 bundle identifier の確定
-
-- [ ] 変更後、updater endpoint・OS 上のアプリ識別・データディレクトリへの影響を確認する → [#19](https://github.com/jey3dayo/ultra-rss-reader/issues/19)
