@@ -17,8 +17,8 @@ describe("FeedContextMenuView", () => {
         <FeedContextMenuView
           openSiteLabel="Open site"
           markAllReadLabel="Mark all as read"
-          unsubscribeLabel="Unsubscribe..."
-          editLabel="Edit..."
+          unsubscribeLabel="Unsubscribe…"
+          editLabel="Edit…"
           onOpenSite={onOpenSite}
           onMarkAllRead={onMarkAllRead}
           onUnsubscribe={onUnsubscribe}
@@ -29,8 +29,8 @@ describe("FeedContextMenuView", () => {
 
     await user.click(screen.getByRole("menuitem", { name: "Open site" }));
     await user.click(screen.getByRole("menuitem", { name: "Mark all as read" }));
-    await user.click(screen.getByRole("menuitem", { name: "Unsubscribe..." }));
-    await user.click(screen.getByRole("menuitem", { name: "Edit..." }));
+    await user.click(screen.getByRole("menuitem", { name: "Unsubscribe…" }));
+    await user.click(screen.getByRole("menuitem", { name: "Edit…" }));
 
     expect(onOpenSite).toHaveBeenCalledTimes(1);
     expect(onMarkAllRead).toHaveBeenCalledTimes(1);

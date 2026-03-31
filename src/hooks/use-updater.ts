@@ -57,7 +57,7 @@ function showUpdateFailureToast(message: string): void {
 function startDownload(): void {
   const store = useUiStore.getState();
   store.showToast({
-    message: "ダウンロード中... 0%",
+    message: "ダウンロード中… 0%",
     persistent: true,
     progress: 0,
   });
@@ -151,7 +151,7 @@ export function useUpdater(): void {
     const progressUnlisten = listen<{ percent: number | null }>("update-download-progress", (event) => {
       const store = useUiStore.getState();
       const percent = event.payload.percent;
-      const message = percent != null ? `ダウンロード中... ${percent}%` : "ダウンロード中...";
+      const message = percent != null ? `ダウンロード中… ${percent}%` : "ダウンロード中…";
       store.showToast({
         message,
         persistent: true,

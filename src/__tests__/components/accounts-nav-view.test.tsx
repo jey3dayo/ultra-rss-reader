@@ -14,7 +14,7 @@ describe("AccountsNavView", () => {
     render(
       <AccountsNavView
         accounts={accounts}
-        addAccountLabel="Add account..."
+        addAccountLabel="Add account…"
         isAddAccountActive={false}
         onSelectAccount={onSelectAccount}
         onAddAccount={onAddAccount}
@@ -23,7 +23,7 @@ describe("AccountsNavView", () => {
 
     const localButton = screen.getByRole("button", { name: /Local/i });
     const freshRssButton = screen.getByRole("button", { name: /FreshRSS/i });
-    const addAccountButton = screen.getByRole("button", { name: "Add account..." });
+    const addAccountButton = screen.getByRole("button", { name: "Add account…" });
 
     expect(localButton).toHaveClass("bg-sidebar-accent");
     expect(freshRssButton).not.toHaveClass("bg-sidebar-accent");

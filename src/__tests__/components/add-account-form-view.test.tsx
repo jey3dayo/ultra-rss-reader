@@ -29,7 +29,7 @@ describe("AddAccountFormView", () => {
           disabled: false,
         }}
         submitLabel="Add"
-        submittingLabel="Adding..."
+        submittingLabel="Adding…"
         cancelLabel="Cancel"
         submitting={false}
         onSubmit={() => {}}
@@ -91,7 +91,7 @@ describe("AddAccountFormView", () => {
           },
         }}
         submitLabel="Add"
-        submittingLabel="Adding..."
+        submittingLabel="Adding…"
         cancelLabel="Cancel"
         submitting={false}
         onSubmit={() => {}}
@@ -138,7 +138,7 @@ describe("AddAccountFormView", () => {
         }}
         errorMessage="Server URL is required"
         submitLabel="Add"
-        submittingLabel="Adding..."
+        submittingLabel="Adding…"
         cancelLabel="Cancel"
         submitting={false}
         onSubmit={onSubmit}

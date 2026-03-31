@@ -66,7 +66,7 @@ describe("CommandPalette", () => {
     const user = userEvent.setup();
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    const input = await screen.findByPlaceholderText("Search commands...");
+    const input = await screen.findByPlaceholderText("Search commands…");
     await user.type(input, "@Tech");
     await user.click(await screen.findByRole("option", { name: /Tech Blog/ }));
 
@@ -82,7 +82,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    const input = await screen.findByPlaceholderText("Search commands...");
+    const input = await screen.findByPlaceholderText("Search commands…");
     await user.type(input, ">settings");
 
     expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();

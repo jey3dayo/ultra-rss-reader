@@ -31,7 +31,7 @@ const meta = {
     },
     errorMessage: null,
     submitLabel: "Add",
-    submittingLabel: "Adding...",
+    submittingLabel: "Adding…",
     cancelLabel: "Cancel",
     submitting: false,
     onSubmit: fn(),

@@ -47,7 +47,7 @@ const meta = {
           { id: "acc-1", name: "Local", kind: "local", isActive: true },
           { id: "acc-2", name: "FreshRSS", kind: "freshrss", isActive: false },
         ]}
-        addAccountLabel="Add account..."
+        addAccountLabel="Add account…"
         isAddAccountActive={false}
         onSelectAccount={fn()}
         onAddAccount={fn()}

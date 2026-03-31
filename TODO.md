@@ -2,6 +2,24 @@
 
 ## UI ブラウザ散策メモ
 
+- [ ] UI/UX 監査で見つかった改善を小さいものから順に解消する
+  - [x] 設定画面の日本語 UI に残っている英語混在ラベルを自然な日本語に直す
+    - `Unread を表示` / `Starred を表示` / `Tags を表示`
+    - 候補箇所: `src/locales/ja/settings.json`
+  - [x] UI 文言の `...` を `…` に寄せて表記を統一する
+    - loading / adding / placeholder / `〜...` 系のラベルを優先
+    - 候補箇所: `src/locales/ja/*.json`, `src/locales/en/*.json`
+  - [x] ダークテーマで `color-scheme: dark` を明示し、ネイティブ UI の見え方を安定させる
+    - 候補箇所: `src/styles/global.css`
+  - [ ] モバイル幅で 32px 前後に留まっている主要アイコンボタンのタップ領域を 44px 基準へ近づける
+    - 対象候補: 同期 / 追加 / サイドバー表示 / 検索 / 既読化 / 記事ツールバー / 設定の閉じる
+    - 候補箇所: `src/components/ui/button.tsx`, `src/components/ui/switch.tsx`, `src/components/shared/icon-toolbar-control.tsx`
+  - [ ] モバイルでアイコンのみの操作に依存している導線を見直す
+    - tooltip 前提になっている主要操作を、ラベル表示かメニュー集約で補う
+    - 候補箇所: `src/components/reader/sidebar-header-view.tsx`, `src/components/reader/article-list-header.tsx`, `src/components/reader/article-toolbar-view.tsx`
+  - [x] `transition-all` を必要なプロパティだけに絞って、動きの意図を明確にする
+    - 候補箇所: `src/components/ui/button.tsx`, `src/components/app-shell.tsx`
+
 - [x] Windows として動作するブラウザ mock でも、設定画面の文言に `⌘` 表記が残っている
   - 再現: ブラウザモード (`http://127.0.0.1:4173/`) で設定を開き、`一般 > 記事一覧` のトグル文言を見る
   - 現状は `⌘クリックでアプリ内ブラウザを開く` と表示されるが、Windows では `Ctrl` 系の表記に寄せたい

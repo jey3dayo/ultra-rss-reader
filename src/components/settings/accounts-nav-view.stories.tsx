@@ -13,7 +13,7 @@ const meta = {
   tags: ["autodocs"],
   args: {
     accounts,
-    addAccountLabel: "Add account...",
+    addAccountLabel: "Add account…",
     isAddAccountActive: false,
     onSelectAccount: fn(),
     onAddAccount: fn(),

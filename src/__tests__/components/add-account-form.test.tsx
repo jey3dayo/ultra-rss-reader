@@ -116,7 +116,7 @@ describe("AddAccountForm", () => {
     });
   });
 
-  it("shows 'Testing connection...' button text while submitting FreshRSS account", async () => {
+  it("shows 'Testing connection…' button text while submitting FreshRSS account", async () => {
     let resolveAddAccount: ((value: unknown) => void) | null = null;
 
     setupTauriMocks((cmd) => {
@@ -137,7 +137,7 @@ describe("AddAccountForm", () => {
     await user.type(screen.getByLabelText("Password"), "secret");
     await user.click(screen.getByRole("button", { name: "Add" }));
 
-    expect(screen.getByRole("button", { name: "Testing connection..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Testing connection…" })).toBeDisabled();
 
     // Clean up
     const resolve = resolveAddAccount as ((value: unknown) => void) | null;
@@ -182,7 +182,7 @@ describe("AddAccountForm", () => {
     await user.type(screen.getByLabelText("Name"), "Work RSS");
     await user.keyboard("{Enter}");
 
-    const addButton = screen.getByRole("button", { name: "Adding..." });
+    const addButton = screen.getByRole("button", { name: "Adding…" });
     expect(addAccountCalls).toHaveBeenCalledTimes(1);
     expect(addButton).toBeDisabled();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();

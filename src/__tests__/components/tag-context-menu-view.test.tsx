@@ -16,8 +16,8 @@ describe("TagContextMenuView", () => {
       </ContextMenu.Root>,
     );
 
-    await user.click(screen.getByRole("menuitem", { name: "Edit..." }));
-    await user.click(screen.getByRole("menuitem", { name: "Delete..." }));
+    await user.click(screen.getByRole("menuitem", { name: "Edit…" }));
+    await user.click(screen.getByRole("menuitem", { name: "Delete…" }));
 
     expect(onRename).toHaveBeenCalledTimes(1);
     expect(onDelete).toHaveBeenCalledTimes(1);

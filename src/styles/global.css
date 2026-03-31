@@ -54,6 +54,7 @@
 
 /* Legacy tokens for existing components */
 :root {
+  color-scheme: dark;
   --desktop-titlebar-offset: 44px;
   --bg-sidebar: #1e1e1e;
   --bg-list: #222222;

@@ -232,11 +232,11 @@ describe("useKeyboard", () => {
     renderAppShell(calls);
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
-    expect(screen.queryByPlaceholderText("Search articles...")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Search articles…")).not.toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "/" });
 
-    const input = await screen.findByPlaceholderText("Search articles...");
+    const input = await screen.findByPlaceholderText("Search articles…");
     await waitFor(() => {
       expect(input).toHaveFocus();
     });
@@ -253,7 +253,7 @@ describe("useKeyboard", () => {
     await waitFor(() => {
       expect(useUiStore.getState().commandPaletteOpen).toBe(true);
     });
-    expect(await screen.findByPlaceholderText("Search commands...")).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText("Search commands…")).toBeInTheDocument();
   });
 
   it("pressing Escape in the tag picker closes the picker without clearing the article", async () => {

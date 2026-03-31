@@ -73,7 +73,7 @@ export function ServicePicker({ onSelect }: { onSelect: (kind: AddAccountProvide
 
   return (
     <div className="p-6">
-      <h2 className="mb-6 text-center text-lg font-semibold">{t("account.heading")}...</h2>
+      <h2 className="mb-6 text-center text-lg font-semibold">{t("account.heading")}…</h2>
       <div className="space-y-4">
         {SERVICE_CATEGORIES.map((category) => {
           const labelId = `service-category-${category.labelKey}`;

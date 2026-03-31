@@ -81,7 +81,7 @@ export function DataSettings() {
         <SectionHeading>{t("data.database")}</SectionHeading>
         <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
           <span className="text-sm text-foreground">{t("data.database_size")}</span>
-          <span className="text-sm text-muted-foreground">{totalSize != null ? formatBytes(totalSize) : "..."}</span>
+          <span className="text-sm text-muted-foreground">{totalSize != null ? formatBytes(totalSize) : "…"}</span>
         </div>
       </section>
       <section>

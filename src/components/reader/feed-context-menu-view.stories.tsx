@@ -10,8 +10,8 @@ const meta = {
   args: {
     openSiteLabel: "Open site",
     markAllReadLabel: "Mark all as read",
-    unsubscribeLabel: "Unsubscribe...",
-    editLabel: "Edit...",
+    unsubscribeLabel: "Unsubscribe…",
+    editLabel: "Edit…",
     onOpenSite: fn(),
     onMarkAllRead: fn(),
     onUnsubscribe: fn(),
