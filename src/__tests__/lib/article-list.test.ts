@@ -88,7 +88,7 @@ describe("article-list utils", () => {
     expect(Result.unwrapError(result)).toBe("no_articles");
   });
 
-  it("keeps recently-read articles in unread view", () => {
+  it("does not keep recently-read articles in unread view even when recentlyReadIds is provided", () => {
     const readArticle: ArticleDto = {
       ...sampleArticles[0],
       id: "recently-read",
@@ -124,7 +124,7 @@ describe("article-list utils", () => {
       recentlyReadIds,
     });
 
-    expect(result.map((a) => a.id)).toEqual(["recently-read", "still-unread"]);
+    expect(result.map((a) => a.id)).toEqual(["still-unread"]);
   });
 
   it("excludes recently-read articles from unread view when recentlyReadIds is not provided", () => {
@@ -157,7 +157,7 @@ describe("article-list utils", () => {
     expect(result.map((a) => a.id)).toEqual(["unread-article"]);
   });
 
-  it("keeps recently-read articles in unread view with feed-specific articles", () => {
+  it("does not keep recently-read feed articles in unread view", () => {
     const readArticle: ArticleDto = {
       ...sampleArticles[0],
       id: "feed-recently-read",
@@ -187,6 +187,6 @@ describe("article-list utils", () => {
       recentlyReadIds,
     });
 
-    expect(result.map((a) => a.id)).toEqual(["feed-recently-read", "feed-unread"]);
+    expect(result.map((a) => a.id)).toEqual(["feed-unread"]);
   });
 });

@@ -60,7 +60,6 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
     showSearch,
     searchQuery,
     sortUnread,
-    recentlyReadIds,
   } = params;
 
   let list: ArticleDto[];
@@ -70,8 +69,7 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
     list = [...(tagArticles ?? [])];
   } else {
     const all = feedId ? (articles ?? []) : (accountArticles ?? []);
-    if (viewMode === "unread")
-      list = all.filter((article) => !article.is_read || (recentlyReadIds?.has(article.id) ?? false));
+    if (viewMode === "unread") list = all.filter((article) => !article.is_read);
     else if (viewMode === "starred") list = all.filter((article) => article.is_starred);
     else list = [...all];
   }

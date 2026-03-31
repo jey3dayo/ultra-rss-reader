@@ -173,4 +173,45 @@ describe("ArticleList", () => {
       expect(screen.queryByText("First Article")).not.toBeInTheDocument();
     });
   });
+
+  it("does not render read articles in unread view even when recentlyReadIds contains them", async () => {
+    const articles = [
+      { ...sampleArticles[0], id: "art-read", title: "Read Article", is_read: true },
+      { ...sampleArticles[1], id: "art-unread", title: "Unread Article", is_read: false, is_starred: false },
+    ];
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_articles":
+          return articles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return articles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_articles_by_tag":
+          return [];
+        case "search_articles":
+          return [];
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "all" },
+      viewMode: "unread",
+      recentlyReadIds: new Set(["art-read"]),
+    });
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText("Unread Article")).toBeInTheDocument();
+      expect(screen.queryByText("Read Article")).not.toBeInTheDocument();
+    });
+  });
 });
