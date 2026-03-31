@@ -8,6 +8,11 @@ description = "A Tauri-based RSS reader"
 name = "ultra_rss_reader_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
+[[bin]]
+name = "ultra-rss-reader"
+path = "src/main.rs"
+test = false
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 

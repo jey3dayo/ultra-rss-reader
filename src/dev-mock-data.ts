@@ -277,3 +277,7 @@ export const mockArticles: ArticleDto[] = [
     is_starred: true,
   },
 ];
+
+for (const feed of mockFeeds) {
+  feed.unread_count = mockArticles.filter((article) => article.feed_id === feed.id && !article.is_read).length;
+}

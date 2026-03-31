@@ -37,7 +37,7 @@
     "date": "日付",
     "feed": "フィード",
     "none": "なし",
-    "cmd_click_browser": "\u2318クリックでアプリ内ブラウザを開く",
+    "cmd_click_browser": "{{modifier}}クリックでアプリ内ブラウザを開く",
     "sort_subscriptions": "購読の並び順",
     "folders_first": "フォルダ優先",
     "alphabetical": "アルファベット順",

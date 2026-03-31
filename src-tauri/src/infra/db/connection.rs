@@ -295,7 +295,7 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(version, 6);
+        assert_eq!(version, super::super::migration::LATEST_VERSION);
     }
 
     #[test]
@@ -358,23 +358,33 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let db_path = dir.path().join("test.db");
 
-        // Create a DB at v6
-        let db = DbManager::new(&db_path).unwrap();
-        db.writer()
-            .execute(
+        // Create a DB at v5, then manually add the V6 column without recording version 6.
+        // DbManager::new should back up the v5 DB, fail V6 with a duplicate column error,
+        // restore the backup, and return an error instead of running on the half-migrated DB.
+        {
+            let conn = rusqlite::Connection::open(&db_path).unwrap();
+            conn.execute_batch(include_str!("../../../migrations/V1__initial.sql"))
+                .unwrap();
+            conn.execute_batch(include_str!("../../../migrations/V2__preferences.sql"))
+                .unwrap();
+            conn.execute_batch(include_str!("../../../migrations/V3__fts5.sql"))
+                .unwrap();
+            conn.execute_batch(include_str!("../../../migrations/V4__tags.sql"))
+                .unwrap();
+            conn.execute_batch(include_str!(
+                "../../../migrations/V5__feed_display_mode.sql"
+            ))
+            .unwrap();
+            conn.execute(
                 "INSERT INTO accounts (id, kind, name) VALUES ('a1', 'Local', 'Test')",
                 [],
             )
             .unwrap();
-        drop(db);
-
-        // Manually set version back to 5 — V6 adds timestamp_usec column which already exists,
-        // so the migration will fail with "duplicate column name"
-        {
-            let conn = rusqlite::Connection::open(&db_path).unwrap();
-            conn.execute("DELETE FROM schema_version WHERE version = 6", [])
-                .unwrap();
-            drop(conn);
+            conn.execute(
+                "ALTER TABLE sync_state ADD COLUMN timestamp_usec INTEGER",
+                [],
+            )
+            .unwrap();
         }
 
         // DbManager::new will:

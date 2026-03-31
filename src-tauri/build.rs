@@ -69,9 +69,39 @@ fn find_webview2_loader(build_dir: &std::path::Path, arch: &str) -> Option<std::
     None
 }
 
+#[cfg(windows)]
+fn embed_windows_manifest() {
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS");
+    let target_env = std::env::var("CARGO_CFG_TARGET_ENV");
+    if Ok("windows") != target_os.as_deref() || Ok("msvc") != target_env.as_deref() {
+        return;
+    }
+
+    let manifest = std::env::current_dir()
+        .expect("current dir should be available")
+        .join("windows-test-manifest.xml");
+    println!("cargo:rerun-if-changed={}", manifest.display());
+    println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+    println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest.display());
+    println!("cargo:rustc-link-arg=/WX");
+}
+
 fn main() {
     #[cfg(windows)]
-    copy_webview2_loader();
+    {
+        copy_webview2_loader();
+        let target_os = std::env::var("CARGO_CFG_TARGET_OS");
+        let target_env = std::env::var("CARGO_CFG_TARGET_ENV");
+        if Ok("windows") == target_os.as_deref() && Ok("msvc") == target_env.as_deref() {
+            embed_windows_manifest();
+            tauri_build::try_build(
+                tauri_build::Attributes::new()
+                    .windows_attributes(tauri_build::WindowsAttributes::new_without_app_manifest()),
+            )
+            .expect("failed to run tauri-build");
+            return;
+        }
+    }
 
     tauri_build::build()
 }

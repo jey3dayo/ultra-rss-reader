@@ -1,5 +1,16 @@
 # Ultra RSS Reader — TODO
 
+## UI ブラウザ散策メモ
+
+- [x] Windows として動作するブラウザ mock でも、設定画面の文言に `⌘` 表記が残っている
+  - 再現: ブラウザモード (`http://127.0.0.1:4173/`) で設定を開き、`一般 > 記事一覧` のトグル文言を見る
+  - 現状は `⌘クリックでアプリ内ブラウザを開く` と表示されるが、Windows では `Ctrl` 系の表記に寄せたい
+  - 候補箇所: `src/locales/ja/settings.json`, `src/locales/en/settings.json`
+- [x] ブラウザモード用 mock の未読件数が記事データと一致しておらず、1件既読にしただけで件数が大きく跳ぶ
+  - 再現: ブラウザモードで任意の記事を1件開くと、サイドバーの未読件数がそのフィード全件ぶん減ったように見える
+  - `mockFeeds[].unread_count` の初期値と `mockArticles` の実件数がずれており、`recalcUnread()` 実行後に表示が急変する
+  - 候補箇所: `src/dev-mock-data.ts`, `src/dev-mocks.ts`
+
 ## macOS / Windows 共存チェック
 
 ### ベストプラクティス
@@ -18,7 +29,7 @@
   - まずは Windows の smoke build、可能なら macOS / Windows の最低限の test job を追加する
 - [x] Windows では `mise run test:rust` を常に skip しており、ローカル DoD を再現できない
   - `mise.toml` の `run_windows` で `cargo test --test integration_test` を実行するよう変更
-  - [ ] `cargo test --lib` は Windows で引き続き `STATUS_ENTRYPOINT_NOT_FOUND`。Tauri 依存ファイルから純粋ロジックを分離して unit test ハーネスも実行可能にしたい
+  - [x] `cargo test --lib` は Windows で引き続き `STATUS_ENTRYPOINT_NOT_FOUND`。テスト用 manifest を build.rs 側で埋め込み、通常ビルドとの衝突は `tauri-build` の app manifest を単一化して解消
 - [x] `mise` のネイティブアプリ用タスクに mac 専用処理が混ざっている
   - `mise.toml` の `app:dev:signed` は `codesign` 前提
   - `mise.toml` の `app:open` は `/Applications/...`, `xattr`, `open` 前提

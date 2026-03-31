@@ -1,11 +1,14 @@
 import { useTranslation } from "react-i18next";
 import { GeneralSettingsView } from "@/components/settings/general-settings-view";
+import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 
 export function GeneralSettings() {
   const { t } = useTranslation("settings");
   const prefs = usePreferencesStore((s) => s.prefs);
   const setPref = usePreferencesStore((s) => s.setPref);
+  const platformKind = usePlatformStore((s) => s.platform.kind);
+  const browserShortcutModifier = platformKind === "macos" ? "⌘" : "Ctrl";
 
   return (
     <GeneralSettingsView
@@ -148,7 +151,7 @@ export function GeneralSettings() {
             {
               id: "cmd-click-browser",
               type: "switch",
-              label: t("general.cmd_click_browser"),
+              label: t("general.cmd_click_browser", { modifier: browserShortcutModifier }),
               checked: resolvePreferenceValue(prefs, "cmd_click_browser") === "true",
               onChange: (checked) => setPref("cmd_click_browser", String(checked)),
             },

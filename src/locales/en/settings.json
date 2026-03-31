@@ -37,7 +37,7 @@
     "date": "Date",
     "feed": "Feed",
     "none": "None",
-    "cmd_click_browser": "\u2318-click opens in-app browser",
+    "cmd_click_browser": "{{modifier}}-click opens in-app browser",
     "sort_subscriptions": "Sort subscriptions",
     "folders_first": "Folders first",
     "alphabetical": "Alphabetical",
