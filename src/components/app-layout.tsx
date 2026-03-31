@@ -21,7 +21,11 @@ function SlidingPaneLayout({
 
   return (
     <div
-      className={cn("desktop-titlebar-offset h-full overflow-hidden", overlayTitlebar && "desktop-overlay-titlebar")}
+      className={cn(
+        "h-full overflow-hidden",
+        // macOS overlay titlebar 以外は上の空間は詰める。
+        overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar",
+      )}
     >
       <div
         className={cn(
@@ -71,8 +75,9 @@ export function AppLayout() {
     return (
       <div
         className={cn(
-          "desktop-titlebar-offset flex h-full overflow-hidden",
-          overlayTitlebar && "desktop-overlay-titlebar",
+          "flex h-full overflow-hidden",
+          // macOS overlay titlebar 以外は上の空間は詰める。
+          overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar",
         )}
       >
         {panes.includes("sidebar") && (

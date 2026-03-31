@@ -9,8 +9,9 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await expect(page).toHaveTitle(/Ultra RSS/);
   });
 
-  test("renders sidebar with app name", async ({ page }) => {
-    await expect(page.getByText("Ultra RSS")).toBeVisible();
+  test("renders sidebar controls", async ({ page }) => {
+    await expect(page.getByRole("button", { name: /Sync feeds|フィードを同期/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Settings|設定/ })).toBeVisible();
   });
 
   test("shows empty state message", async ({ page }) => {
