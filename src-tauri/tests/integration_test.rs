@@ -10,7 +10,6 @@ use ultra_rss_reader_lib::infra::db::sqlite_article::SqliteArticleRepository;
 use ultra_rss_reader_lib::infra::db::sqlite_feed::SqliteFeedRepository;
 use ultra_rss_reader_lib::infra::db::sqlite_folder::SqliteFolderRepository;
 use ultra_rss_reader_lib::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
-use ultra_rss_reader_lib::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
 use ultra_rss_reader_lib::infra::provider::local::LocalProvider;
 use ultra_rss_reader_lib::repository::account::AccountRepository;
 use ultra_rss_reader_lib::repository::article::{ArticleRepository, Pagination};
@@ -76,7 +75,6 @@ async fn local_feed_e2e() {
     let provider = LocalProvider::new();
     let article_repo = SqliteArticleRepository::new(db.writer());
     let folder_repo = SqliteFolderRepository::new(db.writer());
-    let sync_state_repo = SqliteSyncStateRepository::new(db.writer());
     let pending_repo = SqlitePendingMutationRepository::new(db.writer());
 
     let updated = sync_flow::sync_account(
@@ -85,7 +83,6 @@ async fn local_feed_e2e() {
         &article_repo,
         &feed_repo,
         &folder_repo,
-        &sync_state_repo,
         &pending_repo,
     )
     .await

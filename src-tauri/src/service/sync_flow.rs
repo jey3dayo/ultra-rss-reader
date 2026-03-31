@@ -8,10 +8,9 @@ use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::folder::FolderRepository;
 use crate::repository::pending_mutation::PendingMutationRepository;
-use crate::repository::sync_state::SyncStateRepository;
 use chrono::Utc;
 
-/// Generic repository-driven sync flow used by local feeds and lower-level tests.
+/// Generic repository-driven sync flow used by non-delta providers and lower-level tests.
 ///
 /// GReader providers require per-feed cursor persistence and multi-page delta sync,
 /// so their authoritative sync path lives in `commands::sync_providers`.
@@ -21,7 +20,6 @@ pub async fn sync_account(
     article_repo: &dyn ArticleRepository,
     feed_repo: &dyn FeedRepository,
     folder_repo: &dyn FolderRepository,
-    _sync_state_repo: &dyn SyncStateRepository,
     pending_mutation_repo: &dyn PendingMutationRepository,
 ) -> DomainResult<Vec<FeedId>> {
     let caps = provider.capabilities();
@@ -186,7 +184,6 @@ mod tests {
     use crate::infra::db::sqlite_feed::SqliteFeedRepository;
     use crate::infra::db::sqlite_folder::SqliteFolderRepository;
     use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
-    use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
     use crate::infra::provider::greader::GReaderProvider;
 
     #[tokio::test]
@@ -197,7 +194,6 @@ mod tests {
         let article_repo = SqliteArticleRepository::new(db.writer());
         let feed_repo = SqliteFeedRepository::new(db.writer());
         let folder_repo = SqliteFolderRepository::new(db.writer());
-        let sync_state_repo = SqliteSyncStateRepository::new(db.writer());
         let pending_repo = SqlitePendingMutationRepository::new(db.writer());
 
         let error = sync_account(
@@ -206,7 +202,6 @@ mod tests {
             &article_repo,
             &feed_repo,
             &folder_repo,
-            &sync_state_repo,
             &pending_repo,
         )
         .await
