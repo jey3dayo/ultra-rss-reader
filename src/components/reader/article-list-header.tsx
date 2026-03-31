@@ -1,4 +1,4 @@
-import { CheckCheck, Search, X } from "lucide-react";
+import { CheckCheck, PanelLeft, Search, X } from "lucide-react";
 import type { RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,10 @@ type ArticleListHeaderProps = {
   showSearch: boolean;
   searchQuery: string;
   searchInputRef: RefObject<HTMLInputElement | null>;
+  showSidebarButton: boolean;
   displayModeControl?: React.ReactNode;
   onMarkAllRead: () => void;
+  onShowSidebar: () => void;
   onToggleSearch: () => void;
   onCloseSearch: () => void;
   onSearchQueryChange: (query: string) => void;
@@ -21,8 +23,10 @@ export function ArticleListHeader({
   showSearch,
   searchQuery,
   searchInputRef,
+  showSidebarButton,
   displayModeControl,
   onMarkAllRead,
+  onShowSidebar,
   onToggleSearch,
   onCloseSearch,
   onSearchQueryChange,
@@ -34,6 +38,19 @@ export function ArticleListHeader({
         <div data-tauri-drag-region aria-hidden="true" className="h-full min-w-0 flex-1" />
         <TooltipProvider>
           <div className="flex items-center gap-2">
+            {showSidebarButton && (
+              <AppTooltip label={t("show_sidebar")}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onShowSidebar}
+                  aria-label={t("show_sidebar")}
+                  className="text-muted-foreground"
+                >
+                  <PanelLeft className="h-4 w-4" />
+                </Button>
+              </AppTooltip>
+            )}
             {displayModeControl}
             {displayModeControl && <hr className="mx-0.5 h-5 w-px border-0 bg-border" />}
             <AppTooltip label={t("mark_all_as_read")}>
@@ -84,6 +101,7 @@ export function ArticleListHeader({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
+            aria-label={t("search_articles")}
             placeholder={t("search_articles_placeholder")}
           />
         </div>

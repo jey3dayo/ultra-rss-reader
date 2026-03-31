@@ -31,6 +31,7 @@ export function ArticleList() {
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selectArticle = useUiStore((s) => s.selectArticle);
   const clearArticle = useUiStore((s) => s.clearArticle);
+  const setFocusedPane = useUiStore((s) => s.setFocusedPane);
   const viewMode = useUiStore((s) => s.viewMode);
   const setViewMode = useUiStore((s) => s.setViewMode);
   const layoutMode = useUiStore((s) => s.layoutMode);
@@ -251,10 +252,12 @@ export function ArticleList() {
         showSearch={showSearch}
         searchQuery={searchQuery}
         searchInputRef={searchInputRef}
+        showSidebarButton={layoutMode === "mobile"}
         displayModeControl={
           <DisplayModeToggleGroup value={currentDisplayMode} onValueChange={handleSetDisplayMode} disabled={!feedId} />
         }
         onMarkAllRead={handleMarkAllRead}
+        onShowSidebar={() => setFocusedPane("sidebar")}
         onToggleSearch={handleToggleSearch}
         onCloseSearch={handleCloseSearch}
         onSearchQueryChange={setSearchQuery}

@@ -10,7 +10,7 @@
   "unread_items": "未読 {{count}} 件",
   "article_list": "記事一覧",
   "search_articles": "記事を検索",
-  "search_articles_placeholder": "記事を検索...",
+  "search_articles_placeholder": "記事を検索…",
   "close_search": "検索を閉じる",
   "mark_all_as_read": "すべて既読にする",
   "filter_starred": "スター",

@@ -43,6 +43,22 @@ describe("ArticleList", () => {
     });
   });
 
+  it("lets mobile users navigate back to the sidebar", async () => {
+    useUiStore.setState({ layoutMode: "mobile" });
+    useUiStore.getState().selectAccount("acc-1");
+
+    const user = userEvent.setup();
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText(sampleArticles[0].title)).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Show sidebar" }));
+
+    expect(useUiStore.getState().focusedPane).toBe("sidebar");
+  });
+
   it("renders feed articles even when account-wide loading is still pending", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
