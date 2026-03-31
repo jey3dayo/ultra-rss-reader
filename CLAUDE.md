@@ -20,6 +20,13 @@ mise run app:icon       # Generate app icons
 
 Always run `mise run check` before committing.
 
+## Temporary Artifacts
+
+- Save screenshots only when they are necessary for the task.
+- When a screenshot must be saved, store it under `tmp/screenshots/`.
+- Do not place screenshots in the repository root or alongside source files.
+- Prefer temporary logs and other Codex-generated artifacts under `tmp/` as well.
+
 ## Task Management
 
 - `TODO.md`: Track in-progress and upcoming tasks.
