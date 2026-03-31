@@ -1,8 +1,10 @@
 import { expect, test } from "vitest";
 import releaseWorkflowSource from "../.github/workflows/release.yml?raw";
 import tauriConfigSource from "../src-tauri/tauri.conf.json?raw";
+import tauriReleaseConfigSource from "../src-tauri/tauri.release.conf.json?raw";
 
 const latestUpdaterUrl = "https://github.com/jey3dayo/ultra-rss-reader/releases/latest/download/latest.json";
+const productionIdentifier = "com.jey3dayo.ultra-rss-reader";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -70,6 +72,25 @@ test("updater config points to GitHub Releases latest.json and has a pubkey", as
   expect(updater.pubkey.trim()).not.toBe("");
 });
 
+test("release config overrides identifier and enables updater artifacts", async () => {
+  const config = readJson(tauriReleaseConfigSource);
+
+  expect(isRecord(config)).toBe(true);
+  if (!isRecord(config)) {
+    return;
+  }
+
+  expect(config.identifier).toBe(productionIdentifier);
+
+  const bundle = config.bundle;
+  expect(isRecord(bundle)).toBe(true);
+  if (!isRecord(bundle)) {
+    return;
+  }
+
+  expect(bundle.createUpdaterArtifacts).toBe(true);
+});
+
 test("release workflow exports updater signing secrets", async () => {
   const workflow = releaseWorkflowSource;
   const tauriActionBlock = extractStepBlock(workflow, "uses: tauri-apps/tauri-action@");
@@ -77,4 +98,5 @@ test("release workflow exports updater signing secrets", async () => {
   expect(tauriActionBlock).toMatch(/^\s+env:\s*$/m);
   expect(tauriActionBlock).toContain("TAURI_SIGNING_PRIVATE_KEY:");
   expect(tauriActionBlock).toContain("TAURI_SIGNING_PRIVATE_KEY_PASSWORD:");
+  expect(tauriActionBlock).toContain("--config src-tauri/tauri.release.conf.json");
 });
