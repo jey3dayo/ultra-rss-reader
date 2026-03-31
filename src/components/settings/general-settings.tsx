@@ -9,6 +9,9 @@ export function GeneralSettings() {
   const prefs = usePreferencesStore((s) => s.prefs);
   const setPref = usePreferencesStore((s) => s.setPref);
   const platformKind = usePlatformStore((s) => s.platform.kind);
+  const supportsBackgroundBrowserOpen = usePlatformStore(
+    (s) => s.platform.capabilities.supports_background_browser_open,
+  );
   const browserShortcutModifier = SHORTCUT_MODIFIER_BY_PLATFORM[platformKind];
 
   return (
@@ -83,7 +86,7 @@ export function GeneralSettings() {
         {
           id: "browser",
           heading: t("general.browser"),
-          note: t("general.open_links_background_note"),
+          note: supportsBackgroundBrowserOpen ? t("general.open_links_background_note") : undefined,
           controls: [
             {
               id: "open-links",
@@ -97,13 +100,17 @@ export function GeneralSettings() {
               ],
               onChange: (value) => setPref("open_links", value),
             },
-            {
-              id: "open-links-background",
-              type: "switch",
-              label: t("general.open_links_in_background"),
-              checked: resolvePreferenceValue(prefs, "open_links_background") === "true",
-              onChange: (checked) => setPref("open_links_background", String(checked)),
-            },
+            ...(supportsBackgroundBrowserOpen
+              ? [
+                  {
+                    id: "open-links-background",
+                    type: "switch" as const,
+                    label: t("general.open_links_in_background"),
+                    checked: resolvePreferenceValue(prefs, "open_links_background") === "true",
+                    onChange: (checked: boolean) => setPref("open_links_background", String(checked)),
+                  },
+                ]
+              : []),
           ],
         },
         {

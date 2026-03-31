@@ -54,4 +54,36 @@ describe("GeneralSettings", () => {
 
     expect(screen.getByRole("switch", { name: "Ctrl-click opens in-app browser" })).toBeInTheDocument();
   });
+
+  it("hides background browser opening on unsupported platforms", () => {
+    render(<GeneralSettings />, { wrapper: createWrapper() });
+
+    expect(screen.queryByRole("switch", { name: "Open links in background" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Opening links in the background is not supported on this OS.")).not.toBeInTheDocument();
+  });
+
+  it("keeps background browser opening configurable on supported platforms", () => {
+    usePlatformStore.setState({
+      ...usePlatformStore.getInitialState(),
+      platform: {
+        kind: "macos",
+        capabilities: {
+          supports_reading_list: true,
+          supports_background_browser_open: true,
+          supports_runtime_window_icon_replacement: false,
+          supports_native_browser_navigation: true,
+          uses_dev_file_credentials: false,
+        },
+      },
+      loaded: true,
+      loadError: false,
+    });
+
+    render(<GeneralSettings />, { wrapper: createWrapper() });
+
+    expect(screen.getByRole("switch", { name: "Open links in background" })).toBeEnabled();
+    expect(
+      screen.getByText("Please note that some third-party browsers do not support opening links in the background."),
+    ).toBeInTheDocument();
+  });
 });
