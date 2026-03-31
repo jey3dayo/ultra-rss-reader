@@ -475,6 +475,8 @@ export function setupDevMocks() {
         return { db_size_bytes: 2_500_000, wal_size_bytes: 150_000, total_size_bytes: 2_650_000 };
       case "vacuum_database":
         return { db_size_bytes: 2_100_000, wal_size_bytes: 0, total_size_bytes: 2_100_000 };
+      case "get_log_dir":
+        return "/tmp/mock-logs";
       case "check_for_update":
         return null;
       case "download_and_install_update":

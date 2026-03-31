@@ -53,16 +53,66 @@ fn database_init_error_message(error: &DomainError, db_path: &std::path::Path) -
     }
 }
 
+#[cfg(not(debug_assertions))]
+fn cleanup_old_logs(log_dir: &std::path::Path, max_age_days: u64) {
+    use std::time::{Duration, SystemTime};
+
+    let cutoff = match SystemTime::now().checked_sub(Duration::from_secs(max_age_days * 86400)) {
+        Some(t) => t,
+        None => return,
+    };
+    let entries = match std::fs::read_dir(log_dir) {
+        Ok(e) => e,
+        Err(_) => return,
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.file_name().is_some_and(|name| name == "app.log") {
+            continue;
+        }
+        if let Ok(meta) = entry.metadata() {
+            if !meta.is_file() {
+                continue;
+            }
+            if let Ok(modified) = meta.modified() {
+                if modified < cutoff {
+                    let _ = std::fs::remove_file(path);
+                }
+            }
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn")),
-        )
-        .init();
+    #[cfg(debug_assertions)]
+    {
+        tracing_subscriber::fmt()
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn")),
+            )
+            .init();
+    }
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+
+    #[cfg(not(debug_assertions))]
+    let builder = builder.plugin(
+        tauri_plugin_log::Builder::new()
+            .target(tauri_plugin_log::Target::new(
+                tauri_plugin_log::TargetKind::LogDir {
+                    file_name: Some("app".into()),
+                },
+            ))
+            .max_file_size(5_000_000) // ~5 MB
+            .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepOne)
+            .level(log::LevelFilter::Info)
+            .timezone_strategy(tauri_plugin_log::TimezoneStrategy::UseLocal)
+            .build(),
+    );
+
+    builder
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -112,6 +162,14 @@ pub fn run() {
             // Start background periodic sync
             let state = app.state::<AppState>();
             service::sync_scheduler::start_sync_scheduler(&state.db, app.handle().clone());
+
+            // Clean up old log files (release only)
+            #[cfg(not(debug_assertions))]
+            {
+                if let Ok(log_dir) = app.path().app_log_dir() {
+                    cleanup_old_logs(&log_dir, 7);
+                }
+            }
 
             Ok(())
         })
@@ -172,6 +230,7 @@ pub fn run() {
             commands::updater_commands::restart_app,
             commands::database_commands::get_database_info,
             commands::database_commands::vacuum_database,
+            commands::log_commands::get_log_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

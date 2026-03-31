@@ -1,7 +1,8 @@
 import { Result } from "@praha/byethrow";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getDatabaseInfo, vacuumDatabase } from "@/api/tauri-commands";
+import { getDatabaseInfo, getLogDir, vacuumDatabase } from "@/api/tauri-commands";
 import { SectionHeading } from "@/components/settings/settings-components";
 import { Button } from "@/components/ui/button";
 import { useUiStore } from "@/stores/ui-store";
@@ -55,6 +56,24 @@ export function DataSettings() {
     }
   };
 
+  const openLogDir = async () => {
+    Result.pipe(
+      await getLogDir(),
+      Result.inspect(async (dir) => {
+        try {
+          await openPath(dir);
+        } catch (e) {
+          console.error("Failed to open log directory:", e);
+          showToast(t("data.open_log_dir_failed", { message: String(e) }));
+        }
+      }),
+      Result.inspectError((e) => {
+        console.error("Failed to get log directory:", e);
+        showToast(t("data.open_log_dir_failed", { message: e.message }));
+      }),
+    );
+  };
+
   return (
     <div className="p-6">
       <h2 className="mb-6 text-center text-lg font-semibold">{t("data.heading")}</h2>
@@ -70,6 +89,13 @@ export function DataSettings() {
         <p className="mb-3 text-xs text-muted-foreground">{t("data.vacuum_description")}</p>
         <Button variant="outline" size="sm" disabled={vacuuming} onClick={handleVacuum}>
           {vacuuming ? t("data.vacuuming") : t("data.vacuum")}
+        </Button>
+      </section>
+      <section className="mt-6">
+        <SectionHeading>{t("data.logs")}</SectionHeading>
+        <p className="mb-3 text-xs text-muted-foreground">{t("data.open_log_dir_description")}</p>
+        <Button variant="outline" size="sm" onClick={openLogDir}>
+          {t("data.open_log_dir")}
         </Button>
       </section>
     </div>

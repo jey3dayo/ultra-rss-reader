@@ -4,6 +4,7 @@ pub mod browser_webview_commands;
 pub mod database_commands;
 pub mod dto;
 pub mod feed_commands;
+pub mod log_commands;
 pub mod opml_commands;
 pub mod platform_commands;
 pub mod preference_commands;
