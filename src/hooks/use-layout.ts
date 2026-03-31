@@ -42,9 +42,9 @@ export function computeTranslateX(layoutMode: SlidingLayoutMode, focusedPane: Fo
       case "sidebar":
         return "0%";
       case "list":
-        return "-100%";
+        return "calc(-100% / 3)";
       case "content":
-        return "-200%";
+        return "calc(-200% / 3)";
     }
   }
   return focusedPane === "content" ? "-280px" : "0px";

@@ -28,12 +28,12 @@ describe("computeTranslateX", () => {
     expect(computeTranslateX("mobile", "sidebar")).toBe("0%");
   });
 
-  it("mobile+list: -100%", () => {
-    expect(computeTranslateX("mobile", "list")).toBe("-100%");
+  it("mobile+list: shifts by one pane width", () => {
+    expect(computeTranslateX("mobile", "list")).toBe("calc(-100% / 3)");
   });
 
-  it("mobile+content: -200%", () => {
-    expect(computeTranslateX("mobile", "content")).toBe("-200%");
+  it("mobile+content: shifts by two pane widths", () => {
+    expect(computeTranslateX("mobile", "content")).toBe("calc(-200% / 3)");
   });
 
   it("compact+sidebar: 0px", () => {

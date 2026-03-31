@@ -44,6 +44,8 @@ describe("App", () => {
     expect(panes?.[0]).toHaveAttribute("inert");
     expect(panes?.[1]).not.toHaveAttribute("inert");
     expect(panes?.[2]).toHaveAttribute("inert");
+
+    expect(tray).toHaveStyle({ transform: "translateX(calc(-100% / 3))" });
   });
 
   it("mobile: no fixed-width sidebar/list classes", () => {
