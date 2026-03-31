@@ -10,16 +10,16 @@
   - 再現: ブラウザモードで任意の記事を1件開くと、サイドバーの未読件数がそのフィード全件ぶん減ったように見える
   - `mockFeeds[].unread_count` の初期値と `mockArticles` の実件数がずれており、`recalcUnread()` 実行後に表示が急変する
   - 候補箇所: `src/dev-mock-data.ts`, `src/dev-mocks.ts`
-- [ ] 記事詳細ヘッダーの日付だけが UI 言語に関係なく英語固定で表示される
+- [x] 記事詳細ヘッダーの日付だけが UI 言語に関係なく英語固定で表示される
   - 再現: ブラウザモード (`http://127.0.0.1:4173/`) で任意の記事を開く
   - 現状はサイドバーや設定が日本語でも、右ペイン上部が `TUESDAY, MARCH 31, 2026 AT 11:30 AM` のような英語表記になる
   - 候補箇所: `src/lib/article-view.ts`, `src/__tests__/lib/article-view.test.ts`
-- [ ] ブラウザ mock で `ブラウザで表示` を押すと `読込中` のまま完了せず、browser mode の動作確認が止まる
+- [x] ブラウザ mock で `ブラウザで表示` を押すと `読込中` のまま完了せず、browser mode の動作確認が止まる
   - 再現: ブラウザモードで記事を開き、ツールバーの `ブラウザで表示` を押す
   - 3 秒以上待っても URL バー横が `読込中` のままで、mock 上は dedicated browser window の完了状態へ遷移しない
   - `create_or_update_browser_webview` の mock 応答が `is_loading: true` 固定で、状態更新イベントも飛ばない
   - 候補箇所: `src/dev-mocks.ts`, `src/components/reader/browser-view.tsx`
-- [ ] 幅 375px 前後まで狭めると、アプリ本体が左へ押し出されて画面上ではほぼ真っ黒に見える
+- [x] 幅 375px 前後まで狭めると、アプリ本体が左へ押し出されて画面上ではほぼ真っ黒に見える
   - 再現: Playwright で viewport を `375x900` にして `http://127.0.0.1:4173/` を開く
   - DOM 上は要素が存在するが、主要要素の `x` 座標が `-1125px` 付近までずれており表示領域に入ってこない
   - 768px では表示されるため、mobile layout への切替時の translate 計算か初期 focus pane の組み合わせを疑いたい
@@ -71,6 +71,20 @@
   - `tracing-appender` crate でローリングファイル出力を追加
   - ログローテーション（日次 or サイズベース）、保持期間の設計が必要
   - 設定画面からログディレクトリを開けると便利
+
+## premortem で見えた詰めどころ
+
+- [ ] 同期失敗時の整合性ルールを明文化する
+  - `push_mutations()` の部分成功・タイムアウト・再試行時に `pending_mutations` をどう扱うか決める
+  - 既読 / スター状態の冪等性と、ローカル・リモート不整合の解消手順を仕様化する
+- [ ] 記事 HTML / 埋め込み表示の CSP 方針を確定する
+  - `src-tauri/tauri.conf.json` の `img-src http:` / `frame-src http:` を本当に許可するか判断する
+  - sanitize 済み HTML と iframe / 外部リソースの許容境界を README か実装コメントで揃える
+- [x] README の release 説明と実際の workflow を一致させる
+  - README は macOS Apple Silicon + Windows 前提へ修正し、`.github/workflows/release.yml` の実態と揃えた
+  - workflow を増やすか README を現状に合わせるか決める
+- [x] E2E / 手動確認の責務分担を決める
+  - README に `test` / `test:e2e` / `test:live` / 手動確認の境界と verification matrix を追記した
 
 ## リリース用 bundle identifier の確定
 

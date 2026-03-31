@@ -82,10 +82,31 @@ mise run ci           # format + lint + test + build  (full CI gate)
 mise run format       # Biome + cargo fmt + taplo
 mise run lint         # tsc --noEmit + Biome + Clippy (-D warnings)
 mise run test         # Vitest + cargo test
+mise run test:e2e     # Playwright browser-mode E2E tests
+mise run test:all     # Rust + Vitest + Playwright
 mise run test:live    # FreshRSS integration tests (requires .env credentials)
 ```
 
 Always run `mise run check` before committing.
+
+### Test Scope
+
+- `mise run test` is the default fast verification loop for repository tests (Rust + Vitest).
+- `mise run test:e2e` runs Playwright against the browser-mode UI flow.
+- `mise run test:live` is opt-in and requires real FreshRSS credentials from `.env`.
+- Features that depend on OS services such as updater installation and native keyring behavior still need platform-specific manual verification.
+
+### Verification Matrix
+
+| Area | Default CI / local gate | Additional verification |
+| ---- | ------------------------ | ----------------------- |
+| TypeScript / Rust regressions | `mise run check` | None |
+| Browser-mode UI flow | `mise run test:e2e` | Optional manual pass in `mise run app:dev:browser` |
+| FreshRSS real-server integration | Not part of default CI | `mise run test:live` with real credentials |
+| Native keyring integration | Unit / integration tests around app logic only | Manual verification on each target OS |
+| Updater download / install | Config and command-level checks only | Manual verification on packaged builds per target OS |
+
+`mise run ci` intentionally covers format, lint, repository tests, and frontend build. It does not run live-service tests or native packaged-app checks, so release validation still needs a short manual pass for updater and OS-integrated credential flows.
 
 ## Troubleshooting
 
@@ -149,12 +170,14 @@ Error mapping: `DomainError` â†’ `AppError` at the command boundary (`Network` â
 ## Security
 
 - HTML sanitization happens in Rust (ammonia) before content reaches the frontend. The frontend renders `content_sanitized` fields only.
+- The current Tauri CSP allows remote `http:` / `https:` images and frames so article content and the in-app browser can load external pages.
 - Credentials (FreshRSS passwords, tokens) are stored in the OS keyring, never in SQLite.
+- Setting `ULTRA_RSS_DEV_CREDENTIALS=1` switches development builds to a file-based credential store; production builds continue to use the OS keyring.
 - `.env` files are encrypted with dotenvx. Never commit `.env` or plaintext secrets.
 
 ## Release
 
-Tagging `v*` triggers a GitHub Actions matrix build (macOS arm64/x86_64, Windows) and creates a draft GitHub Release. Version is kept in sync across `tauri.conf.json`, `Cargo.toml`, and `package.json`.
+Tagging `v*` triggers a GitHub Actions release build for macOS Apple Silicon and Windows, then creates a draft GitHub Release. Version is kept in sync across `tauri.conf.json`, `Cargo.toml`, and `package.json`.
 
 ## License
 
