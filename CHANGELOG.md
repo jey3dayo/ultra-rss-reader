@@ -4,9 +4,35 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-01
+
+### Features
+
+- ローカルプロバイダーで条件付き RSS 取得をサポートし、release ビルド向けのファイルログ出力を追加した
+- 共通の `PlatformInfo` / capability 基盤を導入し、OS ごとの UI 表示・機能可否・認証情報フローを一元化した
+- アプリ内ブラウザを dedicated window ベースへ移行し、外部ブラウザ起動やトップレベル URL 管理の扱いを改善した
+
 ### Bug Fixes
 
 - Windows のブラウザビューで WebView2 の戻る/進む可否とネイティブ履歴操作を使うようにし、インストーラに WebView2 bootstrapper を同梱するようにした
+- モバイル幅でサイドバーや設定導線が画面外へ退避する問題、記事検索のアクセシビリティ不足、ペイン位置ずれを修正した
+- `未読` ビューで `すべて既読にする` 実行後も記事が残る問題や、フィルタ済み記事がナビゲーションまで残留する挙動を修正した
+- フィード未選択時の表示モード継承、記事ヘッダー日付のローカライズ、設定プリファレンス契約、デスクトップ上端ギャップを修正した
+- ブラウザ mock / browser window / platform info の各種読み込み・close・fallback・retry 挙動を安定化した
+- 開発用 credential path 互換性と database optimization フローを堅牢化した
+
+### Documentation
+
+- sync 整合性ルール、CSP 方針、verification scope、tmp artifact 運用を README / docs に整理した
+- file logging、platform OS abstraction、mobile pane recovery、browser mock consistency、browser pane toolbar alignment の設計メモを追加した
+- フィード表示モード継承の plan 見出しやルール索引など、開発ドキュメントの表記を整備した
+
+### Maintenance
+
+- sync プロバイダーの non-delta フロー整理、GReader delta sync 検証、共有 UI 定数抽出などで実装基盤を整理した
+- app icon / reading list / platform 判定を capability ベースへ寄せ、backend の OS 分岐も共有 platform 情報へ統一した
+- mark-all-read 確認フローや dedicated browser window 周辺をリファクタし、ブラウザ・記事表示周りのテストを拡充した
+- CI / ローカル開発設定を見直し、Windows Rust test・browser mock UI・tmp / worktree artifact の扱いを改善した
 
 ## [0.5.0] - 2026-03-30
 
