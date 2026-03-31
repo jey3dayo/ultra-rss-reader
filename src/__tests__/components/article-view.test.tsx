@@ -101,6 +101,37 @@ describe("ArticleView", () => {
     });
   });
 
+  it("toggles the article toolbar browser button to close the in-app browser", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+
+    const user = userEvent.setup();
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    const openBrowserButton = await screen.findByRole("button", { name: "View in browser" });
+    expect(openBrowserButton).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(openBrowserButton);
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+    });
+
+    const closeBrowserButtons = screen.getAllByRole("button", { name: "Close browser window" });
+    expect(closeBrowserButtons[0]).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(closeBrowserButtons[0]);
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(useUiStore.getState().browserUrl).toBeNull();
+    });
+
+    expect(await screen.findByRole("button", { name: "View in browser" })).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("opens the external browser from the article title when open_links is default_browser", async () => {
     const calls: MockCall[] = [];
     setupTauriMocks((cmd, args) => {
@@ -473,6 +504,7 @@ describe("ArticleView", () => {
     const shareButton = await screen.findByRole("button", { name: "Share" });
     expect(shareButton).toBeInTheDocument();
     expect(shareButton).toBeEnabled();
+    expect(shareButton).toHaveClass("size-8", "rounded-lg", "text-muted-foreground");
   });
 
   it("disables the share menu button when no article is selected", async () => {

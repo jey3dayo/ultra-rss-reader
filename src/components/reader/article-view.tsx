@@ -5,8 +5,8 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
+import { IconToolbarMenuTrigger } from "@/components/shared/icon-toolbar-control";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AppTooltip } from "@/components/ui/tooltip";
 import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import {
@@ -41,7 +41,9 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
   const { t } = useTranslation("reader");
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
+  const contentMode = useUiStore((s) => s.contentMode);
   const openBrowser = useUiStore((s) => s.openBrowser);
+  const closeBrowser = useUiStore((s) => s.closeBrowser);
   const clearArticle = useUiStore((s) => s.clearArticle);
   const layoutMode = useUiStore((s) => s.layoutMode);
   const showToast = useUiStore((s) => s.showToast);
@@ -51,6 +53,7 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
   const actionShare = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share"));
   const actionShareMenu = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share_menu"));
   const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
+  const isBrowserOpen = contentMode === "browser";
 
   const handleCloseView = () => {
     clearArticle();
@@ -66,6 +69,7 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
       canToggleStar={article !== null}
       isRead={article?.is_read ?? false}
       isStarred={article?.is_starred ?? false}
+      isBrowserOpen={isBrowserOpen}
       showCopyLinkButton={actionCopyLink === "true"}
       canCopyLink={Boolean(article?.url)}
       showOpenInBrowserButton={actionOpenBrowser === "true"}
@@ -76,20 +80,9 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
       shareMenuControl={
         actionShareMenu === "true" ? (
           <Menu.Root>
-            <AppTooltip label={t("share")}>
-              <Menu.Trigger
-                render={
-                  <button
-                    type="button"
-                    className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={!article?.url}
-                    aria-label={t("share")}
-                  />
-                }
-              >
-                <Share className="h-4 w-4" />
-              </Menu.Trigger>
-            </AppTooltip>
+            <IconToolbarMenuTrigger label={t("share")} disabled={!article?.url}>
+              <Share className="h-4 w-4" />
+            </IconToolbarMenuTrigger>
             <Menu.Portal>
               <Menu.Positioner sideOffset={4}>
                 <Menu.Popup className={contextMenuStyles.popup}>
@@ -158,7 +151,7 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
         toggleRead: t("toggle_read"),
         toggleStar: t("toggle_star"),
         copyLink: t("copy_link"),
-        viewInBrowser: t("view_in_browser"),
+        viewInBrowser: isBrowserOpen ? t("close_browser_window") : t("view_in_browser"),
         openInExternalBrowser: t("open_in_external_browser"),
       }}
       onCloseView={handleCloseView}
@@ -187,6 +180,11 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
         }
       }}
       onOpenInBrowser={() => {
+        if (isBrowserOpen) {
+          closeBrowser();
+          return;
+        }
+
         if (article?.url) {
           openBrowser(article.url);
         }

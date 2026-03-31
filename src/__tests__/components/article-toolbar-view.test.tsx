@@ -21,6 +21,7 @@ describe("ArticleToolbarView", () => {
         canToggleStar
         isRead
         isStarred={false}
+        isBrowserOpen={false}
         showCopyLinkButton
         canCopyLink
         showOpenInBrowserButton
@@ -77,6 +78,7 @@ describe("ArticleToolbarView", () => {
         canToggleStar={false}
         isRead={false}
         isStarred
+        isBrowserOpen={false}
         showCopyLinkButton={false}
         canCopyLink={false}
         showOpenInBrowserButton={false}
@@ -116,6 +118,7 @@ describe("ArticleToolbarView", () => {
         canToggleStar
         isRead={false}
         isStarred={false}
+        isBrowserOpen={false}
         showCopyLinkButton
         canCopyLink
         showOpenInBrowserButton
@@ -143,5 +146,87 @@ describe("ArticleToolbarView", () => {
     expect(dragRegions).toHaveLength(1);
     expect(dragRegions[0]).not.toContain(screen.getByRole("button", { name: "View in browser" }));
     expect(dragRegions[0]).not.toContain(screen.getByRole("button", { name: "Open in external browser" }));
+  });
+
+  it("uses a highlighted pressed style for the in-app browser toggle", () => {
+    render(
+      <ArticleToolbarView
+        showCloseButton
+        canToggleRead
+        canToggleStar
+        isRead={false}
+        isStarred={false}
+        isBrowserOpen
+        showCopyLinkButton
+        canCopyLink
+        showOpenInBrowserButton
+        canOpenInBrowser
+        showOpenInExternalBrowserButton
+        canOpenInExternalBrowser
+        labels={{
+          closeView: "Close view",
+          toggleRead: "Toggle read",
+          toggleStar: "Toggle star",
+          copyLink: "Copy link",
+          viewInBrowser: "Close browser window",
+          openInExternalBrowser: "Open in external browser",
+        }}
+        onCloseView={vi.fn()}
+        onToggleRead={vi.fn()}
+        onToggleStar={vi.fn()}
+        onCopyLink={vi.fn()}
+        onOpenInBrowser={vi.fn()}
+        onOpenInExternalBrowser={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Close browser window" })).toHaveClass("data-[pressed]:text-primary");
+  });
+
+  it("keeps browser before copy in the toolbar action order", () => {
+    render(
+      <ArticleToolbarView
+        showCloseButton
+        canToggleRead
+        canToggleStar
+        isRead={false}
+        isStarred={false}
+        isBrowserOpen={false}
+        showCopyLinkButton
+        canCopyLink
+        showOpenInBrowserButton
+        canOpenInBrowser
+        showOpenInExternalBrowserButton
+        canOpenInExternalBrowser
+        labels={{
+          closeView: "Close view",
+          toggleRead: "Toggle read",
+          toggleStar: "Toggle star",
+          copyLink: "Copy link",
+          viewInBrowser: "View in browser",
+          openInExternalBrowser: "Open in external browser",
+        }}
+        onCloseView={vi.fn()}
+        onToggleRead={vi.fn()}
+        onToggleStar={vi.fn()}
+        onCopyLink={vi.fn()}
+        onOpenInBrowser={vi.fn()}
+        onOpenInExternalBrowser={vi.fn()}
+      />,
+    );
+
+    const toolbarButtons = screen
+      .getAllByRole("button")
+      .map((button) => button.getAttribute("aria-label"))
+      .filter((label): label is string => label !== null);
+
+    expect(toolbarButtons).toEqual([
+      "Close view",
+      "Toggle read",
+      "Toggle star",
+      "View in browser",
+      "Copy link",
+      "Open in external browser",
+    ]);
   });
 });

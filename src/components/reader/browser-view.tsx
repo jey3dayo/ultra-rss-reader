@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
-import { ArrowLeft, ArrowRight, ExternalLink, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -13,10 +13,8 @@ import {
   openInBrowser,
   reloadBrowserWebview,
 } from "@/api/tauri-commands";
-import { Button } from "@/components/ui/button";
-import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
+import { IconToolbarButton } from "@/components/shared/icon-toolbar-control";
 import { BROWSER_WINDOW_EVENTS, BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
-import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 function initialBrowserState(url: string): BrowserWebviewState {
@@ -226,14 +224,6 @@ export function BrowserView() {
 
   if (!browserUrl) return null;
 
-  const handleOpenExternal = async () => {
-    const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-    Result.pipe(
-      await openInBrowser(currentUrl, bg),
-      Result.inspectError((error) => console.error("Failed to open in browser:", error)),
-    );
-  };
-
   const handleBrowserCommand = async (command: () => Promise<Result.Result<BrowserWebviewState, AppError>>) => {
     const result = await command();
     Result.pipe(
@@ -265,78 +255,39 @@ export function BrowserView() {
         )}
       </div>
 
-      <TooltipProvider>
-        <div className="flex items-center gap-1">
-          <AppTooltip label={t("web_back")}>
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled={!canGoBack}
-              onClick={() => {
-                void handleBrowserCommand(goBackBrowserWebview);
-              }}
-              className="text-muted-foreground"
-              aria-label={t("web_back")}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </AppTooltip>
-          <AppTooltip label={t("web_forward")}>
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled={!canGoForward}
-              onClick={() => {
-                void handleBrowserCommand(goForwardBrowserWebview);
-              }}
-              className="text-muted-foreground"
-              aria-label={t("web_forward")}
-            >
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </AppTooltip>
-          <AppTooltip label={t("reload_page")}>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                setBrowserState((state) => {
-                  const nextState = state ? { ...state, is_loading: true } : initialBrowserState(browserUrl);
-                  browserStateRef.current = nextState;
-                  return nextState;
-                });
-                void handleBrowserCommand(reloadBrowserWebview);
-              }}
-              className="text-muted-foreground"
-              aria-label={t("reload_page")}
-            >
-              <RotateCcw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-            </Button>
-          </AppTooltip>
-          <AppTooltip label={t("open_in_external_browser")}>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleOpenExternal}
-              className="text-muted-foreground"
-              aria-label={t("open_in_external_browser")}
-            >
-              <ExternalLink className="h-4 w-4" />
-            </Button>
-          </AppTooltip>
-          <AppTooltip label={t("close_browser_window")}>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={closeBrowser}
-              className="text-muted-foreground"
-              aria-label={t("close_browser_window")}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </AppTooltip>
-        </div>
-      </TooltipProvider>
+      <div className="flex items-center gap-1">
+        <IconToolbarButton
+          label={t("web_back")}
+          disabled={!canGoBack}
+          onClick={() => {
+            void handleBrowserCommand(goBackBrowserWebview);
+          }}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </IconToolbarButton>
+        <IconToolbarButton
+          label={t("web_forward")}
+          disabled={!canGoForward}
+          onClick={() => {
+            void handleBrowserCommand(goForwardBrowserWebview);
+          }}
+        >
+          <ArrowRight className="h-4 w-4" />
+        </IconToolbarButton>
+        <IconToolbarButton
+          label={t("reload_page")}
+          onClick={() => {
+            setBrowserState((state) => {
+              const nextState = state ? { ...state, is_loading: true } : initialBrowserState(browserUrl);
+              browserStateRef.current = nextState;
+              return nextState;
+            });
+            void handleBrowserCommand(reloadBrowserWebview);
+          }}
+        >
+          <RotateCcw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+        </IconToolbarButton>
+      </div>
     </div>
   );
 }

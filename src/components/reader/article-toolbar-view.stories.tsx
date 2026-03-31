@@ -13,6 +13,7 @@ const meta = {
     canToggleStar: true,
     isRead: false,
     isStarred: true,
+    isBrowserOpen: false,
     showCopyLinkButton: true,
     canCopyLink: true,
     showOpenInBrowserButton: true,

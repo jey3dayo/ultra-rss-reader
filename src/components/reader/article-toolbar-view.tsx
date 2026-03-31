@@ -1,9 +1,7 @@
-import { Toggle } from "@base-ui/react/toggle";
 import { Copy, ExternalLink, Globe, X } from "lucide-react";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { IconToolbarButton, IconToolbarToggle } from "@/components/shared/icon-toolbar-control";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export type ArticleToolbarViewLabels = {
   closeView: string;
@@ -20,6 +18,7 @@ export type ArticleToolbarViewProps = {
   canToggleStar: boolean;
   isRead: boolean;
   isStarred: boolean;
+  isBrowserOpen: boolean;
   showCopyLinkButton: boolean;
   canCopyLink: boolean;
   showOpenInBrowserButton: boolean;
@@ -43,6 +42,7 @@ export function ArticleToolbarView({
   canToggleStar,
   isRead,
   isStarred,
+  isBrowserOpen,
   showCopyLinkButton,
   canCopyLink,
   showOpenInBrowserButton,
@@ -61,94 +61,61 @@ export function ArticleToolbarView({
 }: ArticleToolbarViewProps) {
   return (
     <div className="flex h-12 items-center border-b border-border px-4">
-      <div className="flex items-center">
-        {showCloseButton && (
-          <TooltipProvider>
-            <AppTooltip label={labels.closeView}>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onCloseView}
-                className="text-muted-foreground"
-                aria-label={labels.closeView}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </AppTooltip>
-          </TooltipProvider>
-        )}
-      </div>
-      <div data-tauri-drag-region className="mx-3 h-full min-w-0 flex-1" />
-      <div className="flex items-center gap-2">
-        <TooltipProvider>
-          <AppTooltip label={labels.toggleRead}>
-            <Toggle
-              pressed={isRead}
-              onPressedChange={(nextRead) => onToggleRead(nextRead)}
-              disabled={!canToggleRead}
-              aria-label={labels.toggleRead}
-              className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
+      <TooltipProvider>
+        <div className="flex items-center">
+          {showCloseButton && (
+            <IconToolbarButton label={labels.closeView} onClick={onCloseView}>
+              <X className="h-4 w-4" />
+            </IconToolbarButton>
+          )}
+        </div>
+        <div data-tauri-drag-region className="mx-3 h-full min-w-0 flex-1" />
+        <div className="flex items-center gap-2">
+          <IconToolbarToggle
+            label={labels.toggleRead}
+            pressed={isRead}
+            onPressedChange={(nextRead) => onToggleRead(nextRead)}
+            disabled={!canToggleRead}
+          >
+            <UnreadIcon unread={!isRead} className="h-3 w-3" />
+          </IconToolbarToggle>
+          <IconToolbarToggle
+            label={labels.toggleStar}
+            pressed={isStarred}
+            onPressedChange={(nextStarred) => onToggleStar(nextStarred)}
+            disabled={!canToggleStar}
+          >
+            <StarIcon starred={isStarred} className="h-4 w-4" />
+          </IconToolbarToggle>
+          {showOpenInBrowserButton && (
+            <IconToolbarToggle
+              label={labels.viewInBrowser}
+              pressed={isBrowserOpen}
+              onPressedChange={() => onOpenInBrowser()}
+              disabled={!canOpenInBrowser}
+              pressedTone="accent"
             >
-              <UnreadIcon unread={!isRead} className="h-3 w-3" />
-            </Toggle>
-          </AppTooltip>
-          <AppTooltip label={labels.toggleStar}>
-            <Toggle
-              pressed={isStarred}
-              onPressedChange={(nextStarred) => onToggleStar(nextStarred)}
-              disabled={!canToggleStar}
-              aria-label={labels.toggleStar}
-              className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground")}
-            >
-              <StarIcon starred={isStarred} className="h-4 w-4" />
-            </Toggle>
-          </AppTooltip>
+              <Globe className="h-4 w-4" />
+            </IconToolbarToggle>
+          )}
           {displayModeControl}
           {showCopyLinkButton && (
-            <AppTooltip label={labels.copyLink}>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onCopyLink}
-                className="text-muted-foreground"
-                disabled={!canCopyLink}
-                aria-label={labels.copyLink}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </AppTooltip>
-          )}
-          {showOpenInBrowserButton && (
-            <AppTooltip label={labels.viewInBrowser}>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onOpenInBrowser}
-                className="text-muted-foreground"
-                disabled={!canOpenInBrowser}
-                aria-label={labels.viewInBrowser}
-              >
-                <Globe className="h-4 w-4" />
-              </Button>
-            </AppTooltip>
+            <IconToolbarButton label={labels.copyLink} onClick={onCopyLink} disabled={!canCopyLink}>
+              <Copy className="h-4 w-4" />
+            </IconToolbarButton>
           )}
           {showOpenInExternalBrowserButton && (
-            <AppTooltip label={labels.openInExternalBrowser}>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onOpenInExternalBrowser}
-                className="text-muted-foreground"
-                disabled={!canOpenInExternalBrowser}
-                aria-label={labels.openInExternalBrowser}
-              >
-                <ExternalLink className="h-4 w-4" />
-              </Button>
-            </AppTooltip>
+            <IconToolbarButton
+              label={labels.openInExternalBrowser}
+              onClick={onOpenInExternalBrowser}
+              disabled={!canOpenInExternalBrowser}
+            >
+              <ExternalLink className="h-4 w-4" />
+            </IconToolbarButton>
           )}
           {shareMenuControl}
-        </TooltipProvider>
-      </div>
+        </div>
+      </TooltipProvider>
     </div>
   );
 }

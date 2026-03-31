@@ -209,7 +209,8 @@ describe("BrowserView", () => {
     const forwardButton = await screen.findByRole("button", { name: "Web forward" });
     expect(backButton).toBeEnabled();
     expect(forwardButton).toBeDisabled();
-    expect(await screen.findByRole("button", { name: "Close browser window" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open in external browser" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Close browser window" })).not.toBeInTheDocument();
   });
 
   it("does not re-navigate the dedicated browser window when an iframe URL is reported", async () => {
@@ -412,17 +413,15 @@ describe("BrowserView", () => {
     });
   });
 
-  it("closes the browser window only once across explicit close and eventual unmount", async () => {
+  it("closes the browser window once on unmount", async () => {
     useUiStore.setState({
       selectedArticleId: "art-1",
       contentMode: "browser",
       browserUrl: "https://example.com/article",
     });
 
-    const user = userEvent.setup();
     const view = render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Close browser window" }));
     view.unmount();
 
     await waitFor(() => {
