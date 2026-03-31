@@ -8,6 +8,7 @@ import {
   shortcutDefinitions,
   shortcutPrefKey,
 } from "@/lib/keyboard-shortcuts";
+import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -32,6 +33,7 @@ export function ShortcutsSettings() {
   const tReader = useTranslation("reader").t;
   const setPref = usePreferencesStore((s) => s.setPref);
   const prefs = usePreferencesStore((s) => s.prefs);
+  const platformKind = usePlatformStore((state) => state.platform.kind);
 
   const [recordingId, setRecordingId] = useState<ShortcutActionId | null>(null);
 
@@ -141,7 +143,7 @@ export function ShortcutsSettings() {
             return {
               id: definition.id,
               label: tReader(definition.labelKey),
-              displayKey: formatKeyForDisplay(currentKey),
+              displayKey: formatKeyForDisplay(currentKey, platformKind),
               isLocked: definition.id === "open_settings",
               isRecording: recordingId === definition.id,
               conflictLabel: conflict ? t("shortcuts.conflict", { name: conflict }) : null,

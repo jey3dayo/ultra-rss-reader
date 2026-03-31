@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeTranslateX, isPaneVisible, resolveLayout } from "../../hooks/use-layout";
+import { computeTranslateX, isPaneVisible, resolveLayout, resolveResponsiveLayoutMode } from "../../hooks/use-layout";
 
 describe("resolveLayout", () => {
   it("wide: 3 panes", () => {
@@ -80,5 +80,19 @@ describe("isPaneVisible", () => {
     ] as const)("focusedPane=%s pane=%s → %s", (focusedPane, pane, expected) => {
       expect(isPaneVisible("compact", focusedPane, pane)).toBe(expected);
     });
+  });
+});
+
+describe("resolveResponsiveLayoutMode", () => {
+  it("keeps wide layout on sufficiently wide screens", () => {
+    expect(resolveResponsiveLayoutMode("wide", 1280)).toBe("wide");
+  });
+
+  it("downgrades wide layout to compact when the viewport is too narrow", () => {
+    expect(resolveResponsiveLayoutMode("wide", 900)).toBe("compact");
+  });
+
+  it("downgrades compact layout to mobile on very small screens", () => {
+    expect(resolveResponsiveLayoutMode("compact", 420)).toBe("mobile");
   });
 });

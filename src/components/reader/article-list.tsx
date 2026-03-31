@@ -30,6 +30,7 @@ export function ArticleList() {
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selectArticle = useUiStore((s) => s.selectArticle);
+  const clearArticle = useUiStore((s) => s.clearArticle);
   const viewMode = useUiStore((s) => s.viewMode);
   const setViewMode = useUiStore((s) => s.setViewMode);
   const layoutMode = useUiStore((s) => s.layoutMode);
@@ -105,6 +106,23 @@ export function ArticleList() {
       feedNameMap,
     });
   }, [filteredArticles, groupBy, feedNameMap]);
+
+  const isPrimarySourceLoading = feedId
+    ? isLoading
+    : tagId
+      ? isLoadingTagArticles
+      : accountListScopeId != null && isLoadingAccountArticles;
+
+  useEffect(() => {
+    if (!selectedArticleId || isPrimarySourceLoading) {
+      return;
+    }
+
+    const isSelectedArticleVisible = filteredArticles.some((article) => article.id === selectedArticleId);
+    if (!isSelectedArticleVisible) {
+      clearArticle();
+    }
+  }, [clearArticle, filteredArticles, isPrimarySourceLoading, selectedArticleId]);
 
   const articleGroups = useMemo<ArticleGroupsViewGroup[]>(() => {
     return Object.entries(groupedArticles).map(([groupLabel, groupArticles]) => ({

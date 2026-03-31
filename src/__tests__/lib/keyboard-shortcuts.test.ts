@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { describe, expect, it } from "vitest";
-import { keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
+import { formatKeyForDisplay, keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
 
 describe("keyboard shortcut resolver", () => {
   it("opens settings on command comma even when an input is focused", () => {
@@ -121,5 +121,15 @@ describe("keyboard shortcut resolver", () => {
     });
 
     expect(Result.unwrap(result)).toEqual({ type: "clear-article" });
+  });
+
+  it("formats modifier shortcuts for macOS display", () => {
+    expect(formatKeyForDisplay("⌘+k", "macos")).toBe("⌘ k");
+    expect(formatKeyForDisplay("⌘,", "macos")).toBe("⌘ ,");
+  });
+
+  it("formats modifier shortcuts for Windows display", () => {
+    expect(formatKeyForDisplay("⌘+k", "windows")).toBe("Ctrl k");
+    expect(formatKeyForDisplay("⌘,", "windows")).toBe("Ctrl ,");
   });
 });

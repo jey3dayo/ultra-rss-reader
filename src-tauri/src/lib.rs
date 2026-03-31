@@ -17,14 +17,19 @@ use domain::error::DomainError;
 use infra::db::connection::DbManager;
 use infra::db::sqlite_preference::SqlitePreferenceRepository;
 use repository::preference::PreferenceRepository;
+#[cfg(not(test))]
 use tauri::Manager;
-use tauri::TitleBarStyle;
 
-fn main_window_title_bar_style() -> TitleBarStyle {
-    if cfg!(target_os = "macos") {
-        TitleBarStyle::Overlay
+fn main_window_title_bar_uses_overlay() -> bool {
+    cfg!(target_os = "macos")
+}
+
+#[cfg(not(test))]
+fn main_window_title_bar_style() -> tauri::TitleBarStyle {
+    if main_window_title_bar_uses_overlay() {
+        tauri::TitleBarStyle::Overlay
     } else {
-        TitleBarStyle::Visible
+        tauri::TitleBarStyle::Visible
     }
 }
 
@@ -83,6 +88,7 @@ fn cleanup_old_logs(log_dir: &std::path::Path, max_age_days: u64) {
     }
 }
 
+#[cfg(not(test))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(debug_assertions)]
@@ -240,9 +246,8 @@ pub fn run() {
 mod tests {
     use std::path::Path;
 
-    use super::{database_init_error_message, main_window_title_bar_style};
+    use super::{database_init_error_message, main_window_title_bar_uses_overlay};
     use crate::domain::error::DomainError;
-    use tauri::TitleBarStyle;
 
     #[test]
     fn migration_error_message_does_not_suggest_deleting_restored_database() {
@@ -288,13 +293,10 @@ mod tests {
     }
 
     #[test]
-    fn main_window_title_bar_style_matches_platform_expectation() {
-        let expected = if cfg!(target_os = "macos") {
-            TitleBarStyle::Overlay
-        } else {
-            TitleBarStyle::Visible
-        };
-
-        assert_eq!(main_window_title_bar_style(), expected);
+    fn main_window_title_bar_overlay_flag_matches_platform_expectation() {
+        assert_eq!(
+            main_window_title_bar_uses_overlay(),
+            cfg!(target_os = "macos")
+        );
     }
 }

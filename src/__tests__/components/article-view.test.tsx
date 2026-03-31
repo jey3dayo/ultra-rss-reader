@@ -166,7 +166,8 @@ describe("ArticleView", () => {
     });
 
     expect(screen.getByRole("heading", { level: 1, name: "First Article" })).toBeInTheDocument();
-    expect(screen.getByText("Browser View")).toBeInTheDocument();
+    expect(screen.getByTestId("browser-toolbar")).toBeInTheDocument();
+    expect(screen.getByText("https://example.com/1")).toBeInTheDocument();
 
     useUiStore.getState().closeBrowser();
 

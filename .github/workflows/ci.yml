@@ -42,13 +42,18 @@ jobs:
 
   lint:
     name: "Check: Lint"
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v6
 
       - name: Install Tauri system dependencies
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y ${{ env.TAURI_SYSTEM_DEPS }}
@@ -69,13 +74,18 @@ jobs:
 
   test:
     name: "Check: Test"
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v6
 
       - name: Install Tauri system dependencies
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y ${{ env.TAURI_SYSTEM_DEPS }}
@@ -94,8 +104,12 @@ jobs:
 
   build:
     name: "Check: Build"
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v6
@@ -106,10 +120,34 @@ jobs:
 
       - run: mise run build
 
+  native-smoke:
+    name: "Check: Native Smoke"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: jdx/mise-action@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: mise run app:build:debug
+
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
-    needs: [format, lint, test, build]
+    needs: [format, lint, test, build, native-smoke]
     if: always()
 
     steps:
@@ -119,6 +157,7 @@ jobs:
           LINT_RESULT: ${{ needs.lint.result }}
           TEST_RESULT: ${{ needs.test.result }}
           BUILD_RESULT: ${{ needs.build.result }}
+          NATIVE_SMOKE_RESULT: ${{ needs.native-smoke.result }}
         shell: bash
         run: |
           set -euo pipefail
@@ -138,6 +177,10 @@ jobs:
           fi
           if [ "$BUILD_RESULT" != "success" ]; then
             echo "::error::Build FAILED ($BUILD_RESULT)"
+            failed=1
+          fi
+          if [ "$NATIVE_SMOKE_RESULT" != "success" ]; then
+            echo "::error::Native Smoke FAILED ($NATIVE_SMOKE_RESULT)"
             failed=1
           fi
 

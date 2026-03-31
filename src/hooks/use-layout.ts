@@ -1,6 +1,20 @@
 export type Pane = "sidebar" | "list" | "content";
+export type ResponsiveLayoutMode = "wide" | "compact" | "mobile";
 type SlidingLayoutMode = "compact" | "mobile";
 type FocusedPane = "sidebar" | "list" | "content";
+
+export function resolveResponsiveLayoutMode(
+  preferredLayoutMode: "wide" | "compact",
+  viewportWidth: number,
+): ResponsiveLayoutMode {
+  if (viewportWidth < 500) {
+    return "mobile";
+  }
+  if (viewportWidth < 1100) {
+    return "compact";
+  }
+  return preferredLayoutMode;
+}
 
 export function resolveLayout(
   layoutMode: "wide" | "compact" | "mobile",

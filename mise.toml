@@ -110,7 +110,7 @@ depends = ["test:rust", "test:unit"]
 [tasks."test:rust"]
 description = "Run Rust tests"
 run = "rtk test cargo test --manifest-path src-tauri/Cargo.toml"
-run_windows = "echo Skipping cargo test on Windows: the Tauri test harness exits with STATUS_ENTRYPOINT_NOT_FOUND in this environment. && exit /b 0"
+run_windows = "rtk test cargo test --manifest-path src-tauri/Cargo.toml --test integration_test"
 
 [tasks."test:unit"]
 description = "Run Vitest unit tests"
@@ -145,7 +145,7 @@ description = "Run native app in dev mode"
 run = "dotenvx run -- pnpm tauri dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:signed"]
-description = "Build, codesign, and run native app (no Keychain dialog)"
+description = "Build, codesign, and run native app on macOS (no Keychain dialog)"
 run = """
 pnpm dev &
 DEV_PID=$!
@@ -154,9 +154,10 @@ codesign -s "UltraRSSReader-Dev" -f src-tauri/target/debug/ultra-rss-reader
 src-tauri/target/debug/ultra-rss-reader
 kill $DEV_PID 2>/dev/null || true
 """
+run_windows = "echo app:dev:signed is macOS-only (requires codesign and Unix shell tooling). && exit /b 1"
 
 [tasks."app:open"]
-description = "Remove quarantine & ad-hoc sign, then open the installed app"
+description = "Remove quarantine & ad-hoc sign, then open the installed app on macOS"
 run = """
 APP="/Applications/Ultra RSS Reader.app"
 if [ ! -d "$APP" ]; then
@@ -167,6 +168,7 @@ xattr -cr "$APP"
 codesign --force --deep --sign - "$APP"
 open "$APP"
 """
+run_windows = "echo app:open is macOS-only (expects /Applications, xattr, and open). && exit /b 1"
 
 [tasks."app:dev:browser"]
 description = "Run frontend dev server for browser UI testing"

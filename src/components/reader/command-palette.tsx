@@ -8,6 +8,8 @@ import { useFeeds } from "@/hooks/use-feeds";
 import { useTags } from "@/hooks/use-tags";
 import type { AppAction } from "@/lib/actions";
 import { executeAction } from "@/lib/actions";
+import { formatKeyForDisplay } from "@/lib/keyboard-shortcuts";
+import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 import {
   Command,
@@ -80,6 +82,7 @@ export function CommandPalette() {
   const selectFeed = useUiStore((state) => state.selectFeed);
   const selectTag = useUiStore((state) => state.selectTag);
   const selectArticle = useUiStore((state) => state.selectArticle);
+  const platformKind = usePlatformStore((state) => state.platform.kind);
   const [input, setInput] = useState("");
   const { prefix, query, deferredQuery } = useCommandSearch(input);
 
@@ -94,7 +97,7 @@ export function CommandPalette() {
       {
         id: "open-settings",
         label: t("shortcuts.open_settings"),
-        shortcut: "⌘,",
+        shortcut: formatKeyForDisplay("⌘,", platformKind),
         keywords: ["settings", "preferences"],
         icon: SettingsIcon,
       },
@@ -118,7 +121,7 @@ export function CommandPalette() {
         icon: NewspaperIcon,
       },
     ],
-    [t, tSidebar],
+    [platformKind, t, tSidebar],
   );
 
   const { data: feeds = [] } = useFeeds(selectedAccountId ?? "");

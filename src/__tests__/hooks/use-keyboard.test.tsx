@@ -38,7 +38,7 @@ function renderAppShell(calls: MockCall[]) {
       case "trigger_sync":
         return null;
       default:
-        return null;
+        return undefined;
     }
   });
 
@@ -136,6 +136,7 @@ describe("useKeyboard", () => {
       selectedAccountId: "acc-1",
       selection: { type: "feed", feedId: "feed-1" },
       selectedArticleId: "art-2",
+      viewMode: "all",
       contentMode: "reader",
     });
     usePreferencesStore.setState({
@@ -288,7 +289,7 @@ describe("useKeyboard", () => {
         case "trigger_sync":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
