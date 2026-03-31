@@ -432,6 +432,8 @@ impl FeedProvider for GReaderProvider {
                     since: next_since_usec
                         .and_then(DateTime::from_timestamp_micros)
                         .or_else(|| cursor.as_ref().and_then(|current| current.since)),
+                    // `stream/contents` does not expose HTTP validators; these fields are
+                    // only carried through to keep `SyncCursor` generic across providers.
                     etag: cursor.as_ref().and_then(|current| current.etag.clone()),
                     last_modified: cursor
                         .as_ref()

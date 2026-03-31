@@ -294,12 +294,14 @@ fn feed_scope_key(remote_id: &str) -> String {
 
 fn cursor_from_state(state: Option<&SyncState>) -> Option<SyncCursor> {
     state.map(|state| SyncCursor {
-        continuation: state.continuation.clone(),
+        // Cross-sync resumes are timestamp-based. Continuation tokens are only
+        // valid within a single pagination run and must not be revived later.
+        continuation: None,
         since: state
             .timestamp_usec
             .and_then(chrono::DateTime::from_timestamp_micros),
-        etag: state.etag.clone(),
-        last_modified: state.last_modified.clone(),
+        etag: None,
+        last_modified: None,
     })
 }
 
@@ -388,10 +390,10 @@ async fn sync_greader_feed_entries(
         scope_key,
         timestamp_usec: latest_timestamp_usec,
         continuation: None,
-        etag: saved_state.as_ref().and_then(|state| state.etag.clone()),
-        last_modified: saved_state
-            .as_ref()
-            .and_then(|state| state.last_modified.clone()),
+        // GReader delta sync is driven by continuation + `ot`; HTTP validators
+        // are reserved for non-GReader providers and should not linger here.
+        etag: None,
+        last_modified: None,
         last_success_at: Some(chrono::Utc::now().to_rfc3339()),
         last_error: None,
         error_count: 0,
@@ -402,4 +404,364 @@ async fn sync_greader_feed_entries(
     sync_state_repo.save(&next_state)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::provider::ProviderKind;
+    use crate::infra::db::sqlite_account::SqliteAccountRepository;
+    use crate::repository::account::AccountRepository;
+    use crate::repository::article::{ArticleRepository, Pagination};
+    use mockito::Matcher;
+
+    const FEED_REMOTE_ID: &str = "feed/https://example.com/rss";
+
+    fn test_db() -> Mutex<DbManager> {
+        Mutex::new(DbManager::new_in_memory().unwrap())
+    }
+
+    fn test_account(server_url: &str) -> Account {
+        Account {
+            id: AccountId::new(),
+            kind: ProviderKind::FreshRss,
+            name: "FreshRSS".to_string(),
+            server_url: Some(server_url.to_string()),
+            username: Some("u".to_string()),
+            sync_interval_secs: 3600,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+        }
+    }
+
+    fn test_feed(account_id: &AccountId) -> Feed {
+        Feed {
+            id: FeedId::new(),
+            account_id: account_id.clone(),
+            folder_id: None,
+            remote_id: Some(FEED_REMOTE_ID.to_string()),
+            title: "Example Feed".to_string(),
+            url: "https://example.com/rss".to_string(),
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            unread_count: 0,
+            display_mode: "inherit".to_string(),
+        }
+    }
+
+    fn insert_account_and_feed(db: &Mutex<DbManager>, server_url: &str) -> (Account, Feed) {
+        let account = test_account(server_url);
+        let feed = test_feed(&account.id);
+
+        let db_guard = db.lock().unwrap();
+        let account_repo = SqliteAccountRepository::new(db_guard.writer());
+        let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+        account_repo.save(&account).unwrap();
+        feed_repo.save(&feed).unwrap();
+
+        (account, feed)
+    }
+
+    async fn authenticated_provider(server_url: &str) -> GReaderProvider {
+        let mut provider = GReaderProvider::for_freshrss(server_url);
+        provider
+            .authenticate(&Credentials {
+                token: Some("u".to_string()),
+                password: Some("p".to_string()),
+            })
+            .await
+            .unwrap();
+        provider
+    }
+
+    #[tokio::test]
+    async fn sync_greader_feed_entries_uses_saved_timestamp_for_incremental_sync() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let stream_mock = server
+            .mock(
+                "GET",
+                Matcher::Regex(r"/api/greader.php/reader/api/0/stream/contents/.*".to_string()),
+            )
+            .match_query(Matcher::Regex(
+                "^output=json&n=200&ot=1700000000000000$".to_string(),
+            ))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(r#"{ "items": [] }"#)
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_account_and_feed(&db, &server.url());
+        let saved_state = SyncState {
+            account_id: account.id.clone(),
+            scope_key: feed_scope_key(FEED_REMOTE_ID),
+            timestamp_usec: Some(1_700_000_000_000_000),
+            continuation: Some("stale-continuation".to_string()),
+            etag: Some("etag-old".to_string()),
+            last_modified: Some("Wed, 01 Jan 2025 00:00:00 GMT".to_string()),
+            last_success_at: Some("2025-01-01T00:00:00Z".to_string()),
+            last_error: Some("previous failure".to_string()),
+            error_count: 2,
+            next_retry_at: Some("2025-01-01T01:00:00Z".to_string()),
+        };
+        {
+            let db_guard = db.lock().unwrap();
+            let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+            sync_state_repo.save(&saved_state).unwrap();
+        }
+
+        let provider = authenticated_provider(&server.url()).await;
+        sync_greader_feed_entries(&db, &provider, &account, &feed)
+            .await
+            .unwrap();
+
+        stream_mock.assert_async().await;
+
+        let db_guard = db.lock().unwrap();
+        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let state = sync_state_repo
+            .get(&account.id, &feed_scope_key(FEED_REMOTE_ID))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(state.timestamp_usec, Some(1_700_000_000_000_000));
+        assert_eq!(state.continuation, None);
+        assert_eq!(state.etag, None);
+        assert_eq!(state.last_modified, None);
+        assert_eq!(state.last_error, None);
+        assert_eq!(state.error_count, 0);
+        assert_eq!(state.next_retry_at, None);
+        assert!(state.last_success_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn sync_greader_feed_entries_advances_timestamp_after_all_pages_finish() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let page1_mock = server
+            .mock(
+                "GET",
+                Matcher::Regex(r"/api/greader.php/reader/api/0/stream/contents/.*".to_string()),
+            )
+            .match_query(Matcher::Regex(
+                "^output=json&n=200&ot=1700000000000000$".to_string(),
+            ))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "items": [
+                        {
+                            "id": "entry-1",
+                            "title": "Page 1",
+                            "alternate": [{"href": "https://example.com/1"}],
+                            "summary": {"content": "Summary 1"},
+                            "timestampUsec": "1700000100000000",
+                            "published": 1700000100,
+                            "origin": {
+                                "streamId": "feed/https://example.com/rss",
+                                "title": "Example"
+                            },
+                            "categories": []
+                        }
+                    ],
+                    "continuation": "page-2"
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        let page2_mock = server
+            .mock(
+                "GET",
+                Matcher::Regex(r"/api/greader.php/reader/api/0/stream/contents/.*".to_string()),
+            )
+            .match_query(Matcher::Regex(
+                "^output=json&n=200&c=page-2&ot=1700000100000000$".to_string(),
+            ))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "items": [
+                        {
+                            "id": "entry-2",
+                            "title": "Page 2",
+                            "alternate": [{"href": "https://example.com/2"}],
+                            "summary": {"content": "Summary 2"},
+                            "updated": 1700000200,
+                            "published": 1700000190,
+                            "origin": {
+                                "streamId": "feed/https://example.com/rss",
+                                "title": "Example"
+                            },
+                            "categories": ["user/-/state/com.google/read"]
+                        }
+                    ]
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_account_and_feed(&db, &server.url());
+        {
+            let db_guard = db.lock().unwrap();
+            let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+            sync_state_repo
+                .save(&SyncState {
+                    account_id: account.id.clone(),
+                    scope_key: feed_scope_key(FEED_REMOTE_ID),
+                    timestamp_usec: Some(1_700_000_000_000_000),
+                    continuation: None,
+                    etag: None,
+                    last_modified: None,
+                    last_success_at: None,
+                    last_error: None,
+                    error_count: 0,
+                    next_retry_at: None,
+                })
+                .unwrap();
+        }
+
+        let provider = authenticated_provider(&server.url()).await;
+        sync_greader_feed_entries(&db, &provider, &account, &feed)
+            .await
+            .unwrap();
+
+        page1_mock.assert_async().await;
+        page2_mock.assert_async().await;
+
+        let db_guard = db.lock().unwrap();
+        let article_repo = SqliteArticleRepository::new(db_guard.reader());
+        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let articles = article_repo
+            .find_by_feed(&feed.id, &Pagination::default())
+            .unwrap();
+        let state = sync_state_repo
+            .get(&account.id, &feed_scope_key(FEED_REMOTE_ID))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(articles.len(), 2);
+        assert_eq!(state.timestamp_usec, Some(1_700_000_200_000_000));
+        assert_eq!(state.continuation, None);
+    }
+
+    #[tokio::test]
+    async fn sync_greader_feed_entries_keeps_previous_state_when_later_page_fails() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let page1_mock = server
+            .mock(
+                "GET",
+                Matcher::Regex(r"/api/greader.php/reader/api/0/stream/contents/.*".to_string()),
+            )
+            .match_query(Matcher::Regex(
+                "^output=json&n=200&ot=1700000000000000$".to_string(),
+            ))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "items": [
+                        {
+                            "id": "entry-1",
+                            "title": "Page 1",
+                            "alternate": [{"href": "https://example.com/1"}],
+                            "summary": {"content": "Summary 1"},
+                            "timestampUsec": "1700000100000000",
+                            "published": 1700000100,
+                            "origin": {
+                                "streamId": "feed/https://example.com/rss",
+                                "title": "Example"
+                            },
+                            "categories": []
+                        }
+                    ],
+                    "continuation": "page-2"
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        let page2_mock = server
+            .mock(
+                "GET",
+                Matcher::Regex(r"/api/greader.php/reader/api/0/stream/contents/.*".to_string()),
+            )
+            .match_query(Matcher::Regex(
+                "^output=json&n=200&c=page-2&ot=1700000100000000$".to_string(),
+            ))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(500)
+            .with_body("boom")
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_account_and_feed(&db, &server.url());
+        let saved_state = SyncState {
+            account_id: account.id.clone(),
+            scope_key: feed_scope_key(FEED_REMOTE_ID),
+            timestamp_usec: Some(1_700_000_000_000_000),
+            continuation: None,
+            etag: Some("etag-old".to_string()),
+            last_modified: Some("Wed, 01 Jan 2025 00:00:00 GMT".to_string()),
+            last_success_at: Some("2025-01-01T00:00:00Z".to_string()),
+            last_error: Some("old error".to_string()),
+            error_count: 1,
+            next_retry_at: Some("2025-01-01T01:00:00Z".to_string()),
+        };
+        {
+            let db_guard = db.lock().unwrap();
+            let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+            sync_state_repo.save(&saved_state).unwrap();
+        }
+
+        let provider = authenticated_provider(&server.url()).await;
+        let error = sync_greader_feed_entries(&db, &provider, &account, &feed)
+            .await
+            .unwrap_err();
+
+        page1_mock.assert_async().await;
+        page2_mock.assert_async().await;
+        assert!(error.to_string().contains("500"));
+
+        let db_guard = db.lock().unwrap();
+        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+        let state = sync_state_repo
+            .get(&account.id, &feed_scope_key(FEED_REMOTE_ID))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(state.timestamp_usec, saved_state.timestamp_usec);
+        assert_eq!(state.continuation, saved_state.continuation);
+        assert_eq!(state.etag, saved_state.etag);
+        assert_eq!(state.last_modified, saved_state.last_modified);
+        assert_eq!(state.last_success_at, saved_state.last_success_at);
+        assert_eq!(state.last_error, saved_state.last_error);
+        assert_eq!(state.error_count, saved_state.error_count);
+        assert_eq!(state.next_retry_at, saved_state.next_retry_at);
+    }
 }

@@ -1,5 +1,5 @@
 use crate::domain::article::{generate_entry_id, Article};
-use crate::domain::error::DomainResult;
+use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::provider::*;
 use crate::domain::types::{AccountId, FeedId};
 use crate::infra::provider::traits::FeedProvider;
@@ -11,6 +11,10 @@ use crate::repository::pending_mutation::PendingMutationRepository;
 use crate::repository::sync_state::SyncStateRepository;
 use chrono::Utc;
 
+/// Generic repository-driven sync flow used by local feeds and lower-level tests.
+///
+/// GReader providers require per-feed cursor persistence and multi-page delta sync,
+/// so their authoritative sync path lives in `commands::sync_providers`.
 pub async fn sync_account(
     account_id: &AccountId,
     provider: &dyn FeedProvider,
@@ -21,6 +25,11 @@ pub async fn sync_account(
     pending_mutation_repo: &dyn PendingMutationRepository,
 ) -> DomainResult<Vec<FeedId>> {
     let caps = provider.capabilities();
+    if caps.supports_delta_sync {
+        return Err(DomainError::Validation(
+            "Delta-sync providers must use commands::sync_providers".into(),
+        ));
+    }
     let mut updated_feeds = Vec::new();
 
     // Step 1: Push pending mutations (remote providers only)
@@ -167,4 +176,46 @@ pub async fn sync_account(
     }
 
     Ok(updated_feeds)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infra::db::connection::DbManager;
+    use crate::infra::db::sqlite_article::SqliteArticleRepository;
+    use crate::infra::db::sqlite_feed::SqliteFeedRepository;
+    use crate::infra::db::sqlite_folder::SqliteFolderRepository;
+    use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
+    use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
+    use crate::infra::provider::greader::GReaderProvider;
+
+    #[tokio::test]
+    async fn sync_account_rejects_delta_sync_providers() {
+        let db = DbManager::new_in_memory().unwrap();
+        let account_id = AccountId::new();
+        let provider = GReaderProvider::for_freshrss("https://example.com");
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let feed_repo = SqliteFeedRepository::new(db.writer());
+        let folder_repo = SqliteFolderRepository::new(db.writer());
+        let sync_state_repo = SqliteSyncStateRepository::new(db.writer());
+        let pending_repo = SqlitePendingMutationRepository::new(db.writer());
+
+        let error = sync_account(
+            &account_id,
+            &provider,
+            &article_repo,
+            &feed_repo,
+            &folder_repo,
+            &sync_state_repo,
+            &pending_repo,
+        )
+        .await
+        .unwrap_err();
+
+        assert!(matches!(
+            error,
+            DomainError::Validation(message)
+                if message.contains("commands::sync_providers")
+        ));
+    }
 }
