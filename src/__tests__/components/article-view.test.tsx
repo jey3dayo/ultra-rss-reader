@@ -54,7 +54,7 @@ describe("ArticleView", () => {
         case "update_feed_display_mode":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
   });
@@ -115,7 +115,7 @@ describe("ArticleView", () => {
         case "open_in_browser":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -207,7 +207,7 @@ describe("ArticleView", () => {
         case "update_feed_display_mode":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -253,7 +253,7 @@ describe("ArticleView", () => {
         case "update_feed_display_mode":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -302,7 +302,7 @@ describe("ArticleView", () => {
         case "get_article_tags":
           return [];
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -342,7 +342,7 @@ describe("ArticleView", () => {
         case "get_article_tags":
           return [];
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -382,7 +382,7 @@ describe("ArticleView", () => {
         case "get_article_tags":
           return [];
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -505,7 +505,7 @@ describe("ArticleView", () => {
         case "update_feed_display_mode":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
 
@@ -552,7 +552,7 @@ describe("ArticleView", () => {
         case "update_feed_display_mode":
           return null;
         default:
-          return null;
+          return undefined;
       }
     });
     usePlatformStore.setState({

@@ -193,7 +193,10 @@ export function setupTauriMocks(handler?: MockHandler): void {
   mockIPC((cmd, payload) => {
     const args = validateArgs(cmd, payload);
     if (handler) {
-      return handler(cmd, args);
+      const handled = handler(cmd, args);
+      if (handled !== undefined) {
+        return handled;
+      }
     }
     return defaultHandler(cmd, args);
   });
