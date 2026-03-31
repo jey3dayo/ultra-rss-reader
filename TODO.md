@@ -74,12 +74,12 @@
 
 ## premortem で見えた詰めどころ
 
-- [ ] 同期失敗時の整合性ルールを明文化する
-  - `push_mutations()` の部分成功・タイムアウト・再試行時に `pending_mutations` をどう扱うか決める
-  - 既読 / スター状態の冪等性と、ローカル・リモート不整合の解消手順を仕様化する
-- [ ] 記事 HTML / 埋め込み表示の CSP 方針を確定する
-  - `src-tauri/tauri.conf.json` の `img-src http:` / `frame-src http:` を本当に許可するか判断する
-  - sanitize 済み HTML と iframe / 外部リソースの許容境界を README か実装コメントで揃える
+- [x] 同期失敗時の整合性ルールを明文化する
+  - README に current sync consistency rules を追記し、`pending_mutations` の削除条件と remote state 適用順を明記した
+  - 部分成功の細粒度リカバリは未実装であることも現状仕様として書いた
+- [x] 記事 HTML / 埋め込み表示の CSP 方針を確定する
+  - README に compatibility-first の current CSP policy を追記した
+  - `script-src 'self'` を維持しつつ、`img-src http/https` と `frame-src http/https` は記事表示互換性のため許可していると明記した
 - [x] README の release 説明と実際の workflow を一致させる
   - README は macOS Apple Silicon + Windows 前提へ修正し、`.github/workflows/release.yml` の実態と揃えた
   - workflow を増やすか README を現状に合わせるか決める
