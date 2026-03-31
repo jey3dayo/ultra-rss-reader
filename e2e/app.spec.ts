@@ -26,4 +26,37 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     // Accept any dark-ish color or CSS variable fallback
     expect(bgColor).toBeTruthy();
   });
+
+  test("keeps an auto-read article visible in unread view until the user changes screens", async ({ page }) => {
+    const articleList = page.getByRole("listbox", { name: /Article list|記事一覧/i });
+    const firstArticle = articleList.getByRole("option").first();
+    const articleId = await firstArticle.getAttribute("data-article-id");
+
+    expect(articleId).toBeTruthy();
+    await firstArticle.click();
+
+    await expect(articleList.locator(`[data-article-id="${articleId}"]`)).toBeVisible();
+
+    await page.getByRole("button", { name: /^STARRED$|^スター$/i }).click();
+
+    await expect(articleList.locator(`[data-article-id="${articleId}"]`)).toHaveCount(0);
+  });
+
+  test("keeps an unstarred article visible in starred view until the user changes screens", async ({ page }) => {
+    await page.getByRole("button", { name: /^STARRED$|^スター$/i }).click();
+
+    const articleList = page.getByRole("listbox", { name: /Article list|記事一覧/i });
+    const firstStarredArticle = articleList.getByRole("option").first();
+    const articleId = await firstStarredArticle.getAttribute("data-article-id");
+
+    expect(articleId).toBeTruthy();
+    await firstStarredArticle.click();
+    await page.getByRole("button", { name: /Toggle star|スターを切替/i }).click();
+
+    await expect(articleList.locator(`[data-article-id="${articleId}"]`)).toBeVisible();
+
+    await page.getByRole("button", { name: /^UNREAD$|^未読$/i }).click();
+
+    await expect(articleList.locator(`[data-article-id="${articleId}"]`)).toHaveCount(0);
+  });
 });

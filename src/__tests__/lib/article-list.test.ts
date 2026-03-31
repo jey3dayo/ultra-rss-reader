@@ -88,7 +88,7 @@ describe("article-list utils", () => {
     expect(Result.unwrapError(result)).toBe("no_articles");
   });
 
-  it("does not keep recently-read articles in unread view even when recentlyReadIds is provided", () => {
+  it("keeps retained articles visible in unread view even after they become read", () => {
     const readArticle: ArticleDto = {
       ...sampleArticles[0],
       id: "recently-read",
@@ -108,7 +108,7 @@ describe("article-list utils", () => {
       published_at: "2026-03-24T08:00:00Z",
     };
 
-    const recentlyReadIds = new Set(["recently-read"]);
+    const retainedArticleIds = new Set(["recently-read"]);
 
     const result = selectVisibleArticles({
       articles: [],
@@ -121,13 +121,13 @@ describe("article-list utils", () => {
       showSearch: false,
       searchQuery: "",
       sortUnread: "newest_first",
-      recentlyReadIds,
+      retainedArticleIds,
     });
 
-    expect(result.map((a) => a.id)).toEqual(["still-unread"]);
+    expect(result.map((a) => a.id)).toEqual(["recently-read", "still-unread"]);
   });
 
-  it("excludes recently-read articles from unread view when recentlyReadIds is not provided", () => {
+  it("excludes read articles from unread view when retainedArticleIds is not provided", () => {
     const readArticle: ArticleDto = {
       ...sampleArticles[0],
       id: "read-article",
@@ -157,36 +157,64 @@ describe("article-list utils", () => {
     expect(result.map((a) => a.id)).toEqual(["unread-article"]);
   });
 
-  it("does not keep recently-read feed articles in unread view", () => {
-    const readArticle: ArticleDto = {
-      ...sampleArticles[0],
-      id: "feed-recently-read",
-      is_read: true,
+  it("keeps retained articles visible in starred view even after they are unstarred", () => {
+    const unstarredArticle: ArticleDto = {
+      ...sampleArticles[1],
+      id: "just-unstarred",
+      is_starred: false,
       published_at: "2026-03-25T12:00:00Z",
     };
-    const unreadArticle: ArticleDto = {
-      ...sampleArticles[0],
-      id: "feed-unread",
-      is_read: false,
+    const starredArticle: ArticleDto = {
+      ...sampleArticles[1],
+      id: "still-starred",
+      is_starred: true,
       published_at: "2026-03-25T11:00:00Z",
     };
 
-    const recentlyReadIds = new Set(["feed-recently-read"]);
-
     const result = selectVisibleArticles({
-      articles: [readArticle, unreadArticle],
-      accountArticles: [],
+      articles: [],
+      accountArticles: [unstarredArticle, starredArticle],
       tagArticles: [],
       searchResults: [],
-      feedId: "feed-1",
+      feedId: null,
       tagId: null,
-      viewMode: "unread",
+      viewMode: "starred",
       showSearch: false,
       searchQuery: "",
       sortUnread: "newest_first",
-      recentlyReadIds,
+      retainedArticleIds: new Set(["just-unstarred"]),
     });
 
-    expect(result.map((a) => a.id)).toEqual(["feed-unread"]);
+    expect(result.map((a) => a.id)).toEqual(["just-unstarred", "still-starred"]);
+  });
+
+  it("excludes unstarred articles from starred view when retainedArticleIds is not provided", () => {
+    const unstarredArticle: ArticleDto = {
+      ...sampleArticles[1],
+      id: "not-starred",
+      is_starred: false,
+      published_at: "2026-03-25T12:00:00Z",
+    };
+    const starredArticle: ArticleDto = {
+      ...sampleArticles[1],
+      id: "still-starred",
+      is_starred: true,
+      published_at: "2026-03-25T11:00:00Z",
+    };
+
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [unstarredArticle, starredArticle],
+      tagArticles: [],
+      searchResults: [],
+      feedId: null,
+      tagId: null,
+      viewMode: "starred",
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+    });
+
+    expect(result.map((a) => a.id)).toEqual(["still-starred"]);
   });
 });

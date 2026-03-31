@@ -69,6 +69,7 @@ interface UiState {
   isAddFeedDialogOpen: boolean;
   toastMessage: ToastData | null;
   recentlyReadIds: Set<string>;
+  retainedArticleIds: Set<string>;
   confirmDialog: {
     open: boolean;
     message: string;
@@ -112,6 +113,8 @@ interface UiActions {
   clearToast: () => void;
   addRecentlyRead: (id: string) => void;
   clearRecentlyRead: () => void;
+  retainArticle: (id: string) => void;
+  clearRetainedArticles: () => void;
   showConfirm: (
     message: string,
     onConfirm: () => void,
@@ -148,6 +151,7 @@ const initialState: UiState = {
   isAddFeedDialogOpen: false,
   toastMessage: null,
   recentlyReadIds: new Set(),
+  retainedArticleIds: new Set(),
   confirmDialog: { open: false, message: "", actionLabel: null, icon: null, onConfirm: null },
 };
 
@@ -164,6 +168,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       contentMode: "empty",
       focusedPane: "list",
       recentlyReadIds: new Set(),
+      retainedArticleIds: new Set(),
     }),
   selectFeed: (feedId) =>
     set({
@@ -173,6 +178,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       contentMode: "empty",
       focusedPane: "list",
       recentlyReadIds: new Set(),
+      retainedArticleIds: new Set(),
     }),
   selectFolder: (folderId) =>
     set({
@@ -182,6 +188,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       contentMode: "empty",
       focusedPane: "list",
       recentlyReadIds: new Set(),
+      retainedArticleIds: new Set(),
     }),
   selectSmartView: (kind) =>
     set({
@@ -191,6 +198,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       contentMode: "empty",
       focusedPane: "list",
       recentlyReadIds: new Set(),
+      retainedArticleIds: new Set(),
     }),
   selectTag: (tagId) =>
     set({
@@ -200,6 +208,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       contentMode: "empty",
       focusedPane: "list",
       recentlyReadIds: new Set(),
+      retainedArticleIds: new Set(),
     }),
   selectAll: () =>
     set({
@@ -209,12 +218,13 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       contentMode: "empty",
       focusedPane: "list",
       recentlyReadIds: new Set(),
+      retainedArticleIds: new Set(),
     }),
   selectArticle: (id) => set({ selectedArticleId: id, contentMode: "reader", focusedPane: "content" }),
   clearArticle: () => set({ selectedArticleId: null, contentMode: "empty" }),
   openBrowser: (url) => set({ contentMode: "browser", browserUrl: url }),
   closeBrowser: () => set((s) => ({ contentMode: s.selectedArticleId ? "reader" : "empty", browserUrl: null })),
-  setViewMode: (mode) => set({ viewMode: mode, recentlyReadIds: new Set() }),
+  setViewMode: (mode) => set({ viewMode: mode, recentlyReadIds: new Set(), retainedArticleIds: new Set() }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   toggleFolder: (folderId) =>
     set((s) => {
@@ -302,6 +312,13 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       return { recentlyReadIds: next };
     }),
   clearRecentlyRead: () => set({ recentlyReadIds: new Set() }),
+  retainArticle: (id) =>
+    set((s) => {
+      const next = new Set(s.retainedArticleIds);
+      next.add(id);
+      return { retainedArticleIds: next };
+    }),
+  clearRetainedArticles: () => set({ retainedArticleIds: new Set() }),
   showConfirm: (message, onConfirm, options) =>
     set({
       confirmDialog: {

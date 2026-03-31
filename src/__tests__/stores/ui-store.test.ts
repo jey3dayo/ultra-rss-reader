@@ -81,4 +81,16 @@ describe("useUiStore", () => {
     useUiStore.getState().selectAll();
     expect(useUiStore.getState().focusedPane).toBe("list");
   });
+
+  it("clears retained articles when the user changes the current screen", () => {
+    useUiStore.getState().retainArticle("art-1");
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
+
+    useUiStore.getState().setViewMode("starred");
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set());
+
+    useUiStore.getState().retainArticle("art-2");
+    useUiStore.getState().selectFeed("feed-1");
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set());
+  });
 });

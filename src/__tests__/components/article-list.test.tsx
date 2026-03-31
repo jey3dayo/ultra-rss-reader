@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { ArticleList } from "@/components/reader/article-list";
+import { ArticleView } from "@/components/reader/article-view";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
@@ -212,6 +213,136 @@ describe("ArticleList", () => {
     await waitFor(() => {
       expect(screen.getByText("Unread Article")).toBeInTheDocument();
       expect(screen.queryByText("Read Article")).not.toBeInTheDocument();
+    });
+  });
+
+  it("keeps an auto-marked article in unread view until the user changes screens", async () => {
+    let articles = [
+      { ...sampleArticles[0], is_read: false, is_starred: false },
+      { ...sampleArticles[1], is_read: true, is_starred: true },
+    ];
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_articles":
+          return articles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return articles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_articles_by_tag":
+          return [];
+        case "list_tags":
+        case "get_article_tags":
+          return [];
+        case "search_articles":
+          return [];
+        case "update_feed_display_mode":
+          return null;
+        case "mark_article_read":
+          articles = articles.map((article) =>
+            article.id === args.articleId ? { ...article, is_read: Boolean(args.read) } : article,
+          );
+          return null;
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+
+    const user = userEvent.setup();
+    render(
+      <>
+        <ArticleList />
+        <ArticleView />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    const list = await screen.findByRole("listbox", { name: "Article list" });
+    await waitFor(() => {
+      expect(within(list).getByRole("option", { name: /First Article/ })).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(within(list).getByRole("option", { name: "First Article" })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "STARRED" }));
+
+    await waitFor(() => {
+      expect(within(list).queryByRole("option", { name: "First Article" })).not.toBeInTheDocument();
+    });
+  });
+
+  it("keeps an unstarred article in starred view until the user changes screens", async () => {
+    let articles = [
+      { ...sampleArticles[0], is_read: false, is_starred: false },
+      { ...sampleArticles[1], is_read: true, is_starred: true },
+    ];
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_articles":
+          return articles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return articles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_articles_by_tag":
+          return [];
+        case "list_tags":
+        case "get_article_tags":
+          return [];
+        case "search_articles":
+          return [];
+        case "update_feed_display_mode":
+          return null;
+        case "toggle_article_star":
+          articles = articles.map((article) =>
+            article.id === args.articleId ? { ...article, is_starred: Boolean(args.starred) } : article,
+          );
+          return null;
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectSmartView("starred");
+    useUiStore.getState().selectArticle("art-2");
+
+    const user = userEvent.setup();
+    render(
+      <>
+        <ArticleList />
+        <ArticleView />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    const list = await screen.findByRole("listbox", { name: "Article list" });
+    await waitFor(() => {
+      expect(within(list).getByRole("option", { name: /Second Article/ })).toBeInTheDocument();
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Toggle star" }));
+
+    await waitFor(() => {
+      expect(within(list).getByRole("option", { name: "Second Article" })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "UNREAD" }));
+
+    await waitFor(() => {
+      expect(within(list).queryByRole("option", { name: "Second Article" })).not.toBeInTheDocument();
     });
   });
 });

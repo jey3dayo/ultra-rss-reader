@@ -14,7 +14,7 @@ type SelectVisibleArticlesParams = {
   showSearch: boolean;
   searchQuery: string;
   sortUnread: string;
-  recentlyReadIds?: ReadonlySet<string>;
+  retainedArticleIds?: ReadonlySet<string>;
 };
 
 type GroupArticlesParams = {
@@ -60,6 +60,7 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
     showSearch,
     searchQuery,
     sortUnread,
+    retainedArticleIds,
   } = params;
 
   let list: ArticleDto[];
@@ -69,8 +70,11 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
     list = [...(tagArticles ?? [])];
   } else {
     const all = feedId ? (articles ?? []) : (accountArticles ?? []);
-    if (viewMode === "unread") list = all.filter((article) => !article.is_read);
-    else if (viewMode === "starred") list = all.filter((article) => article.is_starred);
+    // Keep articles that were visible in filtered views until the user navigates away,
+    // even if an in-place status change would otherwise exclude them immediately.
+    if (viewMode === "unread") list = all.filter((article) => !article.is_read || retainedArticleIds?.has(article.id));
+    else if (viewMode === "starred")
+      list = all.filter((article) => article.is_starred || retainedArticleIds?.has(article.id));
     else list = [...all];
   }
 

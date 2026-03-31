@@ -11,6 +11,8 @@ export function ArticleContextMenu({ article, children }: { article: ArticleDto;
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
+  const retainArticle = useUiStore((s) => s.retainArticle);
+  const viewMode = useUiStore((s) => s.viewMode);
 
   const handleToggleRead = () => {
     const markingAsRead = !article.is_read;
@@ -18,14 +20,25 @@ export function ArticleContextMenu({ article, children }: { article: ArticleDto;
       { id: article.id, read: markingAsRead },
       {
         onSuccess: () => {
-          if (markingAsRead) addRecentlyRead(article.id);
+          if (markingAsRead) {
+            addRecentlyRead(article.id);
+            if (viewMode === "unread") retainArticle(article.id);
+          }
         },
       },
     );
   };
 
   const handleToggleStar = () => {
-    toggleStar.mutate({ id: article.id, starred: !article.is_starred });
+    const nextStarred = !article.is_starred;
+    toggleStar.mutate(
+      { id: article.id, starred: nextStarred },
+      {
+        onSuccess: () => {
+          if (!nextStarred && viewMode === "starred") retainArticle(article.id);
+        },
+      },
+    );
   };
 
   const handleOpenInBrowser = () => {

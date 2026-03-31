@@ -43,6 +43,7 @@ export function ArticleList() {
   const imagePreviews = usePreferencesStore((s) => s.prefs.image_previews ?? "medium");
   const selectionStyle = usePreferencesStore((s) => s.prefs.list_selection_style ?? "modern");
   const recentlyReadIds = useUiStore((s) => s.recentlyReadIds);
+  const retainedArticleIds = useUiStore((s) => s.retainedArticleIds);
   const confirmMarkAllRead = useConfirmMarkAllRead();
   const qc = useQueryClient();
   const closeBrowser = useUiStore((s) => s.closeBrowser);
@@ -84,7 +85,7 @@ export function ArticleList() {
       showSearch,
       searchQuery,
       sortUnread,
-      recentlyReadIds,
+      retainedArticleIds,
     });
   }, [
     accountArticles,
@@ -97,7 +98,7 @@ export function ArticleList() {
     searchQuery,
     searchResults,
     sortUnread,
-    recentlyReadIds,
+    retainedArticleIds,
   ]);
 
   const groupedArticles = useMemo(() => {

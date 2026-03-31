@@ -48,6 +48,8 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
   const layoutMode = useUiStore((s) => s.layoutMode);
   const showToast = useUiStore((s) => s.showToast);
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
+  const retainArticle = useUiStore((s) => s.retainArticle);
+  const viewMode = useUiStore((s) => s.viewMode);
   const actionCopyLink = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_copy_link"));
   const actionOpenBrowser = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_open_browser"));
   const actionShare = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share"));
@@ -161,7 +163,10 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
           { id: article.id, read: pressed },
           {
             onSuccess: () => {
-              if (pressed) addRecentlyRead(article.id);
+              if (pressed) {
+                addRecentlyRead(article.id);
+                if (viewMode === "unread") retainArticle(article.id);
+              }
             },
           },
         );
@@ -170,7 +175,12 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
         if (!article) return;
         toggleStar.mutate(
           { id: article.id, starred: pressed },
-          { onSuccess: () => showToast(pressed ? t("article_starred") : t("article_unstarred")) },
+          {
+            onSuccess: () => {
+              if (!pressed && viewMode === "starred") retainArticle(article.id);
+              showToast(pressed ? t("article_starred") : t("article_unstarred"));
+            },
+          },
         );
       }}
       onCopyLink={() => {
@@ -296,6 +306,8 @@ function ArticleReader({
   const openBrowserView = useUiStore((s) => s.openBrowser);
   const selectFeed = useUiStore((s) => s.selectFeed);
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
+  const retainArticle = useUiStore((s) => s.retainArticle);
+  const viewMode = useUiStore((s) => s.viewMode);
   const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
   const articleUrl = article.url;
 
@@ -330,7 +342,18 @@ function ArticleReader({
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally trigger only on article.id change
   useEffect(() => {
     if (afterReading === "mark_as_read" && article && !article.is_read) {
-      setRead.mutate({ id: article.id, read: true }, { onSuccess: () => addRecentlyRead(article.id) });
+      setRead.mutate(
+        {
+          id: article.id,
+          read: true,
+        },
+        {
+          onSuccess: () => {
+            addRecentlyRead(article.id);
+            if (viewMode === "unread") retainArticle(article.id);
+          },
+        },
+      );
     }
   }, [afterReading, article?.id]);
 
@@ -341,13 +364,24 @@ function ArticleReader({
         { id: article.id, read: markingAsRead },
         {
           onSuccess: () => {
-            if (markingAsRead) addRecentlyRead(article.id);
+            if (markingAsRead) {
+              addRecentlyRead(article.id);
+              if (viewMode === "unread") retainArticle(article.id);
+            }
           },
         },
       );
     };
     const handleToggleStar = () => {
-      toggleStar.mutate({ id: article.id, starred: !article.is_starred });
+      const nextStarred = !article.is_starred;
+      toggleStar.mutate(
+        { id: article.id, starred: nextStarred },
+        {
+          onSuccess: () => {
+            if (!nextStarred && viewMode === "starred") retainArticle(article.id);
+          },
+        },
+      );
     };
     const handleOpenInAppBrowser = () => {
       if (article.url) {
@@ -419,7 +453,9 @@ function ArticleReader({
     setRead,
     toggleStar,
     addRecentlyRead,
+    retainArticle,
     supportsReadingList,
+    viewMode,
   ]);
 
   const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
