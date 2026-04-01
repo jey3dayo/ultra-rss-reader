@@ -2,6 +2,8 @@ import type { RefObject } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+export const NEW_FOLDER_VALUE = "__new__";
+
 export type FolderSelectOption = {
   value: string;
   label: string;
@@ -12,8 +14,10 @@ export type FolderSelectViewProps = {
   label: string;
   value: string;
   options: FolderSelectOption[];
+  canCreateFolder: boolean;
   disabled: boolean;
   isCreatingFolder: boolean;
+  newFolderOptionLabel: string;
   newFolderLabel: string;
   newFolderName: string;
   newFolderPlaceholder: string;
@@ -27,8 +31,10 @@ export function FolderSelectView({
   label,
   value,
   options,
+  canCreateFolder,
   disabled,
   isCreatingFolder,
+  newFolderOptionLabel,
   newFolderLabel,
   newFolderName,
   newFolderPlaceholder,
@@ -36,8 +42,14 @@ export function FolderSelectView({
   onNewFolderNameChange,
   newFolderInputRef,
 }: FolderSelectViewProps) {
+  const resolvedOptions = [
+    ...options.filter((option) => canCreateFolder || option.value !== NEW_FOLDER_VALUE),
+    ...(canCreateFolder && !options.some((option) => option.value === NEW_FOLDER_VALUE)
+      ? [{ value: NEW_FOLDER_VALUE, label: newFolderOptionLabel }]
+      : []),
+  ];
   const getFolderLabel = (selectedValue: string | null) =>
-    options.find((option) => option.value === (selectedValue ?? ""))?.label ?? selectedValue ?? "";
+    resolvedOptions.find((option) => option.value === (selectedValue ?? ""))?.label ?? selectedValue ?? "";
 
   return (
     <>
@@ -55,7 +67,7 @@ export function FolderSelectView({
             <SelectValue>{(selectedValue: string | null) => getFolderLabel(selectedValue)}</SelectValue>
           </SelectTrigger>
           <SelectPopup>
-            {options.map((option) => (
+            {resolvedOptions.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>
@@ -64,7 +76,7 @@ export function FolderSelectView({
         </Select>
       </div>
 
-      {isCreatingFolder && (
+      {canCreateFolder && isCreatingFolder && (
         <label className="block text-sm text-muted-foreground">
           {newFolderLabel}
           <Input

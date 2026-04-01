@@ -2,18 +2,12 @@ import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  addLocalFeed,
-  createFolder,
-  type DiscoveredFeedDto,
-  discoverFeeds,
-  updateFeedFolder,
-} from "@/api/tauri-commands";
+import { addLocalFeed, type DiscoveredFeedDto, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import { useFolders } from "@/hooks/use-folders";
 import { useUiStore } from "@/stores/ui-store";
 import { AddFeedDialogView } from "./add-feed-dialog-view";
-
-const NEW_FOLDER_VALUE = "__new__";
+import { createFolderIfNeeded } from "./feed-folder-flow";
+import { NEW_FOLDER_VALUE } from "./folder-select-view";
 
 function isValidFeedUrl(value: string): boolean {
   try {
@@ -54,7 +48,6 @@ export function AddFeedDialog({
   const folderOptions = [
     { value: "", label: t("no_folder") },
     ...((folders ?? []).map((folder) => ({ value: folder.id, label: folder.name })) ?? []),
-    { value: NEW_FOLDER_VALUE, label: t("new_folder") },
   ];
   const trimmedUrl = url.trim();
   const hasManualUrl = trimmedUrl.length > 0;
@@ -142,25 +135,20 @@ export function AddFeedDialog({
     setLoading(true);
     setError(null);
 
-    let folderId: string | null = selectedFolderId;
     let hasError = false;
-
-    if (isCreatingFolder && newFolderName.trim()) {
-      Result.pipe(
-        await createFolder(accountId, newFolderName.trim()),
-        Result.inspect((folder) => {
-          folderId = folder.id;
-        }),
-        Result.inspectError((e) => {
-          hasError = true;
-          setError(t("failed_to_create_folder", { message: e.message }));
-          showToast(t("failed_to_create_folder", { message: e.message }));
-        }),
-      );
-      if (hasError) {
-        setLoading(false);
-        return;
-      }
+    const folderId = await createFolderIfNeeded({
+      accountId,
+      selectedFolderId,
+      isCreatingFolder,
+      newFolderName,
+      onError: (error) => {
+        setError(t("failed_to_create_folder", { message: error.message }));
+        showToast(t("failed_to_create_folder", { message: error.message }));
+      },
+    });
+    if (folderId === undefined) {
+      setLoading(false);
+      return;
     }
 
     let feedId: string | null = null;
@@ -233,8 +221,10 @@ export function AddFeedDialog({
         label: t("folder"),
         value: isCreatingFolder ? NEW_FOLDER_VALUE : (selectedFolderId ?? ""),
         options: folderOptions,
+        canCreateFolder: true,
         disabled: loading,
         isCreatingFolder,
+        newFolderOptionLabel: t("new_folder"),
         newFolderLabel: t("folder_name"),
         newFolderName,
         newFolderPlaceholder: t("enter_folder_name"),

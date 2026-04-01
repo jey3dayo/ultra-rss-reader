@@ -35,8 +35,10 @@ describe("RenameFeedDialogView", () => {
             { value: "", label: "No folder" },
             { value: "folder-1", label: "Work" },
           ],
+          canCreateFolder: true,
           disabled: false,
           isCreatingFolder: false,
+          newFolderOptionLabel: "New folder",
           newFolderLabel: "Folder name",
           newFolderName: "",
           newFolderPlaceholder: "Enter folder name",
@@ -84,6 +86,21 @@ describe("RenameFeedDialogView", () => {
         onOpenChange={vi.fn()}
         onTitleChange={vi.fn()}
         onDisplayModeChange={vi.fn()}
+        folderSelectProps={{
+          labelId: "folder-label",
+          label: "Folder",
+          value: "",
+          options: [{ value: "", label: "No folder" }],
+          canCreateFolder: true,
+          disabled: false,
+          isCreatingFolder: false,
+          newFolderOptionLabel: "New folder",
+          newFolderLabel: "Folder name",
+          newFolderName: "",
+          newFolderPlaceholder: "Enter folder name",
+          onValueChange: vi.fn(),
+          onNewFolderNameChange: vi.fn(),
+        }}
         labels={{
           title: "Edit Feed",
           titleField: "Title",

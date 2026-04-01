@@ -208,4 +208,26 @@ describe("Form fields", () => {
     expect(screen.getByRole("option", { name: "3-Pane" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Widescreen" })).toBeInTheDocument();
   });
+
+  it("rename feed dialog offers a new folder option even when no folders exist yet", async () => {
+    const user = userEvent.setup();
+
+    teardownTauriMocks();
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_folders":
+          return [];
+        default:
+          return null;
+      }
+    });
+
+    render(<RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={() => {}} />, {
+      wrapper: createWrapper(),
+    });
+
+    await user.click(await screen.findByRole("combobox", { name: "Folder" }));
+
+    expect(await screen.findByRole("option", { name: "New Folder…" })).toBeInTheDocument();
+  });
 });

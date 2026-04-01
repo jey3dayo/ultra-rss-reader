@@ -6,6 +6,8 @@ import type { FeedDto } from "@/api/tauri-commands";
 import { renameFeed, updateFeedDisplayMode, updateFeedFolder } from "@/api/tauri-commands";
 import { useFolders } from "@/hooks/use-folders";
 import { useUiStore } from "@/stores/ui-store";
+import { createFolderIfNeeded } from "./feed-folder-flow";
+import { NEW_FOLDER_VALUE } from "./folder-select-view";
 import { RenameFeedDialogView } from "./rename-feed-dialog-view";
 
 export function RenameDialog({
@@ -21,9 +23,12 @@ export function RenameDialog({
   const { t: tc } = useTranslation("common");
   const [title, setTitle] = useState(feed.title);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(feed.folder_id);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [displayMode, setDisplayMode] = useState(feed.display_mode ?? "inherit");
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const newFolderInputRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
   const showToast = useUiStore((s) => s.showToast);
   const { data: folders } = useFolders(feed.account_id);
@@ -39,9 +44,17 @@ export function RenameDialog({
   ];
 
   useEffect(() => {
+    if (isCreatingFolder) {
+      requestAnimationFrame(() => newFolderInputRef.current?.focus());
+    }
+  }, [isCreatingFolder]);
+
+  useEffect(() => {
     if (open) {
       setTitle(feed.title);
       setSelectedFolderId(feed.folder_id);
+      setNewFolderName("");
+      setIsCreatingFolder(false);
       setDisplayMode(feed.display_mode ?? "inherit");
       setLoading(false);
       requestAnimationFrame(() => {
@@ -51,6 +64,18 @@ export function RenameDialog({
     }
   }, [open, feed.title, feed.folder_id, feed.display_mode]);
 
+  const handleFolderChange = (value: string) => {
+    if (value === NEW_FOLDER_VALUE) {
+      setIsCreatingFolder(true);
+      setSelectedFolderId(null);
+      return;
+    }
+
+    setIsCreatingFolder(false);
+    setNewFolderName("");
+    setSelectedFolderId(value || null);
+  };
+
   const handleSubmit = async () => {
     const trimmed = title.trim();
     if (!trimmed) {
@@ -59,6 +84,20 @@ export function RenameDialog({
     }
     setLoading(true);
 
+    const resolvedFolderId = await createFolderIfNeeded({
+      accountId: feed.account_id,
+      selectedFolderId,
+      isCreatingFolder,
+      newFolderName,
+      onError: (error) => {
+        showToast(t("failed_to_create_folder", { message: error.message }));
+      },
+    });
+    if (resolvedFolderId === undefined) {
+      setLoading(false);
+      return;
+    }
+
     if (trimmed !== feed.title) {
       Result.pipe(
         await renameFeed(feed.id, trimmed),
@@ -66,9 +105,9 @@ export function RenameDialog({
       );
     }
 
-    if (selectedFolderId !== feed.folder_id) {
+    if (resolvedFolderId !== feed.folder_id) {
       Result.pipe(
-        await updateFeedFolder(feed.id, selectedFolderId),
+        await updateFeedFolder(feed.id, resolvedFolderId),
         Result.inspectError((e) => showToast(t("failed_to_update_folder", { message: e.message }))),
       );
     }
@@ -81,6 +120,7 @@ export function RenameDialog({
     }
 
     qc.invalidateQueries({ queryKey: ["feeds"] });
+    qc.invalidateQueries({ queryKey: ["folders"] });
     setLoading(false);
     onOpenChange(false);
   };
@@ -95,23 +135,22 @@ export function RenameDialog({
       onOpenChange={onOpenChange}
       onTitleChange={setTitle}
       onDisplayModeChange={setDisplayMode}
-      folderSelectProps={
-        folders && folders.length > 0
-          ? {
-              labelId: folderLabelId,
-              label: t("folder"),
-              value: selectedFolderId ?? "",
-              options: folderOptions,
-              disabled: loading,
-              isCreatingFolder: false,
-              newFolderLabel: "",
-              newFolderName: "",
-              newFolderPlaceholder: "",
-              onValueChange: (value) => setSelectedFolderId(value || null),
-              onNewFolderNameChange: () => {},
-            }
-          : undefined
-      }
+      folderSelectProps={{
+        labelId: folderLabelId,
+        label: t("folder"),
+        value: isCreatingFolder ? NEW_FOLDER_VALUE : (selectedFolderId ?? ""),
+        options: folderOptions,
+        canCreateFolder: true,
+        disabled: loading,
+        isCreatingFolder,
+        newFolderOptionLabel: t("new_folder"),
+        newFolderLabel: t("folder_name"),
+        newFolderName,
+        newFolderPlaceholder: t("enter_folder_name"),
+        onValueChange: handleFolderChange,
+        onNewFolderNameChange: setNewFolderName,
+        newFolderInputRef,
+      }}
       labels={{
         title: t("edit_feed"),
         titleField: t("title"),

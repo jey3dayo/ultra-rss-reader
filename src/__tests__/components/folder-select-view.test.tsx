@@ -16,10 +16,11 @@ describe("FolderSelectView", () => {
         options={[
           { value: "", label: "No folder" },
           { value: "folder-1", label: "Work" },
-          { value: "__new__", label: "New folder" },
         ]}
+        canCreateFolder={true}
         disabled={false}
         isCreatingFolder={false}
+        newFolderOptionLabel="New folder"
         newFolderLabel="Folder name"
         newFolderName=""
         newFolderPlaceholder="Enter folder name"
@@ -48,10 +49,11 @@ describe("FolderSelectView", () => {
         options={[
           { value: "", label: "No folder" },
           { value: "folder-1", label: "Work" },
-          { value: "__new__", label: "New folder" },
         ]}
+        canCreateFolder={true}
         disabled={false}
         isCreatingFolder={true}
+        newFolderOptionLabel="New folder"
         newFolderLabel="Folder name"
         newFolderName=""
         newFolderPlaceholder="Enter folder name"
@@ -63,5 +65,34 @@ describe("FolderSelectView", () => {
     fireEvent.change(screen.getByLabelText("Folder name"), { target: { value: "Reading" } });
 
     expect(onNewFolderNameChange).toHaveBeenLastCalledWith("Reading");
+  });
+
+  it("omits the new folder option when folder creation is disabled", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <FolderSelectView
+        labelId="folder-label"
+        label="Folder"
+        value=""
+        options={[
+          { value: "", label: "No folder" },
+          { value: "folder-1", label: "Work" },
+        ]}
+        canCreateFolder={false}
+        disabled={false}
+        isCreatingFolder={false}
+        newFolderOptionLabel="New folder"
+        newFolderLabel="Folder name"
+        newFolderName=""
+        newFolderPlaceholder="Enter folder name"
+        onValueChange={vi.fn()}
+        onNewFolderNameChange={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("combobox", { name: "Folder" }));
+
+    expect(screen.queryByRole("option", { name: "New folder" })).not.toBeInTheDocument();
   });
 });
