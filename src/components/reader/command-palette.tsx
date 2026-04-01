@@ -80,6 +80,7 @@ export function CommandPalette() {
   const open = useUiStore((state) => state.commandPaletteOpen);
   const closeCommandPalette = useUiStore((state) => state.closeCommandPalette);
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
+  const selectFeed = useUiStore((state) => state.selectFeed);
   const selectTag = useUiStore((state) => state.selectTag);
   const selectArticle = useUiStore((state) => state.selectArticle);
   const openFeedLanding = useFeedLanding();

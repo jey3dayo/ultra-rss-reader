@@ -20,6 +20,15 @@ It supports local feeds and FreshRSS, stores data in SQLite, and keeps credentia
 - Theming — Light/dark with system detection, OKLch color tokens
 - Secure credentials — OS keyring (Keychain / Credential Manager / Secret Service), never SQLite
 
+## Command Palette Feed Landing
+
+- Press `Cmd+K` / `Ctrl+K` to open the command palette
+- Type `@` to search subscriptions
+- Press `Enter` on a feed to jump to its first visible article
+- Feeds in `3-Pane` mode land in the reader
+- Feeds in `Widescreen` mode land in browser view
+- If a feed has no visible unread articles, the app stops at the feed list instead of forcing an article open
+
 ## Tech Stack
 
 | Layer                | Technology                                            |

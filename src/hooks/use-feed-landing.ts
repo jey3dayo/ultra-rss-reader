@@ -12,7 +12,9 @@ export function useFeedLanding() {
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
   const { data: feeds = [] } = useFeeds(selectedAccountId);
   const readerView = usePreferencesStore((state) => resolvePreferenceValue(state.prefs, "reader_view"));
-  const sortUnread = usePreferencesStore((state) => state.prefs.reading_sort ?? state.prefs.sort_unread ?? "newest_first");
+  const sortUnread = usePreferencesStore(
+    (state) => state.prefs.reading_sort ?? state.prefs.sort_unread ?? "newest_first",
+  );
 
   return useCallback(
     async (feedId: string) => {
@@ -26,7 +28,7 @@ export function useFeedLanding() {
           ? feeds
           : await queryClient.fetchQuery({
               queryKey: ["feeds", selectedAccountId],
-              queryFn: () => listFeeds(selectedAccountId).then(Result.unwrap),
+              queryFn: () => listFeeds(selectedAccountId).then((result) => Result.unwrap(result)),
             });
 
       const feed = feedList.find((candidate) => candidate.id === feedId);
@@ -39,7 +41,7 @@ export function useFeedLanding() {
       try {
         const articles = await queryClient.fetchQuery({
           queryKey: ["articles", feedId],
-          queryFn: () => listArticles(feedId).then(Result.unwrap),
+          queryFn: () => listArticles(feedId).then((result) => Result.unwrap(result)),
         });
 
         const landingArticle = resolveFeedLandingArticle({ articles, sortUnread });

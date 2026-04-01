@@ -2,10 +2,7 @@ import type { ArticleDto } from "@/api/tauri-commands";
 import { selectVisibleArticles } from "@/lib/article-list";
 import { resolveEffectiveDisplayMode } from "@/lib/article-view";
 
-export function resolveFeedLandingArticle(params: {
-  articles: ArticleDto[];
-  sortUnread: string;
-}): ArticleDto | null {
+export function resolveFeedLandingArticle(params: { articles: ArticleDto[]; sortUnread: string }): ArticleDto | null {
   const visibleArticles = selectVisibleArticles({
     articles: params.articles,
     accountArticles: undefined,
