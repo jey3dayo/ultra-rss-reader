@@ -88,7 +88,7 @@ export function BrowserView() {
       Result.pipe(
         fallbackResult,
         Result.inspect(() => {
-          showToast(t("browser_window_fallback"));
+          showToast(t("browser_embed_fallback"));
         }),
         Result.inspectError((fallbackError) => {
           console.error("Failed to open fallback external browser:", fallbackError);
@@ -114,7 +114,7 @@ export function BrowserView() {
       listen<BrowserWebviewFallbackPayload>(BROWSER_WINDOW_EVENTS.fallback, ({ payload }) => {
         if (cancelled) return;
         if (payload.opened_external) {
-          showToast(t("browser_window_fallback"));
+          showToast(t("browser_embed_fallback"));
         } else if (payload.error_message) {
           showToast(payload.error_message);
         }
