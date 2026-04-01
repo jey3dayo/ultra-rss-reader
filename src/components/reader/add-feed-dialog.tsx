@@ -7,7 +7,7 @@ import { useFolders } from "@/hooks/use-folders";
 import { useUiStore } from "@/stores/ui-store";
 import { AddFeedDialogView } from "./add-feed-dialog-view";
 import { createFolderIfNeeded } from "./feed-folder-flow";
-import { NEW_FOLDER_VALUE } from "./folder-select-view";
+import { buildFolderOptions, useFolderSelection } from "./use-folder-selection";
 
 function isValidFeedUrl(value: string): boolean {
   try {
@@ -30,9 +30,6 @@ export function AddFeedDialog({
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
   const [url, setUrl] = useState("");
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-  const [newFolderName, setNewFolderName] = useState("");
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,15 +37,21 @@ export function AddFeedDialog({
   const [discoveredFeeds, setDiscoveredFeeds] = useState<DiscoveredFeedDto[]>([]);
   const [selectedFeedUrl, setSelectedFeedUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const newFolderInputRef = useRef<HTMLInputElement>(null);
+  const {
+    selectedFolderId,
+    newFolderName,
+    isCreatingFolder,
+    newFolderInputRef,
+    folderSelectValue,
+    handleFolderChange,
+    resetFolderSelection,
+    setNewFolderName,
+  } = useFolderSelection(null);
   const qc = useQueryClient();
   const showToast = useUiStore((s) => s.showToast);
   const { data: folders } = useFolders(accountId);
   const folderLabelId = useId();
-  const folderOptions = [
-    { value: "", label: t("no_folder") },
-    ...((folders ?? []).map((folder) => ({ value: folder.id, label: folder.name })) ?? []),
-  ];
+  const folderOptions = buildFolderOptions(folders, t("no_folder"));
   const trimmedUrl = url.trim();
   const hasManualUrl = trimmedUrl.length > 0;
   const isManualUrlValid = !hasManualUrl || isValidFeedUrl(trimmedUrl);
@@ -56,9 +59,7 @@ export function AddFeedDialog({
   useEffect(() => {
     if (open) {
       setUrl("");
-      setSelectedFolderId(null);
-      setNewFolderName("");
-      setIsCreatingFolder(false);
+      resetFolderSelection(null);
       setError(null);
       setSuccessMessage(null);
       setLoading(false);
@@ -67,24 +68,7 @@ export function AddFeedDialog({
       setSelectedFeedUrl(null);
       requestAnimationFrame(() => inputRef.current?.focus());
     }
-  }, [open]);
-
-  useEffect(() => {
-    if (isCreatingFolder) {
-      requestAnimationFrame(() => newFolderInputRef.current?.focus());
-    }
-  }, [isCreatingFolder]);
-
-  const handleFolderChange = (value: string) => {
-    if (value === NEW_FOLDER_VALUE) {
-      setIsCreatingFolder(true);
-      setSelectedFolderId(null);
-    } else {
-      setIsCreatingFolder(false);
-      setNewFolderName("");
-      setSelectedFolderId(value || null);
-    }
-  };
+  }, [open, resetFolderSelection]);
 
   const handleDiscover = async () => {
     if (!hasManualUrl || !isManualUrlValid) {
@@ -219,7 +203,7 @@ export function AddFeedDialog({
       folderSelectProps={{
         labelId: folderLabelId,
         label: t("folder"),
-        value: isCreatingFolder ? NEW_FOLDER_VALUE : (selectedFolderId ?? ""),
+        value: folderSelectValue,
         options: folderOptions,
         canCreateFolder: true,
         disabled: loading,

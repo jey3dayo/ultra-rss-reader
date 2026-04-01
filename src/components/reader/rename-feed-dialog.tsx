@@ -7,8 +7,8 @@ import { renameFeed, updateFeedDisplayMode, updateFeedFolder } from "@/api/tauri
 import { useFolders } from "@/hooks/use-folders";
 import { useUiStore } from "@/stores/ui-store";
 import { createFolderIfNeeded } from "./feed-folder-flow";
-import { NEW_FOLDER_VALUE } from "./folder-select-view";
 import { RenameFeedDialogView } from "./rename-feed-dialog-view";
+import { buildFolderOptions, useFolderSelection } from "./use-folder-selection";
 
 export function RenameDialog({
   feed,
@@ -22,13 +22,19 @@ export function RenameDialog({
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
   const [title, setTitle] = useState(feed.title);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(feed.folder_id);
-  const [newFolderName, setNewFolderName] = useState("");
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [displayMode, setDisplayMode] = useState(feed.display_mode ?? "inherit");
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const newFolderInputRef = useRef<HTMLInputElement>(null);
+  const {
+    selectedFolderId,
+    newFolderName,
+    isCreatingFolder,
+    newFolderInputRef,
+    folderSelectValue,
+    handleFolderChange,
+    resetFolderSelection,
+    setNewFolderName,
+  } = useFolderSelection(feed.folder_id);
   const qc = useQueryClient();
   const showToast = useUiStore((s) => s.showToast);
   const { data: folders } = useFolders(feed.account_id);
@@ -38,23 +44,12 @@ export function RenameDialog({
     { value: "normal", label: t("display_mode_normal") },
     { value: "widescreen", label: t("display_mode_widescreen") },
   ];
-  const folderOptions = [
-    { value: "", label: t("no_folder") },
-    ...((folders ?? []).map((folder) => ({ value: folder.id, label: folder.name })) ?? []),
-  ];
-
-  useEffect(() => {
-    if (isCreatingFolder) {
-      requestAnimationFrame(() => newFolderInputRef.current?.focus());
-    }
-  }, [isCreatingFolder]);
+  const folderOptions = buildFolderOptions(folders, t("no_folder"));
 
   useEffect(() => {
     if (open) {
       setTitle(feed.title);
-      setSelectedFolderId(feed.folder_id);
-      setNewFolderName("");
-      setIsCreatingFolder(false);
+      resetFolderSelection(feed.folder_id);
       setDisplayMode(feed.display_mode ?? "inherit");
       setLoading(false);
       requestAnimationFrame(() => {
@@ -62,19 +57,7 @@ export function RenameDialog({
         inputRef.current?.select();
       });
     }
-  }, [open, feed.title, feed.folder_id, feed.display_mode]);
-
-  const handleFolderChange = (value: string) => {
-    if (value === NEW_FOLDER_VALUE) {
-      setIsCreatingFolder(true);
-      setSelectedFolderId(null);
-      return;
-    }
-
-    setIsCreatingFolder(false);
-    setNewFolderName("");
-    setSelectedFolderId(value || null);
-  };
+  }, [open, feed.title, feed.folder_id, feed.display_mode, resetFolderSelection]);
 
   const handleSubmit = async () => {
     const trimmed = title.trim();
@@ -138,7 +121,7 @@ export function RenameDialog({
       folderSelectProps={{
         labelId: folderLabelId,
         label: t("folder"),
-        value: isCreatingFolder ? NEW_FOLDER_VALUE : (selectedFolderId ?? ""),
+        value: folderSelectValue,
         options: folderOptions,
         canCreateFolder: true,
         disabled: loading,
