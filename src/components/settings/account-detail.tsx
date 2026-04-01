@@ -32,6 +32,7 @@ export function AccountDetail() {
   const [credUsername, setCredUsername] = useState<string | null>(null);
   const [credPassword, setCredPassword] = useState<string | null>(null);
   const [testingConnection, setTestingConnection] = useState(false);
+  const pendingCredentialSaveRef = useRef<Promise<boolean> | null>(null);
   const setSettingsLoading = useUiStore((s) => s.setSettingsLoading);
   const syncProgress = useUiStore((s) => s.syncProgress);
 
@@ -100,51 +101,73 @@ export function AccountDetail() {
 
   const requiresCredentials = account.kind === "FreshRss" || account.kind === "Inoreader";
 
-  const commitCredentials = async () => {
-    const serverUrl = credServerUrl ?? account.server_url ?? undefined;
-    const username = credUsername ?? account.username ?? undefined;
-    const password = credPassword || undefined;
-
-    // Only update if something actually changed
-    const serverUrlChanged = credServerUrl !== null && credServerUrl !== (account.server_url ?? "");
-    const usernameChanged = credUsername !== null && credUsername !== (account.username ?? "");
-    const passwordChanged = credPassword !== null && credPassword !== "";
-
-    if (!serverUrlChanged && !usernameChanged && !passwordChanged) {
-      setCredPassword(null);
-      return;
+  const commitCredentials = async (): Promise<boolean> => {
+    if (pendingCredentialSaveRef.current) {
+      return pendingCredentialSaveRef.current;
     }
 
-    Result.pipe(
-      await updateAccountCredentials(account.id, serverUrl, username, password),
-      Result.inspectError((e) =>
-        useUiStore.getState().showToast(t("account.failed_to_update_sync", { message: e.message })),
-      ),
-      Result.inspect((updated) => {
-        qc.setQueryData<AccountDto[]>(["accounts"], (prev) => prev?.map((a) => (a.id === updated.id ? updated : a)));
-        setCredServerUrl(null);
-        setCredUsername(null);
+    const saveTask = (async () => {
+      const serverUrl = credServerUrl ?? account.server_url ?? undefined;
+      const username = credUsername ?? account.username ?? undefined;
+      const password = credPassword || undefined;
+
+      // Only update if something actually changed
+      const serverUrlChanged = credServerUrl !== null && credServerUrl !== (account.server_url ?? "");
+      const usernameChanged = credUsername !== null && credUsername !== (account.username ?? "");
+      const passwordChanged = credPassword !== null && credPassword !== "";
+
+      if (!serverUrlChanged && !usernameChanged && !passwordChanged) {
         setCredPassword(null);
-        useUiStore.getState().showToast(t("account.credentials_saved"));
-      }),
-    );
+        return true;
+      }
+
+      let saved = false;
+      Result.pipe(
+        await updateAccountCredentials(account.id, serverUrl, username, password),
+        Result.inspectError((e) =>
+          useUiStore.getState().showToast(t("account.failed_to_update_sync", { message: e.message })),
+        ),
+        Result.inspect((updated) => {
+          saved = true;
+          qc.setQueryData<AccountDto[]>(["accounts"], (prev) => prev?.map((a) => (a.id === updated.id ? updated : a)));
+          setCredServerUrl(null);
+          setCredUsername(null);
+          setCredPassword(null);
+          useUiStore.getState().showToast(t("account.credentials_saved"));
+        }),
+      );
+
+      return saved;
+    })();
+
+    pendingCredentialSaveRef.current = saveTask.finally(() => {
+      pendingCredentialSaveRef.current = null;
+    });
+
+    return pendingCredentialSaveRef.current;
   };
 
   const handleTestConnection = async () => {
     setTestingConnection(true);
     setSettingsLoading(true);
-    const result = await testAccountConnection(account.id);
-    setTestingConnection(false);
-    setSettingsLoading(false);
-    Result.pipe(
-      result,
-      Result.inspectError((e) => {
-        useUiStore.getState().showToast(t("account.connection_failed", { message: e.message }));
-      }),
-      Result.inspect(() => {
-        useUiStore.getState().showToast(t("account.connection_success"));
-      }),
-    );
+    try {
+      const credentialsSaved = await commitCredentials();
+      if (!credentialsSaved) return;
+
+      const result = await testAccountConnection(account.id);
+      Result.pipe(
+        result,
+        Result.inspectError((e) => {
+          useUiStore.getState().showToast(t("account.connection_failed", { message: e.message }));
+        }),
+        Result.inspect(() => {
+          useUiStore.getState().showToast(t("account.connection_success"));
+        }),
+      );
+    } finally {
+      setTestingConnection(false);
+      setSettingsLoading(false);
+    }
   };
 
   const handleSyncNow = async () => {

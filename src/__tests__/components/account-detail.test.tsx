@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountDetail } from "@/components/settings/account-detail";
 import { useUiStore } from "@/stores/ui-store";
@@ -10,8 +11,12 @@ const accountDetailViewSpy = vi.fn();
 
 vi.mock("@/components/settings/account-detail-view", () => ({
   AccountDetailView: (props: {
+    credentialsSection?: ReactNode;
     syncSection: {
       isSyncing?: boolean;
+      syncNowLabel?: string;
+      syncingLabel?: string;
+      onSyncNow?: () => void;
       keepReadItems: {
         options: Array<{ value: string; label: string }>;
         onChange: (value: string) => void;
@@ -22,9 +27,15 @@ vi.mock("@/components/settings/account-detail-view", () => ({
 
     return (
       <div>
+        {props.credentialsSection}
         <button type="button" onClick={() => props.syncSection.keepReadItems.onChange("60")}>
           Select 60 days
         </button>
+        {props.syncSection.onSyncNow && (
+          <button type="button" onClick={props.syncSection.onSyncNow} disabled={props.syncSection.isSyncing}>
+            {props.syncSection.isSyncing ? props.syncSection.syncingLabel : props.syncSection.syncNowLabel}
+          </button>
+        )}
         <ul>
           {props.syncSection.keepReadItems.options.map((option) => (
             <li key={option.value}>{option.label}</li>
@@ -135,6 +146,73 @@ describe("AccountDetail", () => {
       expect(accountDetailViewSpy).toHaveBeenCalled();
       const lastCall = accountDetailViewSpy.mock.calls[accountDetailViewSpy.mock.calls.length - 1];
       expect(lastCall?.[0].syncSection.isSyncing).toBe(true);
+    });
+  });
+
+  it("waits for credential persistence before testing the connection", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    let resolveCredentialSave: (() => void) | undefined;
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "update_account_credentials":
+          return new Promise((resolve) => {
+            resolveCredentialSave = () =>
+              resolve({
+                id: "acc-1",
+                kind: "FreshRss",
+                name: "FreshRSS",
+                username: "user",
+                server_url: "https://freshrss.example.com",
+                sync_interval_secs: 3600,
+                sync_on_wake: false,
+                keep_read_items_days: 30,
+              });
+          });
+        case "test_account_connection":
+          return true;
+        default:
+          return null;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    const passwordInput = (await screen.findByDisplayValue("••••••••")) as HTMLInputElement;
+    await user.click(passwordInput);
+    await user.type(passwordInput, "new-secret");
+
+    const clickPromise = user.click(screen.getByRole("button", { name: "Test Connection" }));
+
+    await waitFor(() => {
+      expect(calls.filter((call) => call.cmd === "update_account_credentials")).toHaveLength(1);
+    });
+    expect(calls.some((call) => call.cmd === "test_account_connection")).toBe(false);
+
+    if (!resolveCredentialSave) {
+      throw new Error("credential save promise was never created");
+    }
+    resolveCredentialSave();
+    await clickPromise;
+
+    await waitFor(() => {
+      expect(calls.filter((call) => call.cmd === "test_account_connection")).toHaveLength(1);
     });
   });
 });
