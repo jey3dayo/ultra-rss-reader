@@ -32,6 +32,8 @@ describe("CommandPalette", () => {
           return sampleAccounts;
         case "list_feeds":
           return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
         case "list_tags":
           return [{ id: "tag-1", name: "Later", color: "#3b82f6" }];
         case "search_articles":
@@ -62,7 +64,7 @@ describe("CommandPalette", () => {
     expect(screen.queryByText("Recent Actions")).not.toBeInTheDocument();
   });
 
-  it("selecting a feed updates selection and closes the palette", async () => {
+  it("selecting a feed lands on the first visible article and closes the palette", async () => {
     const user = userEvent.setup();
     render(<CommandPalette />, { wrapper: createWrapper() });
 
@@ -72,6 +74,8 @@ describe("CommandPalette", () => {
 
     await waitFor(() => {
       expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(useUiStore.getState().contentMode).toBe("reader");
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
     });
   });

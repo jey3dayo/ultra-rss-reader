@@ -43,6 +43,7 @@
 ## Task 1: Add Pure Feed-Landing Helpers
 
 **Files:**
+
 - Create: `src/lib/feed-landing.ts`
 - Test: `src/__tests__/lib/feed-landing.test.ts`
 
@@ -181,6 +182,7 @@ git commit -m "feat: add feed landing helpers"
 ## Task 2: Implement the Reusable Feed-Landing Intent
 
 **Files:**
+
 - Create: `src/hooks/use-feed-landing.ts`
 - Test: `src/__tests__/hooks/use-feed-landing.test.tsx`
 
@@ -385,6 +387,7 @@ git commit -m "feat: add reusable feed landing intent"
 ## Task 3: Wire Command Palette Into the Landing Intent
 
 **Files:**
+
 - Modify: `src/components/reader/command-palette.tsx`
 - Modify: `src/__tests__/components/command-palette.test.tsx`
 
@@ -449,6 +452,7 @@ git commit -m "feat: land command palette feed picks on latest article"
 ## Task 4: Document the New Usage and Run Verification
 
 **Files:**
+
 - Modify: `README.md`
 
 - [ ] **Step 1: Add a short usage section to the README**

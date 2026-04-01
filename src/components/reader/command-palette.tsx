@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useSearchArticles } from "@/hooks/use-articles";
 import { addToHistory, getHistory } from "@/hooks/use-command-history";
 import { useCommandSearch } from "@/hooks/use-command-search";
+import { useFeedLanding } from "@/hooks/use-feed-landing";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useTags } from "@/hooks/use-tags";
 import type { AppAction } from "@/lib/actions";
@@ -82,6 +83,7 @@ export function CommandPalette() {
   const selectFeed = useUiStore((state) => state.selectFeed);
   const selectTag = useUiStore((state) => state.selectTag);
   const selectArticle = useUiStore((state) => state.selectArticle);
+  const openFeedLanding = useFeedLanding();
   const platformKind = usePlatformStore((state) => state.platform.kind);
   const [input, setInput] = useState("");
   const { prefix, query, deferredQuery } = useCommandSearch(input);
@@ -173,7 +175,7 @@ export function CommandPalette() {
 
   function handleFeedSelect(feedId: string) {
     addToHistory(`${HISTORY_PREFIX.feed}${feedId}`);
-    selectFeed(feedId);
+    void openFeedLanding(feedId);
     closePalette();
   }
 
