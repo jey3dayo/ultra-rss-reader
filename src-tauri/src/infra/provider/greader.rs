@@ -459,19 +459,15 @@ impl FeedProvider for GReaderProvider {
 
     async fn pull_state(&self) -> DomainResult<RemoteState> {
         let read_url = format!(
-            "{}?output=json&n={STREAM_IDS_LIMIT}",
-            self.api_url(&format!(
-                "/reader/api/0/stream/items/ids?s={}",
-                urlencoded(STATE_READ)
-            ))
+            "{}?output=json&n={STREAM_IDS_LIMIT}&s={}",
+            self.api_url("/reader/api/0/stream/items/ids"),
+            urlencoded(STATE_READ)
         );
 
         let starred_url = format!(
-            "{}?output=json&n={STREAM_IDS_LIMIT}",
-            self.api_url(&format!(
-                "/reader/api/0/stream/items/ids?s={}",
-                urlencoded(STATE_STARRED)
-            ))
+            "{}?output=json&n={STREAM_IDS_LIMIT}&s={}",
+            self.api_url("/reader/api/0/stream/items/ids"),
+            urlencoded(STATE_STARRED)
         );
 
         let auth = self.auth_header()?;
@@ -970,6 +966,59 @@ mod tests {
         assert!(!result.has_more);
         assert!(result.entries.is_empty());
         stream_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_state_requests_read_and_starred_stream_ids_with_valid_queries() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let read_mock = server
+            .mock("GET", "/api/greader.php/reader/api/0/stream/items/ids")
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), "10000".into()),
+                mockito::Matcher::UrlEncoded("s".into(), STATE_READ.into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(r#"{ "itemRefs": [] }"#)
+            .create_async()
+            .await;
+
+        let starred_mock = server
+            .mock("GET", "/api/greader.php/reader/api/0/stream/items/ids")
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), "10000".into()),
+                mockito::Matcher::UrlEncoded("s".into(), STATE_STARRED.into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(r#"{ "itemRefs": [] }"#)
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let state = provider.pull_state().await.unwrap();
+
+        assert!(state.read_ids.is_empty());
+        assert!(state.starred_ids.is_empty());
+        read_mock.assert_async().await;
+        starred_mock.assert_async().await;
     }
 
     // === Live integration tests ===

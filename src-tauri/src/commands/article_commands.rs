@@ -41,6 +41,11 @@ fn should_use_background_browser_open(
     background_requested && info.capabilities.supports_background_browser_open
 }
 
+fn supports_remote_mutations(account_kind: &str, feed_remote_id: Option<&str>) -> bool {
+    matches!(account_kind, "FreshRss" | "Inoreader")
+        && feed_remote_id.is_some_and(|remote_id| remote_id.starts_with("feed/"))
+}
+
 fn has_blocking_x_frame_options(headers: &HeaderMap) -> bool {
     headers
         .get_all(X_FRAME_OPTIONS)
@@ -332,9 +337,9 @@ fn maybe_queue_mutation(
     mutation_type: &str,
 ) -> Result<(), AppError> {
     // Single query to get remote_id, account kind, and account_id
-    let row: Option<(String, String, String)> = conn
+    let row: Option<(String, String, String, Option<String>)> = conn
         .query_row(
-            "SELECT a.remote_id, acc.kind, f.account_id
+            "SELECT a.remote_id, acc.kind, f.account_id, f.remote_id
              FROM articles a
              JOIN feeds f ON a.feed_id = f.id
              JOIN accounts acc ON f.account_id = acc.id
@@ -345,13 +350,14 @@ fn maybe_queue_mutation(
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
                     row.get::<_, String>(2)?,
+                    row.get::<_, Option<String>>(3)?,
                 ))
             },
         )
         .ok();
 
-    if let Some((remote_entry_id, account_kind, account_id)) = row {
-        if account_kind == "FreshRss" || account_kind == "Inoreader" {
+    if let Some((remote_entry_id, account_kind, account_id, feed_remote_id)) = row {
+        if supports_remote_mutations(&account_kind, feed_remote_id.as_deref()) {
             let pending_repo = SqlitePendingMutationRepository::new(conn);
             pending_repo.save(&PendingMutation {
                 id: None,
@@ -390,10 +396,14 @@ pub fn search_articles(
 mod tests {
     use super::check_browser_embed_support;
     use super::{
-        has_blocking_frame_ancestors, has_blocking_x_frame_options,
-        should_use_background_browser_open,
+        has_blocking_frame_ancestors, has_blocking_x_frame_options, maybe_queue_mutation,
+        should_use_background_browser_open, supports_remote_mutations,
     };
+    use crate::domain::types::{AccountId, ArticleId, FeedId};
+    use crate::infra::db::connection::DbManager;
+    use crate::infra::db::sqlite_pending_mutation::SqlitePendingMutationRepository;
     use crate::platform::{platform_info_for_kind, PlatformKind};
+    use crate::repository::pending_mutation::PendingMutationRepository;
     use mockito::Server;
     use reqwest::header::{HeaderMap, HeaderValue, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
 
@@ -459,5 +469,78 @@ mod tests {
         let info = platform_info_for_kind(PlatformKind::Windows);
 
         assert!(!should_use_background_browser_open(true, &info));
+    }
+
+    #[test]
+    fn remote_mutations_require_provider_managed_greader_feed_ids() {
+        assert!(supports_remote_mutations("FreshRss", Some("feed/1")));
+        assert!(supports_remote_mutations(
+            "Inoreader",
+            Some("feed/http://example.com/rss")
+        ));
+
+        assert!(!supports_remote_mutations(
+            "FreshRss",
+            Some("https://example.com/feed.xml")
+        ));
+        assert!(!supports_remote_mutations("FreshRss", None));
+        assert!(!supports_remote_mutations("Local", Some("feed/1")));
+    }
+
+    #[test]
+    fn local_like_feeds_under_freshrss_accounts_do_not_queue_pending_mutations() {
+        let db = DbManager::new_in_memory().expect("in-memory DB should initialize");
+        let account_id = AccountId("acc-1".to_string());
+        let feed_id = FeedId("feed-1".to_string());
+        let article_id = ArticleId("article-1".to_string());
+
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+                rusqlite::params![account_id.0, "FreshRss", "FreshRSS"],
+            )
+            .expect("account insert should succeed");
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, remote_id, title, url, site_url, unread_count, display_mode)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                rusqlite::params![
+                    feed_id.0,
+                    account_id.0,
+                    "https://example.com/feed.xml",
+                    "Example Feed",
+                    "https://example.com/feed.xml",
+                    "https://example.com",
+                    0,
+                    "inherit"
+                ],
+            )
+            .expect("feed insert should succeed");
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, published_at, fetched_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                rusqlite::params![
+                    article_id.0,
+                    feed_id.0,
+                    "local-guid-1",
+                    "Example Article",
+                    "",
+                    "",
+                    1,
+                    "2026-04-01T00:00:00Z",
+                    "2026-04-01T00:00:00Z"
+                ],
+            )
+            .expect("article insert should succeed");
+
+        maybe_queue_mutation(db.writer(), &article_id, "mark_read")
+            .expect("local-like feeds should be ignored without error");
+
+        let pending_repo = SqlitePendingMutationRepository::new(db.reader());
+        let pending = pending_repo
+            .find_by_account(&account_id)
+            .expect("pending mutation query should succeed");
+        assert!(pending.is_empty());
     }
 }

@@ -177,6 +177,33 @@ pub(super) async fn sync_greader_account(
     Ok(())
 }
 
+fn is_provider_managed_greader_feed(remote_id: Option<&str>) -> bool {
+    remote_id.is_some_and(|remote_id| remote_id.starts_with("feed/"))
+}
+
+fn pending_mutation_targets_provider_managed_greader_feed(
+    db: &Mutex<DbManager>,
+    pending_mutation_id: i64,
+) -> Result<bool, AppError> {
+    let db_guard = lock_db(db)?;
+    let feed_remote_id = db_guard
+        .reader()
+        .query_row(
+            "SELECT f.remote_id
+             FROM pending_mutations pm
+             JOIN articles a ON a.remote_id = pm.remote_entry_id
+             JOIN feeds f ON f.id = a.feed_id
+             WHERE pm.id = ?1 AND f.account_id = pm.account_id
+             LIMIT 1",
+            rusqlite::params![pending_mutation_id],
+            |row| row.get::<_, Option<String>>(0),
+        )
+        .ok()
+        .flatten();
+
+    Ok(is_provider_managed_greader_feed(feed_remote_id.as_deref()))
+}
+
 /// Steps 3-7: sync subscriptions, pull entries, push mutations, apply remote state, recalculate unread counts.
 async fn sync_greader_feeds(
     db: &Mutex<DbManager>,
@@ -234,9 +261,16 @@ async fn sync_greader_feeds(
         let feed_repo = SqliteFeedRepository::new(db_guard.reader());
         feed_repo.find_by_account(&account.id)?
     };
+    let local_provider = LocalProvider::new();
 
     for feed in &feeds {
-        if let Err(e) = sync_greader_feed_entries(db, provider, account, feed).await {
+        let result = if is_provider_managed_greader_feed(feed.remote_id.as_deref()) {
+            sync_greader_feed_entries(db, provider, account, feed).await
+        } else {
+            sync_local_feed(db, &local_provider, &account.id, feed).await
+        };
+
+        if let Err(e) = result {
             warn!("Failed to pull entries for feed {}: {e}", feed.url);
         }
     }
@@ -250,6 +284,21 @@ async fn sync_greader_feeds(
 
     let mut pushed_remote_ids: Vec<String> = Vec::new();
     for pm in &pending_mutations {
+        let Some(pending_mutation_id) = pm.id else {
+            continue;
+        };
+
+        if !pending_mutation_targets_provider_managed_greader_feed(db, pending_mutation_id)? {
+            warn!(
+                "Dropping pending mutation {} for non-GReader feed entry {}",
+                pm.mutation_type, pm.remote_entry_id
+            );
+            let db_guard = lock_db(db)?;
+            let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
+            pending_repo.delete(&[pending_mutation_id])?;
+            continue;
+        }
+
         let mutation = match pm.mutation_type.as_str() {
             "mark_read" => Mutation::MarkRead {
                 remote_entry_id: pm.remote_entry_id.clone(),
@@ -274,11 +323,9 @@ async fn sync_greader_feeds(
         match provider.push_mutations(&[mutation]).await {
             Ok(()) => {
                 pushed_remote_ids.push(pm.remote_entry_id.clone());
-                if let Some(id) = pm.id {
-                    let db_guard = lock_db(db)?;
-                    let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
-                    pending_repo.delete(&[id])?;
-                }
+                let db_guard = lock_db(db)?;
+                let pending_repo = SqlitePendingMutationRepository::new(db_guard.writer());
+                pending_repo.delete(&[pending_mutation_id])?;
             }
             Err(e) => {
                 warn!(
@@ -1168,5 +1215,21 @@ mod tests {
         assert_eq!(state.last_modified, None);
         assert_eq!(state.error_count, 0);
         assert!(state.last_success_at.is_some());
+    }
+
+    #[test]
+    fn greader_feed_routing_distinguishes_provider_managed_and_local_like_ids() {
+        assert!(is_provider_managed_greader_feed(Some("feed/1")));
+        assert!(is_provider_managed_greader_feed(Some(
+            "feed/http://example.com/rss"
+        )));
+
+        assert!(!is_provider_managed_greader_feed(Some(
+            "https://example.com/feed.xml"
+        )));
+        assert!(!is_provider_managed_greader_feed(Some(
+            "tag:google.com,2005:reader/item/123"
+        )));
+        assert!(!is_provider_managed_greader_feed(None));
     }
 }

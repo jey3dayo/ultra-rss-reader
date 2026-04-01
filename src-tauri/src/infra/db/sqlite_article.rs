@@ -238,7 +238,9 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         let mut stmt = tx.prepare(
             "SELECT a.id, a.remote_id FROM articles a
              JOIN feeds f ON a.feed_id = f.id
-             WHERE f.account_id = ?1 AND a.remote_id IS NOT NULL",
+             WHERE f.account_id = ?1
+               AND a.remote_id IS NOT NULL
+               AND f.remote_id LIKE 'feed/%'",
         )?;
 
         let rows: Vec<(String, String)> = stmt
@@ -362,8 +364,8 @@ mod tests {
         let url = format!("http://test.com/feed/{}", id.0);
         db.writer()
             .execute(
-                "INSERT INTO feeds (id, account_id, title, url) VALUES (?1, ?2, ?3, ?4)",
-                params![id.0, account_id.0, "Test Feed", url],
+                "INSERT INTO feeds (id, account_id, remote_id, title, url) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![id.0, account_id.0, format!("feed/{url}"), "Test Feed", url],
             )
             .unwrap();
         id
@@ -666,6 +668,43 @@ mod tests {
         // Should be unchanged because r1 is pending
         assert!(articles[0].is_read);
         assert!(articles[0].is_starred);
+    }
+
+    #[test]
+    fn apply_remote_state_ignores_local_like_feed_ids() {
+        let db = test_db();
+        let account_id = AccountId::new();
+        let feed_id = FeedId::new();
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        db.writer()
+            .execute(
+                "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+                params![account_id.0, "FreshRss", "FreshRSS"],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO feeds (id, account_id, remote_id, title, url) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    feed_id.0,
+                    account_id.0,
+                    "https://example.com/feed.xml",
+                    "Local-like Feed",
+                    "https://example.com/feed.xml"
+                ],
+            )
+            .unwrap();
+
+        let mut article = make_article(&feed_id, "Article 1");
+        article.remote_id = Some("local-guid-1".to_string());
+        article.is_read = true;
+        repo.upsert(&[article]).unwrap();
+
+        repo.apply_remote_state(&account_id, &[], &[], &[]).unwrap();
+
+        let articles = repo.find_by_feed(&feed_id, &Pagination::default()).unwrap();
+        assert!(articles[0].is_read);
     }
 
     #[test]
