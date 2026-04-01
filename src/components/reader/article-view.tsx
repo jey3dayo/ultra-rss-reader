@@ -1,7 +1,7 @@
 import { Menu } from "@base-ui/react/menu";
 import { Result } from "@praha/byethrow";
 import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
@@ -21,8 +21,6 @@ import {
   findSelectedArticle,
   formatArticleDate,
   resolveArticleDateLocale,
-  resolveEffectiveDisplayMode,
-  resolveSelectedFeedDisplayMode,
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
@@ -34,16 +32,25 @@ import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticleMetaView } from "./article-meta-view";
 import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-tag-picker-view";
 import { ArticleToolbarView } from "./article-toolbar-view";
-import { BrowserView } from "./browser-view";
 import { contextMenuStyles } from "./context-menu-styles";
+
+function openArticleInExternalBrowser(url: string) {
+  const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
+  return openInBrowser(url, bg).then((result) =>
+    Result.pipe(
+      result,
+      Result.inspectError((e) => {
+        console.error("Failed to open in browser:", e);
+        useUiStore.getState().showToast(e.message);
+      }),
+    ),
+  );
+}
 
 function ArticleToolbar({ article }: { article: ArticleDto | null }) {
   const { t } = useTranslation("reader");
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
-  const contentMode = useUiStore((s) => s.contentMode);
-  const openBrowser = useUiStore((s) => s.openBrowser);
-  const closeBrowser = useUiStore((s) => s.closeBrowser);
   const clearArticle = useUiStore((s) => s.clearArticle);
   const layoutMode = useUiStore((s) => s.layoutMode);
   const showToast = useUiStore((s) => s.showToast);
@@ -55,7 +62,6 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
   const actionShare = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share"));
   const actionShareMenu = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share_menu"));
   const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
-  const isBrowserOpen = contentMode === "browser";
 
   const handleCloseView = () => {
     clearArticle();
@@ -71,7 +77,7 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
       canToggleStar={article !== null}
       isRead={article?.is_read ?? false}
       isStarred={article?.is_starred ?? false}
-      isBrowserOpen={isBrowserOpen}
+      isBrowserOpen={false}
       showCopyLinkButton={actionCopyLink === "true"}
       canCopyLink={Boolean(article?.url)}
       showOpenInBrowserButton={actionOpenBrowser === "true"}
@@ -153,7 +159,7 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
         toggleRead: t("toggle_read"),
         toggleStar: t("toggle_star"),
         copyLink: t("copy_link"),
-        viewInBrowser: isBrowserOpen ? t("close_browser_window") : t("view_in_browser"),
+        viewInBrowser: t("open_in_browser"),
         openInExternalBrowser: t("open_in_external_browser"),
       }}
       onCloseView={handleCloseView}
@@ -190,37 +196,24 @@ function ArticleToolbar({ article }: { article: ArticleDto | null }) {
         }
       }}
       onOpenInBrowser={() => {
-        if (isBrowserOpen) {
-          closeBrowser();
-          return;
-        }
-
         if (article?.url) {
-          openBrowser(article.url);
+          void openArticleInExternalBrowser(article.url);
         }
       }}
       onOpenInExternalBrowser={async () => {
         if (article?.url) {
-          const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-          Result.pipe(
-            await openInBrowser(article.url, bg),
-            Result.inspectError((e) => {
-              console.error("Failed to open in browser:", e);
-              showToast(e.message);
-            }),
-          );
+          await openArticleInExternalBrowser(article.url);
         }
       }}
     />
   );
 }
 
-function EmptyState({ browserView }: { browserView?: ReactNode }) {
+function EmptyState() {
   const { t } = useTranslation("reader");
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
       <ArticleToolbar article={null} />
-      {browserView}
       <ArticleEmptyStateView message={t("select_article_to_read")} />
     </div>
   );
@@ -288,22 +281,13 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
   );
 }
 
-function ArticleReader({
-  article,
-  feedName,
-  browserView,
-}: {
-  article: ArticleDto;
-  feedName?: string;
-  browserView?: ReactNode;
-}) {
+function ArticleReader({ article, feedName }: { article: ArticleDto; feedName?: string }) {
   const { i18n } = useTranslation();
   const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const cmdClickBrowser = usePreferencesStore((s) => s.prefs.cmd_click_browser ?? "false");
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
-  const openBrowserView = useUiStore((s) => s.openBrowser);
   const selectFeed = useUiStore((s) => s.selectFeed);
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
   const retainArticle = useUiStore((s) => s.retainArticle);
@@ -320,20 +304,11 @@ function ArticleReader({
     });
 
     if (useExternal) {
-      const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-      void openInBrowser(url, bg).then((result) =>
-        Result.pipe(
-          result,
-          Result.inspectError((e) => {
-            console.error("Failed to open in browser:", e);
-            useUiStore.getState().showToast(e.message);
-          }),
-        ),
-      );
+      void openArticleInExternalBrowser(url);
       return;
     }
 
-    openBrowserView(url);
+    void openArticleInExternalBrowser(url);
   };
 
   // Auto mark as read only when a new article is opened (article.id changes).
@@ -385,21 +360,12 @@ function ArticleReader({
     };
     const handleOpenInAppBrowser = () => {
       if (article.url) {
-        openBrowserView(article.url);
+        void openArticleInExternalBrowser(article.url);
       }
     };
     const handleOpenExternalBrowser = () => {
       if (!article.url) return;
-      const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-      openInBrowser(article.url, bg).then((result) =>
-        Result.pipe(
-          result,
-          Result.inspectError((e) => {
-            console.error("Failed to open in browser:", e);
-            useUiStore.getState().showToast(e.message);
-          }),
-        ),
-      );
+      void openArticleInExternalBrowser(article.url);
     };
     const handleCopyLink = () => {
       if (!article.url) return;
@@ -449,7 +415,6 @@ function ArticleReader({
     article.is_read,
     article.is_starred,
     article.url,
-    openBrowserView,
     setRead,
     toggleStar,
     addRecentlyRead,
@@ -469,7 +434,6 @@ function ArticleReader({
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
       <ArticleToolbar article={article} />
-      {browserView}
       <ScrollArea className="flex-1">
         <article className="mx-auto max-w-3xl px-8 py-8">
           <ArticleMetaView
@@ -526,8 +490,6 @@ export function ArticleView() {
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selection = useUiStore((s) => s.selection);
-  const openBrowser = useUiStore((s) => s.openBrowser);
-  const readerViewPref = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "reader_view"));
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
   const { data: articles } = useArticles(feedId);
@@ -535,64 +497,8 @@ export function ArticleView() {
   const { data: tagArticles } = useArticlesByTag(tagId, selectedAccountId);
   const { data: feeds } = useFeeds(selectedAccountId);
 
-  const selectedFeedDisplayMode = resolveSelectedFeedDisplayMode({
-    selectedArticleId,
-    selectionFeedId: feedId,
-    feedId,
-    tagId,
-    articles,
-    accountArticles,
-    tagArticles,
-    feeds,
-  });
-  const effectiveDisplayMode = resolveEffectiveDisplayMode(selectedFeedDisplayMode, readerViewPref);
-
-  // Auto-open only when the effective mode resolves to widescreen.
-  const prevArticleIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!selectedArticleId) {
-      prevArticleIdRef.current = null;
-      return;
-    }
-
-    const shouldAutoOpen = effectiveDisplayMode === "widescreen";
-    if (!shouldAutoOpen || selectedArticleId === prevArticleIdRef.current || contentMode !== "reader") {
-      return;
-    }
-
-    const articleResult = findSelectedArticle({
-      selectedArticleId,
-      feedId,
-      tagId,
-      articles,
-      accountArticles,
-      tagArticles,
-    });
-    if (Result.isFailure(articleResult)) {
-      return;
-    }
-
-    const article = Result.unwrap(articleResult);
-    prevArticleIdRef.current = selectedArticleId;
-    if (article.url) {
-      openBrowser(article.url);
-    }
-  }, [
-    selectedArticleId,
-    effectiveDisplayMode,
-    contentMode,
-    feedId,
-    tagId,
-    articles,
-    accountArticles,
-    tagArticles,
-    openBrowser,
-  ]);
-
-  const browserView = contentMode === "browser" ? <BrowserView /> : null;
-
   if (contentMode === "empty" || !selectedArticleId) {
-    return <EmptyState browserView={browserView} />;
+    return <EmptyState />;
   }
 
   const articleResult = findSelectedArticle({
@@ -607,7 +513,6 @@ export function ArticleView() {
   if (Result.isFailure(articleResult)) {
     return (
       <div className="flex h-full flex-1 flex-col bg-background">
-        {browserView}
         <div className="flex flex-1 items-center justify-center text-muted-foreground">Article not found</div>
       </div>
     );
@@ -617,5 +522,5 @@ export function ArticleView() {
 
   const feedName = feeds?.find((f) => f.id === article.feed_id)?.title;
 
-  return <ArticleReader article={article} feedName={feedName} browserView={browserView} />;
+  return <ArticleReader article={article} feedName={feedName} />;
 }

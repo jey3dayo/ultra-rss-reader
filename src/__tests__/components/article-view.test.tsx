@@ -84,7 +84,31 @@ describe("ArticleView", () => {
     });
   });
 
-  it("opens the in-app browser from the article title when open_links is in_app", async () => {
+  it("opens the external browser from the article title when open_links is in_app", async () => {
+    const calls: MockCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_tags":
+          return [
+            { id: "tag-1", name: "Later", color: null },
+            { id: "tag-2", name: "Important", color: "#ff0000" },
+          ];
+        case "get_article_tags":
+          return [{ id: "tag-1", name: "Later", color: null }];
+        case "update_feed_display_mode":
+        case "open_in_browser":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
@@ -93,15 +117,50 @@ describe("ArticleView", () => {
     const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
 
+    calls.length = 0;
+
     await user.click(await screen.findByRole("button", { name: "First Article" }));
 
     await waitFor(() => {
-      expect(useUiStore.getState().contentMode).toBe("browser");
-      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+      expect(calls).toContainEqual({
+        cmd: "open_in_browser",
+        args: { url: "https://example.com/1", background: false },
+      });
     });
+
+    expect(useUiStore.getState().contentMode).toBe("reader");
+    expect(useUiStore.getState().browserUrl).toBeNull();
   });
 
-  it("toggles the article toolbar browser button to close the in-app browser", async () => {
+  it("opens the external browser from the article toolbar browser button", async () => {
+    const calls: MockCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_tags":
+          return [
+            { id: "tag-1", name: "Later", color: null },
+            { id: "tag-2", name: "Important", color: "#ff0000" },
+          ];
+        case "get_article_tags":
+          return [{ id: "tag-1", name: "Later", color: null }];
+        case "open_in_browser":
+        case "update_feed_display_mode":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
@@ -109,27 +168,23 @@ describe("ArticleView", () => {
     const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    const openBrowserButton = await screen.findByRole("button", { name: "View in browser" });
+    calls.length = 0;
+
+    const openBrowserButton = await screen.findByRole("button", { name: "Open in Browser" });
     expect(openBrowserButton).toHaveAttribute("aria-pressed", "false");
 
     await user.click(openBrowserButton);
 
     await waitFor(() => {
-      expect(useUiStore.getState().contentMode).toBe("browser");
-      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+      expect(calls).toContainEqual({
+        cmd: "open_in_browser",
+        args: { url: "https://example.com/1", background: false },
+      });
     });
 
-    const closeBrowserButtons = screen.getAllByRole("button", { name: "Close browser window" });
-    expect(closeBrowserButtons[0]).toHaveAttribute("aria-pressed", "true");
-
-    await user.click(closeBrowserButtons[0]);
-
-    await waitFor(() => {
-      expect(useUiStore.getState().contentMode).toBe("reader");
-      expect(useUiStore.getState().browserUrl).toBeNull();
-    });
-
-    expect(await screen.findByRole("button", { name: "View in browser" })).toHaveAttribute("aria-pressed", "false");
+    expect(useUiStore.getState().contentMode).toBe("reader");
+    expect(useUiStore.getState().browserUrl).toBeNull();
+    expect(await screen.findByRole("button", { name: "Open in Browser" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("opens the external browser from the article title when open_links is default_browser", async () => {
@@ -180,7 +235,35 @@ describe("ArticleView", () => {
     expect(useUiStore.getState().browserUrl).toBeNull();
   });
 
-  it("keeps feed navigation separate after opening the article title in-app browser", async () => {
+  it("keeps feed navigation separate after opening the article title in the external browser", async () => {
+    const calls: MockCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_tags":
+          return [
+            { id: "tag-1", name: "Later", color: null },
+            { id: "tag-2", name: "Important", color: "#ff0000" },
+          ];
+        case "get_article_tags":
+          return [{ id: "tag-1", name: "Later", color: null }];
+        case "open_in_browser":
+        case "update_feed_display_mode":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
@@ -189,18 +272,20 @@ describe("ArticleView", () => {
     const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
 
+    calls.length = 0;
+
     await user.click(await screen.findByRole("button", { name: "First Article" }));
 
     await waitFor(() => {
-      expect(useUiStore.getState().contentMode).toBe("browser");
-      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+      expect(calls).toContainEqual({
+        cmd: "open_in_browser",
+        args: { url: "https://example.com/1", background: false },
+      });
     });
 
     expect(screen.getByRole("heading", { level: 1, name: "First Article" })).toBeInTheDocument();
-    expect(screen.getByTestId("browser-toolbar")).toBeInTheDocument();
-    expect(screen.getByText("https://example.com/1")).toBeInTheDocument();
-
-    useUiStore.getState().closeBrowser();
+    expect(useUiStore.getState().contentMode).toBe("reader");
+    expect(useUiStore.getState().browserUrl).toBeNull();
 
     const feedButton = await screen.findByRole("button", { name: "Tech Blog" });
     await user.click(feedButton);
@@ -370,7 +455,7 @@ describe("ArticleView", () => {
     });
   });
 
-  it("auto-opens widescreen feeds even from all-items selection", async () => {
+  it("keeps all-items selection in reader mode even for widescreen feeds", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_account_articles":
@@ -402,10 +487,10 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    await waitFor(() => {
-      expect(useUiStore.getState().contentMode).toBe("browser");
-      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
-    });
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+
+    expect(useUiStore.getState().contentMode).toBe("reader");
+    expect(useUiStore.getState().browserUrl).toBeNull();
   });
 
   it("keeps explicit 3-pane feeds in reader mode even when the global default is widescreen", async () => {
@@ -446,7 +531,7 @@ describe("ArticleView", () => {
     expect(useUiStore.getState().browserUrl).toBeNull();
   });
 
-  it("retries auto-open after account articles finish loading", async () => {
+  it("renders the reader after account articles finish loading", async () => {
     let resolveAccountArticles: ((articles: typeof sampleArticles) => void) | undefined;
 
     setupTauriMocks((cmd, args) => {
@@ -489,9 +574,11 @@ describe("ArticleView", () => {
     resolveLoadedArticles(sampleArticles);
 
     await waitFor(() => {
-      expect(useUiStore.getState().contentMode).toBe("browser");
-      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+      expect(screen.getByRole("heading", { level: 1, name: "First Article" })).toBeInTheDocument();
     });
+
+    expect(useUiStore.getState().contentMode).toBe("reader");
+    expect(useUiStore.getState().browserUrl).toBeNull();
   });
 
   it("renders the share menu button when an article is selected", async () => {

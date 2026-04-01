@@ -179,18 +179,24 @@ describe("useKeyboard", () => {
     });
   });
 
-  it("pressing v opens the selected article in the in-app browser", async () => {
+  it("pressing v opens the selected article in the external browser", async () => {
     const calls: MockCall[] = [];
     renderAppShell(calls);
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
+    calls.length = 0;
 
     fireEvent.keyDown(window, { key: "v" });
 
     await waitFor(() => {
-      expect(useUiStore.getState().contentMode).toBe("browser");
-      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+      expect(calls).toContainEqual({
+        cmd: "open_in_browser",
+        args: { url: "https://example.com/1", background: false },
+      });
     });
+
+    expect(useUiStore.getState().contentMode).toBe("reader");
+    expect(useUiStore.getState().browserUrl).toBeNull();
   });
 
   it("pressing b opens the selected article in the external browser", async () => {
