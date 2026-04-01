@@ -59,6 +59,12 @@ function mergeBrowserState(
   return nextState;
 }
 
+type BrowserWebviewFallbackPayload = {
+  url: string;
+  opened_external: boolean;
+  error_message: string | null;
+};
+
 export function BrowserView() {
   const { t } = useTranslation("reader");
   const browserUrl = useUiStore((s) => s.browserUrl);
@@ -105,6 +111,15 @@ export function BrowserView() {
         browserStateRef.current = nextState;
         setBrowserState(nextState);
       }),
+      listen<BrowserWebviewFallbackPayload>(BROWSER_WINDOW_EVENTS.fallback, ({ payload }) => {
+        if (cancelled) return;
+        if (payload.opened_external) {
+          showToast(t("browser_window_fallback"));
+        } else if (payload.error_message) {
+          showToast(payload.error_message);
+        }
+        useUiStore.getState().closeBrowser();
+      }),
       listen(BROWSER_WINDOW_EVENTS.closed, () => {
         if (cancelled) return;
         useUiStore.getState().closeBrowser();
@@ -127,7 +142,7 @@ export function BrowserView() {
       unlistenRef.current = [];
       listenerReadyRef.current = null;
     };
-  }, []);
+  }, [showToast, t]);
 
   const syncBrowserWindow = useCallback(
     async (requestedUrl: string) => {

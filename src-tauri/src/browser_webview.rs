@@ -4,6 +4,7 @@ use tauri::{AppHandle, Emitter, Manager, Runtime, WebviewWindow};
 pub const BROWSER_WINDOW_LABEL: &str = "browser-window";
 pub const BROWSER_WEBVIEW_STATE_CHANGED_EVENT: &str = "browser-webview-state-changed";
 pub const BROWSER_WEBVIEW_CLOSED_EVENT: &str = "browser-webview-closed";
+pub const BROWSER_WEBVIEW_FALLBACK_EVENT: &str = "browser-webview-fallback";
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct BrowserWebviewState {
@@ -11,6 +12,13 @@ pub struct BrowserWebviewState {
     pub can_go_back: bool,
     pub can_go_forward: bool,
     pub is_loading: bool,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct BrowserWebviewFallbackPayload {
+    pub url: String,
+    pub opened_external: bool,
+    pub error_message: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -156,6 +164,20 @@ pub fn emit_browser_webview_state<R: Runtime>(
 
 pub fn emit_browser_webview_closed<R: Runtime>(app_handle: &AppHandle<R>) {
     let _ = app_handle.emit(BROWSER_WEBVIEW_CLOSED_EVENT, ());
+}
+
+pub fn emit_browser_webview_fallback<R: Runtime>(
+    app_handle: &AppHandle<R>,
+    payload: &BrowserWebviewFallbackPayload,
+) {
+    let _ = app_handle.emit(BROWSER_WEBVIEW_FALLBACK_EVENT, payload.clone());
+}
+
+pub fn should_trigger_timeout_fallback(
+    snapshot: Option<&BrowserWebviewState>,
+    expected_url: &str,
+) -> bool {
+    matches!(snapshot, Some(state) if state.is_loading && state.url == expected_url)
 }
 
 fn supports_native_navigation(info: &crate::platform::PlatformInfo) -> bool {
@@ -305,7 +327,10 @@ pub fn go_forward<R: Runtime>(browser_window: &WebviewWindow<R>) -> tauri::Resul
 
 #[cfg(test)]
 mod tests {
-    use super::{supports_native_navigation, BrowserNavigationAvailability, BrowserWebviewTracker};
+    use super::{
+        should_trigger_timeout_fallback, supports_native_navigation, BrowserNavigationAvailability,
+        BrowserWebviewState, BrowserWebviewTracker,
+    };
     use crate::platform::{platform_info_for_kind, PlatformKind};
 
     #[test]
@@ -402,5 +427,36 @@ mod tests {
 
         assert!(!supports_native_navigation(&linux));
         assert!(!supports_native_navigation(&unknown));
+    }
+
+    #[test]
+    fn timeout_fallback_triggers_only_for_matching_loading_url() {
+        let loading = BrowserWebviewState {
+            url: "https://example.com/article".to_string(),
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+        };
+        let finished = BrowserWebviewState {
+            is_loading: false,
+            ..loading.clone()
+        };
+
+        assert!(should_trigger_timeout_fallback(
+            Some(&loading),
+            "https://example.com/article"
+        ));
+        assert!(!should_trigger_timeout_fallback(
+            Some(&loading),
+            "https://example.com/other"
+        ));
+        assert!(!should_trigger_timeout_fallback(
+            Some(&finished),
+            "https://example.com/article"
+        ));
+        assert!(!should_trigger_timeout_fallback(
+            None,
+            "https://example.com/article"
+        ));
     }
 }

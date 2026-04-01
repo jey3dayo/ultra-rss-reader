@@ -2,7 +2,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
-import { BROWSER_WINDOW_EVENTS, BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
+import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
@@ -32,14 +32,6 @@ vi.mock("@tauri-apps/api/event", () => ({
 function BrowserViewHarness() {
   const contentMode = useUiStore((s) => s.contentMode);
   return contentMode === "browser" ? <BrowserView /> : null;
-}
-
-async function flushBrowserViewEffects() {
-  await act(async () => {
-    for (let i = 0; i < 6; i += 1) {
-      await Promise.resolve();
-    }
-  });
 }
 
 describe("BrowserView", () => {
@@ -358,36 +350,32 @@ describe("BrowserView", () => {
     expect(useUiStore.getState().browserUrl).toBeNull();
   });
 
-  it("falls back to the external browser when the dedicated window stays loading past the timeout", async () => {
-    vi.useFakeTimers();
+  it("closes browser mode and shows a toast when the dedicated window falls back externally", async () => {
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
 
-    try {
-      useUiStore.setState({
-        selectedArticleId: "art-1",
-        contentMode: "browser",
-        browserUrl: "https://example.com/article",
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.fallback)).toBe(true);
+    });
+
+    await act(async () => {
+      registeredHandlers.get(BROWSER_WINDOW_EVENTS.fallback)?.({
+        payload: {
+          url: "https://example.com/article",
+          opened_external: true,
+          error_message: null,
+        },
       });
+    });
 
-      render(<BrowserViewHarness />, { wrapper: createWrapper() });
-      await flushBrowserViewEffects();
-
-      expect(commands.map(({ cmd }) => cmd)).toContain("create_or_update_browser_webview");
-      expect(commands.map(({ cmd }) => cmd)).not.toContain("open_in_browser");
-
-      await act(async () => {
-        vi.advanceTimersByTime(BROWSER_WINDOW_LOAD_TIMEOUT_MS + 1);
-        for (let i = 0; i < 6; i += 1) {
-          await Promise.resolve();
-        }
-      });
-
-      expect(commands.map(({ cmd }) => cmd)).toContain("open_in_browser");
-      expect(useUiStore.getState().toastMessage).toEqual({ message: "Opened in your external browser" });
-      expect(useUiStore.getState().contentMode).toBe("reader");
-      expect(useUiStore.getState().browserUrl).toBeNull();
-    } finally {
-      vi.useRealTimers();
-    }
+    expect(useUiStore.getState().toastMessage).toEqual({ message: "Opened in your external browser" });
+    expect(useUiStore.getState().contentMode).toBe("reader");
+    expect(useUiStore.getState().browserUrl).toBeNull();
   });
 
   it("leaves browser mode when the dedicated browser window closes natively", async () => {
