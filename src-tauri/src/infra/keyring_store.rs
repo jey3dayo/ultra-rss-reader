@@ -159,6 +159,12 @@ fn force_delete_keychain_entry(_account_id: &str) {}
 // Public API
 // ---------------------------------------------------------------------------
 
+fn missing_password_error() -> DomainError {
+    DomainError::Validation(
+        "Password is not configured. Re-enter your password in account settings, save it, and try again.".to_string(),
+    )
+}
+
 pub fn set_password(account_id: &str, password: &str) -> DomainResult<()> {
     if let Some(path) = dev_credentials_path() {
         let mut store = read_dev_store(&path);
@@ -183,16 +189,21 @@ pub fn set_password(account_id: &str, password: &str) -> DomainResult<()> {
 pub fn get_password(account_id: &str) -> DomainResult<String> {
     if let Some(path) = dev_credentials_path() {
         let store = read_dev_store(&path);
-        return store.get(account_id).cloned().ok_or_else(|| {
-            DomainError::Keychain(format!("No dev credential found for {account_id}"))
-        });
+        return store
+            .get(account_id)
+            .cloned()
+            .ok_or_else(missing_password_error);
     }
 
     let entry = keyring::Entry::new(SERVICE, account_id)
         .map_err(|e| DomainError::Keychain(format!("Failed to access credential store: {e}")))?;
-    entry
-        .get_password()
-        .map_err(|e| DomainError::Keychain(format!("Failed to retrieve password: {e}")))
+    match entry.get_password() {
+        Ok(password) => Ok(password),
+        Err(keyring::Error::NoEntry) => Err(missing_password_error()),
+        Err(e) => Err(DomainError::Keychain(format!(
+            "Failed to retrieve password: {e}"
+        ))),
+    }
 }
 
 pub fn delete_password(account_id: &str) -> DomainResult<()> {
@@ -219,6 +230,7 @@ mod tests {
         dev_credentials_dir_for_kind_from_env, dev_credentials_path_for_platform,
         dev_credentials_path_for_platform_with_fs,
     };
+    use crate::domain::error::DomainError;
     use crate::platform::{platform_info_for_kind, PlatformKind};
     use std::collections::HashMap;
     use std::path::{Path, PathBuf};
@@ -411,6 +423,17 @@ mod tests {
             Some(PathBuf::from(
                 r"C:\Users\alice\AppData\Local\ultra-rss-reader\dev-credentials.json"
             ))
+        );
+    }
+
+    #[test]
+    fn missing_password_error_guides_user_to_reenter_credentials() {
+        let error = super::missing_password_error();
+
+        assert!(matches!(error, DomainError::Validation(_)));
+        assert_eq!(
+            error.to_string(),
+            "Validation error: Password is not configured. Re-enter your password in account settings, save it, and try again."
         );
     }
 }
