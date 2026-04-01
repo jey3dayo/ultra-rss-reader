@@ -142,7 +142,8 @@ run = ["pnpm build"]
 
 [tasks."app:dev"]
 description = "Run native app in dev mode"
-run = "dotenvx run -- pnpm tauri dev -c src-tauri/tauri.dev.conf.json"
+env = { ULTRA_RSS_DEV_CREDENTIALS = "1" }
+run = "pnpm tauri dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:signed"]
 description = "Build, codesign, and run native app on macOS (no Keychain dialog)"
