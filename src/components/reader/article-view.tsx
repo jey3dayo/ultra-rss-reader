@@ -24,6 +24,7 @@ import {
   resolveEffectiveDisplayMode,
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
+import { readDevIntent, resolveDevIntentBrowserUrl } from "@/lib/dev-intent";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
@@ -381,8 +382,10 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
   const [manualOverlayArticleId, setManualOverlayArticleId] = useState<string | null>(null);
   const isBrowserOpen = contentMode === "browser";
   const autoWidescreenEnabled = resolveEffectiveDisplayMode(feed?.display_mode, readerViewPref) === "widescreen";
+  const devIntent = readDevIntent();
+  const intendedBrowserUrl = resolveDevIntentBrowserUrl(devIntent, article.url);
   const shouldShowBrowserOverlay =
-    Boolean(article.url) &&
+    Boolean(intendedBrowserUrl) &&
     ((autoWidescreenEnabled && dismissedOverlayArticleId !== article.id) || manualOverlayArticleId === article.id);
 
   useEffect(() => {
@@ -408,7 +411,7 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
   }, [addRecentlyRead, afterReading, article.id, article.is_read, retainArticle, setRead, viewMode]);
 
   useEffect(() => {
-    if (!article.url) {
+    if (!intendedBrowserUrl) {
       if (isBrowserOpen) {
         closeBrowser();
       }
@@ -416,8 +419,8 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
     }
 
     if (shouldShowBrowserOverlay) {
-      if (!isBrowserOpen || browserUrl !== article.url) {
-        openBrowser(article.url);
+      if (!isBrowserOpen || browserUrl !== intendedBrowserUrl) {
+        openBrowser(intendedBrowserUrl);
       }
       return;
     }
@@ -425,7 +428,7 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
     if (isBrowserOpen) {
       closeBrowser();
     }
-  }, [article.url, browserUrl, closeBrowser, isBrowserOpen, openBrowser, shouldShowBrowserOverlay]);
+  }, [browserUrl, closeBrowser, intendedBrowserUrl, isBrowserOpen, openBrowser, shouldShowBrowserOverlay]);
 
   const handleCloseView = useCallback(() => {
     clearArticle();
@@ -435,7 +438,7 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
   }, [clearArticle, layoutMode]);
 
   const handleToggleBrowserOverlay = useCallback(() => {
-    if (!article.url) return;
+    if (!intendedBrowserUrl) return;
 
     if (isBrowserOpen) {
       setManualOverlayArticleId(null);
@@ -446,8 +449,8 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
 
     setDismissedOverlayArticleId(null);
     setManualOverlayArticleId(article.id);
-    openBrowser(article.url);
-  }, [article.id, article.url, autoWidescreenEnabled, closeBrowser, isBrowserOpen, openBrowser]);
+    openBrowser(intendedBrowserUrl);
+  }, [article.id, autoWidescreenEnabled, closeBrowser, intendedBrowserUrl, isBrowserOpen, openBrowser]);
 
   const handleToggleRead = useCallback(() => {
     const markingAsRead = !article.is_read;

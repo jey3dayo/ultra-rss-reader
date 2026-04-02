@@ -1,15 +1,16 @@
 import { Result } from "@praha/byethrow";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef } from "react";
 import { listAccounts, syncAccount } from "./api/tauri-commands";
 import { AppShell } from "./components/app-shell";
+import { useDevIntent } from "./hooks/use-dev-intent";
+import { queryClient } from "./lib/query-client";
 import { usePreferencesStore } from "./stores/preferences-store";
-
-const queryClient = new QueryClient();
 
 function AppInner() {
   const loadPreferences = usePreferencesStore((s) => s.loadPreferences);
+  useDevIntent();
 
   useEffect(() => {
     loadPreferences();

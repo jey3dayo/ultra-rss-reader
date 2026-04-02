@@ -145,6 +145,11 @@ description = "Run native app in dev mode"
 env = { ULTRA_RSS_DEV_CREDENTIALS = "1" }
 run = "pnpm tauri dev -c src-tauri/tauri.dev.conf.json"
 
+[tasks."app:dev:image-viewer"]
+description = "Run native app in dev mode and jump into the image-viewer overlay state"
+env = { ULTRA_RSS_DEV_CREDENTIALS = "1", VITE_ULTRA_RSS_DEV_INTENT = "image-viewer-overlay" }
+run = "pnpm tauri dev -c src-tauri/tauri.dev.conf.json"
+
 [tasks."app:dev:signed"]
 description = "Build, codesign, and run native app on macOS (no Keychain dialog)"
 run = """
