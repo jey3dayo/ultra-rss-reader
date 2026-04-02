@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { ArticleList } from "@/components/reader/article-list";
 import { ArticleView } from "@/components/reader/article-view";
+import { APP_EVENTS } from "@/constants/events";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
@@ -107,6 +108,76 @@ describe("ArticleList", () => {
     await waitFor(() => {
       expect(useUiStore.getState().selectedArticleId).toBeNull();
       expect(useUiStore.getState().contentMode).toBe("empty");
+    });
+  });
+
+  it("scrolls the viewport with a sticky-header inset when navigating upward", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-2");
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    const list = await screen.findByRole("listbox", { name: "Article list" });
+    await waitFor(() => {
+      expect(within(list).getByRole("option", { name: /First Article/i })).toBeInTheDocument();
+    });
+
+    const viewport = list.closest('[data-slot="scroll-area-viewport"]') as HTMLDivElement | null;
+    const header = list.querySelector('[data-group-header="true"]') as HTMLDivElement | null;
+    const firstArticle = within(list).getByRole("option", { name: /First Article/i }) as HTMLButtonElement;
+
+    expect(viewport).not.toBeNull();
+    expect(header).not.toBeNull();
+    if (!viewport || !header) {
+      throw new Error("Expected article list viewport and sticky header to be rendered");
+    }
+
+    Object.defineProperty(viewport, "clientHeight", { configurable: true, value: 360 });
+    Object.defineProperty(viewport, "scrollHeight", { configurable: true, value: 1200 });
+    viewport.scrollTop = 240;
+    viewport.getBoundingClientRect = () =>
+      ({
+        top: 100,
+        bottom: 460,
+        height: 360,
+        left: 0,
+        right: 0,
+        width: 0,
+        x: 0,
+        y: 100,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    header.getBoundingClientRect = () =>
+      ({
+        top: 100,
+        bottom: 132,
+        height: 32,
+        left: 0,
+        right: 0,
+        width: 0,
+        x: 0,
+        y: 100,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    firstArticle.getBoundingClientRect = () =>
+      ({
+        top: 220,
+        bottom: 292,
+        height: 72,
+        left: 0,
+        right: 0,
+        width: 0,
+        x: 0,
+        y: 220,
+        toJSON: () => ({}),
+      }) as DOMRect;
+
+    window.dispatchEvent(new CustomEvent(APP_EVENTS.navigateArticle, { detail: -1 as const }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(viewport.scrollTop).toBe(316);
     });
   });
 

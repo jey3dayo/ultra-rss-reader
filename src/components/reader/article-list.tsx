@@ -9,7 +9,13 @@ import { useAccountArticles, useArticles, useMarkAllRead, useSearchArticles } fr
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useArticlesByTag } from "@/hooks/use-tags";
-import { getAdjacentArticleId, getUnreadArticleIds, groupArticles, selectVisibleArticles } from "@/lib/article-list";
+import {
+  calculateArticleNavigationScrollTop,
+  getAdjacentArticleId,
+  getUnreadArticleIds,
+  groupArticles,
+  selectVisibleArticles,
+} from "@/lib/article-list";
 import { resolveEffectiveDisplayMode } from "@/lib/article-view";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
@@ -148,13 +154,14 @@ export function ArticleList() {
   }, [feedNameMap, groupBy, groupedArticles, recentlyReadIds, selectedArticleId, t]);
 
   const listRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const scrollToTopOnChange = usePreferencesStore((s) => s.prefs.scroll_to_top_on_change ?? "true");
   const markAllRead = useMarkAllRead();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to top when selection changes
   useEffect(() => {
-    if (scrollToTopOnChange === "true" && listRef.current) {
-      listRef.current.scrollTop = 0;
+    if (scrollToTopOnChange === "true" && viewportRef.current) {
+      viewportRef.current.scrollTop = 0;
     }
   }, [selection, scrollToTopOnChange]);
 
@@ -212,9 +219,33 @@ export function ArticleList() {
       }
 
       const articleId = Result.unwrap(nextArticleId);
+      const viewport = viewportRef.current;
+      const btn = listRef.current?.querySelector<HTMLElement>(`[data-article-id="${articleId}"]`);
+
       selectArticle(articleId);
-      const btn = listRef.current?.querySelector(`[data-article-id="${articleId}"]`);
-      btn?.scrollIntoView({ block: "nearest" });
+
+      if (!viewport || !btn) {
+        return;
+      }
+
+      const stickyHeaderHeight =
+        listRef.current?.querySelector<HTMLElement>("[data-group-header]")?.getBoundingClientRect().height ?? 0;
+      const viewportRect = viewport.getBoundingClientRect();
+      const buttonRect = btn.getBoundingClientRect();
+      const nextScrollTop = calculateArticleNavigationScrollTop({
+        currentScrollTop: viewport.scrollTop,
+        viewportTop: viewportRect.top,
+        viewportHeight: viewport.clientHeight,
+        itemTop: buttonRect.top,
+        itemHeight: buttonRect.height,
+        direction,
+        stickyTopOffset: stickyHeaderHeight,
+        maxScrollTop: viewport.scrollHeight - viewport.clientHeight,
+      });
+
+      if (nextScrollTop !== null) {
+        viewport.scrollTop = nextScrollTop;
+      }
     },
     [filteredArticles, selectedArticleId, selectArticle],
   );
@@ -270,6 +301,7 @@ export function ArticleList() {
           <ArticleListScreenView
             listAriaLabel={t("article_list")}
             listRef={listRef}
+            viewportRef={viewportRef}
             isLoading={isLoading || isLoadingAccountArticles || isLoadingTagArticles}
             loadingMessage={tc("loading")}
             emptyMessage={t("no_articles")}

@@ -6,6 +6,7 @@ import { ArticleGroupsView, type ArticleGroupsViewGroup } from "./article-groups
 export type ArticleListScreenViewProps = {
   listAriaLabel: string;
   listRef: RefObject<HTMLDivElement | null>;
+  viewportRef?: RefObject<HTMLDivElement | null>;
   isLoading: boolean;
   loadingMessage: string;
   emptyMessage: string;
@@ -21,6 +22,7 @@ export type ArticleListScreenViewProps = {
 export function ArticleListScreenView({
   listAriaLabel,
   listRef,
+  viewportRef,
   isLoading,
   loadingMessage,
   emptyMessage,
@@ -33,7 +35,7 @@ export function ArticleListScreenView({
   renderRow,
 }: ArticleListScreenViewProps) {
   return (
-    <ScrollArea className="h-full">
+    <ScrollArea className="h-full" viewportRef={viewportRef}>
       <div ref={listRef} role="listbox" aria-label={listAriaLabel} className="pb-4">
         {isLoading ? (
           <div className="p-6 text-center text-muted-foreground">{loadingMessage}</div>

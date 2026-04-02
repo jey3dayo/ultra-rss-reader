@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { describe, expect, it } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
 import {
+  calculateArticleNavigationScrollTop,
   countUnreadArticles,
   getAdjacentArticleId,
   getUnreadArticleIds,
@@ -86,6 +87,70 @@ describe("article-list utils", () => {
     const result = getAdjacentArticleId([], null, 1);
 
     expect(Result.unwrapError(result)).toBe("no_articles");
+  });
+
+  it("positions the previous article below the sticky header when navigating upward", () => {
+    const result = calculateArticleNavigationScrollTop({
+      currentScrollTop: 240,
+      viewportTop: 100,
+      viewportHeight: 360,
+      itemTop: 220,
+      itemHeight: 72,
+      direction: -1,
+      stickyTopOffset: 32,
+      edgePadding: 12,
+      maxScrollTop: 800,
+    });
+
+    expect(result).toBe(316);
+  });
+
+  it("scrolls just enough to reveal the next article when navigating downward", () => {
+    const result = calculateArticleNavigationScrollTop({
+      currentScrollTop: 240,
+      viewportTop: 100,
+      viewportHeight: 360,
+      itemTop: 430,
+      itemHeight: 72,
+      direction: 1,
+      stickyTopOffset: 32,
+      edgePadding: 12,
+      maxScrollTop: 800,
+    });
+
+    expect(result).toBe(294);
+  });
+
+  it("keeps the scroll position when the next article is already comfortably visible", () => {
+    const result = calculateArticleNavigationScrollTop({
+      currentScrollTop: 240,
+      viewportTop: 100,
+      viewportHeight: 360,
+      itemTop: 260,
+      itemHeight: 72,
+      direction: 1,
+      stickyTopOffset: 32,
+      edgePadding: 12,
+      maxScrollTop: 800,
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it("clamps upward navigation scroll at the top of the list", () => {
+    const result = calculateArticleNavigationScrollTop({
+      currentScrollTop: 30,
+      viewportTop: 100,
+      viewportHeight: 360,
+      itemTop: 110,
+      itemHeight: 72,
+      direction: -1,
+      stickyTopOffset: 32,
+      edgePadding: 12,
+      maxScrollTop: 800,
+    });
+
+    expect(result).toBe(0);
   });
 
   it("keeps retained articles visible in unread view even after they become read", () => {

@@ -23,6 +23,18 @@ type GroupArticlesParams = {
   feedNameMap: Map<string, string>;
 };
 
+type CalculateArticleNavigationScrollTopParams = {
+  currentScrollTop: number;
+  viewportTop: number;
+  viewportHeight: number;
+  itemTop: number;
+  itemHeight: number;
+  direction: 1 | -1;
+  stickyTopOffset?: number;
+  edgePadding?: number;
+  maxScrollTop?: number;
+};
+
 function getDateGroup(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
@@ -123,4 +135,39 @@ export function getAdjacentArticleId(
   const nextIndex = currentIndex === -1 ? 0 : Math.max(0, Math.min(articles.length - 1, currentIndex + direction));
 
   return Result.succeed(articles[nextIndex].id);
+}
+
+export function calculateArticleNavigationScrollTop(params: CalculateArticleNavigationScrollTopParams): number | null {
+  const {
+    currentScrollTop,
+    viewportTop,
+    viewportHeight,
+    itemTop,
+    itemHeight,
+    direction,
+    stickyTopOffset = 0,
+    edgePadding = 12,
+    maxScrollTop = Number.POSITIVE_INFINITY,
+  } = params;
+
+  const topBoundary = viewportTop + stickyTopOffset + edgePadding;
+  const bottomBoundary = viewportTop + viewportHeight - edgePadding;
+  const itemBottom = itemTop + itemHeight;
+
+  let nextScrollTop: number | null = null;
+
+  if (direction === -1) {
+    nextScrollTop = currentScrollTop + (itemTop - topBoundary);
+  } else if (itemBottom > bottomBoundary) {
+    nextScrollTop = currentScrollTop + (itemBottom - bottomBoundary);
+  } else if (itemTop < topBoundary) {
+    nextScrollTop = currentScrollTop - (topBoundary - itemTop);
+  }
+
+  if (nextScrollTop === null) {
+    return null;
+  }
+
+  const clampedScrollTop = Math.max(0, Math.min(maxScrollTop, nextScrollTop));
+  return clampedScrollTop === currentScrollTop ? null : clampedScrollTop;
 }
