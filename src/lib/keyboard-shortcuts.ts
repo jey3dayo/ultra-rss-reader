@@ -98,13 +98,13 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
     id: "next_feed",
     labelKey: "shortcuts.next_feed",
     categoryKey: "shortcuts.category_navigation",
-    defaultKey: "\u2318+j",
+    defaultKey: "l",
   },
   {
     id: "prev_feed",
     labelKey: "shortcuts.prev_feed",
     categoryKey: "shortcuts.category_navigation",
-    defaultKey: "\u2318+Shift+K",
+    defaultKey: "h",
   },
   {
     id: "reload_webview",
@@ -303,7 +303,7 @@ export function resolveKeyboardAction(
   }
 
   // Look up the normalized (with modifiers) form first, then the plain key
-  // This ensures Ctrl+J resolves to next_feed before j resolves to next_article
+  // so explicit modified shortcuts win over plain single-key bindings.
   const actionId = map.get(normalized) ?? map.get(key);
   if (actionId && actionId !== "open_settings") {
     return resolveActionForId(actionId, { selectedArticleId, contentMode, viewMode });

@@ -1,6 +1,11 @@
 import { Result } from "@praha/byethrow";
 import { describe, expect, it } from "vitest";
-import { formatKeyForDisplay, keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
+import {
+  buildKeyToActionMap,
+  formatKeyForDisplay,
+  keyboardEvents,
+  resolveKeyboardAction,
+} from "@/lib/keyboard-shortcuts";
 
 describe("keyboard shortcut resolver", () => {
   it("opens settings on command comma even when an input is focused", () => {
@@ -33,12 +38,12 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrap(result)).toEqual({ type: "open-command-palette" });
   });
 
-  it("resolves Cmd+Shift+K to navigate-feed backward", () => {
+  it("resolves h to navigate-feed backward", () => {
     const result = resolveKeyboardAction({
-      key: "k",
-      metaKey: true,
+      key: "h",
+      metaKey: false,
       ctrlKey: false,
-      shiftKey: true,
+      shiftKey: false,
       targetTag: "DIV",
       selectedArticleId: null,
       contentMode: "empty",
@@ -46,6 +51,21 @@ describe("keyboard shortcut resolver", () => {
     });
 
     expect(Result.unwrap(result)).toEqual({ type: "navigate-feed", direction: -1 });
+  });
+
+  it("resolves l to navigate-feed forward", () => {
+    const result = resolveKeyboardAction({
+      key: "l",
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrap(result)).toEqual({ type: "navigate-feed", direction: 1 });
   });
 
   it("ignores shortcuts when a text input is focused", () => {
@@ -131,5 +151,12 @@ describe("keyboard shortcut resolver", () => {
   it("formats modifier shortcuts for Windows display", () => {
     expect(formatKeyForDisplay("⌘+k", "windows")).toBe("Ctrl k");
     expect(formatKeyForDisplay("⌘,", "windows")).toBe("Ctrl ,");
+  });
+
+  it("builds h/l as the default feed navigation bindings", () => {
+    const map = buildKeyToActionMap({});
+
+    expect(map.get("h")).toBe("prev_feed");
+    expect(map.get("l")).toBe("next_feed");
   });
 });
