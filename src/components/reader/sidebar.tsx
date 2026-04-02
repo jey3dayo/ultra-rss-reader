@@ -14,6 +14,7 @@ import { useAccountArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { useTagArticleCounts, useTags } from "@/hooks/use-tags";
+import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import i18n from "@/lib/i18n";
 import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
 import { cn } from "@/lib/utils";
@@ -22,7 +23,12 @@ import { useUiStore } from "@/stores/ui-store";
 import { AccountSwitcherView } from "./account-switcher-view";
 import { AddFeedDialog } from "./add-feed-dialog";
 import { FeedContextMenuContent } from "./feed-context-menu";
-import { type FeedTreeFolderViewModel, FeedTreeView } from "./feed-tree-view";
+import {
+  type ActiveDropTarget,
+  type FeedTreeFeedViewModel,
+  type FeedTreeFolderViewModel,
+  FeedTreeView,
+} from "./feed-tree-view";
 import { FolderContextMenuContent } from "./folder-context-menu";
 import { SidebarHeaderView } from "./sidebar-header-view";
 import { type SmartViewItemViewModel, SmartViewsView } from "./smart-views-view";
@@ -51,6 +57,8 @@ export function Sidebar() {
   const lastSyncedFormatted = useFormatLastSynced(lastSyncedAt);
   const [isFeedsSectionOpen, setIsFeedsSectionOpen] = useState(true);
   const [isTagsSectionOpen, setIsTagsSectionOpen] = useState(true);
+  const [draggedFeedId, setDraggedFeedId] = useState<string | null>(null);
+  const [activeDropTarget, setActiveDropTarget] = useState<ActiveDropTarget>(null);
   const accountDropdownRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
   const accountItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -106,6 +114,7 @@ export function Sidebar() {
   const grayscaleFavicons = usePreferencesStore((s) => (s.prefs.grayscale_favicons ?? "false") === "true");
   const sortSubscriptions = usePreferencesStore((s) => s.prefs.sort_subscriptions ?? "folders_first");
   const opaqueSidebars = usePreferencesStore((s) => (s.prefs.opaque_sidebars ?? "false") === "true");
+  const updateFeedFolderMutation = useUpdateFeedFolder();
 
   const savedAccountId = usePreferencesStore((s) => s.prefs.selected_account_id ?? "");
   const setPref = usePreferencesStore((s) => s.setPref);
@@ -215,6 +224,8 @@ export function Sidebar() {
 
   const feedList: FeedDto[] = feeds ?? [];
   const folderList: FolderDto[] = folders ?? [];
+  const canDragFeeds = folderList.length > 0;
+  const feedById = useMemo(() => new Map(feedList.map((feed) => [feed.id, feed])), [feedList]);
 
   const { feedsByFolder, unfolderedFeeds: rawUnfolderedFeeds } = useMemo(
     () => groupFeedsByFolder(feedList),
@@ -238,32 +249,30 @@ export function Sidebar() {
   const selectedFeedId = selection.type === "feed" ? selection.feedId : null;
   const feedTreeFolders = useMemo<FeedTreeFolderViewModel[]>(
     () =>
-      sortedFolderList
-        .map((folder) => {
-          const folderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
-          const folderUnread = folderFeeds.reduce((sum, feed) => sum + feed.unread_count, 0);
-          return {
-            id: folder.id,
-            name: folder.name,
-            accountId: folder.account_id,
-            sortOrder: folder.sort_order,
-            unreadCount: folderUnread,
-            isExpanded: expandedFolderIds.has(folder.id),
-            feeds: folderFeeds.map((feed) => ({
-              id: feed.id,
-              accountId: feed.account_id,
-              folderId: feed.folder_id,
-              title: feed.title,
-              url: feed.url,
-              siteUrl: feed.site_url,
-              unreadCount: feed.unread_count,
-              displayMode: feed.display_mode,
-              isSelected: selectedFeedId === feed.id,
-              grayscaleFavicon: grayscaleFavicons,
-            })),
-          };
-        })
-        .filter((folder) => folder.feeds.length > 0),
+      sortedFolderList.map((folder) => {
+        const folderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
+        const folderUnread = folderFeeds.reduce((sum, feed) => sum + feed.unread_count, 0);
+        return {
+          id: folder.id,
+          name: folder.name,
+          accountId: folder.account_id,
+          sortOrder: folder.sort_order,
+          unreadCount: folderUnread,
+          isExpanded: expandedFolderIds.has(folder.id),
+          feeds: folderFeeds.map((feed) => ({
+            id: feed.id,
+            accountId: feed.account_id,
+            folderId: feed.folder_id,
+            title: feed.title,
+            url: feed.url,
+            siteUrl: feed.site_url,
+            unreadCount: feed.unread_count,
+            displayMode: feed.display_mode,
+            isSelected: selectedFeedId === feed.id,
+            grayscaleFavicon: grayscaleFavicons,
+          })),
+        };
+      }),
     [expandedFolderIds, feedsByFolder, grayscaleFavicons, selectedFeedId, sortFeeds, sortedFolderList],
   );
   const unfolderedFeedViews = useMemo(
@@ -302,6 +311,57 @@ export function Sidebar() {
   const hasSmartStarredSelection = selection.type === "smart" && selection.kind === "starred";
   const hasFilterOnlyUnread = viewMode === "unread" && !hasSmartUnreadSelection;
   const hasFilterOnlyStarred = viewMode === "starred" && !hasSmartStarredSelection;
+  const clearDragState = useCallback(() => {
+    setDraggedFeedId(null);
+    setActiveDropTarget(null);
+  }, []);
+
+  const handleDragStartFeed = useCallback((feed: FeedTreeFeedViewModel) => {
+    setDraggedFeedId(feed.id);
+  }, []);
+
+  const handleDragEnterFolder = useCallback((folderId: string) => {
+    setActiveDropTarget({ kind: "folder", folderId });
+  }, []);
+
+  const handleDragEnterUnfoldered = useCallback(() => {
+    setActiveDropTarget({ kind: "unfoldered" });
+  }, []);
+
+  const handleDropToFolder = useCallback(
+    async (folderId: string) => {
+      try {
+        if (!draggedFeedId) return;
+        const draggedFeed = feedById.get(draggedFeedId);
+        if (!draggedFeed || draggedFeed.folder_id === folderId) return;
+        await updateFeedFolderMutation.mutateAsync({ feedId: draggedFeedId, folderId });
+      } finally {
+        clearDragState();
+      }
+    },
+    [clearDragState, draggedFeedId, feedById, updateFeedFolderMutation],
+  );
+
+  const handleDropToUnfoldered = useCallback(async () => {
+    try {
+      if (!draggedFeedId) return;
+      const draggedFeed = feedById.get(draggedFeedId);
+      if (!draggedFeed || draggedFeed.folder_id === null) return;
+      await updateFeedFolderMutation.mutateAsync({ feedId: draggedFeedId, folderId: null });
+    } finally {
+      clearDragState();
+    }
+  }, [clearDragState, draggedFeedId, feedById, updateFeedFolderMutation]);
+
+  useEffect(() => {
+    if (!draggedFeedId) {
+      return;
+    }
+
+    if (!isFeedsSectionOpen || !canDragFeeds || !feedById.has(draggedFeedId)) {
+      clearDragState();
+    }
+  }, [canDragFeeds, clearDragState, draggedFeedId, feedById, isFeedsSectionOpen]);
 
   useEffect(() => {
     const fallbackToFeedOrAll = () => {
@@ -447,6 +507,19 @@ export function Sidebar() {
             onToggleFolder={toggleFolder}
             onSelectFeed={selectFeed}
             displayFavicons={displayFavicons}
+            canDragFeeds={canDragFeeds}
+            draggedFeedId={draggedFeedId}
+            activeDropTarget={activeDropTarget}
+            onDragStartFeed={handleDragStartFeed}
+            onDragEnterFolder={handleDragEnterFolder}
+            onDragEnterUnfoldered={handleDragEnterUnfoldered}
+            onDropToFolder={(folderId) => {
+              void handleDropToFolder(folderId);
+            }}
+            onDropToUnfoldered={() => {
+              void handleDropToUnfoldered();
+            }}
+            onDragEnd={clearDragState}
             emptyState={
               selectedAccountId
                 ? { kind: "message", message: t("press_plus_to_add_feed") }

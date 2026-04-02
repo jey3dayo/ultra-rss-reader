@@ -88,6 +88,10 @@ describe("Sidebar", () => {
           ];
         case "list_account_articles":
           return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
         default:
           return null;
       }
@@ -99,10 +103,125 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    await screen.findByRole("button", { name: /Folder Feed/ });
+    await screen.findByText("Folder Feed");
     expect(renderedFeedContextMenuFeeds).toContainEqual(
       expect.objectContaining({ id: "feed-1", folder_id: "folder-1" }),
     );
+  });
+
+  it("updates a feed folder when moving it onto an empty folder", async () => {
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-empty", account_id: args.accountId, name: "Empty", sort_order: 0 }];
+        case "list_feeds":
+          return [{ ...sampleFeeds[0], title: "Tech Blog", folder_id: null }];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        case "update_feed_folder":
+          return null;
+        default:
+          return null;
+      }
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Drag Tech Blog" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Move to Empty" }));
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "update_feed_folder",
+        args: { feedId: "feed-1", folderId: "folder-empty" },
+      });
+    });
+  });
+
+  it("does not call update_feed_folder when moving into the same folder", async () => {
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
+        case "list_feeds":
+          return [{ ...sampleFeeds[0], title: "Folder Feed", folder_id: "folder-1" }];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        case "update_feed_folder":
+          return null;
+        default:
+          return null;
+      }
+    });
+    useUiStore.setState({
+      ...useUiStore.getState(),
+      expandedFolderIds: new Set(["folder-1"]),
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Drag Folder Feed" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Move to Work" }));
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(calls).not.toContainEqual({
+      cmd: "update_feed_folder",
+      args: { feedId: "feed-1", folderId: "folder-1" },
+    });
+  });
+
+  it("clears drag state when the feeds section closes mid-drag", async () => {
+    const user = userEvent.setup();
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
+        case "list_feeds":
+          return [{ ...sampleFeeds[0], title: "Tech Blog", folder_id: null }];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const handle = await screen.findByRole("button", { name: "Drag Tech Blog" });
+    fireEvent.click(handle);
+
+    expect(await screen.findByRole("button", { name: "Move to Work" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Feeds" }));
+    await user.click(screen.getByRole("button", { name: "Feeds" }));
+
+    expect(screen.queryByRole("button", { name: "Move to Work" })).not.toBeInTheDocument();
   });
 
   it("renders feeds after data loads", async () => {

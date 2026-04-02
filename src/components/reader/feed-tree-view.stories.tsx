@@ -67,10 +67,63 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
+export const DragEnabled: Story = {
+  args: {
+    canDragFeeds: true,
+    draggedFeedId: null,
+    activeDropTarget: null,
+    onDragStartFeed: fn(),
+    onDragEnterFolder: fn(),
+    onDragEnterUnfoldered: fn(),
+    onDropToFolder: fn(),
+    onDropToUnfoldered: fn(),
+    onDragEnd: fn(),
+  },
+};
+
 export const Empty: Story = {
   args: {
     folders: [],
     unfolderedFeeds: [],
     emptyState: { kind: "action", label: "Add account", onAction: fn() },
+  },
+};
+
+export const EmptyFolderTarget: Story = {
+  args: {
+    canDragFeeds: true,
+    draggedFeedId: null,
+    activeDropTarget: null,
+    onDragStartFeed: fn(),
+    onDragEnterFolder: fn(),
+    onDragEnterUnfoldered: fn(),
+    onDropToFolder: fn(),
+    onDropToUnfoldered: fn(),
+    onDragEnd: fn(),
+    folders: [
+      {
+        id: "folder-empty",
+        name: "Empty",
+        accountId: "acc-1",
+        sortOrder: 1,
+        unreadCount: 0,
+        isExpanded: false,
+        feeds: [],
+      },
+    ],
+  },
+};
+
+export const ActiveUnfolderedTarget: Story = {
+  args: {
+    canDragFeeds: true,
+    draggedFeedId: "feed-1",
+    activeDropTarget: { kind: "unfoldered" },
+    onDragStartFeed: fn(),
+    onDragEnterFolder: fn(),
+    onDragEnterUnfoldered: fn(),
+    onDropToFolder: fn(),
+    onDropToUnfoldered: fn(),
+    onDragEnd: fn(),
   },
 };
