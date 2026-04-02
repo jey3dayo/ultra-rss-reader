@@ -262,6 +262,48 @@ describe("useKeyboard", () => {
     expect(await screen.findByPlaceholderText("Search commands…")).toBeInTheDocument();
   });
 
+  it("pressing Cmd+1 switches to the unread filter", async () => {
+    const calls: MockCall[] = [];
+    renderAppShell(calls);
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    useUiStore.setState({ viewMode: "all" });
+
+    fireEvent.keyDown(window, { key: "1", metaKey: true });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().viewMode).toBe("unread");
+    });
+  });
+
+  it("pressing Cmd+2 switches to the all filter", async () => {
+    const calls: MockCall[] = [];
+    renderAppShell(calls);
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    useUiStore.setState({ viewMode: "starred" });
+
+    fireEvent.keyDown(window, { key: "2", metaKey: true });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().viewMode).toBe("all");
+    });
+  });
+
+  it("pressing Cmd+3 switches to the starred filter", async () => {
+    const calls: MockCall[] = [];
+    renderAppShell(calls);
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    useUiStore.setState({ viewMode: "all" });
+
+    fireEvent.keyDown(window, { key: "3", metaKey: true });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().viewMode).toBe("starred");
+    });
+  });
+
   it("pressing Escape in the tag picker closes the picker without clearing the article", async () => {
     const calls: MockCall[] = [];
     setupTauriMocks((cmd, args) => {

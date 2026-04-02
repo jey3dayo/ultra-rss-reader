@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CommandPalette } from "@/components/reader/command-palette";
 import { STORAGE_KEYS } from "@/constants/storage";
 import * as actions from "@/lib/actions";
+import { usePlatformStore } from "@/stores/platform-store";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
@@ -24,6 +26,22 @@ describe("CommandPalette", () => {
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
       commandPaletteOpen: true,
+    });
+    usePreferencesStore.setState({ prefs: {}, loaded: true });
+    usePlatformStore.setState({
+      platform: {
+        kind: "macos",
+        capabilities: {
+          supports_reading_list: false,
+          supports_background_browser_open: false,
+          supports_runtime_window_icon_replacement: false,
+          supports_native_browser_navigation: false,
+          uses_dev_file_credentials: false,
+        },
+      },
+      loaded: true,
+      loadError: false,
+      inFlightLoad: null,
     });
 
     setupTauriMocks((cmd, args) => {
@@ -99,5 +117,23 @@ describe("CommandPalette", () => {
       expect(executeAction).toHaveBeenCalledWith("open-settings");
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
     });
+  });
+
+  it("shows the current configured shortcuts for palette actions", async () => {
+    usePreferencesStore.setState({
+      prefs: {
+        shortcut_open_settings: "⌘+.",
+        shortcut_mark_all_read: "Shift+A",
+      },
+      loaded: true,
+    });
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const openSettings = await screen.findByRole("option", { name: /Open settings/ });
+    const markAllRead = screen.getByRole("option", { name: /Mark all as read/ });
+
+    expect(openSettings).toHaveTextContent("⌘ .");
+    expect(markAllRead).toHaveTextContent("Shift + A");
   });
 });

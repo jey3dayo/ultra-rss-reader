@@ -44,6 +44,9 @@ export type ShortcutActionId =
   | "open_in_app_browser"
   | "open_external_browser"
   | "mark_all_read"
+  | "show_unread"
+  | "show_all"
+  | "show_starred"
   | "cycle_filter"
   | "search"
   | "close_or_clear"
@@ -62,6 +65,9 @@ export type ShortcutLabelKey =
   | "shortcuts.view_in_browser"
   | "shortcuts.open_external_browser"
   | "shortcuts.mark_all_read"
+  | "shortcuts.show_unread"
+  | "shortcuts.show_all"
+  | "shortcuts.show_starred"
   | "shortcuts.cycle_filter"
   | "shortcuts.search"
   | "shortcuts.close_or_clear"
@@ -140,6 +146,24 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
     defaultKey: "a",
   },
   {
+    id: "show_unread",
+    labelKey: "shortcuts.show_unread",
+    categoryKey: "shortcuts.category_actions",
+    defaultKey: "⌘+1",
+  },
+  {
+    id: "show_all",
+    labelKey: "shortcuts.show_all",
+    categoryKey: "shortcuts.category_actions",
+    defaultKey: "⌘+2",
+  },
+  {
+    id: "show_starred",
+    labelKey: "shortcuts.show_starred",
+    categoryKey: "shortcuts.category_actions",
+    defaultKey: "⌘+3",
+  },
+  {
     id: "cycle_filter",
     labelKey: "shortcuts.cycle_filter",
     categoryKey: "shortcuts.category_actions",
@@ -169,6 +193,11 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
 /** Preference key prefix for shortcut overrides. */
 export const shortcutPrefKey = (id: ShortcutActionId): string => `shortcut_${id}`;
 
+export function getShortcutKey(id: ShortcutActionId, prefs: Record<string, string>): string {
+  const definition = shortcutDefinitions.find((item) => item.id === id);
+  return prefs[shortcutPrefKey(id)] ?? definition?.defaultKey ?? "";
+}
+
 /** All default shortcut preference entries (for preferences-store defaults). */
 export const shortcutDefaults: Record<string, string> = Object.fromEntries(
   shortcutDefinitions.map((d) => [shortcutPrefKey(d.id), d.defaultKey]),
@@ -178,7 +207,7 @@ export const shortcutDefaults: Record<string, string> = Object.fromEntries(
 export function buildKeyToActionMap(prefs: Record<string, string>): Map<string, ShortcutActionId> {
   const map = new Map<string, ShortcutActionId>();
   for (const def of shortcutDefinitions) {
-    const key = prefs[shortcutPrefKey(def.id)] ?? def.defaultKey;
+    const key = getShortcutKey(def.id, prefs);
     map.set(key, def.id);
   }
   return map;
@@ -204,6 +233,14 @@ export function formatKeyForDisplay(key: string, platformKind: PlatformInfo["kin
   const normalized = key.replace(/\u2318/g, modifier).replace(/\+/g, " + ");
   const modifierPattern = platformKind === "macos" ? /\u2318\s*\+?\s*/g : /Ctrl\s*\+?\s*/g;
   return normalized.replace(modifierPattern, `${modifier} `);
+}
+
+export function getShortcutDisplay(
+  id: ShortcutActionId,
+  prefs: Record<string, string>,
+  platformKind: PlatformInfo["kind"],
+): string {
+  return formatKeyForDisplay(getShortcutKey(id, prefs), platformKind);
 }
 
 type KeyboardContext = {
@@ -255,6 +292,12 @@ function resolveActionForId(
         : Result.fail("missing_selected_article");
     case "cycle_filter":
       return Result.succeed({ type: "set-view-mode", mode: nextViewMode(context.viewMode) });
+    case "show_unread":
+      return Result.succeed({ type: "set-view-mode", mode: "unread" });
+    case "show_all":
+      return Result.succeed({ type: "set-view-mode", mode: "all" });
+    case "show_starred":
+      return Result.succeed({ type: "set-view-mode", mode: "starred" });
     case "mark_all_read":
       return Result.succeed({ type: "emit", eventName: keyboardEvents.markAllRead });
     case "search":
@@ -302,9 +345,8 @@ export function resolveKeyboardAction(
     return Result.fail("ignored_input");
   }
 
-  // Look up the normalized (with modifiers) form first, then the plain key
-  // so explicit modified shortcuts win over plain single-key bindings.
-  const actionId = map.get(normalized) ?? map.get(key);
+  // Modifier shortcuts should not fall back to plain single-key bindings.
+  const actionId = metaKey || ctrlKey ? map.get(normalized) : (map.get(normalized) ?? map.get(key));
   if (actionId && actionId !== "open_settings") {
     return resolveActionForId(actionId, { selectedArticleId, contentMode, viewMode });
   }

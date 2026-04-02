@@ -38,6 +38,51 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrap(result)).toEqual({ type: "open-command-palette" });
   });
 
+  it("resolves Cmd+1 to show unread articles", () => {
+    const result = resolveKeyboardAction({
+      key: "1",
+      metaKey: true,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrap(result)).toEqual({ type: "set-view-mode", mode: "unread" });
+  });
+
+  it("resolves Cmd+2 to show all articles", () => {
+    const result = resolveKeyboardAction({
+      key: "2",
+      metaKey: true,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "unread",
+    });
+
+    expect(Result.unwrap(result)).toEqual({ type: "set-view-mode", mode: "all" });
+  });
+
+  it("resolves Cmd+3 to show starred articles", () => {
+    const result = resolveKeyboardAction({
+      key: "3",
+      metaKey: true,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrap(result)).toEqual({ type: "set-view-mode", mode: "starred" });
+  });
+
   it("resolves h to navigate-feed backward", () => {
     const result = resolveKeyboardAction({
       key: "h",
@@ -158,5 +203,33 @@ describe("keyboard shortcut resolver", () => {
 
     expect(map.get("h")).toBe("prev_feed");
     expect(map.get("l")).toBe("next_feed");
+  });
+
+  it("builds direct filter shortcuts into the default key map", () => {
+    const map = buildKeyToActionMap({});
+
+    expect(map.get("⌘+1")).toBe("show_unread");
+    expect(map.get("⌘+2")).toBe("show_all");
+    expect(map.get("⌘+3")).toBe("show_starred");
+  });
+
+  it("does not fall back to the plain key when a command-modified shortcut is unmapped", () => {
+    const map = buildKeyToActionMap({
+      shortcut_open_command_palette: "⌘+p",
+    });
+
+    const result = resolveKeyboardAction({
+      key: "k",
+      metaKey: true,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "all",
+      keyToAction: map,
+    });
+
+    expect(Result.unwrapError(result)).toBe("no_action");
   });
 });

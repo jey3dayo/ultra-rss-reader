@@ -9,8 +9,9 @@ import { useFeeds } from "@/hooks/use-feeds";
 import { useTags } from "@/hooks/use-tags";
 import type { AppAction } from "@/lib/actions";
 import { executeAction } from "@/lib/actions";
-import { formatKeyForDisplay } from "@/lib/keyboard-shortcuts";
+import { getShortcutDisplay } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import {
   Command,
@@ -85,6 +86,7 @@ export function CommandPalette() {
   const selectArticle = useUiStore((state) => state.selectArticle);
   const openFeedLanding = useFeedLanding();
   const platformKind = usePlatformStore((state) => state.platform.kind);
+  const shortcutPrefs = usePreferencesStore((state) => state.prefs);
   const [input, setInput] = useState("");
   const { prefix, query, deferredQuery } = useCommandSearch(input);
 
@@ -99,7 +101,7 @@ export function CommandPalette() {
       {
         id: "open-settings",
         label: t("shortcuts.open_settings"),
-        shortcut: formatKeyForDisplay("⌘,", platformKind),
+        shortcut: getShortcutDisplay("open_settings", shortcutPrefs, platformKind),
         keywords: ["settings", "preferences"],
         icon: SettingsIcon,
       },
@@ -118,12 +120,12 @@ export function CommandPalette() {
       {
         id: "mark-all-read",
         label: t("shortcuts.mark_all_read"),
-        shortcut: "a",
+        shortcut: getShortcutDisplay("mark_all_read", shortcutPrefs, platformKind),
         keywords: ["read", "articles"],
         icon: NewspaperIcon,
       },
     ],
-    [platformKind, t, tSidebar],
+    [platformKind, shortcutPrefs, t, tSidebar],
   );
 
   const { data: feeds = [] } = useFeeds(selectedAccountId ?? "");
