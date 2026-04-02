@@ -12,6 +12,7 @@ import {
 } from "@/api/tauri-commands";
 import { BROWSER_WINDOW_EVENTS, BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
 import { type BrowserWebviewBounds, toBrowserWebviewBounds } from "@/lib/browser-webview";
+import { readDevIntent } from "@/lib/dev-intent";
 import { useUiStore } from "@/stores/ui-store";
 import { BrowserOverlayChrome } from "./browser-overlay-chrome";
 
@@ -63,6 +64,25 @@ type BrowserWebviewFallbackPayload = {
   error_message: string | null;
 };
 
+type BrowserWebviewDiagnosticsPayload = {
+  action: string;
+  requestedLogical: BrowserWebviewBounds;
+  appliedLogical: BrowserWebviewBounds;
+  scaleFactor: number;
+  nativeWebviewBounds: BrowserWebviewBounds | null;
+};
+
+type BrowserViewLayoutDiagnostics = {
+  hostLogical: BrowserWebviewBounds;
+  stage: BrowserWebviewBounds;
+  lane: {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+  };
+};
+
 type BrowserViewProps = {
   scope?: "content-pane" | "main-stage";
   onCloseOverlay: () => void;
@@ -73,18 +93,24 @@ type BrowserViewProps = {
 
 export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: BrowserViewProps) {
   const { t } = useTranslation("reader");
+  const devIntent = readDevIntent();
+  const showDiagnostics = devIntent === "image-viewer-overlay" && import.meta.env.VITE_ULTRA_RSS_DEV_BOUNDS_HUD === "1";
   const browserUrl = useUiStore((s) => s.browserUrl);
   const closeBrowser = useUiStore((s) => s.closeBrowser);
   const showToast = useUiStore((s) => s.showToast);
   const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
   const browserStateRef = useRef<BrowserWebviewState | null>(null);
   const hostRef = useRef<HTMLDivElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
   const listenerReadyRef = useRef<Promise<void> | null>(null);
   const unlistenRef = useRef<Array<() => void>>([]);
   const fallbackInFlightRef = useRef(false);
   const webviewCreatedRef = useRef(false);
   const createInFlightRef = useRef(false);
   const pendingBoundsRef = useRef<BrowserWebviewBounds | null>(null);
+  const [layoutDiagnostics, setLayoutDiagnostics] = useState<BrowserViewLayoutDiagnostics | null>(null);
+  const [nativeDiagnostics, setNativeDiagnostics] = useState<BrowserWebviewDiagnosticsPayload | null>(null);
 
   const fallbackToReader = useCallback(
     async (_url: string, error: AppError) => {
@@ -122,6 +148,14 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
         if (cancelled) return;
         useUiStore.getState().closeBrowser();
       }),
+      ...(showDiagnostics
+        ? [
+            listen<BrowserWebviewDiagnosticsPayload>(BROWSER_WINDOW_EVENTS.diagnostics, ({ payload }) => {
+              if (cancelled) return;
+              setNativeDiagnostics(payload);
+            }),
+          ]
+        : []),
     ]).then((cleanups) => {
       if (cancelled) {
         cleanups.forEach((cleanup) => {
@@ -140,7 +174,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
       unlistenRef.current = [];
       listenerReadyRef.current = null;
     };
-  }, [showToast, t]);
+  }, [showDiagnostics, showToast, t]);
 
   const syncBrowserBounds = useCallback(async (bounds: BrowserWebviewBounds) => {
     const result = await setBrowserWebviewBounds(bounds);
@@ -176,6 +210,24 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
       const bounds = rect ? toBrowserWebviewBounds(rect) : null;
       if (!bounds) {
         return;
+      }
+
+      if (showDiagnostics) {
+        const overlayRect = overlayRef.current?.getBoundingClientRect();
+        const stageRect = stageRef.current?.getBoundingClientRect();
+        const stageBounds = stageRect ? toBrowserWebviewBounds(stageRect) : null;
+        if (overlayRect && stageRect && stageBounds) {
+          setLayoutDiagnostics({
+            hostLogical: bounds,
+            stage: stageBounds,
+            lane: {
+              left: Math.round(stageRect.left - overlayRect.left),
+              top: Math.round(stageRect.top - overlayRect.top),
+              right: Math.round(overlayRect.right - stageRect.right),
+              bottom: Math.round(overlayRect.bottom - stageRect.bottom),
+            },
+          });
+        }
       }
 
       if (mode === "resize") {
@@ -218,7 +270,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
 
       await flushPendingBounds(requestedUrl);
     },
-    [fallbackToReader, flushPendingBounds, syncBrowserBounds],
+    [fallbackToReader, flushPendingBounds, showDiagnostics, syncBrowserBounds],
   );
 
   useEffect(() => {
@@ -322,15 +374,59 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
 
   const overlay = (
     <div
+      ref={overlayRef}
       data-testid="browser-overlay-shell"
       className="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center bg-background/96 backdrop-blur-md"
     >
+      {showDiagnostics && (layoutDiagnostics || nativeDiagnostics) ? (
+        <div
+          data-testid="browser-overlay-diagnostics"
+          className="pointer-events-none absolute bottom-4 left-4 z-30 max-w-[28rem] rounded-lg bg-black/80 px-3 py-2 font-mono text-[11px] leading-5 text-white shadow-xl"
+        >
+          {layoutDiagnostics ? (
+            <>
+              <div>
+                host logical: {layoutDiagnostics.hostLogical.x},{layoutDiagnostics.hostLogical.y}{" "}
+                {layoutDiagnostics.hostLogical.width}x{layoutDiagnostics.hostLogical.height}
+              </div>
+              <div>
+                stage: {layoutDiagnostics.stage.x},{layoutDiagnostics.stage.y} {layoutDiagnostics.stage.width}x
+                {layoutDiagnostics.stage.height}
+              </div>
+              <div>
+                lane: L{layoutDiagnostics.lane.left} T{layoutDiagnostics.lane.top} R{layoutDiagnostics.lane.right} B
+                {layoutDiagnostics.lane.bottom}
+              </div>
+            </>
+          ) : null}
+          {nativeDiagnostics ? (
+            <>
+              <div>
+                rust requested: {nativeDiagnostics.requestedLogical.x},{nativeDiagnostics.requestedLogical.y}{" "}
+                {nativeDiagnostics.requestedLogical.width}x{nativeDiagnostics.requestedLogical.height}
+              </div>
+              <div>
+                rust applied: {nativeDiagnostics.appliedLogical.x},{nativeDiagnostics.appliedLogical.y}{" "}
+                {nativeDiagnostics.appliedLogical.width}x{nativeDiagnostics.appliedLogical.height}
+              </div>
+              <div>rust action: {nativeDiagnostics.action}</div>
+              <div>scale: {nativeDiagnostics.scaleFactor}</div>
+              <div>
+                native webview:{" "}
+                {nativeDiagnostics.nativeWebviewBounds
+                  ? `${nativeDiagnostics.nativeWebviewBounds.x},${nativeDiagnostics.nativeWebviewBounds.y} ${nativeDiagnostics.nativeWebviewBounds.width}x${nativeDiagnostics.nativeWebviewBounds.height}`
+                  : "n/a"}
+              </div>
+            </>
+          ) : null}
+        </div>
+      ) : null}
       <BrowserOverlayChrome
         closeLabel={labels.closeOverlay}
         onClose={onCloseOverlay}
         className={overlayChromePositionClass}
       />
-      <div data-testid="browser-overlay-stage" className={stageClass}>
+      <div ref={stageRef} data-testid="browser-overlay-stage" className={stageClass}>
         <div ref={hostRef} data-testid="browser-webview-host" className="h-full w-full bg-background" />
       </div>
     </div>

@@ -6,10 +6,11 @@ use tauri::{
 use tokio::time::{sleep, Duration};
 
 use crate::browser_webview::{
-    browser_webview, emit_browser_webview_closed, emit_browser_webview_fallback,
-    emit_browser_webview_state, go_back, go_forward, navigation_availability,
-    should_trigger_timeout_fallback, BrowserNavigationAvailability, BrowserWebviewFallbackPayload,
-    BrowserWebviewState, BROWSER_WEBVIEW_LABEL,
+    browser_webview, browser_webview_diagnostics_enabled, emit_browser_webview_closed,
+    emit_browser_webview_diagnostics, emit_browser_webview_fallback, emit_browser_webview_state,
+    go_back, go_forward, navigation_availability, should_trigger_timeout_fallback,
+    BrowserNavigationAvailability, BrowserWebviewDiagnosticsPayload, BrowserWebviewFallbackPayload,
+    BrowserWebviewLogicalRect, BrowserWebviewState, BROWSER_WEBVIEW_LABEL,
 };
 use crate::commands::dto::AppError;
 use crate::commands::AppState;
@@ -77,11 +78,62 @@ fn child_webview_rect_from_viewport_bounds(bounds: BrowserWebviewBounds) -> Rect
 }
 
 fn log_browser_webview_bounds(
-    _window: &Window,
-    _action: &str,
-    _bounds: BrowserWebviewBounds,
-    _rect: &Rect,
+    window: &Window,
+    action: &str,
+    bounds: BrowserWebviewBounds,
+    rect: &Rect,
 ) {
+    if !browser_webview_diagnostics_enabled() {
+        return;
+    }
+
+    let scale_factor = window.scale_factor().unwrap_or(1.0);
+    let applied_position = rect.position.to_logical::<f64>(scale_factor);
+    let applied_size = rect.size.to_logical::<f64>(scale_factor);
+    let native_webview_bounds = browser_webview(window).and_then(|browser_webview| {
+        browser_webview.bounds().ok().map(|bounds| {
+            let position = bounds.position.to_logical::<f64>(scale_factor);
+            let size = bounds.size.to_logical::<f64>(scale_factor);
+            BrowserWebviewLogicalRect {
+                x: position.x,
+                y: position.y,
+                width: size.width,
+                height: size.height,
+            }
+        })
+    });
+    let payload = BrowserWebviewDiagnosticsPayload {
+        action: action.to_string(),
+        requested_logical: BrowserWebviewLogicalRect {
+            x: bounds.x,
+            y: bounds.y,
+            width: bounds.width,
+            height: bounds.height,
+        },
+        applied_logical: BrowserWebviewLogicalRect {
+            x: applied_position.x,
+            y: applied_position.y,
+            width: applied_size.width,
+            height: applied_size.height,
+        },
+        scale_factor,
+        native_webview_bounds,
+    };
+    tracing::warn!(
+        "embedded-browser diagnostics action={} requested=({},{} {}x{}) applied=({},{} {}x{}) native_webview={:?} scale_factor={}",
+        payload.action,
+        payload.requested_logical.x,
+        payload.requested_logical.y,
+        payload.requested_logical.width,
+        payload.requested_logical.height,
+        payload.applied_logical.x,
+        payload.applied_logical.y,
+        payload.applied_logical.width,
+        payload.applied_logical.height,
+        payload.native_webview_bounds,
+        payload.scale_factor,
+    );
+    emit_browser_webview_diagnostics(window.app_handle(), &payload);
 }
 
 fn clear_browser_webview_tracker(state: &AppState) -> Result<bool, AppError> {
@@ -221,7 +273,6 @@ fn create_browser_webview(
     bounds: BrowserWebviewBounds,
 ) -> Result<BrowserWebviewState, AppError> {
     let rect = child_webview_rect_from_viewport_bounds(bounds);
-    log_browser_webview_bounds(window, "create", bounds, &rect);
     let platform_kind = crate::platform::PlatformInfo::current().kind;
     let uses_placeholder_url = should_use_placeholder_browser_webview_url(platform_kind);
     let initial_url = browser_webview_initial_url(&url, platform_kind)?;
@@ -273,6 +324,7 @@ fn create_browser_webview(
                 "Failed to create embedded browser webview: {error}"
             ))
         })?;
+    log_browser_webview_bounds(window, "create", bounds, &rect);
 
     let next_state = match tracker_start(state, &app_handle, url.clone()) {
         Ok(next_state) => next_state,
@@ -308,10 +360,10 @@ pub async fn create_or_update_browser_webview(
 
     if let Some(browser_webview) = browser_webview(&window) {
         let rect = child_webview_rect_from_viewport_bounds(bounds);
-        log_browser_webview_bounds(&window, "update", bounds, &rect);
         browser_webview.set_bounds(rect).map_err(|error| {
             browser_webview_error(format!("Failed to update embedded browser bounds: {error}"))
         })?;
+        log_browser_webview_bounds(&window, "update", bounds, &rect);
         let current_url = browser_webview
             .url()
             .map_err(|error| browser_webview_error(format!("Failed to read browser URL: {error}")))?
@@ -343,11 +395,11 @@ pub fn set_browser_webview_bounds(
     let browser_webview = browser_webview(&window)
         .ok_or_else(|| browser_webview_error("Embedded browser webview is not open"))?;
     let rect = child_webview_rect_from_viewport_bounds(bounds);
-    log_browser_webview_bounds(&window, "resize", bounds, &rect);
 
     browser_webview.set_bounds(rect).map_err(|error| {
         browser_webview_error(format!("Failed to update embedded browser bounds: {error}"))
     })?;
+    log_browser_webview_bounds(&window, "resize", bounds, &rect);
     Ok(())
 }
 

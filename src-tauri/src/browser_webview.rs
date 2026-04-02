@@ -5,6 +5,7 @@ pub const BROWSER_WEBVIEW_LABEL: &str = "browser-webview";
 pub const BROWSER_WEBVIEW_STATE_CHANGED_EVENT: &str = "browser-webview-state-changed";
 pub const BROWSER_WEBVIEW_CLOSED_EVENT: &str = "browser-webview-closed";
 pub const BROWSER_WEBVIEW_FALLBACK_EVENT: &str = "browser-webview-fallback";
+pub const BROWSER_WEBVIEW_DIAGNOSTICS_EVENT: &str = "browser-webview-diagnostics";
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct BrowserWebviewState {
@@ -19,6 +20,25 @@ pub struct BrowserWebviewFallbackPayload {
     pub url: String,
     pub opened_external: bool,
     pub error_message: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct BrowserWebviewDiagnosticsPayload {
+    pub action: String,
+    pub requested_logical: BrowserWebviewLogicalRect,
+    pub applied_logical: BrowserWebviewLogicalRect,
+    pub scale_factor: f64,
+    pub native_webview_bounds: Option<BrowserWebviewLogicalRect>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct BrowserWebviewLogicalRect {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -171,6 +191,22 @@ pub fn emit_browser_webview_fallback<R: Runtime>(
     payload: &BrowserWebviewFallbackPayload,
 ) {
     let _ = app_handle.emit(BROWSER_WEBVIEW_FALLBACK_EVENT, payload.clone());
+}
+
+pub fn emit_browser_webview_diagnostics<R: Runtime>(
+    app_handle: &AppHandle<R>,
+    payload: &BrowserWebviewDiagnosticsPayload,
+) {
+    let _ = app_handle.emit(BROWSER_WEBVIEW_DIAGNOSTICS_EVENT, payload.clone());
+}
+
+pub fn browser_webview_diagnostics_enabled() -> bool {
+    matches!(
+        std::env::var("ULTRA_RSS_DEBUG_BROWSER_BOUNDS")
+            .ok()
+            .as_deref(),
+        Some("1") | Some("true") | Some("TRUE")
+    )
 }
 
 pub fn should_trigger_timeout_fallback(
