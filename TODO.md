@@ -2,12 +2,18 @@
 
 ## 自動ワイドスクリーンの仕上げ
 
-- [ ] 自動ワイドスクリーン時の viewer を右側ペインで最大限広く使える UI に調整する
-  - 左ペインは残しつつ、右側の viewer 面積を優先した overlay / stage の inset を詰める
-  - close lane を壊さずに、Tauri の実画面でスクショを見比べながら余白を追い込む
-- [ ] Tauri の実機スクショをループで取りながら、overlay の見た目を image viewer らしく整える
+- [ ] 自動ワイドスクリーン overlay の最終 polish を仕上げる
+  - `×` の hover / active / focus-visible を最終確認し、必要なら 1 段だけ詰める
+  - lane の余白が「close のための逃がし」に見えないか、Tauri 実画面で最終確認する
+  - scrim と stage の境界コントラストを環境差込みで見直し、必要なら半段だけ調整する
+- [ ] overlay の振る舞いを最終判断する
+  - scrim クリックで閉じるかどうかを仕様として確定する
+  - focus trap を入れるか、現状の focus restore で十分かを判断する
+  - 開閉アニメーションを入れるなら、ごく軽い easing のみに留める
+- [ ] Tauri の実機スクショをループで取りながら、overlay の最終見た目を確定する
   - `×` の位置、scrim の濃さ、枠なしの見え方を main 基準で確認する
   - native WebView の bounds と DOM 上の見た目がずれて見えないかを都度確認する
+  - resize / DPI 変更時に再配置が崩れないかを軽く確認する
 - [x] 実機確認用の debug intent を、ノイズの少ない専用導線として作り直す
   - `app:dev:image-viewer` で overlay 直行と mock page 表示まで確認済み
   - 実 provider での最終確認は、overlay UI の見た目が固まってから別途詰める
