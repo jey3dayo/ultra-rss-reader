@@ -11,9 +11,11 @@ type ArticleListHeaderProps = {
   searchQuery: string;
   searchInputRef: RefObject<HTMLInputElement | null>;
   showSidebarButton: boolean;
+  sidebarButtonLabel: string;
+  isSidebarVisible?: boolean;
   displayModeControl?: React.ReactNode;
   onMarkAllRead: () => void;
-  onShowSidebar: () => void;
+  onToggleSidebar: () => void;
   onToggleSearch: () => void;
   onCloseSearch: () => void;
   onSearchQueryChange: (query: string) => void;
@@ -24,9 +26,11 @@ export function ArticleListHeader({
   searchQuery,
   searchInputRef,
   showSidebarButton,
+  sidebarButtonLabel,
+  isSidebarVisible,
   displayModeControl,
   onMarkAllRead,
-  onShowSidebar,
+  onToggleSidebar,
   onToggleSearch,
   onCloseSearch,
   onSearchQueryChange,
@@ -35,22 +39,28 @@ export function ArticleListHeader({
   return (
     <>
       <div className="flex h-12 items-center border-b border-border px-3">
-        <div data-tauri-drag-region aria-hidden="true" className="h-full min-w-0 flex-1" />
         <TooltipProvider>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center">
             {showSidebarButton && (
-              <AppTooltip label={t("show_sidebar")}>
+              <AppTooltip label={sidebarButtonLabel}>
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={onShowSidebar}
-                  aria-label={t("show_sidebar")}
-                  className="text-muted-foreground"
+                  onClick={onToggleSidebar}
+                  aria-label={sidebarButtonLabel}
+                  aria-pressed={isSidebarVisible}
+                  className={cn(
+                    "text-muted-foreground transition-colors duration-200 hover:text-foreground",
+                    isSidebarVisible && "bg-muted text-foreground",
+                  )}
                 >
                   <PanelLeft className="h-4 w-4" />
                 </Button>
               </AppTooltip>
             )}
+          </div>
+          <div data-tauri-drag-region aria-hidden="true" className="h-full min-w-0 flex-1" />
+          <div className="flex items-center gap-2">
             {displayModeControl}
             {displayModeControl && <hr className="mx-0.5 h-5 w-px border-0 bg-border" />}
             <AppTooltip label={t("mark_all_as_read")}>

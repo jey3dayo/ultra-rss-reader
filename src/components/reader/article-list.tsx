@@ -37,7 +37,9 @@ export function ArticleList() {
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selectArticle = useUiStore((s) => s.selectArticle);
   const clearArticle = useUiStore((s) => s.clearArticle);
-  const setFocusedPane = useUiStore((s) => s.setFocusedPane);
+  const openSidebar = useUiStore((s) => s.openSidebar);
+  const toggleSidebar = useUiStore((s) => s.toggleSidebar);
+  const sidebarOpen = useUiStore((s) => s.sidebarOpen);
   const viewMode = useUiStore((s) => s.viewMode);
   const setViewMode = useUiStore((s) => s.setViewMode);
   const layoutMode = useUiStore((s) => s.layoutMode);
@@ -211,6 +213,14 @@ export function ArticleList() {
     setSearchQuery("");
   }, []);
 
+  const handleSidebarToggle = useCallback(() => {
+    if (layoutMode === "wide") {
+      toggleSidebar();
+      return;
+    }
+    openSidebar();
+  }, [layoutMode, openSidebar, toggleSidebar]);
+
   const navigateArticle = useCallback(
     (direction: 1 | -1) => {
       const nextArticleId = getAdjacentArticleId(filteredArticles, selectedArticleId, direction);
@@ -284,12 +294,16 @@ export function ArticleList() {
         showSearch={showSearch}
         searchQuery={searchQuery}
         searchInputRef={searchInputRef}
-        showSidebarButton={layoutMode === "mobile"}
+        showSidebarButton={layoutMode === "mobile" || layoutMode === "wide"}
+        sidebarButtonLabel={
+          layoutMode === "wide" ? t(sidebarOpen ? "hide_sidebar" : "show_sidebar") : t("show_sidebar")
+        }
+        isSidebarVisible={layoutMode === "wide" ? sidebarOpen : undefined}
         displayModeControl={
           <DisplayModeToggleGroup value={currentDisplayMode} onValueChange={handleSetDisplayMode} disabled={!feedId} />
         }
         onMarkAllRead={handleMarkAllRead}
-        onShowSidebar={() => setFocusedPane("sidebar")}
+        onToggleSidebar={handleSidebarToggle}
         onToggleSearch={handleToggleSearch}
         onCloseSearch={handleCloseSearch}
         onSearchQueryChange={setSearchQuery}

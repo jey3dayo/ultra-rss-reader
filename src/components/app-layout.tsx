@@ -64,6 +64,7 @@ export function AppLayout() {
   const layoutMode = useUiStore((state) => state.layoutMode);
   const focusedPane = useUiStore((state) => state.focusedPane);
   const contentMode = useUiStore((state) => state.contentMode);
+  const sidebarOpen = useUiStore((state) => state.sidebarOpen);
   const platformKind = usePlatformStore((state) => state.platform.kind);
   const overlayTitlebar = shouldUseDesktopOverlayTitlebar({
     platformKind,
@@ -71,7 +72,9 @@ export function AppLayout() {
   });
 
   if (layoutMode === "wide") {
-    const panes = resolveLayout(layoutMode, focusedPane, contentMode);
+    const panes = resolveLayout(layoutMode, focusedPane, contentMode).filter(
+      (pane) => pane !== "sidebar" || sidebarOpen,
+    );
     return (
       <div
         className={cn(

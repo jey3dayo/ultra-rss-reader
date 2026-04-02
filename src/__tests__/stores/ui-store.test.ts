@@ -12,6 +12,7 @@ describe("useUiStore", () => {
     expect(s.contentMode).toBe("empty");
     expect(s.selection).toEqual({ type: "all" });
     expect(s.commandPaletteOpen).toBe(false);
+    expect(s.sidebarOpen).toBe(true);
   });
 
   it("openCommandPalette sets true", () => {
@@ -92,5 +93,34 @@ describe("useUiStore", () => {
     useUiStore.getState().retainArticle("art-2");
     useUiStore.getState().selectFeed("feed-1");
     expect(useUiStore.getState().retainedArticleIds).toEqual(new Set());
+  });
+
+  it("toggleSidebar closes the wide sidebar and falls back to the content pane when needed", () => {
+    useUiStore.setState({
+      layoutMode: "wide",
+      focusedPane: "sidebar",
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+    });
+
+    useUiStore.getState().toggleSidebar();
+
+    expect(useUiStore.getState().sidebarOpen).toBe(false);
+    expect(useUiStore.getState().focusedPane).toBe("content");
+  });
+
+  it("openSidebar reopens the sidebar and focuses it", () => {
+    useUiStore.setState({
+      layoutMode: "wide",
+      sidebarOpen: false,
+      focusedPane: "content",
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+    });
+
+    useUiStore.getState().openSidebar();
+
+    expect(useUiStore.getState().sidebarOpen).toBe(true);
+    expect(useUiStore.getState().focusedPane).toBe("sidebar");
   });
 });

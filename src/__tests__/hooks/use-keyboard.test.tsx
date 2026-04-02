@@ -262,6 +262,27 @@ describe("useKeyboard", () => {
     expect(await screen.findByPlaceholderText("Search commands…")).toBeInTheDocument();
   });
 
+  it("pressing Cmd+Backslash toggles the desktop sidebar", async () => {
+    const calls: MockCall[] = [];
+    renderAppShell(calls);
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    expect(useUiStore.getState().sidebarOpen).toBe(true);
+
+    fireEvent.keyDown(window, { key: "\\", metaKey: true });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().sidebarOpen).toBe(false);
+    });
+
+    fireEvent.keyDown(window, { key: "\\", metaKey: true });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().sidebarOpen).toBe(true);
+      expect(useUiStore.getState().focusedPane).toBe("sidebar");
+    });
+  });
+
   it("pressing Cmd+1 switches to the unread filter", async () => {
     const calls: MockCall[] = [];
     renderAppShell(calls);

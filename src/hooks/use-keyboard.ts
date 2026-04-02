@@ -56,8 +56,11 @@ export function useKeyboard() {
         case "clear-article":
           store.clearArticle();
           break;
+        case "toggle-sidebar":
+          store.toggleSidebar();
+          break;
         case "focus-sidebar":
-          store.setFocusedPane("sidebar");
+          store.openSidebar();
           break;
         case "navigate-article":
           window.dispatchEvent(new CustomEvent(APP_EVENTS.navigateArticle, { detail: resolvedAction.direction }));

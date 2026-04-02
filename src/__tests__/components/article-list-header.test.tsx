@@ -13,8 +13,9 @@ describe("ArticleListHeader", () => {
         searchQuery=""
         searchInputRef={createRef<HTMLInputElement>()}
         showSidebarButton={false}
+        sidebarButtonLabel="Show sidebar"
         onMarkAllRead={vi.fn()}
-        onShowSidebar={vi.fn()}
+        onToggleSidebar={vi.fn()}
         onToggleSearch={vi.fn()}
         onCloseSearch={vi.fn()}
         onSearchQueryChange={vi.fn()}
@@ -34,8 +35,9 @@ describe("ArticleListHeader", () => {
         searchQuery=""
         searchInputRef={createRef<HTMLInputElement>()}
         showSidebarButton={false}
+        sidebarButtonLabel="Show sidebar"
         onMarkAllRead={vi.fn()}
-        onShowSidebar={vi.fn()}
+        onToggleSidebar={vi.fn()}
         onToggleSearch={vi.fn()}
         onCloseSearch={vi.fn()}
         onSearchQueryChange={vi.fn()}
@@ -46,9 +48,9 @@ describe("ArticleListHeader", () => {
     expect(screen.getByRole("textbox", { name: "Search articles" })).toHaveAttribute("placeholder", "Search articles…");
   });
 
-  it("shows a mobile sidebar button when requested", async () => {
+  it("shows a sidebar toggle button when requested", async () => {
     const user = userEvent.setup();
-    const onShowSidebar = vi.fn();
+    const onToggleSidebar = vi.fn();
 
     render(
       <ArticleListHeader
@@ -56,8 +58,10 @@ describe("ArticleListHeader", () => {
         searchQuery=""
         searchInputRef={createRef<HTMLInputElement>()}
         showSidebarButton
+        sidebarButtonLabel="Hide sidebar"
+        isSidebarVisible
         onMarkAllRead={vi.fn()}
-        onShowSidebar={onShowSidebar}
+        onToggleSidebar={onToggleSidebar}
         onToggleSearch={vi.fn()}
         onCloseSearch={vi.fn()}
         onSearchQueryChange={vi.fn()}
@@ -65,8 +69,33 @@ describe("ArticleListHeader", () => {
       { wrapper: createWrapper() },
     );
 
-    await user.click(screen.getByRole("button", { name: "Show sidebar" }));
+    const button = screen.getByRole("button", { name: "Hide sidebar" });
+    expect(button).toHaveAttribute("aria-pressed", "true");
 
-    expect(onShowSidebar).toHaveBeenCalledTimes(1);
+    await user.click(button);
+
+    expect(onToggleSidebar).toHaveBeenCalledTimes(1);
+  });
+
+  it("places the sidebar toggle on the left edge of the header", () => {
+    const { container } = render(
+      <ArticleListHeader
+        showSearch={false}
+        searchQuery=""
+        searchInputRef={createRef<HTMLInputElement>()}
+        showSidebarButton
+        sidebarButtonLabel="Hide sidebar"
+        isSidebarVisible
+        onMarkAllRead={vi.fn()}
+        onToggleSidebar={vi.fn()}
+        onToggleSearch={vi.fn()}
+        onCloseSearch={vi.fn()}
+        onSearchQueryChange={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const header = container.firstElementChild;
+    expect(header?.firstElementChild).toContainElement(screen.getByRole("button", { name: "Hide sidebar" }));
   });
 });

@@ -47,9 +47,15 @@ type LayoutMode = "wide" | "compact" | "mobile";
 type FocusedPane = "sidebar" | "list" | "content";
 type ContentMode = "empty" | "reader" | "browser" | "loading";
 export type SettingsCategory = "general" | "appearance" | "reading" | "shortcuts" | "actions" | "data" | "accounts";
+
+function getSidebarHiddenFallbackPane(state: Pick<UiState, "contentMode">): FocusedPane {
+  return state.contentMode === "empty" ? "list" : "content";
+}
+
 interface UiState {
   layoutMode: LayoutMode;
   focusedPane: FocusedPane;
+  sidebarOpen: boolean;
   contentMode: ContentMode;
   selectedAccountId: string | null;
   selection: Selection;
@@ -82,6 +88,9 @@ interface UiState {
 interface UiActions {
   setLayoutMode: (mode: LayoutMode) => void;
   setFocusedPane: (pane: FocusedPane) => void;
+  openSidebar: () => void;
+  closeSidebar: () => void;
+  toggleSidebar: () => void;
   selectAccount: (id: string) => void;
   selectFeed: (feedId: string) => void;
   selectFolder: (folderId: string) => void;
@@ -126,6 +135,7 @@ interface UiActions {
 const initialState: UiState = {
   layoutMode: "wide",
   focusedPane: "sidebar",
+  sidebarOpen: true,
   contentMode: "empty",
   selectedAccountId: null,
   selection: { type: "all" },
@@ -159,6 +169,24 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   ...initialState,
   setLayoutMode: (mode) => set({ layoutMode: mode }),
   setFocusedPane: (pane) => set({ focusedPane: pane }),
+  openSidebar: () => set({ sidebarOpen: true, focusedPane: "sidebar" }),
+  closeSidebar: () =>
+    set((state) => ({
+      sidebarOpen: false,
+      focusedPane: state.focusedPane === "sidebar" ? getSidebarHiddenFallbackPane(state) : state.focusedPane,
+    })),
+  toggleSidebar: () =>
+    set((state) =>
+      state.sidebarOpen
+        ? {
+            sidebarOpen: false,
+            focusedPane: state.focusedPane === "sidebar" ? getSidebarHiddenFallbackPane(state) : state.focusedPane,
+          }
+        : {
+            sidebarOpen: true,
+            focusedPane: "sidebar",
+          },
+    ),
   selectAccount: (id) =>
     set({
       selectedAccountId: id,

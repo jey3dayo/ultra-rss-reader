@@ -59,6 +59,13 @@ describe("App", () => {
 
   it("compact: renders sliding layout with correct tray width", () => {
     useUiStore.setState({ layoutMode: "compact", focusedPane: "sidebar" });
+    usePlatformStore.setState({
+      platform: {
+        kind: "macos",
+        capabilities: defaultCapabilities,
+      },
+      loaded: true,
+    });
 
     const { container } = render(<AppLayout />, { wrapper: createWrapper() });
 
@@ -70,6 +77,13 @@ describe("App", () => {
 
   it("wide: renders conditional panes without sliding tray", () => {
     useUiStore.setState({ layoutMode: "wide", focusedPane: "sidebar" });
+    usePlatformStore.setState({
+      platform: {
+        kind: "macos",
+        capabilities: defaultCapabilities,
+      },
+      loaded: true,
+    });
 
     const { container } = render(<AppLayout />, { wrapper: createWrapper() });
 
@@ -79,6 +93,19 @@ describe("App", () => {
     expect(container.innerHTML).not.toContain("w-[300%]");
     expect(container.innerHTML).not.toContain("w-[calc(100%+280px)]");
     expect(container.innerHTML).toContain("w-[280px]");
+    expect(container.innerHTML).toContain("w-[380px]");
+  });
+
+  it("wide: hides the sidebar pane when the desktop toggle is off", () => {
+    useUiStore.setState({
+      layoutMode: "wide",
+      focusedPane: "content",
+      sidebarOpen: false,
+    });
+
+    const { container } = render(<AppLayout />, { wrapper: createWrapper() });
+
+    expect(container.innerHTML).not.toContain("w-[280px]");
     expect(container.innerHTML).toContain("w-[380px]");
   });
 

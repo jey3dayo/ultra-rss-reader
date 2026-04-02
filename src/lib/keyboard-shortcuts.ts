@@ -21,6 +21,7 @@ export type KeyboardAction =
   | { type: "open-command-palette" }
   | { type: "emit"; eventName: (typeof keyboardEvents)[keyof typeof keyboardEvents] }
   | { type: "set-view-mode"; mode: ViewMode }
+  | { type: "toggle-sidebar" }
   | { type: "close-browser" }
   | { type: "clear-article" }
   | { type: "focus-sidebar" }
@@ -39,6 +40,7 @@ export type ShortcutActionId =
   | "prev_feed"
   | "reload_webview"
   | "focus_sidebar"
+  | "toggle_sidebar"
   | "toggle_read"
   | "toggle_star"
   | "open_in_app_browser"
@@ -60,6 +62,7 @@ export type ShortcutLabelKey =
   | "shortcuts.prev_feed"
   | "shortcuts.reload_webview"
   | "shortcuts.focus_sidebar"
+  | "shortcuts.toggle_sidebar"
   | "shortcuts.toggle_read"
   | "shortcuts.toggle_star"
   | "shortcuts.view_in_browser"
@@ -123,6 +126,12 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
     labelKey: "shortcuts.focus_sidebar",
     categoryKey: "shortcuts.category_navigation",
     defaultKey: "u",
+  },
+  {
+    id: "toggle_sidebar",
+    labelKey: "shortcuts.toggle_sidebar",
+    categoryKey: "shortcuts.category_navigation",
+    defaultKey: "⌘+\\",
   },
   { id: "toggle_read", labelKey: "shortcuts.toggle_read", categoryKey: "shortcuts.category_actions", defaultKey: "m" },
   { id: "toggle_star", labelKey: "shortcuts.toggle_star", categoryKey: "shortcuts.category_actions", defaultKey: "s" },
@@ -308,6 +317,8 @@ function resolveActionForId(
       return Result.fail("no_action");
     case "focus_sidebar":
       return Result.succeed({ type: "focus-sidebar" });
+    case "toggle_sidebar":
+      return Result.succeed({ type: "toggle-sidebar" });
     case "next_article":
       return Result.succeed({ type: "navigate-article", direction: 1 });
     case "prev_article":

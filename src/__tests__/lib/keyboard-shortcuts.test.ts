@@ -38,6 +38,21 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrap(result)).toEqual({ type: "open-command-palette" });
   });
 
+  it("resolves Cmd+Backslash to toggle the sidebar", () => {
+    const result = resolveKeyboardAction({
+      key: "\\",
+      metaKey: true,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrap(result)).toEqual({ type: "toggle-sidebar" });
+  });
+
   it("resolves Cmd+1 to show unread articles", () => {
     const result = resolveKeyboardAction({
       key: "1",
@@ -211,6 +226,12 @@ describe("keyboard shortcut resolver", () => {
     expect(map.get("⌘+1")).toBe("show_unread");
     expect(map.get("⌘+2")).toBe("show_all");
     expect(map.get("⌘+3")).toBe("show_starred");
+  });
+
+  it("builds the sidebar toggle shortcut into the default key map", () => {
+    const map = buildKeyToActionMap({});
+
+    expect(map.get("⌘+\\")).toBe("toggle_sidebar");
   });
 
   it("does not fall back to the plain key when a command-modified shortcut is unmapped", () => {
