@@ -1,6 +1,7 @@
-import { ChevronRight, Rss, Thermometer } from "lucide-react";
+import { ChevronRight, Monitor, Thermometer } from "lucide-react";
 import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
+import { FreshRssLogoIcon, InoreaderLogoIcon } from "@/components/icons/provider-icons";
 import { SectionHeading } from "@/components/settings/settings-components";
 import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import { cn } from "@/lib/utils";
@@ -27,8 +28,8 @@ const SERVICE_CATEGORIES: ServiceCategory[] = [
     services: [
       {
         kind: "Local",
-        icon: Rss,
-        iconBg: "bg-gradient-to-br from-orange-500 to-orange-600",
+        icon: Monitor,
+        iconBg: "bg-orange-500",
         nameKey: "account.local_feeds",
         descKey: "account.local_desc",
       },
@@ -39,8 +40,8 @@ const SERVICE_CATEGORIES: ServiceCategory[] = [
     services: [
       {
         kind: "FreshRss",
-        icon: Rss,
-        iconBg: "bg-gradient-to-br from-green-500 to-green-600",
+        icon: FreshRssLogoIcon,
+        iconBg: "bg-[#0062BE]",
         nameKey: "account.freshrss",
         descKey: "account.freshrss_desc",
       },
@@ -59,8 +60,8 @@ const SERVICE_CATEGORIES: ServiceCategory[] = [
     services: [
       {
         kind: "Inoreader",
-        icon: Rss,
-        iconBg: "bg-gradient-to-br from-violet-500 to-violet-600",
+        icon: InoreaderLogoIcon,
+        iconBg: "bg-[#1875F3]",
         nameKey: "account.inoreader",
         descKey: "account.inoreader_desc",
       },
