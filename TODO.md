@@ -8,9 +8,9 @@
 - [ ] Tauri の実機スクショをループで取りながら、overlay の見た目を image viewer らしく整える
   - `×` の位置、scrim の濃さ、枠なしの見え方を main 基準で確認する
   - native WebView の bounds と DOM 上の見た目がずれて見えないかを都度確認する
-- [ ] 実機確認用の debug intent を、ノイズの少ない専用導線として作り直す
-  - `app:dev` の stderr を汚さず、起動直後に同じ article / overlay 状態へ入れる形にする
-  - 中途半端な env / query 依存は避け、失敗時も通常起動へ戻れるようにする
+- [x] 実機確認用の debug intent を、ノイズの少ない専用導線として作り直す
+  - `app:dev:image-viewer` で overlay 直行と mock page 表示まで確認済み
+  - 実 provider での最終確認は、overlay UI の見た目が固まってから別途詰める
 
 ## UI ブラウザ散策メモ
 
