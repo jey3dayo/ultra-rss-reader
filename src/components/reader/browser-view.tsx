@@ -395,15 +395,23 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
   // never competes with the affordance again.
   const stageClass =
     scope === "main-stage"
-      ? "absolute bottom-2 left-12 right-2 top-12 rounded-none bg-background shadow-[0_24px_60px_rgba(0,0,0,0.28)]"
+      ? "absolute bottom-2 left-14 right-2 top-14 z-0 rounded-none bg-background shadow-[0_24px_60px_rgba(0,0,0,0.24)]"
       : "absolute inset-0 rounded-none bg-background";
 
   const overlay = (
     <div
       ref={overlayRef}
       data-testid="browser-overlay-shell"
-      className="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center bg-black/88 backdrop-blur-sm"
+      className="pointer-events-auto absolute inset-0 z-20 isolate flex items-center justify-center overflow-hidden bg-black/88 backdrop-blur-sm"
     >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.9)_0%,rgba(0,0,0,0.885)_16%,rgba(0,0,0,0.87)_100%)]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_15rem_at_10rem_0.5rem,rgba(255,255,255,0.04),transparent_58%)]"
+      />
       {showDiagnostics && (layoutDiagnostics || nativeDiagnostics) ? (
         <div
           data-testid="browser-overlay-diagnostics"

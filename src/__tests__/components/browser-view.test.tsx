@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
@@ -178,6 +178,24 @@ describe("BrowserView", () => {
     expect(screen.getByRole("button", { name: "Close browser overlay" })).toBeInTheDocument();
     expect(screen.queryByTestId("browser-toolbar")).not.toBeInTheDocument();
     expect(screen.queryByText("https://example.com/article")).not.toBeInTheDocument();
+  });
+
+  it("does not close when clicking the overlay lane outside the close button", async () => {
+    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    const chrome = screen.getByTestId("browser-overlay-chrome");
+    fireEvent.click(chrome);
+
+    expect(useUiStore.getState().contentMode).toBe("browser");
+    expect(useUiStore.getState().browserUrl).toBe("https://example.com/article");
   });
 
   it("sends updated embedded browser bounds when the host resizes", async () => {
