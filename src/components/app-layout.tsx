@@ -88,12 +88,20 @@ export function AppLayout() {
             <Sidebar />
           </div>
         )}
-        {panes.includes("list") && (
-          <div className="w-[380px] shrink-0">
-            <ArticleList />
-          </div>
-        )}
-        {panes.includes("content") && (
+        <div data-testid="main-stage" className="relative flex min-w-0 flex-1">
+          <div data-browser-overlay-root="" className="pointer-events-none absolute inset-0 z-20" />
+          {panes.includes("list") && (
+            <div className="w-[380px] shrink-0">
+              <ArticleList />
+            </div>
+          )}
+          {panes.includes("content") && (
+            <div className="min-w-0 flex-1">
+              <ArticleView />
+            </div>
+          )}
+        </div>
+        {!panes.includes("list") && !panes.includes("content") && (
           <div className="min-w-0 flex-1">
             <ArticleView />
           </div>

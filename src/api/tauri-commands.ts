@@ -50,6 +50,7 @@ import {
   renameTagArgs,
   SyncResultSchema,
   searchArticlesArgs,
+  setBrowserWebviewBoundsArgs,
   setPreferenceArgs,
   syncAccountArgs,
   type TagDto,
@@ -65,6 +66,7 @@ import {
   updateFeedDisplayModeArgs,
   updateFeedFolderArgs,
 } from "@/api/schemas";
+import type { BrowserWebviewBounds } from "@/lib/browser-webview";
 
 const BrowserWebviewStateSchema = z.object({
   url: z.string(),
@@ -265,12 +267,15 @@ export const openInBrowser = (url: string, background?: boolean) =>
 export const checkBrowserEmbedSupport = (url: string) =>
   safeInvoke("check_browser_embed_support", { response: z.boolean(), args: checkBrowserEmbedSupportArgs }, { url });
 
-export const createOrUpdateBrowserWebview = (url: string) =>
+export const createOrUpdateBrowserWebview = (url: string, bounds: BrowserWebviewBounds) =>
   safeInvoke(
     "create_or_update_browser_webview",
     { response: BrowserWebviewStateSchema, args: createOrUpdateBrowserWebviewArgs },
-    { url },
+    { url, bounds },
   );
+
+export const setBrowserWebviewBounds = (bounds: BrowserWebviewBounds) =>
+  safeInvoke("set_browser_webview_bounds", { response: z.null(), args: setBrowserWebviewBoundsArgs }, { bounds });
 
 export const goBackBrowserWebview = () =>
   safeInvoke("go_back_browser_webview", { response: BrowserWebviewStateSchema });

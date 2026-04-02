@@ -1,21 +1,19 @@
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
-import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
   type AppError,
   type BrowserWebviewState,
   closeBrowserWebview,
   createOrUpdateBrowserWebview,
-  goBackBrowserWebview,
-  goForwardBrowserWebview,
-  openInBrowser,
-  reloadBrowserWebview,
+  setBrowserWebviewBounds,
 } from "@/api/tauri-commands";
-import { IconToolbarButton } from "@/components/shared/icon-toolbar-control";
 import { BROWSER_WINDOW_EVENTS, BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
+import { type BrowserWebviewBounds, toBrowserWebviewBounds } from "@/lib/browser-webview";
 import { useUiStore } from "@/stores/ui-store";
+import { BrowserOverlayChrome } from "./browser-overlay-chrome";
 
 function initialBrowserState(url: string): BrowserWebviewState {
   return {
@@ -65,37 +63,37 @@ type BrowserWebviewFallbackPayload = {
   error_message: string | null;
 };
 
-export function BrowserView() {
+type BrowserViewProps = {
+  scope?: "content-pane" | "main-stage";
+  onCloseOverlay: () => void;
+  labels: {
+    closeOverlay: string;
+  };
+};
+
+export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: BrowserViewProps) {
   const { t } = useTranslation("reader");
   const browserUrl = useUiStore((s) => s.browserUrl);
   const closeBrowser = useUiStore((s) => s.closeBrowser);
   const showToast = useUiStore((s) => s.showToast);
   const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
   const browserStateRef = useRef<BrowserWebviewState | null>(null);
+  const hostRef = useRef<HTMLDivElement | null>(null);
   const listenerReadyRef = useRef<Promise<void> | null>(null);
   const unlistenRef = useRef<Array<() => void>>([]);
   const fallbackInFlightRef = useRef(false);
+  const webviewCreatedRef = useRef(false);
+  const createInFlightRef = useRef(false);
+  const pendingBoundsRef = useRef<BrowserWebviewBounds | null>(null);
 
-  const fallbackToExternalBrowser = useCallback(
-    async (url: string, error: AppError) => {
+  const fallbackToReader = useCallback(
+    async (_url: string, error: AppError) => {
       if (fallbackInFlightRef.current) {
         return;
       }
       fallbackInFlightRef.current = true;
-      console.error("Failed to open dedicated browser window:", error);
-      const fallbackResult = await openInBrowser(url, false);
-
-      Result.pipe(
-        fallbackResult,
-        Result.inspect(() => {
-          showToast(t("browser_embed_fallback"));
-        }),
-        Result.inspectError((fallbackError) => {
-          console.error("Failed to open fallback external browser:", fallbackError);
-          showToast(fallbackError.message);
-        }),
-      );
-
+      console.error("Failed to open embedded browser webview:", error);
+      showToast(t("browser_embed_fallback"));
       closeBrowser();
     },
     [closeBrowser, showToast, t],
@@ -113,10 +111,10 @@ export function BrowserView() {
       }),
       listen<BrowserWebviewFallbackPayload>(BROWSER_WINDOW_EVENTS.fallback, ({ payload }) => {
         if (cancelled) return;
-        if (payload.opened_external) {
-          showToast(t("browser_embed_fallback"));
-        } else if (payload.error_message) {
+        if (payload.error_message) {
           showToast(payload.error_message);
+        } else if (payload.opened_external) {
+          showToast(t("browser_embed_fallback"));
         }
         useUiStore.getState().closeBrowser();
       }),
@@ -144,40 +142,90 @@ export function BrowserView() {
     };
   }, [showToast, t]);
 
-  const syncBrowserWindow = useCallback(
+  const syncBrowserBounds = useCallback(async (bounds: BrowserWebviewBounds) => {
+    const result = await setBrowserWebviewBounds(bounds);
+    if (Result.isFailure(result)) {
+      console.error("Failed to sync embedded browser bounds:", Result.unwrapError(result));
+    }
+  }, []);
+
+  const flushPendingBounds = useCallback(
     async (requestedUrl: string) => {
-      const result = await createOrUpdateBrowserWebview(requestedUrl);
+      if (
+        createInFlightRef.current ||
+        !webviewCreatedRef.current ||
+        useUiStore.getState().browserUrl !== requestedUrl
+      ) {
+        return;
+      }
 
-      Result.pipe(
-        result,
-        Result.inspect((state) => {
-          if (useUiStore.getState().browserUrl !== requestedUrl) {
-            return;
-          }
+      const pendingBounds = pendingBoundsRef.current;
+      if (!pendingBounds) {
+        return;
+      }
 
-          const previousState = browserStateRef.current;
-          if (
-            previousState &&
-            (previousState.url !== requestedUrl || (!previousState.is_loading && state.is_loading))
-          ) {
-            return;
-          }
-
-          browserStateRef.current = state;
-          setBrowserState(state);
-        }),
-        Result.inspectError(async (error) => {
-          await fallbackToExternalBrowser(requestedUrl, error);
-        }),
-      );
+      pendingBoundsRef.current = null;
+      await syncBrowserBounds(pendingBounds);
     },
-    [fallbackToExternalBrowser],
+    [syncBrowserBounds],
+  );
+
+  const syncBrowserWebview = useCallback(
+    async (requestedUrl: string, mode: "create" | "resize") => {
+      const rect = hostRef.current?.getBoundingClientRect();
+      const bounds = rect ? toBrowserWebviewBounds(rect) : null;
+      if (!bounds) {
+        return;
+      }
+
+      if (mode === "resize") {
+        if (createInFlightRef.current || !webviewCreatedRef.current) {
+          pendingBoundsRef.current = bounds;
+          return;
+        }
+
+        await syncBrowserBounds(bounds);
+        return;
+      }
+
+      if (createInFlightRef.current) {
+        pendingBoundsRef.current = bounds;
+        return;
+      }
+
+      createInFlightRef.current = true;
+      const result = await createOrUpdateBrowserWebview(requestedUrl, bounds);
+      createInFlightRef.current = false;
+
+      if (Result.isFailure(result)) {
+        pendingBoundsRef.current = null;
+        await fallbackToReader(requestedUrl, Result.unwrapError(result));
+        return;
+      }
+
+      if (useUiStore.getState().browserUrl !== requestedUrl) {
+        pendingBoundsRef.current = null;
+        return;
+      }
+
+      webviewCreatedRef.current = true;
+      const state = Result.unwrap(result);
+      const previousState = browserStateRef.current;
+      if (!previousState || (previousState.url === requestedUrl && (previousState.is_loading || !state.is_loading))) {
+        browserStateRef.current = state;
+        setBrowserState(state);
+      }
+
+      await flushPendingBounds(requestedUrl);
+    },
+    [fallbackToReader, flushPendingBounds, syncBrowserBounds],
   );
 
   useEffect(() => {
-    let cancelled = false;
-
     fallbackInFlightRef.current = false;
+    webviewCreatedRef.current = false;
+    createInFlightRef.current = false;
+    pendingBoundsRef.current = null;
 
     if (!browserUrl) return undefined;
 
@@ -186,16 +234,46 @@ export function BrowserView() {
       browserStateRef.current = nextState;
       return nextState;
     });
+  }, [browserUrl]);
 
-    void (listenerReadyRef.current ?? Promise.resolve()).then(() => {
-      if (cancelled) return;
-      void syncBrowserWindow(browserUrl);
-    });
+  useLayoutEffect(() => {
+    if (!browserUrl || !hostRef.current) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const syncBounds = (mode: "create" | "resize") => {
+      void (listenerReadyRef.current ?? Promise.resolve()).then(() => {
+        if (cancelled || useUiStore.getState().browserUrl !== browserUrl) {
+          return;
+        }
+
+        void syncBrowserWebview(browserUrl, mode);
+      });
+    };
+
+    syncBounds("create");
+
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => {
+            syncBounds("resize");
+          });
+    observer?.observe(hostRef.current);
+
+    const handleResize = () => {
+      syncBounds("resize");
+    };
+    window.addEventListener("resize", handleResize);
 
     return () => {
       cancelled = true;
+      observer?.disconnect();
+      window.removeEventListener("resize", handleResize);
     };
-  }, [browserUrl, syncBrowserWindow]);
+  }, [browserUrl, syncBrowserWebview]);
 
   useEffect(() => {
     return () => {
@@ -203,16 +281,13 @@ export function BrowserView() {
         Result.pipe(
           result,
           Result.inspectError((error) => {
-            console.error("Failed to close browser window:", error);
+            console.error("Failed to close embedded browser webview:", error);
           }),
         );
       });
     };
   }, []);
 
-  const currentUrl = browserState?.url ?? browserUrl ?? "";
-  const canGoBack = browserState?.can_go_back ?? false;
-  const canGoForward = browserState?.can_go_forward ?? false;
   const isLoading = browserUrl ? (browserState?.is_loading ?? true) : false;
 
   useEffect(() => {
@@ -226,83 +301,47 @@ export function BrowserView() {
         return;
       }
 
-      void fallbackToExternalBrowser(browserUrl, {
+      void fallbackToReader(browserUrl, {
         type: "UserVisible",
-        message: `Timed out waiting for dedicated browser window to finish loading: ${browserUrl}`,
+        message: `Timed out waiting for embedded browser webview to finish loading: ${browserUrl}`,
       });
     }, BROWSER_WINDOW_LOAD_TIMEOUT_MS);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [browserUrl, fallbackToExternalBrowser, isLoading]);
+  }, [browserUrl, fallbackToReader, isLoading]);
 
   if (!browserUrl) return null;
 
-  const handleBrowserCommand = async (command: () => Promise<Result.Result<BrowserWebviewState, AppError>>) => {
-    const result = await command();
-    Result.pipe(
-      result,
-      Result.inspect((state) => {
-        browserStateRef.current = state;
-        setBrowserState(state);
-      }),
-      Result.inspectError(async (error) => {
-        await fallbackToExternalBrowser(currentUrl, error);
-      }),
-    );
-  };
+  const overlayChromePositionClass = "left-4 top-2";
+  const stageClass =
+    scope === "main-stage"
+      ? "absolute bottom-4 left-12 right-4 top-10 rounded-none bg-background"
+      : "absolute inset-0 rounded-none bg-background";
 
-  return (
-    <div data-testid="browser-toolbar" className="flex h-12 items-center gap-3 border-b border-border px-4">
-      <div className="min-w-0 flex flex-1 items-center gap-2">
-        <p title={currentUrl} className="truncate text-sm text-foreground">
-          {currentUrl}
-        </p>
-        {isLoading && (
-          <span
-            data-testid="browser-loading-status"
-            aria-live="polite"
-            className="shrink-0 rounded-full border border-border/70 bg-muted/60 px-2 py-0.5 text-[11px] leading-none font-medium text-muted-foreground"
-          >
-            {t("browser_loading")}
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center gap-1">
-        <IconToolbarButton
-          label={t("web_back")}
-          disabled={!canGoBack}
-          onClick={() => {
-            void handleBrowserCommand(goBackBrowserWebview);
-          }}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </IconToolbarButton>
-        <IconToolbarButton
-          label={t("web_forward")}
-          disabled={!canGoForward}
-          onClick={() => {
-            void handleBrowserCommand(goForwardBrowserWebview);
-          }}
-        >
-          <ArrowRight className="h-4 w-4" />
-        </IconToolbarButton>
-        <IconToolbarButton
-          label={t("reload_page")}
-          onClick={() => {
-            setBrowserState((state) => {
-              const nextState = state ? { ...state, is_loading: true } : initialBrowserState(browserUrl);
-              browserStateRef.current = nextState;
-              return nextState;
-            });
-            void handleBrowserCommand(reloadBrowserWebview);
-          }}
-        >
-          <RotateCcw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-        </IconToolbarButton>
+  const overlay = (
+    <div
+      data-testid="browser-overlay-shell"
+      className="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center bg-background/96 backdrop-blur-md"
+    >
+      <BrowserOverlayChrome
+        closeLabel={labels.closeOverlay}
+        onClose={onCloseOverlay}
+        className={overlayChromePositionClass}
+      />
+      <div data-testid="browser-overlay-stage" className={stageClass}>
+        <div ref={hostRef} data-testid="browser-webview-host" className="h-full w-full bg-background" />
       </div>
     </div>
   );
+
+  if (scope === "main-stage" && typeof document !== "undefined") {
+    const portalTarget = document.querySelector<HTMLElement>("[data-browser-overlay-root]");
+    if (portalTarget) {
+      return createPortal(overlay, portalTarget);
+    }
+  }
+
+  return overlay;
 }

@@ -52,6 +52,7 @@
   "browser_embed_hint": "アプリ内ブラウザで表示しています。",
   "browser_embed_fallback": "外部ブラウザで開きました。",
   "close_browser_embed": "アプリ内ブラウザを閉じる",
+  "close_browser_overlay": "ブラウザオーバーレイを閉じる",
   "browser_embed_blocked": "このページはアプリ内ブラウザで表示できません。",
   "browser_embed_blocked_hint": "外部ブラウザで開いて確認してください。",
   "remove_tag": "タグ {{name}} を削除",

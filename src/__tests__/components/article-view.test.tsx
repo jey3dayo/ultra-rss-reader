@@ -132,7 +132,7 @@ describe("ArticleView", () => {
     expect(useUiStore.getState().browserUrl).toBeNull();
   });
 
-  it("opens the external browser from the article toolbar browser button", async () => {
+  it("opens the embedded browser overlay from the article toolbar browser button", async () => {
     const calls: MockCall[] = [];
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
@@ -153,7 +153,15 @@ describe("ArticleView", () => {
           ];
         case "get_article_tags":
           return [{ id: "tag-1", name: "Later", color: null }];
-        case "open_in_browser":
+        case "create_or_update_browser_webview":
+          return {
+            url: args.url,
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+          };
+        case "set_browser_webview_bounds":
+        case "close_browser_webview":
         case "update_feed_display_mode":
           return null;
         default:
@@ -176,15 +184,111 @@ describe("ArticleView", () => {
     await user.click(openBrowserButton);
 
     await waitFor(() => {
-      expect(calls).toContainEqual({
-        cmd: "open_in_browser",
-        args: { url: "https://example.com/1", background: false },
-      });
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
     });
 
-    expect(useUiStore.getState().contentMode).toBe("reader");
-    expect(useUiStore.getState().browserUrl).toBeNull();
-    expect(await screen.findByRole("button", { name: "Open in Browser" })).toHaveAttribute("aria-pressed", "false");
+    expect(calls.map(({ cmd }) => cmd)).not.toContain("open_in_browser");
+  });
+
+  it("automatically opens the browser overlay when the selected article feed uses widescreen mode", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_feeds":
+          return sampleFeeds
+            .filter((feed) => feed.account_id === args.accountId)
+            .map((feed) => (feed.id === "feed-1" ? { ...feed, display_mode: "widescreen" } : feed));
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        case "create_or_update_browser_webview":
+          return {
+            url: args.url,
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+          };
+        case "set_browser_webview_bounds":
+        case "close_browser_webview":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+    usePreferencesStore.setState({
+      prefs: { reader_view: "normal" },
+      loaded: true,
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+    });
+  });
+
+  it("closes only the current article overlay when the overlay close button is pressed", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_feeds":
+          return sampleFeeds
+            .filter((feed) => feed.account_id === args.accountId)
+            .map((feed) => (feed.id === "feed-1" ? { ...feed, display_mode: "widescreen" } : feed));
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        case "create_or_update_browser_webview":
+          return {
+            url: args.url,
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+          };
+        case "set_browser_webview_bounds":
+        case "close_browser_webview":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+
+    const user = userEvent.setup();
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("browser");
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Close browser overlay" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(useUiStore.getState().browserUrl).toBeNull();
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+    });
   });
 
   it("opens the external browser from the article title when open_links is default_browser", async () => {
@@ -287,8 +391,8 @@ describe("ArticleView", () => {
     expect(useUiStore.getState().contentMode).toBe("reader");
     expect(useUiStore.getState().browserUrl).toBeNull();
 
-    const feedButton = await screen.findByRole("button", { name: "Tech Blog" });
-    await user.click(feedButton);
+    const feedButton = screen.getByRole("button", { name: "Tech Blog" });
+    feedButton.click();
 
     await waitFor(() => {
       expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
@@ -455,7 +559,7 @@ describe("ArticleView", () => {
     });
   });
 
-  it("keeps all-items selection in reader mode even for widescreen feeds", async () => {
+  it("auto opens browser mode for all-items selection when the current feed is widescreen", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_account_articles":
@@ -487,10 +591,10 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    await screen.findByRole("heading", { level: 1, name: "First Article" });
-
-    expect(useUiStore.getState().contentMode).toBe("reader");
-    expect(useUiStore.getState().browserUrl).toBeNull();
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+    });
   });
 
   it("keeps explicit 3-pane feeds in reader mode even when the global default is widescreen", async () => {
@@ -559,7 +663,7 @@ describe("ArticleView", () => {
       contentMode: "reader",
     });
     usePreferencesStore.setState({
-      prefs: { reader_view: "on" },
+      prefs: { reader_view: "off" },
       loaded: true,
     });
 

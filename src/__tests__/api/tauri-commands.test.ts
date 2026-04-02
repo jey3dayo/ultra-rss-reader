@@ -12,9 +12,12 @@ import {
   listFeeds,
   markArticleRead,
 } from "@/api/tauri-commands";
+import type { BrowserWebviewBounds } from "@/lib/browser-webview";
 import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 describe("tauri-commands with mockIPC", () => {
+  const browserBounds: BrowserWebviewBounds = { x: 380, y: 48, width: 900, height: 720 };
+
   beforeEach(() => {
     setupTauriMocks();
   });
@@ -92,7 +95,7 @@ describe("tauri-commands with mockIPC", () => {
 
   describe("browser webview commands", () => {
     it("creates or updates the dedicated browser webview window", async () => {
-      const value = Result.unwrap(await createOrUpdateBrowserWebview("https://example.com/article"));
+      const value = Result.unwrap(await createOrUpdateBrowserWebview("https://example.com/article", browserBounds));
 
       expect(value).toEqual({
         url: "https://example.com/article",

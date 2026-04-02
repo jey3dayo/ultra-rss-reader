@@ -3,8 +3,11 @@ import { clearMocks } from "@tauri-apps/api/mocks";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createOrUpdateBrowserWebview } from "@/api/tauri-commands";
 import { setupDevMocks } from "@/dev-mocks";
+import type { BrowserWebviewBounds } from "@/lib/browser-webview";
 
 describe("setupDevMocks", () => {
+  const browserBounds: BrowserWebviewBounds = { x: 380, y: 48, width: 900, height: 720 };
+
   beforeEach(() => {
     clearMocks();
     delete window.__TAURI_INTERNALS__;
@@ -17,7 +20,7 @@ describe("setupDevMocks", () => {
   it("returns a settled browser state for browser-only UI checks", async () => {
     setupDevMocks();
 
-    const result = await createOrUpdateBrowserWebview("https://example.com/article");
+    const result = await createOrUpdateBrowserWebview("https://example.com/article", browserBounds);
     const state = Result.unwrap(result);
 
     expect(state).toEqual({

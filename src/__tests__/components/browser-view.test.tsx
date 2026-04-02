@@ -1,6 +1,5 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
 import { useUiStore } from "@/stores/ui-store";
@@ -25,22 +24,95 @@ const { listenMock, registeredHandlers } = vi.hoisted(() => {
   };
 });
 
+type MockHostRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+const { ResizeObserverMock, resizeObserverCallbacks } = vi.hoisted(() => {
+  const callbacks = new Set<() => void>();
+
+  class ResizeObserverMock {
+    private readonly callback: () => void;
+
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = () => callback([], this as unknown as ResizeObserver);
+      callbacks.add(this.callback);
+    }
+
+    observe() {}
+
+    disconnect() {
+      callbacks.delete(this.callback);
+    }
+
+    unobserve() {}
+  }
+
+  return {
+    ResizeObserverMock,
+    resizeObserverCallbacks: callbacks,
+  };
+});
+
+vi.stubGlobal("ResizeObserver", ResizeObserverMock);
+
 vi.mock("@tauri-apps/api/event", () => ({
   listen: listenMock,
 }));
 
-function BrowserViewHarness() {
+let hostRect: MockHostRect = { left: 0, top: 0, width: 0, height: 0 };
+
+function mockHostRect(nextRect: MockHostRect) {
+  hostRect = nextRect;
+}
+
+function createDomRect(rect: MockHostRect): DOMRect {
+  return {
+    x: rect.left,
+    y: rect.top,
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height,
+    right: rect.left + rect.width,
+    bottom: rect.top + rect.height,
+    toJSON: () => rect,
+  } as DOMRect;
+}
+
+function BrowserViewHarness({ scope = "main-stage" }: { scope?: "content-pane" | "main-stage" } = {}) {
   const contentMode = useUiStore((s) => s.contentMode);
-  return contentMode === "browser" ? <BrowserView /> : null;
+  return (
+    <div data-browser-overlay-root="" className="relative h-[900px] w-[1400px]">
+      {contentMode === "browser" ? (
+        <BrowserView
+          scope={scope}
+          onCloseOverlay={() => useUiStore.getState().closeBrowser()}
+          labels={{
+            closeOverlay: "Close browser overlay",
+          }}
+        />
+      ) : null}
+    </div>
+  );
 }
 
 describe("BrowserView", () => {
   let commands: BrowserCommand[];
+  let getBoundingClientRectSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     commands = [];
     listenMock.mockClear();
     registeredHandlers.clear();
+    resizeObserverCallbacks.clear();
+    mockHostRect({ left: 0, top: 0, width: 0, height: 0 });
+    getBoundingClientRectSpy = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(() => createDomRect(hostRect));
     useUiStore.setState(useUiStore.getInitialState());
     setupTauriMocks((cmd, args) => {
       commands.push({ cmd, args });
@@ -52,38 +124,23 @@ describe("BrowserView", () => {
           is_loading: true,
         };
       }
-      if (cmd === "go_back_browser_webview") {
-        return {
-          url: "https://example.com/article",
-          can_go_back: false,
-          can_go_forward: true,
-          is_loading: false,
-        };
+      if (cmd === "set_browser_webview_bounds") {
+        return null;
       }
-      if (cmd === "go_forward_browser_webview") {
-        return {
-          url: "https://example.com/article",
-          can_go_back: true,
-          can_go_forward: false,
-          is_loading: false,
-        };
-      }
-      if (cmd === "reload_browser_webview") {
-        return {
-          url: "https://example.com/article",
-          can_go_back: false,
-          can_go_forward: false,
-          is_loading: false,
-        };
-      }
-      if (cmd === "close_browser_webview" || cmd === "open_in_browser") {
+      if (cmd === "close_browser_webview") {
         return null;
       }
       return null;
     });
   });
 
-  it("opens the dedicated browser window with a compact fixed-height toolbar", async () => {
+  afterEach(() => {
+    getBoundingClientRectSpy.mockRestore();
+  });
+
+  it("creates the embedded browser webview with host bounds", async () => {
+    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+
     useUiStore.setState({
       selectedArticleId: "art-1",
       contentMode: "browser",
@@ -92,67 +149,19 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-    expect(screen.getByText("https://example.com/article")).toHaveAttribute("title", "https://example.com/article");
-    expect(screen.getByTestId("browser-toolbar")).toHaveClass("h-12");
-    expect(screen.getByTestId("browser-loading-status")).toHaveTextContent("Loading");
-    expect(screen.getByTestId("browser-loading-status")).toHaveAttribute("aria-live", "polite");
-    expect(screen.queryByText("Browser View")).not.toBeInTheDocument();
-    expect(screen.queryByText("If this takes too long, open it in your external browser.")).not.toBeInTheDocument();
-
     await waitFor(() => {
-      expect(commands.some(({ cmd }) => cmd === "create_or_update_browser_webview")).toBe(true);
-    });
-
-    expect(commands.some(({ cmd }) => cmd === "set_browser_webview_bounds")).toBe(false);
-
-    await waitFor(() => {
-      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.stateChanged)).toBe(true);
-      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.closed)).toBe(true);
-    });
-
-    await act(async () => {
-      registeredHandlers.get(BROWSER_WINDOW_EVENTS.stateChanged)?.({
-        payload: {
+      expect(commands).toContainEqual({
+        cmd: "create_or_update_browser_webview",
+        args: {
           url: "https://example.com/article",
-          can_go_back: false,
-          can_go_forward: false,
-          is_loading: false,
+          bounds: { x: 380, y: 48, width: 900, height: 720 },
         },
       });
     });
-
-    expect(screen.queryByTestId("browser-loading-status")).not.toBeInTheDocument();
-    expect(screen.queryByText("Showing in a separate window.")).not.toBeInTheDocument();
   });
 
-  it("registers both browser window listeners before opening the dedicated window", async () => {
-    let listenersReadyWhenCreate = false;
-
-    setupTauriMocks((cmd, args) => {
-      if (cmd === "create_or_update_browser_webview") {
-        listenersReadyWhenCreate =
-          registeredHandlers.has(BROWSER_WINDOW_EVENTS.stateChanged) &&
-          registeredHandlers.has(BROWSER_WINDOW_EVENTS.closed);
-        registeredHandlers.get(BROWSER_WINDOW_EVENTS.stateChanged)?.({
-          payload: {
-            url: String(args.url),
-            can_go_back: false,
-            can_go_forward: false,
-            is_loading: false,
-          },
-        });
-        return {
-          url: args.url,
-          can_go_back: false,
-          can_go_forward: false,
-          is_loading: true,
-        };
-      }
-      if (cmd === "close_browser_webview" || cmd === "open_in_browser") {
-        return null;
-      }
-      return null;
-    });
+  it("renders only the host surface and close chrome for the overlay", async () => {
+    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
 
     useUiStore.setState({
       selectedArticleId: "art-1",
@@ -162,50 +171,17 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-    await waitFor(() => {
-      expect(listenersReadyWhenCreate).toBe(true);
-    });
-
-    await waitFor(() => {
-      expect(screen.queryByTestId("browser-loading-status")).not.toBeInTheDocument();
-    });
+    expect(screen.getByTestId("browser-overlay-shell")).toBeInTheDocument();
+    expect(screen.getByTestId("browser-overlay-stage")).toBeInTheDocument();
+    expect(screen.getByTestId("browser-webview-host")).toBeInTheDocument();
+    expect(screen.getByTestId("browser-overlay-chrome")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close browser overlay" })).toBeInTheDocument();
+    expect(screen.queryByTestId("browser-toolbar")).not.toBeInTheDocument();
+    expect(screen.queryByText("https://example.com/article")).not.toBeInTheDocument();
   });
 
-  it("updates the visible URL and enabled history controls from browser state events", async () => {
-    useUiStore.setState({
-      selectedArticleId: "art-1",
-      contentMode: "browser",
-      browserUrl: "https://example.com/1",
-    });
-
-    render(<BrowserViewHarness />, { wrapper: createWrapper() });
-
-    await waitFor(() => {
-      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.stateChanged)).toBe(true);
-    });
-
-    await act(async () => {
-      registeredHandlers.get(BROWSER_WINDOW_EVENTS.stateChanged)?.({
-        payload: {
-          url: "https://example.com/2",
-          can_go_back: true,
-          can_go_forward: false,
-          is_loading: false,
-        },
-      });
-    });
-
-    expect(screen.getByText("https://example.com/2")).toBeInTheDocument();
-
-    const backButton = await screen.findByRole("button", { name: "Web back" });
-    const forwardButton = await screen.findByRole("button", { name: "Web forward" });
-    expect(backButton).toBeEnabled();
-    expect(forwardButton).toBeDisabled();
-    expect(screen.queryByRole("button", { name: "Open in external browser" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Close browser window" })).not.toBeInTheDocument();
-  });
-
-  it("does not re-navigate the dedicated browser window when an iframe URL is reported", async () => {
+  it("sends updated embedded browser bounds when the host resizes", async () => {
+    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
     useUiStore.setState({
       selectedArticleId: "art-1",
       contentMode: "browser",
@@ -215,170 +191,36 @@ describe("BrowserView", () => {
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.stateChanged)).toBe(true);
-    });
-
-    await waitFor(() => {
-      expect(commands.filter(({ cmd }) => cmd === "create_or_update_browser_webview")).toHaveLength(1);
-    });
-
-    const iframeUrl = "https://tpc.googlesyndication.com/safeframe/1-0-0/html/container.html";
-
-    await act(async () => {
-      registeredHandlers.get(BROWSER_WINDOW_EVENTS.stateChanged)?.({
-        payload: {
-          url: iframeUrl,
-          can_go_back: true,
-          can_go_forward: false,
-          is_loading: true,
-        },
-      });
-    });
-
-    expect(screen.getByText("https://example.com/article")).toBeInTheDocument();
-    expect(screen.queryByText(iframeUrl)).not.toBeInTheDocument();
-    expect(screen.getByTestId("browser-loading-status")).toHaveTextContent("Loading");
-    expect(commands.filter(({ cmd }) => cmd === "create_or_update_browser_webview")).toHaveLength(1);
-  });
-
-  it("preserves history button state when ignoring subresource loading URLs", async () => {
-    useUiStore.setState({
-      selectedArticleId: "art-1",
-      contentMode: "browser",
-      browserUrl: "https://togetter.com/li/123456",
-    });
-
-    const user = userEvent.setup();
-    render(<BrowserViewHarness />, { wrapper: createWrapper() });
-
-    await waitFor(() => {
-      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.stateChanged)).toBe(true);
-    });
-
-    await act(async () => {
-      registeredHandlers.get(BROWSER_WINDOW_EVENTS.stateChanged)?.({
-        payload: {
-          url: "https://togetter.com/li/123456",
-          can_go_back: false,
-          can_go_forward: false,
-          is_loading: false,
-        },
-      });
-    });
-
-    await act(async () => {
-      registeredHandlers.get(BROWSER_WINDOW_EVENTS.stateChanged)?.({
-        payload: {
-          url: "https://gum.criteo.com/syncframe?origin=criteoPrebidAdapter",
-          can_go_back: true,
-          can_go_forward: false,
-          is_loading: true,
-        },
-      });
-    });
-
-    const backButton = await screen.findByRole("button", { name: "Web back" });
-    const forwardButton = await screen.findByRole("button", { name: "Web forward" });
-    expect(backButton).toBeEnabled();
-    expect(forwardButton).toBeDisabled();
-
-    await user.click(backButton);
-
-    expect(commands.map(({ cmd }) => cmd)).toContain("go_back_browser_webview");
-  });
-
-  it("dispatches browser navigation commands to Tauri", async () => {
-    useUiStore.setState({
-      selectedArticleId: "art-1",
-      contentMode: "browser",
-      browserUrl: "https://example.com/1",
-    });
-
-    const user = userEvent.setup();
-    render(<BrowserViewHarness />, { wrapper: createWrapper() });
-
-    await waitFor(() => {
-      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.stateChanged)).toBe(true);
-    });
-
-    await act(async () => {
-      registeredHandlers.get(BROWSER_WINDOW_EVENTS.stateChanged)?.({
-        payload: {
-          url: "https://example.com/2",
-          can_go_back: true,
-          can_go_forward: true,
-          is_loading: false,
-        },
-      });
-    });
-
-    await user.click(await screen.findByRole("button", { name: "Web back" }));
-    await user.click(await screen.findByRole("button", { name: "Web forward" }));
-    await user.click(await screen.findByRole("button", { name: "Reload page" }));
-
-    expect(commands.map(({ cmd }) => cmd)).toEqual(
-      expect.arrayContaining(["go_back_browser_webview", "go_forward_browser_webview", "reload_browser_webview"]),
-    );
-  });
-
-  it("falls back to the external browser when the dedicated window cannot be created", async () => {
-    setupTauriMocks((cmd, args) => {
-      commands.push({ cmd, args });
-      if (cmd === "create_or_update_browser_webview") {
-        throw { type: "UserVisible", message: "window creation failed" };
-      }
-      if (cmd === "open_in_browser" || cmd === "close_browser_webview") {
-        return null;
-      }
-      return null;
-    });
-
-    useUiStore.setState({
-      selectedArticleId: "art-1",
-      contentMode: "browser",
-      browserUrl: "https://example.com/article",
-    });
-
-    render(<BrowserViewHarness />, { wrapper: createWrapper() });
-
-    await waitFor(() => {
-      expect(commands.map(({ cmd }) => cmd)).toContain("open_in_browser");
-    });
-
-    expect(useUiStore.getState().toastMessage).toEqual({ message: "Opened in your external browser" });
-    expect(useUiStore.getState().contentMode).toBe("reader");
-    expect(useUiStore.getState().browserUrl).toBeNull();
-  });
-
-  it("closes browser mode and shows a toast when the dedicated window falls back externally", async () => {
-    useUiStore.setState({
-      selectedArticleId: "art-1",
-      contentMode: "browser",
-      browserUrl: "https://example.com/article",
-    });
-
-    render(<BrowserViewHarness />, { wrapper: createWrapper() });
-
-    await waitFor(() => {
-      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.fallback)).toBe(true);
-    });
-
-    await act(async () => {
-      registeredHandlers.get(BROWSER_WINDOW_EVENTS.fallback)?.({
-        payload: {
+      expect(commands).toContainEqual({
+        cmd: "create_or_update_browser_webview",
+        args: {
           url: "https://example.com/article",
-          opened_external: true,
-          error_message: null,
+          bounds: { x: 380, y: 48, width: 900, height: 720 },
         },
       });
     });
 
-    expect(useUiStore.getState().toastMessage).toEqual({ message: "Opened in your external browser" });
-    expect(useUiStore.getState().contentMode).toBe("reader");
-    expect(useUiStore.getState().browserUrl).toBeNull();
+    commands = [];
+    mockHostRect({ left: 420, top: 60, width: 840, height: 680 });
+
+    await act(async () => {
+      for (const callback of resizeObserverCallbacks) {
+        callback();
+      }
+    });
+
+    await waitFor(() => {
+      expect(commands).toContainEqual({
+        cmd: "set_browser_webview_bounds",
+        args: {
+          bounds: { x: 420, y: 60, width: 840, height: 680 },
+        },
+      });
+    });
   });
 
-  it("leaves browser mode when the dedicated browser window closes natively", async () => {
+  it("closes browser mode when the embedded browser webview closes natively", async () => {
+    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
     useUiStore.setState({
       selectedArticleId: "art-1",
       contentMode: "browser",
@@ -401,7 +243,8 @@ describe("BrowserView", () => {
     });
   });
 
-  it("closes the browser window once on unmount", async () => {
+  it("closes the browser webview once on unmount", async () => {
+    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
     useUiStore.setState({
       selectedArticleId: "art-1",
       contentMode: "browser",

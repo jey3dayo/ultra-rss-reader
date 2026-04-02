@@ -52,6 +52,7 @@
   "browser_embed_hint": "Showing in the in-app browser.",
   "browser_embed_fallback": "Opened in your external browser",
   "close_browser_embed": "Close embedded browser",
+  "close_browser_overlay": "Close browser overlay",
   "browser_embed_blocked": "This page can't be shown in the in-app browser.",
   "browser_embed_blocked_hint": "Open it in your external browser instead.",
   "remove_tag": "Remove tag {{name}}",

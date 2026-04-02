@@ -162,6 +162,8 @@ const defaultHandler: MockHandler = (cmd, args) => {
         can_go_forward: false,
         is_loading: true,
       };
+    case "set_browser_webview_bounds":
+      return null;
     case "go_back_browser_webview":
     case "go_forward_browser_webview":
     case "reload_browser_webview":
