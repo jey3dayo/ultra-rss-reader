@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { createFolder, type AppError } from "@/api/tauri-commands";
+import { type AppError, createFolder } from "@/api/tauri-commands";
 
 export async function createFolderIfNeeded({
   accountId,

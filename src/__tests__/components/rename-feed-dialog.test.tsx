@@ -8,6 +8,9 @@ import { sampleFeeds, setupTauriMocks, teardownTauriMocks } from "../../../tests
 
 vi.mock("@/components/reader/rename-feed-dialog-view", () => ({
   RenameFeedDialogView: (props: {
+    title: string;
+    onTitleChange: (value: string) => void;
+    onDisplayModeChange: (value: string) => void;
     folderSelectProps?: {
       canCreateFolder: boolean;
       isCreatingFolder: boolean;
@@ -15,29 +18,53 @@ vi.mock("@/components/reader/rename-feed-dialog-view", () => ({
       onValueChange: (value: string) => void;
       onNewFolderNameChange: (value: string) => void;
     };
+    labels: {
+      titleField: string;
+      save: string;
+      cancel: string;
+    };
     onOpenChange: (open: boolean) => void;
     onSubmit: () => void;
-  }) => (
-    <div>
-      <div data-testid="folder-create-enabled">{String(props.folderSelectProps?.canCreateFolder)}</div>
-      <button type="button" onClick={() => props.folderSelectProps?.onValueChange("__new__")}>
-        New folder
-      </button>
-      {props.folderSelectProps?.isCreatingFolder && (
-        <input
-          aria-label="Folder name"
-          value={props.folderSelectProps.newFolderName}
-          onChange={(event) => props.folderSelectProps?.onNewFolderNameChange(event.target.value)}
-        />
-      )}
-      <button type="button" onClick={props.onSubmit}>
-        Save
-      </button>
-      <button type="button" onClick={() => props.onOpenChange(false)}>
-        Cancel
-      </button>
-    </div>
-  ),
+    open: boolean;
+  }) => {
+    if (!props.open) return null;
+
+    return (
+      <div>
+        <label>
+          {props.labels.titleField}
+          <input
+            aria-label={props.labels.titleField}
+            value={props.title}
+            onChange={(event) => props.onTitleChange(event.target.value)}
+          />
+        </label>
+        <button type="button" onClick={() => props.onDisplayModeChange("widescreen")}>
+          Set widescreen
+        </button>
+        <div data-testid="folder-create-enabled">{String(props.folderSelectProps?.canCreateFolder)}</div>
+        <button type="button" onClick={() => props.folderSelectProps?.onValueChange("folder-2")}>
+          Move to folder 2
+        </button>
+        <button type="button" onClick={() => props.folderSelectProps?.onValueChange("__new__")}>
+          New folder
+        </button>
+        {props.folderSelectProps?.isCreatingFolder && (
+          <input
+            aria-label="Folder name"
+            value={props.folderSelectProps.newFolderName}
+            onChange={(event) => props.folderSelectProps?.onNewFolderNameChange(event.target.value)}
+          />
+        )}
+        <button type="button" onClick={props.onSubmit}>
+          {props.labels.save}
+        </button>
+        <button type="button" onClick={() => props.onOpenChange(false)}>
+          {props.labels.cancel}
+        </button>
+      </div>
+    );
+  },
 }));
 
 const sampleFolders = [
@@ -143,5 +170,59 @@ describe("RenameDialog", () => {
 
     expect(calls.find((call) => call.cmd === "create_folder")).toBeUndefined();
     expect(calls.find((call) => call.cmd === "update_feed_folder")).toBeUndefined();
+  });
+
+  it("continues renaming and display-mode updates when folder update fails", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+    const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
+    const onOpenChange = vi.fn();
+    const feed = { ...sampleFeeds[0], folder_id: "folder-1" };
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_folders":
+          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+        case "update_feed_folder":
+          throw { type: "UserVisible", message: "folder update failed" };
+        case "rename_feed":
+        case "update_feed_display_mode":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RenameDialog feed={feed} open={true} onOpenChange={onOpenChange} />
+      </QueryClientProvider>,
+    );
+
+    await user.clear(screen.getByLabelText("Title"));
+    await user.type(screen.getByLabelText("Title"), "Renamed Feed");
+    await user.click(screen.getByRole("button", { name: "Move to folder 2" }));
+    await user.click(screen.getByRole("button", { name: "Set widescreen" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "rename_feed",
+        args: { feedId: "feed-1", title: "Renamed Feed" },
+      });
+      expect(calls).toContainEqual({
+        cmd: "update_feed_display_mode",
+        args: { feedId: "feed-1", displayMode: "widescreen" },
+      });
+      expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["feeds"] });
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
   });
 });

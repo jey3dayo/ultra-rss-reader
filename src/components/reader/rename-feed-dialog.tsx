@@ -3,8 +3,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
-import { renameFeed, updateFeedDisplayMode, updateFeedFolder } from "@/api/tauri-commands";
+import { renameFeed, updateFeedDisplayMode } from "@/api/tauri-commands";
 import { useFolders } from "@/hooks/use-folders";
+import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import { useUiStore } from "@/stores/ui-store";
 import { createFolderIfNeeded } from "./feed-folder-flow";
 import { RenameFeedDialogView } from "./rename-feed-dialog-view";
@@ -38,6 +39,7 @@ export function RenameDialog({
   const qc = useQueryClient();
   const showToast = useUiStore((s) => s.showToast);
   const { data: folders } = useFolders(feed.account_id);
+  const updateFeedFolderMutation = useUpdateFeedFolder();
   const folderLabelId = useId();
   const displayModeOptions = [
     { value: "inherit", label: t("display_mode_default") },
@@ -66,7 +68,6 @@ export function RenameDialog({
       return;
     }
     setLoading(true);
-
     const resolvedFolderId = await createFolderIfNeeded({
       accountId: feed.account_id,
       selectedFolderId,
@@ -81,28 +82,35 @@ export function RenameDialog({
       return;
     }
 
-    if (trimmed !== feed.title) {
+    const didRename = trimmed !== feed.title;
+    const didMoveFolder = resolvedFolderId !== feed.folder_id;
+    const didUpdateDisplayMode = displayMode !== (feed.display_mode ?? "inherit");
+    let folderUpdateSucceeded = false;
+
+    if (didRename) {
       Result.pipe(
         await renameFeed(feed.id, trimmed),
         Result.inspectError((e) => showToast(t("failed_to_rename", { message: e.message }))),
       );
     }
 
-    if (resolvedFolderId !== feed.folder_id) {
-      Result.pipe(
-        await updateFeedFolder(feed.id, resolvedFolderId),
-        Result.inspectError((e) => showToast(t("failed_to_update_folder", { message: e.message }))),
-      );
+    if (didMoveFolder) {
+      folderUpdateSucceeded = await updateFeedFolderMutation
+        .mutateAsync({ feedId: feed.id, folderId: resolvedFolderId })
+        .then(() => true)
+        .catch(() => false);
     }
 
-    if (displayMode !== (feed.display_mode ?? "inherit")) {
+    if (didUpdateDisplayMode) {
       Result.pipe(
         await updateFeedDisplayMode(feed.id, displayMode),
         Result.inspectError((e) => showToast(t("failed_to_update_display_mode", { message: e.message }))),
       );
     }
 
-    qc.invalidateQueries({ queryKey: ["feeds"] });
+    if ((didRename || didUpdateDisplayMode) && !folderUpdateSucceeded) {
+      qc.invalidateQueries({ queryKey: ["feeds"] });
+    }
     qc.invalidateQueries({ queryKey: ["folders"] });
     setLoading(false);
     onOpenChange(false);
