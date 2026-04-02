@@ -430,6 +430,7 @@ export function FeedTreeView({
   const suppressHandleClickTimeoutRef = useRef<number | null>(null);
   const activeVisualDropTarget = isPointerTracking ? pointerHoverTarget : activeDropTarget;
   const activeUnfoldered = canDragFeeds && activeVisualDropTarget?.kind === "unfoldered";
+  const showUnfolderedDropZone = canDragFeeds && (draggedFeedId !== null || pointerDragPreview !== null);
 
   const clearSuppressHandleClickTimer = useCallback(() => {
     if (suppressHandleClickTimeoutRef.current !== null) {
@@ -642,7 +643,13 @@ export function FeedTreeView({
   return (
     <>
       <div className="space-y-0.5 px-2">
-        <UnfolderedDropZone enabled={canDragFeeds} active={activeUnfoldered} onDropToUnfoldered={onDropToUnfoldered} />
+        {showUnfolderedDropZone ? (
+          <UnfolderedDropZone
+            enabled={canDragFeeds}
+            active={activeUnfoldered}
+            onDropToUnfoldered={onDropToUnfoldered}
+          />
+        ) : null}
         {folders.map((folder) => (
           <FolderSection
             key={folder.id}

@@ -414,6 +414,54 @@ describe("FeedTreeView", () => {
     expect(screen.getByTestId("unfoldered-drop-zone")).toHaveClass("bg-sidebar-accent/60");
   });
 
+  it("does not show the unfoldered drop zone until a drag is active", () => {
+    render(
+      <FeedTreeView
+        isOpen={true}
+        canDragFeeds={true}
+        draggedFeedId={null}
+        activeDropTarget={null}
+        folders={[
+          {
+            id: "folder-1",
+            name: "Work",
+            accountId: "acc-1",
+            sortOrder: 0,
+            unreadCount: 0,
+            isExpanded: false,
+            feeds: [],
+          },
+        ]}
+        unfolderedFeeds={[
+          {
+            id: "feed-1",
+            accountId: "acc-1",
+            folderId: null,
+            title: "Alpha",
+            url: "https://example.com/alpha.xml",
+            siteUrl: "https://example.com/alpha",
+            unreadCount: 1,
+            displayMode: "normal",
+            isSelected: false,
+            grayscaleFavicon: false,
+          },
+        ]}
+        onToggleFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        onDragStartFeed={vi.fn()}
+        onDragEnterFolder={vi.fn()}
+        onDragEnterUnfoldered={vi.fn()}
+        onDropToFolder={vi.fn()}
+        onDropToUnfoldered={vi.fn()}
+        onDragEnd={vi.fn()}
+        displayFavicons={false}
+        emptyState={{ kind: "message", message: "No feeds yet" }}
+      />,
+    );
+
+    expect(screen.queryByTestId("unfoldered-drop-zone")).not.toBeInTheDocument();
+  });
+
   it("hides the unfoldered drop zone when dragging is disabled", () => {
     render(
       <FeedTreeView
