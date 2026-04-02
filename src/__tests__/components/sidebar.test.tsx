@@ -342,6 +342,28 @@ describe("Sidebar", () => {
     expect(trigger).toHaveFocus();
   });
 
+  it("keeps the account switcher visible on mobile when restoring a saved account", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "mobile",
+      focusedPane: "sidebar",
+    });
+    usePreferencesStore.setState({
+      prefs: {
+        selected_account_id: "acc-2",
+      },
+      loaded: true,
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedAccountId).toBe("acc-2");
+      expect(useUiStore.getState().focusedPane).toBe("sidebar");
+    });
+    expect(screen.getByRole("button", { name: /FreshRSS/ })).toBeInTheDocument();
+  });
+
   it("hides configurable sections while keeping accounts and feeds visible", async () => {
     usePreferencesStore.setState({
       prefs: {

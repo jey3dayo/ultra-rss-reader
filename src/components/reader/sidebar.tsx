@@ -76,8 +76,10 @@ export function Sidebar() {
     return () => document.removeEventListener("mousedown", handler);
   }, [showAccountList]);
   const { data: accounts } = useAccounts();
+  const layoutMode = useUiStore((s) => s.layoutMode);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectAccount = useUiStore((s) => s.selectAccount);
+  const setFocusedPane = useUiStore((s) => s.setFocusedPane);
   const selection = useUiStore((s) => s.selection);
   const viewMode = useUiStore((s) => s.viewMode);
   const selectFeed = useUiStore((s) => s.selectFeed);
@@ -122,9 +124,12 @@ export function Sidebar() {
   // Restore saved account or auto-select first account
   useEffect(() => {
     if (selectedAccountId || !accounts || accounts.length === 0) return;
-    const restored = savedAccountId && accounts.some((a) => a.id === savedAccountId);
-    selectAccount(restored ? savedAccountId : accounts[0].id);
-  }, [selectedAccountId, accounts, selectAccount, savedAccountId]);
+    const restoredAccountId = savedAccountId && accounts.some((a) => a.id === savedAccountId) ? savedAccountId : null;
+    selectAccount(restoredAccountId ?? accounts[0].id);
+    if (restoredAccountId && layoutMode === "mobile") {
+      setFocusedPane("sidebar");
+    }
+  }, [selectedAccountId, accounts, layoutMode, selectAccount, savedAccountId, setFocusedPane]);
 
   const selectedAccount = accounts?.find((a) => a.id === selectedAccountId);
 
