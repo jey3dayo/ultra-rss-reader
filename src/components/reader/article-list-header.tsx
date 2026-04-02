@@ -13,7 +13,7 @@ type ArticleListHeaderProps = {
   showSidebarButton: boolean;
   sidebarButtonLabel: string;
   isSidebarVisible?: boolean;
-  displayModeControl?: React.ReactNode;
+  feedModeControl?: React.ReactNode;
   onMarkAllRead: () => void;
   onToggleSidebar: () => void;
   onToggleSearch: () => void;
@@ -28,7 +28,7 @@ export function ArticleListHeader({
   showSidebarButton,
   sidebarButtonLabel,
   isSidebarVisible,
-  displayModeControl,
+  feedModeControl,
   onMarkAllRead,
   onToggleSidebar,
   onToggleSearch,
@@ -61,8 +61,8 @@ export function ArticleListHeader({
           </div>
           <div data-tauri-drag-region aria-hidden="true" className="h-full min-w-0 flex-1" />
           <div className="flex items-center gap-2">
-            {displayModeControl}
-            {displayModeControl && <hr className="mx-0.5 h-5 w-px border-0 bg-border" />}
+            {feedModeControl}
+            {feedModeControl && <hr className="mx-0.5 h-5 w-px border-0 bg-border" />}
             <AppTooltip label={t("mark_all_as_read")}>
               <Button
                 variant="ghost"

@@ -10,10 +10,16 @@ const meta = {
   args: {
     openSiteLabel: "Open site",
     markAllReadLabel: "Mark all as read",
+    displayModeLabel: "Display mode",
+    normalModeLabel: "Normal",
+    autoWidescreenModeLabel: "Auto widescreen",
+    isAutoWidescreen: false,
     unsubscribeLabel: "Unsubscribe…",
     editLabel: "Edit…",
     onOpenSite: fn(),
     onMarkAllRead: fn(),
+    onSetNormalMode: fn(),
+    onSetAutoWidescreenMode: fn(),
     onUnsubscribe: fn(),
     onEdit: fn(),
   },
@@ -33,3 +39,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+
+export const AutoWidescreen: Story = {
+  args: {
+    isAutoWidescreen: true,
+  },
+};

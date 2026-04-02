@@ -61,6 +61,58 @@ describe("ArticleList", () => {
     expect(useUiStore.getState().focusedPane).toBe("sidebar");
   });
 
+  it("shows a single auto widescreen toggle instead of the 3-pane toggle group", async () => {
+    let feeds = sampleFeeds.filter((feed) => feed.account_id === "acc-1");
+    const commands: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+
+    setupTauriMocks((cmd, args) => {
+      commands.push({ cmd, args });
+      switch (cmd) {
+        case "list_feeds":
+          return feeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            feeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_articles_by_tag":
+          return [];
+        case "search_articles":
+          return [];
+        case "update_feed_display_mode":
+          feeds = feeds.map((feed) =>
+            feed.id === args.feedId ? { ...feed, display_mode: String(args.displayMode) } : feed,
+          );
+          return null;
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+
+    const user = userEvent.setup();
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    const autoWidescreenButton = await screen.findByRole("button", { name: "Auto widescreen" });
+    expect(autoWidescreenButton).toHaveAttribute("aria-pressed", "false");
+    expect(autoWidescreenButton).toHaveClass("data-[pressed]:text-primary");
+    expect(screen.queryByRole("button", { name: "3-Pane" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Widescreen" })).not.toBeInTheDocument();
+
+    await user.click(autoWidescreenButton);
+
+    await waitFor(() => {
+      expect(commands).toContainEqual({
+        cmd: "update_feed_display_mode",
+        args: { feedId: "feed-1", displayMode: "widescreen" },
+      });
+      expect(screen.getByRole("button", { name: "Auto widescreen" })).toHaveAttribute("aria-pressed", "true");
+    });
+  });
+
   it("renders feed articles even when account-wide loading is still pending", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {

@@ -1,14 +1,13 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
-import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { updateFeedDisplayMode } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import { useAccountArticles, useArticles, useMarkAllRead, useSearchArticles } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useArticlesByTag } from "@/hooks/use-tags";
+import { useUpdateFeedDisplayMode } from "@/hooks/use-update-feed-display-mode";
 import {
   calculateArticleNavigationScrollTop,
   getAdjacentArticleId,
@@ -26,8 +25,8 @@ import type { ArticleGroupsViewGroup } from "./article-groups-view";
 import { ArticleListFooter } from "./article-list-footer";
 import { ArticleListHeader } from "./article-list-header";
 import { ArticleListScreenView } from "./article-list-screen-view";
+import { AutoWidescreenToggle } from "./auto-widescreen-toggle";
 import { contextMenuStyles } from "./context-menu-styles";
-import { DisplayModeToggleGroup, type ReaderDisplayMode } from "./display-mode-toggle-group";
 
 export function ArticleList() {
   const { t } = useTranslation("reader");
@@ -53,8 +52,8 @@ export function ArticleList() {
   const recentlyReadIds = useUiStore((s) => s.recentlyReadIds);
   const retainedArticleIds = useUiStore((s) => s.retainedArticleIds);
   const confirmMarkAllRead = useConfirmMarkAllRead();
-  const qc = useQueryClient();
   const closeBrowser = useUiStore((s) => s.closeBrowser);
+  const updateFeedMode = useUpdateFeedDisplayMode();
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
   const accountListScopeId = feedId || tagId ? null : selectedAccountId;
@@ -168,23 +167,18 @@ export function ArticleList() {
   }, [selection, scrollToTopOnChange]);
 
   const selectedFeed = useMemo(() => feeds?.find((f) => f.id === feedId), [feeds, feedId]);
-  const currentDisplayMode: ReaderDisplayMode = resolveEffectiveDisplayMode(selectedFeed?.display_mode, readerViewPref);
+  const currentDisplayMode = resolveEffectiveDisplayMode(selectedFeed?.display_mode, readerViewPref);
+  const isAutoWidescreen = currentDisplayMode === "widescreen";
 
   const handleSetDisplayMode = useCallback(
-    async (nextMode: ReaderDisplayMode) => {
+    async (nextMode: "normal" | "widescreen") => {
       if (!feedId) return;
-      Result.pipe(
-        await updateFeedDisplayMode(feedId, nextMode),
-        Result.inspect(() => {
-          void qc.invalidateQueries({ queryKey: ["feeds"] });
-          if (nextMode === "normal") {
-            closeBrowser();
-          }
-        }),
-        Result.inspectError((e) => console.error("Failed to update display mode:", e)),
-      );
+      Result.pipe(await updateFeedMode(feedId, nextMode));
+      if (nextMode === "normal") {
+        closeBrowser();
+      }
     },
-    [feedId, qc, closeBrowser],
+    [closeBrowser, feedId, updateFeedMode],
   );
 
   const doMarkAllRead = useCallback(() => {
@@ -299,8 +293,15 @@ export function ArticleList() {
           layoutMode === "wide" ? t(sidebarOpen ? "hide_sidebar" : "show_sidebar") : t("show_sidebar")
         }
         isSidebarVisible={layoutMode === "wide" ? sidebarOpen : undefined}
-        displayModeControl={
-          <DisplayModeToggleGroup value={currentDisplayMode} onValueChange={handleSetDisplayMode} disabled={!feedId} />
+        feedModeControl={
+          feedId ? (
+            <AutoWidescreenToggle
+              pressed={isAutoWidescreen}
+              onPressedChange={(nextPressed) => {
+                void handleSetDisplayMode(nextPressed ? "widescreen" : "normal");
+              }}
+            />
+          ) : null
         }
         onMarkAllRead={handleMarkAllRead}
         onToggleSidebar={handleSidebarToggle}

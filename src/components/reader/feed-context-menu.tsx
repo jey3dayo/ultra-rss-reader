@@ -6,6 +6,8 @@ import type { FeedDto } from "@/api/tauri-commands";
 import { deleteFeed, openInBrowser } from "@/api/tauri-commands";
 import { useMarkFeedRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
+import { useUpdateFeedDisplayMode } from "@/hooks/use-update-feed-display-mode";
+import { resolveEffectiveDisplayMode } from "@/lib/article-view";
 import { extractSiteHost } from "@/lib/feed";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -21,9 +23,12 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
   const showToast = useUiStore((s) => s.showToast);
   const confirmMarkAllRead = useConfirmMarkAllRead();
   const markFeedRead = useMarkFeedRead();
+  const updateFeedMode = useUpdateFeedDisplayMode();
+  const readerViewPref = usePreferencesStore((s) => s.prefs.reader_view ?? "normal");
 
   const hostResult = extractSiteHost(feed.site_url, feed.url);
   const siteHost = Result.isSuccess(hostResult) ? Result.unwrap(hostResult) : Result.unwrapError(hostResult);
+  const isAutoWidescreen = resolveEffectiveDisplayMode(feed.display_mode, readerViewPref) === "widescreen";
 
   const handleOpenSite = () => {
     const url = feed.site_url || feed.url;
@@ -63,10 +68,24 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
       <FeedContextMenuView
         openSiteLabel={t("open_site", { host: siteHost })}
         markAllReadLabel={t("mark_all_as_read")}
+        displayModeLabel={t("display_mode")}
+        normalModeLabel={t("display_mode_normal_simple")}
+        autoWidescreenModeLabel={t("auto_widescreen")}
+        isAutoWidescreen={isAutoWidescreen}
         unsubscribeLabel={t("unsubscribe_ellipsis")}
         editLabel={t("edit_ellipsis")}
         onOpenSite={handleOpenSite}
         onMarkAllRead={handleMarkAllRead}
+        onSetNormalMode={() => {
+          if (isAutoWidescreen) {
+            void updateFeedMode(feed.id, "normal");
+          }
+        }}
+        onSetAutoWidescreenMode={() => {
+          if (!isAutoWidescreen) {
+            void updateFeedMode(feed.id, "widescreen");
+          }
+        }}
         onUnsubscribe={() => setShowUnsubscribeDialog(true)}
         onEdit={() => setShowRenameDialog(true)}
       />
