@@ -1,7 +1,7 @@
 import { Menu } from "@base-ui/react/menu";
 import { Result } from "@praha/byethrow";
 import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
@@ -380,6 +380,8 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
   const toggleStar = useToggleStar();
   const [dismissedOverlayArticleId, setDismissedOverlayArticleId] = useState<string | null>(null);
   const [manualOverlayArticleId, setManualOverlayArticleId] = useState<string | null>(null);
+  const overlayFocusReturnTargetRef = useRef<HTMLElement | null>(null);
+  const wasBrowserOpenRef = useRef(false);
   const isBrowserOpen = contentMode === "browser";
   const autoWidescreenEnabled = resolveEffectiveDisplayMode(feed?.display_mode, readerViewPref) === "widescreen";
   const devIntent = readDevIntent();
@@ -420,6 +422,12 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
 
     if (shouldShowBrowserOverlay) {
       if (!isBrowserOpen || browserUrl !== intendedBrowserUrl) {
+        if (!isBrowserOpen && typeof document !== "undefined") {
+          const activeElement = document.activeElement;
+          if (activeElement instanceof HTMLElement && activeElement !== document.body) {
+            overlayFocusReturnTargetRef.current = activeElement;
+          }
+        }
         openBrowser(intendedBrowserUrl);
       }
       return;
@@ -429,6 +437,24 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
       closeBrowser();
     }
   }, [browserUrl, closeBrowser, intendedBrowserUrl, isBrowserOpen, openBrowser, shouldShowBrowserOverlay]);
+
+  useEffect(() => {
+    if (wasBrowserOpenRef.current && !isBrowserOpen && typeof document !== "undefined") {
+      const previousTarget = overlayFocusReturnTargetRef.current;
+      overlayFocusReturnTargetRef.current = null;
+
+      requestAnimationFrame(() => {
+        if (previousTarget?.isConnected && !previousTarget.hasAttribute("disabled")) {
+          previousTarget.focus();
+          return;
+        }
+
+        document.querySelector<HTMLElement>('[data-browser-overlay-return-focus="auto-widescreen"]')?.focus();
+      });
+    }
+
+    wasBrowserOpenRef.current = isBrowserOpen;
+  }, [isBrowserOpen]);
 
   const handleCloseView = useCallback(() => {
     clearArticle();
@@ -447,6 +473,12 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
       return;
     }
 
+    if (typeof document !== "undefined") {
+      const activeElement = document.activeElement;
+      if (activeElement instanceof HTMLElement && activeElement !== document.body) {
+        overlayFocusReturnTargetRef.current = activeElement;
+      }
+    }
     setDismissedOverlayArticleId(null);
     setManualOverlayArticleId(article.id);
     openBrowser(intendedBrowserUrl);

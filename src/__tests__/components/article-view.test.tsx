@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ArticleView } from "@/components/reader/article-view";
@@ -288,6 +288,59 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().contentMode).toBe("reader");
       expect(useUiStore.getState().browserUrl).toBeNull();
       expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+    });
+  });
+
+  it("closes the browser overlay on Escape and restores focus to the trigger", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        case "create_or_update_browser_webview":
+          return {
+            url: args.url,
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+          };
+        case "set_browser_webview_bounds":
+        case "close_browser_webview":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+
+    const user = userEvent.setup();
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    const openBrowserButton = await screen.findByRole("button", { name: "Open in Browser" });
+    await user.click(openBrowserButton);
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(screen.getByRole("button", { name: "Close browser overlay" })).toHaveFocus();
+    });
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(openBrowserButton).toHaveFocus();
     });
   });
 

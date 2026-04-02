@@ -112,6 +112,10 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
   const [layoutDiagnostics, setLayoutDiagnostics] = useState<BrowserViewLayoutDiagnostics | null>(null);
   const [nativeDiagnostics, setNativeDiagnostics] = useState<BrowserWebviewDiagnosticsPayload | null>(null);
 
+  const handleCloseOverlay = useCallback(() => {
+    onCloseOverlay();
+  }, [onCloseOverlay]);
+
   const fallbackToReader = useCallback(
     async (_url: string, error: AppError) => {
       if (fallbackInFlightRef.current) {
@@ -364,6 +368,26 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
     };
   }, [browserUrl, fallbackToReader, isLoading]);
 
+  useEffect(() => {
+    if (!browserUrl) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) {
+        return;
+      }
+
+      event.preventDefault();
+      handleCloseOverlay();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [browserUrl, handleCloseOverlay]);
+
   if (!browserUrl) return null;
 
   const overlayChromePositionClass = "left-2 top-2";
@@ -425,8 +449,9 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
       ) : null}
       <BrowserOverlayChrome
         closeLabel={labels.closeOverlay}
-        onClose={onCloseOverlay}
+        onClose={handleCloseOverlay}
         className={overlayChromePositionClass}
+        autoFocus
       />
       <div ref={stageRef} data-testid="browser-overlay-stage" className={stageClass}>
         <div ref={hostRef} data-testid="browser-webview-host" className="h-full w-full bg-background" />

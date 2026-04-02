@@ -6,10 +6,12 @@ export function AutoWidescreenToggle({
   pressed,
   disabled = false,
   onPressedChange,
+  focusTargetKey = "auto-widescreen",
 }: {
   pressed: boolean;
   disabled?: boolean;
   onPressedChange: (nextPressed: boolean) => void;
+  focusTargetKey?: string;
 }) {
   const { t } = useTranslation("reader");
 
@@ -20,6 +22,7 @@ export function AutoWidescreenToggle({
       onPressedChange={onPressedChange}
       disabled={disabled}
       pressedTone="accent"
+      focusTargetKey={focusTargetKey}
     >
       <Expand className="h-4 w-4" />
     </IconToolbarToggle>

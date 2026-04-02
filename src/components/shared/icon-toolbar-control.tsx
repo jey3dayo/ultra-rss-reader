@@ -33,23 +33,33 @@ type IconToolbarControlBaseProps = {
 
 type IconToolbarButtonProps = IconToolbarControlBaseProps & {
   onClick: () => void;
+  autoFocus?: boolean;
 };
 
 type IconToolbarToggleProps = IconToolbarControlBaseProps &
   VariantProps<typeof iconToolbarControlVariants> & {
     pressed: boolean;
     onPressedChange: (nextPressed: boolean) => void;
+    focusTargetKey?: string;
   };
 
 type IconToolbarMenuTriggerProps = IconToolbarControlBaseProps;
 
-export function IconToolbarButton({ label, disabled = false, className, children, onClick }: IconToolbarButtonProps) {
+export function IconToolbarButton({
+  label,
+  disabled = false,
+  className,
+  children,
+  onClick,
+  autoFocus = false,
+}: IconToolbarButtonProps) {
   return (
     <AppTooltip label={label}>
       <Button
         variant="ghost"
         size="icon"
         onClick={onClick}
+        autoFocus={autoFocus}
         className={cn(iconToolbarButtonClassName, className)}
         disabled={disabled}
         aria-label={label}
@@ -67,6 +77,7 @@ export function IconToolbarToggle({
   disabled = false,
   className,
   pressedTone,
+  focusTargetKey,
   children,
 }: IconToolbarToggleProps) {
   return (
@@ -76,6 +87,7 @@ export function IconToolbarToggle({
         onPressedChange={onPressedChange}
         disabled={disabled}
         aria-label={label}
+        data-browser-overlay-return-focus={focusTargetKey}
         className={cn(iconToolbarControlVariants({ pressedTone }), className)}
       >
         {children}
