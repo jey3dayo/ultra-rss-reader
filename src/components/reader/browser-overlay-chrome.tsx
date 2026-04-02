@@ -14,7 +14,7 @@ export function BrowserOverlayChrome({ closeLabel, onClose, className }: Browser
       <IconToolbarButton
         label={closeLabel}
         onClick={onClose}
-        className="pointer-events-auto size-11 rounded-full border border-white/10 bg-black/78 text-white shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur-md hover:bg-black/90"
+        className="pointer-events-auto size-10 rounded-full border border-white/18 bg-black/72 text-white shadow-[0_10px_24px_rgba(0,0,0,0.48)] backdrop-blur-xl hover:border-white/32 hover:bg-black/84"
       >
         <X className="h-5 w-5" />
       </IconToolbarButton>

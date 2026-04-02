@@ -366,17 +366,19 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
 
   if (!browserUrl) return null;
 
-  const overlayChromePositionClass = "left-4 top-2";
+  const overlayChromePositionClass = "left-2 top-2";
+  // Keep a dedicated close-button lane outside the native surface so the stage
+  // never competes with the affordance again.
   const stageClass =
     scope === "main-stage"
-      ? "absolute bottom-4 left-12 right-4 top-10 rounded-none bg-background"
+      ? "absolute bottom-2 left-12 right-2 top-12 rounded-none bg-background shadow-[0_24px_60px_rgba(0,0,0,0.28)]"
       : "absolute inset-0 rounded-none bg-background";
 
   const overlay = (
     <div
       ref={overlayRef}
       data-testid="browser-overlay-shell"
-      className="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center bg-background/96 backdrop-blur-md"
+      className="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center bg-black/88 backdrop-blur-sm"
     >
       {showDiagnostics && (layoutDiagnostics || nativeDiagnostics) ? (
         <div
