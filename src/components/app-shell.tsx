@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useAppIconTheme } from "../hooks/use-app-icon-theme";
 import { useBadge } from "../hooks/use-badge";
 import { useBreakpoint } from "../hooks/use-breakpoint";
@@ -14,6 +15,7 @@ import { SettingsModal } from "./settings/settings-modal";
 import { IndeterminateProgress } from "./shared/indeterminate-progress";
 
 function Toast() {
+  const { t } = useTranslation("common");
   const { toastMessage, clearToast } = useUiStore();
   if (!toastMessage) return null;
 
@@ -26,7 +28,7 @@ function Toast() {
         <button
           type="button"
           onClick={clearToast}
-          aria-label="Dismiss"
+          aria-label={t("close")}
           className="ml-2 shrink-0 text-muted-foreground hover:text-foreground"
         >
           &times;

@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { reloadBrowserWebview, triggerSync } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import { runManualUpdateCheck } from "@/hooks/use-updater";
+import i18n from "@/lib/i18n";
 import { keyboardEvents, type ViewMode } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -142,17 +143,17 @@ export function executeAction(action: AppAction): void {
           result,
           Result.inspect((syncResult) => {
             if (!syncResult.synced) {
-              store.showToast("Sync already in progress");
+              store.showToast(i18n.t("sidebar:sync_already_in_progress"));
             } else if (syncResult.failed.length > 0) {
               const names = syncResult.failed.map((f) => f.account_name).join(", ");
-              store.showToast(`Sync failed for: ${names}`);
+              store.showToast(i18n.t("sidebar:sync_partial_failure", { accounts: names }));
             } else {
-              store.showToast("Sync completed");
+              store.showToast(i18n.t("sidebar:sync_completed"));
             }
           }),
           Result.inspectError((e) => {
             console.error("Menu sync failed:", e);
-            store.showToast(`Sync failed: ${e.message}`);
+            store.showToast(i18n.t("sidebar:sync_failed_with_message", { message: e.message }));
           }),
         );
       });

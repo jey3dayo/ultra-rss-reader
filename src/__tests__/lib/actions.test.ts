@@ -1,9 +1,23 @@
 import { Result } from "@praha/byethrow";
+import { waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APP_EVENTS } from "@/constants/events";
 import type { AppAction } from "@/lib/actions";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
+
+const { triggerSyncMock, i18nTMock } = vi.hoisted(() => ({
+  triggerSyncMock: vi.fn(),
+  i18nTMock: vi.fn((key: string, options?: Record<string, string>) => {
+    if (options?.accounts) {
+      return `translated:${key}:${options.accounts}`;
+    }
+    if (options?.message) {
+      return `translated:${key}:${options.message}`;
+    }
+    return `translated:${key}`;
+  }),
+}));
 
 const runManualUpdateCheckMock = vi.fn();
 const performUpdateCheckMock = vi.fn();
@@ -19,8 +33,14 @@ const reloadBrowserWebviewMock = vi.fn(async () =>
 
 vi.mock("@/api/tauri-commands", () => ({
   reloadBrowserWebview: reloadBrowserWebviewMock,
-  triggerSync: vi.fn(async () => Result.succeed(true)),
+  triggerSync: triggerSyncMock,
   listAccounts: vi.fn(async () => Result.succeed([])),
+}));
+
+vi.mock("@/lib/i18n", () => ({
+  default: {
+    t: i18nTMock,
+  },
 }));
 
 vi.mock("@/hooks/use-updater", () => ({
@@ -51,6 +71,16 @@ beforeEach(async () => {
   runManualUpdateCheckMock.mockReset();
   performUpdateCheckMock.mockReset();
   showUpdateAvailableToastMock.mockReset();
+  i18nTMock.mockClear();
+  triggerSyncMock.mockReset();
+  triggerSyncMock.mockResolvedValue(
+    Result.succeed({
+      synced: true,
+      total: 1,
+      succeeded: 1,
+      failed: [],
+    }),
+  );
   const mod = await import("@/lib/actions");
   executeAction = mod.executeAction;
   isAppAction = mod.isAppAction;
@@ -244,6 +274,89 @@ describe("executeAction", () => {
       expect(runManualUpdateCheckMock).toHaveBeenCalledTimes(1);
       expect(performUpdateCheckMock).not.toHaveBeenCalled();
       expect(showUpdateAvailableToastMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("sync-all", () => {
+    it("uses the translated already-in-progress toast", async () => {
+      triggerSyncMock.mockResolvedValueOnce(
+        Result.succeed({
+          synced: false,
+          total: 0,
+          succeeded: 0,
+          failed: [],
+        }),
+      );
+
+      executeAction("sync-all");
+
+      await waitFor(() => {
+        expect(useUiStore.getState().toastMessage).toEqual({
+          message: "translated:sidebar:sync_already_in_progress",
+        });
+      });
+
+      expect(i18nTMock).toHaveBeenCalledWith("sidebar:sync_already_in_progress");
+    });
+
+    it("uses the translated partial-failure toast with account names", async () => {
+      triggerSyncMock.mockResolvedValueOnce(
+        Result.succeed({
+          synced: true,
+          total: 2,
+          succeeded: 1,
+          failed: [{ account_name: "Local" }],
+        }),
+      );
+
+      executeAction("sync-all");
+
+      await waitFor(() => {
+        expect(useUiStore.getState().toastMessage).toEqual({
+          message: "translated:sidebar:sync_partial_failure:Local",
+        });
+      });
+
+      expect(i18nTMock).toHaveBeenCalledWith("sidebar:sync_partial_failure", {
+        accounts: "Local",
+      });
+    });
+
+    it("uses the translated success toast", async () => {
+      triggerSyncMock.mockResolvedValueOnce(
+        Result.succeed({
+          synced: true,
+          total: 1,
+          succeeded: 1,
+          failed: [],
+        }),
+      );
+
+      executeAction("sync-all");
+
+      await waitFor(() => {
+        expect(useUiStore.getState().toastMessage).toEqual({
+          message: "translated:sidebar:sync_completed",
+        });
+      });
+
+      expect(i18nTMock).toHaveBeenCalledWith("sidebar:sync_completed");
+    });
+
+    it("uses the translated unexpected-error toast with details", async () => {
+      triggerSyncMock.mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "boom" }));
+
+      executeAction("sync-all");
+
+      await waitFor(() => {
+        expect(useUiStore.getState().toastMessage).toEqual({
+          message: "translated:sidebar:sync_failed_with_message:boom",
+        });
+      });
+
+      expect(i18nTMock).toHaveBeenCalledWith("sidebar:sync_failed_with_message", {
+        message: "boom",
+      });
     });
   });
 
