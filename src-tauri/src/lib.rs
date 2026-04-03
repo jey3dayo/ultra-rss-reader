@@ -3,6 +3,7 @@ pub mod commands;
 pub mod domain;
 pub mod infra;
 pub mod menu;
+pub mod menu_i18n;
 pub mod platform;
 pub mod repository;
 pub mod service;
@@ -145,7 +146,7 @@ pub fn run() {
             };
 
             let handle = app.handle().clone();
-            app.set_menu(menu::build(&handle, &prefs)?)?;
+            menu::rebuild(&handle, &prefs)?;
             app.on_menu_event(move |app_handle, event| {
                 menu::handle_event(app_handle, event);
             });

@@ -63,6 +63,7 @@ pub fn get_preferences(state: State<'_, AppState>) -> Result<HashMap<String, Str
 
 #[tauri::command]
 pub fn set_preference(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     key: String,
     value: String,
@@ -86,5 +87,19 @@ pub fn set_preference(
     })?;
     let repo = SqlitePreferenceRepository::new(db.writer());
     repo.set(&key, &value)?;
+
+    let prefs = if key == "language" {
+        Some(repo.get_all()?)
+    } else {
+        None
+    };
+    drop(db);
+
+    if let Some(prefs) = prefs {
+        crate::menu::rebuild(&app, &prefs).map_err(|e| AppError::UserVisible {
+            message: format!("Saved language, but failed to update the application menu: {e}"),
+        })?;
+    }
+
     Ok(())
 }

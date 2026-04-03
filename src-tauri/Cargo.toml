@@ -42,6 +42,7 @@ thiserror = "2"
 quick-xml = "0.36"
 open = "5"
 futures = "0.3.32"
+sys-locale = "0.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2-web-kit = "0.3.2"
