@@ -39,8 +39,8 @@ vi.mock("@/components/reader/rename-feed-dialog-view", () => ({
             onChange={(event) => props.onTitleChange(event.target.value)}
           />
         </label>
-        <button type="button" onClick={() => props.onDisplayModeChange("widescreen")}>
-          Set widescreen
+        <button type="button" onClick={() => props.onDisplayModeChange("reader_and_preview")}>
+          Set reader and preview
         </button>
         <div data-testid="folder-create-enabled">{String(props.folderSelectProps?.canCreateFolder)}</div>
         <button type="button" onClick={() => props.folderSelectProps?.onValueChange("folder-2")}>
@@ -104,7 +104,7 @@ describe("RenameDialog", () => {
         case "update_feed_folder":
           return null;
         case "rename_feed":
-        case "update_feed_display_mode":
+        case "update_feed_display_settings":
           return null;
         default:
           return undefined;
@@ -193,7 +193,7 @@ describe("RenameDialog", () => {
         case "update_feed_folder":
           throw { type: "UserVisible", message: "folder update failed" };
         case "rename_feed":
-        case "update_feed_display_mode":
+        case "update_feed_display_settings":
           return null;
         default:
           return undefined;
@@ -209,7 +209,7 @@ describe("RenameDialog", () => {
     await user.clear(screen.getByLabelText("Title"));
     await user.type(screen.getByLabelText("Title"), "Renamed Feed");
     await user.click(screen.getByRole("button", { name: "Move to folder 2" }));
-    await user.click(screen.getByRole("button", { name: "Set widescreen" }));
+    await user.click(screen.getByRole("button", { name: "Set reader and preview" }));
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => {
@@ -218,8 +218,8 @@ describe("RenameDialog", () => {
         args: { feedId: "feed-1", title: "Renamed Feed" },
       });
       expect(calls).toContainEqual({
-        cmd: "update_feed_display_mode",
-        args: { feedId: "feed-1", displayMode: "widescreen" },
+        cmd: "update_feed_display_settings",
+        args: { feedId: "feed-1", readerMode: "on", webPreviewMode: "on" },
       });
       expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["feeds"] });
       expect(onOpenChange).toHaveBeenCalledWith(false);

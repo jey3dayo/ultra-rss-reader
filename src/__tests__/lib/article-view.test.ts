@@ -4,7 +4,6 @@ import {
   findSelectedArticle,
   formatArticleDate,
   resolveArticleDateLocale,
-  resolveEffectiveDisplayMode,
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
 import { sampleArticles } from "../../../tests/helpers/tauri-mocks";
@@ -82,16 +81,6 @@ describe("article-view utils", () => {
         ctrlKey: false,
       }),
     ).toBe(true);
-  });
-
-  it("resolves inherit to the global default display mode", () => {
-    expect(resolveEffectiveDisplayMode("inherit", "widescreen")).toBe("widescreen");
-    expect(resolveEffectiveDisplayMode("inherit", "normal")).toBe("normal");
-  });
-
-  it("keeps explicit feed display modes stronger than the global default", () => {
-    expect(resolveEffectiveDisplayMode("normal", "widescreen")).toBe("normal");
-    expect(resolveEffectiveDisplayMode("widescreen", "normal")).toBe("widescreen");
   });
 });
 

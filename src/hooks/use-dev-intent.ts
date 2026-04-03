@@ -67,7 +67,9 @@ export function useDevIntent() {
           const nextUi = useUiStore.getState();
           queryClient.setQueryData<FeedDto[]>(["feeds", selectedAccount.id], (currentFeeds) =>
             currentFeeds?.map((feed) =>
-              feed.id === selectedFeed.id ? { ...feed, display_mode: "widescreen" as const } : feed,
+              feed.id === selectedFeed.id
+                ? { ...feed, reader_mode: "on" as const, web_preview_mode: "on" as const }
+                : feed,
             ),
           );
           nextUi.selectAccount(selectedAccount.id);

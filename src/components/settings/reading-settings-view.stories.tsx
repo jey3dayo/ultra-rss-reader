@@ -14,15 +14,15 @@ const meta = {
         heading: "General",
         controls: [
           {
-            id: "reader-view",
+            id: "display-preset",
             type: "select",
-            name: "reader_view",
-            label: "Reader View",
-            value: "auto",
+            name: "display_preset",
+            label: "Default display mode",
+            value: "reader_only",
             options: [
-              { value: "off", label: "Off" },
-              { value: "on", label: "On" },
-              { value: "auto", label: "Automatic" },
+              { value: "reader_only", label: "Reader only" },
+              { value: "reader_and_preview", label: "Reader + Preview" },
+              { value: "preview_only", label: "Preview only" },
             ],
             onChange: fn(),
           },

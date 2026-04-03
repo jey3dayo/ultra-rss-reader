@@ -96,7 +96,8 @@ describe("AddFeedDialog", () => {
             url: args.url,
             site_url: args.url,
             unread_count: 0,
-            display_mode: "normal",
+            reader_mode: "on",
+            web_preview_mode: "off",
           };
         case "update_feed_folder":
           return null;

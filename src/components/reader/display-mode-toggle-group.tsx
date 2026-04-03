@@ -1,25 +1,36 @@
 import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
-import { Columns3, Expand } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
+import type { ArticleDisplayPreset } from "@/lib/article-display";
 import { cn } from "@/lib/utils";
-
-export type ReaderDisplayMode = "normal" | "widescreen";
 
 export function DisplayModeToggleGroup({
   value,
   onValueChange,
   disabled = false,
 }: {
-  value: ReaderDisplayMode;
-  onValueChange: (value: ReaderDisplayMode) => void;
+  value: ArticleDisplayPreset;
+  onValueChange: (value: ArticleDisplayPreset) => void;
   disabled?: boolean;
 }) {
   const { t } = useTranslation("reader");
-  const options: Array<{ value: ReaderDisplayMode; label: string; icon: React.ReactNode }> = [
-    { value: "normal", label: t("display_mode_normal"), icon: <Columns3 className="h-4 w-4" /> },
-    { value: "widescreen", label: t("display_mode_widescreen"), icon: <Expand className="h-4 w-4" /> },
+  const options: Array<{ value: ArticleDisplayPreset; label: string; icon: React.ReactNode }> = [
+    {
+      value: "reader_only",
+      label: t("display_mode_reader_only"),
+      icon: <span className="text-xs font-semibold">R</span>,
+    },
+    {
+      value: "reader_and_preview",
+      label: t("display_mode_reader_and_preview"),
+      icon: <span className="text-xs font-semibold">R+P</span>,
+    },
+    {
+      value: "preview_only",
+      label: t("display_mode_preview_only"),
+      icon: <span className="text-xs font-semibold">P</span>,
+    },
   ];
 
   return (
@@ -29,7 +40,7 @@ export function DisplayModeToggleGroup({
         onValueChange={(groupValue) => {
           const nextValue = groupValue[0];
           if (nextValue) {
-            onValueChange(nextValue as ReaderDisplayMode);
+            onValueChange(nextValue as ArticleDisplayPreset);
           }
         }}
         className="flex items-center rounded-lg border border-border bg-muted/40 p-1"
@@ -41,6 +52,7 @@ export function DisplayModeToggleGroup({
               value={option.value}
               disabled={disabled}
               aria-label={option.label}
+              data-browser-overlay-return-focus={`display-preset-${option.value}`}
               className={(state) =>
                 cn(
                   "inline-flex min-h-8 min-w-8 items-center justify-center rounded-md px-2 text-muted-foreground transition-colors",

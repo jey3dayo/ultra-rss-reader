@@ -3,9 +3,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
-import { renameFeed, updateFeedDisplayMode } from "@/api/tauri-commands";
+import { renameFeed, updateFeedDisplaySettings } from "@/api/tauri-commands";
 import { useFolders } from "@/hooks/use-folders";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
+import {
+  displayPresetToTriStateModes,
+  feedModesToDisplayPresetOption,
+  resolveFeedDisplayOverrides,
+} from "@/lib/article-display";
 import { useUiStore } from "@/stores/ui-store";
 import { createFolderIfNeeded } from "./feed-folder-flow";
 import { RenameFeedDialogView } from "./rename-feed-dialog-view";
@@ -23,7 +28,12 @@ export function RenameDialog({
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
   const [title, setTitle] = useState(feed.title);
-  const [displayMode, setDisplayMode] = useState(feed.display_mode ?? "inherit");
+  const [displayPreset, setDisplayPreset] = useState(
+    feedModesToDisplayPresetOption(
+      resolveFeedDisplayOverrides(feed).readerMode,
+      resolveFeedDisplayOverrides(feed).webPreviewMode,
+    ),
+  );
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const {
@@ -41,10 +51,11 @@ export function RenameDialog({
   const { data: folders } = useFolders(feed.account_id);
   const updateFeedFolderMutation = useUpdateFeedFolder();
   const folderLabelId = useId();
-  const displayModeOptions = [
-    { value: "inherit", label: t("display_mode_default") },
-    { value: "normal", label: t("display_mode_normal") },
-    { value: "widescreen", label: t("display_mode_widescreen") },
+  const displayPresetOptions = [
+    { value: "default", label: t("display_mode_default") },
+    { value: "reader_only", label: t("display_mode_reader_only") },
+    { value: "reader_and_preview", label: t("display_mode_reader_and_preview") },
+    { value: "preview_only", label: t("display_mode_preview_only") },
   ];
   const folderOptions = buildFolderOptions(folders, t("no_folder"));
 
@@ -52,14 +63,19 @@ export function RenameDialog({
     if (open) {
       setTitle(feed.title);
       resetFolderSelection(feed.folder_id);
-      setDisplayMode(feed.display_mode ?? "inherit");
+      setDisplayPreset(
+        feedModesToDisplayPresetOption(
+          resolveFeedDisplayOverrides(feed).readerMode,
+          resolveFeedDisplayOverrides(feed).webPreviewMode,
+        ),
+      );
       setLoading(false);
       requestAnimationFrame(() => {
         inputRef.current?.focus();
         inputRef.current?.select();
       });
     }
-  }, [open, feed.title, feed.folder_id, feed.display_mode, resetFolderSelection]);
+  }, [open, feed, feed.folder_id, feed.title, resetFolderSelection]);
 
   const handleSubmit = async () => {
     const trimmed = title.trim();
@@ -84,7 +100,11 @@ export function RenameDialog({
 
     const didRename = trimmed !== feed.title;
     const didMoveFolder = resolvedFolderId !== feed.folder_id;
-    const didUpdateDisplayMode = displayMode !== (feed.display_mode ?? "inherit");
+    const currentDisplayPreset = feedModesToDisplayPresetOption(
+      resolveFeedDisplayOverrides(feed).readerMode,
+      resolveFeedDisplayOverrides(feed).webPreviewMode,
+    );
+    const didUpdateDisplayMode = displayPreset !== currentDisplayPreset;
     let folderUpdateSucceeded = false;
 
     if (didRename) {
@@ -102,9 +122,12 @@ export function RenameDialog({
     }
 
     if (didUpdateDisplayMode) {
+      const nextModes = displayPresetToTriStateModes(
+        displayPreset as "default" | "reader_only" | "reader_and_preview" | "preview_only",
+      );
       Result.pipe(
-        await updateFeedDisplayMode(feed.id, displayMode),
-        Result.inspectError((e) => showToast(t("failed_to_update_display_mode", { message: e.message }))),
+        await updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode),
+        Result.inspectError((e) => showToast(t("failed_to_update_display_settings", { message: e.message }))),
       );
     }
 
@@ -121,11 +144,13 @@ export function RenameDialog({
       open={open}
       title={title}
       loading={loading}
-      displayMode={displayMode}
-      displayModeOptions={displayModeOptions}
+      displayMode={displayPreset}
+      displayModeOptions={displayPresetOptions}
       onOpenChange={onOpenChange}
       onTitleChange={setTitle}
-      onDisplayModeChange={setDisplayMode}
+      onDisplayModeChange={(value) =>
+        setDisplayPreset(value as "default" | "reader_only" | "reader_and_preview" | "preview_only")
+      }
       folderSelectProps={{
         labelId: folderLabelId,
         label: t("folder"),

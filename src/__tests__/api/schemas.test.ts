@@ -46,7 +46,8 @@ describe("DTO schemas", () => {
       url: "https://example.com/feed.xml",
       site_url: "https://example.com",
       unread_count: 5,
-      display_mode: "normal",
+      reader_mode: "on",
+      web_preview_mode: "off",
     };
     expect(FeedDtoSchema.parse(data)).toEqual(data);
   });

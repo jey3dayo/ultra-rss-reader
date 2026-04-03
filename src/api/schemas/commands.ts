@@ -120,10 +120,13 @@ export const updateFeedFolderArgs = z.object({
   folderId: z.string().nullable(),
 });
 
-// --- updateFeedDisplayMode ---
-export const updateFeedDisplayModeArgs = z.object({
+const feedDisplayModeValue = z.enum(["inherit", "on", "off"]);
+
+// --- updateFeedDisplaySettings ---
+export const updateFeedDisplaySettingsArgs = z.object({
   feedId: z.string(),
-  displayMode: z.string(),
+  readerMode: feedDisplayModeValue,
+  webPreviewMode: feedDisplayModeValue,
 });
 
 // --- openInBrowser ---
@@ -232,7 +235,7 @@ export const commandArgsSchemas: Record<string, z.ZodType> = {
   delete_feed: deleteFeedArgs,
   rename_feed: renameFeedArgs,
   update_feed_folder: updateFeedFolderArgs,
-  update_feed_display_mode: updateFeedDisplayModeArgs,
+  update_feed_display_settings: updateFeedDisplaySettingsArgs,
   open_in_browser: openInBrowserArgs,
   check_browser_embed_support: checkBrowserEmbedSupportArgs,
   create_or_update_browser_webview: createOrUpdateBrowserWebviewArgs,

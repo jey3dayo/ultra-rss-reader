@@ -10,6 +10,9 @@ const MIGRATION_V4: &str = include_str!("../../../migrations/V4__tags.sql");
 const MIGRATION_V5: &str = include_str!("../../../migrations/V5__feed_display_mode.sql");
 const MIGRATION_V6: &str = include_str!("../../../migrations/V6__sync_state_timestamp_usec.sql");
 const MIGRATION_V7: &str = include_str!("../../../migrations/V7__feed_display_mode_inherit.sql");
+const MIGRATION_V8: &str = include_str!("../../../migrations/V8__feed_reader_preview_modes.sql");
+const MIGRATION_V9: &str =
+    include_str!("../../../migrations/V9__reader_preview_default_preferences.sql");
 
 /// Result of a migration run.
 pub struct MigrationResult {
@@ -26,7 +29,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 7;
+pub const LATEST_VERSION: i32 = 9;
 
 pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     let tx = conn.transaction()?;
@@ -52,6 +55,12 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 7 {
         tx.execute_batch(MIGRATION_V7)?;
+    }
+    if from_version < 8 {
+        tx.execute_batch(MIGRATION_V8)?;
+    }
+    if from_version < 9 {
+        tx.execute_batch(MIGRATION_V9)?;
     }
 
     let to_version = get_schema_version(&tx);
@@ -158,6 +167,11 @@ mod tests {
             .is_ok();
         assert!(has_display_mode, "V5 display_mode column should exist");
 
+        let has_reader_mode: bool = conn
+            .prepare("SELECT reader_mode FROM feeds LIMIT 0")
+            .is_ok();
+        assert!(has_reader_mode, "V8 reader_mode column should exist");
+
         let has_timestamp_usec: bool = conn
             .prepare("SELECT timestamp_usec FROM sync_state LIMIT 0")
             .is_ok();
@@ -200,6 +214,78 @@ mod tests {
             )
             .unwrap();
         assert_eq!(display_mode, "inherit");
+    }
+
+    #[test]
+    fn v8_converts_display_mode_to_reader_and_preview_axes() {
+        let mut conn = open_in_memory();
+        conn.execute_batch(MIGRATION_V1).unwrap();
+        conn.execute_batch(MIGRATION_V2).unwrap();
+        conn.execute_batch(MIGRATION_V3).unwrap();
+        conn.execute_batch(MIGRATION_V4).unwrap();
+        conn.execute_batch(MIGRATION_V5).unwrap();
+        conn.execute_batch(MIGRATION_V6).unwrap();
+        conn.execute_batch(MIGRATION_V7).unwrap();
+
+        conn.execute(
+            "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+            ("acc-1", "local", "Local"),
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO feeds (id, account_id, title, url, site_url, unread_count, display_mode) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            ("feed-1", "acc-1", "Tech Blog", "https://example.com/feed.xml", "https://example.com", 0, "widescreen"),
+        )
+        .unwrap();
+
+        let result = run_migrations(&mut conn).unwrap();
+        assert_eq!(result.from_version, 7);
+        assert_eq!(result.to_version, LATEST_VERSION);
+
+        let (reader_mode, web_preview_mode): (String, String) = conn
+            .query_row(
+                "SELECT reader_mode, web_preview_mode FROM feeds WHERE id = ?1",
+                ("feed-1",),
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(reader_mode, "on");
+        assert_eq!(web_preview_mode, "on");
+    }
+
+    #[test]
+    fn v9_migrates_reader_view_preference_to_reader_and_preview_defaults() {
+        let mut conn = open_in_memory();
+        conn.execute_batch(MIGRATION_V1).unwrap();
+        conn.execute_batch(MIGRATION_V2).unwrap();
+        conn.execute_batch(MIGRATION_V3).unwrap();
+        conn.execute_batch(MIGRATION_V4).unwrap();
+        conn.execute_batch(MIGRATION_V5).unwrap();
+        conn.execute_batch(MIGRATION_V6).unwrap();
+        conn.execute_batch(MIGRATION_V7).unwrap();
+        conn.execute_batch(MIGRATION_V8).unwrap();
+
+        conn.execute(
+            "INSERT INTO preferences (key, value) VALUES (?1, ?2)",
+            ("reader_view", "widescreen"),
+        )
+        .unwrap();
+
+        let result = run_migrations(&mut conn).unwrap();
+        assert_eq!(result.from_version, 8);
+        assert_eq!(result.to_version, LATEST_VERSION);
+
+        let prefs: Vec<(String, String)> = conn
+            .prepare("SELECT key, value FROM preferences ORDER BY key")
+            .unwrap()
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+
+        assert!(prefs.contains(&("reader_mode_default".to_string(), "true".to_string())));
+        assert!(prefs.contains(&("web_preview_mode_default".to_string(), "true".to_string())));
+        assert!(!prefs.iter().any(|(key, _)| key == "reader_view"));
     }
 
     #[test]

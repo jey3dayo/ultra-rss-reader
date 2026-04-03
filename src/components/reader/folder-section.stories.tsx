@@ -19,7 +19,8 @@ const baseFeeds: FeedDto[] = [
     url: "https://automaton-media.com/feed/",
     site_url: "https://automaton-media.com",
     unread_count: 42,
-    display_mode: "normal",
+    reader_mode: "on",
+    web_preview_mode: "off",
   },
   {
     id: "feed-2",
@@ -29,7 +30,8 @@ const baseFeeds: FeedDto[] = [
     url: "https://www.publickey1.jp/atom.xml",
     site_url: "https://www.publickey1.jp/",
     unread_count: 7,
-    display_mode: "normal",
+    reader_mode: "on",
+    web_preview_mode: "off",
   },
   {
     id: "feed-3",
@@ -39,7 +41,8 @@ const baseFeeds: FeedDto[] = [
     url: "https://www3.nhk.or.jp/rss/news/cat0.xml",
     site_url: "https://www3.nhk.or.jp/news/",
     unread_count: 0,
-    display_mode: "normal",
+    reader_mode: "on",
+    web_preview_mode: "off",
   },
 ];
 

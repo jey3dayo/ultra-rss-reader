@@ -1,4 +1,5 @@
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import { resolveFeedDisplayOverrides } from "@/lib/article-display";
 
 export type DevIntent = "image-viewer-overlay" | null;
 
@@ -35,7 +36,8 @@ function scoreFeed(feed: FeedDto): number {
   }, 0);
 
   const unreadScore = Math.min(feed.unread_count, 100);
-  const displayModeScore = feed.display_mode === "widescreen" ? 500 : 0;
+  const displayOverrides = resolveFeedDisplayOverrides(feed);
+  const displayModeScore = displayOverrides.readerMode === "on" && displayOverrides.webPreviewMode === "on" ? 500 : 0;
   return displayModeScore + hintScore + unreadScore;
 }
 

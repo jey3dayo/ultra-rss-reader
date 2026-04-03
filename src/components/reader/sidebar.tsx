@@ -272,7 +272,8 @@ export function Sidebar() {
             url: feed.url,
             siteUrl: feed.site_url,
             unreadCount: feed.unread_count,
-            displayMode: feed.display_mode,
+            readerMode: feed.reader_mode ?? "inherit",
+            webPreviewMode: feed.web_preview_mode ?? "inherit",
             isSelected: selectedFeedId === feed.id,
             grayscaleFavicon: grayscaleFavicons,
           })),
@@ -290,7 +291,8 @@ export function Sidebar() {
         url: feed.url,
         siteUrl: feed.site_url,
         unreadCount: feed.unread_count,
-        displayMode: feed.display_mode,
+        readerMode: feed.reader_mode ?? "inherit",
+        webPreviewMode: feed.web_preview_mode ?? "inherit",
         isSelected: selectedFeedId === feed.id,
         grayscaleFavicon: grayscaleFavicons,
       })),
@@ -558,7 +560,8 @@ export function Sidebar() {
                   url: feed.url,
                   site_url: feed.siteUrl,
                   unread_count: feed.unreadCount,
-                  display_mode: feed.displayMode,
+                  reader_mode: feed.readerMode,
+                  web_preview_mode: feed.webPreviewMode,
                 }}
               />
             )}

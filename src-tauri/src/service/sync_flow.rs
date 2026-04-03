@@ -97,7 +97,8 @@ pub async fn sync_account(
                 site_url: rs.site_url,
                 icon: None,
                 unread_count: 0,
-                display_mode: "inherit".to_string(),
+                reader_mode: "inherit".to_string(),
+                web_preview_mode: "inherit".to_string(),
             };
             feed_repo.save(&feed)?;
         }

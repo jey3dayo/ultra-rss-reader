@@ -27,12 +27,13 @@ fn row_to_feed(row: &rusqlite::Row) -> rusqlite::Result<Feed> {
         site_url: row.get(6)?,
         icon: row.get(7)?,
         unread_count: row.get(8)?,
-        display_mode: row.get(9)?,
+        reader_mode: row.get(9)?,
+        web_preview_mode: row.get(10)?,
     })
 }
 
 const SELECT_COLS: &str =
-    "id, account_id, folder_id, remote_id, title, url, site_url, icon, unread_count, display_mode";
+    "id, account_id, folder_id, remote_id, title, url, site_url, icon, unread_count, reader_mode, web_preview_mode";
 
 impl FeedRepository for SqliteFeedRepository<'_> {
     fn find_by_account(&self, account_id: &AccountId) -> DomainResult<Vec<Feed>> {
@@ -46,7 +47,7 @@ impl FeedRepository for SqliteFeedRepository<'_> {
 
     fn save(&self, feed: &Feed) -> DomainResult<()> {
         self.conn.execute(
-            "INSERT OR REPLACE INTO feeds (id, account_id, folder_id, remote_id, title, url, site_url, icon, unread_count, display_mode) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            "INSERT OR REPLACE INTO feeds (id, account_id, folder_id, remote_id, title, url, site_url, icon, unread_count, reader_mode, web_preview_mode) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
             params![
                 feed.id.0,
                 feed.account_id.0,
@@ -57,7 +58,8 @@ impl FeedRepository for SqliteFeedRepository<'_> {
                 feed.site_url,
                 feed.icon,
                 feed.unread_count,
-                feed.display_mode,
+                feed.reader_mode,
+                feed.web_preview_mode,
             ],
         )?;
         Ok(())
@@ -131,10 +133,15 @@ impl FeedRepository for SqliteFeedRepository<'_> {
         Ok(())
     }
 
-    fn update_display_mode(&self, feed_id: &FeedId, display_mode: &str) -> DomainResult<()> {
+    fn update_display_settings(
+        &self,
+        feed_id: &FeedId,
+        reader_mode: &str,
+        web_preview_mode: &str,
+    ) -> DomainResult<()> {
         self.conn.execute(
-            "UPDATE feeds SET display_mode = ?1 WHERE id = ?2",
-            params![display_mode, feed_id.0],
+            "UPDATE feeds SET reader_mode = ?1, web_preview_mode = ?2 WHERE id = ?3",
+            params![reader_mode, web_preview_mode, feed_id.0],
         )?;
         Ok(())
     }
@@ -171,7 +178,8 @@ mod tests {
             site_url: String::new(),
             icon: None,
             unread_count: 0,
-            display_mode: "normal".to_string(),
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
         }
     }
 

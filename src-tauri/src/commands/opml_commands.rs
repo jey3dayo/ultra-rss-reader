@@ -88,7 +88,8 @@ pub fn import_opml(
             site_url: opml_feed.html_url.clone().unwrap_or_default(),
             icon: None,
             unread_count: 0,
-            display_mode: "inherit".to_string(),
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
         };
 
         feed_repo.save(&feed).map_err(AppError::from)?;

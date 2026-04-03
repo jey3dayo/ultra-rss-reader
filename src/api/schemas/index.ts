@@ -42,7 +42,7 @@ export {
   untagArticleArgs,
   updateAccountCredentialsArgs,
   updateAccountSyncArgs,
-  updateFeedDisplayModeArgs,
+  updateFeedDisplaySettingsArgs,
   updateFeedFolderArgs,
 } from "./commands";
 export { type DatabaseInfoDto, DatabaseInfoDtoSchema } from "./database-info";

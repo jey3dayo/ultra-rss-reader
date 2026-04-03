@@ -2,12 +2,18 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { APP_EVENTS } from "@/constants/events";
 import { useAccountArticles, useArticles, useMarkAllRead, useSearchArticles } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useArticlesByTag } from "@/hooks/use-tags";
-import { useUpdateFeedDisplayMode } from "@/hooks/use-update-feed-display-mode";
+import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
+import {
+  displayPresetToTriStateModes,
+  feedModesToDisplayPresetOption,
+  resolveFeedDisplayOverrides,
+} from "@/lib/article-display";
 import {
   calculateArticleNavigationScrollTop,
   getAdjacentArticleId,
@@ -15,17 +21,15 @@ import {
   groupArticles,
   selectVisibleArticles,
 } from "@/lib/article-list";
-import { resolveEffectiveDisplayMode } from "@/lib/article-view";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
-import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenu } from "./article-context-menu";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 import { ArticleListFooter } from "./article-list-footer";
 import { ArticleListHeader } from "./article-list-header";
 import { ArticleListScreenView } from "./article-list-screen-view";
-import { AutoWidescreenToggle } from "./auto-widescreen-toggle";
 import { contextMenuStyles } from "./context-menu-styles";
 
 export function ArticleList() {
@@ -44,7 +48,6 @@ export function ArticleList() {
   const layoutMode = useUiStore((s) => s.layoutMode);
   const sortUnread = usePreferencesStore((s) => s.prefs.reading_sort ?? s.prefs.sort_unread ?? "newest_first");
   const groupBy = usePreferencesStore((s) => s.prefs.group_by ?? "date");
-  const readerViewPref = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "reader_view"));
   const dimArchived = usePreferencesStore((s) => s.prefs.dim_archived ?? "true");
   const textPreview = usePreferencesStore((s) => s.prefs.text_preview ?? "true");
   const imagePreviews = usePreferencesStore((s) => s.prefs.image_previews ?? "medium");
@@ -52,8 +55,7 @@ export function ArticleList() {
   const recentlyReadIds = useUiStore((s) => s.recentlyReadIds);
   const retainedArticleIds = useUiStore((s) => s.retainedArticleIds);
   const confirmMarkAllRead = useConfirmMarkAllRead();
-  const closeBrowser = useUiStore((s) => s.closeBrowser);
-  const updateFeedMode = useUpdateFeedDisplayMode();
+  const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
   const accountListScopeId = feedId || tagId ? null : selectedAccountId;
@@ -167,18 +169,27 @@ export function ArticleList() {
   }, [selection, scrollToTopOnChange]);
 
   const selectedFeed = useMemo(() => feeds?.find((f) => f.id === feedId), [feeds, feedId]);
-  const currentDisplayMode = resolveEffectiveDisplayMode(selectedFeed?.display_mode, readerViewPref);
-  const isAutoWidescreen = currentDisplayMode === "widescreen";
+  const selectedFeedDisplayPreset = feedModesToDisplayPresetOption(
+    resolveFeedDisplayOverrides(selectedFeed).readerMode,
+    resolveFeedDisplayOverrides(selectedFeed).webPreviewMode,
+  );
+  const displayPresetOptions = useMemo(
+    () => [
+      { value: "default", label: t("display_mode_default") },
+      { value: "reader_only", label: t("display_mode_reader_only") },
+      { value: "reader_and_preview", label: t("display_mode_reader_and_preview") },
+      { value: "preview_only", label: t("display_mode_preview_only") },
+    ],
+    [t],
+  );
 
   const handleSetDisplayMode = useCallback(
-    async (nextMode: "normal" | "widescreen") => {
+    async (nextPreset: "default" | "reader_only" | "reader_and_preview" | "preview_only") => {
       if (!feedId) return;
-      Result.pipe(await updateFeedMode(feedId, nextMode));
-      if (nextMode === "normal") {
-        closeBrowser();
-      }
+      const nextModes = displayPresetToTriStateModes(nextPreset);
+      Result.pipe(await updateFeedDisplaySettings(feedId, nextModes.readerMode, nextModes.webPreviewMode));
     },
-    [closeBrowser, feedId, updateFeedMode],
+    [feedId, updateFeedDisplaySettings],
   );
 
   const doMarkAllRead = useCallback(() => {
@@ -295,12 +306,28 @@ export function ArticleList() {
         isSidebarVisible={layoutMode === "wide" ? sidebarOpen : undefined}
         feedModeControl={
           feedId ? (
-            <AutoWidescreenToggle
-              pressed={isAutoWidescreen}
-              onPressedChange={(nextPressed) => {
-                void handleSetDisplayMode(nextPressed ? "widescreen" : "normal");
-              }}
-            />
+            <Select
+              name="feed-display-preset"
+              value={selectedFeedDisplayPreset}
+              onValueChange={(value) =>
+                value !== null && void handleSetDisplayMode(value as typeof selectedFeedDisplayPreset)
+              }
+            >
+              <SelectTrigger aria-label={t("display_mode")} className="min-w-[168px]">
+                <SelectValue>
+                  {(value: string | null) =>
+                    displayPresetOptions.find((option) => option.value === (value ?? ""))?.label ?? value ?? ""
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectPopup>
+                {displayPresetOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectPopup>
+            </Select>
           ) : null
         }
         onMarkAllRead={handleMarkAllRead}

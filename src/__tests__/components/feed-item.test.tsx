@@ -12,7 +12,8 @@ const baseFeed: FeedDto = {
   url: "https://automaton-media.com/feed/",
   site_url: "https://automaton-media.com",
   unread_count: 42,
-  display_mode: "normal",
+  reader_mode: "on",
+  web_preview_mode: "off",
 };
 
 describe("FeedItemView", () => {

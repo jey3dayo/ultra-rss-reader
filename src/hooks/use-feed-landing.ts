@@ -3,15 +3,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { listArticles, listFeeds } from "@/api/tauri-commands";
 import { useFeeds } from "@/hooks/use-feeds";
-import { resolveFeedLandingArticle, resolveFeedLandingMode } from "@/lib/feed-landing";
-import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
+import { resolveFeedLandingArticle, resolveFeedLandingDisplay } from "@/lib/feed-landing";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 export function useFeedLanding() {
   const queryClient = useQueryClient();
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
   const { data: feeds = [] } = useFeeds(selectedAccountId);
-  const readerView = usePreferencesStore((state) => resolvePreferenceValue(state.prefs, "reader_view"));
+  const prefs = usePreferencesStore((state) => state.prefs);
   const sortUnread = usePreferencesStore(
     (state) => state.prefs.reading_sort ?? state.prefs.sort_unread ?? "newest_first",
   );
@@ -52,13 +52,13 @@ export function useFeedLanding() {
 
         store.selectArticle(landingArticle.id);
 
-        if (
-          resolveFeedLandingMode({
-            feedDisplayMode: feed.display_mode,
-            defaultDisplayMode: readerView,
-            articleUrl: landingArticle.url,
-          }) === "browser"
-        ) {
+        const resolvedDisplay = resolveFeedLandingDisplay({
+          feed,
+          prefs,
+          articleUrl: landingArticle.url,
+        });
+
+        if (resolvedDisplay.webPreviewMode && landingArticle.url) {
           store.openBrowser(landingArticle.url as string);
         } else {
           store.closeBrowser();
@@ -68,6 +68,6 @@ export function useFeedLanding() {
         store.closeBrowser();
       }
     },
-    [feeds, queryClient, readerView, selectedAccountId, sortUnread],
+    [feeds, prefs, queryClient, selectedAccountId, sortUnread],
   );
 }

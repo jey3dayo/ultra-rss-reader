@@ -5,30 +5,26 @@ export function FeedContextMenuView({
   openSiteLabel,
   markAllReadLabel,
   displayModeLabel,
-  normalModeLabel,
-  autoWidescreenModeLabel,
-  isAutoWidescreen,
+  displayPresetOptions,
+  selectedDisplayPreset,
   unsubscribeLabel,
   editLabel,
   onOpenSite,
   onMarkAllRead,
-  onSetNormalMode,
-  onSetAutoWidescreenMode,
+  onSetDisplayPreset,
   onUnsubscribe,
   onEdit,
 }: {
   openSiteLabel: string;
   markAllReadLabel: string;
   displayModeLabel: string;
-  normalModeLabel: string;
-  autoWidescreenModeLabel: string;
-  isAutoWidescreen: boolean;
+  displayPresetOptions: Array<{ value: string; label: string }>;
+  selectedDisplayPreset: string;
   unsubscribeLabel: string;
   editLabel: string;
   onOpenSite: () => void;
   onMarkAllRead: () => void;
-  onSetNormalMode: () => void;
-  onSetAutoWidescreenMode: () => void;
+  onSetDisplayPreset: (value: string) => void;
   onUnsubscribe: () => void;
   onEdit: () => void;
 }) {
@@ -44,14 +40,18 @@ export function FeedContextMenuView({
           </ContextMenu.Item>
           <ContextMenu.Separator className={contextMenuStyles.separator} />
           <div className="px-3 py-1 text-xs font-medium text-muted-foreground">{displayModeLabel}</div>
-          <ContextMenu.Item className={contextMenuStyles.item} onClick={onSetNormalMode}>
-            <span className="mr-2 inline-flex w-4 justify-center">{!isAutoWidescreen ? "✓" : ""}</span>
-            {normalModeLabel}
-          </ContextMenu.Item>
-          <ContextMenu.Item className={contextMenuStyles.item} onClick={onSetAutoWidescreenMode}>
-            <span className="mr-2 inline-flex w-4 justify-center">{isAutoWidescreen ? "✓" : ""}</span>
-            {autoWidescreenModeLabel}
-          </ContextMenu.Item>
+          {displayPresetOptions.map((option) => (
+            <ContextMenu.Item
+              key={option.value}
+              className={contextMenuStyles.item}
+              onClick={() => onSetDisplayPreset(option.value)}
+            >
+              <span className="mr-2 inline-flex w-4 justify-center">
+                {selectedDisplayPreset === option.value ? "✓" : ""}
+              </span>
+              {option.label}
+            </ContextMenu.Item>
+          ))}
           <ContextMenu.Separator className={contextMenuStyles.separator} />
           <ContextMenu.Item className={contextMenuStyles.item} onClick={onUnsubscribe}>
             {unsubscribeLabel}

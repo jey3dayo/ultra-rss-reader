@@ -36,7 +36,8 @@ export const sampleFeeds: FeedDto[] = [
     url: "https://example.com/feed.xml",
     site_url: "https://example.com",
     unread_count: 5,
-    display_mode: "inherit",
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
   },
   {
     id: "feed-2",
@@ -46,7 +47,8 @@ export const sampleFeeds: FeedDto[] = [
     url: "https://example.com/news.xml",
     site_url: "https://example.com",
     unread_count: 0,
-    display_mode: "inherit",
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
   },
 ];
 
@@ -134,7 +136,8 @@ const defaultHandler: MockHandler = (cmd, args) => {
         url: args.url,
         site_url: args.url,
         unread_count: 0,
-        display_mode: "inherit",
+        reader_mode: "inherit",
+        web_preview_mode: "inherit",
       };
     case "test_account_connection":
       return true;

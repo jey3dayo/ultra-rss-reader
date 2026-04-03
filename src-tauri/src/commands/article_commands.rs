@@ -502,8 +502,8 @@ mod tests {
             .expect("account insert should succeed");
         db.writer()
             .execute(
-                "INSERT INTO feeds (id, account_id, remote_id, title, url, site_url, unread_count, display_mode)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                "INSERT INTO feeds (id, account_id, remote_id, title, url, site_url, unread_count, reader_mode, web_preview_mode)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
                 rusqlite::params![
                     feed_id.0,
                     account_id.0,
@@ -512,6 +512,7 @@ mod tests {
                     "https://example.com/feed.xml",
                     "https://example.com",
                     0,
+                    "inherit",
                     "inherit"
                 ],
             )

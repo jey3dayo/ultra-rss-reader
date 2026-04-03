@@ -63,7 +63,7 @@ import {
   untagArticleArgs,
   updateAccountCredentialsArgs,
   updateAccountSyncArgs,
-  updateFeedDisplayModeArgs,
+  updateFeedDisplaySettingsArgs,
   updateFeedFolderArgs,
 } from "@/api/schemas";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
@@ -254,11 +254,11 @@ export const renameFeed = (feedId: string, title: string) =>
 export const updateFeedFolder = (feedId: string, folderId: string | null) =>
   safeInvoke("update_feed_folder", { response: z.null(), args: updateFeedFolderArgs }, { feedId, folderId });
 
-export const updateFeedDisplayMode = (feedId: string, displayMode: string) =>
+export const updateFeedDisplaySettings = (feedId: string, readerMode: string, webPreviewMode: string) =>
   safeInvoke(
-    "update_feed_display_mode",
-    { response: z.null(), args: updateFeedDisplayModeArgs },
-    { feedId, displayMode },
+    "update_feed_display_settings",
+    { response: z.null(), args: updateFeedDisplaySettingsArgs },
+    { feedId, readerMode, webPreviewMode },
   );
 
 export const openInBrowser = (url: string, background?: boolean) =>

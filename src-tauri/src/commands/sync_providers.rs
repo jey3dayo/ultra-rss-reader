@@ -246,9 +246,13 @@ async fn sync_greader_feeds(
                 site_url: rs.site_url.clone(),
                 icon: None,
                 unread_count: 0,
-                display_mode: existing
+                reader_mode: existing
                     .as_ref()
-                    .map(|f| f.display_mode.clone())
+                    .map(|f| f.reader_mode.clone())
+                    .unwrap_or_else(|| "inherit".to_string()),
+                web_preview_mode: existing
+                    .as_ref()
+                    .map(|f| f.web_preview_mode.clone())
                     .unwrap_or_else(|| "inherit".to_string()),
             };
             feed_repo.save(&feed)?;
@@ -563,7 +567,8 @@ mod tests {
             site_url: "https://example.com".to_string(),
             icon: None,
             unread_count: 0,
-            display_mode: "inherit".to_string(),
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
         }
     }
 
@@ -604,7 +609,8 @@ mod tests {
             site_url: "https://example.com".to_string(),
             icon: None,
             unread_count: 0,
-            display_mode: "inherit".to_string(),
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
         }
     }
 

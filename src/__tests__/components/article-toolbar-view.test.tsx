@@ -28,7 +28,7 @@ describe("ArticleToolbarView", () => {
         canOpenInBrowser
         showOpenInExternalBrowserButton
         canOpenInExternalBrowser
-        displayModeControl={<DisplayModeToggleGroup value="normal" onValueChange={vi.fn()} />}
+        displayModeControl={<DisplayModeToggleGroup value="reader_only" onValueChange={vi.fn()} />}
         labels={{
           closeView: "Close view",
           toggleRead: "Toggle read",

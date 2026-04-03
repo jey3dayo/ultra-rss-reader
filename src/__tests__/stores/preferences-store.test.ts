@@ -13,11 +13,14 @@ describe("usePreferencesStore preferences", () => {
     expect(usePreferencesStore.getState().theme()).toBe("dark");
   });
 
-  it("normalizes legacy reader view values and falls back for invalid ones", () => {
-    expect(resolvePreferenceValue({ reader_view: "on" }, "reader_view")).toBe("widescreen");
-    expect(resolvePreferenceValue({ reader_view: "off" }, "reader_view")).toBe("normal");
-    expect(resolvePreferenceValue({ reader_view: "auto" }, "reader_view")).toBe("normal");
-    expect(resolvePreferenceValue({ reader_view: "cinema" }, "reader_view")).toBe("normal");
+  it("defaults reader and web preview preferences independently", () => {
+    expect(resolvePreferenceValue({}, "reader_mode_default")).toBe("true");
+    expect(resolvePreferenceValue({}, "web_preview_mode_default")).toBe("false");
+  });
+
+  it("normalizes invalid reader and web preview defaults", () => {
+    expect(resolvePreferenceValue({ reader_mode_default: "maybe" }, "reader_mode_default")).toBe("true");
+    expect(resolvePreferenceValue({ web_preview_mode_default: "sometimes" }, "web_preview_mode_default")).toBe("false");
   });
 
   it("defaults sidebar section visibility preferences to true", () => {

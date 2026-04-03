@@ -13,7 +13,7 @@ describe("useFeedLanding", () => {
       selectedAccountId: "acc-1",
     });
     usePreferencesStore.setState({
-      prefs: { reader_view: "normal", reading_sort: "newest_first" },
+      prefs: { reader_mode_default: "true", web_preview_mode_default: "false", reading_sort: "newest_first" },
       loaded: true,
     });
     setupTauriMocks((cmd, args) => {
@@ -43,13 +43,13 @@ describe("useFeedLanding", () => {
     });
   });
 
-  it("opens browser mode for widescreen feeds with a landing URL", async () => {
+  it("opens browser mode for preview-enabled feeds with a landing URL", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_feeds":
           return sampleFeeds
             .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, display_mode: "widescreen" } : feed));
+            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
         case "list_articles":
           return sampleArticles.filter((article) => article.feed_id === args.feedId);
         default:

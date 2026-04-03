@@ -38,7 +38,7 @@ import {
   toggleArticleStarArgs,
   untagArticleArgs,
   updateAccountSyncArgs,
-  updateFeedDisplayModeArgs,
+  updateFeedDisplaySettingsArgs,
   updateFeedFolderArgs,
 } from "./api/schemas";
 import type { AccountDto, FeedDto, FolderDto, TagDto } from "./api/tauri-commands";
@@ -160,7 +160,8 @@ export function setupDevMocks() {
           url,
           site_url: url,
           unread_count: 3,
-          display_mode: "inherit",
+          reader_mode: "inherit",
+          web_preview_mode: "inherit",
         };
         mockFeeds.push(feed);
         // Generate sample articles for the new feed
@@ -426,10 +427,13 @@ export function setupDevMocks() {
         return null;
       }
 
-      case "update_feed_display_mode": {
-        const { feedId, displayMode } = updateFeedDisplayModeArgs.parse(payload);
+      case "update_feed_display_settings": {
+        const { feedId, readerMode, webPreviewMode } = updateFeedDisplaySettingsArgs.parse(payload);
         const dmFeed = mockFeeds.find((f) => f.id === feedId);
-        if (dmFeed) dmFeed.display_mode = displayMode;
+        if (dmFeed) {
+          dmFeed.reader_mode = readerMode;
+          dmFeed.web_preview_mode = webPreviewMode;
+        }
         return null;
       }
 

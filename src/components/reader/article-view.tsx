@@ -18,10 +18,15 @@ import {
   useUntagArticle,
 } from "@/hooks/use-tags";
 import {
+  type BinaryDisplayMode,
+  resolveAppDefaultDisplayModes,
+  resolveArticleDisplay,
+  resolveFeedDisplayOverrides,
+} from "@/lib/article-display";
+import {
   findSelectedArticle,
   formatArticleDate,
   resolveArticleDateLocale,
-  resolveEffectiveDisplayMode,
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
 import { readDevIntent, resolveDevIntentBrowserUrl } from "@/lib/dev-intent";
@@ -36,6 +41,7 @@ import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-ta
 import { ArticleToolbarView } from "./article-toolbar-view";
 import { BrowserView } from "./browser-view";
 import { contextMenuStyles } from "./context-menu-styles";
+import { DisplayModeToggleGroup } from "./display-mode-toggle-group";
 
 function openArticleInExternalBrowser(url: string) {
   const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
@@ -55,11 +61,13 @@ function ArticleToolbar({
   isBrowserOpen,
   onCloseView,
   onToggleBrowserOverlay,
+  displayModeControl,
 }: {
   article: ArticleDto | null;
   isBrowserOpen: boolean;
   onCloseView: () => void;
   onToggleBrowserOverlay: () => void;
+  displayModeControl?: React.ReactNode;
 }) {
   const { t } = useTranslation("reader");
   const setRead = useSetRead();
@@ -88,7 +96,7 @@ function ArticleToolbar({
       canOpenInBrowser={Boolean(article?.url)}
       showOpenInExternalBrowserButton={actionShare === "true"}
       canOpenInExternalBrowser={Boolean(article?.url)}
-      displayModeControl={null}
+      displayModeControl={displayModeControl}
       shareMenuControl={
         actionShareMenu === "true" ? (
           <Menu.Root>
@@ -213,7 +221,13 @@ function EmptyState() {
   const { t } = useTranslation("reader");
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
-      <ArticleToolbar article={null} isBrowserOpen={false} onCloseView={() => {}} onToggleBrowserOverlay={() => {}} />
+      <ArticleToolbar
+        article={null}
+        isBrowserOpen={false}
+        onCloseView={() => {}}
+        onToggleBrowserOverlay={() => {}}
+        displayModeControl={null}
+      />
       <ArticleEmptyStateView message={t("select_article_to_read")} />
     </div>
   );
@@ -375,25 +389,51 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
   const viewMode = useUiStore((s) => s.viewMode);
   const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
   const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
-  const readerViewPref = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "reader_view"));
+  const prefs = usePreferencesStore((s) => s.prefs);
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
-  const [dismissedOverlayArticleId, setDismissedOverlayArticleId] = useState<string | null>(null);
-  const [manualOverlayArticleId, setManualOverlayArticleId] = useState<string | null>(null);
+  const [readerModeOverride, setReaderModeOverride] = useState<BinaryDisplayMode | null>(null);
+  const [webPreviewModeOverride, setWebPreviewModeOverride] = useState<BinaryDisplayMode | null>(null);
   const overlayFocusReturnTargetRef = useRef<HTMLElement | null>(null);
+  const overlayFocusReturnTargetKeyRef = useRef<string | null>(null);
+  const previousArticleIdRef = useRef(article.id);
   const wasBrowserOpenRef = useRef(false);
   const isBrowserOpen = contentMode === "browser";
-  const autoWidescreenEnabled = resolveEffectiveDisplayMode(feed?.display_mode, readerViewPref) === "widescreen";
   const devIntent = readDevIntent();
   const intendedBrowserUrl = resolveDevIntentBrowserUrl(devIntent, article.url);
-  const shouldShowBrowserOverlay =
-    Boolean(intendedBrowserUrl) &&
-    ((autoWidescreenEnabled && dismissedOverlayArticleId !== article.id) || manualOverlayArticleId === article.id);
+  const requestedDisplay = resolveArticleDisplay({
+    appDefault: resolveAppDefaultDisplayModes(prefs),
+    feedOverride: resolveFeedDisplayOverrides(feed),
+    temporaryOverride: { readerMode: readerModeOverride, webPreviewMode: webPreviewModeOverride },
+    articleCapabilities: { hasWebPreview: true },
+  });
+  const resolvedDisplay = resolveArticleDisplay({
+    appDefault: resolveAppDefaultDisplayModes(prefs),
+    feedOverride: resolveFeedDisplayOverrides(feed),
+    temporaryOverride: { readerMode: readerModeOverride, webPreviewMode: webPreviewModeOverride },
+    articleCapabilities: { hasWebPreview: Boolean(intendedBrowserUrl) },
+  });
+  const shouldShowBrowserOverlay = Boolean(intendedBrowserUrl) && resolvedDisplay.webPreviewMode;
 
   useEffect(() => {
-    setDismissedOverlayArticleId((current) => (current === article.id ? current : null));
-    setManualOverlayArticleId((current) => (current === article.id ? current : null));
+    previousArticleIdRef.current = article.id;
+    setReaderModeOverride(null);
+    setWebPreviewModeOverride(null);
   }, [article.id]);
+
+  const rememberOverlayFocusReturnTarget = useCallback(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    const activeElement = document.activeElement;
+    if (!(activeElement instanceof HTMLElement) || activeElement === document.body) {
+      return;
+    }
+
+    overlayFocusReturnTargetRef.current = activeElement;
+    overlayFocusReturnTargetKeyRef.current = activeElement.getAttribute("data-browser-overlay-return-focus");
+  }, []);
 
   useEffect(() => {
     if (afterReading === "mark_as_read" && !article.is_read) {
@@ -422,11 +462,8 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
 
     if (shouldShowBrowserOverlay) {
       if (!isBrowserOpen || browserUrl !== intendedBrowserUrl) {
-        if (!isBrowserOpen && typeof document !== "undefined") {
-          const activeElement = document.activeElement;
-          if (activeElement instanceof HTMLElement && activeElement !== document.body) {
-            overlayFocusReturnTargetRef.current = activeElement;
-          }
+        if (!isBrowserOpen) {
+          rememberOverlayFocusReturnTarget();
         }
         openBrowser(intendedBrowserUrl);
       }
@@ -436,20 +473,40 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
     if (isBrowserOpen) {
       closeBrowser();
     }
-  }, [browserUrl, closeBrowser, intendedBrowserUrl, isBrowserOpen, openBrowser, shouldShowBrowserOverlay]);
+  }, [
+    browserUrl,
+    closeBrowser,
+    intendedBrowserUrl,
+    isBrowserOpen,
+    openBrowser,
+    rememberOverlayFocusReturnTarget,
+    shouldShowBrowserOverlay,
+  ]);
 
   useEffect(() => {
     if (wasBrowserOpenRef.current && !isBrowserOpen && typeof document !== "undefined") {
       const previousTarget = overlayFocusReturnTargetRef.current;
+      const previousTargetKey = overlayFocusReturnTargetKeyRef.current;
       overlayFocusReturnTargetRef.current = null;
+      overlayFocusReturnTargetKeyRef.current = null;
 
       requestAnimationFrame(() => {
+        if (previousTargetKey) {
+          const nextTarget = document.querySelector<HTMLElement>(
+            `[data-browser-overlay-return-focus="${previousTargetKey}"]`,
+          );
+          if (nextTarget && !nextTarget.hasAttribute("disabled")) {
+            nextTarget.focus();
+            return;
+          }
+        }
+
         if (previousTarget?.isConnected && !previousTarget.hasAttribute("disabled")) {
           previousTarget.focus();
           return;
         }
 
-        document.querySelector<HTMLElement>('[data-browser-overlay-return-focus="auto-widescreen"]')?.focus();
+        document.querySelector<HTMLElement>('[data-browser-overlay-return-focus="open-in-browser"]')?.focus();
       });
     }
 
@@ -464,25 +521,38 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
   }, [clearArticle, layoutMode]);
 
   const handleToggleBrowserOverlay = useCallback(() => {
-    if (!intendedBrowserUrl) return;
+    rememberOverlayFocusReturnTarget();
 
-    if (isBrowserOpen) {
-      setManualOverlayArticleId(null);
-      setDismissedOverlayArticleId(autoWidescreenEnabled ? article.id : null);
+    if (requestedDisplay.webPreviewMode) {
+      setReaderModeOverride(requestedDisplay.readerMode ? "on" : "off");
+      setWebPreviewModeOverride("off");
       closeBrowser();
       return;
     }
 
-    if (typeof document !== "undefined") {
-      const activeElement = document.activeElement;
-      if (activeElement instanceof HTMLElement && activeElement !== document.body) {
-        overlayFocusReturnTargetRef.current = activeElement;
+    setReaderModeOverride(requestedDisplay.readerMode ? "on" : "off");
+    setWebPreviewModeOverride("on");
+  }, [closeBrowser, rememberOverlayFocusReturnTarget, requestedDisplay.readerMode, requestedDisplay.webPreviewMode]);
+
+  const handleTemporaryDisplayPresetChange = useCallback(
+    (nextPreset: "reader_only" | "reader_and_preview" | "preview_only") => {
+      switch (nextPreset) {
+        case "reader_only":
+          setReaderModeOverride("on");
+          setWebPreviewModeOverride("off");
+          break;
+        case "reader_and_preview":
+          setReaderModeOverride("on");
+          setWebPreviewModeOverride("on");
+          break;
+        case "preview_only":
+          setReaderModeOverride("off");
+          setWebPreviewModeOverride("on");
+          break;
       }
-    }
-    setDismissedOverlayArticleId(null);
-    setManualOverlayArticleId(article.id);
-    openBrowser(intendedBrowserUrl);
-  }, [article.id, autoWidescreenEnabled, closeBrowser, intendedBrowserUrl, isBrowserOpen, openBrowser]);
+    },
+    [],
+  );
 
   const handleToggleRead = useCallback(() => {
     const markingAsRead = !article.is_read;
@@ -575,11 +645,23 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
         isBrowserOpen={isBrowserOpen}
         onCloseView={handleCloseView}
         onToggleBrowserOverlay={handleToggleBrowserOverlay}
+        displayModeControl={
+          <DisplayModeToggleGroup value={requestedDisplay.preset} onValueChange={handleTemporaryDisplayPresetChange} />
+        }
       />
       <div className="relative min-h-0 flex-1">
-        <div aria-hidden={isBrowserOpen} {...(isBrowserOpen ? { inert: true } : {})} className="h-full">
-          <ArticleReaderBody article={article} feedName={feedName} />
-        </div>
+        {resolvedDisplay.fallbackReason === "missing_web_preview" ? (
+          <div className="border-b border-border bg-amber-500/10 px-4 py-2 text-sm text-amber-900 dark:text-amber-200">
+            {t("web_preview_unavailable")}
+          </div>
+        ) : null}
+        {resolvedDisplay.readerMode ? (
+          <div aria-hidden={isBrowserOpen} {...(isBrowserOpen ? { inert: true } : {})} className="h-full">
+            <ArticleReaderBody article={article} feedName={feedName} />
+          </div>
+        ) : (
+          <div className="h-full bg-background" />
+        )}
         {isBrowserOpen ? (
           <BrowserView
             scope={layoutMode === "wide" ? "main-stage" : "content-pane"}

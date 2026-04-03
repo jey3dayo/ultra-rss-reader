@@ -96,7 +96,8 @@ async fn local_feed_e2e() {
             site_url: "https://example.com".into(),
             icon: None,
             unread_count: 0,
-            display_mode: "normal".into(),
+            reader_mode: "on".into(),
+            web_preview_mode: "off".into(),
         })
         .unwrap();
 
@@ -254,7 +255,8 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
                 site_url: server.url(),
                 icon: None,
                 unread_count: 0,
-                display_mode: "inherit".into(),
+                reader_mode: "inherit".into(),
+                web_preview_mode: "inherit".into(),
             })
             .unwrap();
         article_repo

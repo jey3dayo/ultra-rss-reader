@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { ReadingSettingsView } from "@/components/settings/reading-settings-view";
+import { displayPresetToPreferenceValues, resolveAppDefaultDisplayPreset } from "@/lib/article-display";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 
 export function ReadingSettings() {
@@ -16,16 +17,23 @@ export function ReadingSettings() {
           heading: t("reading.general"),
           controls: [
             {
-              id: "reader-view",
+              id: "display-preset",
               type: "select",
-              name: "reader_view",
+              name: "display_preset",
               label: t("reading.default_display_mode"),
-              value: resolvePreferenceValue(prefs, "reader_view"),
+              value: resolveAppDefaultDisplayPreset(prefs),
               options: [
-                { value: "normal", label: t("reading.normal") },
-                { value: "widescreen", label: t("reading.widescreen") },
+                { value: "reader_only", label: t("reading.reader_only") },
+                { value: "reader_and_preview", label: t("reading.reader_and_preview") },
+                { value: "preview_only", label: t("reading.preview_only") },
               ],
-              onChange: (value) => setPref("reader_view", value),
+              onChange: (value) => {
+                const nextValues = displayPresetToPreferenceValues(
+                  value as "reader_only" | "reader_and_preview" | "preview_only",
+                );
+                setPref("reader_mode_default", nextValues.reader_mode_default);
+                setPref("web_preview_mode_default", nextValues.web_preview_mode_default);
+              },
             },
             {
               id: "reading-sort",

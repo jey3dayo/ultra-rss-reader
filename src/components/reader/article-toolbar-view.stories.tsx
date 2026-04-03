@@ -20,7 +20,7 @@ const meta = {
     canOpenInBrowser: true,
     showOpenInExternalBrowserButton: true,
     canOpenInExternalBrowser: true,
-    displayModeControl: <DisplayModeToggleGroup value="normal" onValueChange={fn()} />,
+    displayModeControl: <DisplayModeToggleGroup value="reader_only" onValueChange={fn()} />,
     labels: {
       closeView: "Close view",
       toggleRead: "Toggle read",
@@ -61,6 +61,6 @@ export const DisabledActions: Story = {
     canOpenInBrowser: false,
     showOpenInExternalBrowserButton: false,
     canOpenInExternalBrowser: false,
-    displayModeControl: <DisplayModeToggleGroup value="widescreen" onValueChange={fn()} disabled={true} />,
+    displayModeControl: <DisplayModeToggleGroup value="reader_and_preview" onValueChange={fn()} disabled={true} />,
   },
 };

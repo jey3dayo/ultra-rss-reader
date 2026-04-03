@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { resolveFeedLandingArticle, resolveFeedLandingMode } from "@/lib/feed-landing";
+import { resolveFeedLandingArticle, resolveFeedLandingDisplay } from "@/lib/feed-landing";
 
 const baseArticles: ArticleDto[] = [
   {
@@ -42,24 +42,26 @@ describe("resolveFeedLandingArticle", () => {
   });
 });
 
-describe("resolveFeedLandingMode", () => {
-  it("uses browser mode for widescreen feeds with a URL", () => {
+describe("resolveFeedLandingDisplay", () => {
+  it("enables web preview for preview-enabled feeds with a URL", () => {
     expect(
-      resolveFeedLandingMode({
-        feedDisplayMode: "widescreen",
-        defaultDisplayMode: "normal",
+      resolveFeedLandingDisplay({
+        feed: { reader_mode: "on", web_preview_mode: "on" },
+        prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
         articleUrl: "https://example.com/new",
-      }),
-    ).toBe("browser");
+      }).webPreviewMode,
+    ).toBe(true);
   });
 
   it("falls back to reader mode when the landing article has no URL", () => {
-    expect(
-      resolveFeedLandingMode({
-        feedDisplayMode: "widescreen",
-        defaultDisplayMode: "normal",
-        articleUrl: null,
-      }),
-    ).toBe("reader");
+    const display = resolveFeedLandingDisplay({
+      feed: { reader_mode: "on", web_preview_mode: "on" },
+      prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
+      articleUrl: null,
+    });
+
+    expect(display.readerMode).toBe(true);
+    expect(display.webPreviewMode).toBe(false);
+    expect(display.fallbackReason).toBe("missing_web_preview");
   });
 });

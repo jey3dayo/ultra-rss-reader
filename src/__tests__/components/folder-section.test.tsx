@@ -20,7 +20,8 @@ const feeds: FeedDto[] = [
     url: "https://example.com/alpha.xml",
     site_url: "https://example.com/alpha",
     unread_count: 4,
-    display_mode: "normal",
+    reader_mode: "on",
+    web_preview_mode: "off",
   },
   {
     id: "feed-2",
@@ -30,7 +31,8 @@ const feeds: FeedDto[] = [
     url: "https://example.com/beta.xml",
     site_url: "https://example.com/beta",
     unread_count: 8,
-    display_mode: "normal",
+    reader_mode: "on",
+    web_preview_mode: "off",
   },
 ];
 

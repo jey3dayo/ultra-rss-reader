@@ -9,7 +9,8 @@ const makeFeed = (overrides: Partial<FeedDto> & { id: string }): FeedDto => ({
   url: "https://example.com/feed.xml",
   site_url: "https://example.com",
   unread_count: 0,
-  display_mode: "normal",
+  reader_mode: "on",
+  web_preview_mode: "off",
   ...overrides,
 });
 

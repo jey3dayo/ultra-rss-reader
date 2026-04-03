@@ -58,7 +58,7 @@ describe("ArticleView", () => {
             can_go_forward: false,
             is_loading: true,
           };
-        case "update_feed_display_mode":
+        case "update_feed_display_settings":
           return null;
         default:
           return undefined;
@@ -101,7 +101,7 @@ describe("ArticleView", () => {
           ];
         case "get_article_tags":
           return [{ id: "tag-1", name: "Later", color: null }];
-        case "update_feed_display_mode":
+        case "update_feed_display_settings":
         case "open_in_browser":
           return null;
         default:
@@ -162,7 +162,7 @@ describe("ArticleView", () => {
           };
         case "set_browser_webview_bounds":
         case "close_browser_webview":
-        case "update_feed_display_mode":
+        case "update_feed_display_settings":
           return null;
         default:
           return undefined;
@@ -191,7 +191,7 @@ describe("ArticleView", () => {
     expect(calls.map(({ cmd }) => cmd)).not.toContain("open_in_browser");
   });
 
-  it("automatically opens the browser overlay when the selected article feed uses widescreen mode", async () => {
+  it("automatically opens the browser overlay when the selected article feed enables web preview", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
@@ -203,7 +203,7 @@ describe("ArticleView", () => {
         case "list_feeds":
           return sampleFeeds
             .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, display_mode: "widescreen" } : feed));
+            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -227,7 +227,7 @@ describe("ArticleView", () => {
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
     usePreferencesStore.setState({
-      prefs: { reader_view: "normal" },
+      prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
       loaded: true,
     });
 
@@ -251,7 +251,7 @@ describe("ArticleView", () => {
         case "list_feeds":
           return sampleFeeds
             .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, display_mode: "widescreen" } : feed));
+            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -361,7 +361,6 @@ describe("ArticleView", () => {
           ];
         case "get_article_tags":
           return [{ id: "tag-1", name: "Later", color: null }];
-        case "update_feed_display_mode":
         case "open_in_browser":
           return null;
         default:
@@ -414,7 +413,6 @@ describe("ArticleView", () => {
         case "get_article_tags":
           return [{ id: "tag-1", name: "Later", color: null }];
         case "open_in_browser":
-        case "update_feed_display_mode":
           return null;
         default:
           return undefined;
@@ -488,7 +486,6 @@ describe("ArticleView", () => {
         case "get_article_tags":
           return [{ id: "tag-1", name: "Later", color: null }];
         case "open_in_browser":
-        case "update_feed_display_mode":
           return null;
         default:
           return undefined;
@@ -534,8 +531,6 @@ describe("ArticleView", () => {
           return [{ id: "tag-1", name: "Later", color: null }];
         case "open_in_browser":
           throw { type: "UserVisible", message: "Could not launch browser" };
-        case "update_feed_display_mode":
-          return null;
         default:
           return undefined;
       }
@@ -612,7 +607,7 @@ describe("ArticleView", () => {
     });
   });
 
-  it("auto opens browser mode for all-items selection when the current feed is widescreen", async () => {
+  it("auto opens browser mode for all-items selection when the current feed enables web preview", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_account_articles":
@@ -620,7 +615,7 @@ describe("ArticleView", () => {
         case "list_feeds":
           return sampleFeeds
             .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, display_mode: "widescreen" } : feed));
+            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -638,7 +633,7 @@ describe("ArticleView", () => {
       contentMode: "reader",
     });
     usePreferencesStore.setState({
-      prefs: { reader_view: "off" },
+      prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
       loaded: true,
     });
 
@@ -650,7 +645,7 @@ describe("ArticleView", () => {
     });
   });
 
-  it("keeps explicit 3-pane feeds in reader mode even when the global default is widescreen", async () => {
+  it("keeps explicit reader-only feeds in reader mode even when the global default enables web preview", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
@@ -658,7 +653,7 @@ describe("ArticleView", () => {
         case "list_feeds":
           return sampleFeeds
             .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, display_mode: "normal" } : feed));
+            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "off" } : feed));
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -676,7 +671,7 @@ describe("ArticleView", () => {
       contentMode: "reader",
     });
     usePreferencesStore.setState({
-      prefs: { reader_view: "widescreen" },
+      prefs: { reader_mode_default: "true", web_preview_mode_default: "true" },
       loaded: true,
     });
 
@@ -716,7 +711,7 @@ describe("ArticleView", () => {
       contentMode: "reader",
     });
     usePreferencesStore.setState({
-      prefs: { reader_view: "off" },
+      prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
       loaded: true,
     });
 
@@ -827,7 +822,7 @@ describe("ArticleView", () => {
         case "get_article_tags":
           return [{ id: "tag-1", name: "Later", color: null }];
         case "add_to_reading_list":
-        case "update_feed_display_mode":
+        case "update_feed_display_settings":
           return null;
         default:
           return undefined;
@@ -874,7 +869,7 @@ describe("ArticleView", () => {
         case "get_article_tags":
           return [{ id: "tag-1", name: "Later", color: null }];
         case "add_to_reading_list":
-        case "update_feed_display_mode":
+        case "update_feed_display_settings":
           return null;
         default:
           return undefined;

@@ -11,7 +11,8 @@ const feeds: FeedDto[] = [
     url: "https://example.com/feed.xml",
     site_url: "https://example.com",
     unread_count: 5,
-    display_mode: "normal",
+    reader_mode: "on",
+    web_preview_mode: "off",
   },
   {
     id: "feed-2",
@@ -21,7 +22,8 @@ const feeds: FeedDto[] = [
     url: "https://pocket.shonenmagazine.com/feed",
     site_url: "https://pocket.shonenmagazine.com",
     unread_count: 2,
-    display_mode: "widescreen",
+    reader_mode: "on",
+    web_preview_mode: "on",
   },
 ];
 

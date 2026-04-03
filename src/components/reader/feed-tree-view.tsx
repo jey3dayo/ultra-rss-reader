@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import type { TriStateDisplayMode } from "@/lib/article-display";
 import { extractSiteHost } from "@/lib/feed";
 import { cn } from "@/lib/utils";
 import { SidebarNavButton } from "./sidebar-nav-button";
@@ -21,7 +22,8 @@ export type FeedTreeFeedViewModel = {
   url: string;
   siteUrl: string;
   unreadCount: number;
-  displayMode: string;
+  readerMode: TriStateDisplayMode;
+  webPreviewMode: TriStateDisplayMode;
   isSelected: boolean;
   grayscaleFavicon: boolean;
 };

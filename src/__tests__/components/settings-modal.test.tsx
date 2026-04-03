@@ -78,10 +78,13 @@ describe("SettingsModal", () => {
   });
 
   it("shows default display mode options in reading settings", () => {
-    usePreferencesStore.setState({ prefs: { reader_view: "widescreen" }, loaded: true });
+    usePreferencesStore.setState({
+      prefs: { reader_mode_default: "true", web_preview_mode_default: "true" },
+      loaded: true,
+    });
 
     render(<ReadingSettings />, { wrapper: createWrapper() });
 
-    expect(screen.getByRole("combobox", { name: "Default display mode" })).toHaveTextContent("Widescreen");
+    expect(screen.getByRole("combobox", { name: "Default display mode" })).toHaveTextContent("Reader + Preview");
   });
 });

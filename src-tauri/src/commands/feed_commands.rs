@@ -130,7 +130,8 @@ pub async fn add_local_feed(
         site_url: sub.site_url,
         icon: None,
         unread_count: 0,
-        display_mode: "inherit".to_string(),
+        reader_mode: "inherit".to_string(),
+        web_preview_mode: "inherit".to_string(),
     };
 
     {
@@ -154,19 +155,25 @@ pub async fn add_local_feed(
 }
 
 #[tauri::command]
-pub fn update_feed_display_mode(
+pub fn update_feed_display_settings(
     state: State<'_, AppState>,
     feed_id: String,
-    display_mode: String,
+    reader_mode: String,
+    web_preview_mode: String,
 ) -> Result<(), AppError> {
-    if !matches!(display_mode.as_str(), "inherit" | "normal" | "widescreen") {
+    if !matches!(reader_mode.as_str(), "inherit" | "on" | "off") {
         return Err(AppError::UserVisible {
-            message: format!("Unknown display mode: {display_mode}"),
+            message: format!("Unknown reader mode: {reader_mode}"),
+        });
+    }
+    if !matches!(web_preview_mode.as_str(), "inherit" | "on" | "off") {
+        return Err(AppError::UserVisible {
+            message: format!("Unknown web preview mode: {web_preview_mode}"),
         });
     }
     let db = lock_db(&state.db)?;
     let repo = SqliteFeedRepository::new(db.writer());
-    repo.update_display_mode(&FeedId(feed_id), &display_mode)?;
+    repo.update_display_settings(&FeedId(feed_id), &reader_mode, &web_preview_mode)?;
     Ok(())
 }
 

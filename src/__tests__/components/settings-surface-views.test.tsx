@@ -68,7 +68,7 @@ describe("Settings surface views", () => {
   it("renders appearance and reading settings as props-only sections", async () => {
     const user = userEvent.setup();
     const onThemeChange = vi.fn();
-    const onReaderViewChange = vi.fn();
+    const onDisplayPresetChange = vi.fn();
 
     const { rerender } = render(
       <AppearanceSettingsView
@@ -112,16 +112,16 @@ describe("Settings surface views", () => {
             heading: "General",
             controls: [
               {
-                id: "reader-view",
+                id: "display-preset",
                 type: "select",
-                name: "reader_view",
-                label: "Reader View",
-                value: "auto",
+                name: "display_preset",
+                label: "Default display mode",
+                value: "reader_only",
                 options: [
-                  { value: "off", label: "Off" },
-                  { value: "auto", label: "Automatic" },
+                  { value: "reader_only", label: "Reader only" },
+                  { value: "reader_and_preview", label: "Reader + Preview" },
                 ],
-                onChange: onReaderViewChange,
+                onChange: onDisplayPresetChange,
               },
             ],
           },
@@ -130,7 +130,7 @@ describe("Settings surface views", () => {
     );
 
     expect(screen.getByRole("heading", { level: 2, name: "Reading" })).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Reader View" })).toHaveTextContent("Automatic");
+    expect(screen.getByRole("combobox", { name: "Default display mode" })).toHaveTextContent("Reader only");
   });
 
   it("renders action service rows and delegates switch changes", async () => {

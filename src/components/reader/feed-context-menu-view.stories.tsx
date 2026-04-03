@@ -11,15 +11,18 @@ const meta = {
     openSiteLabel: "Open site",
     markAllReadLabel: "Mark all as read",
     displayModeLabel: "Display mode",
-    normalModeLabel: "Normal",
-    autoWidescreenModeLabel: "Auto widescreen",
-    isAutoWidescreen: false,
+    displayPresetOptions: [
+      { value: "default", label: "Default" },
+      { value: "reader_only", label: "Reader only" },
+      { value: "reader_and_preview", label: "Reader + Preview" },
+      { value: "preview_only", label: "Preview only" },
+    ],
+    selectedDisplayPreset: "default",
     unsubscribeLabel: "Unsubscribe…",
     editLabel: "Edit…",
     onOpenSite: fn(),
     onMarkAllRead: fn(),
-    onSetNormalMode: fn(),
-    onSetAutoWidescreenMode: fn(),
+    onSetDisplayPreset: fn(),
     onUnsubscribe: fn(),
     onEdit: fn(),
   },
@@ -40,8 +43,8 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-export const AutoWidescreen: Story = {
+export const ReaderAndPreview: Story = {
   args: {
-    isAutoWidescreen: true,
+    selectedDisplayPreset: "reader_and_preview",
   },
 };

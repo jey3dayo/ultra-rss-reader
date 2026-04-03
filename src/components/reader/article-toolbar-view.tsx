@@ -94,6 +94,7 @@ export function ArticleToolbarView({
               onPressedChange={() => onOpenInBrowser()}
               disabled={!canOpenInBrowser}
               pressedTone="accent"
+              focusTargetKey="open-in-browser"
             >
               <Globe className="h-4 w-4" />
             </IconToolbarToggle>

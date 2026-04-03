@@ -184,29 +184,37 @@ describe("Form fields", () => {
   it("rename feed dialog selects expose accessible names and selected labels", async () => {
     render(
       <RenameDialog
-        feed={{ ...sampleFeeds[0], folder_id: "folder-1", display_mode: "widescreen" }}
+        feed={{ ...sampleFeeds[0], folder_id: "folder-1", reader_mode: "on", web_preview_mode: "on" }}
         open={true}
         onOpenChange={() => {}}
       />,
       { wrapper: createWrapper() },
     );
 
-    expect(await screen.findByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Widescreen");
+    expect(await screen.findByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Reader + Preview");
     expect(await screen.findByRole("combobox", { name: "Folder" })).toHaveTextContent("Work");
   });
 
   it("rename feed dialog offers a default display mode option for inheriting the global setting", async () => {
     const user = userEvent.setup();
 
-    render(<RenameDialog feed={{ ...sampleFeeds[0], display_mode: "inherit" }} open={true} onOpenChange={() => {}} />, {
-      wrapper: createWrapper(),
-    });
+    render(
+      <RenameDialog
+        feed={{ ...sampleFeeds[0], reader_mode: "inherit", web_preview_mode: "inherit" }}
+        open={true}
+        onOpenChange={() => {}}
+      />,
+      {
+        wrapper: createWrapper(),
+      },
+    );
 
     await user.click(await screen.findByRole("combobox", { name: "Display Mode" }));
 
     expect(await screen.findByRole("option", { name: "Default display mode" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "3-Pane" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Widescreen" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Reader only" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Reader + Preview" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Preview only" })).toBeInTheDocument();
   });
 
   it("rename feed dialog offers a new folder option even when no folders exist yet", async () => {

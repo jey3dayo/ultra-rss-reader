@@ -61,7 +61,7 @@ describe("ArticleList", () => {
     expect(useUiStore.getState().focusedPane).toBe("sidebar");
   });
 
-  it("shows a single auto widescreen toggle instead of the 3-pane toggle group", async () => {
+  it("updates the selected feed display preset from the header select", async () => {
     let feeds = sampleFeeds.filter((feed) => feed.account_id === "acc-1");
     const commands: Array<{ cmd: string; args: Record<string, unknown> }> = [];
 
@@ -80,9 +80,15 @@ describe("ArticleList", () => {
           return [];
         case "search_articles":
           return [];
-        case "update_feed_display_mode":
+        case "update_feed_display_settings":
           feeds = feeds.map((feed) =>
-            feed.id === args.feedId ? { ...feed, display_mode: String(args.displayMode) } : feed,
+            feed.id === args.feedId
+              ? {
+                  ...feed,
+                  reader_mode: args.readerMode as "inherit" | "on" | "off",
+                  web_preview_mode: args.webPreviewMode as "inherit" | "on" | "off",
+                }
+              : feed,
           );
           return null;
         default:
@@ -96,20 +102,18 @@ describe("ArticleList", () => {
     const user = userEvent.setup();
     render(<ArticleList />, { wrapper: createWrapper() });
 
-    const autoWidescreenButton = await screen.findByRole("button", { name: "Auto widescreen" });
-    expect(autoWidescreenButton).toHaveAttribute("aria-pressed", "false");
-    expect(autoWidescreenButton).toHaveClass("data-[pressed]:text-primary");
-    expect(screen.queryByRole("button", { name: "3-Pane" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Widescreen" })).not.toBeInTheDocument();
+    const displayPresetSelect = await screen.findByRole("combobox", { name: "Display Mode" });
+    expect(displayPresetSelect).toHaveTextContent("Default");
 
-    await user.click(autoWidescreenButton);
+    await user.click(displayPresetSelect);
+    await user.click(await screen.findByRole("option", { name: "Reader + Preview" }));
 
     await waitFor(() => {
       expect(commands).toContainEqual({
-        cmd: "update_feed_display_mode",
-        args: { feedId: "feed-1", displayMode: "widescreen" },
+        cmd: "update_feed_display_settings",
+        args: { feedId: "feed-1", readerMode: "on", webPreviewMode: "on" },
       });
-      expect(screen.getByRole("button", { name: "Auto widescreen" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Reader + Preview");
     });
   });
 
@@ -362,7 +366,7 @@ describe("ArticleList", () => {
           return [];
         case "search_articles":
           return [];
-        case "update_feed_display_mode":
+        case "update_feed_display_settings":
           return null;
         case "mark_article_read":
           articles = articles.map((article) =>
@@ -426,7 +430,7 @@ describe("ArticleList", () => {
           return [];
         case "search_articles":
           return [];
-        case "update_feed_display_mode":
+        case "update_feed_display_settings":
           return null;
         case "toggle_article_star":
           articles = articles.map((article) =>

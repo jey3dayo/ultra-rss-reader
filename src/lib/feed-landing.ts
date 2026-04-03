@@ -1,6 +1,11 @@
 import type { ArticleDto } from "@/api/tauri-commands";
+import {
+  type ResolvedArticleDisplay,
+  resolveAppDefaultDisplayModes,
+  resolveArticleDisplay,
+  resolveFeedDisplayOverrides,
+} from "@/lib/article-display";
 import { selectVisibleArticles } from "@/lib/article-list";
-import { resolveEffectiveDisplayMode } from "@/lib/article-view";
 
 export function resolveFeedLandingArticle(params: { articles: ArticleDto[]; sortUnread: string }): ArticleDto | null {
   const visibleArticles = selectVisibleArticles({
@@ -20,16 +25,21 @@ export function resolveFeedLandingArticle(params: { articles: ArticleDto[]; sort
   return visibleArticles[0] ?? null;
 }
 
-export function resolveFeedLandingMode(params: {
-  feedDisplayMode: string | null | undefined;
-  defaultDisplayMode: string;
+export function resolveFeedLandingDisplay(params: {
+  feed:
+    | {
+        reader_mode?: string | null;
+        web_preview_mode?: string | null;
+      }
+    | null
+    | undefined;
+  prefs: Record<string, string>;
   articleUrl: string | null | undefined;
-}): "reader" | "browser" {
-  if (!params.articleUrl) {
-    return "reader";
-  }
-
-  return resolveEffectiveDisplayMode(params.feedDisplayMode, params.defaultDisplayMode) === "widescreen"
-    ? "browser"
-    : "reader";
+}): ResolvedArticleDisplay {
+  return resolveArticleDisplay({
+    appDefault: resolveAppDefaultDisplayModes(params.prefs),
+    feedOverride: resolveFeedDisplayOverrides(params.feed),
+    temporaryOverride: { readerMode: null, webPreviewMode: null },
+    articleCapabilities: { hasWebPreview: Boolean(params.articleUrl) },
+  });
 }

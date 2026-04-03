@@ -56,7 +56,8 @@ export const mockFeeds: FeedDto[] = [
     url: "https://automaton-media.com/feed/",
     site_url: "https://automaton-media.com",
     unread_count: 199,
-    display_mode: "inherit",
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
   },
   {
     id: "feed-hatima",
@@ -66,7 +67,8 @@ export const mockFeeds: FeedDto[] = [
     url: "https://esuteru.com/feed/",
     site_url: "https://esuteru.com",
     unread_count: 239,
-    display_mode: "inherit",
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
   },
   {
     id: "feed-yumenavi",
@@ -76,7 +78,8 @@ export const mockFeeds: FeedDto[] = [
     url: "https://yumenavi.info/feed/",
     site_url: "https://yumenavi.info",
     unread_count: 152,
-    display_mode: "inherit",
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
   },
   {
     id: "feed-publickey",
@@ -86,7 +89,8 @@ export const mockFeeds: FeedDto[] = [
     url: "https://www.publickey1.jp/atom.xml",
     site_url: "https://www.publickey1.jp",
     unread_count: 70,
-    display_mode: "inherit",
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
   },
   {
     id: "feed-techno",
@@ -96,7 +100,8 @@ export const mockFeeds: FeedDto[] = [
     url: "https://www.techno-edge.net/rss/",
     site_url: "https://www.techno-edge.net",
     unread_count: 1,
-    display_mode: "inherit",
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
   },
   {
     id: "feed-nhk",
@@ -106,7 +111,8 @@ export const mockFeeds: FeedDto[] = [
     url: "https://www.nhk.or.jp/rss/news/cat0.xml",
     site_url: "https://www.nhk.or.jp",
     unread_count: 187,
-    display_mode: "inherit",
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
   },
   {
     id: "feed-hatena",
@@ -116,7 +122,8 @@ export const mockFeeds: FeedDto[] = [
     url: "https://b.hatena.ne.jp/hotentry/it.rss",
     site_url: "https://b.hatena.ne.jp",
     unread_count: 432,
-    display_mode: "inherit",
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
   },
   {
     id: "feed-jxck",
@@ -126,7 +133,8 @@ export const mockFeeds: FeedDto[] = [
     url: "https://blog.jxck.io/entries/feed",
     site_url: "https://blog.jxck.io",
     unread_count: 1,
-    display_mode: "inherit",
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
   },
   {
     id: "feed-npaka",
@@ -136,7 +144,8 @@ export const mockFeeds: FeedDto[] = [
     url: "https://note.com/npaka/rss",
     site_url: "https://note.com/npaka",
     unread_count: 128,
-    display_mode: "inherit",
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
   },
   {
     id: "feed-chimolog",
@@ -146,7 +155,8 @@ export const mockFeeds: FeedDto[] = [
     url: "https://chimolog.co/feed/",
     site_url: "https://chimolog.co",
     unread_count: 1,
-    display_mode: "inherit",
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
   },
 ];
 

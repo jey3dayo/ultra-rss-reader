@@ -6,8 +6,12 @@ import type { FeedDto } from "@/api/tauri-commands";
 import { deleteFeed, openInBrowser } from "@/api/tauri-commands";
 import { useMarkFeedRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
-import { useUpdateFeedDisplayMode } from "@/hooks/use-update-feed-display-mode";
-import { resolveEffectiveDisplayMode } from "@/lib/article-view";
+import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
+import {
+  displayPresetToTriStateModes,
+  feedModesToDisplayPresetOption,
+  resolveFeedDisplayOverrides,
+} from "@/lib/article-display";
 import { extractSiteHost } from "@/lib/feed";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -23,12 +27,20 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
   const showToast = useUiStore((s) => s.showToast);
   const confirmMarkAllRead = useConfirmMarkAllRead();
   const markFeedRead = useMarkFeedRead();
-  const updateFeedMode = useUpdateFeedDisplayMode();
-  const readerViewPref = usePreferencesStore((s) => s.prefs.reader_view ?? "normal");
+  const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
 
   const hostResult = extractSiteHost(feed.site_url, feed.url);
   const siteHost = Result.isSuccess(hostResult) ? Result.unwrap(hostResult) : Result.unwrapError(hostResult);
-  const isAutoWidescreen = resolveEffectiveDisplayMode(feed.display_mode, readerViewPref) === "widescreen";
+  const selectedDisplayPreset = feedModesToDisplayPresetOption(
+    resolveFeedDisplayOverrides(feed).readerMode,
+    resolveFeedDisplayOverrides(feed).webPreviewMode,
+  );
+  const displayPresetOptions = [
+    { value: "default", label: t("display_mode_default") },
+    { value: "reader_only", label: t("display_mode_reader_only") },
+    { value: "reader_and_preview", label: t("display_mode_reader_and_preview") },
+    { value: "preview_only", label: t("display_mode_preview_only") },
+  ];
 
   const handleOpenSite = () => {
     const url = feed.site_url || feed.url;
@@ -69,22 +81,17 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
         openSiteLabel={t("open_site", { host: siteHost })}
         markAllReadLabel={t("mark_all_as_read")}
         displayModeLabel={t("display_mode")}
-        normalModeLabel={t("display_mode_normal_simple")}
-        autoWidescreenModeLabel={t("auto_widescreen")}
-        isAutoWidescreen={isAutoWidescreen}
+        displayPresetOptions={displayPresetOptions}
+        selectedDisplayPreset={selectedDisplayPreset}
         unsubscribeLabel={t("unsubscribe_ellipsis")}
         editLabel={t("edit_ellipsis")}
         onOpenSite={handleOpenSite}
         onMarkAllRead={handleMarkAllRead}
-        onSetNormalMode={() => {
-          if (isAutoWidescreen) {
-            void updateFeedMode(feed.id, "normal");
-          }
-        }}
-        onSetAutoWidescreenMode={() => {
-          if (!isAutoWidescreen) {
-            void updateFeedMode(feed.id, "widescreen");
-          }
+        onSetDisplayPreset={(value) => {
+          const nextModes = displayPresetToTriStateModes(
+            value as "default" | "reader_only" | "reader_and_preview" | "preview_only",
+          );
+          void updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode);
         }}
         onUnsubscribe={() => setShowUnsubscribeDialog(true)}
         onEdit={() => setShowRenameDialog(true)}

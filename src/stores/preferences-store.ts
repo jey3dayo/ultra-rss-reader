@@ -20,21 +20,7 @@ const fontSizeSchema = z.enum(["small", "medium", "large"]);
 const imagePreviewsSchema = z.enum(["off", "small", "medium", "large"]);
 const afterReadingSchema = z.enum(["mark_as_read", "do_nothing", "archive"]);
 const sortSubscriptionsSchema = z.enum(["folders_first", "alphabetical", "newest_first", "oldest_first"]);
-const readerViewModeSchema = z.enum(["normal", "widescreen"]);
-const persistedReaderViewSchema = z
-  .enum(["normal", "widescreen", "fullscreen", "off", "on", "auto"])
-  .transform((value): z.infer<typeof readerViewModeSchema> => {
-    switch (value) {
-      case "on":
-      case "fullscreen":
-        return "widescreen";
-      case "off":
-      case "auto":
-        return "normal";
-      default:
-        return value;
-    }
-  });
+const persistedBooleanPreferenceSchema = z.enum(["true", "false"]);
 
 export type Theme = z.infer<typeof themeSchema>;
 
@@ -63,7 +49,8 @@ const preferenceSchemas = {
   display_favicons: booleanStringSchema,
   text_preview: booleanStringSchema,
   dim_archived: booleanStringSchema,
-  reader_view: persistedReaderViewSchema,
+  reader_mode_default: persistedBooleanPreferenceSchema,
+  web_preview_mode_default: persistedBooleanPreferenceSchema,
   reading_sort: sortOrderSchema,
   after_reading: afterReadingSchema,
   scroll_to_top_on_change: booleanStringSchema,
@@ -106,7 +93,8 @@ const corePreferenceDefaults = {
   text_preview: "true",
   dim_archived: "true",
   // Reading
-  reader_view: "normal",
+  reader_mode_default: "true",
+  web_preview_mode_default: "false",
   reading_sort: "newest_first",
   after_reading: "mark_as_read",
   scroll_to_top_on_change: "true",

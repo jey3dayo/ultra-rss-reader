@@ -19,10 +19,11 @@ describe("RenameFeedDialogView", () => {
         open={true}
         title="Tech Blog"
         loading={false}
-        displayMode="widescreen"
+        displayMode="reader_and_preview"
         displayModeOptions={[
-          { value: "normal", label: "Normal" },
-          { value: "widescreen", label: "Widescreen" },
+          { value: "default", label: "Default" },
+          { value: "reader_only", label: "Reader only" },
+          { value: "reader_and_preview", label: "Reader + Preview" },
         ]}
         onOpenChange={onOpenChange}
         onTitleChange={onTitleChange}
@@ -60,17 +61,17 @@ describe("RenameFeedDialogView", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toHaveValue("Tech Blog");
-    expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Widescreen");
+    expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Reader + Preview");
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("Work");
 
     fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Fresh" } });
     await user.click(screen.getByRole("combobox", { name: "Display Mode" }));
-    await user.click(await screen.findByText("Normal"));
+    await user.click(await screen.findByText("Reader only"));
     await user.click(screen.getByRole("button", { name: "Save" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(onTitleChange).toHaveBeenLastCalledWith("Fresh");
-    expect(onDisplayModeChange).toHaveBeenCalledWith("normal");
+    expect(onDisplayModeChange).toHaveBeenCalledWith("reader_only");
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
@@ -81,8 +82,8 @@ describe("RenameFeedDialogView", () => {
         open={true}
         title="   "
         loading={false}
-        displayMode="normal"
-        displayModeOptions={[{ value: "normal", label: "Normal" }]}
+        displayMode="reader_only"
+        displayModeOptions={[{ value: "reader_only", label: "Reader only" }]}
         onOpenChange={vi.fn()}
         onTitleChange={vi.fn()}
         onDisplayModeChange={vi.fn()}
