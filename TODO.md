@@ -4,12 +4,15 @@
 
 - [ ] 自動ワイドスクリーン overlay の最終 polish を仕上げる
   - `×` の hover / active / focus-visible を最終確認し、必要なら 1 段だけ詰める
+  - `×` の active 時に、押した感が hover と埋もれないかを確認し、必要ならごく小さい scale / opacity 差分を追加する
+  - `×` の 46px hit area と見た目の一致感を実機で確認し、端クリック時の違和感がないかを見る
   - lane の余白が「close のための逃がし」に見えないか、Tauri 実画面で最終確認する
   - scrim と stage の境界コントラストを環境差込みで見直し、必要なら半段だけ調整する
 - [ ] overlay の振る舞いを最終判断する
   - scrim クリックで閉じるかどうかを仕様として確定する
   - focus trap を入れるか、現状の focus restore で十分かを判断する
   - 開閉アニメーションを入れるなら、ごく軽い easing のみに留める
+  - `Esc` で閉じる / `focus-visible` の現在仕様を維持するかを、最終 UX と合わせて確認する
 - [ ] Tauri の実機スクショをループで取りながら、overlay の最終見た目を確定する
   - `×` の位置、scrim の濃さ、枠なしの見え方を main 基準で確認する
   - native WebView の bounds と DOM 上の見た目がずれて見えないかを都度確認する
