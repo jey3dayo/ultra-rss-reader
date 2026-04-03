@@ -30,12 +30,12 @@ describe("ArticleToolbarView", () => {
         canOpenInExternalBrowser
         displayModeControl={<DisplayModeToggleGroup value="reader_only" onValueChange={vi.fn()} />}
         labels={{
-          closeView: "Close view",
+          closeView: "Close article",
           toggleRead: "Toggle read",
           toggleStar: "Toggle star",
           copyLink: "Copy link",
-          viewInBrowser: "View in browser",
-          openInExternalBrowser: "Open in external browser",
+          viewInBrowser: "Open Web Preview",
+          openInExternalBrowser: "Open in External Browser",
         }}
         onCloseView={onCloseView}
         onToggleRead={onToggleRead}
@@ -55,12 +55,12 @@ describe("ArticleToolbarView", () => {
     expect(readButton).toHaveAttribute("aria-pressed", "true");
     expect(starButton).toHaveAttribute("aria-pressed", "false");
 
-    await user.click(screen.getByRole("button", { name: "Close view" }));
+    await user.click(screen.getByRole("button", { name: "Close article" }));
     await user.click(readButton);
     await user.click(starButton);
     await user.click(screen.getByRole("button", { name: "Copy link" }));
-    await user.click(screen.getByRole("button", { name: "View in browser" }));
-    await user.click(screen.getByRole("button", { name: "Open in external browser" }));
+    await user.click(screen.getByRole("button", { name: "Open Web Preview" }));
+    await user.click(screen.getByRole("button", { name: "Open in External Browser" }));
 
     expect(onCloseView).toHaveBeenCalledTimes(1);
     expect(onToggleRead).toHaveBeenCalledWith(false);
@@ -86,12 +86,12 @@ describe("ArticleToolbarView", () => {
         showOpenInExternalBrowserButton={false}
         canOpenInExternalBrowser={false}
         labels={{
-          closeView: "Close view",
+          closeView: "Close article",
           toggleRead: "Toggle read",
           toggleStar: "Toggle star",
           copyLink: "Copy link",
-          viewInBrowser: "View in browser",
-          openInExternalBrowser: "Open in external browser",
+          viewInBrowser: "Open Web Preview",
+          openInExternalBrowser: "Open in External Browser",
         }}
         onCloseView={vi.fn()}
         onToggleRead={vi.fn()}
@@ -102,7 +102,7 @@ describe("ArticleToolbarView", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "Close view" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Close article" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Toggle read" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Toggle star" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Copy link" })).not.toBeInTheDocument();
@@ -126,12 +126,12 @@ describe("ArticleToolbarView", () => {
         showOpenInExternalBrowserButton
         canOpenInExternalBrowser
         labels={{
-          closeView: "Close view",
+          closeView: "Close article",
           toggleRead: "Toggle read",
           toggleStar: "Toggle star",
           copyLink: "Copy link",
-          viewInBrowser: "View in browser",
-          openInExternalBrowser: "Open in external browser",
+          viewInBrowser: "Open Web Preview",
+          openInExternalBrowser: "Open in External Browser",
         }}
         onCloseView={vi.fn()}
         onToggleRead={vi.fn()}
@@ -144,8 +144,8 @@ describe("ArticleToolbarView", () => {
 
     const dragRegions = container.querySelectorAll("[data-tauri-drag-region]");
     expect(dragRegions).toHaveLength(1);
-    expect(dragRegions[0]).not.toContain(screen.getByRole("button", { name: "View in browser" }));
-    expect(dragRegions[0]).not.toContain(screen.getByRole("button", { name: "Open in external browser" }));
+    expect(dragRegions[0]).not.toContain(screen.getByRole("button", { name: "Open Web Preview" }));
+    expect(dragRegions[0]).not.toContain(screen.getByRole("button", { name: "Open in External Browser" }));
   });
 
   it("uses a highlighted pressed style for the in-app browser toggle", () => {
@@ -164,12 +164,12 @@ describe("ArticleToolbarView", () => {
         showOpenInExternalBrowserButton
         canOpenInExternalBrowser
         labels={{
-          closeView: "Close view",
+          closeView: "Close article",
           toggleRead: "Toggle read",
           toggleStar: "Toggle star",
           copyLink: "Copy link",
-          viewInBrowser: "Close browser window",
-          openInExternalBrowser: "Open in external browser",
+          viewInBrowser: "Open Web Preview",
+          openInExternalBrowser: "Open in External Browser",
         }}
         onCloseView={vi.fn()}
         onToggleRead={vi.fn()}
@@ -180,7 +180,7 @@ describe("ArticleToolbarView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Close browser window" })).toHaveClass("data-[pressed]:text-primary");
+    expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveClass("data-[pressed]:text-primary");
   });
 
   it("keeps browser before copy in the toolbar action order", () => {
@@ -199,12 +199,12 @@ describe("ArticleToolbarView", () => {
         showOpenInExternalBrowserButton
         canOpenInExternalBrowser
         labels={{
-          closeView: "Close view",
+          closeView: "Close article",
           toggleRead: "Toggle read",
           toggleStar: "Toggle star",
           copyLink: "Copy link",
-          viewInBrowser: "View in browser",
-          openInExternalBrowser: "Open in external browser",
+          viewInBrowser: "Open Web Preview",
+          openInExternalBrowser: "Open in External Browser",
         }}
         onCloseView={vi.fn()}
         onToggleRead={vi.fn()}
@@ -221,12 +221,12 @@ describe("ArticleToolbarView", () => {
       .filter((label): label is string => label !== null);
 
     expect(toolbarButtons).toEqual([
-      "Close view",
+      "Close article",
       "Toggle read",
       "Toggle star",
-      "View in browser",
+      "Open Web Preview",
       "Copy link",
-      "Open in external browser",
+      "Open in External Browser",
     ]);
   });
 });

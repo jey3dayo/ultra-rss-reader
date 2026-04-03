@@ -92,7 +92,7 @@ function BrowserViewHarness({ scope = "main-stage" }: { scope?: "content-pane" |
           scope={scope}
           onCloseOverlay={() => useUiStore.getState().closeBrowser()}
           labels={{
-            closeOverlay: "Close browser overlay",
+            closeOverlay: "Close Web Preview",
           }}
         />
       ) : null}
@@ -175,7 +175,7 @@ describe("BrowserView", () => {
     expect(screen.getByTestId("browser-overlay-stage")).toBeInTheDocument();
     expect(screen.getByTestId("browser-webview-host")).toBeInTheDocument();
     expect(screen.getByTestId("browser-overlay-chrome")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Close browser overlay" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
     expect(screen.queryByTestId("browser-toolbar")).not.toBeInTheDocument();
     expect(screen.queryByText("https://example.com/article")).not.toBeInTheDocument();
   });

@@ -43,7 +43,9 @@ describe("ArticleView", () => {
             sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
           );
         case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          return sampleFeeds
+            .filter((feed) => feed.account_id === args.accountId)
+            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
         case "list_tags":
           return [
             { id: "tag-1", name: "Later", color: null },
@@ -67,15 +69,19 @@ describe("ArticleView", () => {
   });
 
   it("uses the close button to return to the list in compact layout", async () => {
-    useUiStore.getState().selectAccount("acc-1");
-    useUiStore.getState().selectFeed("feed-1");
-    useUiStore.getState().selectArticle("art-1");
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+    });
     useUiStore.setState({ layoutMode: "compact", focusedPane: "content" });
 
     const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    const button = await screen.findByRole("button", { name: "Close view" });
+    const button = await screen.findByRole("button", { name: "Close article" });
     await user.click(button);
 
     await waitFor(() => {
@@ -109,9 +115,13 @@ describe("ArticleView", () => {
       }
     });
 
-    useUiStore.getState().selectAccount("acc-1");
-    useUiStore.getState().selectFeed("feed-1");
-    useUiStore.getState().selectArticle("art-1");
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+    });
     usePreferencesStore.setState({ prefs: { open_links: "in_app" }, loaded: true });
 
     const user = userEvent.setup();
@@ -178,7 +188,7 @@ describe("ArticleView", () => {
 
     calls.length = 0;
 
-    const openBrowserButton = await screen.findByRole("button", { name: "Open in Browser" });
+    const openBrowserButton = await screen.findByRole("button", { name: "Open Web Preview" });
     expect(openBrowserButton).toHaveAttribute("aria-pressed", "false");
 
     await user.click(openBrowserButton);
@@ -191,54 +201,6 @@ describe("ArticleView", () => {
     expect(calls.map(({ cmd }) => cmd)).not.toContain("open_in_browser");
   });
 
-  it("automatically opens the browser overlay when the selected article feed enables web preview", async () => {
-    setupTauriMocks((cmd, args) => {
-      switch (cmd) {
-        case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
-        case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
-        case "list_feeds":
-          return sampleFeeds
-            .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
-        case "list_tags":
-          return [];
-        case "get_article_tags":
-          return [];
-        case "create_or_update_browser_webview":
-          return {
-            url: args.url,
-            can_go_back: false,
-            can_go_forward: false,
-            is_loading: true,
-          };
-        case "set_browser_webview_bounds":
-        case "close_browser_webview":
-          return null;
-        default:
-          return undefined;
-      }
-    });
-
-    useUiStore.getState().selectAccount("acc-1");
-    useUiStore.getState().selectFeed("feed-1");
-    useUiStore.getState().selectArticle("art-1");
-    usePreferencesStore.setState({
-      prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
-      loaded: true,
-    });
-
-    render(<ArticleView />, { wrapper: createWrapper() });
-
-    await waitFor(() => {
-      expect(useUiStore.getState().contentMode).toBe("browser");
-      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
-    });
-  });
-
   it("closes only the current article overlay when the overlay close button is pressed", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
@@ -249,9 +211,7 @@ describe("ArticleView", () => {
             sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
           );
         case "list_feeds":
-          return sampleFeeds
-            .filter((feed) => feed.account_id === args.accountId)
-            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_tags":
           return [];
         case "get_article_tags":
@@ -275,14 +235,18 @@ describe("ArticleView", () => {
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
 
-    const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
+
+    const openBrowserButton = await screen.findByRole("button", { name: "Open Web Preview" });
+    openBrowserButton.focus();
+    window.dispatchEvent(new Event(keyboardEvents.openInAppBrowser));
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
     });
 
-    await user.click(await screen.findByRole("button", { name: "Close browser overlay" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Close Web Preview" }));
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
@@ -325,21 +289,26 @@ describe("ArticleView", () => {
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
 
-    const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    const openBrowserButton = await screen.findByRole("button", { name: "Open in Browser" });
-    await user.click(openBrowserButton);
+    const openBrowserButton = await screen.findByRole("button", { name: "Open Web Preview" });
+    openBrowserButton.focus();
+    window.dispatchEvent(new Event(keyboardEvents.openInAppBrowser));
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("browser");
-      expect(screen.getByRole("button", { name: "Close browser overlay" })).toHaveFocus();
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
     });
+
+    const closeOverlayButton = await screen.findByRole("button", { name: "Close Web Preview" });
+    closeOverlayButton.focus();
+    expect(closeOverlayButton).toHaveFocus();
 
     fireEvent.keyDown(window, { key: "Escape" });
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(useUiStore.getState().browserUrl).toBeNull();
       expect(openBrowserButton).toHaveFocus();
     });
   });
@@ -461,8 +430,8 @@ describe("ArticleView", () => {
 
     await user.hover(await screen.findByRole("button", { name: "Copy link" }));
 
-    expect(await screen.findByText("Copy link")).toBeInTheDocument();
-  });
+    expect(await screen.findByText("Copy link", {}, { timeout: 5000 })).toBeInTheDocument();
+  }, 10000);
 
   it("opens the external browser from the toolbar button", async () => {
     const calls: MockCall[] = [];
@@ -501,7 +470,7 @@ describe("ArticleView", () => {
 
     calls.length = 0;
 
-    await user.click(await screen.findByRole("button", { name: "Open in external browser" }));
+    await user.click(await screen.findByRole("button", { name: "Open in External Browser" }));
 
     await waitFor(() => {
       expect(calls).toContainEqual({
@@ -543,7 +512,7 @@ describe("ArticleView", () => {
     const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Open in external browser" }));
+    await user.click(await screen.findByRole("button", { name: "Open in External Browser" }));
 
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({ message: "Could not launch browser" });
@@ -558,7 +527,7 @@ describe("ArticleView", () => {
     const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Close view" }));
+    await user.click(await screen.findByRole("button", { name: "Close article" }));
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("empty");

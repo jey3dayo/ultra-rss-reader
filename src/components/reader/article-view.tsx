@@ -591,28 +591,28 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
     void copyToClipboard(article.url).then((result) =>
       Result.pipe(
         result,
-        Result.inspect(() => showToast("Link copied")),
+        Result.inspect(() => showToast(t("link_copied"))),
         Result.inspectError((e) => {
           console.error("Copy failed:", e);
           showToast(e.message);
         }),
       ),
     );
-  }, [article.url, showToast]);
+  }, [article.url, showToast, t]);
 
   const handleAddToReadingList = useCallback(() => {
     if (!supportsReadingList || !article.url) return;
     void addToReadingList(article.url).then((result) =>
       Result.pipe(
         result,
-        Result.inspect(() => showToast("Added to Reading List")),
+        Result.inspect(() => showToast(t("added_to_reading_list"))),
         Result.inspectError((e) => {
           console.error("Add to reading list failed:", e);
           showToast(e.message);
         }),
       ),
     );
-  }, [article.url, showToast, supportsReadingList]);
+  }, [article.url, showToast, supportsReadingList, t]);
 
   useEffect(() => {
     window.addEventListener(keyboardEvents.openInAppBrowser, handleToggleBrowserOverlay);
@@ -677,6 +677,7 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
 }
 
 export function ArticleView() {
+  const { t } = useTranslation("reader");
   const contentMode = useUiStore((s) => s.contentMode);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
@@ -704,7 +705,7 @@ export function ArticleView() {
   if (Result.isFailure(articleResult)) {
     return (
       <div className="flex h-full flex-1 flex-col bg-background">
-        <div className="flex flex-1 items-center justify-center text-muted-foreground">Article not found</div>
+        <div className="flex flex-1 items-center justify-center text-muted-foreground">{t("article_not_found")}</div>
       </div>
     );
   }

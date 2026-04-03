@@ -4,6 +4,7 @@ import { z } from "zod";
 import { create } from "zustand";
 import { getPreferences, setPreference } from "@/api/tauri-commands";
 import { shortcutDefaults } from "@/lib/keyboard-shortcuts";
+import { resolveUiLanguage } from "@/lib/ui-language";
 import { useUiStore } from "@/stores/ui-store";
 
 const themeSchema = z.enum(["light", "dark", "system"]);
@@ -210,12 +211,7 @@ function applyFontSize(size: string): void {
 }
 
 function applyLanguage(language: string): void {
-  if (language === "system") {
-    const detected = navigator.language.startsWith("ja") ? "ja" : "en";
-    i18n.changeLanguage(detected);
-  } else {
-    i18n.changeLanguage(language);
-  }
+  i18n.changeLanguage(resolveUiLanguage(language as "system" | "ja" | "en", navigator.language));
 }
 
 export const usePreferencesStore = create<PreferencesState & PreferencesActions>()((set, getState) => ({

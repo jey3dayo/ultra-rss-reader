@@ -1,5 +1,6 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
+import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
 import { useSetRead, useToggleStar } from "@/hooks/use-articles";
@@ -8,6 +9,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenuView } from "./article-context-menu-view";
 
 export function ArticleContextMenu({ article, children }: { article: ArticleDto; children: React.ReactNode }) {
+  const { t } = useTranslation("reader");
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
@@ -58,9 +60,9 @@ export function ArticleContextMenu({ article, children }: { article: ArticleDto;
       {/* biome-ignore lint/a11y/noStaticElementInteractions: Base UI render prop requires event handler on static element to prevent parent context menu trigger */}
       <ContextMenu.Trigger render={<div onContextMenu={(e) => e.stopPropagation()} />}>{children}</ContextMenu.Trigger>
       <ArticleContextMenuView
-        toggleReadLabel={article.is_read ? "Mark as Unread" : "Mark as Read"}
-        toggleStarLabel={article.is_starred ? "Unstar" : "Star"}
-        openInBrowserLabel={article.url ? "Open in Browser" : undefined}
+        toggleReadLabel={article.is_read ? t("mark_as_unread") : t("mark_as_read")}
+        toggleStarLabel={article.is_starred ? t("unstar") : t("star")}
+        openInBrowserLabel={article.url ? t("open_in_browser") : undefined}
         onToggleRead={handleToggleRead}
         onToggleStar={handleToggleStar}
         onOpenInBrowser={article.url ? handleOpenInBrowser : undefined}
