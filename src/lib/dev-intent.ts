@@ -1,16 +1,14 @@
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import type { DevScenarioId } from "@/dev/scenarios";
+import { getDevScenario } from "@/dev/scenarios";
 import {
   pickImageViewerOverlayArticle,
   pickImageViewerOverlayFeed,
   rankImageViewerOverlayFeeds,
   resolveImageViewerOverlayBrowserUrl,
 } from "@/dev/scenarios/helpers";
-import type { DevScenarioId } from "@/dev/scenarios";
-import { getDevScenario } from "@/dev/scenarios";
 
 export type DevIntent = DevScenarioId | null;
-
-const consumedDevIntents = new Set<DevScenarioId>();
 
 export function parseDevIntent(value: string | undefined): DevIntent {
   if (!value) {
@@ -35,31 +33,6 @@ export function isLegacyOverlayDevIntent(intent: DevIntent): intent is "image-vi
 export function readLegacyOverlayDevIntent(): "image-viewer-overlay" | null {
   const intent = readDevIntent();
   return isLegacyOverlayDevIntent(intent) ? intent : null;
-}
-
-export function consumeDevIntent(intent: DevIntent): DevScenarioId | null {
-  if (!intent) {
-    return null;
-  }
-
-  if (consumedDevIntents.has(intent)) {
-    return null;
-  }
-
-  consumedDevIntents.add(intent);
-  return intent;
-}
-
-export function consumeLegacyOverlayDevIntent(intent: DevIntent): "image-viewer-overlay" | null {
-  if (!isLegacyOverlayDevIntent(intent)) {
-    return null;
-  }
-
-  return consumeDevIntent(intent) as "image-viewer-overlay" | null;
-}
-
-export function resetLegacyOverlayDevIntentDedup(): void {
-  consumedDevIntents.clear();
 }
 
 export function resolveDevIntentBrowserUrl(intent: DevIntent, fallbackUrl: string | null): string | null {

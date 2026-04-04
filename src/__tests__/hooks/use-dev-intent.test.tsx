@@ -1,85 +1,62 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import * as tauriCommands from "@/api/tauri-commands";
+import * as devScenarios from "@/dev/scenarios";
 import { useDevIntent } from "@/hooks/use-dev-intent";
-import { resetLegacyOverlayDevIntentDedup } from "@/lib/dev-intent";
-import { setupTauriMocks, teardownTauriMocks } from "../../../tests/helpers/tauri-mocks";
-
-const showToast = vi.fn();
-
-vi.mock("@/lib/query-client", () => ({
-  queryClient: {
-    setQueryData: vi.fn(),
-  },
-}));
-
-vi.mock("@/stores/ui-store", () => ({
-  useUiStore: {
-    getState: () => ({
-      showToast,
-      selectAccount: vi.fn(),
-      selectFeed: vi.fn(),
-      setViewMode: vi.fn(),
-      selectArticle: vi.fn(),
-      openBrowser: vi.fn(),
-    }),
-  },
-}));
 
 describe("useDevIntent", () => {
   beforeEach(() => {
-    showToast.mockReset();
+    vi.useFakeTimers();
     vi.stubEnv("DEV", true);
-    resetLegacyOverlayDevIntentDedup();
-    setupTauriMocks((cmd) => {
-      if (cmd === "list_accounts") {
-        return [];
-      }
-
-      return undefined;
-    });
   });
 
-  it("enters the legacy overlay hydration path for the overlay intent", async () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  it("defers startup scenario execution until after the effect commits", async () => {
     vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
-    const listAccountsSpy = vi.spyOn(tauriCommands, "listAccounts");
+    const runDevScenarioSpy = vi.spyOn(devScenarios, "runDevScenario").mockResolvedValue(undefined);
 
     renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
     });
 
-    await waitFor(() => {
-      expect(listAccountsSpy).toHaveBeenCalledTimes(1);
-      expect(showToast).toHaveBeenCalledWith("Dev intent could not find any accounts.");
-    });
+    expect(runDevScenarioSpy).not.toHaveBeenCalled();
+
+    await vi.runAllTimersAsync();
+
+    expect(runDevScenarioSpy).toHaveBeenCalledTimes(1);
+    expect(runDevScenarioSpy).toHaveBeenCalledWith("image-viewer-overlay");
   });
 
-  it("shows a visible signal for supported but not yet implemented dev intents", async () => {
-    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "open-add-feed-dialog");
-    const listAccountsSpy = vi.spyOn(tauriCommands, "listAccounts");
+  it("runs the startup scenario only once under StrictMode", async () => {
+    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
+    const runDevScenarioSpy = vi.spyOn(devScenarios, "runDevScenario").mockResolvedValue(undefined);
 
     renderHook(() => useDevIntent(), {
-      wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+      wrapper: ({ children }: { children: ReactNode }) => <StrictMode>{children}</StrictMode>,
     });
 
-    await waitFor(() => {
-      expect(listAccountsSpy).not.toHaveBeenCalled();
-      expect(showToast).toHaveBeenCalledWith('Dev scenario "open-add-feed-dialog" is not implemented yet.');
-    });
+    await vi.runAllTimersAsync();
+
+    expect(runDevScenarioSpy).toHaveBeenCalledTimes(1);
+    expect(runDevScenarioSpy).toHaveBeenCalledWith("image-viewer-overlay");
   });
 
-  it("runs the legacy overlay hydration path only once across remounts", async () => {
+  it("allows a fresh remount to retry startup execution in the same session", async () => {
     vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
-    const listAccountsSpy = vi.spyOn(tauriCommands, "listAccounts");
+    const runDevScenarioSpy = vi.spyOn(devScenarios, "runDevScenario").mockResolvedValue(undefined);
 
     const first = renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
     });
 
-    await waitFor(() => {
-      expect(listAccountsSpy).toHaveBeenCalledTimes(1);
-    });
+    await vi.runAllTimersAsync();
+    expect(runDevScenarioSpy).toHaveBeenCalledTimes(1);
 
     first.unmount();
 
@@ -87,15 +64,20 @@ describe("useDevIntent", () => {
       wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
     });
 
-    await waitFor(() => {
-      expect(listAccountsSpy).toHaveBeenCalledTimes(1);
-    });
+    await vi.runAllTimersAsync();
+
+    expect(runDevScenarioSpy).toHaveBeenCalledTimes(2);
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllEnvs();
-    resetLegacyOverlayDevIntentDedup();
-    teardownTauriMocks();
+  it("does not run anything when no dev intent is configured", async () => {
+    const runDevScenarioSpy = vi.spyOn(devScenarios, "runDevScenario").mockResolvedValue(undefined);
+
+    renderHook(() => useDevIntent(), {
+      wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+    });
+
+    await vi.runAllTimersAsync();
+
+    expect(runDevScenarioSpy).not.toHaveBeenCalled();
   });
 });

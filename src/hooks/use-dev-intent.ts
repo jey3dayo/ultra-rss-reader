@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { runDevScenario } from "@/dev/scenarios";
-import { consumeDevIntent, readDevIntent } from "@/lib/dev-intent";
+import { readDevIntent } from "@/lib/dev-intent";
 
 export function useDevIntent() {
   useEffect(() => {
@@ -9,11 +9,12 @@ export function useDevIntent() {
       return;
     }
 
-    const pendingIntent = consumeDevIntent(intent);
-    if (!pendingIntent) {
-      return;
-    }
+    const timeoutId = window.setTimeout(() => {
+      void runDevScenario(intent);
+    }, 0);
 
-    void runDevScenario(pendingIntent);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, []);
 }
