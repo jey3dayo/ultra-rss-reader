@@ -1,4 +1,4 @@
-use rusqlite::Connection;
+use rusqlite::{params, Connection};
 use tracing::info;
 
 use crate::domain::error::DomainResult;
@@ -20,20 +20,23 @@ pub struct MigrationResult {
     pub from_version: i32,
     /// Schema version after migration.
     pub to_version: i32,
+    /// True when the schema needed structural repair without a numeric version bump.
+    pub repaired_schema: bool,
 }
 
 impl MigrationResult {
     /// Returns true if any migrations were applied.
     pub fn migrated(&self) -> bool {
-        self.from_version < self.to_version
+        self.from_version < self.to_version || self.repaired_schema
     }
 }
 
-pub const LATEST_VERSION: i32 = 9;
+pub const LATEST_VERSION: i32 = 10;
 
 pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     let tx = conn.transaction()?;
     let from_version = get_schema_version(&tx);
+    let mut repaired_schema = false;
 
     if from_version < 1 {
         tx.execute_batch(MIGRATION_V1)?;
@@ -62,12 +65,18 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     if from_version < 9 {
         tx.execute_batch(MIGRATION_V9)?;
     }
+    if from_version < 10 || feed_mode_columns_need_repair(&tx)? {
+        repaired_schema = repair_missing_feed_mode_columns(&tx)?;
+        set_schema_version(&tx, LATEST_VERSION)?;
+    }
 
     let to_version = get_schema_version(&tx);
     tx.commit()?;
 
     if from_version < to_version {
         info!("Database migrated from v{from_version} to v{to_version}");
+    } else if repaired_schema {
+        info!("Database schema repaired in place at v{to_version}");
     } else {
         info!("Database schema is up to date (v{to_version})");
     }
@@ -75,6 +84,7 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     Ok(MigrationResult {
         from_version,
         to_version,
+        repaired_schema,
     })
 }
 
@@ -85,6 +95,112 @@ pub fn get_schema_version(conn: &Connection) -> i32 {
         |row| row.get(0),
     )
     .unwrap_or(0)
+}
+
+pub fn schema_needs_migration(conn: &Connection) -> DomainResult<bool> {
+    Ok(get_schema_version(conn) < LATEST_VERSION || feed_mode_columns_need_repair(conn)?)
+}
+
+fn feed_mode_columns_need_repair(conn: &Connection) -> DomainResult<bool> {
+    if !table_exists(conn, "feeds")? {
+        return Ok(false);
+    }
+
+    let has_reader_mode = table_has_column(conn, "feeds", "reader_mode")?;
+    let has_web_preview_mode = table_has_column(conn, "feeds", "web_preview_mode")?;
+    Ok(!has_reader_mode || !has_web_preview_mode)
+}
+
+fn repair_missing_feed_mode_columns(conn: &Connection) -> DomainResult<bool> {
+    if !table_exists(conn, "feeds")? {
+        return Ok(false);
+    }
+
+    let has_reader_mode = table_has_column(conn, "feeds", "reader_mode")?;
+    let has_web_preview_mode = table_has_column(conn, "feeds", "web_preview_mode")?;
+
+    if has_reader_mode && has_web_preview_mode {
+        return Ok(false);
+    }
+
+    if !has_reader_mode {
+        conn.execute(
+            "ALTER TABLE feeds ADD COLUMN reader_mode TEXT NOT NULL DEFAULT 'inherit'",
+            [],
+        )?;
+    }
+    if !has_web_preview_mode {
+        conn.execute(
+            "ALTER TABLE feeds ADD COLUMN web_preview_mode TEXT NOT NULL DEFAULT 'inherit'",
+            [],
+        )?;
+    }
+
+    if table_has_column(conn, "feeds", "display_mode")? {
+        if !has_reader_mode {
+            conn.execute(
+                "UPDATE feeds
+                 SET reader_mode = CASE
+                    WHEN display_mode = 'normal' THEN 'on'
+                    WHEN display_mode = 'widescreen' THEN 'on'
+                    ELSE 'inherit'
+                 END
+                 WHERE reader_mode = 'inherit'",
+                [],
+            )?;
+        }
+        if !has_web_preview_mode {
+            conn.execute(
+                "UPDATE feeds
+                 SET web_preview_mode = CASE
+                    WHEN display_mode = 'normal' THEN 'off'
+                    WHEN display_mode = 'widescreen' THEN 'on'
+                    ELSE 'inherit'
+                 END
+                 WHERE web_preview_mode = 'inherit'",
+                [],
+            )?;
+        }
+    }
+
+    Ok(true)
+}
+
+fn set_schema_version(conn: &Connection, version: i32) -> DomainResult<()> {
+    conn.execute("DELETE FROM schema_version", [])?;
+    conn.execute(
+        "INSERT INTO schema_version (version) VALUES (?1)",
+        params![version],
+    )?;
+    Ok(())
+}
+
+fn table_exists(conn: &Connection, table_name: &str) -> DomainResult<bool> {
+    let exists: i32 = conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1)",
+        [table_name],
+        |row| row.get(0),
+    )?;
+    Ok(exists != 0)
+}
+
+fn table_has_column(conn: &Connection, table_name: &str, column_name: &str) -> DomainResult<bool> {
+    if !table_exists(conn, table_name)? {
+        return Ok(false);
+    }
+
+    let pragma = format!("PRAGMA table_info({table_name})");
+    let mut stmt = conn.prepare(&pragma)?;
+    let mut rows = stmt.query([])?;
+
+    while let Some(row) = rows.next()? {
+        let name: String = row.get(1)?;
+        if name == column_name {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
 }
 
 #[cfg(test)]
@@ -335,5 +451,46 @@ mod tests {
             fts_count, 0,
             "V3 changes should be rolled back when a later migration fails"
         );
+    }
+
+    #[test]
+    fn v10_repairs_v9_schema_missing_reader_preview_columns() {
+        let mut conn = open_in_memory();
+        conn.execute_batch(MIGRATION_V1).unwrap();
+        conn.execute_batch(MIGRATION_V2).unwrap();
+        conn.execute_batch(MIGRATION_V3).unwrap();
+        conn.execute_batch(MIGRATION_V4).unwrap();
+        conn.execute_batch(MIGRATION_V5).unwrap();
+        conn.execute_batch(MIGRATION_V6).unwrap();
+        conn.execute_batch(MIGRATION_V7).unwrap();
+
+        conn.execute(
+            "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+            ("acc-1", "local", "Local"),
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO feeds (id, account_id, title, url, site_url, unread_count, display_mode) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            ("feed-1", "acc-1", "Tech Blog", "https://example.com/feed.xml", "https://example.com", 0, "widescreen"),
+        )
+        .unwrap();
+
+        conn.execute("DELETE FROM schema_version", []).unwrap();
+        conn.execute("INSERT INTO schema_version (version) VALUES (9)", [])
+            .unwrap();
+
+        let result = run_migrations(&mut conn).unwrap();
+        assert_eq!(result.from_version, 9);
+        assert_eq!(result.to_version, LATEST_VERSION);
+
+        let (reader_mode, web_preview_mode): (String, String) = conn
+            .query_row(
+                "SELECT reader_mode, web_preview_mode FROM feeds WHERE id = ?1",
+                ("feed-1",),
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(reader_mode, "on");
+        assert_eq!(web_preview_mode, "on");
     }
 }

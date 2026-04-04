@@ -27,7 +27,7 @@ impl DbManager {
         let writer = Connection::open(db_path)?;
         Self::apply_pragmas(&writer)?;
         let current_version = super::migration::get_schema_version(&writer);
-        let needs_migration = current_version < super::migration::LATEST_VERSION;
+        let needs_migration = super::migration::schema_needs_migration(&writer)?;
 
         // Phase 2: Backup before migration (skip for fresh/empty DB)
         if needs_migration && !is_fresh {
@@ -260,6 +260,7 @@ impl DbManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rusqlite::Connection;
 
     #[test]
     fn new_in_memory_creates_all_tables() {
@@ -285,7 +286,7 @@ mod tests {
     }
 
     #[test]
-    fn schema_version_is_6() {
+    fn schema_version_matches_latest() {
         let db = DbManager::new_in_memory().unwrap();
         let version: i32 = db
             .reader()
@@ -327,7 +328,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let db_path = dir.path().join("test.db");
 
-        // First init — creates fresh DB (from v0 to v5)
+        // First init — creates a fresh DB at the latest schema version
         let _db = DbManager::new(&db_path).unwrap();
         drop(_db);
 
@@ -349,8 +350,11 @@ mod tests {
         let _db2 = DbManager::new(&db_path).unwrap();
         drop(_db2);
 
-        let backup_v6 = crate::infra::db::backup::backup_path(&db_path, 6);
-        assert!(!backup_v6.exists(), "No backup when schema is current");
+        let backup_for_outdated_schema = crate::infra::db::backup::backup_path(&db_path, 6);
+        assert!(
+            !backup_for_outdated_schema.exists(),
+            "No backup when schema is current"
+        );
     }
 
     #[test]
@@ -480,5 +484,65 @@ mod tests {
         assert!(before.total_size_bytes > 0);
         assert!(after.total_size_bytes > 0);
         assert_eq!(count, 2, "DB should remain writable/readable after VACUUM");
+    }
+
+    #[test]
+    fn new_repairs_latest_version_schema_when_feed_columns_are_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("broken-latest.db");
+
+        {
+            let conn = Connection::open(&db_path).unwrap();
+            conn.execute_batch(include_str!("../../../migrations/V1__initial.sql"))
+                .unwrap();
+            conn.execute_batch(include_str!("../../../migrations/V2__preferences.sql"))
+                .unwrap();
+            conn.execute_batch(include_str!("../../../migrations/V3__fts5.sql"))
+                .unwrap();
+            conn.execute_batch(include_str!("../../../migrations/V4__tags.sql"))
+                .unwrap();
+            conn.execute_batch(include_str!(
+                "../../../migrations/V5__feed_display_mode.sql"
+            ))
+            .unwrap();
+            conn.execute_batch(include_str!(
+                "../../../migrations/V6__sync_state_timestamp_usec.sql"
+            ))
+            .unwrap();
+            conn.execute_batch(include_str!(
+                "../../../migrations/V7__feed_display_mode_inherit.sql"
+            ))
+            .unwrap();
+            conn.execute(
+                "INSERT INTO accounts (id, kind, name) VALUES ('a1', 'Local', 'Test')",
+                [],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO feeds (id, account_id, title, url, site_url, unread_count, display_mode) VALUES ('f1', 'a1', 'Feed', 'https://example.com/feed.xml', 'https://example.com', 0, 'normal')",
+                [],
+            )
+            .unwrap();
+            conn.execute("DELETE FROM schema_version", []).unwrap();
+            conn.execute(
+                "INSERT INTO schema_version (version) VALUES (?1)",
+                [super::super::migration::LATEST_VERSION],
+            )
+            .unwrap();
+        }
+
+        let db = DbManager::new(&db_path).unwrap();
+
+        let (reader_mode, web_preview_mode): (String, String) = db
+            .reader()
+            .query_row(
+                "SELECT reader_mode, web_preview_mode FROM feeds WHERE id = 'f1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+
+        assert_eq!(reader_mode, "on");
+        assert_eq!(web_preview_mode, "off");
     }
 }
