@@ -18,6 +18,7 @@ export type DevScenarioContext = {
     selectArticle(id: string): void;
     openBrowser(url: string): void;
     setViewMode(mode: "all" | "unread" | "starred"): void;
+    openSettings(tab?: "general" | "appearance" | "reading" | "shortcuts" | "actions" | "data" | "accounts"): void;
     openAddFeedDialog(): void;
     openCommandPalette(): void;
     closeCommandPalette(): void;

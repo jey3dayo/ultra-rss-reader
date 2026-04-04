@@ -40,6 +40,7 @@ function createUiStub(overrides?: Record<string, unknown>): DevScenarioContext["
     selectArticle: vi.fn(),
     openBrowser: vi.fn(),
     setViewMode: vi.fn(),
+    openSettings: vi.fn(),
     openAddFeedDialog: vi.fn(),
     openCommandPalette: vi.fn(),
     closeCommandPalette: vi.fn(),
@@ -514,6 +515,20 @@ describe("runDevScenario", () => {
     await runDevScenario("open-add-feed-dialog", { context });
 
     expect(context.actions.executeAction).toHaveBeenCalledWith("open-add-feed");
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+  });
+
+  it("opens settings at the reading section for the settings-reading scenario", async () => {
+    const context = createContext({
+      actions: createActions({
+        executeAction: vi.fn(),
+      }),
+    });
+
+    await runDevScenario("open-settings-reading", { context });
+
+    expect(context.ui.openSettings).toHaveBeenCalledWith("reading");
+    expect(context.actions.executeAction).not.toHaveBeenCalled();
     expect(context.ui.showToast).not.toHaveBeenCalled();
   });
 

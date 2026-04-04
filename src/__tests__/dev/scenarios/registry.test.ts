@@ -10,7 +10,7 @@ describe("dev scenario registry", () => {
   it("returns a registered scenario for a known id", () => {
     expect(getDevScenario(DEV_SCENARIO_IDS[3])).toMatchObject({
       id: DEV_SCENARIO_IDS[3],
-      title: "Open add feed dialog",
+      title: "Open settings reading",
     });
   });
 

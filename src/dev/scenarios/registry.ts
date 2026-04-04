@@ -13,6 +13,12 @@ function createActionBackedDevScenarioRunner(actionId: AppAction): DevScenario["
   };
 }
 
+function createUiBackedDevScenarioRunner(run: (ui: DevScenarioContext["ui"]) => void): DevScenario["run"] {
+  return ({ ui }) => {
+    run(ui);
+  };
+}
+
 const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
   "image-viewer-overlay": {
     title: "Image viewer overlay",
@@ -28,6 +34,11 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
     title: "Open tag view",
     keywords: ["tag", "view"],
     run: runOpenTagViewScenario,
+  },
+  "open-settings-reading": {
+    title: "Open settings reading",
+    keywords: ["settings", "reading", "display", "mode"],
+    run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("reading")),
   },
   "open-add-feed-dialog": {
     title: "Open add feed dialog",
