@@ -23,6 +23,15 @@ export function readDevIntent(): DevIntent {
   return parseDevIntent(import.meta.env.VITE_ULTRA_RSS_DEV_INTENT);
 }
 
+export function isLegacyOverlayDevIntent(intent: DevIntent): intent is "image-viewer-overlay" {
+  return intent === "image-viewer-overlay";
+}
+
+export function readLegacyOverlayDevIntent(): "image-viewer-overlay" | null {
+  const intent = readDevIntent();
+  return isLegacyOverlayDevIntent(intent) ? intent : null;
+}
+
 export function resolveDevIntentBrowserUrl(intent: DevIntent, fallbackUrl: string | null): string | null {
   if (intent !== "image-viewer-overlay") {
     return fallbackUrl;

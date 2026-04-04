@@ -2,7 +2,12 @@ import { Result } from "@praha/byethrow";
 import { useEffect, useRef } from "react";
 import type { FeedDto } from "@/api/tauri-commands";
 import { listAccounts, listArticles, listFeeds } from "@/api/tauri-commands";
-import { pickDevIntentArticle, rankDevIntentFeeds, readDevIntent, resolveDevIntentBrowserUrl } from "@/lib/dev-intent";
+import {
+  pickDevIntentArticle,
+  rankDevIntentFeeds,
+  readLegacyOverlayDevIntent,
+  resolveDevIntentBrowserUrl,
+} from "@/lib/dev-intent";
 import { queryClient } from "@/lib/query-client";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -10,7 +15,7 @@ export function useDevIntent() {
   const hasRun = useRef(false);
 
   useEffect(() => {
-    const intent = readDevIntent();
+    const intent = readLegacyOverlayDevIntent();
     if (intent !== "image-viewer-overlay" || hasRun.current) {
       return;
     }
