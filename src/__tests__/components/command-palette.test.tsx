@@ -1,8 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CommandPalette } from "@/components/reader/command-palette";
 import { STORAGE_KEYS } from "@/constants/storage";
+import * as devScenarios from "@/dev/scenarios";
 import * as actions from "@/lib/actions";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -22,6 +23,7 @@ describe("CommandPalette", () => {
     );
     Element.prototype.scrollIntoView = vi.fn();
     localStorage.clear();
+    vi.stubEnv("DEV", false);
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
@@ -62,6 +64,11 @@ describe("CommandPalette", () => {
           return null;
       }
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it("shows recent actions when opened without a query", async () => {
@@ -135,5 +142,65 @@ describe("CommandPalette", () => {
 
     expect(openSettings).toHaveTextContent("⌘ .");
     expect(markAllRead).toHaveTextContent("Shift + A");
+  });
+
+  it("shows dev scenarios only in dev builds", async () => {
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
+    expect(screen.queryByText("Dev Scenarios")).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Image viewer overlay/ })).not.toBeInTheDocument();
+
+    vi.stubEnv("DEV", true);
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Dev Scenarios", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Image viewer overlay/ })).toBeInTheDocument();
+  });
+
+  it("filters dev scenarios by title and keyword", async () => {
+    const user = userEvent.setup();
+    vi.stubEnv("DEV", true);
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const input = await screen.findByPlaceholderText("Search commands…");
+    await user.type(input, "overlay");
+
+    expect(await screen.findByRole("option", { name: /Image viewer overlay/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Open add feed dialog/ })).not.toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, "dialog");
+
+    expect(await screen.findByRole("option", { name: /Open add feed dialog/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Image viewer overlay/ })).not.toBeInTheDocument();
+  });
+
+  it("runs a dev scenario, records it in history, and closes the palette", async () => {
+    const user = userEvent.setup();
+    vi.stubEnv("DEV", true);
+    const runDevScenario = vi.spyOn(devScenarios, "runDevScenario").mockResolvedValue(undefined);
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("option", { name: /Image viewer overlay/ }));
+
+    await waitFor(() => {
+      expect(runDevScenario).toHaveBeenCalledWith("image-viewer-overlay");
+      expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+      expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(["scenario:image-viewer-overlay"]));
+    });
+  });
+
+  it("does not treat scenario history as recent actions", async () => {
+    vi.stubEnv("DEV", true);
+    localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(["scenario:image-viewer-overlay"]));
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
+    expect(screen.queryByText("Recent Actions")).not.toBeInTheDocument();
+    expect(screen.getByText("Dev Scenarios", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
   });
 });

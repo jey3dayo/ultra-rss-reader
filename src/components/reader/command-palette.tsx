@@ -1,6 +1,8 @@
-import { HashIcon, NewspaperIcon, RefreshCwIcon, RssIcon, SettingsIcon } from "lucide-react";
+import { FlaskConicalIcon, HashIcon, NewspaperIcon, RefreshCwIcon, RssIcon, SettingsIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { listDevScenarios, runDevScenario } from "@/dev/scenarios";
+import type { DevScenarioId } from "@/dev/scenarios/types";
 import { useSearchArticles } from "@/hooks/use-articles";
 import { addToHistory, getHistory } from "@/hooks/use-command-history";
 import { useCommandSearch } from "@/hooks/use-command-search";
@@ -46,7 +48,7 @@ function normalize(text: string): string {
   return text.trim().toLowerCase();
 }
 
-function matchesQuery(label: string, keywords: string[], query: string): boolean {
+function matchesQuery(label: string, keywords: readonly string[], query: string): boolean {
   if (!query) {
     return true;
   }
@@ -71,7 +73,7 @@ function parseHistoryEntry(value: string): HistoryEntry | null {
   return null;
 }
 
-function getCommandItemValue(kind: HistoryEntry["kind"], id: string): string {
+function getCommandItemValue(kind: HistoryEntry["kind"] | "scenario", id: string): string {
   return `${kind}:${id}`;
 }
 
@@ -136,6 +138,11 @@ export function CommandPalette() {
     () => actions.filter((action) => matchesQuery(action.label, action.keywords, query)),
     [actions, query],
   );
+  const devScenarios = useMemo(() => (import.meta.env.DEV ? listDevScenarios() : []), []);
+  const filteredDevScenarios = useMemo(
+    () => devScenarios.filter((scenario) => matchesQuery(scenario.title, scenario.keywords, query)),
+    [devScenarios, query],
+  );
   const filteredFeeds = useMemo(
     () => feeds.filter((feed) => matchesQuery(feed.title, [feed.url, feed.site_url], query)),
     [feeds, query],
@@ -153,6 +160,7 @@ export function CommandPalette() {
 
   const showRecentActions = prefix === null && query.length === 0 && recentActions.length > 0;
   const showActions = prefix === null || prefix === ">";
+  const showDevScenarios = import.meta.env.DEV && prefix === null;
   const showFeeds = prefix === null || prefix === "@";
   const showTags = prefix === null || prefix === "#";
   const showArticles = prefix === null;
@@ -160,6 +168,7 @@ export function CommandPalette() {
   const hasVisibleResults = [
     showRecentActions && recentActions.length > 0,
     !showRecentActions && showActions && filteredActions.length > 0,
+    !showRecentActions && showDevScenarios && filteredDevScenarios.length > 0,
     !showRecentActions && showFeeds && filteredFeeds.length > 0,
     !showRecentActions && showTags && filteredTags.length > 0,
     !showRecentActions && showArticles && articles.length > 0,
@@ -191,6 +200,12 @@ export function CommandPalette() {
     addToHistory(`${HISTORY_PREFIX.article}${articleId}`);
     selectFeed(feedId);
     selectArticle(articleId);
+    closePalette();
+  }
+
+  function handleDevScenarioSelect(scenarioId: DevScenarioId) {
+    addToHistory(getCommandItemValue("scenario", scenarioId));
+    void runDevScenario(scenarioId);
     closePalette();
   }
 
@@ -249,6 +264,21 @@ export function CommandPalette() {
                     </CommandItem>
                   );
                 })}
+              </CommandGroup>
+            ) : null}
+
+            {!showRecentActions && showDevScenarios && filteredDevScenarios.length > 0 ? (
+              <CommandGroup heading="Dev Scenarios">
+                {filteredDevScenarios.map((scenario) => (
+                  <CommandItem
+                    key={scenario.id}
+                    value={getCommandItemValue("scenario", scenario.id)}
+                    onSelect={() => handleDevScenarioSelect(scenario.id)}
+                  >
+                    <FlaskConicalIcon />
+                    <span>{scenario.title}</span>
+                  </CommandItem>
+                ))}
               </CommandGroup>
             ) : null}
 
