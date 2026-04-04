@@ -41,7 +41,6 @@ import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-ta
 import { ArticleToolbarView } from "./article-toolbar-view";
 import { BrowserView } from "./browser-view";
 import { contextMenuStyles } from "./context-menu-styles";
-import { DisplayModeToggleGroup } from "./display-mode-toggle-group";
 
 function openArticleInExternalBrowser(url: string) {
   const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
@@ -61,13 +60,11 @@ function ArticleToolbar({
   isBrowserOpen,
   onCloseView,
   onToggleBrowserOverlay,
-  displayModeControl,
 }: {
   article: ArticleDto | null;
   isBrowserOpen: boolean;
   onCloseView: () => void;
   onToggleBrowserOverlay: () => void;
-  displayModeControl?: React.ReactNode;
 }) {
   const { t } = useTranslation("reader");
   const setRead = useSetRead();
@@ -96,7 +93,6 @@ function ArticleToolbar({
       canOpenInBrowser={Boolean(article?.url)}
       showOpenInExternalBrowserButton={actionShare === "true"}
       canOpenInExternalBrowser={Boolean(article?.url)}
-      displayModeControl={displayModeControl}
       shareMenuControl={
         actionShareMenu === "true" ? (
           <Menu.Root>
@@ -170,8 +166,9 @@ function ArticleToolbar({
         closeView: t("close_view"),
         toggleRead: t("toggle_read"),
         toggleStar: t("toggle_star"),
+        previewToggleOff: t("open_in_browser"),
+        previewToggleOn: t("close_browser_overlay"),
         copyLink: t("copy_link"),
-        viewInBrowser: t("open_in_browser"),
         openInExternalBrowser: t("open_in_external_browser"),
       }}
       onCloseView={onCloseView}
@@ -226,7 +223,6 @@ function EmptyState() {
         isBrowserOpen={false}
         onCloseView={() => {}}
         onToggleBrowserOverlay={() => {}}
-        displayModeControl={null}
       />
       <ArticleEmptyStateView message={t("select_article_to_read")} />
     </div>
@@ -534,19 +530,6 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
     setWebPreviewModeOverride("on");
   }, [closeBrowser, rememberOverlayFocusReturnTarget, requestedDisplay.readerMode, requestedDisplay.webPreviewMode]);
 
-  const handleTemporaryDisplayPresetChange = useCallback((nextPreset: "standard" | "preview") => {
-    switch (nextPreset) {
-      case "standard":
-        setReaderModeOverride("on");
-        setWebPreviewModeOverride("off");
-        break;
-      case "preview":
-        setReaderModeOverride("on");
-        setWebPreviewModeOverride("on");
-        break;
-    }
-  }, []);
-
   const handleToggleRead = useCallback(() => {
     const markingAsRead = !article.is_read;
     setRead.mutate(
@@ -638,9 +621,6 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
         isBrowserOpen={isBrowserOpen}
         onCloseView={handleCloseView}
         onToggleBrowserOverlay={handleToggleBrowserOverlay}
-        displayModeControl={
-          <DisplayModeToggleGroup value={requestedDisplay.preset} onValueChange={handleTemporaryDisplayPresetChange} />
-        }
       />
       <div className="relative min-h-0 flex-1">
         {resolvedDisplay.fallbackReason === "missing_web_preview" ? (

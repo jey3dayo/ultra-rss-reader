@@ -204,10 +204,10 @@ describe("ArticleView", () => {
     });
 
     const closingButtons = await screen.findAllByRole("button", { name: "Close Web Preview" });
-    const toolbarCloseButtons = closingButtons.filter((button) => button.getAttribute("aria-pressed") === "true");
-    expect(toolbarCloseButtons).toHaveLength(1);
+    const toolbarCloseButton = closingButtons.find((button) => button.getAttribute("aria-pressed") === "true");
+    expect(toolbarCloseButton).toBeDefined();
 
-    await user.click(toolbarCloseButtons[0]);
+    fireEvent.click(toolbarCloseButton!);
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
@@ -263,7 +263,11 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
     });
 
-    fireEvent.click(await screen.findByRole("button", { name: "Close Web Preview" }));
+    const closeButtons = await screen.findAllByRole("button", { name: "Close Web Preview" });
+    const overlayCloseButton = closeButtons.find((button) => button.getAttribute("aria-pressed") !== "true");
+    expect(overlayCloseButton).toBeDefined();
+
+    fireEvent.click(overlayCloseButton!);
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
@@ -317,8 +321,11 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
     });
 
-    const closeOverlayButton = await screen.findByRole("button", { name: "Close Web Preview" });
-    closeOverlayButton.focus();
+    const closeButtons = await screen.findAllByRole("button", { name: "Close Web Preview" });
+    const closeOverlayButton = closeButtons.find((button) => button.getAttribute("aria-pressed") !== "true");
+    expect(closeOverlayButton).toBeDefined();
+
+    closeOverlayButton!.focus();
     expect(closeOverlayButton).toHaveFocus();
 
     fireEvent.keyDown(window, { key: "Escape" });

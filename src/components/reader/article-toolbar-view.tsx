@@ -1,4 +1,4 @@
-import { Copy, ExternalLink, Globe, X } from "lucide-react";
+import { Copy, ExternalLink, Eye, X } from "lucide-react";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { IconToolbarButton, IconToolbarToggle } from "@/components/shared/icon-toolbar-control";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,8 +7,9 @@ export type ArticleToolbarViewLabels = {
   closeView: string;
   toggleRead: string;
   toggleStar: string;
+  previewToggleOff: string;
+  previewToggleOn: string;
   copyLink: string;
-  viewInBrowser: string;
   openInExternalBrowser: string;
 };
 
@@ -25,7 +26,6 @@ export type ArticleToolbarViewProps = {
   canOpenInBrowser: boolean;
   showOpenInExternalBrowserButton: boolean;
   canOpenInExternalBrowser: boolean;
-  displayModeControl?: React.ReactNode;
   shareMenuControl?: React.ReactNode;
   labels: ArticleToolbarViewLabels;
   onCloseView: () => void;
@@ -49,7 +49,6 @@ export function ArticleToolbarView({
   canOpenInBrowser,
   showOpenInExternalBrowserButton,
   canOpenInExternalBrowser,
-  displayModeControl,
   shareMenuControl,
   labels,
   onCloseView,
@@ -89,17 +88,16 @@ export function ArticleToolbarView({
           </IconToolbarToggle>
           {showOpenInBrowserButton && (
             <IconToolbarToggle
-              label={labels.viewInBrowser}
+              label={isBrowserOpen ? labels.previewToggleOn : labels.previewToggleOff}
               pressed={isBrowserOpen}
               onPressedChange={() => onOpenInBrowser()}
               disabled={!canOpenInBrowser}
               pressedTone="accent"
               focusTargetKey="open-in-browser"
             >
-              <Globe className="h-4 w-4" />
+              <Eye className="h-4 w-4" />
             </IconToolbarToggle>
           )}
-          {displayModeControl}
           {showCopyLinkButton && (
             <IconToolbarButton label={labels.copyLink} onClick={onCopyLink} disabled={!canCopyLink}>
               <Copy className="h-4 w-4" />
