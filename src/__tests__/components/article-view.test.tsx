@@ -196,6 +196,8 @@ describe("ArticleView", () => {
 
     await user.click(openBrowserButton);
 
+    expect(calls.map(({ cmd }) => cmd)).not.toContain("open_in_browser");
+
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("browser");
       expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
@@ -212,6 +214,7 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().browserUrl).toBeNull();
     });
 
+    expect(calls.map(({ cmd }) => cmd)).not.toContain("open_in_browser");
     expect(await screen.findByRole("button", { name: "Open Web Preview" })).toHaveAttribute("aria-pressed", "false");
   });
 
