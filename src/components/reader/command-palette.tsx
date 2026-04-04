@@ -1,4 +1,4 @@
-import { HashIcon, NewspaperIcon, RefreshCwIcon, RssIcon, SettingsIcon } from "lucide-react";
+import { FlaskConicalIcon, HashIcon, NewspaperIcon, RefreshCwIcon, RssIcon, SettingsIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchArticles } from "@/hooks/use-articles";
@@ -9,6 +9,7 @@ import { useFeeds } from "@/hooks/use-feeds";
 import { useTags } from "@/hooks/use-tags";
 import type { AppAction } from "@/lib/actions";
 import { executeAction } from "@/lib/actions";
+import { loadRuntimeDevScenarios, type RuntimeDevScenario, runRuntimeDevScenario } from "@/lib/dev-scenario-runtime";
 import { getShortcutDisplay } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -46,7 +47,7 @@ function normalize(text: string): string {
   return text.trim().toLowerCase();
 }
 
-function matchesQuery(label: string, keywords: string[], query: string): boolean {
+function matchesQuery(label: string, keywords: readonly string[], query: string): boolean {
   if (!query) {
     return true;
   }
@@ -71,7 +72,7 @@ function parseHistoryEntry(value: string): HistoryEntry | null {
   return null;
 }
 
-function getCommandItemValue(kind: HistoryEntry["kind"], id: string): string {
+function getCommandItemValue(kind: HistoryEntry["kind"] | "scenario", id: string): string {
   return `${kind}:${id}`;
 }
 
@@ -80,6 +81,7 @@ export function CommandPalette() {
   const { t: tSidebar } = useTranslation("sidebar");
   const open = useUiStore((state) => state.commandPaletteOpen);
   const closeCommandPalette = useUiStore((state) => state.closeCommandPalette);
+  const showToast = useUiStore((state) => state.showToast);
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
   const selectFeed = useUiStore((state) => state.selectFeed);
   const selectTag = useUiStore((state) => state.selectTag);
@@ -88,6 +90,7 @@ export function CommandPalette() {
   const platformKind = usePlatformStore((state) => state.platform.kind);
   const shortcutPrefs = usePreferencesStore((state) => state.prefs);
   const [input, setInput] = useState("");
+  const [devScenarios, setDevScenarios] = useState<RuntimeDevScenario[]>([]);
   const { prefix, query, deferredQuery } = useCommandSearch(input);
 
   useEffect(() => {
@@ -95,6 +98,30 @@ export function CommandPalette() {
       setInput("");
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void loadRuntimeDevScenarios()
+      .then((scenarios) => {
+        if (!cancelled) {
+          setDevScenarios(scenarios);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDevScenarios([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const actions = useMemo<PaletteAction[]>(
     () => [
@@ -136,6 +163,10 @@ export function CommandPalette() {
     () => actions.filter((action) => matchesQuery(action.label, action.keywords, query)),
     [actions, query],
   );
+  const filteredDevScenarios = useMemo(
+    () => devScenarios.filter((scenario) => matchesQuery(scenario.title, scenario.keywords, query)),
+    [devScenarios, query],
+  );
   const filteredFeeds = useMemo(
     () => feeds.filter((feed) => matchesQuery(feed.title, [feed.url, feed.site_url], query)),
     [feeds, query],
@@ -153,6 +184,7 @@ export function CommandPalette() {
 
   const showRecentActions = prefix === null && query.length === 0 && recentActions.length > 0;
   const showActions = prefix === null || prefix === ">";
+  const showDevScenarios = import.meta.env.DEV && prefix === null;
   const showFeeds = prefix === null || prefix === "@";
   const showTags = prefix === null || prefix === "#";
   const showArticles = prefix === null;
@@ -160,6 +192,7 @@ export function CommandPalette() {
   const hasVisibleResults = [
     showRecentActions && recentActions.length > 0,
     !showRecentActions && showActions && filteredActions.length > 0,
+    !showRecentActions && showDevScenarios && filteredDevScenarios.length > 0,
     !showRecentActions && showFeeds && filteredFeeds.length > 0,
     !showRecentActions && showTags && filteredTags.length > 0,
     !showRecentActions && showArticles && articles.length > 0,
@@ -191,6 +224,14 @@ export function CommandPalette() {
     addToHistory(`${HISTORY_PREFIX.article}${articleId}`);
     selectFeed(feedId);
     selectArticle(articleId);
+    closePalette();
+  }
+
+  function handleDevScenarioSelect(scenarioId: RuntimeDevScenario["id"]) {
+    void runRuntimeDevScenario(scenarioId).catch((error) => {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      showToast(`Failed to run dev scenario "${scenarioId}": ${message}`);
+    });
     closePalette();
   }
 
@@ -249,6 +290,21 @@ export function CommandPalette() {
                     </CommandItem>
                   );
                 })}
+              </CommandGroup>
+            ) : null}
+
+            {!showRecentActions && showDevScenarios && filteredDevScenarios.length > 0 ? (
+              <CommandGroup heading="Dev Scenarios">
+                {filteredDevScenarios.map((scenario) => (
+                  <CommandItem
+                    key={scenario.id}
+                    value={getCommandItemValue("scenario", scenario.id)}
+                    onSelect={() => handleDevScenarioSelect(scenario.id)}
+                  >
+                    <FlaskConicalIcon />
+                    <span>{scenario.title}</span>
+                  </CommandItem>
+                ))}
               </CommandGroup>
             ) : null}
 
