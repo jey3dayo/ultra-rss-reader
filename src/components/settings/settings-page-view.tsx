@@ -17,6 +17,7 @@ export type SettingsPageSelectControl = {
   options: SettingsPageOption[];
   onChange: (value: string) => void;
   disabled?: boolean;
+  open?: boolean;
 };
 
 export type SettingsPageSwitchControl = {
@@ -59,6 +60,7 @@ function SettingsPageSelectRow({ control }: { control: SettingsPageSelectControl
         value={control.value}
         onValueChange={(value) => value !== null && control.onChange(value)}
         disabled={control.disabled}
+        open={control.open}
       >
         <SelectTrigger aria-labelledby={labelId} className="min-w-[140px]">
           <SelectValue>{(value: string | null) => getOptionLabel(control.options, value)}</SelectValue>

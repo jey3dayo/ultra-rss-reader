@@ -40,6 +40,11 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
     keywords: ["settings", "reading", "display", "mode"],
     run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("reading")),
   },
+  "open-settings-reading-display-mode": {
+    title: "Open settings reading display mode",
+    keywords: ["settings", "reading", "display", "mode", "dropdown"],
+    run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("reading")),
+  },
   "open-add-feed-dialog": {
     title: "Open add feed dialog",
     keywords: ["add", "feed", "dialog"],

@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ActionsSettings } from "@/components/settings/actions-settings";
 import { ReadingSettings } from "@/components/settings/reading-settings";
 import { SettingsModal } from "@/components/settings/settings-modal";
@@ -45,6 +45,10 @@ describe("SettingsModal", () => {
     });
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("closes the modal when the view requests it", async () => {
     const user = userEvent.setup();
 
@@ -86,5 +90,20 @@ describe("SettingsModal", () => {
     render(<ReadingSettings />, { wrapper: createWrapper() });
 
     expect(screen.getByRole("combobox", { name: "Default display mode" })).toHaveTextContent("Preview");
+  });
+
+  it("opens the default display mode select for the display-mode showcase intent", async () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "open-settings-reading-display-mode");
+    usePreferencesStore.setState({
+      prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
+      loaded: true,
+    });
+
+    render(<ReadingSettings />, { wrapper: createWrapper() });
+
+    expect(screen.getByRole("combobox", { name: "Default display mode" })).toHaveAttribute("aria-expanded", "true");
+    expect(await screen.findByRole("option", { name: "Standard" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Preview" })).toBeInTheDocument();
   });
 });

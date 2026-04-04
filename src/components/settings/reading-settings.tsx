@@ -1,12 +1,14 @@
 import { useTranslation } from "react-i18next";
 import { ReadingSettingsView } from "@/components/settings/reading-settings-view";
 import { displayPresetToPreferenceValues, resolveAppDefaultDisplayPreset } from "@/lib/article-display";
+import { readDevIntent } from "@/lib/dev-intent";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 
 export function ReadingSettings() {
   const { t } = useTranslation("settings");
   const prefs = usePreferencesStore((s) => s.prefs);
   const setPref = usePreferencesStore((s) => s.setPref);
+  const shouldShowDisplayModeOptions = readDevIntent() === "open-settings-reading-display-mode";
 
   return (
     <ReadingSettingsView
@@ -22,6 +24,7 @@ export function ReadingSettings() {
               name: "display_preset",
               label: t("reading.default_display_mode"),
               value: resolveAppDefaultDisplayPreset(prefs),
+              open: shouldShowDisplayModeOptions,
               options: [
                 { value: "standard", label: t("reading.standard") },
                 { value: "preview", label: t("reading.preview") },

@@ -3,6 +3,7 @@ export const DEV_SCENARIO_IDS = [
   "open-feed-first-article",
   "open-tag-view",
   "open-settings-reading",
+  "open-settings-reading-display-mode",
   "open-add-feed-dialog",
   "sync-all-smoke",
 ] as const;

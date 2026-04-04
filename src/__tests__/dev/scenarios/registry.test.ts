@@ -14,6 +14,13 @@ describe("dev scenario registry", () => {
     });
   });
 
+  it("registers the display-mode showcase scenario", () => {
+    expect(getDevScenario("open-settings-reading-display-mode")).toMatchObject({
+      id: "open-settings-reading-display-mode",
+      title: "Open settings reading display mode",
+    });
+  });
+
   it("returns null for an unknown id", () => {
     expect(getDevScenario("unknown-scenario")).toBeNull();
   });

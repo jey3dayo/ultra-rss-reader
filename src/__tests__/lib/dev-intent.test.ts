@@ -67,6 +67,7 @@ describe("dev-intent helpers", () => {
   it("parses known dev scenario ids", () => {
     expect(parseDevIntent("open-add-feed-dialog")).toBe("open-add-feed-dialog");
     expect(parseDevIntent("open-settings-reading")).toBe("open-settings-reading");
+    expect(parseDevIntent("open-settings-reading-display-mode")).toBe("open-settings-reading-display-mode");
   });
 
   it("keeps the image viewer overlay intent backward compatible", () => {
