@@ -79,6 +79,7 @@ export function Sidebar() {
   const layoutMode = useUiStore((s) => s.layoutMode);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectAccount = useUiStore((s) => s.selectAccount);
+  const clearSelectedAccount = useUiStore((s) => s.clearSelectedAccount);
   const setFocusedPane = useUiStore((s) => s.setFocusedPane);
   const selection = useUiStore((s) => s.selection);
   const viewMode = useUiStore((s) => s.viewMode);
@@ -124,13 +125,41 @@ export function Sidebar() {
 
   // Restore saved account or auto-select first account
   useEffect(() => {
-    if (selectedAccountId || !accounts || accounts.length === 0) return;
+    if (!accounts) return;
+
+    if (accounts.length === 0) {
+      if (selectedAccountId !== null) {
+        clearSelectedAccount();
+      }
+      if (savedAccountId) {
+        setPref("selected_account_id", "");
+      }
+      return;
+    }
+
+    const hasValidSelection =
+      selectedAccountId !== null && accounts.some((account) => account.id === selectedAccountId);
+    if (hasValidSelection) return;
+
     const restoredAccountId = savedAccountId && accounts.some((a) => a.id === savedAccountId) ? savedAccountId : null;
-    selectAccount(restoredAccountId ?? accounts[0].id);
+    const nextAccountId = restoredAccountId ?? accounts[0].id;
+    selectAccount(nextAccountId);
+    if (savedAccountId !== nextAccountId) {
+      setPref("selected_account_id", nextAccountId);
+    }
     if (restoredAccountId && layoutMode === "mobile") {
       setFocusedPane("sidebar");
     }
-  }, [selectedAccountId, accounts, layoutMode, selectAccount, savedAccountId, setFocusedPane]);
+  }, [
+    accounts,
+    clearSelectedAccount,
+    layoutMode,
+    savedAccountId,
+    selectAccount,
+    selectedAccountId,
+    setFocusedPane,
+    setPref,
+  ]);
 
   const selectedAccount = accounts?.find((a) => a.id === selectedAccountId);
 

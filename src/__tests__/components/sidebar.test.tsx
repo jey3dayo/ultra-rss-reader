@@ -364,6 +364,70 @@ describe("Sidebar", () => {
     expect(screen.getByRole("button", { name: /FreshRSS/ })).toBeInTheDocument();
   });
 
+  it("reselects a valid account when the current selection no longer exists", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-missing",
+    });
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [];
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedAccountId).toBe("acc-1");
+    });
+    expect(screen.getByRole("button", { name: /Local/ })).toBeInTheDocument();
+  });
+
+  it("clears the account selection when no accounts remain", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-missing",
+    });
+
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [];
+        case "list_folders":
+        case "list_feeds":
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedAccountId).toBeNull();
+    });
+    expect(screen.getByRole("heading", { name: "Ultra RSS" })).toBeInTheDocument();
+  });
+
   it("hides configurable sections while keeping accounts and feeds visible", async () => {
     usePreferencesStore.setState({
       prefs: {
