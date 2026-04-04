@@ -55,7 +55,7 @@ describe("useDevIntent", () => {
     });
   });
 
-  it("does not enter the legacy overlay hydration path for other dev intents", async () => {
+  it("shows a visible signal for supported but not yet implemented dev intents", async () => {
     vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "open-add-feed-dialog");
     const listAccountsSpy = vi.spyOn(tauriCommands, "listAccounts");
 
@@ -65,7 +65,9 @@ describe("useDevIntent", () => {
 
     await waitFor(() => {
       expect(listAccountsSpy).not.toHaveBeenCalled();
-      expect(showToast).not.toHaveBeenCalled();
+      expect(showToast).toHaveBeenCalledWith(
+        'Dev scenario "open-add-feed-dialog" is not implemented in the legacy path yet.',
+      );
     });
   });
 

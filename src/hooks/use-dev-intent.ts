@@ -4,9 +4,10 @@ import type { FeedDto } from "@/api/tauri-commands";
 import { listAccounts, listArticles, listFeeds } from "@/api/tauri-commands";
 import {
   consumeLegacyOverlayDevIntent,
+  isLegacyOverlayDevIntent,
   pickDevIntentArticle,
   rankDevIntentFeeds,
-  readLegacyOverlayDevIntent,
+  readDevIntent,
   resolveDevIntentBrowserUrl,
 } from "@/lib/dev-intent";
 import { queryClient } from "@/lib/query-client";
@@ -14,8 +15,18 @@ import { useUiStore } from "@/stores/ui-store";
 
 export function useDevIntent() {
   useEffect(() => {
-    const intent = consumeLegacyOverlayDevIntent(readLegacyOverlayDevIntent());
+    const intent = readDevIntent();
     if (!intent) {
+      return;
+    }
+
+    if (!isLegacyOverlayDevIntent(intent)) {
+      useUiStore.getState().showToast(`Dev scenario "${intent}" is not implemented in the legacy path yet.`);
+      return;
+    }
+
+    const legacyIntent = consumeLegacyOverlayDevIntent(intent);
+    if (!legacyIntent) {
       return;
     }
 
@@ -78,7 +89,7 @@ export function useDevIntent() {
           nextUi.selectFeed(selectedFeed.id);
           nextUi.setViewMode("all");
           nextUi.selectArticle(article.id);
-          const browserUrl = resolveDevIntentBrowserUrl(intent, article.url);
+          const browserUrl = resolveDevIntentBrowserUrl(legacyIntent, article.url);
           if (browserUrl) {
             nextUi.openBrowser(browserUrl);
           }
