@@ -216,6 +216,46 @@ describe("AccountDetail", () => {
     });
   });
 
+  it("copies the server URL from account credentials", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "copy_to_clipboard":
+          return null;
+        default:
+          return null;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Copy Server URL" }));
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "copy_to_clipboard",
+        args: { text: "https://freshrss.example.com" },
+      });
+    });
+  });
+
   it("shows a warning toast when account sync completes with anomalies", async () => {
     const user = userEvent.setup();
 

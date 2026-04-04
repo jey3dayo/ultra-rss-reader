@@ -170,6 +170,8 @@
     "delete_account": "Delete Account",
     "confirm_delete": "Delete this account?",
     "failed_to_rename": "Failed to rename account: {{message}}",
+    "copy_server_url": "Copy Server URL",
+    "copied_to_clipboard": "Copied",
     "credentials_saved": "Credentials saved",
     "test_connection": "Test Connection",
     "testing_connection": "Testing…",

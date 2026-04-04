@@ -1,3 +1,4 @@
+import { CopyableTextField } from "@/components/shared/copyable-text-field";
 import { SectionHeading } from "@/components/settings/settings-components";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,8 @@ export type AccountCredentialsSectionViewProps = {
   serverUrlPlaceholder?: string;
   onServerUrlChange?: (value: string) => void;
   onServerUrlBlur?: () => void;
+  serverUrlCopyLabel?: string;
+  onServerUrlCopy?: () => void;
   usernameLabel: string;
   usernameValue: string;
   onUsernameChange: (value: string) => void;
@@ -32,6 +35,8 @@ export function AccountCredentialsSectionView({
   serverUrlPlaceholder,
   onServerUrlChange,
   onServerUrlBlur,
+  serverUrlCopyLabel,
+  onServerUrlCopy,
   usernameLabel,
   usernameValue,
   onUsernameChange,
@@ -52,14 +57,20 @@ export function AccountCredentialsSectionView({
       <SectionHeading>{heading}</SectionHeading>
       {serverUrlLabel && onServerUrlChange && (
         <div className="flex min-h-[44px] items-center justify-between gap-3 border-b border-border py-3">
-          <span className="text-sm text-foreground">{serverUrlLabel}</span>
-          <Input
-            value={serverUrlValue ?? ""}
-            onChange={(e) => onServerUrlChange(e.target.value)}
-            onBlur={onServerUrlBlur}
-            placeholder={serverUrlPlaceholder}
-            className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
-          />
+          <div className="min-w-0 flex-1">
+            <CopyableTextField
+              label={serverUrlLabel}
+              name="server-url"
+              type="url"
+              value={serverUrlValue ?? ""}
+              placeholder={serverUrlPlaceholder}
+              className="h-auto border-border bg-background px-2 py-1 text-sm"
+              copyLabel={serverUrlCopyLabel}
+              onCopy={onServerUrlCopy}
+              onChange={onServerUrlChange}
+              onBlur={onServerUrlBlur}
+            />
+          </div>
         </div>
       )}
       <div className="flex min-h-[44px] items-center justify-between gap-3 border-b border-border py-3">

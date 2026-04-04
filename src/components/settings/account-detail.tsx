@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AccountDto } from "@/api/tauri-commands";
 import {
+  copyToClipboard,
   deleteAccount,
   exportOpml,
   renameAccount,
@@ -227,6 +228,21 @@ export function AccountDetail() {
     );
   };
 
+  const handleCopyServerUrl = async () => {
+    const value = credServerUrl ?? account.server_url ?? "";
+    if (!value) return;
+
+    Result.pipe(
+      await copyToClipboard(value),
+      Result.inspect(() => {
+        useUiStore.getState().showToast(t("account.copied_to_clipboard"));
+      }),
+      Result.inspectError((e) => {
+        useUiStore.getState().showToast(e.message);
+      }),
+    );
+  };
+
   const syncIntervalOptions = [
     { value: "900", label: t("account.every_15_minutes") },
     { value: "1800", label: t("account.every_30_minutes") },
@@ -280,8 +296,10 @@ export function AccountDetail() {
             serverUrlLabel={account.kind === "FreshRss" ? t("account.server_url") : undefined}
             serverUrlValue={credServerUrl ?? account.server_url ?? ""}
             serverUrlPlaceholder={t("account.server_url_placeholder")}
+            serverUrlCopyLabel={t("account.copy_server_url")}
             onServerUrlChange={account.kind === "FreshRss" ? setCredServerUrl : undefined}
             onServerUrlBlur={commitCredentials}
+            onServerUrlCopy={account.kind === "FreshRss" ? () => void handleCopyServerUrl() : undefined}
             usernameLabel={t("account.username")}
             usernameValue={credUsername ?? account.username ?? ""}
             onUsernameChange={setCredUsername}
