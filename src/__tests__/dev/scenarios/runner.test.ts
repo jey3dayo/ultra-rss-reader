@@ -124,6 +124,19 @@ const unreadArticle: ArticleDto = {
   is_starred: false,
 };
 
+const otherAccount: AccountDto = {
+  ...account,
+  id: "acc-2",
+  name: "Backup",
+};
+
+const otherFeed: FeedDto = {
+  ...genericFeed,
+  id: "feed-3",
+  account_id: otherAccount.id,
+  title: "Misc",
+};
+
 describe("runDevScenario", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -203,6 +216,114 @@ describe("runDevScenario", () => {
     await runDevScenario("image-viewer-overlay", { context });
 
     expect(context.ui.showToast).toHaveBeenCalledWith("Dev intent failed to open the overlay.");
+  });
+
+  it("opens the highest-ranked feed article in reader mode", async () => {
+    const { cache, queryClient } = createQueryClientStub();
+    const ui = createUiStub();
+    const context: DevScenarioContext = {
+      ui,
+      queryClient,
+      actions: {
+        executeAction: vi.fn(),
+        listAccounts: vi.fn(async () => [otherAccount, account]),
+        listFeeds: vi.fn(async (accountId: string) => {
+          if (accountId === otherAccount.id) {
+            return [otherFeed];
+          }
+
+          return [genericFeed, mangaFeed];
+        }),
+        listArticles: vi.fn(async (feedId: string) => {
+          if (feedId === otherFeed.id || feedId === genericFeed.id) {
+            return [];
+          }
+
+          return [readArticle, unreadArticle];
+        }),
+      },
+    };
+
+    await runDevScenario("open-feed-first-article", { context });
+
+    expect(context.actions.listAccounts).toHaveBeenCalledTimes(1);
+    expect(context.actions.listFeeds).toHaveBeenCalledTimes(2);
+    expect(context.actions.listFeeds).toHaveBeenNthCalledWith(1, otherAccount.id);
+    expect(context.actions.listFeeds).toHaveBeenNthCalledWith(2, account.id);
+    expect(context.actions.listArticles).toHaveBeenCalledTimes(2);
+    expect(context.actions.listArticles).toHaveBeenNthCalledWith(1, otherFeed.id);
+    expect(context.actions.listArticles).toHaveBeenNthCalledWith(2, mangaFeed.id);
+    expect(cache.get(JSON.stringify(["accounts"]))).toEqual([otherAccount, account]);
+    expect(cache.get(JSON.stringify(["feeds", account.id]))).toEqual([
+      genericFeed,
+      { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" },
+    ]);
+    expect(cache.get(JSON.stringify(["articles", mangaFeed.id]))).toEqual([readArticle, unreadArticle]);
+    expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
+    expect(ui.selectFeed).toHaveBeenCalledWith(mangaFeed.id);
+    expect(ui.setViewMode).toHaveBeenCalledWith("all");
+    expect(ui.selectArticle).toHaveBeenCalledWith(unreadArticle.id);
+    expect(ui.openBrowser).not.toHaveBeenCalled();
+    expect(ui.showToast).not.toHaveBeenCalled();
+  });
+
+  it("shows an explicit toast when the feed-first-article scenario cannot find any articles", async () => {
+    const context = createContext({
+      actions: {
+        executeAction: vi.fn(),
+        listAccounts: vi.fn(async () => [account]),
+        listFeeds: vi.fn(async () => [genericFeed]),
+        listArticles: vi.fn(async () => []),
+      },
+    });
+
+    await runDevScenario("open-feed-first-article", { context });
+
+    expect(context.ui.showToast).toHaveBeenCalledWith(
+      'Dev scenario "open-feed-first-article" could not find any articles.',
+    );
+  });
+
+  it("shows an explicit toast when the feed-first-article scenario cannot find any accounts", async () => {
+    const context = createContext();
+
+    await runDevScenario("open-feed-first-article", { context });
+
+    expect(context.ui.showToast).toHaveBeenCalledWith(
+      'Dev scenario "open-feed-first-article" could not find any accounts.',
+    );
+  });
+
+  it("reproduces tag selection state with the development tag id", async () => {
+    const { cache, queryClient } = createQueryClientStub();
+    const ui = createUiStub();
+    const context: DevScenarioContext = {
+      ui,
+      queryClient,
+      actions: {
+        executeAction: vi.fn(),
+        listAccounts: vi.fn(async () => [account]),
+        listFeeds: vi.fn(async () => []),
+        listArticles: vi.fn(async () => []),
+      },
+    };
+
+    await runDevScenario("open-tag-view", { context });
+
+    expect(context.actions.listAccounts).toHaveBeenCalledTimes(1);
+    expect(cache.get(JSON.stringify(["accounts"]))).toEqual([account]);
+    expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
+    expect(ui.selectTag).toHaveBeenCalledWith("tag-dev");
+    expect(ui.setViewMode).toHaveBeenCalledWith("all");
+    expect(ui.showToast).not.toHaveBeenCalled();
+  });
+
+  it("shows an explicit toast when the tag-view scenario cannot find any accounts", async () => {
+    const context = createContext();
+
+    await runDevScenario("open-tag-view", { context });
+
+    expect(context.ui.showToast).toHaveBeenCalledWith('Dev scenario "open-tag-view" could not find any accounts.');
   });
 
   it("surfaces an explicit toast for registered scenarios that are still stubbed", async () => {

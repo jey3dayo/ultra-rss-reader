@@ -1,4 +1,9 @@
-import { createUnsupportedDevScenarioRunner, runImageViewerOverlayScenario } from "@/dev/scenarios/helpers";
+import {
+  createUnsupportedDevScenarioRunner,
+  runImageViewerOverlayScenario,
+  runOpenFeedFirstArticleScenario,
+  runOpenTagViewScenario,
+} from "@/dev/scenarios/helpers";
 import { DEV_SCENARIO_IDS, type DevScenario, type DevScenarioId } from "@/dev/scenarios/types";
 
 const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
@@ -10,12 +15,12 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
   "open-feed-first-article": {
     title: "Open feed first article",
     keywords: ["feed", "article", "open"],
-    run: createUnsupportedDevScenarioRunner("open-feed-first-article"),
+    run: runOpenFeedFirstArticleScenario,
   },
   "open-tag-view": {
     title: "Open tag view",
     keywords: ["tag", "view"],
-    run: createUnsupportedDevScenarioRunner("open-tag-view"),
+    run: runOpenTagViewScenario,
   },
   "open-add-feed-dialog": {
     title: "Open add feed dialog",
