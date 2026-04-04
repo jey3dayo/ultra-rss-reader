@@ -34,12 +34,32 @@ export function readLegacyOverlayDevIntent(): "image-viewer-overlay" | null {
   return isLegacyOverlayDevIntent(intent) ? intent : null;
 }
 
+export function isLegacyOverlayBrowserUrl(url: string | null): boolean {
+  if (!url) {
+    return false;
+  }
+
+  return url === resolveImageViewerOverlayBrowserUrl(null);
+}
+
 export function resolveDevIntentBrowserUrl(intent: DevIntent, fallbackUrl: string | null): string | null {
   if (intent !== "image-viewer-overlay") {
     return fallbackUrl;
   }
 
   return resolveImageViewerOverlayBrowserUrl(fallbackUrl);
+}
+
+export function resolveActiveDevIntentBrowserUrl(
+  intent: DevIntent,
+  activeBrowserUrl: string | null,
+  fallbackUrl: string | null,
+): string | null {
+  if (isLegacyOverlayBrowserUrl(activeBrowserUrl)) {
+    return activeBrowserUrl;
+  }
+
+  return resolveDevIntentBrowserUrl(intent, fallbackUrl);
 }
 
 export function pickDevIntentFeed(feeds: FeedDto[]): FeedDto | null {

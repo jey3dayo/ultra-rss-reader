@@ -29,7 +29,7 @@ import {
   resolveArticleDateLocale,
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
-import { readDevIntent, resolveDevIntentBrowserUrl } from "@/lib/dev-intent";
+import { readDevIntent, resolveActiveDevIntentBrowserUrl } from "@/lib/dev-intent";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
@@ -400,7 +400,7 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
   const wasBrowserOpenRef = useRef(false);
   const isBrowserOpen = contentMode === "browser";
   const devIntent = readDevIntent();
-  const intendedBrowserUrl = resolveDevIntentBrowserUrl(devIntent, article.url);
+  const intendedBrowserUrl = resolveActiveDevIntentBrowserUrl(devIntent, browserUrl, article.url);
   const requestedDisplay = resolveArticleDisplay({
     appDefault: resolveAppDefaultDisplayModes(prefs),
     feedOverride: resolveFeedDisplayOverrides(feed),

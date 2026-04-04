@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
-import { parseDevIntent, pickDevIntentArticle, pickDevIntentFeed, resolveDevIntentBrowserUrl } from "@/lib/dev-intent";
+import {
+  isLegacyOverlayBrowserUrl,
+  parseDevIntent,
+  pickDevIntentArticle,
+  pickDevIntentFeed,
+  resolveActiveDevIntentBrowserUrl,
+  resolveDevIntentBrowserUrl,
+} from "@/lib/dev-intent";
 
 const feeds: FeedDto[] = [
   {
@@ -79,5 +86,16 @@ describe("dev-intent helpers", () => {
     expect(resolveDevIntentBrowserUrl("image-viewer-overlay", "https://example.com")).toContain(
       "/dev-image-viewer.html",
     );
+  });
+
+  it("recognizes the legacy overlay browser URL", () => {
+    const overlayUrl = resolveDevIntentBrowserUrl("image-viewer-overlay", "https://example.com");
+    expect(isLegacyOverlayBrowserUrl(overlayUrl)).toBe(true);
+    expect(isLegacyOverlayBrowserUrl("https://example.com")).toBe(false);
+  });
+
+  it("preserves an active legacy overlay browser URL even without env intent", () => {
+    const overlayUrl = resolveDevIntentBrowserUrl("image-viewer-overlay", "https://example.com");
+    expect(resolveActiveDevIntentBrowserUrl(null, overlayUrl, "https://example.com/article")).toBe(overlayUrl);
   });
 });

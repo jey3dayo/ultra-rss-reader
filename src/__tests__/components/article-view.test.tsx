@@ -614,6 +614,71 @@ describe("ArticleView", () => {
     });
   });
 
+  it("preserves the image-viewer overlay URL when the image-viewer scenario runs in the mounted app", async () => {
+    const overlayUrl = new URL("/dev-image-viewer.html", window.location.origin).toString();
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_feeds":
+          return sampleFeeds
+            .filter((feed) => feed.account_id === args.accountId)
+            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        case "create_or_update_browser_webview":
+          return {
+            url: args.url,
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+          };
+        case "set_browser_webview_bounds":
+        case "close_browser_webview":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    usePreferencesStore.setState({
+      prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
+      loaded: true,
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().setViewMode("all");
+    useUiStore.getState().selectArticle("art-1");
+    useUiStore.getState().openBrowser(overlayUrl);
+
+    window.setTimeout(() => {
+      useUiStore.getState().selectAccount("acc-1");
+      useUiStore.getState().selectFeed("feed-1");
+      useUiStore.getState().setViewMode("all");
+      useUiStore.getState().selectArticle("art-1");
+      useUiStore.getState().openBrowser(overlayUrl);
+    }, 300);
+    window.setTimeout(() => {
+      useUiStore.getState().selectAccount("acc-1");
+      useUiStore.getState().selectFeed("feed-1");
+      useUiStore.getState().setViewMode("all");
+      useUiStore.getState().selectArticle("art-1");
+      useUiStore.getState().openBrowser(overlayUrl);
+    }, 1200);
+
+    await new Promise((resolve) => window.setTimeout(resolve, 1600));
+
+    expect(useUiStore.getState().selectedArticleId).not.toBeNull();
+    expect(useUiStore.getState().contentMode).toBe("browser");
+    expect(useUiStore.getState().browserUrl).toBe(overlayUrl);
+  }, 10000);
+
   it("keeps explicit reader-only feeds in reader mode even when the global default enables web preview", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
