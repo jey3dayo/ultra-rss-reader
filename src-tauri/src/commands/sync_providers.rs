@@ -28,6 +28,21 @@ use crate::repository::sync_state::{SyncState, SyncStateRepository};
 
 use super::feed_commands::lock_db;
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct ProviderSyncOutcome {
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct GReaderFeedSyncOutcome {
+    skipped_entries: usize,
+}
+
+#[derive(Debug, Clone)]
+struct ProviderManagedFeedSnapshot {
+    article_count: usize,
+}
+
 /// Fetch articles for a single local feed and save them to DB.
 pub(super) async fn sync_local_feed(
     db: &Mutex<DbManager>,
@@ -128,7 +143,7 @@ pub(super) async fn sync_greader_account(
     db: &Mutex<DbManager>,
     account: &Account,
     mut provider: GReaderProvider,
-) -> Result<(), AppError> {
+) -> Result<ProviderSyncOutcome, AppError> {
     use crate::domain::folder::Folder;
 
     let username = match &account.username {
@@ -138,7 +153,7 @@ pub(super) async fn sync_greader_account(
                 "GReader account {} has no username, skipping",
                 account.id.as_ref()
             );
-            return Ok(());
+            return Ok(ProviderSyncOutcome::default());
         }
     };
 
@@ -172,9 +187,9 @@ pub(super) async fn sync_greader_account(
     }
 
     // Steps 3-7
-    sync_greader_feeds(db, &provider, account).await?;
+    let outcome = sync_greader_feeds(db, &provider, account).await?;
 
-    Ok(())
+    Ok(outcome)
 }
 
 fn is_provider_managed_greader_feed(remote_id: Option<&str>) -> bool {
@@ -209,7 +224,9 @@ async fn sync_greader_feeds(
     db: &Mutex<DbManager>,
     provider: &GReaderProvider,
     account: &Account,
-) -> Result<(), AppError> {
+) -> Result<ProviderSyncOutcome, AppError> {
+    let article_counts_before = provider_managed_feed_snapshots(db, &account.id)?;
+
     // Build remote_id -> FolderId map from existing folders
     let folder_remote_id_map: HashMap<String, FolderId> = {
         let db_guard = lock_db(db)?;
@@ -266,16 +283,38 @@ async fn sync_greader_feeds(
         feed_repo.find_by_account(&account.id)?
     };
     let local_provider = LocalProvider::new();
+    let mut warnings = Vec::new();
 
     for feed in &feeds {
         let result = if is_provider_managed_greader_feed(feed.remote_id.as_deref()) {
-            sync_greader_feed_entries(db, provider, account, feed).await
+            sync_greader_feed_entries(db, provider, account, feed)
+                .await
+                .map(Some)
         } else {
-            sync_local_feed(db, &local_provider, &account.id, feed).await
+            sync_local_feed(db, &local_provider, &account.id, feed)
+                .await
+                .map(|()| None)
         };
 
-        if let Err(e) = result {
-            warn!("Failed to pull entries for feed {}: {e}", feed.url);
+        match result {
+            Ok(Some(feed_outcome)) => {
+                if feed_outcome.skipped_entries > 0 {
+                    warn!(
+                        "Sync anomaly for account '{}' feed '{}': skipped {} entry item(s) while mapping provider response",
+                        account.name,
+                        feed.title,
+                        feed_outcome.skipped_entries
+                    );
+                    warnings.push(format!(
+                        "Feed '{}' skipped {} entry item(s) during sync.",
+                        feed.title, feed_outcome.skipped_entries
+                    ));
+                }
+            }
+            Ok(None) => {}
+            Err(e) => {
+                warn!("Failed to pull entries for feed {}: {e}", feed.url);
+            }
         }
     }
 
@@ -377,7 +416,36 @@ async fn sync_greader_feeds(
         }
     }
 
-    Ok(())
+    let article_counts_after = provider_managed_feed_snapshots(db, &account.id)?;
+    for feed in &feeds {
+        if !is_provider_managed_greader_feed(feed.remote_id.as_deref()) {
+            continue;
+        }
+
+        let before_count = article_counts_before
+            .get(feed.id.as_ref())
+            .map(|snapshot| snapshot.article_count)
+            .unwrap_or(0);
+        let after_count = article_counts_after
+            .get(feed.id.as_ref())
+            .map(|snapshot| snapshot.article_count)
+            .unwrap_or(0);
+
+        if before_count > 0 && after_count == 0 {
+            warn!(
+                "Sync anomaly for account '{}' feed '{}': article count dropped from {} to 0 after sync",
+                account.name,
+                feed.title,
+                before_count
+            );
+            warnings.push(format!(
+                "Feed '{}' had {} saved article(s) before sync and 0 after sync.",
+                feed.title, before_count
+            ));
+        }
+    }
+
+    Ok(ProviderSyncOutcome { warnings })
 }
 
 fn feed_scope_key(remote_id: &str) -> String {
@@ -406,9 +474,9 @@ async fn sync_greader_feed_entries(
     provider: &GReaderProvider,
     account: &Account,
     feed: &Feed,
-) -> Result<(), AppError> {
+) -> Result<GReaderFeedSyncOutcome, AppError> {
     let Some(remote_id) = feed.remote_id.as_ref() else {
-        return Ok(());
+        return Ok(GReaderFeedSyncOutcome::default());
     };
 
     let scope_key = feed_scope_key(remote_id);
@@ -420,12 +488,14 @@ async fn sync_greader_feed_entries(
     let initial_cursor = cursor_from_state(saved_state.as_ref());
     let mut cursor = initial_cursor.clone();
     let mut latest_timestamp_usec = saved_state.as_ref().and_then(|state| state.timestamp_usec);
+    let mut skipped_entries = 0usize;
 
     loop {
         let scope = PullScope::Feed(FeedIdentifier::Remote {
             remote_id: remote_id.clone(),
         });
         let result = provider.pull_entries(scope, cursor.clone()).await?;
+        skipped_entries += result.skipped_entries;
 
         if let Some(next_cursor) = result.next_cursor.as_ref() {
             if let Some(next_timestamp_usec) = next_cursor.since.map(|ts| ts.timestamp_micros()) {
@@ -499,7 +569,41 @@ async fn sync_greader_feed_entries(
     let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
     sync_state_repo.save(&next_state)?;
 
-    Ok(())
+    Ok(GReaderFeedSyncOutcome { skipped_entries })
+}
+
+fn provider_managed_feed_snapshots(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+) -> Result<HashMap<String, ProviderManagedFeedSnapshot>, AppError> {
+    let db_guard = lock_db(db)?;
+    let mut stmt = db_guard
+        .reader()
+        .prepare(
+            "SELECT f.id, f.title, COUNT(a.id)
+         FROM feeds f
+         LEFT JOIN articles a ON a.feed_id = f.id
+         WHERE f.account_id = ?1 AND f.remote_id LIKE 'feed/%'
+         GROUP BY f.id, f.title",
+        )
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)?;
+
+    let rows = stmt
+        .query_map(rusqlite::params![account_id.as_ref()], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                ProviderManagedFeedSnapshot {
+                    article_count: row.get::<_, i64>(2)? as usize,
+                },
+            ))
+        })
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)?;
+
+    rows.collect::<Result<HashMap<_, _>, _>>()
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)
 }
 
 #[cfg(test)]

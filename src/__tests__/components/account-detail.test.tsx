@@ -215,4 +215,46 @@ describe("AccountDetail", () => {
       expect(calls.filter((call) => call.cmd === "test_account_connection")).toHaveLength(1);
     });
   });
+
+  it("shows a warning toast when account sync completes with anomalies", async () => {
+    const user = userEvent.setup();
+
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "trigger_sync_account":
+          return {
+            synced: true,
+            total: 1,
+            succeeded: 1,
+            failed: [],
+            warnings: [{ account_id: "acc-1", account_name: "FreshRSS", message: "Skipped 3 entries." }],
+          };
+        default:
+          return null;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Sync Now" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "Sync completed with warnings",
+      });
+    });
+  });
 });

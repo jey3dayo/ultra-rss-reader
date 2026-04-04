@@ -36,6 +36,7 @@ pub struct PullResult {
     pub next_cursor: Option<SyncCursor>,
     pub has_more: bool,
     pub not_modified: bool,
+    pub skipped_entries: usize,
 }
 
 #[derive(Debug, Clone)]

@@ -178,6 +178,7 @@
     "sync_now": "今すぐ同期",
     "syncing_now": "同期中…",
     "sync_complete": "同期が完了しました",
+    "sync_completed_with_warnings": "同期は完了しましたが、異常を検知しました",
     "sync_failed": "同期に失敗しました: {{message}}",
     "failed_to_update_sync": "同期設定の更新に失敗しました: {{message}}",
     "failed_to_export_opml": "OPMLのエクスポートに失敗しました: {{message}}",

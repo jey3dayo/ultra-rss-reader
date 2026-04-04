@@ -118,6 +118,7 @@ impl FeedProvider for LocalProvider {
                 next_cursor,
                 has_more: false,
                 not_modified: true,
+                skipped_entries: 0,
             });
         }
 
@@ -135,6 +136,7 @@ impl FeedProvider for LocalProvider {
             next_cursor,
             has_more: false,
             not_modified: false,
+            skipped_entries: 0,
         })
     }
 

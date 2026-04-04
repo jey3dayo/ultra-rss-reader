@@ -182,6 +182,8 @@ export function AccountDetail() {
         if (syncResult.failed.length > 0) {
           const names = syncResult.failed.map((f) => f.account_name).join(", ");
           useUiStore.getState().showToast(t("account.sync_failed", { message: names }));
+        } else if (syncResult.warnings.length > 0) {
+          useUiStore.getState().showToast(t("account.sync_completed_with_warnings"));
         } else {
           useUiStore.getState().showToast(t("account.sync_complete"));
         }

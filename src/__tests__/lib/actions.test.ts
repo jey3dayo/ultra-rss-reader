@@ -79,6 +79,7 @@ beforeEach(async () => {
       total: 1,
       succeeded: 1,
       failed: [],
+      warnings: [],
     }),
   );
   const mod = await import("@/lib/actions");
@@ -285,6 +286,7 @@ describe("executeAction", () => {
           total: 0,
           succeeded: 0,
           failed: [],
+          warnings: [],
         }),
       );
 
@@ -306,6 +308,7 @@ describe("executeAction", () => {
           total: 2,
           succeeded: 1,
           failed: [{ account_name: "Local" }],
+          warnings: [],
         }),
       );
 
@@ -329,6 +332,7 @@ describe("executeAction", () => {
           total: 1,
           succeeded: 1,
           failed: [],
+          warnings: [],
         }),
       );
 
@@ -341,6 +345,30 @@ describe("executeAction", () => {
       });
 
       expect(i18nTMock).toHaveBeenCalledWith("sidebar:sync_completed");
+    });
+
+    it("uses the translated warning toast when sync completes with anomalies", async () => {
+      triggerSyncMock.mockResolvedValueOnce(
+        Result.succeed({
+          synced: true,
+          total: 1,
+          succeeded: 1,
+          failed: [],
+          warnings: [{ account_id: "acc-2", account_name: "FreshRSS", message: "Skipped 3 entries." }],
+        }),
+      );
+
+      executeAction("sync-all");
+
+      await waitFor(() => {
+        expect(useUiStore.getState().toastMessage).toEqual({
+          message: "translated:sidebar:sync_completed_with_warnings:FreshRSS",
+        });
+      });
+
+      expect(i18nTMock).toHaveBeenCalledWith("sidebar:sync_completed_with_warnings", {
+        accounts: "FreshRSS",
+      });
     });
 
     it("uses the translated unexpected-error toast with details", async () => {

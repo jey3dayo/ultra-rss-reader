@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use futures::FutureExt;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::commands::dto::SyncProgressKind;
+use crate::commands::dto::{AccountSyncWarning, SyncProgressKind};
 use crate::commands::sync_commands::{purge_old_articles, sync_account, SyncProgressReporter};
 use crate::domain::account::Account;
 use crate::domain::types::AccountId;
@@ -104,6 +104,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
             }
 
             let mut any_synced = false;
+            let mut warnings_to_emit = Vec::new();
             let reporter = SyncProgressReporter::new(
                 app_handle.clone(),
                 SyncProgressKind::Automatic,
@@ -119,8 +120,20 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                     .await;
 
                 match result {
-                    Ok(Ok(())) => {
+                    Ok(Ok(outcome)) => {
                         tracing::info!("Background sync completed for account '{}'", account.name);
+                        for warning in &outcome.warnings {
+                            tracing::warn!(
+                                "Background sync warning for account '{}': {}",
+                                account.name,
+                                warning
+                            );
+                            warnings_to_emit.push(AccountSyncWarning {
+                                account_id: account.id.as_ref().to_string(),
+                                account_name: account.name.clone(),
+                                message: warning.clone(),
+                            });
+                        }
                         reporter.emit_account_finished(account, true);
                         reset_error_count(&state.db, &account.id);
                         if let Some(schedule) = schedules.get_mut(&account_id_str) {
@@ -160,6 +173,12 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
             }
 
             reporter.emit_finished(any_synced);
+
+            if !warnings_to_emit.is_empty() {
+                if let Err(e) = app_handle.emit("sync-warning", warnings_to_emit.clone()) {
+                    tracing::warn!("Failed to emit sync-warning event: {e}");
+                }
+            }
 
             if any_synced {
                 if let Err(e) = app_handle.emit("sync-completed", ()) {

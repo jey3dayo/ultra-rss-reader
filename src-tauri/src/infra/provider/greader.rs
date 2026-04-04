@@ -431,6 +431,7 @@ impl FeedProvider for GReaderProvider {
             .json()
             .await?;
 
+        let raw_item_count = resp.items.len();
         let next_since_usec = resp
             .items
             .iter()
@@ -459,13 +460,15 @@ impl FeedProvider for GReaderProvider {
             .items
             .into_iter()
             .filter_map(|item| Self::map_item_to_entry(item, fallback_stream_id))
-            .collect();
+            .collect::<Vec<_>>();
+        let skipped_entries = raw_item_count.saturating_sub(entries.len());
 
         Ok(PullResult {
             entries,
             next_cursor,
             has_more,
             not_modified: false,
+            skipped_entries,
         })
     }
 
@@ -922,6 +925,7 @@ mod tests {
             cursor.since.map(|ts| ts.timestamp_micros()),
             Some(1_700_000_100_000_000)
         );
+        assert_eq!(result.skipped_entries, 1);
 
         stream_mock.assert_async().await;
     }
@@ -994,6 +998,7 @@ mod tests {
             }
             _ => panic!("Expected Remote feed identifier"),
         }
+        assert_eq!(result.skipped_entries, 0);
 
         stream_mock.assert_async().await;
     }

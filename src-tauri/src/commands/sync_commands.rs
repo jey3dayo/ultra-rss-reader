@@ -5,7 +5,8 @@ use tauri::{AppHandle, Emitter, State};
 use tracing::warn;
 
 use crate::commands::dto::{
-    AccountSyncError, AppError, SyncProgressEvent, SyncProgressKind, SyncProgressStage, SyncResult,
+    AccountSyncError, AccountSyncWarning, AppError, SyncProgressEvent, SyncProgressKind,
+    SyncProgressStage, SyncResult,
 };
 use crate::commands::AppState;
 use crate::domain::account::Account;
@@ -122,8 +123,11 @@ fn enable_automatic_sync(
     }
 }
 
-/// Sync a single account, returning Ok(()) on success or Err on failure.
-pub(crate) async fn sync_account(db: &Mutex<DbManager>, account: &Account) -> Result<(), AppError> {
+/// Sync a single account, returning warnings on soft anomalies and Err on hard failures.
+pub(crate) async fn sync_account(
+    db: &Mutex<DbManager>,
+    account: &Account,
+) -> Result<super::sync_providers::ProviderSyncOutcome, AppError> {
     match account.kind {
         ProviderKind::Local => {
             let provider = LocalProvider::new();
@@ -135,7 +139,7 @@ pub(crate) async fn sync_account(db: &Mutex<DbManager>, account: &Account) -> Re
             for feed in &feeds {
                 sync_local_feed(db, &provider, &account.id, feed).await?;
             }
-            Ok(())
+            Ok(super::sync_providers::ProviderSyncOutcome::default())
         }
         ProviderKind::FreshRss => {
             let server_url = account.server_url.as_deref().unwrap_or_default();
@@ -183,6 +187,7 @@ async fn run_full_sync_with_progress(
             total: 0,
             succeeded: 0,
             failed: Vec::new(),
+            warnings: Vec::new(),
         });
     }
     let _guard = SyncGuard(syncing);
@@ -196,6 +201,7 @@ async fn run_full_sync_with_progress(
     let total = accounts.len();
     let mut succeeded = 0usize;
     let mut failed = Vec::new();
+    let mut warnings = Vec::new();
 
     if let Some(reporter) = reporter.as_ref() {
         reporter.emit_started(None);
@@ -222,7 +228,19 @@ async fn run_full_sync_with_progress(
 
     for (account, result) in results {
         match result {
-            Ok(()) => succeeded += 1,
+            Ok(outcome) => {
+                succeeded += 1;
+                warnings.extend(
+                    outcome
+                        .warnings
+                        .into_iter()
+                        .map(|message| AccountSyncWarning {
+                            account_id: account.id.as_ref().to_string(),
+                            account_name: account.name.clone(),
+                            message,
+                        }),
+                );
+            }
             Err(e) => {
                 warn!(
                     "Sync failed for account {} ({}): {e}",
@@ -247,6 +265,7 @@ async fn run_full_sync_with_progress(
         total,
         succeeded,
         failed,
+        warnings,
     })
 }
 
@@ -271,6 +290,7 @@ pub(crate) async fn run_automatic_sync_with_progress(
             total: 0,
             succeeded: 0,
             failed: Vec::new(),
+            warnings: Vec::new(),
         });
     }
 
@@ -361,6 +381,9 @@ pub async fn trigger_automatic_sync(
     )
     .await?;
     if result.synced {
+        if !result.warnings.is_empty() {
+            let _ = app_handle.emit("sync-warning", result.warnings.clone());
+        }
         let _ = app_handle.emit("sync-completed", ());
     }
     Ok(result)
@@ -382,6 +405,7 @@ pub async fn trigger_sync_account(
             total: 0,
             succeeded: 0,
             failed: Vec::new(),
+            warnings: Vec::new(),
         });
     }
     let _guard = SyncGuard(&state.syncing);
@@ -405,10 +429,23 @@ pub async fn trigger_sync_account(
         total: 1,
         succeeded: 0,
         failed: Vec::new(),
+        warnings: Vec::new(),
     };
     match sync_account(&state.db, &account).await {
-        Ok(()) => {
+        Ok(outcome) => {
             result.succeeded = 1;
+            result
+                .warnings
+                .extend(
+                    outcome
+                        .warnings
+                        .into_iter()
+                        .map(|message| AccountSyncWarning {
+                            account_id: account.id.as_ref().to_string(),
+                            account_name: name.clone(),
+                            message,
+                        }),
+                );
             reporter.emit_account_finished(&account, true);
         }
         Err(e) => {
@@ -471,6 +508,7 @@ mod tests {
         assert_eq!(result.total, 0); // no accounts in empty DB
         assert_eq!(result.succeeded, 0);
         assert!(result.failed.is_empty());
+        assert!(result.warnings.is_empty());
     }
 
     #[tokio::test]

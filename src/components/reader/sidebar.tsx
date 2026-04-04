@@ -199,6 +199,7 @@ export function Sidebar() {
     let cancelled = false;
     let unlisten: (() => void) | undefined;
     let unlistenProgress: (() => void) | undefined;
+    let unlistenWarning: (() => void) | undefined;
 
     listen("sync-progress", (event) => {
       const payload =
@@ -219,12 +220,27 @@ export function Sidebar() {
       else unlisten = fn;
     });
 
+    listen("sync-warning", (event) => {
+      const payload =
+        typeof event === "object" && event !== null && "payload" in event
+          ? (event.payload as Array<{ account_name: string }>)
+          : (event as Array<{ account_name: string }>);
+      const names = [...new Set(payload.map((warning) => warning.account_name))].join(", ");
+      if (names) {
+        showToast(t("sync_completed_with_warnings", { accounts: names }));
+      }
+    }).then((fn) => {
+      if (cancelled) fn();
+      else unlistenWarning = fn;
+    });
+
     return () => {
       cancelled = true;
       unlisten?.();
       unlistenProgress?.();
+      unlistenWarning?.();
     };
-  }, [applySyncProgress, clearSyncProgress]);
+  }, [applySyncProgress, clearSyncProgress, showToast, t]);
 
   const handleSync = async () => {
     if (syncProgress.active) return;
@@ -237,6 +253,9 @@ export function Sidebar() {
         } else if (syncResult.failed.length > 0) {
           const names = syncResult.failed.map((f) => f.account_name).join(", ");
           showToast(t("sync_partial_failure", { accounts: names }));
+        } else if (syncResult.warnings.length > 0) {
+          const names = [...new Set(syncResult.warnings.map((warning) => warning.account_name))].join(", ");
+          showToast(t("sync_completed_with_warnings", { accounts: names }));
         } else {
           showToast(t("sync_completed"));
         }

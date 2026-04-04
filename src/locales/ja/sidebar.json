@@ -14,6 +14,7 @@
   "add_feed": "フィードを追加",
   "press_plus_to_add_feed": "+ でフィードを追加",
   "sync_completed": "同期完了",
+  "sync_completed_with_warnings": "同期は完了しましたが、{{accounts}} で異常を検知しました",
   "sync_already_in_progress": "同期はすでに実行中です",
   "sync_failed": "同期に失敗しました",
   "sync_failed_with_message": "同期に失敗しました: {{message}}",

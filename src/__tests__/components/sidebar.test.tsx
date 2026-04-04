@@ -253,7 +253,7 @@ describe("Sidebar", () => {
 
   it("does not update last synced time when sync is skipped", async () => {
     setupTauriMocks((cmd) => {
-      if (cmd === "trigger_sync") return { synced: false, total: 0, succeeded: 0, failed: [] };
+      if (cmd === "trigger_sync") return { synced: false, total: 0, succeeded: 0, failed: [], warnings: [] };
       return null;
     });
 
@@ -277,6 +277,31 @@ describe("Sidebar", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Today at /)).toBeInTheDocument();
+    });
+  });
+
+  it("shows a warning toast when sync completes with anomalies", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "trigger_sync") {
+        return {
+          synced: true,
+          total: 1,
+          succeeded: 1,
+          failed: [],
+          warnings: [{ account_id: "acc-2", account_name: "FreshRSS", message: "Skipped 3 entries." }],
+        };
+      }
+      return null;
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent.click(screen.getByLabelText("Sync feeds"));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "Sync completed with warnings for: FreshRSS",
+      });
     });
   });
 

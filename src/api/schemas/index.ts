@@ -56,6 +56,11 @@ export {
   type PlatformInfo,
   PlatformInfoSchema,
 } from "./platform-info";
-export { type AccountSyncError, type SyncResultDto, SyncResultSchema } from "./sync-result";
+export {
+  type AccountSyncError,
+  type AccountSyncWarning,
+  type SyncResultDto,
+  SyncResultSchema,
+} from "./sync-result";
 export { type TagDto, TagDtoSchema } from "./tag";
 export { type UpdateInfoDto, UpdateInfoDtoSchema } from "./update-info";

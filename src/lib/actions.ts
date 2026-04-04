@@ -147,6 +147,9 @@ export function executeAction(action: AppAction): void {
             } else if (syncResult.failed.length > 0) {
               const names = syncResult.failed.map((f) => f.account_name).join(", ");
               store.showToast(i18n.t("sidebar:sync_partial_failure", { accounts: names }));
+            } else if (syncResult.warnings.length > 0) {
+              const names = [...new Set(syncResult.warnings.map((warning) => warning.account_name))].join(", ");
+              store.showToast(i18n.t("sidebar:sync_completed_with_warnings", { accounts: names }));
             } else {
               store.showToast(i18n.t("sidebar:sync_completed"));
             }

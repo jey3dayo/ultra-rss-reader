@@ -78,10 +78,18 @@ pub struct SyncResult {
     pub total: usize,
     pub succeeded: usize,
     pub failed: Vec<AccountSyncError>,
+    pub warnings: Vec<AccountSyncWarning>,
 }
 
 #[derive(Debug, Serialize, Clone)]
 pub struct AccountSyncError {
+    pub account_id: String,
+    pub account_name: String,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct AccountSyncWarning {
     pub account_id: String,
     pub account_name: String,
     pub message: String,
