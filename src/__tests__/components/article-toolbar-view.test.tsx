@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ArticleToolbarView } from "@/components/reader/article-toolbar-view";
-import { DisplayModeToggleGroup } from "@/components/reader/display-mode-toggle-group";
 
 describe("ArticleToolbarView", () => {
   it("renders visible actions and calls their handlers", async () => {
@@ -28,13 +27,13 @@ describe("ArticleToolbarView", () => {
         canOpenInBrowser
         showOpenInExternalBrowserButton
         canOpenInExternalBrowser
-        displayModeControl={<DisplayModeToggleGroup value="standard" onValueChange={vi.fn()} />}
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
           toggleStar: "Toggle star",
           copyLink: "Copy link",
-          viewInBrowser: "Open Web Preview",
+          previewToggleOff: "Open Web Preview",
+          previewToggleOn: "Close Web Preview",
           openInExternalBrowser: "Open in External Browser",
         }}
         onCloseView={onCloseView}
@@ -106,7 +105,7 @@ describe("ArticleToolbarView", () => {
     expect(screen.getByRole("button", { name: "Toggle read" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Toggle star" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Copy link" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "View in browser" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open Web Preview" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open in external browser" })).not.toBeInTheDocument();
   });
 
@@ -130,7 +129,8 @@ describe("ArticleToolbarView", () => {
           toggleRead: "Toggle read",
           toggleStar: "Toggle star",
           copyLink: "Copy link",
-          viewInBrowser: "Open Web Preview",
+          previewToggleOff: "Open Web Preview",
+          previewToggleOn: "Close Web Preview",
           openInExternalBrowser: "Open in External Browser",
         }}
         onCloseView={vi.fn()}
@@ -148,7 +148,7 @@ describe("ArticleToolbarView", () => {
     expect(dragRegions[0]).not.toContain(screen.getByRole("button", { name: "Open in External Browser" }));
   });
 
-  it("uses a highlighted pressed style for the in-app browser toggle", () => {
+  it("renders a single preview toggle without the legacy display-mode group", () => {
     render(
       <ArticleToolbarView
         showCloseButton
@@ -163,12 +163,14 @@ describe("ArticleToolbarView", () => {
         canOpenInBrowser
         showOpenInExternalBrowserButton
         canOpenInExternalBrowser
+        displayModeControl={<div>S</div>}
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
           toggleStar: "Toggle star",
           copyLink: "Copy link",
-          viewInBrowser: "Open Web Preview",
+          previewToggleOff: "Open Web Preview",
+          previewToggleOn: "Close Web Preview",
           openInExternalBrowser: "Open in External Browser",
         }}
         onCloseView={vi.fn()}
@@ -180,7 +182,9 @@ describe("ArticleToolbarView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveClass("data-[pressed]:text-primary");
+    expect(screen.getByRole("button", { name: "Open Web Preview" })).toBeInTheDocument();
+    expect(screen.queryByText("S")).not.toBeInTheDocument();
+    expect(screen.queryByText("P")).not.toBeInTheDocument();
   });
 
   it("keeps browser before copy in the toolbar action order", () => {
@@ -203,7 +207,8 @@ describe("ArticleToolbarView", () => {
           toggleRead: "Toggle read",
           toggleStar: "Toggle star",
           copyLink: "Copy link",
-          viewInBrowser: "Open Web Preview",
+          previewToggleOff: "Open Web Preview",
+          previewToggleOn: "Close Web Preview",
           openInExternalBrowser: "Open in External Browser",
         }}
         onCloseView={vi.fn()}

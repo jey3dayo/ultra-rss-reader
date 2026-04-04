@@ -142,7 +142,7 @@ describe("ArticleView", () => {
     expect(useUiStore.getState().browserUrl).toBeNull();
   });
 
-  it("opens the embedded browser overlay from the article toolbar browser button", async () => {
+  it("toggles the embedded browser overlay with the single preview button", async () => {
     const calls: MockCall[] = [];
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
@@ -188,6 +188,9 @@ describe("ArticleView", () => {
 
     calls.length = 0;
 
+    expect(screen.queryByText("S")).not.toBeInTheDocument();
+    expect(screen.queryByText("P")).not.toBeInTheDocument();
+
     const openBrowserButton = await screen.findByRole("button", { name: "Open Web Preview" });
     expect(openBrowserButton).toHaveAttribute("aria-pressed", "false");
 
@@ -198,7 +201,16 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
     });
 
-    expect(calls.map(({ cmd }) => cmd)).not.toContain("open_in_browser");
+    expect(await screen.findByRole("button", { name: "Close Web Preview" })).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: "Close Web Preview" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(useUiStore.getState().browserUrl).toBeNull();
+    });
+
+    expect(await screen.findByRole("button", { name: "Open Web Preview" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("closes only the current article overlay when the overlay close button is pressed", async () => {
