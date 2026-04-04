@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
-import { renameFeed, updateFeedDisplaySettings } from "@/api/tauri-commands";
+import { copyToClipboard, renameFeed, updateFeedDisplaySettings } from "@/api/tauri-commands";
 import { useFolders } from "@/hooks/use-folders";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import {
@@ -57,6 +57,18 @@ export function RenameDialog({
     { value: "preview", label: t("display_mode_preview") },
   ];
   const folderOptions = buildFolderOptions(folders, t("no_folder"));
+
+  const handleCopy = async (value: string) => {
+    if (!value) return;
+    Result.pipe(
+      await copyToClipboard(value),
+      Result.inspect(() => showToast(t("copied_to_clipboard"))),
+      Result.inspectError((e) => {
+        console.error("Copy failed:", e);
+        showToast(e.message);
+      }),
+    );
+  };
 
   useEffect(() => {
     if (open) {
@@ -146,6 +158,26 @@ export function RenameDialog({
       onOpenChange={onOpenChange}
       onTitleChange={setTitle}
       onDisplayModeChange={(value) => setDisplayPreset(value as "default" | "standard" | "preview")}
+      urlFields={[
+        {
+          key: "website-url",
+          label: t("website_url"),
+          value: feed.site_url,
+          copyLabel: t("copy_website_url"),
+          onCopy: () => {
+            void handleCopy(feed.site_url);
+          },
+        },
+        {
+          key: "feed-url",
+          label: t("feed_url"),
+          value: feed.url,
+          copyLabel: t("copy_feed_url"),
+          onCopy: () => {
+            void handleCopy(feed.url);
+          },
+        },
+      ]}
       folderSelectProps={{
         labelId: folderLabelId,
         label: t("folder"),

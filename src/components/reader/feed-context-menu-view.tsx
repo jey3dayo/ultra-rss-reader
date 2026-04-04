@@ -32,6 +32,9 @@ export function FeedContextMenuView({
     <ContextMenu.Portal>
       <ContextMenu.Positioner>
         <ContextMenu.Popup className={contextMenuStyles.popup}>
+          <ContextMenu.Item className={contextMenuStyles.item} onClick={onEdit}>
+            {editLabel}
+          </ContextMenu.Item>
           <ContextMenu.Item className={contextMenuStyles.item} onClick={onOpenSite}>
             {openSiteLabel}
           </ContextMenu.Item>
@@ -55,9 +58,6 @@ export function FeedContextMenuView({
           <ContextMenu.Separator className={contextMenuStyles.separator} />
           <ContextMenu.Item className={contextMenuStyles.item} onClick={onUnsubscribe}>
             {unsubscribeLabel}
-          </ContextMenu.Item>
-          <ContextMenu.Item className={contextMenuStyles.item} onClick={onEdit}>
-            {editLabel}
           </ContextMenu.Item>
         </ContextMenu.Popup>
       </ContextMenu.Positioner>

@@ -1,5 +1,9 @@
 import type { RefObject } from "react";
-import { FeedDialogFormView, type FeedDialogSelectOption } from "./feed-dialog-form-view";
+import {
+  FeedDialogFormView,
+  type FeedDialogReadonlyFieldProps,
+  type FeedDialogSelectOption,
+} from "./feed-dialog-form-view";
 import type { FolderSelectViewProps } from "./folder-select-view";
 
 export type RenameFeedDialogViewLabels = {
@@ -12,6 +16,7 @@ export type RenameFeedDialogViewLabels = {
 };
 
 export type RenameFeedDialogViewOption = FeedDialogSelectOption;
+export type RenameFeedDialogViewUrlField = Omit<FeedDialogReadonlyFieldProps, "name">;
 
 export function RenameFeedDialogView({
   open,
@@ -19,6 +24,7 @@ export function RenameFeedDialogView({
   loading,
   displayMode,
   displayModeOptions,
+  urlFields,
   onOpenChange,
   onTitleChange,
   onDisplayModeChange,
@@ -32,6 +38,7 @@ export function RenameFeedDialogView({
   loading: boolean;
   displayMode: string;
   displayModeOptions: RenameFeedDialogViewOption[];
+  urlFields: RenameFeedDialogViewUrlField[];
   onOpenChange: (open: boolean) => void;
   onTitleChange: (value: string) => void;
   onDisplayModeChange: (value: string) => void;
@@ -60,6 +67,10 @@ export function RenameFeedDialogView({
         disabled: loading,
         inputRef,
       }}
+      readonlyFields={urlFields.map((field) => ({
+        ...field,
+        name: field.key,
+      }))}
       selectSection={{
         label: labels.displayMode,
         name: "feed-display-mode",

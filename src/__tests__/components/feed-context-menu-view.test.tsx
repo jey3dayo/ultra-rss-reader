@@ -51,4 +51,41 @@ describe("FeedContextMenuView", () => {
     expect(onUnsubscribe).toHaveBeenCalledTimes(1);
     expect(onEdit).toHaveBeenCalledTimes(1);
   });
+
+  it("places edit first and keeps unsubscribe as the last destructive action", () => {
+    render(
+      <ContextMenu.Root open>
+        <FeedContextMenuView
+          openSiteLabel="Open site"
+          markAllReadLabel="Mark all as read"
+          displayModeLabel="Display mode"
+          displayPresetOptions={[
+            { value: "default", label: "Default" },
+            { value: "standard", label: "Standard" },
+            { value: "preview", label: "Preview" },
+          ]}
+          selectedDisplayPreset="default"
+          unsubscribeLabel="Unsubscribe…"
+          editLabel="Edit…"
+          onOpenSite={vi.fn()}
+          onMarkAllRead={vi.fn()}
+          onSetDisplayPreset={vi.fn()}
+          onUnsubscribe={vi.fn()}
+          onEdit={vi.fn()}
+        />
+      </ContextMenu.Root>,
+    );
+
+    const menuItems = screen.getAllByRole("menuitem").map((item) => item.textContent?.trim());
+
+    expect(menuItems).toEqual([
+      "Edit…",
+      "Open site",
+      "Mark all as read",
+      "✓Default",
+      "Standard",
+      "Preview",
+      "Unsubscribe…",
+    ]);
+  });
 });

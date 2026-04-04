@@ -10,6 +10,8 @@ describe("RenameFeedDialogView", () => {
     const onOpenChange = vi.fn();
     const onTitleChange = vi.fn();
     const onDisplayModeChange = vi.fn();
+    const onCopySiteUrl = vi.fn();
+    const onCopyFeedUrl = vi.fn();
     const onFolderValueChange = vi.fn();
     const onSubmit = vi.fn();
     const inputRef = createRef<HTMLInputElement>();
@@ -28,6 +30,22 @@ describe("RenameFeedDialogView", () => {
         onOpenChange={onOpenChange}
         onTitleChange={onTitleChange}
         onDisplayModeChange={onDisplayModeChange}
+        urlFields={[
+          {
+            key: "site-url",
+            label: "Website URL",
+            value: "https://example.com",
+            copyLabel: "Copy Website URL",
+            onCopy: onCopySiteUrl,
+          },
+          {
+            key: "feed-url",
+            label: "Feed URL",
+            value: "https://example.com/feed.xml",
+            copyLabel: "Copy Feed URL",
+            onCopy: onCopyFeedUrl,
+          },
+        ]}
         folderSelectProps={{
           labelId: "folder-label",
           label: "Folder",
@@ -61,16 +79,22 @@ describe("RenameFeedDialogView", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toHaveValue("Tech Blog");
+    expect(screen.getByLabelText("Website URL")).toHaveValue("https://example.com");
+    expect(screen.getByLabelText("Feed URL")).toHaveValue("https://example.com/feed.xml");
     expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Preview");
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("Work");
 
     fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Fresh" } });
+    await user.click(screen.getByRole("button", { name: "Copy Website URL" }));
+    await user.click(screen.getByRole("button", { name: "Copy Feed URL" }));
     await user.click(screen.getByRole("combobox", { name: "Display Mode" }));
     await user.click(await screen.findByText("Standard"));
     await user.click(screen.getByRole("button", { name: "Save" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(onTitleChange).toHaveBeenLastCalledWith("Fresh");
+    expect(onCopySiteUrl).toHaveBeenCalledTimes(1);
+    expect(onCopyFeedUrl).toHaveBeenCalledTimes(1);
     expect(onDisplayModeChange).toHaveBeenCalledWith("standard");
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onOpenChange).toHaveBeenCalledWith(false);
@@ -87,6 +111,7 @@ describe("RenameFeedDialogView", () => {
         onOpenChange={vi.fn()}
         onTitleChange={vi.fn()}
         onDisplayModeChange={vi.fn()}
+        urlFields={[]}
         folderSelectProps={{
           labelId: "folder-label",
           label: "Folder",

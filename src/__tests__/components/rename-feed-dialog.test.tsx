@@ -11,6 +11,12 @@ vi.mock("@/components/reader/rename-feed-dialog-view", () => ({
     title: string;
     onTitleChange: (value: string) => void;
     onDisplayModeChange: (value: string) => void;
+    urlFields: Array<{
+      label: string;
+      value: string;
+      copyLabel: string;
+      onCopy: () => void;
+    }>;
     folderSelectProps?: {
       canCreateFolder: boolean;
       isCreatingFolder: boolean;
@@ -42,6 +48,11 @@ vi.mock("@/components/reader/rename-feed-dialog-view", () => ({
         <button type="button" onClick={() => props.onDisplayModeChange("preview")}>
           Set preview
         </button>
+        {props.urlFields.map((field) => (
+          <button key={field.label} type="button" onClick={field.onCopy}>
+            {field.copyLabel}
+          </button>
+        ))}
         <div data-testid="folder-create-enabled">{String(props.folderSelectProps?.canCreateFolder)}</div>
         <button type="button" onClick={() => props.folderSelectProps?.onValueChange("folder-2")}>
           Move to folder 2
@@ -223,6 +234,50 @@ describe("RenameDialog", () => {
       });
       expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["feeds"] });
       expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+  });
+
+  it("copies website and feed URLs from the edit dialog", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_folders":
+          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+        case "copy_to_clipboard":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    render(
+      <QueryClientProvider
+        client={
+          new QueryClient({
+            defaultOptions: {
+              queries: { retry: false },
+            },
+          })
+        }
+      >
+        <RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={vi.fn()} />
+      </QueryClientProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Copy Website URL" }));
+    await user.click(screen.getByRole("button", { name: "Copy Feed URL" }));
+
+    expect(calls).toContainEqual({
+      cmd: "copy_to_clipboard",
+      args: { text: "https://example.com" },
+    });
+    expect(calls).toContainEqual({
+      cmd: "copy_to_clipboard",
+      args: { text: "https://example.com/feed.xml" },
     });
   });
 });

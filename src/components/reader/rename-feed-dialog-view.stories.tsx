@@ -16,6 +16,22 @@ const meta = {
       { value: "standard", label: "Standard" },
       { value: "preview", label: "Preview" },
     ],
+    urlFields: [
+      {
+        key: "website-url",
+        label: "Website URL",
+        value: "https://example.com",
+        copyLabel: "Copy Website URL",
+        onCopy: fn(),
+      },
+      {
+        key: "feed-url",
+        label: "Feed URL",
+        value: "https://example.com/feed.xml",
+        copyLabel: "Copy Feed URL",
+        onCopy: fn(),
+      },
+    ],
     folderSelectProps: {
       labelId: "folder-story-label",
       label: "Folder",
