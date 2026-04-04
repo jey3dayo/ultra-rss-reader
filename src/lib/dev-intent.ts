@@ -1,6 +1,6 @@
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
-import { getDevScenario } from "@/dev/scenarios";
 import type { DevScenarioId } from "@/dev/scenarios";
+import { getDevScenario } from "@/dev/scenarios";
 import { resolveFeedDisplayOverrides } from "@/lib/article-display";
 
 export type DevIntent = DevScenarioId | null;
