@@ -314,8 +314,8 @@ mod tests {
                 "SELECT COUNT(*) FROM articles WHERE feed_id = ?1",
                 params![feed.id.0],
                 |row| row.get(0),
-        )
-        .unwrap();
+            )
+            .unwrap();
         assert_eq!(article_count, 0);
     }
 
@@ -350,7 +350,10 @@ mod tests {
             .unwrap();
         assert_eq!(article_count, 1);
 
-        let saved_feed = repo.find_by_remote_id(&account_id, "feed/1").unwrap().unwrap();
+        let saved_feed = repo
+            .find_by_remote_id(&account_id, "feed/1")
+            .unwrap()
+            .unwrap();
         assert_eq!(saved_feed.title, "Updated Feed");
     }
 
