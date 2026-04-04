@@ -17,8 +17,18 @@ type DevScenariosModule = {
 
 let devScenariosModulePromise: Promise<DevScenariosModule> | null = null;
 
+const DEV_SCENARIOS_MODULE_PATH = "/src/dev/scenarios/index.ts";
+
+function getDevScenariosModuleUrl(): string {
+  return DEV_SCENARIOS_MODULE_PATH;
+}
+
 async function loadDevScenariosModule(): Promise<DevScenariosModule> {
-  devScenariosModulePromise ??= import("@/dev/scenarios");
+  if (!import.meta.env.DEV) {
+    throw new Error("Dev scenarios runtime is unavailable outside dev builds.");
+  }
+
+  devScenariosModulePromise ??= import(/* @vite-ignore */ getDevScenariosModuleUrl()) as Promise<DevScenariosModule>;
   return devScenariosModulePromise;
 }
 
