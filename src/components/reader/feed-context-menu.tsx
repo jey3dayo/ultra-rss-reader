@@ -1,11 +1,11 @@
 import { Result } from "@praha/byethrow";
-import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
-import { deleteFeed, openInBrowser } from "@/api/tauri-commands";
+import { openInBrowser } from "@/api/tauri-commands";
 import { useMarkFeedRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
+import { useDeleteFeed } from "@/hooks/use-delete-feed";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
 import {
   displayPresetToTriStateModes,
@@ -14,7 +14,6 @@ import {
 } from "@/lib/article-display";
 import { extractSiteHost } from "@/lib/feed";
 import { usePreferencesStore } from "@/stores/preferences-store";
-import { useUiStore } from "@/stores/ui-store";
 import { FeedContextMenuView } from "./feed-context-menu-view";
 import { RenameDialog } from "./rename-feed-dialog";
 import { UnsubscribeDialog } from "./unsubscribe-feed-dialog";
@@ -23,10 +22,9 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
   const { t } = useTranslation("reader");
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showUnsubscribeDialog, setShowUnsubscribeDialog] = useState(false);
-  const qc = useQueryClient();
-  const showToast = useUiStore((s) => s.showToast);
   const confirmMarkAllRead = useConfirmMarkAllRead();
   const markFeedRead = useMarkFeedRead();
+  const deleteFeedMutation = useDeleteFeed();
   const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
 
   const hostResult = extractSiteHost(feed.site_url, feed.url);
@@ -62,16 +60,15 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
   };
 
   const handleConfirmUnsubscribe = async () => {
-    Result.pipe(
-      await deleteFeed(feed.id),
-      Result.inspect(() => {
-        qc.invalidateQueries({ queryKey: ["feeds"] });
-        qc.invalidateQueries({ queryKey: ["accountUnreadCount"] });
-        showToast(t("unsubscribed_from", { title: feed.title }));
-      }),
-      Result.inspectError((e) => showToast(t("failed_to_unsubscribe", { message: e.message }))),
-    );
-    setShowUnsubscribeDialog(false);
+    try {
+      await deleteFeedMutation.mutateAsync({
+        feedId: feed.id,
+        title: feed.title,
+        onSuccess: () => setShowUnsubscribeDialog(false),
+      });
+    } catch {
+      return;
+    }
   };
 
   return (

@@ -1,11 +1,12 @@
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
-
+import enCleanup from "@/locales/en/cleanup.json";
 import enCommon from "@/locales/en/common.json";
 import enReader from "@/locales/en/reader.json";
 import enSettings from "@/locales/en/settings.json";
 import enSidebar from "@/locales/en/sidebar.json";
+import jaCleanup from "@/locales/ja/cleanup.json";
 import jaCommon from "@/locales/ja/common.json";
 import jaReader from "@/locales/ja/reader.json";
 import jaSettings from "@/locales/ja/settings.json";
@@ -19,12 +20,12 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { common: enCommon, settings: enSettings, reader: enReader, sidebar: enSidebar },
-      ja: { common: jaCommon, settings: jaSettings, reader: jaReader, sidebar: jaSidebar },
+      en: { common: enCommon, cleanup: enCleanup, settings: enSettings, reader: enReader, sidebar: enSidebar },
+      ja: { common: jaCommon, cleanup: jaCleanup, settings: jaSettings, reader: jaReader, sidebar: jaSidebar },
     },
     fallbackLng: "en",
     defaultNS: "common",
-    ns: ["common", "settings", "reader", "sidebar"],
+    ns: ["common", "cleanup", "settings", "reader", "sidebar"],
     interpolation: { escapeValue: false },
     detection: {
       order: ["navigator"],

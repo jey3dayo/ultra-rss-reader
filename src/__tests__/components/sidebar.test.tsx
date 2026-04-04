@@ -400,6 +400,16 @@ describe("Sidebar", () => {
     expect(screen.queryByRole("button", { name: "Tags" })).not.toBeInTheDocument();
   });
 
+  it("opens the feed cleanup surface from the bottom management area", async () => {
+    const user = userEvent.setup();
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Feed Cleanup" }));
+
+    expect(useUiStore.getState().feedCleanupOpen).toBe(true);
+  });
+
   it("falls back away from hidden sidebar states, including viewMode-only flows", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {

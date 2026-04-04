@@ -6,6 +6,7 @@
   "feeds": "Feeds",
   "tags": "Tags",
   "accounts": "Accounts",
+  "feed_cleanup": "Feed Cleanup",
   "settings": "Settings",
   "not_synced_yet": "Not synced yet",
   "today_at": "Today at {{time}}",

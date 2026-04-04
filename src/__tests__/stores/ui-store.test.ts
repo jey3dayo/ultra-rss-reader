@@ -33,6 +33,16 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().commandPaletteOpen).toBe(false);
   });
 
+  it("opens and closes the feed cleanup surface", () => {
+    expect(useUiStore.getState().feedCleanupOpen).toBe(false);
+
+    useUiStore.getState().openFeedCleanup();
+    expect(useUiStore.getState().feedCleanupOpen).toBe(true);
+
+    useUiStore.getState().closeFeedCleanup();
+    expect(useUiStore.getState().feedCleanupOpen).toBe(false);
+  });
+
   it("selectFeed updates selection", () => {
     useUiStore.getState().selectFeed("f1");
     expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "f1" });

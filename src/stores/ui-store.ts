@@ -70,6 +70,7 @@ interface UiState {
   settingsAddAccount: boolean;
   settingsLoading: boolean;
   appLoading: boolean;
+  feedCleanupOpen: boolean;
   syncProgress: SyncProgressState;
   commandPaletteOpen: boolean;
   isAddFeedDialogOpen: boolean;
@@ -113,6 +114,8 @@ interface UiActions {
   setSettingsAddAccount: (show: boolean) => void;
   setSettingsLoading: (loading: boolean) => void;
   setAppLoading: (loading: boolean) => void;
+  openFeedCleanup: () => void;
+  closeFeedCleanup: () => void;
   applySyncProgress: (event: SyncProgressEvent) => void;
   clearSyncProgress: () => void;
   openCommandPalette: () => void;
@@ -150,6 +153,7 @@ const initialState: UiState = {
   settingsAddAccount: false,
   settingsLoading: false,
   appLoading: false,
+  feedCleanupOpen: false,
   syncProgress: {
     active: false,
     kind: null,
@@ -272,6 +276,8 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   setSettingsAddAccount: (show) => set({ settingsAddAccount: show, settingsAccountId: null }),
   setSettingsLoading: (loading) => set({ settingsLoading: loading }),
   setAppLoading: (loading) => set({ appLoading: loading }),
+  openFeedCleanup: () => set({ feedCleanupOpen: true }),
+  closeFeedCleanup: () => set({ feedCleanupOpen: false }),
   applySyncProgress: (event) =>
     set((state) => {
       const activeAccountIds = new Set(state.syncProgress.activeAccountIds);

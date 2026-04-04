@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
-import { ChevronDown, Settings } from "lucide-react";
+import { ChevronDown, ListFilter, Settings } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
@@ -90,6 +90,7 @@ export function Sidebar() {
   const expandedFolderIds = useUiStore((s) => s.expandedFolderIds);
   const toggleFolder = useUiStore((s) => s.toggleFolder);
   const openSettings = useUiStore((s) => s.openSettings);
+  const openFeedCleanup = useUiStore((s) => s.openFeedCleanup);
   const isAddFeedDialogOpen = useUiStore((s) => s.isAddFeedDialogOpen);
   const openAddFeedDialog = useUiStore((s) => s.openAddFeedDialog);
   const closeAddFeedDialog = useUiStore((s) => s.closeAddFeedDialog);
@@ -591,7 +592,16 @@ export function Sidebar() {
       </ScrollArea>
 
       {/* Bottom Settings Button */}
-      <div className="flex h-10 items-center justify-center border-t border-sidebar-border px-2">
+      <div className="flex min-h-10 items-center justify-center gap-2 border-t border-sidebar-border px-2 py-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={openFeedCleanup}
+          className={controlChipVariants({ size: "comfortable", interaction: "action" })}
+        >
+          <ListFilter className={controlChipIconVariants({ size: "comfortable" })} />
+          <span>{t("feed_cleanup")}</span>
+        </Button>
         <Button
           variant="ghost"
           size="sm"
