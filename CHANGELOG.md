@@ -4,6 +4,36 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-04-05
+
+### Features
+
+- Feed Cleanup 画面を追加し、古い購読候補のレビューと削除判断をアプリ内で行えるようにした
+- 起動時同期プリファレンスを追加し、アプリ起動直後のフル同期可否を設定できるようにした
+- Reader mode / Web preview mode の 2 軸へ表示設定を整理し、プレビュー切り替えと表示導線を改善した
+- command palette に dev scenarios を追加し、設定画面・ナビゲーション・画像 viewer などの smoke 導線を共通ランタイムで扱えるようにした
+- ネイティブメニューと共有系アクションの文言を言語設定に追従させ、設定画面では copyable server URL を表示できるようにした
+- フィード landing、フォルダ作成/移動、直接フィルタショートカット、デスクトップ sidebar toggle など reader 操作を拡張した
+
+### Bug Fixes
+
+- 同期 warning の surfacing、feed state 保持、invalid account selection からの復帰など、同期と sidebar 周りの安定性を改善した
+- フィード編集ダイアログでのコピー後 focus 維持、preview toggle の常時利用、browser overlay close 操作の視認性を修正した
+- dedicated browser window stall 時の fallback、外部ブラウザ起動、dev scenario の状態復元とタグ反映を修正した
+- FreshRSS の local-like feed state、missing password recovery、credential save 後の接続テストなど、アカウント設定まわりの不整合を解消した
+- マイグレーション時の feed mode 欠損や dev/prod バンドル境界に起因する表示崩れ・挙動差を修正した
+
+### Documentation
+
+- Feed Cleanup、startup sync、preview toggle / Web preview role、dev scenarios command palette、folder drag-and-drop などの設計メモを追加した
+- TODO / agent guidance / 開発ルールの表記を整理し、Codex app での選択 UI 方針を明文化した
+
+### Maintenance
+
+- preview toggle まわりの story / test / 実装構成を整理し、legacy display mode UI を削除した
+- dev scenario runtime の lazy load・production 分離・履歴管理を見直し、開発専用導線のノイズを減らした
+- reader / settings / sync 周辺のテストと整形を調整し、release gate チェックを安定化した
+
 ## [0.6.0] - 2026-04-01
 
 ### Features
