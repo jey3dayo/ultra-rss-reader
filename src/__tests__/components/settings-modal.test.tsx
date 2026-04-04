@@ -74,11 +74,10 @@ describe("SettingsModal", () => {
     render(<ActionsSettings />, { wrapper: createWrapper() });
 
     const switches = screen.getAllByRole("switch");
-    expect(switches).toHaveLength(4);
+    expect(switches).toHaveLength(3);
     expect(switches[0]).toBeChecked();
     expect(switches[1]).toBeChecked();
     expect(switches[2]).toBeChecked();
-    expect(switches[3]).toBeChecked();
   });
 
   it("shows default display mode options in reading settings", () => {

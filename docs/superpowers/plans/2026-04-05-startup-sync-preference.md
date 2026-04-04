@@ -10,7 +10,7 @@
 
 ---
 
-### Task 1: Add failing tests for the new preference
+## Task 1: Add failing tests for the new preference
 
 **Files:**
 
@@ -22,7 +22,7 @@
 - [ ] **Step 3: Write the failing app startup sync tests**
 - [ ] **Step 4: Run the app test to verify it fails**
 
-### Task 2: Implement the preference and startup sync behavior
+## Task 2: Implement the preference and startup sync behavior
 
 **Files:**
 
@@ -38,7 +38,7 @@
 - [ ] **Step 3: Trigger one startup full sync after preferences load when enabled**
 - [ ] **Step 4: Keep existing wake-sync behavior unchanged**
 
-### Task 3: Verify
+## Task 3: Verify
 
 **Files:**
 

@@ -1,5 +1,5 @@
-import { CopyableTextField } from "@/components/shared/copyable-text-field";
 import { SectionHeading } from "@/components/settings/settings-components";
+import { CopyableTextField } from "@/components/shared/copyable-text-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
