@@ -21,6 +21,10 @@ type RankedFeedSelection = {
   articles: ArticleDto[];
 };
 
+type LandingFeedSelection = RankedFeedSelection & {
+  article: ArticleDto;
+};
+
 export function createUnsupportedDevScenarioRunner(id: DevScenarioId): DevScenario["run"] {
   return ({ ui }) => {
     ui.showToast(`Dev scenario "${id}" is not implemented yet.`);
@@ -51,6 +55,38 @@ async function findRankedFeedSelection(
           articles: candidateArticles,
         };
       }
+    }
+  }
+
+  return null;
+}
+
+async function findRankedLandingFeedSelection(
+  ctx: DevScenarioContext,
+  accounts: readonly AccountDto[],
+): Promise<LandingFeedSelection | null> {
+  for (const account of accounts) {
+    const feeds = await Promise.resolve(ctx.actions.listFeeds(account.id));
+    ctx.queryClient.setQueryData(["feeds", account.id], feeds);
+
+    for (const candidateFeed of rankImageViewerOverlayFeeds(feeds)) {
+      const candidateArticles = await Promise.resolve(ctx.actions.listArticles(candidateFeed.id));
+      ctx.queryClient.setQueryData(["articles", candidateFeed.id], candidateArticles);
+      if (candidateArticles.length === 0) {
+        continue;
+      }
+
+      const article = pickFeedLandingArticle(candidateArticles);
+      if (!article) {
+        continue;
+      }
+
+      return {
+        account,
+        feed: candidateFeed,
+        articles: candidateArticles,
+        article,
+      };
     }
   }
 
@@ -161,19 +197,13 @@ export async function runOpenFeedFirstArticleScenario(ctx: DevScenarioContext): 
       return;
     }
 
-    const selection = await findRankedFeedSelection(ctx, accounts);
+    const selection = await findRankedLandingFeedSelection(ctx, accounts);
     if (!selection) {
       ctx.ui.showToast('Dev scenario "open-feed-first-article" could not find any articles.');
       return;
     }
 
-    const article = pickFeedLandingArticle(selection.articles);
-    if (!article) {
-      ctx.ui.showToast('Dev scenario "open-feed-first-article" could not find any articles.');
-      return;
-    }
-
-    selectFeedArticle(ctx, selection.account.id, selection.feed.id, article.id, "on", "off");
+    selectFeedArticle(ctx, selection.account.id, selection.feed.id, selection.article.id, "on", "off");
   } catch (error) {
     console.error('Failed to run dev scenario "open-feed-first-article":', error);
     ctx.ui.showToast('Dev scenario "open-feed-first-article" failed to open a feed article.');

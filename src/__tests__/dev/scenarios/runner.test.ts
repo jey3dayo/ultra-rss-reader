@@ -289,6 +289,60 @@ describe("runDevScenario", () => {
     expect(ui.showToast).not.toHaveBeenCalled();
   });
 
+  it("continues searching until a ranked feed has a usable landing article", async () => {
+    const { cache, queryClient } = createQueryClientStub();
+    const ui = createUiStub();
+    const blockedRankedFeed: FeedDto = {
+      ...genericFeed,
+      id: "feed-blocked",
+      title: "マガポケ comic manga blocked",
+      url: "https://example.com/magapoke-comic-manga.xml",
+      site_url: "https://example.com/manga",
+      unread_count: 99,
+    };
+    const blockedReadArticle: ArticleDto = {
+      ...readArticle,
+      id: "article-blocked",
+      feed_id: blockedRankedFeed.id,
+      published_at: "2026-04-05T00:00:00.000Z",
+    };
+    const context: DevScenarioContext = {
+      ui,
+      queryClient,
+      actions: {
+        executeAction: vi.fn(),
+        listAccounts: vi.fn(async () => [account]),
+        listFeeds: vi.fn(async () => [blockedRankedFeed, mangaFeed]),
+        listArticles: vi.fn(async (feedId: string) => {
+          if (feedId === blockedRankedFeed.id) {
+            return [blockedReadArticle];
+          }
+
+          return [overlayPreferredOlderArticle, landingNewestArticle, readArticle];
+        }),
+      },
+    };
+
+    await runDevScenario("open-feed-first-article", { context });
+
+    expect(context.actions.listArticles).toHaveBeenCalledTimes(2);
+    expect(context.actions.listArticles).toHaveBeenNthCalledWith(1, blockedRankedFeed.id);
+    expect(context.actions.listArticles).toHaveBeenNthCalledWith(2, mangaFeed.id);
+    expect(cache.get(JSON.stringify(["articles", blockedRankedFeed.id]))).toEqual([blockedReadArticle]);
+    expect(cache.get(JSON.stringify(["articles", mangaFeed.id]))).toEqual([
+      overlayPreferredOlderArticle,
+      landingNewestArticle,
+      readArticle,
+    ]);
+    expect(cache.get(JSON.stringify(["feeds", account.id]))).toEqual([
+      blockedRankedFeed,
+      { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" },
+    ]);
+    expect(ui.selectFeed).toHaveBeenCalledWith(mangaFeed.id);
+    expect(ui.selectArticle).toHaveBeenCalledWith(landingNewestArticle.id);
+    expect(ui.showToast).not.toHaveBeenCalled();
+  });
+
   it("shows an explicit toast when the feed-first-article scenario cannot find any articles", async () => {
     const context = createContext({
       actions: {
