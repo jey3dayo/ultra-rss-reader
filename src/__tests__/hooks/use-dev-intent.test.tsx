@@ -30,6 +30,7 @@ describe("useDevIntent", () => {
   beforeEach(() => {
     showToast.mockReset();
     vi.stubEnv("DEV", true);
+    sessionStorage.clear();
     setupTauriMocks((cmd) => {
       if (cmd === "list_accounts") {
         return [];
@@ -67,9 +68,33 @@ describe("useDevIntent", () => {
     });
   });
 
+  it("runs the legacy overlay hydration path only once across remounts", async () => {
+    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
+    const listAccountsSpy = vi.spyOn(tauriCommands, "listAccounts");
+
+    const first = renderHook(() => useDevIntent(), {
+      wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+    });
+
+    await waitFor(() => {
+      expect(listAccountsSpy).toHaveBeenCalledTimes(1);
+    });
+
+    first.unmount();
+
+    renderHook(() => useDevIntent(), {
+      wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+    });
+
+    await waitFor(() => {
+      expect(listAccountsSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
+    sessionStorage.clear();
     teardownTauriMocks();
   });
 });

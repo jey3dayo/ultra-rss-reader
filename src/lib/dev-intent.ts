@@ -5,7 +5,16 @@ import { resolveFeedDisplayOverrides } from "@/lib/article-display";
 
 export type DevIntent = DevScenarioId | null;
 
+const LEGACY_OVERLAY_EXECUTION_KEY = "ultra-rss-dev-intent:legacy-overlay-executed";
 const DEFAULT_FEED_HINTS = ["マガポケ", "ジャンプ+", "comic", "manga", "少年ジャンプ", "ゴリミー"];
+
+function readSessionStorage(): Storage | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window.sessionStorage;
+}
 
 export function parseDevIntent(value: string | undefined): DevIntent {
   if (!value) {
@@ -30,6 +39,28 @@ export function isLegacyOverlayDevIntent(intent: DevIntent): intent is "image-vi
 export function readLegacyOverlayDevIntent(): "image-viewer-overlay" | null {
   const intent = readDevIntent();
   return isLegacyOverlayDevIntent(intent) ? intent : null;
+}
+
+export function consumeLegacyOverlayDevIntent(intent: DevIntent): "image-viewer-overlay" | null {
+  if (!isLegacyOverlayDevIntent(intent)) {
+    return null;
+  }
+
+  const storage = readSessionStorage();
+  if (!storage) {
+    return intent;
+  }
+
+  try {
+    if (storage.getItem(LEGACY_OVERLAY_EXECUTION_KEY) === "1") {
+      return null;
+    }
+
+    storage.setItem(LEGACY_OVERLAY_EXECUTION_KEY, "1");
+    return intent;
+  } catch {
+    return intent;
+  }
 }
 
 export function resolveDevIntentBrowserUrl(intent: DevIntent, fallbackUrl: string | null): string | null {

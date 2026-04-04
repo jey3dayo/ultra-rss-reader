@@ -1,8 +1,9 @@
 import { Result } from "@praha/byethrow";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import type { FeedDto } from "@/api/tauri-commands";
 import { listAccounts, listArticles, listFeeds } from "@/api/tauri-commands";
 import {
+  consumeLegacyOverlayDevIntent,
   pickDevIntentArticle,
   rankDevIntentFeeds,
   readLegacyOverlayDevIntent,
@@ -12,15 +13,11 @@ import { queryClient } from "@/lib/query-client";
 import { useUiStore } from "@/stores/ui-store";
 
 export function useDevIntent() {
-  const hasRun = useRef(false);
-
   useEffect(() => {
-    const intent = readLegacyOverlayDevIntent();
-    if (intent !== "image-viewer-overlay" || hasRun.current) {
+    const intent = consumeLegacyOverlayDevIntent(readLegacyOverlayDevIntent());
+    if (!intent) {
       return;
     }
-
-    hasRun.current = true;
 
     void (async () => {
       try {
