@@ -177,7 +177,7 @@ describe("CommandPalette", () => {
     expect(screen.queryByRole("option", { name: /Image viewer overlay/ })).not.toBeInTheDocument();
   });
 
-  it("runs a dev scenario, records it in history, and closes the palette", async () => {
+  it("runs a dev scenario without writing to recent history and closes the palette", async () => {
     const user = userEvent.setup();
     vi.stubEnv("DEV", true);
     const runDevScenario = vi.spyOn(devScenarios, "runDevScenario").mockResolvedValue(undefined);
@@ -189,18 +189,25 @@ describe("CommandPalette", () => {
     await waitFor(() => {
       expect(runDevScenario).toHaveBeenCalledWith("image-viewer-overlay");
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
-      expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(["scenario:image-viewer-overlay"]));
+      expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
     });
   });
 
-  it("does not treat scenario history as recent actions", async () => {
+  it("does not change existing recent actions history when a scenario runs", async () => {
+    const user = userEvent.setup();
     vi.stubEnv("DEV", true);
-    localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(["scenario:image-viewer-overlay"]));
+    const runDevScenario = vi.spyOn(devScenarios, "runDevScenario").mockResolvedValue(undefined);
+    localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(["action:open-settings"]));
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
-    expect(screen.queryByText("Recent Actions")).not.toBeInTheDocument();
-    expect(screen.getByText("Dev Scenarios", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
+    const input = await screen.findByPlaceholderText("Search commands…");
+    await user.type(input, "overlay");
+    await user.click(await screen.findByRole("option", { name: /Image viewer overlay/ }));
+
+    await waitFor(() => {
+      expect(runDevScenario).toHaveBeenCalledWith("image-viewer-overlay");
+      expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(["action:open-settings"]));
+    });
   });
 });

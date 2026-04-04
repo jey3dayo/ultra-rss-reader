@@ -204,7 +204,6 @@ export function CommandPalette() {
   }
 
   function handleDevScenarioSelect(scenarioId: DevScenarioId) {
-    addToHistory(getCommandItemValue("scenario", scenarioId));
     void runDevScenario(scenarioId);
     closePalette();
   }
