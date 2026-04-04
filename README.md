@@ -29,6 +29,13 @@ It supports local feeds and FreshRSS, stores data in SQLite, and keeps credentia
 - Feeds in `Widescreen` mode land in browser view
 - If a feed has no visible unread articles, the app stops at the feed list instead of forcing an article open
 
+## Feed Cleanup
+
+- Open `Feed Cleanup` from the sidebar management area
+- Review subscriptions that have not updated for a long time
+- Inspect why a feed is a candidate before deleting it
+- Use `Keep` or `Later` to clear the queue without unsubscribing immediately
+
 ## Tech Stack
 
 | Layer                | Technology                                            |
