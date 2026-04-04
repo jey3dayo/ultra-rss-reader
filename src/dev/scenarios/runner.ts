@@ -1,5 +1,12 @@
 import { Result } from "@praha/byethrow";
-import { listAccounts, listArticles, listFeeds } from "@/api/tauri-commands";
+import {
+  getTagArticleCounts,
+  listAccounts,
+  listArticles,
+  listArticlesByTag,
+  listFeeds,
+  listTags,
+} from "@/api/tauri-commands";
 import { getDevScenario } from "@/dev/scenarios/registry";
 import type { DevScenarioContext, DevScenarioId } from "@/dev/scenarios/types";
 import { executeAction } from "@/lib/actions";
@@ -20,6 +27,10 @@ function createDefaultDevScenarioContext(): DevScenarioContext {
       listFeeds: async (accountId: string) => listFeeds(accountId).then(Result.unwrap()),
       listArticles: async (feedId: string, offset?: number, limit?: number) =>
         listArticles(feedId, offset, limit).then(Result.unwrap()),
+      listTags: async () => listTags().then(Result.unwrap()),
+      getTagArticleCounts: async (accountId?: string) => getTagArticleCounts(accountId).then(Result.unwrap()),
+      listArticlesByTag: async (tagId: string, offset?: number, limit?: number, accountId?: string) =>
+        listArticlesByTag(tagId, offset, limit, accountId).then(Result.unwrap()),
     },
   };
 }

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AccountDto, ArticleDto, FeedDto } from "@/api/tauri-commands";
+import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import { runDevScenario } from "@/dev/scenarios/runner";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -27,8 +27,9 @@ function createQueryClientStub() {
   return { cache, queryClient };
 }
 
-function createUiStub(): DevScenarioContext["ui"] {
+function createUiStub(overrides?: Record<string, unknown>): DevScenarioContext["ui"] {
   return {
+    selectedAccountId: null,
     showToast: vi.fn(),
     selectAccount: vi.fn(),
     selectFeed: vi.fn(),
@@ -43,6 +44,20 @@ function createUiStub(): DevScenarioContext["ui"] {
     openCommandPalette: vi.fn(),
     closeCommandPalette: vi.fn(),
     toggleCommandPalette: vi.fn(),
+    ...overrides,
+  } as unknown as DevScenarioContext["ui"];
+}
+
+function createActions(overrides?: Partial<DevScenarioContext["actions"]>): DevScenarioContext["actions"] {
+  return {
+    executeAction: vi.fn(),
+    listAccounts: vi.fn(async () => []),
+    listFeeds: vi.fn(async () => []),
+    listArticles: vi.fn(async () => []),
+    listTags: vi.fn(async () => []),
+    getTagArticleCounts: vi.fn(async () => ({})),
+    listArticlesByTag: vi.fn(async () => []),
+    ...overrides,
   };
 }
 
@@ -52,12 +67,7 @@ function createContext(overrides?: Partial<DevScenarioContext>): DevScenarioCont
   return {
     ui: createUiStub(),
     queryClient,
-    actions: {
-      executeAction: vi.fn(),
-      listAccounts: vi.fn(async () => []),
-      listFeeds: vi.fn(async () => []),
-      listArticles: vi.fn(async () => []),
-    },
+    actions: createActions(),
     ...overrides,
   };
 }
@@ -154,6 +164,18 @@ const overlayPreferredOlderArticle: ArticleDto = {
   thumbnail: "https://example.com/older-thumb.png",
 };
 
+const primaryTag: TagDto = {
+  id: "tag-1",
+  name: "Important",
+  color: "#ff0000",
+};
+
+const secondaryTag: TagDto = {
+  id: "tag-2",
+  name: "Later",
+  color: "#00ff00",
+};
+
 describe("runDevScenario", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -171,7 +193,7 @@ describe("runDevScenario", () => {
     const context: DevScenarioContext = {
       ui,
       queryClient,
-      actions: {
+      actions: createActions({
         executeAction: vi.fn(),
         listAccounts: vi.fn(async () => [account]),
         listFeeds: vi.fn(async () => [genericFeed, mangaFeed]),
@@ -182,7 +204,7 @@ describe("runDevScenario", () => {
 
           return [readArticle, unreadArticle];
         }),
-      },
+      }),
     };
 
     await runDevScenario("image-viewer-overlay", { context });
@@ -221,14 +243,14 @@ describe("runDevScenario", () => {
 
   it("shows the overlay failure toast when hydration throws", async () => {
     const context = createContext({
-      actions: {
+      actions: createActions({
         executeAction: vi.fn(),
         listAccounts: vi.fn(async () => {
           throw new Error("boom");
         }),
         listFeeds: vi.fn(async () => []),
         listArticles: vi.fn(async () => []),
-      },
+      }),
     });
 
     await runDevScenario("image-viewer-overlay", { context });
@@ -242,7 +264,7 @@ describe("runDevScenario", () => {
     const context: DevScenarioContext = {
       ui,
       queryClient,
-      actions: {
+      actions: createActions({
         executeAction: vi.fn(),
         listAccounts: vi.fn(async () => [otherAccount, account]),
         listFeeds: vi.fn(async (accountId: string) => {
@@ -259,7 +281,7 @@ describe("runDevScenario", () => {
 
           return [overlayPreferredOlderArticle, landingNewestArticle, readArticle];
         }),
-      },
+      }),
     };
 
     await runDevScenario("open-feed-first-article", { context });
@@ -309,7 +331,7 @@ describe("runDevScenario", () => {
     const context: DevScenarioContext = {
       ui,
       queryClient,
-      actions: {
+      actions: createActions({
         executeAction: vi.fn(),
         listAccounts: vi.fn(async () => [account]),
         listFeeds: vi.fn(async () => [blockedRankedFeed, mangaFeed]),
@@ -320,7 +342,7 @@ describe("runDevScenario", () => {
 
           return [overlayPreferredOlderArticle, landingNewestArticle, readArticle];
         }),
-      },
+      }),
     };
 
     await runDevScenario("open-feed-first-article", { context });
@@ -345,12 +367,12 @@ describe("runDevScenario", () => {
 
   it("shows an explicit toast when the feed-first-article scenario cannot find any articles", async () => {
     const context = createContext({
-      actions: {
+      actions: createActions({
         executeAction: vi.fn(),
         listAccounts: vi.fn(async () => [account]),
         listFeeds: vi.fn(async () => [genericFeed]),
         listArticles: vi.fn(async () => []),
-      },
+      }),
     });
 
     await runDevScenario("open-feed-first-article", { context });
@@ -370,45 +392,90 @@ describe("runDevScenario", () => {
     );
   });
 
-  it("reproduces tag selection state with cached tag articles and counts", async () => {
+  it("reproduces tag navigation state for the currently selected account without opening an article", async () => {
     const { cache, queryClient } = createQueryClientStub();
-    const ui = createUiStub();
+    const ui = createUiStub({ selectedAccountId: otherAccount.id });
     const context: DevScenarioContext = {
       ui,
       queryClient,
-      actions: {
+      actions: createActions({
         executeAction: vi.fn(),
-        listAccounts: vi.fn(async () => [account]),
-        listFeeds: vi.fn(async () => [genericFeed, mangaFeed]),
-        listArticles: vi.fn(async (feedId: string) => {
-          if (feedId === genericFeed.id) {
-            return [];
+        listAccounts: vi.fn(async () => [account, otherAccount]),
+        listFeeds: vi.fn(async () => []),
+        listArticles: vi.fn(async () => []),
+        listTags: vi.fn(async () => [primaryTag, secondaryTag]),
+        getTagArticleCounts: vi.fn(async (accountId?: string) => {
+          if (accountId === otherAccount.id) {
+            return { [secondaryTag.id]: 2 };
           }
 
-          return [overlayPreferredOlderArticle, landingNewestArticle, readArticle];
+          return { [primaryTag.id]: 1 };
         }),
-      },
+        listArticlesByTag: vi.fn(async (tagId: string, _offset?: number, _limit?: number, accountId?: string) => {
+          if (tagId === secondaryTag.id && accountId === otherAccount.id) {
+            return [landingNewestArticle, readArticle];
+          }
+
+          if (tagId === primaryTag.id && accountId === account.id) {
+            return [overlayPreferredOlderArticle];
+          }
+
+          return [];
+        }),
+      }),
     };
 
     await runDevScenario("open-tag-view", { context });
 
     expect(context.actions.listAccounts).toHaveBeenCalledTimes(1);
-    expect(context.actions.listFeeds).toHaveBeenCalledWith(account.id);
-    expect(context.actions.listArticles).toHaveBeenCalledTimes(1);
-    expect(context.actions.listArticles).toHaveBeenCalledWith(mangaFeed.id);
-    expect(cache.get(JSON.stringify(["accounts"]))).toEqual([account]);
-    expect(cache.get(JSON.stringify(["tags"]))).toEqual([{ id: "tag-dev", name: "Dev Tag", color: null }]);
-    expect(cache.get(JSON.stringify(["articlesByTag", "tag-dev", account.id]))).toEqual([
-      overlayPreferredOlderArticle,
+    expect(context.actions.listTags).toHaveBeenCalledTimes(1);
+    expect(context.actions.getTagArticleCounts).toHaveBeenCalledWith(otherAccount.id);
+    expect(context.actions.listArticlesByTag).toHaveBeenCalledWith(
+      secondaryTag.id,
+      undefined,
+      undefined,
+      otherAccount.id,
+    );
+    expect(cache.get(JSON.stringify(["accounts"]))).toEqual([account, otherAccount]);
+    expect(cache.get(JSON.stringify(["tags"]))).toEqual([primaryTag, secondaryTag]);
+    expect(cache.get(JSON.stringify(["tagArticleCounts", otherAccount.id]))).toEqual({ [secondaryTag.id]: 2 });
+    expect(cache.get(JSON.stringify(["articlesByTag", secondaryTag.id, otherAccount.id]))).toEqual([
       landingNewestArticle,
       readArticle,
     ]);
-    expect(cache.get(JSON.stringify(["tagArticleCounts", account.id]))).toEqual({ "tag-dev": 3 });
-    expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
-    expect(ui.selectTag).toHaveBeenCalledWith("tag-dev");
+    expect(ui.selectAccount).not.toHaveBeenCalled();
+    expect(ui.selectTag).toHaveBeenCalledWith(secondaryTag.id);
     expect(ui.setViewMode).toHaveBeenCalledWith("all");
-    expect(ui.selectArticle).toHaveBeenCalledWith(landingNewestArticle.id);
+    expect(ui.selectArticle).not.toHaveBeenCalled();
     expect(ui.showToast).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the first account for tag view when no account is selected", async () => {
+    const { cache, queryClient } = createQueryClientStub();
+    const ui = createUiStub({ selectedAccountId: null });
+    const context: DevScenarioContext = {
+      ui,
+      queryClient,
+      actions: createActions({
+        executeAction: vi.fn(),
+        listAccounts: vi.fn(async () => [account, otherAccount]),
+        listFeeds: vi.fn(async () => []),
+        listArticles: vi.fn(async () => []),
+        listTags: vi.fn(async () => [primaryTag]),
+        getTagArticleCounts: vi.fn(async () => ({ [primaryTag.id]: 1 })),
+        listArticlesByTag: vi.fn(async () => [landingNewestArticle]),
+      }),
+    };
+
+    await runDevScenario("open-tag-view", { context });
+
+    expect(context.actions.getTagArticleCounts).toHaveBeenCalledWith(account.id);
+    expect(context.actions.listArticlesByTag).toHaveBeenCalledWith(primaryTag.id, undefined, undefined, account.id);
+    expect(cache.get(JSON.stringify(["tagArticleCounts", account.id]))).toEqual({ [primaryTag.id]: 1 });
+    expect(cache.get(JSON.stringify(["articlesByTag", primaryTag.id, account.id]))).toEqual([landingNewestArticle]);
+    expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
+    expect(ui.selectTag).toHaveBeenCalledWith(primaryTag.id);
+    expect(ui.selectArticle).not.toHaveBeenCalled();
   });
 
   it("shows an explicit toast when the tag-view scenario cannot find any accounts", async () => {
@@ -421,12 +488,15 @@ describe("runDevScenario", () => {
 
   it("shows an explicit toast when the tag-view scenario cannot find any articles", async () => {
     const context = createContext({
-      actions: {
+      actions: createActions({
         executeAction: vi.fn(),
         listAccounts: vi.fn(async () => [account]),
-        listFeeds: vi.fn(async () => [genericFeed]),
+        listFeeds: vi.fn(async () => []),
         listArticles: vi.fn(async () => []),
-      },
+        listTags: vi.fn(async () => [primaryTag]),
+        getTagArticleCounts: vi.fn(async () => ({ [primaryTag.id]: 0 })),
+        listArticlesByTag: vi.fn(async () => []),
+      }),
     });
 
     await runDevScenario("open-tag-view", { context });
