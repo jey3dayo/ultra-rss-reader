@@ -47,7 +47,19 @@ impl FeedRepository for SqliteFeedRepository<'_> {
 
     fn save(&self, feed: &Feed) -> DomainResult<()> {
         self.conn.execute(
-            "INSERT OR REPLACE INTO feeds (id, account_id, folder_id, remote_id, title, url, site_url, icon, unread_count, reader_mode, web_preview_mode) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            "INSERT INTO feeds (id, account_id, folder_id, remote_id, title, url, site_url, icon, unread_count, reader_mode, web_preview_mode)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+             ON CONFLICT(id) DO UPDATE SET
+               account_id = excluded.account_id,
+               folder_id = excluded.folder_id,
+               remote_id = excluded.remote_id,
+               title = excluded.title,
+               url = excluded.url,
+               site_url = excluded.site_url,
+               icon = excluded.icon,
+               unread_count = excluded.unread_count,
+               reader_mode = excluded.reader_mode,
+               web_preview_mode = excluded.web_preview_mode",
             params![
                 feed.id.0,
                 feed.account_id.0,
@@ -302,9 +314,44 @@ mod tests {
                 "SELECT COUNT(*) FROM articles WHERE feed_id = ?1",
                 params![feed.id.0],
                 |row| row.get(0),
+        )
+        .unwrap();
+        assert_eq!(article_count, 0);
+    }
+
+    #[test]
+    fn save_updates_existing_feed_without_cascading_articles() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let mut feed = make_feed(&account_id, "Feed", "http://f.com/rss");
+        feed.remote_id = Some("feed/1".to_string());
+        repo.save(&feed).unwrap();
+
+        let now = chrono::Utc::now().to_rfc3339();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, title, published_at, fetched_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params!["a1", feed.id.0, "Article 1", now, now],
             )
             .unwrap();
-        assert_eq!(article_count, 0);
+
+        feed.title = "Updated Feed".to_string();
+        repo.save(&feed).unwrap();
+
+        let article_count: i64 = db
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE feed_id = ?1",
+                params![feed.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(article_count, 1);
+
+        let saved_feed = repo.find_by_remote_id(&account_id, "feed/1").unwrap().unwrap();
+        assert_eq!(saved_feed.title, "Updated Feed");
     }
 
     #[test]

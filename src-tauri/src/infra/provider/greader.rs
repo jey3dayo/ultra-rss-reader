@@ -199,8 +199,15 @@ impl GReaderProvider {
             .or_else(|| item.published.map(|ts| ts.saturating_mul(1_000_000)))
     }
 
-    fn map_item_to_entry(item: GReaderItem) -> Option<RemoteEntry> {
-        let origin = item.origin?;
+    fn map_item_to_entry(
+        item: GReaderItem,
+        fallback_stream_id: Option<&str>,
+    ) -> Option<RemoteEntry> {
+        let source_feed_remote_id = item
+            .origin
+            .as_ref()
+            .map(|origin| origin.stream_id.clone())
+            .or_else(|| fallback_stream_id.map(str::to_string))?;
 
         let url = item
             .alternate
@@ -237,7 +244,7 @@ impl GReaderProvider {
         Some(RemoteEntry {
             id: Some(item.id),
             source_feed_id: FeedIdentifier::Remote {
-                remote_id: origin.stream_id,
+                remote_id: source_feed_remote_id,
             },
             title: item.title.unwrap_or_default(),
             content,
@@ -388,6 +395,11 @@ impl FeedProvider for GReaderProvider {
             PullScope::Starred => (STATE_STARRED.to_string(), None),
         };
 
+        let fallback_stream_id = match &scope {
+            PullScope::Feed(FeedIdentifier::Remote { remote_id }) => Some(remote_id.as_str()),
+            _ => None,
+        };
+
         let mut url = format!(
             "{}?output=json&n={STREAM_CONTENTS_LIMIT}",
             self.api_url(&format!(
@@ -446,7 +458,7 @@ impl FeedProvider for GReaderProvider {
         let entries = resp
             .items
             .into_iter()
-            .filter_map(Self::map_item_to_entry)
+            .filter_map(|item| Self::map_item_to_entry(item, fallback_stream_id))
             .collect();
 
         Ok(PullResult {
@@ -910,6 +922,78 @@ mod tests {
             cursor.since.map(|ts| ts.timestamp_micros()),
             Some(1_700_000_100_000_000)
         );
+
+        stream_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_entries_for_feed_scope_uses_requested_stream_when_origin_is_missing() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let stream_mock = server
+            .mock(
+                "GET",
+                mockito::Matcher::Regex(
+                    r"/api/greader.php/reader/api/0/stream/contents/.*output=json.*".to_string(),
+                ),
+            )
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "items": [
+                        {
+                            "id": "entry-1",
+                            "title": "Feed-scoped Article",
+                            "alternate": [{"href": "https://example.com/article"}],
+                            "summary": {"content": "Short summary"},
+                            "content": {"content": "<p>Full content</p>"},
+                            "author": "Alice",
+                            "timestampUsec": "1700000100000000",
+                            "published": 1700000000,
+                            "updated": 1700000100,
+                            "categories": [
+                                "user/-/state/com.google/reading-list"
+                            ]
+                        }
+                    ]
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let result = provider
+            .pull_entries(
+                PullScope::Feed(FeedIdentifier::Remote {
+                    remote_id: "feed/2".to_string(),
+                }),
+                None,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(result.entries.len(), 1);
+        match &result.entries[0].source_feed_id {
+            FeedIdentifier::Remote { remote_id } => {
+                assert_eq!(remote_id, "feed/2");
+            }
+            _ => panic!("Expected Remote feed identifier"),
+        }
 
         stream_mock.assert_async().await;
     }
