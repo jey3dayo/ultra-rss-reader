@@ -182,7 +182,7 @@ describe("ArticleToolbarView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Open Web Preview" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
     expect(screen.queryByText("S")).not.toBeInTheDocument();
     expect(screen.queryByText("P")).not.toBeInTheDocument();
   });
