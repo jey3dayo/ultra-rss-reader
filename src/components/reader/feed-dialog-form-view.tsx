@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
-import { Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CopyableReadonlyField } from "@/components/shared/copyable-readonly-field";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { type DiscoveredFeedOption, DiscoveredFeedOptionsView } from "./discovered-feed-options-view";
 import { FolderSelectView, type FolderSelectViewProps } from "./folder-select-view";
 
@@ -172,40 +171,17 @@ export function FeedDialogFormView({
             </label>
           )}
 
-          <TooltipProvider>
-            {readonlyFields?.map((field) => (
-              <div key={field.key} className="block text-sm text-muted-foreground">
-                <span className="mb-1 block">{field.label}</span>
-                <div className="relative">
-                  <Input
-                    name={field.name}
-                    type="text"
-                    value={field.value}
-                    readOnly
-                    disabled={field.disabled}
-                    aria-label={field.label}
-                    className={field.copyLabel && field.onCopy ? "pr-11" : undefined}
-                    onFocus={(event) => event.currentTarget.select()}
-                  />
-                  {field.copyLabel && field.onCopy ? (
-                    <AppTooltip label={field.copyLabel}>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={field.onCopy}
-                        disabled={field.disabled || !field.value}
-                        aria-label={field.copyLabel}
-                        className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground transition-colors duration-200 hover:text-foreground"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </Button>
-                    </AppTooltip>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </TooltipProvider>
+          {readonlyFields?.map((field) => (
+            <CopyableReadonlyField
+              key={field.key}
+              label={field.label}
+              name={field.name}
+              value={field.value}
+              disabled={field.disabled}
+              copyLabel={field.copyLabel}
+              onCopy={field.onCopy}
+            />
+          ))}
 
           {selectSection && (
             <div className="block text-sm text-muted-foreground">

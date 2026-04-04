@@ -81,12 +81,22 @@ describe("RenameFeedDialogView", () => {
     expect(screen.getByLabelText("Title")).toHaveValue("Tech Blog");
     expect(screen.getByLabelText("Website URL")).toHaveValue("https://example.com");
     expect(screen.getByLabelText("Feed URL")).toHaveValue("https://example.com/feed.xml");
+    expect(screen.getByRole("button", { name: "Copy Website URL" })).toHaveClass(
+      "active:not-aria-[haspopup]:-translate-y-1/2",
+    );
+    expect(screen.getByRole("button", { name: "Copy Feed URL" })).toHaveClass(
+      "active:not-aria-[haspopup]:-translate-y-1/2",
+    );
     expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Preview");
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("Work");
 
-    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Fresh" } });
+    const titleInput = screen.getByLabelText("Title");
+    titleInput.focus();
+
+    fireEvent.change(titleInput, { target: { value: "Fresh" } });
     await user.click(screen.getByRole("button", { name: "Copy Website URL" }));
     await user.click(screen.getByRole("button", { name: "Copy Feed URL" }));
+    expect(titleInput).toHaveFocus();
     await user.click(screen.getByRole("combobox", { name: "Display Mode" }));
     await user.click(await screen.findByText("Standard"));
     await user.click(screen.getByRole("button", { name: "Save" }));
