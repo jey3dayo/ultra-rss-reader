@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,12 +12,14 @@ vi.mock("@/lib/dev-scenario-runtime", () => ({
 }));
 
 import { useDevIntent } from "@/hooks/use-dev-intent";
+import { useUiStore } from "@/stores/ui-store";
 
 describe("useDevIntent", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.stubEnv("DEV", true);
     runRuntimeDevScenarioMock.mockReset().mockResolvedValue(undefined);
+    useUiStore.setState({ ...useUiStore.getInitialState(), toastMessage: null });
   });
 
   afterEach(() => {
@@ -96,5 +98,22 @@ describe("useDevIntent", () => {
     await vi.runAllTimersAsync();
 
     expect(runRuntimeDevScenarioMock).not.toHaveBeenCalled();
+  });
+
+  it("shows a toast when startup scenario execution fails", async () => {
+    vi.useRealTimers();
+    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
+    runRuntimeDevScenarioMock.mockRejectedValueOnce(new Error("boom"));
+
+    renderHook(() => useDevIntent(), {
+      wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+    });
+
+    await waitFor(() => {
+      expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("image-viewer-overlay");
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: 'Failed to run dev scenario "image-viewer-overlay": boom',
+      });
+    });
   });
 });

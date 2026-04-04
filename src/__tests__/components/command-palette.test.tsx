@@ -237,4 +237,22 @@ describe("CommandPalette", () => {
       expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(["action:open-settings"]));
     });
   });
+
+  it("shows a toast when running a dev scenario fails", async () => {
+    const user = userEvent.setup();
+    vi.stubEnv("DEV", true);
+    runCommandPaletteDevScenarioMock.mockRejectedValueOnce(new Error("boom"));
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("option", { name: /Image viewer overlay/ }));
+
+    await waitFor(() => {
+      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("image-viewer-overlay");
+      expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: 'Failed to run dev scenario "image-viewer-overlay": boom',
+      });
+    });
+  });
 });

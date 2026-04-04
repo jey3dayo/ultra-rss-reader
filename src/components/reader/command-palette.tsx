@@ -81,6 +81,7 @@ export function CommandPalette() {
   const { t: tSidebar } = useTranslation("sidebar");
   const open = useUiStore((state) => state.commandPaletteOpen);
   const closeCommandPalette = useUiStore((state) => state.closeCommandPalette);
+  const showToast = useUiStore((state) => state.showToast);
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
   const selectFeed = useUiStore((state) => state.selectFeed);
   const selectTag = useUiStore((state) => state.selectTag);
@@ -227,7 +228,10 @@ export function CommandPalette() {
   }
 
   function handleDevScenarioSelect(scenarioId: RuntimeDevScenario["id"]) {
-    void runRuntimeDevScenario(scenarioId);
+    void runRuntimeDevScenario(scenarioId).catch((error) => {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      showToast(`Failed to run dev scenario "${scenarioId}": ${message}`);
+    });
     closePalette();
   }
 
