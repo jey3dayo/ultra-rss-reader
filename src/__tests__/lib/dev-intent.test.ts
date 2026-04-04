@@ -57,7 +57,11 @@ const articles: ArticleDto[] = [
 ];
 
 describe("dev-intent helpers", () => {
-  it("parses the supported image viewer intent", () => {
+  it("parses known dev scenario ids", () => {
+    expect(parseDevIntent("open-add-feed-dialog")).toBe("open-add-feed-dialog");
+  });
+
+  it("keeps the image viewer overlay intent backward compatible", () => {
     expect(parseDevIntent("image-viewer-overlay")).toBe("image-viewer-overlay");
     expect(parseDevIntent("unknown")).toBeNull();
     expect(parseDevIntent(undefined)).toBeNull();
