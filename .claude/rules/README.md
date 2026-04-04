@@ -13,6 +13,7 @@
 
 - [tauri-ipc-error-handling.md](./tauri-ipc-error-handling.md): Tauri IPC のエラーハンドリング方針
 - [preferences-pattern.md](./preferences-pattern.md): Preferences の読み書きパターン
+- [dev-scenarios-command-palette.md](./dev-scenarios-command-palette.md): dev intent と command palette の共通 runner / 責務分離ルール
 
 ## Rust
 
