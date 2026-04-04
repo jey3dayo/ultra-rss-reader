@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AccountDto, ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { runDevScenario } from "@/dev/scenarios/runner";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
+import { usePreferencesStore } from "@/stores/preferences-store";
 
 type QueryKey = readonly unknown[];
 
@@ -137,9 +138,26 @@ const otherFeed: FeedDto = {
   title: "Misc",
 };
 
+const landingNewestArticle: ArticleDto = {
+  ...unreadArticle,
+  id: "article-3",
+  title: "Newest unread article",
+  published_at: "2026-04-04T00:00:00.000Z",
+  thumbnail: null,
+};
+
+const overlayPreferredOlderArticle: ArticleDto = {
+  ...unreadArticle,
+  id: "article-4",
+  title: "Older unread with thumbnail",
+  published_at: "2026-04-02T00:00:00.000Z",
+  thumbnail: "https://example.com/older-thumb.png",
+};
+
 describe("runDevScenario", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    usePreferencesStore.setState({ prefs: {}, loaded: true });
   });
 
   afterEach(() => {
@@ -218,7 +236,7 @@ describe("runDevScenario", () => {
     expect(context.ui.showToast).toHaveBeenCalledWith("Dev intent failed to open the overlay.");
   });
 
-  it("opens the highest-ranked feed article in reader mode", async () => {
+  it("opens the feed landing article in reader mode", async () => {
     const { cache, queryClient } = createQueryClientStub();
     const ui = createUiStub();
     const context: DevScenarioContext = {
@@ -239,7 +257,7 @@ describe("runDevScenario", () => {
             return [];
           }
 
-          return [readArticle, unreadArticle];
+          return [overlayPreferredOlderArticle, landingNewestArticle, readArticle];
         }),
       },
     };
@@ -258,11 +276,15 @@ describe("runDevScenario", () => {
       genericFeed,
       { ...mangaFeed, reader_mode: "on", web_preview_mode: "off" },
     ]);
-    expect(cache.get(JSON.stringify(["articles", mangaFeed.id]))).toEqual([readArticle, unreadArticle]);
+    expect(cache.get(JSON.stringify(["articles", mangaFeed.id]))).toEqual([
+      overlayPreferredOlderArticle,
+      landingNewestArticle,
+      readArticle,
+    ]);
     expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
     expect(ui.selectFeed).toHaveBeenCalledWith(mangaFeed.id);
     expect(ui.setViewMode).toHaveBeenCalledWith("all");
-    expect(ui.selectArticle).toHaveBeenCalledWith(unreadArticle.id);
+    expect(ui.selectArticle).toHaveBeenCalledWith(landingNewestArticle.id);
     expect(ui.openBrowser).not.toHaveBeenCalled();
     expect(ui.showToast).not.toHaveBeenCalled();
   });
@@ -294,7 +316,7 @@ describe("runDevScenario", () => {
     );
   });
 
-  it("reproduces tag selection state with the development tag id", async () => {
+  it("reproduces tag selection state with cached tag articles and counts", async () => {
     const { cache, queryClient } = createQueryClientStub();
     const ui = createUiStub();
     const context: DevScenarioContext = {
@@ -303,18 +325,35 @@ describe("runDevScenario", () => {
       actions: {
         executeAction: vi.fn(),
         listAccounts: vi.fn(async () => [account]),
-        listFeeds: vi.fn(async () => []),
-        listArticles: vi.fn(async () => []),
+        listFeeds: vi.fn(async () => [genericFeed, mangaFeed]),
+        listArticles: vi.fn(async (feedId: string) => {
+          if (feedId === genericFeed.id) {
+            return [];
+          }
+
+          return [overlayPreferredOlderArticle, landingNewestArticle, readArticle];
+        }),
       },
     };
 
     await runDevScenario("open-tag-view", { context });
 
     expect(context.actions.listAccounts).toHaveBeenCalledTimes(1);
+    expect(context.actions.listFeeds).toHaveBeenCalledWith(account.id);
+    expect(context.actions.listArticles).toHaveBeenCalledTimes(1);
+    expect(context.actions.listArticles).toHaveBeenCalledWith(mangaFeed.id);
     expect(cache.get(JSON.stringify(["accounts"]))).toEqual([account]);
+    expect(cache.get(JSON.stringify(["tags"]))).toEqual([{ id: "tag-dev", name: "Dev Tag", color: null }]);
+    expect(cache.get(JSON.stringify(["articlesByTag", "tag-dev", account.id]))).toEqual([
+      overlayPreferredOlderArticle,
+      landingNewestArticle,
+      readArticle,
+    ]);
+    expect(cache.get(JSON.stringify(["tagArticleCounts", account.id]))).toEqual({ "tag-dev": 3 });
     expect(ui.selectAccount).toHaveBeenCalledWith(account.id);
     expect(ui.selectTag).toHaveBeenCalledWith("tag-dev");
     expect(ui.setViewMode).toHaveBeenCalledWith("all");
+    expect(ui.selectArticle).toHaveBeenCalledWith(landingNewestArticle.id);
     expect(ui.showToast).not.toHaveBeenCalled();
   });
 
@@ -324,6 +363,21 @@ describe("runDevScenario", () => {
     await runDevScenario("open-tag-view", { context });
 
     expect(context.ui.showToast).toHaveBeenCalledWith('Dev scenario "open-tag-view" could not find any accounts.');
+  });
+
+  it("shows an explicit toast when the tag-view scenario cannot find any articles", async () => {
+    const context = createContext({
+      actions: {
+        executeAction: vi.fn(),
+        listAccounts: vi.fn(async () => [account]),
+        listFeeds: vi.fn(async () => [genericFeed]),
+        listArticles: vi.fn(async () => []),
+      },
+    });
+
+    await runDevScenario("open-tag-view", { context });
+
+    expect(context.ui.showToast).toHaveBeenCalledWith('Dev scenario "open-tag-view" could not find any articles.');
   });
 
   it("surfaces an explicit toast for registered scenarios that are still stubbed", async () => {

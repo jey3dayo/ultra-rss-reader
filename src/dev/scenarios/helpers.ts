@@ -1,10 +1,13 @@
 import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import type { DevScenario, DevScenarioContext, DevScenarioId } from "@/dev/scenarios/types";
+import { selectVisibleArticles } from "@/lib/article-list";
 import {
   pickImageViewerOverlayArticle as pickImageViewerOverlayArticleForRuntime,
   rankImageViewerOverlayFeeds as rankImageViewerOverlayFeedsForRuntime,
   resolveImageViewerOverlayBrowserUrl as resolveImageViewerOverlayBrowserUrlForRuntime,
 } from "@/lib/dev-image-viewer-overlay";
+import { resolveFeedLandingArticle } from "@/lib/feed-landing";
+import { usePreferencesStore } from "@/stores/preferences-store";
 
 const DEV_TAG: TagDto = {
   id: "tag-dev",
@@ -83,6 +86,36 @@ function selectFeedArticle(
   ctx.ui.selectArticle(articleId);
 }
 
+function getSortUnreadPreference(): string {
+  const prefs = usePreferencesStore.getState().prefs;
+  return prefs.reading_sort ?? prefs.sort_unread ?? "newest_first";
+}
+
+function pickFeedLandingArticle(articles: ArticleDto[]): ArticleDto | null {
+  return resolveFeedLandingArticle({
+    articles,
+    sortUnread: getSortUnreadPreference(),
+  });
+}
+
+function pickTagScenarioArticle(tagId: string, articles: ArticleDto[]): ArticleDto | null {
+  const visibleArticles = selectVisibleArticles({
+    articles: undefined,
+    accountArticles: undefined,
+    tagArticles: articles,
+    searchResults: undefined,
+    feedId: null,
+    tagId,
+    viewMode: "all",
+    showSearch: false,
+    searchQuery: "",
+    sortUnread: getSortUnreadPreference(),
+    retainedArticleIds: new Set<string>(),
+  });
+
+  return visibleArticles[0] ?? null;
+}
+
 export async function runImageViewerOverlayScenario(ctx: DevScenarioContext): Promise<void> {
   try {
     const accounts = await cacheAccounts(ctx);
@@ -134,7 +167,7 @@ export async function runOpenFeedFirstArticleScenario(ctx: DevScenarioContext): 
       return;
     }
 
-    const article = pickImageViewerOverlayArticle(selection.articles);
+    const article = pickFeedLandingArticle(selection.articles);
     if (!article) {
       ctx.ui.showToast('Dev scenario "open-feed-first-article" could not find any articles.');
       return;
@@ -155,14 +188,35 @@ export async function runOpenTagViewScenario(ctx: DevScenarioContext): Promise<v
       return;
     }
 
+    const selection = await findRankedFeedSelection(ctx, accounts);
+    if (!selection) {
+      ctx.ui.showToast('Dev scenario "open-tag-view" could not find any articles.');
+      return;
+    }
+
+    const article = pickTagScenarioArticle(DEV_TAG.id, selection.articles);
+    if (!article) {
+      ctx.ui.showToast('Dev scenario "open-tag-view" could not find any articles.');
+      return;
+    }
+
     ctx.queryClient.setQueryData<TagDto[]>(["tags"], (currentTags) => {
       const tags = currentTags ?? [];
       return tags.some((tag) => tag.id === DEV_TAG.id) ? tags : [...tags, DEV_TAG];
     });
+    ctx.queryClient.setQueryData<ArticleDto[]>(["articlesByTag", DEV_TAG.id, selection.account.id], selection.articles);
+    ctx.queryClient.setQueryData<Record<string, number>>(
+      ["tagArticleCounts", selection.account.id],
+      (currentCounts) => ({
+        ...(currentCounts ?? {}),
+        [DEV_TAG.id]: selection.articles.length,
+      }),
+    );
 
-    ctx.ui.selectAccount(accounts[0].id);
+    ctx.ui.selectAccount(selection.account.id);
     ctx.ui.selectTag(DEV_TAG.id);
     ctx.ui.setViewMode("all");
+    ctx.ui.selectArticle(article.id);
   } catch (error) {
     console.error('Failed to run dev scenario "open-tag-view":', error);
     ctx.ui.showToast('Dev scenario "open-tag-view" failed to open the tag view.');
