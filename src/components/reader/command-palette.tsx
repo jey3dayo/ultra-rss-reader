@@ -9,6 +9,7 @@ import { useFeeds } from "@/hooks/use-feeds";
 import { useTags } from "@/hooks/use-tags";
 import type { AppAction } from "@/lib/actions";
 import { executeAction } from "@/lib/actions";
+import { loadRuntimeDevScenarios, type RuntimeDevScenario, runRuntimeDevScenario } from "@/lib/dev-scenario-runtime";
 import { getShortcutDisplay } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -24,11 +25,6 @@ import {
   CommandShortcut,
 } from "../ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
-import {
-  type CommandPaletteDevScenario,
-  loadCommandPaletteDevScenarios,
-  runCommandPaletteDevScenario,
-} from "./dev-scenario-loader";
 
 type PaletteAction = {
   id: AppAction;
@@ -93,7 +89,7 @@ export function CommandPalette() {
   const platformKind = usePlatformStore((state) => state.platform.kind);
   const shortcutPrefs = usePreferencesStore((state) => state.prefs);
   const [input, setInput] = useState("");
-  const [devScenarios, setDevScenarios] = useState<CommandPaletteDevScenario[]>([]);
+  const [devScenarios, setDevScenarios] = useState<RuntimeDevScenario[]>([]);
   const { prefix, query, deferredQuery } = useCommandSearch(input);
 
   useEffect(() => {
@@ -109,7 +105,7 @@ export function CommandPalette() {
 
     let cancelled = false;
 
-    void loadCommandPaletteDevScenarios()
+    void loadRuntimeDevScenarios()
       .then((scenarios) => {
         if (!cancelled) {
           setDevScenarios(scenarios);
@@ -230,8 +226,8 @@ export function CommandPalette() {
     closePalette();
   }
 
-  function handleDevScenarioSelect(scenarioId: CommandPaletteDevScenario["id"]) {
-    void runCommandPaletteDevScenario(scenarioId);
+  function handleDevScenarioSelect(scenarioId: RuntimeDevScenario["id"]) {
+    void runRuntimeDevScenario(scenarioId);
     closePalette();
   }
 

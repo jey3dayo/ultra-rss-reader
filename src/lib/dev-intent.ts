@@ -1,12 +1,11 @@
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
-import type { DevScenarioId } from "@/dev/scenarios";
-import { getDevScenario } from "@/dev/scenarios";
 import {
   pickImageViewerOverlayArticle,
   pickImageViewerOverlayFeed,
   rankImageViewerOverlayFeeds,
   resolveImageViewerOverlayBrowserUrl,
-} from "@/dev/scenarios/helpers";
+} from "@/lib/dev-image-viewer-overlay";
+import { type DevScenarioId, isDevScenarioId } from "@/lib/dev-scenario-ids";
 
 export type DevIntent = DevScenarioId | null;
 
@@ -15,7 +14,7 @@ export function parseDevIntent(value: string | undefined): DevIntent {
     return null;
   }
 
-  return getDevScenario(value) ? (value as DevScenarioId) : null;
+  return isDevScenarioId(value) ? value : null;
 }
 
 export function readDevIntent(): DevIntent {

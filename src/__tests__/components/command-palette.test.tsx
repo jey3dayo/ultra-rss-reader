@@ -7,9 +7,9 @@ const { loadCommandPaletteDevScenariosMock, runCommandPaletteDevScenarioMock } =
   runCommandPaletteDevScenarioMock: vi.fn(),
 }));
 
-vi.mock("@/components/reader/dev-scenario-loader", () => ({
-  loadCommandPaletteDevScenarios: loadCommandPaletteDevScenariosMock,
-  runCommandPaletteDevScenario: runCommandPaletteDevScenarioMock,
+vi.mock("@/lib/dev-scenario-runtime", () => ({
+  loadRuntimeDevScenarios: loadCommandPaletteDevScenariosMock,
+  runRuntimeDevScenario: runCommandPaletteDevScenarioMock,
 }));
 
 import { CommandPalette } from "@/components/reader/command-palette";

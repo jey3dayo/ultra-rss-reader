@@ -1,15 +1,9 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { AccountDto, ArticleDto, FeedDto } from "@/api/tauri-commands";
+import { DEV_SCENARIO_IDS, type DevScenarioId } from "@/lib/dev-scenario-ids";
 
-export const DEV_SCENARIO_IDS = [
-  "image-viewer-overlay",
-  "open-feed-first-article",
-  "open-tag-view",
-  "open-add-feed-dialog",
-  "sync-all-smoke",
-] as const;
-
-export type DevScenarioId = (typeof DEV_SCENARIO_IDS)[number];
+export type { DevScenarioId };
+export { DEV_SCENARIO_IDS };
 
 export type DevScenarioContext = {
   readonly ui: {

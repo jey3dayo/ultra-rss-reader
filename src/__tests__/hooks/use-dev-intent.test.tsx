@@ -2,13 +2,22 @@ import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import * as devScenarios from "@/dev/scenarios";
+
+const { runRuntimeDevScenarioMock } = vi.hoisted(() => ({
+  runRuntimeDevScenarioMock: vi.fn(),
+}));
+
+vi.mock("@/lib/dev-scenario-runtime", () => ({
+  runRuntimeDevScenario: runRuntimeDevScenarioMock,
+}));
+
 import { useDevIntent } from "@/hooks/use-dev-intent";
 
 describe("useDevIntent", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.stubEnv("DEV", true);
+    runRuntimeDevScenarioMock.mockReset().mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -19,23 +28,21 @@ describe("useDevIntent", () => {
 
   it("defers startup scenario execution until after the effect commits", async () => {
     vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
-    const runDevScenarioSpy = vi.spyOn(devScenarios, "runDevScenario").mockResolvedValue(undefined);
 
     renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
     });
 
-    expect(runDevScenarioSpy).not.toHaveBeenCalled();
+    expect(runRuntimeDevScenarioMock).not.toHaveBeenCalled();
 
     await vi.runAllTimersAsync();
 
-    expect(runDevScenarioSpy).toHaveBeenCalledTimes(1);
-    expect(runDevScenarioSpy).toHaveBeenCalledWith("image-viewer-overlay");
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledTimes(1);
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("image-viewer-overlay");
   });
 
   it("runs the startup scenario only once under StrictMode", async () => {
     vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
-    const runDevScenarioSpy = vi.spyOn(devScenarios, "runDevScenario").mockResolvedValue(undefined);
 
     renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <StrictMode>{children}</StrictMode>,
@@ -43,20 +50,19 @@ describe("useDevIntent", () => {
 
     await vi.runAllTimersAsync();
 
-    expect(runDevScenarioSpy).toHaveBeenCalledTimes(1);
-    expect(runDevScenarioSpy).toHaveBeenCalledWith("image-viewer-overlay");
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledTimes(1);
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("image-viewer-overlay");
   });
 
   it("allows a fresh remount to retry startup execution in the same session", async () => {
     vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
-    const runDevScenarioSpy = vi.spyOn(devScenarios, "runDevScenario").mockResolvedValue(undefined);
 
     const first = renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
     });
 
     await vi.runAllTimersAsync();
-    expect(runDevScenarioSpy).toHaveBeenCalledTimes(1);
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledTimes(1);
 
     first.unmount();
 
@@ -66,11 +72,22 @@ describe("useDevIntent", () => {
 
     await vi.runAllTimersAsync();
 
-    expect(runDevScenarioSpy).toHaveBeenCalledTimes(2);
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledTimes(2);
   });
 
   it("does not run anything when no dev intent is configured", async () => {
-    const runDevScenarioSpy = vi.spyOn(devScenarios, "runDevScenario").mockResolvedValue(undefined);
+    renderHook(() => useDevIntent(), {
+      wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+    });
+
+    await vi.runAllTimersAsync();
+
+    expect(runRuntimeDevScenarioMock).not.toHaveBeenCalled();
+  });
+
+  it("does not load the dev scenario runtime outside dev builds", async () => {
+    vi.stubEnv("DEV", false);
+    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
 
     renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -78,6 +95,6 @@ describe("useDevIntent", () => {
 
     await vi.runAllTimersAsync();
 
-    expect(runDevScenarioSpy).not.toHaveBeenCalled();
+    expect(runRuntimeDevScenarioMock).not.toHaveBeenCalled();
   });
 });
