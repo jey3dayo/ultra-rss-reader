@@ -1,10 +1,17 @@
 import {
-  createUnsupportedDevScenarioRunner,
   runImageViewerOverlayScenario,
   runOpenFeedFirstArticleScenario,
   runOpenTagViewScenario,
 } from "@/dev/scenarios/helpers";
+import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { DEV_SCENARIO_IDS, type DevScenario, type DevScenarioId } from "@/dev/scenarios/types";
+import type { AppAction } from "@/lib/actions";
+
+function createActionBackedDevScenarioRunner(actionId: AppAction): DevScenario["run"] {
+  return async ({ actions }: DevScenarioContext) => {
+    await Promise.resolve(actions.executeAction(actionId));
+  };
+}
 
 const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
   "image-viewer-overlay": {
@@ -25,12 +32,12 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
   "open-add-feed-dialog": {
     title: "Open add feed dialog",
     keywords: ["add", "feed", "dialog"],
-    run: createUnsupportedDevScenarioRunner("open-add-feed-dialog"),
+    run: createActionBackedDevScenarioRunner("open-add-feed"),
   },
   "sync-all-smoke": {
     title: "Sync all smoke",
     keywords: ["sync", "smoke"],
-    run: createUnsupportedDevScenarioRunner("sync-all-smoke"),
+    run: createActionBackedDevScenarioRunner("sync-all"),
   },
 };
 

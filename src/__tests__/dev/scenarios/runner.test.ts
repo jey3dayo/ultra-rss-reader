@@ -504,11 +504,29 @@ describe("runDevScenario", () => {
     expect(context.ui.showToast).toHaveBeenCalledWith('Dev scenario "open-tag-view" could not find any articles.');
   });
 
-  it("surfaces an explicit toast for registered scenarios that are still stubbed", async () => {
-    const context = createContext();
+  it("runs the add-feed dialog scenario through the app action dispatcher", async () => {
+    const context = createContext({
+      actions: createActions({
+        executeAction: vi.fn(),
+      }),
+    });
 
     await runDevScenario("open-add-feed-dialog", { context });
 
-    expect(context.ui.showToast).toHaveBeenCalledWith('Dev scenario "open-add-feed-dialog" is not implemented yet.');
+    expect(context.actions.executeAction).toHaveBeenCalledWith("open-add-feed");
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+  });
+
+  it("runs the sync-all smoke scenario through the app action dispatcher", async () => {
+    const context = createContext({
+      actions: createActions({
+        executeAction: vi.fn(),
+      }),
+    });
+
+    await runDevScenario("sync-all-smoke", { context });
+
+    expect(context.actions.executeAction).toHaveBeenCalledWith("sync-all");
+    expect(context.ui.showToast).not.toHaveBeenCalled();
   });
 });
