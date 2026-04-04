@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import { ArticleToolbarView } from "./article-toolbar-view";
-import { DisplayModeToggleGroup } from "./display-mode-toggle-group";
 
 const meta = {
   title: "Reader/ArticleToolbarView",
@@ -20,13 +19,13 @@ const meta = {
     canOpenInBrowser: true,
     showOpenInExternalBrowserButton: true,
     canOpenInExternalBrowser: true,
-    displayModeControl: <DisplayModeToggleGroup value="standard" onValueChange={fn()} />,
     labels: {
       closeView: "Close view",
       toggleRead: "Toggle read",
       toggleStar: "Toggle star",
+      previewToggleOff: "Open Web Preview",
+      previewToggleOn: "Close Web Preview",
       copyLink: "Copy link",
-      viewInBrowser: "View in browser",
       openInExternalBrowser: "Open in external browser",
     },
     onCloseView: fn(),
@@ -50,17 +49,21 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
+export const PreviewOpen: Story = {
+  args: {
+    isBrowserOpen: true,
+  },
+};
+
 export const DisabledActions: Story = {
   args: {
     showCloseButton: false,
     canToggleRead: false,
     canToggleStar: false,
-    showCopyLinkButton: false,
+    isBrowserOpen: false,
     canCopyLink: false,
-    showOpenInBrowserButton: false,
     canOpenInBrowser: false,
     showOpenInExternalBrowserButton: false,
     canOpenInExternalBrowser: false,
-    displayModeControl: <DisplayModeToggleGroup value="preview" onValueChange={fn()} disabled={true} />,
   },
 };
