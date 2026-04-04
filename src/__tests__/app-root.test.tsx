@@ -29,7 +29,8 @@ vi.mock("@/stores/preferences-store", () => ({
       prefs: preferencesState.prefs,
       loaded: preferencesState.loaded,
     }),
-  resolvePreferenceValue: (prefs: Record<string, string>, key: string) => prefs[key] ?? (key === "sync_on_startup" ? "true" : ""),
+  resolvePreferenceValue: (prefs: Record<string, string>, key: string) =>
+    prefs[key] ?? (key === "sync_on_startup" ? "true" : ""),
 }));
 
 vi.mock("@/api/tauri-commands", () => ({

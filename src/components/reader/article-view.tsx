@@ -217,12 +217,7 @@ function EmptyState() {
   const { t } = useTranslation("reader");
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
-      <ArticleToolbar
-        article={null}
-        isBrowserOpen={false}
-        onCloseView={() => {}}
-        onToggleBrowserOverlay={() => {}}
-      />
+      <ArticleToolbar article={null} isBrowserOpen={false} onCloseView={() => {}} onToggleBrowserOverlay={() => {}} />
       <ArticleEmptyStateView message={t("select_article_to_read")} />
     </div>
   );
