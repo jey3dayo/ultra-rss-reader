@@ -11,7 +11,7 @@ export function useDevIntent() {
 
   useEffect(() => {
     const intent = readDevIntent();
-    if (!intent || hasRun.current) {
+    if (intent !== "image-viewer-overlay" || hasRun.current) {
       return;
     }
 

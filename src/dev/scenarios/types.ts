@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
+import type { AccountDto, ArticleDto, FeedDto } from "@/api/tauri-commands";
 
 export const DEV_SCENARIO_IDS = [
   "image-viewer-overlay",
@@ -30,9 +31,9 @@ export type DevScenarioContext = {
   readonly queryClient: Pick<QueryClient, "setQueryData" | "getQueryData">;
   readonly actions: {
     executeAction(actionId: string): Promise<void> | void;
-    listAccounts(): Promise<unknown[]> | unknown[];
-    listFeeds(accountId: string): Promise<unknown[]> | unknown[];
-    listArticles(feedId: string, offset?: number, limit?: number): Promise<unknown[]> | unknown[];
+    listAccounts(): Promise<AccountDto[]> | AccountDto[];
+    listFeeds(accountId: string): Promise<FeedDto[]> | FeedDto[];
+    listArticles(feedId: string, offset?: number, limit?: number): Promise<ArticleDto[]> | ArticleDto[];
   };
 };
 

@@ -1,20 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { getDevScenario, listDevScenarios } from "@/dev/scenarios/registry";
+import { DEV_SCENARIO_IDS } from "@/dev/scenarios/types";
 
 describe("dev scenario registry", () => {
   it("lists the registered scenario ids", () => {
-    expect(listDevScenarios().map((scenario) => scenario.id)).toEqual([
-      "image-viewer-overlay",
-      "open-feed-first-article",
-      "open-tag-view",
-      "open-add-feed-dialog",
-      "sync-all-smoke",
-    ]);
+    expect(listDevScenarios().map((scenario) => scenario.id)).toEqual(DEV_SCENARIO_IDS);
   });
 
   it("returns a registered scenario for a known id", () => {
-    expect(getDevScenario("open-add-feed-dialog")).toMatchObject({
-      id: "open-add-feed-dialog",
+    expect(getDevScenario(DEV_SCENARIO_IDS[3])).toMatchObject({
+      id: DEV_SCENARIO_IDS[3],
       title: "Open add feed dialog",
     });
   });
