@@ -12,9 +12,8 @@ import {
 
 describe("article-display preset conversions", () => {
   it.each([
-    ["reader_only", { readerMode: true, webPreviewMode: false }],
-    ["reader_and_preview", { readerMode: true, webPreviewMode: true }],
-    ["preview_only", { readerMode: false, webPreviewMode: true }],
+    ["standard", { readerMode: true, webPreviewMode: false }],
+    ["preview", { readerMode: true, webPreviewMode: true }],
   ] satisfies Array<
     [ArticleDisplayPreset, { readerMode: boolean; webPreviewMode: boolean }]
   >)("converts preset %s into two display axes", (preset, expected) => {
@@ -22,30 +21,26 @@ describe("article-display preset conversions", () => {
   });
 
   it("converts two enabled modes back into their display preset", () => {
-    expect(modesToDisplayPreset({ readerMode: true, webPreviewMode: false })).toBe("reader_only");
-    expect(modesToDisplayPreset({ readerMode: true, webPreviewMode: true })).toBe("reader_and_preview");
-    expect(modesToDisplayPreset({ readerMode: false, webPreviewMode: true })).toBe("preview_only");
+    expect(modesToDisplayPreset({ readerMode: true, webPreviewMode: false })).toBe("standard");
+    expect(modesToDisplayPreset({ readerMode: true, webPreviewMode: true })).toBe("preview");
+    expect(modesToDisplayPreset({ readerMode: false, webPreviewMode: true })).toBe("preview");
   });
 
   it("converts display presets into persisted app default preference values", () => {
-    expect(displayPresetToPreferenceValues("reader_only")).toEqual({
+    expect(displayPresetToPreferenceValues("standard")).toEqual({
       reader_mode_default: "true",
       web_preview_mode_default: "false",
     });
-    expect(displayPresetToPreferenceValues("reader_and_preview")).toEqual({
+    expect(displayPresetToPreferenceValues("preview")).toEqual({
       reader_mode_default: "true",
-      web_preview_mode_default: "true",
-    });
-    expect(displayPresetToPreferenceValues("preview_only")).toEqual({
-      reader_mode_default: "false",
       web_preview_mode_default: "true",
     });
   });
 
   it("reconstructs the display preset from persisted app default values", () => {
-    expect(appDefaultsToDisplayPreset("true", "false")).toBe("reader_only");
-    expect(appDefaultsToDisplayPreset("true", "true")).toBe("reader_and_preview");
-    expect(appDefaultsToDisplayPreset("false", "true")).toBe("preview_only");
+    expect(appDefaultsToDisplayPreset("true", "false")).toBe("standard");
+    expect(appDefaultsToDisplayPreset("true", "true")).toBe("preview");
+    expect(appDefaultsToDisplayPreset("false", "true")).toBe("preview");
   });
 
   it("converts feed UI preset options into tri-state feed modes", () => {
@@ -53,25 +48,21 @@ describe("article-display preset conversions", () => {
       readerMode: "inherit",
       webPreviewMode: "inherit",
     });
-    expect(displayPresetToTriStateModes("reader_only")).toEqual({
+    expect(displayPresetToTriStateModes("standard")).toEqual({
       readerMode: "on",
       webPreviewMode: "off",
     });
-    expect(displayPresetToTriStateModes("reader_and_preview")).toEqual({
+    expect(displayPresetToTriStateModes("preview")).toEqual({
       readerMode: "on",
-      webPreviewMode: "on",
-    });
-    expect(displayPresetToTriStateModes("preview_only")).toEqual({
-      readerMode: "off",
       webPreviewMode: "on",
     });
   });
 
   it("maps feed tri-state settings back to the feed preset selector value", () => {
     expect(feedModesToDisplayPresetOption("inherit", "inherit")).toBe("default");
-    expect(feedModesToDisplayPresetOption("on", "off")).toBe("reader_only");
-    expect(feedModesToDisplayPresetOption("on", "on")).toBe("reader_and_preview");
-    expect(feedModesToDisplayPresetOption("off", "on")).toBe("preview_only");
+    expect(feedModesToDisplayPresetOption("on", "off")).toBe("standard");
+    expect(feedModesToDisplayPresetOption("on", "on")).toBe("preview");
+    expect(feedModesToDisplayPresetOption("off", "on")).toBe("preview");
   });
 });
 
@@ -87,7 +78,7 @@ describe("resolveArticleDisplay", () => {
     ).toMatchObject({
       readerMode: true,
       webPreviewMode: false,
-      preset: "reader_only",
+      preset: "standard",
       fallbackReason: null,
     });
   });
@@ -103,7 +94,7 @@ describe("resolveArticleDisplay", () => {
     ).toMatchObject({
       readerMode: false,
       webPreviewMode: true,
-      preset: "preview_only",
+      preset: "preview",
       fallbackReason: null,
     });
   });
@@ -119,7 +110,7 @@ describe("resolveArticleDisplay", () => {
     ).toMatchObject({
       readerMode: true,
       webPreviewMode: false,
-      preset: "reader_only",
+      preset: "standard",
       fallbackReason: "missing_web_preview",
     });
   });
@@ -135,7 +126,7 @@ describe("resolveArticleDisplay", () => {
     ).toMatchObject({
       readerMode: true,
       webPreviewMode: false,
-      preset: "reader_only",
+      preset: "standard",
       fallbackReason: "invalid_empty_display",
     });
   });

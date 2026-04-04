@@ -1,4 +1,4 @@
-export type ArticleDisplayPreset = "reader_only" | "reader_and_preview" | "preview_only";
+export type ArticleDisplayPreset = "standard" | "preview";
 export type BinaryDisplayMode = "on" | "off";
 export type TriStateDisplayMode = "inherit" | BinaryDisplayMode;
 export type ArticleDisplayFallbackReason = "missing_web_preview" | "invalid_empty_display" | null;
@@ -36,25 +36,20 @@ type FeedLikeDisplaySettings = {
 
 export function displayPresetToModes(preset: ArticleDisplayPreset): ArticleDisplayModes {
   switch (preset) {
-    case "reader_only":
+    case "standard":
       return { readerMode: true, webPreviewMode: false };
-    case "reader_and_preview":
+    case "preview":
       return { readerMode: true, webPreviewMode: true };
-    case "preview_only":
-      return { readerMode: false, webPreviewMode: true };
   }
 }
 
 export function modesToDisplayPreset(modes: ArticleDisplayModes): ArticleDisplayPreset {
-  if (modes.readerMode && modes.webPreviewMode) {
-    return "reader_and_preview";
+  if (!modes.webPreviewMode) {
+    return "standard";
   }
 
-  if (modes.readerMode) {
-    return "reader_only";
-  }
-
-  return "preview_only";
+  // Legacy preview-only data is still surfaced through the same preview label.
+  return "preview";
 }
 
 export function displayPresetToPreferenceValues(preset: ArticleDisplayPreset): {

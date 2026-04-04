@@ -191,7 +191,7 @@ describe("Form fields", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(await screen.findByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Reader + Preview");
+    expect(await screen.findByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Preview");
     expect(await screen.findByRole("combobox", { name: "Folder" })).toHaveTextContent("Work");
   });
 
@@ -212,9 +212,8 @@ describe("Form fields", () => {
     await user.click(await screen.findByRole("combobox", { name: "Display Mode" }));
 
     expect(await screen.findByRole("option", { name: "Default display mode" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Reader only" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Reader + Preview" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Preview only" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Standard" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Preview" })).toBeInTheDocument();
   });
 
   it("rename feed dialog offers a new folder option even when no folders exist yet", async () => {

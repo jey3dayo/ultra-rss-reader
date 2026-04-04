@@ -37,9 +37,8 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
   );
   const displayPresetOptions = [
     { value: "default", label: t("display_mode_default") },
-    { value: "reader_only", label: t("display_mode_reader_only") },
-    { value: "reader_and_preview", label: t("display_mode_reader_and_preview") },
-    { value: "preview_only", label: t("display_mode_preview_only") },
+    { value: "standard", label: t("display_mode_standard") },
+    { value: "preview", label: t("display_mode_preview") },
   ];
 
   const handleOpenSite = () => {
@@ -88,9 +87,7 @@ export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
         onOpenSite={handleOpenSite}
         onMarkAllRead={handleMarkAllRead}
         onSetDisplayPreset={(value) => {
-          const nextModes = displayPresetToTriStateModes(
-            value as "default" | "reader_only" | "reader_and_preview" | "preview_only",
-          );
+          const nextModes = displayPresetToTriStateModes(value as "default" | "standard" | "preview");
           void updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode);
         }}
         onUnsubscribe={() => setShowUnsubscribeDialog(true)}

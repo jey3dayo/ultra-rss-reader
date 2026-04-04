@@ -39,8 +39,8 @@ vi.mock("@/components/reader/rename-feed-dialog-view", () => ({
             onChange={(event) => props.onTitleChange(event.target.value)}
           />
         </label>
-        <button type="button" onClick={() => props.onDisplayModeChange("reader_and_preview")}>
-          Set reader and preview
+        <button type="button" onClick={() => props.onDisplayModeChange("preview")}>
+          Set preview
         </button>
         <div data-testid="folder-create-enabled">{String(props.folderSelectProps?.canCreateFolder)}</div>
         <button type="button" onClick={() => props.folderSelectProps?.onValueChange("folder-2")}>
@@ -209,7 +209,7 @@ describe("RenameDialog", () => {
     await user.clear(screen.getByLabelText("Title"));
     await user.type(screen.getByLabelText("Title"), "Renamed Feed");
     await user.click(screen.getByRole("button", { name: "Move to folder 2" }));
-    await user.click(screen.getByRole("button", { name: "Set reader and preview" }));
+    await user.click(screen.getByRole("button", { name: "Set preview" }));
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => {

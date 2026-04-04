@@ -21,9 +21,8 @@ describe("FeedContextMenuView", () => {
           displayModeLabel="Display mode"
           displayPresetOptions={[
             { value: "default", label: "Default" },
-            { value: "reader_only", label: "Reader only" },
-            { value: "reader_and_preview", label: "Reader + Preview" },
-            { value: "preview_only", label: "Preview only" },
+            { value: "standard", label: "Standard" },
+            { value: "preview", label: "Preview" },
           ]}
           selectedDisplayPreset="default"
           unsubscribeLabel="Unsubscribe…"
@@ -40,15 +39,15 @@ describe("FeedContextMenuView", () => {
     await user.click(screen.getByRole("menuitem", { name: "Open site" }));
     await user.click(screen.getByRole("menuitem", { name: "Mark all as read" }));
     expect(screen.getByText("Display mode")).toBeInTheDocument();
-    await user.click(screen.getByRole("menuitem", { name: "Reader only" }));
-    await user.click(screen.getByRole("menuitem", { name: "Reader + Preview" }));
+    await user.click(screen.getByRole("menuitem", { name: "Standard" }));
+    await user.click(screen.getByRole("menuitem", { name: "Preview" }));
     await user.click(screen.getByRole("menuitem", { name: "Unsubscribe…" }));
     await user.click(screen.getByRole("menuitem", { name: "Edit…" }));
 
     expect(onOpenSite).toHaveBeenCalledTimes(1);
     expect(onMarkAllRead).toHaveBeenCalledTimes(1);
-    expect(onSetDisplayPreset).toHaveBeenCalledWith("reader_only");
-    expect(onSetDisplayPreset).toHaveBeenCalledWith("reader_and_preview");
+    expect(onSetDisplayPreset).toHaveBeenCalledWith("standard");
+    expect(onSetDisplayPreset).toHaveBeenCalledWith("preview");
     expect(onUnsubscribe).toHaveBeenCalledTimes(1);
     expect(onEdit).toHaveBeenCalledTimes(1);
   });

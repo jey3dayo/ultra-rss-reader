@@ -116,10 +116,10 @@ describe("Settings surface views", () => {
                 type: "select",
                 name: "display_preset",
                 label: "Default display mode",
-                value: "reader_only",
+                value: "standard",
                 options: [
-                  { value: "reader_only", label: "Reader only" },
-                  { value: "reader_and_preview", label: "Reader + Preview" },
+                  { value: "standard", label: "Standard" },
+                  { value: "preview", label: "Preview" },
                 ],
                 onChange: onDisplayPresetChange,
               },
@@ -130,7 +130,7 @@ describe("Settings surface views", () => {
     );
 
     expect(screen.getByRole("heading", { level: 2, name: "Reading" })).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Default display mode" })).toHaveTextContent("Reader only");
+    expect(screen.getByRole("combobox", { name: "Default display mode" })).toHaveTextContent("Standard");
   });
 
   it("renders action service rows and delegates switch changes", async () => {

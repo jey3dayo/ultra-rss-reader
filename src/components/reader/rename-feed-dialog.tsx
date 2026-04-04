@@ -53,9 +53,8 @@ export function RenameDialog({
   const folderLabelId = useId();
   const displayPresetOptions = [
     { value: "default", label: t("display_mode_default") },
-    { value: "reader_only", label: t("display_mode_reader_only") },
-    { value: "reader_and_preview", label: t("display_mode_reader_and_preview") },
-    { value: "preview_only", label: t("display_mode_preview_only") },
+    { value: "standard", label: t("display_mode_standard") },
+    { value: "preview", label: t("display_mode_preview") },
   ];
   const folderOptions = buildFolderOptions(folders, t("no_folder"));
 
@@ -122,9 +121,7 @@ export function RenameDialog({
     }
 
     if (didUpdateDisplayMode) {
-      const nextModes = displayPresetToTriStateModes(
-        displayPreset as "default" | "reader_only" | "reader_and_preview" | "preview_only",
-      );
+      const nextModes = displayPresetToTriStateModes(displayPreset as "default" | "standard" | "preview");
       Result.pipe(
         await updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode),
         Result.inspectError((e) => showToast(t("failed_to_update_display_settings", { message: e.message }))),
@@ -148,9 +145,7 @@ export function RenameDialog({
       displayModeOptions={displayPresetOptions}
       onOpenChange={onOpenChange}
       onTitleChange={setTitle}
-      onDisplayModeChange={(value) =>
-        setDisplayPreset(value as "default" | "reader_only" | "reader_and_preview" | "preview_only")
-      }
+      onDisplayModeChange={(value) => setDisplayPreset(value as "default" | "standard" | "preview")}
       folderSelectProps={{
         labelId: folderLabelId,
         label: t("folder"),

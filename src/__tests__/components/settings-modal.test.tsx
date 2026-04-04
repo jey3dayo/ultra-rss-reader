@@ -85,6 +85,6 @@ describe("SettingsModal", () => {
 
     render(<ReadingSettings />, { wrapper: createWrapper() });
 
-    expect(screen.getByRole("combobox", { name: "Default display mode" })).toHaveTextContent("Reader + Preview");
+    expect(screen.getByRole("combobox", { name: "Default display mode" })).toHaveTextContent("Preview");
   });
 });

@@ -106,14 +106,14 @@ describe("ArticleList", () => {
     expect(displayPresetSelect).toHaveTextContent("Default");
 
     await user.click(displayPresetSelect);
-    await user.click(await screen.findByRole("option", { name: "Reader + Preview" }));
+    await user.click(await screen.findByRole("option", { name: "Preview" }));
 
     await waitFor(() => {
       expect(commands).toContainEqual({
         cmd: "update_feed_display_settings",
         args: { feedId: "feed-1", readerMode: "on", webPreviewMode: "on" },
       });
-      expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Reader + Preview");
+      expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Preview");
     });
   });
 

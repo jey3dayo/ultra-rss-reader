@@ -10,12 +10,11 @@ const meta = {
     open: true,
     title: "Tech Blog",
     loading: false,
-    displayMode: "reader_only",
+    displayMode: "standard",
     displayModeOptions: [
       { value: "default", label: "Default" },
-      { value: "reader_only", label: "Reader only" },
-      { value: "reader_and_preview", label: "Reader + Preview" },
-      { value: "preview_only", label: "Preview only" },
+      { value: "standard", label: "Standard" },
+      { value: "preview", label: "Preview" },
     ],
     folderSelectProps: {
       labelId: "folder-story-label",

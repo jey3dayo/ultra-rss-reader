@@ -13,9 +13,8 @@ const meta = {
     displayModeLabel: "Display mode",
     displayPresetOptions: [
       { value: "default", label: "Default" },
-      { value: "reader_only", label: "Reader only" },
-      { value: "reader_and_preview", label: "Reader + Preview" },
-      { value: "preview_only", label: "Preview only" },
+      { value: "standard", label: "Standard" },
+      { value: "preview", label: "Preview" },
     ],
     selectedDisplayPreset: "default",
     unsubscribeLabel: "Unsubscribe…",
@@ -45,6 +44,6 @@ export const Default: Story = {};
 
 export const ReaderAndPreview: Story = {
   args: {
-    selectedDisplayPreset: "reader_and_preview",
+    selectedDisplayPreset: "preview",
   },
 };

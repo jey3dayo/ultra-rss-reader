@@ -176,15 +176,14 @@ export function ArticleList() {
   const displayPresetOptions = useMemo(
     () => [
       { value: "default", label: t("display_mode_default") },
-      { value: "reader_only", label: t("display_mode_reader_only") },
-      { value: "reader_and_preview", label: t("display_mode_reader_and_preview") },
-      { value: "preview_only", label: t("display_mode_preview_only") },
+      { value: "standard", label: t("display_mode_standard") },
+      { value: "preview", label: t("display_mode_preview") },
     ],
     [t],
   );
 
   const handleSetDisplayMode = useCallback(
-    async (nextPreset: "default" | "reader_only" | "reader_and_preview" | "preview_only") => {
+    async (nextPreset: "default" | "standard" | "preview") => {
       if (!feedId) return;
       const nextModes = displayPresetToTriStateModes(nextPreset);
       Result.pipe(await updateFeedDisplaySettings(feedId, nextModes.readerMode, nextModes.webPreviewMode));

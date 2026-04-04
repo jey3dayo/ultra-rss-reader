@@ -17,18 +17,13 @@ export function DisplayModeToggleGroup({
   const { t } = useTranslation("reader");
   const options: Array<{ value: ArticleDisplayPreset; label: string; icon: React.ReactNode }> = [
     {
-      value: "reader_only",
-      label: t("display_mode_reader_only"),
-      icon: <span className="text-xs font-semibold">R</span>,
+      value: "standard",
+      label: t("display_mode_standard"),
+      icon: <span className="text-xs font-semibold">S</span>,
     },
     {
-      value: "reader_and_preview",
-      label: t("display_mode_reader_and_preview"),
-      icon: <span className="text-xs font-semibold">R+P</span>,
-    },
-    {
-      value: "preview_only",
-      label: t("display_mode_preview_only"),
+      value: "preview",
+      label: t("display_mode_preview"),
       icon: <span className="text-xs font-semibold">P</span>,
     },
   ];

@@ -23,14 +23,11 @@ export function ReadingSettings() {
               label: t("reading.default_display_mode"),
               value: resolveAppDefaultDisplayPreset(prefs),
               options: [
-                { value: "reader_only", label: t("reading.reader_only") },
-                { value: "reader_and_preview", label: t("reading.reader_and_preview") },
-                { value: "preview_only", label: t("reading.preview_only") },
+                { value: "standard", label: t("reading.standard") },
+                { value: "preview", label: t("reading.preview") },
               ],
               onChange: (value) => {
-                const nextValues = displayPresetToPreferenceValues(
-                  value as "reader_only" | "reader_and_preview" | "preview_only",
-                );
+                const nextValues = displayPresetToPreferenceValues(value as "standard" | "preview");
                 setPref("reader_mode_default", nextValues.reader_mode_default);
                 setPref("web_preview_mode_default", nextValues.web_preview_mode_default);
               },

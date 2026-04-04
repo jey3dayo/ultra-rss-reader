@@ -534,25 +534,18 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
     setWebPreviewModeOverride("on");
   }, [closeBrowser, rememberOverlayFocusReturnTarget, requestedDisplay.readerMode, requestedDisplay.webPreviewMode]);
 
-  const handleTemporaryDisplayPresetChange = useCallback(
-    (nextPreset: "reader_only" | "reader_and_preview" | "preview_only") => {
-      switch (nextPreset) {
-        case "reader_only":
-          setReaderModeOverride("on");
-          setWebPreviewModeOverride("off");
-          break;
-        case "reader_and_preview":
-          setReaderModeOverride("on");
-          setWebPreviewModeOverride("on");
-          break;
-        case "preview_only":
-          setReaderModeOverride("off");
-          setWebPreviewModeOverride("on");
-          break;
-      }
-    },
-    [],
-  );
+  const handleTemporaryDisplayPresetChange = useCallback((nextPreset: "standard" | "preview") => {
+    switch (nextPreset) {
+      case "standard":
+        setReaderModeOverride("on");
+        setWebPreviewModeOverride("off");
+        break;
+      case "preview":
+        setReaderModeOverride("on");
+        setWebPreviewModeOverride("on");
+        break;
+    }
+  }, []);
 
   const handleToggleRead = useCallback(() => {
     const markingAsRead = !article.is_read;
