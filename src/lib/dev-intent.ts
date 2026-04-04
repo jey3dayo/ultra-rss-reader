@@ -1,12 +1,18 @@
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import { getDevScenario } from "@/dev/scenarios";
+import type { DevScenarioId } from "@/dev/scenarios";
 import { resolveFeedDisplayOverrides } from "@/lib/article-display";
 
-export type DevIntent = "image-viewer-overlay" | null;
+export type DevIntent = DevScenarioId | null;
 
 const DEFAULT_FEED_HINTS = ["マガポケ", "ジャンプ+", "comic", "manga", "少年ジャンプ", "ゴリミー"];
 
 export function parseDevIntent(value: string | undefined): DevIntent {
-  return value === "image-viewer-overlay" ? value : null;
+  if (!value) {
+    return null;
+  }
+
+  return getDevScenario(value) ? (value as DevScenarioId) : null;
 }
 
 export function readDevIntent(): DevIntent {
