@@ -65,9 +65,7 @@ describe("useDevIntent", () => {
 
     await waitFor(() => {
       expect(listAccountsSpy).not.toHaveBeenCalled();
-      expect(showToast).toHaveBeenCalledWith(
-        'Dev scenario "open-add-feed-dialog" is not implemented in the legacy path yet.',
-      );
+      expect(showToast).toHaveBeenCalledWith('Dev scenario "open-add-feed-dialog" is not implemented yet.');
     });
   });
 

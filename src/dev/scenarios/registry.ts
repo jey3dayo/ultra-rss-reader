@@ -1,30 +1,31 @@
+import { createUnsupportedDevScenarioRunner, runImageViewerOverlayScenario } from "@/dev/scenarios/helpers";
 import { DEV_SCENARIO_IDS, type DevScenario, type DevScenarioId } from "@/dev/scenarios/types";
 
 const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
   "image-viewer-overlay": {
     title: "Image viewer overlay",
     keywords: ["image", "viewer", "overlay"],
-    run: () => undefined,
+    run: runImageViewerOverlayScenario,
   },
   "open-feed-first-article": {
     title: "Open feed first article",
     keywords: ["feed", "article", "open"],
-    run: () => undefined,
+    run: createUnsupportedDevScenarioRunner("open-feed-first-article"),
   },
   "open-tag-view": {
     title: "Open tag view",
     keywords: ["tag", "view"],
-    run: () => undefined,
+    run: createUnsupportedDevScenarioRunner("open-tag-view"),
   },
   "open-add-feed-dialog": {
     title: "Open add feed dialog",
     keywords: ["add", "feed", "dialog"],
-    run: () => undefined,
+    run: createUnsupportedDevScenarioRunner("open-add-feed-dialog"),
   },
   "sync-all-smoke": {
     title: "Sync all smoke",
     keywords: ["sync", "smoke"],
-    run: () => undefined,
+    run: createUnsupportedDevScenarioRunner("sync-all-smoke"),
   },
 };
 
