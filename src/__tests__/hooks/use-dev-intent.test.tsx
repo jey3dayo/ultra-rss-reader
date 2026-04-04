@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
 import { useDevIntent } from "@/hooks/use-dev-intent";
+import { resetLegacyOverlayDevIntentDedup } from "@/lib/dev-intent";
 import { setupTauriMocks, teardownTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 const showToast = vi.fn();
@@ -30,7 +31,7 @@ describe("useDevIntent", () => {
   beforeEach(() => {
     showToast.mockReset();
     vi.stubEnv("DEV", true);
-    sessionStorage.clear();
+    resetLegacyOverlayDevIntentDedup();
     setupTauriMocks((cmd) => {
       if (cmd === "list_accounts") {
         return [];
@@ -94,7 +95,7 @@ describe("useDevIntent", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
-    sessionStorage.clear();
+    resetLegacyOverlayDevIntentDedup();
     teardownTauriMocks();
   });
 });
