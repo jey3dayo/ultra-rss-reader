@@ -10,10 +10,10 @@ describe("ActionsSettings", () => {
     usePreferencesStore.setState({ prefs: {}, loaded: true });
   });
 
-  it("distinguishes web preview from external browser actions", () => {
+  it("does not present Open Web Preview as a toolbar action setting", () => {
     render(<ActionsSettings />);
 
-    expect(screen.getByText("Open Web Preview")).toBeInTheDocument();
+    expect(screen.queryByText("Open Web Preview")).not.toBeInTheDocument();
     expect(screen.getByText("Open in External Browser")).toBeInTheDocument();
   });
 });

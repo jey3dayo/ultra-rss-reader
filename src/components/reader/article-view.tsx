@@ -74,7 +74,6 @@ function ArticleToolbar({
   const retainArticle = useUiStore((s) => s.retainArticle);
   const viewMode = useUiStore((s) => s.viewMode);
   const actionCopyLink = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_copy_link"));
-  const actionOpenBrowser = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_open_browser"));
   const actionShare = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share"));
   const actionShareMenu = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share_menu"));
   const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
@@ -89,7 +88,7 @@ function ArticleToolbar({
       isBrowserOpen={isBrowserOpen}
       showCopyLinkButton={actionCopyLink === "true"}
       canCopyLink={Boolean(article?.url)}
-      showOpenInBrowserButton={actionOpenBrowser === "true"}
+      showOpenInBrowserButton
       canOpenInBrowser={Boolean(article?.url)}
       showOpenInExternalBrowserButton={actionShare === "true"}
       canOpenInExternalBrowser={Boolean(article?.url)}

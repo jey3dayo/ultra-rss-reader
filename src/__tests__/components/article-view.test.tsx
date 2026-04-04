@@ -142,7 +142,7 @@ describe("ArticleView", () => {
     expect(useUiStore.getState().browserUrl).toBeNull();
   });
 
-  it("toggles the embedded browser overlay with the single preview button", async () => {
+  it("keeps the embedded browser preview toggle available when action_open_browser is false", async () => {
     const calls: MockCall[] = [];
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
@@ -182,6 +182,7 @@ describe("ArticleView", () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
+    usePreferencesStore.setState({ prefs: { action_open_browser: "false" }, loaded: true });
 
     const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });

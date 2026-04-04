@@ -1,4 +1,4 @@
-import { Copy, ExternalLink, Globe, Share } from "lucide-react";
+import { Copy, ExternalLink, Share } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ActionsSettingsView } from "@/components/settings/actions-settings-view";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
@@ -14,12 +14,6 @@ export function ActionsSettings() {
       label: t("actions.copy_link"),
       prefKey: "action_copy_link",
       icon: <Copy className="h-5 w-5" />,
-    },
-    {
-      id: "action-open-browser",
-      label: t("actions.open_in_browser"),
-      prefKey: "action_open_browser",
-      icon: <Globe className="h-5 w-5" />,
     },
     {
       id: "action-share",
