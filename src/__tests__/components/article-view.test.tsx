@@ -184,7 +184,6 @@ describe("ArticleView", () => {
     useUiStore.getState().selectArticle("art-1");
     usePreferencesStore.setState({ prefs: { action_open_browser: "false" }, loaded: true });
 
-    const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
 
     calls.length = 0;
@@ -207,8 +206,11 @@ describe("ArticleView", () => {
     const closingButtons = await screen.findAllByRole("button", { name: "Close Web Preview" });
     const toolbarCloseButton = closingButtons.find((button) => button.getAttribute("aria-pressed") === "true");
     expect(toolbarCloseButton).toBeDefined();
+    if (!toolbarCloseButton) {
+      throw new Error("expected toolbar close button");
+    }
 
-    fireEvent.click(toolbarCloseButton!);
+    fireEvent.click(toolbarCloseButton);
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
@@ -267,8 +269,11 @@ describe("ArticleView", () => {
     const closeButtons = await screen.findAllByRole("button", { name: "Close Web Preview" });
     const overlayCloseButton = closeButtons.find((button) => button.getAttribute("aria-pressed") !== "true");
     expect(overlayCloseButton).toBeDefined();
+    if (!overlayCloseButton) {
+      throw new Error("expected overlay close button");
+    }
 
-    fireEvent.click(overlayCloseButton!);
+    fireEvent.click(overlayCloseButton);
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
@@ -325,8 +330,11 @@ describe("ArticleView", () => {
     const closeButtons = await screen.findAllByRole("button", { name: "Close Web Preview" });
     const closeOverlayButton = closeButtons.find((button) => button.getAttribute("aria-pressed") !== "true");
     expect(closeOverlayButton).toBeDefined();
+    if (!closeOverlayButton) {
+      throw new Error("expected overlay close button");
+    }
 
-    closeOverlayButton!.focus();
+    closeOverlayButton.focus();
     expect(closeOverlayButton).toHaveFocus();
 
     fireEvent.keyDown(window, { key: "Escape" });
