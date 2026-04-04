@@ -89,7 +89,8 @@ describe("ArticleToolbarView", () => {
           toggleRead: "Toggle read",
           toggleStar: "Toggle star",
           copyLink: "Copy link",
-          viewInBrowser: "Open Web Preview",
+          previewToggleOff: "Open Web Preview",
+          previewToggleOn: "Close Web Preview",
           openInExternalBrowser: "Open in External Browser",
         }}
         onCloseView={vi.fn()}
@@ -163,7 +164,6 @@ describe("ArticleToolbarView", () => {
         canOpenInBrowser
         showOpenInExternalBrowserButton
         canOpenInExternalBrowser
-        displayModeControl={<div>S</div>}
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",

@@ -201,9 +201,11 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
     });
 
-    expect(await screen.findByRole("button", { name: "Close Web Preview" })).toHaveAttribute("aria-pressed", "true");
+    const closingButtons = await screen.findAllByRole("button", { name: "Close Web Preview" });
+    const toolbarCloseButtons = closingButtons.filter((button) => button.getAttribute("aria-pressed") === "true");
+    expect(toolbarCloseButtons).toHaveLength(1);
 
-    await user.click(screen.getByRole("button", { name: "Close Web Preview" }));
+    await user.click(toolbarCloseButtons[0]);
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
