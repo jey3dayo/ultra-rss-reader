@@ -1,15 +1,38 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const { loadCommandPaletteDevScenariosMock, runCommandPaletteDevScenarioMock } = vi.hoisted(() => ({
+  loadCommandPaletteDevScenariosMock: vi.fn(),
+  runCommandPaletteDevScenarioMock: vi.fn(),
+}));
+
+vi.mock("@/components/reader/dev-scenario-loader", () => ({
+  loadCommandPaletteDevScenarios: loadCommandPaletteDevScenariosMock,
+  runCommandPaletteDevScenario: runCommandPaletteDevScenarioMock,
+}));
+
 import { CommandPalette } from "@/components/reader/command-palette";
 import { STORAGE_KEYS } from "@/constants/storage";
-import * as devScenarios from "@/dev/scenarios";
 import * as actions from "@/lib/actions";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+
+const devScenarioFixtures = [
+  {
+    id: "image-viewer-overlay",
+    title: "Image viewer overlay",
+    keywords: ["image", "viewer", "overlay"],
+  },
+  {
+    id: "open-add-feed-dialog",
+    title: "Open add feed dialog",
+    keywords: ["add", "feed", "dialog"],
+  },
+] as const;
 
 describe("CommandPalette", () => {
   beforeEach(() => {
@@ -24,6 +47,8 @@ describe("CommandPalette", () => {
     Element.prototype.scrollIntoView = vi.fn();
     localStorage.clear();
     vi.stubEnv("DEV", false);
+    loadCommandPaletteDevScenariosMock.mockReset().mockResolvedValue(devScenarioFixtures);
+    runCommandPaletteDevScenarioMock.mockReset().mockResolvedValue(undefined);
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
@@ -145,17 +170,21 @@ describe("CommandPalette", () => {
   });
 
   it("shows dev scenarios only in dev builds", async () => {
-    render(<CommandPalette />, { wrapper: createWrapper() });
+    const first = render(<CommandPalette />, { wrapper: createWrapper() });
 
     expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
     expect(screen.queryByText("Dev Scenarios")).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: /Image viewer overlay/ })).not.toBeInTheDocument();
+    expect(loadCommandPaletteDevScenariosMock).not.toHaveBeenCalled();
+
+    first.unmount();
 
     vi.stubEnv("DEV", true);
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     expect(await screen.findByText("Dev Scenarios", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /Image viewer overlay/ })).toBeInTheDocument();
+    expect(loadCommandPaletteDevScenariosMock).toHaveBeenCalledTimes(1);
   });
 
   it("filters dev scenarios by title and keyword", async () => {
@@ -180,14 +209,13 @@ describe("CommandPalette", () => {
   it("runs a dev scenario without writing to recent history and closes the palette", async () => {
     const user = userEvent.setup();
     vi.stubEnv("DEV", true);
-    const runDevScenario = vi.spyOn(devScenarios, "runDevScenario").mockResolvedValue(undefined);
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     await user.click(await screen.findByRole("option", { name: /Image viewer overlay/ }));
 
     await waitFor(() => {
-      expect(runDevScenario).toHaveBeenCalledWith("image-viewer-overlay");
+      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("image-viewer-overlay");
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
       expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
     });
@@ -196,7 +224,6 @@ describe("CommandPalette", () => {
   it("does not change existing recent actions history when a scenario runs", async () => {
     const user = userEvent.setup();
     vi.stubEnv("DEV", true);
-    const runDevScenario = vi.spyOn(devScenarios, "runDevScenario").mockResolvedValue(undefined);
     localStorage.setItem(STORAGE_KEYS.commandHistory, JSON.stringify(["action:open-settings"]));
 
     render(<CommandPalette />, { wrapper: createWrapper() });
@@ -206,7 +233,7 @@ describe("CommandPalette", () => {
     await user.click(await screen.findByRole("option", { name: /Image viewer overlay/ }));
 
     await waitFor(() => {
-      expect(runDevScenario).toHaveBeenCalledWith("image-viewer-overlay");
+      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("image-viewer-overlay");
       expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(["action:open-settings"]));
     });
   });

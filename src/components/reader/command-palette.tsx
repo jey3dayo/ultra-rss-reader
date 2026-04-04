@@ -1,8 +1,6 @@
 import { FlaskConicalIcon, HashIcon, NewspaperIcon, RefreshCwIcon, RssIcon, SettingsIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { listDevScenarios, runDevScenario } from "@/dev/scenarios";
-import type { DevScenarioId } from "@/dev/scenarios/types";
 import { useSearchArticles } from "@/hooks/use-articles";
 import { addToHistory, getHistory } from "@/hooks/use-command-history";
 import { useCommandSearch } from "@/hooks/use-command-search";
@@ -26,6 +24,11 @@ import {
   CommandShortcut,
 } from "../ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
+import {
+  type CommandPaletteDevScenario,
+  loadCommandPaletteDevScenarios,
+  runCommandPaletteDevScenario,
+} from "./dev-scenario-loader";
 
 type PaletteAction = {
   id: AppAction;
@@ -90,6 +93,7 @@ export function CommandPalette() {
   const platformKind = usePlatformStore((state) => state.platform.kind);
   const shortcutPrefs = usePreferencesStore((state) => state.prefs);
   const [input, setInput] = useState("");
+  const [devScenarios, setDevScenarios] = useState<CommandPaletteDevScenario[]>([]);
   const { prefix, query, deferredQuery } = useCommandSearch(input);
 
   useEffect(() => {
@@ -97,6 +101,30 @@ export function CommandPalette() {
       setInput("");
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void loadCommandPaletteDevScenarios()
+      .then((scenarios) => {
+        if (!cancelled) {
+          setDevScenarios(scenarios);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDevScenarios([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const actions = useMemo<PaletteAction[]>(
     () => [
@@ -138,7 +166,6 @@ export function CommandPalette() {
     () => actions.filter((action) => matchesQuery(action.label, action.keywords, query)),
     [actions, query],
   );
-  const devScenarios = useMemo(() => (import.meta.env.DEV ? listDevScenarios() : []), []);
   const filteredDevScenarios = useMemo(
     () => devScenarios.filter((scenario) => matchesQuery(scenario.title, scenario.keywords, query)),
     [devScenarios, query],
@@ -203,8 +230,8 @@ export function CommandPalette() {
     closePalette();
   }
 
-  function handleDevScenarioSelect(scenarioId: DevScenarioId) {
-    void runDevScenario(scenarioId);
+  function handleDevScenarioSelect(scenarioId: CommandPaletteDevScenario["id"]) {
+    void runCommandPaletteDevScenario(scenarioId);
     closePalette();
   }
 
