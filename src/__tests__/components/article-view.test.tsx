@@ -194,7 +194,7 @@ describe("ArticleView", () => {
     const openBrowserButton = await screen.findByRole("button", { name: "Open Web Preview" });
     expect(openBrowserButton).toHaveAttribute("aria-pressed", "false");
 
-    await user.click(openBrowserButton);
+    fireEvent.click(openBrowserButton);
 
     expect(calls.map(({ cmd }) => cmd)).not.toContain("open_in_browser");
 
@@ -216,7 +216,7 @@ describe("ArticleView", () => {
 
     expect(calls.map(({ cmd }) => cmd)).not.toContain("open_in_browser");
     expect(await screen.findByRole("button", { name: "Open Web Preview" })).toHaveAttribute("aria-pressed", "false");
-  }, 10000);
+  });
 
   it("closes only the current article overlay when the overlay close button is pressed", async () => {
     setupTauriMocks((cmd, args) => {
