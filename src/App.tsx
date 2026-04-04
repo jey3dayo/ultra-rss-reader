@@ -2,19 +2,40 @@ import { Result } from "@praha/byethrow";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef } from "react";
-import { listAccounts, syncAccount } from "./api/tauri-commands";
+import { listAccounts, syncAccount, triggerSync } from "./api/tauri-commands";
 import { AppShell } from "./components/app-shell";
 import { useDevIntent } from "./hooks/use-dev-intent";
 import { queryClient } from "./lib/query-client";
-import { usePreferencesStore } from "./stores/preferences-store";
+import { resolvePreferenceValue, usePreferencesStore } from "./stores/preferences-store";
 
 function AppInner() {
   const loadPreferences = usePreferencesStore((s) => s.loadPreferences);
+  const prefs = usePreferencesStore((s) => s.prefs);
+  const preferencesLoaded = usePreferencesStore((s) => s.loaded);
   useDevIntent();
 
   useEffect(() => {
     loadPreferences();
   }, [loadPreferences]);
+
+  const startupSyncRequested = useRef(false);
+  const syncOnStartupEnabled = resolvePreferenceValue(prefs, "sync_on_startup") === "true";
+
+  useEffect(() => {
+    if (!preferencesLoaded || !syncOnStartupEnabled || startupSyncRequested.current) {
+      return;
+    }
+
+    startupSyncRequested.current = true;
+    triggerSync().then((result) =>
+      Result.pipe(
+        result,
+        Result.inspectError((error) => {
+          console.warn("Startup sync failed:", error);
+        }),
+      ),
+    );
+  }, [preferencesLoaded, syncOnStartupEnabled]);
 
   // Sync on wake: trigger sync when returning from sleep/suspend if any account has sync_on_wake enabled
   const lastHiddenAt = useRef<number>(0);

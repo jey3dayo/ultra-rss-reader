@@ -56,6 +56,7 @@ const preferenceSchemas = {
   after_reading: afterReadingSchema,
   scroll_to_top_on_change: booleanStringSchema,
   sort_subscriptions: sortSubscriptionsSchema,
+  sync_on_startup: persistedBooleanPreferenceSchema,
   action_copy_link: booleanStringSchema,
   action_open_browser: booleanStringSchema,
   action_share: booleanStringSchema,
@@ -101,6 +102,7 @@ const corePreferenceDefaults = {
   scroll_to_top_on_change: "true",
   // Account-level reading preferences
   sort_subscriptions: "folders_first",
+  sync_on_startup: "true",
   // Actions
   action_copy_link: "true",
   action_open_browser: "true",

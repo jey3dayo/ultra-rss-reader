@@ -49,6 +49,19 @@ describe("GeneralSettings", () => {
     expect(usePreferencesStore.getState().prefs.show_sidebar_starred).toBeUndefined();
   });
 
+  it("renders sync on startup enabled by default and updates the preference", async () => {
+    const user = userEvent.setup();
+
+    render(<GeneralSettings />, { wrapper: createWrapper() });
+
+    const syncOnStartup = screen.getByRole("switch", { name: "Sync on startup" });
+    expect(syncOnStartup).toBeChecked();
+
+    await user.click(syncOnStartup);
+
+    expect(usePreferencesStore.getState().prefs.sync_on_startup).toBe("false");
+  });
+
   it("renders the browser shortcut hint with the current platform modifier", () => {
     render(<GeneralSettings />, { wrapper: createWrapper() });
 

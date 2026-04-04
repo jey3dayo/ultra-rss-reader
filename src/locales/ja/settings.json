@@ -29,6 +29,8 @@
     "default_browser": "既定のブラウザ",
     "open_links_in_background": "バックグラウンドでリンクを開く",
     "open_links_background_note": "一部のサードパーティブラウザでは、バックグラウンドでのリンク表示に対応していません。",
+    "sync": "同期",
+    "sync_on_startup": "起動時に同期",
     "article_list": "記事一覧",
     "sort_unread_items": "未読の並び順",
     "newest_first": "新しい順",

@@ -29,6 +29,8 @@
     "default_browser": "Default browser",
     "open_links_in_background": "Open links in background",
     "open_links_background_note": "Please note that some third-party browsers do not support opening links in the background.",
+    "sync": "Sync",
+    "sync_on_startup": "Sync on startup",
     "article_list": "Article List",
     "sort_unread_items": "Sort unread items",
     "newest_first": "Newest first",
