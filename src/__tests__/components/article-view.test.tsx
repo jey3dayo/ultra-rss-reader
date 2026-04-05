@@ -14,6 +14,9 @@ type MockCall = {
   args: Record<string, unknown>;
 };
 
+const ciWaitOptions = { timeout: 10_000 };
+const readingListTestTimeout = 15_000;
+
 function setReadingListPlatformSupport(enabled: boolean) {
   usePlatformStore.setState({
     platform: {
@@ -946,135 +949,151 @@ describe("ArticleView", () => {
     });
   });
 
-  it("hides reading list action when platform does not support it", async () => {
-    useUiStore.getState().selectAccount("acc-1");
-    useUiStore.getState().selectFeed("feed-1");
-    useUiStore.getState().selectArticle("art-1");
+  it(
+    "hides reading list action when platform does not support it",
+    async () => {
+      useUiStore.getState().selectAccount("acc-1");
+      useUiStore.getState().selectFeed("feed-1");
+      useUiStore.getState().selectArticle("art-1");
 
-    const user = userEvent.setup();
-    render(<ArticleView />, { wrapper: createWrapper() });
+      const user = userEvent.setup();
+      render(<ArticleView />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Share" }));
-    await screen.findByRole("menuitem", { name: "Copy link" });
+      await user.click(await screen.findByRole("button", { name: "Share" }, ciWaitOptions));
+      await screen.findByRole("menuitem", { name: "Copy link" }, ciWaitOptions);
 
-    expect(screen.queryByRole("menuitem", { name: "Add to Reading List" })).not.toBeInTheDocument();
-  });
+      expect(screen.queryByRole("menuitem", { name: "Add to Reading List" })).not.toBeInTheDocument();
+    },
+    readingListTestTimeout,
+  );
 
-  it("shows reading list action when platform supports it", async () => {
-    setReadingListPlatformSupport(true);
-    useUiStore.getState().selectAccount("acc-1");
-    useUiStore.getState().selectFeed("feed-1");
-    useUiStore.getState().selectArticle("art-1");
+  it(
+    "shows reading list action when platform supports it",
+    async () => {
+      setReadingListPlatformSupport(true);
+      useUiStore.getState().selectAccount("acc-1");
+      useUiStore.getState().selectFeed("feed-1");
+      useUiStore.getState().selectArticle("art-1");
 
-    const user = userEvent.setup();
-    render(<ArticleView />, { wrapper: createWrapper() });
+      const user = userEvent.setup();
+      render(<ArticleView />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Share" }));
-    await screen.findByRole("menuitem", { name: "Copy link" });
+      await user.click(await screen.findByRole("button", { name: "Share" }, ciWaitOptions));
+      await screen.findByRole("menuitem", { name: "Copy link" }, ciWaitOptions);
 
-    expect(await screen.findByRole("menuitem", { name: "Add to Reading List" })).toBeInTheDocument();
-  });
+      expect(await screen.findByRole("menuitem", { name: "Add to Reading List" }, ciWaitOptions)).toBeInTheDocument();
+    },
+    readingListTestTimeout,
+  );
 
-  it("does not invoke add to reading list from keyboard shortcut when unsupported", async () => {
-    const calls: MockCall[] = [];
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
+  it(
+    "does not invoke add to reading list from keyboard shortcut when unsupported",
+    async () => {
+      const calls: MockCall[] = [];
+      setupTauriMocks((cmd, args) => {
+        calls.push({ cmd, args });
 
-      switch (cmd) {
-        case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
-        case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
-        case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
-        case "list_tags":
-          return [
-            { id: "tag-1", name: "Later", color: null },
-            { id: "tag-2", name: "Important", color: "#ff0000" },
-          ];
-        case "get_article_tags":
-          return [{ id: "tag-1", name: "Later", color: null }];
-        case "add_to_reading_list":
-        case "update_feed_display_settings":
-          return null;
-        default:
-          return undefined;
-      }
-    });
+        switch (cmd) {
+          case "list_articles":
+            return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          case "list_account_articles":
+            return sampleArticles.filter((article) =>
+              sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+            );
+          case "list_feeds":
+            return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          case "list_tags":
+            return [
+              { id: "tag-1", name: "Later", color: null },
+              { id: "tag-2", name: "Important", color: "#ff0000" },
+            ];
+          case "get_article_tags":
+            return [{ id: "tag-1", name: "Later", color: null }];
+          case "add_to_reading_list":
+          case "update_feed_display_settings":
+            return null;
+          default:
+            return undefined;
+        }
+      });
 
-    useUiStore.getState().selectAccount("acc-1");
-    useUiStore.getState().selectFeed("feed-1");
-    useUiStore.getState().selectArticle("art-1");
+      useUiStore.getState().selectAccount("acc-1");
+      useUiStore.getState().selectFeed("feed-1");
+      useUiStore.getState().selectArticle("art-1");
 
-    render(<ArticleView />, { wrapper: createWrapper() });
+      render(<ArticleView />, { wrapper: createWrapper() });
 
-    await screen.findByRole("heading", { level: 1, name: "First Article" });
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Share" })).toBeEnabled();
-    });
+      await screen.findByRole("heading", { level: 1, name: "First Article" }, ciWaitOptions);
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Share" })).toBeEnabled();
+      }, ciWaitOptions);
 
-    calls.length = 0;
-    fireEvent(window, new Event(keyboardEvents.addToReadingList));
-    await new Promise((resolve) => setTimeout(resolve, 0));
+      calls.length = 0;
+      fireEvent(window, new Event(keyboardEvents.addToReadingList));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(calls).not.toContainEqual({
-      cmd: "add_to_reading_list",
-      args: { url: "https://example.com/1" },
-    });
-  });
-
-  it("invokes add to reading list from keyboard shortcut when supported", async () => {
-    const calls: MockCall[] = [];
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
-
-      switch (cmd) {
-        case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
-        case "list_account_articles":
-          return sampleArticles.filter((article) =>
-            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
-          );
-        case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
-        case "list_tags":
-          return [
-            { id: "tag-1", name: "Later", color: null },
-            { id: "tag-2", name: "Important", color: "#ff0000" },
-          ];
-        case "get_article_tags":
-          return [{ id: "tag-1", name: "Later", color: null }];
-        case "add_to_reading_list":
-        case "update_feed_display_settings":
-          return null;
-        default:
-          return undefined;
-      }
-    });
-    setReadingListPlatformSupport(true);
-    useUiStore.getState().selectAccount("acc-1");
-    useUiStore.getState().selectFeed("feed-1");
-    useUiStore.getState().selectArticle("art-1");
-
-    render(<ArticleView />, { wrapper: createWrapper() });
-
-    await screen.findByRole("heading", { level: 1, name: "First Article" });
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Share" })).toBeEnabled();
-    });
-
-    calls.length = 0;
-    fireEvent(window, new Event(keyboardEvents.addToReadingList));
-
-    await waitFor(() => {
-      expect(calls).toContainEqual({
+      expect(calls).not.toContainEqual({
         cmd: "add_to_reading_list",
         args: { url: "https://example.com/1" },
       });
-    });
-  });
+    },
+    readingListTestTimeout,
+  );
+
+  it(
+    "invokes add to reading list from keyboard shortcut when supported",
+    async () => {
+      const calls: MockCall[] = [];
+      setupTauriMocks((cmd, args) => {
+        calls.push({ cmd, args });
+
+        switch (cmd) {
+          case "list_articles":
+            return sampleArticles.filter((article) => article.feed_id === args.feedId);
+          case "list_account_articles":
+            return sampleArticles.filter((article) =>
+              sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+            );
+          case "list_feeds":
+            return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+          case "list_tags":
+            return [
+              { id: "tag-1", name: "Later", color: null },
+              { id: "tag-2", name: "Important", color: "#ff0000" },
+            ];
+          case "get_article_tags":
+            return [{ id: "tag-1", name: "Later", color: null }];
+          case "add_to_reading_list":
+          case "update_feed_display_settings":
+            return null;
+          default:
+            return undefined;
+        }
+      });
+      setReadingListPlatformSupport(true);
+      useUiStore.getState().selectAccount("acc-1");
+      useUiStore.getState().selectFeed("feed-1");
+      useUiStore.getState().selectArticle("art-1");
+
+      render(<ArticleView />, { wrapper: createWrapper() });
+
+      await screen.findByRole("heading", { level: 1, name: "First Article" }, ciWaitOptions);
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Share" })).toBeEnabled();
+      }, ciWaitOptions);
+
+      calls.length = 0;
+      fireEvent(window, new Event(keyboardEvents.addToReadingList));
+
+      await waitFor(() => {
+        expect(calls).toContainEqual({
+          cmd: "add_to_reading_list",
+          args: { url: "https://example.com/1" },
+        });
+      }, ciWaitOptions);
+    },
+    readingListTestTimeout,
+  );
 
   it("hides the share menu button when action_share_menu preference is false", async () => {
     usePreferencesStore.setState({ prefs: { action_share_menu: "false" }, loaded: true });
