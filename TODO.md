@@ -57,11 +57,12 @@
     - 候補箇所: `src/locales/ja/*.json`, `src/locales/en/*.json`
   - [x] ダークテーマで `color-scheme: dark` を明示し、ネイティブ UI の見え方を安定させる
     - 候補箇所: `src/styles/global.css`
-  - [ ] モバイル幅で 32px 前後に留まっている主要アイコンボタンのタップ領域を 44px 基準へ近づける
-    - 対象候補: 同期 / 追加 / サイドバー表示 / 検索 / 既読化 / 記事ツールバー / 設定の閉じる
-    - 候補箇所: `src/components/ui/button.tsx`, `src/components/ui/switch.tsx`, `src/components/shared/icon-toolbar-control.tsx`
-  - [ ] モバイルでアイコンのみの操作に依存している導線を見直す
-    - tooltip 前提になっている主要操作を、ラベル表示かメニュー集約で補う
+  - [x] モバイル幅で 32px 前後に留まっていた主要アイコンボタンのタップ領域を 44px 基準へ引き上げる
+    - 再現: `375x900` の browser mode で、同期 / 追加は `28x28px`、サイドバー表示 / 検索 / すべて既読は `32x32px` に留まっていた
+    - 対応: `button.tsx` の `icon` / `icon-sm` / `icon-xs` を mobile では `44px` にし、`md` 以上では従来サイズへ戻す
+  - [ ] モバイル向け UI を正式対応する段階で、アイコンのみ導線の見直しを再開する
+    - 現時点では mobile を主要提供面にしないため必須対応から外すが、狭い幅での discoverability 課題として保留する
+    - 対応する場合は tooltip 前提の主要操作を、ラベル表示かメニュー集約で補う
     - 候補箇所: `src/components/reader/sidebar-header-view.tsx`, `src/components/reader/article-list-header.tsx`, `src/components/reader/article-toolbar-view.tsx`
   - [x] `transition-all` を必要なプロパティだけに絞って、動きの意図を明確にする
     - 候補箇所: `src/components/ui/button.tsx`, `src/components/app-shell.tsx`
