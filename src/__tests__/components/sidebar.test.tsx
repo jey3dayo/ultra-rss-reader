@@ -497,6 +497,7 @@ describe("Sidebar", () => {
     await user.click(await screen.findByRole("button", { name: "Feed Cleanup" }));
 
     expect(useUiStore.getState().feedCleanupOpen).toBe(true);
+    expect(useUiStore.getState().focusedPane).toBe("content");
   });
 
   it("falls back away from hidden sidebar states, including viewMode-only flows", async () => {

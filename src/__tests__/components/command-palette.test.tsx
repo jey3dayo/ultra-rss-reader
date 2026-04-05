@@ -151,6 +151,19 @@ describe("CommandPalette", () => {
     });
   });
 
+  it("opens feed cleanup from the action list and closes the palette", async () => {
+    const user = userEvent.setup();
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("option", { name: /Feed Cleanup/ }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().feedCleanupOpen).toBe(true);
+      expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+    });
+  });
+
   it("shows the current configured shortcuts for palette actions", async () => {
     usePreferencesStore.setState({
       prefs: {

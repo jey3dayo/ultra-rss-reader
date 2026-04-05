@@ -135,6 +135,12 @@ describe("executeAction", () => {
       executeAction("open-add-feed");
       expect(useUiStore.getState().isAddFeedDialogOpen).toBe(true);
     });
+
+    it("opens the feed cleanup surface", () => {
+      executeAction("open-feed-cleanup");
+      expect(useUiStore.getState().feedCleanupOpen).toBe(true);
+      expect(useUiStore.getState().focusedPane).toBe("content");
+    });
   });
 
   describe("command palette actions", () => {
@@ -394,6 +400,7 @@ describe("executeAction", () => {
       expect(isAppAction("sync-all")).toBe(true);
       expect(isAppAction("set-filter-unread")).toBe(true);
       expect(isAppAction("open-command-palette")).toBe(true);
+      expect(isAppAction("open-feed-cleanup")).toBe(true);
     });
 
     it("returns false for unknown actions", () => {

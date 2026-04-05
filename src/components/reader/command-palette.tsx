@@ -139,6 +139,12 @@ export function CommandPalette() {
         icon: RssIcon,
       },
       {
+        id: "open-feed-cleanup",
+        label: tSidebar("feed_cleanup"),
+        keywords: ["feed", "cleanup", "management"],
+        icon: RssIcon,
+      },
+      {
         id: "sync-all",
         label: tSidebar("sync_feeds"),
         keywords: ["sync", "refresh"],

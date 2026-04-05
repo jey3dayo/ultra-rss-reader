@@ -5,6 +5,7 @@ export const DEV_SCENARIO_IDS = [
   "open-settings-reading",
   "open-settings-reading-display-mode",
   "open-add-feed-dialog",
+  "open-feed-cleanup",
   "sync-all-smoke",
 ] as const;
 

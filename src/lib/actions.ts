@@ -18,6 +18,7 @@ export type AppAction =
   | "open-settings-accounts"
   | "open-settings-accounts-add"
   | "open-add-feed"
+  | "open-feed-cleanup"
   | "open-command-palette"
   | "prev-article"
   | "next-article"
@@ -47,6 +48,7 @@ const appActions = new Set<string>([
   "open-settings-accounts",
   "open-settings-accounts-add",
   "open-add-feed",
+  "open-feed-cleanup",
   "open-command-palette",
   "prev-article",
   "next-article",
@@ -176,6 +178,9 @@ export function executeAction(action: AppAction): void {
       break;
     case "open-add-feed":
       store.openAddFeedDialog();
+      break;
+    case "open-feed-cleanup":
+      store.openFeedCleanup();
       break;
     case "open-command-palette":
       store.toggleCommandPalette();

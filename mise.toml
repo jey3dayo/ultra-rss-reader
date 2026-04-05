@@ -150,6 +150,11 @@ description = "Run native app in dev mode and jump into the image-viewer overlay
 env = { ULTRA_RSS_DEV_CREDENTIALS = "1", VITE_ULTRA_RSS_DEV_INTENT = "image-viewer-overlay" }
 run = "pnpm tauri dev -c src-tauri/tauri.dev.conf.json"
 
+[tasks."app:dev:feed-cleanup"]
+description = "Run native app in dev mode and jump into the feed cleanup page"
+env = { ULTRA_RSS_DEV_CREDENTIALS = "1", VITE_ULTRA_RSS_DEV_INTENT = "open-feed-cleanup" }
+run = "pnpm tauri dev -c src-tauri/tauri.dev.conf.json"
+
 [tasks."app:dev:image-viewer:debug"]
 description = "Run the image-viewer overlay dev flow with bounds diagnostics enabled"
 env = { ULTRA_RSS_DEV_CREDENTIALS = "1", VITE_ULTRA_RSS_DEV_INTENT = "image-viewer-overlay", VITE_ULTRA_RSS_DEV_BOUNDS_HUD = "1", ULTRA_RSS_DEBUG_BROWSER_BOUNDS = "1" }
@@ -183,6 +188,11 @@ run_windows = "echo app:open is macOS-only (expects /Applications, xattr, and op
 
 [tasks."app:dev:browser"]
 description = "Run frontend dev server for browser UI testing"
+run = "pnpm dev --host 127.0.0.1 --port 4173 --strictPort"
+
+[tasks."app:dev:browser:feed-cleanup"]
+description = "Run browser-mode UI testing and jump into the feed cleanup page"
+env = { VITE_ULTRA_RSS_DEV_INTENT = "open-feed-cleanup" }
 run = "pnpm dev --host 127.0.0.1 --port 4173 --strictPort"
 
 [tasks."app:build"]

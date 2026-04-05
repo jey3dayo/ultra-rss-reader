@@ -35,6 +35,7 @@ It supports local feeds and FreshRSS, stores data in SQLite, and keeps credentia
 - Review subscriptions that have not updated for a long time
 - Inspect why a feed is a candidate before deleting it
 - Use `Keep` or `Later` to clear the queue without unsubscribing immediately
+- For focused UI work, use `mise run app:dev:feed-cleanup` or `mise run app:dev:browser:feed-cleanup`
 
 ## Tech Stack
 
@@ -101,6 +102,8 @@ mise run test         # Vitest + cargo test
 mise run test:e2e     # Playwright browser-mode E2E tests
 mise run test:all     # Rust + Vitest + Playwright
 mise run test:live    # FreshRSS integration tests (requires .env credentials)
+mise run app:dev:feed-cleanup         # Launch the native app directly into Feed Cleanup
+mise run app:dev:browser:feed-cleanup # Launch browser-mode UI directly into Feed Cleanup
 ```
 
 Always run `mise run check` before committing.
