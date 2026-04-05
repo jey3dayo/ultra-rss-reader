@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { DeleteButton } from "@/components/shared/delete-button";
 
 export type AccountDangerZoneViewProps = {
   exportLabel: string;
@@ -33,15 +34,15 @@ export function AccountDangerZoneView({
 
       <div className="mt-2 border-t border-border pt-6">
         {!isConfirmingDelete ? (
-          <Button variant="destructive" onClick={onRequestDelete} className="text-sm">
+          <DeleteButton onClick={onRequestDelete} className="text-sm">
             {deleteLabel}
-          </Button>
+          </DeleteButton>
         ) : (
           <div className="flex items-center gap-3">
             <span className="text-sm text-destructive">{confirmDeleteLabel}</span>
-            <Button variant="destructive" size="sm" onClick={onConfirmDelete}>
+            <DeleteButton size="sm" onClick={onConfirmDelete}>
               {deleteLabel}
-            </Button>
+            </DeleteButton>
             <Button variant="outline" size="sm" onClick={onCancelDelete}>
               {cancelLabel}
             </Button>

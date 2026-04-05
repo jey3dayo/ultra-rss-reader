@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DestructiveConfirmDialogView } from "@/components/shared/destructive-confirm-dialog-view";
 
 export function UnsubscribeFeedDialogView({
   open,
@@ -20,21 +19,14 @@ export function UnsubscribeFeedDialogView({
   onConfirm: () => void;
 }) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
-        <p className="text-sm text-muted-foreground">{description}</p>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {cancelLabel}
-          </Button>
-          <Button variant="destructive" onClick={onConfirm}>
-            {confirmLabel}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <DestructiveConfirmDialogView
+      open={open}
+      title={title}
+      description={<p className="text-sm text-muted-foreground">{description}</p>}
+      cancelLabel={cancelLabel}
+      confirmLabel={confirmLabel}
+      onOpenChange={onOpenChange}
+      onConfirm={onConfirm}
+    />
   );
 }
