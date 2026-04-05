@@ -1,11 +1,12 @@
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
-import { ChevronDown, ListFilter, Settings } from "lucide-react";
+import { ListFilter, Settings } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { triggerSync } from "@/api/tauri-commands";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
+import { SidebarSectionToggle } from "@/components/shared/sidebar-section-toggle";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { APP_EVENTS } from "@/constants/events";
@@ -542,16 +543,11 @@ export function Sidebar() {
       <SmartViewsView views={visibleSmartViews} onSelectSmartView={selectSmartView} />
 
       <div className="px-2 py-2">
-        <button
-          type="button"
-          onClick={() => setIsFeedsSectionOpen((v) => !v)}
-          className="flex w-full items-center justify-between rounded-md px-2 py-1 text-sidebar-foreground transition-colors duration-150 hover:bg-sidebar-accent/35"
-        >
-          <span className="text-sm font-medium text-sidebar-foreground">{t("feeds")}</span>
-          <ChevronDown
-            className={cn("h-4 w-4 text-muted-foreground transition-transform", !isFeedsSectionOpen && "-rotate-90")}
-          />
-        </button>
+        <SidebarSectionToggle
+          label={t("feeds")}
+          isOpen={isFeedsSectionOpen}
+          onToggle={() => setIsFeedsSectionOpen((v) => !v)}
+        />
       </div>
 
       <ScrollArea className="flex-1">

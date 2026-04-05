@@ -1,5 +1,4 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
-import { Result } from "@praha/byethrow";
 import { ChevronDown, ChevronRight, GripVertical } from "lucide-react";
 import {
   type ReactNode,
@@ -9,8 +8,8 @@ import {
   useRef,
   useState,
 } from "react";
+import { FeedFavicon } from "@/components/shared/feed-favicon";
 import type { TriStateDisplayMode } from "@/lib/article-display";
-import { extractSiteHost } from "@/lib/feed";
 import { cn } from "@/lib/utils";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
@@ -119,44 +118,6 @@ export type FeedTreeViewProps = {
   onDropToUnfoldered?: () => void;
   onDragEnd?: () => void;
 };
-
-function FeedFavicon({
-  title,
-  url,
-  siteUrl,
-  grayscale,
-}: {
-  title: string;
-  url: string;
-  siteUrl: string;
-  grayscale: boolean;
-}) {
-  const [failed, setFailed] = useState(false);
-  let host: string | null = null;
-  Result.pipe(
-    extractSiteHost(siteUrl, url),
-    Result.inspect((h) => {
-      host = h;
-    }),
-  );
-
-  if (!host || failed) {
-    return (
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-muted text-[10px] font-bold text-muted-foreground">
-        {title.charAt(0).toUpperCase()}
-      </span>
-    );
-  }
-
-  return (
-    <img
-      src={`https://www.google.com/s2/favicons?domain=${host}&sz=32`}
-      alt=""
-      className={cn("h-4 w-4 shrink-0 rounded", grayscale && "grayscale")}
-      onError={() => setFailed(true)}
-    />
-  );
-}
 
 function DragHandle({
   feedTitle,
