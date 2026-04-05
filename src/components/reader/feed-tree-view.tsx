@@ -189,7 +189,7 @@ function DragHandle({
         onArm?.();
       }}
       className={cn(
-        "inline-flex h-6 w-6 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-sidebar-accent/40 hover:text-foreground focus-visible:opacity-100 active:cursor-grabbing group-hover/feed-row:opacity-100 group-focus-within/feed-row:opacity-100",
+        "inline-flex h-6 w-6 shrink-0 cursor-grab items-center justify-center rounded text-sidebar-foreground/40 opacity-0 transition-opacity hover:bg-sidebar-accent/40 hover:text-foreground focus-visible:opacity-100 active:cursor-grabbing group-hover/feed-row:opacity-100 group-focus-within/feed-row:opacity-100",
         isArmed && "bg-sidebar-accent/60 text-foreground opacity-100",
       )}
     >
@@ -366,7 +366,7 @@ function FolderSection({
         {renderFolderContextMenu?.(folder)}
       </ContextMenu.Root>
       {folder.isExpanded && (
-        <div className="space-y-0.5 pl-1">
+        <div className="mt-1 ml-2 space-y-1 border-l border-sidebar-border/35 pl-3">
           {folder.feeds.map((feed) => (
             <FeedRow
               key={feed.id}
@@ -644,7 +644,7 @@ export function FeedTreeView({
 
   return (
     <>
-      <div className="space-y-0.5 px-2">
+      <div className="space-y-1 px-2">
         {showUnfolderedDropZone ? (
           <UnfolderedDropZone
             enabled={canDragFeeds}
@@ -671,7 +671,7 @@ export function FeedTreeView({
           />
         ))}
         {hasUnfolderedFeeds && (
-          <div className="space-y-0.5">
+          <div className="space-y-1">
             {unfolderedFeeds.map((feed) => (
               <FeedRow
                 key={feed.id}

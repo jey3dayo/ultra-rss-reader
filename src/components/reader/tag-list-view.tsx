@@ -34,13 +34,17 @@ export function TagListView({
   return (
     <div>
       <div className="px-2 py-2">
-        <button type="button" onClick={onToggleOpen} className="flex w-full items-center justify-between px-2 py-1">
+        <button
+          type="button"
+          onClick={onToggleOpen}
+          className="flex w-full items-center justify-between rounded-md px-2 py-1 text-sidebar-foreground transition-colors duration-150 hover:bg-sidebar-accent/35"
+        >
           <span className="text-sm font-medium text-sidebar-foreground">{tagsLabel}</span>
           <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", !isOpen && "-rotate-90")} />
         </button>
       </div>
       {isOpen && (
-        <div className="space-y-0.5 px-2">
+        <div className="space-y-1 px-2">
           {tags.map((tag) => (
             <ContextMenu.Root key={tag.id}>
               <ContextMenu.Trigger

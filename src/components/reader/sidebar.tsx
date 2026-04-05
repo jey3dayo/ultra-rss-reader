@@ -545,7 +545,7 @@ export function Sidebar() {
         <button
           type="button"
           onClick={() => setIsFeedsSectionOpen((v) => !v)}
-          className="flex w-full items-center justify-between px-2 py-1"
+          className="flex w-full items-center justify-between rounded-md px-2 py-1 text-sidebar-foreground transition-colors duration-150 hover:bg-sidebar-accent/35"
         >
           <span className="text-sm font-medium text-sidebar-foreground">{t("feeds")}</span>
           <ChevronDown

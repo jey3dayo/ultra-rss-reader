@@ -30,16 +30,26 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
         ref={ref}
         type={type}
         className={cn(
-          "flex w-full items-center justify-between rounded-md px-2 text-sm",
+          "relative flex w-full items-center justify-between overflow-hidden rounded-md px-2 text-sm transition-[background-color,color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 focus-visible:ring-offset-0",
           size === "default" ? "py-2" : "py-1.5",
-          selected ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50",
+          selected
+            ? "bg-sidebar-accent/85 text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_hsl(var(--sidebar-border)/0.55)] before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-sidebar-primary"
+            : "text-sidebar-foreground hover:bg-sidebar-accent/55",
           className,
         )}
         {...props}
       >
         <span className={cn("flex min-w-0 items-center gap-2", contentClassName)}>{children}</span>
         {trailing ? (
-          <span className={cn("ml-2 shrink-0 text-muted-foreground", trailingClassName)}>{trailing}</span>
+          <span
+            className={cn(
+              "ml-3 shrink-0 text-[0.78rem] tabular-nums text-sidebar-foreground/45",
+              selected && "text-sidebar-accent-foreground/72",
+              trailingClassName,
+            )}
+          >
+            {trailing}
+          </span>
         ) : null}
       </button>
     );

@@ -17,7 +17,7 @@ export type SmartViewsViewProps = {
 
 export function SmartViewsView({ views, onSelectSmartView }: SmartViewsViewProps) {
   return (
-    <div className="space-y-0.5 px-2 py-1">
+    <div className="space-y-1 px-2 py-1.5">
       {views.map((view) => (
         <SidebarNavButton
           key={view.kind}
