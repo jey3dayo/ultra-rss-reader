@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button";
 import type { ReactNode } from "react";
 import type { FeedIntegrityIssueDto } from "@/api/schemas/feed-integrity";
 import { DeleteButton } from "@/components/shared/delete-button";
+import { Button } from "@/components/ui/button";
 import type {
   FeedCleanupCandidate,
   FeedCleanupReasonKey,
@@ -361,9 +361,7 @@ export function FeedCleanupPageView({
                     <p className="text-xs font-medium uppercase tracking-[0.16em] opacity-70">
                       {integrityDetailLabels.needs_repair_badge}
                     </p>
-                    <h4 className="mt-1 text-base font-semibold text-current">
-                      {integrityDetailLabels.needs_repair}
-                    </h4>
+                    <h4 className="mt-1 text-base font-semibold text-current">{integrityDetailLabels.needs_repair}</h4>
                     <p className="mt-3 text-sm text-current/80">{integrityDetailLabels.summary}</p>
                   </div>
 

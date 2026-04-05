@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
 import { DeleteButton } from "@/components/shared/delete-button";
+import { Button } from "@/components/ui/button";
 
 export type AccountDangerZoneViewProps = {
   exportLabel: string;

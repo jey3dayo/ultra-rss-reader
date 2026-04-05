@@ -898,9 +898,12 @@ mod tests {
         let feed_id = insert_test_feed(&db, &account_id);
         let repo = SqliteArticleRepository::new(db.writer());
 
-        repo.upsert(&[make_article(&feed_id, "Healthy Article")]).unwrap();
+        repo.upsert(&[make_article(&feed_id, "Healthy Article")])
+            .unwrap();
 
-        db.writer().execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
+        db.writer()
+            .execute_batch("PRAGMA foreign_keys = OFF;")
+            .unwrap();
         db.writer()
             .execute(
                 "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at)
@@ -924,7 +927,9 @@ mod tests {
                 ],
             )
             .unwrap();
-        db.writer().execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        db.writer()
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .unwrap();
 
         assert_eq!(repo.count_orphaned_articles().unwrap(), 1);
     }
@@ -936,9 +941,12 @@ mod tests {
         let feed_id = insert_test_feed(&db, &account_id);
         let repo = SqliteArticleRepository::new(db.writer());
 
-        repo.upsert(&[make_article(&feed_id, "Healthy Article")]).unwrap();
+        repo.upsert(&[make_article(&feed_id, "Healthy Article")])
+            .unwrap();
 
-        db.writer().execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
+        db.writer()
+            .execute_batch("PRAGMA foreign_keys = OFF;")
+            .unwrap();
         db.writer()
             .execute(
                 "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at)
@@ -985,7 +993,9 @@ mod tests {
                 ],
             )
             .unwrap();
-        db.writer().execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        db.writer()
+            .execute_batch("PRAGMA foreign_keys = ON;")
+            .unwrap();
 
         let groups = repo.list_orphaned_feed_groups().unwrap();
 

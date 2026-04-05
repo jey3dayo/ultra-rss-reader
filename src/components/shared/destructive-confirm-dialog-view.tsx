@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
+import { DeleteButton } from "@/components/shared/delete-button";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DeleteButton } from "@/components/shared/delete-button";
 
 export function DestructiveConfirmDialogView({
   open,

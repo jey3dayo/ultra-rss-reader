@@ -529,11 +529,12 @@ pub async fn trigger_sync_feed(
             .ok_or_else(|| AppError::UserVisible {
                 message: format!("Feed not found: {}", feed_id.as_ref()),
             })?;
-        let account = account_repo
-            .find_by_id(&feed.account_id)?
-            .ok_or_else(|| AppError::UserVisible {
-                message: format!("Account not found: {}", feed.account_id.as_ref()),
-            })?;
+        let account =
+            account_repo
+                .find_by_id(&feed.account_id)?
+                .ok_or_else(|| AppError::UserVisible {
+                    message: format!("Account not found: {}", feed.account_id.as_ref()),
+                })?;
         (account, feed)
     };
 
@@ -568,7 +569,11 @@ pub async fn trigger_sync_feed(
             reporter.emit_account_finished(&account, true);
         }
         Err(e) => {
-            warn!("Sync failed for feed '{}' ({}): {e}", feed.title, feed.id.as_ref());
+            warn!(
+                "Sync failed for feed '{}' ({}): {e}",
+                feed.title,
+                feed.id.as_ref()
+            );
             result.failed.push(AccountSyncError {
                 account_id: account.id.as_ref().to_string(),
                 account_name: account.name.clone(),

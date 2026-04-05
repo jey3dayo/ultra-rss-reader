@@ -21,10 +21,7 @@ function SlidingPaneLayout({
   if (feedCleanupOpen) {
     return (
       <div
-        className={cn(
-          "h-full overflow-hidden",
-          overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar",
-        )}
+        className={cn("h-full overflow-hidden", overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar")}
       >
         <ArticleView />
       </div>
@@ -88,9 +85,9 @@ export function AppLayout() {
   });
 
   if (layoutMode === "wide") {
-    const panes = (feedCleanupOpen ? ["sidebar", "content"] : resolveLayout(layoutMode, focusedPane, contentMode)).filter(
-      (pane) => pane !== "sidebar" || sidebarOpen,
-    );
+    const panes = (
+      feedCleanupOpen ? ["sidebar", "content"] : resolveLayout(layoutMode, focusedPane, contentMode)
+    ).filter((pane) => pane !== "sidebar" || sidebarOpen);
     return (
       <div
         className={cn(

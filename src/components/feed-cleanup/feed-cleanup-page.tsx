@@ -4,13 +4,13 @@ import { useAccountArticles, useFeedIntegrityReport } from "@/hooks/use-articles
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
+import { readDevIntent } from "@/lib/dev-intent";
 import {
   buildFeedCleanupCandidates,
-  summarizeCleanupCandidate,
   type FeedCleanupCandidate,
   type FeedCleanupReasonKey,
+  summarizeCleanupCandidate,
 } from "@/lib/feed-cleanup";
-import { readDevIntent } from "@/lib/dev-intent";
 import { useUiStore } from "@/stores/ui-store";
 import { FeedCleanupDeleteDialog } from "./feed-cleanup-delete-dialog";
 import { FeedCleanupFeedEditor } from "./feed-cleanup-feed-editor";
@@ -202,8 +202,7 @@ export function FeedCleanupPage() {
                 body: t("integrity_orphaned_articles", {
                   count: integrityReport?.orphaned_article_count ?? 0,
                 }),
-                actionLabel:
-                  queueMode === "integrity" ? t("show_cleanup_queue") : t("show_broken_references"),
+                actionLabel: queueMode === "integrity" ? t("show_cleanup_queue") : t("show_broken_references"),
               }
             : null
         }
