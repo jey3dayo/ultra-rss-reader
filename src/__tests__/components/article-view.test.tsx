@@ -14,26 +14,30 @@ type MockCall = {
   args: Record<string, unknown>;
 };
 
+function setReadingListPlatformSupport(enabled: boolean) {
+  usePlatformStore.setState({
+    platform: {
+      kind: enabled ? "macos" : "windows",
+      capabilities: {
+        supports_reading_list: enabled,
+        supports_background_browser_open: false,
+        supports_runtime_window_icon_replacement: true,
+        supports_native_browser_navigation: true,
+        uses_dev_file_credentials: false,
+      },
+    },
+    loaded: true,
+    loadError: false,
+    inFlightLoad: null,
+  });
+}
+
 describe("ArticleView", () => {
   beforeEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: false });
     usePlatformStore.setState(usePlatformStore.getInitialState());
-    usePlatformStore.setState({
-      platform: {
-        kind: "windows",
-        capabilities: {
-          supports_reading_list: false,
-          supports_background_browser_open: false,
-          supports_runtime_window_icon_replacement: true,
-          supports_native_browser_navigation: true,
-          uses_dev_file_credentials: false,
-        },
-      },
-      loaded: true,
-      loadError: false,
-      inFlightLoad: null,
-    });
+    setReadingListPlatformSupport(false);
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_articles":
@@ -951,27 +955,13 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     await user.click(await screen.findByRole("button", { name: "Share" }));
-    await screen.findByText("Copy link");
+    await screen.findByRole("menuitem", { name: "Copy link" });
 
-    expect(screen.queryByText("Add to Reading List")).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Add to Reading List" })).not.toBeInTheDocument();
   });
 
   it("shows reading list action when platform supports it", async () => {
-    usePlatformStore.setState({
-      platform: {
-        kind: "macos",
-        capabilities: {
-          supports_reading_list: true,
-          supports_background_browser_open: false,
-          supports_runtime_window_icon_replacement: true,
-          supports_native_browser_navigation: true,
-          uses_dev_file_credentials: false,
-        },
-      },
-      loaded: true,
-      loadError: false,
-      inFlightLoad: null,
-    });
+    setReadingListPlatformSupport(true);
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
@@ -980,8 +970,9 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     await user.click(await screen.findByRole("button", { name: "Share" }));
+    await screen.findByRole("menuitem", { name: "Copy link" });
 
-    expect(await screen.findByText("Add to Reading List")).toBeInTheDocument();
+    expect(await screen.findByRole("menuitem", { name: "Add to Reading List" })).toBeInTheDocument();
   });
 
   it("does not invoke add to reading list from keyboard shortcut when unsupported", async () => {
@@ -1020,9 +1011,12 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Share" })).toBeEnabled();
+    });
 
     calls.length = 0;
-    window.dispatchEvent(new Event(keyboardEvents.addToReadingList));
+    fireEvent(window, new Event(keyboardEvents.addToReadingList));
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(calls).not.toContainEqual({
@@ -1059,21 +1053,7 @@ describe("ArticleView", () => {
           return undefined;
       }
     });
-    usePlatformStore.setState({
-      platform: {
-        kind: "macos",
-        capabilities: {
-          supports_reading_list: true,
-          supports_background_browser_open: false,
-          supports_runtime_window_icon_replacement: true,
-          supports_native_browser_navigation: true,
-          uses_dev_file_credentials: false,
-        },
-      },
-      loaded: true,
-      loadError: false,
-      inFlightLoad: null,
-    });
+    setReadingListPlatformSupport(true);
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
@@ -1081,9 +1061,12 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Share" })).toBeEnabled();
+    });
 
     calls.length = 0;
-    window.dispatchEvent(new Event(keyboardEvents.addToReadingList));
+    fireEvent(window, new Event(keyboardEvents.addToReadingList));
 
     await waitFor(() => {
       expect(calls).toContainEqual({

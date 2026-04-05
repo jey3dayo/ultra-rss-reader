@@ -34,8 +34,17 @@ where
         return None;
     }
 
-    let preferred_path = dev_credentials_dir_for_kind_from_env(info.kind, |key| get_env(key))?
-        .join("dev-credentials.json");
+    let preferred_dir = dev_credentials_dir_for_kind_from_env(info.kind, |key| get_env(key))?;
+    let preferred_path = match info.kind {
+        PlatformKind::Windows => join_platform_path(
+            info.kind,
+            preferred_dir.to_string_lossy().as_ref(),
+            &["dev-credentials.json"],
+        ),
+        PlatformKind::Macos | PlatformKind::Linux | PlatformKind::Unknown => {
+            preferred_dir.join("dev-credentials.json")
+        }
+    };
     if info.kind == PlatformKind::Windows {
         return Some(preferred_path);
     }
