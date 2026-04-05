@@ -102,18 +102,18 @@ describe("ArticleList", () => {
     const user = userEvent.setup();
     render(<ArticleList />, { wrapper: createWrapper() });
 
-    const displayPresetSelect = await screen.findByRole("combobox", { name: "Display Mode" });
-    expect(displayPresetSelect).toHaveTextContent("Default");
+    const displayPresetSelect = await screen.findByRole("combobox", { name: "Article display" });
+    expect(displayPresetSelect).toHaveTextContent("Use default");
 
     await user.click(displayPresetSelect);
-    await user.click(await screen.findByRole("option", { name: "Preview" }));
+    await user.click(await screen.findByRole("option", { name: "Web Preview" }));
 
     await waitFor(() => {
       expect(commands).toContainEqual({
         cmd: "update_feed_display_settings",
         args: { feedId: "feed-1", readerMode: "on", webPreviewMode: "on" },
       });
-      expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Preview");
+      expect(screen.getByRole("combobox", { name: "Article display" })).toHaveTextContent("Web Preview");
     });
   });
 

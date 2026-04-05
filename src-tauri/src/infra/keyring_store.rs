@@ -60,27 +60,29 @@ where
     match kind {
         PlatformKind::Windows => {
             if let Some(local_app_data) = get_env("LOCALAPPDATA") {
-                return Some(PathBuf::from(local_app_data).join("ultra-rss-reader"));
+                return Some(join_platform_path(
+                    kind,
+                    &local_app_data,
+                    &["ultra-rss-reader"],
+                ));
             }
 
             if let Some(user_profile) = get_env("USERPROFILE") {
-                return Some(
-                    PathBuf::from(user_profile)
-                        .join("AppData")
-                        .join("Local")
-                        .join("ultra-rss-reader"),
-                );
+                return Some(join_platform_path(
+                    kind,
+                    &user_profile,
+                    &["AppData", "Local", "ultra-rss-reader"],
+                ));
             }
 
             let home_drive = get_env("HOMEDRIVE");
             let home_path = get_env("HOMEPATH");
             if let (Some(home_drive), Some(home_path)) = (home_drive, home_path) {
-                return Some(
-                    PathBuf::from(format!("{home_drive}{home_path}"))
-                        .join("AppData")
-                        .join("Local")
-                        .join("ultra-rss-reader"),
-                );
+                return Some(join_platform_path(
+                    kind,
+                    &format!("{home_drive}{home_path}"),
+                    &["AppData", "Local", "ultra-rss-reader"],
+                ));
             }
         }
         PlatformKind::Macos | PlatformKind::Linux | PlatformKind::Unknown => {
@@ -97,6 +99,28 @@ where
             .join("share")
             .join("ultra-rss-reader"),
     )
+}
+
+fn join_platform_path(kind: PlatformKind, base: &str, segments: &[&str]) -> PathBuf {
+    match kind {
+        PlatformKind::Windows => {
+            let mut path = base.trim_end_matches(['\\', '/']).to_string();
+            for segment in segments {
+                if !path.is_empty() && !path.ends_with(['\\', '/']) {
+                    path.push('\\');
+                }
+                path.push_str(segment.trim_matches(['\\', '/']));
+            }
+            PathBuf::from(path)
+        }
+        PlatformKind::Macos | PlatformKind::Linux | PlatformKind::Unknown => {
+            let mut path = PathBuf::from(base);
+            for segment in segments {
+                path.push(segment);
+            }
+            path
+        }
+    }
 }
 
 fn legacy_dev_credentials_path_from_env<F>(get_env: F) -> Option<PathBuf>

@@ -3,3 +3,7 @@ src-tauri/gen/schemas/*.json binary
 
 # Lock files — hide from GitHub PR diffs but keep text merge
 src-tauri/Cargo.lock linguist-generated=true
+
+# Keep GitHub workflow/config YAML on LF so Windows yamllint matches CI expectations
+*.yml text eol=lf
+*.yaml text eol=lf

@@ -316,15 +316,15 @@ describe("FeedCleanupPage", () => {
     expect(screen.getByRole("button", { name: "Refetch feed" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Unsubscribe" })).toHaveAttribute("data-delete-button");
     expect(screen.getByLabelText("Title")).toHaveValue("Old Product Blog");
-    expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Default display mode");
+    expect(screen.getByRole("combobox", { name: "Article display" })).toHaveTextContent("Use default");
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("Work");
     expect(screen.getByLabelText("Website URL")).toHaveValue("https://example.com/old");
     expect(screen.getByLabelText("Feed URL")).toHaveValue("https://example.com/old.xml");
 
     await user.clear(screen.getByLabelText("Title"));
     await user.type(screen.getByLabelText("Title"), "Archived Product Blog");
-    await user.click(screen.getByRole("combobox", { name: "Display Mode" }));
-    await user.click(await screen.findByText("Preview"));
+    await user.click(screen.getByRole("combobox", { name: "Article display" }));
+    await user.click(await screen.findByText("Web Preview"));
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => {
