@@ -4,6 +4,27 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-04-06
+
+### Features
+
+- フィード整理画面に broken references の surfacing を追加し、孤立記事や参照切れの修復導線を強化した
+- フィード単位で同期を再実行できる refetch command を追加した
+- feed cleanup 用の dev launch intent を追加し、検証導線を増やした
+- フィード整理画面と編集 UI を追加し、メンテナンス導線をアプリ内へ統合した
+
+### Bug Fixes
+
+- 主要導線の `Webプレビュー` 用語を整理し、reader / browser 表記の混在を解消した
+- Webプレビュー中のコンテキスト表示と close 責務を明確にし、記事 close と混同しにくくした
+- sidebar の選択状態を強め、現在地が分かりやすい見た目へ調整した
+- モバイル幅で主要アイコンボタンの hit area を 44px 基準へ引き上げた
+
+### Maintenance
+
+- sidebar 共通部品を shared へ抽出し、favicon と section toggle の重複を整理した
+- destructive action 周りの shared UI を標準化した
+
 ## [0.7.0] - 2026-04-05
 
 ### Features
