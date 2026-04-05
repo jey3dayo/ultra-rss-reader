@@ -10,12 +10,14 @@ import {
   type FeedCleanupCandidate,
   type FeedCleanupReasonKey,
 } from "@/lib/feed-cleanup";
+import { readDevIntent } from "@/lib/dev-intent";
 import { useUiStore } from "@/stores/ui-store";
 import { FeedCleanupDeleteDialog } from "./feed-cleanup-delete-dialog";
 import { FeedCleanupFeedEditor } from "./feed-cleanup-feed-editor";
 import { FeedCleanupPageView } from "./feed-cleanup-page-view";
 
 type FilterKey = "stale_90d" | "no_unread" | "no_stars";
+type QueueMode = "cleanup" | "integrity";
 
 function candidateMatchesFilters(candidate: FeedCleanupCandidate, activeFilters: ReadonlySet<FilterKey>) {
   if (activeFilters.size === 0) {
@@ -44,6 +46,9 @@ export function FeedCleanupPage() {
   const [selectedFeedId, setSelectedFeedId] = useState<string | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [editingFeedId, setEditingFeedId] = useState<string | null>(null);
+  const [queueMode, setQueueMode] = useState<QueueMode>("cleanup");
+  const [selectedIntegrityFeedId, setSelectedIntegrityFeedId] = useState<string | null>(null);
+  const devIntent = readDevIntent();
 
   const hiddenFeedIds = useMemo(() => {
     const hidden = new Set(keptFeedIds);
@@ -89,8 +94,40 @@ export function FeedCleanupPage() {
 
   const selectedCandidate = visibleCandidates.find((candidate) => candidate.feedId === selectedFeedId) ?? null;
   const selectedFeed = feeds.find((feed) => feed.id === selectedFeedId) ?? null;
+  const integrityIssues = integrityReport?.orphaned_feeds ?? [];
+  const selectedIntegrityIssue =
+    integrityIssues.find((issue) => issue.missing_feed_id === selectedIntegrityFeedId) ?? integrityIssues[0] ?? null;
   const deleteTarget =
     deleteTargetId == null ? null : (allCandidates.find((candidate) => candidate.feedId === deleteTargetId) ?? null);
+
+  useEffect(() => {
+    if (queueMode !== "integrity") {
+      return;
+    }
+
+    if (integrityIssues.some((issue) => issue.missing_feed_id === selectedIntegrityFeedId)) {
+      return;
+    }
+
+    setSelectedIntegrityFeedId(integrityIssues[0]?.missing_feed_id ?? null);
+  }, [integrityIssues, queueMode, selectedIntegrityFeedId]);
+
+  useEffect(() => {
+    if (!feedCleanupOpen) {
+      return;
+    }
+
+    if (devIntent !== "open-feed-cleanup-broken-references") {
+      return;
+    }
+
+    if (integrityIssues.length === 0) {
+      return;
+    }
+
+    setQueueMode("integrity");
+    setEditingFeedId(null);
+  }, [devIntent, feedCleanupOpen, integrityIssues.length]);
 
   useEffect(() => {
     if (!selectedFeedId || editingFeedId === selectedFeedId) {
@@ -165,9 +202,29 @@ export function FeedCleanupPage() {
                 body: t("integrity_orphaned_articles", {
                   count: integrityReport?.orphaned_article_count ?? 0,
                 }),
+                actionLabel:
+                  queueMode === "integrity" ? t("show_cleanup_queue") : t("show_broken_references"),
               }
             : null
         }
+        integrityMode={queueMode === "integrity"}
+        integrityQueueLabel={t("integrity_queue")}
+        integrityEmptyLabel={t("integrity_empty")}
+        integrityIssues={integrityIssues}
+        selectedIntegrityIssue={selectedIntegrityIssue}
+        integrityDetailLabels={{
+          missing_feed_id: t("integrity_missing_feed_id"),
+          article_count: t("integrity_article_count"),
+          latest_article: t("integrity_latest_article"),
+          latest_published_at: t("integrity_latest_published_at"),
+          needs_repair: t("integrity_needs_repair"),
+          needs_repair_badge: t("integrity_needs_repair_badge"),
+          summary: t("integrity_issue_summary", { count: selectedIntegrityIssue?.article_count ?? 0 }),
+          unknown_article: t("integrity_unknown_article"),
+          queue_item_title: t("integrity_queue_item_title"),
+          queue_item_articles_label: t("integrity_queue_item_articles_label"),
+          filter_note: t("integrity_filter_note"),
+        }}
         filterOptions={filterOptions}
         filterCounts={filterCounts}
         activeFilterKeys={activeFilters}
@@ -207,6 +264,10 @@ export function FeedCleanupPage() {
           healthy_feed: t("candidate_summary_healthy_feed"),
         }}
         onClose={() => closeFeedCleanup()}
+        onToggleIntegrityMode={() => {
+          setQueueMode((current) => (current === "integrity" ? "cleanup" : "integrity"));
+          setEditingFeedId(null);
+        }}
         onToggleFilter={(key) => {
           setActiveFilters((current) => {
             const next = new Set(current);
@@ -220,6 +281,7 @@ export function FeedCleanupPage() {
         }}
         onToggleShowDeferred={() => setShowDeferred((current) => !current)}
         onSelectCandidate={setSelectedFeedId}
+        onSelectIntegrityIssue={(missingFeedId) => setSelectedIntegrityFeedId(missingFeedId)}
         editing={selectedFeed != null && editingFeedId === selectedFeed.id}
         editor={
           selectedFeed != null && editingFeedId === selectedFeed.id ? (

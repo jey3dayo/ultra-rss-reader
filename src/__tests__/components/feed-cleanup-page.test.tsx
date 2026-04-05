@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FeedCleanupPage } from "@/components/feed-cleanup/feed-cleanup-page";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -34,7 +34,15 @@ describe("FeedCleanupPage", () => {
     is_starred: boolean;
   }>;
   let deleteShouldFail: boolean;
-  let integrityReport: { orphaned_article_count: number };
+  let integrityReport: {
+    orphaned_article_count: number;
+    orphaned_feeds: Array<{
+      missing_feed_id: string;
+      article_count: number;
+      latest_article_title: string | null;
+      latest_article_published_at: string | null;
+    }>;
+  };
 
   beforeEach(() => {
     calls = [];
@@ -91,7 +99,7 @@ describe("FeedCleanupPage", () => {
       },
     ];
     deleteShouldFail = false;
-    integrityReport = { orphaned_article_count: 0 };
+    integrityReport = { orphaned_article_count: 0, orphaned_feeds: [] };
 
     useUiStore.setState({
       ...useUiStore.getInitialState(),
@@ -149,12 +157,17 @@ describe("FeedCleanupPage", () => {
     });
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("filters candidates, updates the review panel, and deletes a confirmed feed", async () => {
     const user = userEvent.setup();
 
     render(<FeedCleanupPage />, { wrapper: createWrapper() });
 
     expect(await screen.findByRole("heading", { name: "Feed Cleanup" })).toBeInTheDocument();
+    expect(screen.getByTestId("feed-cleanup-page")).toHaveClass("h-dvh");
     expect(await screen.findByText("2 candidates")).toBeInTheDocument();
     expect(await screen.findByText("1 review now")).toBeInTheDocument();
     expect(await screen.findByText("0 deferred")).toBeInTheDocument();
@@ -221,13 +234,73 @@ describe("FeedCleanupPage", () => {
   });
 
   it("surfaces broken feed references in the management summary", async () => {
-    integrityReport = { orphaned_article_count: 1 };
+    integrityReport = {
+      orphaned_article_count: 1,
+      orphaned_feeds: [
+        {
+          missing_feed_id: "missing-feed",
+          article_count: 1,
+          latest_article_title: "Broken article",
+          latest_article_published_at: "2026-03-31T10:00:00Z",
+        },
+      ],
+    };
 
     render(<FeedCleanupPage />, { wrapper: createWrapper() });
 
     expect(await screen.findByText("Integrity issues")).toBeInTheDocument();
     expect(await screen.findByText("1 broken reference")).toBeInTheDocument();
     expect(await screen.findByText("1 article is pointing to a missing feed.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show broken references" })).toBeInTheDocument();
+  });
+
+  it("switches the queue to broken references when requested", async () => {
+    const user = userEvent.setup();
+    integrityReport = {
+      orphaned_article_count: 2,
+      orphaned_feeds: [
+        {
+          missing_feed_id: "missing-feed",
+          article_count: 2,
+          latest_article_title: "Broken article",
+          latest_article_published_at: "2026-03-31T10:00:00Z",
+        },
+      ],
+    };
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Show broken references" }));
+
+    expect(screen.getByRole("heading", { name: "Broken references" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Missing feed: missing-feed" })).toBeInTheDocument();
+    expect(screen.getAllByText("Needs repair before cleanup").length).toBeGreaterThan(0);
+    expect(screen.getByText("2 articles are pointing at this missing feed.")).toBeInTheDocument();
+    expect(screen.getByText("Cleanup filters are hidden while you review broken references.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "90+ days inactive 1" })).not.toBeInTheDocument();
+  });
+
+  it("opens directly in broken references mode for the dedicated dev intent", async () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "open-feed-cleanup-broken-references");
+    integrityReport = {
+      orphaned_article_count: 2,
+      orphaned_feeds: [
+        {
+          missing_feed_id: "ghost-feed-001",
+          article_count: 2,
+          latest_article_title: "Broken article",
+          latest_article_published_at: "2026-03-31T10:00:00Z",
+        },
+      ],
+    };
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("heading", { name: "Broken references" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Missing feed: ghost-feed-001" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show cleanup queue" })).toBeInTheDocument();
+    expect(screen.getByText("Cleanup filters are hidden while you review broken references.")).toBeInTheDocument();
   });
 
   it("opens the inline editor and saves edited feed details", async () => {

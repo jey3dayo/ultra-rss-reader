@@ -182,8 +182,17 @@ pub struct ArticleDto {
 }
 
 #[derive(Debug, Serialize)]
+pub struct FeedIntegrityIssueDto {
+    pub missing_feed_id: String,
+    pub article_count: i64,
+    pub latest_article_title: Option<String>,
+    pub latest_article_published_at: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
 pub struct FeedIntegrityReportDto {
     pub orphaned_article_count: i64,
+    pub orphaned_feeds: Vec<FeedIntegrityIssueDto>,
 }
 
 #[derive(Debug, Serialize)]

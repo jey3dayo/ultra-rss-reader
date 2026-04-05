@@ -10,6 +10,14 @@ pub struct SqliteArticleRepository<'a> {
     conn: &'a Connection,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OrphanedFeedGroup {
+    pub missing_feed_id: String,
+    pub article_count: i64,
+    pub latest_article_title: Option<String>,
+    pub latest_article_published_at: Option<String>,
+}
+
 impl<'a> SqliteArticleRepository<'a> {
     pub fn new(conn: &'a Connection) -> Self {
         Self { conn }
@@ -25,6 +33,44 @@ impl<'a> SqliteArticleRepository<'a> {
             |row| row.get(0),
         )?;
         Ok(count)
+    }
+
+    pub fn list_orphaned_feed_groups(&self) -> DomainResult<Vec<OrphanedFeedGroup>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT
+                a.feed_id,
+                COUNT(*) AS article_count,
+                (
+                    SELECT a2.title
+                    FROM articles a2
+                    WHERE a2.feed_id = a.feed_id
+                    ORDER BY a2.published_at DESC, a2.fetched_at DESC, a2.id DESC
+                    LIMIT 1
+                ) AS latest_article_title,
+                (
+                    SELECT a2.published_at
+                    FROM articles a2
+                    WHERE a2.feed_id = a.feed_id
+                    ORDER BY a2.published_at DESC, a2.fetched_at DESC, a2.id DESC
+                    LIMIT 1
+                ) AS latest_article_published_at
+            FROM articles a
+            LEFT JOIN feeds f ON a.feed_id = f.id
+            WHERE f.id IS NULL
+            GROUP BY a.feed_id
+            ORDER BY article_count DESC, latest_article_published_at DESC, a.feed_id ASC",
+        )?;
+        let groups = stmt
+            .query_map([], |row| {
+                Ok(OrphanedFeedGroup {
+                    missing_feed_id: row.get(0)?,
+                    article_count: row.get(1)?,
+                    latest_article_title: row.get(2)?,
+                    latest_article_published_at: row.get(3)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(groups)
     }
 }
 
@@ -881,5 +927,76 @@ mod tests {
         db.writer().execute_batch("PRAGMA foreign_keys = ON;").unwrap();
 
         assert_eq!(repo.count_orphaned_articles().unwrap(), 1);
+    }
+
+    #[test]
+    fn list_orphaned_feed_groups_returns_grouped_details() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        repo.upsert(&[make_article(&feed_id, "Healthy Article")]).unwrap();
+
+        db.writer().execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+                params![
+                    "orphan-article-1",
+                    "missing-feed",
+                    Option::<String>::None,
+                    "Broken Latest",
+                    "",
+                    "",
+                    1,
+                    Option::<String>::None,
+                    Option::<String>::None,
+                    Option::<String>::None,
+                    "2026-04-02T00:00:00Z",
+                    Option::<String>::None,
+                    false,
+                    false,
+                    "2026-04-02T00:00:00Z"
+                ],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+                params![
+                    "orphan-article-2",
+                    "missing-feed",
+                    Option::<String>::None,
+                    "Broken Older",
+                    "",
+                    "",
+                    1,
+                    Option::<String>::None,
+                    Option::<String>::None,
+                    Option::<String>::None,
+                    "2026-04-01T00:00:00Z",
+                    Option::<String>::None,
+                    false,
+                    false,
+                    "2026-04-01T00:00:00Z"
+                ],
+            )
+            .unwrap();
+        db.writer().execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+
+        let groups = repo.list_orphaned_feed_groups().unwrap();
+
+        assert_eq!(
+            groups,
+            vec![OrphanedFeedGroup {
+                missing_feed_id: "missing-feed".to_string(),
+                article_count: 2,
+                latest_article_title: Some("Broken Latest".to_string()),
+                latest_article_published_at: Some("2026-04-02T00:00:00Z".to_string()),
+            }]
+        );
     }
 }

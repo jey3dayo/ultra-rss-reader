@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import type { ReactNode } from "react";
+import type { FeedIntegrityIssueDto } from "@/api/schemas/feed-integrity";
 import { DeleteButton } from "@/components/shared/delete-button";
 import type {
   FeedCleanupCandidate,
@@ -37,6 +38,12 @@ export function FeedCleanupPageView({
   reviewLabel,
   summaryCards,
   integrityIssue,
+  integrityMode,
+  integrityQueueLabel,
+  integrityEmptyLabel,
+  integrityIssues,
+  selectedIntegrityIssue,
+  integrityDetailLabels,
   filterOptions,
   filterCounts,
   activeFilterKeys,
@@ -64,9 +71,11 @@ export function FeedCleanupPageView({
   editing,
   editor,
   onClose,
+  onToggleIntegrityMode,
   onToggleFilter,
   onToggleShowDeferred,
   onSelectCandidate,
+  onSelectIntegrityIssue,
   onEdit,
   onKeep,
   onLater,
@@ -86,7 +95,26 @@ export function FeedCleanupPageView({
   integrityIssue: {
     title: string;
     body: string;
+    actionLabel: string;
   } | null;
+  integrityMode: boolean;
+  integrityQueueLabel: string;
+  integrityEmptyLabel: string;
+  integrityIssues: FeedIntegrityIssueDto[];
+  selectedIntegrityIssue: FeedIntegrityIssueDto | null;
+  integrityDetailLabels: {
+    missing_feed_id: string;
+    article_count: string;
+    latest_article: string;
+    latest_published_at: string;
+    needs_repair: string;
+    needs_repair_badge: string;
+    summary: string;
+    unknown_article: string;
+    queue_item_title: string;
+    queue_item_articles_label: string;
+    filter_note: string;
+  };
   filterOptions: FilterOption[];
   filterCounts: Record<FilterOption["key"], number>;
   activeFilterKeys: Set<FilterOption["key"]>;
@@ -118,9 +146,11 @@ export function FeedCleanupPageView({
   editing: boolean;
   editor: ReactNode;
   onClose: () => void;
+  onToggleIntegrityMode: () => void;
   onToggleFilter: (key: FilterOption["key"]) => void;
   onToggleShowDeferred: () => void;
   onSelectCandidate: (candidateId: string) => void;
+  onSelectIntegrityIssue: (missingFeedId: string) => void;
   onEdit: () => void;
   onKeep: () => void;
   onLater: () => void;
@@ -134,7 +164,10 @@ export function FeedCleanupPageView({
         : "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100";
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background">
+    <div
+      data-testid="feed-cleanup-page"
+      className="flex h-dvh max-h-dvh min-h-0 flex-1 flex-col overflow-hidden bg-background"
+    >
       <div className="border-b border-border px-6 py-5">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -164,6 +197,9 @@ export function FeedCleanupPageView({
           <div className="rounded-2xl border border-amber-200/80 bg-background/80 px-4 py-3 dark:border-amber-500/30 dark:bg-background/20">
             <p className="text-sm font-semibold">{integrityIssue.title}</p>
             <p className="mt-1 text-sm opacity-80">{integrityIssue.body}</p>
+            <Button variant="outline" className="mt-3" onClick={onToggleIntegrityMode}>
+              {integrityIssue.actionLabel}
+            </Button>
           </div>
         </div>
       ) : null}
@@ -171,35 +207,72 @@ export function FeedCleanupPageView({
       <div className="grid min-h-0 flex-1 overflow-hidden gap-0 lg:grid-cols-[240px_minmax(0,1fr)_340px]">
         <section className="min-h-0 overflow-hidden border-r border-border bg-sidebar/60 px-4 py-4">
           <h3 className="mb-3 text-sm font-semibold">{filtersLabel}</h3>
-          <div className="flex flex-wrap gap-2">
-            {filterOptions.map((filter) => (
+          {integrityMode ? (
+            <div className="rounded-2xl border border-amber-200/70 bg-amber-50/70 px-4 py-3 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+              {integrityDetailLabels.filter_note}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {filterOptions.map((filter) => (
+                <Button
+                  key={filter.key}
+                  variant={activeFilterKeys.has(filter.key) ? "secondary" : "ghost"}
+                  className="justify-between rounded-full border px-3"
+                  aria-label={`${filter.label} ${filterCounts[filter.key]}`}
+                  onClick={() => onToggleFilter(filter.key)}
+                >
+                  <span>{filter.label}</span>
+                  <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground">
+                    {filterCounts[filter.key]}
+                  </span>
+                </Button>
+              ))}
               <Button
-                key={filter.key}
-                variant={activeFilterKeys.has(filter.key) ? "secondary" : "ghost"}
-                className="justify-between rounded-full border px-3"
-                aria-label={`${filter.label} ${filterCounts[filter.key]}`}
-                onClick={() => onToggleFilter(filter.key)}
+                variant={showDeferred ? "secondary" : "ghost"}
+                className="w-full justify-start rounded-full border px-3"
+                onClick={onToggleShowDeferred}
               >
-                <span>{filter.label}</span>
-                <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground">
-                  {filterCounts[filter.key]}
-                </span>
+                {showDeferredLabel}
               </Button>
-            ))}
-            <Button
-              variant={showDeferred ? "secondary" : "ghost"}
-              className="w-full justify-start rounded-full border px-3"
-              onClick={onToggleShowDeferred}
-            >
-              {showDeferredLabel}
-            </Button>
-          </div>
+            </div>
+          )}
         </section>
 
         <section className="min-h-0 overflow-hidden border-r border-border px-4 py-4">
-          <h3 className="mb-3 text-sm font-semibold">{queueLabel}</h3>
+          <h3 className="mb-3 text-sm font-semibold">{integrityMode ? integrityQueueLabel : queueLabel}</h3>
           <div className="h-[calc(100%-2rem)] space-y-2 overflow-y-auto pr-1">
-            {queue.length === 0 ? (
+            {integrityMode ? (
+              integrityIssues.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+                  {integrityEmptyLabel}
+                </p>
+              ) : (
+                integrityIssues.map((issue) => (
+                  <button
+                    key={issue.missing_feed_id}
+                    type="button"
+                    aria-label={`${integrityDetailLabels.queue_item_title}: ${issue.missing_feed_id}`}
+                    onClick={() => onSelectIntegrityIssue(issue.missing_feed_id)}
+                    className={cn(
+                      "flex w-full cursor-pointer flex-col gap-2 rounded-2xl border px-4 py-3 text-left transition-colors",
+                      selectedIntegrityIssue?.missing_feed_id === issue.missing_feed_id
+                        ? "border-amber-500/50 bg-amber-500/10"
+                        : "border-border bg-card hover:bg-muted/60",
+                    )}
+                  >
+                    <span className="line-clamp-1 font-medium text-foreground">
+                      {`${integrityDetailLabels.queue_item_title}: ${issue.missing_feed_id}`}
+                    </span>
+                    <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <span>{issue.article_count}</span>
+                      <span>{integrityDetailLabels.queue_item_articles_label}</span>
+                      <span>·</span>
+                      <span>{issue.latest_article_title ?? integrityDetailLabels.unknown_article}</span>
+                    </div>
+                  </button>
+                ))
+              )
+            ) : queue.length === 0 ? (
               <p className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
                 {emptyLabel}
               </p>
@@ -280,7 +353,51 @@ export function FeedCleanupPageView({
 
         <section className="flex min-h-0 flex-col overflow-hidden px-5 py-4">
           <h3 className="mb-3 text-sm font-semibold">{reviewLabel}</h3>
-          {selectedCandidate && editing ? (
+          {integrityMode ? (
+            selectedIntegrityIssue ? (
+              <div className="flex min-h-0 flex-1 flex-col gap-4">
+                <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+                    <p className="text-xs font-medium uppercase tracking-[0.16em] opacity-70">
+                      {integrityDetailLabels.needs_repair_badge}
+                    </p>
+                    <h4 className="mt-1 text-base font-semibold text-current">
+                      {integrityDetailLabels.needs_repair}
+                    </h4>
+                    <p className="mt-3 text-sm text-current/80">{integrityDetailLabels.summary}</p>
+                  </div>
+
+                  <div className="rounded-xl border border-border bg-card px-4 py-4">
+                    <h4 className="text-base font-semibold">
+                      {`${integrityDetailLabels.queue_item_title}: ${selectedIntegrityIssue.missing_feed_id}`}
+                    </h4>
+                    <dl className="mt-4 grid gap-2 text-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <dt className="text-muted-foreground">{integrityDetailLabels.missing_feed_id}</dt>
+                        <dd>{selectedIntegrityIssue.missing_feed_id}</dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <dt className="text-muted-foreground">{integrityDetailLabels.article_count}</dt>
+                        <dd>{selectedIntegrityIssue.article_count}</dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <dt className="text-muted-foreground">{integrityDetailLabels.latest_article}</dt>
+                        <dd>{selectedIntegrityIssue.latest_article_title ?? integrityDetailLabels.unknown_article}</dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <dt className="text-muted-foreground">{integrityDetailLabels.latest_published_at}</dt>
+                        <dd>{formatDate(selectedIntegrityIssue.latest_article_published_at)}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+                {integrityEmptyLabel}
+              </p>
+            )
+          ) : selectedCandidate && editing ? (
             editor
           ) : selectedCandidate ? (
             <div className="flex min-h-0 flex-1 flex-col gap-4">

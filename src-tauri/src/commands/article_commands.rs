@@ -1,7 +1,7 @@
 use reqwest::header::{HeaderMap, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
 use tauri::State;
 
-use crate::commands::dto::{AppError, ArticleDto, FeedIntegrityReportDto};
+use crate::commands::dto::{AppError, ArticleDto, FeedIntegrityIssueDto, FeedIntegrityReportDto};
 use crate::commands::AppState;
 use crate::domain::error::DomainError;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
@@ -152,6 +152,16 @@ pub fn get_feed_integrity_report(
 
     Ok(FeedIntegrityReportDto {
         orphaned_article_count: repo.count_orphaned_articles()?,
+        orphaned_feeds: repo
+            .list_orphaned_feed_groups()?
+            .into_iter()
+            .map(|group| FeedIntegrityIssueDto {
+                missing_feed_id: group.missing_feed_id,
+                article_count: group.article_count,
+                latest_article_title: group.latest_article_title,
+                latest_article_published_at: group.latest_article_published_at,
+            })
+            .collect(),
     })
 }
 

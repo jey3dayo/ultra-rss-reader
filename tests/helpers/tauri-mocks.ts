@@ -110,7 +110,7 @@ const defaultHandler: MockHandler = (cmd, args) => {
         sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId && !a.is_read),
       ).length;
     case "get_feed_integrity_report":
-      return { orphaned_article_count: 0 };
+      return { orphaned_article_count: 0, orphaned_feeds: [] };
     case "add_account":
       return {
         id: "acc-new",

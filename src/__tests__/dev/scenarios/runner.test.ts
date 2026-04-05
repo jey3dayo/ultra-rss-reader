@@ -531,6 +531,19 @@ describe("runDevScenario", () => {
     expect(context.ui.showToast).not.toHaveBeenCalled();
   });
 
+  it("runs the broken-references feed-cleanup scenario through the app action dispatcher", async () => {
+    const context = createContext({
+      actions: createActions({
+        executeAction: vi.fn(),
+      }),
+    });
+
+    await runDevScenario("open-feed-cleanup-broken-references", { context });
+
+    expect(context.actions.executeAction).toHaveBeenCalledWith("open-feed-cleanup");
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+  });
+
   it("opens settings at the reading section for the settings-reading scenario", async () => {
     const context = createContext({
       actions: createActions({
