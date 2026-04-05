@@ -136,8 +136,9 @@ describe("FeedCleanupPage", () => {
         case "update_feed_display_settings":
         case "update_feed_folder":
         case "copy_to_clipboard":
-        case "trigger_sync_account":
           return null;
+        case "trigger_sync_feed":
+          return { synced: true, total: 1, succeeded: 1, failed: [], warnings: [] };
         case "list_tags":
           return [];
         case "get_tag_article_counts":
@@ -267,7 +268,7 @@ describe("FeedCleanupPage", () => {
     });
   });
 
-  it("syncs the feed account from the maintenance section", async () => {
+  it("syncs the selected feed from the maintenance section", async () => {
     const user = userEvent.setup();
 
     render(<FeedCleanupPage />, { wrapper: createWrapper() });
@@ -278,8 +279,8 @@ describe("FeedCleanupPage", () => {
 
     await waitFor(() => {
       expect(calls).toContainEqual({
-        cmd: "trigger_sync_account",
-        args: { accountId: "acc-1" },
+        cmd: "trigger_sync_feed",
+        args: { feedId: "feed-1" },
       });
     });
   });

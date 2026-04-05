@@ -199,6 +199,7 @@ pub fn run() {
             commands::feed_commands::discover_feeds,
             commands::sync_commands::trigger_sync,
             commands::sync_commands::trigger_sync_account,
+            commands::sync_commands::trigger_sync_feed,
             commands::sync_commands::trigger_automatic_sync,
             commands::article_commands::list_articles,
             commands::article_commands::list_account_articles,

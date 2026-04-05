@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
-import { copyToClipboard, renameFeed, syncAccount, updateFeedDisplaySettings } from "@/api/tauri-commands";
+import { copyToClipboard, renameFeed, syncFeed, updateFeedDisplaySettings } from "@/api/tauri-commands";
 import { CopyableReadonlyField } from "@/components/shared/copyable-readonly-field";
 import { DeleteButton } from "@/components/shared/delete-button";
 import { Button } from "@/components/ui/button";
@@ -168,7 +168,7 @@ export function FeedCleanupFeedEditor({
 
   const handleRefetch = async () => {
     setRefetching(true);
-    const result = await syncAccount(feed.account_id);
+    const result = await syncFeed(feed.id);
     setRefetching(false);
 
     Result.pipe(

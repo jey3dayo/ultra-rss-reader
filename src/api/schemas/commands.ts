@@ -84,6 +84,9 @@ export const renameAccountArgs = z.object({
 // --- syncAccount ---
 export const syncAccountArgs = z.object({ accountId: z.string() });
 
+// --- syncFeed ---
+export const syncFeedArgs = z.object({ feedId: z.string() });
+
 // --- testAccountConnection ---
 export const testAccountConnectionArgs = z.object({ accountId: z.string() });
 
@@ -229,6 +232,8 @@ export const commandArgsSchemas: Record<string, z.ZodType> = {
   rename_account: renameAccountArgs,
   test_account_connection: testAccountConnectionArgs,
   delete_account: deleteAccountArgs,
+  trigger_sync_account: syncAccountArgs,
+  trigger_sync_feed: syncFeedArgs,
   discover_feeds: discoverFeedsArgs,
   add_local_feed: addLocalFeedArgs,
   create_folder: createFolderArgs,

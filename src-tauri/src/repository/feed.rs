@@ -4,6 +4,7 @@ use crate::domain::types::{AccountId, FeedId, FolderId};
 
 pub trait FeedRepository {
     fn find_by_account(&self, account_id: &AccountId) -> DomainResult<Vec<Feed>>;
+    fn find_by_id(&self, feed_id: &FeedId) -> DomainResult<Option<Feed>>;
     fn save(&self, feed: &Feed) -> DomainResult<()>;
     fn update_unread_count(&self, feed_id: &FeedId, count: i32) -> DomainResult<()>;
     fn recalculate_unread_count(&self, feed_id: &FeedId) -> DomainResult<i32>;

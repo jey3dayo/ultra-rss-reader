@@ -10,7 +10,9 @@ use crate::commands::dto::{
 };
 use crate::commands::AppState;
 use crate::domain::account::Account;
+use crate::domain::feed::Feed;
 use crate::domain::provider::ProviderKind;
+use crate::domain::types::FeedId;
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
@@ -24,7 +26,7 @@ use crate::repository::feed::FeedRepository;
 use crate::repository::preference::PreferenceRepository;
 
 use super::feed_commands::lock_db;
-use super::sync_providers::{sync_greader_account, sync_local_feed};
+use super::sync_providers::{sync_greader_account, sync_greader_feed, sync_local_feed};
 
 /// RAII guard that resets the `AtomicBool` to `false` on drop, ensuring the
 /// sync flag is always cleared even on early return or panic.
@@ -157,6 +159,37 @@ pub(crate) async fn sync_account(
             };
             let provider = GReaderProvider::for_inoreader(app_id, app_key);
             sync_greader_account(db, account, provider).await
+        }
+    }
+}
+
+pub(crate) async fn sync_feed(
+    db: &Mutex<DbManager>,
+    account: &Account,
+    feed: &Feed,
+) -> Result<super::sync_providers::ProviderSyncOutcome, AppError> {
+    match account.kind {
+        ProviderKind::Local => {
+            let provider = LocalProvider::new();
+            sync_local_feed(db, &provider, &account.id, feed).await?;
+            Ok(super::sync_providers::ProviderSyncOutcome::default())
+        }
+        ProviderKind::FreshRss => {
+            let server_url = account.server_url.as_deref().unwrap_or_default();
+            let provider = GReaderProvider::for_freshrss(server_url);
+            sync_greader_feed(db, account, feed, provider).await
+        }
+        ProviderKind::Inoreader => {
+            let (app_id, app_key) = {
+                let db_guard = lock_db(db)?;
+                let pref_repo = SqlitePreferenceRepository::new(db_guard.reader());
+                (
+                    pref_repo.get("inoreader_app_id").unwrap_or(None),
+                    pref_repo.get("inoreader_app_key").unwrap_or(None),
+                )
+            };
+            let provider = GReaderProvider::for_inoreader(app_id, app_key);
+            sync_greader_feed(db, account, feed, provider).await
         }
     }
 }
@@ -465,9 +498,102 @@ pub async fn trigger_sync_account(
     Ok(result)
 }
 
+#[tauri::command]
+pub async fn trigger_sync_feed(
+    app_handle: tauri::AppHandle,
+    state: State<'_, AppState>,
+    feed_id: String,
+) -> Result<SyncResult, AppError> {
+    if state
+        .syncing
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        return Ok(SyncResult {
+            synced: false,
+            total: 0,
+            succeeded: 0,
+            failed: Vec::new(),
+            warnings: Vec::new(),
+        });
+    }
+    let _guard = SyncGuard(&state.syncing);
+
+    let feed_id = FeedId(feed_id);
+    let (account, feed) = {
+        let db_guard = lock_db(&state.db)?;
+        let feed_repo = SqliteFeedRepository::new(db_guard.reader());
+        let account_repo = SqliteAccountRepository::new(db_guard.reader());
+        let feed = feed_repo
+            .find_by_id(&feed_id)?
+            .ok_or_else(|| AppError::UserVisible {
+                message: format!("Feed not found: {}", feed_id.as_ref()),
+            })?;
+        let account = account_repo
+            .find_by_id(&feed.account_id)?
+            .ok_or_else(|| AppError::UserVisible {
+                message: format!("Account not found: {}", feed.account_id.as_ref()),
+            })?;
+        (account, feed)
+    };
+
+    let reporter =
+        SyncProgressReporter::new(app_handle.clone(), SyncProgressKind::ManualAccount, 1);
+    reporter.emit_started(Some(&account));
+    reporter.emit_account_started(&account);
+
+    let mut result = SyncResult {
+        synced: true,
+        total: 1,
+        succeeded: 0,
+        failed: Vec::new(),
+        warnings: Vec::new(),
+    };
+
+    match sync_feed(&state.db, &account, &feed).await {
+        Ok(outcome) => {
+            result.succeeded = 1;
+            result
+                .warnings
+                .extend(
+                    outcome
+                        .warnings
+                        .into_iter()
+                        .map(|message| AccountSyncWarning {
+                            account_id: account.id.as_ref().to_string(),
+                            account_name: account.name.clone(),
+                            message,
+                        }),
+                );
+            reporter.emit_account_finished(&account, true);
+        }
+        Err(e) => {
+            warn!("Sync failed for feed '{}' ({}): {e}", feed.title, feed.id.as_ref());
+            result.failed.push(AccountSyncError {
+                account_id: account.id.as_ref().to_string(),
+                account_name: account.name.clone(),
+                message: e.to_string(),
+            });
+            reporter.emit_account_finished(&account, false);
+        }
+    }
+
+    reporter.emit_finished(result.failed.is_empty());
+    if result.succeeded > 0 {
+        let _ = app_handle.emit("sync-completed", ());
+    }
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::feed::Feed;
+    use crate::domain::provider::ProviderKind;
+    use crate::domain::types::AccountId;
+    use crate::infra::db::sqlite_feed::SqliteFeedRepository;
+    use crate::repository::feed::FeedRepository;
+    use mockito::Server;
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
 
@@ -590,5 +716,108 @@ mod tests {
 
         enable_automatic_sync(&automatic_sync_enabled, &automatic_sync_notify);
         assert!(automatic_sync_enabled.load(Ordering::SeqCst));
+    }
+
+    #[tokio::test]
+    async fn sync_feed_only_updates_the_selected_local_feed() {
+        let mut server = Server::new_async().await;
+        let selected_feed_url = format!("{}/selected.xml", server.url());
+        let other_feed_url = format!("{}/other.xml", server.url());
+        let selected_mock = server
+            .mock("GET", "/selected.xml")
+            .with_status(200)
+            .with_header("content-type", "application/rss+xml")
+            .with_body(
+                r#"<?xml version="1.0" encoding="UTF-8"?>
+                <rss version="2.0">
+                  <channel>
+                    <title>Selected Feed</title>
+                    <item>
+                      <guid>selected-1</guid>
+                      <title>Selected Article</title>
+                      <link>https://example.com/selected</link>
+                    </item>
+                  </channel>
+                </rss>"#,
+            )
+            .create_async()
+            .await;
+
+        let db = Mutex::new(DbManager::new_in_memory().unwrap());
+        let account = Account {
+            id: AccountId::new(),
+            kind: ProviderKind::Local,
+            name: "Local".to_string(),
+            server_url: None,
+            username: None,
+            sync_interval_secs: 3600,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+        };
+        let selected_feed = Feed {
+            id: FeedId::new(),
+            account_id: account.id.clone(),
+            folder_id: None,
+            remote_id: None,
+            title: "Selected".to_string(),
+            url: selected_feed_url,
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            unread_count: 0,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        };
+        let other_feed = Feed {
+            id: FeedId::new(),
+            account_id: account.id.clone(),
+            folder_id: None,
+            remote_id: None,
+            title: "Other".to_string(),
+            url: other_feed_url,
+            site_url: "https://example.com".to_string(),
+            icon: None,
+            unread_count: 0,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        };
+
+        {
+            let db_guard = db.lock().unwrap();
+            db_guard
+                .writer()
+                .execute(
+                    "INSERT INTO accounts (id, kind, name, sync_interval_secs, sync_on_wake, keep_read_items_days) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                    rusqlite::params![account.id.as_ref(), "Local", account.name, account.sync_interval_secs, account.sync_on_wake, account.keep_read_items_days],
+                )
+                .unwrap();
+            let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+            feed_repo.save(&selected_feed).unwrap();
+            feed_repo.save(&other_feed).unwrap();
+        }
+
+        sync_feed(&db, &account, &selected_feed).await.unwrap();
+
+        selected_mock.assert_async().await;
+
+        let db_guard = db.lock().unwrap();
+        let selected_count: i64 = db_guard
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE feed_id = ?1",
+                rusqlite::params![selected_feed.id.as_ref()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let other_count: i64 = db_guard
+            .reader()
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE feed_id = ?1",
+                rusqlite::params![other_feed.id.as_ref()],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(selected_count, 1);
+        assert_eq!(other_count, 0);
     }
 }

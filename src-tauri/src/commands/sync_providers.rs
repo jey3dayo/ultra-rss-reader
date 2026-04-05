@@ -192,6 +192,63 @@ pub(super) async fn sync_greader_account(
     Ok(outcome)
 }
 
+pub(super) async fn sync_greader_feed(
+    db: &Mutex<DbManager>,
+    account: &Account,
+    feed: &Feed,
+    mut provider: GReaderProvider,
+) -> Result<ProviderSyncOutcome, AppError> {
+    let username = match &account.username {
+        Some(u) => u.clone(),
+        None => {
+            warn!(
+                "GReader account {} has no username, skipping single-feed sync",
+                account.id.as_ref()
+            );
+            return Ok(ProviderSyncOutcome::default());
+        }
+    };
+
+    let password = keyring_store::get_password(account.id.as_ref())?;
+    provider
+        .authenticate(&Credentials {
+            token: Some(username),
+            password: Some(password),
+        })
+        .await?;
+
+    if !is_provider_managed_greader_feed(feed.remote_id.as_deref()) {
+        let local_provider = LocalProvider::new();
+        sync_local_feed(db, &local_provider, &account.id, feed).await?;
+        return Ok(ProviderSyncOutcome::default());
+    }
+
+    let article_count_before = article_count_for_feed(db, &feed.id)?;
+    let feed_outcome = sync_greader_feed_entries(db, &provider, account, feed).await?;
+    {
+        let db_guard = lock_db(db)?;
+        let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+        let _ = feed_repo.recalculate_unread_count(&feed.id);
+    }
+    let article_count_after = article_count_for_feed(db, &feed.id)?;
+
+    let mut warnings = Vec::new();
+    if feed_outcome.skipped_entries > 0 {
+        warnings.push(format!(
+            "Feed '{}' skipped {} entry item(s) during sync.",
+            feed.title, feed_outcome.skipped_entries
+        ));
+    }
+    if article_count_before > 0 && article_count_after == 0 {
+        warnings.push(format!(
+            "Feed '{}' had {} saved article(s) before sync and 0 after sync.",
+            feed.title, article_count_before
+        ));
+    }
+
+    Ok(ProviderSyncOutcome { warnings })
+}
+
 fn is_provider_managed_greader_feed(remote_id: Option<&str>) -> bool {
     remote_id.is_some_and(|remote_id| remote_id.starts_with("feed/"))
 }
@@ -454,6 +511,20 @@ fn feed_scope_key(remote_id: &str) -> String {
 
 fn local_feed_scope_key(feed_url: &str) -> String {
     format!("local_feed:{feed_url}")
+}
+
+fn article_count_for_feed(db: &Mutex<DbManager>, feed_id: &FeedId) -> Result<usize, AppError> {
+    let db_guard = lock_db(db)?;
+    let count = db_guard
+        .reader()
+        .query_row(
+            "SELECT COUNT(*) FROM articles WHERE feed_id = ?1",
+            rusqlite::params![feed_id.as_ref()],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)?;
+    Ok(count as usize)
 }
 
 fn cursor_from_state(state: Option<&SyncState>) -> Option<SyncCursor> {

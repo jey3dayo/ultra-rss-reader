@@ -36,6 +36,7 @@ export {
   setBrowserWebviewBoundsArgs,
   setPreferenceArgs,
   syncAccountArgs,
+  syncFeedArgs,
   tagArticleArgs,
   testAccountConnectionArgs,
   toggleArticleStarArgs,

@@ -45,6 +45,16 @@ impl FeedRepository for SqliteFeedRepository<'_> {
         Ok(feeds)
     }
 
+    fn find_by_id(&self, feed_id: &FeedId) -> DomainResult<Option<Feed>> {
+        let sql = format!("SELECT {SELECT_COLS} FROM feeds WHERE id = ?1");
+        let mut stmt = self.conn.prepare(&sql)?;
+        let mut rows = stmt.query_map(params![feed_id.0], row_to_feed)?;
+        match rows.next() {
+            Some(row) => Ok(Some(row?)),
+            None => Ok(None),
+        }
+    }
+
     fn save(&self, feed: &Feed) -> DomainResult<()> {
         self.conn.execute(
             "INSERT INTO feeds (id, account_id, folder_id, remote_id, title, url, site_url, icon, unread_count, reader_mode, web_preview_mode)
@@ -243,6 +253,23 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(found.id, feed.id);
+    }
+
+    #[test]
+    fn find_by_id() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let feed = make_feed(&account_id, "Feed", "http://example.com/rss");
+        let feed_id = feed.id.clone();
+        repo.save(&feed).unwrap();
+
+        let found = repo.find_by_id(&feed_id).unwrap().unwrap();
+        assert_eq!(found.id, feed_id);
+
+        let missing = repo.find_by_id(&FeedId("missing".to_string())).unwrap();
+        assert!(missing.is_none());
     }
 
     #[test]

@@ -55,6 +55,7 @@ import {
   setBrowserWebviewBoundsArgs,
   setPreferenceArgs,
   syncAccountArgs,
+  syncFeedArgs,
   type TagDto,
   TagDtoSchema,
   tagArticleArgs,
@@ -299,6 +300,9 @@ export const triggerAutomaticSync = () => safeInvoke("trigger_automatic_sync", {
 
 export const syncAccount = (accountId: string) =>
   safeInvoke("trigger_sync_account", { response: SyncResultSchema, args: syncAccountArgs }, { accountId });
+
+export const syncFeed = (feedId: string) =>
+  safeInvoke("trigger_sync_feed", { response: SyncResultSchema, args: syncFeedArgs }, { feedId });
 
 export const exportOpml = (accountId: string) =>
   safeInvoke("export_opml", { response: z.string(), args: exportOpmlArgs }, { accountId });
