@@ -14,6 +14,18 @@ impl<'a> SqliteArticleRepository<'a> {
     pub fn new(conn: &'a Connection) -> Self {
         Self { conn }
     }
+
+    pub fn count_orphaned_articles(&self) -> DomainResult<i64> {
+        let count = self.conn.query_row(
+            "SELECT COUNT(*)
+             FROM articles a
+             LEFT JOIN feeds f ON a.feed_id = f.id
+             WHERE f.id IS NULL",
+            [],
+            |row| row.get(0),
+        )?;
+        Ok(count)
+    }
 }
 
 fn parse_datetime(s: &str) -> DateTime<Utc> {
@@ -831,5 +843,43 @@ mod tests {
             .unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "日本語の記事タイトル");
+    }
+
+    #[test]
+    fn count_orphaned_articles_detects_missing_feed_references() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        repo.upsert(&[make_article(&feed_id, "Healthy Article")]).unwrap();
+
+        db.writer().execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+                params![
+                    "orphan-article",
+                    "missing-feed",
+                    Option::<String>::None,
+                    "Broken Article",
+                    "",
+                    "",
+                    1,
+                    Option::<String>::None,
+                    Option::<String>::None,
+                    Option::<String>::None,
+                    "2026-04-01T00:00:00Z",
+                    Option::<String>::None,
+                    false,
+                    false,
+                    "2026-04-01T00:00:00Z"
+                ],
+            )
+            .unwrap();
+        db.writer().execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+
+        assert_eq!(repo.count_orphaned_articles().unwrap(), 1);
     }
 }

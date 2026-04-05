@@ -8,6 +8,7 @@ import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 describe("FeedCleanupPage", () => {
+  let calls: Array<{ cmd: string; args: Record<string, unknown> }>;
   let feeds: Array<{
     id: string;
     account_id: string;
@@ -33,8 +34,10 @@ describe("FeedCleanupPage", () => {
     is_starred: boolean;
   }>;
   let deleteShouldFail: boolean;
+  let integrityReport: { orphaned_article_count: number };
 
   beforeEach(() => {
+    calls = [];
     feeds = [
       {
         id: "feed-1",
@@ -88,6 +91,7 @@ describe("FeedCleanupPage", () => {
       },
     ];
     deleteShouldFail = false;
+    integrityReport = { orphaned_article_count: 0 };
 
     useUiStore.setState({
       ...useUiStore.getInitialState(),
@@ -97,6 +101,8 @@ describe("FeedCleanupPage", () => {
     usePreferencesStore.setState({ prefs: {}, loaded: true });
 
     setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
       switch (cmd) {
         case "list_accounts":
           return [
@@ -117,12 +123,20 @@ describe("FeedCleanupPage", () => {
           return feeds;
         case "list_account_articles":
           return accountArticles;
+        case "get_feed_integrity_report":
+          return integrityReport;
         case "delete_feed":
           if (deleteShouldFail) {
             throw { type: "UserVisible", message: "boom" };
           }
           feeds = feeds.filter((feed) => feed.id !== args.feedId);
           accountArticles = accountArticles.filter((article) => article.feed_id !== args.feedId);
+          return null;
+        case "rename_feed":
+        case "update_feed_display_settings":
+        case "update_feed_folder":
+        case "copy_to_clipboard":
+        case "trigger_sync_account":
           return null;
         case "list_tags":
           return [];
@@ -140,19 +154,31 @@ describe("FeedCleanupPage", () => {
     render(<FeedCleanupPage />, { wrapper: createWrapper() });
 
     expect(await screen.findByRole("heading", { name: "Feed Cleanup" })).toBeInTheDocument();
+    expect(await screen.findByText("2 candidates")).toBeInTheDocument();
+    expect(await screen.findByText("1 review now")).toBeInTheDocument();
+    expect(await screen.findByText("0 deferred")).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Old Product Blog" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "90+ days inactive 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "No unread 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "No stars 1" })).toBeInTheDocument();
+    expect(screen.getAllByText("Review now").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveAttribute("data-delete-button");
 
-    await user.click(screen.getByRole("button", { name: "No unread" }));
+    await user.click(screen.getByRole("button", { name: "No unread 1" }));
     await user.click(screen.getByRole("button", { name: "Old Product Blog" }));
 
-    expect(screen.getByText("Work")).toBeInTheDocument();
-    expect(screen.getByText("No unread articles")).toBeInTheDocument();
+    expect(screen.getAllByText("Work").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("No unread articles").length).toBeGreaterThan(0);
+    expect(screen.getByText("Strong cleanup candidate")).toBeInTheDocument();
+    expect(screen.getByText("90+ days quiet with no unread backlog.")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Later" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Old Product Blog" })).not.toBeInTheDocument();
     });
+
+    expect(screen.getByText("1 deferred")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Show deferred" }));
     await user.click(screen.getByRole("button", { name: "Old Product Blog" }));
@@ -191,5 +217,82 @@ describe("FeedCleanupPage", () => {
       expect(screen.queryByText("Delete feed")).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Old Product Blog" })).toBeInTheDocument();
     });
+  });
+
+  it("surfaces broken feed references in the management summary", async () => {
+    integrityReport = { orphaned_article_count: 1 };
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Integrity issues")).toBeInTheDocument();
+    expect(await screen.findByText("1 broken reference")).toBeInTheDocument();
+    expect(await screen.findByText("1 article is pointing to a missing feed.")).toBeInTheDocument();
+  });
+
+  it("opens the inline editor and saves edited feed details", async () => {
+    const user = userEvent.setup();
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Old Product Blog" }));
+    await user.click(screen.getByRole("button", { name: "Edit Feed" }));
+
+    expect(screen.getByRole("heading", { name: "Edit Feed" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Maintenance" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Refetch feed" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Unsubscribe" })).toHaveAttribute("data-delete-button");
+    expect(screen.getByLabelText("Title")).toHaveValue("Old Product Blog");
+    expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Default display mode");
+    expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("Work");
+    expect(screen.getByLabelText("Website URL")).toHaveValue("https://example.com/old");
+    expect(screen.getByLabelText("Feed URL")).toHaveValue("https://example.com/old.xml");
+
+    await user.clear(screen.getByLabelText("Title"));
+    await user.type(screen.getByLabelText("Title"), "Archived Product Blog");
+    await user.click(screen.getByRole("combobox", { name: "Display Mode" }));
+    await user.click(await screen.findByText("Preview"));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("heading", { name: "Edit Feed" })).not.toBeInTheDocument();
+    });
+
+    expect(calls).toContainEqual({
+      cmd: "rename_feed",
+      args: { feedId: "feed-1", title: "Archived Product Blog" },
+    });
+    expect(calls).toContainEqual({
+      cmd: "update_feed_display_settings",
+      args: { feedId: "feed-1", readerMode: "on", webPreviewMode: "on" },
+    });
+  });
+
+  it("syncs the feed account from the maintenance section", async () => {
+    const user = userEvent.setup();
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Old Product Blog" }));
+    await user.click(screen.getByRole("button", { name: "Edit Feed" }));
+    await user.click(screen.getByRole("button", { name: "Refetch feed" }));
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "trigger_sync_account",
+        args: { accountId: "acc-1" },
+      });
+    });
+  });
+
+  it("opens the delete confirmation from the maintenance section", async () => {
+    const user = userEvent.setup();
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Old Product Blog" }));
+    await user.click(screen.getByRole("button", { name: "Edit Feed" }));
+    await user.click(screen.getByRole("button", { name: "Unsubscribe" }));
+
+    expect(await screen.findByRole("dialog", { name: "Delete feed" })).toBeInTheDocument();
   });
 });

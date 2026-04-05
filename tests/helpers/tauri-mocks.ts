@@ -109,6 +109,8 @@ const defaultHandler: MockHandler = (cmd, args) => {
       return sampleArticles.filter((a) =>
         sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId && !a.is_read),
       ).length;
+    case "get_feed_integrity_report":
+      return { orphaned_article_count: 0 };
     case "add_account":
       return {
         id: "acc-new",

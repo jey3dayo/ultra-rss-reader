@@ -34,6 +34,7 @@ import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+import { FeedCleanupPage } from "../feed-cleanup/feed-cleanup-page";
 import { ArticleContentView } from "./article-content-view";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticleMetaView } from "./article-meta-view";
@@ -646,6 +647,7 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
 export function ArticleView() {
   const { t } = useTranslation("reader");
   const contentMode = useUiStore((s) => s.contentMode);
+  const feedCleanupOpen = useUiStore((s) => s.feedCleanupOpen);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selection = useUiStore((s) => s.selection);
@@ -655,6 +657,10 @@ export function ArticleView() {
   const { data: accountArticles } = useAccountArticles(selectedAccountId);
   const { data: tagArticles } = useArticlesByTag(tagId, selectedAccountId);
   const { data: feeds } = useFeeds(selectedAccountId);
+
+  if (feedCleanupOpen) {
+    return <FeedCleanupPage />;
+  }
 
   if (contentMode === "empty" || !selectedArticleId) {
     return <EmptyState />;

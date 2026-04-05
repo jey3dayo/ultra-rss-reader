@@ -288,8 +288,12 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   setSettingsAddAccount: (show) => set({ settingsAddAccount: show, settingsAccountId: null }),
   setSettingsLoading: (loading) => set({ settingsLoading: loading }),
   setAppLoading: (loading) => set({ appLoading: loading }),
-  openFeedCleanup: () => set({ feedCleanupOpen: true }),
-  closeFeedCleanup: () => set({ feedCleanupOpen: false }),
+  openFeedCleanup: () => set({ feedCleanupOpen: true, focusedPane: "content" }),
+  closeFeedCleanup: () =>
+    set((state) => ({
+      feedCleanupOpen: false,
+      focusedPane: state.selectedArticleId ? "content" : "list",
+    })),
   applySyncProgress: (event) =>
     set((state) => {
       const activeAccountIds = new Set(state.syncProgress.activeAccountIds);

@@ -11,11 +11,26 @@ function SlidingPaneLayout({
   layoutMode,
   focusedPane,
   overlayTitlebar,
+  feedCleanupOpen,
 }: {
   layoutMode: "compact" | "mobile";
   focusedPane: "sidebar" | "list" | "content";
   overlayTitlebar: boolean;
+  feedCleanupOpen: boolean;
 }) {
+  if (feedCleanupOpen) {
+    return (
+      <div
+        className={cn(
+          "h-full overflow-hidden",
+          overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar",
+        )}
+      >
+        <ArticleView />
+      </div>
+    );
+  }
+
   const isMobile = layoutMode === "mobile";
   const translateX = computeTranslateX(layoutMode, focusedPane);
 
@@ -64,6 +79,7 @@ export function AppLayout() {
   const layoutMode = useUiStore((state) => state.layoutMode);
   const focusedPane = useUiStore((state) => state.focusedPane);
   const contentMode = useUiStore((state) => state.contentMode);
+  const feedCleanupOpen = useUiStore((state) => state.feedCleanupOpen);
   const sidebarOpen = useUiStore((state) => state.sidebarOpen);
   const platformKind = usePlatformStore((state) => state.platform.kind);
   const overlayTitlebar = shouldUseDesktopOverlayTitlebar({
@@ -72,7 +88,7 @@ export function AppLayout() {
   });
 
   if (layoutMode === "wide") {
-    const panes = resolveLayout(layoutMode, focusedPane, contentMode).filter(
+    const panes = (feedCleanupOpen ? ["sidebar", "content"] : resolveLayout(layoutMode, focusedPane, contentMode)).filter(
       (pane) => pane !== "sidebar" || sidebarOpen,
     );
     return (
@@ -110,5 +126,12 @@ export function AppLayout() {
     );
   }
 
-  return <SlidingPaneLayout layoutMode={layoutMode} focusedPane={focusedPane} overlayTitlebar={overlayTitlebar} />;
+  return (
+    <SlidingPaneLayout
+      layoutMode={layoutMode}
+      focusedPane={focusedPane}
+      overlayTitlebar={overlayTitlebar}
+      feedCleanupOpen={feedCleanupOpen}
+    />
+  );
 }

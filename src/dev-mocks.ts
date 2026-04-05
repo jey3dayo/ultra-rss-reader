@@ -202,6 +202,9 @@ export function setupDevMocks() {
         return countUnreadByAccount(accountId);
       }
 
+      case "get_feed_integrity_report":
+        return { orphaned_article_count: 0 };
+
       case "search_articles": {
         const { query } = searchArticlesArgs.parse(payload);
         return mockArticles.filter((a) => a.title.toLowerCase().includes(query.toLowerCase()));

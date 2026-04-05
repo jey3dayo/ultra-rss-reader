@@ -1,7 +1,7 @@
 use reqwest::header::{HeaderMap, CONTENT_SECURITY_POLICY, X_FRAME_OPTIONS};
 use tauri::State;
 
-use crate::commands::dto::{AppError, ArticleDto};
+use crate::commands::dto::{AppError, ArticleDto, FeedIntegrityReportDto};
 use crate::commands::AppState;
 use crate::domain::error::DomainError;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
@@ -139,6 +139,20 @@ pub fn count_account_unread_articles(
     let repo = SqliteArticleRepository::new(db.reader());
     let unread_count = repo.count_unread_by_account(&AccountId(account_id))?;
     Ok(unread_count)
+}
+
+#[tauri::command]
+pub fn get_feed_integrity_report(
+    state: State<'_, AppState>,
+) -> Result<FeedIntegrityReportDto, AppError> {
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let repo = SqliteArticleRepository::new(db.reader());
+
+    Ok(FeedIntegrityReportDto {
+        orphaned_article_count: repo.count_orphaned_articles()?,
+    })
 }
 
 #[tauri::command]

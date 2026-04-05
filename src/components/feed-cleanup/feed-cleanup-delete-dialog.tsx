@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { DeleteButton } from "@/components/shared/delete-button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { FeedCleanupCandidate } from "@/lib/feed-cleanup";
 
@@ -73,9 +74,9 @@ export function FeedCleanupDeleteDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
             {cancelLabel}
           </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={pending}>
+          <DeleteButton onClick={onConfirm} disabled={pending}>
             {deleteLabel}
-          </Button>
+          </DeleteButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

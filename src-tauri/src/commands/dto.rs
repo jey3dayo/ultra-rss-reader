@@ -182,6 +182,11 @@ pub struct ArticleDto {
 }
 
 #[derive(Debug, Serialize)]
+pub struct FeedIntegrityReportDto {
+    pub orphaned_article_count: i64,
+}
+
+#[derive(Debug, Serialize)]
 pub struct TagDto {
     pub id: String,
     pub name: String,

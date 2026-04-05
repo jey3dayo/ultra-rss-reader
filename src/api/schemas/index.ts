@@ -49,6 +49,7 @@ export { type DatabaseInfoDto, DatabaseInfoDtoSchema } from "./database-info";
 export { type DiscoveredFeedDto, DiscoveredFeedDtoSchema } from "./discovered-feed";
 export { type AppError, AppErrorSchema } from "./error";
 export { type FeedDto, FeedDtoSchema } from "./feed";
+export { type FeedIntegrityReportDto, FeedIntegrityReportDtoSchema } from "./feed-integrity";
 export { type FolderDto, FolderDtoSchema } from "./folder";
 export {
   type PlatformCapabilities,

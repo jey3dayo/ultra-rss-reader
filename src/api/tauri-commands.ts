@@ -29,6 +29,8 @@ import {
   exportOpmlArgs,
   type FeedDto,
   FeedDtoSchema,
+  type FeedIntegrityReportDto,
+  FeedIntegrityReportDtoSchema,
   type FolderDto,
   FolderDtoSchema,
   getArticleTagsArgs,
@@ -85,6 +87,7 @@ export type {
   DatabaseInfoDto,
   DiscoveredFeedDto,
   FeedDto,
+  FeedIntegrityReportDto,
   FolderDto,
   PlatformInfo,
   TagDto,
@@ -178,6 +181,9 @@ export const countAccountUnreadArticles = (accountId: string) =>
     { response: z.number().int(), args: countAccountUnreadArticlesArgs },
     { accountId },
   );
+
+export const getFeedIntegrityReport = () =>
+  safeInvoke("get_feed_integrity_report", { response: FeedIntegrityReportDtoSchema });
 
 export const markArticleRead = (articleId: string, read = true) =>
   safeInvoke("mark_article_read", { response: z.null(), args: markArticleReadArgs }, { articleId, read });

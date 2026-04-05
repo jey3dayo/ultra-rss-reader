@@ -36,11 +36,11 @@ describe("AppShell", () => {
     setupTauriMocks();
   });
 
-  it("renders the feed cleanup surface when the store opens it", () => {
+  it("keeps the main layout mounted when the store opens feed cleanup", () => {
     useUiStore.setState({ feedCleanupOpen: true });
 
     render(<AppShell />, { wrapper: createWrapper() });
 
-    expect(screen.getByRole("heading", { name: "Feed Cleanup" })).toBeInTheDocument();
+    expect(screen.getByText("App Layout")).toBeInTheDocument();
   });
 });

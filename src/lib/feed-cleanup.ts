@@ -1,6 +1,14 @@
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 
 export type FeedCleanupReasonKey = "stale_90d" | "no_unread" | "no_stars";
+export type FeedCleanupTone = "high" | "medium" | "low";
+export type FeedCleanupTitleKey = "review_now" | "consider" | "keep";
+export type FeedCleanupSummaryKey =
+  | "stale_and_inactive"
+  | "stale_with_no_stars"
+  | "inactive_without_signals"
+  | "stale_but_supported"
+  | "healthy_feed";
 
 export type FeedCleanupCandidate = {
   feedId: string;
@@ -13,6 +21,54 @@ export type FeedCleanupCandidate = {
   starredCount: number;
   reasonKeys: FeedCleanupReasonKey[];
 };
+
+export function summarizeCleanupCandidate(candidate: FeedCleanupCandidate): {
+  tone: FeedCleanupTone;
+  titleKey: FeedCleanupTitleKey;
+  summaryKey: FeedCleanupSummaryKey;
+} {
+  const hasStale = candidate.reasonKeys.includes("stale_90d");
+  const hasNoUnread = candidate.reasonKeys.includes("no_unread");
+  const hasNoStars = candidate.reasonKeys.includes("no_stars");
+
+  if (hasStale && hasNoUnread) {
+    return {
+      tone: "high",
+      titleKey: "review_now",
+      summaryKey: "stale_and_inactive",
+    };
+  }
+
+  if (hasStale && hasNoStars) {
+    return {
+      tone: "medium",
+      titleKey: "consider",
+      summaryKey: "stale_with_no_stars",
+    };
+  }
+
+  if (hasNoUnread && hasNoStars) {
+    return {
+      tone: "medium",
+      titleKey: "consider",
+      summaryKey: "inactive_without_signals",
+    };
+  }
+
+  if (hasStale) {
+    return {
+      tone: "medium",
+      titleKey: "consider",
+      summaryKey: "stale_but_supported",
+    };
+  }
+
+  return {
+    tone: "low",
+    titleKey: "keep",
+    summaryKey: "healthy_feed",
+  };
+}
 
 export function buildFeedCleanupCandidates({
   feeds,

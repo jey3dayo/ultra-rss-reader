@@ -38,9 +38,11 @@ describe("useUiStore", () => {
 
     useUiStore.getState().openFeedCleanup();
     expect(useUiStore.getState().feedCleanupOpen).toBe(true);
+    expect(useUiStore.getState().focusedPane).toBe("content");
 
     useUiStore.getState().closeFeedCleanup();
     expect(useUiStore.getState().feedCleanupOpen).toBe(false);
+    expect(useUiStore.getState().focusedPane).toBe("list");
   });
 
   it("selectFeed updates selection", () => {

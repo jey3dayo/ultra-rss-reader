@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
-import { buildFeedCleanupCandidates } from "@/lib/feed-cleanup";
+import { buildFeedCleanupCandidates, summarizeCleanupCandidate } from "@/lib/feed-cleanup";
 
 const feeds: FeedDto[] = [
   {
@@ -149,5 +149,26 @@ describe("buildFeedCleanupCandidates", () => {
     });
 
     expect(candidates.map((candidate) => candidate.feedId)).toEqual(["feed-active"]);
+  });
+
+  it("summarizes candidate urgency for the review panel", () => {
+    const candidates = buildFeedCleanupCandidates({
+      feeds,
+      folders,
+      articles,
+      now: new Date("2026-04-05T00:00:00Z"),
+      hiddenFeedIds: new Set(),
+    });
+
+    expect(summarizeCleanupCandidate(candidates[0]!)).toEqual({
+      tone: "high",
+      titleKey: "review_now",
+      summaryKey: "stale_and_inactive",
+    });
+    expect(summarizeCleanupCandidate(candidates[2]!)).toEqual({
+      tone: "low",
+      titleKey: "keep",
+      summaryKey: "healthy_feed",
+    });
   });
 });

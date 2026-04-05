@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import {
+  getFeedIntegrityReport,
   listAccountArticles,
   listArticles,
   markArticleRead,
@@ -26,6 +27,13 @@ function invalidateArticleQueries(qc: QueryClient) {
 export const useArticles = createQuery("articles", listArticles);
 
 export const useAccountArticles = createQuery("accountArticles", listAccountArticles);
+
+export function useFeedIntegrityReport() {
+  return useQuery({
+    queryKey: ["feedIntegrityReport"],
+    queryFn: () => getFeedIntegrityReport().then(Result.unwrap()),
+  });
+}
 
 export const useSetRead = createMutation(
   ({ id, read }: { id: string; read: boolean }) => markArticleRead(id, read),

@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { clearMocks } from "@tauri-apps/api/mocks";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createOrUpdateBrowserWebview } from "@/api/tauri-commands";
+import { createOrUpdateBrowserWebview, getFeedIntegrityReport } from "@/api/tauri-commands";
 import { setupDevMocks } from "@/dev-mocks";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
 
@@ -28,6 +28,17 @@ describe("setupDevMocks", () => {
       can_go_back: false,
       can_go_forward: false,
       is_loading: false,
+    });
+  });
+
+  it("returns a feed integrity report for browser-only feed cleanup checks", async () => {
+    setupDevMocks();
+
+    const result = await getFeedIntegrityReport();
+    const report = Result.unwrap(result);
+
+    expect(report).toEqual({
+      orphaned_article_count: 0,
     });
   });
 });

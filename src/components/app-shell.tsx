@@ -10,7 +10,6 @@ import { usePlatformStore } from "../stores/platform-store";
 import { useUiStore } from "../stores/ui-store";
 import { AppConfirmDialog } from "./app-confirm-dialog";
 import { AppLayout } from "./app-layout";
-import { FeedCleanupPage } from "./feed-cleanup/feed-cleanup-page";
 import { CommandPalette } from "./reader/command-palette";
 import { SettingsModal } from "./settings/settings-modal";
 import { IndeterminateProgress } from "./shared/indeterminate-progress";
@@ -84,7 +83,6 @@ export function AppShell() {
     <div className="flex h-full flex-col">
       {appLoading && <IndeterminateProgress className="shrink-0" />}
       <AppLayout />
-      <FeedCleanupPage />
       <SettingsModal />
       <AppConfirmDialog />
       <Toast />
