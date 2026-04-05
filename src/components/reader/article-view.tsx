@@ -81,7 +81,7 @@ function ArticleToolbar({
 
   return (
     <ArticleToolbarView
-      showCloseButton={article !== null}
+      showCloseButton={article !== null && !isBrowserOpen}
       canToggleRead={article !== null}
       canToggleStar={article !== null}
       isRead={article?.is_read ?? false}
@@ -367,7 +367,7 @@ function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedNam
 }
 
 function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: FeedDto; feedName?: string }) {
-  const { t } = useTranslation("reader");
+  const { t, i18n } = useTranslation("reader");
   const layoutMode = useUiStore((s) => s.layoutMode);
   const contentMode = useUiStore((s) => s.contentMode);
   const browserUrl = useUiStore((s) => s.browserUrl);
@@ -405,6 +405,14 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
     articleCapabilities: { hasWebPreview: Boolean(intendedBrowserUrl) },
   });
   const shouldShowBrowserOverlay = Boolean(intendedBrowserUrl) && resolvedDisplay.webPreviewMode;
+  const browserContext = shouldShowBrowserOverlay
+    ? {
+        modeLabel: t("web_preview_mode"),
+        title: article.title,
+        feedName,
+        publishedLabel: formatArticleDate(article.published_at, resolveArticleDateLocale(i18n.language)),
+      }
+    : undefined;
 
   useEffect(() => {
     previousArticleIdRef.current = article.id;
@@ -637,6 +645,7 @@ function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: 
             labels={{
               closeOverlay: t("close_browser_overlay"),
             }}
+            context={browserContext}
           />
         ) : null}
       </div>

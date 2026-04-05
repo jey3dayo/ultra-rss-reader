@@ -56,6 +56,7 @@ export const Default: Story = {
 export const PreviewOpen: Story = {
   args: {
     isBrowserOpen: true,
+    showCloseButton: false,
   },
 };
 

@@ -89,9 +89,45 @@ type BrowserViewProps = {
   labels: {
     closeOverlay: string;
   };
+  context?: {
+    modeLabel: string;
+    title: string;
+    feedName?: string;
+    publishedLabel?: string;
+  };
 };
 
-export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: BrowserViewProps) {
+function BrowserPreviewContext({
+  scope,
+  context,
+}: {
+  scope: "content-pane" | "main-stage";
+  context: NonNullable<BrowserViewProps["context"]>;
+}) {
+  const positionClass = scope === "main-stage" ? "left-14 right-4 top-3" : "left-14 right-4 top-3";
+  const hasMeta = Boolean(context.feedName || context.publishedLabel);
+
+  return (
+    <div
+      data-testid="browser-preview-context"
+      className={`pointer-events-none absolute ${positionClass} z-30 flex justify-start`}
+    >
+      <div className="max-w-full rounded-2xl border border-white/10 bg-black/42 px-4 py-2.5 shadow-[0_18px_40px_rgba(0,0,0,0.28)] backdrop-blur-md">
+        <p className="text-[11px] font-semibold tracking-[0.22em] text-white/62 uppercase">{context.modeLabel}</p>
+        <p className="mt-1 max-w-[42rem] truncate text-sm font-semibold text-white sm:text-[15px]">{context.title}</p>
+        {hasMeta ? (
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-white/72">
+            {context.feedName ? <span className="truncate">{context.feedName}</span> : null}
+            {context.feedName && context.publishedLabel ? <span aria-hidden="true">•</span> : null}
+            {context.publishedLabel ? <span>{context.publishedLabel}</span> : null}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, context }: BrowserViewProps) {
   const { t } = useTranslation("reader");
   const devIntent = readDevIntent();
   const showDiagnostics = devIntent === "image-viewer-overlay" && import.meta.env.VITE_ULTRA_RSS_DEV_BOUNDS_HUD === "1";
@@ -396,7 +432,9 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
   const stageClass =
     scope === "main-stage"
       ? "absolute bottom-2 left-14 right-2 top-14 z-0 rounded-none bg-background shadow-[0_24px_60px_rgba(0,0,0,0.24)]"
-      : "absolute inset-0 rounded-none bg-background";
+      : context
+        ? "absolute inset-x-0 bottom-0 top-14 rounded-none bg-background"
+        : "absolute inset-0 rounded-none bg-background";
 
   const overlay = (
     <div
@@ -461,6 +499,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
         className={overlayChromePositionClass}
         autoFocus
       />
+      {context ? <BrowserPreviewContext scope={scope} context={context} /> : null}
       <div ref={stageRef} data-testid="browser-overlay-stage" className={stageClass}>
         <div ref={hostRef} data-testid="browser-webview-host" className="h-full w-full bg-background" />
       </div>

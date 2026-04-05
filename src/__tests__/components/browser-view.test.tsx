@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { type ComponentType, createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
@@ -10,6 +11,8 @@ type BrowserCommand = {
   cmd: string;
   args: Record<string, unknown>;
 };
+
+const BrowserViewWithUnknownContext = BrowserView as unknown as ComponentType<Record<string, unknown>>;
 
 const { listenMock, registeredHandlers } = vi.hoisted(() => {
   const handlers = new Map<string, (event: { payload: unknown }) => void>();
@@ -83,19 +86,30 @@ function createDomRect(rect: MockHostRect): DOMRect {
   } as DOMRect;
 }
 
-function BrowserViewHarness({ scope = "main-stage" }: { scope?: "content-pane" | "main-stage" } = {}) {
+type BrowserViewHarnessProps = {
+  scope?: "content-pane" | "main-stage";
+  context?: {
+    modeLabel: string;
+    title: string;
+    feedName?: string;
+    publishedLabel?: string;
+  };
+};
+
+function BrowserViewHarness({ scope = "main-stage", context }: BrowserViewHarnessProps = {}) {
   const contentMode = useUiStore((s) => s.contentMode);
   return (
     <div data-browser-overlay-root="" className="relative h-[900px] w-[1400px]">
-      {contentMode === "browser" ? (
-        <BrowserView
-          scope={scope}
-          onCloseOverlay={() => useUiStore.getState().closeBrowser()}
-          labels={{
-            closeOverlay: "Close Web Preview",
-          }}
-        />
-      ) : null}
+      {contentMode === "browser"
+        ? createElement(BrowserViewWithUnknownContext, {
+            scope,
+            onCloseOverlay: () => useUiStore.getState().closeBrowser(),
+            labels: {
+              closeOverlay: "Close Web Preview",
+            },
+            context,
+          })
+        : null}
     </div>
   );
 }
@@ -178,6 +192,34 @@ describe("BrowserView", () => {
     expect(screen.getByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
     expect(screen.queryByTestId("browser-toolbar")).not.toBeInTheDocument();
     expect(screen.queryByText("https://example.com/article")).not.toBeInTheDocument();
+  });
+
+  it("renders web preview context when article metadata is provided", async () => {
+    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(
+      <BrowserViewHarness
+        context={{
+          modeLabel: "Web Preview",
+          title: "Designing Better Reader Panes",
+          feedName: "UX Notes",
+          publishedLabel: "Apr 6, 2026",
+        }}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByTestId("browser-preview-context")).toBeInTheDocument();
+    expect(screen.getByText("Web Preview")).toBeInTheDocument();
+    expect(screen.getByText("Designing Better Reader Panes")).toBeInTheDocument();
+    expect(screen.getByText(/UX Notes/)).toBeInTheDocument();
+    expect(screen.getByText(/Apr 6, 2026/)).toBeInTheDocument();
   });
 
   it("does not close when clicking the overlay lane outside the close button", async () => {
