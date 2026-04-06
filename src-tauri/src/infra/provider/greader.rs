@@ -128,14 +128,23 @@ pub struct GReaderProvider {
     auth_token: Option<String>,
 }
 
+fn freshrss_api_base(server_url: &str) -> String {
+    let base = server_url.trim_end_matches('/');
+    if base.ends_with("/api/greader.php") {
+        base.to_string()
+    } else {
+        format!("{base}/api/greader.php")
+    }
+}
+
 impl GReaderProvider {
     /// Create a provider configured for FreshRSS.
     pub fn for_freshrss(server_url: &str) -> Self {
-        let base = server_url.trim_end_matches('/');
+        let base = freshrss_api_base(server_url);
         Self {
             kind: ProviderKind::FreshRss,
-            api_base: format!("{base}/api/greader.php"),
-            auth_base: format!("{base}/api/greader.php"),
+            api_base: base.clone(),
+            auth_base: base,
             app_id: None,
             app_key: None,
             http_client: reqwest::Client::builder()
@@ -702,6 +711,23 @@ fn normalize_item_id(id: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn for_freshrss_appends_greader_endpoint_to_base_url() {
+        let provider = GReaderProvider::for_freshrss("https://freshrss.example.com");
+
+        assert_eq!(provider.api_base, "https://freshrss.example.com/api/greader.php");
+        assert_eq!(provider.auth_base, "https://freshrss.example.com/api/greader.php");
+    }
+
+    #[test]
+    fn for_freshrss_accepts_full_greader_endpoint_without_duplication() {
+        let provider =
+            GReaderProvider::for_freshrss("https://freshrss.example.com/api/greader.php");
+
+        assert_eq!(provider.api_base, "https://freshrss.example.com/api/greader.php");
+        assert_eq!(provider.auth_base, "https://freshrss.example.com/api/greader.php");
+    }
 
     #[tokio::test]
     async fn authenticate_successful() {
