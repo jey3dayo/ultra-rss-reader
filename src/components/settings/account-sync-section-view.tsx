@@ -1,7 +1,7 @@
 import { useId } from "react";
 import { SectionHeading } from "@/components/settings/settings-components";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
-import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/shared/loading-button";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type AccountSelectOption = {
@@ -92,9 +92,9 @@ export function AccountSyncSectionView({
       <AccountSelectRow control={keepReadItems} labelId={keepReadItemsLabelId} />
       {onSyncNow && (
         <div className="pt-3">
-          <Button size="sm" onClick={onSyncNow} disabled={isSyncing}>
-            {isSyncing ? syncingLabel : syncNowLabel}
-          </Button>
+          <LoadingButton size="sm" onClick={onSyncNow} loading={isSyncing} loadingLabel={syncingLabel}>
+            {syncNowLabel}
+          </LoadingButton>
         </div>
       )}
     </section>

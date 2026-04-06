@@ -541,7 +541,7 @@ export function Sidebar() {
       )}
     >
       <SidebarHeaderView
-        isSyncing={syncProgress.active}
+        isSyncing={syncProgress.active && syncProgress.kind !== "manual_account"}
         onSync={handleSync}
         onAddFeed={handleAddFeed}
         syncButtonLabel={t("sync_feeds")}

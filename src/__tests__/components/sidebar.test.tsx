@@ -238,7 +238,9 @@ describe("Sidebar", () => {
         case "list_folders":
           return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
         case "list_feeds":
-          return [{ ...sampleFeeds[0], id: "feed-unread", title: "Unread Feed", folder_id: "folder-1", unread_count: 3 }];
+          return [
+            { ...sampleFeeds[0], id: "feed-unread", title: "Unread Feed", folder_id: "folder-1", unread_count: 3 },
+          ];
         case "list_account_articles":
           return [];
         case "list_tags":
@@ -467,7 +469,33 @@ describe("Sidebar", () => {
     });
   });
 
-  it("spins the sync button and enables app loading while sync-progress is active", async () => {
+  it("keeps the sync button idle for manual account sync progress", async () => {
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const syncButton = await screen.findByRole("button", { name: "Sync feeds" });
+    const icon = syncButton.querySelector("svg");
+
+    expect(syncProgressListener).not.toBeNull();
+    expect(icon).not.toHaveClass("animate-spin");
+    expect(useUiStore.getState().appLoading).toBe(false);
+
+    syncProgressListener?.({
+      stage: "started",
+      kind: "manual_account",
+      total: 1,
+      completed: 0,
+      account_id: "acc-1",
+      account_name: "Local",
+      success: null,
+    });
+
+    await waitFor(() => {
+      expect(icon).not.toHaveClass("animate-spin");
+      expect(useUiStore.getState().appLoading).toBe(false);
+    });
+  });
+
+  it("spins the sync button and enables app loading while full sync-progress is active", async () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     const syncButton = await screen.findByRole("button", { name: "Sync feeds" });

@@ -89,4 +89,40 @@ describe("AccountSyncSectionView", () => {
     expect(onSyncOnWakeChange).toHaveBeenCalledWith(false);
     expect(onKeepReadItemsChange).toHaveBeenCalledWith("90");
   });
+
+  it("shows a loading button while syncing", () => {
+    render(
+      <AccountSyncSectionView
+        heading="Syncing"
+        syncInterval={{
+          name: "sync-interval",
+          label: "Sync",
+          value: "3600",
+          options: [{ value: "3600", label: "Every hour" }],
+          onChange: () => {},
+        }}
+        syncOnWake={{
+          label: "Sync on wake",
+          checked: true,
+          onChange: () => {},
+        }}
+        keepReadItems={{
+          name: "keep-read-items",
+          label: "Keep read items",
+          value: "30",
+          options: [{ value: "30", label: "One month" }],
+          onChange: () => {},
+        }}
+        syncNowLabel="Sync Now"
+        syncingLabel="Syncing..."
+        onSyncNow={() => {}}
+        isSyncing={true}
+      />,
+    );
+
+    const button = screen.getByRole("button", { name: "Syncing..." });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
+  });
 });

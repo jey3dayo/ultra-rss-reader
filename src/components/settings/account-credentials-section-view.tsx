@@ -1,6 +1,6 @@
 import { SectionHeading } from "@/components/settings/settings-components";
 import { CopyableTextField } from "@/components/shared/copyable-text-field";
-import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/shared/loading-button";
 import { Input } from "@/components/ui/input";
 
 export type AccountCredentialsSectionViewProps = {
@@ -96,9 +96,14 @@ export function AccountCredentialsSectionView({
       </div>
       {onTestConnection && (
         <div className="pt-3">
-          <Button size="sm" onClick={onTestConnection} disabled={isTestingConnection}>
-            {isTestingConnection ? testingConnectionLabel : testConnectionLabel}
-          </Button>
+          <LoadingButton
+            size="sm"
+            onClick={onTestConnection}
+            loading={isTestingConnection}
+            loadingLabel={testingConnectionLabel}
+          >
+            {testConnectionLabel}
+          </LoadingButton>
         </div>
       )}
     </section>

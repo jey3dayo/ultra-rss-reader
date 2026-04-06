@@ -69,4 +69,38 @@ describe("SettingsModalView", () => {
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
+
+  it("renders the top loading bar only when isLoading is true", () => {
+    const { rerender } = render(
+      <SettingsModalView
+        open={true}
+        title="Preferences"
+        closeLabel="Close preferences"
+        navigation={<div>Settings navigation</div>}
+        accountsNavigation={<div>Accounts navigation</div>}
+        content={<div>Settings content</div>}
+        isLoading={false}
+        onClose={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(document.querySelector(".animate-indeterminate")).toBeNull();
+
+    rerender(
+      <SettingsModalView
+        open={true}
+        title="Preferences"
+        closeLabel="Close preferences"
+        navigation={<div>Settings navigation</div>}
+        accountsNavigation={<div>Accounts navigation</div>}
+        content={<div>Settings content</div>}
+        isLoading={true}
+        onClose={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(document.querySelector(".animate-indeterminate")).not.toBeNull();
+  });
 });

@@ -319,8 +319,10 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
         };
       }
 
+      const shouldShowAppLoading = event.kind !== "manual_account";
+
       return {
-        appLoading: true,
+        appLoading: shouldShowAppLoading,
         syncProgress: {
           active: true,
           kind: event.kind,

@@ -34,7 +34,6 @@ export function AccountDetail() {
   const [credPassword, setCredPassword] = useState<string | null>(null);
   const [testingConnection, setTestingConnection] = useState(false);
   const pendingCredentialSaveRef = useRef<Promise<boolean> | null>(null);
-  const setSettingsLoading = useUiStore((s) => s.setSettingsLoading);
   const syncProgress = useUiStore((s) => s.syncProgress);
 
   const account = accounts?.find((a) => a.id === settingsAccountId);
@@ -150,7 +149,6 @@ export function AccountDetail() {
 
   const handleTestConnection = async () => {
     setTestingConnection(true);
-    setSettingsLoading(true);
     try {
       const credentialsSaved = await commitCredentials();
       if (!credentialsSaved) return;
@@ -167,14 +165,11 @@ export function AccountDetail() {
       );
     } finally {
       setTestingConnection(false);
-      setSettingsLoading(false);
     }
   };
 
   const handleSyncNow = async () => {
-    setSettingsLoading(true);
     const result = await syncAccount(account.id);
-    setSettingsLoading(false);
     Result.pipe(
       result,
       Result.inspect((syncResult) => {
