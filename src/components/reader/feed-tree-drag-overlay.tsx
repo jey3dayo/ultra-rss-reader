@@ -12,13 +12,7 @@ export type FeedTreeDragOverlayProps = {
   displayFavicons: boolean;
 };
 
-function FeedTreeDragOverlayCard({
-  feed,
-  displayFavicons,
-}: {
-  feed: FeedTreeFeedViewModel;
-  displayFavicons: boolean;
-}) {
+function FeedTreeDragOverlayCard({ feed, displayFavicons }: { feed: FeedTreeFeedViewModel; displayFavicons: boolean }) {
   return (
     <div className="pointer-events-none min-w-48 rounded-md border border-sidebar-border bg-sidebar px-2 py-1.5 text-sm text-sidebar-foreground shadow-lg">
       <div className="flex items-center gap-2">

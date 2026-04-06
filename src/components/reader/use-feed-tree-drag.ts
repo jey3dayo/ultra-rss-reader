@@ -1,6 +1,6 @@
 import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
-import type { ActiveDropTarget } from "./feed-tree-folder-section";
 import type { FeedTreeDragOverlayPreview } from "./feed-tree-drag-overlay";
+import type { ActiveDropTarget } from "./feed-tree-folder-section";
 import type { FeedTreeFeedViewModel } from "./feed-tree-row";
 
 const DROP_TARGET_KIND_ATTRIBUTE = "data-feed-drop-kind";

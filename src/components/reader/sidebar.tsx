@@ -26,14 +26,14 @@ import {
   FeedTreeView,
 } from "./feed-tree-view";
 import { FolderContextMenuContent } from "./folder-context-menu";
-import { SidebarHeaderView } from "./sidebar-header-view";
 import { SidebarAccountSection } from "./sidebar-account-section";
 import { SidebarFeedSection } from "./sidebar-feed-section";
 import { SidebarFooterActions } from "./sidebar-footer-actions";
+import { SidebarHeaderView } from "./sidebar-header-view";
 import { SidebarTagSection } from "./sidebar-tag-section";
 import { type SmartViewItemViewModel, SmartViewsView } from "./smart-views-view";
 import { TagContextMenuContent } from "./tag-context-menu";
-import { type TagListItemViewModel } from "./tag-list-view";
+import type { TagListItemViewModel } from "./tag-list-view";
 
 function useFormatLastSynced(date: Date | null): string {
   const { t } = useTranslation("sidebar");

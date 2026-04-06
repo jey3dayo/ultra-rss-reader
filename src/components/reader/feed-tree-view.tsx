@@ -1,14 +1,8 @@
-import {
-  type ReactNode,
-} from "react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import {
-  FeedTreeFolderSection,
-  type ActiveDropTarget,
-  type FeedTreeFolderViewModel,
-} from "./feed-tree-folder-section";
 import { FeedTreeDragOverlay } from "./feed-tree-drag-overlay";
-import { FeedTreeRow, type FeedTreeFeedViewModel } from "./feed-tree-row";
+import { type ActiveDropTarget, FeedTreeFolderSection, type FeedTreeFolderViewModel } from "./feed-tree-folder-section";
+import { type FeedTreeFeedViewModel, FeedTreeRow } from "./feed-tree-row";
 import { useFeedTreeDrag } from "./use-feed-tree-drag";
 
 export type { ActiveDropTarget, FeedTreeFolderViewModel } from "./feed-tree-folder-section";
@@ -199,7 +193,9 @@ export function FeedTreeView({
           </div>
         )}
       </div>
-      {pointerDragPreview ? <FeedTreeDragOverlay preview={pointerDragPreview} displayFavicons={displayFavicons} /> : null}
+      {pointerDragPreview ? (
+        <FeedTreeDragOverlay preview={pointerDragPreview} displayFavicons={displayFavicons} />
+      ) : null}
     </>
   );
 }

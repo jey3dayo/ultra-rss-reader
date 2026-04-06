@@ -1,8 +1,8 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import type { PointerEvent as ReactPointerEvent, ReactNode } from "react";
+import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
 import { cn } from "@/lib/utils";
-import { FeedTreeRow, type FeedTreeFeedViewModel } from "./feed-tree-row";
+import { type FeedTreeFeedViewModel, FeedTreeRow } from "./feed-tree-row";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
 export type FeedTreeFolderViewModel = {

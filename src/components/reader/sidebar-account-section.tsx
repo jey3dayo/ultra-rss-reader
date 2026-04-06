@@ -1,5 +1,5 @@
-import type { AccountDto } from "@/api/tauri-commands";
 import type { RefObject } from "react";
+import type { AccountDto } from "@/api/tauri-commands";
 import { AccountSwitcherView } from "./account-switcher-view";
 
 type SidebarAccountSectionProps = {

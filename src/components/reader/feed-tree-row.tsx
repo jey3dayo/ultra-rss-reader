@@ -1,6 +1,6 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { GripVertical } from "lucide-react";
-import type { PointerEvent as ReactPointerEvent, ReactNode } from "react";
+import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import type { TriStateDisplayMode } from "@/lib/article-display";
 import { cn } from "@/lib/utils";
