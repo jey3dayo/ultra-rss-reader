@@ -225,15 +225,16 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       retainedArticleIds: new Set(),
     }),
   selectFolder: (folderId) =>
-    set({
+    set((state) => ({
       selection: { type: "folder", folderId },
       viewMode: "unread",
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
+      expandedFolderIds: new Set(state.expandedFolderIds).add(folderId),
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
-    }),
+    })),
   selectSmartView: (kind) =>
     set({
       selection: { type: "smart", kind },

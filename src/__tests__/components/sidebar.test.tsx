@@ -192,6 +192,44 @@ describe("Sidebar", () => {
     expect(screen.getByText("Read Feed")).toBeInTheDocument();
   });
 
+  it("expands the selected folder when clicking its row", async () => {
+    const user = userEvent.setup();
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
+        case "list_feeds":
+          return [{ ...sampleFeeds[0], id: "feed-unread", title: "Unread Feed", folder_id: "folder-1", unread_count: 3 }];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      expandedFolderIds: new Set(),
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const folderButton = await screen.findByRole("button", { name: "Select folder Work" });
+    await user.click(folderButton);
+
+    expect(await screen.findByText("Unread Feed")).toBeInTheDocument();
+    expect(useUiStore.getState().selection).toEqual({ type: "folder", folderId: "folder-1" });
+    expect(useUiStore.getState().expandedFolderIds.has("folder-1")).toBe(true);
+  });
+
   it("updates a feed folder when moving it onto an empty folder", async () => {
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
 
