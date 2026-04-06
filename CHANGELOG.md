@@ -4,6 +4,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-06
+
+### Bug Fixes
+
+- Windows / Linux をまたぐ CI チェックを安定化し、format・clippy・unit test の落ちやすい箇所を修正した
+- preference contract テストを CRLF checkout でも通るようにし、Windows 固有の失敗を防いだ
+
+### Maintenance
+
+- Reading List まわりを中心に、遅い runner でも揺れにくいテスト構成へ整理した
+- feed editor 系 UI の display preset 判定と clipboard feedback を shared helper へ抽出した
+- test helper の Tauri command call 型を共通化し、モック定義の重複を減らした
+
 ## [0.8.0] - 2026-04-06
 
 ### Features
