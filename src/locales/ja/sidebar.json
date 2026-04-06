@@ -6,7 +6,7 @@
   "feeds": "フィード",
   "tags": "タグ",
   "accounts": "アカウント",
-  "feed_cleanup": "フィード整理",
+  "feed_cleanup": "フィード管理",
   "settings": "設定",
   "not_synced_yet": "未同期",
   "today_at": "今日 {{time}}",
