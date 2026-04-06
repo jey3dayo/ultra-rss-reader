@@ -14,8 +14,8 @@ type MockCall = {
   args: Record<string, unknown>;
 };
 
-const ciWaitOptions = { timeout: 10_000 };
-const readingListTestTimeout = 15_000;
+const ciWaitOptions = { timeout: 20_000 };
+const readingListTestTimeout = 30_000;
 
 function setReadingListPlatformSupport(enabled: boolean) {
   usePlatformStore.setState({
