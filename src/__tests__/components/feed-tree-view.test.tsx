@@ -153,6 +153,7 @@ describe("FeedTreeView", () => {
             sortOrder: 1,
             unreadCount: 0,
             isExpanded: false,
+            isSelected: false,
             feeds: [],
           },
         ]}
@@ -210,6 +211,7 @@ describe("FeedTreeView", () => {
             sortOrder: 0,
             unreadCount: 0,
             isExpanded: true,
+            isSelected: false,
             feeds: [
               {
                 id: "feed-1",
@@ -233,6 +235,7 @@ describe("FeedTreeView", () => {
             sortOrder: 1,
             unreadCount: 0,
             isExpanded: true,
+            isSelected: false,
             feeds: [
               {
                 id: "feed-2",
@@ -289,6 +292,7 @@ describe("FeedTreeView", () => {
             sortOrder: 0,
             unreadCount: 0,
             isExpanded: false,
+            isSelected: false,
             feeds: [],
           },
         ]}
@@ -372,6 +376,7 @@ describe("FeedTreeView", () => {
             sortOrder: 0,
             unreadCount: 0,
             isExpanded: false,
+            isSelected: false,
             feeds: [],
           },
         ]}
@@ -425,6 +430,7 @@ describe("FeedTreeView", () => {
             sortOrder: 0,
             unreadCount: 0,
             isExpanded: false,
+            isSelected: false,
             feeds: [],
           },
         ]}
@@ -474,6 +480,7 @@ describe("FeedTreeView", () => {
             sortOrder: 0,
             unreadCount: 0,
             isExpanded: false,
+            isSelected: false,
             feeds: [],
           },
         ]}
@@ -523,6 +530,7 @@ describe("FeedTreeView", () => {
             sortOrder: 0,
             unreadCount: 0,
             isExpanded: false,
+            isSelected: false,
             feeds: [],
           },
         ]}

@@ -384,9 +384,7 @@ export function Sidebar() {
     for (const folder of sortedFolderList) {
       const rawFolderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
       const folderFeeds =
-        selectedFolderId !== null && folder.id !== selectedFolderId
-          ? []
-          : filterFolderFeedsForSidebar(rawFolderFeeds);
+        selectedFolderId !== null && folder.id !== selectedFolderId ? [] : filterFolderFeedsForSidebar(rawFolderFeeds);
       for (const feed of folderFeeds) {
         ids.push(feed.id);
       }

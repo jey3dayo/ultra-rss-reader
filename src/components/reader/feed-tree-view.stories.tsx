@@ -16,6 +16,7 @@ const meta = {
         sortOrder: 0,
         unreadCount: 4,
         isExpanded: true,
+        isSelected: false,
         feeds: [
           {
             id: "feed-1",
@@ -110,6 +111,7 @@ export const EmptyFolderTarget: Story = {
         sortOrder: 1,
         unreadCount: 0,
         isExpanded: false,
+        isSelected: false,
         feeds: [],
       },
     ],
