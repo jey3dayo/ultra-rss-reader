@@ -60,6 +60,51 @@ describe("article-list utils", () => {
     expect(result).toEqual([sampleArticles[1]]);
   });
 
+  it("filters account articles to the selected folder feed ids before unread filtering", () => {
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [
+        { ...sampleArticles[0], id: "art-folder", feed_id: "feed-1", is_read: false },
+        { ...sampleArticles[1], id: "art-other", feed_id: "feed-2", is_read: false },
+        { ...sampleArticles[0], id: "art-read", feed_id: "feed-1", is_read: true },
+      ],
+      tagArticles: [],
+      searchResults: [],
+      feedId: null,
+      tagId: null,
+      folderFeedIds: new Set(["feed-1"]),
+      viewMode: "unread",
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+      retainedArticleIds: new Set(),
+    });
+
+    expect(result.map((article) => article.id)).toEqual(["art-folder"]);
+  });
+
+  it("filters search results to the selected folder feed ids", () => {
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [],
+      tagArticles: [],
+      searchResults: [
+        { ...sampleArticles[0], id: "art-folder", feed_id: "feed-1" },
+        { ...sampleArticles[1], id: "art-other", feed_id: "feed-2" },
+      ],
+      feedId: null,
+      tagId: null,
+      folderFeedIds: new Set(["feed-1"]),
+      viewMode: "all",
+      showSearch: true,
+      searchQuery: "Article",
+      sortUnread: "newest_first",
+      retainedArticleIds: new Set(),
+    });
+
+    expect(result.map((article) => article.id)).toEqual(["art-folder"]);
+  });
+
   it("groups articles by feed title", () => {
     const feedNameMap = new Map(sampleFeeds.map((feed) => [feed.id, feed.title]));
 

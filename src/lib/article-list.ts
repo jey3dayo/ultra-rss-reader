@@ -10,6 +10,7 @@ type SelectVisibleArticlesParams = {
   searchResults: ArticleDto[] | undefined;
   feedId: string | null;
   tagId: string | null;
+  folderFeedIds?: ReadonlySet<string> | null;
   viewMode: ViewMode;
   showSearch: boolean;
   searchQuery: string;
@@ -60,6 +61,21 @@ export function formatArticleTime(dateStr: string): string {
   return `${hours}:${minutes}`;
 }
 
+function filterByFolderFeedIds(
+  articles: ArticleDto[],
+  folderFeedIds: ReadonlySet<string> | null | undefined,
+): ArticleDto[] {
+  if (!folderFeedIds) {
+    return articles;
+  }
+
+  if (folderFeedIds.size === 0) {
+    return [];
+  }
+
+  return articles.filter((article) => folderFeedIds.has(article.feed_id));
+}
+
 export function selectVisibleArticles(params: SelectVisibleArticlesParams): ArticleDto[] {
   const {
     articles,
@@ -68,6 +84,7 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
     searchResults,
     feedId,
     tagId,
+    folderFeedIds,
     viewMode,
     showSearch,
     searchQuery,
@@ -77,11 +94,11 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
 
   let list: ArticleDto[];
   if (showSearch && searchQuery.length > 0) {
-    list = [...(searchResults ?? [])];
+    list = filterByFolderFeedIds([...(searchResults ?? [])], folderFeedIds);
   } else if (tagId) {
     list = [...(tagArticles ?? [])];
   } else {
-    const all = feedId ? (articles ?? []) : (accountArticles ?? []);
+    const all = filterByFolderFeedIds(feedId ? (articles ?? []) : (accountArticles ?? []), folderFeedIds);
     // In unread/starred views, keep the current row visible until the user changes
     // screens. Marking an article read/starred should not make it disappear mid-click.
     if (viewMode === "unread") list = all.filter((article) => !article.is_read || retainedArticleIds?.has(article.id));
