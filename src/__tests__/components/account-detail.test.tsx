@@ -194,7 +194,8 @@ describe("AccountDetail", () => {
 
     render(<AccountDetail />, { wrapper: createWrapper() });
 
-    const passwordInput = (await screen.findByDisplayValue("••••••••")) as HTMLInputElement;
+    const passwordInput = (await screen.findByPlaceholderText("Enter new password")) as HTMLInputElement;
+    expect(passwordInput).toHaveValue("");
     await user.click(passwordInput);
     await user.type(passwordInput, "new-secret");
 

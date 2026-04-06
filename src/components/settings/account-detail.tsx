@@ -305,7 +305,7 @@ export function AccountDetail() {
             onUsernameChange={setCredUsername}
             onUsernameBlur={commitCredentials}
             passwordLabel={t("account.password")}
-            passwordValue={credPassword === null ? "••••••••" : credPassword}
+            passwordValue={credPassword ?? ""}
             passwordPlaceholder={t("account.password_placeholder")}
             onPasswordChange={setCredPassword}
             onPasswordFocus={() => {

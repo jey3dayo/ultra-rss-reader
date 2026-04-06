@@ -198,25 +198,53 @@ fn missing_password_error() -> DomainError {
     )
 }
 
+fn verify_saved_password_with_reader<F>(
+    account_id: &str,
+    expected_password: &str,
+    read_password: F,
+) -> DomainResult<()>
+where
+    F: Fn(&str) -> DomainResult<String>,
+{
+    let actual_password = read_password(account_id)
+        .map_err(|e| DomainError::Keychain(format!("Failed to verify saved password: {e}")))?;
+
+    if actual_password == expected_password {
+        Ok(())
+    } else {
+        Err(DomainError::Keychain(
+            "Failed to verify saved password: retrieved value did not match the saved credential"
+                .to_string(),
+        ))
+    }
+}
+
+fn verify_saved_password(account_id: &str, expected_password: &str) -> DomainResult<()> {
+    verify_saved_password_with_reader(account_id, expected_password, get_password)
+}
+
 pub fn set_password(account_id: &str, password: &str) -> DomainResult<()> {
     if let Some(path) = dev_credentials_path() {
         let mut store = read_dev_store(&path);
         store.insert(account_id.to_string(), password.to_string());
-        return write_dev_store(&path, &store);
+        write_dev_store(&path, &store)?;
+        return verify_saved_password(account_id, password);
     }
 
     let entry = keyring::Entry::new(SERVICE, account_id)
         .map_err(|e| DomainError::Keychain(format!("Failed to access credential store: {e}")))?;
     match entry.set_password(password) {
-        Ok(()) => Ok(()),
+        Ok(()) => {}
         Err(_) => {
             // ACL mismatch from re-signed dev builds: force-delete via CLI, then retry
             force_delete_keychain_entry(account_id);
             entry
                 .set_password(password)
-                .map_err(|e| DomainError::Keychain(format!("Failed to save password: {e}")))
+                .map_err(|e| DomainError::Keychain(format!("Failed to save password: {e}")))?;
         }
     }
+
+    verify_saved_password(account_id, password)
 }
 
 pub fn get_password(account_id: &str) -> DomainResult<String> {
@@ -467,6 +495,31 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "Validation error: Password is not configured. Re-enter your password in account settings, save it, and try again."
+        );
+    }
+
+    #[test]
+    fn verify_saved_password_rejects_missing_readback() {
+        let error = super::verify_saved_password_with_reader("acc-1", "secret", |_| {
+            Err(super::missing_password_error())
+        })
+        .expect_err("missing readback should fail verification");
+
+        assert_eq!(
+            error.to_string(),
+            "Keychain error: Failed to verify saved password: Validation error: Password is not configured. Re-enter your password in account settings, save it, and try again."
+        );
+    }
+
+    #[test]
+    fn verify_saved_password_rejects_mismatched_readback() {
+        let error =
+            super::verify_saved_password_with_reader("acc-1", "secret", |_| Ok("different".into()))
+                .expect_err("mismatched readback should fail verification");
+
+        assert_eq!(
+            error.to_string(),
+            "Keychain error: Failed to verify saved password: retrieved value did not match the saved credential"
         );
     }
 }
