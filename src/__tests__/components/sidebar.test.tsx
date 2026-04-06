@@ -71,6 +71,15 @@ describe("Sidebar", () => {
     expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "unread" });
   });
 
+  it("allows the feed list scroll area to shrink inside the sidebar column layout", () => {
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const scrollArea = screen.getByTestId("sidebar-feed-scroll-area");
+
+    expect(scrollArea).toHaveClass("flex-1");
+    expect(scrollArea).toHaveClass("min-h-0");
+  });
+
   it("preserves folder_id when opening feed context menus for folder-backed feeds", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
