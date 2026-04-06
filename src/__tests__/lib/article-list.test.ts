@@ -105,6 +105,97 @@ describe("article-list utils", () => {
     expect(result.map((article) => article.id)).toEqual(["art-folder"]);
   });
 
+  it("keeps smart unread searches limited to unread articles", () => {
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [],
+      tagArticles: [],
+      searchResults: [
+        { ...sampleArticles[0], id: "search-unread", is_read: false, is_starred: false },
+        { ...sampleArticles[1], id: "search-read", is_read: true, is_starred: true },
+      ],
+      feedId: null,
+      tagId: null,
+      viewMode: "unread",
+      smartViewKind: "unread",
+      showSearch: true,
+      searchQuery: "search",
+      sortUnread: "newest_first",
+      retainedArticleIds: new Set(),
+    });
+
+    expect(result.map((article) => article.id)).toEqual(["search-unread"]);
+  });
+
+  it("keeps smart starred searches limited to unread starred articles when footer mode is unread", () => {
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [],
+      tagArticles: [],
+      searchResults: [
+        { ...sampleArticles[0], id: "starred-unread", is_read: false, is_starred: true },
+        { ...sampleArticles[1], id: "starred-read", is_read: true, is_starred: true },
+        { ...sampleArticles[0], id: "plain-unread", is_read: false, is_starred: false },
+      ],
+      feedId: null,
+      tagId: null,
+      viewMode: "unread",
+      smartViewKind: "starred",
+      showSearch: true,
+      searchQuery: "search",
+      sortUnread: "newest_first",
+      retainedArticleIds: new Set(),
+    });
+
+    expect(result.map((article) => article.id)).toEqual(["starred-unread"]);
+  });
+
+  it("keeps starred smart view limited to starred articles when footer mode is all", () => {
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [
+        { ...sampleArticles[0], id: "starred-read", is_starred: true, is_read: true },
+        { ...sampleArticles[1], id: "starred-unread", is_starred: true, is_read: false },
+        { ...sampleArticles[2], id: "plain-unread", is_starred: false, is_read: false },
+      ],
+      tagArticles: [],
+      searchResults: [],
+      feedId: null,
+      tagId: null,
+      viewMode: "all",
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+      retainedArticleIds: new Set(),
+      smartViewKind: "starred",
+    });
+
+    expect(result.map((article) => article.id)).toEqual(["starred-read", "starred-unread"]);
+  });
+
+  it("keeps starred smart view limited to unread starred articles when footer mode is unread", () => {
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [
+        { ...sampleArticles[0], id: "starred-read", is_starred: true, is_read: true },
+        { ...sampleArticles[1], id: "starred-unread", is_starred: true, is_read: false },
+        { ...sampleArticles[2], id: "plain-unread", is_starred: false, is_read: false },
+      ],
+      tagArticles: [],
+      searchResults: [],
+      feedId: null,
+      tagId: null,
+      viewMode: "unread",
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+      retainedArticleIds: new Set(),
+      smartViewKind: "starred",
+    });
+
+    expect(result.map((article) => article.id)).toEqual(["starred-unread"]);
+  });
+
   it("groups articles by feed title", () => {
     const feedNameMap = new Map(sampleFeeds.map((feed) => [feed.id, feed.title]));
 

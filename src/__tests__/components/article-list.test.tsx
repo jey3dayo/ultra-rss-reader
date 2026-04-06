@@ -127,6 +127,112 @@ describe("ArticleList", () => {
     });
   });
 
+  it("keeps smart unread search results limited to unread articles", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "smart", kind: "unread" },
+      viewMode: "unread",
+    });
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+          return [];
+        case "list_articles":
+          return [];
+        case "list_articles_by_tag":
+          return [];
+        case "search_articles":
+          return [
+            {
+              ...sampleArticles[0],
+              id: "smart-unread",
+              title: "Smart Search Unread",
+              is_read: false,
+              is_starred: false,
+            },
+            { ...sampleArticles[1], id: "smart-read", title: "Smart Search Read", is_read: true, is_starred: true },
+          ];
+        default:
+          return null;
+      }
+    });
+
+    const user = userEvent.setup();
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Search articles" }));
+    await user.type(screen.getByRole("textbox", { name: "Search articles" }), "Smart");
+
+    await waitFor(() => {
+      expect(screen.getByText("Smart Search Unread")).toBeInTheDocument();
+      expect(screen.queryByText("Smart Search Read")).not.toBeInTheDocument();
+    });
+  });
+
+  it("keeps smart starred search results limited to starred articles while all mode shows both read and unread matches", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "smart", kind: "starred" },
+      viewMode: "all",
+    });
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+          return [];
+        case "list_articles":
+          return [];
+        case "list_articles_by_tag":
+          return [];
+        case "search_articles":
+          return [
+            {
+              ...sampleArticles[0],
+              id: "smart-starred-unread",
+              title: "Smart Search Starred Unread",
+              is_read: false,
+              is_starred: true,
+            },
+            {
+              ...sampleArticles[1],
+              id: "smart-starred-read",
+              title: "Smart Search Starred Read",
+              is_read: true,
+              is_starred: true,
+            },
+            {
+              ...sampleArticles[0],
+              id: "smart-plain-unread",
+              title: "Smart Search Plain Unread",
+              is_read: false,
+              is_starred: false,
+            },
+          ];
+        default:
+          return null;
+      }
+    });
+
+    const user = userEvent.setup();
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Search articles" }));
+    await user.type(screen.getByRole("textbox", { name: "Search articles" }), "Smart");
+
+    await waitFor(() => {
+      expect(screen.getByText("Smart Search Starred Unread")).toBeInTheDocument();
+      expect(screen.getByText("Smart Search Starred Read")).toBeInTheDocument();
+      expect(screen.queryByText("Smart Search Plain Unread")).not.toBeInTheDocument();
+    });
+  });
+
   it("lets mobile users navigate back to the sidebar", async () => {
     useUiStore.setState({ layoutMode: "mobile" });
     useUiStore.getState().selectAccount("acc-1");
@@ -553,5 +659,88 @@ describe("ArticleList", () => {
     await waitFor(() => {
       expect(within(list).queryByRole("option", { name: "Second Article" })).not.toBeInTheDocument();
     });
+  });
+
+  it("shows smart unread context and hides the footer controls", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectSmartView("unread");
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText(sampleArticles[0].title)).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Unread")).toHaveAttribute("data-emphasis", "primary");
+    expect(screen.queryByRole("button", { name: "UNREAD" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "ALL" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "STARRED" })).not.toBeInTheDocument();
+  });
+
+  it("clamps smart unread to unread even if viewMode drifts elsewhere", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "smart", kind: "unread" },
+      viewMode: "all",
+    });
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText(sampleArticles[0].title)).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(sampleArticles[1].title)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "ALL" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "STARRED" })).not.toBeInTheDocument();
+  });
+
+  it("shows smart starred context and limits footer controls to unread and all", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectSmartView("starred");
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText(sampleArticles[1].title)).toBeInTheDocument();
+    });
+
+    const context = screen.getByText("Starred").closest("div");
+    expect(context).not.toBeNull();
+    if (!context) {
+      throw new Error("Expected smart view context strip to be rendered");
+    }
+    expect(within(context).getByText("Starred")).toHaveAttribute("data-emphasis", "primary");
+    expect(within(context).getByText("ALL")).toHaveAttribute("data-emphasis", "secondary");
+    expect(screen.getByRole("button", { name: "UNREAD" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ALL" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "STARRED" })).not.toBeInTheDocument();
+  });
+
+  it("clamps smart starred away from invalid starred mode", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "smart", kind: "starred" },
+      viewMode: "starred",
+    });
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText(sampleArticles[1].title)).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole("button", { name: "ALL" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "UNREAD" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByRole("button", { name: "STARRED" })).not.toBeInTheDocument();
+
+    const context = screen.getByText("Starred").closest("div");
+    expect(context).not.toBeNull();
+    if (!context) {
+      throw new Error("Expected smart view context strip to be rendered");
+    }
+    expect(within(context).getByText("ALL")).toHaveAttribute("data-emphasis", "secondary");
   });
 });

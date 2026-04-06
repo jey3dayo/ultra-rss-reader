@@ -51,6 +51,20 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().selectedArticleId).toBeNull();
   });
 
+  it("selectSmartView('unread') keeps unread as a complete smart view without footer filtering", () => {
+    useUiStore.getState().selectSmartView("unread");
+
+    expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "unread" });
+    expect(useUiStore.getState().viewMode).toBe("unread");
+  });
+
+  it("selectSmartView('starred') keeps starred as the selection source and defaults the footer mode to all", () => {
+    useUiStore.getState().selectSmartView("starred");
+
+    expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "starred" });
+    expect(useUiStore.getState().viewMode).toBe("all");
+  });
+
   it("selectArticle sets reader mode", () => {
     useUiStore.getState().selectArticle("a1");
     expect(useUiStore.getState().contentMode).toBe("reader");

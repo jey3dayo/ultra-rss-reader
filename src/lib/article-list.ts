@@ -12,6 +12,7 @@ type SelectVisibleArticlesParams = {
   tagId: string | null;
   folderFeedIds?: ReadonlySet<string> | null;
   viewMode: ViewMode;
+  smartViewKind?: "unread" | "starred" | null;
   showSearch: boolean;
   searchQuery: string;
   sortUnread: string;
@@ -76,6 +77,34 @@ function filterByFolderFeedIds(
   return articles.filter((article) => folderFeedIds.has(article.feed_id));
 }
 
+function filterByViewMode(
+  articles: ArticleDto[],
+  viewMode: ViewMode,
+  smartViewKind: "unread" | "starred" | null | undefined,
+  retainedArticleIds: ReadonlySet<string> | undefined,
+): ArticleDto[] {
+  const starredSmartView = smartViewKind === "starred";
+
+  // In unread/starred views, keep the current row visible until the user changes
+  // screens. Marking an article read/starred should not make it disappear mid-click.
+  if (starredSmartView) {
+    const starred = articles.filter((article) => article.is_starred || retainedArticleIds?.has(article.id));
+    return viewMode === "unread"
+      ? starred.filter((article) => !article.is_read || retainedArticleIds?.has(article.id))
+      : starred;
+  }
+
+  if (viewMode === "unread") {
+    return articles.filter((article) => !article.is_read || retainedArticleIds?.has(article.id));
+  }
+
+  if (viewMode === "starred") {
+    return articles.filter((article) => article.is_starred || retainedArticleIds?.has(article.id));
+  }
+
+  return [...articles];
+}
+
 export function selectVisibleArticles(params: SelectVisibleArticlesParams): ArticleDto[] {
   const {
     articles,
@@ -86,6 +115,7 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
     tagId,
     folderFeedIds,
     viewMode,
+    smartViewKind,
     showSearch,
     searchQuery,
     sortUnread,
@@ -94,17 +124,21 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
 
   let list: ArticleDto[];
   if (showSearch && searchQuery.length > 0) {
-    list = filterByFolderFeedIds([...(searchResults ?? [])], folderFeedIds);
+    list = filterByViewMode(
+      filterByFolderFeedIds([...(searchResults ?? [])], folderFeedIds),
+      viewMode,
+      smartViewKind,
+      retainedArticleIds,
+    );
   } else if (tagId) {
     list = [...(tagArticles ?? [])];
   } else {
-    const all = filterByFolderFeedIds(feedId ? (articles ?? []) : (accountArticles ?? []), folderFeedIds);
-    // In unread/starred views, keep the current row visible until the user changes
-    // screens. Marking an article read/starred should not make it disappear mid-click.
-    if (viewMode === "unread") list = all.filter((article) => !article.is_read || retainedArticleIds?.has(article.id));
-    else if (viewMode === "starred")
-      list = all.filter((article) => article.is_starred || retainedArticleIds?.has(article.id));
-    else list = [...all];
+    list = filterByViewMode(
+      filterByFolderFeedIds(feedId ? (articles ?? []) : (accountArticles ?? []), folderFeedIds),
+      viewMode,
+      smartViewKind,
+      retainedArticleIds,
+    );
   }
 
   const direction = sortUnread === "oldest_first" ? 1 : -1;
