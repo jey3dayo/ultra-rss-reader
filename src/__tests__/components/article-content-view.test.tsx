@@ -40,10 +40,7 @@ describe("ArticleContentView", () => {
 
   it("keeps the opening content when it does not duplicate the feed name", () => {
     render(
-      <ArticleContentView
-        feedName="葬送のフリーレン"
-        contentHtml="<p>第147話 英雄のいない地</p><p>本文です</p>"
-      />,
+      <ArticleContentView feedName="葬送のフリーレン" contentHtml="<p>第147話 英雄のいない地</p><p>本文です</p>" />,
     );
 
     expect(screen.getByText("第147話 英雄のいない地")).toBeInTheDocument();

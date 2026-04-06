@@ -716,8 +716,14 @@ mod tests {
     fn for_freshrss_appends_greader_endpoint_to_base_url() {
         let provider = GReaderProvider::for_freshrss("https://freshrss.example.com");
 
-        assert_eq!(provider.api_base, "https://freshrss.example.com/api/greader.php");
-        assert_eq!(provider.auth_base, "https://freshrss.example.com/api/greader.php");
+        assert_eq!(
+            provider.api_base,
+            "https://freshrss.example.com/api/greader.php"
+        );
+        assert_eq!(
+            provider.auth_base,
+            "https://freshrss.example.com/api/greader.php"
+        );
     }
 
     #[test]
@@ -725,8 +731,14 @@ mod tests {
         let provider =
             GReaderProvider::for_freshrss("https://freshrss.example.com/api/greader.php");
 
-        assert_eq!(provider.api_base, "https://freshrss.example.com/api/greader.php");
-        assert_eq!(provider.auth_base, "https://freshrss.example.com/api/greader.php");
+        assert_eq!(
+            provider.api_base,
+            "https://freshrss.example.com/api/greader.php"
+        );
+        assert_eq!(
+            provider.auth_base,
+            "https://freshrss.example.com/api/greader.php"
+        );
     }
 
     #[tokio::test]
