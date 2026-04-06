@@ -71,6 +71,18 @@ describe("Sidebar", () => {
     expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "unread" });
   });
 
+  it("selects starred smart view with all-mode semantics so the article list can show all starred items", async () => {
+    const user = userEvent.setup();
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const starredButton = screen.getByRole("button", { name: /Starred/ });
+
+    await user.click(starredButton);
+
+    expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "starred" });
+    expect(useUiStore.getState().viewMode).toBe("all");
+  });
+
   it("allows the feed list scroll area to shrink inside the sidebar column layout", () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 

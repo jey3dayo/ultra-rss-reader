@@ -10,6 +10,7 @@ type ViewMode = "all" | "unread" | "starred";
 
 type ArticleListFooterProps = {
   viewMode: ViewMode;
+  modes?: readonly ViewMode[];
   onSetViewMode: (mode: ViewMode) => void;
 };
 
@@ -19,7 +20,11 @@ const VIEW_MODES = [
   { value: "starred", icon: "star", labelKey: "filter_starred" },
 ] as const;
 
-export function ArticleListFooter({ viewMode, onSetViewMode }: ArticleListFooterProps) {
+export function ArticleListFooter({
+  viewMode,
+  modes = ["unread", "all", "starred"],
+  onSetViewMode,
+}: ArticleListFooterProps) {
   const { t } = useTranslation("reader");
   const handleChange = useCallback(
     (groupValue: string[]) => {
@@ -29,10 +34,16 @@ export function ArticleListFooter({ viewMode, onSetViewMode }: ArticleListFooter
     [onSetViewMode],
   );
 
+  const visibleModes = VIEW_MODES.filter((mode) => modes.includes(mode.value));
+
+  if (visibleModes.length === 0) {
+    return null;
+  }
+
   return (
     <div className="flex h-10 items-center justify-center border-t border-border bg-card">
       <ToggleGroup value={[viewMode]} onValueChange={handleChange}>
-        {VIEW_MODES.map((mode) => {
+        {visibleModes.map((mode) => {
           return (
             <Toggle
               key={mode.value}

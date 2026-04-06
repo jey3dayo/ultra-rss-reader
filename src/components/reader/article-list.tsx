@@ -27,6 +27,7 @@ import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenu } from "./article-context-menu";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
+import { ArticleListContextStrip } from "./article-list-context-strip";
 import { ArticleListFooter } from "./article-list-footer";
 import { ArticleListHeader } from "./article-list-header";
 import { ArticleListScreenView } from "./article-list-screen-view";
@@ -59,6 +60,7 @@ export function ArticleList() {
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const folderId = selection.type === "folder" ? selection.folderId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
+  const smartViewKind = selection.type === "smart" ? selection.kind : null;
   const accountListScopeId = feedId || tagId ? null : selectedAccountId;
   const { data: articles, isLoading } = useArticles(feedId);
   const { data: accountArticles, isLoading: isLoadingAccountArticles } = useAccountArticles(accountListScopeId);
@@ -76,6 +78,29 @@ export function ArticleList() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { data: searchResults } = useSearchArticles(selectedAccountId, debouncedQuery);
+  const effectiveViewMode = useMemo<"all" | "unread" | "starred">(() => {
+    if (smartViewKind === "unread") {
+      return "unread";
+    }
+
+    if (smartViewKind === "starred") {
+      return viewMode === "unread" ? "unread" : "all";
+    }
+
+    return viewMode;
+  }, [smartViewKind, viewMode]);
+  const effectiveRetainedArticleIds = useMemo(() => {
+    if (
+      selection.type === "smart" &&
+      selection.kind === "starred" &&
+      effectiveViewMode === "all" &&
+      selectedArticleId
+    ) {
+      return new Set([...retainedArticleIds, selectedArticleId]);
+    }
+
+    return retainedArticleIds;
+  }, [effectiveViewMode, retainedArticleIds, selectedArticleId, selection]);
 
   const feedNameMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -96,25 +121,27 @@ export function ArticleList() {
       feedId,
       tagId,
       folderFeedIds,
-      viewMode,
+      viewMode: effectiveViewMode,
+      smartViewKind,
       showSearch,
       searchQuery,
       sortUnread,
-      retainedArticleIds,
+      retainedArticleIds: effectiveRetainedArticleIds,
     });
   }, [
+    effectiveRetainedArticleIds,
     accountArticles,
     articles,
     feedId,
     folderFeedIds,
     tagArticles,
     tagId,
-    viewMode,
+    effectiveViewMode,
+    smartViewKind,
     showSearch,
     searchQuery,
     searchResults,
     sortUnread,
-    retainedArticleIds,
   ]);
 
   const groupedArticles = useMemo(() => {
@@ -124,6 +151,33 @@ export function ArticleList() {
       feedNameMap,
     });
   }, [filteredArticles, groupBy, feedNameMap]);
+
+  const contextStripContext = useMemo(() => {
+    if (selection.type !== "smart") {
+      return { primaryLabel: null, secondaryLabel: null };
+    }
+
+    if (selection.kind === "unread") {
+      return { primaryLabel: t("unread"), secondaryLabel: null };
+    }
+
+    return {
+      primaryLabel: t("starred"),
+      secondaryLabel: effectiveViewMode === "unread" ? t("filter_unread") : t("filter_all"),
+    };
+  }, [effectiveViewMode, selection, t]);
+
+  const footerModes = useMemo<ReadonlyArray<"all" | "unread" | "starred">>(() => {
+    if (selection.type !== "smart") {
+      return ["unread", "all", "starred"];
+    }
+
+    if (selection.kind === "unread") {
+      return [];
+    }
+
+    return ["unread", "all"];
+  }, [selection]);
 
   const isPrimarySourceLoading = feedId
     ? isLoading
@@ -342,6 +396,10 @@ export function ArticleList() {
         onCloseSearch={handleCloseSearch}
         onSearchQueryChange={setSearchQuery}
       />
+      <ArticleListContextStrip
+        primaryLabel={contextStripContext.primaryLabel}
+        secondaryLabel={contextStripContext.secondaryLabel}
+      />
 
       {/* Article List */}
       <ContextMenu.Root>
@@ -373,7 +431,7 @@ export function ArticleList() {
         </ContextMenu.Portal>
       </ContextMenu.Root>
 
-      <ArticleListFooter viewMode={viewMode} onSetViewMode={setViewMode} />
+      <ArticleListFooter viewMode={effectiveViewMode} modes={footerModes} onSetViewMode={setViewMode} />
     </div>
   );
 }

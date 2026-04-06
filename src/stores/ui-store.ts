@@ -238,7 +238,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   selectSmartView: (kind) =>
     set({
       selection: { type: "smart", kind },
-      viewMode: kind,
+      viewMode: kind === "starred" ? "all" : "unread",
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
