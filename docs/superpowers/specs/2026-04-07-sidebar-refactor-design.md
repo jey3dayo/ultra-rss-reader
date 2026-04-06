@@ -40,23 +40,23 @@ Section-first split を採用する。
 
 ### New Files
 
-| File                                               | Purpose |
-| -------------------------------------------------- | ------- |
-| `src/components/shared/sidebar-section-shell.tsx`  | section の余白、header row、optional toggle を揃える薄い共通 shell |
+| File | Purpose |
+| --- | --- |
+| `src/components/shared/sidebar-section-shell.tsx` | section の余白、header row、optional toggle を揃える薄い共通 shell |
 | `src/components/reader/sidebar-account-section.tsx` | account switcher セクションの wrapper |
-| `src/components/reader/sidebar-feed-section.tsx`   | feeds section と empty state の composition |
-| `src/components/reader/sidebar-tag-section.tsx`    | tag section の wrapper |
+| `src/components/reader/sidebar-feed-section.tsx` | feeds section と empty state の composition |
+| `src/components/reader/sidebar-tag-section.tsx` | tag section の wrapper |
 | `src/components/reader/sidebar-footer-actions.tsx` | feed cleanup / settings の footer action row |
-| `src/components/reader/feed-tree-row.tsx`          | 個々の feed row 描画 |
+| `src/components/reader/feed-tree-row.tsx` | 個々の feed row 描画 |
 | `src/components/reader/feed-tree-folder-section.tsx` | folder block 描画 |
 | `src/components/reader/feed-tree-drag-overlay.tsx` | drag 中の floating preview |
-| `src/components/reader/use-feed-tree-drag.ts`      | pointer drag state, hover target, listener orchestration |
+| `src/components/reader/use-feed-tree-drag.ts` | pointer drag state, hover target, listener orchestration |
 
 ### Modified Files
 
-| File                                  | Change |
-| ------------------------------------- | ------ |
-| `src/components/reader/sidebar.tsx`   | section orchestration 中心へ縮小 |
+| File | Change |
+| --- | --- |
+| `src/components/reader/sidebar.tsx` | section orchestration 中心へ縮小 |
 | `src/components/reader/feed-tree-view.tsx` | row / folder / drag logic を委譲する composition component へ縮小 |
 | `src/components/shared/sidebar-section-toggle.tsx` | shell から利用しやすいように軽微な調整が必要なら実施 |
 

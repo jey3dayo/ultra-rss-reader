@@ -160,12 +160,19 @@ describe("buildFeedCleanupCandidates", () => {
       hiddenFeedIds: new Set(),
     });
 
-    expect(summarizeCleanupCandidate(candidates[0]!)).toEqual({
+    const firstCandidate = candidates[0];
+    const thirdCandidate = candidates[2];
+
+    if (!firstCandidate || !thirdCandidate) {
+      throw new Error("expected cleanup candidates to include review and keep entries");
+    }
+
+    expect(summarizeCleanupCandidate(firstCandidate)).toEqual({
       tone: "high",
       titleKey: "review_now",
       summaryKey: "stale_and_inactive",
     });
-    expect(summarizeCleanupCandidate(candidates[2]!)).toEqual({
+    expect(summarizeCleanupCandidate(thirdCandidate)).toEqual({
       tone: "low",
       titleKey: "keep",
       summaryKey: "healthy_feed",

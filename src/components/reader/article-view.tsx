@@ -81,6 +81,10 @@ export function ArticleToolbar({
 
   const retainIfNeeded = useCallback(
     (nextRead: boolean) => {
+      if (!article) {
+        return;
+      }
+
       // Retain before mutating so unread view does not drop the article during
       // the refetch triggered by mark-as-read. It should disappear only after
       // the user changes feed/view and retainedArticleIds is cleared.
@@ -88,7 +92,7 @@ export function ArticleToolbar({
         retainArticle(article.id);
       }
     },
-    [article?.id, retainArticle, viewMode],
+    [article, retainArticle, viewMode],
   );
 
   return (
@@ -439,7 +443,14 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
     [article.id, retainArticle, viewMode],
   );
 
+  const previousArticleIdRef = useRef(article.id);
+
   useEffect(() => {
+    if (previousArticleIdRef.current === article.id) {
+      return;
+    }
+
+    previousArticleIdRef.current = article.id;
     setReaderModeOverride(null);
     setWebPreviewModeOverride(null);
   }, [article.id]);
