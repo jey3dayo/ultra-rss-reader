@@ -356,9 +356,16 @@ describe("FeedTreeView", () => {
   });
 
   it("moves a feed with pointer drag onto a folder section", () => {
-    const onDragStartFeed = vi.fn();
-    const onDragEnterFolder = vi.fn();
-    const onDropToFolder = vi.fn();
+    const callSequence: string[] = [];
+    const onDragStartFeed = vi.fn((feed: { id: string }) => {
+      callSequence.push(`start:${feed.id}`);
+    });
+    const onDragEnterFolder = vi.fn((folderId: string) => {
+      callSequence.push(`enter:${folderId}`);
+    });
+    const onDropToFolder = vi.fn((folderId: string) => {
+      callSequence.push(`drop:${folderId}`);
+    });
 
     render(
       <FeedTreeView
@@ -404,38 +411,41 @@ describe("FeedTreeView", () => {
       />,
     );
 
-    const targetButton = screen.getByRole("button", { name: "Move to Target" });
+    const targetButton = screen.getByRole("button", { name: "Select folder Target" });
     const originalElementFromPoint = document.elementFromPoint;
-    Object.defineProperty(document, "elementFromPoint", {
-      configurable: true,
-      value: vi.fn(() => targetButton),
-    });
+    try {
+      Object.defineProperty(document, "elementFromPoint", {
+        configurable: true,
+        value: vi.fn(() => targetButton),
+      });
 
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Drag Alpha" }), {
-      button: 0,
-      clientX: 10,
-      clientY: 10,
-      pointerId: 1,
-    });
-    fireEvent.pointerMove(window, {
-      clientX: 28,
-      clientY: 28,
-      pointerId: 1,
-    });
-    fireEvent.pointerUp(window, {
-      clientX: 28,
-      clientY: 28,
-      pointerId: 1,
-    });
+      fireEvent.pointerDown(screen.getByRole("button", { name: "Drag Alpha" }), {
+        button: 0,
+        clientX: 10,
+        clientY: 10,
+        pointerId: 1,
+      });
+      fireEvent.pointerMove(window, {
+        clientX: 28,
+        clientY: 28,
+        pointerId: 1,
+      });
+      fireEvent.pointerUp(window, {
+        clientX: 28,
+        clientY: 28,
+        pointerId: 1,
+      });
 
-    expect(onDragStartFeed).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-1" }));
-    expect(onDragEnterFolder).toHaveBeenCalledWith("folder-target");
-    expect(onDropToFolder).toHaveBeenCalledWith("folder-target");
-
-    Object.defineProperty(document, "elementFromPoint", {
-      configurable: true,
-      value: originalElementFromPoint,
-    });
+      expect(onDragStartFeed).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-1" }));
+      expect(onDragEnterFolder).toHaveBeenCalledWith("folder-target");
+      expect(onDropToFolder).toHaveBeenCalledWith("folder-target");
+      expect(callSequence).toEqual(["start:feed-1", "enter:folder-target", "drop:folder-target"]);
+    } finally {
+      Object.defineProperty(document, "elementFromPoint", {
+        configurable: true,
+        value: originalElementFromPoint,
+      });
+    }
   });
 
   it("renders a drag overlay that follows the pointer while dragging", () => {
@@ -643,6 +653,202 @@ describe("FeedTreeView", () => {
       />,
     );
 
+    expect(screen.queryByTestId("unfoldered-drop-zone")).not.toBeInTheDocument();
+  });
+
+  it("does not treat an undefined dragged feed id as an active drag", () => {
+    render(
+      <FeedTreeView
+        isOpen={true}
+        canDragFeeds={true}
+        activeDropTarget={null}
+        folders={[
+          {
+            id: "folder-1",
+            name: "Work",
+            accountId: "acc-1",
+            sortOrder: 0,
+            unreadCount: 0,
+            isExpanded: false,
+            isSelected: false,
+            feeds: [],
+          },
+        ]}
+        unfolderedFeeds={[
+          {
+            id: "feed-1",
+            accountId: "acc-1",
+            folderId: null,
+            title: "Alpha",
+            url: "https://example.com/alpha.xml",
+            siteUrl: "https://example.com/alpha",
+            unreadCount: 1,
+            readerMode: "on",
+            webPreviewMode: "off",
+            isSelected: false,
+            grayscaleFavicon: false,
+          },
+        ]}
+        onToggleFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        onDragStartFeed={vi.fn()}
+        onDragEnterFolder={vi.fn()}
+        onDragEnterUnfoldered={vi.fn()}
+        onDropToFolder={vi.fn()}
+        onDropToUnfoldered={vi.fn()}
+        onDragEnd={vi.fn()}
+        displayFavicons={false}
+        emptyState={{ kind: "message", message: "No feeds yet" }}
+      />,
+    );
+
+    expect(screen.queryByTestId("unfoldered-drop-zone")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Move to Work" })).not.toBeInTheDocument();
+  });
+
+  it("switches pointer hover callbacks between folder and unfoldered targets", () => {
+    const onDragEnterFolder = vi.fn();
+    const onDragEnterUnfoldered = vi.fn();
+
+    render(
+      <FeedTreeView
+        isOpen={true}
+        canDragFeeds={true}
+        folders={[
+          {
+            id: "folder-target",
+            name: "Target",
+            accountId: "acc-1",
+            sortOrder: 0,
+            unreadCount: 0,
+            isExpanded: false,
+            isSelected: false,
+            feeds: [],
+          },
+        ]}
+        unfolderedFeeds={[
+          {
+            id: "feed-1",
+            accountId: "acc-1",
+            folderId: null,
+            title: "Alpha",
+            url: "https://example.com/alpha.xml",
+            siteUrl: "https://example.com/alpha",
+            unreadCount: 0,
+            readerMode: "on",
+            webPreviewMode: "off",
+            isSelected: false,
+            grayscaleFavicon: false,
+          },
+        ]}
+        onToggleFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        onDragStartFeed={vi.fn()}
+        onDragEnterFolder={onDragEnterFolder}
+        onDragEnterUnfoldered={onDragEnterUnfoldered}
+        onDropToFolder={vi.fn()}
+        onDropToUnfoldered={vi.fn()}
+        onDragEnd={vi.fn()}
+        displayFavicons={false}
+        emptyState={{ kind: "message", message: "No feeds yet" }}
+      />,
+    );
+
+    const folderTarget = screen.getByRole("button", { name: "Select folder Target" });
+    const originalElementFromPoint = document.elementFromPoint;
+
+    try {
+      Object.defineProperty(document, "elementFromPoint", {
+        configurable: true,
+        value: vi.fn((x: number) => {
+          if (x < 40) {
+            return folderTarget;
+          }
+          return screen.getByTestId("unfoldered-drop-zone");
+        }),
+      });
+
+      fireEvent.pointerDown(screen.getByRole("button", { name: "Drag Alpha" }), {
+        button: 0,
+        clientX: 10,
+        clientY: 10,
+        pointerId: 1,
+      });
+      fireEvent.pointerMove(window, {
+        clientX: 28,
+        clientY: 28,
+        pointerId: 1,
+      });
+      fireEvent.pointerMove(window, {
+        clientX: 60,
+        clientY: 60,
+        pointerId: 1,
+      });
+
+      expect(onDragEnterFolder).toHaveBeenCalledWith("folder-target");
+      expect(onDragEnterUnfoldered).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId("unfoldered-drop-zone")).toHaveClass("bg-sidebar-accent/60");
+    } finally {
+      Object.defineProperty(document, "elementFromPoint", {
+        configurable: true,
+        value: originalElementFromPoint,
+      });
+    }
+  });
+
+  it("tears down pointer drag state on Escape", () => {
+    const onDragEnd = vi.fn();
+
+    render(
+      <FeedTreeView
+        isOpen={true}
+        canDragFeeds={true}
+        folders={[]}
+        unfolderedFeeds={[
+          {
+            id: "feed-1",
+            accountId: "acc-1",
+            folderId: null,
+            title: "Alpha",
+            url: "https://example.com/alpha.xml",
+            siteUrl: "https://example.com/alpha",
+            unreadCount: 0,
+            readerMode: "on",
+            webPreviewMode: "off",
+            isSelected: false,
+            grayscaleFavicon: false,
+          },
+        ]}
+        onToggleFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        onDragStartFeed={vi.fn()}
+        onDragEnterFolder={vi.fn()}
+        onDragEnterUnfoldered={vi.fn()}
+        onDropToFolder={vi.fn()}
+        onDropToUnfoldered={vi.fn()}
+        onDragEnd={onDragEnd}
+        displayFavicons={false}
+        emptyState={{ kind: "message", message: "No feeds yet" }}
+      />,
+    );
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Drag Alpha" }), {
+      button: 0,
+      clientX: 12,
+      clientY: 16,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(window, {
+      clientX: 40,
+      clientY: 52,
+      pointerId: 1,
+    });
+    expect(screen.getByTestId("feed-tree-drag-overlay")).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(onDragEnd).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("feed-tree-drag-overlay")).not.toBeInTheDocument();
     expect(screen.queryByTestId("unfoldered-drop-zone")).not.toBeInTheDocument();
   });
 
