@@ -192,6 +192,42 @@ describe("Sidebar", () => {
     expect(screen.getByText("Read Feed")).toBeInTheDocument();
   });
 
+  it("shows only unread feeds in the main list when viewMode is unread", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [];
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], id: "feed-unread", title: "Unread Feed", folder_id: null, unread_count: 3 },
+            { ...sampleFeeds[1], id: "feed-read", title: "Read Feed", folder_id: null, unread_count: 0 },
+          ].filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "all" },
+      viewMode: "unread",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Unread Feed")).toBeInTheDocument();
+    expect(screen.queryByText("Read Feed")).not.toBeInTheDocument();
+  });
+
   it("expands the selected folder when clicking its row", async () => {
     const user = userEvent.setup();
 
@@ -345,17 +381,22 @@ describe("Sidebar", () => {
     expect(screen.queryByRole("button", { name: "Move to Work" })).not.toBeInTheDocument();
   });
 
-  it("renders feeds after data loads", async () => {
+  it("hides read feeds by default and shows them again in all view", async () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    // After accounts load, the first account is auto-selected, which triggers feeds query
     await waitFor(
       () => {
         expect(screen.getByText("Tech Blog")).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
-    expect(screen.getByText("News")).toBeInTheDocument();
+    expect(screen.queryByText("News")).not.toBeInTheDocument();
+
+    useUiStore.getState().setViewMode("all");
+
+    await waitFor(() => {
+      expect(screen.getByText("News")).toBeInTheDocument();
+    });
   });
 
   it("shows unread count for feeds with unread articles", async () => {

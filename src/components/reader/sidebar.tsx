@@ -307,15 +307,12 @@ export function Sidebar() {
   const filterFolderFeedsForSidebar = useCallback(
     (folderFeeds: FeedDto[]) => {
       const sortedFeeds = sortFeeds(folderFeeds);
-      if (selectedFolderId === null) {
-        return sortedFeeds;
-      }
       if (viewMode === "unread") {
         return sortedFeeds.filter((feed) => feed.unread_count > 0);
       }
       return sortedFeeds;
     },
-    [selectedFolderId, sortFeeds, viewMode],
+    [sortFeeds, viewMode],
   );
   const feedTreeFolders = useMemo<FeedTreeFolderViewModel[]>(
     () =>
@@ -362,7 +359,7 @@ export function Sidebar() {
   );
   const unfolderedFeedViews = useMemo(
     () =>
-      (selectedFolderId === null ? unfolderedFeeds : []).map((feed) => ({
+      (selectedFolderId === null ? filterFolderFeedsForSidebar(unfolderedFeeds) : []).map((feed) => ({
         id: feed.id,
         accountId: feed.account_id,
         folderId: feed.folder_id,
@@ -375,7 +372,7 @@ export function Sidebar() {
         isSelected: selectedFeedId === feed.id,
         grayscaleFavicon: grayscaleFavicons,
       })),
-    [grayscaleFavicons, selectedFeedId, selectedFolderId, unfolderedFeeds],
+    [filterFolderFeedsForSidebar, grayscaleFavicons, selectedFeedId, selectedFolderId, unfolderedFeeds],
   );
 
   // Build a flat ordered feed list matching render order (folder feeds then unfoldered)
@@ -389,7 +386,7 @@ export function Sidebar() {
         ids.push(feed.id);
       }
     }
-    for (const feed of selectedFolderId === null ? unfolderedFeeds : []) {
+    for (const feed of selectedFolderId === null ? filterFolderFeedsForSidebar(unfolderedFeeds) : []) {
       ids.push(feed.id);
     }
     return ids;
