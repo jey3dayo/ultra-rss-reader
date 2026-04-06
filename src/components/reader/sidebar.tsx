@@ -85,6 +85,7 @@ export function Sidebar() {
   const selection = useUiStore((s) => s.selection);
   const viewMode = useUiStore((s) => s.viewMode);
   const selectFeed = useUiStore((s) => s.selectFeed);
+  const selectFolder = useUiStore((s) => s.selectFolder);
   const selectAll = useUiStore((s) => s.selectAll);
   const selectSmartView = useUiStore((s) => s.selectSmartView);
   const selectTag = useUiStore((s) => s.selectTag);
@@ -302,11 +303,29 @@ export function Sidebar() {
   const unfolderedFeeds = useMemo(() => sortFeeds(rawUnfolderedFeeds), [rawUnfolderedFeeds, sortFeeds]);
 
   const selectedFeedId = selection.type === "feed" ? selection.feedId : null;
+  const selectedFolderId = selection.type === "folder" ? selection.folderId : null;
+  const filterFolderFeedsForSidebar = useCallback(
+    (folderFeeds: FeedDto[]) => {
+      const sortedFeeds = sortFeeds(folderFeeds);
+      if (selectedFolderId === null) {
+        return sortedFeeds;
+      }
+      if (viewMode === "unread") {
+        return sortedFeeds.filter((feed) => feed.unread_count > 0);
+      }
+      return sortedFeeds;
+    },
+    [selectedFolderId, sortFeeds, viewMode],
+  );
   const feedTreeFolders = useMemo<FeedTreeFolderViewModel[]>(
     () =>
       sortedFolderList.map((folder) => {
-        const folderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
-        const folderUnread = folderFeeds.reduce((sum, feed) => sum + feed.unread_count, 0);
+        const rawFolderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
+        const folderFeeds =
+          selectedFolderId !== null && folder.id !== selectedFolderId
+            ? []
+            : filterFolderFeedsForSidebar(rawFolderFeeds);
+        const folderUnread = rawFolderFeeds.reduce((sum, feed) => sum + feed.unread_count, 0);
         return {
           id: folder.id,
           name: folder.name,
@@ -314,6 +333,7 @@ export function Sidebar() {
           sortOrder: folder.sort_order,
           unreadCount: folderUnread,
           isExpanded: expandedFolderIds.has(folder.id),
+          isSelected: selectedFolderId === folder.id,
           feeds: folderFeeds.map((feed) => ({
             id: feed.id,
             accountId: feed.account_id,
@@ -329,11 +349,20 @@ export function Sidebar() {
           })),
         };
       }),
-    [expandedFolderIds, feedsByFolder, grayscaleFavicons, selectedFeedId, sortFeeds, sortedFolderList],
+    [
+      expandedFolderIds,
+      feedsByFolder,
+      filterFolderFeedsForSidebar,
+      grayscaleFavicons,
+      selectedFeedId,
+      selectedFolderId,
+      sortFeeds,
+      sortedFolderList,
+    ],
   );
   const unfolderedFeedViews = useMemo(
     () =>
-      unfolderedFeeds.map((feed) => ({
+      (selectedFolderId === null ? unfolderedFeeds : []).map((feed) => ({
         id: feed.id,
         accountId: feed.account_id,
         folderId: feed.folder_id,
@@ -346,23 +375,27 @@ export function Sidebar() {
         isSelected: selectedFeedId === feed.id,
         grayscaleFavicon: grayscaleFavicons,
       })),
-    [grayscaleFavicons, selectedFeedId, unfolderedFeeds],
+    [grayscaleFavicons, selectedFeedId, selectedFolderId, unfolderedFeeds],
   );
 
   // Build a flat ordered feed list matching render order (folder feeds then unfoldered)
   const orderedFeedIds = useMemo(() => {
     const ids: string[] = [];
     for (const folder of sortedFolderList) {
-      const folderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
+      const rawFolderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
+      const folderFeeds =
+        selectedFolderId !== null && folder.id !== selectedFolderId
+          ? []
+          : filterFolderFeedsForSidebar(rawFolderFeeds);
       for (const feed of folderFeeds) {
         ids.push(feed.id);
       }
     }
-    for (const feed of unfolderedFeeds) {
+    for (const feed of selectedFolderId === null ? unfolderedFeeds : []) {
       ids.push(feed.id);
     }
     return ids;
-  }, [sortedFolderList, feedsByFolder, unfolderedFeeds, sortFeeds]);
+  }, [filterFolderFeedsForSidebar, feedsByFolder, selectedFolderId, sortFeeds, sortedFolderList, unfolderedFeeds]);
   const firstFeedId = orderedFeedIds[0] ?? null;
   const hasSmartUnreadSelection = selection.type === "smart" && selection.kind === "unread";
   const hasSmartStarredSelection = selection.type === "smart" && selection.kind === "starred";
@@ -557,6 +590,7 @@ export function Sidebar() {
             folders={feedTreeFolders}
             unfolderedFeeds={unfolderedFeedViews}
             onToggleFolder={toggleFolder}
+            onSelectFolder={selectFolder}
             onSelectFeed={selectFeed}
             displayFavicons={displayFavicons}
             canDragFeeds={canDragFeeds}

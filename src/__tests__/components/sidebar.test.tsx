@@ -118,6 +118,80 @@ describe("Sidebar", () => {
     );
   });
 
+  it("shows only unread feeds from the selected folder when viewMode is unread", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], id: "feed-unread", title: "Unread Feed", folder_id: "folder-1", unread_count: 3 },
+            { ...sampleFeeds[1], id: "feed-read", title: "Read Feed", folder_id: "folder-1", unread_count: 0 },
+          ];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "folder", folderId: "folder-1" },
+      viewMode: "unread",
+      expandedFolderIds: new Set(["folder-1"]),
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Unread Feed")).toBeInTheDocument();
+    expect(screen.queryByText("Read Feed")).not.toBeInTheDocument();
+  });
+
+  it("shows all feeds from the selected folder when viewMode is all", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], id: "feed-unread", title: "Unread Feed", folder_id: "folder-1", unread_count: 3 },
+            { ...sampleFeeds[1], id: "feed-read", title: "Read Feed", folder_id: "folder-1", unread_count: 0 },
+          ];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "folder", folderId: "folder-1" },
+      viewMode: "all",
+      expandedFolderIds: new Set(["folder-1"]),
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Unread Feed")).toBeInTheDocument();
+    expect(screen.getByText("Read Feed")).toBeInTheDocument();
+  });
+
   it("updates a feed folder when moving it onto an empty folder", async () => {
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
 
