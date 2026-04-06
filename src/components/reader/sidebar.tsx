@@ -1,13 +1,9 @@
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
-import { ListFilter, Settings } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { triggerSync } from "@/api/tauri-commands";
-import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
-import { SidebarSectionShell } from "@/components/shared/sidebar-section-shell";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { APP_EVENTS } from "@/constants/events";
 import { useAccounts } from "@/hooks/use-accounts";
@@ -21,7 +17,6 @@ import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
 import { cn } from "@/lib/utils";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { AccountSwitcherView } from "./account-switcher-view";
 import { AddFeedDialog } from "./add-feed-dialog";
 import { FeedContextMenuContent } from "./feed-context-menu";
 import {
@@ -32,9 +27,13 @@ import {
 } from "./feed-tree-view";
 import { FolderContextMenuContent } from "./folder-context-menu";
 import { SidebarHeaderView } from "./sidebar-header-view";
+import { SidebarAccountSection } from "./sidebar-account-section";
+import { SidebarFeedSection } from "./sidebar-feed-section";
+import { SidebarFooterActions } from "./sidebar-footer-actions";
+import { SidebarTagSection } from "./sidebar-tag-section";
 import { type SmartViewItemViewModel, SmartViewsView } from "./smart-views-view";
 import { TagContextMenuContent } from "./tag-context-menu";
-import { type TagListItemViewModel, TagListView } from "./tag-list-view";
+import { type TagListItemViewModel } from "./tag-list-view";
 
 function useFormatLastSynced(date: Date | null): string {
   const { t } = useTranslation("sidebar");
@@ -548,32 +547,31 @@ export function Sidebar() {
         addFeedButtonLabel={t("add_feed")}
       />
 
-      <div ref={accountDropdownRef}>
-        <AccountSwitcherView
-          title={selectedAccount?.name ?? t("app_name")}
-          lastSyncedLabel={lastSyncedFormatted}
-          accounts={accounts ?? []}
-          selectedAccountId={selectedAccountId}
-          isExpanded={showAccountList}
-          menuId={accountMenuId}
-          menuLabel={t("accounts")}
-          triggerRef={accountTriggerRef}
-          itemRefs={accountItemRefs}
-          onToggle={() => setShowAccountList((v) => !v)}
-          onSelectAccount={(id) => {
-            selectAccount(id);
-            setPref("selected_account_id", id);
-          }}
-          onClose={closeAccountList}
-        />
-      </div>
+      <SidebarAccountSection
+        containerRef={accountDropdownRef}
+        title={selectedAccount?.name ?? t("app_name")}
+        lastSyncedLabel={lastSyncedFormatted}
+        accounts={accounts ?? []}
+        selectedAccountId={selectedAccountId}
+        isExpanded={showAccountList}
+        menuId={accountMenuId}
+        menuLabel={t("accounts")}
+        triggerRef={accountTriggerRef}
+        itemRefs={accountItemRefs}
+        onToggle={() => setShowAccountList((v) => !v)}
+        onSelectAccount={(id) => {
+          selectAccount(id);
+          setPref("selected_account_id", id);
+        }}
+        onClose={closeAccountList}
+      />
 
       <SmartViewsView views={visibleSmartViews} onSelectSmartView={selectSmartView} />
 
-      <SidebarSectionShell
+      <SidebarFeedSection
         title={t("feeds")}
-        isOpen={isFeedsSectionOpen}
-        onToggle={() => setIsFeedsSectionOpen((v) => !v)}
+        isSectionOpen={isFeedsSectionOpen}
+        onToggleSection={() => setIsFeedsSectionOpen((v) => !v)}
       />
 
       <ScrollArea data-testid="sidebar-feed-scroll-area" className="flex-1">
@@ -640,7 +638,7 @@ export function Sidebar() {
           />
 
           {showSidebarTags && (
-            <TagListView
+            <SidebarTagSection
               tagsLabel={t("tags")}
               isOpen={isTagsSectionOpen}
               onToggleOpen={() => setIsTagsSectionOpen((v) => !v)}
@@ -662,27 +660,12 @@ export function Sidebar() {
         </div>
       </ScrollArea>
 
-      {/* Bottom Settings Button */}
-      <div className="flex min-h-10 items-center justify-center gap-2 border-t border-sidebar-border px-2 py-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={openFeedCleanup}
-          className={controlChipVariants({ size: "comfortable", interaction: "action" })}
-        >
-          <ListFilter className={controlChipIconVariants({ size: "comfortable" })} />
-          <span>{t("feed_cleanup")}</span>
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => openSettings()}
-          className={controlChipVariants({ size: "comfortable", interaction: "action" })}
-        >
-          <Settings className={controlChipIconVariants({ size: "comfortable" })} />
-          <span>{t("settings")}</span>
-        </Button>
-      </div>
+      <SidebarFooterActions
+        feedCleanupLabel={t("feed_cleanup")}
+        settingsLabel={t("settings")}
+        onOpenFeedCleanup={openFeedCleanup}
+        onOpenSettings={() => openSettings()}
+      />
 
       {selectedAccountId && (
         <AddFeedDialog

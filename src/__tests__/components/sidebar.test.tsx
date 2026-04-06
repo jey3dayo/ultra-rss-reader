@@ -643,6 +643,37 @@ describe("Sidebar", () => {
     expect(screen.getByRole("heading", { name: "Ultra RSS" })).toBeInTheDocument();
   });
 
+  it("offers an add-account empty state action when no accounts are available", async () => {
+    const user = userEvent.setup();
+
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [];
+        case "list_folders":
+        case "list_feeds":
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const addAccountButton = await screen.findByRole("button", { name: "Add an account to get started" });
+
+    await user.click(addAccountButton);
+
+    expect(useUiStore.getState().settingsOpen).toBe(true);
+    expect(useUiStore.getState().settingsCategory).toBe("accounts");
+    expect(useUiStore.getState().settingsAddAccount).toBe(true);
+  });
+
   it("hides configurable sections while keeping accounts and feeds visible", async () => {
     usePreferencesStore.setState({
       prefs: {
@@ -706,6 +737,24 @@ describe("Sidebar", () => {
     expect(feedsButton.closest('[data-slot="scroll-area"]')).toBeNull();
     expect(tagsButton.closest('[data-slot="scroll-area"]')).toBe(scrollArea);
     expect(scrollArea).toBeInTheDocument();
+  });
+
+  it("keeps footer actions outside the scroll area and opens settings from the bottom action row", async () => {
+    const user = userEvent.setup();
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const scrollArea = screen.getByTestId("sidebar-feed-scroll-area");
+    const feedCleanupButton = await screen.findByRole("button", { name: "Feed Cleanup" });
+    const settingsButton = screen.getByRole("button", { name: "Settings" });
+
+    expect(feedCleanupButton.closest('[data-slot="scroll-area"]')).toBeNull();
+    expect(settingsButton.closest('[data-slot="scroll-area"]')).toBeNull();
+    expect(scrollArea).toBeInTheDocument();
+
+    await user.click(settingsButton);
+
+    expect(useUiStore.getState().settingsOpen).toBe(true);
   });
 
   it("opens the feed cleanup surface from the bottom management area", async () => {
