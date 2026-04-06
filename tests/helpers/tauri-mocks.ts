@@ -2,6 +2,11 @@ import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { commandArgsSchemas } from "@/api/schemas";
 import type { AccountDto, ArticleDto, FeedDto } from "@/api/tauri-commands";
 
+export type MockTauriCommandCall = {
+  cmd: string;
+  args: Record<string, unknown>;
+};
+
 // --- Sample data ---
 
 export const sampleAccounts: AccountDto[] = [

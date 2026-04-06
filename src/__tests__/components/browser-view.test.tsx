@@ -5,12 +5,7 @@ import { BrowserView } from "@/components/reader/browser-view";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
-
-type BrowserCommand = {
-  cmd: string;
-  args: Record<string, unknown>;
-};
+import { type MockTauriCommandCall, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 const BrowserViewWithUnknownContext = BrowserView as unknown as ComponentType<Record<string, unknown>>;
 
@@ -115,7 +110,7 @@ function BrowserViewHarness({ scope = "main-stage", context }: BrowserViewHarnes
 }
 
 describe("BrowserView", () => {
-  let commands: BrowserCommand[];
+  let commands: MockTauriCommandCall[];
   let getBoundingClientRectSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {

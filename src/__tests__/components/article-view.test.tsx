@@ -7,12 +7,12 @@ import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
-
-type MockCall = {
-  cmd: string;
-  args: Record<string, unknown>;
-};
+import {
+  type MockTauriCommandCall,
+  sampleArticles,
+  sampleFeeds,
+  setupTauriMocks,
+} from "../../../tests/helpers/tauri-mocks";
 
 const ciWaitOptions = { timeout: 20_000 };
 const readingListTestTimeout = 30_000;
@@ -121,7 +121,7 @@ describe("ArticleView", () => {
   });
 
   it("opens the external browser from the article title when open_links is in_app", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
 
@@ -173,7 +173,7 @@ describe("ArticleView", () => {
   });
 
   it("keeps the embedded browser preview toggle available when action_open_browser is false", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
 
@@ -436,7 +436,7 @@ describe("ArticleView", () => {
   });
 
   it("opens the external browser from the article title when open_links is default_browser", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
 
@@ -483,7 +483,7 @@ describe("ArticleView", () => {
   });
 
   it("keeps feed navigation separate after opening the article title in the external browser", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
 
@@ -556,7 +556,7 @@ describe("ArticleView", () => {
   }, 10000);
 
   it("opens the external browser from the toolbar button", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
 
@@ -679,7 +679,7 @@ describe("ArticleView", () => {
   });
 
   it("does not auto-mark the article as read when after_reading is do_nothing", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
 
@@ -1000,7 +1000,7 @@ describe("ArticleView", () => {
   it(
     "does not invoke add to reading list from keyboard shortcut when unsupported",
     async () => {
-      const calls: MockCall[] = [];
+      const calls: MockTauriCommandCall[] = [];
       setupTauriMocks((cmd, args) => {
         calls.push({ cmd, args });
 
@@ -1051,7 +1051,7 @@ describe("ArticleView", () => {
   it(
     "invokes add to reading list from keyboard shortcut when supported",
     async () => {
-      const calls: MockCall[] = [];
+      const calls: MockTauriCommandCall[] = [];
       setupTauriMocks((cmd, args) => {
         calls.push({ cmd, args });
 

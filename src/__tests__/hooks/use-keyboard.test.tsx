@@ -4,14 +4,15 @@ import { AppShell } from "@/components/app-shell";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import {
+  type MockTauriCommandCall,
+  sampleAccounts,
+  sampleArticles,
+  sampleFeeds,
+  setupTauriMocks,
+} from "../../../tests/helpers/tauri-mocks";
 
-type MockCall = {
-  cmd: string;
-  args: Record<string, unknown>;
-};
-
-function renderAppShell(calls: MockCall[]) {
+function renderAppShell(calls: MockTauriCommandCall[]) {
   setupTauriMocks((cmd, args) => {
     calls.push({ cmd, args });
 
@@ -84,7 +85,7 @@ describe("useKeyboard", () => {
   });
 
   it("pressing m toggles the selected article to read", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
@@ -101,7 +102,7 @@ describe("useKeyboard", () => {
   });
 
   it("pressing m toggles the selected article back to unread", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
 
@@ -167,7 +168,7 @@ describe("useKeyboard", () => {
   });
 
   it("pressing s toggles the selected article star", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
@@ -184,7 +185,7 @@ describe("useKeyboard", () => {
   });
 
   it("pressing v opens the selected article in Web Preview", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
@@ -201,7 +202,7 @@ describe("useKeyboard", () => {
   });
 
   it("pressing b opens the selected article in the external browser", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
@@ -218,7 +219,7 @@ describe("useKeyboard", () => {
   });
 
   it("pressing a marks unread articles in the current list as read", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
@@ -235,7 +236,7 @@ describe("useKeyboard", () => {
   });
 
   it("pressing slash opens and focuses the article search input", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
@@ -250,7 +251,7 @@ describe("useKeyboard", () => {
   });
 
   it("pressing Cmd+K opens the command palette", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
@@ -264,7 +265,7 @@ describe("useKeyboard", () => {
   });
 
   it("pressing Cmd+Backslash toggles the desktop sidebar", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
@@ -285,7 +286,7 @@ describe("useKeyboard", () => {
   });
 
   it("pressing Cmd+1 switches to the unread filter", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
@@ -299,7 +300,7 @@ describe("useKeyboard", () => {
   });
 
   it("pressing Cmd+2 switches to the all filter", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
@@ -313,7 +314,7 @@ describe("useKeyboard", () => {
   });
 
   it("pressing Cmd+3 switches to the starred filter", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);
 
     await screen.findByRole("heading", { level: 1, name: "First Article" });
@@ -327,7 +328,7 @@ describe("useKeyboard", () => {
   });
 
   it("pressing Escape in the tag picker closes the picker without clearing the article", async () => {
-    const calls: MockCall[] = [];
+    const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
       calls.push({ cmd, args });
 
