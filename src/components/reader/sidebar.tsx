@@ -170,6 +170,25 @@ export function Sidebar() {
       accountTriggerRef.current?.focus();
     }
   }, []);
+  const toggleAccountList = useCallback(() => {
+    setShowAccountList((v) => !v);
+  }, []);
+  const handleSelectAccount = useCallback(
+    (id: string) => {
+      selectAccount(id);
+      setPref("selected_account_id", id);
+    },
+    [selectAccount, setPref],
+  );
+  const toggleFeedsSection = useCallback(() => {
+    setIsFeedsSectionOpen((v) => !v);
+  }, []);
+  const toggleTagsSection = useCallback(() => {
+    setIsTagsSectionOpen((v) => !v);
+  }, []);
+  const handleOpenSettings = useCallback(() => {
+    openSettings();
+  }, [openSettings]);
 
   const totalUnread = feeds?.reduce((sum, f) => sum + f.unread_count, 0) ?? 0;
   const starredCount = useMemo(() => accountArticles?.filter((a) => a.is_starred).length ?? 0, [accountArticles]);
@@ -268,14 +287,18 @@ export function Sidebar() {
     );
   };
 
+  const handleOpenAccountSettings = useCallback(() => {
+    openSettings("accounts");
+    setSettingsAddAccount(true);
+  }, [openSettings, setSettingsAddAccount]);
+
   const handleAddFeed = useCallback(() => {
     if (selectedAccountId) {
       openAddFeedDialog();
     } else {
-      openSettings("accounts");
-      setSettingsAddAccount(true);
+      handleOpenAccountSettings();
     }
-  }, [openAddFeedDialog, openSettings, selectedAccountId, setSettingsAddAccount]);
+  }, [handleOpenAccountSettings, openAddFeedDialog, selectedAccountId]);
 
   const feedList: FeedDto[] = feeds ?? [];
   const folderList: FolderDto[] = folders ?? [];
@@ -532,13 +555,128 @@ export function Sidebar() {
     return () => window.removeEventListener(APP_EVENTS.navigateFeed, handler);
   }, [navigateFeed]);
 
+  const handleDropToFolderRequest = useCallback(
+    (folderId: string) => {
+      void handleDropToFolder(folderId);
+    },
+    [handleDropToFolder],
+  );
+  const handleDropToUnfolderedRequest = useCallback(() => {
+    void handleDropToUnfoldered();
+  }, [handleDropToUnfoldered]);
+  const handleAddFeedDialogOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) {
+        openAddFeedDialog();
+      } else {
+        closeAddFeedDialog();
+      }
+    },
+    [closeAddFeedDialog, openAddFeedDialog],
+  );
+  const renderFolderContextMenu = useCallback(
+    (folder: FeedTreeFolderViewModel) => (
+      <FolderContextMenuContent
+        folder={{
+          id: folder.id,
+          account_id: folder.accountId,
+          name: folder.name,
+          sort_order: folder.sortOrder,
+        }}
+        folderUnread={folder.unreadCount}
+      />
+    ),
+    [],
+  );
+  const renderFeedContextMenu = useCallback(
+    (feed: FeedTreeFeedViewModel) => (
+      <FeedContextMenuContent
+        feed={{
+          id: feed.id,
+          account_id: feed.accountId,
+          folder_id: feed.folderId,
+          title: feed.title,
+          url: feed.url,
+          site_url: feed.siteUrl,
+          unread_count: feed.unreadCount,
+          reader_mode: feed.readerMode,
+          web_preview_mode: feed.webPreviewMode,
+        }}
+      />
+    ),
+    [],
+  );
+  const renderTagContextMenu = useCallback(
+    (tag: TagListItemViewModel) => <TagContextMenuContent tag={{ id: tag.id, name: tag.name, color: tag.color }} />,
+    [],
+  );
+  const feedEmptyState = selectedAccountId
+    ? { kind: "message" as const, message: t("press_plus_to_add_feed") }
+    : {
+        kind: "action" as const,
+        label: t("add_account_to_start"),
+        onAction: handleOpenAccountSettings,
+      };
+  const tagItems = useMemo(
+    () =>
+      (tags ?? []).map(
+        (tag): TagListItemViewModel => ({
+          id: tag.id,
+          name: tag.name,
+          color: tag.color,
+          articleCount: tagArticleCounts?.[tag.id] ?? 0,
+          isSelected: selection.type === "tag" && selection.tagId === tag.id,
+        }),
+      ),
+    [selection, tagArticleCounts, tags],
+  );
+  const feedTree = (
+    <FeedTreeView
+      isOpen={isFeedsSectionOpen}
+      folders={feedTreeFolders}
+      unfolderedFeeds={unfolderedFeedViews}
+      onToggleFolder={toggleFolder}
+      onSelectFolder={selectFolder}
+      onSelectFeed={selectFeed}
+      displayFavicons={displayFavicons}
+      canDragFeeds={canDragFeeds}
+      draggedFeedId={draggedFeedId}
+      activeDropTarget={activeDropTarget}
+      onDragStartFeed={handleDragStartFeed}
+      onDragEnterFolder={handleDragEnterFolder}
+      onDragEnterUnfoldered={handleDragEnterUnfoldered}
+      onDropToFolder={handleDropToFolderRequest}
+      onDropToUnfoldered={handleDropToUnfolderedRequest}
+      onDragEnd={clearDragState}
+      emptyState={feedEmptyState}
+      renderFolderContextMenu={renderFolderContextMenu}
+      renderFeedContextMenu={renderFeedContextMenu}
+    />
+  );
+  const tagSection = showSidebarTags ? (
+    <SidebarTagSection
+      tagsLabel={t("tags")}
+      isOpen={isTagsSectionOpen}
+      onToggleOpen={toggleTagsSection}
+      tags={tagItems}
+      onSelectTag={selectTag}
+      renderContextMenu={renderTagContextMenu}
+    />
+  ) : null;
+  const addFeedDialog = selectedAccountId ? (
+    <AddFeedDialog
+      open={isAddFeedDialogOpen}
+      onOpenChange={handleAddFeedDialogOpenChange}
+      accountId={selectedAccountId}
+    />
+  ) : null;
+  const sidebarClassName = cn(
+    "flex h-full flex-col border-r border-border bg-sidebar text-sidebar-foreground",
+    opaqueSidebars && "bg-opacity-100",
+  );
+
   return (
-    <div
-      className={cn(
-        "flex h-full flex-col border-r border-border bg-sidebar text-sidebar-foreground",
-        opaqueSidebars && "bg-opacity-100",
-      )}
-    >
+    <div className={sidebarClassName}>
       <SidebarHeaderView
         isSyncing={syncProgress.active && syncProgress.kind !== "manual_account"}
         onSync={handleSync}
@@ -558,105 +696,19 @@ export function Sidebar() {
         menuLabel={t("accounts")}
         triggerRef={accountTriggerRef}
         itemRefs={accountItemRefs}
-        onToggle={() => setShowAccountList((v) => !v)}
-        onSelectAccount={(id) => {
-          selectAccount(id);
-          setPref("selected_account_id", id);
-        }}
+        onToggle={toggleAccountList}
+        onSelectAccount={handleSelectAccount}
         onClose={closeAccountList}
       />
 
       <SmartViewsView views={visibleSmartViews} onSelectSmartView={selectSmartView} />
 
-      <SidebarFeedSection
-        title={t("feeds")}
-        isSectionOpen={isFeedsSectionOpen}
-        onToggleSection={() => setIsFeedsSectionOpen((v) => !v)}
-      />
+      <SidebarFeedSection title={t("feeds")} isOpen={isFeedsSectionOpen} onToggle={toggleFeedsSection} />
 
       <ScrollArea data-testid="sidebar-feed-scroll-area" className="flex-1">
         <div className="pb-4">
-          <FeedTreeView
-            isOpen={isFeedsSectionOpen}
-            folders={feedTreeFolders}
-            unfolderedFeeds={unfolderedFeedViews}
-            onToggleFolder={toggleFolder}
-            onSelectFolder={selectFolder}
-            onSelectFeed={selectFeed}
-            displayFavicons={displayFavicons}
-            canDragFeeds={canDragFeeds}
-            draggedFeedId={draggedFeedId}
-            activeDropTarget={activeDropTarget}
-            onDragStartFeed={handleDragStartFeed}
-            onDragEnterFolder={handleDragEnterFolder}
-            onDragEnterUnfoldered={handleDragEnterUnfoldered}
-            onDropToFolder={(folderId) => {
-              void handleDropToFolder(folderId);
-            }}
-            onDropToUnfoldered={() => {
-              void handleDropToUnfoldered();
-            }}
-            onDragEnd={clearDragState}
-            emptyState={
-              selectedAccountId
-                ? { kind: "message", message: t("press_plus_to_add_feed") }
-                : {
-                    kind: "action",
-                    label: t("add_account_to_start"),
-                    onAction: () => {
-                      openSettings("accounts");
-                      setSettingsAddAccount(true);
-                    },
-                  }
-            }
-            renderFolderContextMenu={(folder) => (
-              <FolderContextMenuContent
-                folder={{
-                  id: folder.id,
-                  account_id: folder.accountId,
-                  name: folder.name,
-                  sort_order: folder.sortOrder,
-                }}
-                folderUnread={folder.unreadCount}
-              />
-            )}
-            renderFeedContextMenu={(feed) => (
-              <FeedContextMenuContent
-                feed={{
-                  id: feed.id,
-                  account_id: feed.accountId,
-                  folder_id: feed.folderId,
-                  title: feed.title,
-                  url: feed.url,
-                  site_url: feed.siteUrl,
-                  unread_count: feed.unreadCount,
-                  reader_mode: feed.readerMode,
-                  web_preview_mode: feed.webPreviewMode,
-                }}
-              />
-            )}
-          />
-
-          {showSidebarTags && (
-            <SidebarTagSection
-              tagsLabel={t("tags")}
-              isOpen={isTagsSectionOpen}
-              onToggleOpen={() => setIsTagsSectionOpen((v) => !v)}
-              tags={(tags ?? []).map(
-                (tag): TagListItemViewModel => ({
-                  id: tag.id,
-                  name: tag.name,
-                  color: tag.color,
-                  articleCount: tagArticleCounts?.[tag.id] ?? 0,
-                  isSelected: selection.type === "tag" && selection.tagId === tag.id,
-                }),
-              )}
-              onSelectTag={selectTag}
-              renderContextMenu={(tag) => (
-                <TagContextMenuContent tag={{ id: tag.id, name: tag.name, color: tag.color }} />
-              )}
-            />
-          )}
+          {feedTree}
+          {tagSection}
         </div>
       </ScrollArea>
 
@@ -664,16 +716,10 @@ export function Sidebar() {
         feedCleanupLabel={t("feed_cleanup")}
         settingsLabel={t("settings")}
         onOpenFeedCleanup={openFeedCleanup}
-        onOpenSettings={() => openSettings()}
+        onOpenSettings={handleOpenSettings}
       />
 
-      {selectedAccountId && (
-        <AddFeedDialog
-          open={isAddFeedDialogOpen}
-          onOpenChange={(open) => (open ? openAddFeedDialog() : closeAddFeedDialog())}
-          accountId={selectedAccountId}
-        />
-      )}
+      {addFeedDialog}
     </div>
   );
 }

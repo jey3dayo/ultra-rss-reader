@@ -674,6 +674,35 @@ describe("Sidebar", () => {
     expect(useUiStore.getState().settingsAddAccount).toBe(true);
   });
 
+  it("routes the header add-feed action to account settings when no account is available", async () => {
+    const user = userEvent.setup();
+
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [];
+        case "list_folders":
+        case "list_feeds":
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Add feed" }));
+
+    expect(useUiStore.getState().settingsOpen).toBe(true);
+    expect(useUiStore.getState().settingsCategory).toBe("accounts");
+    expect(useUiStore.getState().settingsAddAccount).toBe(true);
+  });
+
   it("hides configurable sections while keeping accounts and feeds visible", async () => {
     usePreferencesStore.setState({
       prefs: {
@@ -766,6 +795,22 @@ describe("Sidebar", () => {
 
     expect(useUiStore.getState().feedCleanupOpen).toBe(true);
     expect(useUiStore.getState().focusedPane).toBe("content");
+  });
+
+  it("keeps footer actions clickable after collapsing the feeds section", async () => {
+    const user = userEvent.setup();
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Feeds" }));
+
+    expect(screen.queryByText("Tech Blog")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+    expect(useUiStore.getState().settingsOpen).toBe(true);
+
+    await user.click(screen.getByRole("button", { name: "Feed Cleanup" }));
+    expect(useUiStore.getState().feedCleanupOpen).toBe(true);
   });
 
   it("falls back away from hidden sidebar states, including viewMode-only flows", async () => {
