@@ -69,6 +69,15 @@ impl FeedRepository for SqliteFeedRepository<'_> {
                icon = excluded.icon,
                unread_count = excluded.unread_count,
                reader_mode = excluded.reader_mode,
+               web_preview_mode = excluded.web_preview_mode
+             ON CONFLICT(account_id, url) DO UPDATE SET
+               folder_id = excluded.folder_id,
+               remote_id = excluded.remote_id,
+               title = excluded.title,
+               site_url = excluded.site_url,
+               icon = excluded.icon,
+               unread_count = excluded.unread_count,
+               reader_mode = excluded.reader_mode,
                web_preview_mode = excluded.web_preview_mode",
             params![
                 feed.id.0,
@@ -382,6 +391,55 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(saved_feed.title, "Updated Feed");
+    }
+
+    #[test]
+    fn save_updates_existing_feed_when_account_and_url_match() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let existing_feed = Feed {
+            id: FeedId::new(),
+            account_id: account_id.clone(),
+            folder_id: None,
+            remote_id: None,
+            title: "Original Feed".to_string(),
+            url: "http://example.com/rss".to_string(),
+            site_url: "http://example.com".to_string(),
+            icon: None,
+            unread_count: 0,
+            reader_mode: "inherit".to_string(),
+            web_preview_mode: "inherit".to_string(),
+        };
+        repo.save(&existing_feed).unwrap();
+
+        let replacement_feed = Feed {
+            id: FeedId::new(),
+            account_id: account_id.clone(),
+            folder_id: None,
+            remote_id: Some("feed/1".to_string()),
+            title: "Remote Feed".to_string(),
+            url: existing_feed.url.clone(),
+            site_url: "https://example.com".to_string(),
+            icon: Some(vec![1, 2, 3]),
+            unread_count: 12,
+            reader_mode: "on".to_string(),
+            web_preview_mode: "off".to_string(),
+        };
+
+        repo.save(&replacement_feed).unwrap();
+
+        let feeds = repo.find_by_account(&account_id).unwrap();
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].id, existing_feed.id);
+        assert_eq!(feeds[0].remote_id.as_deref(), Some("feed/1"));
+        assert_eq!(feeds[0].title, "Remote Feed");
+        assert_eq!(feeds[0].site_url, "https://example.com");
+        assert_eq!(feeds[0].icon.as_deref(), Some(&[1, 2, 3][..]));
+        assert_eq!(feeds[0].unread_count, 12);
+        assert_eq!(feeds[0].reader_mode, "on");
+        assert_eq!(feeds[0].web_preview_mode, "off");
     }
 
     #[test]
