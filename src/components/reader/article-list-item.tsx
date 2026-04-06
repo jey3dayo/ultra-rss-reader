@@ -29,8 +29,8 @@ export function ArticleListItem({
   onSelect,
 }: ArticleListItemProps) {
   const { t } = useTranslation("reader");
-  const isUnread = !article.is_read;
-  const isRead = article.is_read;
+  const isRead = article.is_read || isRecentlyRead;
+  const isUnread = !isRead;
 
   return (
     <button

@@ -79,6 +79,18 @@ export function ArticleToolbar({
   const actionShareMenu = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share_menu"));
   const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
 
+  const retainIfNeeded = useCallback(
+    (nextRead: boolean) => {
+      // Retain before mutating so unread view does not drop the article during
+      // the refetch triggered by mark-as-read. It should disappear only after
+      // the user changes feed/view and retainedArticleIds is cleared.
+      if (nextRead && viewMode === "unread") {
+        retainArticle(article.id);
+      }
+    },
+    [article?.id, retainArticle, viewMode],
+  );
+
   return (
     <ArticleToolbarView
       showCloseButton={article !== null && !isBrowserOpen}
@@ -174,13 +186,13 @@ export function ArticleToolbar({
       onCloseView={onCloseView}
       onToggleRead={(pressed) => {
         if (!article) return;
+        retainIfNeeded(pressed);
         setRead.mutate(
           { id: article.id, read: pressed },
           {
             onSuccess: () => {
               if (pressed) {
                 addRecentlyRead(article.id);
-                if (viewMode === "unread") retainArticle(article.id);
               }
             },
           },
@@ -359,7 +371,11 @@ function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedNam
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: click handler intercepts anchor navigation in sanitized HTML */}
         {/* biome-ignore lint/a11y/noStaticElementInteractions: click handler intercepts anchor navigation in sanitized HTML */}
         <div onClick={handleContentClick}>
-          <ArticleContentView thumbnailUrl={article.thumbnail} contentHtml={article.content_sanitized} />
+          <ArticleContentView
+            thumbnailUrl={article.thumbnail}
+            contentHtml={article.content_sanitized}
+            feedName={feedName}
+          />
         </div>
       </article>
     </ScrollArea>
@@ -387,7 +403,7 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
   const [webPreviewModeOverride, setWebPreviewModeOverride] = useState<BinaryDisplayMode | null>(null);
   const overlayFocusReturnTargetRef = useRef<HTMLElement | null>(null);
   const overlayFocusReturnTargetKeyRef = useRef<string | null>(null);
-  const previousArticleIdRef = useRef(article.id);
+  const autoMarkedArticleIdRef = useRef<string | null>(null);
   const wasBrowserOpenRef = useRef(false);
   const isBrowserOpen = contentMode === "browser";
   const devIntent = readDevIntent();
@@ -414,8 +430,16 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
       }
     : undefined;
 
+  const retainIfNeeded = useCallback(
+    (nextRead: boolean) => {
+      if (nextRead && viewMode === "unread") {
+        retainArticle(article.id);
+      }
+    },
+    [article.id, retainArticle, viewMode],
+  );
+
   useEffect(() => {
-    previousArticleIdRef.current = article.id;
     setReaderModeOverride(null);
     setWebPreviewModeOverride(null);
   }, [article.id]);
@@ -435,21 +459,27 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
   }, []);
 
   useEffect(() => {
-    if (afterReading === "mark_as_read" && !article.is_read) {
-      setRead.mutate(
-        {
-          id: article.id,
-          read: true,
-        },
-        {
-          onSuccess: () => {
-            addRecentlyRead(article.id);
-            if (viewMode === "unread") retainArticle(article.id);
-          },
-        },
-      );
+    if (afterReading !== "mark_as_read" || article.is_read || autoMarkedArticleIdRef.current === article.id) {
+      return;
     }
-  }, [addRecentlyRead, afterReading, article.id, article.is_read, retainArticle, setRead, viewMode]);
+
+    autoMarkedArticleIdRef.current = article.id;
+    retainIfNeeded(true);
+    setRead.mutate(
+      {
+        id: article.id,
+        read: true,
+      },
+      {
+        onSuccess: () => {
+          addRecentlyRead(article.id);
+        },
+        onError: (error) => {
+          showToast(error.message);
+        },
+      },
+    );
+  }, [addRecentlyRead, afterReading, article.id, article.is_read, retainIfNeeded, setRead, showToast]);
 
   useEffect(() => {
     if (!intendedBrowserUrl) {
@@ -535,18 +565,18 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
 
   const handleToggleRead = useCallback(() => {
     const markingAsRead = !article.is_read;
+    retainIfNeeded(markingAsRead);
     setRead.mutate(
       { id: article.id, read: markingAsRead },
       {
         onSuccess: () => {
           if (markingAsRead) {
             addRecentlyRead(article.id);
-            if (viewMode === "unread") retainArticle(article.id);
           }
         },
       },
     );
-  }, [addRecentlyRead, article.id, article.is_read, retainArticle, setRead, viewMode]);
+  }, [addRecentlyRead, article.id, article.is_read, retainIfNeeded, setRead]);
 
   const handleToggleStar = useCallback(() => {
     const nextStarred = !article.is_starred;

@@ -18,13 +18,17 @@ export function ArticleContextMenu({ article, children }: { article: ArticleDto;
 
   const handleToggleRead = () => {
     const markingAsRead = !article.is_read;
+    // Match ArticlePane: retain first so unread view stays stable while the
+    // read-status mutation invalidates and reloads article queries.
+    if (markingAsRead && viewMode === "unread") {
+      retainArticle(article.id);
+    }
     setRead.mutate(
       { id: article.id, read: markingAsRead },
       {
         onSuccess: () => {
           if (markingAsRead) {
             addRecentlyRead(article.id);
-            if (viewMode === "unread") retainArticle(article.id);
           }
         },
       },

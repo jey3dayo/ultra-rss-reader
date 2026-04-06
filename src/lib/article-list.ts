@@ -82,8 +82,8 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
     list = [...(tagArticles ?? [])];
   } else {
     const all = feedId ? (articles ?? []) : (accountArticles ?? []);
-    // Keep articles that were visible in filtered views until the user navigates away,
-    // even if an in-place status change would otherwise exclude them immediately.
+    // In unread/starred views, keep the current row visible until the user changes
+    // screens. Marking an article read/starred should not make it disappear mid-click.
     if (viewMode === "unread") list = all.filter((article) => !article.is_read || retainedArticleIds?.has(article.id));
     else if (viewMode === "starred")
       list = all.filter((article) => article.is_starred || retainedArticleIds?.has(article.id));

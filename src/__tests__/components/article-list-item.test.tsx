@@ -1,0 +1,26 @@
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { ArticleListItem } from "@/components/reader/article-list-item";
+import { createWrapper } from "../../../tests/helpers/create-wrapper";
+import { sampleArticles } from "../../../tests/helpers/tauri-mocks";
+
+describe("ArticleListItem", () => {
+  it("treats recently read retained articles as read in accessibility labels", () => {
+    render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
+        isSelected
+        isRecentlyRead
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByRole("option", { name: "First Article" })).toHaveAttribute("aria-label", "First Article");
+  });
+});

@@ -719,6 +719,93 @@ describe("ArticleView", () => {
     });
   });
 
+  it("auto-marks the selected article as read only once", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        case "mark_article_read":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+    });
+    usePreferencesStore.setState({
+      prefs: { after_reading: "mark_as_read" },
+      loaded: true,
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+
+    await waitFor(() => {
+      const markCalls = calls.filter(
+        (call) => call.cmd === "mark_article_read" && call.args.articleId === "art-1" && call.args.read === true,
+      );
+      expect(markCalls).toHaveLength(1);
+    });
+  });
+
+  it("retains an auto-marked article in unread view before the read mutation resolves", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        case "mark_article_read":
+          return new Promise(() => {
+            // Keep the mutation pending to verify that retention happens immediately.
+          });
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+      viewMode: "unread",
+    });
+    usePreferencesStore.setState({
+      prefs: { after_reading: "mark_as_read" },
+      loaded: true,
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
+    });
+  });
+
   it("auto opens browser mode for all-items selection when the current feed enables web preview", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
