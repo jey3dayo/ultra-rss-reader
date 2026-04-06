@@ -679,6 +679,35 @@ describe("Sidebar", () => {
     expect(screen.queryByRole("button", { name: "Tags" })).not.toBeInTheDocument();
   });
 
+  it("keeps the feeds and tags section controls alongside the feed scroll area", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [{ id: "tag-1", name: "Important", color: "#ff0000" }];
+        case "get_tag_article_counts":
+          return { "tag-1": 2 };
+        default:
+          return null;
+      }
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const feedsButton = await screen.findByRole("button", { name: "Feeds" });
+    const tagsButton = await screen.findByRole("button", { name: "Tags" });
+    const scrollArea = screen.getByTestId("sidebar-feed-scroll-area");
+
+    expect(feedsButton.closest('[data-slot="scroll-area"]')).toBeNull();
+    expect(tagsButton.closest('[data-slot="scroll-area"]')).toBe(scrollArea);
+    expect(scrollArea).toBeInTheDocument();
+  });
+
   it("opens the feed cleanup surface from the bottom management area", async () => {
     const user = userEvent.setup();
 
