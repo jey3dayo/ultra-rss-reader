@@ -57,6 +57,7 @@ export function ArticleList() {
   const confirmMarkAllRead = useConfirmMarkAllRead();
   const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
   const feedId = selection.type === "feed" ? selection.feedId : null;
+  const folderId = selection.type === "folder" ? selection.folderId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
   const accountListScopeId = feedId || tagId ? null : selectedAccountId;
   const { data: articles, isLoading } = useArticles(feedId);
@@ -81,6 +82,10 @@ export function ArticleList() {
     for (const f of feeds ?? []) map.set(f.id, f.title);
     return map;
   }, [feeds]);
+  const folderFeedIds = useMemo(() => {
+    if (!folderId) return null;
+    return new Set((feeds ?? []).filter((feed) => feed.folder_id === folderId).map((feed) => feed.id));
+  }, [feeds, folderId]);
 
   const filteredArticles = useMemo(() => {
     return selectVisibleArticles({
@@ -90,6 +95,7 @@ export function ArticleList() {
       searchResults,
       feedId,
       tagId,
+      folderFeedIds,
       viewMode,
       showSearch,
       searchQuery,
@@ -100,6 +106,7 @@ export function ArticleList() {
     accountArticles,
     articles,
     feedId,
+    folderFeedIds,
     tagArticles,
     tagId,
     viewMode,

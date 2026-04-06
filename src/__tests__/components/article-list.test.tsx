@@ -45,6 +45,88 @@ describe("ArticleList", () => {
     });
   });
 
+  it("renders only articles from the selected folder", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "folder", folderId: "folder-tech" },
+      viewMode: "all",
+    });
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], id: "feed-tech", folder_id: "folder-tech", account_id: args.accountId },
+            { ...sampleFeeds[1], id: "feed-news", folder_id: "folder-news", account_id: args.accountId },
+          ];
+        case "list_account_articles":
+          return [
+            { ...sampleArticles[0], id: "art-tech", title: "Tech Article", feed_id: "feed-tech" },
+            { ...sampleArticles[1], id: "art-news", title: "News Article", feed_id: "feed-news" },
+          ];
+        case "list_articles":
+          return [];
+        case "list_articles_by_tag":
+          return [];
+        case "search_articles":
+          return [];
+        default:
+          return null;
+      }
+    });
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText("Tech Article")).toBeInTheDocument();
+      expect(screen.queryByText("News Article")).not.toBeInTheDocument();
+    });
+  });
+
+  it("keeps folder scope when showing search results", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "folder", folderId: "folder-tech" },
+      viewMode: "all",
+    });
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], id: "feed-tech", folder_id: "folder-tech", account_id: args.accountId },
+            { ...sampleFeeds[1], id: "feed-news", folder_id: "folder-news", account_id: args.accountId },
+          ];
+        case "list_account_articles":
+          return [];
+        case "list_articles":
+          return [];
+        case "list_articles_by_tag":
+          return [];
+        case "search_articles":
+          return [
+            { ...sampleArticles[0], id: "art-tech", title: "Tech Article", feed_id: "feed-tech" },
+            { ...sampleArticles[1], id: "art-news", title: "News Article", feed_id: "feed-news" },
+          ];
+        default:
+          return null;
+      }
+    });
+
+    const user = userEvent.setup();
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Search articles" }));
+    await user.type(screen.getByRole("textbox", { name: "Search articles" }), "Article");
+
+    await waitFor(() => {
+      expect(screen.getByText("Tech Article")).toBeInTheDocument();
+      expect(screen.queryByText("News Article")).not.toBeInTheDocument();
+    });
+  });
+
   it("lets mobile users navigate back to the sidebar", async () => {
     useUiStore.setState({ layoutMode: "mobile" });
     useUiStore.getState().selectAccount("acc-1");
