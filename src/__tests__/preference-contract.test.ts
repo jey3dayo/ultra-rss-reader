@@ -21,11 +21,7 @@ function extractFrontendPreferenceKeys(source: string): string[] {
 }
 
 function extractBackendAllowedKeys(source: string): string[] {
-  const block = extractBlock(
-    source,
-    /const ALLOWED_KEYS: &\[&str\] = &\[((?:.|\n)*?)\];/,
-    "backend ALLOWED_KEYS block",
-  );
+  const block = extractBlock(source, /const ALLOWED_KEYS: &\[&str\] = &\[([\s\S]*?)\];/, "backend ALLOWED_KEYS block");
 
   return [...block.matchAll(/"([a-z_]+)"/g)].map((match) => match[1]);
 }
