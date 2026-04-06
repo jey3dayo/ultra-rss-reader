@@ -34,6 +34,7 @@ export type FeedTreeFolderViewModel = {
   sortOrder: number;
   unreadCount: number;
   isExpanded: boolean;
+  isSelected: boolean;
   feeds: FeedTreeFeedViewModel[];
 };
 
@@ -94,6 +95,7 @@ export type FeedTreeViewProps = {
   folders: FeedTreeFolderViewModel[];
   unfolderedFeeds: FeedTreeFeedViewModel[];
   onToggleFolder: (folderId: string) => void;
+  onSelectFolder?: (folderId: string) => void;
   onSelectFeed: (feedId: string) => void;
   displayFavicons: boolean;
   emptyState:
@@ -262,6 +264,7 @@ function FolderSection({
   activeDropTarget,
   draggedFeedId,
   onToggleFolder,
+  onSelectFolder,
   onSelectFeed,
   displayFavicons,
   renderFolderContextMenu,
@@ -276,6 +279,7 @@ function FolderSection({
   activeDropTarget: ActiveDropTarget;
   draggedFeedId?: string | null;
   onToggleFolder: (folderId: string) => void;
+  onSelectFolder?: (folderId: string) => void;
   onSelectFeed: (feedId: string) => void;
   displayFavicons: boolean;
   renderFolderContextMenu?: (folder: FeedTreeFolderViewModel) => ReactNode;
@@ -307,25 +311,35 @@ function FolderSection({
           }}
         />
       ) : null}
-      <ContextMenu.Root>
-        <ContextMenu.Trigger
-          render={
-            <SidebarNavButton
-              aria-expanded={folder.isExpanded}
-              contentClassName="gap-1"
-              trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
-              data-feed-drop-kind={canDragFeeds ? "folder" : undefined}
-              data-feed-drop-target={canDragFeeds ? folder.id : undefined}
-              className={cn(isActive && "border-dashed bg-sidebar-accent/60 ring-1 ring-sidebar-border")}
-            />
-          }
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          aria-label={`Toggle folder ${folder.name}`}
+          aria-expanded={folder.isExpanded}
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
           onClick={() => onToggleFolder(folder.id)}
         >
           {folder.isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-          <span className="font-medium">{folder.name}</span>
-        </ContextMenu.Trigger>
-        {renderFolderContextMenu?.(folder)}
-      </ContextMenu.Root>
+        </button>
+        <ContextMenu.Root>
+          <ContextMenu.Trigger
+            render={
+              <SidebarNavButton
+                aria-label={`Select folder ${folder.name}`}
+                selected={folder.isSelected}
+                trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
+                data-feed-drop-kind={canDragFeeds ? "folder" : undefined}
+                data-feed-drop-target={canDragFeeds ? folder.id : undefined}
+                className={cn("flex-1", isActive && "border-dashed bg-sidebar-accent/60 ring-1 ring-sidebar-border")}
+              />
+            }
+            onClick={() => onSelectFolder?.(folder.id)}
+          >
+            <span className="font-medium">{folder.name}</span>
+          </ContextMenu.Trigger>
+          {renderFolderContextMenu?.(folder)}
+        </ContextMenu.Root>
+      </div>
       {folder.isExpanded && (
         <div className="mt-1 ml-2 space-y-1 border-l border-sidebar-border/35 pl-3">
           {folder.feeds.map((feed) => (
@@ -368,6 +382,7 @@ export function FeedTreeView({
   folders,
   unfolderedFeeds,
   onToggleFolder,
+  onSelectFolder,
   onSelectFeed,
   displayFavicons,
   emptyState,
@@ -620,6 +635,7 @@ export function FeedTreeView({
             activeDropTarget={activeVisualDropTarget}
             draggedFeedId={draggedFeedId}
             onToggleFolder={onToggleFolder}
+            onSelectFolder={onSelectFolder}
             onSelectFeed={onSelectFeed}
             displayFavicons={displayFavicons}
             renderFolderContextMenu={renderFolderContextMenu}

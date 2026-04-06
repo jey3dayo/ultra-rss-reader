@@ -21,6 +21,7 @@ describe("FeedTreeView", () => {
             sortOrder: 0,
             unreadCount: 4,
             isExpanded: true,
+            isSelected: false,
             feeds: [
               {
                 id: "feed-1",
@@ -65,9 +66,9 @@ describe("FeedTreeView", () => {
     expect(screen.getByText("Work")).toBeInTheDocument();
     expect(screen.getByText("Alpha")).toBeInTheDocument();
     expect(screen.getByText("Beta")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Work/ })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveAttribute("aria-expanded", "true");
 
-    await user.click(screen.getByRole("button", { name: /Work/ }));
+    await user.click(screen.getByRole("button", { name: "Toggle folder Work" }));
     await user.click(screen.getByRole("button", { name: /Alpha/ }));
     await user.click(screen.getByRole("button", { name: /Beta/ }));
 
@@ -76,6 +77,42 @@ describe("FeedTreeView", () => {
     expect(onSelectFeed).toHaveBeenNthCalledWith(2, "feed-2");
     expect(renderFeedContextMenu).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-1", folderId: "folder-1" }));
     expect(renderFeedContextMenu).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-2", folderId: null }));
+  });
+
+  it("separates folder selection from folder expansion", async () => {
+    const user = userEvent.setup();
+    const onToggleFolder = vi.fn();
+    const onSelectFolder = vi.fn();
+
+    render(
+      <FeedTreeView
+        isOpen={true}
+        folders={[
+          {
+            id: "folder-1",
+            name: "Work",
+            accountId: "acc-1",
+            sortOrder: 0,
+            unreadCount: 2,
+            isExpanded: false,
+            isSelected: false,
+            feeds: [],
+          },
+        ]}
+        unfolderedFeeds={[]}
+        onToggleFolder={onToggleFolder}
+        onSelectFolder={onSelectFolder}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+        emptyState={{ kind: "message", message: "No feeds yet" }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Select folder Work" }));
+    await user.click(screen.getByRole("button", { name: "Toggle folder Work" }));
+
+    expect(onSelectFolder).toHaveBeenCalledWith("folder-1");
+    expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
   });
 
   it("renders the empty action when there are no feeds", async () => {
