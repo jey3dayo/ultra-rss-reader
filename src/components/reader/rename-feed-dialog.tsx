@@ -3,14 +3,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
-import { copyToClipboard, renameFeed, updateFeedDisplaySettings } from "@/api/tauri-commands";
+import { renameFeed, updateFeedDisplaySettings } from "@/api/tauri-commands";
 import { useFolders } from "@/hooks/use-folders";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
-import {
-  displayPresetToTriStateModes,
-  feedModesToDisplayPresetOption,
-  resolveFeedDisplayOverrides,
-} from "@/lib/article-display";
+import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/article-display";
+import { copyValueToClipboard } from "@/lib/clipboard";
 import { useUiStore } from "@/stores/ui-store";
 import { createFolderIfNeeded } from "./feed-folder-flow";
 import { RenameFeedDialogView } from "./rename-feed-dialog-view";
@@ -28,12 +25,7 @@ export function RenameDialog({
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
   const [title, setTitle] = useState(feed.title);
-  const [displayPreset, setDisplayPreset] = useState(
-    feedModesToDisplayPresetOption(
-      resolveFeedDisplayOverrides(feed).readerMode,
-      resolveFeedDisplayOverrides(feed).webPreviewMode,
-    ),
-  );
+  const [displayPreset, setDisplayPreset] = useState(() => resolveFeedDisplayPreset(feed));
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const {
@@ -59,27 +51,20 @@ export function RenameDialog({
   const folderOptions = buildFolderOptions(folders, t("no_folder"));
 
   const handleCopy = async (value: string) => {
-    if (!value) return;
-    Result.pipe(
-      await copyToClipboard(value),
-      Result.inspect(() => showToast(t("copied_to_clipboard"))),
-      Result.inspectError((e) => {
-        console.error("Copy failed:", e);
-        showToast(e.message);
-      }),
-    );
+    await copyValueToClipboard(value, {
+      onSuccess: () => showToast(t("copied_to_clipboard")),
+      onError: (message, error) => {
+        console.error("Copy failed:", error);
+        showToast(message);
+      },
+    });
   };
 
   useEffect(() => {
     if (open) {
       setTitle(feed.title);
       resetFolderSelection(feed.folder_id);
-      setDisplayPreset(
-        feedModesToDisplayPresetOption(
-          resolveFeedDisplayOverrides(feed).readerMode,
-          resolveFeedDisplayOverrides(feed).webPreviewMode,
-        ),
-      );
+      setDisplayPreset(resolveFeedDisplayPreset(feed));
       setLoading(false);
       requestAnimationFrame(() => {
         inputRef.current?.focus();
@@ -111,10 +96,7 @@ export function RenameDialog({
 
     const didRename = trimmed !== feed.title;
     const didMoveFolder = resolvedFolderId !== feed.folder_id;
-    const currentDisplayPreset = feedModesToDisplayPresetOption(
-      resolveFeedDisplayOverrides(feed).readerMode,
-      resolveFeedDisplayOverrides(feed).webPreviewMode,
-    );
+    const currentDisplayPreset = resolveFeedDisplayPreset(feed);
     const didUpdateDisplayMode = displayPreset !== currentDisplayPreset;
     let folderUpdateSucceeded = false;
 

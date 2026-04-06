@@ -142,6 +142,11 @@ export function feedModesToDisplayPresetOption(
   });
 }
 
+export function resolveFeedDisplayPreset(feed: FeedLikeDisplaySettings | null | undefined): FeedDisplayPresetOption {
+  const overrides = resolveFeedDisplayOverrides(feed);
+  return feedModesToDisplayPresetOption(overrides.readerMode, overrides.webPreviewMode);
+}
+
 function resolveTriState(baseValue: boolean, override: TriStateDisplayMode): boolean {
   if (override === "inherit") {
     return baseValue;

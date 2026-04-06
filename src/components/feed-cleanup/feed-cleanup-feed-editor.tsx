@@ -3,18 +3,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
-import { copyToClipboard, renameFeed, syncFeed, updateFeedDisplaySettings } from "@/api/tauri-commands";
+import { renameFeed, syncFeed, updateFeedDisplaySettings } from "@/api/tauri-commands";
 import { CopyableReadonlyField } from "@/components/shared/copyable-readonly-field";
 import { DeleteButton } from "@/components/shared/delete-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
-import {
-  displayPresetToTriStateModes,
-  feedModesToDisplayPresetOption,
-  resolveFeedDisplayOverrides,
-} from "@/lib/article-display";
+import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/article-display";
+import { copyValueToClipboard } from "@/lib/clipboard";
 import { useUiStore } from "@/stores/ui-store";
 import { createFolderIfNeeded } from "../reader/feed-folder-flow";
 import { FolderSelectView } from "../reader/folder-select-view";
@@ -50,12 +47,7 @@ export function FeedCleanupFeedEditor({
   const showToast = useUiStore((state) => state.showToast);
   const updateFeedFolderMutation = useUpdateFeedFolder();
   const [title, setTitle] = useState(feed.title);
-  const [displayPreset, setDisplayPreset] = useState<DisplayPresetOption>(
-    feedModesToDisplayPresetOption(
-      resolveFeedDisplayOverrides(feed).readerMode,
-      resolveFeedDisplayOverrides(feed).webPreviewMode,
-    ),
-  );
+  const [displayPreset, setDisplayPreset] = useState<DisplayPresetOption>(() => resolveFeedDisplayPreset(feed));
   const [loading, setLoading] = useState(false);
   const [refetching, setRefetching] = useState(false);
   const {
@@ -79,25 +71,15 @@ export function FeedCleanupFeedEditor({
   useEffect(() => {
     setTitle(feed.title);
     resetFolderSelection(feed.folder_id);
-    setDisplayPreset(
-      feedModesToDisplayPresetOption(
-        resolveFeedDisplayOverrides(feed).readerMode,
-        resolveFeedDisplayOverrides(feed).webPreviewMode,
-      ),
-    );
+    setDisplayPreset(resolveFeedDisplayPreset(feed));
     setLoading(false);
   }, [feed, resetFolderSelection]);
 
   const handleCopy = async (value: string) => {
-    if (!value) {
-      return;
-    }
-
-    Result.pipe(
-      await copyToClipboard(value),
-      Result.inspect(() => showToast(t("copied_to_clipboard"))),
-      Result.inspectError((error) => showToast(error.message)),
-    );
+    await copyValueToClipboard(value, {
+      onSuccess: () => showToast(t("copied_to_clipboard")),
+      onError: (message) => showToast(message),
+    });
   };
 
   const handleSave = async () => {
@@ -124,10 +106,7 @@ export function FeedCleanupFeedEditor({
 
     const didRename = trimmed !== feed.title;
     const didMoveFolder = resolvedFolderId !== feed.folder_id;
-    const currentDisplayPreset = feedModesToDisplayPresetOption(
-      resolveFeedDisplayOverrides(feed).readerMode,
-      resolveFeedDisplayOverrides(feed).webPreviewMode,
-    );
+    const currentDisplayPreset = resolveFeedDisplayPreset(feed);
     const didUpdateDisplayMode = displayPreset !== currentDisplayPreset;
     let folderUpdateSucceeded = false;
 
