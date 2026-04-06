@@ -30,6 +30,29 @@ describe("SettingsModalView", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it("keeps both settings scroll areas shrinkable inside the modal columns", () => {
+    render(
+      <SettingsModalView
+        open={true}
+        title="Preferences"
+        closeLabel="Close preferences"
+        navigation={<div>Settings navigation</div>}
+        accountsNavigation={<div>Accounts navigation</div>}
+        content={<div>Settings content</div>}
+        onClose={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    const scrollAreas = screen.getAllByTestId("settings-scroll-area");
+
+    expect(scrollAreas).toHaveLength(2);
+    for (const scrollArea of scrollAreas) {
+      expect(scrollArea).toHaveClass("min-h-0");
+      expect(scrollArea).toHaveClass("flex-1");
+    }
+  });
+
   it("does not render dialog content when closed", () => {
     render(
       <SettingsModalView

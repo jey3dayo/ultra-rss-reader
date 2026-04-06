@@ -330,7 +330,7 @@ function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedNam
   };
 
   return (
-    <ScrollArea className="flex-1">
+    <ScrollArea data-testid="article-reader-scroll-area" className="h-full">
       <article className="mx-auto max-w-3xl px-8 py-8">
         <ArticleMetaView
           title={article.title}
@@ -655,14 +655,19 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
         onCloseView={handleCloseView}
         onToggleBrowserOverlay={handleToggleBrowserOverlay}
       />
-      <div className="relative min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         {resolvedDisplay.fallbackReason === "missing_web_preview" ? (
           <div className="border-b border-border bg-amber-500/10 px-4 py-2 text-sm text-amber-900 dark:text-amber-200">
             {t("web_preview_unavailable")}
           </div>
         ) : null}
         {resolvedDisplay.readerMode ? (
-          <div aria-hidden={isBrowserOpen} {...(isBrowserOpen ? { inert: true } : {})} className="h-full">
+          <div
+            aria-hidden={isBrowserOpen}
+            {...(isBrowserOpen ? { inert: true } : {})}
+            className="min-h-0 flex-1"
+            data-testid="article-reader-body"
+          >
             <ArticleReaderBody article={article} feedName={feedName} />
           </div>
         ) : (

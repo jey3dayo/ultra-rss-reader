@@ -49,13 +49,17 @@ export function SettingsModalView({
             <DialogTitle className="text-base font-medium">{title}</DialogTitle>
           </DialogHeader>
 
-          <ScrollArea className="min-h-0 flex-1">{navigation}</ScrollArea>
+          <ScrollArea data-testid="settings-scroll-area" className="flex-1">
+            {navigation}
+          </ScrollArea>
 
           <div className="border-t border-border p-2">{accountsNavigation}</div>
         </div>
 
         <div className="flex flex-1 flex-col overflow-hidden bg-popover">
-          <ScrollArea className="min-h-0 flex-1">{content}</ScrollArea>
+          <ScrollArea data-testid="settings-scroll-area" className="flex-1">
+            {content}
+          </ScrollArea>
         </div>
       </DialogContent>
     </Dialog>

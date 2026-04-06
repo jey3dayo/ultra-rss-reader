@@ -997,6 +997,39 @@ describe("ArticleView", () => {
     expect(useUiStore.getState().browserUrl).toBeNull();
   });
 
+  it("keeps the reader scroll region shrinkable when the web preview warning is shown", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    usePreferencesStore.setState({
+      prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
+      loaded: true,
+    });
+
+    render(
+      <ArticlePane
+        article={{ ...primaryArticle, url: "" }}
+        feed={{ ...primaryFeed, reader_mode: "on", web_preview_mode: "on" }}
+        feedName="Tech Blog"
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    await screen.findByText("This article does not support web preview");
+
+    expect(screen.getByTestId("article-reader-body")).toHaveClass("min-h-0");
+    expect(screen.getByTestId("article-reader-body")).toHaveClass("flex-1");
+    expect(screen.getByTestId("article-reader-scroll-area")).toHaveClass("h-full");
+  });
+
   it("renders the feed cleanup page instead of the reader when cleanup is open", async () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),

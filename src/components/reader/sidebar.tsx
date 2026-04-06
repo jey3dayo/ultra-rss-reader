@@ -583,7 +583,7 @@ export function Sidebar() {
         />
       </div>
 
-      <ScrollArea data-testid="sidebar-feed-scroll-area" className="min-h-0 flex-1">
+      <ScrollArea data-testid="sidebar-feed-scroll-area" className="flex-1">
         <div className="pb-4">
           <FeedTreeView
             isOpen={isFeedsSectionOpen}
