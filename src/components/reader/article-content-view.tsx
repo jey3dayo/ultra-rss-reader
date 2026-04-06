@@ -1,9 +1,15 @@
+import { useMemo } from "react";
+import { stripLeadingDuplicateLabel } from "@/lib/html";
+
 export type ArticleContentViewProps = {
   thumbnailUrl?: string | null;
   contentHtml: string;
+  feedName?: string | null;
 };
 
-export function ArticleContentView({ thumbnailUrl, contentHtml }: ArticleContentViewProps) {
+export function ArticleContentView({ thumbnailUrl, contentHtml, feedName }: ArticleContentViewProps) {
+  const displayHtml = useMemo(() => stripLeadingDuplicateLabel(contentHtml, feedName), [contentHtml, feedName]);
+
   return (
     <>
       {thumbnailUrl && (
@@ -14,7 +20,7 @@ export function ArticleContentView({ thumbnailUrl, contentHtml }: ArticleContent
       <div
         className="prose prose-invert max-w-none text-base leading-relaxed text-foreground/90"
         // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML is pre-sanitized by Rust backend
-        dangerouslySetInnerHTML={{ __html: contentHtml }}
+        dangerouslySetInnerHTML={{ __html: displayHtml }}
       />
     </>
   );

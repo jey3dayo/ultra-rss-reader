@@ -25,6 +25,31 @@ describe("ArticleContentView", () => {
     expect(screen.getByText("Only text")).toBeInTheDocument();
   });
 
+  it("hides a duplicated feed-name label at the start of article content", () => {
+    const { container } = render(
+      <ArticleContentView
+        feedName="葬送のフリーレン"
+        contentHtml="<p>葬送のフリーレン</p><p>本文です</p><figure><p><img src='https://example.com/panel.png' alt='' /></p></figure>"
+      />,
+    );
+
+    expect(screen.getByText("本文です")).toBeInTheDocument();
+    expect(screen.getByAltText("")).toHaveAttribute("src", "https://example.com/panel.png");
+    expect(container.querySelector(".prose")?.textContent?.trim()).toBe("本文です");
+  });
+
+  it("keeps the opening content when it does not duplicate the feed name", () => {
+    render(
+      <ArticleContentView
+        feedName="葬送のフリーレン"
+        contentHtml="<p>第147話 英雄のいない地</p><p>本文です</p>"
+      />,
+    );
+
+    expect(screen.getByText("第147話 英雄のいない地")).toBeInTheDocument();
+    expect(screen.getByText("本文です")).toBeInTheDocument();
+  });
+
   it("uses a fixture-only thumbnail in storybook", () => {
     expect(articleContentViewStories.args?.thumbnailUrl).toBeTruthy();
     expect(articleContentViewStories.args?.thumbnailUrl).not.toMatch(/^https?:\/\//);
