@@ -1,0 +1,124 @@
+import { ContextMenu } from "@base-ui/react/context-menu";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import type { PointerEvent as ReactPointerEvent, ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import { FeedTreeRow, type FeedTreeFeedViewModel } from "./feed-tree-row";
+import { SidebarNavButton } from "./sidebar-nav-button";
+
+export type FeedTreeFolderViewModel = {
+  id: string;
+  name: string;
+  accountId: string;
+  sortOrder: number;
+  unreadCount: number;
+  isExpanded: boolean;
+  isSelected: boolean;
+  feeds: FeedTreeFeedViewModel[];
+};
+
+export type ActiveDropTarget = { kind: "folder"; folderId: string } | { kind: "unfoldered" } | null;
+
+export type FeedTreeFolderSectionProps = {
+  folder: FeedTreeFolderViewModel;
+  activeDropTarget: ActiveDropTarget;
+  draggedFeedId?: string | null;
+  onToggleFolder: (folderId: string) => void;
+  onSelectFolder?: (folderId: string) => void;
+  onSelectFeed: (feedId: string) => void;
+  displayFavicons: boolean;
+  renderFolderContextMenu?: (folder: FeedTreeFolderViewModel) => ReactNode;
+  renderFeedContextMenu?: (feed: FeedTreeFeedViewModel) => ReactNode;
+  canDragFeeds?: boolean;
+  onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
+  onDropToFolder?: (folderId: string) => void;
+  onPointerDownFeed?: (feed: FeedTreeFeedViewModel, event: ReactPointerEvent<HTMLButtonElement>) => void;
+  consumeSuppressedHandleClick?: () => boolean;
+};
+
+export function FeedTreeFolderSection({
+  folder,
+  activeDropTarget,
+  draggedFeedId,
+  onToggleFolder,
+  onSelectFolder,
+  onSelectFeed,
+  displayFavicons,
+  renderFolderContextMenu,
+  renderFeedContextMenu,
+  canDragFeeds,
+  onDragStartFeed,
+  onDropToFolder,
+  onPointerDownFeed,
+  consumeSuppressedHandleClick,
+}: FeedTreeFolderSectionProps) {
+  const showDropOverlay = canDragFeeds && draggedFeedId !== null;
+  const isActive = canDragFeeds && activeDropTarget?.kind === "folder" && activeDropTarget.folderId === folder.id;
+
+  return (
+    <div
+      className={cn("relative rounded-md", isActive && "bg-sidebar-accent/20")}
+      data-feed-drop-kind={canDragFeeds ? "folder" : undefined}
+      data-feed-drop-target={canDragFeeds ? folder.id : undefined}
+    >
+      {showDropOverlay ? (
+        <button
+          type="button"
+          aria-label={`Move to ${folder.name}`}
+          data-feed-drop-kind="folder"
+          data-feed-drop-target={folder.id}
+          className="absolute inset-0 z-10 rounded-md"
+          onClick={() => {
+            onDropToFolder?.(folder.id);
+          }}
+        />
+      ) : null}
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          aria-label={`Toggle folder ${folder.name}`}
+          aria-expanded={folder.isExpanded}
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+          onClick={() => onToggleFolder(folder.id)}
+        >
+          {folder.isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        </button>
+        <ContextMenu.Root>
+          <ContextMenu.Trigger
+            render={
+              <SidebarNavButton
+                aria-label={`Select folder ${folder.name}`}
+                selected={folder.isSelected}
+                trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
+                data-feed-drop-kind={canDragFeeds ? "folder" : undefined}
+                data-feed-drop-target={canDragFeeds ? folder.id : undefined}
+                className={cn("flex-1", isActive && "border-dashed bg-sidebar-accent/60 ring-1 ring-sidebar-border")}
+              />
+            }
+            onClick={() => onSelectFolder?.(folder.id)}
+          >
+            <span className="font-medium">{folder.name}</span>
+          </ContextMenu.Trigger>
+          {renderFolderContextMenu?.(folder)}
+        </ContextMenu.Root>
+      </div>
+      {folder.isExpanded && (
+        <div className="mt-1 ml-2 space-y-1 border-l border-sidebar-border/35 pl-3">
+          {folder.feeds.map((feed) => (
+            <FeedTreeRow
+              key={feed.id}
+              feed={feed}
+              displayFavicons={displayFavicons}
+              onSelectFeed={onSelectFeed}
+              renderFeedContextMenu={renderFeedContextMenu}
+              canDragFeeds={canDragFeeds}
+              isDragged={draggedFeedId === feed.id}
+              onDragStartFeed={onDragStartFeed}
+              onPointerDownFeed={onPointerDownFeed}
+              consumeSuppressedHandleClick={consumeSuppressedHandleClick}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

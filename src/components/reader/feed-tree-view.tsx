@@ -1,44 +1,22 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
-import { ChevronDown, ChevronRight, GripVertical } from "lucide-react";
 import {
-  type ReactNode,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useRef,
   useState,
 } from "react";
-import { FeedFavicon } from "@/components/shared/feed-favicon";
-import type { TriStateDisplayMode } from "@/lib/article-display";
 import { cn } from "@/lib/utils";
-import { SidebarNavButton } from "./sidebar-nav-button";
+import {
+  FeedTreeFolderSection,
+  type ActiveDropTarget,
+  type FeedTreeFolderViewModel,
+} from "./feed-tree-folder-section";
+import { FeedTreeDragOverlay, type FeedTreeDragOverlayPreview } from "./feed-tree-drag-overlay";
+import { FeedTreeRow, type FeedTreeFeedViewModel } from "./feed-tree-row";
 
-export type FeedTreeFeedViewModel = {
-  id: string;
-  accountId: string;
-  folderId: string | null;
-  title: string;
-  url: string;
-  siteUrl: string;
-  unreadCount: number;
-  readerMode: TriStateDisplayMode;
-  webPreviewMode: TriStateDisplayMode;
-  isSelected: boolean;
-  grayscaleFavicon: boolean;
-};
-
-export type FeedTreeFolderViewModel = {
-  id: string;
-  name: string;
-  accountId: string;
-  sortOrder: number;
-  unreadCount: number;
-  isExpanded: boolean;
-  isSelected: boolean;
-  feeds: FeedTreeFeedViewModel[];
-};
-
-export type ActiveDropTarget = { kind: "folder"; folderId: string } | { kind: "unfoldered" } | null;
+export type { ActiveDropTarget, FeedTreeFolderViewModel } from "./feed-tree-folder-section";
+export type { FeedTreeFeedViewModel } from "./feed-tree-row";
 
 const DROP_TARGET_KIND_ATTRIBUTE = "data-feed-drop-kind";
 const DROP_TARGET_ID_ATTRIBUTE = "data-feed-drop-target";
@@ -53,12 +31,6 @@ type PointerDragSession = {
   currentY: number;
   isDragging: boolean;
   hoverTarget: ActiveDropTarget;
-};
-
-type PointerDragPreview = {
-  feed: FeedTreeFeedViewModel;
-  x: number;
-  y: number;
 };
 
 function isSameDropTarget(left: ActiveDropTarget, right: ActiveDropTarget): boolean {
@@ -121,105 +93,6 @@ export type FeedTreeViewProps = {
   onDragEnd?: () => void;
 };
 
-function DragHandle({
-  feedTitle,
-  canDragFeeds,
-  isArmed,
-  onArm,
-  onPointerDown,
-  consumeSuppressedClick,
-}: {
-  feedTitle: string;
-  canDragFeeds?: boolean;
-  isArmed?: boolean;
-  onArm?: () => void;
-  onPointerDown?: (event: ReactPointerEvent<HTMLButtonElement>) => void;
-  consumeSuppressedClick?: () => boolean;
-}) {
-  if (!canDragFeeds) {
-    return null;
-  }
-
-  return (
-    <button
-      type="button"
-      aria-label={`Drag ${feedTitle}`}
-      onPointerDown={onPointerDown}
-      onClick={() => {
-        if (consumeSuppressedClick?.()) {
-          return;
-        }
-        onArm?.();
-      }}
-      className={cn(
-        "inline-flex h-6 w-6 shrink-0 cursor-grab items-center justify-center rounded text-sidebar-foreground/40 opacity-0 transition-opacity hover:bg-sidebar-accent/40 hover:text-foreground focus-visible:opacity-100 active:cursor-grabbing group-hover/feed-row:opacity-100 group-focus-within/feed-row:opacity-100",
-        isArmed && "bg-sidebar-accent/60 text-foreground opacity-100",
-      )}
-    >
-      <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
-    </button>
-  );
-}
-
-function FeedRow({
-  feed,
-  displayFavicons,
-  onSelectFeed,
-  renderFeedContextMenu,
-  canDragFeeds,
-  isDragged = false,
-  onDragStartFeed,
-  onPointerDownFeed,
-  consumeSuppressedHandleClick,
-}: {
-  feed: FeedTreeFeedViewModel;
-  displayFavicons: boolean;
-  onSelectFeed: (feedId: string) => void;
-  renderFeedContextMenu?: (feed: FeedTreeFeedViewModel) => ReactNode;
-  canDragFeeds?: boolean;
-  isDragged?: boolean;
-  onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
-  onPointerDownFeed?: (feed: FeedTreeFeedViewModel, event: ReactPointerEvent<HTMLButtonElement>) => void;
-  consumeSuppressedHandleClick?: () => boolean;
-}) {
-  return (
-    <div className={cn("group/feed-row relative", isDragged && "opacity-70")}>
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center">
-        <div className="pointer-events-auto">
-          <DragHandle
-            feedTitle={feed.title}
-            canDragFeeds={canDragFeeds}
-            isArmed={isDragged}
-            onArm={() => onDragStartFeed?.(feed)}
-            onPointerDown={(event) => onPointerDownFeed?.(feed, event)}
-            consumeSuppressedClick={consumeSuppressedHandleClick}
-          />
-        </div>
-      </div>
-      <ContextMenu.Root>
-        <ContextMenu.Trigger
-          render={
-            <SidebarNavButton
-              selected={feed.isSelected}
-              trailing={feed.unreadCount > 0 ? feed.unreadCount.toLocaleString() : undefined}
-              className={cn(canDragFeeds && "pl-5")}
-            />
-          }
-          onClick={() => onSelectFeed(feed.id)}
-        >
-          {displayFavicons && (
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-              <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.siteUrl} grayscale={feed.grayscaleFavicon} />
-            </span>
-          )}
-          <span className="truncate">{feed.title}</span>
-        </ContextMenu.Trigger>
-        {renderFeedContextMenu?.(feed)}
-      </ContextMenu.Root>
-    </div>
-  );
-}
-
 function UnfolderedDropZone({
   enabled,
   active,
@@ -259,124 +132,6 @@ function UnfolderedDropZone({
   );
 }
 
-function FolderSection({
-  folder,
-  activeDropTarget,
-  draggedFeedId,
-  onToggleFolder,
-  onSelectFolder,
-  onSelectFeed,
-  displayFavicons,
-  renderFolderContextMenu,
-  renderFeedContextMenu,
-  canDragFeeds,
-  onDragStartFeed,
-  onDropToFolder,
-  onPointerDownFeed,
-  consumeSuppressedHandleClick,
-}: {
-  folder: FeedTreeFolderViewModel;
-  activeDropTarget: ActiveDropTarget;
-  draggedFeedId?: string | null;
-  onToggleFolder: (folderId: string) => void;
-  onSelectFolder?: (folderId: string) => void;
-  onSelectFeed: (feedId: string) => void;
-  displayFavicons: boolean;
-  renderFolderContextMenu?: (folder: FeedTreeFolderViewModel) => ReactNode;
-  renderFeedContextMenu?: (feed: FeedTreeFeedViewModel) => ReactNode;
-  canDragFeeds?: boolean;
-  onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
-  onDropToFolder?: (folderId: string) => void;
-  onPointerDownFeed?: (feed: FeedTreeFeedViewModel, event: ReactPointerEvent<HTMLButtonElement>) => void;
-  consumeSuppressedHandleClick?: () => boolean;
-}) {
-  const showDropOverlay = canDragFeeds && draggedFeedId !== null;
-  const isActive = canDragFeeds && activeDropTarget?.kind === "folder" && activeDropTarget.folderId === folder.id;
-
-  return (
-    <div
-      className={cn("relative rounded-md", isActive && "bg-sidebar-accent/20")}
-      data-feed-drop-kind={canDragFeeds ? "folder" : undefined}
-      data-feed-drop-target={canDragFeeds ? folder.id : undefined}
-    >
-      {showDropOverlay ? (
-        <button
-          type="button"
-          aria-label={`Move to ${folder.name}`}
-          data-feed-drop-kind="folder"
-          data-feed-drop-target={folder.id}
-          className="absolute inset-0 z-10 rounded-md"
-          onClick={() => {
-            onDropToFolder?.(folder.id);
-          }}
-        />
-      ) : null}
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          aria-label={`Toggle folder ${folder.name}`}
-          aria-expanded={folder.isExpanded}
-          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
-          onClick={() => onToggleFolder(folder.id)}
-        >
-          {folder.isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-        </button>
-        <ContextMenu.Root>
-          <ContextMenu.Trigger
-            render={
-              <SidebarNavButton
-                aria-label={`Select folder ${folder.name}`}
-                selected={folder.isSelected}
-                trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
-                data-feed-drop-kind={canDragFeeds ? "folder" : undefined}
-                data-feed-drop-target={canDragFeeds ? folder.id : undefined}
-                className={cn("flex-1", isActive && "border-dashed bg-sidebar-accent/60 ring-1 ring-sidebar-border")}
-              />
-            }
-            onClick={() => onSelectFolder?.(folder.id)}
-          >
-            <span className="font-medium">{folder.name}</span>
-          </ContextMenu.Trigger>
-          {renderFolderContextMenu?.(folder)}
-        </ContextMenu.Root>
-      </div>
-      {folder.isExpanded && (
-        <div className="mt-1 ml-2 space-y-1 border-l border-sidebar-border/35 pl-3">
-          {folder.feeds.map((feed) => (
-            <FeedRow
-              key={feed.id}
-              feed={feed}
-              displayFavicons={displayFavicons}
-              onSelectFeed={onSelectFeed}
-              renderFeedContextMenu={renderFeedContextMenu}
-              canDragFeeds={canDragFeeds}
-              isDragged={draggedFeedId === feed.id}
-              onDragStartFeed={onDragStartFeed}
-              onPointerDownFeed={onPointerDownFeed}
-              consumeSuppressedHandleClick={consumeSuppressedHandleClick}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function FeedDragOverlayCard({ feed, displayFavicons }: { feed: FeedTreeFeedViewModel; displayFavicons: boolean }) {
-  return (
-    <div className="pointer-events-none min-w-48 rounded-md border border-sidebar-border bg-sidebar px-2 py-1.5 text-sm text-sidebar-foreground shadow-lg">
-      <div className="flex items-center gap-2">
-        {displayFavicons ? (
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-            <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.siteUrl} grayscale={feed.grayscaleFavicon} />
-          </span>
-        ) : null}
-        <span className="truncate">{feed.title}</span>
-      </div>
-    </div>
-  );
-}
-
 export function FeedTreeView({
   isOpen,
   folders,
@@ -401,7 +156,7 @@ export function FeedTreeView({
   const hasFeeds = folders.length > 0 || unfolderedFeeds.length > 0;
   const hasUnfolderedFeeds = unfolderedFeeds.length > 0;
   const [isPointerTracking, setIsPointerTracking] = useState(false);
-  const [pointerDragPreview, setPointerDragPreview] = useState<PointerDragPreview | null>(null);
+  const [pointerDragPreview, setPointerDragPreview] = useState<FeedTreeDragOverlayPreview | null>(null);
   const [pointerHoverTarget, setPointerHoverTarget] = useState<ActiveDropTarget>(null);
   const pointerDragRef = useRef<PointerDragSession | null>(null);
   const suppressHandleClickRef = useRef(false);
@@ -629,7 +384,7 @@ export function FeedTreeView({
           />
         ) : null}
         {folders.map((folder) => (
-          <FolderSection
+          <FeedTreeFolderSection
             key={folder.id}
             folder={folder}
             activeDropTarget={activeVisualDropTarget}
@@ -650,7 +405,7 @@ export function FeedTreeView({
         {hasUnfolderedFeeds && (
           <div className="space-y-1">
             {unfolderedFeeds.map((feed) => (
-              <FeedRow
+              <FeedTreeRow
                 key={feed.id}
                 feed={feed}
                 displayFavicons={displayFavicons}
@@ -666,16 +421,7 @@ export function FeedTreeView({
           </div>
         )}
       </div>
-      {pointerDragPreview ? (
-        <div
-          className="pointer-events-none fixed left-0 top-0 z-50"
-          style={{
-            transform: `translate3d(${pointerDragPreview.x + 12}px, ${pointerDragPreview.y + 12}px, 0)`,
-          }}
-        >
-          <FeedDragOverlayCard feed={pointerDragPreview.feed} displayFavicons={displayFavicons} />
-        </div>
-      ) : null}
+      {pointerDragPreview ? <FeedTreeDragOverlay preview={pointerDragPreview} displayFavicons={displayFavicons} /> : null}
     </>
   );
 }

@@ -79,6 +79,86 @@ describe("FeedTreeView", () => {
     expect(renderFeedContextMenu).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-2", folderId: null }));
   });
 
+  it("renders nested feeds only for expanded folders", () => {
+    render(
+      <FeedTreeView
+        isOpen={true}
+        folders={[
+          {
+            id: "folder-expanded",
+            name: "Expanded",
+            accountId: "acc-1",
+            sortOrder: 0,
+            unreadCount: 3,
+            isExpanded: true,
+            isSelected: false,
+            feeds: [
+              {
+                id: "feed-1",
+                accountId: "acc-1",
+                folderId: "folder-expanded",
+                title: "Alpha",
+                url: "https://example.com/alpha.xml",
+                siteUrl: "https://example.com/alpha",
+                unreadCount: 2,
+                readerMode: "on",
+                webPreviewMode: "off",
+                isSelected: false,
+                grayscaleFavicon: false,
+              },
+              {
+                id: "feed-2",
+                accountId: "acc-1",
+                folderId: "folder-expanded",
+                title: "Beta",
+                url: "https://example.com/beta.xml",
+                siteUrl: "https://example.com/beta",
+                unreadCount: 1,
+                readerMode: "on",
+                webPreviewMode: "off",
+                isSelected: true,
+                grayscaleFavicon: false,
+              },
+            ],
+          },
+          {
+            id: "folder-collapsed",
+            name: "Collapsed",
+            accountId: "acc-1",
+            sortOrder: 1,
+            unreadCount: 1,
+            isExpanded: false,
+            isSelected: false,
+            feeds: [
+              {
+                id: "feed-3",
+                accountId: "acc-1",
+                folderId: "folder-collapsed",
+                title: "Gamma",
+                url: "https://example.com/gamma.xml",
+                siteUrl: "https://example.com/gamma",
+                unreadCount: 1,
+                readerMode: "on",
+                webPreviewMode: "off",
+                isSelected: false,
+                grayscaleFavicon: false,
+              },
+            ],
+          },
+        ]}
+        unfolderedFeeds={[]}
+        onToggleFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+        emptyState={{ kind: "message", message: "No feeds yet" }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /Alpha/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Beta/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Gamma/ })).not.toBeInTheDocument();
+  });
+
   it("separates folder selection from folder expansion", async () => {
     const user = userEvent.setup();
     const onToggleFolder = vi.fn();
@@ -356,6 +436,57 @@ describe("FeedTreeView", () => {
       configurable: true,
       value: originalElementFromPoint,
     });
+  });
+
+  it("renders a drag overlay that follows the pointer while dragging", () => {
+    render(
+      <FeedTreeView
+        isOpen={true}
+        canDragFeeds={true}
+        folders={[]}
+        unfolderedFeeds={[
+          {
+            id: "feed-1",
+            accountId: "acc-1",
+            folderId: null,
+            title: "Alpha",
+            url: "https://example.com/alpha.xml",
+            siteUrl: "https://example.com/alpha",
+            unreadCount: 0,
+            readerMode: "on",
+            webPreviewMode: "off",
+            isSelected: false,
+            grayscaleFavicon: false,
+          },
+        ]}
+        onToggleFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        onDragStartFeed={vi.fn()}
+        onDragEnterFolder={vi.fn()}
+        onDragEnterUnfoldered={vi.fn()}
+        onDropToFolder={vi.fn()}
+        onDropToUnfoldered={vi.fn()}
+        onDragEnd={vi.fn()}
+        displayFavicons={false}
+        emptyState={{ kind: "message", message: "No feeds yet" }}
+      />,
+    );
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Drag Alpha" }), {
+      button: 0,
+      clientX: 12,
+      clientY: 16,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(window, {
+      clientX: 40,
+      clientY: 52,
+      pointerId: 1,
+    });
+
+    const overlay = screen.getByTestId("feed-tree-drag-overlay");
+    expect(overlay).toHaveTextContent("Alpha");
+    expect(overlay).toHaveStyle({ transform: "translate3d(52px, 64px, 0)" });
   });
 
   it("allows moving a feed by clicking the handle and then the target folder", () => {
