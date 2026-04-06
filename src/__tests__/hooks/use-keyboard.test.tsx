@@ -31,6 +31,8 @@ function renderAppShell(calls: MockCall[]) {
       case "get_article_tags":
       case "search_articles":
         return [];
+      case "get_tag_article_counts":
+        return {};
       case "mark_article_read":
       case "mark_articles_read":
       case "toggle_article_star":
@@ -119,6 +121,8 @@ describe("useKeyboard", () => {
         case "get_article_tags":
         case "search_articles":
           return [];
+        case "get_tag_article_counts":
+          return {};
         case "mark_article_read":
         case "mark_articles_read":
         case "toggle_article_star":

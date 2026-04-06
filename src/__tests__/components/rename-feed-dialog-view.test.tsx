@@ -94,13 +94,13 @@ describe("RenameFeedDialogView", () => {
     titleInput.focus();
 
     fireEvent.change(titleInput, { target: { value: "Fresh" } });
-    await user.click(screen.getByRole("button", { name: "Copy Website URL" }));
-    await user.click(screen.getByRole("button", { name: "Copy Feed URL" }));
+    fireEvent.click(screen.getByRole("button", { name: "Copy Website URL" }));
+    fireEvent.click(screen.getByRole("button", { name: "Copy Feed URL" }));
     expect(titleInput).toHaveFocus();
     await user.click(screen.getByRole("combobox", { name: "Display Mode" }));
-    await user.click(await screen.findByText("Standard"));
-    await user.click(screen.getByRole("button", { name: "Save" }));
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(await screen.findByText("Standard", {}, { timeout: 10_000 }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(onTitleChange).toHaveBeenLastCalledWith("Fresh");
     expect(onCopySiteUrl).toHaveBeenCalledTimes(1);

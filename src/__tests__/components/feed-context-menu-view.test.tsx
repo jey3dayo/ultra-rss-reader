@@ -1,12 +1,10 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { FeedContextMenuView } from "@/components/reader/feed-context-menu-view";
 
 describe("FeedContextMenuView", () => {
   it("renders feed actions and delegates clicks", async () => {
-    const user = userEvent.setup();
     const onOpenSite = vi.fn();
     const onMarkAllRead = vi.fn();
     const onSetDisplayPreset = vi.fn();
@@ -36,13 +34,13 @@ describe("FeedContextMenuView", () => {
       </ContextMenu.Root>,
     );
 
-    await user.click(screen.getByRole("menuitem", { name: "Open site" }));
-    await user.click(screen.getByRole("menuitem", { name: "Mark all as read" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Open site" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Mark all as read" }));
     expect(screen.getByText("Display mode")).toBeInTheDocument();
-    await user.click(screen.getByRole("menuitem", { name: "Standard" }));
-    await user.click(screen.getByRole("menuitem", { name: "Preview" }));
-    await user.click(screen.getByRole("menuitem", { name: "Unsubscribe…" }));
-    await user.click(screen.getByRole("menuitem", { name: "Edit…" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Standard" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Preview" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Unsubscribe…" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Edit…" }));
 
     expect(onOpenSite).toHaveBeenCalledTimes(1);
     expect(onMarkAllRead).toHaveBeenCalledTimes(1);

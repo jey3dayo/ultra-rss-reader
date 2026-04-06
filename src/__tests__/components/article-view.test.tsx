@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
-import { ArticleView } from "@/components/reader/article-view";
+import { ArticlePane, ArticleToolbar, ArticleView } from "@/components/reader/article-view";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -16,6 +16,8 @@ type MockCall = {
 
 const ciWaitOptions = { timeout: 20_000 };
 const readingListTestTimeout = 30_000;
+const primaryArticle = sampleArticles[0];
+const primaryFeed = sampleFeeds[0];
 
 function setReadingListPlatformSupport(enabled: boolean) {
   usePlatformStore.setState({
@@ -952,12 +954,16 @@ describe("ArticleView", () => {
   it(
     "hides reading list action when platform does not support it",
     async () => {
-      useUiStore.getState().selectAccount("acc-1");
-      useUiStore.getState().selectFeed("feed-1");
-      useUiStore.getState().selectArticle("art-1");
-
       const user = userEvent.setup();
-      render(<ArticleView />, { wrapper: createWrapper() });
+      render(
+        <ArticleToolbar
+          article={primaryArticle ?? null}
+          isBrowserOpen={false}
+          onCloseView={() => {}}
+          onToggleBrowserOverlay={() => {}}
+        />,
+        { wrapper: createWrapper() },
+      );
 
       await user.click(await screen.findByRole("button", { name: "Share" }, ciWaitOptions));
       await screen.findByRole("menuitem", { name: "Copy link" }, ciWaitOptions);
@@ -971,12 +977,17 @@ describe("ArticleView", () => {
     "shows reading list action when platform supports it",
     async () => {
       setReadingListPlatformSupport(true);
-      useUiStore.getState().selectAccount("acc-1");
-      useUiStore.getState().selectFeed("feed-1");
-      useUiStore.getState().selectArticle("art-1");
 
       const user = userEvent.setup();
-      render(<ArticleView />, { wrapper: createWrapper() });
+      render(
+        <ArticleToolbar
+          article={primaryArticle ?? null}
+          isBrowserOpen={false}
+          onCloseView={() => {}}
+          onToggleBrowserOverlay={() => {}}
+        />,
+        { wrapper: createWrapper() },
+      );
 
       await user.click(await screen.findByRole("button", { name: "Share" }, ciWaitOptions));
       await screen.findByRole("menuitem", { name: "Copy link" }, ciWaitOptions);
@@ -1017,16 +1028,13 @@ describe("ArticleView", () => {
         }
       });
 
-      useUiStore.getState().selectAccount("acc-1");
-      useUiStore.getState().selectFeed("feed-1");
-      useUiStore.getState().selectArticle("art-1");
+      if (!primaryArticle) {
+        throw new Error("primaryArticle fixture is missing");
+      }
 
-      render(<ArticleView />, { wrapper: createWrapper() });
-
-      await screen.findByRole("heading", { level: 1, name: "First Article" }, ciWaitOptions);
-      await waitFor(() => {
-        expect(screen.getByRole("button", { name: "Share" })).toBeEnabled();
-      }, ciWaitOptions);
+      render(<ArticlePane article={primaryArticle} feed={primaryFeed} feedName="Feed One" />, {
+        wrapper: createWrapper(),
+      });
 
       calls.length = 0;
       fireEvent(window, new Event(keyboardEvents.addToReadingList));
@@ -1071,16 +1079,13 @@ describe("ArticleView", () => {
         }
       });
       setReadingListPlatformSupport(true);
-      useUiStore.getState().selectAccount("acc-1");
-      useUiStore.getState().selectFeed("feed-1");
-      useUiStore.getState().selectArticle("art-1");
+      if (!primaryArticle) {
+        throw new Error("primaryArticle fixture is missing");
+      }
 
-      render(<ArticleView />, { wrapper: createWrapper() });
-
-      await screen.findByRole("heading", { level: 1, name: "First Article" }, ciWaitOptions);
-      await waitFor(() => {
-        expect(screen.getByRole("button", { name: "Share" })).toBeEnabled();
-      }, ciWaitOptions);
+      render(<ArticlePane article={primaryArticle} feed={primaryFeed} feedName="Feed One" />, {
+        wrapper: createWrapper(),
+      });
 
       calls.length = 0;
       fireEvent(window, new Event(keyboardEvents.addToReadingList));

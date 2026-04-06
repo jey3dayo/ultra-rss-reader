@@ -56,7 +56,7 @@ function openArticleInExternalBrowser(url: string) {
   );
 }
 
-function ArticleToolbar({
+export function ArticleToolbar({
   article,
   isBrowserOpen,
   onCloseView,
@@ -366,7 +366,7 @@ function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedNam
   );
 }
 
-function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: FeedDto; feedName?: string }) {
+export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: FeedDto; feedName?: string }) {
   const { t, i18n } = useTranslation("reader");
   const layoutMode = useUiStore((s) => s.layoutMode);
   const contentMode = useUiStore((s) => s.contentMode);

@@ -129,6 +129,8 @@ const defaultHandler: MockHandler = (cmd, args) => {
       return null;
     case "search_articles":
       return [];
+    case "get_tag_article_counts":
+      return {};
     case "add_local_feed":
       return {
         id: "feed-new",

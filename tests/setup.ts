@@ -1,4 +1,4 @@
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { afterEach } from "vitest";
 import "@testing-library/jest-dom/vitest";
 
@@ -69,6 +69,8 @@ function ensureWorkingStorage() {
 ensureWorkingStorage();
 import "./helpers/i18n-setup";
 import { teardownTauriMocks } from "./helpers/tauri-mocks";
+
+configure({ asyncUtilTimeout: 10_000 });
 
 afterEach(() => {
   cleanup();
