@@ -49,6 +49,26 @@
 
 ## UI ブラウザ散策メモ
 
+- [ ] Webプレビューが空のままになる場合でも、loading / failure / unsupported の状態を見分けられるようにする
+  - 再現: ブラウザモード (`http://127.0.0.1:4173/`) で記事を1件開き、ツールバーの `Webプレビューを開く` を押す
+  - 5 秒以上待っても右ペインが真っ黒のままで、`読込中` / 失敗理由 / 再試行導線のどれも見えず、単に固まったのか非対応なのか判断できない
+  - loading 中は overlay 上に `読込中` と補助文言を重ね、完全な黒画面には見えないようにした
+  - failure / unsupported の見分けと再試行導線はまだ残タスク
+  - 候補箇所: `src/components/reader/browser-view.tsx`, `src/components/reader/article-view.tsx`, `src/locales/ja/reader.json`, `src/locales/en/reader.json`
+- [x] 記事検索の 0 件状態を、空フィード時と見分けられる search-specific empty state にする
+  - 再現: ブラウザモードで `記事を検索` を開き、`zzzzzz` のような一致しない語を入力する
+  - 検索語を含む empty title と補助文言、`検索をクリア` 導線を追加した
+  - 候補箇所: `src/components/reader/article-list.tsx`, `src/components/reader/article-list-header.tsx`, `src/locales/ja/reader.json`, `src/locales/en/reader.json`
+- [x] フィード追加ダイアログで、無効な URL 入力時の理由と次アクションを inline に示す
+  - 再現: `フィードを追加` を開き、`example.com` のように scheme なしの URL を入力する
+  - `https://example.com` 形式の入力例を inline error として表示し、`検出` / `追加` disabled の理由を見えるようにした
+  - 候補箇所: `src/components/reader/add-feed-dialog.tsx`, `src/components/reader/add-feed-dialog-view.tsx`, `src/locales/ja/reader.json`, `src/locales/en/reader.json`
+- [ ] フィード管理の初期ビューで、低シグナルな summary card より整理キューを主役に寄せる
+  - 再現: ブラウザモードのデスクトップ幅で `フィード管理` を開く
+  - 初期表示は `候補数 / 優先確認 / あとで見る / 参照エラー` の card が大きく並ぶ一方、実際に判断する `整理キュー` と `確認` は下に押し出され、主タスクへ入るまでの視線移動が多い
+  - とくに 0 件 card が多い状態では縦幅に対する情報密度が低く、cleanup 作業より dashboard 的な眺めに寄って見える
+  - 候補箇所: `src/components/feed-cleanup/feed-cleanup-page-view.tsx`, `src/locales/ja/cleanup.json`, `src/locales/en/cleanup.json`
+
 - [ ] UI/UX 監査で見つかった改善を小さいものから順に解消する
   - [x] 設定画面の日本語 UI に残っている英語混在ラベルを自然な日本語に直す
     - `Unread を表示` / `Starred を表示` / `Tags を表示`
