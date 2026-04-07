@@ -89,6 +89,9 @@ export function FeedTreeFolderSection({
                 aria-label={`Select folder ${folder.name}`}
                 selected={folder.isSelected}
                 trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
+                trailingClassName={
+                  folder.isSelected ? "text-sidebar-accent-foreground/72" : "text-sidebar-foreground/52"
+                }
                 data-feed-drop-kind={canDragFeeds ? "folder" : undefined}
                 data-feed-drop-target={canDragFeeds ? folder.id : undefined}
                 className={cn("flex-1", isActive && "border-dashed bg-sidebar-accent/60 ring-1 ring-sidebar-border")}
@@ -102,7 +105,7 @@ export function FeedTreeFolderSection({
         </ContextMenu.Root>
       </div>
       {folder.isExpanded && (
-        <div className="mt-1 ml-2 space-y-1 border-l border-sidebar-border/35 pl-3">
+        <div className="mt-1 ml-2 space-y-1 border-l border-sidebar-border/30 pl-3">
           {folder.feeds.map((feed) => (
             <FeedTreeRow
               key={feed.id}

@@ -105,6 +105,7 @@ export function FeedTreeRow({
             <SidebarNavButton
               selected={feed.isSelected}
               trailing={feed.unreadCount > 0 ? feed.unreadCount.toLocaleString() : undefined}
+              trailingClassName={feed.isSelected ? "text-sidebar-accent-foreground/68" : "text-sidebar-foreground/38"}
               className={cn(canDragFeeds && "pl-5")}
             />
           }

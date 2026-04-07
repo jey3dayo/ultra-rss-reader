@@ -57,13 +57,15 @@ describe("Sidebar", () => {
     setupTauriMocks();
   });
 
-  it("keeps smart views and the feeds header outside the scroll area and delegates smart view selection", async () => {
+  it("keeps smart views and the subscriptions header outside the scroll area and delegates smart view selection", async () => {
     const user = userEvent.setup();
     render(<Sidebar />, { wrapper: createWrapper() });
 
+    const smartViewsHeading = screen.getByText("Smart views");
     const unreadButton = screen.getByRole("button", { name: /Unread/ });
-    const feedsHeader = screen.getByRole("button", { name: "Feeds" });
+    const feedsHeader = screen.getByRole("button", { name: "Subscriptions" });
 
+    expect(smartViewsHeading.closest('[data-slot="scroll-area"]')).toBeNull();
     expect(unreadButton.closest('[data-slot="scroll-area"]')).toBeNull();
     expect(feedsHeader.closest('[data-slot="scroll-area"]')).toBeNull();
 
@@ -389,8 +391,8 @@ describe("Sidebar", () => {
 
     expect(await screen.findByRole("button", { name: "Move to Work" })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Feeds" }));
-    await user.click(screen.getByRole("button", { name: "Feeds" }));
+    await user.click(screen.getByRole("button", { name: "Subscriptions" }));
+    await user.click(screen.getByRole("button", { name: "Subscriptions" }));
 
     expect(screen.queryByRole("button", { name: "Move to Work" })).not.toBeInTheDocument();
   });
@@ -745,7 +747,7 @@ describe("Sidebar", () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     expect(await screen.findByRole("button", { name: /Local/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Feeds" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Subscriptions" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Unread/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Starred/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Tags" })).not.toBeInTheDocument();
@@ -771,7 +773,7 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    const feedsButton = await screen.findByRole("button", { name: "Feeds" });
+    const feedsButton = await screen.findByRole("button", { name: "Subscriptions" });
     const tagsButton = await screen.findByRole("button", { name: "Tags" });
     const scrollArea = screen.getByTestId("sidebar-feed-scroll-area");
 
@@ -814,7 +816,7 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Feeds" }));
+    await user.click(await screen.findByRole("button", { name: "Subscriptions" }));
 
     expect(screen.queryByText("Tech Blog")).not.toBeInTheDocument();
 

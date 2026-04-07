@@ -249,6 +249,24 @@ describe("ArticleList", () => {
     expect(useUiStore.getState().focusedPane).toBe("sidebar");
   });
 
+  it("shows a labeled compact sidebar affordance and navigates back to the sidebar", async () => {
+    useUiStore.setState({ layoutMode: "compact", focusedPane: "list" });
+    useUiStore.getState().selectAccount("acc-1");
+
+    const user = userEvent.setup();
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText(sampleArticles[0].title)).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Subscriptions")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Show sidebar" }));
+
+    expect(useUiStore.getState().focusedPane).toBe("sidebar");
+  });
+
   it("updates the selected feed display preset from the header select", async () => {
     let feeds = sampleFeeds.filter((feed) => feed.account_id === "acc-1");
     const commands: Array<{ cmd: string; args: Record<string, unknown> }> = [];

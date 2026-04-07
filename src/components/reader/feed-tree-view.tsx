@@ -12,6 +12,7 @@ export type FeedTreeViewProps = {
   isOpen: boolean;
   folders: FeedTreeFolderViewModel[];
   unfolderedFeeds: FeedTreeFeedViewModel[];
+  unfolderedLabel?: string;
   onToggleFolder: (folderId: string) => void;
   onSelectFolder?: (folderId: string) => void;
   onSelectFeed: (feedId: string) => void;
@@ -82,6 +83,7 @@ export function FeedTreeView({
   isOpen,
   folders,
   unfolderedFeeds,
+  unfolderedLabel,
   onToggleFolder,
   onSelectFolder,
   onSelectFeed,
@@ -175,21 +177,28 @@ export function FeedTreeView({
           />
         ))}
         {hasUnfolderedFeeds && (
-          <div className="space-y-1">
-            {unfolderedFeeds.map((feed) => (
-              <FeedTreeRow
-                key={feed.id}
-                feed={feed}
-                displayFavicons={displayFavicons}
-                onSelectFeed={onSelectFeed}
-                renderFeedContextMenu={renderFeedContextMenu}
-                canDragFeeds={canDragFeeds}
-                isDragged={normalizedDraggedFeedId === feed.id}
-                onDragStartFeed={onDragStartFeed}
-                onPointerDownFeed={handlePointerDownFeed}
-                consumeSuppressedHandleClick={consumeSuppressedHandleClick}
-              />
-            ))}
+          <div className="space-y-2">
+            {unfolderedLabel ? (
+              <div className="ml-2 px-3 text-[0.68rem] font-medium tracking-[0.08em] text-sidebar-foreground/32 uppercase">
+                {unfolderedLabel}
+              </div>
+            ) : null}
+            <div className="ml-2 space-y-1 border-l border-sidebar-border/25 pl-3">
+              {unfolderedFeeds.map((feed) => (
+                <FeedTreeRow
+                  key={feed.id}
+                  feed={feed}
+                  displayFavicons={displayFavicons}
+                  onSelectFeed={onSelectFeed}
+                  renderFeedContextMenu={renderFeedContextMenu}
+                  canDragFeeds={canDragFeeds}
+                  isDragged={normalizedDraggedFeedId === feed.id}
+                  onDragStartFeed={onDragStartFeed}
+                  onPointerDownFeed={handlePointerDownFeed}
+                  consumeSuppressedHandleClick={consumeSuppressedHandleClick}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>

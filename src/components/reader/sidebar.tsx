@@ -635,6 +635,7 @@ export function Sidebar() {
       isOpen={isFeedsSectionOpen}
       folders={feedTreeFolders}
       unfolderedFeeds={unfolderedFeedViews}
+      unfolderedLabel={t("no_folder")}
       onToggleFolder={toggleFolder}
       onSelectFolder={selectFolder}
       onSelectFeed={selectFeed}
@@ -701,9 +702,13 @@ export function Sidebar() {
         onClose={closeAccountList}
       />
 
-      <SmartViewsView views={visibleSmartViews} onSelectSmartView={selectSmartView} />
+      <SmartViewsView title={t("smart_views")} views={visibleSmartViews} onSelectSmartView={selectSmartView} />
 
-      <SidebarFeedSection title={t("feeds")} isOpen={isFeedsSectionOpen} onToggle={toggleFeedsSection} />
+      <div className="px-4 py-2">
+        <div className="h-px bg-sidebar-border/35" />
+      </div>
+
+      <SidebarFeedSection title={t("subscriptions")} isOpen={isFeedsSectionOpen} onToggle={toggleFeedsSection} />
 
       <ScrollArea data-testid="sidebar-feed-scroll-area" className="flex-1">
         <div className="pb-4">

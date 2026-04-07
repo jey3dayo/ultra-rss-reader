@@ -10,6 +10,7 @@ describe("SmartViewsView", () => {
 
     render(
       <SmartViewsView
+        title="Smart views"
         views={[
           { kind: "unread", label: "Unread", count: 12, showCount: true, isSelected: true },
           { kind: "starred", label: "Starred", count: 3, showCount: true, isSelected: false },
@@ -18,6 +19,7 @@ describe("SmartViewsView", () => {
       />,
     );
 
+    expect(screen.getByText("Smart views")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Unread/ })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: /Starred/ })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("button", { name: /Unread/ })).toHaveClass("w-full");

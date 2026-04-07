@@ -11,13 +11,19 @@ export type SmartViewItemViewModel = {
 };
 
 export type SmartViewsViewProps = {
+  title?: string;
   views: SmartViewItemViewModel[];
   onSelectSmartView: (kind: SmartViewKind) => void;
 };
 
-export function SmartViewsView({ views, onSelectSmartView }: SmartViewsViewProps) {
+export function SmartViewsView({ title, views, onSelectSmartView }: SmartViewsViewProps) {
   return (
-    <div className="space-y-1 px-2 py-1.5">
+    <div className="space-y-2 px-2 py-1.5">
+      {title ? (
+        <div className="px-2 text-[0.68rem] font-medium tracking-[0.08em] text-sidebar-foreground/42 uppercase">
+          {title}
+        </div>
+      ) : null}
       {views.map((view) => (
         <SidebarNavButton
           key={view.kind}
@@ -26,6 +32,9 @@ export function SmartViewsView({ views, onSelectSmartView }: SmartViewsViewProps
           selected={view.isSelected}
           size="default"
           trailing={view.showCount ? view.count.toLocaleString() : undefined}
+          trailingClassName={
+            view.isSelected ? "text-sidebar-accent-foreground/88" : "text-sidebar-foreground/68 font-medium"
+          }
         >
           <span className="font-medium">{view.label}</span>
         </SidebarNavButton>

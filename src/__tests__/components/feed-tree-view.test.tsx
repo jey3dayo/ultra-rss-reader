@@ -13,6 +13,7 @@ describe("FeedTreeView", () => {
     render(
       <FeedTreeView
         isOpen={true}
+        unfolderedLabel="No folder"
         folders={[
           {
             id: "folder-1",
@@ -66,6 +67,7 @@ describe("FeedTreeView", () => {
     expect(screen.getByText("Work")).toBeInTheDocument();
     expect(screen.getByText("Alpha")).toBeInTheDocument();
     expect(screen.getByText("Beta")).toBeInTheDocument();
+    expect(screen.getByText("No folder")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveAttribute("aria-expanded", "true");
 
     await user.click(screen.getByRole("button", { name: "Toggle folder Work" }));

@@ -36,6 +36,7 @@ import { contextMenuStyles } from "./context-menu-styles";
 export function ArticleList() {
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
+  const { t: ts } = useTranslation("sidebar");
   const selection = useUiStore((s) => s.selection);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
@@ -359,10 +360,11 @@ export function ArticleList() {
         showSearch={showSearch}
         searchQuery={searchQuery}
         searchInputRef={searchInputRef}
-        showSidebarButton={layoutMode === "mobile" || layoutMode === "wide"}
+        showSidebarButton={layoutMode === "mobile" || layoutMode === "wide" || layoutMode === "compact"}
         sidebarButtonLabel={
           layoutMode === "wide" ? t(sidebarOpen ? "hide_sidebar" : "show_sidebar") : t("show_sidebar")
         }
+        sidebarButtonText={layoutMode === "compact" ? ts("subscriptions") : undefined}
         isSidebarVisible={layoutMode === "wide" ? sidebarOpen : undefined}
         feedModeControl={
           feedId ? (

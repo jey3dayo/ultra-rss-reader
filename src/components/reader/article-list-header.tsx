@@ -12,6 +12,7 @@ type ArticleListHeaderProps = {
   searchInputRef: RefObject<HTMLInputElement | null>;
   showSidebarButton: boolean;
   sidebarButtonLabel: string;
+  sidebarButtonText?: string;
   isSidebarVisible?: boolean;
   feedModeControl?: React.ReactNode;
   onMarkAllRead: () => void;
@@ -27,6 +28,7 @@ export function ArticleListHeader({
   searchInputRef,
   showSidebarButton,
   sidebarButtonLabel,
+  sidebarButtonText,
   isSidebarVisible,
   feedModeControl,
   onMarkAllRead,
@@ -45,16 +47,18 @@ export function ArticleListHeader({
               <AppTooltip label={sidebarButtonLabel}>
                 <Button
                   variant="ghost"
-                  size="icon"
+                  size={sidebarButtonText ? "sm" : "icon"}
                   onClick={onToggleSidebar}
                   aria-label={sidebarButtonLabel}
                   aria-pressed={isSidebarVisible}
                   className={cn(
                     "text-muted-foreground transition-colors duration-200 hover:text-foreground",
+                    sidebarButtonText && "gap-1.5 px-2.5 text-xs font-semibold tracking-wide",
                     isSidebarVisible && "bg-muted text-foreground",
                   )}
                 >
                   <PanelLeft className="h-4 w-4" />
+                  {sidebarButtonText && <span>{sidebarButtonText}</span>}
                 </Button>
               </AppTooltip>
             )}

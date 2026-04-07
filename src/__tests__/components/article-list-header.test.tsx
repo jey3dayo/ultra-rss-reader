@@ -98,4 +98,25 @@ describe("ArticleListHeader", () => {
     const header = container.firstElementChild;
     expect(header?.firstElementChild).toContainElement(screen.getByRole("button", { name: "Hide sidebar" }));
   });
+
+  it("can show a compact sidebar affordance label next to the icon", () => {
+    render(
+      <ArticleListHeader
+        showSearch={false}
+        searchQuery=""
+        searchInputRef={createRef<HTMLInputElement>()}
+        showSidebarButton
+        sidebarButtonLabel="Show sidebar"
+        sidebarButtonText="Subscriptions"
+        onMarkAllRead={vi.fn()}
+        onToggleSidebar={vi.fn()}
+        onToggleSearch={vi.fn()}
+        onCloseSearch={vi.fn()}
+        onSearchQueryChange={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByRole("button", { name: "Show sidebar" })).toHaveTextContent("Subscriptions");
+  });
 });
