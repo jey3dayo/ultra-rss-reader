@@ -12,10 +12,10 @@
   - focus trap は入れず、overlay close button autofocus + focus restore で運用する
   - 開閉アニメーションは追加せず、hover / active / focus-visible の軽い反応だけに留める
   - `Esc` で閉じる / `focus-visible` を維持する方針で確定した
-- [ ] Tauri の実機スクショをループで取りながら、overlay の最終見た目を確定する
-  - `×` の位置、scrim の濃さ、枠なしの見え方を main 基準で確認する
-  - native WebView の bounds と DOM 上の見た目がずれて見えないかを都度確認する
-  - resize / DPI 変更時に再配置が崩れないかを軽く確認する
+- [x] Tauri の実機スクショをループで取りながら、overlay の最終見た目を確定する
+  - `image-viewer-overlay` dev intent 中は起動時 sync を抑止し、scenario の一時状態が同期で潰れないようにした
+  - HWND capture で baseline / resized の window + client screenshot を撮り、overlay shell と native WebView の重なりを確認した
+  - resize 後も `Webプレビュー` overlay が維持され、native WebView の bounds ずれが目立たないことを debug capture で確認した
 - [x] 実機確認用の debug intent を、ノイズの少ない専用導線として作り直す
   - `app:dev:image-viewer` で overlay 直行と mock page 表示まで確認済み
   - 実 provider での最終確認は、overlay UI の見た目が固まってから別途詰める
