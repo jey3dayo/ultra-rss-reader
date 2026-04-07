@@ -2,17 +2,16 @@
 
 ## 自動ワイドスクリーンの仕上げ
 
-- [ ] 自動ワイドスクリーン overlay の最終 polish を仕上げる
-  - `×` の hover / active / focus-visible を最終確認し、必要なら 1 段だけ詰める
-  - `×` の active 時に、押した感が hover と埋もれないかを確認し、必要ならごく小さい scale / opacity 差分を追加する
-  - `×` の 46px hit area と見た目の一致感を実機で確認し、端クリック時の違和感がないかを見る
-  - lane の余白が「close のための逃がし」に見えないか、Tauri 実画面で最終確認する
-  - scrim と stage の境界コントラストを環境差込みで見直し、必要なら半段だけ調整する
-- [ ] overlay の振る舞いを最終判断する
-  - scrim クリックで閉じるかどうかを仕様として確定する
-  - focus trap を入れるか、現状の focus restore で十分かを判断する
-  - 開閉アニメーションを入れるなら、ごく軽い easing のみに留める
-  - `Esc` で閉じる / `focus-visible` の現在仕様を維持するかを、最終 UX と合わせて確認する
+- [x] 自動ワイドスクリーン overlay の最終 polish を仕上げる
+  - `×` の hover / active / focus-visible は現行の ghost affordance のまま維持し、active feedback を残した
+  - `×` の hit area は `46px` へ広げ、実装とテストを更新した
+  - lane の余白は close 導線として読める範囲に収まっており、browser mode / Tauri debug capture でも大きな違和感は見えなかった
+  - scrim と stage の境界には細い border を追加し、黒同士で溶けすぎないよう半段だけコントラストを上げた
+- [x] overlay の振る舞いを最終判断する
+  - scrim クリックでは閉じず、close affordance と `Esc` を主導線として維持する
+  - focus trap は入れず、overlay close button autofocus + focus restore で運用する
+  - 開閉アニメーションは追加せず、hover / active / focus-visible の軽い反応だけに留める
+  - `Esc` で閉じる / `focus-visible` を維持する方針で確定した
 - [ ] Tauri の実機スクショをループで取りながら、overlay の最終見た目を確定する
   - `×` の位置、scrim の濃さ、枠なしの見え方を main 基準で確認する
   - native WebView の bounds と DOM 上の見た目がずれて見えないかを都度確認する
@@ -32,9 +31,9 @@
   - 左端アクセントバーを追加する
   - 件数の文字色を少し弱めて、ラベル本体を主役にする
   - 折りたたみ階層の余白とグループ感をもう少し明確にする
-- [ ] 左ペインの情報階層を整理する
-  - `スマートビュー / フォルダ / フィード一覧` の 3 層に見える構成を検討する
-  - `未読` などの全体指標と、各フィードの件数が視覚的に競合しないようにする
+- [x] 左ペインの情報階層を整理する
+  - sidebar section split と smart view contextual filters により、`スマートビュー / フィード / タグ` の層を視覚的に分離した
+  - 全体指標は smart view と context strip 側へ寄せ、各フィード件数との競合を弱めた
 - [ ] ツールバーとメニューバーの役割を整理する
   - メニューバーは低頻度操作、ツールバーは高頻度操作に寄せる
   - close 系 UI は「何を閉じるのか」が分かるように意味を揃える
