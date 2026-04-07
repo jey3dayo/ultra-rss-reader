@@ -54,6 +54,8 @@ describe("AddFeedDialogView", () => {
         }}
         error={null}
         successMessage="Feed detected"
+        urlHint={null}
+        urlHintTone="muted"
         isDiscoverDisabled={false}
         isSubmitDisabled={false}
         labels={{
@@ -123,6 +125,8 @@ describe("AddFeedDialogView", () => {
         }}
         error="Invalid URL"
         successMessage={null}
+        urlHint="Use a full URL like https://example.com"
+        urlHintTone="error"
         isDiscoverDisabled={true}
         isSubmitDisabled={true}
         labels={{
@@ -141,6 +145,12 @@ describe("AddFeedDialogView", () => {
 
     await user.type(screen.getByPlaceholderText("Feed or Site URL"), "{Enter}");
 
+    const urlInput = screen.getByPlaceholderText("Feed or Site URL");
+    const helperText = screen.getByText("Use a full URL like https://example.com");
+
+    expect(helperText.id).not.toBe("");
+    expect(urlInput).toHaveAttribute("aria-describedby", helperText.id);
+    expect(urlInput).toHaveAttribute("aria-invalid", "true");
     expect(onSubmit).not.toHaveBeenCalled();
   });
 });

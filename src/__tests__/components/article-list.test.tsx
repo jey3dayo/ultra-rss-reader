@@ -233,6 +233,46 @@ describe("ArticleList", () => {
     });
   });
 
+  it("shows a search-specific empty state and lets the user clear the query", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+
+    const user = userEvent.setup();
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Search articles" }));
+    await user.type(screen.getByRole("textbox", { name: "Search articles" }), "Nope");
+
+    await waitFor(() => {
+      expect(screen.getByText('No matches for "Nope"')).toBeInTheDocument();
+      expect(screen.getByText("Try a different keyword or clear the current search.")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Clear search" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('No matches for "Nope"')).not.toBeInTheDocument();
+      expect(screen.getByText(sampleArticles[0].title)).toBeInTheDocument();
+    });
+  });
+
+  it("keeps the current list visible until the debounced search actually starts", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+
+    const user = userEvent.setup();
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText(sampleArticles[0].title)).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Search articles" }));
+    await user.type(screen.getByRole("textbox", { name: "Search articles" }), "Nope");
+
+    expect(screen.getByText(sampleArticles[0].title)).toBeInTheDocument();
+    expect(screen.queryByText('No matches for "Nope"')).not.toBeInTheDocument();
+  });
+
   it("lets mobile users navigate back to the sidebar", async () => {
     useUiStore.setState({ layoutMode: "mobile" });
     useUiStore.getState().selectAccount("acc-1");

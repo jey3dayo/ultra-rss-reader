@@ -44,6 +44,8 @@ const meta = {
     },
     error: null,
     successMessage: "Feed detected",
+    urlHint: null,
+    urlHintTone: "muted",
     isDiscoverDisabled: false,
     isSubmitDisabled: false,
     labels: {
@@ -90,12 +92,16 @@ export const CreatingFolder: Story = {
       newFolderInputRef: createRef<HTMLInputElement>(),
     },
     successMessage: null,
+    urlHint: null,
+    urlHintTone: "muted",
   },
 };
 
 export const Loading: Story = {
   args: {
     loading: true,
+    urlHint: null,
+    urlHintTone: "muted",
     isDiscoverDisabled: true,
     isSubmitDisabled: true,
     folderSelectProps: {
@@ -118,5 +124,16 @@ export const Loading: Story = {
       onNewFolderNameChange: fn(),
       newFolderInputRef: createRef<HTMLInputElement>(),
     },
+  },
+};
+
+export const InvalidUrl: Story = {
+  args: {
+    url: "example.com",
+    urlHint: "Use a full URL like https://example.com",
+    urlHintTone: "error",
+    successMessage: null,
+    isDiscoverDisabled: true,
+    isSubmitDisabled: true,
   },
 };

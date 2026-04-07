@@ -55,6 +55,9 @@ export function AddFeedDialog({
   const trimmedUrl = url.trim();
   const hasManualUrl = trimmedUrl.length > 0;
   const isManualUrlValid = !hasManualUrl || isValidFeedUrl(trimmedUrl);
+  const urlHint =
+    hasManualUrl && !isManualUrlValid ? t("feed_url_help_invalid") : hasManualUrl ? null : t("feed_url_help_example");
+  const urlHintTone = hasManualUrl && !isManualUrlValid ? "error" : "muted";
 
   useEffect(() => {
     if (open) {
@@ -218,6 +221,8 @@ export function AddFeedDialog({
       }}
       error={error}
       successMessage={successMessage}
+      urlHint={urlHint}
+      urlHintTone={urlHintTone}
       isDiscoverDisabled={!hasManualUrl || !isManualUrlValid || loading || discovering}
       isSubmitDisabled={isSubmitDisabled}
       labels={{

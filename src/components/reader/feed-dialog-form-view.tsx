@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import { type RefObject, useId } from "react";
 import { CopyableReadonlyField } from "@/components/shared/copyable-readonly-field";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +37,8 @@ export type FeedDialogUrlSectionProps = {
   discoveredFeedOptions: DiscoveredFeedOption[];
   selectedFeedUrl: string;
   onSelectedFeedUrlChange: (value: string) => void;
+  helperText?: string | null;
+  helperTone?: "muted" | "error";
 };
 
 export type FeedDialogTextSectionProps = {
@@ -101,6 +103,7 @@ export function FeedDialogFormView({
   successMessage?: string | null;
   onSubmit: () => void;
 }) {
+  const urlHelperTextId = useId();
   const getSelectLabel = (section: FeedDialogSelectSectionProps, value: string | null) =>
     section.options.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
 
@@ -131,6 +134,9 @@ export function FeedDialogFormView({
                   onChange={(event) => urlSection.onValueChange(event.target.value)}
                   placeholder={urlSection.placeholder}
                   disabled={urlSection.disabled}
+                  aria-describedby={urlSection.helperText ? urlHelperTextId : undefined}
+                  aria-errormessage={urlSection.helperTone === "error" ? urlHelperTextId : undefined}
+                  aria-invalid={urlSection.helperTone === "error" ? true : undefined}
                 />
                 <Button
                   type="button"
@@ -153,6 +159,17 @@ export function FeedDialogFormView({
                   onValueChange={urlSection.onSelectedFeedUrlChange}
                 />
               )}
+
+              {urlSection.helperText ? (
+                <p
+                  id={urlHelperTextId}
+                  className={
+                    urlSection.helperTone === "error" ? "text-sm text-destructive" : "text-sm text-muted-foreground"
+                  }
+                >
+                  {urlSection.helperText}
+                </p>
+              ) : null}
             </>
           )}
 

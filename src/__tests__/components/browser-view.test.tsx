@@ -234,6 +234,21 @@ describe("BrowserView", () => {
     expect(screen.getByText(/Apr 6, 2026/)).toBeInTheDocument();
   });
 
+  it("shows loading feedback while the embedded preview is still starting", async () => {
+    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    expect(screen.getByText("Loading")).toBeInTheDocument();
+    expect(screen.getByText("If this takes too long, open it in your external browser.")).toBeInTheDocument();
+  });
+
   it("does not close when clicking the overlay lane outside the close button", async () => {
     mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
 

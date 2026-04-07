@@ -80,4 +80,29 @@ describe("ArticleListScreenView", () => {
     expect(screen.getByRole("option", { name: /First Article/i })).toBeInTheDocument();
     expect(screen.getByTestId(`screen-row-${sampleArticles[0].id}`)).toBeInTheDocument();
   });
+
+  it("renders empty-state actions outside the article listbox", () => {
+    render(
+      <ArticleListScreenView
+        listAriaLabel="Article list"
+        listRef={{ current: null }}
+        isLoading={false}
+        emptyMessage='No matches for "Nope"'
+        emptyDescription="Try a different keyword or clear the current search."
+        emptyActionLabel="Clear search"
+        onEmptyAction={vi.fn()}
+        loadingMessage="Loading articles"
+        groups={[]}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        onSelectArticle={vi.fn()}
+        renderRow={({ content }) => content}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument();
+    expect(screen.queryByRole("listbox", { name: "Article list" })).not.toBeInTheDocument();
+  });
 });

@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
+import { LoaderCircle } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -502,6 +503,17 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
       {context ? <BrowserPreviewContext scope={scope} context={context} /> : null}
       <div ref={stageRef} data-testid="browser-overlay-stage" className={stageClass}>
         <div ref={hostRef} data-testid="browser-webview-host" className="h-full w-full bg-background" />
+        {isLoading ? (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-6">
+            <div className="max-w-sm rounded-2xl border border-white/10 bg-black/58 px-5 py-4 text-center shadow-[0_18px_40px_rgba(0,0,0,0.32)] backdrop-blur-md">
+              <div className="flex items-center justify-center gap-2 text-white">
+                <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+                <p className="text-sm font-semibold">{t("browser_loading")}</p>
+              </div>
+              <p className="mt-2 text-sm text-white/72">{t("browser_loading_hint")}</p>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

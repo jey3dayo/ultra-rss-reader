@@ -78,7 +78,8 @@ export function ArticleList() {
   }, [searchQuery]);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const { data: searchResults } = useSearchArticles(selectedAccountId, debouncedQuery);
+  const trimmedDebouncedQuery = debouncedQuery.trim();
+  const { data: searchResults, isFetching: isSearching } = useSearchArticles(selectedAccountId, trimmedDebouncedQuery);
   const effectiveViewMode = useMemo<"all" | "unread" | "starred">(() => {
     if (smartViewKind === "unread") {
       return "unread";
@@ -125,7 +126,7 @@ export function ArticleList() {
       viewMode: effectiveViewMode,
       smartViewKind,
       showSearch,
-      searchQuery,
+      searchQuery: trimmedDebouncedQuery,
       sortUnread,
       retainedArticleIds: effectiveRetainedArticleIds,
     });
@@ -140,7 +141,7 @@ export function ArticleList() {
     effectiveViewMode,
     smartViewKind,
     showSearch,
-    searchQuery,
+    trimmedDebouncedQuery,
     searchResults,
     sortUnread,
   ]);
@@ -185,6 +186,10 @@ export function ArticleList() {
     : tagId
       ? isLoadingTagArticles
       : accountListScopeId != null && isLoadingAccountArticles;
+
+  const isSearchLoading = showSearch && trimmedDebouncedQuery.length > 0 && searchResults === undefined && isSearching;
+  const isSearchEmptyState =
+    showSearch && trimmedDebouncedQuery.length > 0 && !isSearchLoading && filteredArticles.length === 0;
 
   useEffect(() => {
     if (!selectedArticleId || isPrimarySourceLoading) {
@@ -410,9 +415,14 @@ export function ArticleList() {
             listAriaLabel={t("article_list")}
             listRef={listRef}
             viewportRef={viewportRef}
-            isLoading={isLoading || isLoadingAccountArticles || isLoadingTagArticles}
+            isLoading={isLoading || isLoadingAccountArticles || isLoadingTagArticles || isSearchLoading}
             loadingMessage={tc("loading")}
-            emptyMessage={t("no_articles")}
+            emptyMessage={
+              isSearchEmptyState ? t("search_no_results_title", { query: trimmedDebouncedQuery }) : t("no_articles")
+            }
+            emptyDescription={isSearchEmptyState ? t("search_no_results_description") : undefined}
+            emptyActionLabel={isSearchEmptyState ? t("clear_search_action") : undefined}
+            onEmptyAction={isSearchEmptyState ? handleCloseSearch : undefined}
             groups={articleGroups}
             dimArchived={dimArchived}
             textPreview={textPreview}

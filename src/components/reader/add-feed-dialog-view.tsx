@@ -29,6 +29,8 @@ export function AddFeedDialogView({
   folderSelectProps,
   error,
   successMessage,
+  urlHint,
+  urlHintTone,
   isDiscoverDisabled,
   isSubmitDisabled,
   labels,
@@ -49,6 +51,8 @@ export function AddFeedDialogView({
   folderSelectProps: FolderSelectViewProps;
   error: string | null;
   successMessage: string | null;
+  urlHint: string | null;
+  urlHintTone: "muted" | "error";
   isDiscoverDisabled: boolean;
   isSubmitDisabled: boolean;
   labels: AddFeedDialogViewLabels;
@@ -83,6 +87,8 @@ export function AddFeedDialogView({
         discoveredFeedOptions,
         selectedFeedUrl,
         onSelectedFeedUrlChange,
+        helperText: urlHint,
+        helperTone: urlHintTone,
       }}
       folderSelectProps={folderSelectProps}
       error={error}

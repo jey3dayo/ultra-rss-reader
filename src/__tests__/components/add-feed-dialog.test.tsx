@@ -11,6 +11,10 @@ vi.mock("@/components/reader/add-feed-dialog-view", () => ({
     url: string;
     onUrlChange: (value: string) => void;
     onDiscover: () => void;
+    urlHint: string | null;
+    error: string | null;
+    isDiscoverDisabled: boolean;
+    isSubmitDisabled: boolean;
     discoveredFeedOptions: Array<{ value: string; label: string }>;
     onSelectedFeedUrlChange: (value: string) => void;
     folderSelectProps: {
@@ -23,7 +27,9 @@ vi.mock("@/components/reader/add-feed-dialog-view", () => ({
   }) => (
     <div>
       <input aria-label="Feed URL" value={props.url} onChange={(event) => props.onUrlChange(event.target.value)} />
-      <button type="button" onClick={props.onDiscover}>
+      {props.urlHint ? <p>{props.urlHint}</p> : null}
+      {props.error ? <p>{props.error}</p> : null}
+      <button type="button" onClick={props.onDiscover} disabled={props.isDiscoverDisabled}>
         Discover
       </button>
       {props.discoveredFeedOptions.map((option) => (
@@ -41,7 +47,7 @@ vi.mock("@/components/reader/add-feed-dialog-view", () => ({
           onChange={(event) => props.folderSelectProps.onNewFolderNameChange(event.target.value)}
         />
       )}
-      <button type="button" onClick={props.onSubmit}>
+      <button type="button" onClick={props.onSubmit} disabled={props.isSubmitDisabled}>
         Add
       </button>
     </div>
@@ -136,5 +142,35 @@ describe("AddFeedDialog", () => {
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["feeds"] });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["accountUnreadCount"] });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["folders"] });
+  });
+
+  it("shows inline guidance and keeps actions disabled for invalid URLs", async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_folders":
+          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+        default:
+          return null;
+      }
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AddFeedDialog open={true} onOpenChange={vi.fn()} accountId="acc-1" />
+      </QueryClientProvider>,
+    );
+
+    await user.type(screen.getByLabelText("Feed URL"), "example.com");
+
+    expect(screen.getByText("Use a full URL like https://example.com")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Discover" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
   });
 });
