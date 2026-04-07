@@ -42,8 +42,6 @@ const ALLOWED_KEYS: &[&str] = &[
     "sync_on_startup",
     "action_copy_link",
     "action_open_browser",
-    "action_share",
-    "action_share_menu",
     "inoreader_app_id",
     "inoreader_app_key",
     "selected_account_id",

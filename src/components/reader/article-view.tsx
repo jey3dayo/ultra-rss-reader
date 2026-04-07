@@ -75,8 +75,6 @@ export function ArticleToolbar({
   const retainArticle = useUiStore((s) => s.retainArticle);
   const viewMode = useUiStore((s) => s.viewMode);
   const actionCopyLink = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_copy_link"));
-  const actionShare = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share"));
-  const actionShareMenu = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_share_menu"));
   const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
 
   const retainIfNeeded = useCallback(
@@ -107,76 +105,74 @@ export function ArticleToolbar({
       canCopyLink={Boolean(article?.url)}
       showOpenInBrowserButton
       canOpenInBrowser={Boolean(article?.url)}
-      showOpenInExternalBrowserButton={actionShare === "true"}
+      showOpenInExternalBrowserButton
       canOpenInExternalBrowser={Boolean(article?.url)}
       shareMenuControl={
-        actionShareMenu === "true" ? (
-          <Menu.Root>
-            <IconToolbarMenuTrigger label={t("share")} disabled={!article?.url}>
-              <Share className="h-4 w-4" />
-            </IconToolbarMenuTrigger>
-            <Menu.Portal>
-              <Menu.Positioner sideOffset={4}>
-                <Menu.Popup className={contextMenuStyles.popup}>
+        <Menu.Root>
+          <IconToolbarMenuTrigger label={t("share")} disabled={!article?.url}>
+            <Share className="h-4 w-4" />
+          </IconToolbarMenuTrigger>
+          <Menu.Portal>
+            <Menu.Positioner sideOffset={4}>
+              <Menu.Popup className={contextMenuStyles.popup}>
+                <Menu.Item
+                  className={contextMenuStyles.item}
+                  onSelect={async () => {
+                    if (!article?.url) return;
+                    Result.pipe(
+                      await copyToClipboard(article.url),
+                      Result.inspect(() => showToast(t("link_copied"))),
+                      Result.inspectError((e) => {
+                        console.error("Copy failed:", e);
+                        showToast(e.message);
+                      }),
+                    );
+                  }}
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  {t("copy_link")}
+                </Menu.Item>
+                {supportsReadingList ? (
                   <Menu.Item
                     className={contextMenuStyles.item}
                     onSelect={async () => {
                       if (!article?.url) return;
                       Result.pipe(
-                        await copyToClipboard(article.url),
-                        Result.inspect(() => showToast(t("link_copied"))),
+                        await addToReadingList(article.url),
+                        Result.inspect(() => showToast(t("added_to_reading_list"))),
                         Result.inspectError((e) => {
-                          console.error("Copy failed:", e);
+                          console.error("Add to reading list failed:", e);
                           showToast(e.message);
                         }),
                       );
                     }}
                   >
-                    <Copy className="mr-2 h-4 w-4" />
-                    {t("copy_link")}
+                    <BookmarkPlus className="mr-2 h-4 w-4" />
+                    {t("add_to_reading_list")}
                   </Menu.Item>
-                  {supportsReadingList ? (
-                    <Menu.Item
-                      className={contextMenuStyles.item}
-                      onSelect={async () => {
-                        if (!article?.url) return;
-                        Result.pipe(
-                          await addToReadingList(article.url),
-                          Result.inspect(() => showToast(t("added_to_reading_list"))),
-                          Result.inspectError((e) => {
-                            console.error("Add to reading list failed:", e);
-                            showToast(e.message);
-                          }),
-                        );
-                      }}
-                    >
-                      <BookmarkPlus className="mr-2 h-4 w-4" />
-                      {t("add_to_reading_list")}
-                    </Menu.Item>
-                  ) : null}
-                  <Menu.Separator className={contextMenuStyles.separator} />
-                  <Menu.Item
-                    className={contextMenuStyles.item}
-                    onSelect={async () => {
-                      if (!article?.url) return;
-                      const mailto = `mailto:?subject=${encodeURIComponent(article.title)}&body=${encodeURIComponent(article.url)}`;
-                      Result.pipe(
-                        await openInBrowser(mailto, false),
-                        Result.inspectError((e) => {
-                          console.error("Failed to open email client:", e);
-                          showToast(e.message);
-                        }),
-                      );
-                    }}
-                  >
-                    <Mail className="mr-2 h-4 w-4" />
-                    {t("share_via_email")}
-                  </Menu.Item>
-                </Menu.Popup>
-              </Menu.Positioner>
-            </Menu.Portal>
-          </Menu.Root>
-        ) : null
+                ) : null}
+                <Menu.Separator className={contextMenuStyles.separator} />
+                <Menu.Item
+                  className={contextMenuStyles.item}
+                  onSelect={async () => {
+                    if (!article?.url) return;
+                    const mailto = `mailto:?subject=${encodeURIComponent(article.title)}&body=${encodeURIComponent(article.url)}`;
+                    Result.pipe(
+                      await openInBrowser(mailto, false),
+                      Result.inspectError((e) => {
+                        console.error("Failed to open email client:", e);
+                        showToast(e.message);
+                      }),
+                    );
+                  }}
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  {t("share_via_email")}
+                </Menu.Item>
+              </Menu.Popup>
+            </Menu.Positioner>
+          </Menu.Portal>
+        </Menu.Root>
       }
       labels={{
         closeView: t("close_view"),

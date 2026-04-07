@@ -1220,16 +1220,4 @@ describe("ArticleView", () => {
     readingListTestTimeout,
   );
 
-  it("hides the share menu button when action_share_menu preference is false", async () => {
-    usePreferencesStore.setState({ prefs: { action_share_menu: "false" }, loaded: true });
-    useUiStore.getState().selectAccount("acc-1");
-    useUiStore.getState().selectFeed("feed-1");
-    useUiStore.getState().selectArticle("art-1");
-
-    render(<ArticleView />, { wrapper: createWrapper() });
-
-    await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
-    });
-  });
 });

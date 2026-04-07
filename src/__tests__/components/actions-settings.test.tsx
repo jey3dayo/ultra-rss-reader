@@ -10,10 +10,12 @@ describe("ActionsSettings", () => {
     usePreferencesStore.setState({ prefs: {}, loaded: true });
   });
 
-  it("does not present Open Web Preview as a toolbar action setting", () => {
+  it("only presents Copy Link as a configurable toolbar share action", () => {
     render(<ActionsSettings />);
 
     expect(screen.queryByText("Open Web Preview")).not.toBeInTheDocument();
-    expect(screen.getByText("Open in External Browser")).toBeInTheDocument();
+    expect(screen.getByText("Copy Link")).toBeInTheDocument();
+    expect(screen.queryByText("Open in External Browser")).not.toBeInTheDocument();
+    expect(screen.queryByText("Share Menu")).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { resolvePreferenceValue, usePreferencesStore } from "../../stores/preferences-store";
+import { preferenceDefaults, resolvePreferenceValue, usePreferencesStore } from "../../stores/preferences-store";
 
 describe("usePreferencesStore preferences", () => {
   beforeEach(() => {
@@ -33,5 +33,10 @@ describe("usePreferencesStore preferences", () => {
     expect(resolvePreferenceValue({ show_sidebar_unread: "maybe" }, "show_sidebar_unread")).toBe("true");
     expect(resolvePreferenceValue({ show_sidebar_starred: "nope" }, "show_sidebar_starred")).toBe("true");
     expect(resolvePreferenceValue({ show_sidebar_tags: "unset" }, "show_sidebar_tags")).toBe("true");
+  });
+
+  it("does not expose removed share action preferences in defaults", () => {
+    expect(preferenceDefaults).not.toHaveProperty("action_share");
+    expect(preferenceDefaults).not.toHaveProperty("action_share_menu");
   });
 });

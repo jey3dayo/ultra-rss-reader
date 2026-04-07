@@ -112,10 +112,7 @@
     "heading": "アクションと共有",
     "services": "サービス",
     "show_in_toolbar": "ツールバーに表示",
-    "copy_link": "リンクをコピー",
-    "open_in_browser": "Webプレビューを開く",
-    "open_in_external_browser": "外部ブラウザで開く",
-    "share_menu": "共有メニュー"
+    "copy_link": "リンクをコピー"
   },
   "account": {
     "heading": "アカウントを追加",
