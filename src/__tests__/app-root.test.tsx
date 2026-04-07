@@ -3,8 +3,8 @@ import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/App";
 
-const { loadPreferencesMock, triggerSyncMock, syncAccountMock, listAccountsMock, preferencesState } = vi.hoisted(
-  () => ({
+const { loadPreferencesMock, triggerSyncMock, syncAccountMock, listAccountsMock, preferencesState, devIntentState } =
+  vi.hoisted(() => ({
     loadPreferencesMock: vi.fn(),
     triggerSyncMock: vi.fn(() => Promise.resolve(Result.succeed(true))),
     syncAccountMock: vi.fn(() => Promise.resolve(Result.succeed(true))),
@@ -13,8 +13,10 @@ const { loadPreferencesMock, triggerSyncMock, syncAccountMock, listAccountsMock,
       prefs: {},
       loaded: true,
     },
-  }),
-);
+    devIntentState: {
+      intent: null as string | null,
+    },
+  }));
 
 vi.mock("@/components/app-shell", () => ({
   AppShell: () => <div>App Shell</div>,
@@ -39,6 +41,10 @@ vi.mock("@/api/tauri-commands", () => ({
   triggerSync: triggerSyncMock,
 }));
 
+vi.mock("@/lib/dev-intent", () => ({
+  readDevIntent: () => devIntentState.intent,
+}));
+
 vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn(async () => () => {}),
 }));
@@ -51,6 +57,7 @@ describe("App", () => {
     listAccountsMock.mockClear();
     preferencesState.prefs = {};
     preferencesState.loaded = true;
+    devIntentState.intent = null;
   });
 
   it("triggers one full sync on mount when startup sync is enabled", async () => {
@@ -69,6 +76,18 @@ describe("App", () => {
 
   it("does not trigger full sync on mount when startup sync is disabled", async () => {
     preferencesState.prefs = { sync_on_startup: "false" };
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(loadPreferencesMock).toHaveBeenCalledTimes(1);
+    });
+    expect(triggerSyncMock).not.toHaveBeenCalled();
+  });
+
+  it("does not trigger startup sync while the image viewer overlay dev intent is active", async () => {
+    preferencesState.prefs = { sync_on_startup: "true" };
+    devIntentState.intent = "image-viewer-overlay";
 
     render(<App />);
 

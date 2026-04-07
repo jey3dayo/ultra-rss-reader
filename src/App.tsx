@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { listAccounts, syncAccount, triggerSync } from "./api/tauri-commands";
 import { AppShell } from "./components/app-shell";
 import { useDevIntent } from "./hooks/use-dev-intent";
+import { readDevIntent } from "./lib/dev-intent";
 import { queryClient } from "./lib/query-client";
 import { resolvePreferenceValue, usePreferencesStore } from "./stores/preferences-store";
 
@@ -12,6 +13,7 @@ function AppInner() {
   const loadPreferences = usePreferencesStore((s) => s.loadPreferences);
   const prefs = usePreferencesStore((s) => s.prefs);
   const preferencesLoaded = usePreferencesStore((s) => s.loaded);
+  const activeDevIntent = readDevIntent();
   useDevIntent();
 
   useEffect(() => {
@@ -22,7 +24,12 @@ function AppInner() {
   const syncOnStartupEnabled = resolvePreferenceValue(prefs, "sync_on_startup") === "true";
 
   useEffect(() => {
-    if (!preferencesLoaded || !syncOnStartupEnabled || startupSyncRequested.current) {
+    if (
+      !preferencesLoaded ||
+      !syncOnStartupEnabled ||
+      startupSyncRequested.current ||
+      activeDevIntent === "image-viewer-overlay"
+    ) {
       return;
     }
 
@@ -35,7 +42,7 @@ function AppInner() {
         }),
       ),
     );
-  }, [preferencesLoaded, syncOnStartupEnabled]);
+  }, [activeDevIntent, preferencesLoaded, syncOnStartupEnabled]);
 
   // Sync on wake: trigger sync when returning from sleep/suspend if any account has sync_on_wake enabled
   const lastHiddenAt = useRef<number>(0);
