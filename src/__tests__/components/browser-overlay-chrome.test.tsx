@@ -21,7 +21,7 @@ describe("BrowserOverlayChrome", () => {
 
     const closeButton = screen.getByRole("button", { name: "Close browser overlay" });
 
-    expect(closeButton.className).toContain("size-9");
+    expect(closeButton.className).toContain("size-[46px]");
     expect(closeButton.className).toContain("focus-visible:ring-2");
     expect(closeButton.className).toContain("active:scale-[0.97]");
     expect(closeButton.className).toContain("active:bg-white/16");

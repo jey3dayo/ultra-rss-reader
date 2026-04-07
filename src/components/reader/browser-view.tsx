@@ -431,10 +431,10 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
   // never competes with the affordance again.
   const stageClass =
     scope === "main-stage"
-      ? "absolute bottom-2 left-14 right-2 top-14 z-0 rounded-none bg-background shadow-[0_24px_60px_rgba(0,0,0,0.24)]"
+      ? "absolute bottom-2 left-14 right-2 top-14 z-0 rounded-none border border-white/6 bg-background shadow-[0_24px_60px_rgba(0,0,0,0.24)]"
       : context
-        ? "absolute inset-x-0 bottom-0 top-14 rounded-none bg-background"
-        : "absolute inset-0 rounded-none bg-background";
+        ? "absolute inset-x-0 bottom-0 top-14 rounded-none border border-white/6 bg-background"
+        : "absolute inset-0 rounded-none border border-white/6 bg-background";
 
   const overlay = (
     <div

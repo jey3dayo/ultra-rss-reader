@@ -189,6 +189,23 @@ describe("BrowserView", () => {
     expect(screen.queryByText("https://example.com/article")).not.toBeInTheDocument();
   });
 
+  it("keeps the overlay stage visually separated from the scrim", async () => {
+    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    const stage = screen.getByTestId("browser-overlay-stage");
+
+    expect(stage.className).toContain("border");
+    expect(stage.className).toContain("border-white/6");
+  });
+
   it("renders web preview context when article metadata is provided", async () => {
     mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
 
