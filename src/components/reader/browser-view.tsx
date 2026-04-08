@@ -624,12 +624,12 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
     );
   };
 
-  const overlayChromePositionClass = "left-3 top-3";
+  const overlayChromePositionClass = "left-4 top-4";
   // Keep chrome floating above the native surface so the reading area can stretch
   // closer to the window edges on widescreen layouts.
   const stageClass =
     scope === "main-stage"
-      ? "absolute bottom-0 left-2 right-0 top-14 z-0 rounded-[22px] border border-white/6 bg-background shadow-[0_24px_60px_rgba(0,0,0,0.24)]"
+      ? "absolute bottom-0 left-4 right-0 top-16 z-0 rounded-[22px] border border-white/6 bg-background shadow-[0_24px_60px_rgba(0,0,0,0.24)]"
       : context
         ? "absolute inset-x-0 bottom-0 top-14 rounded-none border border-white/6 bg-background"
         : "absolute inset-0 rounded-none border border-white/6 bg-background";

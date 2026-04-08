@@ -210,7 +210,7 @@ describe("BrowserView", () => {
     expect(stage.className).toContain("border-white/6");
   });
 
-  it("uses edge-hugging stage insets in the main-stage overlay", () => {
+  it("keeps the close chrome and stage lane visually balanced in the main-stage overlay", () => {
     mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
 
     useUiStore.setState({
@@ -222,10 +222,13 @@ describe("BrowserView", () => {
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
     const stage = screen.getByTestId("browser-overlay-stage");
+    const chrome = screen.getByTestId("browser-overlay-chrome");
 
-    expect(stage.className).toContain("left-2");
+    expect(chrome.className).toContain("left-4");
+    expect(chrome.className).toContain("top-4");
+    expect(stage.className).toContain("left-4");
     expect(stage.className).toContain("right-0");
-    expect(stage.className).toContain("top-14");
+    expect(stage.className).toContain("top-16");
   });
 
   it("renders web preview context when article metadata is provided", async () => {

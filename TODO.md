@@ -81,10 +81,11 @@
   - 再現: `フィードを追加` を開き、`example.com` のように scheme なしの URL を入力する
   - `https://example.com` 形式の入力例を inline error として表示し、`検出` / `追加` disabled の理由を見えるようにした
   - 候補箇所: `src/components/reader/add-feed-dialog.tsx`, `src/components/reader/add-feed-dialog-view.tsx`, `src/locales/ja/reader.json`, `src/locales/en/reader.json`
-- [ ] フィード管理の初期ビューで、低シグナルな summary card より整理キューを主役に寄せる
+- [x] フィード管理の初期ビューで、低シグナルな summary card より整理キューを主役に寄せる
   - 再現: ブラウザモードのデスクトップ幅で `フィード管理` を開く
   - 初期表示は `候補数 / 優先確認 / あとで見る / 参照エラー` の card が大きく並ぶ一方、実際に判断する `整理キュー` と `確認` は下に押し出され、主タスクへ入るまでの視線移動が多い
   - とくに 0 件 card が多い状態では縦幅に対する情報密度が低く、cleanup 作業より dashboard 的な眺めに寄って見える
+  - 対応: summary を full-width row から左レールの compact overview へ移し、初期表示で queue と review が先に見える構成へ寄せた
   - 候補箇所: `src/components/feed-cleanup/feed-cleanup-page-view.tsx`, `src/locales/ja/cleanup.json`, `src/locales/en/cleanup.json`
 
 - [ ] UI/UX 監査で見つかった改善を小さいものから順に解消する
@@ -105,6 +106,10 @@
     - 候補箇所: `src/components/reader/sidebar-header-view.tsx`, `src/components/reader/article-list-header.tsx`, `src/components/reader/article-toolbar-view.tsx`
   - [x] `transition-all` を必要なプロパティだけに絞って、動きの意図を明確にする
     - 候補箇所: `src/components/ui/button.tsx`, `src/components/app-shell.tsx`
+  - [x] フィード管理内の日付も UI 言語に追従させ、記事詳細との表記リズムを揃える
+    - `Feed Cleanup` の review pane / delete dialog で `toLocaleDateString(undefined, ...)` を使っていたため、アプリ言語と日付表記がずれる余地があった
+    - 対応: cleanup 側にも `dateLocale` を渡し、`ja` / `en` の UI 言語に沿って日付を描画するよう揃えた
+    - 候補箇所: `src/components/feed-cleanup/feed-cleanup-page.tsx`, `src/components/feed-cleanup/feed-cleanup-page-view.tsx`, `src/components/feed-cleanup/feed-cleanup-delete-dialog.tsx`
 
 - [x] Windows として動作するブラウザ mock でも、設定画面の文言に `⌘` 表記が残っている
   - 再現: ブラウザモード (`http://127.0.0.1:4173/`) で設定を開き、`一般 > 記事一覧` のトグル文言を見る
@@ -157,10 +162,10 @@
   - `recentlyReadIds` を unread view にも残すロジックが bulk action でも効いている可能性が高い
   - 候補箇所: `src/components/reader/article-list.tsx`, `src/lib/article-list.ts`, `src/__tests__/components/article-list.test.tsx`
 
-- [ ] Web Preview の `×` ボタンと native WebView のバランスが悪く、左上だけが詰まって見える
+- [x] Web Preview の `×` ボタンと native WebView のバランスが悪く、左上だけが詰まって見える
   - 再現: デスクトップ幅で `Web Preview` を開くと、close ボタンは左上に強く寄っている一方、stage は大きく右へ伸びていて、chrome と閲覧面の重心が揃って見えない
   - `ui-ux-pro-max` 観点でも、floating chrome と content surface の余白リズムは合わせたい。特に close lane だけが細く、右側だけ余裕があると視覚的に片寄って見える
-  - 次回は close ボタンの lane 幅、top inset、stage corner radius をまとめて調整して、左上の圧迫感を下げたい
+  - 対応: close chrome を `left-4 top-4` へ、main-stage の surface を `left-4 top-16` へ寄せ直し、左上の呼吸を 1 段広げた
   - 候補箇所: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-overlay-chrome.tsx`
 
 ## macOS / Windows 共存チェック
