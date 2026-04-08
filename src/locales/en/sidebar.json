@@ -23,5 +23,11 @@
   "sync_failed_with_message": "Sync failed: {{message}}",
   "sync_partial_failure": "Sync failed for: {{accounts}}",
   "date_at": "{{date}} at {{time}}",
-  "add_account_to_start": "Add an account to get started"
+  "add_account_to_start": "Add an account to get started",
+  "toggle_folder": "Toggle folder {{name}}",
+  "select_folder": "Select folder {{name}}",
+  "move_to_folder": "Move to {{name}}",
+  "drag_feed": "Drag {{name}}",
+  "move_to_no_folder": "Move to no folder",
+  "drop_to_remove_from_folder": "Drop here to remove from folder"
 }

@@ -287,7 +287,7 @@ export function AccountDetail() {
       credentialsSection={
         requiresCredentials ? (
           <AccountCredentialsSectionView
-            heading={account.kind === "FreshRss" ? "SERVER" : t("account.credentials")}
+            heading={account.kind === "FreshRss" ? t("account.server") : t("account.credentials")}
             serverUrlLabel={account.kind === "FreshRss" ? t("account.server_url") : undefined}
             serverUrlValue={credServerUrl ?? account.server_url ?? ""}
             serverUrlPlaceholder={t("account.server_url_placeholder")}

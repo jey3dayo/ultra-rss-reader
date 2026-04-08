@@ -1,9 +1,14 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FeedTreeView } from "@/components/reader/feed-tree-view";
+import i18n from "@/lib/i18n";
 
 describe("FeedTreeView", () => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
+  });
+
   it("renders folder and feed rows and delegates row actions", async () => {
     const user = userEvent.setup();
     const onToggleFolder = vi.fn();
@@ -902,5 +907,62 @@ describe("FeedTreeView", () => {
     );
 
     expect(screen.queryByTestId("unfoldered-drop-zone")).not.toBeInTheDocument();
+  });
+
+  it("localizes drag-and-drop labels in Japanese", async () => {
+    await i18n.changeLanguage("ja");
+
+    render(
+      <FeedTreeView
+        isOpen={true}
+        canDragFeeds={true}
+        draggedFeedId="feed-1"
+        activeDropTarget={{ kind: "unfoldered" }}
+        folders={[
+          {
+            id: "folder-1",
+            name: "仕事",
+            accountId: "acc-1",
+            sortOrder: 0,
+            unreadCount: 0,
+            isExpanded: false,
+            isSelected: false,
+            feeds: [],
+          },
+        ]}
+        unfolderedFeeds={[
+          {
+            id: "feed-1",
+            accountId: "acc-1",
+            folderId: null,
+            title: "アルファ",
+            url: "https://example.com/alpha.xml",
+            siteUrl: "https://example.com/alpha",
+            unreadCount: 1,
+            readerMode: "on",
+            webPreviewMode: "off",
+            isSelected: false,
+            grayscaleFavicon: false,
+          },
+        ]}
+        onToggleFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        onDragStartFeed={vi.fn()}
+        onDragEnterFolder={vi.fn()}
+        onDragEnterUnfoldered={vi.fn()}
+        onDropToFolder={vi.fn()}
+        onDropToUnfoldered={vi.fn()}
+        onDragEnd={vi.fn()}
+        displayFavicons={false}
+        emptyState={{ kind: "message", message: "まだフィードがありません" }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "仕事 フォルダを選択" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "仕事 に移動" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "アルファ をドラッグ" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "フォルダなしへ移動" })).toHaveTextContent(
+      "ここにドロップしてフォルダから外す",
+    );
   });
 });

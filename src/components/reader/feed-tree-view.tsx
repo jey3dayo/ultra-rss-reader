@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { FeedTreeDragOverlay } from "./feed-tree-drag-overlay";
 import { type ActiveDropTarget, FeedTreeFolderSection, type FeedTreeFolderViewModel } from "./feed-tree-folder-section";
@@ -49,6 +50,7 @@ function UnfolderedDropZone({
   active: boolean;
   onDropToUnfoldered?: () => void;
 }) {
+  const { t } = useTranslation("sidebar");
   const isActive = active;
 
   if (!enabled) {
@@ -58,7 +60,7 @@ function UnfolderedDropZone({
   return (
     <button
       type="button"
-      aria-label="Move to no folder"
+      aria-label={t("move_to_no_folder")}
       data-testid="unfoldered-drop-zone"
       data-feed-drop-kind="unfoldered"
       className={cn(
@@ -74,7 +76,7 @@ function UnfolderedDropZone({
         onDropToUnfoldered?.();
       }}
     >
-      {isActive ? "Drop here to remove from folder" : null}
+      {isActive ? t("drop_to_remove_from_folder") : null}
     </button>
   );
 }

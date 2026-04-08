@@ -1,6 +1,7 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { GripVertical } from "lucide-react";
 import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import type { TriStateDisplayMode } from "@/lib/article-display";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,8 @@ function DragHandle({
   onPointerDown,
   consumeSuppressedClick,
 }: DragHandleProps) {
+  const { t } = useTranslation("sidebar");
+
   if (!canDragFeeds) {
     return null;
   }
@@ -44,7 +47,7 @@ function DragHandle({
   return (
     <button
       type="button"
-      aria-label={`Drag ${feedTitle}`}
+      aria-label={t("drag_feed", { name: feedTitle })}
       onPointerDown={onPointerDown}
       onClick={() => {
         if (consumeSuppressedClick?.()) {

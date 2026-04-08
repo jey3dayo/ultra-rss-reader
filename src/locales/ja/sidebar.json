@@ -23,5 +23,11 @@
   "sync_failed_with_message": "同期に失敗しました: {{message}}",
   "sync_partial_failure": "同期に失敗したアカウント: {{accounts}}",
   "date_at": "{{date}} {{time}}",
-  "add_account_to_start": "アカウントを追加して始めましょう"
+  "add_account_to_start": "アカウントを追加して始めましょう",
+  "toggle_folder": "{{name}} フォルダを開閉",
+  "select_folder": "{{name}} フォルダを選択",
+  "move_to_folder": "{{name}} に移動",
+  "drag_feed": "{{name}} をドラッグ",
+  "move_to_no_folder": "フォルダなしへ移動",
+  "drop_to_remove_from_folder": "ここにドロップしてフォルダから外す"
 }

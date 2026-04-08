@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountDetail } from "@/components/settings/account-detail";
+import i18n from "@/lib/i18n";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
@@ -47,8 +48,9 @@ vi.mock("@/components/settings/account-detail-view", () => ({
 }));
 
 describe("AccountDetail", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     accountDetailViewSpy.mockClear();
+    await i18n.changeLanguage("en");
     useUiStore.setState(useUiStore.getInitialState());
     useUiStore.setState({ settingsAccountId: "acc-1" });
   });
@@ -373,5 +375,31 @@ describe("AccountDetail", () => {
     await user.click(await screen.findByRole("button", { name: "Sync Now" }));
 
     expect(useUiStore.getState().settingsLoading).toBe(false);
+  });
+
+  it("uses the localized server heading for FreshRSS credentials", async () => {
+    await i18n.changeLanguage("ja");
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        return [
+          {
+            id: "acc-1",
+            kind: "FreshRss",
+            name: "FreshRSS",
+            username: "user",
+            server_url: "https://freshrss.example.com",
+            sync_interval_secs: 3600,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+          },
+        ];
+      }
+      return null;
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("heading", { level: 3, name: "サーバー" })).toBeInTheDocument();
   });
 });

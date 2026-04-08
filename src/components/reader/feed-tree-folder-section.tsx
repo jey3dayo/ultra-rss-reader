@@ -1,6 +1,7 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { type FeedTreeFeedViewModel, FeedTreeRow } from "./feed-tree-row";
 import { SidebarNavButton } from "./sidebar-nav-button";
@@ -51,6 +52,7 @@ export function FeedTreeFolderSection({
   onPointerDownFeed,
   consumeSuppressedHandleClick,
 }: FeedTreeFolderSectionProps) {
+  const { t } = useTranslation("sidebar");
   const showDropOverlay = canDragFeeds && draggedFeedId !== null;
   const isActive = canDragFeeds && activeDropTarget?.kind === "folder" && activeDropTarget.folderId === folder.id;
 
@@ -63,7 +65,7 @@ export function FeedTreeFolderSection({
       {showDropOverlay ? (
         <button
           type="button"
-          aria-label={`Move to ${folder.name}`}
+          aria-label={t("move_to_folder", { name: folder.name })}
           data-feed-drop-kind="folder"
           data-feed-drop-target={folder.id}
           className="absolute inset-0 z-10 rounded-md"
@@ -75,7 +77,7 @@ export function FeedTreeFolderSection({
       <div className="flex items-center gap-1">
         <button
           type="button"
-          aria-label={`Toggle folder ${folder.name}`}
+          aria-label={t("toggle_folder", { name: folder.name })}
           aria-expanded={folder.isExpanded}
           className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
           onClick={() => onToggleFolder(folder.id)}
@@ -86,7 +88,7 @@ export function FeedTreeFolderSection({
           <ContextMenu.Trigger
             render={
               <SidebarNavButton
-                aria-label={`Select folder ${folder.name}`}
+                aria-label={t("select_folder", { name: folder.name })}
                 selected={folder.isSelected}
                 trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
                 trailingClassName={
