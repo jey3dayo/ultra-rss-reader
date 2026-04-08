@@ -138,8 +138,8 @@ async fn local_feed_e2e() {
 
 #[tokio::test]
 async fn freshrss_sync_preserves_local_like_feed_read_state() {
-    std::env::set_var("ULTRA_RSS_DEV_CREDENTIALS", "1");
-    let _env_cleanup = EnvVarCleanup("ULTRA_RSS_DEV_CREDENTIALS");
+    std::env::set_var("DEV_CREDENTIALS", "1");
+    let _env_cleanup = EnvVarCleanup("DEV_CREDENTIALS");
     let db = Mutex::new(DbManager::new_in_memory().unwrap());
     let syncing = AtomicBool::new(false);
     let account_id = AccountId::new();

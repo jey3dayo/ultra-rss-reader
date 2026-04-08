@@ -239,6 +239,24 @@ function EmptyState() {
   );
 }
 
+function BrowserOnlyState() {
+  const { t } = useTranslation("reader");
+  const layoutMode = useUiStore((s) => s.layoutMode);
+  const closeBrowser = useUiStore((s) => s.closeBrowser);
+
+  return (
+    <div className="relative flex h-full flex-1 flex-col bg-background">
+      <BrowserView
+        scope={layoutMode === "wide" ? "main-stage" : "content-pane"}
+        onCloseOverlay={closeBrowser}
+        labels={{
+          closeOverlay: t("close_browser_overlay"),
+        }}
+      />
+    </div>
+  );
+}
+
 function toArticleTagPickerTagView(tag: { id: string; name: string; color: string | null }): ArticleTagPickerTagView {
   return {
     id: tag.id,
@@ -334,7 +352,7 @@ function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedNam
 
   return (
     <ScrollArea data-testid="article-reader-scroll-area" className="h-full">
-      <article className="mx-auto max-w-3xl px-8 py-8">
+      <article className="mx-auto max-w-3xl px-8 pb-8 pt-10 md:pt-12">
         <ArticleMetaView
           title={article.title}
           author={article.author}
@@ -701,6 +719,7 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
 export function ArticleView() {
   const { t } = useTranslation("reader");
   const contentMode = useUiStore((s) => s.contentMode);
+  const browserUrl = useUiStore((s) => s.browserUrl);
   const feedCleanupOpen = useUiStore((s) => s.feedCleanupOpen);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
@@ -714,6 +733,10 @@ export function ArticleView() {
 
   if (feedCleanupOpen) {
     return <FeedCleanupPage />;
+  }
+
+  if (contentMode === "browser" && browserUrl && !selectedArticleId) {
+    return <BrowserOnlyState />;
   }
 
   if (contentMode === "empty" || !selectedArticleId) {

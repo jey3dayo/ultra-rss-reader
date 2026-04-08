@@ -20,9 +20,9 @@ export function ArticleMetaView({
   onFeedClick,
 }: ArticleMetaViewProps) {
   return (
-    <div className="mb-4">
-      <p className="mb-2 text-xs tracking-wider text-muted-foreground">{publishedLabel}</p>
-      <h1 className="mb-2 text-2xl font-bold leading-tight text-foreground">
+    <div className="mb-6">
+      <p className="mb-3 text-xs tracking-[0.18em] text-muted-foreground">{publishedLabel}</p>
+      <h1 className="mb-3 text-2xl font-bold leading-tight text-foreground">
         {onTitleClick ? (
           <button
             type="button"

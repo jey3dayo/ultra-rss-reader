@@ -29,7 +29,7 @@ describe("useDevIntent", () => {
   });
 
   it("defers startup scenario execution until after the effect commits", async () => {
-    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
+    vi.stubEnv("VITE_DEV_INTENT", "image-viewer-overlay");
 
     renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -44,7 +44,7 @@ describe("useDevIntent", () => {
   });
 
   it("runs the startup scenario only once under StrictMode", async () => {
-    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
+    vi.stubEnv("VITE_DEV_INTENT", "image-viewer-overlay");
 
     renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <StrictMode>{children}</StrictMode>,
@@ -57,7 +57,7 @@ describe("useDevIntent", () => {
   });
 
   it("allows a fresh remount to retry startup execution in the same session", async () => {
-    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
+    vi.stubEnv("VITE_DEV_INTENT", "image-viewer-overlay");
 
     const first = renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -89,7 +89,7 @@ describe("useDevIntent", () => {
 
   it("does not load the dev scenario runtime outside dev builds", async () => {
     vi.stubEnv("DEV", false);
-    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
+    vi.stubEnv("VITE_DEV_INTENT", "image-viewer-overlay");
 
     renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -102,7 +102,7 @@ describe("useDevIntent", () => {
 
   it("shows a toast when startup scenario execution fails", async () => {
     vi.useRealTimers();
-    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
+    vi.stubEnv("VITE_DEV_INTENT", "image-viewer-overlay");
     runRuntimeDevScenarioMock.mockRejectedValueOnce(new Error("boom"));
 
     renderHook(() => useDevIntent(), {
@@ -115,5 +115,17 @@ describe("useDevIntent", () => {
         message: 'Failed to run dev scenario "image-viewer-overlay": boom',
       });
     });
+  });
+
+  it("keeps reading the legacy env name for backward compatibility", async () => {
+    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
+
+    renderHook(() => useDevIntent(), {
+      wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+    });
+
+    await vi.runAllTimersAsync();
+
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("image-viewer-overlay");
   });
 });

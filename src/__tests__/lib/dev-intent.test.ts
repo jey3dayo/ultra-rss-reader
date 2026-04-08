@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import {
   isLegacyOverlayBrowserUrl,
@@ -7,6 +7,8 @@ import {
   pickDevIntentFeed,
   resolveActiveDevIntentBrowserUrl,
   resolveDevIntentBrowserUrl,
+  readDevIntent,
+  readDevWebUrl,
 } from "@/lib/dev-intent";
 
 const feeds: FeedDto[] = [
@@ -64,10 +66,15 @@ const articles: ArticleDto[] = [
 ];
 
 describe("dev-intent helpers", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("parses known dev scenario ids", () => {
     expect(parseDevIntent("open-add-feed-dialog")).toBe("open-add-feed-dialog");
     expect(parseDevIntent("open-feed-cleanup")).toBe("open-feed-cleanup");
     expect(parseDevIntent("open-feed-cleanup-broken-references")).toBe("open-feed-cleanup-broken-references");
+    expect(parseDevIntent("open-web-preview-url")).toBe("open-web-preview-url");
     expect(parseDevIntent("open-settings-reading")).toBe("open-settings-reading");
     expect(parseDevIntent("open-settings-reading-display-mode")).toBe("open-settings-reading-display-mode");
   });
@@ -101,5 +108,28 @@ describe("dev-intent helpers", () => {
   it("preserves an active legacy overlay browser URL even without env intent", () => {
     const overlayUrl = resolveDevIntentBrowserUrl("image-viewer-overlay", "https://example.com");
     expect(resolveActiveDevIntentBrowserUrl(null, overlayUrl, "https://example.com/article")).toBe(overlayUrl);
+  });
+
+  it("prefers the short dev intent env name", () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_INTENT", "open-web-preview-url");
+    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
+
+    expect(readDevIntent()).toBe("open-web-preview-url");
+  });
+
+  it("reads the legacy dev intent env name when the short one is missing", () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
+
+    expect(readDevIntent()).toBe("image-viewer-overlay");
+  });
+
+  it("prefers the short dev web url env name", () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/short");
+    vi.stubEnv("VITE_ULTRA_RSS_DEV_WEB_URL", "https://example.com/legacy");
+
+    expect(readDevWebUrl()).toBe("https://example.com/short");
   });
 });

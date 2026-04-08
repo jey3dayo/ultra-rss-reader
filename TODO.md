@@ -123,6 +123,17 @@
   - 3 秒以上待っても URL バー横が `読込中` のままで、mock 上は dedicated browser window の完了状態へ遷移しない
   - `create_or_update_browser_webview` の mock 応答が `is_loading: true` 固定で、状態更新イベントも飛ばない
   - 候補箇所: `src/dev-mocks.ts`, `src/components/reader/browser-view.tsx`
+- [x] Webプレビューのデバッグ HUD が native WebView の裏へ回り込み、必要なときに読めない
+  - 再現: デスクトップアプリで `設定 > Debug > Show layout HUD` をオンにし、`Webプレビュー` を開く
+  - DOM 側に描いた HUD を stage 上へ重ねても、Tauri の native child webview が前面に来るため、実際には一部しか見えず診断 UI として機能しない
+  - `ui-ux-pro-max` 観点でも、diagnostics は content に重ねるより safe area に逃がしたほうが視認性と一貫性が高い
+  - 対応: HUD を stage 上の大パネルから top rail の compact chip 群へ移し、native surface の外で常に読めるようにした
+  - 候補箇所: `src/components/reader/browser-view.tsx`, `src/__tests__/components/browser-view.test.tsx`
+- [x] Webプレビュー overlay が widescreen でもまだ gutter を残し、右端まで使い切れていない
+  - 再現: デスクトップ幅で `Webプレビュー` を開くと、stage がほぼ広い一方で outer gutter が残り、右端の immersive 感がもう一歩弱い
+  - close/context/debug を top rail にまとめることで、stage 自体はもっと edge-hugging に寄せられる
+  - 対応: `main-stage` の inset をさらに薄くし、右端は `0px` まで使うよう調整した
+  - 候補箇所: `src/components/reader/browser-view.tsx`, `src/__tests__/components/browser-view.test.tsx`
 - [x] 幅 375px 前後まで狭めると、アプリ本体が左へ押し出されて画面上ではほぼ真っ黒に見える
   - 再現: Playwright で viewport を `375x900` にして `http://127.0.0.1:4173/` を開く
   - DOM 上は要素が存在するが、主要要素の `x` 座標が `-1125px` 付近までずれており表示領域に入ってこない
@@ -145,6 +156,12 @@
   - Playwright では `containsFirstHeadlineAfterMarkAll = true` を確認済みで、一覧を見たまま誤操作しやすい
   - `recentlyReadIds` を unread view にも残すロジックが bulk action でも効いている可能性が高い
   - 候補箇所: `src/components/reader/article-list.tsx`, `src/lib/article-list.ts`, `src/__tests__/components/article-list.test.tsx`
+
+- [ ] Web Preview の `×` ボタンと native WebView のバランスが悪く、左上だけが詰まって見える
+  - 再現: デスクトップ幅で `Web Preview` を開くと、close ボタンは左上に強く寄っている一方、stage は大きく右へ伸びていて、chrome と閲覧面の重心が揃って見えない
+  - `ui-ux-pro-max` 観点でも、floating chrome と content surface の余白リズムは合わせたい。特に close lane だけが細く、右側だけ余裕があると視覚的に片寄って見える
+  - 次回は close ボタンの lane 幅、top inset、stage corner radius をまとめて調整して、左上の圧迫感を下げたい
+  - 候補箇所: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-overlay-chrome.tsx`
 
 ## macOS / Windows 共存チェック
 

@@ -8,7 +8,8 @@
     "reading": "閲覧",
     "shortcuts": "ショートカット",
     "actions": "アクションと共有",
-    "data": "データ管理"
+    "data": "データ管理",
+    "debug": "デバッグ"
   },
   "general": {
     "heading": "一般",
@@ -206,5 +207,22 @@
     "open_log_dir": "ログフォルダを開く",
     "open_log_dir_description": "トラブルシューティング用のアプリケーションログファイルを確認します。",
     "open_log_dir_failed": "ログフォルダを開けませんでした: {{message}}"
+  },
+  "debug": {
+    "heading": "デバッグ",
+    "browser": "Webプレビュー",
+    "web_preview_hud": "レイアウト HUD を表示",
+    "browser_note": "Webプレビューの host / stage / native webview の計算値を重ねて表示します。余白や座標のズレを切り分けるときに使います。",
+    "web_preview_url": "WebプレビューURL",
+    "web_preview_url_placeholder": "https://example.com",
+    "open_web_preview_url": "指定URLをWebプレビューで開く",
+    "web_preview_url_required": "WebプレビューURLを入力してください。",
+    "scenarios": "画面再現",
+    "scenarios_note": "env を触らずに、よく使う開発用の画面状態をここから直接開けます。",
+    "image_viewer_overlay": "画像ビューアー overlay を開く",
+    "feed_cleanup_broken_references": "フィード整理の broken references を開く",
+    "reading_display_mode": "閲覧設定の表示モードを開く",
+    "open_now": "今すぐ開く",
+    "scenario_failed": "デバッグ画面を開けませんでした: {{message}}"
   }
 }

@@ -909,6 +909,43 @@ describe("ArticleView", () => {
     expect(useUiStore.getState().browserUrl).toBe(overlayUrl);
   }, 10000);
 
+  it("renders web preview without a selected article when browser-only mode is requested", async () => {
+    const previewUrl = "https://example.com/dev-preview";
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "create_or_update_browser_webview":
+          return {
+            url: args.url,
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+          };
+        case "set_browser_webview_bounds":
+        case "close_browser_webview":
+          return null;
+        case "list_tags":
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      contentMode: "browser",
+      browserUrl: previewUrl,
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
+    expect(screen.queryByText("Select an article to read")).not.toBeInTheDocument();
+    expect(useUiStore.getState().contentMode).toBe("browser");
+    expect(useUiStore.getState().browserUrl).toBe(previewUrl);
+  });
+
   it("keeps explicit reader-only feeds in reader mode even when the global default enables web preview", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {

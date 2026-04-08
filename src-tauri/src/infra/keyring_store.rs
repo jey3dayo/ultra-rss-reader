@@ -393,7 +393,7 @@ mod tests {
     fn dev_credentials_path_is_disabled_when_capability_is_off() {
         let info = platform_info_for_kind(PlatformKind::Windows);
         let env = env_map(&[
-            ("ULTRA_RSS_DEV_CREDENTIALS", "1"),
+            ("DEV_CREDENTIALS", "1"),
             ("LOCALAPPDATA", r"C:\Users\alice\AppData\Local"),
         ]);
 
@@ -407,7 +407,7 @@ mod tests {
         let mut info = platform_info_for_kind(PlatformKind::Linux);
         info.capabilities.uses_dev_file_credentials = true;
         let env = env_map(&[
-            ("ULTRA_RSS_DEV_CREDENTIALS", "1"),
+            ("DEV_CREDENTIALS", "1"),
             ("XDG_DATA_HOME", "/tmp/data-home"),
             ("HOME", "/Users/alice"),
         ]);
@@ -427,7 +427,7 @@ mod tests {
         let mut info = platform_info_for_kind(PlatformKind::Linux);
         info.capabilities.uses_dev_file_credentials = true;
         let env = env_map(&[
-            ("ULTRA_RSS_DEV_CREDENTIALS", "1"),
+            ("DEV_CREDENTIALS", "1"),
             ("XDG_DATA_HOME", "/tmp/new-data-home"),
             ("HOME", "/Users/alice"),
         ]);
@@ -447,7 +447,7 @@ mod tests {
         let mut info = platform_info_for_kind(PlatformKind::Linux);
         info.capabilities.uses_dev_file_credentials = true;
         let env = env_map(&[
-            ("ULTRA_RSS_DEV_CREDENTIALS", "1"),
+            ("DEV_CREDENTIALS", "1"),
             ("XDG_DATA_HOME", "/tmp/new-data-home"),
             ("HOME", "/Users/alice"),
         ]);
@@ -468,7 +468,7 @@ mod tests {
         let mut info = platform_info_for_kind(PlatformKind::Windows);
         info.capabilities.uses_dev_file_credentials = true;
         let env = env_map(&[
-            ("ULTRA_RSS_DEV_CREDENTIALS", "1"),
+            ("DEV_CREDENTIALS", "1"),
             ("LOCALAPPDATA", r"C:\Users\alice\AppData\Local"),
             ("HOME", r"C:\Users\alice"),
         ]);

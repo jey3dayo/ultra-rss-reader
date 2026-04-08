@@ -46,7 +46,15 @@ type Selection =
 type LayoutMode = "wide" | "compact" | "mobile";
 type FocusedPane = "sidebar" | "list" | "content";
 type ContentMode = "empty" | "reader" | "browser" | "loading";
-export type SettingsCategory = "general" | "appearance" | "reading" | "shortcuts" | "actions" | "data" | "accounts";
+export type SettingsCategory =
+  | "general"
+  | "appearance"
+  | "reading"
+  | "shortcuts"
+  | "actions"
+  | "data"
+  | "debug"
+  | "accounts";
 
 function getSidebarHiddenFallbackPane(state: Pick<UiState, "contentMode">): FocusedPane {
   return state.contentMode === "empty" ? "list" : "content";

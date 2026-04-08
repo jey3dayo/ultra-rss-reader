@@ -5,6 +5,7 @@ import {
   rankImageViewerOverlayFeeds as rankImageViewerOverlayFeedsForRuntime,
   resolveImageViewerOverlayBrowserUrl as resolveImageViewerOverlayBrowserUrlForRuntime,
 } from "@/lib/dev-image-viewer-overlay";
+import { readDevWebUrl } from "@/lib/dev-intent";
 import { resolveFeedLandingArticle } from "@/lib/feed-landing";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
@@ -219,6 +220,22 @@ export async function runImageViewerOverlayScenario(ctx: DevScenarioContext): Pr
     console.error("Failed to hydrate dev intent:", error);
     ctx.ui.showToast("Dev intent failed to open the overlay.");
   }
+}
+
+export async function runOpenWebPreviewUrlScenario(ctx: DevScenarioContext): Promise<void> {
+  const webUrl = readDevWebUrl();
+  if (!webUrl) {
+    ctx.ui.showToast('Dev scenario "open-web-preview-url" requires VITE_DEV_WEB_URL.');
+    return;
+  }
+
+  const applyPreviewState = () => {
+    ctx.ui.openBrowser(webUrl);
+  };
+
+  applyPreviewState();
+  window.setTimeout(applyPreviewState, 300);
+  window.setTimeout(applyPreviewState, 1200);
 }
 
 export async function runOpenFeedFirstArticleScenario(ctx: DevScenarioContext): Promise<void> {

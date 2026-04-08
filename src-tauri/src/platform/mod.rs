@@ -53,7 +53,7 @@ fn uses_dev_file_credentials_from_env<F>(get_env: F) -> bool
 where
     F: Fn(&str) -> Option<String>,
 {
-    get_env("ULTRA_RSS_DEV_CREDENTIALS").is_some()
+    get_env("DEV_CREDENTIALS").is_some() || get_env("ULTRA_RSS_DEV_CREDENTIALS").is_some()
 }
 
 impl PlatformInfo {
@@ -112,6 +112,13 @@ mod tests {
     #[test]
     fn dev_file_credentials_flag_is_enabled_only_when_env_var_exists() {
         let enabled = uses_dev_file_credentials_from_env(|key| {
+            if key == "DEV_CREDENTIALS" {
+                Some("1".to_string())
+            } else {
+                None
+            }
+        });
+        let legacy_enabled = uses_dev_file_credentials_from_env(|key| {
             if key == "ULTRA_RSS_DEV_CREDENTIALS" {
                 Some("1".to_string())
             } else {
@@ -121,6 +128,7 @@ mod tests {
         let disabled = uses_dev_file_credentials_from_env(|_| None);
 
         assert!(enabled);
+        assert!(legacy_enabled);
         assert!(!disabled);
     }
 }

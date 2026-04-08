@@ -85,9 +85,9 @@ describe("App", () => {
     expect(triggerSyncMock).not.toHaveBeenCalled();
   });
 
-  it("does not trigger startup sync while the image viewer overlay dev intent is active", async () => {
+  it("does not trigger startup sync while any dev intent is active", async () => {
     preferencesState.prefs = { sync_on_startup: "true" };
-    devIntentState.intent = "image-viewer-overlay";
+    devIntentState.intent = "open-web-preview-url";
 
     render(<App />);
 

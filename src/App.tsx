@@ -28,7 +28,7 @@ function AppInner() {
       !preferencesLoaded ||
       !syncOnStartupEnabled ||
       startupSyncRequested.current ||
-      activeDevIntent === "image-viewer-overlay"
+      activeDevIntent !== null
     ) {
       return;
     }

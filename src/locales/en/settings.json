@@ -8,7 +8,8 @@
     "reading": "Reading",
     "shortcuts": "Shortcuts",
     "actions": "Actions and Sharing",
-    "data": "Data"
+    "data": "Data",
+    "debug": "Debug"
   },
   "general": {
     "heading": "General",
@@ -206,5 +207,22 @@
     "open_log_dir": "Open Log Directory",
     "open_log_dir_description": "View application log files for troubleshooting.",
     "open_log_dir_failed": "Failed to open log directory: {{message}}"
+  },
+  "debug": {
+    "heading": "Debug",
+    "browser": "Web Preview",
+    "web_preview_hud": "Show layout HUD",
+    "browser_note": "Overlay live host, stage, and native webview bounds on top of Web Preview so spacing and coordinate issues are easier to inspect.",
+    "web_preview_url": "Web preview URL",
+    "web_preview_url_placeholder": "https://example.com",
+    "open_web_preview_url": "Open a URL in Web Preview",
+    "web_preview_url_required": "Enter a web preview URL.",
+    "scenarios": "Screen States",
+    "scenarios_note": "Open common debug states from here without changing env vars.",
+    "image_viewer_overlay": "Open image viewer overlay",
+    "feed_cleanup_broken_references": "Open feed cleanup broken references",
+    "reading_display_mode": "Open reading display mode settings",
+    "open_now": "Open now",
+    "scenario_failed": "Couldn't open the debug screen: {{message}}"
   }
 }

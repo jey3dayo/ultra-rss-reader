@@ -16,11 +16,14 @@ describe("usePreferencesStore preferences", () => {
   it("defaults reader and web preview preferences independently", () => {
     expect(resolvePreferenceValue({}, "reader_mode_default")).toBe("true");
     expect(resolvePreferenceValue({}, "web_preview_mode_default")).toBe("false");
+    expect(resolvePreferenceValue({}, "debug_browser_hud")).toBe("false");
+    expect(resolvePreferenceValue({}, "debug_web_preview_url")).toBe("");
   });
 
   it("normalizes invalid reader and web preview defaults", () => {
     expect(resolvePreferenceValue({ reader_mode_default: "maybe" }, "reader_mode_default")).toBe("true");
     expect(resolvePreferenceValue({ web_preview_mode_default: "sometimes" }, "web_preview_mode_default")).toBe("false");
+    expect(resolvePreferenceValue({ debug_browser_hud: "sometimes" }, "debug_browser_hud")).toBe("false");
   });
 
   it("defaults sidebar section visibility preferences to true", () => {

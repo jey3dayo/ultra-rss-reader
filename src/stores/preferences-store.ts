@@ -22,6 +22,7 @@ const imagePreviewsSchema = z.enum(["off", "small", "medium", "large"]);
 const afterReadingSchema = z.enum(["mark_as_read", "do_nothing", "archive"]);
 const sortSubscriptionsSchema = z.enum(["folders_first", "alphabetical", "newest_first", "oldest_first"]);
 const persistedBooleanPreferenceSchema = z.enum(["true", "false"]);
+const freeformStringSchema = z.string();
 
 export type Theme = z.infer<typeof themeSchema>;
 
@@ -59,6 +60,8 @@ const preferenceSchemas = {
   sync_on_startup: persistedBooleanPreferenceSchema,
   action_copy_link: booleanStringSchema,
   action_open_browser: booleanStringSchema,
+  debug_browser_hud: booleanStringSchema,
+  debug_web_preview_url: freeformStringSchema,
 } as const;
 
 type KnownPreferenceKey = keyof typeof preferenceSchemas;
@@ -104,6 +107,9 @@ const corePreferenceDefaults = {
   // Actions
   action_copy_link: "true",
   action_open_browser: "true",
+  // Debug
+  debug_browser_hud: "false",
+  debug_web_preview_url: "",
 } satisfies { [K in KnownPreferenceKey]: z.input<(typeof preferenceSchemas)[K]> };
 
 export const preferenceDefaults: Record<string, string> = {

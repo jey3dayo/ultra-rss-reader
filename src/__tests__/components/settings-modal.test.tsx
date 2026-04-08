@@ -68,6 +68,17 @@ describe("SettingsModal", () => {
     expect(screen.getByRole("button", { name: /FreshRSS/i })).toBeInTheDocument();
   });
 
+  it("shows the debug category in navigation", async () => {
+    const user = userEvent.setup();
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByRole("button", { name: "Debug" }));
+
+    expect(screen.getByRole("button", { name: "Debug" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Show layout HUD" })).toBeInTheDocument();
+  });
+
   it("shows default enabled states in actions settings when preferences are unset", () => {
     usePreferencesStore.setState({ prefs: {}, loaded: true });
 
@@ -91,7 +102,7 @@ describe("SettingsModal", () => {
 
   it("opens the default display mode select for the display-mode showcase intent", async () => {
     vi.stubEnv("DEV", true);
-    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "open-settings-reading-display-mode");
+    vi.stubEnv("VITE_DEV_INTENT", "open-settings-reading-display-mode");
     usePreferencesStore.setState({
       prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
       loaded: true,

@@ -305,7 +305,7 @@ describe("useDevIntent", () => {
     runDevScenarioMock.mockReset();
     useUiStore.setState(useUiStore.getInitialState());
     vi.stubEnv("DEV", "1");
-    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
+    vi.stubEnv("VITE_DEV_INTENT", "image-viewer-overlay");
   });
 
   it("runs the scenario once on mount", async () => {
@@ -767,7 +767,7 @@ mise run app:dev:browser
 
 確認項目:
 
-- `VITE_ULTRA_RSS_DEV_INTENT=image-viewer-overlay` で起動時 scenario が 1 回だけ走る
+- `VITE_DEV_INTENT=image-viewer-overlay` で起動時 scenario が 1 回だけ走る
 - `Cmd+K` / `Ctrl+K` で palette が開く
 - `Dev Scenarios` が dev build でだけ表示される
 - `Image viewer overlay` / `Open add feed dialog` / `Sync all smoke` を実行できる

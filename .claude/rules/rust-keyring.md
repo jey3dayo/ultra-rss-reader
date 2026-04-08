@@ -15,7 +15,7 @@ paths:
 
 ## Dev モード（Keychain バイパス）
 
-環境変数 `ULTRA_RSS_DEV_CREDENTIALS=1`（`.env` で dotenvx 管理）がセットされている場合、OS Keychain の代わりに `~/.local/share/ultra-rss-reader/dev-credentials.json` にファイルベースで保存する。
+環境変数 `DEV_CREDENTIALS=1`（`.env` で dotenvx 管理）がセットされている場合、OS Keychain の代わりに `~/.local/share/ultra-rss-reader/dev-credentials.json` にファイルベースで保存する。
 
 - `mise run app:dev` は `dotenvx run --` 経由で起動するため自動的に有効
 - `mise run app:dev:signed` や `mise run app:build` では無効（本番同等の Keychain を使用）

@@ -186,6 +186,7 @@ describe("runDevScenario", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it("hydrates the image viewer overlay with the shared scenario flow", async () => {
@@ -257,6 +258,30 @@ describe("runDevScenario", () => {
     await runDevScenario("image-viewer-overlay", { context });
 
     expect(context.ui.showToast).toHaveBeenCalledWith("Dev intent failed to open the overlay.");
+  });
+
+  it("opens the requested web preview url directly", async () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/debug-preview");
+    const context = createContext();
+
+    await runDevScenario("open-web-preview-url", { context });
+    await vi.runAllTimersAsync();
+
+    expect(context.ui.openBrowser).toHaveBeenCalledTimes(3);
+    expect(context.ui.openBrowser).toHaveBeenNthCalledWith(1, "https://example.com/debug-preview");
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+  });
+
+  it("shows a toast when the direct web preview scenario is missing a url", async () => {
+    vi.stubEnv("DEV", true);
+    const context = createContext();
+
+    await runDevScenario("open-web-preview-url", { context });
+
+    expect(context.ui.showToast).toHaveBeenCalledWith(
+      'Dev scenario "open-web-preview-url" requires VITE_DEV_WEB_URL.',
+    );
   });
 
   it("opens the feed landing article in reader mode", async () => {

@@ -4,6 +4,7 @@ use tauri::State;
 
 use crate::commands::dto::AppError;
 use crate::commands::AppState;
+use crate::browser_webview::set_browser_webview_diagnostics_enabled;
 use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
 use crate::repository::preference::PreferenceRepository;
 
@@ -42,6 +43,8 @@ const ALLOWED_KEYS: &[&str] = &[
     "sync_on_startup",
     "action_copy_link",
     "action_open_browser",
+    "debug_browser_hud",
+    "debug_web_preview_url",
     "inoreader_app_id",
     "inoreader_app_key",
     "selected_account_id",
@@ -98,6 +101,10 @@ pub fn set_preference(
         crate::menu::rebuild(&app, &prefs).map_err(|e| AppError::UserVisible {
             message: format!("Saved language, but failed to update the application menu: {e}"),
         })?;
+    }
+
+    if key == "debug_browser_hud" {
+        set_browser_webview_diagnostics_enabled(value == "true");
     }
 
     Ok(())

@@ -26,7 +26,7 @@ Always run `mise run check` before committing.
 - Treat `README.md` as the human-facing source of truth for development modes and command details. Keep only short, always-needed guidance here.
 - Dev builds log to stdout. The default Rust log level is `warn`, so use `RUST_LOG=info` or higher when diagnosing sync, browser, or provider issues.
 - Release builds write file logs. Use the in-app "Open log directory" flow or `get_log_dir` when you need packaged-app logs for troubleshooting.
-- Setting `ULTRA_RSS_DEV_CREDENTIALS=1` switches development builds to the file-based credential store. Production builds should continue using the OS keyring.
+- Setting `DEV_CREDENTIALS=1` switches development builds to the file-based credential store. Production builds should continue using the OS keyring.
 - Use `mise run test:live` only for live FreshRSS verification with encrypted `.env` credentials; keep it separate from the normal local dev loop.
 - If a debugging or recovery procedure grows beyond a short note, move the detailed workflow into a skill and keep the background details in `README.md` or `docs/`.
 

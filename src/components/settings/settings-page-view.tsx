@@ -1,5 +1,7 @@
 import { useId } from "react";
 import { SectionHeading } from "@/components/settings/settings-components";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -29,7 +31,31 @@ export type SettingsPageSwitchControl = {
   disabled?: boolean;
 };
 
-export type SettingsPageControl = SettingsPageSelectControl | SettingsPageSwitchControl;
+export type SettingsPageTextControl = {
+  id: string;
+  type: "text";
+  name: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+};
+
+export type SettingsPageActionControl = {
+  id: string;
+  type: "action";
+  label: string;
+  actionLabel: string;
+  onAction: () => void;
+  disabled?: boolean;
+};
+
+export type SettingsPageControl =
+  | SettingsPageSelectControl
+  | SettingsPageSwitchControl
+  | SettingsPageTextControl
+  | SettingsPageActionControl;
 
 export type SettingsPageSection = {
   id: string;
@@ -95,6 +121,45 @@ function SettingsPageSwitchRow({ control }: { control: SettingsPageSwitchControl
   );
 }
 
+function SettingsPageTextRow({ control }: { control: SettingsPageTextControl }) {
+  const labelId = useId();
+
+  return (
+    <div className="flex min-h-[44px] items-center gap-4 border-b border-border py-3">
+      <label id={labelId} htmlFor={control.name} className="w-40 shrink-0 text-sm text-foreground">
+        {control.label}
+      </label>
+      <Input
+        id={control.name}
+        name={control.name}
+        value={control.value}
+        onChange={(event) => control.onChange(event.currentTarget.value)}
+        placeholder={control.placeholder}
+        disabled={control.disabled}
+        aria-labelledby={labelId}
+        className="h-10 flex-1"
+      />
+    </div>
+  );
+}
+
+function SettingsPageActionRow({ control }: { control: SettingsPageActionControl }) {
+  return (
+    <div className="flex min-h-[44px] items-center justify-between gap-4 border-b border-border py-3">
+      <span className="text-sm text-foreground">{control.label}</span>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={control.onAction}
+        disabled={control.disabled}
+        aria-label={`${control.actionLabel}: ${control.label}`}
+      >
+        {control.actionLabel}
+      </Button>
+    </div>
+  );
+}
+
 export function SettingsPageView({ title, sections }: SettingsPageViewProps) {
   return (
     <div className="p-6">
@@ -107,8 +172,12 @@ export function SettingsPageView({ title, sections }: SettingsPageViewProps) {
           {section.controls.map((control) =>
             control.type === "select" ? (
               <SettingsPageSelectRow key={control.id} control={control} />
-            ) : (
+            ) : control.type === "switch" ? (
               <SettingsPageSwitchRow key={control.id} control={control} />
+            ) : control.type === "text" ? (
+              <SettingsPageTextRow key={control.id} control={control} />
+            ) : (
+              <SettingsPageActionRow key={control.id} control={control} />
             ),
           )}
           {section.note && <p className="mt-2 text-xs text-muted-foreground">{section.note}</p>}

@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Runtime, Webview};
 
@@ -6,6 +8,8 @@ pub const BROWSER_WEBVIEW_STATE_CHANGED_EVENT: &str = "browser-webview-state-cha
 pub const BROWSER_WEBVIEW_CLOSED_EVENT: &str = "browser-webview-closed";
 pub const BROWSER_WEBVIEW_FALLBACK_EVENT: &str = "browser-webview-fallback";
 pub const BROWSER_WEBVIEW_DIAGNOSTICS_EVENT: &str = "browser-webview-diagnostics";
+
+static BROWSER_WEBVIEW_DIAGNOSTICS_ENABLED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct BrowserWebviewState {
@@ -201,12 +205,11 @@ pub fn emit_browser_webview_diagnostics<R: Runtime>(
 }
 
 pub fn browser_webview_diagnostics_enabled() -> bool {
-    matches!(
-        std::env::var("ULTRA_RSS_DEBUG_BROWSER_BOUNDS")
-            .ok()
-            .as_deref(),
-        Some("1") | Some("true") | Some("TRUE")
-    )
+    BROWSER_WEBVIEW_DIAGNOSTICS_ENABLED.load(Ordering::SeqCst)
+}
+
+pub fn set_browser_webview_diagnostics_enabled(enabled: bool) {
+    BROWSER_WEBVIEW_DIAGNOSTICS_ENABLED.store(enabled, Ordering::SeqCst);
 }
 
 pub fn should_trigger_timeout_fallback(
@@ -364,8 +367,9 @@ pub fn go_forward<R: Runtime>(browser_webview: &Webview<R>) -> tauri::Result<()>
 #[cfg(test)]
 mod tests {
     use super::{
-        should_trigger_timeout_fallback, supports_native_navigation, BrowserNavigationAvailability,
-        BrowserWebviewState, BrowserWebviewTracker,
+        browser_webview_diagnostics_enabled, set_browser_webview_diagnostics_enabled,
+        should_trigger_timeout_fallback, supports_native_navigation,
+        BrowserNavigationAvailability, BrowserWebviewState, BrowserWebviewTracker,
     };
     use crate::platform::{platform_info_for_kind, PlatformKind};
 
@@ -494,5 +498,16 @@ mod tests {
             None,
             "https://example.com/article"
         ));
+    }
+
+    #[test]
+    fn browser_webview_diagnostics_flag_tracks_runtime_setting() {
+        set_browser_webview_diagnostics_enabled(false);
+        assert!(!browser_webview_diagnostics_enabled());
+
+        set_browser_webview_diagnostics_enabled(true);
+        assert!(browser_webview_diagnostics_enabled());
+
+        set_browser_webview_diagnostics_enabled(false);
     }
 }

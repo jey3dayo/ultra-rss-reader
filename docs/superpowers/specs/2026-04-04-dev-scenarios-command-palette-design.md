@@ -106,7 +106,7 @@ type DevScenarioContext = {
 
 #### Env Injection
 
-1. `VITE_ULTRA_RSS_DEV_INTENT` を読む
+1. `VITE_DEV_INTENT` を読む
 2. env 値を `DevScenarioId` に解決する
 3. `useDevIntent()` が初回 mount 時に `runDevScenario(id)` を呼ぶ
 4. runner が scenario を実行し、必要な query cache / UI state / action を適用する

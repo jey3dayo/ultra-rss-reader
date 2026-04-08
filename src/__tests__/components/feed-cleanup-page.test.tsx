@@ -282,7 +282,7 @@ describe("FeedCleanupPage", () => {
 
   it("opens directly in broken references mode for the dedicated dev intent", async () => {
     vi.stubEnv("DEV", true);
-    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "open-feed-cleanup-broken-references");
+    vi.stubEnv("VITE_DEV_INTENT", "open-feed-cleanup-broken-references");
     integrityReport = {
       orphaned_article_count: 2,
       orphaned_feeds: [

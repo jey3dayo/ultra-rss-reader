@@ -8,15 +8,22 @@ pub mod platform;
 pub mod repository;
 pub mod service;
 
+#[cfg(not(test))]
 use std::sync::atomic::AtomicBool;
+#[cfg(not(test))]
 use std::sync::{Arc, Mutex};
 
+#[cfg(not(test))]
 use commands::updater_commands::PendingUpdate;
 
+#[cfg(not(test))]
 use commands::AppState;
 use domain::error::DomainError;
+#[cfg(not(test))]
 use infra::db::connection::DbManager;
+#[cfg(not(test))]
 use infra::db::sqlite_preference::SqlitePreferenceRepository;
+#[cfg(not(test))]
 use repository::preference::PreferenceRepository;
 #[cfg(not(test))]
 use tauri::Manager;
@@ -144,6 +151,10 @@ pub fn run() {
                 let repo = SqlitePreferenceRepository::new(db.reader());
                 repo.get_all().unwrap_or_default()
             };
+
+            browser_webview::set_browser_webview_diagnostics_enabled(
+                prefs.get("debug_browser_hud").is_some_and(|value| value == "true"),
+            );
 
             let handle = app.handle().clone();
             menu::rebuild(&handle, &prefs)?;

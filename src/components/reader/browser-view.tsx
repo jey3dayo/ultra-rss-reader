@@ -15,8 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { BROWSER_WINDOW_EVENTS, BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
 import { type BrowserWebviewBounds, toBrowserWebviewBounds } from "@/lib/browser-webview";
-import { readDevIntent } from "@/lib/dev-intent";
 import { hasTauriRuntime } from "@/lib/window-chrome";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { BrowserOverlayChrome } from "./browser-overlay-chrome";
 
@@ -77,6 +77,11 @@ type BrowserWebviewDiagnosticsPayload = {
 };
 
 type BrowserViewLayoutDiagnostics = {
+  viewport: {
+    width: number;
+    height: number;
+  };
+  overlay: BrowserWebviewBounds;
   hostLogical: BrowserWebviewBounds;
   stage: BrowserWebviewBounds;
   lane: {
@@ -86,6 +91,18 @@ type BrowserViewLayoutDiagnostics = {
     bottom: number;
   };
 };
+
+function formatRatio(value: number, total: number) {
+  if (total <= 0) {
+    return "n/a";
+  }
+
+  return `${((value / total) * 100).toFixed(1)}%`;
+}
+
+function formatCompactFill(width: number, height: number, totalWidth: number, totalHeight: number) {
+  return `${formatRatio(width, totalWidth)} ${formatRatio(height, totalHeight)}`;
+}
 
 type BrowserSurfaceIssue = {
   kind: "failed" | "unsupported";
@@ -112,11 +129,18 @@ type BrowserViewProps = {
 function BrowserPreviewContext({
   scope,
   context,
+  diagnosticsVisible,
 }: {
   scope: "content-pane" | "main-stage";
   context: NonNullable<BrowserViewProps["context"]>;
+  diagnosticsVisible: boolean;
 }) {
-  const positionClass = scope === "main-stage" ? "left-14 right-4 top-3" : "left-14 right-4 top-3";
+  const positionClass =
+    scope === "main-stage"
+      ? diagnosticsVisible
+        ? "left-14 right-3 top-3 pr-[29rem]"
+        : "left-14 right-3 top-3"
+      : "left-14 right-4 top-3";
   const hasMeta = Boolean(context.feedName || context.publishedLabel);
 
   return (
@@ -139,10 +163,75 @@ function BrowserPreviewContext({
   );
 }
 
+function BrowserDiagnosticsRail({
+  layoutDiagnostics,
+  nativeDiagnostics,
+}: {
+  layoutDiagnostics: BrowserViewLayoutDiagnostics | null;
+  nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
+}) {
+  const items: string[] = [];
+
+  if (layoutDiagnostics) {
+    items.push(`vp ${layoutDiagnostics.viewport.width}x${layoutDiagnostics.viewport.height}`);
+    items.push(`host ${layoutDiagnostics.hostLogical.width}x${layoutDiagnostics.hostLogical.height}`);
+    items.push(
+      `fill ${formatCompactFill(
+        layoutDiagnostics.hostLogical.width,
+        layoutDiagnostics.hostLogical.height,
+        layoutDiagnostics.overlay.width,
+        layoutDiagnostics.overlay.height,
+      )}`,
+    );
+    items.push(
+      `lane L${layoutDiagnostics.lane.left} T${layoutDiagnostics.lane.top} R${layoutDiagnostics.lane.right} B${layoutDiagnostics.lane.bottom}`,
+    );
+  }
+
+  if (nativeDiagnostics) {
+    items.push(`rust ${nativeDiagnostics.action} x${nativeDiagnostics.scaleFactor.toFixed(2)}`);
+    if (nativeDiagnostics.nativeWebviewBounds) {
+      items.push(
+        `native ${Math.round(nativeDiagnostics.nativeWebviewBounds.width)}x${Math.round(nativeDiagnostics.nativeWebviewBounds.height)}`,
+      );
+    }
+    if (nativeDiagnostics.nativeWebviewBounds && layoutDiagnostics) {
+      items.push(
+        `match ${formatCompactFill(
+          nativeDiagnostics.nativeWebviewBounds.width,
+          nativeDiagnostics.nativeWebviewBounds.height,
+          layoutDiagnostics.hostLogical.width,
+          layoutDiagnostics.hostLogical.height,
+        )}`,
+      );
+    }
+  }
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      data-testid="browser-overlay-diagnostics"
+      className="pointer-events-none absolute left-24 right-3 top-3 z-[80] overflow-hidden"
+    >
+      <div className="ml-auto flex min-w-0 max-w-full items-center justify-end gap-2 overflow-hidden whitespace-nowrap font-mono text-[10px] leading-4 text-white/88 [text-shadow:0_1px_10px_rgba(0,0,0,0.92)]">
+        {items.map((item, index) => (
+          <span key={item} className="contents">
+            <span className="shrink-0">{item}</span>
+            {index < items.length - 1 ? <span className="shrink-0 text-white/36">•</span> : null}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, context }: BrowserViewProps) {
+  const prefs = usePreferencesStore((s) => s.prefs);
   const { t } = useTranslation("reader");
-  const devIntent = readDevIntent();
-  const showDiagnostics = devIntent === "image-viewer-overlay" && import.meta.env.VITE_ULTRA_RSS_DEV_BOUNDS_HUD === "1";
+  const showDiagnostics = resolvePreferenceValue(prefs, "debug_browser_hud") === "true";
   const browserUrl = useUiStore((s) => s.browserUrl);
   const showToast = useUiStore((s) => s.showToast);
   const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
@@ -163,6 +252,38 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
   const handleCloseOverlay = useCallback(() => {
     onCloseOverlay();
   }, [onCloseOverlay]);
+
+  const captureLayoutDiagnostics = useCallback(() => {
+    if (!showDiagnostics) {
+      return;
+    }
+
+    const overlayRect = overlayRef.current?.getBoundingClientRect();
+    const stageRect = stageRef.current?.getBoundingClientRect();
+    const hostRect = hostRef.current?.getBoundingClientRect();
+    const overlayBounds = overlayRect ? toBrowserWebviewBounds(overlayRect) : null;
+    const stageBounds = stageRect ? toBrowserWebviewBounds(stageRect) : null;
+    const hostBounds = hostRect ? toBrowserWebviewBounds(hostRect) : null;
+    if (!overlayRect || !stageRect || !hostRect || !overlayBounds || !stageBounds || !hostBounds) {
+      return;
+    }
+
+    setLayoutDiagnostics({
+      viewport: {
+        width: Math.round(window.innerWidth),
+        height: Math.round(window.innerHeight),
+      },
+      overlay: overlayBounds,
+      hostLogical: hostBounds,
+      stage: stageBounds,
+      lane: {
+        left: Math.round(stageRect.left - overlayRect.left),
+        top: Math.round(stageRect.top - overlayRect.top),
+        right: Math.round(overlayRect.right - stageRect.right),
+        bottom: Math.round(overlayRect.bottom - stageRect.bottom),
+      },
+    });
+  }, [showDiagnostics]);
 
   const showSurfaceFailure = useCallback(
     (error: AppError) => {
@@ -288,23 +409,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
         return;
       }
 
-      if (showDiagnostics) {
-        const overlayRect = overlayRef.current?.getBoundingClientRect();
-        const stageRect = stageRef.current?.getBoundingClientRect();
-        const stageBounds = stageRect ? toBrowserWebviewBounds(stageRect) : null;
-        if (overlayRect && stageRect && stageBounds) {
-          setLayoutDiagnostics({
-            hostLogical: bounds,
-            stage: stageBounds,
-            lane: {
-              left: Math.round(stageRect.left - overlayRect.left),
-              top: Math.round(stageRect.top - overlayRect.top),
-              right: Math.round(overlayRect.right - stageRect.right),
-              bottom: Math.round(overlayRect.bottom - stageRect.bottom),
-            },
-          });
-        }
-      }
+      captureLayoutDiagnostics();
 
       if (mode === "resize") {
         if (createInFlightRef.current || !webviewCreatedRef.current) {
@@ -346,7 +451,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
 
       await flushPendingBounds(requestedUrl);
     },
-    [flushPendingBounds, showDiagnostics, showSurfaceFailure, syncBrowserBounds],
+    [captureLayoutDiagnostics, flushPendingBounds, showSurfaceFailure, syncBrowserBounds],
   );
 
   useEffect(() => {
@@ -403,6 +508,23 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
       window.removeEventListener("resize", handleResize);
     };
   }, [browserUrl, syncBrowserWebview]);
+
+  useLayoutEffect(() => {
+    if (!browserUrl || !showDiagnostics) {
+      return;
+    }
+
+    captureLayoutDiagnostics();
+  }, [browserUrl, captureLayoutDiagnostics, showDiagnostics]);
+
+  useEffect(() => {
+    if (showDiagnostics) {
+      return;
+    }
+
+    setLayoutDiagnostics(null);
+    setNativeDiagnostics(null);
+  }, [showDiagnostics]);
 
   useEffect(() => {
     return () => {
@@ -464,7 +586,9 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
   if (!browserUrl) return null;
 
   const runtimeUnavailable =
-    (typeof window !== "undefined" && window.__ULTRA_RSS_BROWSER_MOCKS__ === true) || !hasTauriRuntime();
+    (typeof window !== "undefined" &&
+      (window.__DEV_BROWSER_MOCKS__ === true || window.__ULTRA_RSS_BROWSER_MOCKS__ === true)) ||
+    !hasTauriRuntime();
   const activeSurfaceIssue =
     surfaceIssue ??
     (runtimeUnavailable && !isLoading
@@ -500,12 +624,12 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
     );
   };
 
-  const overlayChromePositionClass = "left-2 top-2";
-  // Keep a dedicated close-button lane outside the native surface so the stage
-  // never competes with the affordance again.
+  const overlayChromePositionClass = "left-3 top-3";
+  // Keep chrome floating above the native surface so the reading area can stretch
+  // closer to the window edges on widescreen layouts.
   const stageClass =
     scope === "main-stage"
-      ? "absolute bottom-2 left-14 right-2 top-14 z-0 rounded-none border border-white/6 bg-background shadow-[0_24px_60px_rgba(0,0,0,0.24)]"
+      ? "absolute bottom-0 left-2 right-0 top-14 z-0 rounded-[22px] border border-white/6 bg-background shadow-[0_24px_60px_rgba(0,0,0,0.24)]"
       : context
         ? "absolute inset-x-0 bottom-0 top-14 rounded-none border border-white/6 bg-background"
         : "absolute inset-0 rounded-none border border-white/6 bg-background";
@@ -524,48 +648,11 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_15rem_at_10rem_0.5rem,rgba(255,255,255,0.04),transparent_58%)]"
       />
-      {showDiagnostics && (layoutDiagnostics || nativeDiagnostics) ? (
-        <div
-          data-testid="browser-overlay-diagnostics"
-          className="pointer-events-none absolute bottom-4 left-4 z-30 max-w-[28rem] rounded-lg bg-black/80 px-3 py-2 font-mono text-[11px] leading-5 text-white shadow-xl"
-        >
-          {layoutDiagnostics ? (
-            <>
-              <div>
-                host logical: {layoutDiagnostics.hostLogical.x},{layoutDiagnostics.hostLogical.y}{" "}
-                {layoutDiagnostics.hostLogical.width}x{layoutDiagnostics.hostLogical.height}
-              </div>
-              <div>
-                stage: {layoutDiagnostics.stage.x},{layoutDiagnostics.stage.y} {layoutDiagnostics.stage.width}x
-                {layoutDiagnostics.stage.height}
-              </div>
-              <div>
-                lane: L{layoutDiagnostics.lane.left} T{layoutDiagnostics.lane.top} R{layoutDiagnostics.lane.right} B
-                {layoutDiagnostics.lane.bottom}
-              </div>
-            </>
-          ) : null}
-          {nativeDiagnostics ? (
-            <>
-              <div>
-                rust requested: {nativeDiagnostics.requestedLogical.x},{nativeDiagnostics.requestedLogical.y}{" "}
-                {nativeDiagnostics.requestedLogical.width}x{nativeDiagnostics.requestedLogical.height}
-              </div>
-              <div>
-                rust applied: {nativeDiagnostics.appliedLogical.x},{nativeDiagnostics.appliedLogical.y}{" "}
-                {nativeDiagnostics.appliedLogical.width}x{nativeDiagnostics.appliedLogical.height}
-              </div>
-              <div>rust action: {nativeDiagnostics.action}</div>
-              <div>scale: {nativeDiagnostics.scaleFactor}</div>
-              <div>
-                native webview:{" "}
-                {nativeDiagnostics.nativeWebviewBounds
-                  ? `${nativeDiagnostics.nativeWebviewBounds.x},${nativeDiagnostics.nativeWebviewBounds.y} ${nativeDiagnostics.nativeWebviewBounds.width}x${nativeDiagnostics.nativeWebviewBounds.height}`
-                  : "n/a"}
-              </div>
-            </>
-          ) : null}
-        </div>
+      {showDiagnostics ? (
+        <BrowserDiagnosticsRail
+          layoutDiagnostics={layoutDiagnostics}
+          nativeDiagnostics={nativeDiagnostics}
+        />
       ) : null}
       <BrowserOverlayChrome
         closeLabel={labels.closeOverlay}
@@ -573,7 +660,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
         className={overlayChromePositionClass}
         autoFocus
       />
-      {context ? <BrowserPreviewContext scope={scope} context={context} /> : null}
+      {context ? <BrowserPreviewContext scope={scope} context={context} diagnosticsVisible={showDiagnostics} /> : null}
       <div ref={stageRef} data-testid="browser-overlay-stage" className={stageClass}>
         <div ref={hostRef} data-testid="browser-webview-host" className="h-full w-full bg-background" />
         {isLoading ? (

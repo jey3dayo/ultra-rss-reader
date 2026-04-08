@@ -3,6 +3,7 @@ import { type ComponentType, createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { type MockTauriCommandCall, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
@@ -118,12 +119,14 @@ describe("BrowserView", () => {
     listenMock.mockClear();
     registeredHandlers.clear();
     resizeObserverCallbacks.clear();
+    window.__DEV_BROWSER_MOCKS__ = false;
     window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
     mockHostRect({ left: 0, top: 0, width: 0, height: 0 });
     getBoundingClientRectSpy = vi
       .spyOn(HTMLElement.prototype, "getBoundingClientRect")
       .mockImplementation(() => createDomRect(hostRect));
     useUiStore.setState(useUiStore.getInitialState());
+    usePreferencesStore.setState({ prefs: {}, loaded: true });
     setupTauriMocks((cmd, args) => {
       commands.push({ cmd, args });
       if (cmd === "create_or_update_browser_webview") {
@@ -207,6 +210,24 @@ describe("BrowserView", () => {
     expect(stage.className).toContain("border-white/6");
   });
 
+  it("uses edge-hugging stage insets in the main-stage overlay", () => {
+    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    const stage = screen.getByTestId("browser-overlay-stage");
+
+    expect(stage.className).toContain("left-2");
+    expect(stage.className).toContain("right-0");
+    expect(stage.className).toContain("top-14");
+  });
+
   it("renders web preview context when article metadata is provided", async () => {
     mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
 
@@ -250,6 +271,52 @@ describe("BrowserView", () => {
     expect(screen.getByText("If this takes too long, open it in your external browser.")).toBeInTheDocument();
   });
 
+  it("shows the debug hud when the debug preference is enabled", async () => {
+    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+    usePreferencesStore.setState({
+      prefs: { debug_browser_hud: "true" },
+      loaded: true,
+    });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    const diagnostics = await screen.findByTestId("browser-overlay-diagnostics");
+
+    expect(diagnostics).toBeInTheDocument();
+    expect(diagnostics.className).toContain("top-3");
+    expect(diagnostics.className).toContain("right-3");
+    expect(diagnostics.className).toContain("left-24");
+    expect(diagnostics.className).toContain("z-[80]");
+    expect(screen.getByText(/vp/i)).toBeInTheDocument();
+    expect(screen.getByText(/fill/i)).toBeInTheDocument();
+  });
+
+  it("hides the debug hud when the saved preference is false", async () => {
+    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+    usePreferencesStore.setState({
+      prefs: { debug_browser_hud: "false" },
+      loaded: true,
+    });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("browser-overlay-diagnostics")).not.toBeInTheDocument();
+    });
+  });
+
   it("shows a browser-mode fallback panel instead of a blank surface when no Tauri runtime is available", async () => {
     mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
     Object.defineProperty(window, "__TAURI_INTERNALS__", {
@@ -257,7 +324,7 @@ describe("BrowserView", () => {
       writable: true,
       value: undefined,
     });
-    window.__ULTRA_RSS_BROWSER_MOCKS__ = true;
+    window.__DEV_BROWSER_MOCKS__ = true;
 
     useUiStore.setState({
       selectedArticleId: "art-1",

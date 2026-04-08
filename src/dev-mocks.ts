@@ -73,6 +73,7 @@ function countUnreadByAccount(accountId: string) {
 
 export function setupDevMocks() {
   if (window.__TAURI_INTERNALS__) return;
+  window.__DEV_BROWSER_MOCKS__ = true;
   window.__ULTRA_RSS_BROWSER_MOCKS__ = true;
 
   const devIntent = readDevIntent();

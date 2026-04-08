@@ -1,5 +1,6 @@
 import {
   runImageViewerOverlayScenario,
+  runOpenWebPreviewUrlScenario,
   runOpenFeedFirstArticleScenario,
   runOpenTagViewScenario,
 } from "@/dev/scenarios/helpers";
@@ -24,6 +25,11 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
     title: "Image viewer overlay",
     keywords: ["image", "viewer", "overlay"],
     run: runImageViewerOverlayScenario,
+  },
+  "open-web-preview-url": {
+    title: "Open web preview URL",
+    keywords: ["web", "preview", "url", "browser"],
+    run: runOpenWebPreviewUrlScenario,
   },
   "open-feed-first-article": {
     title: "Open feed first article",

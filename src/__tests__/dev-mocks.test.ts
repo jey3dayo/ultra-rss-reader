@@ -45,7 +45,7 @@ describe("setupDevMocks", () => {
   });
 
   it("returns grouped broken references for the dedicated feed cleanup integrity intent", async () => {
-    vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "open-feed-cleanup-broken-references");
+    vi.stubEnv("VITE_DEV_INTENT", "open-feed-cleanup-broken-references");
 
     setupDevMocks();
 
