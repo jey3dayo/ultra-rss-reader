@@ -1,9 +1,12 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 function readDebugPageHtml(): string {
-  return readFileSync(path.resolve(import.meta.dirname, "../../../public/dev-image-viewer.html"), "utf8");
+  const currentFile = fileURLToPath(import.meta.url);
+  const currentDir = path.dirname(currentFile);
+  return readFileSync(path.resolve(currentDir, "../../../public/dev-image-viewer.html"), "utf8");
 }
 
 describe("dev image viewer page", () => {
