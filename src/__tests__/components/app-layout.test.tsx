@@ -51,4 +51,22 @@ describe("AppLayout", () => {
     expect(screen.getByText("Article View")).toBeInTheDocument();
     expect(screen.queryByText("Article List")).not.toBeInTheDocument();
   });
+
+  it("keeps a closable sidebar shell mounted in wide layout for open and close motion", () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "wide",
+      focusedPane: "content",
+      sidebarOpen: false,
+    });
+
+    render(<AppLayout />);
+
+    const shell = screen.getByTestId("wide-sidebar-shell");
+
+    expect(shell).toHaveClass("transition-[width,opacity,transform,border-color]");
+    expect(shell).toHaveClass("w-0");
+    expect(shell).toHaveClass("opacity-0");
+    expect(screen.getByTestId("wide-sidebar-content")).toHaveAttribute("aria-hidden", "true");
+  });
 });

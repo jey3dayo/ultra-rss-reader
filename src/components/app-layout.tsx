@@ -85,9 +85,8 @@ export function AppLayout() {
   });
 
   if (layoutMode === "wide") {
-    const panes = (
-      feedCleanupOpen ? ["sidebar", "content"] : resolveLayout(layoutMode, focusedPane, contentMode)
-    ).filter((pane) => pane !== "sidebar" || sidebarOpen);
+    const panes = feedCleanupOpen ? ["sidebar", "content"] : resolveLayout(layoutMode, focusedPane, contentMode);
+    const shouldShowSidebar = feedCleanupOpen || sidebarOpen;
     return (
       <div
         className={cn(
@@ -97,8 +96,23 @@ export function AppLayout() {
         )}
       >
         {panes.includes("sidebar") && (
-          <div className="w-[280px] shrink-0">
-            <Sidebar />
+          <div
+            data-testid="wide-sidebar-shell"
+            className={cn(
+              "shrink-0 overflow-hidden border-r transition-[width,opacity,transform,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              shouldShowSidebar
+                ? "w-[280px] border-border opacity-100 translate-x-0"
+                : "w-0 border-transparent opacity-0 -translate-x-3",
+            )}
+          >
+            <div
+              data-testid="wide-sidebar-content"
+              className={cn("h-full w-[280px]", !shouldShowSidebar && "pointer-events-none")}
+              aria-hidden={!shouldShowSidebar}
+              {...(!shouldShowSidebar ? { inert: true } : {})}
+            >
+              <Sidebar />
+            </div>
           </div>
         )}
         <div data-testid="main-stage" className="relative flex min-w-0 flex-1">

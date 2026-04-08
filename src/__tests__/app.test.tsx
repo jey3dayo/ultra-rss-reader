@@ -92,20 +92,21 @@ describe("App", () => {
     // Wide mode has no sliding tray
     expect(container.innerHTML).not.toContain("w-[300%]");
     expect(container.innerHTML).not.toContain("w-[calc(100%+280px)]");
-    expect(container.innerHTML).toContain("w-[280px]");
+    expect(container.innerHTML).toContain('data-testid="wide-sidebar-shell"');
     expect(container.innerHTML).toContain("w-[380px]");
   });
 
-  it("wide: hides the sidebar pane when the desktop toggle is off", () => {
+  it("wide: keeps the sidebar shell mounted and animates it closed when the desktop toggle is off", () => {
     useUiStore.setState({
       layoutMode: "wide",
       focusedPane: "content",
       sidebarOpen: false,
     });
 
-    const { container } = render(<AppLayout />, { wrapper: createWrapper() });
+    const { getByTestId, container } = render(<AppLayout />, { wrapper: createWrapper() });
 
-    expect(container.innerHTML).not.toContain("w-[280px]");
+    expect(getByTestId("wide-sidebar-shell")).toHaveClass("w-0");
+    expect(getByTestId("wide-sidebar-shell")).toHaveClass("opacity-0");
     expect(container.innerHTML).toContain("w-[380px]");
   });
 
