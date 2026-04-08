@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FeedCleanupPage } from "@/components/feed-cleanup/feed-cleanup-page";
+import i18n from "@/lib/i18n";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
@@ -44,7 +45,8 @@ describe("FeedCleanupPage", () => {
     }>;
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en");
     calls = [];
     feeds = [
       {
@@ -161,12 +163,41 @@ describe("FeedCleanupPage", () => {
     vi.unstubAllEnvs();
   });
 
+  it("formats cleanup dates in the active UI language", async () => {
+    const user = userEvent.setup();
+    const toLocaleDateStringSpy = vi.spyOn(Date.prototype, "toLocaleDateString");
+
+    await i18n.changeLanguage("ja");
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Old Product Blog" }));
+
+    expect(screen.getByText("2025年11月1日")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "削除" }));
+
+    const deleteDialog = await screen.findByRole("dialog", { name: "フィードを削除" });
+
+    expect(within(deleteDialog).getByText(/最新記事: 2025年11月1日/)).toBeInTheDocument();
+    expect(toLocaleDateStringSpy).toHaveBeenCalledWith(
+      "ja",
+      expect.objectContaining({
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+    );
+  });
+
   it("filters candidates, updates the review panel, and deletes a confirmed feed", async () => {
     const user = userEvent.setup();
 
     render(<FeedCleanupPage />, { wrapper: createWrapper() });
 
     expect(await screen.findByRole("heading", { name: "Feed Cleanup" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
+    expect(screen.getByTestId("feed-cleanup-sidebar-summary")).toBeInTheDocument();
     expect(screen.getByTestId("feed-cleanup-page")).toHaveClass("h-dvh");
     expect(await screen.findByText("2 candidates")).toBeInTheDocument();
     expect(await screen.findByText("1 review now")).toBeInTheDocument();

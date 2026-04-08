@@ -3,12 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { FeedCleanupCandidate } from "@/lib/feed-cleanup";
 
-function formatDate(value: string | null): string {
+function formatDate(value: string | null, locale: string): string {
   if (!value) {
     return "—";
   }
 
-  return new Date(value).toLocaleDateString(undefined, {
+  return new Date(value).toLocaleDateString(locale, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -19,6 +19,7 @@ export function FeedCleanupDeleteDialog({
   candidate,
   open,
   title,
+  dateLocale,
   cancelLabel,
   deleteLabel,
   latestArticleLabel,
@@ -33,6 +34,7 @@ export function FeedCleanupDeleteDialog({
   candidate: FeedCleanupCandidate | null;
   open: boolean;
   title: string;
+  dateLocale: string;
   cancelLabel: string;
   deleteLabel: string;
   latestArticleLabel: string;
@@ -53,7 +55,7 @@ export function FeedCleanupDeleteDialog({
         <div className="space-y-3 text-sm text-muted-foreground">
           <p className="font-medium text-foreground">{candidate?.title ?? ""}</p>
           <p>
-            {latestArticleLabel}: {formatDate(candidate?.latestArticleAt ?? null)}
+            {latestArticleLabel}: {formatDate(candidate?.latestArticleAt ?? null, dateLocale)}
           </p>
           <p>
             {unreadCountLabel}: {candidate?.unreadCount ?? 0}

@@ -1,6 +1,7 @@
 {
   "title": "フィード管理",
   "subtitle": "静かになった購読を、消す前に見直します。",
+  "overview": "概要",
   "filters": "フィルタ",
   "summary_candidates": "候補数",
   "summary_candidates_caption": "{{count}} 件の候補",

@@ -17,12 +17,12 @@ type FilterOption = {
   label: string;
 };
 
-function formatDate(value: string | null): string {
+function formatDate(value: string | null, locale: string): string {
   if (!value) {
     return "—";
   }
 
-  return new Date(value).toLocaleDateString(undefined, {
+  return new Date(value).toLocaleDateString(locale, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -33,6 +33,8 @@ export function FeedCleanupPageView({
   title,
   subtitle,
   closeLabel,
+  dateLocale,
+  overviewLabel,
   filtersLabel,
   queueLabel,
   reviewLabel,
@@ -84,6 +86,8 @@ export function FeedCleanupPageView({
   title: string;
   subtitle: string;
   closeLabel: string;
+  dateLocale: string;
+  overviewLabel: string;
   filtersLabel: string;
   queueLabel: string;
   reviewLabel: string;
@@ -180,18 +184,6 @@ export function FeedCleanupPageView({
         </div>
       </div>
 
-      <div className="grid gap-3 border-b border-border bg-muted/20 px-6 py-4 md:grid-cols-2 xl:grid-cols-4">
-        {summaryCards.map((card) => (
-          <div key={card.label} className="rounded-2xl border border-border/70 bg-card px-4 py-3 shadow-sm">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">{card.label}</p>
-            <div className="mt-2 flex items-end justify-between gap-3">
-              <span className="text-2xl font-semibold text-foreground">{card.value}</span>
-              <span className="text-xs text-muted-foreground">{card.caption}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
       {integrityIssue ? (
         <div className="border-b border-border bg-amber-50/70 px-6 py-3 text-amber-950 dark:bg-amber-500/10 dark:text-amber-100">
           <div className="rounded-2xl border border-amber-200/80 bg-background/80 px-4 py-3 dark:border-amber-500/30 dark:bg-background/20">
@@ -206,6 +198,24 @@ export function FeedCleanupPageView({
 
       <div className="grid min-h-0 flex-1 overflow-hidden gap-0 lg:grid-cols-[240px_minmax(0,1fr)_340px]">
         <section className="min-h-0 overflow-hidden border-r border-border bg-sidebar/60 px-4 py-4">
+          <h3 className="mb-3 text-sm font-semibold">{overviewLabel}</h3>
+          <div
+            data-testid="feed-cleanup-sidebar-summary"
+            className="mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-border/70 bg-card/70 p-2"
+          >
+            {summaryCards.map((card) => (
+              <div key={card.label} className="rounded-xl border border-border/70 bg-background/80 px-3 py-2 shadow-sm">
+                <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  {card.label}
+                </p>
+                <div className="mt-1.5 flex items-baseline justify-between gap-2">
+                  <span className="text-lg font-semibold text-foreground">{card.value}</span>
+                  <span className="text-[11px] text-muted-foreground">{card.caption}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
           <h3 className="mb-3 text-sm font-semibold">{filtersLabel}</h3>
           {integrityMode ? (
             <div className="rounded-2xl border border-amber-200/70 bg-amber-50/70 px-4 py-3 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
@@ -384,7 +394,7 @@ export function FeedCleanupPageView({
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <dt className="text-muted-foreground">{integrityDetailLabels.latest_published_at}</dt>
-                        <dd>{formatDate(selectedIntegrityIssue.latest_article_published_at)}</dd>
+                        <dd>{formatDate(selectedIntegrityIssue.latest_article_published_at, dateLocale)}</dd>
                       </div>
                     </dl>
                   </div>
@@ -428,7 +438,7 @@ export function FeedCleanupPageView({
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-muted-foreground">{latestArticleLabel}</dt>
-                      <dd>{formatDate(selectedCandidate.latestArticleAt)}</dd>
+                      <dd>{formatDate(selectedCandidate.latestArticleAt, dateLocale)}</dd>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-muted-foreground">{unreadCountLabel}</dt>

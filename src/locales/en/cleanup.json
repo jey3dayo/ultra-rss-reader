@@ -1,6 +1,7 @@
 {
   "title": "Feed Cleanup",
   "subtitle": "Review quiet subscriptions before you delete them.",
+  "overview": "Overview",
   "filters": "Filters",
   "summary_candidates": "Candidates",
   "summary_candidates_caption": "{{count}} candidates",

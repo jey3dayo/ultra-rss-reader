@@ -11,6 +11,7 @@ import {
   type FeedCleanupReasonKey,
   summarizeCleanupCandidate,
 } from "@/lib/feed-cleanup";
+import { resolveArticleDateLocale } from "@/lib/article-view";
 import { useUiStore } from "@/stores/ui-store";
 import { FeedCleanupDeleteDialog } from "./feed-cleanup-delete-dialog";
 import { FeedCleanupFeedEditor } from "./feed-cleanup-feed-editor";
@@ -28,7 +29,7 @@ function candidateMatchesFilters(candidate: FeedCleanupCandidate, activeFilters:
 }
 
 export function FeedCleanupPage() {
-  const { t } = useTranslation("cleanup");
+  const { t, i18n } = useTranslation("cleanup");
   const { t: tr } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
   const feedCleanupOpen = useUiStore((state) => state.feedCleanupOpen);
@@ -49,6 +50,7 @@ export function FeedCleanupPage() {
   const [queueMode, setQueueMode] = useState<QueueMode>("cleanup");
   const [selectedIntegrityFeedId, setSelectedIntegrityFeedId] = useState<string | null>(null);
   const devIntent = readDevIntent();
+  const dateLocale = resolveArticleDateLocale(i18n.language);
 
   const hiddenFeedIds = useMemo(() => {
     const hidden = new Set(keptFeedIds);
@@ -191,6 +193,8 @@ export function FeedCleanupPage() {
         title={t("title")}
         subtitle={t("subtitle")}
         closeLabel={tc("close")}
+        dateLocale={dateLocale}
+        overviewLabel={t("overview")}
         filtersLabel={t("filters")}
         queueLabel={t("queue")}
         reviewLabel={t("review")}
@@ -327,6 +331,7 @@ export function FeedCleanupPage() {
         candidate={deleteTarget ?? null}
         open={deleteTargetId != null}
         title={t("delete_title")}
+        dateLocale={dateLocale}
         cancelLabel={tc("cancel")}
         deleteLabel={t("delete")}
         latestArticleLabel={t("latest_article")}
