@@ -49,11 +49,29 @@
 
 ## UI ブラウザ散策メモ
 
-- [ ] Webプレビューが空のままになる場合でも、loading / failure / unsupported の状態を見分けられるようにする
+- [x] 初期表示の空状態が低シグナルすぎて、最初の一手が伝わりにくい
+  - 再現: ブラウザモード (`http://127.0.0.1:4173/`) を開いた直後、または記事詳細を `記事を閉じる` で閉じて右ペインを空にする
+  - 右ペインは広い余白の中央に `記事を選択してください` が 1 行だけ出るが、文字がかなり弱く、記事一覧から選ぶのか検索するのか、あるいはキーボードショートカットが使えるのかが伝わりにくい
+  - 初回導線としては `記事を選択` に加えて `一覧から選ぶ / 検索する / ショートカット` のいずれかを短く補助し、empty state 自体の視認性も少し上げたい
+  - 対応: empty state を薄い panel 化し、一覧 / 検索 / Webプレビューの補助ヒントを追加した
+  - 候補箇所: `src/components/reader/article-empty-state-view.tsx`, `src/components/reader/article-view.tsx`, `src/locales/ja/reader.json`, `src/locales/en/reader.json`
+- [x] 設定モーダルの下方コンテンツが fold 下に沈みやすく、続きがあることに気づきにくい
+  - 再現: ブラウザモードを `1440x960` 前後で開き、`設定 > 一般` を表示する
+  - `言語` / `アプリアイコン` / `サイドバー` までは見える一方、`ブラウザ` 以降はモーダル下端で途切れ、内部スクロールが必要なことが視覚的にはかなり分かりづらい
+  - section が長いカテゴリでは、content 側に sticky header / bottom fade / 続きありの affordance がほしい。`max-h-[720px]` 固定も desktop 高さに対して少し窮屈に見える
+  - 対応: modal 高さを少し広げ、左右カラムに top / bottom fade を追加し、content title も sticky 化した
+  - 候補箇所: `src/components/settings/settings-modal-view.tsx`, `src/components/settings/settings-page-view.tsx`
+- [x] フィード追加ダイアログの URL 入力が placeholder 依存で、入力開始後に文脈が消える
+  - 再現: `フィードを追加` を開き、URL 欄に文字を入れる
+  - 現状は `フィードまたはサイトURL` が placeholder として入っているだけなので、入力を始めると field の役割ラベルが消え、helper text だけでは視線の戻り先として弱い
+  - UI/UX 的にもアクセシビリティ的にも、入力欄の上に常設ラベルを置いて placeholder は例示に寄せたほうが迷いが少ない
+  - 対応: URL 欄の上に常設ラベルを追加し、placeholder は `https://example.com/feed.xml` の例示へ寄せた
+  - 候補箇所: `src/components/reader/feed-dialog-form-view.tsx`, `src/components/reader/add-feed-dialog-view.tsx`, `src/locales/ja/reader.json`, `src/locales/en/reader.json`
+- [x] Webプレビューが空のままになる場合でも、loading / failure / unsupported の状態を見分けられるようにする
   - 再現: ブラウザモード (`http://127.0.0.1:4173/`) で記事を1件開き、ツールバーの `Webプレビューを開く` を押す
   - 5 秒以上待っても右ペインが真っ黒のままで、`読込中` / 失敗理由 / 再試行導線のどれも見えず、単に固まったのか非対応なのか判断できない
   - loading 中は overlay 上に `読込中` と補助文言を重ね、完全な黒画面には見えないようにした
-  - failure / unsupported の見分けと再試行導線はまだ残タスク
+  - 対応: browser mode では unsupported panel、runtime failure では detail 付き failure panel を表示し、再試行と外部ブラウザ導線を追加した
   - 候補箇所: `src/components/reader/browser-view.tsx`, `src/components/reader/article-view.tsx`, `src/locales/ja/reader.json`, `src/locales/en/reader.json`
 - [x] 記事検索の 0 件状態を、空フィード時と見分けられる search-specific empty state にする
   - 再現: ブラウザモードで `記事を検索` を開き、`zzzzzz` のような一致しない語を入力する

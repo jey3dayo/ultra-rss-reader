@@ -31,7 +31,8 @@ export function SettingsModalView({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex h-[80vh] max-h-[720px] max-w-[920px] gap-0 overflow-hidden p-0 sm:max-w-[920px]"
+        data-testid="settings-modal-surface"
+        className="flex h-[88vh] max-h-[840px] max-w-[920px] gap-0 overflow-hidden p-0 sm:max-w-[920px]"
         showCloseButton={false}
       >
         {isLoading && <IndeterminateProgress className="absolute inset-x-0 top-0 z-10" />}
@@ -49,17 +50,41 @@ export function SettingsModalView({
             <DialogTitle className="text-base font-medium">{title}</DialogTitle>
           </DialogHeader>
 
-          <ScrollArea data-testid="settings-scroll-area" className="min-h-0 flex-1">
-            {navigation}
-          </ScrollArea>
+          <div className="relative min-h-0 flex-1">
+            <div
+              data-testid="settings-nav-fade-top"
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-0 z-10 h-4 bg-gradient-to-b from-sidebar via-sidebar/92 to-transparent"
+            />
+            <ScrollArea data-testid="settings-scroll-area" className="min-h-0 flex-1">
+              {navigation}
+            </ScrollArea>
+            <div
+              data-testid="settings-nav-fade-bottom"
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6 bg-gradient-to-t from-sidebar via-sidebar/94 to-transparent"
+            />
+          </div>
 
           <div className="border-t border-border p-2">{accountsNavigation}</div>
         </div>
 
         <div className="flex flex-1 flex-col overflow-hidden bg-popover">
-          <ScrollArea data-testid="settings-scroll-area" className="min-h-0 flex-1">
-            {content}
-          </ScrollArea>
+          <div className="relative min-h-0 flex-1">
+            <div
+              data-testid="settings-content-fade-top"
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-0 z-10 h-5 bg-gradient-to-b from-popover via-popover/94 to-transparent"
+            />
+            <ScrollArea data-testid="settings-scroll-area" className="min-h-0 flex-1">
+              {content}
+            </ScrollArea>
+            <div
+              data-testid="settings-content-fade-bottom"
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8 bg-gradient-to-t from-popover via-popover/95 to-transparent"
+            />
+          </div>
         </div>
       </DialogContent>
     </Dialog>

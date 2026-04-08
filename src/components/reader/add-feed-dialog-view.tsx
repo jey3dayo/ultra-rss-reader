@@ -6,6 +6,7 @@ import type { FolderSelectViewProps } from "./folder-select-view";
 export type AddFeedDialogViewLabels = {
   title: string;
   description: string;
+  urlLabel: string;
   urlPlaceholder: string;
   discover: string;
   discovering: string;
@@ -81,6 +82,7 @@ export function AddFeedDialogView({
         discovering,
         disabled: loading || discovering,
         discoverDisabled: isDiscoverDisabled,
+        label: labels.urlLabel,
         placeholder: labels.urlPlaceholder,
         inputRef,
         discoveredFeedsFoundLabel,

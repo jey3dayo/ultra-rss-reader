@@ -53,6 +53,28 @@ describe("SettingsModalView", () => {
     }
   });
 
+  it("adds visual scroll affordances and a taller modal surface", () => {
+    render(
+      <SettingsModalView
+        open={true}
+        title="Preferences"
+        closeLabel="Close preferences"
+        navigation={<div>Settings navigation</div>}
+        accountsNavigation={<div>Accounts navigation</div>}
+        content={<div>Settings content</div>}
+        onClose={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("settings-modal-surface")).toHaveClass("h-[88vh]");
+    expect(screen.getByTestId("settings-modal-surface")).toHaveClass("max-h-[840px]");
+    expect(screen.getByTestId("settings-nav-fade-top")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-nav-fade-bottom")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-content-fade-top")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-content-fade-bottom")).toBeInTheDocument();
+  });
+
   it("does not render dialog content when closed", () => {
     render(
       <SettingsModalView

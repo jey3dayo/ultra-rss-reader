@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
-import { LoaderCircle } from "lucide-react";
+import { CircleAlert, ExternalLink, LoaderCircle, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -9,11 +9,14 @@ import {
   type BrowserWebviewState,
   closeBrowserWebview,
   createOrUpdateBrowserWebview,
+  openInBrowser,
   setBrowserWebviewBounds,
 } from "@/api/tauri-commands";
+import { Button } from "@/components/ui/button";
 import { BROWSER_WINDOW_EVENTS, BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
 import { type BrowserWebviewBounds, toBrowserWebviewBounds } from "@/lib/browser-webview";
 import { readDevIntent } from "@/lib/dev-intent";
+import { hasTauriRuntime } from "@/lib/window-chrome";
 import { useUiStore } from "@/stores/ui-store";
 import { BrowserOverlayChrome } from "./browser-overlay-chrome";
 
@@ -84,6 +87,14 @@ type BrowserViewLayoutDiagnostics = {
   };
 };
 
+type BrowserSurfaceIssue = {
+  kind: "failed" | "unsupported";
+  title: string;
+  description: string;
+  detail?: string | null;
+  canRetry?: boolean;
+};
+
 type BrowserViewProps = {
   scope?: "content-pane" | "main-stage";
   onCloseOverlay: () => void;
@@ -133,7 +144,6 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
   const devIntent = readDevIntent();
   const showDiagnostics = devIntent === "image-viewer-overlay" && import.meta.env.VITE_ULTRA_RSS_DEV_BOUNDS_HUD === "1";
   const browserUrl = useUiStore((s) => s.browserUrl);
-  const closeBrowser = useUiStore((s) => s.closeBrowser);
   const showToast = useUiStore((s) => s.showToast);
   const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
   const browserStateRef = useRef<BrowserWebviewState | null>(null);
@@ -148,22 +158,36 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
   const pendingBoundsRef = useRef<BrowserWebviewBounds | null>(null);
   const [layoutDiagnostics, setLayoutDiagnostics] = useState<BrowserViewLayoutDiagnostics | null>(null);
   const [nativeDiagnostics, setNativeDiagnostics] = useState<BrowserWebviewDiagnosticsPayload | null>(null);
+  const [surfaceIssue, setSurfaceIssue] = useState<BrowserSurfaceIssue | null>(null);
 
   const handleCloseOverlay = useCallback(() => {
     onCloseOverlay();
   }, [onCloseOverlay]);
 
-  const fallbackToReader = useCallback(
-    async (_url: string, error: AppError) => {
+  const showSurfaceFailure = useCallback(
+    (error: AppError) => {
       if (fallbackInFlightRef.current) {
         return;
       }
       fallbackInFlightRef.current = true;
       console.error("Failed to open embedded browser webview:", error);
-      showToast(t("browser_embed_fallback"));
-      closeBrowser();
+      setSurfaceIssue({
+        kind: "failed",
+        title: t("browser_embed_failed"),
+        description: t("browser_embed_failed_hint"),
+        detail: error.message,
+        canRetry: true,
+      });
+      setBrowserState((currentState) => {
+        if (!currentState) {
+          return currentState;
+        }
+        const nextState = { ...currentState, is_loading: false };
+        browserStateRef.current = nextState;
+        return nextState;
+      });
     },
-    [closeBrowser, showToast, t],
+    [t],
   );
 
   useLayoutEffect(() => {
@@ -175,15 +199,26 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
         const nextState = mergeBrowserState(browserStateRef.current, payload, useUiStore.getState().browserUrl ?? "");
         browserStateRef.current = nextState;
         setBrowserState(nextState);
+        setSurfaceIssue(null);
+        fallbackInFlightRef.current = false;
       }),
       listen<BrowserWebviewFallbackPayload>(BROWSER_WINDOW_EVENTS.fallback, ({ payload }) => {
         if (cancelled) return;
-        if (payload.error_message) {
-          showToast(payload.error_message);
-        } else if (payload.opened_external) {
-          showToast(t("browser_embed_fallback"));
-        }
-        useUiStore.getState().closeBrowser();
+        setSurfaceIssue({
+          kind: payload.error_message ? "failed" : "unsupported",
+          title: payload.error_message ? t("browser_embed_failed") : t("browser_embed_blocked"),
+          description: payload.error_message ? t("browser_embed_failed_hint") : t("browser_embed_blocked_hint"),
+          detail: payload.error_message,
+          canRetry: Boolean(payload.error_message),
+        });
+        setBrowserState((currentState) => {
+          if (!currentState) {
+            return currentState;
+          }
+          const nextState = { ...currentState, is_loading: false };
+          browserStateRef.current = nextState;
+          return nextState;
+        });
       }),
       listen(BROWSER_WINDOW_EVENTS.closed, () => {
         if (cancelled) return;
@@ -215,7 +250,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
       unlistenRef.current = [];
       listenerReadyRef.current = null;
     };
-  }, [showDiagnostics, showToast, t]);
+  }, [showDiagnostics, t]);
 
   const syncBrowserBounds = useCallback(async (bounds: BrowserWebviewBounds) => {
     const result = await setBrowserWebviewBounds(bounds);
@@ -292,7 +327,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
 
       if (Result.isFailure(result)) {
         pendingBoundsRef.current = null;
-        await fallbackToReader(requestedUrl, Result.unwrapError(result));
+        showSurfaceFailure(Result.unwrapError(result));
         return;
       }
 
@@ -311,7 +346,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
 
       await flushPendingBounds(requestedUrl);
     },
-    [fallbackToReader, flushPendingBounds, showDiagnostics, syncBrowserBounds],
+    [flushPendingBounds, showDiagnostics, showSurfaceFailure, syncBrowserBounds],
   );
 
   useEffect(() => {
@@ -327,6 +362,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
       browserStateRef.current = nextState;
       return nextState;
     });
+    setSurfaceIssue(null);
   }, [browserUrl]);
 
   useLayoutEffect(() => {
@@ -394,7 +430,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
         return;
       }
 
-      void fallbackToReader(browserUrl, {
+      showSurfaceFailure({
         type: "UserVisible",
         message: `Timed out waiting for embedded browser webview to finish loading: ${browserUrl}`,
       });
@@ -403,7 +439,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [browserUrl, fallbackToReader, isLoading]);
+  }, [browserUrl, isLoading, showSurfaceFailure]);
 
   useEffect(() => {
     if (!browserUrl) {
@@ -426,6 +462,43 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
   }, [browserUrl, handleCloseOverlay]);
 
   if (!browserUrl) return null;
+
+  const runtimeUnavailable =
+    (typeof window !== "undefined" && window.__ULTRA_RSS_BROWSER_MOCKS__ === true) || !hasTauriRuntime();
+  const activeSurfaceIssue =
+    surfaceIssue ??
+    (runtimeUnavailable && !isLoading
+      ? {
+          kind: "unsupported",
+          title: t("browser_embed_browser_mode"),
+          description: t("browser_embed_browser_mode_hint"),
+          detail: null,
+          canRetry: false,
+        }
+      : null);
+
+  const handleRetry = () => {
+    fallbackInFlightRef.current = false;
+    webviewCreatedRef.current = false;
+    createInFlightRef.current = false;
+    pendingBoundsRef.current = null;
+    setSurfaceIssue(null);
+    const nextState = initialBrowserState(browserUrl);
+    browserStateRef.current = nextState;
+    setBrowserState(nextState);
+    void syncBrowserWebview(browserUrl, "create");
+  };
+
+  const handleOpenExternal = async () => {
+    const result = await openInBrowser(browserUrl, false);
+    Result.pipe(
+      result,
+      Result.inspectError((error) => {
+        console.error("Failed to open preview in external browser:", error);
+        showToast(error.message);
+      }),
+    );
+  };
 
   const overlayChromePositionClass = "left-2 top-2";
   // Keep a dedicated close-button lane outside the native surface so the stage
@@ -511,6 +584,37 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
                 <p className="text-sm font-semibold">{t("browser_loading")}</p>
               </div>
               <p className="mt-2 text-sm text-white/72">{t("browser_loading_hint")}</p>
+            </div>
+          </div>
+        ) : null}
+        {activeSurfaceIssue ? (
+          <div className="absolute inset-0 z-10 flex items-center justify-center p-6">
+            <div
+              data-testid="browser-surface-state"
+              className="max-w-md rounded-2xl border border-white/10 bg-black/62 px-5 py-4 text-center shadow-[0_18px_40px_rgba(0,0,0,0.32)] backdrop-blur-md"
+            >
+              <div className="flex items-center justify-center gap-2 text-white">
+                <CircleAlert aria-hidden="true" className="size-4 text-orange-300" />
+                <p className="text-sm font-semibold">{activeSurfaceIssue.title}</p>
+              </div>
+              <p className="mt-2 text-sm text-white/72">{activeSurfaceIssue.description}</p>
+              {activeSurfaceIssue.detail ? (
+                <p className="mt-3 rounded-lg border border-white/8 bg-white/5 px-3 py-2 text-left text-xs text-white/68">
+                  {activeSurfaceIssue.detail}
+                </p>
+              ) : null}
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                {activeSurfaceIssue.canRetry ? (
+                  <Button type="button" variant="outline" size="sm" onClick={handleRetry}>
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    {t("retry_web_preview")}
+                  </Button>
+                ) : null}
+                <Button type="button" variant="secondary" size="sm" onClick={handleOpenExternal}>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  {t("open_in_external_browser")}
+                </Button>
+              </div>
             </div>
           </div>
         ) : null}

@@ -61,7 +61,8 @@ describe("AddFeedDialogView", () => {
         labels={{
           title: "Add Feed",
           description: "Add a feed from a URL or website",
-          urlPlaceholder: "Feed or Site URL",
+          urlLabel: "Feed or Site URL",
+          urlPlaceholder: "https://example.com/feed.xml",
           discover: "Discover",
           discovering: "Discovering",
           cancel: "Cancel",
@@ -74,6 +75,7 @@ describe("AddFeedDialogView", () => {
     );
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByLabelText("Feed or Site URL")).toHaveValue("https://example.com");
     expect(screen.getByRole("radio", { name: "Tech Blog" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("New folder");
     expect(screen.getByLabelText("Folder name")).toHaveValue("Reading");
@@ -132,7 +134,8 @@ describe("AddFeedDialogView", () => {
         labels={{
           title: "Add Feed",
           description: "Add a feed from a URL or website",
-          urlPlaceholder: "Feed or Site URL",
+          urlLabel: "Feed or Site URL",
+          urlPlaceholder: "https://example.com/feed.xml",
           discover: "Discover",
           discovering: "Discovering",
           cancel: "Cancel",
@@ -143,9 +146,9 @@ describe("AddFeedDialogView", () => {
       />,
     );
 
-    await user.type(screen.getByPlaceholderText("Feed or Site URL"), "{Enter}");
+    await user.type(screen.getByLabelText("Feed or Site URL"), "{Enter}");
 
-    const urlInput = screen.getByPlaceholderText("Feed or Site URL");
+    const urlInput = screen.getByLabelText("Feed or Site URL");
     const helperText = screen.getByText("Use a full URL like https://example.com");
 
     expect(helperText.id).not.toBe("");

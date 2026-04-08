@@ -228,7 +228,8 @@ export function AddFeedDialog({
       labels={{
         title: t("add_feed"),
         description: t("add_feed_description"),
-        urlPlaceholder: t("feed_or_site_url"),
+        urlLabel: t("feed_or_site_url"),
+        urlPlaceholder: t("feed_url_placeholder"),
         discover: t("discover"),
         discovering: t("discovering"),
         cancel: tc("cancel"),

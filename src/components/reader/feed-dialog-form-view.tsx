@@ -23,6 +23,7 @@ export type FeedDialogFormLabels = {
 };
 
 export type FeedDialogUrlSectionProps = {
+  label: string;
   value: string;
   onValueChange: (value: string) => void;
   onDiscover: () => void;
@@ -104,6 +105,7 @@ export function FeedDialogFormView({
   onSubmit: () => void;
 }) {
   const urlHelperTextId = useId();
+  const urlInputId = useId();
   const getSelectLabel = (section: FeedDialogSelectSectionProps, value: string | null) =>
     section.options.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
 
@@ -125,29 +127,35 @@ export function FeedDialogFormView({
         >
           {urlSection && (
             <>
-              <div className="flex gap-2">
-                <Input
-                  ref={urlSection.inputRef}
-                  name="feed-url"
-                  type="url"
-                  value={urlSection.value}
-                  onChange={(event) => urlSection.onValueChange(event.target.value)}
-                  placeholder={urlSection.placeholder}
-                  disabled={urlSection.disabled}
-                  aria-describedby={urlSection.helperText ? urlHelperTextId : undefined}
-                  aria-errormessage={urlSection.helperTone === "error" ? urlHelperTextId : undefined}
-                  aria-invalid={urlSection.helperTone === "error" ? true : undefined}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={urlSection.onDiscover}
-                  disabled={urlSection.discoverDisabled}
-                  className="shrink-0"
-                >
-                  {urlSection.discovering ? urlSection.discoveringLabel : urlSection.discoverLabel}
-                </Button>
+              <div className="space-y-2">
+                <label htmlFor={urlInputId} className="block text-sm text-muted-foreground">
+                  {urlSection.label}
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    id={urlInputId}
+                    ref={urlSection.inputRef}
+                    name="feed-url"
+                    type="url"
+                    value={urlSection.value}
+                    onChange={(event) => urlSection.onValueChange(event.target.value)}
+                    placeholder={urlSection.placeholder}
+                    disabled={urlSection.disabled}
+                    aria-describedby={urlSection.helperText ? urlHelperTextId : undefined}
+                    aria-errormessage={urlSection.helperTone === "error" ? urlHelperTextId : undefined}
+                    aria-invalid={urlSection.helperTone === "error" ? true : undefined}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={urlSection.onDiscover}
+                    disabled={urlSection.discoverDisabled}
+                    className="shrink-0"
+                  >
+                    {urlSection.discovering ? urlSection.discoveringLabel : urlSection.discoverLabel}
+                  </Button>
+                </div>
               </div>
 
               {urlSection.discoveredFeedOptions.length > 0 && urlSection.discoveredFeedsFoundLabel && (

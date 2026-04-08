@@ -98,7 +98,9 @@ function SettingsPageSwitchRow({ control }: { control: SettingsPageSwitchControl
 export function SettingsPageView({ title, sections }: SettingsPageViewProps) {
   return (
     <div className="p-6">
-      <h2 className="mb-6 text-center text-lg font-semibold">{title}</h2>
+      <h2 className="sticky top-0 z-10 -mx-6 mb-6 border-b border-border/70 bg-popover/95 px-6 py-3 text-center text-lg font-semibold backdrop-blur-sm">
+        {title}
+      </h2>
       {sections.map((section, index) => (
         <section key={section.id} className={index === sections.length - 1 ? undefined : "mb-6"}>
           <SectionHeading>{section.heading}</SectionHeading>

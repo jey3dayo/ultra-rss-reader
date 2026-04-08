@@ -231,7 +231,10 @@ function EmptyState() {
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
       <ArticleToolbar article={null} isBrowserOpen={false} onCloseView={() => {}} onToggleBrowserOverlay={() => {}} />
-      <ArticleEmptyStateView message={t("select_article_to_read")} />
+      <ArticleEmptyStateView
+        message={t("select_article_to_read")}
+        hints={[t("empty_state_pick_from_list"), t("empty_state_search_hint"), t("empty_state_web_preview_hint")]}
+      />
     </div>
   );
 }

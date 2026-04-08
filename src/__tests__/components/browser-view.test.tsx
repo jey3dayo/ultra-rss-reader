@@ -118,6 +118,7 @@ describe("BrowserView", () => {
     listenMock.mockClear();
     registeredHandlers.clear();
     resizeObserverCallbacks.clear();
+    window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
     mockHostRect({ left: 0, top: 0, width: 0, height: 0 });
     getBoundingClientRectSpy = vi
       .spyOn(HTMLElement.prototype, "getBoundingClientRect")
@@ -247,6 +248,46 @@ describe("BrowserView", () => {
 
     expect(screen.getByText("Loading")).toBeInTheDocument();
     expect(screen.getByText("If this takes too long, open it in your external browser.")).toBeInTheDocument();
+  });
+
+  it("shows a browser-mode fallback panel instead of a blank surface when no Tauri runtime is available", async () => {
+    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+    Object.defineProperty(window, "__TAURI_INTERNALS__", {
+      configurable: true,
+      writable: true,
+      value: undefined,
+    });
+    window.__ULTRA_RSS_BROWSER_MOCKS__ = true;
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    setupTauriMocks((cmd, args) => {
+      commands.push({ cmd, args });
+      if (cmd === "create_or_update_browser_webview") {
+        return {
+          url: args.url,
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: false,
+        };
+      }
+      if (cmd === "set_browser_webview_bounds" || cmd === "close_browser_webview") {
+        return null;
+      }
+      return null;
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Embedded preview isn't available in browser mode.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Use the desktop app for the native preview, or open this page in your external browser."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open in External Browser" })).toBeInTheDocument();
   });
 
   it("does not close when clicking the overlay lane outside the close button", async () => {

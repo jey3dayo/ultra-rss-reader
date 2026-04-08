@@ -51,7 +51,8 @@ const meta = {
     labels: {
       title: "Add Feed",
       description: "Add a feed from a URL or website",
-      urlPlaceholder: "Feed or Site URL",
+      urlLabel: "Feed or Site URL",
+      urlPlaceholder: "https://example.com/feed.xml",
       discover: "Discover",
       discovering: "Discovering",
       cancel: "Cancel",
