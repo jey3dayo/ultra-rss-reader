@@ -241,7 +241,7 @@ describe("BrowserView", () => {
     expect(onCloseOverlay).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the fullscreen stage borderless and flush to the shell", async () => {
+  it("keeps the fullscreen stage flush to the shell", () => {
     mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
 
     useUiStore.setState({
