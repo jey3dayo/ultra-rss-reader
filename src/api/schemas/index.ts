@@ -53,6 +53,8 @@ export { type FeedDto, FeedDtoSchema } from "./feed";
 export { type FeedIntegrityReportDto, FeedIntegrityReportDtoSchema } from "./feed-integrity";
 export { type FolderDto, FolderDtoSchema } from "./folder";
 export {
+  type DevRuntimeOptions,
+  DevRuntimeOptionsSchema,
   type PlatformCapabilities,
   PlatformCapabilitiesSchema,
   type PlatformInfo,

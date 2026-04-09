@@ -20,6 +20,8 @@ import {
   createTagArgs,
   type DatabaseInfoDto,
   DatabaseInfoDtoSchema,
+  type DevRuntimeOptions,
+  DevRuntimeOptionsSchema,
   type DiscoveredFeedDto,
   DiscoveredFeedDtoSchema,
   deleteAccountArgs,
@@ -86,6 +88,7 @@ export type {
   AppError,
   ArticleDto,
   DatabaseInfoDto,
+  DevRuntimeOptions,
   DiscoveredFeedDto,
   FeedDto,
   FeedIntegrityReportDto,
@@ -354,6 +357,7 @@ export const addToReadingList = (url: string) =>
   safeInvoke("add_to_reading_list", { response: z.null(), args: addToReadingListArgs }, { url });
 
 export const getPlatformInfo = () => safeInvoke("get_platform_info", { response: PlatformInfoSchema });
+export const getDevRuntimeOptions = () => safeInvoke("get_dev_runtime_options", { response: DevRuntimeOptionsSchema });
 
 // Updater
 export const checkForUpdate = () => safeInvoke("check_for_update", { response: UpdateInfoDtoSchema.nullable() });

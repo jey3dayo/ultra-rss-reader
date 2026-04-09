@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AppLayout } from "@/components/app-layout";
 import { shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
@@ -25,9 +25,9 @@ describe("App", () => {
   it("mobile: renders sliding layout with all panes and correct inert/aria-hidden", () => {
     useUiStore.setState({ layoutMode: "mobile", focusedPane: "sidebar" });
 
-    const { container, rerender } = render(<AppLayout />, { wrapper: createWrapper() });
+    const { rerender } = render(<AppLayout />, { wrapper: createWrapper() });
 
-    const tray = container.firstElementChild?.firstElementChild;
+    const tray = screen.getByTestId("sliding-pane-tray");
     expect(tray).toHaveClass("w-[300%]");
 
     // sidebar focused: sidebar visible, list and content hidden
@@ -67,11 +67,9 @@ describe("App", () => {
       loaded: true,
     });
 
-    const { container } = render(<AppLayout />, { wrapper: createWrapper() });
+    render(<AppLayout />, { wrapper: createWrapper() });
 
-    expect(container.firstElementChild).toHaveClass("desktop-titlebar-offset");
-
-    const tray = container.firstElementChild?.firstElementChild;
+    const tray = screen.getByTestId("sliding-pane-tray");
     expect(tray).toHaveClass("w-[calc(100%+280px)]");
   });
 

@@ -1,14 +1,15 @@
 import { useTranslation } from "react-i18next";
 import { ReadingSettingsView } from "@/components/settings/reading-settings-view";
+import { useResolvedDevIntent } from "@/hooks/use-resolved-dev-intent";
 import { displayPresetToPreferenceValues, resolveAppDefaultDisplayPreset } from "@/lib/article-display";
-import { readDevIntent } from "@/lib/dev-intent";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 
 export function ReadingSettings() {
   const { t } = useTranslation("settings");
   const prefs = usePreferencesStore((s) => s.prefs);
   const setPref = usePreferencesStore((s) => s.setPref);
-  const shouldShowDisplayModeOptions = readDevIntent() === "open-settings-reading-display-mode";
+  const { intent: devIntent } = useResolvedDevIntent();
+  const shouldShowDisplayModeOptions = devIntent === "open-settings-reading-display-mode";
 
   return (
     <ReadingSettingsView

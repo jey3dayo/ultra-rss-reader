@@ -45,7 +45,7 @@ type Selection =
 
 type LayoutMode = "wide" | "compact" | "mobile";
 type FocusedPane = "sidebar" | "list" | "content";
-type ContentMode = "empty" | "reader" | "browser" | "loading";
+export type ContentMode = "empty" | "reader" | "browser" | "loading";
 export type SettingsCategory =
   | "general"
   | "appearance"
@@ -275,8 +275,13 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     }),
   selectArticle: (id) => set({ selectedArticleId: id, contentMode: "reader", focusedPane: "content" }),
   clearArticle: () => set({ selectedArticleId: null, contentMode: "empty" }),
-  openBrowser: (url) => set({ contentMode: "browser", browserUrl: url }),
-  closeBrowser: () => set((s) => ({ contentMode: s.selectedArticleId ? "reader" : "empty", browserUrl: null })),
+  openBrowser: (url) => set({ contentMode: "browser", browserUrl: url, focusedPane: "content" }),
+  closeBrowser: () =>
+    set((s) => ({
+      contentMode: s.selectedArticleId ? "reader" : "empty",
+      browserUrl: null,
+      focusedPane: s.selectedArticleId ? "content" : "list",
+    })),
   setViewMode: (mode) => set({ viewMode: mode, recentlyReadIds: new Set(), retainedArticleIds: new Set() }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   toggleFolder: (folderId) =>

@@ -10,6 +10,7 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { useAccountArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
+import { useResolvedDevIntent } from "@/hooks/use-resolved-dev-intent";
 import { useTagArticleCounts, useTags } from "@/hooks/use-tags";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import i18n from "@/lib/i18n";
@@ -123,6 +124,7 @@ export function Sidebar() {
 
   const savedAccountId = usePreferencesStore((s) => s.prefs.selected_account_id ?? "");
   const setPref = usePreferencesStore((s) => s.setPref);
+  const { intent: activeDevIntent } = useResolvedDevIntent();
 
   // Restore saved account or auto-select first account
   useEffect(() => {
@@ -142,6 +144,10 @@ export function Sidebar() {
       selectedAccountId !== null && accounts.some((account) => account.id === selectedAccountId);
     if (hasValidSelection) return;
 
+    if (activeDevIntent === "open-web-preview-url") {
+      return;
+    }
+
     const restoredAccountId = savedAccountId && accounts.some((a) => a.id === savedAccountId) ? savedAccountId : null;
     const nextAccountId = restoredAccountId ?? accounts[0].id;
     selectAccount(nextAccountId);
@@ -152,6 +158,7 @@ export function Sidebar() {
       setFocusedPane("sidebar");
     }
   }, [
+    activeDevIntent,
     accounts,
     clearSelectedAccount,
     layoutMode,

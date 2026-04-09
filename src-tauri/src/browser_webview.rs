@@ -368,8 +368,8 @@ pub fn go_forward<R: Runtime>(browser_webview: &Webview<R>) -> tauri::Result<()>
 mod tests {
     use super::{
         browser_webview_diagnostics_enabled, set_browser_webview_diagnostics_enabled,
-        should_trigger_timeout_fallback, supports_native_navigation,
-        BrowserNavigationAvailability, BrowserWebviewState, BrowserWebviewTracker,
+        should_trigger_timeout_fallback, supports_native_navigation, BrowserNavigationAvailability,
+        BrowserWebviewState, BrowserWebviewTracker,
     };
     use crate::platform::{platform_info_for_kind, PlatformKind};
 

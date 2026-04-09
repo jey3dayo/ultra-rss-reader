@@ -1,7 +1,7 @@
 import { Menu } from "@base-ui/react/menu";
 import { Result } from "@praha/byethrow";
 import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
@@ -9,6 +9,7 @@ import { IconToolbarMenuTrigger } from "@/components/shared/icon-toolbar-control
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
+import { useResolvedDevIntent } from "@/hooks/use-resolved-dev-intent";
 import {
   useArticlesByTag,
   useArticleTags,
@@ -29,7 +30,7 @@ import {
   resolveArticleDateLocale,
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
-import { readDevIntent, resolveActiveDevIntentBrowserUrl } from "@/lib/dev-intent";
+import { resolveActiveDevIntentBrowserUrl } from "@/lib/dev-intent";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
@@ -239,20 +240,39 @@ function EmptyState() {
   );
 }
 
-function BrowserOnlyState() {
+function BrowserOverlaySurface({
+  children,
+  onCloseOverlay,
+  showBrowserView = true,
+}: {
+  children?: ReactNode;
+  onCloseOverlay: () => void;
+  showBrowserView?: boolean;
+}) {
   const { t } = useTranslation("reader");
-  const layoutMode = useUiStore((s) => s.layoutMode);
+
+  return (
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      {children}
+      {showBrowserView ? (
+        <BrowserView
+          scope="main-stage"
+          onCloseOverlay={onCloseOverlay}
+          labels={{
+            closeOverlay: t("close_browser_overlay"),
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function BrowserOnlyState() {
   const closeBrowser = useUiStore((s) => s.closeBrowser);
 
   return (
     <div className="relative flex h-full flex-1 flex-col bg-background">
-      <BrowserView
-        scope={layoutMode === "wide" ? "main-stage" : "content-pane"}
-        onCloseOverlay={closeBrowser}
-        labels={{
-          closeOverlay: t("close_browser_overlay"),
-        }}
-      />
+      <BrowserOverlaySurface onCloseOverlay={closeBrowser} />
     </div>
   );
 }
@@ -404,7 +424,7 @@ function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedNam
 }
 
 export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: FeedDto; feedName?: string }) {
-  const { t, i18n } = useTranslation("reader");
+  const { t } = useTranslation("reader");
   const layoutMode = useUiStore((s) => s.layoutMode);
   const contentMode = useUiStore((s) => s.contentMode);
   const browserUrl = useUiStore((s) => s.browserUrl);
@@ -427,7 +447,7 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
   const autoMarkedArticleIdRef = useRef<string | null>(null);
   const wasBrowserOpenRef = useRef(false);
   const isBrowserOpen = contentMode === "browser";
-  const devIntent = readDevIntent();
+  const { intent: devIntent } = useResolvedDevIntent();
   const intendedBrowserUrl = resolveActiveDevIntentBrowserUrl(devIntent, browserUrl, article.url);
   const requestedDisplay = resolveArticleDisplay({
     appDefault: resolveAppDefaultDisplayModes(prefs),
@@ -442,14 +462,6 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
     articleCapabilities: { hasWebPreview: Boolean(intendedBrowserUrl) },
   });
   const shouldShowBrowserOverlay = Boolean(intendedBrowserUrl) && resolvedDisplay.webPreviewMode;
-  const browserContext = shouldShowBrowserOverlay
-    ? {
-        modeLabel: t("web_preview_mode"),
-        title: article.title,
-        feedName,
-        publishedLabel: formatArticleDate(article.published_at, resolveArticleDateLocale(i18n.language)),
-      }
-    : undefined;
 
   const retainIfNeeded = useCallback(
     (nextRead: boolean) => {
@@ -683,7 +695,7 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
         onCloseView={handleCloseView}
         onToggleBrowserOverlay={handleToggleBrowserOverlay}
       />
-      <div className="relative flex min-h-0 flex-1 flex-col">
+      <BrowserOverlaySurface onCloseOverlay={handleToggleBrowserOverlay} showBrowserView={isBrowserOpen}>
         {resolvedDisplay.fallbackReason === "missing_web_preview" ? (
           <div className="border-b border-border bg-amber-500/10 px-4 py-2 text-sm text-amber-900 dark:text-amber-200">
             {t("web_preview_unavailable")}
@@ -701,17 +713,7 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
         ) : (
           <div className="h-full bg-background" />
         )}
-        {isBrowserOpen ? (
-          <BrowserView
-            scope={layoutMode === "wide" ? "main-stage" : "content-pane"}
-            onCloseOverlay={handleToggleBrowserOverlay}
-            labels={{
-              closeOverlay: t("close_browser_overlay"),
-            }}
-            context={browserContext}
-          />
-        ) : null}
-      </div>
+      </BrowserOverlaySurface>
     </div>
   );
 }

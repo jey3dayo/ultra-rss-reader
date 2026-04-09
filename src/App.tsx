@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { listAccounts, syncAccount, triggerSync } from "./api/tauri-commands";
 import { AppShell } from "./components/app-shell";
 import { useDevIntent } from "./hooks/use-dev-intent";
-import { readDevIntent } from "./lib/dev-intent";
+import { useResolvedDevIntent } from "./hooks/use-resolved-dev-intent";
 import { queryClient } from "./lib/query-client";
 import { resolvePreferenceValue, usePreferencesStore } from "./stores/preferences-store";
 
@@ -13,7 +13,7 @@ function AppInner() {
   const loadPreferences = usePreferencesStore((s) => s.loadPreferences);
   const prefs = usePreferencesStore((s) => s.prefs);
   const preferencesLoaded = usePreferencesStore((s) => s.loaded);
-  const activeDevIntent = readDevIntent();
+  const { intent: activeDevIntent, ready: devIntentReady } = useResolvedDevIntent();
   useDevIntent();
 
   useEffect(() => {
@@ -25,6 +25,7 @@ function AppInner() {
 
   useEffect(() => {
     if (
+      !devIntentReady ||
       !preferencesLoaded ||
       !syncOnStartupEnabled ||
       startupSyncRequested.current ||
@@ -42,7 +43,7 @@ function AppInner() {
         }),
       ),
     );
-  }, [activeDevIntent, preferencesLoaded, syncOnStartupEnabled]);
+  }, [activeDevIntent, devIntentReady, preferencesLoaded, syncOnStartupEnabled]);
 
   // Sync on wake: trigger sync when returning from sleep/suspend if any account has sync_on_wake enabled
   const lastHiddenAt = useRef<number>(0);

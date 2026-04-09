@@ -1,28 +1,49 @@
+import { Result } from "@praha/byethrow";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { runRuntimeDevScenarioMock } = vi.hoisted(() => ({
+const { runRuntimeDevScenarioMock, getDevRuntimeOptionsMock } = vi.hoisted(() => ({
   runRuntimeDevScenarioMock: vi.fn(),
+  getDevRuntimeOptionsMock: vi.fn(),
 }));
 
 vi.mock("@/lib/dev-scenario-runtime", () => ({
   runRuntimeDevScenario: runRuntimeDevScenarioMock,
 }));
 
+vi.mock("@/api/tauri-commands", () => ({
+  getDevRuntimeOptions: getDevRuntimeOptionsMock,
+}));
+
+vi.mock("@/lib/window-chrome", () => ({
+  hasTauriRuntime: () => true,
+}));
+
 import { useDevIntent } from "@/hooks/use-dev-intent";
+import { resetDevRuntimeOptionsCacheForTests } from "@/lib/dev-intent";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("useDevIntent", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.stubEnv("DEV", true);
+    resetDevRuntimeOptionsCacheForTests();
     runRuntimeDevScenarioMock.mockReset().mockResolvedValue(undefined);
+    getDevRuntimeOptionsMock.mockReset().mockResolvedValue(
+      Result.succeed({
+        dev_intent: null,
+        dev_web_url: null,
+        dev_window_width: null,
+        dev_window_height: null,
+      }),
+    );
     useUiStore.setState({ ...useUiStore.getInitialState(), toastMessage: null });
   });
 
   afterEach(() => {
+    resetDevRuntimeOptionsCacheForTests();
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
@@ -127,5 +148,25 @@ describe("useDevIntent", () => {
     await vi.runAllTimersAsync();
 
     expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("image-viewer-overlay");
+  });
+
+  it("falls back to runtime dev options when Vite env is unavailable", async () => {
+    getDevRuntimeOptionsMock.mockResolvedValueOnce(
+      Result.succeed({
+        dev_intent: "open-web-preview-url",
+        dev_web_url: "https://example.com",
+        dev_window_width: 640,
+        dev_window_height: 820,
+      }),
+    );
+
+    renderHook(() => useDevIntent(), {
+      wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+    });
+
+    await vi.runAllTimersAsync();
+
+    expect(getDevRuntimeOptionsMock).toHaveBeenCalledTimes(1);
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-web-preview-url");
   });
 });

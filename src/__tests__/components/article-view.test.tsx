@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticlePane, ArticleToolbar, ArticleView } from "@/components/reader/article-view";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -13,6 +13,13 @@ import {
   sampleFeeds,
   setupTauriMocks,
 } from "../../../tests/helpers/tauri-mocks";
+
+vi.mock("@/hooks/use-resolved-dev-intent", () => ({
+  useResolvedDevIntent: () => ({
+    intent: null,
+    ready: true,
+  }),
+}));
 
 const ciWaitOptions = { timeout: 20_000 };
 const readingListTestTimeout = 30_000;
@@ -311,7 +318,10 @@ describe("ArticleView", () => {
   });
 
   it("closes only the current article overlay when the overlay close button is pressed", async () => {
+    const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
       switch (cmd) {
         case "list_articles":
           return sampleArticles.filter((article) => article.feed_id === args.feedId);
@@ -368,6 +378,11 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().contentMode).toBe("reader");
       expect(useUiStore.getState().browserUrl).toBeNull();
       expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("browser-overlay-shell")).not.toBeInTheDocument();
+      expect(calls.some((call) => call.cmd === "close_browser_webview")).toBe(true);
     });
   });
 
@@ -946,6 +961,124 @@ describe("ArticleView", () => {
     expect(useUiStore.getState().browserUrl).toBe(previewUrl);
   });
 
+  it("closes browser-only preview back to the empty state from shared shell controls", async () => {
+    const previewUrl = "https://example.com/dev-preview";
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "create_or_update_browser_webview":
+          return {
+            url: args.url,
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+          };
+        case "set_browser_webview_bounds":
+        case "close_browser_webview":
+          return null;
+        case "list_tags":
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    const { rerender } = render(<ArticleView />, { wrapper: createWrapper() });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      contentMode: "browser",
+      browserUrl: previewUrl,
+    });
+    rerender(<ArticleView />);
+
+    await userEvent.setup().click(await screen.findByRole("button", { name: "Close Web Preview" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("empty");
+      expect(useUiStore.getState().browserUrl).toBeNull();
+      expect(screen.getByText("Select an article to read")).toBeInTheDocument();
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      contentMode: "browser",
+      browserUrl: previewUrl,
+    });
+    rerender(<ArticleView />);
+
+    await screen.findByTestId("browser-overlay-shell");
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("empty");
+      expect(useUiStore.getState().browserUrl).toBeNull();
+      expect(screen.getByText("Select an article to read")).toBeInTheDocument();
+    });
+  });
+
+  it("keeps intent and article-driven entries on the same minimal viewer shell", async () => {
+    const user = userEvent.setup();
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_tags":
+        case "get_article_tags":
+          return [];
+        case "create_or_update_browser_webview":
+          return {
+            url: args.url,
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+          };
+        case "set_browser_webview_bounds":
+        case "close_browser_webview":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+    });
+
+    const articleEntry = render(<ArticleView />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Open Web Preview" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+    });
+
+    expect(screen.getByTestId("browser-overlay-shell")).toBeInTheDocument();
+    expect(screen.queryByText("Web Preview")).not.toBeInTheDocument();
+
+    articleEntry.unmount();
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      contentMode: "browser",
+      browserUrl: "https://example.com/dev-preview",
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    expect(screen.getByTestId("browser-overlay-shell")).toBeInTheDocument();
+    expect(screen.queryByText("Web Preview")).not.toBeInTheDocument();
+  });
+
   it("keeps explicit reader-only feeds in reader mode even when the global default enables web preview", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
@@ -1256,5 +1389,4 @@ describe("ArticleView", () => {
     },
     readingListTestTimeout,
   );
-
 });

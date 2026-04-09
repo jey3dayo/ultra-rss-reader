@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use tauri::State;
 
+use crate::browser_webview::set_browser_webview_diagnostics_enabled;
 use crate::commands::dto::AppError;
 use crate::commands::AppState;
-use crate::browser_webview::set_browser_webview_diagnostics_enabled;
 use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
 use crate::repository::preference::PreferenceRepository;
 

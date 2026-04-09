@@ -10,9 +10,10 @@
 
 ---
 
-### Task 1: Red tests for the new actions settings shape
+## Task 1: Red tests for the new actions settings shape
 
 **Files:**
+
 - Modify: `src/__tests__/components/actions-settings.test.tsx`
 - Modify: `src/__tests__/components/settings-modal.test.tsx`
 
@@ -20,18 +21,20 @@
 - [ ] Run the targeted tests and confirm they fail
 - [ ] Keep the assertions focused on visible settings rows / switch count
 
-### Task 2: Red tests for toolbar/menu behavior
+## Task 2: Red tests for toolbar/menu behavior
 
 **Files:**
+
 - Modify: `src/__tests__/components/article-view.test.tsx`
 
 - [ ] Replace the old `action_share_menu=false` expectation with the new always-visible share menu expectation
 - [ ] Add an assertion that `action_share=false` no longer hides the external-browser toolbar button
 - [ ] Run the targeted article-view tests and confirm they fail
 
-### Task 3: Minimal implementation
+## Task 3: Minimal implementation
 
 **Files:**
+
 - Modify: `src/components/settings/actions-settings.tsx`
 - Modify: `src/components/reader/article-view.tsx`
 
@@ -40,9 +43,10 @@
 - [ ] Make article toolbar always show the external-browser button
 - [ ] Make share menu always render
 
-### Task 4: Verification
+## Task 4: Verification
 
 **Files:**
+
 - Verify: `src/__tests__/components/actions-settings.test.tsx`
 - Verify: `src/__tests__/components/settings-modal.test.tsx`
 - Verify: `src/__tests__/components/article-view.test.tsx`

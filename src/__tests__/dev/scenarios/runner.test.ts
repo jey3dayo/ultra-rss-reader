@@ -4,6 +4,42 @@ import { runDevScenario } from "@/dev/scenarios/runner";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
+const mockWindow = {
+  isMaximized: vi.fn(async () => false),
+  unmaximize: vi.fn(async () => {}),
+  scaleFactor: vi.fn(async () => 1),
+  innerSize: vi.fn(),
+  setSize: vi.fn(async () => {}),
+  center: vi.fn(async () => {}),
+};
+
+function mockInnerLogicalSizes(sizes: Array<{ width: number; height: number }>) {
+  let index = 0;
+  mockWindow.innerSize.mockImplementation(async () => {
+    const current = sizes[Math.min(index, sizes.length - 1)] ?? { width: 1440, height: 960 };
+    index += 1;
+    return {
+      toLogical: () => current,
+    };
+  });
+}
+
+vi.mock("@tauri-apps/api/window", () => ({
+  getCurrentWindow: () => mockWindow,
+}));
+
+vi.mock("@tauri-apps/api/dpi", () => ({
+  LogicalSize: class LogicalSize {
+    width: number;
+    height: number;
+
+    constructor(width: number, height: number) {
+      this.width = width;
+      this.height = height;
+    }
+  },
+}));
+
 type QueryKey = readonly unknown[];
 
 function createQueryClientStub() {
@@ -181,6 +217,13 @@ describe("runDevScenario", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     usePreferencesStore.setState({ prefs: {}, loaded: true });
+    mockWindow.isMaximized.mockClear();
+    mockWindow.unmaximize.mockClear();
+    mockWindow.scaleFactor.mockClear();
+    mockWindow.innerSize.mockClear();
+    mockWindow.setSize.mockClear();
+    mockWindow.center.mockClear();
+    mockInnerLogicalSizes([{ width: 1440, height: 960 }]);
   });
 
   afterEach(() => {
@@ -273,15 +316,57 @@ describe("runDevScenario", () => {
     expect(context.ui.showToast).not.toHaveBeenCalled();
   });
 
+  it("applies a dev window size before opening the requested web preview url", async () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/debug-preview");
+    vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "520");
+    vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", "900");
+    const context = createContext();
+
+    const scenarioPromise = runDevScenario("open-web-preview-url", { context });
+    await vi.runAllTimersAsync();
+    await scenarioPromise;
+
+    expect(mockWindow.setSize).toHaveBeenCalled();
+    expect(mockWindow.setSize).toHaveBeenCalledWith(
+      expect.objectContaining({
+        width: 520,
+        height: 900,
+      }),
+    );
+    expect(mockWindow.center).toHaveBeenCalled();
+  });
+
+  it("retries a dev window resize until the requested size is reflected", async () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WEB_URL", "https://example.com/debug-preview");
+    vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "520");
+    vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", "900");
+    mockInnerLogicalSizes([
+      { width: 1440, height: 960 },
+      { width: 1440, height: 960 },
+      { width: 1440, height: 960 },
+      { width: 520, height: 900 },
+      { width: 520, height: 900 },
+    ]);
+    const context = createContext();
+
+    const scenarioPromise = runDevScenario("open-web-preview-url", { context });
+    await vi.runAllTimersAsync();
+    await scenarioPromise;
+
+    expect(mockWindow.setSize).toHaveBeenCalledTimes(2);
+    expect(mockWindow.center).toHaveBeenCalled();
+    expect(context.ui.openBrowser).toHaveBeenCalledWith("https://example.com/debug-preview");
+  });
+
   it("shows a toast when the direct web preview scenario is missing a url", async () => {
     vi.stubEnv("DEV", true);
     const context = createContext();
 
     await runDevScenario("open-web-preview-url", { context });
 
-    expect(context.ui.showToast).toHaveBeenCalledWith(
-      'Dev scenario "open-web-preview-url" requires VITE_DEV_WEB_URL.',
-    );
+    expect(context.ui.showToast).toHaveBeenCalledWith('Dev scenario "open-web-preview-url" requires VITE_DEV_WEB_URL.');
   });
 
   it("opens the feed landing article in reader mode", async () => {

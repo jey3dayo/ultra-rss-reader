@@ -12,13 +12,14 @@ import {
   openInBrowser,
   setBrowserWebviewBounds,
 } from "@/api/tauri-commands";
+import { IconToolbarButton } from "@/components/shared/icon-toolbar-control";
 import { Button } from "@/components/ui/button";
 import { BROWSER_WINDOW_EVENTS, BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
+import { resolveBrowserViewerGeometry } from "@/lib/browser-viewer-geometry";
 import { type BrowserWebviewBounds, toBrowserWebviewBounds } from "@/lib/browser-webview";
 import { hasTauriRuntime } from "@/lib/window-chrome";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { BrowserOverlayChrome } from "./browser-overlay-chrome";
 
 function initialBrowserState(url: string): BrowserWebviewState {
   return {
@@ -118,94 +119,56 @@ type BrowserViewProps = {
   labels: {
     closeOverlay: string;
   };
-  context?: {
-    modeLabel: string;
-    title: string;
-    feedName?: string;
-    publishedLabel?: string;
-  };
 };
-
-function BrowserPreviewContext({
-  scope,
-  context,
-  diagnosticsVisible,
-}: {
-  scope: "content-pane" | "main-stage";
-  context: NonNullable<BrowserViewProps["context"]>;
-  diagnosticsVisible: boolean;
-}) {
-  const positionClass =
-    scope === "main-stage"
-      ? diagnosticsVisible
-        ? "left-14 right-3 top-3 pr-[29rem]"
-        : "left-14 right-3 top-3"
-      : "left-14 right-4 top-3";
-  const hasMeta = Boolean(context.feedName || context.publishedLabel);
-
-  return (
-    <div
-      data-testid="browser-preview-context"
-      className={`pointer-events-none absolute ${positionClass} z-30 flex justify-start`}
-    >
-      <div className="max-w-full rounded-2xl border border-white/10 bg-black/42 px-4 py-2.5 shadow-[0_18px_40px_rgba(0,0,0,0.28)] backdrop-blur-md">
-        <p className="text-[11px] font-semibold tracking-[0.22em] text-white/62 uppercase">{context.modeLabel}</p>
-        <p className="mt-1 max-w-[42rem] truncate text-sm font-semibold text-white sm:text-[15px]">{context.title}</p>
-        {hasMeta ? (
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-white/72">
-            {context.feedName ? <span className="truncate">{context.feedName}</span> : null}
-            {context.feedName && context.publishedLabel ? <span aria-hidden="true">•</span> : null}
-            {context.publishedLabel ? <span>{context.publishedLabel}</span> : null}
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
 
 function BrowserDiagnosticsRail({
   layoutDiagnostics,
   nativeDiagnostics,
+  compact,
+  top,
 }: {
   layoutDiagnostics: BrowserViewLayoutDiagnostics | null;
   nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
+  compact: boolean;
+  top: number;
 }) {
-  const items: string[] = [];
+  const fullItems: string[] = [];
+  const compactItems: string[] = [];
 
   if (layoutDiagnostics) {
-    items.push(`vp ${layoutDiagnostics.viewport.width}x${layoutDiagnostics.viewport.height}`);
-    items.push(`host ${layoutDiagnostics.hostLogical.width}x${layoutDiagnostics.hostLogical.height}`);
-    items.push(
-      `fill ${formatCompactFill(
-        layoutDiagnostics.hostLogical.width,
-        layoutDiagnostics.hostLogical.height,
-        layoutDiagnostics.overlay.width,
-        layoutDiagnostics.overlay.height,
-      )}`,
-    );
-    items.push(
-      `lane L${layoutDiagnostics.lane.left} T${layoutDiagnostics.lane.top} R${layoutDiagnostics.lane.right} B${layoutDiagnostics.lane.bottom}`,
-    );
+    const viewportItem = `vp ${layoutDiagnostics.viewport.width}x${layoutDiagnostics.viewport.height}`;
+    const hostItem = `host ${layoutDiagnostics.hostLogical.width}x${layoutDiagnostics.hostLogical.height}`;
+    const fillItem = `fill ${formatCompactFill(
+      layoutDiagnostics.hostLogical.width,
+      layoutDiagnostics.hostLogical.height,
+      layoutDiagnostics.overlay.width,
+      layoutDiagnostics.overlay.height,
+    )}`;
+    const laneItem = `lane L${layoutDiagnostics.lane.left} T${layoutDiagnostics.lane.top} R${layoutDiagnostics.lane.right} B${layoutDiagnostics.lane.bottom}`;
+    fullItems.push(viewportItem, hostItem, fillItem, laneItem);
+    compactItems.push(viewportItem, fillItem);
   }
 
   if (nativeDiagnostics) {
-    items.push(`rust ${nativeDiagnostics.action} x${nativeDiagnostics.scaleFactor.toFixed(2)}`);
+    fullItems.push(`rust ${nativeDiagnostics.action} x${nativeDiagnostics.scaleFactor.toFixed(2)}`);
     if (nativeDiagnostics.nativeWebviewBounds) {
-      items.push(
-        `native ${Math.round(nativeDiagnostics.nativeWebviewBounds.width)}x${Math.round(nativeDiagnostics.nativeWebviewBounds.height)}`,
-      );
+      const nativeItem = `native ${Math.round(nativeDiagnostics.nativeWebviewBounds.width)}x${Math.round(nativeDiagnostics.nativeWebviewBounds.height)}`;
+      fullItems.push(nativeItem);
+      compactItems.push(nativeItem);
     }
     if (nativeDiagnostics.nativeWebviewBounds && layoutDiagnostics) {
-      items.push(
-        `match ${formatCompactFill(
-          nativeDiagnostics.nativeWebviewBounds.width,
-          nativeDiagnostics.nativeWebviewBounds.height,
-          layoutDiagnostics.hostLogical.width,
-          layoutDiagnostics.hostLogical.height,
-        )}`,
-      );
+      const matchItem = `match ${formatCompactFill(
+        nativeDiagnostics.nativeWebviewBounds.width,
+        nativeDiagnostics.nativeWebviewBounds.height,
+        layoutDiagnostics.hostLogical.width,
+        layoutDiagnostics.hostLogical.height,
+      )}`;
+      fullItems.push(matchItem);
+      compactItems.push(matchItem);
     }
   }
+
+  const items = compact ? compactItems : fullItems;
 
   if (items.length === 0) {
     return null;
@@ -214,13 +177,24 @@ function BrowserDiagnosticsRail({
   return (
     <div
       data-testid="browser-overlay-diagnostics"
-      className="pointer-events-none absolute left-24 right-3 top-3 z-[80] overflow-hidden"
+      style={{ top: `${top}px` }}
+      className={
+        compact
+          ? "pointer-events-none absolute left-1/2 z-[90] w-[calc(100vw-7.5rem)] max-w-[calc(100vw-7.5rem)] -translate-x-1/2"
+          : "pointer-events-none absolute left-1/2 z-[90] w-[min(780px,calc(100vw-11rem))] -translate-x-1/2"
+      }
     >
-      <div className="ml-auto flex min-w-0 max-w-full items-center justify-end gap-2 overflow-hidden whitespace-nowrap font-mono text-[10px] leading-4 text-white/88 [text-shadow:0_1px_10px_rgba(0,0,0,0.92)]">
+      <div
+        className={
+          compact
+            ? "mx-auto flex min-w-0 max-w-full items-center justify-start gap-2 overflow-x-auto rounded-2xl border border-white/12 bg-black/68 px-3 py-1.5 whitespace-nowrap font-mono text-[10px] leading-4 text-white/96 shadow-[0_16px_36px_rgba(0,0,0,0.46)] backdrop-blur-xl [text-shadow:0_1px_8px_rgba(0,0,0,0.72)]"
+            : "mx-auto flex min-w-0 max-w-full items-center justify-center gap-2 overflow-hidden rounded-full border border-white/12 bg-black/62 px-4 py-2 whitespace-nowrap font-mono text-[10px] leading-4 text-white/96 shadow-[0_16px_36px_rgba(0,0,0,0.46)] backdrop-blur-xl [text-shadow:0_1px_8px_rgba(0,0,0,0.72)]"
+        }
+      >
         {items.map((item, index) => (
           <span key={item} className="contents">
             <span className="shrink-0">{item}</span>
-            {index < items.length - 1 ? <span className="shrink-0 text-white/36">•</span> : null}
+            {index < items.length - 1 ? <span className="shrink-0 text-white/44">•</span> : null}
           </span>
         ))}
       </div>
@@ -228,7 +202,7 @@ function BrowserDiagnosticsRail({
   );
 }
 
-export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, context }: BrowserViewProps) {
+export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: BrowserViewProps) {
   const prefs = usePreferencesStore((s) => s.prefs);
   const { t } = useTranslation("reader");
   const showDiagnostics = resolvePreferenceValue(prefs, "debug_browser_hud") === "true";
@@ -248,6 +222,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
   const [layoutDiagnostics, setLayoutDiagnostics] = useState<BrowserViewLayoutDiagnostics | null>(null);
   const [nativeDiagnostics, setNativeDiagnostics] = useState<BrowserWebviewDiagnosticsPayload | null>(null);
   const [surfaceIssue, setSurfaceIssue] = useState<BrowserSurfaceIssue | null>(null);
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window === "undefined" ? 1400 : window.innerWidth));
 
   const handleCloseOverlay = useCallback(() => {
     onCloseOverlay();
@@ -583,6 +558,22 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
     };
   }, [browserUrl, handleCloseOverlay]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
   if (!browserUrl) return null;
 
   const runtimeUnavailable =
@@ -624,21 +615,32 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
     );
   };
 
-  const overlayChromePositionClass = "left-4 top-4";
-  // Keep chrome floating above the native surface so the reading area can stretch
-  // closer to the window edges on widescreen layouts.
+  const geometry = resolveBrowserViewerGeometry({
+    scope,
+    viewportWidth,
+    diagnosticsVisible: showDiagnostics,
+  });
+  const isCompactViewer = geometry.compact;
+  const closeButtonClass = isCompactViewer
+    ? "pointer-events-auto size-10 rounded-[12px] border border-white/10 bg-black/32 text-white/92 shadow-[0_10px_26px_rgba(0,0,0,0.34)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/18 hover:bg-white/12 hover:text-white hover:shadow-[0_12px_28px_rgba(0,0,0,0.28)] focus-visible:border-white/18 focus-visible:bg-white/14 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/18 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/20 active:bg-white/18 active:shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
+    : "pointer-events-auto size-[46px] rounded-[13px] border border-white/12 bg-black/30 text-white/96 shadow-[0_12px_30px_rgba(0,0,0,0.34)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/20 hover:bg-black/44 hover:text-white hover:shadow-[0_14px_32px_rgba(0,0,0,0.3)] focus-visible:border-white/22 focus-visible:bg-black/48 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/22 active:bg-black/54 active:shadow-[0_10px_20px_rgba(0,0,0,0.24)]";
+  const actionButtonClass = isCompactViewer
+    ? "pointer-events-auto size-10 rounded-[12px] border border-white/10 bg-black/32 text-white/92 shadow-[0_10px_26px_rgba(0,0,0,0.34)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/18 hover:bg-white/12 hover:text-white hover:shadow-[0_12px_28px_rgba(0,0,0,0.28)] focus-visible:border-white/18 focus-visible:bg-white/14 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/18 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/20 active:bg-white/18 active:shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
+    : "pointer-events-auto size-[46px] rounded-[13px] border border-white/12 bg-black/26 text-white/94 shadow-[0_12px_30px_rgba(0,0,0,0.3)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/20 hover:bg-black/40 hover:text-white hover:shadow-[0_14px_32px_rgba(0,0,0,0.28)] focus-visible:border-white/22 focus-visible:bg-black/44 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/22 active:bg-black/50 active:shadow-[0_10px_20px_rgba(0,0,0,0.24)]";
   const stageClass =
     scope === "main-stage"
-      ? "absolute bottom-0 left-4 right-0 top-16 z-0 rounded-[22px] border border-white/6 bg-background shadow-[0_24px_60px_rgba(0,0,0,0.24)]"
-      : context
-        ? "absolute inset-x-0 bottom-0 top-14 rounded-none border border-white/6 bg-background"
-        : "absolute inset-0 rounded-none border border-white/6 bg-background";
+      ? geometry.ultraCompact
+        ? "absolute z-10 overflow-hidden border border-white/8 bg-background shadow-[0_22px_48px_rgba(0,0,0,0.3)]"
+        : isCompactViewer
+          ? "absolute z-10 overflow-hidden border border-white/8 bg-background shadow-[0_24px_54px_rgba(0,0,0,0.3)]"
+          : "absolute z-10 overflow-hidden border border-white/6 bg-background shadow-[0_24px_60px_rgba(0,0,0,0.28)]"
+      : "absolute z-10 overflow-hidden border border-white/6 bg-background shadow-[0_20px_48px_rgba(0,0,0,0.24)]";
 
   const overlay = (
     <div
       ref={overlayRef}
       data-testid="browser-overlay-shell"
-      className="pointer-events-auto absolute inset-0 z-20 isolate flex items-center justify-center overflow-hidden bg-black/88 backdrop-blur-sm"
+      className="pointer-events-auto absolute inset-0 z-20 isolate overflow-hidden bg-black/88 backdrop-blur-sm"
     >
       <div
         aria-hidden="true"
@@ -652,16 +654,72 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, co
         <BrowserDiagnosticsRail
           layoutDiagnostics={layoutDiagnostics}
           nativeDiagnostics={nativeDiagnostics}
+          compact={geometry.diagnostics.compact}
+          top={geometry.diagnostics.top}
         />
       ) : null}
-      <BrowserOverlayChrome
-        closeLabel={labels.closeOverlay}
-        onClose={handleCloseOverlay}
-        className={overlayChromePositionClass}
-        autoFocus
+      {geometry.chromeRail.visible ? (
+        <div
+          aria-hidden="true"
+          data-testid="browser-overlay-top-rail"
+          style={{
+            left: `${geometry.chromeRail.left}px`,
+            right: `${geometry.chromeRail.right}px`,
+            top: `${geometry.chromeRail.top}px`,
+            height: `${geometry.chromeRail.height}px`,
+            borderRadius: `${geometry.chromeRail.radius}px`,
+          }}
+          className="pointer-events-none absolute z-[50] border border-white/7 bg-white/[0.035] shadow-[0_14px_32px_rgba(0,0,0,0.24)] backdrop-blur-md"
+        />
+      ) : null}
+      <div
+        aria-hidden="true"
+        data-testid="browser-overlay-scrim"
+        className="absolute inset-0 z-0 cursor-default bg-transparent"
+        onClick={handleCloseOverlay}
       />
-      {context ? <BrowserPreviewContext scope={scope} context={context} diagnosticsVisible={showDiagnostics} /> : null}
-      <div ref={stageRef} data-testid="browser-overlay-stage" className={stageClass}>
+      <div
+        data-testid="browser-overlay-chrome"
+        style={{ left: `${geometry.chrome.close.left}px`, top: `${geometry.chrome.close.top}px` }}
+        className="pointer-events-none absolute z-[60]"
+      >
+        <IconToolbarButton
+          label={labels.closeOverlay}
+          onClick={handleCloseOverlay}
+          autoFocus
+          className={closeButtonClass}
+        >
+          <span aria-hidden="true" className="text-lg leading-none">
+            ×
+          </span>
+        </IconToolbarButton>
+      </div>
+      <div
+        style={{ right: `${geometry.chrome.action.right}px`, top: `${geometry.chrome.action.top}px` }}
+        className="pointer-events-none absolute z-[60]"
+      >
+        <IconToolbarButton
+          label={t("open_in_external_browser")}
+          onClick={() => {
+            void handleOpenExternal();
+          }}
+          className={actionButtonClass}
+        >
+          <ExternalLink className="h-4 w-4" />
+        </IconToolbarButton>
+      </div>
+      <div
+        ref={stageRef}
+        data-testid="browser-overlay-stage"
+        className={stageClass}
+        style={{
+          left: `${geometry.stage.left}px`,
+          top: `${geometry.stage.top}px`,
+          right: `${geometry.stage.right}px`,
+          bottom: `${geometry.stage.bottom}px`,
+          borderRadius: `${geometry.stage.radius}px`,
+        }}
+      >
         <div ref={hostRef} data-testid="browser-webview-host" className="h-full w-full bg-background" />
         {isLoading ? (
           <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-6">

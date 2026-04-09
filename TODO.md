@@ -134,6 +134,17 @@
   - `ui-ux-pro-max` 観点でも、diagnostics は content に重ねるより safe area に逃がしたほうが視認性と一貫性が高い
   - 対応: HUD を stage 上の大パネルから top rail の compact chip 群へ移し、native surface の外で常に読めるようにした
   - 候補箇所: `src/components/reader/browser-view.tsx`, `src/__tests__/components/browser-view.test.tsx`
+- [x] Minimal Viewer の debug HUD が背景へ溶け込み、safe area に逃がしても still unreadable になっている
+  - 再現: `設定 > Debug > Show layout HUD` をオンにし、Minimal Viewer を開く
+  - top rail へ逃がした後も、`20260409-042645-minimal-viewer-full.png` 系の実機キャプチャでは HUD がほぼ文字だけに見え、黒 scrim と暗いページの境目で first glance の可読性が足りない
+  - `ui-ux-pro-max` 観点でも diagnostics はコンテンツを邪魔しない薄さと、即読める contrast の両立が必要で、現状は薄さに寄りすぎている
+  - 対応: Minimal Viewer の HUD を上端中央の compact pill に寄せ、半透明 backdrop / border / shadow を追加して最前面の safe rail として読める形へ整える
+  - 候補箇所: `src/components/reader/browser-view.tsx`, `src/__tests__/components/browser-view.test.tsx`
+- [x] `debug_browser_hud=true` でも HUD lane が stage と重なり、native WebView に再度埋もれている
+  - 再現: `AppData\\Roaming\\com.ultra-rss-reader.dev\\ultra-rss-reader.db` の `debug_browser_hud` が `true` の状態で Minimal Viewer を再起動し、`20260409-050818-minimal-viewer-wide-final.png` を確認する
+  - HUD 用の pill 自体は viewer shell に置いているが、wide viewer の stage も `top-3` 付近まで上がってきているため、native child webview が HUD lane を横切ってしまい、実機キャプチャでは HUD が見えない
+  - 対応: debug HUD が有効な間だけ stage の top inset を広げ、HUD 用の safe lane を native surface の外側へ確保する
+  - 候補箇所: `src/components/reader/browser-view.tsx`, `src/__tests__/components/browser-view.test.tsx`
 - [x] Webプレビュー overlay が widescreen でもまだ gutter を残し、右端まで使い切れていない
   - 再現: デスクトップ幅で `Webプレビュー` を開くと、stage がほぼ広い一方で outer gutter が残り、右端の immersive 感がもう一歩弱い
   - close/context/debug を top rail にまとめることで、stage 自体はもっと edge-hugging に寄せられる
@@ -167,6 +178,46 @@
   - `ui-ux-pro-max` 観点でも、floating chrome と content surface の余白リズムは合わせたい。特に close lane だけが細く、右側だけ余裕があると視覚的に片寄って見える
   - 対応: close chrome を `left-4 top-4` へ、main-stage の surface を `left-4 top-16` へ寄せ直し、左上の呼吸を 1 段広げた
   - 候補箇所: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-overlay-chrome.tsx`
+- [x] Web Preview を `Minimal Viewer` として再設計し、intent 直起動でも同じ shell に揃える
+  - `WEBプレビュー` のタイトル chrome を撤去し、左上 `×` と右上 `↗` だけ残す immersive viewer へ移した
+  - `intent=open-web-preview-url` と通常の `Web Preview` 起動は、同じ `BrowserView` shell を通るよう統合した
+  - article-driven close でも `BrowserView` が正しく unmount されるよう戻し、`close_browser_webview` teardown を regression test で固定した
+  - 実装: `src/components/reader/browser-view.tsx`, `src/components/reader/article-view.tsx`, `src/components/app-layout.tsx`
+  - 検証: `pnpm exec tsc --noEmit --pretty false`, `pnpm vitest run src/__tests__/components/browser-view.test.tsx src/__tests__/components/article-view.test.tsx src/__tests__/components/app-layout.test.tsx src/__tests__/app.test.tsx`
+- [x] `overlay -> stage -> host -> native` の geometry model を formalize し、HUD と native bounds が同じ式を見るようにする
+  - `tauri-webview-geometry` skill を追加し、Tauri child webview の client-area 基準と rect chain を再利用できる形に整理した
+  - `BrowserView` の stage / chrome / HUD は `resolveBrowserViewerGeometry()` へ寄せ、Tailwind class の断片ではなく数値の source of truth から style を組み立てるようにした
+  - close / external action は stage を押し下げる要素ではなく floating chrome として扱い、HUD を出していない通常時は stage を edge inset だけで最大化する
+  - 検証: `pnpm vitest run src/__tests__/components/browser-view.test.tsx src/__tests__/lib/browser-viewer-geometry.test.ts`, `pnpm exec tsc --noEmit --pretty false`
+- [x] 実機の `Minimal Viewer` で、右側の黒レーンが app 側の width loss ではないことを切り分ける
+  - 再現: worktree から `DEV_CREDENTIALS=1`, `VITE_DEV_INTENT=open-web-preview-url`, `VITE_DEV_WEB_URL=https://example.com` で再起動し、実機キャプチャを確認する
+  - `20260409-042645-minimal-viewer-full.png` / `20260409-042645-minimal-viewer-client.png` では immersive viewer への移行自体は確認できる一方、右端にまだ太い黒レーンが残り、閲覧面積がやや削られて見える
+  - 対応: close / external action は wide viewer でも backdrop 付き button に寄せ、`×` の視認性は一段改善した
+  - 対応: `debug_browser_hud=true` の実機キャプチャで `host 1248x723`, `fill W98.0% H90.3%`, `native 1248x723`, `match 100.0% 100.0%` を確認し、app shell / native bounds の width loss は大きく解消した
+  - 見た目に残る右側の dark area は、viewer shell の lane ではなく、描画されているページや capture の見え方起因として扱う
+  - 候補箇所: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-overlay-chrome.tsx`
+- [x] 画面幅を狭めたときの `Minimal Viewer` 崩れを切り分けて、responsive guardrail を入れる
+  - 再現: `Webプレビュー` を開いたままアプリ幅を狭めると、viewer shell / stage / action lane / native host のどこかが先に破綻し、レイアウトの一貫性が崩れる
+  - いまは desktop 寄りの inset と chrome 配置を優先しているため、narrow width で close / external action / HUD / stage の優先順位がまだ固定されていない
+  - 対応: `768px` 以下では chrome を compact button 化し、`520px` 付近では stage inset / radius / top lane を narrow viewer 用へ切り替える
+  - 対応: debug HUD も narrow width では `top-14` の compact rail + horizontal scroll に寄せ、desktop 前提の中央 pill が壊れないようにした
+  - 予防策として、`BrowserView` の responsive regression test を追加し、narrow width で `stage`, `chrome`, `HUD` が compact contract を満たすことを固定した
+  - 候補箇所: `src/components/reader/browser-view.tsx`, `src/__tests__/components/browser-view.test.tsx`, `tmp/screenshots/`
+- [x] `Minimal Viewer` の narrow-width 実機 sweep を 1 回まわし、520px 前後の最終バランスをスクショで確定する
+  - `open-web-preview-url` intent は compact/mobile でも `focusedPane=content` を維持し、`BrowserView` も常に app 全体の overlay root へ出すように揃えた
+  - 実機では HWND `MoveWindow` で `746x933` へ狭め、`20260409-053650-intent-narrow-final.png` と `20260409-053959-intent-narrow-hud-compact.png` で `×`, `↗`, HUD, stage の重なりを確認した
+  - compact HUD は `vp / fill / native / match` に要点を絞り、action lane と競合しすぎない幅へ寄せた
+  - 候補箇所: `tmp/screenshots/`, `src/components/reader/browser-view.tsx`, `src/stores/ui-store.ts`
+- [x] `open-web-preview-url` の dev sizing を、`VITE_DEV_WINDOW_WIDTH/HEIGHT` だけで安定再現できるようにする
+  - `Vite` 側 env だけを読む設計では attach flow で intent / URL / size が届かないため、Tauri runtime env を返す command と frontend fallback は追加済み
+  - `window.setSize()` 側も retry を入れて target size へ寄せる実装と unit test は通った
+  - `mise run app:dev:*` は worktree / 別プロセス起動でも詰まらないよう `pnpm exec tauri ...` へ揃えた
+  - `src-tauri/tauri.conf.json` の `beforeDevCommand` も `pnpm exec vite` に変え、Tauri 側から起動した frontend dev server が local bin 解決で落ちないようにした
+  - `src-tauri/capabilities/default.json` に `core:window:allow-set-size`, `allow-center`, `allow-unmaximize` を追加し、frontend からの `window.setSize()` / `center()` / `unmaximize()` が Windows 実機で拒否されないようにした
+  - `mise run app:dev:web-preview` を `VITE_DEV_WEB_URL=https://example.com`, `VITE_DEV_WINDOW_WIDTH=620`, `VITE_DEV_WINDOW_HEIGHT=760` 付きで再起動し、`20260409-133415-mise-intent-full.png` / `20260409-133415-mise-intent-client.png` で狭幅 viewer 起動を確認した
+  - 再発防止として `src/__tests__/tauri-window-capability-contract.test.ts` を追加し、main webview の capability に resize 系 permission が残ることを固定した
+  - 将来的には FPS overlay 的な別窓 diagnostics も選択肢として検討する
+  - 候補箇所: `src/lib/dev-intent.ts`, `src/dev/scenarios/helpers.ts`, `mise.toml`, `tmp/tauri.no-beforedev.json`
 
 ## macOS / Windows 共存チェック
 

@@ -215,4 +215,3 @@ viewer inset は close hit area を十分確保できる値にする必要があ
 - `src/__tests__/components/browser-view.test.tsx`
 - `src/__tests__/components/article-view.test.tsx`
 - Tauri native browser webview の bounds 同期まわり
-

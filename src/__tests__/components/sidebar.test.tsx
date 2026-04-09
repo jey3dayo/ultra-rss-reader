@@ -7,6 +7,12 @@ import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleAccounts, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
+const { devIntentState } = vi.hoisted(() => ({
+  devIntentState: {
+    intent: null as string | null,
+  },
+}));
+
 let syncCompletedListener: (() => void) | null = null;
 let syncProgressListener:
   | ((event: {
@@ -47,11 +53,19 @@ vi.mock("@/components/reader/feed-context-menu", () => ({
   },
 }));
 
+vi.mock("@/hooks/use-resolved-dev-intent", () => ({
+  useResolvedDevIntent: () => ({
+    intent: devIntentState.intent,
+    ready: true,
+  }),
+}));
+
 describe("Sidebar", () => {
   beforeEach(() => {
     syncCompletedListener = null;
     syncProgressListener = null;
     renderedFeedContextMenuFeeds.length = 0;
+    devIntentState.intent = null;
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     setupTauriMocks();
@@ -427,6 +441,43 @@ describe("Sidebar", () => {
     // Tech Blog has unread_count: 5 (also shown in total unread)
     const fives = screen.getAllByText("5");
     expect(fives.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("does not auto-select the first account while the direct web preview dev intent is active", async () => {
+    devIntentState.intent = "open-web-preview-url";
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_folders":
+          return [];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      contentMode: "browser",
+      browserUrl: "https://example.com",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedAccountId).toBeNull();
+    });
+
+    expect(useUiStore.getState().selectedAccountId).toBeNull();
+    expect(useUiStore.getState().contentMode).toBe("browser");
+    expect(useUiStore.getState().browserUrl).toBe("https://example.com");
   });
 
   it("does not update last synced time when sync is skipped", async () => {

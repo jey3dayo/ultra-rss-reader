@@ -2,7 +2,7 @@ import { computeTranslateX, isPaneVisible, resolveLayout } from "../hooks/use-la
 import { cn } from "../lib/utils";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "../lib/window-chrome";
 import { usePlatformStore } from "../stores/platform-store";
-import { useUiStore } from "../stores/ui-store";
+import { type ContentMode, useUiStore } from "../stores/ui-store";
 import { ArticleList } from "./reader/article-list";
 import { ArticleView } from "./reader/article-view";
 import { Sidebar } from "./reader/sidebar";
@@ -40,6 +40,7 @@ function SlidingPaneLayout({
       )}
     >
       <div
+        data-testid="sliding-pane-tray"
         className={cn(
           "flex h-full transition-transform duration-300 ease-in-out motion-reduce:duration-0",
           isMobile ? "w-[300%]" : "w-[calc(100%+280px)]",
@@ -84,65 +85,87 @@ export function AppLayout() {
     hasTauriRuntime: hasTauriRuntime(),
   });
 
-  if (layoutMode === "wide") {
-    const panes = feedCleanupOpen ? ["sidebar", "content"] : resolveLayout(layoutMode, focusedPane, contentMode);
-    const shouldShowSidebar = feedCleanupOpen || sidebarOpen;
-    return (
-      <div
-        className={cn(
-          "flex h-full overflow-hidden",
-          // macOS overlay titlebar 以外は上の空間は詰める。
-          overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar",
-        )}
-      >
-        {panes.includes("sidebar") && (
+  return (
+    <div
+      className={cn(
+        "relative h-full overflow-hidden",
+        // macOS overlay titlebar 以外は上の空間は詰める。
+        overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar",
+      )}
+    >
+      <div data-browser-overlay-root="" className="pointer-events-none absolute inset-0 z-40" />
+      {layoutMode === "wide" ? (
+        <WideLayout
+          focusedPane={focusedPane}
+          contentMode={contentMode}
+          feedCleanupOpen={feedCleanupOpen}
+          sidebarOpen={sidebarOpen}
+        />
+      ) : (
+        <SlidingPaneLayout
+          layoutMode={layoutMode}
+          focusedPane={focusedPane}
+          overlayTitlebar={false}
+          feedCleanupOpen={feedCleanupOpen}
+        />
+      )}
+    </div>
+  );
+}
+
+function WideLayout({
+  focusedPane,
+  contentMode,
+  feedCleanupOpen,
+  sidebarOpen,
+}: {
+  focusedPane: "sidebar" | "list" | "content";
+  contentMode: ContentMode;
+  feedCleanupOpen: boolean;
+  sidebarOpen: boolean;
+}) {
+  const panes = feedCleanupOpen ? ["sidebar", "content"] : resolveLayout("wide", focusedPane, contentMode);
+  const shouldShowSidebar = feedCleanupOpen || sidebarOpen;
+
+  return (
+    <div className="flex h-full overflow-hidden">
+      {panes.includes("sidebar") && (
+        <div
+          data-testid="wide-sidebar-shell"
+          className={cn(
+            "shrink-0 overflow-hidden border-r transition-[width,opacity,transform,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+            shouldShowSidebar
+              ? "w-[280px] border-border opacity-100 translate-x-0"
+              : "w-0 border-transparent opacity-0 -translate-x-3",
+          )}
+        >
           <div
-            data-testid="wide-sidebar-shell"
-            className={cn(
-              "shrink-0 overflow-hidden border-r transition-[width,opacity,transform,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-              shouldShowSidebar
-                ? "w-[280px] border-border opacity-100 translate-x-0"
-                : "w-0 border-transparent opacity-0 -translate-x-3",
-            )}
+            data-testid="wide-sidebar-content"
+            className={cn("h-full w-[280px]", !shouldShowSidebar && "pointer-events-none")}
+            aria-hidden={!shouldShowSidebar}
+            {...(!shouldShowSidebar ? { inert: true } : {})}
           >
-            <div
-              data-testid="wide-sidebar-content"
-              className={cn("h-full w-[280px]", !shouldShowSidebar && "pointer-events-none")}
-              aria-hidden={!shouldShowSidebar}
-              {...(!shouldShowSidebar ? { inert: true } : {})}
-            >
-              <Sidebar />
-            </div>
+            <Sidebar />
+          </div>
+        </div>
+      )}
+      <div data-testid="main-stage" className="flex min-w-0 flex-1">
+        {panes.includes("list") && (
+          <div className="w-[380px] shrink-0">
+            <ArticleList />
           </div>
         )}
-        <div data-testid="main-stage" className="relative flex min-w-0 flex-1">
-          <div data-browser-overlay-root="" className="pointer-events-none absolute inset-0 z-20" />
-          {panes.includes("list") && (
-            <div className="w-[380px] shrink-0">
-              <ArticleList />
-            </div>
-          )}
-          {panes.includes("content") && (
-            <div className="min-w-0 flex-1">
-              <ArticleView />
-            </div>
-          )}
-        </div>
-        {!panes.includes("list") && !panes.includes("content") && (
+        {panes.includes("content") && (
           <div className="min-w-0 flex-1">
             <ArticleView />
           </div>
         )}
       </div>
-    );
-  }
-
-  return (
-    <SlidingPaneLayout
-      layoutMode={layoutMode}
-      focusedPane={focusedPane}
-      overlayTitlebar={overlayTitlebar}
-      feedCleanupOpen={feedCleanupOpen}
-    />
+      {!panes.includes("list") && !panes.includes("content") && (
+        <div className="min-w-0 flex-1">
+          <ArticleView />
+        </div>
+      )}
+    </div>
   );
 }

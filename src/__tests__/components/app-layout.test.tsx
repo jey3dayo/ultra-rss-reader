@@ -69,4 +69,19 @@ describe("AppLayout", () => {
     expect(shell).toHaveClass("opacity-0");
     expect(screen.getByTestId("wide-sidebar-content")).toHaveAttribute("aria-hidden", "true");
   });
+
+  it("mounts the browser overlay root above the full app shell", () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "wide",
+      focusedPane: "content",
+    });
+
+    const { container } = render(<AppLayout />);
+
+    const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
+    expect(overlayRoot).toBeInTheDocument();
+    expect(container.firstElementChild).toContainElement(overlayRoot);
+    expect(screen.getByTestId("main-stage")).not.toContainElement(overlayRoot);
+  });
 });

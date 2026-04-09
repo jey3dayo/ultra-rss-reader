@@ -5,7 +5,7 @@ import {
   rankImageViewerOverlayFeeds as rankImageViewerOverlayFeedsForRuntime,
   resolveImageViewerOverlayBrowserUrl as resolveImageViewerOverlayBrowserUrlForRuntime,
 } from "@/lib/dev-image-viewer-overlay";
-import { readDevWebUrl } from "@/lib/dev-intent";
+import { loadDevRuntimeOptions, readDevWebUrl, readDevWindowSize } from "@/lib/dev-intent";
 import { resolveFeedLandingArticle } from "@/lib/feed-landing";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
@@ -223,19 +223,102 @@ export async function runImageViewerOverlayScenario(ctx: DevScenarioContext): Pr
 }
 
 export async function runOpenWebPreviewUrlScenario(ctx: DevScenarioContext): Promise<void> {
+  await loadDevRuntimeOptions();
   const webUrl = readDevWebUrl();
   if (!webUrl) {
     ctx.ui.showToast('Dev scenario "open-web-preview-url" requires VITE_DEV_WEB_URL.');
     return;
   }
 
+  await applyDevWindowSize();
+
   const applyPreviewState = () => {
+    void applyDevWindowSize();
     ctx.ui.openBrowser(webUrl);
   };
 
   applyPreviewState();
   window.setTimeout(applyPreviewState, 300);
   window.setTimeout(applyPreviewState, 1200);
+}
+
+const DEV_WINDOW_RESIZE_RETRY_DELAYS_MS = [0, 80, 180, 320] as const;
+const DEV_WINDOW_RESIZE_TOLERANCE_PX = 1;
+
+function sizeMatchesWithinTolerance(
+  current: { width: number; height: number },
+  target: { width: number; height: number },
+): boolean {
+  return (
+    Math.abs(current.width - target.width) <= DEV_WINDOW_RESIZE_TOLERANCE_PX &&
+    Math.abs(current.height - target.height) <= DEV_WINDOW_RESIZE_TOLERANCE_PX
+  );
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+async function applyDevWindowSize(): Promise<void> {
+  const requestedSize = readDevWindowSize();
+  if (!requestedSize) {
+    return;
+  }
+
+  try {
+    const [{ LogicalSize }, { getCurrentWindow }] = await Promise.all([
+      import("@tauri-apps/api/dpi"),
+      import("@tauri-apps/api/window"),
+    ]);
+    const win = getCurrentWindow();
+
+    if (await win.isMaximized()) {
+      await win.unmaximize();
+      await wait(80);
+    }
+
+    const readCurrentLogicalSize = async () => {
+      const scaleFactor = await win.scaleFactor();
+      const logicalSize = (await win.innerSize()).toLogical(scaleFactor);
+      return {
+        width: Math.round(logicalSize.width),
+        height: Math.round(logicalSize.height),
+      };
+    };
+
+    const initialSize = await readCurrentLogicalSize();
+    const targetSize = {
+      width: requestedSize.width ?? initialSize.width,
+      height: requestedSize.height ?? initialSize.height,
+    };
+
+    for (const delayMs of DEV_WINDOW_RESIZE_RETRY_DELAYS_MS) {
+      if (delayMs > 0) {
+        await wait(delayMs);
+      }
+
+      const currentSize = await readCurrentLogicalSize();
+      if (sizeMatchesWithinTolerance(currentSize, targetSize)) {
+        await win.center();
+        return;
+      }
+
+      await win.setSize(new LogicalSize(targetSize.width, targetSize.height));
+      await win.center();
+    }
+
+    const finalSize = await readCurrentLogicalSize();
+    if (!sizeMatchesWithinTolerance(finalSize, targetSize)) {
+      console.warn('Dev scenario "open-web-preview-url" did not reach the requested window size.', {
+        targetSize,
+        finalSize,
+      });
+    }
+  } catch (error) {
+    console.warn('Dev scenario "open-web-preview-url" could not apply the requested window size.', error);
+  }
 }
 
 export async function runOpenFeedFirstArticleScenario(ctx: DevScenarioContext): Promise<void> {

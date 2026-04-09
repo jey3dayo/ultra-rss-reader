@@ -4,9 +4,9 @@
   "version": "0.9.0",
   "identifier": "com.ultra-rss-reader.dev",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "pnpm exec vite",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "pnpm exec tsc && pnpm exec vite build",
     "frontendDist": "../dist"
   },
   "app": {

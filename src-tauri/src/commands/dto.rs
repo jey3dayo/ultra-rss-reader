@@ -46,6 +46,14 @@ pub struct PlatformInfoDto {
     pub capabilities: PlatformCapabilitiesDto,
 }
 
+#[derive(Debug, Serialize, Clone)]
+pub struct DevRuntimeOptionsDto {
+    pub dev_intent: Option<String>,
+    pub dev_web_url: Option<String>,
+    pub dev_window_width: Option<u32>,
+    pub dev_window_height: Option<u32>,
+}
+
 impl From<crate::platform::PlatformInfo> for PlatformInfoDto {
     fn from(info: crate::platform::PlatformInfo) -> Self {
         let kind = match info.kind {

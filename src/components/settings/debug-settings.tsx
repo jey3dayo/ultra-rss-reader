@@ -26,7 +26,9 @@ export function DebugSettings() {
   }, [closeSettings, openBrowser, showToast, t]);
 
   const runScenario = useCallback(
-    async (id: "image-viewer-overlay" | "open-feed-cleanup-broken-references" | "open-settings-reading-display-mode") => {
+    async (
+      id: "image-viewer-overlay" | "open-feed-cleanup-broken-references" | "open-settings-reading-display-mode",
+    ) => {
       if (id !== "open-settings-reading-display-mode") {
         closeSettings();
       }

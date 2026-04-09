@@ -75,6 +75,7 @@ describe("useUiStore", () => {
     useUiStore.getState().openBrowser("https://ex.com");
     expect(useUiStore.getState().contentMode).toBe("browser");
     expect(useUiStore.getState().browserUrl).toBe("https://ex.com");
+    expect(useUiStore.getState().focusedPane).toBe("content");
   });
 
   it("closeBrowser returns to reader if article selected", () => {
@@ -82,6 +83,17 @@ describe("useUiStore", () => {
     useUiStore.getState().openBrowser("https://ex.com");
     useUiStore.getState().closeBrowser();
     expect(useUiStore.getState().contentMode).toBe("reader");
+    expect(useUiStore.getState().focusedPane).toBe("content");
+  });
+
+  it("closeBrowser returns to the list when no article is selected", () => {
+    useUiStore.getState().setFocusedPane("sidebar");
+    useUiStore.getState().openBrowser("https://ex.com");
+    useUiStore.getState().closeBrowser();
+
+    expect(useUiStore.getState().contentMode).toBe("empty");
+    expect(useUiStore.getState().browserUrl).toBeNull();
+    expect(useUiStore.getState().focusedPane).toBe("list");
   });
 
   it("toggleFolder adds and removes", () => {

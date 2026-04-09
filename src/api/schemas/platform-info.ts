@@ -13,5 +13,13 @@ export const PlatformInfoSchema = z.object({
   capabilities: PlatformCapabilitiesSchema,
 });
 
+export const DevRuntimeOptionsSchema = z.object({
+  dev_intent: z.string().nullable(),
+  dev_web_url: z.string().nullable(),
+  dev_window_width: z.number().int().positive().nullable(),
+  dev_window_height: z.number().int().positive().nullable(),
+});
+
 export type PlatformCapabilities = z.infer<typeof PlatformCapabilitiesSchema>;
 export type PlatformInfo = z.infer<typeof PlatformInfoSchema>;
+export type DevRuntimeOptions = z.infer<typeof DevRuntimeOptionsSchema>;

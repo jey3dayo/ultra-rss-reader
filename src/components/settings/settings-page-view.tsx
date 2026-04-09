@@ -1,8 +1,8 @@
 import { useId } from "react";
 import { SectionHeading } from "@/components/settings/settings-components";
+import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type SettingsPageOption = {

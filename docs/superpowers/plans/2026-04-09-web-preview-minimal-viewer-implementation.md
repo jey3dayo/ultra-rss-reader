@@ -30,6 +30,7 @@
 ## Task 1: Lock In Viewer Behavior With Failing Tests
 
 **Files:**
+
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\article-view.test.tsx`
 
@@ -101,6 +102,7 @@ Do not commit in a red state. Keep this task uncommitted until implementation pa
 ## Task 2: Move The Overlay Root To The Full App Surface
 
 **Files:**
+
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\app-layout.tsx`
 
 - [ ] **Step 1: Add a single full-app overlay portal root**
@@ -121,6 +123,7 @@ Target structure:
 - [ ] **Step 2: Keep normal layout behavior unchanged when browser is closed**
 
 Preserve:
+
 - wide layout pane widths
 - compact/mobile sliding layout
 - feed cleanup view
@@ -147,17 +150,20 @@ git commit -m "refactor(layout): lift browser overlay root to app shell"
 ## Task 3: Implement The Minimal Viewer Shell
 
 **Files:**
+
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\browser-view.tsx`
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
 
 - [ ] **Step 1: Replace legacy context/title chrome with minimal chrome**
 
 Remove:
+
 - `BrowserPreviewContext`
 - `WEBプレビュー` title label
 - old top rail spacing assumptions tied to that context
 
 Keep only:
+
 - left `×`
 - right `↗`
 - optional HUD rail when debug setting is on
@@ -214,12 +220,14 @@ git commit -m "feat(reader): adopt minimal web preview viewer"
 ## Task 4: Unify Article Entry And Intent Entry
 
 **Files:**
+
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\article-view.tsx`
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\article-view.test.tsx`
 
 - [ ] **Step 1: Simplify browser-only and article-driven rendering**
 
 Ensure both of these render the same `BrowserView` shell:
+
 - article toggle path
 - `contentMode === "browser" && browserUrl && !selectedArticleId`
 
@@ -228,6 +236,7 @@ Minimize duplicate wrapper markup between `BrowserOnlyState` and `ArticlePane`.
 - [ ] **Step 2: Keep close behavior consistent**
 
 Closing from:
+
 - `×`
 - `Esc`
 - scrim click
@@ -258,6 +267,7 @@ git commit -m "refactor(reader): unify web preview entry paths"
 ## Task 5: Regression Checks, Tauri Verification, And TODO Cleanup
 
 **Files:**
+
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\TODO.md`
 
 - [ ] **Step 1: Run the local TypeScript and targeted UI test suite**
@@ -291,6 +301,7 @@ Use the HWND screenshot workflow and save under:
 - `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\tmp\screenshots\`
 
 Capture:
+
 - full window
 - client area
 - one screenshot proving right-side gutter is effectively gone
@@ -322,4 +333,3 @@ git commit -m "docs(todo): refresh web preview follow-ups"
 - If `scope="content-pane"` and `scope="main-stage"` still diverge after refactor, collapse them into a shared immersive path first and add exceptions only when a test proves they are needed.
 - Keep commits small and aligned to the task boundaries above.
 - After the plan is executed, run one final screenshot comparison before claiming the gutter issue is fixed.
-

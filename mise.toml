@@ -82,6 +82,7 @@ run = "rtk pnpm exec tsc --noEmit"
 [tasks."lint:biome"]
 description = "Biome lint check"
 run = "rtk pnpm run lint"
+run_windows = "pnpm exec biome lint ."
 
 [tasks."lint:clippy"]
 description = "Rust clippy"
@@ -115,10 +116,12 @@ run_windows = "rtk test cargo test --manifest-path src-tauri/Cargo.toml --test i
 [tasks."test:unit"]
 description = "Run Vitest unit tests"
 run = "rtk test pnpm run test"
+run_windows = "pnpm exec vitest run"
 
 [tasks."test:e2e"]
 description = "Run Playwright E2E tests"
 run = "rtk test pnpm exec playwright test"
+run_windows = "pnpm exec playwright test"
 
 [tasks."test:all"]
 description = "Run all tests including E2E"
@@ -143,27 +146,27 @@ run = ["pnpm build"]
 [tasks."app:dev"]
 description = "Run native app in dev mode"
 env = { DEV_CREDENTIALS = "1" }
-run = "pnpm tauri dev -c src-tauri/tauri.dev.conf.json"
+run = "pnpm exec tauri dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:image-viewer"]
 description = "Run native app in dev mode and jump into the image-viewer overlay state"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "image-viewer-overlay" }
-run = "pnpm tauri dev -c src-tauri/tauri.dev.conf.json"
+run = "pnpm exec tauri dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:web-preview"]
-description = "Run native app in dev mode and open VITE_DEV_WEB_URL directly in Web Preview"
+description = "Run native app in dev mode and open VITE_DEV_WEB_URL directly in Web Preview (optionally sized by VITE_DEV_WINDOW_WIDTH/HEIGHT)"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-web-preview-url" }
-run = "pnpm tauri dev -c src-tauri/tauri.dev.conf.json"
+run = "pnpm exec tauri dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:feed-cleanup"]
 description = "Run native app in dev mode and jump into the feed cleanup page"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-feed-cleanup" }
-run = "pnpm tauri dev -c src-tauri/tauri.dev.conf.json"
+run = "pnpm exec tauri dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:image-viewer:debug"]
 description = "Run the image-viewer overlay dev flow for debug settings verification"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "image-viewer-overlay" }
-run = "pnpm tauri dev -c src-tauri/tauri.dev.conf.json"
+run = "pnpm exec tauri dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:signed"]
 description = "Build, codesign, and run native app on macOS (no Keychain dialog)"
@@ -202,15 +205,15 @@ run = "pnpm dev --host 127.0.0.1 --port 4173 --strictPort"
 
 [tasks."app:build"]
 description = "Build native app for current platform (.app/.dmg on macOS, .msi/.exe on Windows)"
-run = "pnpm tauri build"
+run = "pnpm exec tauri build"
 
 [tasks."app:build:debug"]
 description = "Build native app in debug mode (faster, no optimizations)"
-run = "pnpm tauri build --debug"
+run = "pnpm exec tauri build --debug"
 
 [tasks."app:icon"]
 description = "Generate app icons from source image"
-run = "pnpm tauri icon"
+run = "pnpm exec tauri icon"
 
 # ========================================
 # エイリアス（まとめ実行）

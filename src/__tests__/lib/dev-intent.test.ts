@@ -5,10 +5,11 @@ import {
   parseDevIntent,
   pickDevIntentArticle,
   pickDevIntentFeed,
-  resolveActiveDevIntentBrowserUrl,
-  resolveDevIntentBrowserUrl,
   readDevIntent,
   readDevWebUrl,
+  readDevWindowSize,
+  resolveActiveDevIntentBrowserUrl,
+  resolveDevIntentBrowserUrl,
 } from "@/lib/dev-intent";
 
 const feeds: FeedDto[] = [
@@ -131,5 +132,24 @@ describe("dev-intent helpers", () => {
     vi.stubEnv("VITE_ULTRA_RSS_DEV_WEB_URL", "https://example.com/legacy");
 
     expect(readDevWebUrl()).toBe("https://example.com/short");
+  });
+
+  it("reads a short dev window size for scenario verification", () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "520");
+    vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", "900");
+
+    expect(readDevWindowSize()).toEqual({
+      width: 520,
+      height: 900,
+    });
+  });
+
+  it("ignores invalid dev window size values", () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_DEV_WINDOW_WIDTH", "wide");
+    vi.stubEnv("VITE_DEV_WINDOW_HEIGHT", "-1");
+
+    expect(readDevWindowSize()).toBeNull();
   });
 });

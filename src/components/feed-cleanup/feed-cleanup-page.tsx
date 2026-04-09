@@ -4,14 +4,14 @@ import { useAccountArticles, useFeedIntegrityReport } from "@/hooks/use-articles
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
-import { readDevIntent } from "@/lib/dev-intent";
+import { useResolvedDevIntent } from "@/hooks/use-resolved-dev-intent";
+import { resolveArticleDateLocale } from "@/lib/article-view";
 import {
   buildFeedCleanupCandidates,
   type FeedCleanupCandidate,
   type FeedCleanupReasonKey,
   summarizeCleanupCandidate,
 } from "@/lib/feed-cleanup";
-import { resolveArticleDateLocale } from "@/lib/article-view";
 import { useUiStore } from "@/stores/ui-store";
 import { FeedCleanupDeleteDialog } from "./feed-cleanup-delete-dialog";
 import { FeedCleanupFeedEditor } from "./feed-cleanup-feed-editor";
@@ -49,7 +49,7 @@ export function FeedCleanupPage() {
   const [editingFeedId, setEditingFeedId] = useState<string | null>(null);
   const [queueMode, setQueueMode] = useState<QueueMode>("cleanup");
   const [selectedIntegrityFeedId, setSelectedIntegrityFeedId] = useState<string | null>(null);
-  const devIntent = readDevIntent();
+  const { intent: devIntent } = useResolvedDevIntent();
   const dateLocale = resolveArticleDateLocale(i18n.language);
 
   const hiddenFeedIds = useMemo(() => {

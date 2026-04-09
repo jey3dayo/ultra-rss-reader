@@ -153,7 +153,9 @@ pub fn run() {
             };
 
             browser_webview::set_browser_webview_diagnostics_enabled(
-                prefs.get("debug_browser_hud").is_some_and(|value| value == "true"),
+                prefs
+                    .get("debug_browser_hud")
+                    .is_some_and(|value| value == "true"),
             );
 
             let handle = app.handle().clone();
@@ -246,6 +248,7 @@ pub fn run() {
             commands::share_commands::copy_to_clipboard,
             commands::share_commands::add_to_reading_list,
             commands::platform_commands::get_platform_info,
+            commands::platform_commands::get_dev_runtime_options,
             commands::updater_commands::check_for_update,
             commands::updater_commands::download_and_install_update,
             commands::updater_commands::restart_app,

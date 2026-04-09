@@ -10,7 +10,7 @@
 
 ---
 
-### Task 1: Lock the approved structure with tests
+## Task 1: Lock the approved structure with tests
 
 **Files:**
 
@@ -22,7 +22,7 @@
 - [ ] **Step 2: Run targeted Vitest commands and confirm the new expectations fail for the intended reasons**
 - [ ] **Step 3: Keep the tests minimal and focused on the approved hierarchy, not on incidental classnames**
 
-### Task 2: Implement the smart view and subscription presentation changes
+## Task 2: Implement the smart view and subscription presentation changes
 
 **Files:**
 
@@ -38,7 +38,7 @@
 - [ ] **Step 3: Render unfoldered feeds under a lightweight group label instead of as a bare list**
 - [ ] **Step 4: Reduce feed-count visual weight while keeping folder counts slightly stronger**
 
-### Task 3: Verify the change stays stable
+## Task 3: Verify the change stays stable
 
 **Files:**
 
