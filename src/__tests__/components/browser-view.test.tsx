@@ -235,9 +235,11 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness onCloseOverlay={onCloseOverlay} />, { wrapper: createWrapper() });
 
-    await userEvent.setup().click(within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
-      name: "Close Web Preview",
-    }));
+    await userEvent.setup().click(
+      within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
+        name: "Close Web Preview",
+      }),
+    );
     expect(onCloseOverlay).toHaveBeenCalledTimes(1);
   });
 
