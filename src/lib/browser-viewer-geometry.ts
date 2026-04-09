@@ -45,30 +45,28 @@ export type BrowserViewerGeometry = {
 function resolveMainStageGeometry(viewportWidth: number, diagnosticsVisible: boolean): BrowserViewerGeometry {
   const compact = viewportWidth <= 768;
   const ultraCompact = viewportWidth <= 520;
-  const edgeInset = ultraCompact ? 10 : compact ? 12 : 16;
   const chromeInset = compact ? 12 : 16;
   const buttonSize = compact ? 40 : 46;
-  const chromeLaneBottom = compact ? chromeInset + buttonSize + 8 : edgeInset;
+  const chromeLaneBottom = compact ? chromeInset + buttonSize + 8 : 16;
   const diagnosticsTop = compact ? chromeLaneBottom + 2 : 16;
-  const diagnosticsReservedTop = diagnosticsVisible ? (compact ? chromeLaneBottom + 34 : 54) : chromeLaneBottom;
 
   return {
     compact,
     ultraCompact,
     chromeRail: {
-      visible: compact,
-      left: chromeInset,
-      right: chromeInset,
-      top: chromeInset,
-      height: buttonSize,
-      radius: ultraCompact ? 16 : 18,
+      visible: false,
+      left: 0,
+      right: 0,
+      top: 0,
+      height: 0,
+      radius: 0,
     },
     stage: {
-      left: edgeInset,
-      top: diagnosticsReservedTop,
-      right: edgeInset,
-      bottom: edgeInset,
-      radius: ultraCompact ? 18 : compact ? 20 : 24,
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      radius: 0,
     },
     chrome: {
       close: {
