@@ -4,6 +4,35 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-04-09
+
+### Features
+
+- Web プレビューを immersive な Minimal Viewer へ再設計し、通常起動と `open-web-preview-url` intent 起動を同じ viewer shell に統一した
+- Web プレビュー用の geometry model と debug tooling を追加し、HUD・native bounds・dev intent の再現導線を強化した
+- Smart View の contextual filter と sidebar hierarchy を整理し、フォルダ選択ベースの記事絞り込み導線を追加した
+- アカウント loading action のローカライズや、wide sidebar toggle animation など、主要 UI 操作の体験を拡張した
+
+### Bug Fixes
+
+- Web プレビューの close chrome、surface guidance、empty state、validation feedback、debug image viewer の崩れを修正した
+- フィード整理画面の日付ローカライズ、キュー優先表示、日本語 UI ラベル残りを修正した
+- sidebar の選択フォルダ同期、スクロール縮退、記事本文の重複フィードラベル、未読遷移中の表示保持を修正した
+- FreshRSS endpoint 解決、重複フィード upsert、保存済みパスワード検証など、同期とアカウント設定の不整合を修正した
+- pane sizing と narrow-width viewer guardrail を見直し、狭幅でも主要導線が壊れにくいようにした
+
+### Documentation
+
+- Web Preview Minimal Viewer の設計 spec / implementation plan を追加した
+- folder selection feed filter、sidebar refactor、settings loading button などの設計メモを追加した
+- TODO ベースで reader UX と overlay 検証結果を整理し、完了項目を反映した
+
+### Maintenance
+
+- overlay root の app shell への引き上げ、sidebar section 分割、feed tree 表示責務の抽出など、reader/layout 実装を整理した
+- dev intent / runtime env / Tauri capability contract のテストを拡充し、node type 追加や generated formatting の調整を行った
+- 開発用 env 名と debug flow を整理し、Windows でも再現しやすい Tauri dev 起動へ寄せた
+
 ## [0.9.0] - 2026-04-06
 
 ### Bug Fixes
