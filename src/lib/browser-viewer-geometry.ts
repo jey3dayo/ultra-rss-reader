@@ -42,7 +42,7 @@ export type BrowserViewerGeometry = {
   };
 };
 
-function resolveMainStageGeometry(viewportWidth: number, diagnosticsVisible: boolean): BrowserViewerGeometry {
+function resolveMainStageGeometry(viewportWidth: number): BrowserViewerGeometry {
   const compact = viewportWidth <= 768;
   const ultraCompact = viewportWidth <= 520;
   const chromeInset = compact ? 12 : 16;
@@ -93,7 +93,7 @@ export function resolveBrowserViewerGeometry({
   diagnosticsVisible,
 }: BrowserViewerGeometryInput): BrowserViewerGeometry {
   if (scope === "main-stage") {
-    return resolveMainStageGeometry(viewportWidth, diagnosticsVisible);
+    return resolveMainStageGeometry(viewportWidth);
   }
 
   return {

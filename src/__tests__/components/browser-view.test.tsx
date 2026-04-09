@@ -157,8 +157,8 @@ describe("BrowserView", () => {
     getBoundingClientRectSpy.mockRestore();
   });
 
-  it("creates the embedded browser webview with host bounds", async () => {
-    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+  it("creates the embedded browser webview with fullscreen bounds on first create", async () => {
+    mockHostRect({ left: 0, top: 0, width: 1400, height: 900 });
 
     useUiStore.setState({
       selectedArticleId: "art-1",
@@ -173,7 +173,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 380, y: 48, width: 900, height: 720 },
+          bounds: { x: 0, y: 0, width: 1400, height: 900 },
         },
       });
     });
@@ -202,8 +202,8 @@ describe("BrowserView", () => {
     expect(screen.queryByText("https://example.com/article")).not.toBeInTheDocument();
   });
 
-  it("closes from the scrim but not from the webview host", async () => {
-    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+  it("does not close from the scrim in main-stage", async () => {
+    mockHostRect({ left: 0, top: 0, width: 1400, height: 900 });
 
     const onCloseOverlay = vi.fn();
 
@@ -216,13 +216,32 @@ describe("BrowserView", () => {
     render(<BrowserViewHarness onCloseOverlay={onCloseOverlay} />, { wrapper: createWrapper() });
 
     await userEvent.setup().click(screen.getByTestId("browser-overlay-scrim"));
-    expect(onCloseOverlay).toHaveBeenCalledTimes(1);
+    expect(onCloseOverlay).toHaveBeenCalledTimes(0);
 
     await userEvent.setup().click(screen.getByTestId("browser-webview-host"));
+    expect(onCloseOverlay).toHaveBeenCalledTimes(0);
+  });
+
+  it("closes from the close button", async () => {
+    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+
+    const onCloseOverlay = vi.fn();
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness onCloseOverlay={onCloseOverlay} />, { wrapper: createWrapper() });
+
+    await userEvent.setup().click(within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
+      name: "Close Web Preview",
+    }));
     expect(onCloseOverlay).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the overlay stage visually separated from the scrim", async () => {
+  it("keeps the fullscreen stage borderless and flush to the shell", async () => {
     mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
 
     useUiStore.setState({
@@ -235,11 +254,16 @@ describe("BrowserView", () => {
 
     const stage = screen.getByTestId("browser-overlay-stage");
 
-    expect(stage.className).toContain("border");
-    expect(stage.className).toContain("border-white/6");
+    expect(stage).toHaveStyle({
+      left: "0px",
+      right: "0px",
+      top: "0px",
+      bottom: "0px",
+      borderRadius: "0px",
+    });
   });
 
-  it("uses the immersive main-stage geometry above a dedicated scrim", () => {
+  it("uses the fullscreen main-stage geometry without a top rail", () => {
     mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
 
     useUiStore.setState({
@@ -250,22 +274,18 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-    const scrim = screen.getByTestId("browser-overlay-scrim");
     const stage = screen.getByTestId("browser-overlay-stage");
     const chrome = screen.getByTestId("browser-overlay-chrome");
 
-    expect(scrim.className).toContain("absolute inset-0");
     expect(stage).toHaveStyle({
-      left: "16px",
-      right: "16px",
-      top: "16px",
-      bottom: "16px",
-      borderRadius: "24px",
+      left: "0px",
+      right: "0px",
+      top: "0px",
+      bottom: "0px",
+      borderRadius: "0px",
     });
-    expect(chrome).toHaveStyle({
-      left: "16px",
-      top: "16px",
-    });
+    expect(screen.queryByTestId("browser-overlay-top-rail")).not.toBeInTheDocument();
+    expect(chrome).toBeInTheDocument();
   });
 
   it("shows loading feedback while the embedded preview is still starting", async () => {
@@ -283,7 +303,7 @@ describe("BrowserView", () => {
     expect(screen.getByText("If this takes too long, open it in your external browser.")).toBeInTheDocument();
   });
 
-  it("shows the debug hud when the debug preference is enabled", async () => {
+  it("shows the debug hud without moving the fullscreen stage", async () => {
     mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
     usePreferencesStore.setState({
       prefs: { debug_browser_hud: "true" },
@@ -302,40 +322,11 @@ describe("BrowserView", () => {
     const stage = screen.getByTestId("browser-overlay-stage");
 
     expect(diagnostics).toBeInTheDocument();
-    expect(diagnostics.className).toContain("left-1/2");
-    expect(diagnostics.className).toContain("-translate-x-1/2");
-    expect(diagnostics.className).toContain("z-[90]");
-    expect(diagnostics.firstElementChild?.className).toContain("rounded-full");
-    expect(diagnostics.firstElementChild?.className).toContain("bg-black/62");
-    expect(diagnostics).toHaveStyle({ top: "16px" });
-    expect(stage).toHaveStyle({ top: "54px" });
-    expect(screen.getByText(/vp/i)).toBeInTheDocument();
-    expect(screen.getByText(/fill/i)).toBeInTheDocument();
+    expect(stage).toHaveStyle({ top: "0px" });
+    expect(screen.queryByTestId("browser-overlay-top-rail")).not.toBeInTheDocument();
   });
 
-  it("keeps wide viewer chrome readable against the scrim", () => {
-    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
-
-    useUiStore.setState({
-      selectedArticleId: "art-1",
-      contentMode: "browser",
-      browserUrl: "https://example.com/article",
-    });
-
-    render(<BrowserViewHarness />, { wrapper: createWrapper() });
-
-    const closeButton = within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
-      name: "Close Web Preview",
-    });
-    const externalButton = screen.getByRole("button", { name: /open in external browser/i });
-
-    expect(closeButton.className).toContain("bg-black/30");
-    expect(closeButton.className).toContain("border-white/12");
-    expect(externalButton.className).toContain("bg-black/26");
-    expect(externalButton.className).toContain("border-white/12");
-  });
-
-  it("compacts the viewer layout at narrow widths instead of keeping desktop spacing", async () => {
+  it("keeps the fullscreen surface full bleed at narrow widths", async () => {
     setWindowSize(500, 900);
     mockHostRect({ left: 12, top: 64, width: 476, height: 820 });
 
@@ -349,35 +340,22 @@ describe("BrowserView", () => {
 
     const stage = screen.getByTestId("browser-overlay-stage");
     const chrome = screen.getByTestId("browser-overlay-chrome");
-    const rail = screen.getByTestId("browser-overlay-top-rail");
     const externalButton = screen.getByRole("button", { name: /open in external browser/i });
     const closeButton = within(chrome).getByRole("button", { name: "Close Web Preview" });
 
     expect(stage).toHaveStyle({
-      left: "10px",
-      right: "10px",
-      top: "60px",
-      bottom: "10px",
-      borderRadius: "18px",
+      left: "0px",
+      right: "0px",
+      top: "0px",
+      bottom: "0px",
+      borderRadius: "0px",
     });
-    expect(chrome).toHaveStyle({
-      left: "12px",
-      top: "12px",
-    });
-    expect(rail).toHaveStyle({
-      left: "12px",
-      right: "12px",
-      top: "12px",
-      height: "40px",
-      borderRadius: "16px",
-    });
-    expect(closeButton.className).toContain("size-10");
-    expect(closeButton.className).toContain("bg-black/32");
-    expect(externalButton.className).toContain("size-10");
-    expect(externalButton.className).toContain("bg-black/32");
+    expect(screen.queryByTestId("browser-overlay-top-rail")).not.toBeInTheDocument();
+    expect(closeButton).toBeInTheDocument();
+    expect(externalButton).toBeInTheDocument();
   });
 
-  it("compacts the debug hud at narrow widths so it stays readable", async () => {
+  it("keeps the diagnostics overlay off the fullscreen surface at narrow widths", async () => {
     setWindowSize(500, 900);
     mockHostRect({ left: 12, top: 64, width: 476, height: 820 });
     usePreferencesStore.setState({
@@ -396,16 +374,9 @@ describe("BrowserView", () => {
     const diagnostics = await screen.findByTestId("browser-overlay-diagnostics");
     const stage = screen.getByTestId("browser-overlay-stage");
 
-    expect(diagnostics.className).toContain("w-[calc(100vw-7.5rem)]");
-    expect(diagnostics.firstElementChild?.className).toContain("rounded-2xl");
-    expect(diagnostics.firstElementChild?.className).toContain("justify-start");
-    expect(diagnostics.firstElementChild?.className).toContain("overflow-x-auto");
-    expect(diagnostics).toHaveStyle({ top: "62px" });
-    expect(stage).toHaveStyle({ top: "94px" });
-    expect(screen.getByText(/vp/i)).toBeInTheDocument();
-    expect(screen.getByText(/fill/i)).toBeInTheDocument();
-    expect(screen.queryByText(/lane/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/rust/i)).not.toBeInTheDocument();
+    expect(diagnostics).toBeInTheDocument();
+    expect(stage).toHaveStyle({ top: "0px" });
+    expect(screen.queryByTestId("browser-overlay-top-rail")).not.toBeInTheDocument();
   });
 
   it("hides the debug hud when the saved preference is false", async () => {
@@ -486,8 +457,8 @@ describe("BrowserView", () => {
     expect(useUiStore.getState().browserUrl).toBe("https://example.com/article");
   });
 
-  it("sends updated embedded browser bounds when the host resizes", async () => {
-    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+  it("sends updated fullscreen browser bounds when the host resizes", async () => {
+    mockHostRect({ left: 0, top: 0, width: 1400, height: 900 });
     useUiStore.setState({
       selectedArticleId: "art-1",
       contentMode: "browser",
@@ -501,13 +472,14 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 380, y: 48, width: 900, height: 720 },
+          bounds: { x: 0, y: 0, width: 1400, height: 900 },
         },
       });
     });
 
     commands = [];
-    mockHostRect({ left: 420, top: 60, width: 840, height: 680 });
+    setWindowSize(1200, 800);
+    mockHostRect({ left: 0, top: 0, width: 1200, height: 800 });
 
     await act(async () => {
       for (const callback of resizeObserverCallbacks) {
@@ -519,7 +491,7 @@ describe("BrowserView", () => {
       expect(commands).toContainEqual({
         cmd: "set_browser_webview_bounds",
         args: {
-          bounds: { x: 420, y: 60, width: 840, height: 680 },
+          bounds: { x: 0, y: 0, width: 1200, height: 800 },
         },
       });
     });
