@@ -4,7 +4,7 @@
 
 **Goal:** `main-stage` の `Web Preview` を true fullscreen 化し、native child webview が app window の client area 全面に追従するようにする。
 
-**Architecture:** fullscreen browser mode の source of truth は app-shell overlay 配下の fullscreen host rect とし、`BrowserView` がそこから native bounds を計測する。`resolveBrowserViewerGeometry()` は `main-stage` だけ full-bleed geometry を返し、diagnostics や floating chrome は surface を縮めない absolute overlay として分離する。Rust/Tauri 側は既存どおり受け取った rect をそのまま child webview に適用する。  
+**Architecture:** fullscreen browser mode の source of truth は app-shell overlay 配下の fullscreen host rect とし、`BrowserView` がそこから native bounds を計測する。`resolveBrowserViewerGeometry()` は `main-stage` だけ full-bleed geometry を返し、diagnostics や floating chrome は surface を縮めない absolute overlay として分離する。Rust/Tauri 側は既存どおり受け取った rect をそのまま child webview に適用する。
 
 **Tech Stack:** React 19, TypeScript, Zustand, Vitest, Tauri 2 child webview, PowerShell/manual app verification
 
