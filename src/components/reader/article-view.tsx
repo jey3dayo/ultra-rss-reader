@@ -102,6 +102,7 @@ export function ArticleToolbar({
       isRead={article?.is_read ?? false}
       isStarred={article?.is_starred ?? false}
       isBrowserOpen={isBrowserOpen}
+      hideBrowserOverlayActions={isBrowserOpen}
       showCopyLinkButton={actionCopyLink === "true"}
       canCopyLink={Boolean(article?.url)}
       showOpenInBrowserButton

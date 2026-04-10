@@ -240,14 +240,7 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
     });
 
-    const closingButtons = await screen.findAllByRole("button", { name: "Close Web Preview" });
-    const toolbarCloseButton = closingButtons.find((button) => button.getAttribute("aria-pressed") === "true");
-    expect(toolbarCloseButton).toBeDefined();
-    if (!toolbarCloseButton) {
-      throw new Error("expected toolbar close button");
-    }
-
-    fireEvent.click(toolbarCloseButton);
+    fireEvent.click(await screen.findByRole("button", { name: "Close Web Preview" }));
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
@@ -303,18 +296,59 @@ describe("ArticleView", () => {
       expect(screen.queryByRole("button", { name: "Close article" })).not.toBeInTheDocument();
     });
 
-    const closeButtons = await screen.findAllByRole("button", { name: "Close Web Preview" });
-    const overlayCloseButton = closeButtons.find((button) => button.getAttribute("aria-pressed") !== "true");
-    if (!overlayCloseButton) {
-      throw new Error("expected overlay close button");
-    }
-
-    fireEvent.click(overlayCloseButton);
+    fireEvent.click(await screen.findByRole("button", { name: "Close Web Preview" }));
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
       expect(useUiStore.getState().browserUrl).toBeNull();
     });
+  });
+
+  it("keeps only one accessible close and external-browser action while web preview is open", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        case "create_or_update_browser_webview":
+          return {
+            url: args.url,
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+          };
+        case "set_browser_webview_bounds":
+        case "close_browser_webview":
+        case "open_in_browser":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open Web Preview" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("browser");
+    });
+
+    expect(screen.getAllByRole("button", { name: "Close Web Preview" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Open in External Browser" })).toHaveLength(1);
   });
 
   it("closes only the current article overlay when the overlay close button is pressed", async () => {
@@ -365,14 +399,7 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
     });
 
-    const closeButtons = await screen.findAllByRole("button", { name: "Close Web Preview" });
-    const overlayCloseButton = closeButtons.find((button) => button.getAttribute("aria-pressed") !== "true");
-    expect(overlayCloseButton).toBeDefined();
-    if (!overlayCloseButton) {
-      throw new Error("expected overlay close button");
-    }
-
-    fireEvent.click(overlayCloseButton);
+    fireEvent.click(await screen.findByRole("button", { name: "Close Web Preview" }));
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
@@ -431,13 +458,7 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
     });
 
-    const closeButtons = await screen.findAllByRole("button", { name: "Close Web Preview" });
-    const closeOverlayButton = closeButtons.find((button) => button.getAttribute("aria-pressed") !== "true");
-    expect(closeOverlayButton).toBeDefined();
-    if (!closeOverlayButton) {
-      throw new Error("expected overlay close button");
-    }
-
+    const closeOverlayButton = await screen.findByRole("button", { name: "Close Web Preview" });
     closeOverlayButton.focus();
     expect(closeOverlayButton).toHaveFocus();
 
@@ -446,7 +467,7 @@ describe("ArticleView", () => {
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
       expect(useUiStore.getState().browserUrl).toBeNull();
-      expect(openBrowserButton).toHaveFocus();
+      expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveFocus();
     });
   });
 

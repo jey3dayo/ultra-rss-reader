@@ -20,6 +20,7 @@ export type ArticleToolbarViewProps = {
   isRead: boolean;
   isStarred: boolean;
   isBrowserOpen: boolean;
+  hideBrowserOverlayActions?: boolean;
   showCopyLinkButton: boolean;
   canCopyLink: boolean;
   showOpenInBrowserButton: boolean;
@@ -43,6 +44,7 @@ export function ArticleToolbarView({
   isRead,
   isStarred,
   isBrowserOpen,
+  hideBrowserOverlayActions = false,
   showCopyLinkButton,
   canCopyLink,
   showOpenInBrowserButton,
@@ -86,7 +88,7 @@ export function ArticleToolbarView({
           >
             <StarIcon starred={isStarred} className="h-4 w-4" />
           </IconToolbarToggle>
-          {showOpenInBrowserButton && (
+          {showOpenInBrowserButton && !hideBrowserOverlayActions && (
             <IconToolbarToggle
               label={isBrowserOpen ? labels.previewToggleOn : labels.previewToggleOff}
               pressed={isBrowserOpen}
@@ -103,7 +105,7 @@ export function ArticleToolbarView({
               <Copy className="h-4 w-4" />
             </IconToolbarButton>
           )}
-          {showOpenInExternalBrowserButton && (
+          {showOpenInExternalBrowserButton && !hideBrowserOverlayActions && (
             <IconToolbarButton
               label={labels.openInExternalBrowser}
               onClick={onOpenInExternalBrowser}
