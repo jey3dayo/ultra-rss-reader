@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- Web プレビュー overlay 表示中に背面ツールバーの重複アクションを隠し、close / external browser 導線の曖昧さを解消した
+- Feed Cleanup をラップトップ幅で 2 カラム fallback できるようにし、review panel の圧縮と broken references 画面の重なりを修正した
+- 記事詳細にタグ見出しと補助文を追加し、タグ追加導線を空状態でも見つけやすくした
+- Settings モーダル内ページの spacing と sticky heading を見直し、低いビューポートでも主要設定が把握しやすいようにした
+
 ## [0.10.0] - 2026-04-09
 
 ### Features
