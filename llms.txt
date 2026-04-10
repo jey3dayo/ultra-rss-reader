@@ -1,0 +1,46 @@
+# Ultra RSS Reader
+
+> Ultra RSS Reader is a desktop-first RSS reader built with Tauri 2, Rust, React 19, TypeScript, and SQLite. It supports local RSS/Atom feeds and FreshRSS, stores credentials in the OS keyring, and uses a layered Rust backend with a React frontend.
+
+Read `README.md` first for product and architecture context. Read `CLAUDE.md` and `AGENTS.md` before changing code. Use `mise run check` as the default verification gate. Native integrations such as keyring behavior, updater installation, and packaged app flows still need manual verification.
+
+Important implementation constraints:
+- TypeScript is strict-mode, functional React only, and all Tauri IPC calls go through `src/api/tauri-commands.ts` via `safeInvoke`.
+- Rust follows a layered architecture: `commands -> service -> repository -> domain -> infra`.
+- Do not hold `std::sync::Mutex` locks across `.await` points.
+- Credentials must stay in the OS keyring; never add them to SQLite. `DEV_CREDENTIALS=1` is for development builds only.
+
+## Start Here
+
+- [README](README.md): Product overview, features, development modes, architecture, security, release flow, and verification matrix.
+- [CLAUDE](CLAUDE.md): Repository-specific coding standards, command workflow, and required verification steps.
+- [AGENTS](AGENTS.md): Agent instruction router and repository-local precedence rules.
+- [CHANGELOG](CHANGELOG.md): Recent shipped changes and behavior history.
+
+## Code Map
+
+- [src-tauri/src](src-tauri/src/): Rust application code including Tauri commands, services, repositories, domain types, providers, browser webview, and platform integration.
+- [src](src/): React application code including the app shell, reader UI, settings UI, hooks, stores, API schemas, and utilities.
+- [src-tauri/migrations](src-tauri/migrations/): SQLite schema migrations and persistence history.
+- [src/api/tauri-commands.ts](src/api/tauri-commands.ts): Canonical TypeScript IPC boundary and `safeInvoke` wrapper.
+- [src/App.tsx](src/App.tsx): Frontend entry composition.
+- [src-tauri/src/lib.rs](src-tauri/src/lib.rs): Rust bootstrap and shared module wiring.
+
+## Development Commands
+
+- [mise.toml](mise.toml): Canonical task definitions for `check`, `ci`, formatting, linting, testing, and app launch modes.
+- [package.json](package.json): Frontend scripts and JavaScript dependencies.
+- [src-tauri/Cargo.toml](src-tauri/Cargo.toml): Rust crate metadata and native dependencies.
+
+## Design Docs
+
+- [docs/superpowers/specs](docs/superpowers/specs/): Dated design documents for feature behavior and UI decisions.
+- [docs/superpowers/plans](docs/superpowers/plans/): Dated implementation plans and execution checklists.
+
+## Optional
+
+- [src/__tests__](src/__tests__): Frontend unit tests and integration-style component tests.
+- [tests](tests/): Additional browser/dev support tests and shared helpers.
+- [src-tauri/tests/integration_test.rs](src-tauri/tests/integration_test.rs): Rust integration coverage.
+- [vitest.config.ts](vitest.config.ts): Frontend test configuration.
+- [playwright.config.ts](playwright.config.ts): Browser-mode end-to-end test configuration.
