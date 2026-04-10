@@ -70,6 +70,8 @@
   "show_debug_hud": "Show debug HUD",
   "hide_debug_hud": "Hide debug HUD",
   "remove_tag": "Remove tag {{name}}",
+  "tags_section_title": "Tags",
+  "tags_section_hint": "Add and organize article tags",
   "add_tag": "Add tag",
   "create_tag": "Create tag",
   "available_tags": "Available tags",

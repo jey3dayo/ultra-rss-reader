@@ -216,6 +216,13 @@ describe("FeedCleanupPage", () => {
     expect(screen.getAllByText("No unread articles").length).toBeGreaterThan(0);
     expect(screen.getByText("Strong cleanup candidate")).toBeInTheDocument();
     expect(screen.getByText("90+ days quiet with no unread backlog.")).toBeInTheDocument();
+    expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("xl:grid-cols-[260px_minmax(0,1fr)_320px]");
+    expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("lg:grid-cols-[240px_minmax(280px,1fr)]");
+    expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("xl:overflow-hidden");
+    expect(screen.getByTestId("feed-cleanup-review-panel")).toHaveClass("lg:col-span-2");
+    expect(screen.getByTestId("feed-cleanup-review-panel")).toHaveClass("xl:col-span-1");
+    expect(screen.getByTestId("feed-cleanup-review-panel")).toHaveClass("xl:sticky");
+    expect(screen.getByTestId("feed-cleanup-review-panel")).toHaveClass("xl:top-4");
 
     await user.click(screen.getByRole("button", { name: "Later" }));
 

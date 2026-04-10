@@ -196,8 +196,11 @@ export function FeedCleanupPageView({
         </div>
       ) : null}
 
-      <div className="grid min-h-0 flex-1 overflow-hidden gap-0 lg:grid-cols-[240px_minmax(0,1fr)_340px]">
-        <section className="min-h-0 overflow-hidden border-r border-border bg-sidebar/60 px-4 py-4">
+      <div
+        data-testid="feed-cleanup-layout"
+        className="grid min-h-0 flex-1 gap-0 overflow-y-auto lg:grid-cols-[240px_minmax(280px,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_320px] xl:overflow-hidden"
+      >
+        <section className="min-h-0 border-b border-border bg-sidebar/60 px-4 py-4 lg:border-r lg:border-b-0">
           <h3 className="mb-3 text-sm font-semibold">{overviewLabel}</h3>
           <div
             data-testid="feed-cleanup-sidebar-summary"
@@ -248,7 +251,7 @@ export function FeedCleanupPageView({
           )}
         </section>
 
-        <section className="min-h-0 overflow-hidden border-r border-border px-4 py-4">
+        <section className="min-h-0 border-b border-border px-4 py-4 lg:border-r lg:border-b-0">
           <h3 className="mb-3 text-sm font-semibold">{integrityMode ? integrityQueueLabel : queueLabel}</h3>
           <div className="h-[calc(100%-2rem)] space-y-2 overflow-y-auto pr-1">
             {integrityMode ? (
@@ -361,7 +364,10 @@ export function FeedCleanupPageView({
           </div>
         </section>
 
-        <section className="flex min-h-0 flex-col overflow-hidden px-5 py-4">
+        <section
+          data-testid="feed-cleanup-review-panel"
+          className="flex min-h-0 flex-col px-5 py-4 lg:col-span-2 xl:col-span-1 xl:sticky xl:top-4 xl:max-h-[calc(100dvh-7.5rem)] xl:self-start xl:overflow-hidden"
+        >
           <h3 className="mb-3 text-sm font-semibold">{reviewLabel}</h3>
           {integrityMode ? (
             selectedIntegrityIssue ? (

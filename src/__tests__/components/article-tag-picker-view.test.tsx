@@ -37,6 +37,9 @@ describe("ArticleTagPickerView", () => {
 
     const removeButton = screen.getByRole("button", { name: "Remove tag Later" });
     expect(removeButton).toHaveClass("size-6");
+    expect(screen.getByText("Tags")).toBeInTheDocument();
+    expect(screen.getByText("Add and organize article tags")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("h-8");
 
     await user.click(removeButton);
     await user.click(screen.getByRole("option", { name: "Important" }));
@@ -163,6 +166,32 @@ describe("ArticleTagPickerView", () => {
   it("keeps the view independent from the tauri api layer", () => {
     expect(articleTagPickerViewSource).not.toContain("@/api/tauri-commands");
     expect(articleTagPickerViewSource).toContain("export type ArticleTagPickerTagView");
+  });
+
+  it("keeps the tag section heading visible even when there are no assigned tags", () => {
+    render(
+      <ArticleTagPickerView
+        assignedTags={[]}
+        availableTags={[]}
+        newTagName=""
+        isExpanded={false}
+        labels={{
+          addTag: "Add tag",
+          availableTags: "Available tags",
+          newTagPlaceholder: "Create tag",
+          createTag: "Create tag",
+          removeTag: (name) => `Remove tag ${name}`,
+        }}
+        onExpandedChange={vi.fn()}
+        onNewTagNameChange={vi.fn()}
+        onAssignTag={vi.fn()}
+        onRemoveTag={vi.fn()}
+        onCreateTag={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Tags")).toBeInTheDocument();
+    expect(screen.getByText("Add and organize article tags")).toBeInTheDocument();
   });
 
   it("does not steal focus again when available tags change while open", async () => {

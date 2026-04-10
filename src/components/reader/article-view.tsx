@@ -321,6 +321,8 @@ function ArticleTagChips({ articleId }: { articleId: string }) {
       newTagName={newTagName}
       isExpanded={showPicker}
       labels={{
+        sectionTitle: t("tags_section_title"),
+        sectionHint: t("tags_section_hint"),
         addTag: t("add_tag"),
         availableTags: t("available_tags"),
         newTagPlaceholder: t("new_tag_placeholder"),

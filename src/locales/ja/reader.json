@@ -70,6 +70,8 @@
   "show_debug_hud": "デバッグHUDを表示",
   "hide_debug_hud": "デバッグHUDを隠す",
   "remove_tag": "タグ {{name}} を削除",
+  "tags_section_title": "タグ",
+  "tags_section_hint": "記事にタグを付けて整理できます",
   "add_tag": "タグを追加",
   "create_tag": "タグを作成",
   "available_tags": "利用可能なタグ",

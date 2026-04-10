@@ -1,5 +1,4 @@
 import { useId } from "react";
-import { SectionHeading } from "@/components/settings/settings-components";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -162,13 +161,15 @@ function SettingsPageActionRow({ control }: { control: SettingsPageActionControl
 
 export function SettingsPageView({ title, sections }: SettingsPageViewProps) {
   return (
-    <div className="p-6">
-      <h2 className="sticky top-0 z-10 -mx-6 mb-6 border-b border-border/70 bg-popover/95 px-6 py-3 text-center text-lg font-semibold backdrop-blur-sm">
+    <div data-testid="settings-page-root" className="p-5 sm:p-6">
+      <h2 className="sticky top-0 z-10 -mx-5 mb-5 border-b border-border/70 bg-popover/95 px-5 py-3 text-center text-lg font-semibold backdrop-blur-sm sm:-mx-6 sm:mb-6 sm:px-6">
         {title}
       </h2>
       {sections.map((section, index) => (
-        <section key={section.id} className={index === sections.length - 1 ? undefined : "mb-6"}>
-          <SectionHeading>{section.heading}</SectionHeading>
+        <section key={section.id} className={index === sections.length - 1 ? undefined : "mb-5 sm:mb-6"}>
+          <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground sm:mb-3">
+            {section.heading}
+          </h3>
           {section.controls.map((control) =>
             control.type === "select" ? (
               <SettingsPageSelectRow key={control.id} control={control} />
@@ -180,7 +181,7 @@ export function SettingsPageView({ title, sections }: SettingsPageViewProps) {
               <SettingsPageActionRow key={control.id} control={control} />
             ),
           )}
-          {section.note && <p className="mt-2 text-xs text-muted-foreground">{section.note}</p>}
+          {section.note && <p className="mt-1.5 text-xs text-muted-foreground sm:mt-2">{section.note}</p>}
         </section>
       ))}
     </div>
