@@ -16,6 +16,7 @@ const meta = {
     open: true,
     title: "Preferences",
     closeLabel: "Close preferences",
+    accountsHeading: "Accounts",
     navigation: (
       <SettingsNavView
         items={[

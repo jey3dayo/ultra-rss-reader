@@ -29,14 +29,14 @@ export function AccountsNavView({
   onAddAccount,
 }: AccountsNavViewProps) {
   return (
-    <>
+    <div className="space-y-1">
       {accounts.map((account) => (
         <button
           type="button"
           key={account.id}
           onClick={() => onSelectAccount(account.id)}
           className={cn(
-            "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+            "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors",
             account.isActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50",
           )}
         >
@@ -58,7 +58,7 @@ export function AccountsNavView({
         type="button"
         onClick={onAddAccount}
         className={cn(
-          "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground",
+          "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-muted-foreground",
           isAddAccountActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50",
         )}
       >
@@ -67,6 +67,6 @@ export function AccountsNavView({
         </span>
         {addAccountLabel}
       </button>
-    </>
+    </div>
   );
 }

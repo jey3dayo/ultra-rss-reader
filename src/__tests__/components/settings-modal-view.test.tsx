@@ -13,6 +13,7 @@ describe("SettingsModalView", () => {
         title="Preferences"
         closeLabel="Close preferences"
         navigation={<div data-testid="settings-nav">Settings navigation</div>}
+        accountsHeading="Accounts"
         accountsNavigation={<div data-testid="accounts-nav">Accounts navigation</div>}
         content={<div>Settings content</div>}
         onClose={onClose}
@@ -37,6 +38,7 @@ describe("SettingsModalView", () => {
         title="Preferences"
         closeLabel="Close preferences"
         navigation={<div>Settings navigation</div>}
+        accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
         content={<div>Settings content</div>}
         onClose={vi.fn()}
@@ -60,6 +62,7 @@ describe("SettingsModalView", () => {
         title="Preferences"
         closeLabel="Close preferences"
         navigation={<div>Settings navigation</div>}
+        accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
         content={<div>Settings content</div>}
         onClose={vi.fn()}
@@ -71,6 +74,9 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("max-h-[840px]");
     expect(screen.getByTestId("settings-nav-fade-top")).toBeInTheDocument();
     expect(screen.getByTestId("settings-nav-fade-bottom")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-accounts-section")).toHaveClass("px-3");
+    expect(screen.getByTestId("settings-accounts-section")).toHaveClass("py-3");
+    expect(screen.getByText("Accounts")).toBeInTheDocument();
     expect(screen.getByTestId("settings-content-fade-top")).toBeInTheDocument();
     expect(screen.getByTestId("settings-content-fade-bottom")).toBeInTheDocument();
   });
@@ -82,6 +88,7 @@ describe("SettingsModalView", () => {
         title="Preferences"
         closeLabel="Close preferences"
         navigation={<div>Settings navigation</div>}
+        accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
         content={<div>Settings content</div>}
         onClose={vi.fn()}
@@ -99,6 +106,7 @@ describe("SettingsModalView", () => {
         title="Preferences"
         closeLabel="Close preferences"
         navigation={<div>Settings navigation</div>}
+        accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
         content={<div>Settings content</div>}
         isLoading={false}
@@ -115,6 +123,7 @@ describe("SettingsModalView", () => {
         title="Preferences"
         closeLabel="Close preferences"
         navigation={<div>Settings navigation</div>}
+        accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
         content={<div>Settings content</div>}
         isLoading={true}

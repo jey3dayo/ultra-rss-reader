@@ -17,7 +17,7 @@ type SettingsNavViewProps = {
 
 export function SettingsNavView({ items, onSelectCategory }: SettingsNavViewProps) {
   return (
-    <nav className="space-y-1 p-2">
+    <nav className="space-y-1 p-2 pb-4">
       {items.map((item) => (
         <button
           type="button"

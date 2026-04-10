@@ -1,6 +1,7 @@
 {
   "preferences": "設定",
   "close_preferences": "設定を閉じる",
+  "accounts_heading": "アカウント",
   "add_account_ellipsis": "アカウントを追加…",
   "nav": {
     "general": "一般",

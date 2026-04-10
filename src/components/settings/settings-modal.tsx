@@ -151,6 +151,7 @@ export function SettingsModal() {
       title={t("preferences")}
       closeLabel={t("close_preferences")}
       navigation={<SettingsNavView items={navItems} onSelectCategory={handleSelectCategory} />}
+      accountsHeading={t("accounts_heading")}
       accountsNavigation={
         <AccountsNavView
           accounts={accountItems}

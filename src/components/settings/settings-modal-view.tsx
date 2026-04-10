@@ -10,6 +10,7 @@ export type SettingsModalViewProps = {
   title: string;
   closeLabel: string;
   navigation: ReactNode;
+  accountsHeading?: string;
   accountsNavigation: ReactNode;
   content: ReactNode;
   isLoading?: boolean;
@@ -22,6 +23,7 @@ export function SettingsModalView({
   title,
   closeLabel,
   navigation,
+  accountsHeading,
   accountsNavigation,
   content,
   isLoading,
@@ -66,7 +68,17 @@ export function SettingsModalView({
             />
           </div>
 
-          <div className="border-t border-border p-2">{accountsNavigation}</div>
+          <div
+            data-testid="settings-accounts-section"
+            className="border-t border-border/80 bg-sidebar/95 px-3 py-3"
+          >
+            {accountsHeading ? (
+              <p className="mb-2 px-1 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                {accountsHeading}
+              </p>
+            ) : null}
+            {accountsNavigation}
+          </div>
         </div>
 
         <div className="flex flex-1 flex-col overflow-hidden bg-popover">
