@@ -80,7 +80,7 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.host.right).toBe(0);
     expect(geometry.host.bottom).toBe(0);
     expect(geometry.diagnostics.compact).toBe(false);
-    expect(geometry.diagnostics.top).toBe(16);
+    expect(geometry.diagnostics.top).toBe(78);
     expect(geometry.chrome.close.left).toBe(16);
     expect(geometry.chrome.close.top).toBe(16);
     expect(geometry.chrome.close.size).toBe(46);
@@ -121,5 +121,25 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.chrome.action.right).toBe(12);
     expect(geometry.chrome.action.top).toBe(12);
     expect(geometry.chrome.action.size).toBe(40);
+  });
+
+  it("keeps desktop diagnostics below the fullscreen chrome without changing the stage contract", () => {
+    const hiddenDiagnostics = resolveBrowserViewerGeometry({
+      scope: "main-stage",
+      viewportWidth: 1280,
+      diagnosticsVisible: false,
+    });
+    const visibleDiagnostics = resolveBrowserViewerGeometry({
+      scope: "main-stage",
+      viewportWidth: 1280,
+      diagnosticsVisible: true,
+    });
+
+    expect(hiddenDiagnostics.stage).toEqual(visibleDiagnostics.stage);
+    expect(hiddenDiagnostics.host).toEqual(visibleDiagnostics.host);
+    expect(hiddenDiagnostics.chrome).toEqual(visibleDiagnostics.chrome);
+    expect(hiddenDiagnostics.chromeRail).toEqual(visibleDiagnostics.chromeRail);
+    expect(hiddenDiagnostics.diagnostics.top).toBe(16);
+    expect(visibleDiagnostics.diagnostics.top).toBe(78);
   });
 });

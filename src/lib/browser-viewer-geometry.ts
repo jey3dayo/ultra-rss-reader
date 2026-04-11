@@ -48,13 +48,13 @@ export type BrowserViewerGeometry = {
   };
 };
 
-function resolveMainStageGeometry(viewportWidth: number): BrowserViewerGeometry {
+function resolveMainStageGeometry(viewportWidth: number, diagnosticsVisible: boolean): BrowserViewerGeometry {
   const compact = viewportWidth <= 768;
   const ultraCompact = viewportWidth <= 520;
   const chromeInset = compact ? 12 : 16;
   const buttonSize = compact ? 40 : 46;
   const hostTopInset = chromeInset + buttonSize + 8;
-  const diagnosticsTop = compact ? hostTopInset + 2 : 16;
+  const diagnosticsTop = compact ? hostTopInset + 2 : diagnosticsVisible ? hostTopInset + 8 : 16;
 
   return {
     compact,
@@ -105,7 +105,7 @@ export function resolveBrowserViewerGeometry({
   diagnosticsVisible,
 }: BrowserViewerGeometryInput): BrowserViewerGeometry {
   if (scope === "main-stage") {
-    return resolveMainStageGeometry(viewportWidth);
+    return resolveMainStageGeometry(viewportWidth, diagnosticsVisible);
   }
 
   return {

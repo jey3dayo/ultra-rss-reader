@@ -87,16 +87,16 @@ export function AppShell() {
   }, [loadPlatformInfo]);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative flex h-full flex-col">
+      <div
+        data-browser-overlay-root=""
+        className={cn(
+          "pointer-events-none absolute inset-0 z-40",
+          overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar",
+        )}
+      />
       {appLoading && <IndeterminateProgress className="shrink-0" />}
-      <div className="relative min-h-0 flex-1">
-        <div
-          data-browser-overlay-root=""
-          className={cn(
-            "pointer-events-none absolute inset-0 z-40",
-            overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar",
-          )}
-        />
+      <div className="min-h-0 flex-1">
         <AppLayout />
       </div>
       <SettingsModal />

@@ -387,6 +387,7 @@ describe("BrowserView", () => {
     const stage = screen.getByTestId("browser-overlay-stage");
 
     expect(diagnostics).toBeInTheDocument();
+    expect(diagnostics).toHaveStyle({ top: "78px" });
     expect(stage).toHaveStyle({ top: "70px" });
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
   });
@@ -440,6 +441,7 @@ describe("BrowserView", () => {
     const stage = screen.getByTestId("browser-overlay-stage");
 
     expect(diagnostics).toBeInTheDocument();
+    expect(diagnostics).toHaveStyle({ top: "62px" });
     expect(stage).toHaveStyle({ top: "60px" });
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
   });

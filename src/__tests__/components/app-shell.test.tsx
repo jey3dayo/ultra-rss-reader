@@ -44,7 +44,7 @@ describe("AppShell", () => {
     expect(screen.getByText("App Layout")).toBeInTheDocument();
   });
 
-  it("mounts the browser overlay root as a shell sibling before AppLayout", () => {
+  it("mounts the browser overlay root as a shell child that spans the entire app shell", () => {
     const { container } = render(<AppShell />, { wrapper: createWrapper() });
 
     const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
@@ -54,7 +54,7 @@ describe("AppShell", () => {
     expect(overlayRoot).toHaveClass("absolute");
     expect(overlayRoot).toHaveClass("inset-0");
     expect(appLayout).not.toContainElement(overlayRoot);
-    expect(overlayRoot?.parentElement).toBe(appLayout.parentElement);
+    expect(overlayRoot?.parentElement).toBe(container.firstElementChild);
     expect(overlayRoot?.compareDocumentPosition(appLayout)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
