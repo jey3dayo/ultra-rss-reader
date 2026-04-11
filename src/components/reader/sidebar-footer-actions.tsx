@@ -1,4 +1,4 @@
-import { ListFilter, Settings } from "lucide-react";
+import { FolderTree, Settings } from "lucide-react";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
 import { Button } from "@/components/ui/button";
 
@@ -16,14 +16,14 @@ export function SidebarFooterActions({
   onOpenSettings,
 }: SidebarFooterActionsProps) {
   return (
-    <div className="flex min-h-10 items-center justify-center gap-2 border-t border-sidebar-border px-2 py-2">
+    <div className="flex h-10 items-center justify-center gap-1.5 border-t border-border bg-sidebar px-2">
       <Button
         variant="ghost"
         size="sm"
         onClick={onOpenFeedCleanup}
         className={controlChipVariants({ size: "comfortable", interaction: "action" })}
       >
-        <ListFilter className={controlChipIconVariants({ size: "comfortable" })} />
+        <FolderTree className={controlChipIconVariants({ size: "comfortable" })} />
         <span>{feedCleanupLabel}</span>
       </Button>
       <Button
