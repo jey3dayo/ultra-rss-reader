@@ -58,7 +58,7 @@ export function SettingsModalView({
               aria-hidden="true"
               className="pointer-events-none absolute inset-x-0 top-0 z-10 h-4 bg-gradient-to-b from-sidebar via-sidebar/92 to-transparent"
             />
-            <ScrollArea data-testid="settings-scroll-area" className="min-h-0 flex-1">
+            <ScrollArea data-testid="settings-scroll-area" className="h-full min-h-0">
               {navigation}
             </ScrollArea>
             <div
@@ -88,7 +88,7 @@ export function SettingsModalView({
               aria-hidden="true"
               className="pointer-events-none absolute inset-x-0 top-0 z-10 h-5 bg-gradient-to-b from-popover via-popover/94 to-transparent"
             />
-            <ScrollArea data-testid="settings-scroll-area" className="min-h-0 flex-1">
+            <ScrollArea data-testid="settings-scroll-area" className="h-full min-h-0">
               {content}
             </ScrollArea>
             <div

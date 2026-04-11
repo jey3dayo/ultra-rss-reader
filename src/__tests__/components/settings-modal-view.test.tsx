@@ -31,7 +31,7 @@ describe("SettingsModalView", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it("keeps both settings scroll areas shrinkable inside the modal columns", () => {
+  it("keeps both settings scroll areas constrained to their column height", () => {
     render(
       <SettingsModalView
         open={true}
@@ -51,7 +51,7 @@ describe("SettingsModalView", () => {
     expect(scrollAreas).toHaveLength(2);
     for (const scrollArea of scrollAreas) {
       expect(scrollArea).toHaveClass("min-h-0");
-      expect(scrollArea).toHaveClass("flex-1");
+      expect(scrollArea).toHaveClass("h-full");
     }
   });
 
