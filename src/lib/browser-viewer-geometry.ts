@@ -54,30 +54,29 @@ function resolveMainStageGeometry(viewportWidth: number): BrowserViewerGeometry 
   const chromeInset = compact ? 12 : 16;
   const buttonSize = compact ? 40 : 46;
   const hostTopInset = chromeInset + buttonSize + 8;
-  const chromeLaneBottom = hostTopInset;
-  const diagnosticsTop = compact ? chromeLaneBottom + 2 : 16;
+  const diagnosticsTop = compact ? hostTopInset + 2 : 16;
 
   return {
     compact,
     ultraCompact,
     chromeRail: {
-      visible: false,
+      visible: true,
       left: 0,
       right: 0,
       top: 0,
-      height: 0,
+      height: hostTopInset,
       radius: 0,
     },
     stage: {
       left: 0,
-      top: 0,
+      top: hostTopInset,
       right: 0,
       bottom: 0,
       radius: 0,
     },
     host: {
       left: 0,
-      top: hostTopInset,
+      top: 0,
       right: 0,
       bottom: 0,
     },
