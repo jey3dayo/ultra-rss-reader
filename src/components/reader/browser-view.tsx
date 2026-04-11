@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
-import { CircleAlert, ExternalLink, LoaderCircle, RotateCcw } from "lucide-react";
+import { CircleAlert, ExternalLink, LoaderCircle, RotateCcw, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -685,9 +685,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
           autoFocus
           className={closeButtonClass}
         >
-          <span aria-hidden="true" className="text-lg leading-none">
-            ×
-          </span>
+          <X aria-hidden="true" className="size-4" />
         </IconToolbarButton>
       </div>
       <div

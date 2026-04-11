@@ -285,7 +285,7 @@ describe("BrowserView", () => {
     expect(onCloseOverlay).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the fullscreen stage flush to the shell", () => {
+  it("keeps the main-stage content aligned under the rail", () => {
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 
     useUiStore.setState({
@@ -301,13 +301,15 @@ describe("BrowserView", () => {
     expect(stage).toHaveStyle({
       left: "0px",
       right: "0px",
-      top: "0px",
+      top: "70px",
       bottom: "0px",
       borderRadius: "0px",
     });
+    expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
+    expect(screen.getByTestId("browser-webview-host")).toHaveStyle({ top: "0px" });
   });
 
-  it("uses the fullscreen main-stage geometry without a top rail", () => {
+  it("uses the fullscreen main-stage geometry with a visible top rail", () => {
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 
     useUiStore.setState({
@@ -320,15 +322,34 @@ describe("BrowserView", () => {
 
     const stage = screen.getByTestId("browser-overlay-stage");
     const chrome = screen.getByTestId("browser-overlay-chrome");
+    const topRail = screen.getByTestId("browser-overlay-top-rail");
+    const host = screen.getByTestId("browser-webview-host");
 
+    expect(stage).toHaveClass("absolute", "z-10", "overflow-hidden", "bg-background");
+    expect(stage.className).not.toMatch(/\bborder\b/);
+    expect(stage.className).not.toMatch(/\bshadow-/);
+    expect(stage.className).not.toMatch(/\brounded-/);
     expect(stage).toHaveStyle({
+      left: "0px",
+      right: "0px",
+      top: "70px",
+      bottom: "0px",
+      borderRadius: "0px",
+    });
+    expect(topRail).toBeInTheDocument();
+    expect(topRail).toHaveStyle({
+      left: "0px",
+      right: "0px",
+      top: "0px",
+      height: "70px",
+      borderRadius: "0px",
+    });
+    expect(host).toHaveStyle({
       left: "0px",
       right: "0px",
       top: "0px",
       bottom: "0px",
-      borderRadius: "0px",
     });
-    expect(screen.queryByTestId("browser-overlay-top-rail")).not.toBeInTheDocument();
     expect(chrome).toBeInTheDocument();
   });
 
@@ -366,8 +387,8 @@ describe("BrowserView", () => {
     const stage = screen.getByTestId("browser-overlay-stage");
 
     expect(diagnostics).toBeInTheDocument();
-    expect(stage).toHaveStyle({ top: "0px" });
-    expect(screen.queryByTestId("browser-overlay-top-rail")).not.toBeInTheDocument();
+    expect(stage).toHaveStyle({ top: "70px" });
+    expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
   });
 
   it("keeps the fullscreen surface full bleed at narrow widths", async () => {
@@ -390,11 +411,11 @@ describe("BrowserView", () => {
     expect(stage).toHaveStyle({
       left: "0px",
       right: "0px",
-      top: "0px",
+      top: "60px",
       bottom: "0px",
       borderRadius: "0px",
     });
-    expect(screen.queryByTestId("browser-overlay-top-rail")).not.toBeInTheDocument();
+    expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
     expect(closeButton).toBeInTheDocument();
     expect(externalButton).toBeInTheDocument();
   });
@@ -419,8 +440,8 @@ describe("BrowserView", () => {
     const stage = screen.getByTestId("browser-overlay-stage");
 
     expect(diagnostics).toBeInTheDocument();
-    expect(stage).toHaveStyle({ top: "0px" });
-    expect(screen.queryByTestId("browser-overlay-top-rail")).not.toBeInTheDocument();
+    expect(stage).toHaveStyle({ top: "60px" });
+    expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
   });
 
   it("hides the debug hud when the saved preference is false", async () => {
