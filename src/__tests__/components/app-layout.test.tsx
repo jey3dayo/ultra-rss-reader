@@ -70,7 +70,7 @@ describe("AppLayout", () => {
     expect(screen.getByTestId("wide-sidebar-content")).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("mounts the browser overlay root above the full app shell", () => {
+  it("does not render the browser overlay root inside AppLayout", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       layoutMode: "wide",
@@ -79,9 +79,6 @@ describe("AppLayout", () => {
 
     const { container } = render(<AppLayout />);
 
-    const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
-    expect(overlayRoot).toBeInTheDocument();
-    expect(container.firstElementChild).toContainElement(overlayRoot);
-    expect(screen.getByTestId("main-stage")).not.toContainElement(overlayRoot);
+    expect(container.querySelector("[data-browser-overlay-root]")).toBeNull();
   });
 });

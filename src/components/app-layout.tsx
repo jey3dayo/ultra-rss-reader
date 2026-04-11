@@ -93,7 +93,6 @@ export function AppLayout() {
         overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar",
       )}
     >
-      <div data-browser-overlay-root="" className="pointer-events-none absolute inset-0 z-40" />
       {layoutMode === "wide" ? (
         <WideLayout
           focusedPane={focusedPane}

@@ -43,4 +43,58 @@ describe("AppShell", () => {
 
     expect(screen.getByText("App Layout")).toBeInTheDocument();
   });
+
+  it("mounts the browser overlay root as a shell sibling before AppLayout", () => {
+    const { container } = render(<AppShell />, { wrapper: createWrapper() });
+
+    const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
+    const appLayout = screen.getByText("App Layout");
+
+    expect(overlayRoot).toBeInTheDocument();
+    expect(overlayRoot).toHaveClass("absolute");
+    expect(overlayRoot).toHaveClass("inset-0");
+    expect(appLayout).not.toContainElement(overlayRoot);
+    expect(overlayRoot?.parentElement).toBe(appLayout.parentElement);
+    expect(overlayRoot?.compareDocumentPosition(appLayout)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it("keeps the desktop overlay titlebar helper classes on the shell overlay root", () => {
+    const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
+
+    try {
+      Object.defineProperty(window, "__TAURI_INTERNALS__", {
+        configurable: true,
+        writable: true,
+        value: {},
+      });
+      usePlatformStore.setState({
+        platform: {
+          kind: "macos",
+          capabilities: {
+            supports_reading_list: false,
+            supports_background_browser_open: false,
+            supports_runtime_window_icon_replacement: true,
+            supports_native_browser_navigation: true,
+            uses_dev_file_credentials: false,
+          },
+        },
+        loaded: true,
+        loadError: false,
+        inFlightLoad: null,
+      });
+
+      const { container } = render(<AppShell />, { wrapper: createWrapper() });
+
+      const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
+
+      expect(overlayRoot).toHaveClass("desktop-titlebar-offset");
+      expect(overlayRoot).toHaveClass("desktop-overlay-titlebar");
+    } finally {
+      if (originalTauriInternalsDescriptor) {
+        Object.defineProperty(window, "__TAURI_INTERNALS__", originalTauriInternalsDescriptor);
+      } else {
+        delete window.__TAURI_INTERNALS__;
+      }
+    }
+  });
 });

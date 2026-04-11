@@ -6,6 +6,8 @@ import { useBreakpoint } from "../hooks/use-breakpoint";
 import { useKeyboard } from "../hooks/use-keyboard";
 import { useMenuEvents } from "../hooks/use-menu-events";
 import { useUpdater } from "../hooks/use-updater";
+import { cn } from "../lib/utils";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "../lib/window-chrome";
 import { usePlatformStore } from "../stores/platform-store";
 import { useUiStore } from "../stores/ui-store";
 import { AppConfirmDialog } from "./app-confirm-dialog";
@@ -72,8 +74,13 @@ export function AppShell() {
   useMenuEvents();
   useUpdater();
   const loadPlatformInfo = usePlatformStore((state) => state.loadPlatformInfo);
+  const platformKind = usePlatformStore((state) => state.platform.kind);
   const commandPaletteOpen = useUiStore((state) => state.commandPaletteOpen);
   const appLoading = useUiStore((state) => state.appLoading);
+  const overlayTitlebar = shouldUseDesktopOverlayTitlebar({
+    platformKind,
+    hasTauriRuntime: hasTauriRuntime(),
+  });
 
   useEffect(() => {
     loadPlatformInfo();
@@ -82,7 +89,16 @@ export function AppShell() {
   return (
     <div className="flex h-full flex-col">
       {appLoading && <IndeterminateProgress className="shrink-0" />}
-      <AppLayout />
+      <div className="relative min-h-0 flex-1">
+        <div
+          data-browser-overlay-root=""
+          className={cn(
+            "pointer-events-none absolute inset-0 z-40",
+            overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar",
+          )}
+        />
+        <AppLayout />
+      </div>
       <SettingsModal />
       <AppConfirmDialog />
       <Toast />
