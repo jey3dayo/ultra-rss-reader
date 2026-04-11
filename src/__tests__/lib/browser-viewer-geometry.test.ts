@@ -16,6 +16,10 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.stage.bottom).toBe(0);
     expect(geometry.stage.radius).toBe(0);
     expect(geometry.chromeRail.visible).toBe(false);
+    expect(geometry.host.left).toBe(0);
+    expect(geometry.host.top).toBe(60);
+    expect(geometry.host.right).toBe(0);
+    expect(geometry.host.bottom).toBe(0);
     expect(geometry.chrome.close.left).toBe(12);
     expect(geometry.chrome.close.top).toBe(12);
     expect(geometry.chrome.close.size).toBe(40);
@@ -37,6 +41,7 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.stage.right).toBe(0);
     expect(geometry.stage.bottom).toBe(0);
     expect(geometry.stage.radius).toBe(0);
+    expect(geometry.host.top).toBe(60);
     expect(geometry.diagnostics.compact).toBe(true);
     expect(geometry.diagnostics.top).toBe(62);
   });
@@ -55,6 +60,7 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.stage.bottom).toBe(0);
     expect(geometry.stage.radius).toBe(0);
     expect(geometry.chromeRail.visible).toBe(false);
+    expect(geometry.host.top).toBe(70);
   });
 
   it("keeps the desktop stage full-bleed for floating chrome", () => {
@@ -71,6 +77,7 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.stage.bottom).toBe(0);
     expect(geometry.stage.radius).toBe(0);
     expect(geometry.chromeRail.visible).toBe(false);
+    expect(geometry.host.top).toBe(70);
     expect(geometry.chrome.close.left).toBe(16);
     expect(geometry.chrome.close.top).toBe(16);
   });
@@ -90,6 +97,7 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.stage.bottom).toBe(0);
     expect(geometry.stage.radius).toBe(0);
     expect(geometry.chromeRail.visible).toBe(false);
+    expect(geometry.host.top).toBe(60);
     expect(geometry.chrome.close.left).toBe(12);
     expect(geometry.chrome.close.top).toBe(12);
     expect(geometry.chrome.close.size).toBe(40);

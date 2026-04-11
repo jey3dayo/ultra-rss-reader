@@ -716,7 +716,17 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
           borderRadius: `${geometry.stage.radius}px`,
         }}
       >
-        <div ref={hostRef} data-testid="browser-webview-host" className="h-full w-full bg-background" />
+        <div
+          ref={hostRef}
+          data-testid="browser-webview-host"
+          className="absolute bg-background"
+          style={{
+            left: `${geometry.host.left}px`,
+            top: `${geometry.host.top}px`,
+            right: `${geometry.host.right}px`,
+            bottom: `${geometry.host.bottom}px`,
+          }}
+        />
         {isLoading ? (
           <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-6">
             <div className="max-w-sm rounded-2xl border border-white/10 bg-black/58 px-5 py-4 text-center shadow-[0_18px_40px_rgba(0,0,0,0.32)] backdrop-blur-md">

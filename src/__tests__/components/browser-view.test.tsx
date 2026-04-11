@@ -60,10 +60,10 @@ vi.mock("@tauri-apps/api/event", () => ({
   listen: listenMock,
 }));
 
-let hostRect: MockHostRect = { left: 0, top: 0, width: 0, height: 0 };
+let rootRect: MockHostRect = { left: 0, top: 0, width: 1400, height: 900 };
 
-function mockHostRect(nextRect: MockHostRect) {
-  hostRect = nextRect;
+function mockRootRect(nextRect: MockHostRect) {
+  rootRect = nextRect;
 }
 
 function createDomRect(rect: MockHostRect): DOMRect {
@@ -78,6 +78,46 @@ function createDomRect(rect: MockHostRect): DOMRect {
     bottom: rect.top + rect.height,
     toJSON: () => rect,
   } as DOMRect;
+}
+
+function parsePixelValue(value: string | null | undefined): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.match(/^(-?\d+(?:\.\d+)?)px$/);
+  return match ? Number(match[1]) : null;
+}
+
+function resolveMockRect(element: HTMLElement): MockHostRect {
+  if (element.hasAttribute("data-browser-overlay-root")) {
+    return rootRect;
+  }
+
+  const testId = element.dataset.testid;
+  if (testId === "browser-overlay-shell") {
+    return rootRect;
+  }
+
+  const parentElement = element.parentElement;
+  const parentRect = parentElement ? resolveMockRect(parentElement) : rootRect;
+  const style = element.style;
+
+  if (testId === "browser-overlay-stage" || testId === "browser-webview-host") {
+    const left = parsePixelValue(style.left) ?? 0;
+    const top = parsePixelValue(style.top) ?? 0;
+    const right = parsePixelValue(style.right) ?? 0;
+    const bottom = parsePixelValue(style.bottom) ?? 0;
+
+    return {
+      left: parentRect.left + left,
+      top: parentRect.top + top,
+      width: parentRect.width - left - right,
+      height: parentRect.height - top - bottom,
+    };
+  }
+
+  return parentRect;
 }
 
 function setWindowSize(width: number, height: number) {
@@ -127,10 +167,12 @@ describe("BrowserView", () => {
     window.__DEV_BROWSER_MOCKS__ = false;
     window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
     setWindowSize(1400, 900);
-    mockHostRect({ left: 0, top: 0, width: 0, height: 0 });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
     getBoundingClientRectSpy = vi
       .spyOn(HTMLElement.prototype, "getBoundingClientRect")
-      .mockImplementation(() => createDomRect(hostRect));
+      .mockImplementation(function (this: HTMLElement) {
+        return createDomRect(resolveMockRect(this));
+      });
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     setupTauriMocks((cmd, args) => {
@@ -158,7 +200,7 @@ describe("BrowserView", () => {
   });
 
   it("creates the embedded browser webview with fullscreen bounds on first create", async () => {
-    mockHostRect({ left: 0, top: 0, width: 1400, height: 900 });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 
     useUiStore.setState({
       selectedArticleId: "art-1",
@@ -173,14 +215,14 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 0, width: 1400, height: 900 },
+          bounds: { x: 0, y: 70, width: 1400, height: 830 },
         },
       });
     });
   });
 
   it("renders minimal chrome without the legacy preview context", async () => {
-    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 
     useUiStore.setState({
       selectedArticleId: "art-1",
@@ -203,7 +245,7 @@ describe("BrowserView", () => {
   });
 
   it("does not close from the scrim in main-stage", async () => {
-    mockHostRect({ left: 0, top: 0, width: 1400, height: 900 });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 
     const onCloseOverlay = vi.fn();
 
@@ -223,7 +265,7 @@ describe("BrowserView", () => {
   });
 
   it("closes from the close button", async () => {
-    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 
     const onCloseOverlay = vi.fn();
 
@@ -244,7 +286,7 @@ describe("BrowserView", () => {
   });
 
   it("keeps the fullscreen stage flush to the shell", () => {
-    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 
     useUiStore.setState({
       selectedArticleId: "art-1",
@@ -266,7 +308,7 @@ describe("BrowserView", () => {
   });
 
   it("uses the fullscreen main-stage geometry without a top rail", () => {
-    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 
     useUiStore.setState({
       selectedArticleId: "art-1",
@@ -291,7 +333,7 @@ describe("BrowserView", () => {
   });
 
   it("shows loading feedback while the embedded preview is still starting", async () => {
-    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 
     useUiStore.setState({
       selectedArticleId: "art-1",
@@ -306,7 +348,7 @@ describe("BrowserView", () => {
   });
 
   it("shows the debug hud without moving the fullscreen stage", async () => {
-    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
     usePreferencesStore.setState({
       prefs: { debug_browser_hud: "true" },
       loaded: true,
@@ -330,7 +372,7 @@ describe("BrowserView", () => {
 
   it("keeps the fullscreen surface full bleed at narrow widths", async () => {
     setWindowSize(500, 900);
-    mockHostRect({ left: 12, top: 64, width: 476, height: 820 });
+    mockRootRect({ left: 0, top: 0, width: 500, height: 900 });
 
     useUiStore.setState({
       selectedArticleId: "art-1",
@@ -359,7 +401,7 @@ describe("BrowserView", () => {
 
   it("keeps the diagnostics overlay off the fullscreen surface at narrow widths", async () => {
     setWindowSize(500, 900);
-    mockHostRect({ left: 12, top: 64, width: 476, height: 820 });
+    mockRootRect({ left: 0, top: 0, width: 500, height: 900 });
     usePreferencesStore.setState({
       prefs: { debug_browser_hud: "true" },
       loaded: true,
@@ -382,7 +424,7 @@ describe("BrowserView", () => {
   });
 
   it("hides the debug hud when the saved preference is false", async () => {
-    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
     usePreferencesStore.setState({
       prefs: { debug_browser_hud: "false" },
       loaded: true,
@@ -402,7 +444,7 @@ describe("BrowserView", () => {
   });
 
   it("shows a browser-mode fallback panel instead of a blank surface when no Tauri runtime is available", async () => {
-    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
     Object.defineProperty(window, "__TAURI_INTERNALS__", {
       configurable: true,
       writable: true,
@@ -442,7 +484,7 @@ describe("BrowserView", () => {
   });
 
   it("does not close when clicking the overlay lane outside the close button", async () => {
-    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 
     useUiStore.setState({
       selectedArticleId: "art-1",
@@ -460,7 +502,7 @@ describe("BrowserView", () => {
   });
 
   it("sends updated fullscreen browser bounds when the host resizes", async () => {
-    mockHostRect({ left: 0, top: 0, width: 1400, height: 900 });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
     useUiStore.setState({
       selectedArticleId: "art-1",
       contentMode: "browser",
@@ -474,14 +516,14 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 0, width: 1400, height: 900 },
+          bounds: { x: 0, y: 70, width: 1400, height: 830 },
         },
       });
     });
 
     commands = [];
     setWindowSize(1200, 800);
-    mockHostRect({ left: 0, top: 0, width: 1200, height: 800 });
+    mockRootRect({ left: 0, top: 0, width: 1200, height: 800 });
 
     await act(async () => {
       for (const callback of resizeObserverCallbacks) {
@@ -493,14 +535,14 @@ describe("BrowserView", () => {
       expect(commands).toContainEqual({
         cmd: "set_browser_webview_bounds",
         args: {
-          bounds: { x: 0, y: 0, width: 1200, height: 800 },
+          bounds: { x: 0, y: 70, width: 1200, height: 730 },
         },
       });
     });
   });
 
   it("closes browser mode when the embedded browser webview closes natively", async () => {
-    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
     useUiStore.setState({
       selectedArticleId: "art-1",
       contentMode: "browser",
@@ -524,7 +566,7 @@ describe("BrowserView", () => {
   });
 
   it("closes the browser webview once on unmount", async () => {
-    mockHostRect({ left: 380, top: 48, width: 900, height: 720 });
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
     useUiStore.setState({
       selectedArticleId: "art-1",
       contentMode: "browser",

@@ -24,6 +24,12 @@ export type BrowserViewerGeometry = {
     bottom: number;
     radius: number;
   };
+  host: {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+  };
   chrome: {
     close: {
       left: number;
@@ -47,7 +53,8 @@ function resolveMainStageGeometry(viewportWidth: number): BrowserViewerGeometry 
   const ultraCompact = viewportWidth <= 520;
   const chromeInset = compact ? 12 : 16;
   const buttonSize = compact ? 40 : 46;
-  const chromeLaneBottom = compact ? chromeInset + buttonSize + 8 : 16;
+  const hostTopInset = chromeInset + buttonSize + 8;
+  const chromeLaneBottom = hostTopInset;
   const diagnosticsTop = compact ? chromeLaneBottom + 2 : 16;
 
   return {
@@ -67,6 +74,12 @@ function resolveMainStageGeometry(viewportWidth: number): BrowserViewerGeometry 
       right: 0,
       bottom: 0,
       radius: 0,
+    },
+    host: {
+      left: 0,
+      top: hostTopInset,
+      right: 0,
+      bottom: 0,
     },
     chrome: {
       close: {
@@ -113,6 +126,12 @@ export function resolveBrowserViewerGeometry({
       right: 16,
       bottom: 16,
       radius: 20,
+    },
+    host: {
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
     },
     chrome: {
       close: {
