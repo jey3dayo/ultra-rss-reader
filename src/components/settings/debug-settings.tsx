@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsPageView } from "@/components/settings/settings-page-view";
 import { runRuntimeDevScenario } from "@/lib/dev-scenario-runtime";
+import { resolveDevWebPreviewGeometryUrl } from "@/lib/dev-web-preview-geometry";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -24,6 +25,11 @@ export function DebugSettings() {
     closeSettings();
     openBrowser(url);
   }, [closeSettings, openBrowser, showToast, t]);
+
+  const openWebPreviewGeometryCheck = useCallback(() => {
+    closeSettings();
+    openBrowser(resolveDevWebPreviewGeometryUrl());
+  }, [closeSettings, openBrowser]);
 
   const runScenario = useCallback(
     async (
@@ -83,12 +89,12 @@ export function DebugSettings() {
           note: t("debug.scenarios_note"),
           controls: [
             {
-              id: "debug-image-viewer-overlay",
+              id: "debug-web-preview-geometry-check",
               type: "action",
-              label: t("debug.image_viewer_overlay"),
+              label: t("debug.web_preview_geometry_check"),
               actionLabel: t("debug.open_now"),
               disabled: !devBuild,
-              onAction: () => void runScenario("image-viewer-overlay"),
+              onAction: openWebPreviewGeometryCheck,
             },
             {
               id: "debug-feed-cleanup-broken-references",

@@ -220,7 +220,7 @@
     "web_preview_url_required": "Enter a web preview URL.",
     "scenarios": "Screen States",
     "scenarios_note": "Open common debug states from here without changing env vars.",
-    "image_viewer_overlay": "Open image viewer overlay",
+    "web_preview_geometry_check": "Open web preview geometry check",
     "feed_cleanup_broken_references": "Open feed cleanup broken references",
     "reading_display_mode": "Open reading display mode settings",
     "open_now": "Open now",

@@ -148,11 +148,6 @@ description = "Run native app in dev mode"
 env = { DEV_CREDENTIALS = "1" }
 run = "pnpm exec tauri dev -c src-tauri/tauri.dev.conf.json"
 
-[tasks."app:dev:image-viewer"]
-description = "Run native app in dev mode and jump into the image-viewer overlay state"
-env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "image-viewer-overlay" }
-run = "pnpm exec tauri dev -c src-tauri/tauri.dev.conf.json"
-
 [tasks."app:dev:web-preview"]
 description = "Run native app in dev mode and open VITE_DEV_WEB_URL directly in Web Preview (optionally sized by VITE_DEV_WINDOW_WIDTH/HEIGHT)"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-web-preview-url" }
@@ -161,11 +156,6 @@ run = "pnpm exec tauri dev -c src-tauri/tauri.dev.conf.json"
 [tasks."app:dev:feed-cleanup"]
 description = "Run native app in dev mode and jump into the feed cleanup page"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-feed-cleanup" }
-run = "pnpm exec tauri dev -c src-tauri/tauri.dev.conf.json"
-
-[tasks."app:dev:image-viewer:debug"]
-description = "Run the image-viewer overlay dev flow for debug settings verification"
-env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "image-viewer-overlay" }
 run = "pnpm exec tauri dev -c src-tauri/tauri.dev.conf.json"
 
 [tasks."app:dev:signed"]

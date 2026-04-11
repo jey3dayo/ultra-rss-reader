@@ -52,13 +52,20 @@ describe("DebugSettings", () => {
     expect(useUiStore.getState().settingsOpen).toBe(false);
   });
 
-  it("runs debug scenarios from settings", async () => {
+  it("opens the geometry check page instead of the old image viewer overlay flow", async () => {
     const user = userEvent.setup();
+    const geometryCheckUrl = new URL("/dev-web-preview-geometry.html", window.location.origin).toString();
+
+    useUiStore.setState({ settingsOpen: true });
 
     render(<DebugSettings />, { wrapper: createWrapper() });
 
-    await user.click(screen.getByRole("button", { name: "Open now: Open image viewer overlay" }));
+    expect(screen.queryByRole("button", { name: "Open now: Open image viewer overlay" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Open now: Open web preview geometry check" }));
 
-    expect(runRuntimeDevScenarioMock).toHaveBeenCalled();
+    expect(runRuntimeDevScenarioMock).not.toHaveBeenCalled();
+    expect(useUiStore.getState().browserUrl).toBe(geometryCheckUrl);
+    expect(useUiStore.getState().contentMode).toBe("browser");
+    expect(useUiStore.getState().settingsOpen).toBe(false);
   });
 });

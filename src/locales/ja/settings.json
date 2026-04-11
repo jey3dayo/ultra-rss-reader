@@ -220,7 +220,7 @@
     "web_preview_url_required": "WebプレビューURLを入力してください。",
     "scenarios": "画面再現",
     "scenarios_note": "env を触らずに、よく使う開発用の画面状態をここから直接開けます。",
-    "image_viewer_overlay": "画像ビューアー overlay を開く",
+    "web_preview_geometry_check": "Webプレビューの geometry チェックを開く",
     "feed_cleanup_broken_references": "フィード整理の broken references を開く",
     "reading_display_mode": "閲覧設定の表示モードを開く",
     "open_now": "今すぐ開く",
