@@ -52,7 +52,7 @@ function resolveMainStageGeometry(viewportWidth: number, diagnosticsVisible: boo
   const compact = viewportWidth <= 768;
   const ultraCompact = viewportWidth <= 520;
   const chromeInset = compact ? 12 : 16;
-  const buttonSize = compact ? 40 : 46;
+  const buttonSize = compact ? 44 : 46;
   const hostTopInset = chromeInset + buttonSize + 8;
   const diagnosticsTop = compact ? hostTopInset + 2 : diagnosticsVisible ? hostTopInset + 8 : 16;
 

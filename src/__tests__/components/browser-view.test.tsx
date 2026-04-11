@@ -412,7 +412,7 @@ describe("BrowserView", () => {
     expect(stage).toHaveStyle({
       left: "0px",
       right: "0px",
-      top: "60px",
+      top: "64px",
       bottom: "0px",
       borderRadius: "0px",
     });
@@ -441,8 +441,8 @@ describe("BrowserView", () => {
     const stage = screen.getByTestId("browser-overlay-stage");
 
     expect(diagnostics).toBeInTheDocument();
-    expect(diagnostics).toHaveStyle({ top: "62px" });
-    expect(stage).toHaveStyle({ top: "60px" });
+    expect(diagnostics).toHaveStyle({ top: "66px" });
+    expect(stage).toHaveStyle({ top: "64px" });
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
   });
 

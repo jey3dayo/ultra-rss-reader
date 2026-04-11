@@ -12,7 +12,7 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.compact).toBe(true);
     expect(geometry.ultraCompact).toBe(false);
     expect(geometry.stage.left).toBe(0);
-    expect(geometry.stage.top).toBe(60);
+    expect(geometry.stage.top).toBe(64);
     expect(geometry.stage.right).toBe(0);
     expect(geometry.stage.bottom).toBe(0);
     expect(geometry.stage.radius).toBe(0);
@@ -20,20 +20,20 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.chromeRail.left).toBe(0);
     expect(geometry.chromeRail.right).toBe(0);
     expect(geometry.chromeRail.top).toBe(0);
-    expect(geometry.chromeRail.height).toBe(60);
+    expect(geometry.chromeRail.height).toBe(64);
     expect(geometry.chromeRail.radius).toBe(0);
     expect(geometry.host.left).toBe(0);
     expect(geometry.host.top).toBe(0);
     expect(geometry.host.right).toBe(0);
     expect(geometry.host.bottom).toBe(0);
     expect(geometry.diagnostics.compact).toBe(true);
-    expect(geometry.diagnostics.top).toBe(62);
+    expect(geometry.diagnostics.top).toBe(66);
     expect(geometry.chrome.close.left).toBe(12);
     expect(geometry.chrome.close.top).toBe(12);
-    expect(geometry.chrome.close.size).toBe(40);
+    expect(geometry.chrome.close.size).toBe(44);
     expect(geometry.chrome.action.right).toBe(12);
     expect(geometry.chrome.action.top).toBe(12);
-    expect(geometry.chrome.action.size).toBe(40);
+    expect(geometry.chrome.action.size).toBe(44);
   });
 
   it("keeps diagnostics from changing the compact main-stage geometry", () => {
@@ -49,9 +49,9 @@ describe("resolveBrowserViewerGeometry", () => {
     });
 
     expect(hiddenDiagnostics.diagnostics.compact).toBe(true);
-    expect(hiddenDiagnostics.diagnostics.top).toBe(62);
+    expect(hiddenDiagnostics.diagnostics.top).toBe(66);
     expect(visibleDiagnostics.diagnostics.compact).toBe(true);
-    expect(visibleDiagnostics.diagnostics.top).toBe(62);
+    expect(visibleDiagnostics.diagnostics.top).toBe(66);
     expect(visibleDiagnostics).toEqual(hiddenDiagnostics);
   });
 
@@ -99,7 +99,7 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.compact).toBe(true);
     expect(geometry.ultraCompact).toBe(true);
     expect(geometry.stage.left).toBe(0);
-    expect(geometry.stage.top).toBe(60);
+    expect(geometry.stage.top).toBe(64);
     expect(geometry.stage.right).toBe(0);
     expect(geometry.stage.bottom).toBe(0);
     expect(geometry.stage.radius).toBe(0);
@@ -107,20 +107,20 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.chromeRail.left).toBe(0);
     expect(geometry.chromeRail.right).toBe(0);
     expect(geometry.chromeRail.top).toBe(0);
-    expect(geometry.chromeRail.height).toBe(60);
+    expect(geometry.chromeRail.height).toBe(64);
     expect(geometry.chromeRail.radius).toBe(0);
     expect(geometry.host.left).toBe(0);
     expect(geometry.host.top).toBe(0);
     expect(geometry.host.right).toBe(0);
     expect(geometry.host.bottom).toBe(0);
     expect(geometry.diagnostics.compact).toBe(true);
-    expect(geometry.diagnostics.top).toBe(62);
+    expect(geometry.diagnostics.top).toBe(66);
     expect(geometry.chrome.close.left).toBe(12);
     expect(geometry.chrome.close.top).toBe(12);
-    expect(geometry.chrome.close.size).toBe(40);
+    expect(geometry.chrome.close.size).toBe(44);
     expect(geometry.chrome.action.right).toBe(12);
     expect(geometry.chrome.action.top).toBe(12);
-    expect(geometry.chrome.action.size).toBe(40);
+    expect(geometry.chrome.action.size).toBe(44);
   });
 
   it("keeps desktop diagnostics below the fullscreen chrome without changing the stage contract", () => {
