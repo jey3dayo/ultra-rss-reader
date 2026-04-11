@@ -1,21 +1,13 @@
 import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import type { DevScenario, DevScenarioContext, DevScenarioId } from "@/dev/scenarios/types";
-import {
-  pickImageViewerOverlayArticle as pickImageViewerOverlayArticleForRuntime,
-  rankImageViewerOverlayFeeds as rankImageViewerOverlayFeedsForRuntime,
-  resolveImageViewerOverlayBrowserUrl as resolveImageViewerOverlayBrowserUrlForRuntime,
-} from "@/lib/dev-image-viewer-overlay";
 import { loadDevRuntimeOptions, readDevWebUrl, readDevWindowSize } from "@/lib/dev-intent";
 import { resolveFeedLandingArticle } from "@/lib/feed-landing";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
-type RankedFeedSelection = {
+type LandingFeedSelection = {
   account: AccountDto;
   feed: FeedDto;
   articles: ArticleDto[];
-};
-
-type LandingFeedSelection = RankedFeedSelection & {
   article: ArticleDto;
 };
 
@@ -25,6 +17,8 @@ type TagScenarioSelection = {
   counts: Record<string, number>;
   articles: ArticleDto[];
 };
+
+const DEFAULT_DEV_FEED_HINTS = ["マガポケ", "ジャンプ+", "comic", "manga", "少年ジャンプ", "ゴリミー"];
 
 export function createUnsupportedDevScenarioRunner(id: DevScenarioId): DevScenario["run"] {
   return ({ ui }) => {
@@ -38,30 +32,6 @@ async function cacheAccounts(ctx: DevScenarioContext): Promise<AccountDto[]> {
   return accounts;
 }
 
-async function findRankedFeedSelection(
-  ctx: DevScenarioContext,
-  accounts: readonly AccountDto[],
-): Promise<RankedFeedSelection | null> {
-  for (const account of accounts) {
-    const feeds = await Promise.resolve(ctx.actions.listFeeds(account.id));
-    ctx.queryClient.setQueryData(["feeds", account.id], feeds);
-
-    for (const candidateFeed of rankImageViewerOverlayFeeds(feeds)) {
-      const candidateArticles = await Promise.resolve(ctx.actions.listArticles(candidateFeed.id));
-      ctx.queryClient.setQueryData(["articles", candidateFeed.id], candidateArticles);
-      if (candidateArticles.length > 0) {
-        return {
-          account,
-          feed: candidateFeed,
-          articles: candidateArticles,
-        };
-      }
-    }
-  }
-
-  return null;
-}
-
 async function findRankedLandingFeedSelection(
   ctx: DevScenarioContext,
   accounts: readonly AccountDto[],
@@ -70,7 +40,7 @@ async function findRankedLandingFeedSelection(
     const feeds = await Promise.resolve(ctx.actions.listFeeds(account.id));
     ctx.queryClient.setQueryData(["feeds", account.id], feeds);
 
-    for (const candidateFeed of rankImageViewerOverlayFeeds(feeds)) {
+    for (const candidateFeed of rankPreferredDevFeeds(feeds)) {
       const candidateArticles = await Promise.resolve(ctx.actions.listArticles(candidateFeed.id));
       ctx.queryClient.setQueryData(["articles", candidateFeed.id], candidateArticles);
       if (candidateArticles.length === 0) {
@@ -183,43 +153,6 @@ async function findTagScenarioSelection(
   }
 
   return null;
-}
-
-export async function runImageViewerOverlayScenario(ctx: DevScenarioContext): Promise<void> {
-  try {
-    const accounts = await cacheAccounts(ctx);
-    if (accounts.length === 0) {
-      ctx.ui.showToast("Dev intent could not find any accounts.");
-      return;
-    }
-
-    const selection = await findRankedFeedSelection(ctx, accounts);
-    if (!selection) {
-      ctx.ui.showToast("Dev intent could not find any articles.");
-      return;
-    }
-
-    const article = pickImageViewerOverlayArticle(selection.articles);
-    if (!article) {
-      ctx.ui.showToast("Dev intent could not find any articles.");
-      return;
-    }
-
-    const applyViewerState = () => {
-      selectFeedArticle(ctx, selection.account.id, selection.feed.id, article.id, "on", "on");
-      const browserUrl = resolveImageViewerOverlayBrowserUrl(article.url);
-      if (browserUrl) {
-        ctx.ui.openBrowser(browserUrl);
-      }
-    };
-
-    applyViewerState();
-    window.setTimeout(applyViewerState, 300);
-    window.setTimeout(applyViewerState, 1200);
-  } catch (error) {
-    console.error("Failed to hydrate dev intent:", error);
-    ctx.ui.showToast("Dev intent failed to open the overlay.");
-  }
 }
 
 export async function runOpenWebPreviewUrlScenario(ctx: DevScenarioContext): Promise<void> {
@@ -374,19 +307,17 @@ export async function runOpenTagViewScenario(ctx: DevScenarioContext): Promise<v
   }
 }
 
-export function resolveImageViewerOverlayBrowserUrl(fallbackUrl: string | null): string | null {
-  return resolveImageViewerOverlayBrowserUrlForRuntime(fallbackUrl);
+function rankPreferredDevFeeds(feeds: FeedDto[]): FeedDto[] {
+  return [...feeds].sort((left, right) => scorePreferredDevFeed(right) - scorePreferredDevFeed(left));
 }
 
-export function pickImageViewerOverlayFeed(feeds: FeedDto[]): FeedDto | null {
-  const scoredFeeds = rankImageViewerOverlayFeedsForRuntime(feeds);
-  return scoredFeeds[0] ?? null;
-}
+function scorePreferredDevFeed(feed: FeedDto): number {
+  const normalized = [feed.title, feed.url, feed.site_url].filter(Boolean).join(" ").toLowerCase();
+  const hintScore = DEFAULT_DEV_FEED_HINTS.reduce((score, hint, index) => {
+    return normalized.includes(hint.toLowerCase()) ? score + (DEFAULT_DEV_FEED_HINTS.length - index) * 100 : score;
+  }, 0);
 
-export function rankImageViewerOverlayFeeds(feeds: FeedDto[]): FeedDto[] {
-  return rankImageViewerOverlayFeedsForRuntime(feeds);
-}
-
-export function pickImageViewerOverlayArticle(articles: ArticleDto[]): ArticleDto | null {
-  return pickImageViewerOverlayArticleForRuntime(articles);
+  const unreadScore = Math.min(feed.unread_count, 100);
+  const displayModeScore = feed.reader_mode === "on" && feed.web_preview_mode === "on" ? 500 : 0;
+  return displayModeScore + hintScore + unreadScore;
 }

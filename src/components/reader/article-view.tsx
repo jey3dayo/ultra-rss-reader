@@ -9,7 +9,6 @@ import { IconToolbarMenuTrigger } from "@/components/shared/icon-toolbar-control
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
-import { useResolvedDevIntent } from "@/hooks/use-resolved-dev-intent";
 import {
   useArticlesByTag,
   useArticleTags,
@@ -30,7 +29,6 @@ import {
   resolveArticleDateLocale,
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
-import { resolveActiveDevIntentBrowserUrl } from "@/lib/dev-intent";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
@@ -450,8 +448,7 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
   const autoMarkedArticleIdRef = useRef<string | null>(null);
   const wasBrowserOpenRef = useRef(false);
   const isBrowserOpen = contentMode === "browser";
-  const { intent: devIntent } = useResolvedDevIntent();
-  const intendedBrowserUrl = resolveActiveDevIntentBrowserUrl(devIntent, browserUrl, article.url);
+  const intendedBrowserUrl = article.url;
   const requestedDisplay = resolveArticleDisplay({
     appDefault: resolveAppDefaultDisplayModes(prefs),
     feedOverride: resolveFeedDisplayOverrides(feed),

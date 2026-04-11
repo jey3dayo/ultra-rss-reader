@@ -1,5 +1,4 @@
 import {
-  runImageViewerOverlayScenario,
   runOpenFeedFirstArticleScenario,
   runOpenTagViewScenario,
   runOpenWebPreviewUrlScenario,
@@ -21,11 +20,6 @@ function createUiBackedDevScenarioRunner(run: (ui: DevScenarioContext["ui"]) => 
 }
 
 const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
-  "image-viewer-overlay": {
-    title: "Image viewer overlay",
-    keywords: ["image", "viewer", "overlay"],
-    run: runImageViewerOverlayScenario,
-  },
   "open-web-preview-url": {
     title: "Open web preview URL",
     keywords: ["web", "preview", "url", "browser"],

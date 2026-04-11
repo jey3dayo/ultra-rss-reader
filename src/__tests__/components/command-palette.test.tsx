@@ -23,9 +23,9 @@ import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "..
 
 const devScenarioFixtures = [
   {
-    id: "image-viewer-overlay",
-    title: "Image viewer overlay",
-    keywords: ["image", "viewer", "overlay"],
+    id: "open-feed-cleanup-broken-references",
+    title: "Open feed cleanup broken references",
+    keywords: ["feed", "cleanup", "broken", "references"],
   },
   {
     id: "open-add-feed-dialog",
@@ -187,7 +187,7 @@ describe("CommandPalette", () => {
 
     expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
     expect(screen.queryByText("Dev Scenarios")).not.toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: /Image viewer overlay/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Open feed cleanup broken references/ })).not.toBeInTheDocument();
     expect(loadCommandPaletteDevScenariosMock).not.toHaveBeenCalled();
 
     first.unmount();
@@ -196,7 +196,7 @@ describe("CommandPalette", () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     expect(await screen.findByText("Dev Scenarios", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /Image viewer overlay/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Open feed cleanup broken references/ })).toBeInTheDocument();
     expect(loadCommandPaletteDevScenariosMock).toHaveBeenCalledTimes(1);
   });
 
@@ -207,16 +207,16 @@ describe("CommandPalette", () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     const input = await screen.findByPlaceholderText("Search commands…");
-    await user.type(input, "overlay");
+    await user.type(input, "broken");
 
-    expect(await screen.findByRole("option", { name: /Image viewer overlay/ })).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /Open feed cleanup broken references/ })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: /Open add feed dialog/ })).not.toBeInTheDocument();
 
     await user.clear(input);
     await user.type(input, "dialog");
 
     expect(await screen.findByRole("option", { name: /Open add feed dialog/ })).toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: /Image viewer overlay/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Open feed cleanup broken references/ })).not.toBeInTheDocument();
   });
 
   it("runs a dev scenario without writing to recent history and closes the palette", async () => {
@@ -225,10 +225,10 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("option", { name: /Image viewer overlay/ }));
+    await user.click(await screen.findByRole("option", { name: /Open feed cleanup broken references/ }));
 
     await waitFor(() => {
-      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("image-viewer-overlay");
+      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("open-feed-cleanup-broken-references");
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
       expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
     });
@@ -242,11 +242,11 @@ describe("CommandPalette", () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     const input = await screen.findByPlaceholderText("Search commands…");
-    await user.type(input, "overlay");
-    await user.click(await screen.findByRole("option", { name: /Image viewer overlay/ }));
+    await user.type(input, "broken");
+    await user.click(await screen.findByRole("option", { name: /Open feed cleanup broken references/ }));
 
     await waitFor(() => {
-      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("image-viewer-overlay");
+      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("open-feed-cleanup-broken-references");
       expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(["action:open-settings"]));
     });
   });
@@ -258,13 +258,13 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("option", { name: /Image viewer overlay/ }));
+    await user.click(await screen.findByRole("option", { name: /Open feed cleanup broken references/ }));
 
     await waitFor(() => {
-      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("image-viewer-overlay");
+      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("open-feed-cleanup-broken-references");
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
       expect(useUiStore.getState().toastMessage).toEqual({
-        message: 'Failed to run dev scenario "image-viewer-overlay": boom',
+        message: 'Failed to run dev scenario "open-feed-cleanup-broken-references": boom',
       });
     });
   });

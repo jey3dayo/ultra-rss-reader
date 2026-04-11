@@ -1,5 +1,4 @@
 export const DEV_SCENARIO_IDS = [
-  "image-viewer-overlay",
   "open-web-preview-url",
   "open-feed-first-article",
   "open-tag-view",

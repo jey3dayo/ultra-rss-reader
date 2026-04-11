@@ -50,7 +50,7 @@ describe("useDevIntent", () => {
   });
 
   it("defers startup scenario execution until after the effect commits", async () => {
-    vi.stubEnv("VITE_DEV_INTENT", "image-viewer-overlay");
+    vi.stubEnv("VITE_DEV_INTENT", "open-feed-cleanup");
 
     renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -61,11 +61,11 @@ describe("useDevIntent", () => {
     await vi.runAllTimersAsync();
 
     expect(runRuntimeDevScenarioMock).toHaveBeenCalledTimes(1);
-    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("image-viewer-overlay");
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-feed-cleanup");
   });
 
   it("runs the startup scenario only once under StrictMode", async () => {
-    vi.stubEnv("VITE_DEV_INTENT", "image-viewer-overlay");
+    vi.stubEnv("VITE_DEV_INTENT", "open-feed-cleanup");
 
     renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <StrictMode>{children}</StrictMode>,
@@ -74,11 +74,11 @@ describe("useDevIntent", () => {
     await vi.runAllTimersAsync();
 
     expect(runRuntimeDevScenarioMock).toHaveBeenCalledTimes(1);
-    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("image-viewer-overlay");
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-feed-cleanup");
   });
 
   it("allows a fresh remount to retry startup execution in the same session", async () => {
-    vi.stubEnv("VITE_DEV_INTENT", "image-viewer-overlay");
+    vi.stubEnv("VITE_DEV_INTENT", "open-feed-cleanup");
 
     const first = renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -110,7 +110,7 @@ describe("useDevIntent", () => {
 
   it("does not load the dev scenario runtime outside dev builds", async () => {
     vi.stubEnv("DEV", false);
-    vi.stubEnv("VITE_DEV_INTENT", "image-viewer-overlay");
+    vi.stubEnv("VITE_DEV_INTENT", "open-feed-cleanup");
 
     renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -123,7 +123,7 @@ describe("useDevIntent", () => {
 
   it("shows a toast when startup scenario execution fails", async () => {
     vi.useRealTimers();
-    vi.stubEnv("VITE_DEV_INTENT", "image-viewer-overlay");
+    vi.stubEnv("VITE_DEV_INTENT", "open-feed-cleanup");
     runRuntimeDevScenarioMock.mockRejectedValueOnce(new Error("boom"));
 
     renderHook(() => useDevIntent(), {
@@ -131,14 +131,14 @@ describe("useDevIntent", () => {
     });
 
     await waitFor(() => {
-      expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("image-viewer-overlay");
+      expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-feed-cleanup");
       expect(useUiStore.getState().toastMessage).toEqual({
-        message: 'Failed to run dev scenario "image-viewer-overlay": boom',
+        message: 'Failed to run dev scenario "open-feed-cleanup": boom',
       });
     });
   });
 
-  it("keeps reading the legacy env name for backward compatibility", async () => {
+  it("ignores the removed legacy env name", async () => {
     vi.stubEnv("VITE_ULTRA_RSS_DEV_INTENT", "image-viewer-overlay");
 
     renderHook(() => useDevIntent(), {
@@ -147,7 +147,7 @@ describe("useDevIntent", () => {
 
     await vi.runAllTimersAsync();
 
-    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("image-viewer-overlay");
+    expect(runRuntimeDevScenarioMock).not.toHaveBeenCalled();
   });
 
   it("falls back to runtime dev options when Vite env is unavailable", async () => {

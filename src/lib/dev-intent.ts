@@ -1,12 +1,6 @@
 import { Result } from "@praha/byethrow";
-import type { ArticleDto, DevRuntimeOptions, FeedDto } from "@/api/tauri-commands";
+import type { DevRuntimeOptions } from "@/api/tauri-commands";
 import { getDevRuntimeOptions } from "@/api/tauri-commands";
-import {
-  pickImageViewerOverlayArticle,
-  pickImageViewerOverlayFeed,
-  rankImageViewerOverlayFeeds,
-  resolveImageViewerOverlayBrowserUrl,
-} from "@/lib/dev-image-viewer-overlay";
 import { type DevScenarioId, isDevScenarioId } from "@/lib/dev-scenario-ids";
 import { hasTauriRuntime } from "@/lib/window-chrome";
 
@@ -16,8 +10,8 @@ export type DevWindowSize = {
   height: number | null;
 };
 
-const DEV_INTENT_ENV_KEYS = ["VITE_DEV_INTENT", "VITE_ULTRA_RSS_DEV_INTENT"] as const;
-const DEV_WEB_URL_ENV_KEYS = ["VITE_DEV_WEB_URL", "VITE_ULTRA_RSS_DEV_WEB_URL"] as const;
+const DEV_INTENT_ENV_KEYS = ["VITE_DEV_INTENT"] as const;
+const DEV_WEB_URL_ENV_KEYS = ["VITE_DEV_WEB_URL"] as const;
 const DEV_WINDOW_WIDTH_ENV_KEYS = ["VITE_DEV_WINDOW_WIDTH"] as const;
 const DEV_WINDOW_HEIGHT_ENV_KEYS = ["VITE_DEV_WINDOW_HEIGHT"] as const;
 let runtimeDevOptionsCache: DevRuntimeOptions | null | undefined;
@@ -155,53 +149,4 @@ export async function loadDevRuntimeOptions(): Promise<DevRuntimeOptions | null>
 export function resetDevRuntimeOptionsCacheForTests(): void {
   runtimeDevOptionsCache = undefined;
   runtimeDevOptionsPromise = null;
-}
-
-export function isLegacyOverlayDevIntent(intent: DevIntent): intent is "image-viewer-overlay" {
-  return intent === "image-viewer-overlay";
-}
-
-export function readLegacyOverlayDevIntent(): "image-viewer-overlay" | null {
-  const intent = readDevIntent();
-  return isLegacyOverlayDevIntent(intent) ? intent : null;
-}
-
-export function isLegacyOverlayBrowserUrl(url: string | null): boolean {
-  if (!url) {
-    return false;
-  }
-
-  return url === resolveImageViewerOverlayBrowserUrl(null);
-}
-
-export function resolveDevIntentBrowserUrl(intent: DevIntent, fallbackUrl: string | null): string | null {
-  if (intent !== "image-viewer-overlay") {
-    return fallbackUrl;
-  }
-
-  return resolveImageViewerOverlayBrowserUrl(fallbackUrl);
-}
-
-export function resolveActiveDevIntentBrowserUrl(
-  intent: DevIntent,
-  activeBrowserUrl: string | null,
-  fallbackUrl: string | null,
-): string | null {
-  if (isLegacyOverlayBrowserUrl(activeBrowserUrl)) {
-    return activeBrowserUrl;
-  }
-
-  return resolveDevIntentBrowserUrl(intent, fallbackUrl);
-}
-
-export function pickDevIntentFeed(feeds: FeedDto[]): FeedDto | null {
-  return pickImageViewerOverlayFeed(feeds);
-}
-
-export function rankDevIntentFeeds(feeds: FeedDto[]): FeedDto[] {
-  return rankImageViewerOverlayFeeds(feeds);
-}
-
-export function pickDevIntentArticle(articles: ArticleDto[]): ArticleDto | null {
-  return pickImageViewerOverlayArticle(articles);
 }

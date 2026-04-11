@@ -5,8 +5,6 @@ interface ImportMetaEnv {
   readonly VITE_DEV_WEB_URL?: string;
   readonly VITE_DEV_WINDOW_WIDTH?: string;
   readonly VITE_DEV_WINDOW_HEIGHT?: string;
-  readonly VITE_ULTRA_RSS_DEV_INTENT?: string;
-  readonly VITE_ULTRA_RSS_DEV_WEB_URL?: string;
 }
 
 interface Window {
