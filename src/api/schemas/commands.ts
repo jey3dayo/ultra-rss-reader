@@ -147,6 +147,7 @@ export const browserWebviewBoundsArgs = z.object({
   y: z.number(),
   width: z.number(),
   height: z.number(),
+  unit: z.enum(["logical", "physical"]).optional(),
 });
 export const createOrUpdateBrowserWebviewArgs = z.object({
   url: z.string(),

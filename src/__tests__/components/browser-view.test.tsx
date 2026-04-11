@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
 import { usePreferencesStore } from "@/stores/preferences-store";
+import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { type MockTauriCommandCall, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
@@ -167,6 +168,10 @@ describe("BrowserView", () => {
     window.__DEV_BROWSER_MOCKS__ = false;
     window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
     setWindowSize(1400, 900);
+    Object.defineProperty(window, "devicePixelRatio", {
+      configurable: true,
+      value: 1,
+    });
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
     getBoundingClientRectSpy = vi
       .spyOn(HTMLElement.prototype, "getBoundingClientRect")
@@ -175,6 +180,7 @@ describe("BrowserView", () => {
       });
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: true });
+    usePlatformStore.setState(usePlatformStore.getInitialState());
     setupTauriMocks((cmd, args) => {
       commands.push({ cmd, args });
       if (cmd === "create_or_update_browser_webview") {
@@ -215,7 +221,45 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 70, width: 1400, height: 830 },
+          bounds: { x: 0, y: 56, width: 1400, height: 844 },
+        },
+      });
+    });
+  });
+
+  it("uses physical bounds for Windows child webviews", async () => {
+    Object.defineProperty(window, "devicePixelRatio", {
+      configurable: true,
+      value: 1.25,
+    });
+    usePlatformStore.setState({
+      ...usePlatformStore.getInitialState(),
+      loaded: true,
+      platform: {
+        kind: "windows",
+        capabilities: {
+          supports_reading_list: false,
+          supports_background_browser_open: false,
+          supports_runtime_window_icon_replacement: false,
+          supports_native_browser_navigation: false,
+          uses_dev_file_credentials: false,
+        },
+      },
+    });
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(commands).toContainEqual({
+        cmd: "create_or_update_browser_webview",
+        args: {
+          url: "https://example.com/article",
+          bounds: { x: 0, y: 70, width: 1750, height: 1055, unit: "physical" },
         },
       });
     });
@@ -301,7 +345,7 @@ describe("BrowserView", () => {
     expect(stage).toHaveStyle({
       left: "0px",
       right: "0px",
-      top: "70px",
+      top: "56px",
       bottom: "0px",
       borderRadius: "0px",
     });
@@ -332,7 +376,7 @@ describe("BrowserView", () => {
     expect(stage).toHaveStyle({
       left: "0px",
       right: "0px",
-      top: "70px",
+      top: "56px",
       bottom: "0px",
       borderRadius: "0px",
     });
@@ -341,7 +385,7 @@ describe("BrowserView", () => {
       left: "0px",
       right: "0px",
       top: "0px",
-      height: "70px",
+      height: "56px",
       borderRadius: "0px",
     });
     expect(host).toHaveStyle({
@@ -387,8 +431,8 @@ describe("BrowserView", () => {
     const stage = screen.getByTestId("browser-overlay-stage");
 
     expect(diagnostics).toBeInTheDocument();
-    expect(diagnostics).toHaveStyle({ top: "78px" });
-    expect(stage).toHaveStyle({ top: "70px" });
+    expect(diagnostics).toHaveStyle({ top: "64px" });
+    expect(stage).toHaveStyle({ top: "56px" });
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
   });
 
@@ -539,7 +583,7 @@ describe("BrowserView", () => {
         cmd: "create_or_update_browser_webview",
         args: {
           url: "https://example.com/article",
-          bounds: { x: 0, y: 70, width: 1400, height: 830 },
+          bounds: { x: 0, y: 56, width: 1400, height: 844 },
         },
       });
     });
@@ -558,7 +602,7 @@ describe("BrowserView", () => {
       expect(commands).toContainEqual({
         cmd: "set_browser_webview_bounds",
         args: {
-          bounds: { x: 0, y: 70, width: 1200, height: 730 },
+          bounds: { x: 0, y: 56, width: 1200, height: 744 },
         },
       });
     });

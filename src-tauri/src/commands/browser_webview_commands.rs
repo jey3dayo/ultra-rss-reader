@@ -1,7 +1,8 @@
 use serde::Deserialize;
 use tauri::{
     webview::{PageLoadEvent, WebviewBuilder},
-    LogicalPosition, LogicalSize, Manager, Position, Rect, Size, State, Url, WebviewUrl, Window,
+    LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalSize, Position, Rect, Size,
+    State, Url, WebviewUrl, Window,
 };
 use tokio::time::{sleep, Duration};
 
@@ -22,12 +23,27 @@ const INVALID_BROWSER_BOUNDS_ERROR: &str =
 
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub enum BrowserWebviewBoundsUnit {
+    Logical,
+    Physical,
+}
+
+impl Default for BrowserWebviewBoundsUnit {
+    fn default() -> Self {
+        Self::Logical
+    }
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct BrowserWebviewBounds {
-    /// Bounds captured from the app webview viewport in logical CSS pixels.
+    /// Bounds captured from the app webview viewport.
     x: f64,
     y: f64,
     width: f64,
     height: f64,
+    #[serde(default)]
+    unit: BrowserWebviewBoundsUnit,
 }
 
 impl BrowserWebviewBounds {
@@ -53,10 +69,24 @@ impl BrowserWebviewBounds {
         LogicalSize::new(self.width, self.height)
     }
 
+    fn physical_position(self) -> PhysicalPosition<i32> {
+        PhysicalPosition::new(self.x.round() as i32, self.y.round() as i32)
+    }
+
+    fn physical_size(self) -> PhysicalSize<u32> {
+        PhysicalSize::new(self.width.round() as u32, self.height.round() as u32)
+    }
+
     fn rect(self) -> Rect {
-        Rect {
-            position: Position::Logical(self.logical_position()),
-            size: Size::Logical(self.logical_size()),
+        match self.unit {
+            BrowserWebviewBoundsUnit::Logical => Rect {
+                position: Position::Logical(self.logical_position()),
+                size: Size::Logical(self.logical_size()),
+            },
+            BrowserWebviewBoundsUnit::Physical => Rect {
+                position: Position::Physical(self.physical_position()),
+                size: Size::Physical(self.physical_size()),
+            },
         }
     }
 }
@@ -476,7 +506,8 @@ mod tests {
     use super::{
         browser_webview_initial_url, child_webview_rect_from_viewport_bounds, external_url,
         is_placeholder_browser_webview_url, should_use_placeholder_browser_webview_url,
-        validated_bounds, BrowserWebviewBounds, INVALID_BROWSER_BOUNDS_ERROR,
+        validated_bounds, BrowserWebviewBounds, BrowserWebviewBoundsUnit,
+        INVALID_BROWSER_BOUNDS_ERROR,
     };
     use crate::commands::dto::AppError;
     use crate::platform::PlatformKind;
@@ -509,6 +540,7 @@ mod tests {
             y: 48.0,
             width: 0.0,
             height: 720.0,
+            unit: BrowserWebviewBoundsUnit::Logical,
         });
 
         match result {
@@ -526,6 +558,7 @@ mod tests {
             y: 48.0,
             width: 900.0,
             height: 720.0,
+            unit: BrowserWebviewBoundsUnit::Logical,
         });
 
         assert!(matches!(result, Err(AppError::UserVisible { .. })));
@@ -538,6 +571,7 @@ mod tests {
             y: 48.0,
             width: 900.0,
             height: 720.0,
+            unit: BrowserWebviewBoundsUnit::Logical,
         })
         .expect("valid bounds should pass");
         let rect = bounds.rect();
@@ -555,6 +589,7 @@ mod tests {
             y: 48.0,
             width: 900.0,
             height: 720.0,
+            unit: BrowserWebviewBoundsUnit::Logical,
         })
         .expect("valid bounds should pass");
 
@@ -564,6 +599,24 @@ mod tests {
         assert_eq!(rect.position.to_logical::<f64>(1.0).y, 48.0);
         assert_eq!(rect.size.to_logical::<f64>(1.0).width, 900.0);
         assert_eq!(rect.size.to_logical::<f64>(1.0).height, 720.0);
+    }
+
+    #[test]
+    fn physical_bounds_rect_preserves_physical_geometry() {
+        let bounds = validated_bounds(BrowserWebviewBounds {
+            x: 460.0,
+            y: 84.0,
+            width: 1767.0,
+            height: 948.0,
+            unit: BrowserWebviewBoundsUnit::Physical,
+        })
+        .expect("valid bounds should pass");
+        let rect = bounds.rect();
+
+        assert_eq!(rect.position.to_physical::<i32>(1.0).x, 460);
+        assert_eq!(rect.position.to_physical::<i32>(1.0).y, 84);
+        assert_eq!(rect.size.to_physical::<u32>(1.0).width, 1767);
+        assert_eq!(rect.size.to_physical::<u32>(1.0).height, 948);
     }
 
     #[test]

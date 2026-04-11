@@ -65,7 +65,7 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.compact).toBe(false);
     expect(geometry.ultraCompact).toBe(false);
     expect(geometry.stage.left).toBe(0);
-    expect(geometry.stage.top).toBe(70);
+    expect(geometry.stage.top).toBe(56);
     expect(geometry.stage.right).toBe(0);
     expect(geometry.stage.bottom).toBe(0);
     expect(geometry.stage.radius).toBe(0);
@@ -73,20 +73,20 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.chromeRail.left).toBe(0);
     expect(geometry.chromeRail.right).toBe(0);
     expect(geometry.chromeRail.top).toBe(0);
-    expect(geometry.chromeRail.height).toBe(70);
+    expect(geometry.chromeRail.height).toBe(56);
     expect(geometry.chromeRail.radius).toBe(0);
     expect(geometry.host.left).toBe(0);
     expect(geometry.host.top).toBe(0);
     expect(geometry.host.right).toBe(0);
     expect(geometry.host.bottom).toBe(0);
     expect(geometry.diagnostics.compact).toBe(false);
-    expect(geometry.diagnostics.top).toBe(78);
+    expect(geometry.diagnostics.top).toBe(64);
     expect(geometry.chrome.close.left).toBe(16);
-    expect(geometry.chrome.close.top).toBe(16);
-    expect(geometry.chrome.close.size).toBe(46);
+    expect(geometry.chrome.close.top).toBe(12);
+    expect(geometry.chrome.close.size).toBe(44);
     expect(geometry.chrome.action.right).toBe(16);
-    expect(geometry.chrome.action.top).toBe(16);
-    expect(geometry.chrome.action.size).toBe(46);
+    expect(geometry.chrome.action.top).toBe(12);
+    expect(geometry.chrome.action.size).toBe(44);
   });
 
   it("keeps the ultra-compact main-stage contract aligned with the same full-width host", () => {
@@ -140,6 +140,6 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(hiddenDiagnostics.chrome).toEqual(visibleDiagnostics.chrome);
     expect(hiddenDiagnostics.chromeRail).toEqual(visibleDiagnostics.chromeRail);
     expect(hiddenDiagnostics.diagnostics.top).toBe(16);
-    expect(visibleDiagnostics.diagnostics.top).toBe(78);
+    expect(visibleDiagnostics.diagnostics.top).toBe(64);
   });
 });

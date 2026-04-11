@@ -19,6 +19,7 @@ import { resolveBrowserViewerGeometry } from "@/lib/browser-viewer-geometry";
 import { type BrowserWebviewBounds, toBrowserWebviewBounds } from "@/lib/browser-webview";
 import { hasTauriRuntime } from "@/lib/window-chrome";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
+import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 
 function initialBrowserState(url: string): BrowserWebviewState {
@@ -208,6 +209,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
   const showDiagnostics = resolvePreferenceValue(prefs, "debug_browser_hud") === "true";
   const browserUrl = useUiStore((s) => s.browserUrl);
   const showToast = useUiStore((s) => s.showToast);
+  const platformKind = usePlatformStore((state) => state.platform.kind);
   const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
   const browserStateRef = useRef<BrowserWebviewState | null>(null);
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -379,7 +381,12 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
   const syncBrowserWebview = useCallback(
     async (requestedUrl: string, mode: "create" | "resize") => {
       const rect = hostRef.current?.getBoundingClientRect();
-      const bounds = rect ? toBrowserWebviewBounds(rect) : null;
+      const usePhysicalBounds = platformKind === "windows";
+      const bounds = rect
+        ? toBrowserWebviewBounds(rect, {
+            unit: usePhysicalBounds ? "physical" : "logical",
+          })
+        : null;
       if (!bounds) {
         return;
       }
@@ -426,7 +433,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
 
       await flushPendingBounds(requestedUrl);
     },
-    [captureLayoutDiagnostics, flushPendingBounds, showSurfaceFailure, syncBrowserBounds],
+    [captureLayoutDiagnostics, flushPendingBounds, platformKind, showSurfaceFailure, syncBrowserBounds],
   );
 
   useEffect(() => {
@@ -623,10 +630,10 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
   const isCompactViewer = geometry.compact;
   const closeButtonClass = isCompactViewer
     ? "pointer-events-auto size-11 rounded-[12px] border border-white/10 bg-black/32 text-white/92 shadow-[0_10px_26px_rgba(0,0,0,0.34)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/18 hover:bg-white/12 hover:text-white hover:shadow-[0_12px_28px_rgba(0,0,0,0.28)] focus-visible:border-white/18 focus-visible:bg-white/14 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/18 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/20 active:bg-white/18 active:shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
-    : "pointer-events-auto size-[46px] rounded-[13px] border border-white/12 bg-black/30 text-white/96 shadow-[0_12px_30px_rgba(0,0,0,0.34)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/20 hover:bg-black/44 hover:text-white hover:shadow-[0_14px_32px_rgba(0,0,0,0.3)] focus-visible:border-white/22 focus-visible:bg-black/48 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/22 active:bg-black/54 active:shadow-[0_10px_20px_rgba(0,0,0,0.24)]";
+    : "pointer-events-auto size-11 rounded-[13px] border border-white/12 bg-black/30 text-white/96 shadow-[0_12px_30px_rgba(0,0,0,0.34)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/20 hover:bg-black/44 hover:text-white hover:shadow-[0_14px_32px_rgba(0,0,0,0.3)] focus-visible:border-white/22 focus-visible:bg-black/48 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/22 active:bg-black/54 active:shadow-[0_10px_20px_rgba(0,0,0,0.24)]";
   const actionButtonClass = isCompactViewer
     ? "pointer-events-auto size-11 rounded-[12px] border border-white/10 bg-black/32 text-white/92 shadow-[0_10px_26px_rgba(0,0,0,0.34)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/18 hover:bg-white/12 hover:text-white hover:shadow-[0_12px_28px_rgba(0,0,0,0.28)] focus-visible:border-white/18 focus-visible:bg-white/14 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/18 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/20 active:bg-white/18 active:shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
-    : "pointer-events-auto size-[46px] rounded-[13px] border border-white/12 bg-black/26 text-white/94 shadow-[0_12px_30px_rgba(0,0,0,0.3)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/20 hover:bg-black/40 hover:text-white hover:shadow-[0_14px_32px_rgba(0,0,0,0.28)] focus-visible:border-white/22 focus-visible:bg-black/44 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/22 active:bg-black/50 active:shadow-[0_10px_20px_rgba(0,0,0,0.24)]";
+    : "pointer-events-auto size-11 rounded-[13px] border border-white/12 bg-black/26 text-white/94 shadow-[0_12px_30px_rgba(0,0,0,0.3)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/20 hover:bg-black/40 hover:text-white hover:shadow-[0_14px_32px_rgba(0,0,0,0.28)] focus-visible:border-white/22 focus-visible:bg-black/44 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/22 active:bg-black/50 active:shadow-[0_10px_20px_rgba(0,0,0,0.24)]";
   const stageClass =
     scope === "main-stage"
       ? "absolute z-10 overflow-hidden bg-background"
