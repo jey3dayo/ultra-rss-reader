@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccountArticles, useFeedIntegrityReport } from "@/hooks/use-articles";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
@@ -6,27 +5,12 @@ import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { useResolvedDevIntent } from "@/hooks/use-resolved-dev-intent";
 import { resolveArticleDateLocale } from "@/lib/article-view";
-import {
-  buildFeedCleanupCandidates,
-  type FeedCleanupCandidate,
-  type FeedCleanupReasonKey,
-  summarizeCleanupCandidate,
-} from "@/lib/feed-cleanup";
+import type { FeedCleanupReasonKey } from "@/lib/feed-cleanup";
 import { useUiStore } from "@/stores/ui-store";
 import { FeedCleanupDeleteDialog } from "./feed-cleanup-delete-dialog";
 import { FeedCleanupFeedEditor } from "./feed-cleanup-feed-editor";
 import { FeedCleanupPageView } from "./feed-cleanup-page-view";
-
-type FilterKey = "stale_90d" | "no_unread" | "no_stars";
-type QueueMode = "cleanup" | "integrity";
-
-function candidateMatchesFilters(candidate: FeedCleanupCandidate, activeFilters: ReadonlySet<FilterKey>) {
-  if (activeFilters.size === 0) {
-    return true;
-  }
-
-  return [...activeFilters].every((filter) => candidate.reasonKeys.includes(filter));
-}
+import { useFeedCleanupPageState } from "./use-feed-cleanup-page-state";
 
 export function FeedCleanupPage() {
   const { t, i18n } = useTranslation("cleanup");
@@ -40,141 +24,43 @@ export function FeedCleanupPage() {
   const { data: folders = [] } = useFolders(selectedAccountId);
   const { data: accountArticles = [] } = useAccountArticles(selectedAccountId);
   const { data: integrityReport } = useFeedIntegrityReport();
-  const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(new Set());
-  const [keptFeedIds, setKeptFeedIds] = useState<Set<string>>(new Set());
-  const [deferredFeedIds, setDeferredFeedIds] = useState<Set<string>>(new Set());
-  const [showDeferred, setShowDeferred] = useState(false);
-  const [selectedFeedId, setSelectedFeedId] = useState<string | null>(null);
-  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
-  const [editingFeedId, setEditingFeedId] = useState<string | null>(null);
-  const [queueMode, setQueueMode] = useState<QueueMode>("cleanup");
-  const [selectedIntegrityFeedId, setSelectedIntegrityFeedId] = useState<string | null>(null);
   const { intent: devIntent } = useResolvedDevIntent();
   const dateLocale = resolveArticleDateLocale(i18n.language);
 
-  const hiddenFeedIds = useMemo(() => {
-    const hidden = new Set(keptFeedIds);
-    if (!showDeferred) {
-      for (const feedId of deferredFeedIds) {
-        hidden.add(feedId);
-      }
-    }
-    return hidden;
-  }, [deferredFeedIds, keptFeedIds, showDeferred]);
+  const cleanupState = useFeedCleanupPageState({
+    feedCleanupOpen,
+    devIntent,
+    feeds,
+    folders,
+    accountArticles,
+    integrityReport,
+  });
 
-  const allCandidates = useMemo(
-    () =>
-      buildFeedCleanupCandidates({
-        feeds,
-        folders,
-        articles: accountArticles,
-        now: new Date(),
-        hiddenFeedIds,
-      }).map((candidate) => ({
-        ...candidate,
-        deferred: deferredFeedIds.has(candidate.feedId),
-      })),
-    [accountArticles, deferredFeedIds, feeds, folders, hiddenFeedIds],
-  );
-
-  const visibleCandidates = useMemo(
-    () => allCandidates.filter((candidate) => candidateMatchesFilters(candidate, activeFilters)),
-    [activeFilters, allCandidates],
-  );
-
-  useEffect(() => {
-    if (!feedCleanupOpen) {
-      return;
-    }
-
-    if (visibleCandidates.some((candidate) => candidate.feedId === selectedFeedId)) {
-      return;
-    }
-
-    setSelectedFeedId(visibleCandidates[0]?.feedId ?? null);
-  }, [feedCleanupOpen, selectedFeedId, visibleCandidates]);
-
-  const selectedCandidate = visibleCandidates.find((candidate) => candidate.feedId === selectedFeedId) ?? null;
-  const selectedFeed = feeds.find((feed) => feed.id === selectedFeedId) ?? null;
-  const integrityIssues = integrityReport?.orphaned_feeds ?? [];
-  const selectedIntegrityIssue =
-    integrityIssues.find((issue) => issue.missing_feed_id === selectedIntegrityFeedId) ?? integrityIssues[0] ?? null;
-  const deleteTarget =
-    deleteTargetId == null ? null : (allCandidates.find((candidate) => candidate.feedId === deleteTargetId) ?? null);
-
-  useEffect(() => {
-    if (queueMode !== "integrity") {
-      return;
-    }
-
-    if (integrityIssues.some((issue) => issue.missing_feed_id === selectedIntegrityFeedId)) {
-      return;
-    }
-
-    setSelectedIntegrityFeedId(integrityIssues[0]?.missing_feed_id ?? null);
-  }, [integrityIssues, queueMode, selectedIntegrityFeedId]);
-
-  useEffect(() => {
-    if (!feedCleanupOpen) {
-      return;
-    }
-
-    if (devIntent !== "open-feed-cleanup-broken-references") {
-      return;
-    }
-
-    if (integrityIssues.length === 0) {
-      return;
-    }
-
-    setQueueMode("integrity");
-    setEditingFeedId(null);
-  }, [devIntent, feedCleanupOpen, integrityIssues.length]);
-
-  useEffect(() => {
-    if (!selectedFeedId || editingFeedId === selectedFeedId) {
-      return;
-    }
-
-    setEditingFeedId(null);
-  }, [editingFeedId, selectedFeedId]);
-
-  const filterOptions: Array<{ key: FilterKey; label: string }> = [
+  const filterOptions = [
     { key: "stale_90d", label: t("stale_90d") },
     { key: "no_unread", label: t("no_unread") },
     { key: "no_stars", label: t("no_stars") },
-  ];
-  const filterCounts: Record<FilterKey, number> = {
-    stale_90d: allCandidates.filter((candidate) => candidate.reasonKeys.includes("stale_90d")).length,
-    no_unread: allCandidates.filter((candidate) => candidate.reasonKeys.includes("no_unread")).length,
-    no_stars: allCandidates.filter((candidate) => candidate.reasonKeys.includes("no_stars")).length,
-  };
-
+  ] as const;
   const reasonLabels: Record<FeedCleanupReasonKey, string> = {
     stale_90d: t("reason_stale_90d"),
     no_unread: t("reason_no_unread"),
     no_stars: t("reason_no_stars"),
   };
-  const selectedSummary = selectedCandidate ? summarizeCleanupCandidate(selectedCandidate) : null;
   const summaryCards = [
     {
       label: t("summary_candidates"),
-      value: String(visibleCandidates.length),
-      caption: t("summary_candidates_caption", { count: visibleCandidates.length }),
+      value: String(cleanupState.visibleCandidates.length),
+      caption: t("summary_candidates_caption", { count: cleanupState.visibleCandidates.length }),
     },
     {
       label: t("summary_review_now"),
-      value: String(
-        visibleCandidates.filter((candidate) => summarizeCleanupCandidate(candidate).tone === "high").length,
-      ),
-      caption: t("summary_review_now_caption", {
-        count: visibleCandidates.filter((candidate) => summarizeCleanupCandidate(candidate).tone === "high").length,
-      }),
+      value: String(cleanupState.reviewNowCount),
+      caption: t("summary_review_now_caption", { count: cleanupState.reviewNowCount }),
     },
     {
       label: t("summary_deferred"),
-      value: String(deferredFeedIds.size),
-      caption: t("summary_deferred_caption", { count: deferredFeedIds.size }),
+      value: String(cleanupState.deferredCount),
+      caption: t("summary_deferred_caption", { count: cleanupState.deferredCount }),
     },
     {
       label: t("summary_integrity"),
@@ -206,15 +92,15 @@ export function FeedCleanupPage() {
                 body: t("integrity_orphaned_articles", {
                   count: integrityReport?.orphaned_article_count ?? 0,
                 }),
-                actionLabel: queueMode === "integrity" ? t("show_cleanup_queue") : t("show_broken_references"),
+                actionLabel: cleanupState.integrityMode ? t("show_cleanup_queue") : t("show_broken_references"),
               }
             : null
         }
-        integrityMode={queueMode === "integrity"}
+        integrityMode={cleanupState.integrityMode}
         integrityQueueLabel={t("integrity_queue")}
         integrityEmptyLabel={t("integrity_empty")}
-        integrityIssues={integrityIssues}
-        selectedIntegrityIssue={selectedIntegrityIssue}
+        integrityIssues={cleanupState.integrityIssues}
+        selectedIntegrityIssue={cleanupState.selectedIntegrityIssue}
         integrityDetailLabels={{
           missing_feed_id: t("integrity_missing_feed_id"),
           article_count: t("integrity_article_count"),
@@ -222,20 +108,20 @@ export function FeedCleanupPage() {
           latest_published_at: t("integrity_latest_published_at"),
           needs_repair: t("integrity_needs_repair"),
           needs_repair_badge: t("integrity_needs_repair_badge"),
-          summary: t("integrity_issue_summary", { count: selectedIntegrityIssue?.article_count ?? 0 }),
+          summary: t("integrity_issue_summary", { count: cleanupState.selectedIntegrityIssue?.article_count ?? 0 }),
           unknown_article: t("integrity_unknown_article"),
           queue_item_title: t("integrity_queue_item_title"),
           queue_item_articles_label: t("integrity_queue_item_articles_label"),
           filter_note: t("integrity_filter_note"),
         }}
         filterOptions={filterOptions}
-        filterCounts={filterCounts}
-        activeFilterKeys={activeFilters}
-        queue={visibleCandidates}
-        selectedCandidate={selectedCandidate}
-        selectedSummary={selectedSummary}
-        showDeferred={showDeferred}
-        showDeferredLabel={showDeferred ? t("hide_deferred") : t("show_deferred")}
+        filterCounts={cleanupState.filterCounts}
+        activeFilterKeys={cleanupState.activeFilters}
+        queue={cleanupState.visibleCandidates}
+        selectedCandidate={cleanupState.selectedCandidate}
+        selectedSummary={cleanupState.selectedSummary}
+        showDeferred={cleanupState.showDeferred}
+        showDeferredLabel={cleanupState.showDeferred ? t("hide_deferred") : t("show_deferred")}
         emptyLabel={t("empty")}
         keepLabel={t("keep")}
         laterLabel={t("later")}
@@ -267,69 +153,36 @@ export function FeedCleanupPage() {
           healthy_feed: t("candidate_summary_healthy_feed"),
         }}
         onClose={() => closeFeedCleanup()}
-        onToggleIntegrityMode={() => {
-          setQueueMode((current) => (current === "integrity" ? "cleanup" : "integrity"));
-          setEditingFeedId(null);
-        }}
-        onToggleFilter={(key) => {
-          setActiveFilters((current) => {
-            const next = new Set(current);
-            if (next.has(key)) {
-              next.delete(key);
-            } else {
-              next.add(key);
-            }
-            return next;
-          });
-        }}
-        onToggleShowDeferred={() => setShowDeferred((current) => !current)}
-        onSelectCandidate={setSelectedFeedId}
-        onSelectIntegrityIssue={(missingFeedId) => setSelectedIntegrityFeedId(missingFeedId)}
-        editing={selectedFeed != null && editingFeedId === selectedFeed.id}
+        onToggleIntegrityMode={cleanupState.toggleIntegrityMode}
+        onToggleFilter={cleanupState.toggleFilter}
+        onToggleShowDeferred={cleanupState.toggleShowDeferred}
+        onSelectCandidate={cleanupState.selectCandidate}
+        onSelectIntegrityIssue={cleanupState.selectIntegrityIssue}
+        editing={cleanupState.isEditingSelectedFeed}
         editor={
-          selectedFeed != null && editingFeedId === selectedFeed.id ? (
+          cleanupState.isEditingSelectedFeed && cleanupState.selectedFeed ? (
             <FeedCleanupFeedEditor
-              feed={selectedFeed}
+              feed={cleanupState.selectedFeed}
               folders={folders}
               maintenanceTitle={t("editor_maintenance_title")}
               maintenanceDescription={t("editor_maintenance_description")}
               refetchLabel={t("editor_refetch")}
               unsubscribeLabel={tr("unsubscribe")}
-              onCancel={() => setEditingFeedId(null)}
-              onDelete={() => setDeleteTargetId(selectedFeed.id)}
-              onSaved={() => setEditingFeedId(null)}
+              onCancel={cleanupState.cancelEditingSelectedFeed}
+              onDelete={cleanupState.requestDeleteForSelectedFeed}
+              onSaved={cleanupState.cancelEditingSelectedFeed}
             />
           ) : null
         }
-        onKeep={() => {
-          if (!selectedCandidate) {
-            return;
-          }
-          setKeptFeedIds((current) => new Set(current).add(selectedCandidate.feedId));
-        }}
-        onEdit={() => {
-          if (!selectedFeedId) {
-            return;
-          }
-          setEditingFeedId(selectedFeedId);
-        }}
-        onLater={() => {
-          if (!selectedCandidate) {
-            return;
-          }
-          setDeferredFeedIds((current) => new Set(current).add(selectedCandidate.feedId));
-        }}
-        onDelete={() => {
-          if (!selectedCandidate) {
-            return;
-          }
-          setDeleteTargetId(selectedCandidate.feedId);
-        }}
+        onKeep={cleanupState.markSelectedCandidateKept}
+        onEdit={cleanupState.startEditingSelectedFeed}
+        onLater={cleanupState.markSelectedCandidateDeferred}
+        onDelete={cleanupState.requestDeleteForSelectedCandidate}
       />
 
       <FeedCleanupDeleteDialog
-        candidate={deleteTarget ?? null}
-        open={deleteTargetId != null}
+        candidate={cleanupState.deleteTarget ?? null}
+        open={cleanupState.deleteTarget != null}
         title={t("delete_title")}
         dateLocale={dateLocale}
         cancelLabel={tc("cancel")}
@@ -342,29 +195,21 @@ export function FeedCleanupPage() {
         pending={deleteFeedMutation.isPending}
         onOpenChange={(open) => {
           if (!open && !deleteFeedMutation.isPending) {
-            setDeleteTargetId(null);
+            cleanupState.clearDeleteTarget();
           }
         }}
         onConfirm={() => {
-          if (!deleteTarget) {
+          const target = cleanupState.deleteTarget;
+          if (!target) {
             return;
           }
 
           void deleteFeedMutation
             .mutateAsync({
-              feedId: deleteTarget.feedId,
-              title: deleteTarget.title,
+              feedId: target.feedId,
+              title: target.title,
               onSuccess: () => {
-                setKeptFeedIds((current) => new Set(current).add(deleteTarget.feedId));
-                setDeferredFeedIds((current) => {
-                  const next = new Set(current);
-                  next.delete(deleteTarget.feedId);
-                  return next;
-                });
-                setDeleteTargetId(null);
-                if (selectedFeedId === deleteTarget.feedId) {
-                  setSelectedFeedId(null);
-                }
+                cleanupState.deleteSucceeded(target.feedId);
               },
             })
             .catch(() => undefined);
