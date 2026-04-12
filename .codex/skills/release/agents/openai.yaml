@@ -1,0 +1,4 @@
+interface:
+  display_name: "Release Workflow"
+  short_description: "Version bump, notes, tag, and GitHub release flow"
+  default_prompt: "Use $release to cut the next Ultra RSS Reader release safely."
