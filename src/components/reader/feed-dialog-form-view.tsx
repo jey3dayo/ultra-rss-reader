@@ -1,5 +1,9 @@
 import { type RefObject, useId } from "react";
-import { CopyableReadonlyField } from "@/components/shared/copyable-readonly-field";
+import {
+  type CopyableReadonlyFieldItem,
+  CopyableReadonlyFieldList,
+} from "@/components/shared/copyable-readonly-field-list";
+import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -51,15 +55,7 @@ export type FeedDialogTextSectionProps = {
   inputRef?: RefObject<HTMLInputElement | null>;
 };
 
-export type FeedDialogReadonlyFieldProps = {
-  key: string;
-  label: string;
-  name: string;
-  value: string;
-  disabled?: boolean;
-  copyLabel?: string;
-  onCopy?: () => void;
-};
+export type FeedDialogReadonlyFieldProps = CopyableReadonlyFieldItem;
 
 export type FeedDialogSelectOption = {
   value: string;
@@ -196,17 +192,7 @@ export function FeedDialogFormView({
             </label>
           )}
 
-          {readonlyFields?.map((field) => (
-            <CopyableReadonlyField
-              key={field.key}
-              label={field.label}
-              name={field.name}
-              value={field.value}
-              disabled={field.disabled}
-              copyLabel={field.copyLabel}
-              onCopy={field.onCopy}
-            />
-          ))}
+          {readonlyFields && <CopyableReadonlyFieldList fields={readonlyFields} />}
 
           {selectSection && (
             <div className="block text-sm text-muted-foreground">
@@ -237,12 +223,16 @@ export function FeedDialogFormView({
           {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
         </form>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            {labels.cancel}
-          </Button>
-          <Button onClick={onSubmit} disabled={isSubmitDisabled}>
-            {loading ? labels.submitting : labels.submit}
-          </Button>
+          <FormActionButtons
+            cancelLabel={labels.cancel}
+            submitLabel={labels.submit}
+            submittingLabel={labels.submitting}
+            loading={loading}
+            submitDisabled={isSubmitDisabled}
+            cancelDisabled={loading}
+            onCancel={() => onOpenChange(false)}
+            onSubmit={onSubmit}
+          />
         </DialogFooter>
       </DialogContent>
     </Dialog>

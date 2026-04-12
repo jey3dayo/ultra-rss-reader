@@ -200,23 +200,23 @@ describe("FeedCleanupPage", () => {
 
     render(<FeedCleanupPage />, { wrapper: createWrapper() });
 
-    expect(await screen.findByRole("heading", { name: "Review Subscriptions" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Feed Cleanup" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Review List" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Decision Details" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Cleanup Queue" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Review" })).toBeInTheDocument();
     expect(screen.getByTestId("feed-cleanup-sidebar-summary")).toBeInTheDocument();
     expect(screen.getByTestId("feed-cleanup-page")).toHaveClass("h-dvh");
     expect(await screen.findByText("2 candidates")).toBeInTheDocument();
-    expect(await screen.findByText("Needs review")).toBeInTheDocument();
+    expect(await screen.findByText("1 review now")).toBeInTheDocument();
     expect(await screen.findByText("0 deferred")).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Old Product Blog" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "90+ days inactive 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "No unread 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "No stars 1" })).toBeInTheDocument();
-    expect(screen.getAllByText("Needs review").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Keep Subscribed" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Snooze" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Unsubscribe" })).toHaveAttribute("data-delete-button");
+    expect(screen.getAllByText("Review now").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Keep" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Later" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveAttribute("data-delete-button");
 
     await user.click(screen.getByRole("button", { name: "No unread 1" }));
     await user.click(screen.getByRole("button", { name: "Old Product Blog" }));
@@ -224,14 +224,14 @@ describe("FeedCleanupPage", () => {
     expect(screen.getAllByText("Work").length).toBeGreaterThan(0);
     expect(screen.getAllByText("No unread articles").length).toBeGreaterThan(0);
     const reviewPanel = screen.getByTestId("feed-cleanup-review-panel");
-    expect(within(reviewPanel).getByText("Needs review")).toBeInTheDocument();
-    expect(within(reviewPanel).getByText("No new article for 90+ days.")).toBeInTheDocument();
-    expect(within(reviewPanel).getByText("Reasons")).toBeInTheDocument();
+    expect(within(reviewPanel).getAllByText("Review now").length).toBeGreaterThan(0);
+    expect(within(reviewPanel).getByText("No new article for 90+ days")).toBeInTheDocument();
+    expect(within(reviewPanel).getByText("Why this feed is here")).toBeInTheDocument();
     expect(within(reviewPanel).getByText("Folder")).toBeInTheDocument();
     expect(within(reviewPanel).getByText("Latest article")).toBeInTheDocument();
     expect(within(reviewPanel).getByText("Unread")).toBeInTheDocument();
     expect(within(reviewPanel).getByText("Starred")).toBeInTheDocument();
-    expect(within(reviewPanel).getByText("This subscription looks worth keeping")).toBeInTheDocument();
+    expect(within(reviewPanel).getByText("90+ days quiet with no unread backlog.")).toBeInTheDocument();
 
     const queueCandidate = screen.getByRole("button", { name: "Old Product Blog" });
     expect(queueCandidate).not.toHaveTextContent(/Work · \d+d · 0 unread · 0 starred/);
@@ -241,7 +241,7 @@ describe("FeedCleanupPage", () => {
     expect(screen.getByTestId("feed-cleanup-review-panel")).toHaveClass("sticky");
     expect(screen.getByTestId("feed-cleanup-review-panel")).toHaveClass("top-4");
 
-    await user.click(screen.getByRole("button", { name: "Snooze" }));
+    await user.click(screen.getByRole("button", { name: "Later" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Old Product Blog" })).not.toBeInTheDocument();
@@ -251,16 +251,16 @@ describe("FeedCleanupPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Show deferred" }));
     await user.click(screen.getByRole("button", { name: "Old Product Blog" }));
-    await user.click(screen.getByRole("button", { name: "Unsubscribe" }));
+    await user.click(screen.getByRole("button", { name: "Delete" }));
 
-    const deleteDialog = screen.getByRole("dialog", { name: "Unsubscribe" });
+    const deleteDialog = screen.getByRole("dialog", { name: "Delete feed" });
 
     expect(within(deleteDialog).getByText("Old Product Blog")).toBeInTheDocument();
-    expect(within(deleteDialog).getByText("Reasons")).toBeInTheDocument();
+    expect(within(deleteDialog).getByText("Why this feed is here")).toBeInTheDocument();
     expect(within(deleteDialog).getByText("No unread articles")).toBeInTheDocument();
     expect(within(deleteDialog).getByText("No starred articles")).toBeInTheDocument();
 
-    await user.click(within(deleteDialog).getByRole("button", { name: "Unsubscribe" }));
+    await user.click(within(deleteDialog).getByRole("button", { name: "Delete" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Old Product Blog" })).not.toBeInTheDocument();
@@ -277,16 +277,16 @@ describe("FeedCleanupPage", () => {
 
     deleteShouldFail = true;
     const reviewPanel = screen.getByTestId("feed-cleanup-review-panel");
-    await user.click(within(reviewPanel).getByRole("button", { name: "Unsubscribe" }));
-    const deleteDialog = await screen.findByRole("dialog", { name: "Unsubscribe" });
-    await user.click(within(deleteDialog).getByRole("button", { name: "Unsubscribe" }));
+    await user.click(within(reviewPanel).getByRole("button", { name: "Delete" }));
+    const deleteDialog = await screen.findByRole("dialog", { name: "Delete feed" });
+    await user.click(within(deleteDialog).getByRole("button", { name: "Delete" }));
 
     expect(deleteDialog).toBeInTheDocument();
 
     await user.click(within(deleteDialog).getByRole("button", { name: "Cancel" }));
 
     await waitFor(() => {
-      expect(screen.queryByRole("dialog", { name: "Unsubscribe" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("dialog", { name: "Delete feed" })).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Old Product Blog" })).toBeInTheDocument();
     });
   });
@@ -425,6 +425,6 @@ describe("FeedCleanupPage", () => {
     await user.click(screen.getByRole("button", { name: "Edit Feed" }));
     await user.click(screen.getByRole("button", { name: "Unsubscribe" }));
 
-    expect(await screen.findByRole("dialog", { name: "Unsubscribe" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Delete feed" })).toBeInTheDocument();
   });
 });

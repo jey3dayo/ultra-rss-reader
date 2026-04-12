@@ -3,21 +3,21 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
-import { renameFeed, syncFeed, updateFeedDisplaySettings } from "@/api/tauri-commands";
-import { CopyableReadonlyField } from "@/components/shared/copyable-readonly-field";
+import { syncFeed } from "@/api/tauri-commands";
+import { CopyableReadonlyFieldList } from "@/components/shared/copyable-readonly-field-list";
 import { DeleteButton } from "@/components/shared/delete-button";
+import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
-import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/article-display";
+import { resolveFeedDisplayPreset } from "@/lib/article-display";
 import { copyValueToClipboard } from "@/lib/clipboard";
 import { useUiStore } from "@/stores/ui-store";
-import { createFolderIfNeeded } from "../reader/feed-folder-flow";
+import { type FeedEditDisplayPreset, submitFeedEdits } from "../reader/feed-edit-submit";
 import { FolderSelectView } from "../reader/folder-select-view";
 import { buildFolderOptions, useFolderSelection } from "../reader/use-folder-selection";
-
-type DisplayPresetOption = "default" | "standard" | "preview";
 
 export function FeedCleanupFeedEditor({
   feed,
@@ -47,7 +47,8 @@ export function FeedCleanupFeedEditor({
   const showToast = useUiStore((state) => state.showToast);
   const updateFeedFolderMutation = useUpdateFeedFolder();
   const [title, setTitle] = useState(feed.title);
-  const [displayPreset, setDisplayPreset] = useState<DisplayPresetOption>(() => resolveFeedDisplayPreset(feed));
+  const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
+  const [displayPreset, setDisplayPreset] = useState<FeedEditDisplayPreset>(() => resolveFeedDisplayPreset(feed));
   const [loading, setLoading] = useState(false);
   const [refetching, setRefetching] = useState(false);
   const {
@@ -83,66 +84,37 @@ export function FeedCleanupFeedEditor({
   };
 
   const handleSave = async () => {
-    const trimmed = title.trim();
-    if (!trimmed) {
+    if (!title.trim()) {
       return;
     }
 
     setLoading(true);
-    const resolvedFolderId = await createFolderIfNeeded({
-      accountId: feed.account_id,
-      selectedFolderId,
-      isCreatingFolder,
-      newFolderName,
-      onError: (error) => {
-        showToast(t("failed_to_create_folder", { message: error.message }));
-      },
-    });
+    try {
+      const saved = await submitFeedEdits({
+        feed,
+        title,
+        displayPreset,
+        selectedFolderId,
+        isCreatingFolder,
+        newFolderName,
+        queryClient: qc,
+        showToast,
+        createFolderErrorMessage: (error) => t("failed_to_create_folder", { message: error.message }),
+        renameErrorMessage: (error) => t("failed_to_rename", { message: error.message }),
+        updateFeedFolder: ({ feedId, folderId }) =>
+          updateFeedFolderMutation
+            .mutateAsync({ feedId, folderId })
+            .then(() => true)
+            .catch(() => false),
+        updateDisplaySettings: updateFeedDisplaySettings,
+      });
 
-    if (resolvedFolderId === undefined) {
+      if (saved) {
+        onSaved();
+      }
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const didRename = trimmed !== feed.title;
-    const didMoveFolder = resolvedFolderId !== feed.folder_id;
-    const currentDisplayPreset = resolveFeedDisplayPreset(feed);
-    const didUpdateDisplayMode = displayPreset !== currentDisplayPreset;
-    let folderUpdateSucceeded = false;
-
-    if (didRename) {
-      Result.pipe(
-        await renameFeed(feed.id, trimmed),
-        Result.inspectError((error) => showToast(t("failed_to_rename", { message: error.message }))),
-      );
-    }
-
-    if (didMoveFolder) {
-      folderUpdateSucceeded = await updateFeedFolderMutation
-        .mutateAsync({ feedId: feed.id, folderId: resolvedFolderId })
-        .then(() => true)
-        .catch(() => false);
-    }
-
-    if (didUpdateDisplayMode) {
-      const nextModes = displayPresetToTriStateModes(displayPreset);
-      Result.pipe(
-        await updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode),
-        Result.inspect(() => {
-          void qc.invalidateQueries({ queryKey: ["feeds"] });
-        }),
-        Result.inspectError((error) => {
-          showToast(t("failed_to_update_display_settings", { message: error.message }));
-        }),
-      );
-    }
-
-    if ((didRename || didUpdateDisplayMode) && !folderUpdateSucceeded) {
-      void qc.invalidateQueries({ queryKey: ["feeds"] });
-    }
-    void qc.invalidateQueries({ queryKey: ["folders"] });
-    setLoading(false);
-    onSaved();
   };
 
   const handleRefetch = async () => {
@@ -204,7 +176,7 @@ export function FeedCleanupFeedEditor({
           <Select
             name="feed-display-mode"
             value={displayPreset}
-            onValueChange={(value) => value !== null && setDisplayPreset(value as DisplayPresetOption)}
+            onValueChange={(value) => value !== null && setDisplayPreset(value as FeedEditDisplayPreset)}
             disabled={loading}
           >
             <SelectTrigger aria-label={t("display_mode")} className="mt-1 w-full">
@@ -241,28 +213,33 @@ export function FeedCleanupFeedEditor({
           newFolderInputRef={newFolderInputRef}
         />
 
-        <div className="space-y-3 rounded-xl border border-border bg-card px-4 py-4">
-          <CopyableReadonlyField
-            label={t("website_url")}
-            name="website-url"
-            value={feed.site_url}
-            copyLabel={t("copy_website_url")}
-            disabled={loading}
-            onCopy={() => {
-              void handleCopy(feed.site_url);
-            }}
-          />
-          <CopyableReadonlyField
-            label={t("feed_url")}
-            name="feed-url"
-            value={feed.url}
-            copyLabel={t("copy_feed_url")}
-            disabled={loading}
-            onCopy={() => {
-              void handleCopy(feed.url);
-            }}
-          />
-        </div>
+        <CopyableReadonlyFieldList
+          className="rounded-xl border border-border bg-card px-4 py-4"
+          fields={[
+            {
+              key: "website-url",
+              label: t("website_url"),
+              name: "website-url",
+              value: feed.site_url,
+              copyLabel: t("copy_website_url"),
+              disabled: loading,
+              onCopy: () => {
+                void handleCopy(feed.site_url);
+              },
+            },
+            {
+              key: "feed-url",
+              label: t("feed_url"),
+              name: "feed-url",
+              value: feed.url,
+              copyLabel: t("copy_feed_url"),
+              disabled: loading,
+              onCopy: () => {
+                void handleCopy(feed.url);
+              },
+            },
+          ]}
+        />
 
         <section className="space-y-3 rounded-xl border border-border bg-card px-4 py-4">
           <div>
@@ -282,12 +259,18 @@ export function FeedCleanupFeedEditor({
 
       <div className="border-t border-border/70 pt-3">
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={onCancel} disabled={loading || refetching}>
-            {tc("cancel")}
-          </Button>
-          <Button onClick={() => void handleSave()} disabled={!title.trim() || loading || refetching}>
-            {loading ? tc("saving") : tc("save")}
-          </Button>
+          <FormActionButtons
+            cancelLabel={tc("cancel")}
+            submitLabel={tc("save")}
+            submittingLabel={tc("saving")}
+            loading={loading}
+            submitDisabled={!title.trim() || loading || refetching}
+            cancelDisabled={loading || refetching}
+            onCancel={onCancel}
+            onSubmit={() => {
+              void handleSave();
+            }}
+          />
         </div>
       </div>
     </div>

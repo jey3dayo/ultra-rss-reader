@@ -1,15 +1,14 @@
-import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
-import { renameFeed, updateFeedDisplaySettings } from "@/api/tauri-commands";
 import { useFolders } from "@/hooks/use-folders";
+import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
-import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/article-display";
+import { resolveFeedDisplayPreset } from "@/lib/article-display";
 import { copyValueToClipboard } from "@/lib/clipboard";
 import { useUiStore } from "@/stores/ui-store";
-import { createFolderIfNeeded } from "./feed-folder-flow";
+import { type FeedEditDisplayPreset, submitFeedEdits } from "./feed-edit-submit";
 import { RenameFeedDialogView } from "./rename-feed-dialog-view";
 import { buildFolderOptions, useFolderSelection } from "./use-folder-selection";
 
@@ -25,7 +24,7 @@ export function RenameDialog({
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
   const [title, setTitle] = useState(feed.title);
-  const [displayPreset, setDisplayPreset] = useState(() => resolveFeedDisplayPreset(feed));
+  const [displayPreset, setDisplayPreset] = useState<FeedEditDisplayPreset>(() => resolveFeedDisplayPreset(feed));
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const {
@@ -40,6 +39,7 @@ export function RenameDialog({
   } = useFolderSelection(feed.folder_id);
   const qc = useQueryClient();
   const showToast = useUiStore((s) => s.showToast);
+  const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
   const { data: folders } = useFolders(feed.account_id);
   const updateFeedFolderMutation = useUpdateFeedFolder();
   const folderLabelId = useId();
@@ -74,60 +74,38 @@ export function RenameDialog({
   }, [open, feed, feed.folder_id, feed.title, resetFolderSelection]);
 
   const handleSubmit = async () => {
-    const trimmed = title.trim();
-    if (!trimmed) {
+    if (!title.trim()) {
       onOpenChange(false);
       return;
     }
+
     setLoading(true);
-    const resolvedFolderId = await createFolderIfNeeded({
-      accountId: feed.account_id,
-      selectedFolderId,
-      isCreatingFolder,
-      newFolderName,
-      onError: (error) => {
-        showToast(t("failed_to_create_folder", { message: error.message }));
-      },
-    });
-    if (resolvedFolderId === undefined) {
+    try {
+      const saved = await submitFeedEdits({
+        feed,
+        title,
+        displayPreset,
+        selectedFolderId,
+        isCreatingFolder,
+        newFolderName,
+        queryClient: qc,
+        showToast,
+        createFolderErrorMessage: (error) => t("failed_to_create_folder", { message: error.message }),
+        renameErrorMessage: (error) => t("failed_to_rename", { message: error.message }),
+        updateFeedFolder: ({ feedId, folderId }) =>
+          updateFeedFolderMutation
+            .mutateAsync({ feedId, folderId })
+            .then(() => true)
+            .catch(() => false),
+        updateDisplaySettings: updateFeedDisplaySettings,
+      });
+
+      if (saved) {
+        onOpenChange(false);
+      }
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const didRename = trimmed !== feed.title;
-    const didMoveFolder = resolvedFolderId !== feed.folder_id;
-    const currentDisplayPreset = resolveFeedDisplayPreset(feed);
-    const didUpdateDisplayMode = displayPreset !== currentDisplayPreset;
-    let folderUpdateSucceeded = false;
-
-    if (didRename) {
-      Result.pipe(
-        await renameFeed(feed.id, trimmed),
-        Result.inspectError((e) => showToast(t("failed_to_rename", { message: e.message }))),
-      );
-    }
-
-    if (didMoveFolder) {
-      folderUpdateSucceeded = await updateFeedFolderMutation
-        .mutateAsync({ feedId: feed.id, folderId: resolvedFolderId })
-        .then(() => true)
-        .catch(() => false);
-    }
-
-    if (didUpdateDisplayMode) {
-      const nextModes = displayPresetToTriStateModes(displayPreset as "default" | "standard" | "preview");
-      Result.pipe(
-        await updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode),
-        Result.inspectError((e) => showToast(t("failed_to_update_display_settings", { message: e.message }))),
-      );
-    }
-
-    if ((didRename || didUpdateDisplayMode) && !folderUpdateSucceeded) {
-      qc.invalidateQueries({ queryKey: ["feeds"] });
-    }
-    qc.invalidateQueries({ queryKey: ["folders"] });
-    setLoading(false);
-    onOpenChange(false);
   };
 
   return (
