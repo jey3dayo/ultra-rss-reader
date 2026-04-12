@@ -9,16 +9,13 @@ import { useBreakpoint } from "../hooks/use-breakpoint";
 import { useKeyboard } from "../hooks/use-keyboard";
 import { useMenuEvents } from "../hooks/use-menu-events";
 import { useUpdater } from "../hooks/use-updater";
+import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "../lib/browser-debug-geometry";
 import { copyValueToClipboard } from "../lib/clipboard";
-import {
-  type BrowserDebugGeometrySnapshot,
-  getBrowserGeometryRows,
-} from "../lib/browser-debug-geometry";
 import { emitDebugInputTrace } from "../lib/debug-input-trace";
 import { cn } from "../lib/utils";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "../lib/window-chrome";
-import { resolvePreferenceValue, usePreferencesStore } from "../stores/preferences-store";
 import { usePlatformStore } from "../stores/platform-store";
+import { resolvePreferenceValue, usePreferencesStore } from "../stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
 import { AppConfirmDialog } from "./app-confirm-dialog";
 import { AppLayout } from "./app-layout";
@@ -206,10 +203,6 @@ function FocusDebugHud() {
       unlisten?.();
     };
   }, []);
-
-  useEffect(() => {
-    setActiveElementDescription(describeActiveElement(document.activeElement));
-  }, [contentMode, focusedPane, selectedArticleId]);
 
   const debugHudText = [
     `pane=${focusedPane} mode=${contentMode} article=${selectedArticleId ?? "none"}`,

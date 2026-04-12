@@ -2,8 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "@/components/app-shell";
 import { APP_EVENTS } from "@/constants/events";
-import { usePreferencesStore } from "@/stores/preferences-store";
 import { usePlatformStore } from "@/stores/platform-store";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
@@ -130,7 +130,10 @@ describe("AppShell", () => {
 
     const toastMessage = useUiStore.getState().toastMessage?.message;
     expect(toastMessage).toBeTruthy();
-    expect(screen.getByText(toastMessage!)).toBeInTheDocument();
+    if (!toastMessage) {
+      throw new Error("Expected copy toast message to be set");
+    }
+    expect(screen.getByText(toastMessage)).toBeInTheDocument();
   });
 
   it("shows browser geometry rows inside the debug HUD when preview diagnostics are published", async () => {

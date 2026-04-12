@@ -22,17 +22,12 @@ const BROWSER_WEBVIEW_LOAD_TIMEOUT_MS: u64 = 10_000;
 const INVALID_BROWSER_BOUNDS_ERROR: &str =
     "Embedded browser bounds must be finite and have positive width/height";
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum BrowserWebviewBoundsUnit {
+    #[default]
     Logical,
     Physical,
-}
-
-impl Default for BrowserWebviewBoundsUnit {
-    fn default() -> Self {
-        Self::Logical
-    }
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq)]
@@ -194,14 +189,15 @@ fn focus_browser_host_window(window: &Window) -> Result<(), AppError> {
         let _ = webview.set_focus();
     }
 
-    let hwnd = window
-        .hwnd()
-        .map_err(|error| browser_webview_error(format!("Failed to get browser host HWND: {error}")))?;
+    let hwnd = window.hwnd().map_err(|error| {
+        browser_webview_error(format!("Failed to get browser host HWND: {error}"))
+    })?;
     unsafe {
         let _ = BringWindowToTop(hwnd);
         let _ = SetForegroundWindow(hwnd);
-        SetFocus(Some(hwnd))
-            .map_err(|error| browser_webview_error(format!("Failed to refocus browser host window: {error}")))?;
+        SetFocus(Some(hwnd)).map_err(|error| {
+            browser_webview_error(format!("Failed to refocus browser host window: {error}"))
+        })?;
     }
 
     if let Some(webview) = window.app_handle().get_webview("main") {
