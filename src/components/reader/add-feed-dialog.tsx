@@ -1,22 +1,8 @@
-import { Result } from "@praha/byethrow";
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useId, useRef, useState } from "react";
+import { useId } from "react";
 import { useTranslation } from "react-i18next";
-import { addLocalFeed, type DiscoveredFeedDto, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import { useFolders } from "@/hooks/use-folders";
-import { useUiStore } from "@/stores/ui-store";
 import { AddFeedDialogView } from "./add-feed-dialog-view";
-import { createFolderIfNeeded } from "./feed-folder-flow";
-import { buildFolderOptions, useFolderSelection } from "./use-folder-selection";
-
-function isValidFeedUrl(value: string): boolean {
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
+import { useAddFeedDialogController } from "./use-add-feed-dialog-controller";
 
 export function AddFeedDialog({
   open,
@@ -29,202 +15,53 @@ export function AddFeedDialog({
 }) {
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
-  const [url, setUrl] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [discovering, setDiscovering] = useState(false);
-  const [discoveredFeeds, setDiscoveredFeeds] = useState<DiscoveredFeedDto[]>([]);
-  const [selectedFeedUrl, setSelectedFeedUrl] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const {
-    selectedFolderId,
-    newFolderName,
-    isCreatingFolder,
-    newFolderInputRef,
-    folderSelectValue,
-    handleFolderChange,
-    resetFolderSelection,
-    setNewFolderName,
-  } = useFolderSelection(null);
-  const qc = useQueryClient();
-  const showToast = useUiStore((s) => s.showToast);
   const { data: folders } = useFolders(accountId);
   const folderLabelId = useId();
-  const folderOptions = buildFolderOptions(folders, t("no_folder"));
-  const trimmedUrl = url.trim();
-  const hasManualUrl = trimmedUrl.length > 0;
-  const isManualUrlValid = !hasManualUrl || isValidFeedUrl(trimmedUrl);
-  const urlHint =
-    hasManualUrl && !isManualUrlValid ? t("feed_url_help_invalid") : hasManualUrl ? null : t("feed_url_help_example");
-  const urlHintTone = hasManualUrl && !isManualUrlValid ? "error" : "muted";
-
-  useEffect(() => {
-    if (open) {
-      setUrl("");
-      resetFolderSelection(null);
-      setError(null);
-      setSuccessMessage(null);
-      setLoading(false);
-      setDiscovering(false);
-      setDiscoveredFeeds([]);
-      setSelectedFeedUrl(null);
-      requestAnimationFrame(() => inputRef.current?.focus());
-    }
-  }, [open, resetFolderSelection]);
-
-  const handleDiscover = async () => {
-    if (!hasManualUrl || !isManualUrlValid) {
-      setError(t("invalid_feed_url"));
-      setSuccessMessage(null);
-      return;
-    }
-    setDiscovering(true);
-    setError(null);
-    setSuccessMessage(null);
-    setDiscoveredFeeds([]);
-    setSelectedFeedUrl(null);
-
-    Result.pipe(
-      await discoverFeeds(trimmedUrl),
-      Result.inspect((feeds) => {
-        if (feeds.length === 0) {
-          setDiscoveredFeeds([]);
-          setSelectedFeedUrl(null);
-          setSuccessMessage(t("feed_url_ready"));
-        } else if (feeds.length === 1) {
-          setDiscoveredFeeds(feeds[0].title ? feeds : []);
-          setSelectedFeedUrl(feeds[0].url);
-          setSuccessMessage(t("feed_detected"));
-        } else {
-          setDiscoveredFeeds(feeds);
-          setSelectedFeedUrl(feeds[0].url);
-        }
-      }),
-      Result.inspectError((e) => {
-        setError(t("discovery_failed", { message: e.message }));
-      }),
-    );
-    setDiscovering(false);
-  };
-
-  const getFeedUrl = (): string => {
-    return selectedFeedUrl ?? url.trim();
-  };
-
-  const handleSubmit = async () => {
-    const feedUrl = getFeedUrl();
-    if (!feedUrl) return;
-    if (!selectedFeedUrl && !isValidFeedUrl(feedUrl)) {
-      setError(t("invalid_feed_url"));
-      return;
-    }
-    setLoading(true);
-    setError(null);
-
-    let hasError = false;
-    const folderId = await createFolderIfNeeded({
-      accountId,
-      selectedFolderId,
-      isCreatingFolder,
-      newFolderName,
-      onError: (error) => {
-        setError(t("failed_to_create_folder", { message: error.message }));
-        showToast(t("failed_to_create_folder", { message: error.message }));
-      },
-    });
-    if (folderId === undefined) {
-      setLoading(false);
-      return;
-    }
-
-    let feedId: string | null = null;
-
-    Result.pipe(
-      await addLocalFeed(accountId, feedUrl),
-      Result.inspect((feed) => {
-        feedId = feed.id;
-      }),
-      Result.inspectError((e) => {
-        hasError = true;
-        setError(t("failed_to_add_feed", { message: e.message }));
-      }),
-    );
-
-    if (hasError) {
-      setLoading(false);
-      return;
-    }
-
-    if (folderId && feedId) {
-      Result.pipe(
-        await updateFeedFolder(feedId, folderId),
-        Result.inspectError((e) => {
-          console.error("Failed to assign folder:", e);
-          showToast(t("feed_added_folder_failed", { message: e.message }));
-        }),
-      );
-    }
-
-    qc.invalidateQueries({ queryKey: ["feeds"] });
-    qc.invalidateQueries({ queryKey: ["accountUnreadCount"] });
-    qc.invalidateQueries({ queryKey: ["folders"] });
-    onOpenChange(false);
-    setLoading(false);
-  };
-
-  const isSubmitDisabled =
-    (!selectedFeedUrl && (!hasManualUrl || !isManualUrlValid)) ||
-    loading ||
-    discovering ||
-    (isCreatingFolder && !newFolderName.trim());
-
-  const discoveredFeedOptions = discoveredFeeds.map((feed) => ({
-    value: feed.url,
-    label: feed.title || feed.url,
-  }));
+  const controller = useAddFeedDialogController({
+    open,
+    onOpenChange,
+    accountId,
+    folders,
+    noFolderLabel: t("no_folder"),
+  });
 
   return (
     <AddFeedDialogView
       open={open}
       onOpenChange={onOpenChange}
-      url={url}
-      onUrlChange={(nextUrl) => {
-        setUrl(nextUrl);
-        setDiscoveredFeeds([]);
-        setSelectedFeedUrl(null);
-      }}
-      onDiscover={handleDiscover}
-      discovering={discovering}
-      loading={loading}
+      url={controller.url}
+      onUrlChange={controller.setUrl}
+      onDiscover={controller.handleDiscover}
+      discovering={controller.discovering}
+      loading={controller.loading}
       discoveredFeedsFoundLabel={
-        discoveredFeeds.length > 0 ? t("feeds_found", { count: discoveredFeeds.length }) : null
+        controller.discoveredFeeds.length > 0 ? t("feeds_found", { count: controller.discoveredFeeds.length }) : null
       }
-      discoveredFeedOptions={discoveredFeedOptions}
-      selectedFeedUrl={selectedFeedUrl ?? ""}
-      onSelectedFeedUrlChange={setSelectedFeedUrl}
+      discoveredFeedOptions={controller.derived.discoveredFeedOptions}
+      selectedFeedUrl={controller.selectedFeedUrl ?? ""}
+      onSelectedFeedUrlChange={(value) => controller.setSelectedFeedUrl(value)}
       folderSelectProps={{
         labelId: folderLabelId,
         label: t("folder"),
-        value: folderSelectValue,
-        options: folderOptions,
+        value: controller.folderSelectProps.folderSelectValue,
+        options: controller.folderSelectProps.folderOptions,
         canCreateFolder: true,
-        disabled: loading,
-        isCreatingFolder,
+        disabled: controller.loading,
+        isCreatingFolder: controller.folderSelectProps.isCreatingFolder,
         newFolderOptionLabel: t("new_folder"),
         newFolderLabel: t("folder_name"),
-        newFolderName,
+        newFolderName: controller.folderSelectProps.newFolderName,
         newFolderPlaceholder: t("enter_folder_name"),
-        onValueChange: handleFolderChange,
-        onNewFolderNameChange: setNewFolderName,
-        newFolderInputRef,
+        onValueChange: controller.folderSelectProps.handleFolderChange,
+        onNewFolderNameChange: controller.folderSelectProps.setNewFolderName,
+        newFolderInputRef: controller.folderSelectProps.newFolderInputRef,
       }}
-      error={error}
-      successMessage={successMessage}
-      urlHint={urlHint}
-      urlHintTone={urlHintTone}
-      isDiscoverDisabled={!hasManualUrl || !isManualUrlValid || loading || discovering}
-      isSubmitDisabled={isSubmitDisabled}
+      error={controller.error}
+      successMessage={controller.successMessage}
+      urlHint={controller.derived.urlHint}
+      urlHintTone={controller.derived.urlHintTone}
+      isDiscoverDisabled={controller.derived.isDiscoverDisabled}
+      isSubmitDisabled={controller.derived.isSubmitDisabled}
       labels={{
         title: t("add_feed"),
         description: t("add_feed_description"),
@@ -236,8 +73,8 @@ export function AddFeedDialog({
         add: tc("add"),
         adding: t("adding"),
       }}
-      inputRef={inputRef}
-      onSubmit={handleSubmit}
+      inputRef={controller.inputRef}
+      onSubmit={controller.handleSubmit}
     />
   );
 }
