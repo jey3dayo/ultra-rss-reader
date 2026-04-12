@@ -1,3 +1,4 @@
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
@@ -31,6 +32,18 @@ export function ArticleListItem({
   const { t } = useTranslation("reader");
   const isRead = article.is_read || isRecentlyRead;
   const isUnread = !isRead;
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.defaultPrevented) {
+      return;
+    }
+
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    onSelect();
+  };
 
   return (
     <div
@@ -40,8 +53,9 @@ export function ArticleListItem({
       aria-selected={isSelected}
       aria-label={`${article.title}${isRead ? "" : ` ${t("unread_suffix")}`}${article.is_starred ? ` ${t("starred_suffix")}` : ""}`}
       onClick={onSelect}
+      onKeyDown={handleKeyDown}
       className={cn(
-        "flex w-full flex-col gap-1 px-4 py-3 text-left outline-none transition-colors",
+        "flex w-full cursor-pointer flex-col gap-1 px-4 py-3 text-left outline-none transition-colors",
         selectionStyle === "classic"
           ? cn(isSelected && "border-l-2 border-primary bg-primary/10")
           : cn(isSelected && "bg-muted"),

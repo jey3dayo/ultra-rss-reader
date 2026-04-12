@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { ArticleListItem } from "@/components/reader/article-list-item";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleArticles } from "../../../tests/helpers/tauri-mocks";
@@ -62,5 +62,31 @@ describe("ArticleListItem", () => {
     );
 
     expect(screen.getByTestId("article-star-indicator")).toHaveClass("h-3", "w-3");
+  });
+
+  it("activates article rows with Enter and Space", () => {
+    const onSelect = vi.fn();
+
+    render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
+        isSelected
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={onSelect}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const option = screen.getByRole("option", { name: "First Article (unread)" });
+
+    fireEvent.keyDown(option, { key: "Enter" });
+    fireEvent.keyDown(option, { key: " " });
+
+    expect(onSelect).toHaveBeenCalledTimes(2);
   });
 });

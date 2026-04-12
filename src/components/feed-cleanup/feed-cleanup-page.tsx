@@ -162,6 +162,7 @@ export function FeedCleanupPage() {
         editor={
           cleanupState.isEditingSelectedFeed && cleanupState.selectedFeed ? (
             <FeedCleanupFeedEditor
+              key={cleanupState.selectedFeed.id}
               feed={cleanupState.selectedFeed}
               folders={folders}
               maintenanceTitle={t("editor_maintenance_title")}
