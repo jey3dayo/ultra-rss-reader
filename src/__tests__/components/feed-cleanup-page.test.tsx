@@ -200,7 +200,7 @@ describe("FeedCleanupPage", () => {
 
     render(<FeedCleanupPage />, { wrapper: createWrapper() });
 
-    expect(await screen.findByRole("heading", { name: "Feed Cleanup" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Review Subscriptions" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Cleanup Queue" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Review" })).toBeInTheDocument();

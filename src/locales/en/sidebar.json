@@ -9,7 +9,7 @@
   "no_folder": "No folder",
   "tags": "Tags",
   "accounts": "Accounts",
-  "feed_cleanup": "Feed Cleanup",
+  "feed_cleanup": "Review Subscriptions",
   "settings": "Settings",
   "not_synced_yet": "Not synced yet",
   "today_at": "Today at {{time}}",

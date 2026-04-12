@@ -993,7 +993,7 @@ describe("Sidebar", () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     const scrollArea = screen.getByTestId("sidebar-feed-scroll-area");
-    const feedCleanupButton = await screen.findByRole("button", { name: "Feed Cleanup" });
+    const feedCleanupButton = await screen.findByRole("button", { name: "Review Subscriptions" });
     const settingsButton = screen.getByRole("button", { name: "Settings" });
 
     expect(feedCleanupButton.closest('[data-slot="scroll-area"]')).toBeNull();
@@ -1010,7 +1010,7 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Feed Cleanup" }));
+    await user.click(await screen.findByRole("button", { name: "Review Subscriptions" }));
 
     expect(useUiStore.getState().feedCleanupOpen).toBe(true);
     expect(useUiStore.getState().focusedPane).toBe("content");
@@ -1028,7 +1028,7 @@ describe("Sidebar", () => {
     await user.click(screen.getByRole("button", { name: "Settings" }));
     expect(useUiStore.getState().settingsOpen).toBe(true);
 
-    await user.click(screen.getByRole("button", { name: "Feed Cleanup" }));
+    await user.click(screen.getByRole("button", { name: "Review Subscriptions" }));
     expect(useUiStore.getState().feedCleanupOpen).toBe(true);
   });
 
