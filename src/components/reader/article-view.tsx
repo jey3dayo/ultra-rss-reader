@@ -15,6 +15,7 @@ import {
   useTags,
   useUntagArticle,
 } from "@/hooks/use-tags";
+import { flushPendingBrowserCloseAction } from "@/lib/actions";
 import {
   type BinaryDisplayMode,
   resolveAppDefaultDisplayModes,
@@ -27,7 +28,6 @@ import {
   resolveArticleDateLocale,
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
-import { flushPendingBrowserCloseAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -37,8 +37,8 @@ import { FeedCleanupPage } from "../feed-cleanup/feed-cleanup-page";
 import { ArticleContentView } from "./article-content-view";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticleMetaView } from "./article-meta-view";
-import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-tag-picker-view";
 import { ArticleShareMenu } from "./article-share-menu";
+import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-tag-picker-view";
 import { ArticleToolbarActionStrip, ArticleToolbarView, type ArticleToolbarViewLabels } from "./article-toolbar-view";
 import { BrowserView } from "./browser-view";
 
@@ -300,30 +300,54 @@ function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedNam
   const cmdClickBrowser = usePreferencesStore((s) => s.prefs.cmd_click_browser ?? "false");
   const selectFeed = useUiStore((s) => s.selectFeed);
   const articleUrl = article.url;
+  const contentContainerRef = useRef<HTMLDivElement | null>(null);
+  const articleContentHtml = article.content_sanitized;
 
-  const openArticleUrl = (url: string, metaKey = false, ctrlKey = false) => {
-    const useExternal = shouldOpenExternalBrowser({
-      openLinks,
-      cmdClickBrowser,
-      metaKey,
-      ctrlKey,
-    });
+  const openArticleUrl = useCallback(
+    (url: string, metaKey = false, ctrlKey = false) => {
+      const useExternal = shouldOpenExternalBrowser({
+        openLinks,
+        cmdClickBrowser,
+        metaKey,
+        ctrlKey,
+      });
 
-    if (useExternal) {
+      if (useExternal) {
+        void openArticleInExternalBrowser(url);
+        return;
+      }
+
       void openArticleInExternalBrowser(url);
+    },
+    [cmdClickBrowser, openLinks],
+  );
+
+  useEffect(() => {
+    const contentContainer = contentContainerRef.current;
+    if (!contentContainer || !articleContentHtml) {
       return;
     }
 
-    void openArticleInExternalBrowser(url);
-  };
+    const anchors = Array.from(contentContainer.querySelectorAll<HTMLAnchorElement>("a[href]"));
+    const handleContentClick = (event: MouseEvent) => {
+      const anchor = event.currentTarget;
+      if (!(anchor instanceof HTMLAnchorElement) || !anchor.href) {
+        return;
+      }
+      event.preventDefault();
+      openArticleUrl(anchor.href, event.metaKey, event.ctrlKey);
+    };
 
-  const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    const anchor = target.closest("a");
-    if (!anchor?.href) return;
-    e.preventDefault();
-    openArticleUrl(anchor.href, e.metaKey, e.ctrlKey);
-  };
+    for (const anchor of anchors) {
+      anchor.addEventListener("click", handleContentClick);
+    }
+
+    return () => {
+      for (const anchor of anchors) {
+        anchor.removeEventListener("click", handleContentClick);
+      }
+    };
+  }, [articleContentHtml, openArticleUrl]);
 
   return (
     <ScrollArea data-testid="article-reader-scroll-area" className="h-full">
@@ -364,14 +388,8 @@ function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedNam
           <ArticleTagChips articleId={article.id} />
         </div>
 
-        {/* biome-ignore lint/a11y/useKeyWithClickEvents: click handler intercepts anchor navigation in sanitized HTML */}
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: click handler intercepts anchor navigation in sanitized HTML */}
-        <div onClick={handleContentClick}>
-          <ArticleContentView
-            thumbnailUrl={article.thumbnail}
-            contentHtml={article.content_sanitized}
-            feedName={feedName}
-          />
+        <div ref={contentContainerRef}>
+          <ArticleContentView thumbnailUrl={article.thumbnail} contentHtml={articleContentHtml} feedName={feedName} />
         </div>
       </article>
     </ScrollArea>

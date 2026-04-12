@@ -179,6 +179,47 @@ describe("ArticleView", () => {
     expect(useUiStore.getState().browserUrl).toBeNull();
   });
 
+  it("opens sanitized article links in the external browser", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        case "open_in_browser":
+        case "update_feed_display_settings":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    render(
+      <ArticlePane
+        article={{
+          ...primaryArticle,
+          content_sanitized: '<p><a href="https://example.com/from-content">Read more</a></p>',
+        }}
+        feed={primaryFeed}
+        feedName="Feed One"
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    calls.length = 0;
+    await userEvent.setup().click(screen.getByRole("link", { name: "Read more" }));
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "open_in_browser",
+        args: { url: "https://example.com/from-content", background: false },
+      });
+    });
+  });
+
   it("keeps the embedded browser preview toggle available when action_open_browser is false", async () => {
     const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
