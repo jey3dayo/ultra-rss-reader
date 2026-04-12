@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { SectionHeading } from "@/components/settings/settings-components";
+import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -58,10 +59,7 @@ function AddAccountSelectRow({ control }: { control: AddAccountFormSelectControl
   const labelId = useId();
 
   return (
-    <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-      <span id={labelId} className="text-sm text-foreground">
-        {control.label}
-      </span>
+    <LabeledControlRow label={control.label} labelId={labelId}>
       <Select
         name={control.name}
         value={control.value}
@@ -79,7 +77,7 @@ function AddAccountSelectRow({ control }: { control: AddAccountFormSelectControl
           ))}
         </SelectPopup>
       </Select>
-    </div>
+    </LabeledControlRow>
   );
 }
 
@@ -87,10 +85,7 @@ function AddAccountInputRow({ control }: { control: AddAccountFormInputControl }
   const inputId = useId();
 
   return (
-    <div className="flex min-h-[44px] items-center justify-between gap-3 border-b border-border py-3">
-      <label htmlFor={inputId} className="text-sm text-foreground">
-        {control.label}
-      </label>
+    <LabeledControlRow label={control.label} htmlFor={inputId}>
       <Input
         id={inputId}
         name={control.name}
@@ -101,7 +96,7 @@ function AddAccountInputRow({ control }: { control: AddAccountFormInputControl }
         className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
         disabled={control.disabled}
       />
-    </div>
+    </LabeledControlRow>
   );
 }
 

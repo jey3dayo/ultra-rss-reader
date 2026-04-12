@@ -1,5 +1,6 @@
 import { SectionHeading } from "@/components/settings/settings-components";
 import { CopyableTextField } from "@/components/shared/copyable-text-field";
+import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { LoadingButton } from "@/components/shared/loading-button";
 import { Input } from "@/components/ui/input";
 
@@ -73,17 +74,15 @@ export function AccountCredentialsSectionView({
           </div>
         </div>
       )}
-      <div className="flex min-h-[44px] items-center justify-between gap-3 border-b border-border py-3">
-        <span className="text-sm text-foreground">{usernameLabel}</span>
+      <LabeledControlRow label={usernameLabel}>
         <Input
           value={usernameValue}
           onChange={(e) => onUsernameChange(e.target.value)}
           onBlur={onUsernameBlur}
           className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
         />
-      </div>
-      <div className="flex min-h-[44px] items-center justify-between gap-3 border-b border-border py-3">
-        <span className="text-sm text-foreground">{passwordLabel}</span>
+      </LabeledControlRow>
+      <LabeledControlRow label={passwordLabel}>
         <Input
           type="password"
           value={passwordValue}
@@ -93,7 +92,7 @@ export function AccountCredentialsSectionView({
           placeholder={passwordPlaceholder}
           className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
         />
-      </div>
+      </LabeledControlRow>
       {onTestConnection && (
         <div className="pt-3">
           <LoadingButton

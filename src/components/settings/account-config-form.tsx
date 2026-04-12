@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { addAccount } from "@/api/tauri-commands";
 import { SERVICE_CATEGORIES } from "@/components/settings/service-picker";
 import { SectionHeading } from "@/components/settings/settings-components";
+import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { AddAccountProviderKind } from "@/lib/add-account-form";
@@ -129,10 +130,7 @@ export function AccountConfigForm({ kind, onBack }: { kind: AddAccountProviderKi
       >
         <section className="mb-6">
           <SectionHeading>{t("account.account")}</SectionHeading>
-          <div className="flex min-h-[44px] items-center justify-between gap-3 border-b border-border py-3">
-            <label htmlFor={accountNameId} className="text-sm text-foreground">
-              {t("account.name")}
-            </label>
+          <LabeledControlRow label={t("account.name")} htmlFor={accountNameId}>
             <Input
               id={accountNameId}
               name="account-name"
@@ -142,17 +140,14 @@ export function AccountConfigForm({ kind, onBack }: { kind: AddAccountProviderKi
               className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
               disabled={submitting}
             />
-          </div>
+          </LabeledControlRow>
         </section>
 
         {formConfig.requiresCredentials && (
           <section className="mb-6">
             <SectionHeading>{formConfig.sectionHeading}</SectionHeading>
             {formConfig.showServerUrl && (
-              <div className="flex min-h-[44px] items-center justify-between gap-3 border-b border-border py-3">
-                <label htmlFor={serverUrlId} className="text-sm text-foreground">
-                  {t("account.server_url")}
-                </label>
+              <LabeledControlRow label={t("account.server_url")} htmlFor={serverUrlId}>
                 <Input
                   id={serverUrlId}
                   name="server-url"
@@ -162,12 +157,9 @@ export function AccountConfigForm({ kind, onBack }: { kind: AddAccountProviderKi
                   className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
                   disabled={submitting}
                 />
-              </div>
+              </LabeledControlRow>
             )}
-            <div className="flex min-h-[44px] items-center justify-between gap-3 border-b border-border py-3">
-              <label htmlFor={credentialId} className="text-sm text-foreground">
-                {formConfig.credentialLabel}
-              </label>
+            <LabeledControlRow label={formConfig.credentialLabel ?? ""} htmlFor={credentialId}>
               <Input
                 id={credentialId}
                 name={formConfig.credentialName ?? undefined}
@@ -176,11 +168,8 @@ export function AccountConfigForm({ kind, onBack }: { kind: AddAccountProviderKi
                 className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
                 disabled={submitting}
               />
-            </div>
-            <div className="flex min-h-[44px] items-center justify-between gap-3 border-b border-border py-3">
-              <label htmlFor={passwordId} className="text-sm text-foreground">
-                {t("account.password")}
-              </label>
+            </LabeledControlRow>
+            <LabeledControlRow label={t("account.password")} htmlFor={passwordId}>
               <Input
                 id={passwordId}
                 name="password"
@@ -190,7 +179,7 @@ export function AccountConfigForm({ kind, onBack }: { kind: AddAccountProviderKi
                 className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
                 disabled={submitting}
               />
-            </div>
+            </LabeledControlRow>
           </section>
         )}
 
