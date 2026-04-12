@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { FeedIntegrityIssueDto } from "@/api/schemas/feed-integrity";
 import { DeleteButton } from "@/components/shared/delete-button";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,21 @@ type FilterOption = {
   key: "stale_90d" | "no_unread" | "no_stars";
   label: string;
 };
+
+const FEED_CLEANUP_COMPACT_THREE_COLUMN_WIDTH = 980;
+const FEED_CLEANUP_WIDE_THREE_COLUMN_WIDTH = 1180;
+
+function resolveFeedCleanupLayoutWidth(measuredWidth: number | null): number {
+  if (measuredWidth != null && measuredWidth > 0) {
+    return measuredWidth;
+  }
+
+  if (typeof window === "undefined") {
+    return 0;
+  }
+
+  return window.innerWidth >= 1024 ? Math.max(window.innerWidth - 280, 0) : window.innerWidth;
+}
 
 function formatDate(value: string | null, locale: string): string {
   if (!value) {
@@ -160,12 +175,58 @@ export function FeedCleanupPageView({
   onLater: () => void;
   onDelete: () => void;
 }) {
+  const layoutRef = useRef<HTMLDivElement | null>(null);
+  const [layoutWidth, setLayoutWidth] = useState(() => resolveFeedCleanupLayoutWidth(null));
   const toneClassName =
     selectedSummary?.tone === "high"
       ? "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100"
       : selectedSummary?.tone === "medium"
         ? "border-sky-200 bg-sky-50 text-sky-950 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-100"
         : "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100";
+
+  useEffect(() => {
+    const updateLayoutWidth = () => {
+      setLayoutWidth(resolveFeedCleanupLayoutWidth(layoutRef.current?.getBoundingClientRect().width ?? null));
+    };
+
+    updateLayoutWidth();
+
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => {
+            updateLayoutWidth();
+          });
+
+    if (layoutRef.current && observer) {
+      observer.observe(layoutRef.current);
+    }
+
+    window.addEventListener("resize", updateLayoutWidth);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", updateLayoutWidth);
+    };
+  }, []);
+
+  const layoutMode =
+    layoutWidth >= FEED_CLEANUP_WIDE_THREE_COLUMN_WIDTH
+      ? "three-wide"
+      : layoutWidth >= FEED_CLEANUP_COMPACT_THREE_COLUMN_WIDTH
+        ? "three-compact"
+        : "two-column";
+
+  const layoutClassName =
+    layoutMode === "three-wide"
+      ? "grid-cols-[260px_minmax(0,1fr)_320px] overflow-hidden"
+      : layoutMode === "three-compact"
+        ? "grid-cols-[220px_minmax(0,1fr)_300px] overflow-hidden"
+        : "overflow-y-auto lg:grid-cols-[240px_minmax(280px,1fr)]";
+
+  const reviewPanelClassName =
+    layoutMode === "two-column"
+      ? "lg:col-span-2"
+      : "col-span-1 sticky top-4 max-h-[calc(100dvh-7.5rem)] self-start overflow-hidden";
 
   return (
     <div
@@ -197,8 +258,9 @@ export function FeedCleanupPageView({
       ) : null}
 
       <div
+        ref={layoutRef}
         data-testid="feed-cleanup-layout"
-        className="grid min-h-0 flex-1 gap-0 overflow-y-auto lg:grid-cols-[240px_minmax(280px,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_320px] xl:overflow-hidden"
+        className={cn("grid min-h-0 flex-1 gap-0", layoutClassName)}
       >
         <section className="min-h-0 border-b border-border bg-sidebar/60 px-4 py-4 lg:border-r lg:border-b-0">
           <h3 className="mb-3 text-sm font-semibold">{overviewLabel}</h3>
@@ -366,7 +428,7 @@ export function FeedCleanupPageView({
 
         <section
           data-testid="feed-cleanup-review-panel"
-          className="flex min-h-0 flex-col px-5 py-4 lg:col-span-2 xl:col-span-1 xl:sticky xl:top-4 xl:max-h-[calc(100dvh-7.5rem)] xl:self-start xl:overflow-hidden"
+          className={cn("flex min-h-0 flex-col px-5 py-4", reviewPanelClassName)}
         >
           <h3 className="mb-3 text-sm font-semibold">{reviewLabel}</h3>
           {integrityMode ? (
