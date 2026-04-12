@@ -1,31 +1,19 @@
-import { useId } from "react";
+import { LabeledControlRow } from "@/components/shared/labeled-control-row";
+import { type LabeledSelectOption, LabeledSelectRow } from "@/components/shared/labeled-select-row";
+import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
+
+export { SectionHeading } from "@/components/shared/section-heading";
 
 export function SettingsSwitch({ label, prefKey }: { label: string; prefKey: string }) {
   const checked = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, prefKey) === "true");
   const setPref = usePreferencesStore((s) => s.setPref);
-  const labelId = useId();
-  return (
-    <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-      <span id={labelId} className="text-sm text-foreground">
-        {label}
-      </span>
-      <GradientSwitch
-        checked={checked}
-        onCheckedChange={(v) => setPref(prefKey, String(v))}
-        aria-labelledby={labelId}
-      />
-    </div>
-  );
+  return <LabeledSwitchRow label={label} checked={checked} onChange={(value) => setPref(prefKey, String(value))} />;
 }
 
-interface SelectOption {
-  value: string;
-  label: string;
-}
+type SelectOption = LabeledSelectOption;
 
 export function SettingsSelect({
   label,
@@ -38,33 +26,17 @@ export function SettingsSelect({
 }) {
   const value = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, prefKey));
   const setPref = usePreferencesStore((s) => s.setPref);
-  const labelId = useId();
-  const getOptionLabel = (selectedValue: string | null) =>
-    options.find((option) => option.value === (selectedValue ?? ""))?.label ?? selectedValue ?? "";
 
   return (
-    <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-      <span id={labelId} className="text-sm text-foreground">
-        {label}
-      </span>
-      <Select name={prefKey} value={value} onValueChange={(v) => v !== null && setPref(prefKey, v)}>
-        <SelectTrigger aria-labelledby={labelId} className="min-w-[140px]">
-          <SelectValue>{(selectedValue: string | null) => getOptionLabel(selectedValue)}</SelectValue>
-        </SelectTrigger>
-        <SelectPopup>
-          {options.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectPopup>
-      </Select>
-    </div>
+    <LabeledSelectRow
+      label={label}
+      name={prefKey}
+      value={value}
+      options={options}
+      onChange={(nextValue) => setPref(prefKey, nextValue)}
+      triggerClassName="min-w-[140px]"
+    />
   );
-}
-
-export function SectionHeading({ children }: { children: React.ReactNode }) {
-  return <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">{children}</h3>;
 }
 
 /** Read-only display row for account detail settings. GradientSwitch is intentionally
@@ -77,8 +49,7 @@ export type SettingsRowProps =
 
 export function SettingsRow(props: SettingsRowProps) {
   return (
-    <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-      <span className="text-sm text-foreground">{props.label}</span>
+    <LabeledControlRow label={props.label}>
       {props.type === "switch" && <GradientSwitch checked={props.checked} disabled />}
       {props.type === "select" && <span className="text-sm text-muted-foreground">{props.value} &#9662;</span>}
       {props.type === "text" && (
@@ -86,6 +57,6 @@ export function SettingsRow(props: SettingsRowProps) {
           {props.value}
         </span>
       )}
-    </div>
+    </LabeledControlRow>
   );
 }

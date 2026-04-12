@@ -3,7 +3,8 @@ import { openPath } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getDatabaseInfo, getLogDir, vacuumDatabase } from "@/api/tauri-commands";
-import { SectionHeading } from "@/components/settings/settings-components";
+import { LabeledControlRow } from "@/components/shared/labeled-control-row";
+import { SectionHeading } from "@/components/shared/section-heading";
 import { Button } from "@/components/ui/button";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -79,10 +80,9 @@ export function DataSettings() {
       <h2 className="mb-6 text-center text-lg font-semibold">{t("data.heading")}</h2>
       <section className="mb-6">
         <SectionHeading>{t("data.database")}</SectionHeading>
-        <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-          <span className="text-sm text-foreground">{t("data.database_size")}</span>
+        <LabeledControlRow label={t("data.database_size")}>
           <span className="text-sm text-muted-foreground">{totalSize != null ? formatBytes(totalSize) : "…"}</span>
-        </div>
+        </LabeledControlRow>
       </section>
       <section>
         <SectionHeading>{t("data.optimization")}</SectionHeading>

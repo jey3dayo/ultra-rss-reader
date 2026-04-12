@@ -2,7 +2,7 @@ import { ChevronRight, Monitor, Thermometer } from "lucide-react";
 import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
 import { FreshRssLogoIcon, InoreaderLogoIcon } from "@/components/icons/provider-icons";
-import { SectionHeading } from "@/components/settings/settings-components";
+import { SectionHeading } from "@/components/shared/section-heading";
 import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import { cn } from "@/lib/utils";
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { SectionHeading } from "@/components/settings/settings-components";
+import { LabeledControlRow } from "@/components/shared/labeled-control-row";
+import { SectionHeading } from "@/components/shared/section-heading";
 import { Button } from "@/components/ui/button";
 
 export type ShortcutsSettingsItem = {
@@ -98,8 +99,7 @@ export function ShortcutsSettingsView({
         <section key={category.id} className="mb-6">
           <SectionHeading>{category.heading}</SectionHeading>
           {category.items.map((item) => (
-            <div key={item.id} className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-              <span className="text-sm text-foreground">{item.label}</span>
+            <LabeledControlRow key={item.id} label={item.label}>
               {item.isLocked ? (
                 <kbd className="rounded-md border border-border bg-muted px-2.5 py-1 font-mono text-sm text-muted-foreground">
                   {item.displayKey}
@@ -107,7 +107,7 @@ export function ShortcutsSettingsView({
               ) : (
                 <ShortcutKeyBadge item={item} pressAKeyLabel={pressAKeyLabel} />
               )}
-            </div>
+            </LabeledControlRow>
           ))}
         </section>
       ))}

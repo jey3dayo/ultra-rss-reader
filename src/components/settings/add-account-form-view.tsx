@@ -1,6 +1,6 @@
 import { useId } from "react";
-import { SectionHeading } from "@/components/settings/settings-components";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
+import { SectionHeading } from "@/components/shared/section-heading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";

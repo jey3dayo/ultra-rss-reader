@@ -1,4 +1,4 @@
-import { SectionHeading } from "@/components/settings/settings-components";
+import { SectionHeading } from "@/components/shared/section-heading";
 import { CopyableTextField } from "@/components/shared/copyable-text-field";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { LoadingButton } from "@/components/shared/loading-button";

@@ -5,7 +5,7 @@ import { useId, useMemo, useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { addAccount } from "@/api/tauri-commands";
 import { SERVICE_CATEGORIES } from "@/components/settings/service-picker";
-import { SectionHeading } from "@/components/settings/settings-components";
+import { SectionHeading } from "@/components/shared/section-heading";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

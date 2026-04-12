@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { SectionHeading, SettingsRow } from "./settings-components";
+import { SectionHeading } from "@/components/shared/section-heading";
+import { SettingsRow } from "./settings-components";
 
 const sectionHeadingMeta = {
   title: "Settings/SectionHeading",

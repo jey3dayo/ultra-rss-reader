@@ -1,7 +1,4 @@
-import type {
-  AccountSelectControl,
-  AccountSyncSectionViewProps,
-} from "@/components/settings/account-detail.types";
+import type { AccountSelectControl, AccountSyncSectionViewProps } from "@/components/settings/account-detail.types";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LoadingButton } from "@/components/shared/loading-button";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
