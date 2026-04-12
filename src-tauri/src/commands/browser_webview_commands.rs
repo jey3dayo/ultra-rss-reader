@@ -9,9 +9,10 @@ use tokio::time::{sleep, Duration};
 use crate::browser_webview::{
     browser_webview, browser_webview_diagnostics_enabled, emit_browser_webview_closed,
     emit_browser_webview_diagnostics, emit_browser_webview_fallback, emit_browser_webview_state,
-    go_back, go_forward, navigation_availability, should_trigger_timeout_fallback,
-    BrowserNavigationAvailability, BrowserWebviewDiagnosticsPayload, BrowserWebviewFallbackPayload,
-    BrowserWebviewLogicalRect, BrowserWebviewState, BROWSER_WEBVIEW_LABEL,
+    go_back, go_forward, install_escape_accelerator_bridge, navigation_availability,
+    should_trigger_timeout_fallback, BrowserNavigationAvailability,
+    BrowserWebviewDiagnosticsPayload, BrowserWebviewFallbackPayload, BrowserWebviewLogicalRect,
+    BrowserWebviewState, BROWSER_WEBVIEW_LABEL,
 };
 use crate::commands::dto::AppError;
 use crate::commands::AppState;
@@ -179,6 +180,38 @@ fn emit_closed_if_tracked(app_handle: &tauri::AppHandle, state: &AppState) -> Re
     if clear_browser_webview_tracker(state)? {
         emit_browser_webview_closed(app_handle);
     }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn focus_browser_host_window(window: &Window) -> Result<(), AppError> {
+    use windows::Win32::UI::{
+        Input::KeyboardAndMouse::SetFocus,
+        WindowsAndMessaging::{BringWindowToTop, SetForegroundWindow},
+    };
+
+    if let Some(webview) = window.app_handle().get_webview("main") {
+        let _ = webview.set_focus();
+    }
+
+    let hwnd = window
+        .hwnd()
+        .map_err(|error| browser_webview_error(format!("Failed to get browser host HWND: {error}")))?;
+    unsafe {
+        let _ = BringWindowToTop(hwnd);
+        let _ = SetForegroundWindow(hwnd);
+        SetFocus(Some(hwnd))
+            .map_err(|error| browser_webview_error(format!("Failed to refocus browser host window: {error}")))?;
+    }
+
+    if let Some(webview) = window.app_handle().get_webview("main") {
+        let _ = webview.set_focus();
+    }
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn focus_browser_host_window(_window: &Window) -> Result<(), AppError> {
     Ok(())
 }
 
@@ -354,6 +387,12 @@ fn create_browser_webview(
                 "Failed to create embedded browser webview: {error}"
             ))
         })?;
+    install_escape_accelerator_bridge(&browser_webview, &app_handle).map_err(|error| {
+        let _ = browser_webview.close();
+        browser_webview_error(format!(
+            "Failed to install embedded browser Escape handling: {error}"
+        ))
+    })?;
     log_browser_webview_bounds(window, "create", bounds, &rect);
 
     let next_state = match tracker_start(state, &app_handle, url.clone()) {
@@ -493,9 +532,18 @@ pub fn reload_browser_webview(
 #[tauri::command]
 pub fn close_browser_webview(window: Window, state: State<'_, AppState>) -> Result<(), AppError> {
     if let Some(browser_webview) = browser_webview(&window) {
+        if let Err(error) = focus_browser_host_window(&window) {
+            tracing::warn!(
+                "Failed to restore focus to browser host window before closing embedded browser: {error}"
+            );
+        }
         browser_webview.close().map_err(|error| {
             browser_webview_error(format!("Failed to close embedded browser webview: {error}"))
         })?;
+    }
+
+    if let Err(error) = focus_browser_host_window(&window) {
+        tracing::warn!("Failed to restore focus to browser host window after closing embedded browser: {error}");
     }
 
     emit_closed_if_tracked(window.app_handle(), state.inner())

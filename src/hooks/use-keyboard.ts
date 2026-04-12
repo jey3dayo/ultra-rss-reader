@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useEffect, useMemo } from "react";
-import { APP_EVENTS } from "@/constants/events";
 import { executeAction } from "@/lib/actions";
+import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
@@ -18,12 +18,17 @@ export function useKeyboard() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      const targetElement = e.target instanceof Element ? e.target : null;
+      if (targetElement?.closest('[data-disable-global-shortcuts="true"]')) {
+        return;
+      }
+
       const action = resolveKeyboardAction({
         key: e.key,
         metaKey: e.metaKey,
         ctrlKey: e.ctrlKey,
         shiftKey: e.shiftKey,
-        targetTag: (e.target as HTMLElement | null)?.tagName,
+        targetTag: targetElement?.tagName,
         selectedArticleId: store.selectedArticleId,
         contentMode: store.contentMode,
         viewMode: store.viewMode,
@@ -35,7 +40,9 @@ export function useKeyboard() {
       }
 
       e.preventDefault();
+      e.stopPropagation();
       const resolvedAction = Result.unwrap(action);
+      emitDebugInputTrace(`window-key ${e.key} -> ${resolvedAction.type}`);
 
       switch (resolvedAction.type) {
         case "open-settings":
@@ -44,6 +51,9 @@ export function useKeyboard() {
         case "open-command-palette":
           executeAction("open-command-palette");
           break;
+        case "open-shortcuts-help":
+          useUiStore.getState().openShortcutsHelp();
+          break;
         case "emit":
           emitKeyboardEvent(resolvedAction.eventName);
           break;
@@ -51,7 +61,7 @@ export function useKeyboard() {
           executeAction(`set-filter-${resolvedAction.mode}`);
           break;
         case "close-browser":
-          store.closeBrowser();
+          executeAction("close-browser");
           break;
         case "clear-article":
           store.clearArticle();
@@ -63,7 +73,7 @@ export function useKeyboard() {
           store.openSidebar();
           break;
         case "navigate-article":
-          window.dispatchEvent(new CustomEvent(APP_EVENTS.navigateArticle, { detail: resolvedAction.direction }));
+          executeAction(resolvedAction.direction === 1 ? "next-article" : "prev-article");
           break;
         case "navigate-feed":
           executeAction(resolvedAction.direction === 1 ? "next-feed" : "prev-feed");
@@ -74,7 +84,7 @@ export function useKeyboard() {
       }
     };
 
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
   }, [store, keyToAction]);
 }

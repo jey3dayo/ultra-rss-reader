@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -8,6 +8,7 @@ export type ArticleListScreenViewProps = {
   listAriaLabel: string;
   listRef: RefObject<HTMLDivElement | null>;
   viewportRef?: RefObject<HTMLDivElement | null>;
+  onListKeyDownCapture?: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
   isLoading: boolean;
   loadingMessage: string;
   emptyMessage: string;
@@ -27,6 +28,7 @@ export function ArticleListScreenView({
   listAriaLabel,
   listRef,
   viewportRef,
+  onListKeyDownCapture,
   isLoading,
   loadingMessage,
   emptyMessage,
@@ -67,7 +69,13 @@ export function ArticleListScreenView({
 
   return (
     <ScrollArea className="h-full" viewportRef={viewportRef}>
-      <div ref={listRef} role="listbox" aria-label={listAriaLabel} className="pb-4">
+      <div
+        ref={listRef}
+        role="listbox"
+        aria-label={listAriaLabel}
+        className="pb-4"
+        onKeyDownCapture={onListKeyDownCapture}
+      >
         <ArticleGroupsView
           groups={groups}
           dimArchived={dimArchived}

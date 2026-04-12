@@ -46,6 +46,7 @@ type Selection =
 type LayoutMode = "wide" | "compact" | "mobile";
 type FocusedPane = "sidebar" | "list" | "content";
 export type ContentMode = "empty" | "reader" | "browser" | "loading";
+export type PendingBrowserCloseAction = "prev-article" | "next-article" | "prev-feed" | "next-feed";
 export type SettingsCategory =
   | "general"
   | "appearance"
@@ -71,6 +72,8 @@ interface UiState {
   viewMode: "all" | "unread" | "starred";
   searchQuery: string;
   browserUrl: string | null;
+  browserCloseInFlight: boolean;
+  pendingBrowserCloseAction: PendingBrowserCloseAction | null;
   expandedFolderIds: Set<string>;
   settingsOpen: boolean;
   settingsCategory: SettingsCategory;
@@ -81,6 +84,7 @@ interface UiState {
   feedCleanupOpen: boolean;
   syncProgress: SyncProgressState;
   commandPaletteOpen: boolean;
+  shortcutsHelpOpen: boolean;
   isAddFeedDialogOpen: boolean;
   toastMessage: ToastData | null;
   recentlyReadIds: Set<string>;
@@ -111,9 +115,12 @@ interface UiActions {
   clearArticle: () => void;
   openBrowser: (url: string) => void;
   closeBrowser: () => void;
+  setBrowserCloseInFlight: (inFlight: boolean) => void;
+  setPendingBrowserCloseAction: (action: PendingBrowserCloseAction | null) => void;
   setViewMode: (mode: "all" | "unread" | "starred") => void;
   setSearchQuery: (query: string) => void;
   toggleFolder: (folderId: string) => void;
+  setExpandedFolders: (folderIds: Iterable<string>) => void;
   openSettings: (tab?: SettingsCategory) => void;
   closeSettings: () => void;
   openAddFeedDialog: () => void;
@@ -130,6 +137,8 @@ interface UiActions {
   openCommandPalette: () => void;
   closeCommandPalette: () => void;
   toggleCommandPalette: () => void;
+  openShortcutsHelp: () => void;
+  closeShortcutsHelp: () => void;
   showToast: (message: string | ToastData) => void;
   clearToast: () => void;
   addRecentlyRead: (id: string) => void;
@@ -155,6 +164,8 @@ const initialState: UiState = {
   viewMode: "unread",
   searchQuery: "",
   browserUrl: null,
+  browserCloseInFlight: false,
+  pendingBrowserCloseAction: null,
   expandedFolderIds: new Set(),
   settingsOpen: false,
   settingsCategory: "general",
@@ -171,6 +182,7 @@ const initialState: UiState = {
     activeAccountIds: new Set(),
   },
   commandPaletteOpen: false,
+  shortcutsHelpOpen: false,
   isAddFeedDialogOpen: false,
   toastMessage: null,
   recentlyReadIds: new Set(),
@@ -275,13 +287,23 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     }),
   selectArticle: (id) => set({ selectedArticleId: id, contentMode: "reader", focusedPane: "content" }),
   clearArticle: () => set({ selectedArticleId: null, contentMode: "empty" }),
-  openBrowser: (url) => set({ contentMode: "browser", browserUrl: url, focusedPane: "content" }),
+  openBrowser: (url) =>
+    set({
+      contentMode: "browser",
+      browserUrl: url,
+      focusedPane: "content",
+      browserCloseInFlight: false,
+      pendingBrowserCloseAction: null,
+    }),
   closeBrowser: () =>
     set((s) => ({
       contentMode: s.selectedArticleId ? "reader" : "empty",
       browserUrl: null,
       focusedPane: s.selectedArticleId ? "content" : "list",
+      browserCloseInFlight: false,
     })),
+  setBrowserCloseInFlight: (inFlight) => set({ browserCloseInFlight: inFlight }),
+  setPendingBrowserCloseAction: (action) => set({ pendingBrowserCloseAction: action }),
   setViewMode: (mode) => set({ viewMode: mode, recentlyReadIds: new Set(), retainedArticleIds: new Set() }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   toggleFolder: (folderId) =>
@@ -291,6 +313,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       else next.add(folderId);
       return { expandedFolderIds: next };
     }),
+  setExpandedFolders: (folderIds) => set({ expandedFolderIds: new Set(folderIds) }),
   openSettings: (tab?: SettingsCategory) =>
     set((s) => ({ settingsOpen: true, settingsCategory: tab ?? s.settingsCategory })),
   openAddFeedDialog: () => set({ isAddFeedDialogOpen: true }),
@@ -356,9 +379,15 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
         activeAccountIds: new Set(),
       },
     }),
-  openCommandPalette: () => set({ commandPaletteOpen: true }),
+  openCommandPalette: () => set({ commandPaletteOpen: true, shortcutsHelpOpen: false }),
   closeCommandPalette: () => set({ commandPaletteOpen: false }),
-  toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
+  toggleCommandPalette: () =>
+    set((s) => ({
+      commandPaletteOpen: !s.commandPaletteOpen,
+      shortcutsHelpOpen: !s.commandPaletteOpen ? false : s.shortcutsHelpOpen,
+    })),
+  openShortcutsHelp: () => set({ shortcutsHelpOpen: true, commandPaletteOpen: false }),
+  closeShortcutsHelp: () => set({ shortcutsHelpOpen: false }),
   showToast: (message) => {
     if (toastTimer) clearTimeout(toastTimer);
     const data: ToastData = typeof message === "string" ? { message } : message;

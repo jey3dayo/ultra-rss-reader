@@ -94,6 +94,7 @@ describe("CommandPalette", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
+    useUiStore.setState(useUiStore.getInitialState());
   });
 
   it("shows recent actions when opened without a query", async () => {
@@ -156,7 +157,7 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("option", { name: /Feed Cleanup/ }));
+    await user.click(await screen.findByRole("option", { name: /Review Subscriptions/ }));
 
     await waitFor(() => {
       expect(useUiStore.getState().feedCleanupOpen).toBe(true);
@@ -180,6 +181,19 @@ describe("CommandPalette", () => {
 
     expect(openSettings).toHaveTextContent("⌘ .");
     expect(markAllRead).toHaveTextContent("Shift + A");
+  });
+
+  it("opens shortcuts help from the command palette", async () => {
+    const user = userEvent.setup();
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("option", { name: /Open shortcuts help/i }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().shortcutsHelpOpen).toBe(true);
+      expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+    });
   });
 
   it("shows dev scenarios only in dev builds", async () => {

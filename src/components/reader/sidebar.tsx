@@ -6,6 +6,7 @@ import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { triggerSync } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { APP_EVENTS } from "@/constants/events";
+import { STORAGE_KEYS } from "@/constants/storage";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useAccountArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -51,6 +52,41 @@ function useFormatLastSynced(date: Date | null): string {
   return t("date_at", { date: dateStr, time: `${hours}:${minutes}` });
 }
 
+type StoredSidebarExpandedFolders = Record<string, string[]>;
+
+function readStoredSidebarExpandedFolders(): StoredSidebarExpandedFolders {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders);
+    if (!raw) {
+      return {};
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      return {};
+    }
+
+    const entries = Object.entries(parsed).flatMap(([accountId, folderIds]) =>
+      Array.isArray(folderIds) && folderIds.every((folderId) => typeof folderId === "string")
+        ? [[accountId, folderIds] as const]
+        : [],
+    );
+    return Object.fromEntries(entries);
+  } catch {
+    return {};
+  }
+}
+
+function getStoredSidebarExpandedFolders(accountId: string): string[] {
+  return readStoredSidebarExpandedFolders()[accountId] ?? [];
+}
+
+function setStoredSidebarExpandedFolders(accountId: string, folderIds: Iterable<string>): void {
+  const nextState = readStoredSidebarExpandedFolders();
+  nextState[accountId] = [...new Set(folderIds)];
+  window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify(nextState));
+}
+
 export function Sidebar() {
   const { t } = useTranslation("sidebar");
   const [showAccountList, setShowAccountList] = useState(false);
@@ -91,6 +127,7 @@ export function Sidebar() {
   const selectTag = useUiStore((s) => s.selectTag);
   const setViewMode = useUiStore((s) => s.setViewMode);
   const expandedFolderIds = useUiStore((s) => s.expandedFolderIds);
+  const setExpandedFolders = useUiStore((s) => s.setExpandedFolders);
   const toggleFolder = useUiStore((s) => s.toggleFolder);
   const openSettings = useUiStore((s) => s.openSettings);
   const openFeedCleanup = useUiStore((s) => s.openFeedCleanup);
@@ -119,8 +156,11 @@ export function Sidebar() {
   const displayFavicons = usePreferencesStore((s) => (s.prefs.display_favicons ?? "true") === "true");
   const grayscaleFavicons = usePreferencesStore((s) => (s.prefs.grayscale_favicons ?? "false") === "true");
   const sortSubscriptions = usePreferencesStore((s) => s.prefs.sort_subscriptions ?? "folders_first");
+  const startupFolderExpansion = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "startup_folder_expansion"));
   const opaqueSidebars = usePreferencesStore((s) => (s.prefs.opaque_sidebars ?? "false") === "true");
   const updateFeedFolderMutation = useUpdateFeedFolder();
+  const feedViewportRef = useRef<HTMLDivElement>(null);
+  const startupExpansionTokenRef = useRef<string | null>(null);
 
   const savedAccountId = usePreferencesStore((s) => s.prefs.selected_account_id ?? "");
   const setPref = usePreferencesStore((s) => s.setPref);
@@ -151,6 +191,7 @@ export function Sidebar() {
     const restoredAccountId = savedAccountId && accounts.some((a) => a.id === savedAccountId) ? savedAccountId : null;
     const nextAccountId = restoredAccountId ?? accounts[0].id;
     selectAccount(nextAccountId);
+    selectSmartView("unread");
     if (savedAccountId !== nextAccountId) {
       setPref("selected_account_id", nextAccountId);
     }
@@ -164,12 +205,22 @@ export function Sidebar() {
     layoutMode,
     savedAccountId,
     selectAccount,
+    selectSmartView,
     selectedAccountId,
     setFocusedPane,
     setPref,
   ]);
 
   const selectedAccount = accounts?.find((a) => a.id === selectedAccountId);
+
+  useEffect(() => {
+    if (!selectedAccountId) {
+      startupExpansionTokenRef.current = null;
+      return;
+    }
+
+    setStoredSidebarExpandedFolders(selectedAccountId, expandedFolderIds);
+  }, [expandedFolderIds, selectedAccountId]);
 
   const closeAccountList = useCallback((restoreFocus = false) => {
     setShowAccountList(false);
@@ -343,6 +394,7 @@ export function Sidebar() {
     },
     [sortFeeds, viewMode],
   );
+  const hideEmptyFoldersInCurrentView = viewMode === "unread" && draggedFeedId === null;
   const feedTreeFolders = useMemo<FeedTreeFolderViewModel[]>(
     () =>
       sortedFolderList.map((folder) => {
@@ -374,12 +426,16 @@ export function Sidebar() {
             grayscaleFavicon: grayscaleFavicons,
           })),
         };
-      }),
+      }).filter(
+        (folder) =>
+          !hideEmptyFoldersInCurrentView || folder.isSelected || folder.feeds.length > 0,
+      ),
     [
       expandedFolderIds,
       feedsByFolder,
       filterFolderFeedsForSidebar,
       grayscaleFavicons,
+      hideEmptyFoldersInCurrentView,
       selectedFeedId,
       selectedFolderId,
       sortFeeds,
@@ -468,6 +524,56 @@ export function Sidebar() {
   }, [clearDragState, draggedFeedId, feedById, updateFeedFolderMutation]);
 
   useEffect(() => {
+    if (!selectedAccountId) {
+      startupExpansionTokenRef.current = null;
+      return;
+    }
+
+    if (!feeds || !folders) {
+      return;
+    }
+
+    const token = `${selectedAccountId}:${startupFolderExpansion}`;
+    if (startupExpansionTokenRef.current === token) {
+      return;
+    }
+
+    if (expandedFolderIds.size > 0 && startupFolderExpansion !== "restore_previous") {
+      startupExpansionTokenRef.current = token;
+      return;
+    }
+
+    const validFolderIds = new Set(folderList.map((folder) => folder.id));
+    let nextExpandedFolderIds = new Set<string>();
+
+    if (startupFolderExpansion === "unread_folders") {
+      nextExpandedFolderIds = new Set(
+        feedList
+          .filter((feed) => feed.folder_id && feed.unread_count > 0)
+          .map((feed) => feed.folder_id)
+          .filter((folderId): folderId is string => typeof folderId === "string")
+          .filter((folderId) => validFolderIds.has(folderId)),
+      );
+    } else if (startupFolderExpansion === "restore_previous") {
+      nextExpandedFolderIds = new Set(
+        getStoredSidebarExpandedFolders(selectedAccountId).filter((folderId) => validFolderIds.has(folderId)),
+      );
+    }
+
+    setExpandedFolders(nextExpandedFolderIds);
+    startupExpansionTokenRef.current = token;
+  }, [
+    feedList,
+    folderList,
+    feeds,
+    folders,
+    expandedFolderIds,
+    selectedAccountId,
+    setExpandedFolders,
+    startupFolderExpansion,
+  ]);
+
+  useEffect(() => {
     if (!draggedFeedId) {
       return;
     }
@@ -547,9 +653,27 @@ export function Sidebar() {
         if (nextIndex < 0 || nextIndex >= orderedFeedIds.length) return;
       }
       const nextFeedId = orderedFeedIds[nextIndex];
-      if (nextFeedId) selectFeed(nextFeedId);
+      if (!nextFeedId) {
+        return;
+      }
+
+      const nextFeedFolderId = feedById.get(nextFeedId)?.folder_id;
+      if (nextFeedFolderId && !expandedFolderIds.has(nextFeedFolderId)) {
+        setExpandedFolders([...expandedFolderIds, nextFeedFolderId]);
+      }
+
+      selectFeed(nextFeedId);
+      requestAnimationFrame(() => {
+        const nextFeedButton = document.querySelector<HTMLButtonElement>(`[data-feed-id="${nextFeedId}"]`);
+        if (!nextFeedButton) {
+          return;
+        }
+
+        nextFeedButton.focus({ preventScroll: true });
+        nextFeedButton.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+      });
     },
-    [orderedFeedIds, selectedFeedId, selectFeed],
+    [expandedFolderIds, feedById, orderedFeedIds, selectFeed, selectedFeedId, setExpandedFolders],
   );
 
   // Listen for feed navigation events from keyboard shortcuts / menu
@@ -717,7 +841,7 @@ export function Sidebar() {
 
       <SidebarFeedSection title={t("subscriptions")} isOpen={isFeedsSectionOpen} onToggle={toggleFeedsSection} />
 
-      <ScrollArea data-testid="sidebar-feed-scroll-area" className="flex-1">
+      <ScrollArea data-testid="sidebar-feed-scroll-area" className="flex-1" viewportRef={feedViewportRef}>
         <div className="pb-4">
           {feedTree}
           {tagSection}

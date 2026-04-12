@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { reloadBrowserWebview, triggerSync } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import { runManualUpdateCheck } from "@/hooks/use-updater";
+import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import i18n from "@/lib/i18n";
 import { keyboardEvents, type ViewMode } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -25,6 +26,7 @@ export type AppAction =
   | "prev-feed"
   | "next-feed"
   | "reload-webview"
+  | "close-browser"
   | "open-in-reader"
   | "open-in-browser"
   | "toggle-star"
@@ -55,6 +57,7 @@ const appActions = new Set<string>([
   "prev-feed",
   "next-feed",
   "reload-webview",
+  "close-browser",
   "open-in-reader",
   "open-in-browser",
   "toggle-star",
@@ -65,6 +68,8 @@ const appActions = new Set<string>([
   "add-to-reading-list",
   "check-for-updates",
 ]);
+
+type BufferedBrowserCloseAction = Extract<AppAction, "prev-article" | "next-article" | "prev-feed" | "next-feed">;
 
 /** Runtime type guard for validating action strings from external sources (e.g. Tauri IPC). */
 export function isAppAction(value: string): value is AppAction {
@@ -79,6 +84,48 @@ function emitEvent(name: string): void {
 /** Emit a navigation event with a direction detail. */
 function emitNavigationEvent(name: string, direction: 1 | -1): void {
   window.dispatchEvent(new CustomEvent(name, { detail: direction }));
+}
+
+function queueBrowserCloseActionIfNeeded(action: BufferedBrowserCloseAction): boolean {
+  const store = useUiStore.getState();
+  if (!store.browserCloseInFlight) {
+    return false;
+  }
+
+  store.setPendingBrowserCloseAction(action);
+  emitDebugInputTrace(`queue ${action}`);
+  return true;
+}
+
+function dispatchBufferedBrowserCloseAction(action: BufferedBrowserCloseAction): void {
+  switch (action) {
+    case "prev-article":
+      emitNavigationEvent(APP_EVENTS.navigateArticle, -1);
+      break;
+    case "next-article":
+      emitNavigationEvent(APP_EVENTS.navigateArticle, 1);
+      break;
+    case "prev-feed":
+      emitNavigationEvent(APP_EVENTS.navigateFeed, -1);
+      break;
+    case "next-feed":
+      emitNavigationEvent(APP_EVENTS.navigateFeed, 1);
+      break;
+  }
+}
+
+export function flushPendingBrowserCloseAction(): void {
+  const store = useUiStore.getState();
+  const pendingAction = store.pendingBrowserCloseAction;
+  store.setPendingBrowserCloseAction(null);
+  store.setBrowserCloseInFlight(false);
+  emitDebugInputTrace(`flush ${pendingAction ?? "none"}`);
+
+  if (!pendingAction) {
+    return;
+  }
+
+  dispatchBufferedBrowserCloseAction(pendingAction);
 }
 
 /**
@@ -188,17 +235,29 @@ export function executeAction(action: AppAction): void {
 
     // --- Article navigation ---
     case "prev-article":
+      if (queueBrowserCloseActionIfNeeded("prev-article")) {
+        break;
+      }
       emitNavigationEvent(APP_EVENTS.navigateArticle, -1);
       break;
     case "next-article":
+      if (queueBrowserCloseActionIfNeeded("next-article")) {
+        break;
+      }
       emitNavigationEvent(APP_EVENTS.navigateArticle, 1);
       break;
 
     // --- Feed navigation ---
     case "prev-feed":
+      if (queueBrowserCloseActionIfNeeded("prev-feed")) {
+        break;
+      }
       emitNavigationEvent(APP_EVENTS.navigateFeed, -1);
       break;
     case "next-feed":
+      if (queueBrowserCloseActionIfNeeded("next-feed")) {
+        break;
+      }
       emitNavigationEvent(APP_EVENTS.navigateFeed, 1);
       break;
 
@@ -212,6 +271,13 @@ export function executeAction(action: AppAction): void {
           }),
         );
       });
+      break;
+    case "close-browser":
+      if (store.selectedArticleId && store.contentMode === "browser") {
+        emitEvent(keyboardEvents.closeBrowserOverlay);
+      } else {
+        store.closeBrowser();
+      }
       break;
 
     // --- Article actions (reuse existing keyboard event system) ---

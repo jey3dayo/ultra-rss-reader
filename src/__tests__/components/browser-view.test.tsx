@@ -282,8 +282,13 @@ describe("BrowserView", () => {
     expect(screen.queryByText("Web Preview")).not.toBeInTheDocument();
     const chrome = screen.getByTestId("browser-overlay-chrome");
     expect(chrome).toBeInTheDocument();
-    expect(within(chrome).getByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /open in external browser/i })).toBeInTheDocument();
+    const closeButton = within(chrome).getByRole("button", { name: "Close Web Preview" });
+    const externalButton = screen.getByRole("button", { name: /open in external browser/i });
+
+    expect(closeButton).toBeInTheDocument();
+    expect(closeButton).toHaveClass("size-11", "md:size-8", "rounded-lg");
+    expect(externalButton).toBeInTheDocument();
+    expect(externalButton).toHaveClass("size-11", "md:size-8", "rounded-lg");
     expect(screen.queryByTestId("browser-toolbar")).not.toBeInTheDocument();
     expect(screen.queryByText("https://example.com/article")).not.toBeInTheDocument();
   });
@@ -408,6 +413,10 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
+    const loadingState = screen.getByTestId("browser-loading-state");
+
+    expect(loadingState.className).not.toMatch(/\bborder\b/);
+    expect(loadingState.className).not.toMatch(/\bshadow-/);
     expect(screen.getByText("Loading")).toBeInTheDocument();
     expect(screen.getByText("If this takes too long, open it in your external browser.")).toBeInTheDocument();
   });
@@ -550,6 +559,73 @@ describe("BrowserView", () => {
     expect(screen.getAllByRole("button", { name: "Open in External Browser" })).toHaveLength(2);
   });
 
+  it("hides technical browser failure details unless debug hud is enabled", async () => {
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+
+    usePreferencesStore.setState({
+      prefs: { debug_browser_hud: "false" },
+      loaded: true,
+    });
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.fallback)).toBe(true);
+    });
+
+    await act(async () => {
+      registeredHandlers.get(BROWSER_WINDOW_EVENTS.fallback)?.({
+        payload: {
+          url: "https://example.com/article",
+          opened_external: false,
+          error_message: "Timed out waiting for the embedded browser to load.",
+        },
+      });
+    });
+
+    expect(await screen.findByText("Web Preview couldn't load.")).toBeInTheDocument();
+    expect(screen.queryByText("Technical detail")).not.toBeInTheDocument();
+    expect(screen.queryByText("Timed out waiting for the embedded browser to load.")).not.toBeInTheDocument();
+  });
+
+  it("shows technical browser failure details when debug hud is enabled", async () => {
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+
+    usePreferencesStore.setState({
+      prefs: { debug_browser_hud: "true" },
+      loaded: true,
+    });
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.fallback)).toBe(true);
+    });
+
+    await act(async () => {
+      registeredHandlers.get(BROWSER_WINDOW_EVENTS.fallback)?.({
+        payload: {
+          url: "https://example.com/article",
+          opened_external: false,
+          error_message: "Timed out waiting for the embedded browser to load.",
+        },
+      });
+    });
+
+    expect(await screen.findByText("Technical detail")).toBeInTheDocument();
+    expect(screen.getByText("Timed out waiting for the embedded browser to load.")).toBeInTheDocument();
+  });
+
   it("does not close when clicking the overlay lane outside the close button", async () => {
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 
@@ -608,6 +684,62 @@ describe("BrowserView", () => {
     });
   });
 
+  it("returns to reader mode when the native browser webview disappears during a resize sync", async () => {
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    setupTauriMocks((cmd, args) => {
+      commands.push({ cmd, args });
+      if (cmd === "create_or_update_browser_webview") {
+        return {
+          url: args.url,
+          can_go_back: false,
+          can_go_forward: false,
+          is_loading: false,
+        };
+      }
+      if (cmd === "set_browser_webview_bounds") {
+        throw { type: "UserVisible", message: "Embedded browser webview is not open" };
+      }
+      if (cmd === "close_browser_webview") {
+        return null;
+      }
+      return null;
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(commands).toContainEqual({
+        cmd: "create_or_update_browser_webview",
+        args: {
+          url: "https://example.com/article",
+          bounds: { x: 0, y: 56, width: 1400, height: 844 },
+        },
+      });
+    });
+
+    commands = [];
+    setWindowSize(1200, 800);
+    mockRootRect({ left: 0, top: 0, width: 1200, height: 800 });
+
+    await act(async () => {
+      for (const callback of resizeObserverCallbacks) {
+        callback();
+      }
+    });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(useUiStore.getState().browserUrl).toBeNull();
+      expect(screen.queryByTestId("browser-overlay-shell")).not.toBeInTheDocument();
+    });
+  });
+
   it("closes browser mode when the embedded browser webview closes natively", async () => {
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
     useUiStore.setState({
@@ -629,6 +761,31 @@ describe("BrowserView", () => {
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("reader");
       expect(useUiStore.getState().browserUrl).toBeNull();
+    });
+  });
+
+  it("routes native browser close events through the shared overlay close handler", async () => {
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+    const onCloseOverlay = vi.fn();
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness onCloseOverlay={onCloseOverlay} />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(registeredHandlers.has(BROWSER_WINDOW_EVENTS.closed)).toBe(true);
+    });
+
+    await act(async () => {
+      registeredHandlers.get(BROWSER_WINDOW_EVENTS.closed)?.({ payload: null });
+    });
+
+    await waitFor(() => {
+      expect(onCloseOverlay).toHaveBeenCalledTimes(1);
     });
   });
 

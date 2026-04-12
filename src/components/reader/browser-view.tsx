@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
 import { CircleAlert, ExternalLink, LoaderCircle, RotateCcw, X } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -14,7 +14,14 @@ import {
 } from "@/api/tauri-commands";
 import { IconToolbarButton } from "@/components/shared/icon-toolbar-control";
 import { Button } from "@/components/ui/button";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { BROWSER_WINDOW_EVENTS, BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
+import { APP_EVENTS } from "@/constants/events";
+import {
+  type BrowserDebugGeometryLayoutDiagnostics,
+  type BrowserDebugGeometryNativeDiagnostics,
+  getBrowserGeometryStripItems,
+} from "@/lib/browser-debug-geometry";
 import { resolveBrowserViewerGeometry } from "@/lib/browser-viewer-geometry";
 import { type BrowserWebviewBounds, toBrowserWebviewBounds } from "@/lib/browser-webview";
 import { hasTauriRuntime } from "@/lib/window-chrome";
@@ -29,6 +36,12 @@ function initialBrowserState(url: string): BrowserWebviewState {
     can_go_forward: false,
     is_loading: true,
   };
+}
+
+const MISSING_EMBEDDED_BROWSER_WEBVIEW_ERROR = "Embedded browser webview is not open";
+
+function isMissingEmbeddedBrowserWebviewError(error: AppError) {
+  return error.message.includes(MISSING_EMBEDDED_BROWSER_WEBVIEW_ERROR);
 }
 
 function mergeBrowserState(
@@ -70,41 +83,9 @@ type BrowserWebviewFallbackPayload = {
   error_message: string | null;
 };
 
-type BrowserWebviewDiagnosticsPayload = {
-  action: string;
-  requestedLogical: BrowserWebviewBounds;
-  appliedLogical: BrowserWebviewBounds;
-  scaleFactor: number;
-  nativeWebviewBounds: BrowserWebviewBounds | null;
-};
+type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
 
-type BrowserViewLayoutDiagnostics = {
-  viewport: {
-    width: number;
-    height: number;
-  };
-  overlay: BrowserWebviewBounds;
-  hostLogical: BrowserWebviewBounds;
-  stage: BrowserWebviewBounds;
-  lane: {
-    left: number;
-    top: number;
-    right: number;
-    bottom: number;
-  };
-};
-
-function formatRatio(value: number, total: number) {
-  if (total <= 0) {
-    return "n/a";
-  }
-
-  return `${((value / total) * 100).toFixed(1)}%`;
-}
-
-function formatCompactFill(width: number, height: number, totalWidth: number, totalHeight: number) {
-  return `${formatRatio(width, totalWidth)} ${formatRatio(height, totalHeight)}`;
-}
+type BrowserViewLayoutDiagnostics = BrowserDebugGeometryLayoutDiagnostics;
 
 type BrowserSurfaceIssue = {
   kind: "failed" | "unsupported";
@@ -114,12 +95,62 @@ type BrowserSurfaceIssue = {
   canRetry?: boolean;
 };
 
+function BrowserSurfaceStateCard({
+  issue,
+  showTechnicalDetail,
+  onRetry,
+  onOpenExternal,
+  labels,
+}: {
+  issue: BrowserSurfaceIssue;
+  showTechnicalDetail: boolean;
+  onRetry: () => void;
+  onOpenExternal: () => void;
+  labels: {
+    technicalDetail: string;
+    retryWebPreview: string;
+    openInExternalBrowser: string;
+  };
+}) {
+  return (
+    <div
+      data-testid="browser-surface-state"
+      className="max-w-md rounded-2xl border border-white/10 bg-black/62 px-5 py-4 text-center shadow-[0_18px_40px_rgba(0,0,0,0.32)] backdrop-blur-md"
+    >
+      <div className="flex items-center justify-center gap-2 text-white">
+        <CircleAlert aria-hidden="true" className="size-4 text-orange-300" />
+        <p className="text-sm font-semibold">{issue.title}</p>
+      </div>
+      <p className="mt-2 text-sm text-white/72">{issue.description}</p>
+      {showTechnicalDetail && issue.detail ? (
+        <div className="mt-3 space-y-1.5 text-left">
+          <p className="text-[11px] font-medium tracking-[0.08em] text-white/45 uppercase">{labels.technicalDetail}</p>
+          <p className="rounded-lg border border-white/8 bg-white/5 px-3 py-2 text-xs text-white/68">{issue.detail}</p>
+        </div>
+      ) : null}
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+        {issue.canRetry ? (
+          <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+            <RotateCcw className="h-3.5 w-3.5" />
+            {labels.retryWebPreview}
+          </Button>
+        ) : null}
+        <Button type="button" variant="secondary" size="sm" onClick={onOpenExternal}>
+          <ExternalLink className="h-3.5 w-3.5" />
+          {labels.openInExternalBrowser}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 type BrowserViewProps = {
   scope?: "content-pane" | "main-stage";
   onCloseOverlay: () => void;
   labels: {
     closeOverlay: string;
   };
+  toolbarActions?: ReactNode;
 };
 
 function BrowserDiagnosticsRail({
@@ -133,43 +164,7 @@ function BrowserDiagnosticsRail({
   compact: boolean;
   top: number;
 }) {
-  const fullItems: string[] = [];
-  const compactItems: string[] = [];
-
-  if (layoutDiagnostics) {
-    const viewportItem = `vp ${layoutDiagnostics.viewport.width}x${layoutDiagnostics.viewport.height}`;
-    const hostItem = `host ${layoutDiagnostics.hostLogical.width}x${layoutDiagnostics.hostLogical.height}`;
-    const fillItem = `fill ${formatCompactFill(
-      layoutDiagnostics.hostLogical.width,
-      layoutDiagnostics.hostLogical.height,
-      layoutDiagnostics.overlay.width,
-      layoutDiagnostics.overlay.height,
-    )}`;
-    const laneItem = `lane L${layoutDiagnostics.lane.left} T${layoutDiagnostics.lane.top} R${layoutDiagnostics.lane.right} B${layoutDiagnostics.lane.bottom}`;
-    fullItems.push(viewportItem, hostItem, fillItem, laneItem);
-    compactItems.push(viewportItem, fillItem);
-  }
-
-  if (nativeDiagnostics) {
-    fullItems.push(`rust ${nativeDiagnostics.action} x${nativeDiagnostics.scaleFactor.toFixed(2)}`);
-    if (nativeDiagnostics.nativeWebviewBounds) {
-      const nativeItem = `native ${Math.round(nativeDiagnostics.nativeWebviewBounds.width)}x${Math.round(nativeDiagnostics.nativeWebviewBounds.height)}`;
-      fullItems.push(nativeItem);
-      compactItems.push(nativeItem);
-    }
-    if (nativeDiagnostics.nativeWebviewBounds && layoutDiagnostics) {
-      const matchItem = `match ${formatCompactFill(
-        nativeDiagnostics.nativeWebviewBounds.width,
-        nativeDiagnostics.nativeWebviewBounds.height,
-        layoutDiagnostics.hostLogical.width,
-        layoutDiagnostics.hostLogical.height,
-      )}`;
-      fullItems.push(matchItem);
-      compactItems.push(matchItem);
-    }
-  }
-
-  const items = compact ? compactItems : fullItems;
+  const items = getBrowserGeometryStripItems({ layoutDiagnostics, nativeDiagnostics }, compact);
 
   if (items.length === 0) {
     return null;
@@ -203,7 +198,7 @@ function BrowserDiagnosticsRail({
   );
 }
 
-export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: BrowserViewProps) {
+export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, toolbarActions }: BrowserViewProps) {
   const prefs = usePreferencesStore((s) => s.prefs);
   const { t } = useTranslation("reader");
   const showDiagnostics = resolvePreferenceValue(prefs, "debug_browser_hud") === "true";
@@ -229,6 +224,21 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
   const handleCloseOverlay = useCallback(() => {
     onCloseOverlay();
   }, [onCloseOverlay]);
+
+  const handleLostEmbeddedBrowserWebview = useCallback(
+    (error: AppError) => {
+      console.warn("Embedded browser webview disappeared while overlay was open:", error.message);
+      fallbackInFlightRef.current = false;
+      webviewCreatedRef.current = false;
+      createInFlightRef.current = false;
+      pendingBoundsRef.current = null;
+      browserStateRef.current = null;
+      setBrowserState(null);
+      setSurfaceIssue(null);
+      handleCloseOverlay();
+    },
+    [handleCloseOverlay],
+  );
 
   const captureLayoutDiagnostics = useCallback(() => {
     if (!showDiagnostics) {
@@ -320,7 +330,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
       }),
       listen(BROWSER_WINDOW_EVENTS.closed, () => {
         if (cancelled) return;
-        useUiStore.getState().closeBrowser();
+        handleCloseOverlay();
       }),
       ...(showDiagnostics
         ? [
@@ -348,14 +358,38 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
       unlistenRef.current = [];
       listenerReadyRef.current = null;
     };
-  }, [showDiagnostics, t]);
+  }, [handleCloseOverlay, showDiagnostics, t]);
+
+  useEffect(() => {
+    if (!showDiagnostics) {
+      window.dispatchEvent(new CustomEvent(APP_EVENTS.browserDebugGeometry, { detail: null }));
+      return;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent(APP_EVENTS.browserDebugGeometry, {
+        detail: {
+          layoutDiagnostics,
+          nativeDiagnostics,
+        },
+      }),
+    );
+
+    return () => {
+      window.dispatchEvent(new CustomEvent(APP_EVENTS.browserDebugGeometry, { detail: null }));
+    };
+  }, [layoutDiagnostics, nativeDiagnostics, showDiagnostics]);
 
   const syncBrowserBounds = useCallback(async (bounds: BrowserWebviewBounds) => {
     const result = await setBrowserWebviewBounds(bounds);
     if (Result.isFailure(result)) {
-      console.error("Failed to sync embedded browser bounds:", Result.unwrapError(result));
+      const error = Result.unwrapError(result);
+      console.error("Failed to sync embedded browser bounds:", error);
+      if (isMissingEmbeddedBrowserWebviewError(error)) {
+        handleLostEmbeddedBrowserWebview(error);
+      }
     }
-  }, []);
+  }, [handleLostEmbeddedBrowserWebview]);
 
   const flushPendingBounds = useCallback(
     async (requestedUrl: string) => {
@@ -629,11 +663,11 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
   });
   const isCompactViewer = geometry.compact;
   const closeButtonClass = isCompactViewer
-    ? "pointer-events-auto size-11 rounded-[12px] border border-white/10 bg-black/32 text-white/92 shadow-[0_10px_26px_rgba(0,0,0,0.34)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/18 hover:bg-white/12 hover:text-white hover:shadow-[0_12px_28px_rgba(0,0,0,0.28)] focus-visible:border-white/18 focus-visible:bg-white/14 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/18 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/20 active:bg-white/18 active:shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
-    : "pointer-events-auto size-11 rounded-[13px] border border-white/12 bg-black/30 text-white/96 shadow-[0_12px_30px_rgba(0,0,0,0.34)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/20 hover:bg-black/44 hover:text-white hover:shadow-[0_14px_32px_rgba(0,0,0,0.3)] focus-visible:border-white/22 focus-visible:bg-black/48 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/22 active:bg-black/54 active:shadow-[0_10px_20px_rgba(0,0,0,0.24)]";
+    ? "pointer-events-auto border border-white/10 bg-black/32 text-white/92 shadow-[0_10px_26px_rgba(0,0,0,0.34)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/18 hover:bg-white/12 hover:text-white hover:shadow-[0_12px_28px_rgba(0,0,0,0.28)] focus-visible:border-white/18 focus-visible:bg-white/14 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/18 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/20 active:bg-white/18 active:shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
+    : "pointer-events-auto border border-white/12 bg-black/30 text-white/96 shadow-[0_12px_30px_rgba(0,0,0,0.34)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/20 hover:bg-black/44 hover:text-white hover:shadow-[0_14px_32px_rgba(0,0,0,0.3)] focus-visible:border-white/22 focus-visible:bg-black/48 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/22 active:bg-black/54 active:shadow-[0_10px_20px_rgba(0,0,0,0.24)]";
   const actionButtonClass = isCompactViewer
-    ? "pointer-events-auto size-11 rounded-[12px] border border-white/10 bg-black/32 text-white/92 shadow-[0_10px_26px_rgba(0,0,0,0.34)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/18 hover:bg-white/12 hover:text-white hover:shadow-[0_12px_28px_rgba(0,0,0,0.28)] focus-visible:border-white/18 focus-visible:bg-white/14 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/18 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/20 active:bg-white/18 active:shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
-    : "pointer-events-auto size-11 rounded-[13px] border border-white/12 bg-black/26 text-white/94 shadow-[0_12px_30px_rgba(0,0,0,0.3)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/20 hover:bg-black/40 hover:text-white hover:shadow-[0_14px_32px_rgba(0,0,0,0.28)] focus-visible:border-white/22 focus-visible:bg-black/44 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/22 active:bg-black/50 active:shadow-[0_10px_20px_rgba(0,0,0,0.24)]";
+    ? "pointer-events-auto border border-white/10 bg-black/32 text-white/92 shadow-[0_10px_26px_rgba(0,0,0,0.34)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/18 hover:bg-white/12 hover:text-white hover:shadow-[0_12px_28px_rgba(0,0,0,0.28)] focus-visible:border-white/18 focus-visible:bg-white/14 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/18 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/20 active:bg-white/18 active:shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
+    : "pointer-events-auto border border-white/12 bg-black/26 text-white/94 shadow-[0_12px_30px_rgba(0,0,0,0.3)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/20 hover:bg-black/40 hover:text-white hover:shadow-[0_14px_32px_rgba(0,0,0,0.28)] focus-visible:border-white/22 focus-visible:bg-black/44 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/22 active:bg-black/50 active:shadow-[0_10px_20px_rgba(0,0,0,0.24)]";
   const stageClass =
     scope === "main-stage"
       ? "absolute z-10 overflow-hidden bg-background"
@@ -681,34 +715,41 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
         className="absolute inset-0 z-0 cursor-default bg-transparent"
         onClick={scope === "main-stage" ? undefined : handleCloseOverlay}
       />
-      <div
-        data-testid="browser-overlay-chrome"
-        style={{ left: `${geometry.chrome.close.left}px`, top: `${geometry.chrome.close.top}px` }}
-        className="pointer-events-none absolute z-[60]"
-      >
-        <IconToolbarButton
-          label={labels.closeOverlay}
-          onClick={handleCloseOverlay}
-          autoFocus
-          className={closeButtonClass}
+      <TooltipProvider>
+        <div
+          data-testid="browser-overlay-chrome"
+          style={{ left: `${geometry.chrome.close.left}px`, top: `${geometry.chrome.close.top}px` }}
+          className="pointer-events-none absolute z-[60]"
         >
-          <X aria-hidden="true" className="size-4" />
-        </IconToolbarButton>
-      </div>
-      <div
-        style={{ right: `${geometry.chrome.action.right}px`, top: `${geometry.chrome.action.top}px` }}
-        className="pointer-events-none absolute z-[60]"
-      >
-        <IconToolbarButton
-          label={t("open_in_external_browser")}
-          onClick={() => {
-            void handleOpenExternal();
-          }}
-          className={actionButtonClass}
+          <IconToolbarButton
+            label={labels.closeOverlay}
+            onClick={handleCloseOverlay}
+            autoFocus
+            className={closeButtonClass}
+          >
+            <X aria-hidden="true" className="size-4" />
+          </IconToolbarButton>
+        </div>
+        <div
+          data-testid="browser-overlay-actions"
+          style={{ right: `${geometry.chrome.action.right}px`, top: `${geometry.chrome.action.top}px` }}
+          className="pointer-events-none absolute z-[60]"
         >
-          <ExternalLink className="h-4 w-4" />
-        </IconToolbarButton>
-      </div>
+          <div className="pointer-events-auto flex items-center gap-2">
+            {toolbarActions ?? (
+              <IconToolbarButton
+                label={t("open_in_external_browser")}
+                onClick={() => {
+                  void handleOpenExternal();
+                }}
+                className={actionButtonClass}
+              >
+                <ExternalLink className="h-4 w-4" />
+              </IconToolbarButton>
+            )}
+          </div>
+        </div>
+      </TooltipProvider>
       <div
         ref={stageRef}
         data-testid="browser-overlay-stage"
@@ -733,45 +774,35 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels }: 
           }}
         />
         {isLoading ? (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-6">
-            <div className="max-w-sm rounded-2xl border border-white/10 bg-black/58 px-5 py-4 text-center shadow-[0_18px_40px_rgba(0,0,0,0.32)] backdrop-blur-md">
-              <div className="flex items-center justify-center gap-2 text-white">
-                <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
-                <p className="text-sm font-semibold">{t("browser_loading")}</p>
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6">
+            <div
+              data-testid="browser-loading-state"
+              className="flex max-w-sm flex-col items-center gap-4 text-center"
+            >
+              <div className="relative flex items-center justify-center">
+                <div aria-hidden="true" className="absolute size-24 rounded-full bg-white/10 blur-3xl" />
+                <LoaderCircle aria-hidden="true" className="relative size-12 animate-spin text-white/92" />
               </div>
-              <p className="mt-2 text-sm text-white/72">{t("browser_loading_hint")}</p>
+              <div className="space-y-1.5">
+                <p className="text-sm font-medium tracking-[0.02em] text-white/92">{t("browser_loading")}</p>
+                <p className="text-sm text-white/60">{t("browser_loading_hint")}</p>
+              </div>
             </div>
           </div>
         ) : null}
         {activeSurfaceIssue ? (
           <div className="absolute inset-0 z-10 flex items-center justify-center p-6">
-            <div
-              data-testid="browser-surface-state"
-              className="max-w-md rounded-2xl border border-white/10 bg-black/62 px-5 py-4 text-center shadow-[0_18px_40px_rgba(0,0,0,0.32)] backdrop-blur-md"
-            >
-              <div className="flex items-center justify-center gap-2 text-white">
-                <CircleAlert aria-hidden="true" className="size-4 text-orange-300" />
-                <p className="text-sm font-semibold">{activeSurfaceIssue.title}</p>
-              </div>
-              <p className="mt-2 text-sm text-white/72">{activeSurfaceIssue.description}</p>
-              {activeSurfaceIssue.detail ? (
-                <p className="mt-3 rounded-lg border border-white/8 bg-white/5 px-3 py-2 text-left text-xs text-white/68">
-                  {activeSurfaceIssue.detail}
-                </p>
-              ) : null}
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                {activeSurfaceIssue.canRetry ? (
-                  <Button type="button" variant="outline" size="sm" onClick={handleRetry}>
-                    <RotateCcw className="h-3.5 w-3.5" />
-                    {t("retry_web_preview")}
-                  </Button>
-                ) : null}
-                <Button type="button" variant="secondary" size="sm" onClick={handleOpenExternal}>
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  {t("open_in_external_browser")}
-                </Button>
-              </div>
-            </div>
+            <BrowserSurfaceStateCard
+              issue={activeSurfaceIssue}
+              showTechnicalDetail={showDiagnostics}
+              onRetry={handleRetry}
+              onOpenExternal={handleOpenExternal}
+              labels={{
+                technicalDetail: t("browser_embed_technical_detail"),
+                retryWebPreview: t("retry_web_preview"),
+                openInExternalBrowser: t("open_in_external_browser"),
+              }}
+            />
           </div>
         ) : null}
       </div>

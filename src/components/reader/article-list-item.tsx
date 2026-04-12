@@ -33,15 +33,15 @@ export function ArticleListItem({
   const isUnread = !isRead;
 
   return (
-    <button
-      type="button"
+    <div
       data-article-id={article.id}
       role="option"
+      tabIndex={isSelected ? 0 : -1}
       aria-selected={isSelected}
       aria-label={`${article.title}${isRead ? "" : ` ${t("unread_suffix")}`}${article.is_starred ? ` ${t("starred_suffix")}` : ""}`}
       onClick={onSelect}
       className={cn(
-        "flex w-full flex-col gap-1 px-4 py-3 text-left transition-colors",
+        "flex w-full flex-col gap-1 px-4 py-3 text-left outline-none transition-colors",
         selectionStyle === "classic"
           ? cn(isSelected && "border-l-2 border-primary bg-primary/10")
           : cn(isSelected && "bg-muted"),
@@ -103,6 +103,6 @@ export function ArticleListItem({
           </div>
         )}
       </div>
-    </button>
+    </div>
   );
 }

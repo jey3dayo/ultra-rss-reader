@@ -63,6 +63,7 @@
   "browser_embed_blocked_hint": "外部ブラウザで開いて確認してください。",
   "browser_embed_failed": "Webプレビューを読み込めませんでした。",
   "browser_embed_failed_hint": "再試行するか、外部ブラウザで開いて確認してください。",
+  "browser_embed_technical_detail": "技術詳細",
   "browser_embed_browser_mode": "browser mode では埋め込み Webプレビューを表示できません。",
   "browser_embed_browser_mode_hint": "ネイティブの埋め込み表示はデスクトップアプリで確認し、ここでは外部ブラウザ導線を使ってください。",
   "retry_web_preview": "Webプレビューを再試行",
@@ -149,6 +150,12 @@
     "prefix_hint_feeds": "フィード",
     "prefix_hint_tags": "タグ"
   },
+  "shortcuts_help": {
+    "title": "キーボードショートカット",
+    "description": "ショートカットを検索できます。? でこのヘルプを再表示できます。",
+    "placeholder": "ショートカットを検索…",
+    "no_results": "ショートカットが見つかりません"
+  },
   "shortcuts": {
     "next_article": "次の記事",
     "prev_article": "前の記事",
@@ -169,6 +176,7 @@
     "search": "検索",
     "close_or_clear": "Webプレビューを閉じる / 選択解除",
     "open_command_palette": "コマンドパレットを開く",
+    "open_shortcuts_help": "ショートカットヘルプを開く",
     "open_settings": "設定を開く",
     "category_navigation": "ナビゲーション",
     "category_actions": "アクション",

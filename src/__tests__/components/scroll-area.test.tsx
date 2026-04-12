@@ -13,4 +13,18 @@ describe("ScrollArea", () => {
     expect(screen.getByTestId("scroll-area")).toHaveClass("min-h-0");
     expect(screen.getByTestId("scroll-area")).toHaveClass("flex-1");
   });
+
+  it("uses a neutral focus treatment on the viewport", () => {
+    render(
+      <ScrollArea data-testid="scroll-area">
+        <div>Scrollable content</div>
+      </ScrollArea>,
+    );
+
+    const viewport = screen.getByTestId("scroll-area").querySelector('[data-slot="scroll-area-viewport"]');
+
+    expect(viewport).toHaveClass("focus-visible:outline-border/80");
+    expect(viewport).toHaveClass("focus-visible:ring-border/35");
+    expect(viewport).not.toHaveClass("focus-visible:ring-ring/50");
+  });
 });

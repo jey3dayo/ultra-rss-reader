@@ -24,6 +24,27 @@ describe("ArticleListItem", () => {
     expect(screen.getByRole("option", { name: "First Article" })).toHaveAttribute("aria-label", "First Article");
   });
 
+  it("renders article rows as focusable listbox options instead of buttons", () => {
+    render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
+        isSelected
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const option = screen.getByRole("option", { name: "First Article (unread)" });
+    expect(option.tagName).toBe("DIV");
+    expect(option).toHaveAttribute("tabindex", "0");
+  });
+
   it("shows a star indicator on starred article rows", () => {
     render(
       <ArticleListItem

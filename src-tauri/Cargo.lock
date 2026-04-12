@@ -5751,6 +5751,8 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
+ "webview2-com",
+ "windows",
 ]
 
 [[package]]

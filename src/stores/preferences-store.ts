@@ -21,6 +21,7 @@ const fontSizeSchema = z.enum(["small", "medium", "large"]);
 const imagePreviewsSchema = z.enum(["off", "small", "medium", "large"]);
 const afterReadingSchema = z.enum(["mark_as_read", "do_nothing", "archive"]);
 const sortSubscriptionsSchema = z.enum(["folders_first", "alphabetical", "newest_first", "oldest_first"]);
+const startupFolderExpansionSchema = z.enum(["all_collapsed", "unread_folders", "restore_previous"]);
 const persistedBooleanPreferenceSchema = z.enum(["true", "false"]);
 const freeformStringSchema = z.string();
 
@@ -47,6 +48,7 @@ const preferenceSchemas = {
   show_sidebar_unread: booleanStringSchema,
   show_sidebar_starred: booleanStringSchema,
   show_sidebar_tags: booleanStringSchema,
+  startup_folder_expansion: startupFolderExpansionSchema,
   image_previews: imagePreviewsSchema,
   display_favicons: booleanStringSchema,
   text_preview: booleanStringSchema,
@@ -91,6 +93,7 @@ const corePreferenceDefaults = {
   show_sidebar_unread: "true",
   show_sidebar_starred: "true",
   show_sidebar_tags: "true",
+  startup_folder_expansion: "all_collapsed",
   image_previews: "medium",
   display_favicons: "true",
   text_preview: "true",

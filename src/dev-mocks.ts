@@ -43,7 +43,7 @@ import {
 } from "./api/schemas";
 import type { AccountDto, FeedDto, FolderDto, TagDto } from "./api/tauri-commands";
 import { mockAccounts, mockArticles, mockArticleTags, mockFeeds, mockFolders, mockTags } from "./dev-mock-data";
-import { readDevIntent } from "./lib/dev-intent";
+import { readDevIntent, readDevWebUrl, readDevWindowSize } from "./lib/dev-intent";
 
 let nextAccountId = 100;
 let nextFeedId = 100;
@@ -305,6 +305,16 @@ export function setupDevMocks() {
             uses_dev_file_credentials: false,
           },
         };
+
+      case "get_dev_runtime_options": {
+        const devWindowSize = readDevWindowSize();
+        return {
+          dev_intent: readDevIntent(),
+          dev_web_url: readDevWebUrl(),
+          dev_window_width: devWindowSize?.width ?? null,
+          dev_window_height: devWindowSize?.height ?? null,
+        };
+      }
 
       case "export_opml":
         return `<?xml version="1.0" encoding="UTF-8"?>

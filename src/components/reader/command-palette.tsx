@@ -1,4 +1,4 @@
-import { FlaskConicalIcon, HashIcon, NewspaperIcon, RefreshCwIcon, RssIcon, SettingsIcon } from "lucide-react";
+import { CircleHelpIcon, FlaskConicalIcon, HashIcon, NewspaperIcon, RefreshCwIcon, RssIcon, SettingsIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchArticles } from "@/hooks/use-articles";
@@ -27,7 +27,7 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
 
 type PaletteAction = {
-  id: AppAction;
+  id: AppAction | "open-shortcuts-help";
   label: string;
   shortcut?: string;
   keywords: string[];
@@ -133,6 +133,13 @@ export function CommandPalette() {
         icon: SettingsIcon,
       },
       {
+        id: "open-shortcuts-help",
+        label: t("shortcuts.open_shortcuts_help"),
+        shortcut: "?",
+        keywords: ["help", "shortcuts", "keyboard", "?"],
+        icon: CircleHelpIcon,
+      },
+      {
         id: "open-add-feed",
         label: t("add_feed"),
         keywords: ["feed", "rss", "subscribe"],
@@ -147,7 +154,7 @@ export function CommandPalette() {
       {
         id: "sync-all",
         label: tSidebar("sync_feeds"),
-        keywords: ["sync", "refresh"],
+        keywords: ["sync", "refresh", "reload"],
         icon: RefreshCwIcon,
       },
       {
@@ -208,7 +215,12 @@ export function CommandPalette() {
     closeCommandPalette();
   }
 
-  function handleActionSelect(action: AppAction) {
+  function handleActionSelect(action: PaletteAction["id"]) {
+    if (action === "open-shortcuts-help") {
+      useUiStore.getState().openShortcutsHelp();
+      closePalette();
+      return;
+    }
     addToHistory(`${HISTORY_PREFIX.action}${action}`);
     executeAction(action);
     closePalette();

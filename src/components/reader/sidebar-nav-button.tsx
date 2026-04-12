@@ -30,7 +30,7 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
         ref={ref}
         type={type}
         className={cn(
-          "relative flex w-full items-center justify-between overflow-hidden rounded-md px-2 text-sm transition-[background-color,color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 focus-visible:ring-offset-0",
+          "relative flex w-full items-center justify-between overflow-hidden rounded-md px-2 text-sm transition-[background-color,color,box-shadow] duration-150 focus:outline-none focus-visible:bg-sidebar-accent/65 focus-visible:text-sidebar-foreground focus-visible:shadow-[inset_0_0_0_1px_hsl(var(--sidebar-border)/0.48)]",
           size === "default" ? "py-2" : "py-1.5",
           selected
             ? "bg-sidebar-accent/85 text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_hsl(var(--sidebar-border)/0.55)] before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-sidebar-primary"

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "@/components/reader/sidebar";
+import { APP_EVENTS } from "@/constants/events";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
@@ -218,6 +219,46 @@ describe("Sidebar", () => {
 
     expect(await screen.findByText("Unread Feed")).toBeInTheDocument();
     expect(screen.getByText("Read Feed")).toBeInTheDocument();
+  });
+
+  it("hides folders that have no unread feeds in unread smart view", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [
+            { id: "folder-unread", account_id: args.accountId, name: "Unread Folder", sort_order: 0 },
+            { id: "folder-empty", account_id: args.accountId, name: "Empty Folder", sort_order: 1 },
+          ];
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], id: "feed-unread", title: "Unread Feed", folder_id: "folder-unread", unread_count: 3 },
+            { ...sampleFeeds[1], id: "feed-read", title: "Read Feed", folder_id: "folder-empty", unread_count: 0 },
+          ];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "smart", kind: "unread" },
+      viewMode: "unread",
+      expandedFolderIds: new Set(["folder-unread", "folder-empty"]),
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Unread Folder")).toBeInTheDocument();
+    expect(screen.queryByText("Empty Folder")).not.toBeInTheDocument();
   });
 
   it("shows only unread feeds in the main list when viewMode is unread", async () => {
@@ -478,6 +519,119 @@ describe("Sidebar", () => {
     expect(useUiStore.getState().selectedAccountId).toBeNull();
     expect(useUiStore.getState().contentMode).toBe("browser");
     expect(useUiStore.getState().browserUrl).toBe("https://example.com");
+  });
+
+  it("selects the unread smart view when choosing the startup account", async () => {
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedAccountId).toBe("acc-1");
+      expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "unread" });
+    });
+
+    expect(useUiStore.getState().viewMode).toBe("unread");
+  });
+
+  it("moves focus to the newly selected feed during keyboard feed navigation", async () => {
+    const user = userEvent.setup();
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], id: "feed-1", title: "Alpha Feed", folder_id: "folder-1", unread_count: 4 },
+            { ...sampleFeeds[1], id: "feed-2", title: "Beta Feed", folder_id: "folder-1", unread_count: 2 },
+          ];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      viewMode: "all",
+      expandedFolderIds: new Set(["folder-1"]),
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await screen.findByText("Alpha Feed");
+    const alphaFeed = document.querySelector('[data-feed-id="feed-1"]') as HTMLButtonElement | null;
+    expect(alphaFeed).not.toBeNull();
+    if (!alphaFeed) {
+      throw new Error("Expected feed button for feed-1");
+    }
+    await user.click(alphaFeed);
+    expect(alphaFeed).toHaveFocus();
+
+    window.dispatchEvent(new CustomEvent(APP_EVENTS.navigateFeed, { detail: 1 as const }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-2" });
+    });
+
+    const betaFeed = document.querySelector('[data-feed-id="feed-2"]') as HTMLButtonElement | null;
+    expect(betaFeed).not.toBeNull();
+    if (!betaFeed) {
+      throw new Error("Expected feed button for feed-2");
+    }
+
+    await waitFor(() => {
+      expect(betaFeed).toHaveFocus();
+    });
+  });
+
+  it("expands folders with unread feeds on startup when that policy is enabled", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [
+            { id: "folder-open", account_id: args.accountId, name: "Open Me", sort_order: 0 },
+            { id: "folder-closed", account_id: args.accountId, name: "Keep Closed", sort_order: 1 },
+          ];
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], id: "feed-open", title: "Unread Feed", folder_id: "folder-open", unread_count: 3 },
+            { ...sampleFeeds[1], id: "feed-closed", title: "Read Feed", folder_id: "folder-closed", unread_count: 0 },
+          ];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    usePreferencesStore.setState({
+      prefs: { startup_folder_expansion: "unread_folders" },
+      loaded: true,
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await screen.findByRole("button", { name: "Select folder Open Me" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().expandedFolderIds.has("folder-open")).toBe(true);
+      expect(useUiStore.getState().expandedFolderIds.has("folder-closed")).toBe(false);
+    });
   });
 
   it("does not update last synced time when sync is skipped", async () => {
@@ -839,7 +993,7 @@ describe("Sidebar", () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     const scrollArea = screen.getByTestId("sidebar-feed-scroll-area");
-    const feedCleanupButton = await screen.findByRole("button", { name: "Feed Cleanup" });
+    const feedCleanupButton = await screen.findByRole("button", { name: "Review Subscriptions" });
     const settingsButton = screen.getByRole("button", { name: "Settings" });
 
     expect(feedCleanupButton.closest('[data-slot="scroll-area"]')).toBeNull();
@@ -856,7 +1010,7 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Feed Cleanup" }));
+    await user.click(await screen.findByRole("button", { name: "Review Subscriptions" }));
 
     expect(useUiStore.getState().feedCleanupOpen).toBe(true);
     expect(useUiStore.getState().focusedPane).toBe("content");
@@ -874,7 +1028,7 @@ describe("Sidebar", () => {
     await user.click(screen.getByRole("button", { name: "Settings" }));
     expect(useUiStore.getState().settingsOpen).toBe(true);
 
-    await user.click(screen.getByRole("button", { name: "Feed Cleanup" }));
+    await user.click(screen.getByRole("button", { name: "Review Subscriptions" }));
     expect(useUiStore.getState().feedCleanupOpen).toBe(true);
   });
 

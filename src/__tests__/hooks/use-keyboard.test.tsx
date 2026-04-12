@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "@/components/app-shell";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -82,6 +82,10 @@ describe("useKeyboard", () => {
       writable: true,
       value: 1400,
     });
+  });
+
+  afterEach(() => {
+    useUiStore.setState(useUiStore.getInitialState());
   });
 
   it("pressing m toggles the selected article to read", async () => {
@@ -218,6 +222,26 @@ describe("useKeyboard", () => {
     });
   });
 
+  it("queues article navigation while browser close is in flight", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    renderAppShell(calls);
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+
+    useUiStore.setState({
+      browserCloseInFlight: true,
+      pendingBrowserCloseAction: null,
+      selectedArticleId: "art-1",
+    });
+
+    fireEvent.keyDown(window, { key: "j" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().pendingBrowserCloseAction).toBe("next-article");
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+    });
+  });
+
   it("pressing a marks unread articles in the current list as read", async () => {
     const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);
@@ -262,6 +286,33 @@ describe("useKeyboard", () => {
       expect(useUiStore.getState().commandPaletteOpen).toBe(true);
     });
     expect(await screen.findByPlaceholderText("Search commands…")).toBeInTheDocument();
+  });
+
+  it("pressing question mark opens the shortcuts help overlay", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    renderAppShell(calls);
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+
+    fireEvent.keyDown(window, { key: "?" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().shortcutsHelpOpen).toBe(true);
+    });
+    expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
+  });
+
+  it("does not open shortcuts help when question mark is typed in a text field", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    renderAppShell(calls);
+    useUiStore.setState({ commandPaletteOpen: true });
+
+    const input = await screen.findByPlaceholderText("Search commands…");
+
+    fireEvent.keyDown(input, { key: "?" });
+
+    expect(useUiStore.getState().shortcutsHelpOpen).toBe(false);
+    expect(screen.queryByRole("dialog", { name: "Keyboard shortcuts" })).not.toBeInTheDocument();
   });
 
   it("pressing Cmd+Backslash toggles the desktop sidebar", async () => {

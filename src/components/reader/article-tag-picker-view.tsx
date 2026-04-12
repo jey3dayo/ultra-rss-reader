@@ -152,7 +152,7 @@ export function ArticleTagPickerView({
             </button>
           </span>
         ))}
-        <div ref={pickerRef} className="relative">
+        <div ref={pickerRef} className="relative" data-disable-global-shortcuts="true">
           <button
             ref={triggerRef}
             type="button"

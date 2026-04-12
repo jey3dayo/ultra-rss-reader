@@ -30,6 +30,7 @@ const ALLOWED_KEYS: &[&str] = &[
     "show_sidebar_unread",
     "show_sidebar_starred",
     "show_sidebar_tags",
+    "startup_folder_expansion",
     "image_previews",
     "display_favicons",
     "text_preview",

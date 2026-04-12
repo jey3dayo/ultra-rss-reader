@@ -30,12 +30,16 @@ describe("usePreferencesStore preferences", () => {
     expect(resolvePreferenceValue({}, "show_sidebar_unread")).toBe("true");
     expect(resolvePreferenceValue({}, "show_sidebar_starred")).toBe("true");
     expect(resolvePreferenceValue({}, "show_sidebar_tags")).toBe("true");
+    expect(resolvePreferenceValue({}, "startup_folder_expansion")).toBe("all_collapsed");
   });
 
   it("normalizes invalid sidebar visibility preferences back to true", () => {
     expect(resolvePreferenceValue({ show_sidebar_unread: "maybe" }, "show_sidebar_unread")).toBe("true");
     expect(resolvePreferenceValue({ show_sidebar_starred: "nope" }, "show_sidebar_starred")).toBe("true");
     expect(resolvePreferenceValue({ show_sidebar_tags: "unset" }, "show_sidebar_tags")).toBe("true");
+    expect(resolvePreferenceValue({ startup_folder_expansion: "surprise" }, "startup_folder_expansion")).toBe(
+      "all_collapsed",
+    );
   });
 
   it("does not expose removed share action preferences in defaults", () => {

@@ -1,12 +1,10 @@
-import { Menu } from "@base-ui/react/menu";
 import { Result } from "@praha/byethrow";
-import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
-import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
-import { IconToolbarMenuTrigger } from "@/components/shared/icon-toolbar-control";
+import { addToReadingList, closeBrowserWebview, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { APP_EVENTS } from "@/constants/events";
 import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import {
@@ -29,6 +27,8 @@ import {
   resolveArticleDateLocale,
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
+import { flushPendingBrowserCloseAction } from "@/lib/actions";
+import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
@@ -38,9 +38,9 @@ import { ArticleContentView } from "./article-content-view";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticleMetaView } from "./article-meta-view";
 import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-tag-picker-view";
-import { ArticleToolbarView } from "./article-toolbar-view";
+import { ArticleShareMenu } from "./article-share-menu";
+import { ArticleToolbarActionStrip, ArticleToolbarView, type ArticleToolbarViewLabels } from "./article-toolbar-view";
 import { BrowserView } from "./browser-view";
-import { contextMenuStyles } from "./context-menu-styles";
 
 function openArticleInExternalBrowser(url: string) {
   const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
@@ -95,6 +95,7 @@ export function ArticleToolbar({
   return (
     <ArticleToolbarView
       showCloseButton={article !== null && !isBrowserOpen}
+      hideActionStrip={isBrowserOpen}
       canToggleRead={article !== null}
       canToggleStar={article !== null}
       isRead={article?.is_read ?? false}
@@ -108,71 +109,19 @@ export function ArticleToolbar({
       showOpenInExternalBrowserButton
       canOpenInExternalBrowser={Boolean(article?.url)}
       shareMenuControl={
-        <Menu.Root>
-          <IconToolbarMenuTrigger label={t("share")} disabled={!article?.url}>
-            <Share className="h-4 w-4" />
-          </IconToolbarMenuTrigger>
-          <Menu.Portal>
-            <Menu.Positioner sideOffset={4}>
-              <Menu.Popup className={contextMenuStyles.popup}>
-                <Menu.Item
-                  className={contextMenuStyles.item}
-                  onSelect={async () => {
-                    if (!article?.url) return;
-                    Result.pipe(
-                      await copyToClipboard(article.url),
-                      Result.inspect(() => showToast(t("link_copied"))),
-                      Result.inspectError((e) => {
-                        console.error("Copy failed:", e);
-                        showToast(e.message);
-                      }),
-                    );
-                  }}
-                >
-                  <Copy className="mr-2 h-4 w-4" />
-                  {t("copy_link")}
-                </Menu.Item>
-                {supportsReadingList ? (
-                  <Menu.Item
-                    className={contextMenuStyles.item}
-                    onSelect={async () => {
-                      if (!article?.url) return;
-                      Result.pipe(
-                        await addToReadingList(article.url),
-                        Result.inspect(() => showToast(t("added_to_reading_list"))),
-                        Result.inspectError((e) => {
-                          console.error("Add to reading list failed:", e);
-                          showToast(e.message);
-                        }),
-                      );
-                    }}
-                  >
-                    <BookmarkPlus className="mr-2 h-4 w-4" />
-                    {t("add_to_reading_list")}
-                  </Menu.Item>
-                ) : null}
-                <Menu.Separator className={contextMenuStyles.separator} />
-                <Menu.Item
-                  className={contextMenuStyles.item}
-                  onSelect={async () => {
-                    if (!article?.url) return;
-                    const mailto = `mailto:?subject=${encodeURIComponent(article.title)}&body=${encodeURIComponent(article.url)}`;
-                    Result.pipe(
-                      await openInBrowser(mailto, false),
-                      Result.inspectError((e) => {
-                        console.error("Failed to open email client:", e);
-                        showToast(e.message);
-                      }),
-                    );
-                  }}
-                >
-                  <Mail className="mr-2 h-4 w-4" />
-                  {t("share_via_email")}
-                </Menu.Item>
-              </Menu.Popup>
-            </Menu.Positioner>
-          </Menu.Portal>
-        </Menu.Root>
+        <ArticleShareMenu
+          article={article}
+          supportsReadingList={supportsReadingList}
+          showToast={showToast}
+          labels={{
+            share: t("share"),
+            copyLink: t("copy_link"),
+            addToReadingList: t("add_to_reading_list"),
+            addedToReadingList: t("added_to_reading_list"),
+            shareViaEmail: t("share_via_email"),
+            linkCopied: t("link_copied"),
+          }}
+        />
       }
       labels={{
         closeView: t("close_view"),
@@ -239,15 +188,19 @@ function EmptyState() {
   );
 }
 
+type BrowserOverlaySurfaceProps = {
+  children?: ReactNode;
+  onCloseOverlay: () => void;
+  showBrowserView?: boolean;
+  toolbarActions?: ReactNode;
+};
+
 function BrowserOverlaySurface({
   children,
   onCloseOverlay,
   showBrowserView = true,
-}: {
-  children?: ReactNode;
-  onCloseOverlay: () => void;
-  showBrowserView?: boolean;
-}) {
+  toolbarActions,
+}: BrowserOverlaySurfaceProps) {
   const { t } = useTranslation("reader");
 
   return (
@@ -260,6 +213,7 @@ function BrowserOverlaySurface({
           labels={{
             closeOverlay: t("close_browser_overlay"),
           }}
+          toolbarActions={toolbarActions}
         />
       ) : null}
     </div>
@@ -431,6 +385,7 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
   const browserUrl = useUiStore((s) => s.browserUrl);
   const openBrowser = useUiStore((s) => s.openBrowser);
   const closeBrowser = useUiStore((s) => s.closeBrowser);
+  const setBrowserCloseInFlight = useUiStore((s) => s.setBrowserCloseInFlight);
   const clearArticle = useUiStore((s) => s.clearArticle);
   const showToast = useUiStore((s) => s.showToast);
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
@@ -445,6 +400,7 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
   const [webPreviewModeOverride, setWebPreviewModeOverride] = useState<BinaryDisplayMode | null>(null);
   const overlayFocusReturnTargetRef = useRef<HTMLElement | null>(null);
   const overlayFocusReturnTargetKeyRef = useRef<string | null>(null);
+  const preserveBrowserOverlayOnNextArticleRef = useRef(false);
   const autoMarkedArticleIdRef = useRef<string | null>(null);
   const wasBrowserOpenRef = useRef(false);
   const isBrowserOpen = contentMode === "browser";
@@ -474,15 +430,46 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
 
   const previousArticleIdRef = useRef(article.id);
 
+  const focusSelectedArticleRow = useCallback(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    const selectedArticleTarget = document.querySelector<HTMLElement>(`[data-article-id="${article.id}"]`);
+    if (!selectedArticleTarget || selectedArticleTarget.hasAttribute("disabled")) {
+      return;
+    }
+
+    useUiStore.getState().setFocusedPane("list");
+    selectedArticleTarget.focus({ preventScroll: true });
+  }, [article.id]);
+
+  useEffect(() => {
+    const markKeyboardNavigationIntent = () => {
+      preserveBrowserOverlayOnNextArticleRef.current = webPreviewModeOverride === "on";
+    };
+
+    window.addEventListener(APP_EVENTS.navigateArticle, markKeyboardNavigationIntent);
+    return () => {
+      window.removeEventListener(APP_EVENTS.navigateArticle, markKeyboardNavigationIntent);
+    };
+  }, [webPreviewModeOverride]);
+
   useEffect(() => {
     if (previousArticleIdRef.current === article.id) {
       return;
     }
 
     previousArticleIdRef.current = article.id;
+    const shouldPreserveBrowserOverlay =
+      webPreviewModeOverride === "on" && preserveBrowserOverlayOnNextArticleRef.current;
+    preserveBrowserOverlayOnNextArticleRef.current = false;
+    if (shouldPreserveBrowserOverlay) {
+      return;
+    }
     setReaderModeOverride(null);
     setWebPreviewModeOverride(null);
-  }, [article.id]);
+  }, [article.id, webPreviewModeOverride]);
 
   const rememberOverlayFocusReturnTarget = useCallback(() => {
     if (typeof document === "undefined") {
@@ -560,6 +547,13 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
       overlayFocusReturnTargetKeyRef.current = null;
 
       requestAnimationFrame(() => {
+        const selectedArticleTarget = document.querySelector<HTMLElement>(`[data-article-id="${article.id}"]`);
+        if (selectedArticleTarget && !selectedArticleTarget.hasAttribute("disabled")) {
+          useUiStore.getState().setFocusedPane("list");
+          selectedArticleTarget.focus({ preventScroll: true });
+          return;
+        }
+
         if (previousTargetKey) {
           const nextTarget = document.querySelector<HTMLElement>(
             `[data-browser-overlay-return-focus="${previousTargetKey}"]`,
@@ -580,7 +574,7 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
     }
 
     wasBrowserOpenRef.current = isBrowserOpen;
-  }, [isBrowserOpen]);
+  }, [article.id, isBrowserOpen]);
 
   const handleCloseView = useCallback(() => {
     clearArticle();
@@ -589,19 +583,54 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
     }
   }, [clearArticle, layoutMode]);
 
-  const handleToggleBrowserOverlay = useCallback(() => {
+  const handleOpenBrowserOverlay = useCallback(() => {
     rememberOverlayFocusReturnTarget();
+    setReaderModeOverride(requestedDisplay.readerMode ? "on" : "off");
+    setWebPreviewModeOverride("on");
+  }, [rememberOverlayFocusReturnTarget, requestedDisplay.readerMode]);
 
+  const finalizeCloseBrowserOverlay = useCallback(() => {
+    useUiStore.getState().setFocusedPane("list");
+    focusSelectedArticleRow();
+    setReaderModeOverride(requestedDisplay.readerMode ? "on" : "off");
+    setWebPreviewModeOverride("off");
+    closeBrowser();
+    requestAnimationFrame(() => {
+      focusSelectedArticleRow();
+      flushPendingBrowserCloseAction();
+    });
+  }, [closeBrowser, focusSelectedArticleRow, requestedDisplay.readerMode]);
+
+  const handleCloseBrowserOverlay = useCallback(() => {
+    if (useUiStore.getState().browserCloseInFlight) {
+      emitDebugInputTrace("close-browser ignored (in-flight)");
+      return;
+    }
+    emitDebugInputTrace("close-browser start");
+    setBrowserCloseInFlight(true);
+    void closeBrowserWebview()
+      .then((result) =>
+        Result.pipe(
+          result,
+          Result.inspectError((error) => {
+            console.error("Failed to close embedded browser webview before returning to reader mode:", error);
+          }),
+        ),
+      )
+      .finally(() => {
+        emitDebugInputTrace("close-browser finalize");
+        finalizeCloseBrowserOverlay();
+      });
+  }, [finalizeCloseBrowserOverlay, setBrowserCloseInFlight]);
+
+  const handleToggleBrowserOverlay = useCallback(() => {
     if (requestedDisplay.webPreviewMode) {
-      setReaderModeOverride(requestedDisplay.readerMode ? "on" : "off");
-      setWebPreviewModeOverride("off");
-      closeBrowser();
+      handleCloseBrowserOverlay();
       return;
     }
 
-    setReaderModeOverride(requestedDisplay.readerMode ? "on" : "off");
-    setWebPreviewModeOverride("on");
-  }, [closeBrowser, rememberOverlayFocusReturnTarget, requestedDisplay.readerMode, requestedDisplay.webPreviewMode]);
+    handleOpenBrowserOverlay();
+  }, [handleCloseBrowserOverlay, handleOpenBrowserOverlay, requestedDisplay.webPreviewMode]);
 
   const handleToggleRead = useCallback(() => {
     const markingAsRead = !article.is_read;
@@ -663,8 +692,83 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
     );
   }, [article.url, showToast, supportsReadingList, t]);
 
+  const toolbarLabels: ArticleToolbarViewLabels = {
+    closeView: t("close_view"),
+    toggleRead: t("toggle_read"),
+    toggleStar: t("toggle_star"),
+    previewToggleOff: t("open_in_browser"),
+    previewToggleOn: t("close_browser_overlay"),
+    copyLink: t("copy_link"),
+    openInExternalBrowser: t("open_in_external_browser"),
+  };
+
+  const overlayToolbarActions = (
+    <ArticleToolbarActionStrip
+      canToggleRead
+      canToggleStar
+      isRead={article.is_read}
+      isStarred={article.is_starred}
+      isBrowserOpen
+      showCopyLinkButton={resolvePreferenceValue(prefs, "action_copy_link") === "true"}
+      canCopyLink={Boolean(article.url)}
+      showOpenInBrowserButton
+      canOpenInBrowser={Boolean(article.url)}
+      showOpenInExternalBrowserButton
+      canOpenInExternalBrowser={Boolean(article.url)}
+      shareMenuControl={
+        <ArticleShareMenu
+          article={article}
+          supportsReadingList={supportsReadingList}
+          showToast={showToast}
+          labels={{
+            share: t("share"),
+            copyLink: t("copy_link"),
+            addToReadingList: t("add_to_reading_list"),
+            addedToReadingList: t("added_to_reading_list"),
+            shareViaEmail: t("share_via_email"),
+            linkCopied: t("link_copied"),
+          }}
+        />
+      }
+      labels={{
+        ...toolbarLabels,
+        previewToggleOn: t("web_preview_mode"),
+      }}
+      onToggleRead={(pressed) => {
+        if (!article) return;
+        retainIfNeeded(pressed);
+        setRead.mutate(
+          { id: article.id, read: pressed },
+          {
+            onSuccess: () => {
+              if (pressed) {
+                addRecentlyRead(article.id);
+              }
+            },
+          },
+        );
+      }}
+      onToggleStar={(pressed) => {
+        if (!article) return;
+        toggleStar.mutate(
+          { id: article.id, starred: pressed },
+          {
+            onSuccess: () => {
+              if (!pressed && viewMode === "starred") retainArticle(article.id);
+              showToast(pressed ? t("article_starred") : t("article_unstarred"));
+            },
+          },
+        );
+      }}
+      onCopyLink={handleCopyLink}
+      onOpenInBrowser={handleToggleBrowserOverlay}
+      onOpenInExternalBrowser={handleOpenExternalBrowser}
+    />
+  );
+
   useEffect(() => {
     window.addEventListener(keyboardEvents.openInAppBrowser, handleToggleBrowserOverlay);
+    window.addEventListener(keyboardEvents.closeBrowserOverlay, handleCloseBrowserOverlay);
     window.addEventListener(keyboardEvents.toggleRead, handleToggleRead);
     window.addEventListener(keyboardEvents.toggleStar, handleToggleStar);
     window.addEventListener(keyboardEvents.openExternalBrowser, handleOpenExternalBrowser);
@@ -672,6 +776,7 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
     window.addEventListener(keyboardEvents.addToReadingList, handleAddToReadingList);
     return () => {
       window.removeEventListener(keyboardEvents.openInAppBrowser, handleToggleBrowserOverlay);
+      window.removeEventListener(keyboardEvents.closeBrowserOverlay, handleCloseBrowserOverlay);
       window.removeEventListener(keyboardEvents.toggleRead, handleToggleRead);
       window.removeEventListener(keyboardEvents.toggleStar, handleToggleStar);
       window.removeEventListener(keyboardEvents.openExternalBrowser, handleOpenExternalBrowser);
@@ -680,6 +785,7 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
     };
   }, [
     handleAddToReadingList,
+    handleCloseBrowserOverlay,
     handleCopyLink,
     handleOpenExternalBrowser,
     handleToggleBrowserOverlay,
@@ -695,7 +801,11 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
         onCloseView={handleCloseView}
         onToggleBrowserOverlay={handleToggleBrowserOverlay}
       />
-      <BrowserOverlaySurface onCloseOverlay={handleToggleBrowserOverlay} showBrowserView={isBrowserOpen}>
+      <BrowserOverlaySurface
+        onCloseOverlay={handleCloseBrowserOverlay}
+        showBrowserView={isBrowserOpen}
+        toolbarActions={overlayToolbarActions}
+      >
         {resolvedDisplay.fallbackReason === "missing_web_preview" ? (
           <div className="border-b border-border bg-amber-500/10 px-4 py-2 text-sm text-amber-900 dark:text-amber-200">
             {t("web_preview_unavailable")}

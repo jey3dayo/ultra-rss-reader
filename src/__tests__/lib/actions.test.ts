@@ -65,6 +65,7 @@ vi.mock("@/stores/preferences-store", () => {
 // Dynamic import of actions after mocks are set up
 let executeAction: (action: AppAction) => void;
 let isAppAction: (value: string) => value is AppAction;
+let flushPendingBrowserCloseAction: () => void;
 
 beforeEach(async () => {
   useUiStore.setState(useUiStore.getInitialState());
@@ -85,6 +86,7 @@ beforeEach(async () => {
   const mod = await import("@/lib/actions");
   executeAction = mod.executeAction;
   isAppAction = mod.isAppAction;
+  flushPendingBrowserCloseAction = mod.flushPendingBrowserCloseAction;
 });
 
 afterEach(() => {
@@ -177,6 +179,26 @@ describe("executeAction", () => {
 
       window.removeEventListener(APP_EVENTS.navigateArticle, handler);
     });
+
+    it("buffers article navigation while browser close is in flight and flushes it later", () => {
+      const handler = vi.fn();
+      window.addEventListener(APP_EVENTS.navigateArticle, handler);
+      useUiStore.setState({ browserCloseInFlight: true, pendingBrowserCloseAction: null });
+
+      executeAction("next-article");
+
+      expect(handler).not.toHaveBeenCalled();
+      expect(useUiStore.getState().pendingBrowserCloseAction).toBe("next-article");
+
+      flushPendingBrowserCloseAction();
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect((handler.mock.calls[0][0] as CustomEvent).detail).toBe(1);
+      expect(useUiStore.getState().pendingBrowserCloseAction).toBeNull();
+      expect(useUiStore.getState().browserCloseInFlight).toBe(false);
+
+      window.removeEventListener(APP_EVENTS.navigateArticle, handler);
+    });
   });
 
   describe("article action events", () => {
@@ -261,6 +283,38 @@ describe("executeAction", () => {
       executeAction("reload-webview");
 
       expect(reloadBrowserWebviewMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("closes browser mode for close-browser", () => {
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedArticleId: "art-1",
+        contentMode: "browser",
+        browserUrl: "https://example.com/article",
+      });
+      const handler = vi.fn();
+      window.addEventListener(keyboardEvents.closeBrowserOverlay, handler);
+
+      executeAction("close-browser");
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/article");
+
+      window.removeEventListener(keyboardEvents.closeBrowserOverlay, handler);
+    });
+
+    it("falls back to closing browser-only mode directly for close-browser", () => {
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        contentMode: "browser",
+        browserUrl: "https://example.com/article",
+      });
+
+      executeAction("close-browser");
+
+      expect(useUiStore.getState().contentMode).toBe("empty");
+      expect(useUiStore.getState().browserUrl).toBeNull();
     });
 
     it("does not throw for copy-link", () => {
@@ -398,6 +452,7 @@ describe("executeAction", () => {
     it("returns true for valid actions", () => {
       expect(isAppAction("open-settings")).toBe(true);
       expect(isAppAction("sync-all")).toBe(true);
+      expect(isAppAction("close-browser")).toBe(true);
       expect(isAppAction("set-filter-unread")).toBe(true);
       expect(isAppAction("open-command-palette")).toBe(true);
       expect(isAppAction("open-feed-cleanup")).toBe(true);

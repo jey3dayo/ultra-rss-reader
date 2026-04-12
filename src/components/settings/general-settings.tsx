@@ -81,6 +81,19 @@ export function GeneralSettings() {
               checked: resolvePreferenceValue(prefs, "show_sidebar_tags") === "true",
               onChange: (checked) => setPref("show_sidebar_tags", String(checked)),
             },
+            {
+              id: "startup-folder-expansion",
+              type: "select",
+              name: "startup_folder_expansion",
+              label: t("general.startup_folder_expansion"),
+              value: resolvePreferenceValue(prefs, "startup_folder_expansion"),
+              options: [
+                { value: "all_collapsed", label: t("general.all_collapsed") },
+                { value: "unread_folders", label: t("general.unread_folders") },
+                { value: "restore_previous", label: t("general.restore_previous") },
+              ],
+              onChange: (value) => setPref("startup_folder_expansion", value),
+            },
           ],
         },
         {

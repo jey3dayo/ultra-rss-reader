@@ -1,18 +1,30 @@
-import { useEffect } from "react";
+import { listen } from "@tauri-apps/api/event";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { APP_EVENTS } from "../constants/events";
 import { useAppIconTheme } from "../hooks/use-app-icon-theme";
 import { useBadge } from "../hooks/use-badge";
 import { useBreakpoint } from "../hooks/use-breakpoint";
 import { useKeyboard } from "../hooks/use-keyboard";
 import { useMenuEvents } from "../hooks/use-menu-events";
 import { useUpdater } from "../hooks/use-updater";
+import { copyValueToClipboard } from "../lib/clipboard";
+import {
+  type BrowserDebugGeometrySnapshot,
+  getBrowserGeometryRows,
+} from "../lib/browser-debug-geometry";
+import { emitDebugInputTrace } from "../lib/debug-input-trace";
 import { cn } from "../lib/utils";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "../lib/window-chrome";
+import { resolvePreferenceValue, usePreferencesStore } from "../stores/preferences-store";
 import { usePlatformStore } from "../stores/platform-store";
 import { useUiStore } from "../stores/ui-store";
 import { AppConfirmDialog } from "./app-confirm-dialog";
 import { AppLayout } from "./app-layout";
+import { FocusDebugHudView } from "./debug/focus-debug-hud-view";
 import { CommandPalette } from "./reader/command-palette";
+import { ShortcutsHelpModal } from "./reader/shortcuts-help-modal";
 import { SettingsModal } from "./settings/settings-modal";
 import { IndeterminateProgress } from "./shared/indeterminate-progress";
 
@@ -66,6 +78,187 @@ function Toast() {
   );
 }
 
+function describeActiveElement(element: Element | null): string {
+  if (!(element instanceof HTMLElement)) {
+    return "none";
+  }
+
+  const parts: string[] = [element.tagName.toLowerCase()];
+  if (element.dataset.debugHud !== undefined) {
+    parts.push("debug-hud");
+  }
+  if (element.dataset.articleId) {
+    parts.push(`article=${element.dataset.articleId}`);
+  }
+  if (element.dataset.browserOverlayReturnFocus) {
+    parts.push(`return=${element.dataset.browserOverlayReturnFocus}`);
+  }
+  const role = element.getAttribute("role");
+  if (role) {
+    parts.push(`role=${role}`);
+  }
+  const testId = element.dataset.testid;
+  if (testId) {
+    parts.push(`testid=${testId}`);
+  }
+  const ariaLabel = element.getAttribute("aria-label");
+  if (ariaLabel) {
+    parts.push(`label=${ariaLabel}`);
+  }
+
+  return parts.join(" | ");
+}
+
+function FocusDebugHud() {
+  const MAX_TRACE_LINES = 20;
+  const { t } = useTranslation("reader");
+  const focusedPane = useUiStore((state) => state.focusedPane);
+  const contentMode = useUiStore((state) => state.contentMode);
+  const selectedArticleId = useUiStore((state) => state.selectedArticleId);
+  const browserCloseInFlight = useUiStore((state) => state.browserCloseInFlight);
+  const pendingBrowserCloseAction = useUiStore((state) => state.pendingBrowserCloseAction);
+  const showToast = useUiStore((state) => state.showToast);
+  const [activeElementDescription, setActiveElementDescription] = useState("none");
+  const [traces, setTraces] = useState<string[]>([]);
+  const [browserGeometry, setBrowserGeometry] = useState<BrowserDebugGeometrySnapshot | null>(null);
+
+  useEffect(() => {
+    const update = () => {
+      setActiveElementDescription(describeActiveElement(document.activeElement));
+    };
+
+    update();
+    const keyTraceListener = (event: KeyboardEvent) => {
+      setTraces((current) => [
+        ...current.slice(-(MAX_TRACE_LINES - 1)),
+        `${new Date().toISOString().slice(11, 23)} raw-key ${event.key} target=${describeActiveElement(
+          event.target instanceof Element ? event.target : null,
+        )}`,
+      ]);
+    };
+    window.addEventListener("focusin", update, true);
+    window.addEventListener("focusout", update, true);
+    window.addEventListener("keydown", update, true);
+    window.addEventListener("keydown", keyTraceListener, true);
+    const traceListener = (event: Event) => {
+      const detail = (event as CustomEvent<string>).detail;
+      setTraces((current) => [...current.slice(-(MAX_TRACE_LINES - 1)), detail]);
+    };
+    const geometryListener = (event: Event) => {
+      setBrowserGeometry((event as CustomEvent<BrowserDebugGeometrySnapshot | null>).detail);
+    };
+    const pointerTraceListener = (event: PointerEvent) => {
+      setTraces((current) => [
+        ...current.slice(-(MAX_TRACE_LINES - 1)),
+        `${new Date().toISOString().slice(11, 23)} raw-pointer ${event.type} x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeActiveElement(
+          event.target instanceof Element ? event.target : null,
+        )}`,
+      ]);
+    };
+    const clickTraceListener = (event: MouseEvent) => {
+      setTraces((current) => [
+        ...current.slice(-(MAX_TRACE_LINES - 1)),
+        `${new Date().toISOString().slice(11, 23)} raw-click x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeActiveElement(
+          event.target instanceof Element ? event.target : null,
+        )}`,
+      ]);
+    };
+    window.addEventListener(APP_EVENTS.debugInputTrace, traceListener);
+    window.addEventListener(APP_EVENTS.browserDebugGeometry, geometryListener);
+    window.addEventListener("pointerdown", pointerTraceListener, true);
+    window.addEventListener("click", clickTraceListener, true);
+
+    return () => {
+      window.removeEventListener("focusin", update, true);
+      window.removeEventListener("focusout", update, true);
+      window.removeEventListener("keydown", update, true);
+      window.removeEventListener("keydown", keyTraceListener, true);
+      window.removeEventListener(APP_EVENTS.debugInputTrace, traceListener);
+      window.removeEventListener(APP_EVENTS.browserDebugGeometry, geometryListener);
+      window.removeEventListener("pointerdown", pointerTraceListener, true);
+      window.removeEventListener("click", clickTraceListener, true);
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    let unlisten: (() => void) | undefined;
+
+    listen<string>("browser-webview-debug-input", (event) => {
+      if (cancelled) {
+        return;
+      }
+      setTraces((current) => [...current.slice(-5), event.payload]);
+    })
+      .then((cleanup) => {
+        if (cancelled) {
+          cleanup();
+          return;
+        }
+        unlisten = cleanup;
+      })
+      .catch(() => {
+        // browser mode / non-tauri
+      });
+
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    setActiveElementDescription(describeActiveElement(document.activeElement));
+  }, [contentMode, focusedPane, selectedArticleId]);
+
+  const debugHudText = [
+    `pane=${focusedPane} mode=${contentMode} article=${selectedArticleId ?? "none"}`,
+    `closing=${browserCloseInFlight} pending=${pendingBrowserCloseAction ?? "none"}`,
+    activeElementDescription,
+    ...traces,
+  ].join("\n");
+
+  const handleCopy = async () => {
+    emitDebugInputTrace("hud-copy start");
+    await copyValueToClipboard(debugHudText, {
+      onSuccess: () => {
+        emitDebugInputTrace("hud-copy success");
+        showToast(t("copied_to_clipboard"));
+      },
+      onError: (message, error) => {
+        emitDebugInputTrace(`hud-copy error=${message}`);
+        console.error("Failed to copy focus debug HUD:", error);
+        showToast(message);
+      },
+    });
+  };
+
+  const hud = (
+    <FocusDebugHudView
+      focusedPane={focusedPane}
+      contentMode={contentMode}
+      selectedArticleId={selectedArticleId}
+      browserCloseInFlight={browserCloseInFlight}
+      pendingBrowserCloseAction={pendingBrowserCloseAction}
+      activeElementDescription={activeElementDescription}
+      browserGeometryRows={browserGeometry ? getBrowserGeometryRows(browserGeometry) : []}
+      traces={traces}
+      onCopyPointerDown={(event) => {
+        event.preventDefault();
+        emitDebugInputTrace("hud-pointer-down");
+        emitDebugInputTrace("hud-click");
+        void handleCopy();
+      }}
+    />
+  );
+
+  if (typeof document !== "undefined") {
+    return createPortal(hud, document.body);
+  }
+
+  return hud;
+}
+
 export function AppShell() {
   useAppIconTheme();
   useBadge();
@@ -76,11 +269,15 @@ export function AppShell() {
   const loadPlatformInfo = usePlatformStore((state) => state.loadPlatformInfo);
   const platformKind = usePlatformStore((state) => state.platform.kind);
   const commandPaletteOpen = useUiStore((state) => state.commandPaletteOpen);
+  const shortcutsHelpOpen = useUiStore((state) => state.shortcutsHelpOpen);
+  const closeShortcutsHelp = useUiStore((state) => state.closeShortcutsHelp);
   const appLoading = useUiStore((state) => state.appLoading);
+  const prefs = usePreferencesStore((state) => state.prefs);
   const overlayTitlebar = shouldUseDesktopOverlayTitlebar({
     platformKind,
     hasTauriRuntime: hasTauriRuntime(),
   });
+  const showFocusDebugHud = resolvePreferenceValue(prefs, "debug_browser_hud") === "true";
 
   useEffect(() => {
     loadPlatformInfo();
@@ -101,8 +298,12 @@ export function AppShell() {
       </div>
       <SettingsModal />
       <AppConfirmDialog />
+      {shortcutsHelpOpen ? (
+        <ShortcutsHelpModal open={shortcutsHelpOpen} onOpenChange={(nextOpen) => !nextOpen && closeShortcutsHelp()} />
+      ) : null}
       <Toast />
       {commandPaletteOpen ? <CommandPalette /> : null}
+      {showFocusDebugHud ? <FocusDebugHud /> : null}
     </div>
   );
 }

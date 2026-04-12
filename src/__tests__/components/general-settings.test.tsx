@@ -62,6 +62,20 @@ describe("GeneralSettings", () => {
     expect(usePreferencesStore.getState().prefs.sync_on_startup).toBe("false");
   });
 
+  it("renders startup folder expansion in the sidebar section and updates the preference", async () => {
+    const user = userEvent.setup();
+
+    render(<GeneralSettings />, { wrapper: createWrapper() });
+
+    const expansionMode = screen.getByRole("combobox", { name: "Startup folder expansion" });
+    expect(expansionMode).toHaveTextContent("All collapsed");
+
+    await user.click(expansionMode);
+    await user.click(await screen.findByRole("option", { name: "Unread folders" }));
+
+    expect(usePreferencesStore.getState().prefs.startup_folder_expansion).toBe("unread_folders");
+  });
+
   it("renders the browser shortcut hint with the current platform modifier", () => {
     render(<GeneralSettings />, { wrapper: createWrapper() });
 

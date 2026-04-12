@@ -1,6 +1,6 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { APP_EVENTS } from "@/constants/events";
@@ -14,6 +14,7 @@ import {
   feedModesToDisplayPresetOption,
   resolveFeedDisplayOverrides,
 } from "@/lib/article-display";
+import { executeAction } from "@/lib/actions";
 import {
   calculateArticleNavigationScrollTop,
   getAdjacentArticleId,
@@ -21,7 +22,8 @@ import {
   groupArticles,
   selectVisibleArticles,
 } from "@/lib/article-list";
-import { keyboardEvents } from "@/lib/keyboard-shortcuts";
+import { emitDebugInputTrace } from "@/lib/debug-input-trace";
+import { buildKeyToActionMap, keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -50,6 +52,7 @@ export function ArticleList() {
   const layoutMode = useUiStore((s) => s.layoutMode);
   const sortUnread = usePreferencesStore((s) => s.prefs.reading_sort ?? s.prefs.sort_unread ?? "newest_first");
   const groupBy = usePreferencesStore((s) => s.prefs.group_by ?? "date");
+  const keyboardPrefs = usePreferencesStore((s) => s.prefs);
   const dimArchived = usePreferencesStore((s) => s.prefs.dim_archived ?? "true");
   const textPreview = usePreferencesStore((s) => s.prefs.text_preview ?? "true");
   const imagePreviews = usePreferencesStore((s) => s.prefs.image_previews ?? "medium");
@@ -153,6 +156,7 @@ export function ArticleList() {
       feedNameMap,
     });
   }, [filteredArticles, groupBy, feedNameMap]);
+  const keyToAction = useMemo(() => buildKeyToActionMap(keyboardPrefs), [keyboardPrefs]);
 
   const contextStripContext = useMemo(() => {
     if (selection.type !== "smart") {
@@ -328,6 +332,8 @@ export function ArticleList() {
       if (nextScrollTop !== null) {
         viewport.scrollTop = nextScrollTop;
       }
+
+      btn.focus({ preventScroll: true });
     },
     [filteredArticles, selectedArticleId, selectArticle],
   );
@@ -354,6 +360,78 @@ export function ArticleList() {
       window.removeEventListener(keyboardEvents.markAllRead, handleMarkAllReadEvent);
     };
   }, [handleMarkAllRead, openSearch]);
+
+  const handleListKeyDownCapture = useCallback(
+    (event: ReactKeyboardEvent<HTMLDivElement>) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target?.closest('[role="option"]')) {
+        return;
+      }
+
+      const action = resolveKeyboardAction({
+        key: event.key,
+        metaKey: event.metaKey,
+        ctrlKey: event.ctrlKey,
+        shiftKey: event.shiftKey,
+        targetTag: target.tagName,
+        selectedArticleId,
+        contentMode: useUiStore.getState().contentMode,
+        viewMode: useUiStore.getState().viewMode,
+        keyToAction,
+      });
+
+      if (Result.isFailure(action)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const resolvedAction = Result.unwrap(action);
+      emitDebugInputTrace(`list-key ${event.key} -> ${resolvedAction.type}`);
+      switch (resolvedAction.type) {
+        case "open-settings":
+          executeAction("open-settings");
+          break;
+        case "open-command-palette":
+          executeAction("open-command-palette");
+          break;
+        case "open-shortcuts-help":
+          useUiStore.getState().openShortcutsHelp();
+          break;
+        case "emit":
+          window.dispatchEvent(new Event(resolvedAction.eventName));
+          break;
+        case "set-view-mode":
+          executeAction(`set-filter-${resolvedAction.mode}`);
+          break;
+        case "close-browser":
+          executeAction("close-browser");
+          break;
+        case "clear-article":
+          clearArticle();
+          break;
+        case "toggle-sidebar":
+          toggleSidebar();
+          break;
+        case "focus-sidebar":
+          openSidebar();
+          break;
+        case "navigate-article":
+          executeAction(resolvedAction.direction === 1 ? "next-article" : "prev-article");
+          break;
+        case "navigate-feed":
+          executeAction(resolvedAction.direction === 1 ? "next-feed" : "prev-feed");
+          break;
+        case "reload-webview":
+          executeAction("reload-webview");
+          break;
+        case "noop":
+          break;
+      }
+    },
+    [clearArticle, keyToAction, openSidebar, selectedArticleId, toggleSidebar],
+  );
 
   return (
     <div
@@ -417,6 +495,7 @@ export function ArticleList() {
             listAriaLabel={t("article_list")}
             listRef={listRef}
             viewportRef={viewportRef}
+            onListKeyDownCapture={handleListKeyDownCapture}
             isLoading={isLoading || isLoadingAccountArticles || isLoadingTagArticles || isSearchLoading}
             loadingMessage={tc("loading")}
             emptyMessage={

@@ -7,6 +7,7 @@ export const keyboardEvents = {
   toggleStar: "ultra-rss:toggle-star",
   openInAppBrowser: "ultra-rss:open-in-app-browser",
   openExternalBrowser: "ultra-rss:open-external-browser",
+  closeBrowserOverlay: "ultra-rss:close-browser-overlay",
   markAllRead: "ultra-rss:mark-all-read",
   focusSearch: "ultra-rss:focus-search",
   copyLink: "ultra-rss:copy-link",
@@ -19,6 +20,7 @@ export type ViewMode = "all" | "unread" | "starred";
 export type KeyboardAction =
   | { type: "open-settings" }
   | { type: "open-command-palette" }
+  | { type: "open-shortcuts-help" }
   | { type: "emit"; eventName: (typeof keyboardEvents)[keyof typeof keyboardEvents] }
   | { type: "set-view-mode"; mode: ViewMode }
   | { type: "toggle-sidebar" }
@@ -354,6 +356,10 @@ export function resolveKeyboardAction(
 
   if (isTextInputTarget(targetTag)) {
     return Result.fail("ignored_input");
+  }
+
+  if (key === "?") {
+    return Result.succeed({ type: "open-shortcuts-help" });
   }
 
   // Modifier shortcuts should not fall back to plain single-key bindings.

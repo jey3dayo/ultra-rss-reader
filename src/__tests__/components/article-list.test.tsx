@@ -1,10 +1,11 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { ArticleList } from "@/components/reader/article-list";
 import { ArticleView } from "@/components/reader/article-view";
 import { APP_EVENTS } from "@/constants/events";
+import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
@@ -305,6 +306,188 @@ describe("ArticleList", () => {
     await user.click(screen.getByRole("button", { name: "Show sidebar" }));
 
     expect(useUiStore.getState().focusedPane).toBe("sidebar");
+  });
+
+  it("returns focus to the selected article row when closing web preview", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().setViewMode("all");
+    useUiStore.getState().selectArticle("art-1");
+
+    render(
+      <>
+        <ArticleList />
+        <ArticleView />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    const openBrowserButton = await screen.findByRole("button", { name: "Open Web Preview" });
+    openBrowserButton.focus();
+
+    window.dispatchEvent(new Event(keyboardEvents.openInAppBrowser));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("browser");
+    });
+
+    const host = screen.getByTestId("browser-webview-host");
+    host.setAttribute("tabindex", "-1");
+    host.focus();
+    expect(host).toHaveFocus();
+
+    window.dispatchEvent(new Event(keyboardEvents.closeBrowserOverlay));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(useUiStore.getState().focusedPane).toBe("list");
+      expect(screen.getByRole("option", { name: /First Article/ })).toHaveFocus();
+    });
+  });
+
+  it("navigates articles from a focused list option using local key handling", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().setViewMode("all");
+    useUiStore.getState().selectArticle("art-1");
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    const firstOption = await screen.findByRole("option", { name: /First Article/ });
+    firstOption.focus();
+    expect(firstOption).toHaveFocus();
+
+    fireEvent.keyDown(firstOption, { key: "j" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("art-2");
+      expect(screen.getByRole("option", { name: /Second Article/ })).toHaveFocus();
+    });
+  });
+
+  it("queues focused-row navigation while browser close is in flight", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().setViewMode("all");
+    useUiStore.getState().selectArticle("art-1");
+    useUiStore.setState({
+      browserCloseInFlight: true,
+      pendingBrowserCloseAction: null,
+    });
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    const firstOption = await screen.findByRole("option", { name: /First Article/ });
+    firstOption.focus();
+    expect(firstOption).toHaveFocus();
+
+    fireEvent.keyDown(firstOption, { key: "j" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().pendingBrowserCloseAction).toBe("next-article");
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+    });
+  });
+
+  it("keeps web preview open when navigating to the next article", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().setViewMode("all");
+    useUiStore.getState().selectArticle("art-1");
+
+    render(
+      <>
+        <ArticleList />
+        <ArticleView />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    await screen.findByRole("button", { name: "Open Web Preview" });
+    await screen.findByRole("option", { name: /First Article/ });
+    window.dispatchEvent(new Event(keyboardEvents.openInAppBrowser));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+    });
+
+    window.dispatchEvent(new CustomEvent(APP_EVENTS.navigateArticle, { detail: 1 as const }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("art-2");
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/2");
+    });
+  });
+
+  it("returns to reader mode when selecting another article directly while web preview is open", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().setViewMode("all");
+    useUiStore.getState().selectArticle("art-1");
+
+    render(
+      <>
+        <ArticleList />
+        <ArticleView />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    await screen.findByRole("button", { name: "Open Web Preview" });
+    await screen.findByRole("option", { name: /First Article/ });
+    window.dispatchEvent(new Event(keyboardEvents.openInAppBrowser));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(useUiStore.getState().browserUrl).toBe("https://example.com/1");
+    });
+
+    useUiStore.getState().selectArticle("art-2");
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("art-2");
+      expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(useUiStore.getState().browserUrl).toBeNull();
+    });
+  });
+
+  it("keeps reader mode after web preview was explicitly closed and then navigating articles", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+
+    render(
+      <>
+        <ArticleList />
+        <ArticleView />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    await screen.findByRole("button", { name: "Open Web Preview" });
+    await screen.findByRole("option", { name: /First Article/ });
+    window.dispatchEvent(new Event(keyboardEvents.openInAppBrowser));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("browser");
+    });
+
+    window.dispatchEvent(new Event(keyboardEvents.closeBrowserOverlay));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(useUiStore.getState().browserUrl).toBeNull();
+    });
+
+    useUiStore.getState().selectArticle("art-2");
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("art-2");
+      expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(useUiStore.getState().browserUrl).toBeNull();
+    });
   });
 
   it("updates the selected feed display preset from the header select", async () => {
@@ -719,6 +902,77 @@ describe("ArticleList", () => {
     });
   });
 
+  it("focuses the selected article row after closing web preview", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_articles_by_tag":
+          return [];
+        case "list_tags":
+        case "get_article_tags":
+          return [];
+        case "search_articles":
+          return [];
+        case "create_or_update_browser_webview":
+          return {
+            url: args.url,
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+          };
+        case "set_browser_webview_bounds":
+        case "close_browser_webview":
+          return null;
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+
+    const user = userEvent.setup();
+    render(
+      <>
+        <ArticleList />
+        <ArticleView />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    const list = await screen.findByRole("listbox", { name: "Article list" });
+    await waitFor(() => {
+      expect(within(list).getByRole("option", { name: "First Article" })).toBeInTheDocument();
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Open Web Preview" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("browser");
+    });
+
+    const host = screen.getByTestId("browser-webview-host");
+    host.setAttribute("tabindex", "-1");
+    host.focus();
+    expect(host).toHaveFocus();
+
+    window.dispatchEvent(new Event(keyboardEvents.closeBrowserOverlay));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(useUiStore.getState().focusedPane).toBe("list");
+      expect(within(list).getByRole("option", { name: "First Article" })).toHaveFocus();
+    });
+  });
+
   it("shows smart unread context and hides the footer controls", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectSmartView("unread");
@@ -800,5 +1054,32 @@ describe("ArticleList", () => {
       throw new Error("Expected smart view context strip to be rendered");
     }
     expect(within(context).queryByText("ALL")).not.toBeInTheDocument();
+  });
+
+  it("moves DOM focus to the newly selected row during keyboard article navigation", async () => {
+    const user = userEvent.setup();
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      viewMode: "all",
+    });
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    const secondRow = await screen.findByRole("option", { name: /Second Article/i });
+    await user.click(secondRow);
+    expect(secondRow).toHaveFocus();
+
+    window.dispatchEvent(new CustomEvent(APP_EVENTS.navigateArticle, { detail: -1 as const }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("option", { name: /First Article/i })).toHaveFocus();
+    });
   });
 });

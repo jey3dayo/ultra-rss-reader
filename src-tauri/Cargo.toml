@@ -47,6 +47,10 @@ sys-locale = "0.3"
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2-web-kit = "0.3.2"
 
+[target.'cfg(windows)'.dependencies]
+webview2-com = "0.38.2"
+windows = { version = "0.61.2", features = ["Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging"] }
+
 [dev-dependencies]
 mockito = "1"
 tempfile = "3"

@@ -1,10 +1,16 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "@/components/app-shell";
+import { APP_EVENTS } from "@/constants/events";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn(() => Promise.resolve(() => {})),
+}));
 
 vi.mock("@/hooks/use-app-icon-theme", () => ({ useAppIconTheme: vi.fn() }));
 vi.mock("@/hooks/use-badge", () => ({ useBadge: vi.fn() }));
@@ -33,6 +39,10 @@ describe("AppShell", () => {
   beforeEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
     usePlatformStore.setState(usePlatformStore.getInitialState());
+    usePreferencesStore.setState({
+      prefs: {},
+      loaded: true,
+    });
     setupTauriMocks();
   });
 
@@ -96,5 +106,70 @@ describe("AppShell", () => {
         delete window.__TAURI_INTERNALS__;
       }
     }
+  });
+
+  it("copies the debug HUD contents when clicked", async () => {
+    usePreferencesStore.setState((state) => ({
+      ...state,
+      prefs: { ...state.prefs, debug_browser_hud: "true" },
+    }));
+    useUiStore.setState({
+      focusedPane: "list",
+      contentMode: "reader",
+      selectedArticleId: "art-1",
+    });
+
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    const copyButton = screen.getByRole("button", { name: "Copy debug HUD" });
+    fireEvent.pointerDown(copyButton);
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage?.message).toBeTruthy();
+    });
+
+    const toastMessage = useUiStore.getState().toastMessage?.message;
+    expect(toastMessage).toBeTruthy();
+    expect(screen.getByText(toastMessage!)).toBeInTheDocument();
+  });
+
+  it("shows browser geometry rows inside the debug HUD when preview diagnostics are published", async () => {
+    usePreferencesStore.setState((state) => ({
+      ...state,
+      prefs: { ...state.prefs, debug_browser_hud: "true" },
+    }));
+
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    fireEvent(
+      window,
+      new CustomEvent(APP_EVENTS.browserDebugGeometry, {
+        detail: {
+          layoutDiagnostics: {
+            viewport: { width: 1274, height: 801 },
+            overlay: { x: 0, y: 0, width: 1274, height: 801 },
+            hostLogical: { x: 0, y: 56, width: 1274, height: 745 },
+            stage: { x: 0, y: 56, width: 1274, height: 745 },
+            lane: { left: 0, top: 56, right: 0, bottom: 0 },
+          },
+          nativeDiagnostics: {
+            action: "create",
+            requestedLogical: { x: 0, y: 56, width: 1274, height: 745 },
+            appliedLogical: { x: 0, y: 56, width: 1274, height: 745 },
+            scaleFactor: 1.1,
+            nativeWebviewBounds: { x: 0, y: 56, width: 1547, height: 905 },
+          },
+        },
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show" }));
+
+    expect(await screen.findByText("Geometry")).toBeInTheDocument();
+    expect(screen.getByText("viewport")).toBeInTheDocument();
+    expect(screen.getByText("1274 x 801")).toBeInTheDocument();
+    expect(screen.getByText("native")).toBeInTheDocument();
+    expect(screen.getByText("1547 x 905")).toBeInTheDocument();
   });
 });

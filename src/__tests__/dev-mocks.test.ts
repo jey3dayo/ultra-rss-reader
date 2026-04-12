@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { clearMocks } from "@tauri-apps/api/mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createOrUpdateBrowserWebview, getFeedIntegrityReport } from "@/api/tauri-commands";
+import { createOrUpdateBrowserWebview, getDevRuntimeOptions, getFeedIntegrityReport } from "@/api/tauri-commands";
 import { setupDevMocks } from "@/dev-mocks";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
 
@@ -41,6 +41,20 @@ describe("setupDevMocks", () => {
     expect(report).toEqual({
       orphaned_article_count: 0,
       orphaned_feeds: [],
+    });
+  });
+
+  it("returns dev runtime options instead of null in browser-only mode", async () => {
+    setupDevMocks();
+
+    const result = await getDevRuntimeOptions();
+    const options = Result.unwrap(result);
+
+    expect(options).toEqual({
+      dev_intent: null,
+      dev_web_url: null,
+      dev_window_width: null,
+      dev_window_height: null,
     });
   });
 

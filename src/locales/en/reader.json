@@ -63,6 +63,7 @@
   "browser_embed_blocked_hint": "Open it in your external browser instead.",
   "browser_embed_failed": "Web Preview couldn't load.",
   "browser_embed_failed_hint": "Try again, or open this page in your external browser.",
+  "browser_embed_technical_detail": "Technical detail",
   "browser_embed_browser_mode": "Embedded preview isn't available in browser mode.",
   "browser_embed_browser_mode_hint": "Use the desktop app for the native preview, or open this page in your external browser.",
   "retry_web_preview": "Retry Web Preview",
@@ -149,6 +150,12 @@
     "prefix_hint_feeds": "Feeds",
     "prefix_hint_tags": "Tags"
   },
+  "shortcuts_help": {
+    "title": "Keyboard shortcuts",
+    "description": "Search shortcuts or press ? to reopen this overlay.",
+    "placeholder": "Search shortcuts…",
+    "no_results": "No shortcuts found"
+  },
   "shortcuts": {
     "next_article": "Next article",
     "prev_article": "Previous article",
@@ -169,6 +176,7 @@
     "search": "Search",
     "close_or_clear": "Close Web Preview / clear selection",
     "open_command_palette": "Open command palette",
+    "open_shortcuts_help": "Open shortcuts help",
     "open_settings": "Open settings",
     "category_navigation": "Navigation",
     "category_actions": "Actions",
