@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
 import { cn } from "@/lib/utils";
 
-type AccountSwitcherViewProps = {
+export type AccountSwitcherProps = {
   title: string;
   lastSyncedLabel: string;
   accounts: AccountDto[];
@@ -38,7 +38,7 @@ export function AccountSwitcherView({
   onToggle,
   onSelectAccount,
   onClose,
-}: AccountSwitcherViewProps) {
+}: AccountSwitcherProps) {
   const selectedAccount = accounts.find((account) => account.id === selectedAccountId);
   const hasMultipleAccounts = accounts.length > 1;
 

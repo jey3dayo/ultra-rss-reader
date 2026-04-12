@@ -3,7 +3,9 @@ export type ArticleEmptyStateViewProps = {
   hints?: string[];
 };
 
-export function ArticleEmptyStateView({ message, hints = [] }: ArticleEmptyStateViewProps) {
+const EMPTY_HINTS: string[] = [];
+
+export function ArticleEmptyStateView({ message, hints = EMPTY_HINTS }: ArticleEmptyStateViewProps) {
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-10 text-center">
       <div className="max-w-md rounded-2xl border border-white/8 bg-white/[0.03] px-6 py-5 text-left text-muted-foreground shadow-[0_20px_40px_rgba(0,0,0,0.16)]">

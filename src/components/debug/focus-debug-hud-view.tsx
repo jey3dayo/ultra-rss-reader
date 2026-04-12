@@ -3,6 +3,8 @@ import { useState } from "react";
 import type { BrowserDebugGeometryRow } from "@/lib/browser-debug-geometry";
 import { cn } from "@/lib/utils";
 
+const EMPTY_BROWSER_GEOMETRY_ROWS: BrowserDebugGeometryRow[] = [];
+
 function extractCollapsedSummaryParts(description: string) {
   const labelMatch = description.match(/label=(.+)$/);
   const roleMatch = description.match(/role=([^\s|]+)/);
@@ -38,7 +40,7 @@ export function FocusDebugHudView({
   browserCloseInFlight,
   pendingBrowserCloseAction,
   activeElementDescription,
-  browserGeometryRows = [],
+  browserGeometryRows = EMPTY_BROWSER_GEOMETRY_ROWS,
   traces,
   onCopyPointerDown,
   defaultExpanded = false,
@@ -114,9 +116,13 @@ export function FocusDebugHudView({
         ) : (
           <div className="border-b border-white/10 px-3 py-2">
             <div className="rounded-xl border border-white/6 bg-white/[0.03] px-2.5 py-2">
-              <div className="line-clamp-2 text-[12px] font-medium leading-5 text-white/84">{collapsedSummary.label}</div>
+              <div className="line-clamp-2 text-[12px] font-medium leading-5 text-white/84">
+                {collapsedSummary.label}
+              </div>
               {collapsedSummary.meta ? (
-                <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-white/34">{collapsedSummary.meta}</div>
+                <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-white/34">
+                  {collapsedSummary.meta}
+                </div>
               ) : null}
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <span className="rounded-full border border-white/8 bg-white/[0.04] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/58">
@@ -186,7 +192,11 @@ export function FocusDebugHudView({
               <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/42">Recent events</div>
               <div className="mt-1.5 font-mono text-[11px] leading-5 text-white/68">
                 <div className="line-clamp-2 break-words">{latestTrace}</div>
-                {visibleTraces.length > 1 ? <div className="mt-1 text-[10px] uppercase tracking-[0.12em] text-white/34">+{visibleTraces.length - 1} more</div> : null}
+                {visibleTraces.length > 1 ? (
+                  <div className="mt-1 text-[10px] uppercase tracking-[0.12em] text-white/34">
+                    +{visibleTraces.length - 1} more
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>

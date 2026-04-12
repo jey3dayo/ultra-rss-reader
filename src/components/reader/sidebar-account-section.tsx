@@ -1,21 +1,9 @@
 import type { RefObject } from "react";
-import type { AccountDto } from "@/api/tauri-commands";
+import type { AccountSwitcherProps } from "./account-switcher-view";
 import { AccountSwitcherView } from "./account-switcher-view";
 
-type SidebarAccountSectionProps = {
+type SidebarAccountSectionProps = AccountSwitcherProps & {
   containerRef: RefObject<HTMLDivElement | null>;
-  title: string;
-  lastSyncedLabel: string;
-  accounts: AccountDto[];
-  selectedAccountId: string | null;
-  isExpanded: boolean;
-  menuId: string;
-  menuLabel: string;
-  triggerRef: RefObject<HTMLButtonElement | null>;
-  itemRefs: RefObject<Array<HTMLButtonElement | null>>;
-  onToggle: () => void;
-  onSelectAccount: (accountId: string) => void;
-  onClose: (restoreFocus: boolean) => void;
 };
 
 export function SidebarAccountSection({

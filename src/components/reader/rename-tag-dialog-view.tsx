@@ -5,18 +5,10 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-export function RenameTagDialogView({
-  open,
-  name,
-  color = null,
-  loading,
-  onOpenChange,
-  onNameChange,
-  onColorChange = () => {},
-  colorOptions = [],
-  noColorLabel,
-  onSubmit,
-}: {
+const EMPTY_COLOR_OPTIONS: string[] = [];
+const NO_OP_COLOR_CHANGE = () => {};
+
+export type RenameTagDialogViewProps = {
   open: boolean;
   name: string;
   color?: string | null;
@@ -27,7 +19,20 @@ export function RenameTagDialogView({
   colorOptions?: string[];
   noColorLabel?: string;
   onSubmit: () => void;
-}) {
+};
+
+export function RenameTagDialogView({
+  open,
+  name,
+  color = null,
+  loading,
+  onOpenChange,
+  onNameChange,
+  onColorChange = NO_OP_COLOR_CHANGE,
+  colorOptions = EMPTY_COLOR_OPTIONS,
+  noColorLabel,
+  onSubmit,
+}: RenameTagDialogViewProps) {
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
   const inputRef = useRef<HTMLInputElement>(null);
