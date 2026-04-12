@@ -4,17 +4,18 @@ import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMe
 import { useTranslation } from "react-i18next";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { APP_EVENTS } from "@/constants/events";
+import { ARTICLE_SEARCH_DEBOUNCE_MS } from "@/constants/reader";
 import { useAccountArticles, useArticles, useMarkAllRead, useSearchArticles } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useArticlesByTag } from "@/hooks/use-tags";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
+import { executeAction } from "@/lib/actions";
 import {
   displayPresetToTriStateModes,
   feedModesToDisplayPresetOption,
   resolveFeedDisplayOverrides,
 } from "@/lib/article-display";
-import { executeAction } from "@/lib/actions";
 import {
   calculateArticleNavigationScrollTop,
   getAdjacentArticleId,
@@ -76,7 +77,7 @@ export function ArticleList() {
 
   // Debounce search query to avoid excessive IPC calls
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), ARTICLE_SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 

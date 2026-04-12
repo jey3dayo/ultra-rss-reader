@@ -1,3 +1,8 @@
+import {
+  BROWSER_GEOMETRY_PERCENT_FRACTION_DIGITS,
+  BROWSER_GEOMETRY_SCALE_FACTOR_FRACTION_DIGITS,
+} from "@/constants/browser";
+
 export type BrowserDebugGeometryNativeDiagnostics = {
   action: string;
   requestedLogical: BrowserDebugGeometryRect;
@@ -44,17 +49,14 @@ function formatRatio(value: number, total: number) {
     return "n/a";
   }
 
-  return `${((value / total) * 100).toFixed(1)}%`;
+  return `${((value / total) * 100).toFixed(BROWSER_GEOMETRY_PERCENT_FRACTION_DIGITS)}%`;
 }
 
 export function formatCompactFill(width: number, height: number, totalWidth: number, totalHeight: number) {
   return `${formatRatio(width, totalWidth)} ${formatRatio(height, totalHeight)}`;
 }
 
-export function getBrowserGeometryStripItems(
-  snapshot: BrowserDebugGeometrySnapshot,
-  compact: boolean,
-): string[] {
+export function getBrowserGeometryStripItems(snapshot: BrowserDebugGeometrySnapshot, compact: boolean): string[] {
   const fullItems: string[] = [];
   const compactItems: string[] = [];
   const { layoutDiagnostics, nativeDiagnostics } = snapshot;
@@ -74,7 +76,9 @@ export function getBrowserGeometryStripItems(
   }
 
   if (nativeDiagnostics) {
-    fullItems.push(`rust ${nativeDiagnostics.action} x${nativeDiagnostics.scaleFactor.toFixed(2)}`);
+    fullItems.push(
+      `rust ${nativeDiagnostics.action} x${nativeDiagnostics.scaleFactor.toFixed(BROWSER_GEOMETRY_SCALE_FACTOR_FRACTION_DIGITS)}`,
+    );
     if (nativeDiagnostics.nativeWebviewBounds) {
       const nativeItem = `native ${Math.round(nativeDiagnostics.nativeWebviewBounds.width)}x${Math.round(nativeDiagnostics.nativeWebviewBounds.height)}`;
       fullItems.push(nativeItem);
@@ -120,7 +124,10 @@ export function getBrowserGeometryRows(snapshot: BrowserDebugGeometrySnapshot): 
   }
 
   if (nativeDiagnostics) {
-    rows.push({ label: "rust", value: `${nativeDiagnostics.action} x${nativeDiagnostics.scaleFactor.toFixed(2)}` });
+    rows.push({
+      label: "rust",
+      value: `${nativeDiagnostics.action} x${nativeDiagnostics.scaleFactor.toFixed(BROWSER_GEOMETRY_SCALE_FACTOR_FRACTION_DIGITS)}`,
+    });
     if (nativeDiagnostics.nativeWebviewBounds) {
       rows.push({
         label: "native",

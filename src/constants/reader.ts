@@ -1,0 +1,1 @@
+export const ARTICLE_SEARCH_DEBOUNCE_MS = 300;
