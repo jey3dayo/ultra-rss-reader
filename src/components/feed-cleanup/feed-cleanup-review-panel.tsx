@@ -45,6 +45,7 @@ type FeedCleanupReviewPanelProps = {
   reasonsLabel: string;
   noSelectionLabel: string;
   reasonLabels: Record<FeedCleanupReasonKey, string>;
+  priorityToneLabels: Record<FeedCleanupTone, string>;
   priorityLabels: Record<FeedCleanupTitleKey, string>;
   summaryHeadlineLabels: Record<FeedCleanupTitleKey, string>;
   summaryLabels: Record<FeedCleanupSummaryKey, string>;
@@ -101,6 +102,7 @@ export function FeedCleanupReviewPanel({
   reasonsLabel,
   noSelectionLabel,
   reasonLabels,
+  priorityToneLabels,
   priorityLabels,
   summaryHeadlineLabels,
   summaryLabels,
@@ -183,7 +185,7 @@ export function FeedCleanupReviewPanel({
                     </h4>
                   </div>
                   <span className="rounded-full border border-current/15 px-2.5 py-1 text-[11px] font-medium text-current">
-                    {priorityLabels[selectedSummary.titleKey]}
+                    {priorityToneLabels[selectedSummary.tone]}
                   </span>
                 </div>
                 <p className="mt-3 text-sm text-current/80">{summaryLabels[selectedSummary.summaryKey]}</p>

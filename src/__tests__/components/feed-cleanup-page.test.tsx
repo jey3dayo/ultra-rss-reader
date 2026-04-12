@@ -427,4 +427,101 @@ describe("FeedCleanupPage", () => {
 
     expect(await screen.findByRole("dialog", { name: "Delete feed" })).toBeInTheDocument();
   });
+
+  it("keeps all visible cleanup candidates from the overview actions", async () => {
+    const user = userEvent.setup();
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("button", { name: "Old Product Blog" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Fresh Feed" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Keep all visible" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Old Product Blog" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Fresh Feed" })).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByText("0 candidates")).toBeInTheDocument();
+  });
+
+  it("defers all visible cleanup candidates from the overview actions", async () => {
+    const user = userEvent.setup();
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("button", { name: "Old Product Blog" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Fresh Feed" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Defer all visible" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Old Product Blog" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Fresh Feed" })).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByText("2 deferred")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Show deferred" }));
+
+    expect(await screen.findByRole("button", { name: "Old Product Blog" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Fresh Feed" })).toBeInTheDocument();
+  });
+
+  it("applies bulk actions only to the currently visible filtered candidates", async () => {
+    const user = userEvent.setup();
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    await screen.findByRole("button", { name: "Old Product Blog" });
+    await user.click(screen.getByRole("button", { name: "No unread 1" }));
+    await user.click(screen.getByRole("button", { name: "Keep all visible" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Old Product Blog" })).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "No unread 0" }));
+
+    expect(screen.getByRole("button", { name: "Fresh Feed" })).toBeInTheDocument();
+  });
+
+  it("hides overview bulk actions while reviewing broken references", async () => {
+    const user = userEvent.setup();
+    integrityReport = {
+      orphaned_article_count: 1,
+      orphaned_feeds: [
+        {
+          missing_feed_id: "missing-feed",
+          article_count: 1,
+          latest_article_title: "Broken article",
+          latest_article_published_at: "2026-03-31T10:00:00Z",
+        },
+      ],
+    };
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Show broken references" }));
+
+    expect(screen.queryByRole("button", { name: "Keep all visible" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Defer all visible" })).not.toBeInTheDocument();
+  });
+
+  it("disables overview bulk actions when there are no visible candidates", async () => {
+    const user = userEvent.setup();
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    await screen.findByRole("button", { name: "Old Product Blog" });
+    await user.click(screen.getByRole("button", { name: "Keep all visible" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("0 candidates")).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole("button", { name: "Keep all visible" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Defer all visible" })).toBeDisabled();
+  });
 });

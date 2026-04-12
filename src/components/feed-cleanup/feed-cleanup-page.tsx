@@ -68,6 +68,10 @@ export function FeedCleanupPage() {
       caption: t("summary_integrity_caption", { count: integrityReport?.orphaned_article_count ?? 0 }),
     },
   ] as const;
+  const bulkActionDisabled =
+    cleanupState.visibleCandidates.length === 0 ||
+    cleanupState.isEditingSelectedFeed ||
+    cleanupState.deleteTarget != null;
 
   if (!feedCleanupOpen) {
     return null;
@@ -82,6 +86,10 @@ export function FeedCleanupPage() {
         dateLocale={dateLocale}
         overviewLabel={t("overview")}
         filtersLabel={t("filters")}
+        bulkActionsLabel={t("bulk_actions")}
+        bulkVisibleCountLabel={t("bulk_visible_count", { count: cleanupState.visibleCandidates.length })}
+        bulkKeepVisibleLabel={t("bulk_keep_visible")}
+        bulkDeferVisibleLabel={t("bulk_defer_visible")}
         queueLabel={t("queue")}
         reviewLabel={t("review")}
         summaryCards={summaryCards}
@@ -117,6 +125,7 @@ export function FeedCleanupPage() {
         filterOptions={filterOptions}
         filterCounts={cleanupState.filterCounts}
         activeFilterKeys={cleanupState.activeFilters}
+        visibleCandidateCount={bulkActionDisabled ? 0 : cleanupState.visibleCandidates.length}
         queue={cleanupState.visibleCandidates}
         selectedCandidate={cleanupState.selectedCandidate}
         selectedSummary={cleanupState.selectedSummary}
@@ -135,6 +144,11 @@ export function FeedCleanupPage() {
         noSelectionLabel={t("no_selection")}
         deferredBadgeLabel={t("deferred_badge")}
         reasonLabels={reasonLabels}
+        priorityToneLabels={{
+          high: t("priority_level_high"),
+          medium: t("priority_level_medium"),
+          low: t("priority_level_low"),
+        }}
         priorityLabels={{
           review_now: t("priority_review_now"),
           consider: t("priority_consider"),
@@ -156,6 +170,8 @@ export function FeedCleanupPage() {
         onToggleIntegrityMode={cleanupState.toggleIntegrityMode}
         onToggleFilter={cleanupState.toggleFilter}
         onToggleShowDeferred={cleanupState.toggleShowDeferred}
+        onKeepVisible={cleanupState.markVisibleCandidatesKept}
+        onDeferVisible={cleanupState.markVisibleCandidatesDeferred}
         onSelectCandidate={cleanupState.selectCandidate}
         onSelectIntegrityIssue={cleanupState.selectIntegrityIssue}
         editing={cleanupState.isEditingSelectedFeed}

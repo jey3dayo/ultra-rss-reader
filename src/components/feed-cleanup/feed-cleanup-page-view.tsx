@@ -39,6 +39,10 @@ export function FeedCleanupPageView({
   dateLocale,
   overviewLabel,
   filtersLabel,
+  bulkActionsLabel,
+  bulkVisibleCountLabel,
+  bulkKeepVisibleLabel,
+  bulkDeferVisibleLabel,
   queueLabel,
   reviewLabel,
   summaryCards,
@@ -52,6 +56,7 @@ export function FeedCleanupPageView({
   filterOptions,
   filterCounts,
   activeFilterKeys,
+  visibleCandidateCount,
   queue,
   selectedCandidate,
   selectedSummary,
@@ -70,6 +75,7 @@ export function FeedCleanupPageView({
   noSelectionLabel,
   deferredBadgeLabel,
   reasonLabels,
+  priorityToneLabels,
   priorityLabels,
   summaryHeadlineLabels,
   summaryLabels,
@@ -79,6 +85,8 @@ export function FeedCleanupPageView({
   onToggleIntegrityMode,
   onToggleFilter,
   onToggleShowDeferred,
+  onKeepVisible,
+  onDeferVisible,
   onSelectCandidate,
   onSelectIntegrityIssue,
   onEdit,
@@ -92,6 +100,10 @@ export function FeedCleanupPageView({
   dateLocale: string;
   overviewLabel: string;
   filtersLabel: string;
+  bulkActionsLabel: string;
+  bulkVisibleCountLabel: string;
+  bulkKeepVisibleLabel: string;
+  bulkDeferVisibleLabel: string;
   queueLabel: string;
   reviewLabel: string;
   summaryCards: ReadonlyArray<FeedCleanupSummaryCard>;
@@ -109,6 +121,7 @@ export function FeedCleanupPageView({
   filterOptions: ReadonlyArray<FeedCleanupFilterOption>;
   filterCounts: Record<FeedCleanupFilterOption["key"], number>;
   activeFilterKeys: Set<FeedCleanupFilterOption["key"]>;
+  visibleCandidateCount: number;
   queue: Array<FeedCleanupCandidate & { deferred?: boolean }>;
   selectedCandidate: (FeedCleanupCandidate & { deferred?: boolean }) | null;
   selectedSummary: {
@@ -131,6 +144,7 @@ export function FeedCleanupPageView({
   noSelectionLabel: string;
   deferredBadgeLabel: string;
   reasonLabels: Record<FeedCleanupReasonKey, string>;
+  priorityToneLabels: Record<FeedCleanupTone, string>;
   priorityLabels: Record<FeedCleanupTitleKey, string>;
   summaryHeadlineLabels: Record<FeedCleanupTitleKey, string>;
   summaryLabels: Record<FeedCleanupSummaryKey, string>;
@@ -140,6 +154,8 @@ export function FeedCleanupPageView({
   onToggleIntegrityMode: () => void;
   onToggleFilter: (key: FeedCleanupFilterOption["key"]) => void;
   onToggleShowDeferred: () => void;
+  onKeepVisible: () => void;
+  onDeferVisible: () => void;
   onSelectCandidate: (candidateId: string) => void;
   onSelectIntegrityIssue: (missingFeedId: string) => void;
   onEdit: () => void;
@@ -231,16 +247,23 @@ export function FeedCleanupPageView({
         <FeedCleanupOverviewPanel
           overviewLabel={overviewLabel}
           filtersLabel={filtersLabel}
+          bulkActionsLabel={bulkActionsLabel}
+          bulkVisibleCountLabel={bulkVisibleCountLabel}
+          bulkKeepVisibleLabel={bulkKeepVisibleLabel}
+          bulkDeferVisibleLabel={bulkDeferVisibleLabel}
           summaryCards={summaryCards}
           integrityMode={integrityMode}
           integrityDetailLabels={integrityDetailLabels}
           filterOptions={filterOptions}
           filterCounts={filterCounts}
           activeFilterKeys={activeFilterKeys}
+          visibleCandidateCount={visibleCandidateCount}
           showDeferred={showDeferred}
           showDeferredLabel={showDeferredLabel}
           onToggleFilter={onToggleFilter}
           onToggleShowDeferred={onToggleShowDeferred}
+          onKeepVisible={onKeepVisible}
+          onDeferVisible={onDeferVisible}
         />
 
         <FeedCleanupQueuePanel
@@ -260,7 +283,7 @@ export function FeedCleanupPageView({
           starredCountLabel={starredCountLabel}
           deferredBadgeLabel={deferredBadgeLabel}
           reasonLabels={reasonLabels}
-          priorityLabels={priorityLabels}
+          priorityToneLabels={priorityToneLabels}
           summaryLabels={summaryLabels}
         />
 
@@ -280,6 +303,7 @@ export function FeedCleanupPageView({
           reasonsLabel={reasonsLabel}
           noSelectionLabel={noSelectionLabel}
           reasonLabels={reasonLabels}
+          priorityToneLabels={priorityToneLabels}
           priorityLabels={priorityLabels}
           summaryHeadlineLabels={summaryHeadlineLabels}
           summaryLabels={summaryLabels}

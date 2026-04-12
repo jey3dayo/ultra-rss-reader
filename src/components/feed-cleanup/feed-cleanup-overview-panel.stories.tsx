@@ -17,6 +17,10 @@ type Story = StoryObj<typeof meta>;
 const baseArgs = {
   overviewLabel: "Overview",
   filtersLabel: "Filters",
+  bulkActionsLabel: "Bulk actions",
+  bulkVisibleCountLabel: "2 visible now",
+  bulkKeepVisibleLabel: "Keep all visible",
+  bulkDeferVisibleLabel: "Defer all visible",
   summaryCards: [
     { label: "Candidates", value: "2", caption: "feeds" },
     { label: "Review now", value: "1", caption: "high priority" },
@@ -46,6 +50,7 @@ const baseArgs = {
     no_unread: 1,
     no_stars: 1,
   },
+  visibleCandidateCount: 2,
   showDeferredLabel: "Show deferred",
 } as const;
 
@@ -76,6 +81,8 @@ function InteractiveOverviewPanel({ initialIntegrityMode }: { initialIntegrityMo
         onToggleShowDeferred={() => {
           setShowDeferred((current) => !current);
         }}
+        onKeepVisible={() => {}}
+        onDeferVisible={() => {}}
       />
     </div>
   );
@@ -89,6 +96,8 @@ export const CleanupMode: Story = {
     showDeferred: false,
     onToggleFilter: () => {},
     onToggleShowDeferred: () => {},
+    onKeepVisible: () => {},
+    onDeferVisible: () => {},
   },
   render: (args) => <InteractiveOverviewPanel initialIntegrityMode={args.integrityMode} />,
 };
@@ -101,6 +110,8 @@ export const IntegrityMode: Story = {
     showDeferred: false,
     onToggleFilter: () => {},
     onToggleShowDeferred: () => {},
+    onKeepVisible: () => {},
+    onDeferVisible: () => {},
   },
   render: (args) => <InteractiveOverviewPanel initialIntegrityMode={args.integrityMode} />,
 };

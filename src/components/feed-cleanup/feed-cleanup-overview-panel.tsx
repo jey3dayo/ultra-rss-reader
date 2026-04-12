@@ -15,31 +15,45 @@ export type FeedCleanupSummaryCard = {
 type FeedCleanupOverviewPanelProps = {
   overviewLabel: string;
   filtersLabel: string;
+  bulkActionsLabel: string;
+  bulkVisibleCountLabel: string;
+  bulkKeepVisibleLabel: string;
+  bulkDeferVisibleLabel: string;
   summaryCards: ReadonlyArray<FeedCleanupSummaryCard>;
   integrityMode: boolean;
   integrityDetailLabels: FeedCleanupIntegrityDetailLabels;
   filterOptions: ReadonlyArray<FeedCleanupFilterOption>;
   filterCounts: Record<FeedCleanupFilterOption["key"], number>;
   activeFilterKeys: Set<FeedCleanupFilterOption["key"]>;
+  visibleCandidateCount: number;
   showDeferred: boolean;
   showDeferredLabel: string;
   onToggleFilter: (key: FeedCleanupFilterOption["key"]) => void;
   onToggleShowDeferred: () => void;
+  onKeepVisible: () => void;
+  onDeferVisible: () => void;
 };
 
 export function FeedCleanupOverviewPanel({
   overviewLabel,
   filtersLabel,
+  bulkActionsLabel,
+  bulkVisibleCountLabel,
+  bulkKeepVisibleLabel,
+  bulkDeferVisibleLabel,
   summaryCards,
   integrityMode,
   integrityDetailLabels,
   filterOptions,
   filterCounts,
   activeFilterKeys,
+  visibleCandidateCount,
   showDeferred,
   showDeferredLabel,
   onToggleFilter,
   onToggleShowDeferred,
+  onKeepVisible,
+  onDeferVisible,
 }: FeedCleanupOverviewPanelProps) {
   return (
     <section className="min-h-0 border-b border-border bg-sidebar/60 px-4 py-4 lg:border-r lg:border-b-0">
@@ -65,28 +79,57 @@ export function FeedCleanupOverviewPanel({
           {integrityDetailLabels.filter_note}
         </div>
       ) : (
-        <div className="flex flex-wrap gap-2">
-          {filterOptions.map((filter) => (
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {filterOptions.map((filter) => (
+              <Button
+                key={filter.key}
+                variant={activeFilterKeys.has(filter.key) ? "secondary" : "ghost"}
+                className="justify-between rounded-full border px-3"
+                aria-label={`${filter.label} ${filterCounts[filter.key]}`}
+                onClick={() => onToggleFilter(filter.key)}
+              >
+                <span>{filter.label}</span>
+                <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground">
+                  {filterCounts[filter.key]}
+                </span>
+              </Button>
+            ))}
             <Button
-              key={filter.key}
-              variant={activeFilterKeys.has(filter.key) ? "secondary" : "ghost"}
-              className="justify-between rounded-full border px-3"
-              aria-label={`${filter.label} ${filterCounts[filter.key]}`}
-              onClick={() => onToggleFilter(filter.key)}
+              variant={showDeferred ? "secondary" : "ghost"}
+              className="w-full justify-start rounded-full border px-3"
+              onClick={onToggleShowDeferred}
             >
-              <span>{filter.label}</span>
-              <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground">
-                {filterCounts[filter.key]}
-              </span>
+              {showDeferredLabel}
             </Button>
-          ))}
-          <Button
-            variant={showDeferred ? "secondary" : "ghost"}
-            className="w-full justify-start rounded-full border px-3"
-            onClick={onToggleShowDeferred}
-          >
-            {showDeferredLabel}
-          </Button>
+          </div>
+
+          <div className="rounded-2xl border border-border/70 bg-card/70 px-3 py-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                {bulkActionsLabel}
+              </p>
+              <span className="text-[11px] text-muted-foreground">{bulkVisibleCountLabel}</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                disabled={visibleCandidateCount === 0}
+                onClick={onKeepVisible}
+              >
+                {bulkKeepVisibleLabel}
+              </Button>
+              <Button
+                variant="secondary"
+                className="w-full justify-start"
+                disabled={visibleCandidateCount === 0}
+                onClick={onDeferVisible}
+              >
+                {bulkDeferVisibleLabel}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </section>

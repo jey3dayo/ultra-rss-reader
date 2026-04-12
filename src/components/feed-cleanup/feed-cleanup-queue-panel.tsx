@@ -3,7 +3,7 @@ import type {
   FeedCleanupCandidate,
   FeedCleanupReasonKey,
   FeedCleanupSummaryKey,
-  FeedCleanupTitleKey,
+  FeedCleanupTone,
 } from "@/lib/feed-cleanup";
 import { summarizeCleanupCandidate } from "@/lib/feed-cleanup";
 import { cn } from "@/lib/utils";
@@ -26,7 +26,7 @@ type FeedCleanupQueuePanelProps = {
   starredCountLabel: string;
   deferredBadgeLabel: string;
   reasonLabels: Record<FeedCleanupReasonKey, string>;
-  priorityLabels: Record<FeedCleanupTitleKey, string>;
+  priorityToneLabels: Record<FeedCleanupTone, string>;
   summaryLabels: Record<FeedCleanupSummaryKey, string>;
 };
 
@@ -47,7 +47,7 @@ export function FeedCleanupQueuePanel({
   starredCountLabel,
   deferredBadgeLabel,
   reasonLabels,
-  priorityLabels,
+  priorityToneLabels,
   summaryLabels,
 }: FeedCleanupQueuePanelProps) {
   return (
@@ -133,7 +133,7 @@ export function FeedCleanupQueuePanel({
                             : "bg-emerald-100 text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-100",
                       )}
                     >
-                      {priorityLabels[queueSummary.titleKey]}
+                      {priorityToneLabels[queueSummary.tone]}
                     </span>
                     {candidate.deferred ? (
                       <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">

@@ -41,7 +41,9 @@ type FeedCleanupPageAction =
   | { type: "set-editing-feed-id"; feedId: string | null }
   | { type: "set-delete-target-id"; feedId: string | null }
   | { type: "mark-kept"; feedId: string }
+  | { type: "mark-many-kept"; feedIds: string[] }
   | { type: "mark-deferred"; feedId: string }
+  | { type: "mark-many-deferred"; feedIds: string[] }
   | { type: "delete-succeeded"; feedId: string };
 
 function createInitialState(): FeedCleanupPageState {
@@ -100,9 +102,23 @@ function reducer(state: FeedCleanupPageState, action: FeedCleanupPageAction): Fe
       next.add(action.feedId);
       return { ...state, keptFeedIds: next };
     }
+    case "mark-many-kept": {
+      const next = new Set(state.keptFeedIds);
+      for (const feedId of action.feedIds) {
+        next.add(feedId);
+      }
+      return { ...state, keptFeedIds: next };
+    }
     case "mark-deferred": {
       const next = new Set(state.deferredFeedIds);
       next.add(action.feedId);
+      return { ...state, deferredFeedIds: next };
+    }
+    case "mark-many-deferred": {
+      const next = new Set(state.deferredFeedIds);
+      for (const feedId of action.feedIds) {
+        next.add(feedId);
+      }
       return { ...state, deferredFeedIds: next };
     }
     case "delete-succeeded": {
@@ -301,9 +317,22 @@ export function useFeedCleanupPageState({
         dispatch({ type: "mark-kept", feedId: selectedCandidate.feedId });
       }
     },
+    markVisibleCandidatesKept: () => {
+      if (visibleCandidates.length > 0) {
+        dispatch({ type: "mark-many-kept", feedIds: visibleCandidates.map((candidate) => candidate.feedId) });
+      }
+    },
     markSelectedCandidateDeferred: () => {
       if (selectedCandidate) {
         dispatch({ type: "mark-deferred", feedId: selectedCandidate.feedId });
+      }
+    },
+    markVisibleCandidatesDeferred: () => {
+      if (visibleCandidates.length > 0) {
+        dispatch({
+          type: "mark-many-deferred",
+          feedIds: visibleCandidates.map((candidate) => candidate.feedId),
+        });
       }
     },
     deleteSucceeded: (feedId: string) => dispatch({ type: "delete-succeeded", feedId }),

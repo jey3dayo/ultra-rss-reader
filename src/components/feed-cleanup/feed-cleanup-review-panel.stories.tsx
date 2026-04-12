@@ -41,6 +41,11 @@ const baseLabels = {
     no_unread: "No unread articles",
     no_stars: "No starred articles",
   },
+  priorityToneLabels: {
+    high: "High priority",
+    medium: "Medium priority",
+    low: "Low priority",
+  },
   priorityLabels: {
     review_now: "Review now",
     consider: "Consider",
