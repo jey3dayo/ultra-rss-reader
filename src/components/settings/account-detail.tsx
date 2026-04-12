@@ -27,6 +27,7 @@ export function AccountDetail() {
   const qc = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editingName, setEditingName] = useState(false);
+  const [savingName, setSavingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [credServerUrl, setCredServerUrl] = useState<string | null>(null);
@@ -47,25 +48,37 @@ export function AccountDetail() {
     setNameDraft(account.name);
     setEditingName(true);
     // Focus the input after render
-    requestAnimationFrame(() => nameInputRef.current?.focus());
+    requestAnimationFrame(() => {
+      nameInputRef.current?.focus();
+      nameInputRef.current?.select();
+    });
   };
 
   const commitRename = async () => {
     const trimmed = nameDraft.trim();
     if (!trimmed || trimmed === account.name) {
+      setNameDraft(account.name);
       setEditingName(false);
       return;
     }
+    setSavingName(true);
+    let renameSucceeded = false;
     Result.pipe(
       await renameAccount(account.id, trimmed),
       Result.inspectError((e) =>
         useUiStore.getState().showToast(t("account.failed_to_rename", { message: e.message })),
       ),
       Result.inspect((updated) => {
+        renameSucceeded = true;
+        setNameDraft(updated.name);
         qc.setQueryData<AccountDto[]>(["accounts"], (prev) => prev?.map((a) => (a.id === updated.id ? updated : a)));
+        qc.invalidateQueries({ queryKey: ["accounts"] });
       }),
     );
-    setEditingName(false);
+    setSavingName(false);
+    if (renameSucceeded) {
+      setEditingName(false);
+    }
   };
 
   const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -259,13 +272,13 @@ export function AccountDetail() {
   return (
     <AccountDetailView
       title={account.name}
-      subtitle={account.kind}
       generalSection={{
         heading: t("account.general"),
         nameLabel: t("account.description"),
         nameValue: account.name,
         editNameTitle: t("account.click_to_edit"),
         isEditingName: editingName,
+        isSavingName: savingName,
         nameDraft,
         nameInputRef,
         infoRows: [

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,6 +12,17 @@ const accountDetailViewSpy = vi.fn();
 
 vi.mock("@/components/settings/account-detail-view", () => ({
   AccountDetailView: (props: {
+    title: string;
+    generalSection: {
+      nameValue: string;
+      isEditingName: boolean;
+      nameDraft: string;
+      nameInputRef?: React.RefObject<HTMLInputElement | null>;
+      onStartEditingName: () => void;
+      onNameDraftChange: (value: string) => void;
+      onCommitName: () => void;
+      onNameKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+    };
     credentialsSection?: ReactNode;
     syncSection: {
       isSyncing?: boolean;
@@ -28,6 +39,21 @@ vi.mock("@/components/settings/account-detail-view", () => ({
 
     return (
       <div>
+        <h2>{props.title}</h2>
+        {props.generalSection.isEditingName ? (
+          <input
+            aria-label="Account name"
+            ref={props.generalSection.nameInputRef}
+            value={props.generalSection.nameDraft}
+            onChange={(event) => props.generalSection.onNameDraftChange(event.target.value)}
+            onBlur={props.generalSection.onCommitName}
+            onKeyDown={props.generalSection.onNameKeyDown}
+          />
+        ) : (
+          <button type="button" onClick={props.generalSection.onStartEditingName}>
+            {props.generalSection.nameValue}
+          </button>
+        )}
         {props.credentialsSection}
         <button type="button" onClick={() => props.syncSection.keepReadItems.onChange("60")}>
           Select 60 days
@@ -401,5 +427,65 @@ describe("AccountDetail", () => {
     render(<AccountDetail />, { wrapper: createWrapper() });
 
     expect(await screen.findByRole("heading", { level: 3, name: "サーバー" })).toBeInTheDocument();
+  });
+
+  it("renames the account and updates the visible title", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    let accountName = "FreshRSS";
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: accountName,
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "rename_account":
+          accountName = String(args.name);
+          return {
+            id: "acc-1",
+            kind: "FreshRss",
+            name: accountName,
+            username: "user",
+            server_url: "https://freshrss.example.com",
+            sync_interval_secs: 3600,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+          };
+        default:
+          return null;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "FreshRSS" }));
+    const input = await screen.findByRole("textbox", { name: "Account name" });
+    await user.clear(input);
+    await user.type(input, "Team FreshRSS");
+    fireEvent.blur(input);
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "rename_account",
+        args: { accountId: "acc-1", name: "Team FreshRSS" },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { level: 2, name: "Team FreshRSS" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Team FreshRSS" })).toBeInTheDocument();
+    });
   });
 });

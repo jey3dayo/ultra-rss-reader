@@ -14,6 +14,7 @@ export type AccountGeneralSectionViewProps = {
   nameValue: string;
   editNameTitle: string;
   isEditingName: boolean;
+  isSavingName?: boolean;
   nameDraft: string;
   infoRows: AccountGeneralInfoRow[];
   nameInputRef?: RefObject<HTMLInputElement | null>;
@@ -29,6 +30,7 @@ export function AccountGeneralSectionView({
   nameValue,
   editNameTitle,
   isEditingName,
+  isSavingName = false,
   nameDraft,
   infoRows,
   nameInputRef,
@@ -50,12 +52,14 @@ export function AccountGeneralSectionView({
             onChange={(event) => onNameDraftChange(event.target.value)}
             onBlur={onCommitName}
             onKeyDown={onNameKeyDown}
+            disabled={isSavingName}
             className="h-auto w-auto border-border bg-background px-2 py-1 text-right text-sm text-muted-foreground"
           />
         ) : (
           <button
             type="button"
             onClick={onStartEditingName}
+            disabled={isSavingName}
             className="cursor-pointer rounded-md border border-transparent px-2 py-1 text-sm text-muted-foreground hover:border-border hover:text-foreground"
             title={editNameTitle}
           >
