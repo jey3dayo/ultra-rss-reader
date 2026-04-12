@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { triggerSync } from "@/api/tauri-commands";
@@ -21,12 +21,7 @@ import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preference
 import { useUiStore } from "@/stores/ui-store";
 import { AddFeedDialog } from "./add-feed-dialog";
 import { FeedContextMenuContent } from "./feed-context-menu";
-import {
-  type ActiveDropTarget,
-  type FeedTreeFeedViewModel,
-  type FeedTreeFolderViewModel,
-  FeedTreeView,
-} from "./feed-tree-view";
+import { type FeedTreeFeedViewModel, type FeedTreeFolderViewModel, FeedTreeView } from "./feed-tree-view";
 import { FolderContextMenuContent } from "./folder-context-menu";
 import { SidebarAccountSection } from "./sidebar-account-section";
 import { SidebarFeedSection } from "./sidebar-feed-section";
@@ -36,6 +31,8 @@ import { SidebarTagSection } from "./sidebar-tag-section";
 import { type SmartViewItemViewModel, SmartViewsView } from "./smart-views-view";
 import { TagContextMenuContent } from "./tag-context-menu";
 import type { TagListItemViewModel } from "./tag-list-view";
+import { useSidebarAccountSwitcher } from "./use-sidebar-account-switcher";
+import { useSidebarFeedDragState } from "./use-sidebar-feed-drag-state";
 
 function useFormatLastSynced(date: Date | null): string {
   const { t } = useTranslation("sidebar");
@@ -89,29 +86,19 @@ function setStoredSidebarExpandedFolders(accountId: string, folderIds: Iterable<
 
 export function Sidebar() {
   const { t } = useTranslation("sidebar");
-  const [showAccountList, setShowAccountList] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const lastSyncedFormatted = useFormatLastSynced(lastSyncedAt);
   const [isFeedsSectionOpen, setIsFeedsSectionOpen] = useState(true);
   const [isTagsSectionOpen, setIsTagsSectionOpen] = useState(true);
-  const [draggedFeedId, setDraggedFeedId] = useState<string | null>(null);
-  const [activeDropTarget, setActiveDropTarget] = useState<ActiveDropTarget>(null);
-  const accountDropdownRef = useRef<HTMLDivElement>(null);
-  const accountTriggerRef = useRef<HTMLButtonElement>(null);
-  const accountItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const accountMenuId = useId();
-
-  // Close account dropdown on click outside
-  useEffect(() => {
-    if (!showAccountList) return;
-    const handler = (e: MouseEvent) => {
-      if (accountDropdownRef.current && !accountDropdownRef.current.contains(e.target as Node)) {
-        setShowAccountList(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showAccountList]);
+  const {
+    isAccountListOpen,
+    accountDropdownRef,
+    accountTriggerRef,
+    accountItemRefs,
+    accountMenuId,
+    closeAccountList,
+    toggleAccountList,
+  } = useSidebarAccountSwitcher();
   const { data: accounts } = useAccounts();
   const layoutMode = useUiStore((s) => s.layoutMode);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
@@ -156,7 +143,9 @@ export function Sidebar() {
   const displayFavicons = usePreferencesStore((s) => (s.prefs.display_favicons ?? "true") === "true");
   const grayscaleFavicons = usePreferencesStore((s) => (s.prefs.grayscale_favicons ?? "false") === "true");
   const sortSubscriptions = usePreferencesStore((s) => s.prefs.sort_subscriptions ?? "folders_first");
-  const startupFolderExpansion = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "startup_folder_expansion"));
+  const startupFolderExpansion = usePreferencesStore((s) =>
+    resolvePreferenceValue(s.prefs, "startup_folder_expansion"),
+  );
   const opaqueSidebars = usePreferencesStore((s) => (s.prefs.opaque_sidebars ?? "false") === "true");
   const updateFeedFolderMutation = useUpdateFeedFolder();
   const feedViewportRef = useRef<HTMLDivElement>(null);
@@ -222,15 +211,6 @@ export function Sidebar() {
     setStoredSidebarExpandedFolders(selectedAccountId, expandedFolderIds);
   }, [expandedFolderIds, selectedAccountId]);
 
-  const closeAccountList = useCallback((restoreFocus = false) => {
-    setShowAccountList(false);
-    if (restoreFocus) {
-      accountTriggerRef.current?.focus();
-    }
-  }, []);
-  const toggleAccountList = useCallback(() => {
-    setShowAccountList((v) => !v);
-  }, []);
   const handleSelectAccount = useCallback(
     (id: string) => {
       selectAccount(id);
@@ -362,6 +342,22 @@ export function Sidebar() {
   const folderList: FolderDto[] = folders ?? [];
   const canDragFeeds = folderList.length > 0;
   const feedById = useMemo(() => new Map(feedList.map((feed) => [feed.id, feed])), [feedList]);
+  const {
+    draggedFeedId,
+    activeDropTarget,
+    clearDragState,
+    handleDragStartFeed,
+    handleDragEnterFolder,
+    handleDragEnterUnfoldered,
+    handleDropToFolder,
+    handleDropToUnfoldered,
+  } = useSidebarFeedDragState({
+    canDragFeeds,
+    isFeedsSectionOpen,
+    feedById,
+    moveFeedToFolder: (feedId, folderId) => updateFeedFolderMutation.mutateAsync({ feedId, folderId }),
+    moveFeedToUnfoldered: (feedId) => updateFeedFolderMutation.mutateAsync({ feedId, folderId: null }),
+  });
 
   const { feedsByFolder, unfolderedFeeds: rawUnfolderedFeeds } = useMemo(
     () => groupFeedsByFolder(feedList),
@@ -397,39 +393,38 @@ export function Sidebar() {
   const hideEmptyFoldersInCurrentView = viewMode === "unread" && draggedFeedId === null;
   const feedTreeFolders = useMemo<FeedTreeFolderViewModel[]>(
     () =>
-      sortedFolderList.map((folder) => {
-        const rawFolderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
-        const folderFeeds =
-          selectedFolderId !== null && folder.id !== selectedFolderId
-            ? []
-            : filterFolderFeedsForSidebar(rawFolderFeeds);
-        const folderUnread = rawFolderFeeds.reduce((sum, feed) => sum + feed.unread_count, 0);
-        return {
-          id: folder.id,
-          name: folder.name,
-          accountId: folder.account_id,
-          sortOrder: folder.sort_order,
-          unreadCount: folderUnread,
-          isExpanded: expandedFolderIds.has(folder.id),
-          isSelected: selectedFolderId === folder.id,
-          feeds: folderFeeds.map((feed) => ({
-            id: feed.id,
-            accountId: feed.account_id,
-            folderId: feed.folder_id,
-            title: feed.title,
-            url: feed.url,
-            siteUrl: feed.site_url,
-            unreadCount: feed.unread_count,
-            readerMode: feed.reader_mode ?? "inherit",
-            webPreviewMode: feed.web_preview_mode ?? "inherit",
-            isSelected: selectedFeedId === feed.id,
-            grayscaleFavicon: grayscaleFavicons,
-          })),
-        };
-      }).filter(
-        (folder) =>
-          !hideEmptyFoldersInCurrentView || folder.isSelected || folder.feeds.length > 0,
-      ),
+      sortedFolderList
+        .map((folder) => {
+          const rawFolderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
+          const folderFeeds =
+            selectedFolderId !== null && folder.id !== selectedFolderId
+              ? []
+              : filterFolderFeedsForSidebar(rawFolderFeeds);
+          const folderUnread = rawFolderFeeds.reduce((sum, feed) => sum + feed.unread_count, 0);
+          return {
+            id: folder.id,
+            name: folder.name,
+            accountId: folder.account_id,
+            sortOrder: folder.sort_order,
+            unreadCount: folderUnread,
+            isExpanded: expandedFolderIds.has(folder.id),
+            isSelected: selectedFolderId === folder.id,
+            feeds: folderFeeds.map((feed) => ({
+              id: feed.id,
+              accountId: feed.account_id,
+              folderId: feed.folder_id,
+              title: feed.title,
+              url: feed.url,
+              siteUrl: feed.site_url,
+              unreadCount: feed.unread_count,
+              readerMode: feed.reader_mode ?? "inherit",
+              webPreviewMode: feed.web_preview_mode ?? "inherit",
+              isSelected: selectedFeedId === feed.id,
+              grayscaleFavicon: grayscaleFavicons,
+            })),
+          };
+        })
+        .filter((folder) => !hideEmptyFoldersInCurrentView || folder.isSelected || folder.feeds.length > 0),
     [
       expandedFolderIds,
       feedsByFolder,
@@ -481,48 +476,6 @@ export function Sidebar() {
   const hasSmartStarredSelection = selection.type === "smart" && selection.kind === "starred";
   const hasFilterOnlyUnread = viewMode === "unread" && !hasSmartUnreadSelection;
   const hasFilterOnlyStarred = viewMode === "starred" && !hasSmartStarredSelection;
-  const clearDragState = useCallback(() => {
-    setDraggedFeedId(null);
-    setActiveDropTarget(null);
-  }, []);
-
-  const handleDragStartFeed = useCallback((feed: FeedTreeFeedViewModel) => {
-    setDraggedFeedId(feed.id);
-  }, []);
-
-  const handleDragEnterFolder = useCallback((folderId: string) => {
-    setActiveDropTarget({ kind: "folder", folderId });
-  }, []);
-
-  const handleDragEnterUnfoldered = useCallback(() => {
-    setActiveDropTarget({ kind: "unfoldered" });
-  }, []);
-
-  const handleDropToFolder = useCallback(
-    async (folderId: string) => {
-      try {
-        if (!draggedFeedId) return;
-        const draggedFeed = feedById.get(draggedFeedId);
-        if (!draggedFeed || draggedFeed.folder_id === folderId) return;
-        await updateFeedFolderMutation.mutateAsync({ feedId: draggedFeedId, folderId });
-      } finally {
-        clearDragState();
-      }
-    },
-    [clearDragState, draggedFeedId, feedById, updateFeedFolderMutation],
-  );
-
-  const handleDropToUnfoldered = useCallback(async () => {
-    try {
-      if (!draggedFeedId) return;
-      const draggedFeed = feedById.get(draggedFeedId);
-      if (!draggedFeed || draggedFeed.folder_id === null) return;
-      await updateFeedFolderMutation.mutateAsync({ feedId: draggedFeedId, folderId: null });
-    } finally {
-      clearDragState();
-    }
-  }, [clearDragState, draggedFeedId, feedById, updateFeedFolderMutation]);
-
   useEffect(() => {
     if (!selectedAccountId) {
       startupExpansionTokenRef.current = null;
@@ -572,16 +525,6 @@ export function Sidebar() {
     setExpandedFolders,
     startupFolderExpansion,
   ]);
-
-  useEffect(() => {
-    if (!draggedFeedId) {
-      return;
-    }
-
-    if (!isFeedsSectionOpen || !canDragFeeds || !feedById.has(draggedFeedId)) {
-      clearDragState();
-    }
-  }, [canDragFeeds, clearDragState, draggedFeedId, feedById, isFeedsSectionOpen]);
 
   useEffect(() => {
     const fallbackToFeedOrAll = () => {
@@ -774,7 +717,7 @@ export function Sidebar() {
       canDragFeeds={canDragFeeds}
       draggedFeedId={draggedFeedId}
       activeDropTarget={activeDropTarget}
-      onDragStartFeed={handleDragStartFeed}
+      onDragStartFeed={(feed) => handleDragStartFeed(feed.id)}
       onDragEnterFolder={handleDragEnterFolder}
       onDragEnterUnfoldered={handleDragEnterUnfoldered}
       onDropToFolder={handleDropToFolderRequest}
@@ -823,7 +766,7 @@ export function Sidebar() {
         lastSyncedLabel={lastSyncedFormatted}
         accounts={accounts ?? []}
         selectedAccountId={selectedAccountId}
-        isExpanded={showAccountList}
+        isExpanded={isAccountListOpen}
         menuId={accountMenuId}
         menuLabel={t("accounts")}
         triggerRef={accountTriggerRef}
