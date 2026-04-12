@@ -144,3 +144,29 @@
   - 候補: `高 / 中 / 低` または confidence を示す補助ラベル
   - recommendation copy を補強しつつ、一覧での理解速度をさらに上げたい
   - 対象候補: `src/components/feed-cleanup/feed-cleanup-page-view.tsx`, `src/lib/feed-cleanup.ts`, `src/locales/ja/cleanup.json`, `src/locales/en/cleanup.json`
+
+## 2026-04-13 Refactor フォローアップ
+
+- [x] sidebar の saved account 復元 effect を store action に寄せる
+  - 問題: `Sidebar` の初期 account 選択 effect に store setter が集中していて、責務が重く `react-doctor` warning の起点になっている
+  - 対象: `src/components/reader/sidebar.tsx`, `src/stores/ui-store.ts`, `src/__tests__/components/sidebar.test.tsx`
+  - 計画:
+    1. account 復元時の `selectedAccountId` / `selection` / `focusedPane` の更新を 1 つの action にまとめる
+    2. `open-web-preview-url` dev intent と mobile 復元時の挙動は維持する
+    3. saved account 復元・欠損 account fallback・空 account list の既存テストを守る
+
+- [ ] article list item の pointer / keyboard row semantics を整理する
+  - 問題: `article-list-item` の click row が keyboard event を持たず、a11y warning が残っている
+  - 対象: `src/components/reader/article-list-item.tsx`, `src/components/reader/article-list.tsx`
+  - 計画:
+    1. row 自体を button 化するか、現行 DOM のまま keyboard activation を足す
+    2. `j/k` ナビゲーションや selected state と衝突しない形にする
+    3. article list の既存 keyboard テストがあれば維持し、必要なら追加する
+
+- [ ] oversized reader components を段階分割する
+  - 問題: `article-view.tsx` と `sidebar.tsx` はまだ責務が広く、今後の変更コストが高い
+  - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/sidebar.tsx`, `src/components/reader/article-list.tsx`
+  - 計画:
+    1. `article-view` は browser overlay coordination と article actions を段階的に外へ出す
+    2. `sidebar` は account restore / startup expansion / hidden-state fallback を hook 化する
+    3. 1 回で大きく割らず、warning を 1 つずつ消す単位で進める

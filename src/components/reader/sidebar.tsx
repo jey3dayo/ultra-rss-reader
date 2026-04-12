@@ -102,8 +102,8 @@ export function Sidebar() {
   const layoutMode = useUiStore((s) => s.layoutMode);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectAccount = useUiStore((s) => s.selectAccount);
+  const restoreAccountSelection = useUiStore((s) => s.restoreAccountSelection);
   const clearSelectedAccount = useUiStore((s) => s.clearSelectedAccount);
-  const setFocusedPane = useUiStore((s) => s.setFocusedPane);
   const selection = useUiStore((s) => s.selection);
   const viewMode = useUiStore((s) => s.viewMode);
   const selectFeed = useUiStore((s) => s.selectFeed);
@@ -178,24 +178,20 @@ export function Sidebar() {
 
     const restoredAccountId = savedAccountId && accounts.some((a) => a.id === savedAccountId) ? savedAccountId : null;
     const nextAccountId = restoredAccountId ?? accounts[0].id;
-    selectAccount(nextAccountId);
-    selectSmartView("unread");
+    restoreAccountSelection(nextAccountId, {
+      focusedPane: restoredAccountId && layoutMode === "mobile" ? "sidebar" : "list",
+    });
     if (savedAccountId !== nextAccountId) {
       setPref("selected_account_id", nextAccountId);
-    }
-    if (restoredAccountId && layoutMode === "mobile") {
-      setFocusedPane("sidebar");
     }
   }, [
     activeDevIntent,
     accounts,
     clearSelectedAccount,
     layoutMode,
+    restoreAccountSelection,
     savedAccountId,
-    selectAccount,
-    selectSmartView,
     selectedAccountId,
-    setFocusedPane,
     setPref,
   ]);
 

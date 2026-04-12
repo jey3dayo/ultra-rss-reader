@@ -105,6 +105,7 @@ interface UiActions {
   closeSidebar: () => void;
   toggleSidebar: () => void;
   selectAccount: (id: string) => void;
+  restoreAccountSelection: (id: string, options?: { focusedPane?: FocusedPane }) => void;
   clearSelectedAccount: () => void;
   selectFeed: (feedId: string) => void;
   selectFolder: (folderId: string) => void;
@@ -220,6 +221,17 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",
+      recentlyReadIds: new Set(),
+      retainedArticleIds: new Set(),
+    }),
+  restoreAccountSelection: (id, options) =>
+    set({
+      selectedAccountId: id,
+      selection: { type: "smart", kind: "unread" },
+      viewMode: "unread",
+      selectedArticleId: null,
+      contentMode: "empty",
+      focusedPane: options?.focusedPane ?? "list",
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
     }),
