@@ -46,8 +46,9 @@ export function FocusDebugHudView({
   defaultExpanded = false,
   defaultShowGeometry = false,
 }: FocusDebugHudViewProps) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
-  const [showGeometry, setShowGeometry] = useState(defaultShowGeometry);
+  const [expanded, setExpanded] = useState(() => defaultExpanded);
+  const [showGeometry, setShowGeometry] = useState(() => defaultShowGeometry);
+
   const visibleTraces = expanded ? traces : traces.slice(-2);
   const latestTrace = traces.length > 0 ? traces[traces.length - 1] : "No trace yet";
   const collapsedSummary = extractCollapsedSummaryParts(activeElementDescription);
