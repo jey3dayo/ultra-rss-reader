@@ -156,18 +156,19 @@ export function ArticleList() {
 
   const contextStripContext = useMemo(() => {
     if (selection.type !== "smart") {
-      return { primaryLabel: null, secondaryLabel: null };
+      return { primaryLabel: null, secondaryLabel: null, tone: null };
     }
 
     if (selection.kind === "unread") {
-      return { primaryLabel: t("unread"), secondaryLabel: null };
+      return { primaryLabel: t("unread"), secondaryLabel: null, tone: "unread" as const };
     }
 
     return {
       primaryLabel: t("starred"),
-      secondaryLabel: effectiveViewMode === "unread" ? t("filter_unread") : t("filter_all"),
+      secondaryLabel: null,
+      tone: "starred" as const,
     };
-  }, [effectiveViewMode, selection, t]);
+  }, [selection, t]);
 
   const footerModes = useMemo<ReadonlyArray<"all" | "unread" | "starred">>(() => {
     if (selection.type !== "smart") {
@@ -406,6 +407,7 @@ export function ArticleList() {
       <ArticleListContextStrip
         primaryLabel={contextStripContext.primaryLabel}
         secondaryLabel={contextStripContext.secondaryLabel}
+        tone={contextStripContext.tone}
       />
 
       {/* Article List */}

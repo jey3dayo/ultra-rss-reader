@@ -23,4 +23,23 @@ describe("ArticleListItem", () => {
 
     expect(screen.getByRole("option", { name: "First Article" })).toHaveAttribute("aria-label", "First Article");
   });
+
+  it("shows a star indicator on starred article rows", () => {
+    render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: true, is_starred: true }}
+        isSelected={false}
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByTestId("article-star-indicator")).toHaveClass("h-3", "w-3");
+  });
 });

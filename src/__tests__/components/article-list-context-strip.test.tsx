@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import { ArticleListContextStrip } from "@/components/reader/article-list-context-strip";
 
 describe("ArticleListContextStrip", () => {
-  it("renders primary and secondary smart view pills as passive context", () => {
-    render(<ArticleListContextStrip primaryLabel="Starred" secondaryLabel="ALL" />);
-    const strip = screen.getByText("Starred").parentElement;
+  it("renders smart view context as a band with a tone hint", () => {
+    render(<ArticleListContextStrip primaryLabel="Starred" tone="starred" />);
+    const strip = screen.getByTestId("article-list-context-strip");
 
     expect(strip).not.toBeNull();
     if (!strip) {
@@ -13,9 +13,9 @@ describe("ArticleListContextStrip", () => {
     }
 
     expect(screen.getByText("Starred")).toHaveAttribute("data-emphasis", "primary");
-    expect(screen.getByText("ALL")).toHaveAttribute("data-emphasis", "secondary");
+    expect(strip).toHaveAttribute("data-style", "band");
+    expect(strip).toHaveAttribute("data-tone", "starred");
     expect(screen.queryByRole("button", { name: "Starred" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "ALL" })).not.toBeInTheDocument();
     expect(strip).not.toHaveAttribute("aria-label");
   });
 });

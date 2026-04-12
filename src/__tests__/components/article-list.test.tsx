@@ -770,7 +770,7 @@ describe("ArticleList", () => {
       throw new Error("Expected smart view context strip to be rendered");
     }
     expect(within(context).getByText("Starred")).toHaveAttribute("data-emphasis", "primary");
-    expect(within(context).getByText("ALL")).toHaveAttribute("data-emphasis", "secondary");
+    expect(within(context).queryByText("ALL")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "UNREAD" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ALL" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "STARRED" })).not.toBeInTheDocument();
@@ -799,6 +799,6 @@ describe("ArticleList", () => {
     if (!context) {
       throw new Error("Expected smart view context strip to be rendered");
     }
-    expect(within(context).getByText("ALL")).toHaveAttribute("data-emphasis", "secondary");
+    expect(within(context).queryByText("ALL")).not.toBeInTheDocument();
   });
 });

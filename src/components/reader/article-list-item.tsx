@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { UnreadIcon } from "@/components/shared/article-state-icon";
+import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { formatArticleTime } from "@/lib/article-list";
 import { stripHtmlTags } from "@/lib/html";
 import { cn } from "@/lib/utils";
@@ -52,14 +52,23 @@ export function ArticleListItem({
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-1 items-start gap-2">
           <UnreadIcon unread={isUnread} className={cn("mt-1.5 h-2 w-2", !isUnread && "invisible")} />
-          <h3
-            className={cn(
-              "line-clamp-2 flex-1 text-sm leading-snug",
-              isUnread ? "font-semibold text-foreground" : "text-muted-foreground",
-            )}
-          >
-            {article.title}
-          </h3>
+          <div className="flex flex-1 items-start gap-1.5">
+            <h3
+              className={cn(
+                "line-clamp-2 flex-1 text-sm leading-snug",
+                isUnread ? "font-semibold text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {article.title}
+            </h3>
+            {article.is_starred ? (
+              <StarIcon
+                starred
+                className="mt-0.5 h-3 w-3 shrink-0 text-yellow-400/90"
+                data-testid="article-star-indicator"
+              />
+            ) : null}
+          </div>
         </div>
         <span className="shrink-0 pt-0.5 text-xs text-muted-foreground">{formatArticleTime(article.published_at)}</span>
       </div>
