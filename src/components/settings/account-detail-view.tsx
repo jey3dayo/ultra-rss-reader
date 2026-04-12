@@ -1,22 +1,7 @@
-import type { ReactNode } from "react";
-import { AccountDangerZoneView, type AccountDangerZoneViewProps } from "@/components/settings/account-danger-zone-view";
-import {
-  AccountGeneralSectionView,
-  type AccountGeneralSectionViewProps,
-} from "@/components/settings/account-general-section-view";
-import {
-  AccountSyncSectionView,
-  type AccountSyncSectionViewProps,
-} from "@/components/settings/account-sync-section-view";
-
-export type AccountDetailViewProps = {
-  title: string;
-  subtitle?: string;
-  generalSection: AccountGeneralSectionViewProps;
-  credentialsSection?: ReactNode;
-  syncSection: AccountSyncSectionViewProps;
-  dangerZone: AccountDangerZoneViewProps;
-};
+import { AccountDangerZoneView } from "@/components/settings/account-danger-zone-view";
+import type { AccountDetailViewProps } from "@/components/settings/account-detail.types";
+import { AccountGeneralSectionView } from "@/components/settings/account-general-section-view";
+import { AccountSyncSectionView } from "@/components/settings/account-sync-section-view";
 
 export function AccountDetailView({
   title,

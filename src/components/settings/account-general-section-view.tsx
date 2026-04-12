@@ -1,28 +1,8 @@
-import type { KeyboardEvent, RefObject } from "react";
-import { SectionHeading, SettingsRow } from "@/components/settings/settings-components";
+import type { AccountGeneralSectionViewProps } from "@/components/settings/account-detail.types";
+import { LabeledControlRow } from "@/components/shared/labeled-control-row";
+import { SectionHeading } from "@/components/shared/section-heading";
+import { SettingsRow } from "@/components/settings/settings-components";
 import { Input } from "@/components/ui/input";
-
-export type AccountGeneralInfoRow = {
-  label: string;
-  value: string;
-  truncate?: boolean;
-};
-
-export type AccountGeneralSectionViewProps = {
-  heading: string;
-  nameLabel: string;
-  nameValue: string;
-  editNameTitle: string;
-  isEditingName: boolean;
-  isSavingName?: boolean;
-  nameDraft: string;
-  infoRows: AccountGeneralInfoRow[];
-  nameInputRef?: RefObject<HTMLInputElement | null>;
-  onStartEditingName: () => void;
-  onNameDraftChange: (value: string) => void;
-  onCommitName: () => void;
-  onNameKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
-};
 
 export function AccountGeneralSectionView({
   heading,
@@ -42,8 +22,7 @@ export function AccountGeneralSectionView({
   return (
     <section className="mb-6">
       <SectionHeading>{heading}</SectionHeading>
-      <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
-        <span className="text-sm text-foreground">{nameLabel}</span>
+      <LabeledControlRow label={nameLabel}>
         {isEditingName ? (
           <Input
             ref={nameInputRef}
@@ -66,7 +45,7 @@ export function AccountGeneralSectionView({
             {nameValue}
           </button>
         )}
-      </div>
+      </LabeledControlRow>
       {infoRows.map((row) => (
         <SettingsRow key={row.label} label={row.label} value={row.value} type="text" truncate={row.truncate} />
       ))}
