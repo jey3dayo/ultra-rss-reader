@@ -33,7 +33,6 @@ type IconToolbarControlBaseProps = {
 
 type IconToolbarButtonProps = IconToolbarControlBaseProps & {
   onClick: () => void;
-  autoFocus?: boolean;
 };
 
 type IconToolbarToggleProps = IconToolbarControlBaseProps &
@@ -45,21 +44,13 @@ type IconToolbarToggleProps = IconToolbarControlBaseProps &
 
 type IconToolbarMenuTriggerProps = IconToolbarControlBaseProps;
 
-export function IconToolbarButton({
-  label,
-  disabled = false,
-  className,
-  children,
-  onClick,
-  autoFocus = false,
-}: IconToolbarButtonProps) {
+export function IconToolbarButton({ label, disabled = false, className, children, onClick }: IconToolbarButtonProps) {
   return (
     <AppTooltip label={label}>
       <Button
         variant="ghost"
         size="icon"
         onClick={onClick}
-        autoFocus={autoFocus}
         className={cn(iconToolbarButtonClassName, className)}
         disabled={disabled}
         aria-label={label}
