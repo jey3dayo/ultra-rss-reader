@@ -1,14 +1,6 @@
-import { type ComponentPropsWithoutRef, forwardRef, type ReactNode } from "react";
+import { forwardRef } from "react";
 import { cn } from "@/lib/utils";
-
-type SidebarNavButtonProps = ComponentPropsWithoutRef<"button"> & {
-  children?: ReactNode;
-  trailing?: ReactNode;
-  selected?: boolean;
-  size?: "default" | "compact";
-  contentClassName?: string;
-  trailingClassName?: string;
-};
+import type { SidebarNavButtonProps } from "./sidebar.types";
 
 export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonProps>(
   (

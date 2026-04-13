@@ -1,5 +1,5 @@
 import type { TFunction } from "i18next";
-import type { ReactNode, RefObject } from "react";
+import type { ComponentPropsWithoutRef, ReactNode, RefObject } from "react";
 import type { SortSubscriptions } from "@/stores/preferences-store";
 import type { AccountSwitcherProps } from "./account-switcher.types";
 import type { FeedTreeViewProps } from "./feed-tree.types";
@@ -15,6 +15,15 @@ export type SidebarHeaderProps = {
   addFeedButtonLabel: string;
   isSyncDisabled?: boolean;
   isAddFeedDisabled?: boolean;
+};
+
+export type SidebarNavButtonProps = ComponentPropsWithoutRef<"button"> & {
+  children?: ReactNode;
+  trailing?: ReactNode;
+  selected?: boolean;
+  size?: "default" | "compact";
+  contentClassName?: string;
+  trailingClassName?: string;
 };
 
 export type SidebarContentSectionsProps = {
