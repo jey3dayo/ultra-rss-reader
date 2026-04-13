@@ -2,12 +2,49 @@ import type { TFunction } from "i18next";
 import type { ReactNode, RefObject } from "react";
 import type { AccountSwitcherProps } from "./account-switcher.types";
 import type { FeedTreeViewProps } from "./feed-tree.types";
-import type { SidebarContentSectionsProps } from "./sidebar-content-sections";
+import type { SidebarFeedTreeProps } from "./sidebar-feed-section.types";
 import type { SidebarSelection } from "./sidebar-feed-tree.types";
-import type { SidebarHeaderViewProps } from "./sidebar-header-view";
+import type { SidebarTagItemsParams, SidebarTagListProps } from "./sidebar-tag-items.types";
 import type { SmartViewsViewProps } from "./smart-views-view";
 
-export type SidebarHeaderProps = SidebarHeaderViewProps;
+export type SidebarHeaderProps = {
+  isSyncing: boolean;
+  onSync: () => void;
+  onAddFeed: () => void;
+  syncButtonLabel: string;
+  addFeedButtonLabel: string;
+  isSyncDisabled?: boolean;
+  isAddFeedDisabled?: boolean;
+};
+
+export type SidebarContentSectionsProps = {
+  subscriptionsLabel: string;
+  isFeedsSectionOpen: boolean;
+  onToggleFeedsSection: () => void;
+  viewportRef: RefObject<HTMLDivElement | null>;
+  feedCleanupLabel: string;
+  settingsLabel: string;
+  onOpenFeedCleanup: () => void;
+  onOpenSettings: () => void;
+  selectedAccountId: string | null;
+  isAddFeedDialogOpen: boolean;
+  onAddFeedDialogOpenChange: (open: boolean) => void;
+  addAccountToStartLabel: string;
+  pressPlusToAddFeedLabel: string;
+  tagsLabel: string;
+  noFolderLabel: string;
+  showSidebarTags: boolean;
+  isTagsSectionOpen: SidebarTagListProps["isOpen"];
+  onToggleTagsSection: SidebarTagListProps["onToggleOpen"];
+  onOpenAccountSettings: () => void;
+  feedTreeProps: SidebarFeedTreeProps;
+  tags: SidebarTagItemsParams["tags"];
+  tagArticleCounts: SidebarTagItemsParams["tagArticleCounts"];
+  selection: SidebarTagItemsParams["selection"];
+  onSelectTag: SidebarTagListProps["onSelectTag"];
+  renderTagContextMenu: NonNullable<SidebarTagListProps["renderContextMenu"]>;
+};
+
 export type SidebarContentProps = SidebarContentSectionsProps;
 
 export type SidebarAccountSectionProps = AccountSwitcherProps & {

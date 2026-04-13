@@ -1,39 +1,9 @@
-import type { RefObject } from "react";
 import { AddFeedDialog } from "./add-feed-dialog";
 import { FeedTreeView } from "./feed-tree-view";
+import type { SidebarContentSectionsProps } from "./sidebar.types";
 import { SidebarContentView } from "./sidebar-content-view";
-import type { SidebarFeedTreeProps } from "./sidebar-feed-section.types";
-import type { SidebarTagItemsParams, SidebarTagListProps } from "./sidebar-tag-items.types";
 import { SidebarTagSection } from "./sidebar-tag-section";
 import { useSidebarTagItems } from "./use-sidebar-tag-items";
-
-export type SidebarContentSectionsProps = {
-  subscriptionsLabel: string;
-  isFeedsSectionOpen: boolean;
-  onToggleFeedsSection: () => void;
-  viewportRef: RefObject<HTMLDivElement | null>;
-  feedCleanupLabel: string;
-  settingsLabel: string;
-  onOpenFeedCleanup: () => void;
-  onOpenSettings: () => void;
-  selectedAccountId: string | null;
-  isAddFeedDialogOpen: boolean;
-  onAddFeedDialogOpenChange: (open: boolean) => void;
-  addAccountToStartLabel: string;
-  pressPlusToAddFeedLabel: string;
-  tagsLabel: string;
-  noFolderLabel: string;
-  showSidebarTags: boolean;
-  isTagsSectionOpen: SidebarTagListProps["isOpen"];
-  onToggleTagsSection: SidebarTagListProps["onToggleOpen"];
-  onOpenAccountSettings: () => void;
-  feedTreeProps: SidebarFeedTreeProps;
-  tags: SidebarTagItemsParams["tags"];
-  tagArticleCounts: SidebarTagItemsParams["tagArticleCounts"];
-  selection: SidebarTagItemsParams["selection"];
-  onSelectTag: SidebarTagListProps["onSelectTag"];
-  renderTagContextMenu: NonNullable<SidebarTagListProps["renderContextMenu"]>;
-};
 
 export function SidebarContentSections({
   subscriptionsLabel,

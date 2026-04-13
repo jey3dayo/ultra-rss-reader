@@ -2,16 +2,7 @@ import { Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-
-export type SidebarHeaderViewProps = {
-  isSyncing: boolean;
-  onSync: () => void;
-  onAddFeed: () => void;
-  syncButtonLabel: string;
-  addFeedButtonLabel: string;
-  isSyncDisabled?: boolean;
-  isAddFeedDisabled?: boolean;
-};
+import type { SidebarHeaderProps } from "./sidebar.types";
 
 export function SidebarHeaderView({
   isSyncing,
@@ -21,7 +12,7 @@ export function SidebarHeaderView({
   addFeedButtonLabel,
   isSyncDisabled = false,
   isAddFeedDisabled = false,
-}: SidebarHeaderViewProps) {
+}: SidebarHeaderProps) {
   return (
     <div className="flex h-12 items-center justify-between px-4 pl-20">
       <div data-tauri-drag-region aria-hidden="true" className="h-full min-w-0 flex-1" />

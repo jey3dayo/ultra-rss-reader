@@ -1,5 +1,4 @@
-import type { SidebarContentSectionsPropsParams } from "./sidebar.types";
-import type { SidebarContentSectionsProps } from "./sidebar-content-sections";
+import type { SidebarContentSectionsProps, SidebarContentSectionsPropsParams } from "./sidebar.types";
 
 export function useSidebarContentSectionsProps({
   t,
