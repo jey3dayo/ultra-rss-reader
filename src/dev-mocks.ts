@@ -41,7 +41,7 @@ import {
   updateFeedDisplaySettingsArgs,
   updateFeedFolderArgs,
 } from "./api/schemas";
-import type { AccountDto, FeedDto, FolderDto, TagDto } from "./api/tauri-commands";
+import type { AccountDto, AccountSyncStatusDto, FeedDto, FolderDto, TagDto } from "./api/tauri-commands";
 import { mockAccounts, mockArticles, mockArticleTags, mockFeeds, mockFolders, mockTags } from "./dev-mock-data";
 import { readDevIntent, readDevWebUrl, readDevWindowSize } from "./lib/dev-intent";
 
@@ -151,6 +151,13 @@ export function setupDevMocks() {
         if (idx >= 0) mockAccounts.splice(idx, 1);
         return null;
       }
+
+      case "get_account_sync_status":
+        return {
+          last_error: null,
+          error_count: 0,
+          next_retry_at: null,
+        } satisfies AccountSyncStatusDto;
 
       case "list_folders": {
         const { accountId } = listFoldersArgs.parse(payload);

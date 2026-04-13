@@ -1,7 +1,12 @@
 import { Result } from "@praha/byethrow";
 import { clearMocks } from "@tauri-apps/api/mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createOrUpdateBrowserWebview, getDevRuntimeOptions, getFeedIntegrityReport } from "@/api/tauri-commands";
+import {
+  createOrUpdateBrowserWebview,
+  getAccountSyncStatus,
+  getDevRuntimeOptions,
+  getFeedIntegrityReport,
+} from "@/api/tauri-commands";
 import { setupDevMocks } from "@/dev-mocks";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
 
@@ -55,6 +60,19 @@ describe("setupDevMocks", () => {
       dev_web_url: null,
       dev_window_width: null,
       dev_window_height: null,
+    });
+  });
+
+  it("returns account sync status for browser-only account settings checks", async () => {
+    setupDevMocks();
+
+    const result = await getAccountSyncStatus("acc-1");
+    const status = Result.unwrap(result);
+
+    expect(status).toEqual({
+      last_error: null,
+      error_count: 0,
+      next_retry_at: null,
     });
   });
 
