@@ -698,6 +698,11 @@
   - 対応: `article-state-icon.types.ts` と `feed-favicon.types.ts` を追加して、component 本体は shared types を参照する形に寄せた
   - 対象: `src/components/shared/article-state-icon.tsx`, `src/components/shared/article-state-icon.types.ts`, `src/components/shared/feed-favicon.tsx`, `src/components/shared/feed-favicon.types.ts`
 
+- [x] shared form row の props を explicit types に寄せる
+  - 問題: `labeled-control-row.tsx` / `labeled-input-row.tsx` / `labeled-select-row.tsx` / `labeled-switch-row.tsx` に local props 型が残っていて、shared form row contract の正本が component file に分散していた
+  - 対応: `form-row.types.ts` を追加して各 row の props と select option contract を集約し、component 本体は shared types を参照する形に寄せた
+  - 対象: `src/components/shared/form-row.types.ts`, `src/components/shared/labeled-control-row.tsx`, `src/components/shared/labeled-input-row.tsx`, `src/components/shared/labeled-select-row.tsx`, `src/components/shared/labeled-switch-row.tsx`
+
 - [x] article list / view helper params を explicit export に寄せる
   - 問題: `article-list.ts` と `article-view.ts` の helper params が local type のままで、data/view helper contract の正本を外から参照できなかった
   - 対応: `SelectVisibleArticlesParams` / `GroupArticlesParams` / `CalculateArticleNavigationScrollTopParams` / `FindSelectedArticleParams` / `LinkNavigationParams` を export して、lib helper contract を explicit にした
