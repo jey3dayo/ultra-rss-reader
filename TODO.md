@@ -142,6 +142,11 @@
   - 対応: `command-palette-action-groups.tsx` と `command-palette-resource-groups.tsx` に group 描画を分けて、results 本体は list shell に寄せた
   - 対象: `src/components/reader/command-palette-results.tsx`, `src/components/reader/command-palette-action-groups.tsx`, `src/components/reader/command-palette-resource-groups.tsx`
 
+- [x] command-palette の shared results 型を `types` に寄せる
+  - 問題: `command-palette-action-groups.tsx` と `use-command-palette-view-props.ts` が `command-palette-results.tsx` から型を取っていて、component file と型境界が混ざっていた
+  - 対応: `command-palette.types.ts` に action item / results props / item value resolver を寄せて、results component は描画責務に寄せた
+  - 対象: `src/components/reader/command-palette-results.tsx`, `src/components/reader/command-palette.types.ts`, `src/components/reader/use-command-palette-data.ts`, `src/components/reader/use-command-palette-view-props.ts`
+
 - [x] article-pane controller から overlay action JSX を外す
   - 問題: `useArticlePaneController` が browser overlay の action strip JSX を直接返していて、controller orchestration と view 描画が混ざっていた
   - 対象: `src/components/reader/use-article-pane-controller.tsx`, `src/components/reader/article-view.tsx`, `src/components/reader/article-view.types.ts`
@@ -412,6 +417,11 @@
 - [x] article-list の search state と debounce を hook 化する
   - 問題: `article-list.tsx` に検索開閉、debounce、input focus、検索 query 実行がまとまっていて、表示データ選別と責務が混ざっていた
   - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-search.ts`
+
+- [x] article-list の runtime state wiring を hook 化する
+  - 問題: `use-article-list-controller.ts` に ui state / source query / search state の初期化が残っていて、controller orchestration と runtime 配線が混ざっていた
+  - 対応: `use-article-list-runtime.ts` に `uiState + sources + search` の接着を寄せて、controller 本体は data/view state/orchestration に集中させた
+  - 対象: `src/components/reader/use-article-list-controller.ts`, `src/components/reader/use-article-list-runtime.ts`
 
 - [x] article-list の grouped view model を hook 化する
   - 問題: `article-list.tsx` に group label 解決と row 表示用 item 整形が残っていて、表示データ導出と画面構成が混ざっていた
