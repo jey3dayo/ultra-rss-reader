@@ -1,27 +1,7 @@
-import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type { FeedDisplayPresetOption } from "@/lib/article-display";
-import { type UseArticleListHeaderActionsResult, useArticleListHeaderActions } from "./use-article-list-header-actions";
-import {
-  type UseArticleListHeaderControlsResult,
-  useArticleListHeaderControls,
-} from "./use-article-list-header-controls";
-
-export type UseArticleListHeaderControllerParams = {
-  feedId: string | null;
-  selectedFeed: FeedDto | undefined;
-  filteredArticles: ArticleDto[];
-  layoutMode: "wide" | "compact" | "mobile";
-  sidebarOpen: boolean;
-  sidebarSubscriptionsLabel: string;
-  feedDisplayLabel: string;
-  showSidebarLabel: string;
-  hideSidebarLabel: string;
-  openSidebar: () => void;
-  toggleSidebar: () => void;
-};
-
-export type UseArticleListHeaderControllerResult = UseArticleListHeaderControlsResult &
-  Pick<UseArticleListHeaderActionsResult, "handleMarkAllRead">;
+import type { UseArticleListHeaderControllerParams, UseArticleListHeaderControllerResult } from "./article-list.types";
+import { useArticleListHeaderActions } from "./use-article-list-header-actions";
+import { useArticleListHeaderControls } from "./use-article-list-header-controls";
 
 export function useArticleListHeaderController({
   feedId,

@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { useMarkAllRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
@@ -10,12 +9,7 @@ import {
   resolveFeedDisplayPreset,
 } from "@/lib/article-display";
 import { getUnreadArticleIds } from "@/lib/article-list";
-
-type UseArticleListHeaderActionsParams = {
-  feedId: string | null;
-  selectedFeed: FeedDto | undefined;
-  filteredArticles: ArticleDto[];
-};
+import type { UseArticleListHeaderActionsParams } from "./article-list.types";
 
 export type UseArticleListHeaderActionsResult = {
   selectedFeedDisplayPreset: FeedDisplayPresetOption;

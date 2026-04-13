@@ -8,7 +8,7 @@ import type { ArticleListFooter } from "./article-list-footer";
 import type { ArticleListHeader } from "./article-list-header";
 import type { UseArticleListEffectsParams } from "./use-article-list-effects";
 import type { UseArticleListGroupsParams } from "./use-article-list-groups";
-import type { UseArticleListHeaderControllerParams } from "./use-article-list-header-controller";
+import type { UseArticleListHeaderControlsResult } from "./use-article-list-header-controls";
 import type { UseArticleListInteractionsParams } from "./use-article-list-interactions";
 import type { UseArticleListViewPropsParams } from "./use-article-list-view-props";
 import type { UseArticleListViewStateParams } from "./use-article-list-view-state";
@@ -71,6 +71,30 @@ export type UseArticleListPresentationParams = {
   handleToggleSearch: () => void;
   handleCloseSearch: () => void;
   setSearchQuery: (value: string) => void;
+};
+
+export type UseArticleListHeaderActionsParams = {
+  feedId: string | null;
+  selectedFeed: FeedDto | undefined;
+  filteredArticles: ArticleDto[];
+};
+
+export type UseArticleListHeaderControllerParams = {
+  feedId: string | null;
+  selectedFeed: FeedDto | undefined;
+  filteredArticles: ArticleDto[];
+  layoutMode: ArticleListLayoutMode;
+  sidebarOpen: boolean;
+  sidebarSubscriptionsLabel: string;
+  feedDisplayLabel: string;
+  showSidebarLabel: string;
+  hideSidebarLabel: string;
+  openSidebar: () => void;
+  toggleSidebar: () => void;
+};
+
+export type UseArticleListHeaderControllerResult = UseArticleListHeaderControlsResult & {
+  handleMarkAllRead: () => void;
 };
 
 export type UseArticleListDataParams = {
