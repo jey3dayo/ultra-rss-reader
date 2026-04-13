@@ -1,5 +1,10 @@
 import type { DiscoveredFeedDto } from "@/api/tauri-commands";
-import type { AddFeedDialogAction, AddFeedDialogControllerDerived, AddFeedDialogState } from "./add-feed-dialog.types";
+import type {
+  AddFeedDialogAction,
+  AddFeedDialogControllerDerived,
+  AddFeedDialogState,
+  ResolveAddFeedDialogDerivedParams,
+} from "./add-feed-dialog.types";
 
 export function createInitialAddFeedDialogState(): AddFeedDialogState {
   return {
@@ -98,14 +103,6 @@ export function isValidFeedUrl(value: string): boolean {
     return false;
   }
 }
-
-type ResolveAddFeedDialogDerivedParams = {
-  state: AddFeedDialogState;
-  isCreatingFolder: boolean;
-  newFolderName: string;
-  invalidUrlHint: string;
-  exampleUrlHint: string;
-};
 
 function buildDiscoveredFeedOptions(feeds: DiscoveredFeedDto[]) {
   return feeds.map((feed) => ({

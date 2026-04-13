@@ -1,25 +1,8 @@
 import { Result } from "@praha/byethrow";
-import type { QueryClient } from "@tanstack/react-query";
-import type { TFunction } from "i18next";
 import { useCallback } from "react";
 import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
-import type { AddFeedDialogAction, AddFeedDialogControllerDerived, AddFeedDialogState } from "./add-feed-dialog.types";
+import type { UseAddFeedDialogActionsParams, UseAddFeedDialogActionsResult } from "./add-feed-dialog.types";
 import { createFolderIfNeeded } from "./feed-folder-flow";
-
-type UseAddFeedDialogActionsParams = {
-  accountId: string;
-  state: AddFeedDialogState;
-  dispatch: React.Dispatch<AddFeedDialogAction>;
-  derived: AddFeedDialogControllerDerived;
-  trimmedUrl: string;
-  selectedFolderId: string | null;
-  isCreatingFolder: boolean;
-  newFolderName: string;
-  queryClient: QueryClient;
-  onOpenChange: (open: boolean) => void;
-  showToast: (message: string) => void;
-  t: TFunction<"reader">;
-};
 
 export function useAddFeedDialogActions({
   accountId,
@@ -34,7 +17,7 @@ export function useAddFeedDialogActions({
   onOpenChange,
   showToast,
   t,
-}: UseAddFeedDialogActionsParams) {
+}: UseAddFeedDialogActionsParams): UseAddFeedDialogActionsResult {
   const handleDiscover = useCallback(async () => {
     if (!derived.hasManualUrl || !derived.isManualUrlValid) {
       dispatch({ type: "set-invalid-url-error", error: t("invalid_feed_url") });

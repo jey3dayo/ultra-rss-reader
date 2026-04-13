@@ -1,4 +1,6 @@
-import type { RefObject } from "react";
+import type { TFunction } from "i18next";
+import type { QueryClient } from "@tanstack/react-query";
+import type { Dispatch, RefObject } from "react";
 import type { DiscoveredFeedDto, FolderDto } from "@/api/tauri-commands";
 import type { FolderSelectViewProps } from "./folder-select-view";
 
@@ -66,6 +68,34 @@ export type AddFeedDialogControllerDerived = {
   isSubmitDisabled: boolean;
   isDiscoverDisabled: boolean;
   discoveredFeedOptions: Array<{ value: string; label: string }>;
+};
+
+export type ResolveAddFeedDialogDerivedParams = {
+  state: AddFeedDialogState;
+  isCreatingFolder: boolean;
+  newFolderName: string;
+  invalidUrlHint: string;
+  exampleUrlHint: string;
+};
+
+export type UseAddFeedDialogActionsParams = {
+  accountId: string;
+  state: AddFeedDialogState;
+  dispatch: Dispatch<AddFeedDialogAction>;
+  derived: AddFeedDialogControllerDerived;
+  trimmedUrl: string;
+  selectedFolderId: string | null;
+  isCreatingFolder: boolean;
+  newFolderName: string;
+  queryClient: QueryClient;
+  onOpenChange: (open: boolean) => void;
+  showToast: (message: string) => void;
+  t: TFunction<"reader">;
+};
+
+export type UseAddFeedDialogActionsResult = {
+  handleDiscover: () => Promise<void>;
+  handleSubmit: () => Promise<void>;
 };
 
 export type AddFeedDialogController = {
