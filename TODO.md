@@ -198,7 +198,7 @@
 - [ ] browser-view の surface state / runtime-unavailable 判定の hook 化を再開する
   - 問題: `useBrowserViewController` に `surfaceIssue` state、failure handler、runtime-unavailable 判定が残っていて、controller orchestration と surface state 管理が混ざっている
   - メモ: 一度 `use-browser-view-surface-state.ts` へ寄せたが `browser-view.test.tsx` の listener/bounds 系 3 ケースでタイムアウト回帰が出たため、安定側へ戻して保留にした
-  - 進捗: `use-browser-view-surface-state` の回帰テストと `browser-runtime-availability.ts` を先に追加し、再開時の安全網を増やした
+  - 進捗: `use-browser-view-surface-state` の回帰テスト、`browser-runtime-availability.ts`、fallback handler 移管まで先に進めて、安全網を増やした
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-view-surface-state.ts`
 
 - [x] sidebar の feed navigation と event listener を hook 化する
