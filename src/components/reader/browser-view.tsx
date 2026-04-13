@@ -1,18 +1,9 @@
-import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { BrowserDiagnosticsRail } from "./browser-diagnostics-rail";
 import { BrowserOverlayChrome } from "./browser-overlay-chrome";
 import { BrowserOverlayStage } from "./browser-overlay-stage";
+import type { BrowserViewProps } from "./browser-view.types";
 import { useBrowserViewController } from "./use-browser-view-controller";
-
-type BrowserViewProps = {
-  scope?: "content-pane" | "main-stage";
-  onCloseOverlay: () => void;
-  labels: {
-    closeOverlay: string;
-  };
-  toolbarActions?: ReactNode;
-};
 
 export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, toolbarActions }: BrowserViewProps) {
   const controller = useBrowserViewController({ scope, onCloseOverlay });

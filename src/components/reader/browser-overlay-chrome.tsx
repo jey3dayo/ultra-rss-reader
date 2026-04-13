@@ -1,30 +1,15 @@
 import { ExternalLink, X } from "lucide-react";
-import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { IconToolbarButton } from "@/components/shared/icon-toolbar-control";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import type { BrowserViewController } from "./use-browser-view-controller";
-
-type BrowserOverlayChromeOverlayProps = {
-  controller: Pick<
-    BrowserViewController,
-    "geometry" | "handleCloseOverlay" | "handleOpenExternal" | "closeButtonClass" | "actionButtonClass"
-  >;
-  closeOverlayLabel: string;
-  toolbarActions?: ReactNode;
-};
-
-type BrowserOverlayChromeCloseOnlyProps = {
-  closeLabel: string;
-  onClose: () => void;
-};
-
-type BrowserOverlayChromeProps = BrowserOverlayChromeOverlayProps | BrowserOverlayChromeCloseOnlyProps;
+import type { BrowserOverlayChromeProps } from "./browser-view.types";
 
 const browserOverlayChromeCloseButtonClassName =
   "size-[46px] rounded-full border border-white/10 bg-white/8 text-white shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md focus-visible:ring-2 focus-visible:ring-white/70 active:scale-[0.97] active:bg-white/16";
 
-function isCloseOnlyProps(props: BrowserOverlayChromeProps): props is BrowserOverlayChromeCloseOnlyProps {
+function isCloseOnlyProps(
+  props: BrowserOverlayChromeProps,
+): props is Extract<BrowserOverlayChromeProps, { closeLabel: string }> {
   return "closeLabel" in props;
 }
 

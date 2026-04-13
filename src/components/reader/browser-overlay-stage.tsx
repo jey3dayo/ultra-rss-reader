@@ -1,22 +1,7 @@
 import { LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { BrowserSurfaceStateCard } from "./browser-surface-state-card";
-import type { BrowserViewController } from "./use-browser-view-controller";
-
-type BrowserOverlayStageProps = {
-  controller: Pick<
-    BrowserViewController,
-    | "stageRef"
-    | "hostRef"
-    | "stageClass"
-    | "geometry"
-    | "isLoading"
-    | "activeSurfaceIssue"
-    | "showDiagnostics"
-    | "handleRetry"
-    | "handleOpenExternal"
-  >;
-};
+import type { BrowserOverlayStageProps } from "./browser-view.types";
 
 export function BrowserOverlayStage({ controller }: BrowserOverlayStageProps) {
   const { t } = useTranslation("reader");
