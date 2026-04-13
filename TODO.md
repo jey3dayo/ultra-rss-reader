@@ -76,6 +76,13 @@
     1. title と display mode を shared field に置き換える
     2. folder select と見た目・accessibility を揃える
 
+- [x] feed cleanup panel card / detail row を domain 共通化する
+  - 問題: overview / review / editor に card shell と key-value row の重複クラスが残っている
+  - 対象: `src/components/feed-cleanup/*`
+  - 計画:
+    1. feed-cleanup 内部で card shell と detail row を小さく切り出す
+    2. review / editor / overview の重複クラスを置き換える
+
 - [ ] oversized reader components を段階分割する
   - 問題: `article-view.tsx` と `sidebar.tsx` はまだ責務が広く、今後の変更コストが高い
   - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/sidebar.tsx`, `src/components/reader/article-list.tsx`
@@ -83,6 +90,10 @@
     1. `article-view` は browser overlay coordination と article actions を段階的に外へ出す
     2. `sidebar` は account restore / startup expansion / hidden-state fallback を hook 化する
     3. 1 回で大きく割らず、warning を 1 つずつ消す単位で進める
+
+- [x] sidebar の account restore / startup expansion / hidden-state fallback を hook 化する
+  - 問題: `sidebar.tsx` に account 復元、起動時 folder 展開、visibility fallback の effect が集まり、責務が重くなっていた
+  - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-account-selection.ts`, `src/components/reader/use-sidebar-startup-folder-expansion.ts`, `src/components/reader/use-sidebar-visibility-fallback.ts`
 
 - [x] browser/list で意味を持つマジックナンバーを constants に寄せる
   - 対象: `src/components/reader/article-list.tsx`, `src/constants/browser.ts`, `src/constants/reader.ts`, `src/lib/browser-debug-geometry.ts`, `src/lib/browser-webview.ts`
@@ -118,6 +129,10 @@
 - [x] feed cleanup の delete/editor props も `types` に寄せる
   - 問題: `feed-cleanup-delete-dialog.tsx` と `feed-cleanup-feed-editor.tsx` に view props の inline 定義が残っている
   - 対象: `src/components/feed-cleanup/feed-cleanup-delete-dialog.tsx`, `src/components/feed-cleanup/feed-cleanup-feed-editor.tsx`, `src/components/feed-cleanup/feed-cleanup.types.ts`
+
+- [x] feed cleanup editor/controller の型境界を `types` に寄せる
+  - 問題: `use-feed-cleanup-feed-editor-controller.ts` の params / return と display option 型が local inline 定義のままで、editor 側の import 境界と責務境界がずれていた
+  - 対象: `src/components/feed-cleanup/use-feed-cleanup-feed-editor-controller.ts`, `src/components/feed-cleanup/feed-cleanup.types.ts`
 
 - [x] add account 系の view props を `types` に寄せる
   - 問題: `add-account-form-view.tsx` に form control と section props の中心定義が残っている
