@@ -1,9 +1,5 @@
 import type { DiscoveredFeedDto } from "@/api/tauri-commands";
-import type {
-  AddFeedDialogAction,
-  AddFeedDialogControllerDerived,
-  AddFeedDialogState,
-} from "./add-feed-dialog.types";
+import type { AddFeedDialogAction, AddFeedDialogControllerDerived, AddFeedDialogState } from "./add-feed-dialog.types";
 
 export function createInitialAddFeedDialogState(): AddFeedDialogState {
   return {
@@ -17,10 +13,7 @@ export function createInitialAddFeedDialogState(): AddFeedDialogState {
   };
 }
 
-export function addFeedDialogReducer(
-  state: AddFeedDialogState,
-  action: AddFeedDialogAction,
-): AddFeedDialogState {
+export function addFeedDialogReducer(state: AddFeedDialogState, action: AddFeedDialogAction): AddFeedDialogState {
   switch (action.type) {
     case "reset":
       return createInitialAddFeedDialogState();

@@ -4,10 +4,7 @@ import { useEffect, useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import { useUiStore } from "@/stores/ui-store";
-import type {
-  AddFeedDialogController,
-  AddFeedDialogControllerParams,
-} from "./add-feed-dialog.types";
+import type { AddFeedDialogController, AddFeedDialogControllerParams } from "./add-feed-dialog.types";
 import {
   addFeedDialogReducer,
   createInitialAddFeedDialogState,
