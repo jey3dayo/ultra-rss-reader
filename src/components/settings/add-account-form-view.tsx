@@ -1,9 +1,7 @@
-import { useId } from "react";
-import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
+import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Button } from "@/components/ui/button";
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type AddAccountFormOption = {
   value: string;
@@ -51,33 +49,16 @@ export type AddAccountFormViewProps = {
   onCancel: () => void;
 };
 
-function getOptionLabel(options: AddAccountFormOption[], value: string | null) {
-  return options.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
-}
-
 function AddAccountSelectRow({ control }: { control: AddAccountFormSelectControl }) {
-  const labelId = useId();
-
   return (
-    <LabeledControlRow label={control.label} labelId={labelId}>
-      <Select
-        name={control.name}
-        value={control.value}
-        onValueChange={(value) => value !== null && control.onChange(value)}
-        disabled={control.disabled}
-      >
-        <SelectTrigger aria-labelledby={labelId}>
-          <SelectValue>{(value: string | null) => getOptionLabel(control.options, value)}</SelectValue>
-        </SelectTrigger>
-        <SelectPopup>
-          {control.options.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectPopup>
-      </Select>
-    </LabeledControlRow>
+    <LabeledSelectRow
+      label={control.label}
+      name={control.name}
+      value={control.value}
+      options={control.options}
+      onChange={control.onChange}
+      disabled={control.disabled}
+    />
   );
 }
 
