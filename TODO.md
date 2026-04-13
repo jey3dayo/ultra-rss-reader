@@ -47,6 +47,11 @@
     2. destructive dialog footer を shared 化する
     3. dialog 既存テストで close / confirm 導線を維持する
 
+- [x] shared dialog / copyable field の contract を types file に寄せる
+  - 問題: `confirm-dialog-view.tsx` / `destructive-confirm-dialog-view.tsx` / `copyable-text-field.tsx` / `copyable-readonly-field*.tsx` に local props 型が残っていて、shared UI contract の正本が component file 側に分散していた
+  - 対応: `dialog.types.ts` と `copyable-field.types.ts` を追加して、dialog/copyable field component と reader 側の型参照は shared contract を再利用する形に寄せた
+  - 対象: `src/components/shared/dialog.types.ts`, `src/components/shared/copyable-field.types.ts`, `src/components/shared/confirm-dialog-view.tsx`, `src/components/shared/destructive-confirm-dialog-view.tsx`, `src/components/shared/copyable-text-field.tsx`, `src/components/shared/copyable-readonly-field.tsx`, `src/components/shared/copyable-readonly-field-list.tsx`, `src/components/reader/feed-dialog-form.types.ts`
+
 - [x] add account form の select row を `shared` へ寄せる
   - 問題: `add-account-form-view.tsx` にだけ local な select row helper が残っている
   - 対象: `src/components/settings/add-account-form-view.tsx`, `src/components/shared/labeled-select-row.tsx`
@@ -727,6 +732,11 @@
   - 問題: `icon-toolbar-control.tsx` に button/toggle/menu trigger の props 型が残っていて、shared icon toolbar contract の正本が component file に分散していた
   - 対応: `icon-toolbar.types.ts` を追加して control props contract を集約し、component 本体は shared types を参照する形に寄せた
   - 対象: `src/components/shared/icon-toolbar.types.ts`, `src/components/shared/icon-toolbar-control.tsx`
+
+- [x] provider icon / scroll area の props を explicit types に寄せる
+  - 問題: `provider-icons.tsx` と `scroll-area.tsx` に local props 型が残っていて、shared icon / ui contract の正本が component file に分散していた
+  - 対応: `provider-icons.types.ts` と `scroll-area.types.ts` を追加して props contract を集約し、component 本体は shared types を参照する形に寄せた
+  - 対象: `src/components/icons/provider-icons.types.ts`, `src/components/icons/provider-icons.tsx`, `src/components/ui/scroll-area.types.ts`, `src/components/ui/scroll-area.tsx`
 
 - [x] shared stacked field の props を explicit types に寄せる
   - 問題: `stacked-input-field.tsx` と `stacked-select-field.tsx` に local props 型が残っていて、shared stacked field contract の正本が component file に分散していた
