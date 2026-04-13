@@ -39,6 +39,16 @@
     2. account 系の素直な text/password/url 行から順に置き換える
     3. name 属性と label 関連付けを既存テストで維持する
 
+- [x] account detail helper の contract を types file に寄せる
+  - 問題: `account-detail.tsx` の `AccountDetailContent` と `account-sync-section-view.tsx` の `AccountSelectRow` props が local 定義で残っていて、account settings helper の正本が component file 側に分散していた
+  - 対応: `account-detail.types.ts` に helper props contract を追加して、account detail / sync section helper は shared types を再利用する形に寄せた
+  - 対象: `src/components/settings/account-detail.types.ts`, `src/components/settings/account-detail.tsx`, `src/components/settings/account-sync-section-view.tsx`
+
+- [x] account detail view props の組み立てを helper hook に寄せる
+  - 問題: `account-detail.tsx` に `AccountDetailView` 向け props 組み立てが残っていて、query/controller wiring と view props 導出が混ざっていた
+  - 対応: `use-account-detail-view-props.tsx` に view props 組み立てを寄せて、`account-detail.tsx` は sync status 導出と hook 接着に寄せた
+  - 対象: `src/components/settings/account-detail.tsx`, `src/components/settings/account-detail.types.ts`, `src/components/settings/use-account-detail-view-props.tsx`
+
 - [x] settings page row helper の contract を types file に寄せる
   - 問題: `settings-page-view.tsx` の select/switch/text/action row helper props が local 定義で残っていて、settings page view contract の正本が component file 側に分散していた
   - 対応: `settings-page.types.ts` に row helper props contract を追加して、settings page view は shared types を再利用する形に寄せた
@@ -115,6 +125,11 @@
   - 問題: `feed-cleanup-card.tsx` の `FeedCleanupCard` / `FeedCleanupDetailRow` props が local 定義で残っていて、feed-cleanup view helper の正本が component file 側に分散していた
   - 対応: `feed-cleanup.types.ts` に helper props contract を追加して、card/detail row helper は shared types を再利用する形に寄せた
   - 対象: `src/components/feed-cleanup/feed-cleanup.types.ts`, `src/components/feed-cleanup/feed-cleanup-card.tsx`
+
+- [x] feed cleanup page state の internal contract を types file に寄せる
+  - 問題: `use-feed-cleanup-page-state.ts` に `Input/State/Action` が local 定義で残っていて、feed-cleanup module 内部契約の正本が hook file に偏っていた
+  - 対応: `feed-cleanup.types.ts` に `FeedCleanupPageInput` / `FeedCleanupPageState` / `FeedCleanupPageAction` / `FeedCleanupFilterKey` を追加し、hook 実装は shared types を参照する形に寄せた
+  - 対象: `src/components/feed-cleanup/feed-cleanup.types.ts`, `src/components/feed-cleanup/use-feed-cleanup-page-state.ts`
 
 - [x] oversized reader components を段階分割する
   - 問題: `article-view.tsx` と `sidebar.tsx` はまだ責務が広く、今後の変更コストが高かった
