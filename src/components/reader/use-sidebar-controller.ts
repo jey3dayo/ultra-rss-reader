@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
+import type { SidebarControllerResult } from "./sidebar.types";
 import { useSidebarAccountSelection } from "./use-sidebar-account-selection";
 import { useSidebarContextMenuRenderers } from "./use-sidebar-context-menu-renderers";
 import { useSidebarFeedSectionController } from "./use-sidebar-feed-section-controller";
@@ -9,7 +10,7 @@ import { useSidebarSmartViews } from "./use-sidebar-smart-views";
 import { useSidebarUiActions } from "./use-sidebar-ui-actions";
 import { useSidebarViewProps } from "./use-sidebar-view-props";
 
-export function useSidebarController() {
+export function useSidebarController(): SidebarControllerResult {
   const { t } = useTranslation("sidebar");
   const {
     isFeedsSectionOpen,

@@ -17,3 +17,5 @@ export type SidebarSectionPropsResult = {
 export type SidebarViewPropsResult = SidebarSectionPropsResult & {
   sidebarClassName: string;
 };
+
+export type SidebarControllerResult = SidebarViewPropsResult;
