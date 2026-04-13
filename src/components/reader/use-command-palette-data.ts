@@ -5,7 +5,7 @@ import { useFeeds } from "@/hooks/use-feeds";
 import { useTags } from "@/hooks/use-tags";
 import type { AppAction } from "@/lib/actions";
 import type { RuntimeDevScenario } from "@/lib/dev-scenario-runtime";
-import type { CommandPaletteActionItem } from "./command-palette-results";
+import type { CommandPaletteActionItem } from "./command-palette.types";
 
 export type PaletteAction = CommandPaletteActionItem & {
   keywords: string[];

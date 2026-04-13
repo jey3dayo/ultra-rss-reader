@@ -1,7 +1,5 @@
 import type { RuntimeDevScenario } from "@/lib/dev-scenario-runtime";
-import type { CommandPaletteActionItem, CommandPaletteResults } from "./command-palette-results";
-
-type CommandPaletteResultsProps = Parameters<typeof CommandPaletteResults>[0];
+import type { CommandPaletteActionItem, CommandPaletteResultsProps } from "./command-palette.types";
 
 type UseCommandPaletteViewPropsParams = {
   title: string;

@@ -1,5 +1,5 @@
 import { CommandGroup, CommandItem, CommandShortcut } from "../ui/command";
-import type { CommandPaletteActionItem } from "./command-palette-results";
+import type { CommandPaletteActionItem } from "./command-palette.types";
 
 type CommandPaletteActionGroupsProps = {
   recentActions: CommandPaletteActionItem[];
