@@ -2,11 +2,6 @@ import { useEffect } from "react";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import type { UseArticleActionShortcutsParams } from "./article-actions.types";
 
-export type ArticleActionKeyboardShortcuts = {
-  onToggleBrowserOverlay: () => void;
-  onCloseBrowserOverlay: () => void;
-};
-
 export function useArticleActionShortcuts({
   keyboardShortcuts,
   onToggleRead,

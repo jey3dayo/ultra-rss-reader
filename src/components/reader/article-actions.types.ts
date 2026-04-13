@@ -1,6 +1,5 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { ArticleDto } from "@/api/tauri-commands";
-import type { ArticleActionKeyboardShortcuts } from "./use-article-action-shortcuts";
 
 export type ArticleStatusViewMode = "all" | "unread" | "starred";
 
@@ -54,6 +53,11 @@ export type UseArticleActionsResult = UseArticleStatusActionsResult & {
   handleAddToReadingList: () => void;
 };
 
+export type ArticleActionKeyboardShortcuts = {
+  onToggleBrowserOverlay: () => void;
+  onCloseBrowserOverlay: () => void;
+};
+
 export type UseArticleActionShortcutsParams = {
   keyboardShortcuts?: ArticleActionKeyboardShortcuts;
   onToggleRead: () => void;
@@ -61,4 +65,15 @@ export type UseArticleActionShortcutsParams = {
   onOpenExternalBrowser: () => void;
   onCopyLink: () => void;
   onAddToReadingList: () => void;
+};
+
+export type UseArticleAutoMarkParams = {
+  articleId: string;
+  isRead: boolean;
+  afterReading: string;
+  viewMode: ArticleStatusViewMode;
+  retainArticle: (articleId: string) => void;
+  addRecentlyRead: (articleId: string) => void;
+  setRead: SetReadMutation;
+  showToast: ArticleStatusToast;
 };

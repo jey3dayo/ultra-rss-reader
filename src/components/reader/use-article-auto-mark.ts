@@ -1,18 +1,5 @@
-import type { UseMutationResult } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-
-type SetReadMutation = UseMutationResult<unknown, Error, { id: string; read: boolean }, unknown>;
-
-type UseArticleAutoMarkParams = {
-  articleId: string;
-  isRead: boolean;
-  afterReading: string;
-  viewMode: "all" | "unread" | "starred";
-  retainArticle: (articleId: string) => void;
-  addRecentlyRead: (articleId: string) => void;
-  setRead: SetReadMutation;
-  showToast: (message: string) => void;
-};
+import type { UseArticleAutoMarkParams } from "./article-actions.types";
 
 export function useArticleAutoMark({
   articleId,
