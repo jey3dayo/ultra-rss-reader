@@ -2,7 +2,6 @@ import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { syncFeed } from "@/api/tauri-commands";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
@@ -11,16 +10,17 @@ import { copyValueToClipboard } from "@/lib/clipboard";
 import { useUiStore } from "@/stores/ui-store";
 import { type FeedEditDisplayPreset, submitFeedEdits } from "../reader/feed-edit-submit";
 import { buildFolderOptions, useFolderSelection } from "../reader/use-folder-selection";
+import type {
+  FeedCleanupDisplayModeOption,
+  FeedCleanupFeedEditorController,
+  FeedCleanupFeedEditorControllerParams,
+} from "./feed-cleanup.types";
 
 export function useFeedCleanupFeedEditorController({
   feed,
   folders,
   onSaved,
-}: {
-  feed: FeedDto;
-  folders: FolderDto[];
-  onSaved: () => void;
-}) {
+}: FeedCleanupFeedEditorControllerParams): FeedCleanupFeedEditorController {
   const { t } = useTranslation("reader");
   const { t: tCleanup } = useTranslation("cleanup");
   const qc = useQueryClient();
@@ -114,11 +114,11 @@ export function useFeedCleanupFeedEditorController({
     );
   };
 
-  const displayModeOptions = [
+  const displayModeOptions: readonly FeedCleanupDisplayModeOption[] = [
     { value: "default", label: t("display_mode_default") },
     { value: "standard", label: t("display_mode_standard") },
     { value: "preview", label: t("display_mode_preview") },
-  ] as const;
+  ];
 
   return {
     title,
@@ -140,5 +140,5 @@ export function useFeedCleanupFeedEditorController({
       handleFolderChange,
       setNewFolderName,
     },
-  } as const;
+  };
 }

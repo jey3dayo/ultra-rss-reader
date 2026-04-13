@@ -7,8 +7,8 @@ import { StackedSelectField } from "@/components/shared/stacked-select-field";
 import { Button } from "@/components/ui/button";
 import type { FeedEditDisplayPreset } from "../reader/feed-edit-submit";
 import { FolderSelectView } from "../reader/folder-select-view";
-import { FeedCleanupCard } from "./feed-cleanup-card";
 import type { FeedCleanupFeedEditorProps } from "./feed-cleanup.types";
+import { FeedCleanupCard } from "./feed-cleanup-card";
 import { useFeedCleanupFeedEditorController } from "./use-feed-cleanup-feed-editor-controller";
 
 export function FeedCleanupFeedEditor({

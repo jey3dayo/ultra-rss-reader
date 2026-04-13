@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import type { FeedIntegrityIssueDto } from "@/api/schemas/feed-integrity";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import type {
@@ -8,6 +8,8 @@ import type {
   FeedCleanupTitleKey,
   FeedCleanupTone,
 } from "@/lib/feed-cleanup";
+import type { FeedEditDisplayPreset } from "../reader/feed-edit-submit";
+import type { FolderSelectViewProps } from "../reader/folder-select-view";
 
 export type FeedCleanupFilterOption = {
   key: "stale_90d" | "no_unread" | "no_stars";
@@ -212,4 +214,39 @@ export type FeedCleanupFeedEditorProps = {
   onCancel: () => void;
   onDelete: () => void;
   onSaved: () => void;
+};
+
+export type FeedCleanupDisplayModeOption = {
+  value: FeedEditDisplayPreset;
+  label: string;
+};
+
+export type FeedCleanupFeedEditorControllerFolderSelectProps = {
+  folderSelectValue: string;
+  folderOptions: FolderSelectViewProps["options"];
+  isCreatingFolder: boolean;
+  newFolderName: string;
+  newFolderInputRef: RefObject<HTMLInputElement | null>;
+  handleFolderChange: (value: string) => void;
+  setNewFolderName: (value: string) => void;
+};
+
+export type FeedCleanupFeedEditorControllerParams = {
+  feed: FeedDto;
+  folders: FolderDto[];
+  onSaved: () => void;
+};
+
+export type FeedCleanupFeedEditorController = {
+  title: string;
+  displayPreset: FeedEditDisplayPreset;
+  loading: boolean;
+  refetching: boolean;
+  displayModeOptions: readonly FeedCleanupDisplayModeOption[];
+  setTitle: (value: string) => void;
+  setDisplayPreset: (value: FeedEditDisplayPreset) => void;
+  handleCopy: (value: string) => Promise<void>;
+  handleSave: () => Promise<void>;
+  handleRefetch: () => Promise<void>;
+  folderSelectProps: FeedCleanupFeedEditorControllerFolderSelectProps;
 };
