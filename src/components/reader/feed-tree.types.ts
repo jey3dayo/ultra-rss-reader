@@ -1,5 +1,6 @@
 import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
 import type { TriStateDisplayMode } from "@/lib/article-display";
+import type { FeedTreeDragOverlayPreview } from "./feed-tree-drag-overlay";
 
 export type FeedTreeFeedViewModel = {
   id: string;
@@ -70,4 +71,29 @@ export type FeedTreeFolderSectionProps = {
   onDropToFolder?: (folderId: string) => void;
   onPointerDownFeed?: (feed: FeedTreeFeedViewModel, event: ReactPointerEvent<HTMLButtonElement>) => void;
   consumeSuppressedHandleClick?: () => boolean;
+};
+
+export type UseFeedTreeDragParams = {
+  isOpen: boolean;
+  hasFeeds: boolean;
+  canDragFeeds: boolean;
+  activeDropTarget: ActiveDropTarget;
+  draggedFeedId?: string | null;
+  onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
+  onDragEnterFolder?: (folderId: string) => void;
+  onDragEnterUnfoldered?: () => void;
+  onDropToFolder?: (folderId: string) => void;
+  onDropToUnfoldered?: () => void;
+  onDragEnd?: () => void;
+};
+
+export type UseFeedTreeDragResult = {
+  isPointerTracking: boolean;
+  pointerDragPreview: FeedTreeDragOverlayPreview | null;
+  activeVisualDropTarget: ActiveDropTarget;
+  activeUnfoldered: boolean;
+  showUnfolderedDropZone: boolean;
+  normalizedDraggedFeedId: string | null;
+  handlePointerDownFeed: (feed: FeedTreeFeedViewModel, event: ReactPointerEvent<HTMLButtonElement>) => void;
+  consumeSuppressedHandleClick: () => boolean;
 };

@@ -1,14 +1,6 @@
 import { useCallback, useEffect } from "react";
 import { APP_EVENTS } from "@/constants/events";
-
-type UseSidebarFeedNavigationParams = {
-  orderedFeedIds: string[];
-  selectedFeedId: string | null;
-  expandedFolderIds: Set<string>;
-  getFeedFolderId: (feedId: string) => string | null | undefined;
-  setExpandedFolders: (folderIds: Iterable<string>) => void;
-  selectFeed: (feedId: string) => void;
-};
+import type { SidebarFeedNavigationParams } from "./sidebar-feed-section.types";
 
 export function useSidebarFeedNavigation({
   orderedFeedIds,
@@ -17,7 +9,7 @@ export function useSidebarFeedNavigation({
   getFeedFolderId,
   setExpandedFolders,
   selectFeed,
-}: UseSidebarFeedNavigationParams) {
+}: SidebarFeedNavigationParams) {
   const navigateFeed = useCallback(
     (direction: 1 | -1) => {
       if (orderedFeedIds.length === 0) {
@@ -40,7 +32,7 @@ export function useSidebarFeedNavigation({
         return;
       }
 
-      const nextFeedFolderId = getFeedFolderId(nextFeedId);
+      const nextFeedFolderId = getFeedFolderId(nextFeedId) ?? null;
       if (nextFeedFolderId && !expandedFolderIds.has(nextFeedFolderId)) {
         setExpandedFolders([...expandedFolderIds, nextFeedFolderId]);
       }

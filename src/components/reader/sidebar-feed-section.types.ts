@@ -28,6 +28,15 @@ export type SidebarFeedDragStateResult = {
   handleDropToUnfoldered: () => Promise<unknown>;
 };
 
+export type SidebarFeedNavigationParams = {
+  orderedFeedIds: string[];
+  selectedFeedId: string | null;
+  expandedFolderIds: Set<string>;
+  getFeedFolderId: (feedId: string) => string | null | undefined;
+  setExpandedFolders: (folderIds: Iterable<string>) => void;
+  selectFeed: (feedId: string) => void;
+};
+
 export type SidebarFeedSectionParams = {
   selectedAccountId: string | null;
   feeds: FeedDto[] | undefined;
