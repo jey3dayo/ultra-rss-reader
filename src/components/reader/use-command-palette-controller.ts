@@ -1,19 +1,17 @@
-import { CircleHelpIcon, NewspaperIcon, RefreshCwIcon, RssIcon, SettingsIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { addToHistory } from "@/hooks/use-command-history";
 import { useCommandSearch } from "@/hooks/use-command-search";
 import { useFeedLanding } from "@/hooks/use-feed-landing";
 import { executeAction } from "@/lib/actions";
 import { loadRuntimeDevScenarios, type RuntimeDevScenario, runRuntimeDevScenario } from "@/lib/dev-scenario-runtime";
-import { getShortcutDisplay } from "@/lib/keyboard-shortcuts";
+import { useCommandPaletteActions } from "./use-command-palette-actions";
 import { COMMAND_PALETTE_HISTORY_PREFIX, type PaletteAction, useCommandPaletteData } from "./use-command-palette-data";
 import { useCommandPaletteUiState } from "./use-command-palette-ui-state";
 import { useCommandPaletteViewProps } from "./use-command-palette-view-props";
 
 export function useCommandPaletteController() {
   const { t } = useTranslation("reader");
-  const { t: tSidebar } = useTranslation("sidebar");
   const {
     open,
     closeCommandPalette,
@@ -30,6 +28,7 @@ export function useCommandPaletteController() {
   const [input, setInput] = useState("");
   const [devScenarios, setDevScenarios] = useState<RuntimeDevScenario[]>([]);
   const { prefix, query, deferredQuery } = useCommandSearch(input);
+  const actions = useCommandPaletteActions({ platformKind, shortcutPrefs });
 
   useEffect(() => {
     if (!open) {
@@ -60,51 +59,6 @@ export function useCommandPaletteController() {
       cancelled = true;
     };
   }, []);
-
-  const actions = useMemo<PaletteAction[]>(
-    () => [
-      {
-        id: "open-settings",
-        label: t("shortcuts.open_settings"),
-        shortcut: getShortcutDisplay("open_settings", shortcutPrefs, platformKind),
-        keywords: ["settings", "preferences"],
-        icon: SettingsIcon,
-      },
-      {
-        id: "open-shortcuts-help",
-        label: t("shortcuts.open_shortcuts_help"),
-        shortcut: "?",
-        keywords: ["help", "shortcuts", "keyboard", "?"],
-        icon: CircleHelpIcon,
-      },
-      {
-        id: "open-add-feed",
-        label: t("add_feed"),
-        keywords: ["feed", "rss", "subscribe"],
-        icon: RssIcon,
-      },
-      {
-        id: "open-feed-cleanup",
-        label: tSidebar("feed_cleanup"),
-        keywords: ["feed", "cleanup", "management"],
-        icon: RssIcon,
-      },
-      {
-        id: "sync-all",
-        label: tSidebar("sync_feeds"),
-        keywords: ["sync", "refresh", "reload"],
-        icon: RefreshCwIcon,
-      },
-      {
-        id: "mark-all-read",
-        label: t("shortcuts.mark_all_read"),
-        shortcut: getShortcutDisplay("mark_all_read", shortcutPrefs, platformKind),
-        keywords: ["read", "articles"],
-        icon: NewspaperIcon,
-      },
-    ],
-    [platformKind, shortcutPrefs, t, tSidebar],
-  );
 
   const {
     articles,

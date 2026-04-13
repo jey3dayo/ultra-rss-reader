@@ -22,60 +22,12 @@ import { hasTauriRuntime } from "@/lib/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-
-function initialBrowserState(url: string): BrowserWebviewState {
-  return {
-    url,
-    can_go_back: false,
-    can_go_forward: false,
-    is_loading: true,
-  };
-}
-
-const MISSING_EMBEDDED_BROWSER_WEBVIEW_ERROR = "Embedded browser webview is not open";
-
-function isMissingEmbeddedBrowserWebviewError(error: AppError) {
-  return error.message.includes(MISSING_EMBEDDED_BROWSER_WEBVIEW_ERROR);
-}
-
-function mergeBrowserState(
-  previousState: BrowserWebviewState | null,
-  nextState: BrowserWebviewState,
-  intendedUrl: string,
-): BrowserWebviewState {
-  if (!previousState) {
-    return nextState;
-  }
-
-  if (!previousState.is_loading && nextState.is_loading && previousState.url !== nextState.url) {
-    return {
-      ...previousState,
-      can_go_back: nextState.can_go_back,
-      can_go_forward: nextState.can_go_forward,
-    };
-  }
-
-  if (
-    previousState.is_loading &&
-    nextState.is_loading &&
-    previousState.url === intendedUrl &&
-    nextState.url !== intendedUrl
-  ) {
-    return {
-      ...previousState,
-      can_go_back: nextState.can_go_back,
-      can_go_forward: nextState.can_go_forward,
-    };
-  }
-
-  return nextState;
-}
-
-type BrowserWebviewFallbackPayload = {
-  url: string;
-  opened_external: boolean;
-  error_message: string | null;
-};
+import {
+  type BrowserWebviewFallbackPayload,
+  initialBrowserState,
+  isMissingEmbeddedBrowserWebviewError,
+  mergeBrowserState,
+} from "./browser-webview-state";
 
 type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
 
