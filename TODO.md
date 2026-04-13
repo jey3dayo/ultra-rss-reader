@@ -163,6 +163,10 @@
   - 問題: `useBrowserViewController` に overlay 用 viewport width の resize 監視が残っていて、controller orchestration と runtime state 管理が混ざっていた
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-overlay-viewport-width.ts`, `src/__tests__/hooks/use-browser-overlay-viewport-width.test.tsx`
 
+- [x] browser-view の request state と native diagnostics state を hook 化する
+  - 問題: `useBrowserViewController` に `browserUrl` 切り替え時の request state reset と `nativeDiagnostics` の local state 管理が残っていて、controller orchestration と browser runtime state 管理が混ざっていた
+  - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-webview-request-state.ts`, `src/components/reader/use-browser-native-diagnostics.ts`, `src/components/reader/browser-webview-state.ts`
+
 - [x] browser-view の load timeout 監視を hook 化する
   - 問題: `useBrowserViewController` に embedded browser の load timeout 監視 effect が残っていて、controller orchestration と runtime timeout 管理が混ざっていた
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-webview-load-timeout.ts`
