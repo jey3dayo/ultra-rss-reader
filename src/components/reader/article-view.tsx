@@ -1,15 +1,13 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { useSetRead, useToggleStar } from "@/hooks/use-articles";
-import { usePlatformStore } from "@/stores/platform-store";
-import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
+import { useSetRead } from "@/hooks/use-articles";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { FeedCleanupPage } from "../feed-cleanup/feed-cleanup-page";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticleReaderBody } from "./article-reader-body";
-import { ArticleShareMenu } from "./article-share-menu";
-import { ArticleToolbarActionStrip, ArticleToolbarView, type ArticleToolbarViewLabels } from "./article-toolbar-view";
+import { ArticleToolbarActionStrip, ArticleToolbarView } from "./article-toolbar-view";
 import type { ArticlePaneProps } from "./article-view.types";
 import {
   ArticleEmptyStateShell,
@@ -17,9 +15,9 @@ import {
   BrowserOnlyStateView,
   BrowserOverlaySurface,
 } from "./article-view-state";
-import { useArticleActions } from "./use-article-actions";
 import { useArticleAutoMark } from "./use-article-auto-mark";
 import { useArticleBrowserOverlay } from "./use-article-browser-overlay";
+import { useArticleToolbarControls } from "./use-article-toolbar-controls";
 import { useArticleViewSelection } from "./use-article-view-selection";
 
 export function ArticleToolbar({
@@ -33,72 +31,19 @@ export function ArticleToolbar({
   onCloseView: () => void;
   onToggleBrowserOverlay: () => void;
 }) {
-  const { t } = useTranslation("reader");
-  const setRead = useSetRead();
-  const toggleStar = useToggleStar();
-  const showToast = useUiStore((s) => s.showToast);
-  const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
-  const retainArticle = useUiStore((s) => s.retainArticle);
-  const viewMode = useUiStore((s) => s.viewMode);
-  const actionCopyLink = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_copy_link"));
-  const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
-  const { setReadStatus, setStarStatus, handleOpenExternalBrowser, handleCopyLink } = useArticleActions({
+  const actionStripProps = useArticleToolbarControls({
     article,
-    viewMode,
-    supportsReadingList,
-    showToast,
-    addRecentlyRead,
-    retainArticle,
-    setRead,
-    toggleStar,
+    isBrowserOpen,
+    onToggleBrowserOverlay,
   });
 
   return (
     <ArticleToolbarView
       showCloseButton={article !== null && !isBrowserOpen}
       hideActionStrip={isBrowserOpen}
-      canToggleRead={article !== null}
-      canToggleStar={article !== null}
-      isRead={article?.is_read ?? false}
-      isStarred={article?.is_starred ?? false}
-      isBrowserOpen={isBrowserOpen}
-      hideBrowserOverlayActions={isBrowserOpen}
-      showCopyLinkButton={actionCopyLink === "true"}
-      canCopyLink={Boolean(article?.url)}
-      showOpenInBrowserButton
-      canOpenInBrowser={Boolean(article?.url)}
-      showOpenInExternalBrowserButton
-      canOpenInExternalBrowser={Boolean(article?.url)}
-      shareMenuControl={
-        <ArticleShareMenu
-          article={article}
-          supportsReadingList={supportsReadingList}
-          showToast={showToast}
-          labels={{
-            share: t("share"),
-            copyLink: t("copy_link"),
-            addToReadingList: t("add_to_reading_list"),
-            addedToReadingList: t("added_to_reading_list"),
-            shareViaEmail: t("share_via_email"),
-            linkCopied: t("link_copied"),
-          }}
-        />
-      }
-      labels={{
-        closeView: t("close_view"),
-        toggleRead: t("toggle_read"),
-        toggleStar: t("toggle_star"),
-        previewToggleOff: t("open_in_browser"),
-        previewToggleOn: t("close_browser_overlay"),
-        copyLink: t("copy_link"),
-        openInExternalBrowser: t("open_in_external_browser"),
-      }}
       onCloseView={onCloseView}
-      onToggleRead={setReadStatus}
-      onToggleStar={(pressed) => setStarStatus(pressed, { showStatusToast: true })}
-      onCopyLink={handleCopyLink}
-      onOpenInBrowser={onToggleBrowserOverlay}
-      onOpenInExternalBrowser={handleOpenExternalBrowser}
+      hideBrowserOverlayActions={isBrowserOpen}
+      {...actionStripProps}
     />
   );
 }
@@ -135,12 +80,7 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
   const showToast = useUiStore((s) => s.showToast);
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
   const retainArticle = useUiStore((s) => s.retainArticle);
-  const viewMode = useUiStore((s) => s.viewMode);
-  const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
   const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
-  const prefs = usePreferencesStore((s) => s.prefs);
-  const setRead = useSetRead();
-  const toggleStar = useToggleStar();
   const { isBrowserOpen, resolvedDisplay, handleCloseBrowserOverlay, handleToggleBrowserOverlay } =
     useArticleBrowserOverlay({
       articleId: article.id,
@@ -149,20 +89,17 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
       contentMode,
       feed,
     });
-  const { setReadStatus, setStarStatus, handleOpenExternalBrowser, handleCopyLink } = useArticleActions({
+  const actionStripProps = useArticleToolbarControls({
     article,
-    viewMode,
-    supportsReadingList,
-    showToast,
-    addRecentlyRead,
-    retainArticle,
-    setRead,
-    toggleStar,
+    isBrowserOpen,
+    onToggleBrowserOverlay: handleToggleBrowserOverlay,
     keyboardShortcuts: {
       onToggleBrowserOverlay: handleToggleBrowserOverlay,
       onCloseBrowserOverlay: handleCloseBrowserOverlay,
     },
   });
+  const viewMode = useUiStore((s) => s.viewMode);
+  const setRead = useSetRead();
 
   useArticleAutoMark({
     articleId: article.id,
@@ -182,53 +119,13 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
     }
   }, [clearArticle, layoutMode]);
 
-  const toolbarLabels: ArticleToolbarViewLabels = {
-    closeView: t("close_view"),
-    toggleRead: t("toggle_read"),
-    toggleStar: t("toggle_star"),
-    previewToggleOff: t("open_in_browser"),
-    previewToggleOn: t("close_browser_overlay"),
-    copyLink: t("copy_link"),
-    openInExternalBrowser: t("open_in_external_browser"),
-  };
-
   const overlayToolbarActions = (
     <ArticleToolbarActionStrip
-      canToggleRead
-      canToggleStar
-      isRead={article.is_read}
-      isStarred={article.is_starred}
-      isBrowserOpen
-      showCopyLinkButton={resolvePreferenceValue(prefs, "action_copy_link") === "true"}
-      canCopyLink={Boolean(article.url)}
-      showOpenInBrowserButton
-      canOpenInBrowser={Boolean(article.url)}
-      showOpenInExternalBrowserButton
-      canOpenInExternalBrowser={Boolean(article.url)}
-      shareMenuControl={
-        <ArticleShareMenu
-          article={article}
-          supportsReadingList={supportsReadingList}
-          showToast={showToast}
-          labels={{
-            share: t("share"),
-            copyLink: t("copy_link"),
-            addToReadingList: t("add_to_reading_list"),
-            addedToReadingList: t("added_to_reading_list"),
-            shareViaEmail: t("share_via_email"),
-            linkCopied: t("link_copied"),
-          }}
-        />
-      }
+      {...actionStripProps}
       labels={{
-        ...toolbarLabels,
+        ...actionStripProps.labels,
         previewToggleOn: t("web_preview_mode"),
       }}
-      onToggleRead={setReadStatus}
-      onToggleStar={(pressed) => setStarStatus(pressed, { showStatusToast: true })}
-      onCopyLink={handleCopyLink}
-      onOpenInBrowser={handleToggleBrowserOverlay}
-      onOpenInExternalBrowser={handleOpenExternalBrowser}
     />
   );
 
