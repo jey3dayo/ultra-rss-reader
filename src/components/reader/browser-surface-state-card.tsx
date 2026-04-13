@@ -12,13 +12,13 @@ export function BrowserSurfaceStateCard({
   return (
     <div
       data-testid="browser-surface-state"
-      className="max-w-md rounded-2xl border border-white/10 bg-black/62 px-5 py-4 text-center shadow-[0_18px_40px_rgba(0,0,0,0.32)] backdrop-blur-md"
+      className="w-full max-w-[min(42rem,calc(100vw-2rem))] rounded-2xl border border-white/10 bg-black/62 px-5 py-4 text-center shadow-[0_18px_40px_rgba(0,0,0,0.32)] backdrop-blur-md"
     >
       <div className="flex items-center justify-center gap-2 text-white">
         <CircleAlert aria-hidden="true" className="size-4 text-orange-300" />
-        <p className="text-sm font-semibold">{issue.title}</p>
+        <p className="text-balance text-sm font-semibold leading-tight">{issue.title}</p>
       </div>
-      <p className="mt-2 text-sm text-white/72">{issue.description}</p>
+      <p className="mt-2 text-pretty text-sm leading-6 text-white/72">{issue.description}</p>
       {showTechnicalDetail && issue.detail ? (
         <div className="mt-3 space-y-1.5 text-left">
           <p className="text-[11px] font-medium tracking-[0.08em] text-white/45 uppercase">{labels.technicalDetail}</p>
