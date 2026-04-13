@@ -1,12 +1,10 @@
-import type { UseMutationResult } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { addArticleToReadingList, copyArticleLink, openArticleInExternalBrowser } from "./article-browser-actions";
 import { type ArticleActionKeyboardShortcuts, useArticleActionShortcuts } from "./use-article-action-shortcuts";
+import { useArticleStatusActions } from "./use-article-status-actions";
 
-type SetReadMutation = UseMutationResult<unknown, Error, { id: string; read: boolean }, unknown>;
-type ToggleStarMutation = UseMutationResult<unknown, Error, { id: string; starred: boolean }, unknown>;
 type ShowToast = (message: string) => void;
 
 type UseArticleActionsParams = {
@@ -16,8 +14,8 @@ type UseArticleActionsParams = {
   showToast: ShowToast;
   addRecentlyRead: (articleId: string) => void;
   retainArticle: (articleId: string) => void;
-  setRead: SetReadMutation;
-  toggleStar: ToggleStarMutation;
+  setRead: Parameters<typeof useArticleStatusActions>[0]["setRead"];
+  toggleStar: Parameters<typeof useArticleStatusActions>[0]["toggleStar"];
   keyboardShortcuts?: ArticleActionKeyboardShortcuts;
 };
 
@@ -48,78 +46,19 @@ export function useArticleActions({
   const isRead = article?.is_read ?? false;
   const isStarred = article?.is_starred ?? false;
 
-  const retainIfNeeded = useCallback(
-    (nextRead: boolean) => {
-      if (!articleId) {
-        return;
-      }
-
-      if (nextRead && viewMode === "unread") {
-        retainArticle(articleId);
-      }
-    },
-    [articleId, retainArticle, viewMode],
-  );
-
-  const setReadStatus = useCallback(
-    (pressed: boolean) => {
-      if (!articleId) {
-        return;
-      }
-
-      retainIfNeeded(pressed);
-      setRead.mutate(
-        { id: articleId, read: pressed },
-        {
-          onSuccess: () => {
-            if (pressed) {
-              addRecentlyRead(articleId);
-            }
-          },
-        },
-      );
-    },
-    [addRecentlyRead, articleId, retainIfNeeded, setRead],
-  );
-
-  const setStarStatus = useCallback(
-    (pressed: boolean, options?: { showStatusToast?: boolean }) => {
-      if (!articleId) {
-        return;
-      }
-
-      toggleStar.mutate(
-        { id: articleId, starred: pressed },
-        {
-          onSuccess: () => {
-            if (!pressed && viewMode === "starred") {
-              retainArticle(articleId);
-            }
-            if (options?.showStatusToast) {
-              showToast(pressed ? t("article_starred") : t("article_unstarred"));
-            }
-          },
-        },
-      );
-    },
-    [articleId, retainArticle, showToast, t, toggleStar, viewMode],
-  );
-
-  const handleToggleRead = useCallback(() => {
-    if (!articleId) {
-      return;
-    }
-
-    setReadStatus(!isRead);
-  }, [articleId, isRead, setReadStatus]);
-
-  const handleToggleStar = useCallback(() => {
-    if (!articleId) {
-      return;
-    }
-
-    setStarStatus(!isStarred);
-  }, [articleId, isStarred, setStarStatus]);
+  const { setReadStatus, setStarStatus, handleToggleRead, handleToggleStar } = useArticleStatusActions({
+    articleId,
+    isRead,
+    isStarred,
+    viewMode,
+    showToast,
+    addRecentlyRead,
+    retainArticle,
+    setRead,
+    toggleStar,
+    starredMessage: t("article_starred"),
+    unstarredMessage: t("article_unstarred"),
+  });
 
   const handleOpenExternalBrowser = useCallback(() => {
     if (!articleUrl) {
