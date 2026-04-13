@@ -138,3 +138,26 @@ export type UseFeedTreePointerDragEventsParams = {
   onDropToUnfoldered?: () => void;
   onDragEnd?: () => void;
 };
+
+export type ApplyFeedTreeHoverTargetParams = {
+  target: ActiveDropTarget;
+  setPointerHoverTarget: Dispatch<SetStateAction<ActiveDropTarget>>;
+  onDragEnterFolder?: (folderId: string) => void;
+  onDragEnterUnfoldered?: () => void;
+};
+
+export type FeedTreePointerDropOutcome =
+  | { type: "clear" }
+  | { type: "cancel" }
+  | { type: "drop-folder"; folderId: string }
+  | { type: "drop-unfoldered" }
+  | { type: "drop-none" };
+
+export type ApplyFeedTreePointerDropOutcomeParams = {
+  outcome: FeedTreePointerDropOutcome;
+  queueSuppressHandleClickReset: () => void;
+  clearPointerTracking: () => void;
+  onDragEnd?: () => void;
+  onDropToFolder?: (folderId: string) => void;
+  onDropToUnfoldered?: () => void;
+};

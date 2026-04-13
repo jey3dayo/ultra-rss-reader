@@ -1,12 +1,4 @@
-import type { Dispatch, SetStateAction } from "react";
-import type { ActiveDropTarget } from "./feed-tree.types";
-
-type ApplyFeedTreeHoverTargetParams = {
-  target: ActiveDropTarget;
-  setPointerHoverTarget: Dispatch<SetStateAction<ActiveDropTarget>>;
-  onDragEnterFolder?: (folderId: string) => void;
-  onDragEnterUnfoldered?: () => void;
-};
+import type { ApplyFeedTreeHoverTargetParams } from "./feed-tree.types";
 
 export function applyFeedTreeHoverTarget({
   target,
