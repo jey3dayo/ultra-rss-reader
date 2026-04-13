@@ -1,12 +1,6 @@
-import { type RefObject, useLayoutEffect } from "react";
+import { useLayoutEffect } from "react";
 import { useUiStore } from "@/stores/ui-store";
-
-type UseBrowserWebviewBoundsSyncParams = {
-  browserUrl: string | null;
-  hostRef: RefObject<HTMLDivElement | null>;
-  waitForBrowserWebviewListeners: () => Promise<void>;
-  syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
-};
+import type { UseBrowserWebviewBoundsSyncParams } from "./browser-view.types";
 
 export function useBrowserWebviewBoundsSync({
   browserUrl,

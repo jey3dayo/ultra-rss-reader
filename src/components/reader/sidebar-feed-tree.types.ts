@@ -27,6 +27,20 @@ export type SidebarUnfolderedFeedVisibilityParams = {
   getVisibleFeeds: SidebarSortFeeds;
 };
 
+export type SidebarVisibleFeedTreeParams = {
+  sortedFolderList: FolderDto[];
+  selectedFolderId: string | null;
+  feedsByFolder: Map<string, FeedDto[]>;
+  unfolderedFeeds: FeedDto[];
+  getVisibleFeeds: SidebarSortFeeds;
+};
+
+export type SidebarVisibleFeedTreeResult = {
+  visibleFolderFeedsById: Map<string, FeedDto[]>;
+  visibleUnfolderedFeeds: FeedDto[];
+  orderedFeedIds: string[];
+};
+
 export type UseSidebarFeedTreeParams = {
   feeds: FeedDto[] | undefined;
   folders: FolderDto[] | undefined;

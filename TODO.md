@@ -250,6 +250,11 @@
   - 対応: `UseBrowserWebviewLoadTimeoutParams` と `UseBrowserWebviewStateChangedParams` を `browser-view.types.ts` に追加して、両 hook は shared types を参照する形に寄せた
   - 対象: `src/components/reader/browser-view.types.ts`, `src/components/reader/use-browser-webview-load-timeout.ts`, `src/components/reader/use-browser-webview-state-changed.ts`
 
+- [x] browser webview sync 系 helper の contract を shared types に寄せる
+  - 問題: `use-browser-webview-bounds-sync.ts` / `use-browser-webview-request-state.ts` / `use-browser-webview-sync.ts` に local params 型が残っていて、browser sync helper 境界の正本を `browser-view.types.ts` から追えなかった
+  - 対応: `UseBrowserWebviewBoundsSyncParams` / `UseBrowserWebviewRequestStateParams` / `UseBrowserWebviewSyncParams` を `browser-view.types.ts` に追加して、各 hook は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/browser-view.types.ts`, `src/components/reader/use-browser-webview-bounds-sync.ts`, `src/components/reader/use-browser-webview-request-state.ts`, `src/components/reader/use-browser-webview-sync.ts`
+
 - [x] browser-view の load timeout 監視を hook 化する
   - 問題: `useBrowserViewController` に embedded browser の load timeout 監視 effect が残っていて、controller orchestration と runtime timeout 管理が混ざっていた
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-webview-load-timeout.ts`
@@ -765,6 +770,11 @@
   - 問題: `sidebar-feed-tree-helpers.ts` に `SortFeeds` と `FeedTreeViewModelOptions` が local 定義で残っていて、feed tree helper 境界の正本を追いにくかった
   - 対応: `sidebar-feed-tree.types.ts` に helper contract を追加して、feed tree helper は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/sidebar-feed-tree.types.ts`, `src/components/reader/sidebar-feed-tree-helpers.ts`
+
+- [x] sidebar visible feed tree helper の contract を shared types に寄せる
+  - 問題: `sidebar-feed-tree-helpers.ts` に visible feed tree 集約の params/result が local な導出に閉じていて、`use-sidebar-feed-tree.ts` との接着境界を `sidebar-feed-tree.types.ts` から追えなかった
+  - 対応: `sidebar-feed-tree.types.ts` に visible feed tree params/result contract を追加して、helper と hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar-feed-tree.types.ts`, `src/components/reader/sidebar-feed-tree-helpers.ts`, `src/components/reader/use-sidebar-feed-tree.ts`
 
 - [x] feed-tree row drag handle の props を shared types に寄せる
   - 問題: `feed-tree-row.tsx` に `DragHandleProps` が local 定義で残っていて、row 補助 component 境界の正本を追いにくかった

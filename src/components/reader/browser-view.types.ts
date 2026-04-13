@@ -179,3 +179,29 @@ export type UseBrowserWebviewStateChangedParams = {
   setSurfaceIssue: (issue: null) => void;
   getRequestedUrl: () => string;
 };
+
+export type UseBrowserWebviewBoundsSyncParams = {
+  browserUrl: string | null;
+  hostRef: RefObject<HTMLDivElement | null>;
+  waitForBrowserWebviewListeners: () => Promise<void>;
+  syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
+};
+
+export type UseBrowserWebviewRequestStateParams = {
+  browserUrl: string | null;
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
+  fallbackInFlightRef: MutableRefObject<boolean>;
+  resetBrowserWebviewSyncState: () => void;
+  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
+  setSurfaceIssue: (issue: null) => void;
+};
+
+export type UseBrowserWebviewSyncParams = {
+  hostRef: RefObject<HTMLDivElement | null>;
+  platformKind: string;
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
+  captureLayoutDiagnostics: () => void;
+  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
+  onMissingEmbeddedBrowserWebview: (error: AppError) => void;
+  showSurfaceFailure: (error: AppError) => void;
+};

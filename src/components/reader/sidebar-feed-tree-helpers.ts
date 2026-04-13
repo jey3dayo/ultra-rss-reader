@@ -6,6 +6,8 @@ import type {
   SidebarFolderFeedVisibilityParams,
   SidebarSortFeeds,
   SidebarUnfolderedFeedVisibilityParams,
+  SidebarVisibleFeedTreeParams,
+  SidebarVisibleFeedTreeResult,
 } from "./sidebar-feed-tree.types";
 
 export function getVisibleSidebarFeeds(
@@ -66,4 +68,41 @@ export function getVisibleSidebarUnfolderedFeeds({
   }
 
   return getVisibleFeeds(unfolderedFeeds);
+}
+
+export function getVisibleSidebarFeedTreeData({
+  sortedFolderList,
+  selectedFolderId,
+  feedsByFolder,
+  unfolderedFeeds,
+  getVisibleFeeds,
+}: SidebarVisibleFeedTreeParams): SidebarVisibleFeedTreeResult {
+  const visibleFolderFeedsById = new Map(
+    sortedFolderList.map((folder) => [
+      folder.id,
+      getVisibleSidebarFolderFeeds({
+        folderId: folder.id,
+        selectedFolderId,
+        feedsByFolder,
+        getVisibleFeeds,
+      }),
+    ]),
+  );
+
+  const visibleUnfolderedFeeds = getVisibleSidebarUnfolderedFeeds({
+    selectedFolderId,
+    unfolderedFeeds,
+    getVisibleFeeds,
+  });
+
+  const orderedFeedIds = [
+    ...sortedFolderList.flatMap((folder) => collectFeedIds(visibleFolderFeedsById.get(folder.id) ?? [])),
+    ...collectFeedIds(visibleUnfolderedFeeds),
+  ];
+
+  return {
+    visibleFolderFeedsById,
+    visibleUnfolderedFeeds,
+    orderedFeedIds,
+  };
 }
