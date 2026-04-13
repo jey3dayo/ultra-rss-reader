@@ -5,6 +5,7 @@ import { runRuntimeDevScenario } from "@/lib/dev-scenario-runtime";
 import { resolveDevWebPreviewGeometryUrl } from "@/lib/dev-web-preview-geometry";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+import { useDebugSettingsViewProps } from "./use-debug-settings-view-props";
 
 export function DebugSettings() {
   const { t } = useTranslation("settings");
@@ -46,73 +47,16 @@ export function DebugSettings() {
     },
     [closeSettings, showToast, t],
   );
+  const viewProps = useDebugSettingsViewProps({
+    t,
+    prefs,
+    setPref,
+    devBuild,
+    openWebPreviewUrl,
+    openWebPreviewGeometryCheck,
+    runFeedCleanupBrokenReferencesScenario: () => void runScenario("open-feed-cleanup-broken-references"),
+    runReadingDisplayModeScenario: () => void runScenario("open-settings-reading-display-mode"),
+  });
 
-  return (
-    <SettingsPageView
-      title={t("debug.heading")}
-      sections={[
-        {
-          id: "debug-browser",
-          heading: t("debug.browser"),
-          note: t("debug.browser_note"),
-          controls: [
-            {
-              id: "debug-browser-hud",
-              type: "switch",
-              label: t("debug.web_preview_hud"),
-              checked: resolvePreferenceValue(prefs, "debug_browser_hud") === "true",
-              onChange: (checked) => setPref("debug_browser_hud", String(checked)),
-            },
-            {
-              id: "debug-web-preview-url",
-              type: "text",
-              name: "debug_web_preview_url",
-              label: t("debug.web_preview_url"),
-              value: resolvePreferenceValue(prefs, "debug_web_preview_url"),
-              placeholder: t("debug.web_preview_url_placeholder"),
-              onChange: (value) => setPref("debug_web_preview_url", value),
-            },
-            {
-              id: "debug-open-web-preview-url",
-              type: "action",
-              label: t("debug.open_web_preview_url"),
-              actionLabel: t("debug.open_now"),
-              onAction: openWebPreviewUrl,
-            },
-          ],
-        },
-        {
-          id: "debug-scenarios",
-          heading: t("debug.scenarios"),
-          note: t("debug.scenarios_note"),
-          controls: [
-            {
-              id: "debug-web-preview-geometry-check",
-              type: "action",
-              label: t("debug.web_preview_geometry_check"),
-              actionLabel: t("debug.open_now"),
-              disabled: !devBuild,
-              onAction: openWebPreviewGeometryCheck,
-            },
-            {
-              id: "debug-feed-cleanup-broken-references",
-              type: "action",
-              label: t("debug.feed_cleanup_broken_references"),
-              actionLabel: t("debug.open_now"),
-              disabled: !devBuild,
-              onAction: () => void runScenario("open-feed-cleanup-broken-references"),
-            },
-            {
-              id: "debug-reading-display-mode",
-              type: "action",
-              label: t("debug.reading_display_mode"),
-              actionLabel: t("debug.open_now"),
-              disabled: !devBuild,
-              onAction: () => void runScenario("open-settings-reading-display-mode"),
-            },
-          ],
-        },
-      ]}
-    />
-  );
+  return <SettingsPageView {...viewProps} />;
 }
