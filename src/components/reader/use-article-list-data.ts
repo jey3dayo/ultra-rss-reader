@@ -5,7 +5,11 @@ import type { UiSelection } from "@/stores/ui-store";
 
 type UseArticleListDataParams = {
   selection: UiSelection;
-  selectedAccountId: string | null;
+  feedId: string | null;
+  folderId: string | null;
+  tagId: string | null;
+  smartViewKind: "unread" | "starred" | null;
+  accountListScopeId: string | null;
   viewMode: "all" | "unread" | "starred";
   selectedArticleId: string | null;
   retainedArticleIds: Set<string>;
@@ -33,7 +37,11 @@ type UseArticleListDataResult = {
 
 export function useArticleListData({
   selection,
-  selectedAccountId,
+  feedId,
+  folderId,
+  tagId,
+  smartViewKind,
+  accountListScopeId,
   viewMode,
   selectedArticleId,
   retainedArticleIds,
@@ -47,12 +55,6 @@ export function useArticleListData({
   sortUnread,
   groupBy,
 }: UseArticleListDataParams): UseArticleListDataResult {
-  const feedId = selection.type === "feed" ? selection.feedId : null;
-  const folderId = selection.type === "folder" ? selection.folderId : null;
-  const tagId = selection.type === "tag" ? selection.tagId : null;
-  const smartViewKind = selection.type === "smart" ? selection.kind : null;
-  const accountListScopeId = feedId || tagId ? null : selectedAccountId;
-
   const effectiveViewMode = useMemo<"all" | "unread" | "starred">(() => {
     if (smartViewKind === "unread") {
       return "unread";

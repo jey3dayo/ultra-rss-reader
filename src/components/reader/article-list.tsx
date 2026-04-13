@@ -1,10 +1,6 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAccountArticles, useArticles } from "@/hooks/use-articles";
-import { useFeeds } from "@/hooks/use-feeds";
-import { useArticlesByTag } from "@/hooks/use-tags";
 import { buildKeyToActionMap } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -12,14 +8,17 @@ import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenu } from "./article-context-menu";
 import { ArticleListContextStrip } from "./article-list-context-strip";
 import { ArticleListFooter } from "./article-list-footer";
+import { ArticleListFeedModeControl } from "./article-list-feed-mode-control";
 import { ArticleListHeader } from "./article-list-header";
 import { ArticleListScreenView } from "./article-list-screen-view";
 import { contextMenuStyles } from "./context-menu-styles";
 import { useArticleListData } from "./use-article-list-data";
+import { useArticleListEffects } from "./use-article-list-effects";
 import { useArticleListGroups } from "./use-article-list-groups";
 import { useArticleListHeaderActions } from "./use-article-list-header-actions";
 import { useArticleListInteractions } from "./use-article-list-interactions";
 import { useArticleListSearch } from "./use-article-list-search";
+import { useArticleListSources } from "./use-article-list-sources";
 import { useArticleListViewState } from "./use-article-list-view-state";
 
 export function ArticleList() {
@@ -46,14 +45,23 @@ export function ArticleList() {
   const selectionStyle = usePreferencesStore((s) => s.prefs.list_selection_style ?? "modern");
   const recentlyReadIds = useUiStore((s) => s.recentlyReadIds);
   const retainedArticleIds = useUiStore((s) => s.retainedArticleIds);
-  const { data: feeds } = useFeeds(selectedAccountId);
-  const smartViewKind = selection.type === "smart" ? selection.kind : null;
-  const feedId = selection.type === "feed" ? selection.feedId : null;
-  const tagId = selection.type === "tag" ? selection.tagId : null;
-  const accountListScopeId = feedId || tagId ? null : selectedAccountId;
-  const { data: articles, isLoading } = useArticles(feedId);
-  const { data: accountArticles, isLoading: isLoadingAccountArticles } = useAccountArticles(accountListScopeId);
-  const { data: tagArticles, isLoading: isLoadingTagArticles } = useArticlesByTag(tagId, selectedAccountId);
+  const {
+    feedId,
+    folderId,
+    tagId,
+    smartViewKind,
+    accountListScopeId,
+    feeds,
+    articles,
+    accountArticles,
+    tagArticles,
+    isLoading,
+    isLoadingAccountArticles,
+    isLoadingTagArticles,
+  } = useArticleListSources({
+    selection,
+    selectedAccountId,
+  });
   const {
     showSearch,
     searchQuery,
@@ -77,7 +85,11 @@ export function ArticleList() {
     selectedFeed,
   } = useArticleListData({
     selection,
-    selectedAccountId,
+    feedId,
+    folderId,
+    tagId,
+    smartViewKind,
+    accountListScopeId,
     viewMode,
     selectedArticleId,
     retainedArticleIds,
@@ -110,17 +122,6 @@ export function ArticleList() {
       filteredArticleCount: filteredArticles.length,
     });
 
-  useEffect(() => {
-    if (!selectedArticleId || isPrimarySourceLoading) {
-      return;
-    }
-
-    const isSelectedArticleVisible = filteredArticles.some((article) => article.id === selectedArticleId);
-    if (!isSelectedArticleVisible) {
-      clearArticle();
-    }
-  }, [clearArticle, filteredArticles, isPrimarySourceLoading, selectedArticleId]);
-
   const articleGroups = useArticleListGroups({
     groupedArticles,
     groupBy,
@@ -133,13 +134,15 @@ export function ArticleList() {
   const listRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const scrollToTopOnChange = usePreferencesStore((s) => s.prefs.scroll_to_top_on_change ?? "true");
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to top when selection changes
-  useEffect(() => {
-    if (scrollToTopOnChange === "true" && viewportRef.current) {
-      viewportRef.current.scrollTop = 0;
-    }
-  }, [selection, scrollToTopOnChange]);
+  useArticleListEffects({
+    selection,
+    scrollToTopOnChange,
+    viewportRef,
+    filteredArticles,
+    selectedArticleId,
+    isPrimarySourceLoading,
+    clearArticle,
+  });
 
   const { selectedFeedDisplayPreset, displayPresetOptions, handleSetDisplayMode, handleMarkAllRead } =
     useArticleListHeaderActions({
@@ -188,28 +191,14 @@ export function ArticleList() {
         isSidebarVisible={layoutMode === "wide" ? sidebarOpen : undefined}
         feedModeControl={
           resolvedFeedId ? (
-            <Select
-              name="feed-display-preset"
+            <ArticleListFeedModeControl
+              ariaLabel={t("display_mode")}
               value={selectedFeedDisplayPreset}
-              onValueChange={(value) =>
-                value !== null && void handleSetDisplayMode(value as typeof selectedFeedDisplayPreset)
-              }
-            >
-              <SelectTrigger aria-label={t("display_mode")} className="min-w-[168px]">
-                <SelectValue>
-                  {(value: string | null) =>
-                    displayPresetOptions.find((option) => option.value === (value ?? ""))?.label ?? value ?? ""
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectPopup>
-                {displayPresetOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectPopup>
-            </Select>
+              options={displayPresetOptions}
+              onValueChange={(value) => {
+                void handleSetDisplayMode(value);
+              }}
+            />
           ) : null
         }
         onMarkAllRead={handleMarkAllRead}
