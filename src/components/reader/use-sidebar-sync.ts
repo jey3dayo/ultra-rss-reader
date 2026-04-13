@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
-import { listen } from "@tauri-apps/api/event";
 import { useQueryClient } from "@tanstack/react-query";
+import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AccountSyncWarning } from "@/api/schemas/sync-result";

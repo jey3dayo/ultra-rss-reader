@@ -106,7 +106,7 @@ export function AccountSwitcherView({
             }
           }}
         >
-          {accounts.map((account, index) => (
+          {accounts.map((account, index) =>
             (() => {
               const statusLabel = accountStatusLabels?.[account.id];
               return (
@@ -138,8 +138,8 @@ export function AccountSwitcherView({
                   </div>
                 </button>
               );
-            })()
-          ))}
+            })(),
+          )}
         </div>
       )}
     </div>

@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useAccounts } from "@/hooks/use-accounts";
 import { useAccountSyncStatuses } from "@/hooks/use-account-sync-statuses";
+import { useAccounts } from "@/hooks/use-accounts";
 import { useAccountArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
