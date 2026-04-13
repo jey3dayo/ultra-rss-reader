@@ -8,6 +8,7 @@ import { useArticleListInteractions } from "./use-article-list-interactions";
 import { useArticleListSearch } from "./use-article-list-search";
 import { useArticleListSources } from "./use-article-list-sources";
 import { useArticleListUiState } from "./use-article-list-ui-state";
+import { useArticleListViewProps } from "./use-article-list-view-props";
 import { useArticleListViewState } from "./use-article-list-view-state";
 
 export function useArticleListController() {
@@ -179,54 +180,41 @@ export function useArticleListController() {
     toggleSidebar,
   });
 
-  return {
+  return useArticleListViewProps({
+    t,
+    tc,
     layoutMode,
-    headerProps: {
-      showSearch,
-      searchQuery,
-      searchInputRef,
-      showSidebarButton,
-      sidebarButtonLabel,
-      sidebarButtonText,
-      isSidebarVisible,
-      feedModeControl,
-      onMarkAllRead: handleMarkAllRead,
-      onToggleSidebar: handleSidebarToggle,
-      onToggleSearch: handleToggleSearch,
-      onCloseSearch: handleCloseSearch,
-      onSearchQueryChange: setSearchQuery,
-    },
-    contextStripProps: {
-      primaryLabel: contextStripContext.primaryLabel,
-      secondaryLabel: contextStripContext.secondaryLabel,
-      tone: contextStripContext.tone,
-    },
-    bodyProps: {
-      listAriaLabel: t("article_list"),
-      listRef,
-      viewportRef,
-      onListKeyDownCapture: handleListKeyDownCapture,
-      isLoading: isLoading || isLoadingAccountArticles || isLoadingTagArticles || isSearchLoading,
-      loadingMessage: tc("loading"),
-      emptyMessage: isSearchEmptyState
-        ? t("search_no_results_title", { query: trimmedDebouncedQuery })
-        : t("no_articles"),
-      emptyDescription: isSearchEmptyState ? t("search_no_results_description") : undefined,
-      emptyActionLabel: isSearchEmptyState ? t("clear_search_action") : undefined,
-      onEmptyAction: isSearchEmptyState ? handleCloseSearch : undefined,
-      groups: articleGroups,
-      dimArchived,
-      textPreview,
-      imagePreviews,
-      selectionStyle,
-      onSelectArticle: selectArticle,
-      markAllReadLabel: t("mark_all_as_read"),
-      onMarkAllRead: handleMarkAllRead,
-    },
-    footerProps: {
-      viewMode: effectiveViewMode,
-      modes: footerModes,
-      onSetViewMode: setViewMode,
-    },
-  };
+    showSearch,
+    searchQuery,
+    searchInputRef,
+    showSidebarButton,
+    sidebarButtonLabel,
+    sidebarButtonText,
+    isSidebarVisible,
+    feedModeControl,
+    handleMarkAllRead,
+    handleSidebarToggle,
+    handleToggleSearch,
+    handleCloseSearch,
+    setSearchQuery,
+    contextStripContext,
+    listRef,
+    viewportRef,
+    handleListKeyDownCapture,
+    isLoading,
+    isLoadingAccountArticles,
+    isLoadingTagArticles,
+    isSearchLoading,
+    isSearchEmptyState,
+    trimmedDebouncedQuery,
+    articleGroups,
+    dimArchived,
+    textPreview,
+    imagePreviews,
+    selectionStyle,
+    selectArticle,
+    effectiveViewMode,
+    footerModes,
+    setViewMode,
+  });
 }
