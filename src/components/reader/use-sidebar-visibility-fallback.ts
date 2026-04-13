@@ -1,18 +1,5 @@
 import { useEffect } from "react";
-import type { UiSelection } from "@/stores/ui-store";
-
-type UseSidebarVisibilityFallbackParams = {
-  firstFeedId: string | null;
-  selection: UiSelection;
-  viewMode: "all" | "unread" | "starred";
-  showSidebarUnread: boolean;
-  showSidebarStarred: boolean;
-  showSidebarTags: boolean;
-  selectFeed: (feedId: string) => void;
-  selectAll: () => void;
-  selectSmartView: (kind: "unread" | "starred") => void;
-  setViewMode: (mode: "all" | "unread" | "starred") => void;
-};
+import type { SidebarVisibilityFallbackParams } from "./sidebar-feed-section.types";
 
 export function useSidebarVisibilityFallback({
   firstFeedId,
@@ -25,7 +12,7 @@ export function useSidebarVisibilityFallback({
   selectAll,
   selectSmartView,
   setViewMode,
-}: UseSidebarVisibilityFallbackParams) {
+}: SidebarVisibilityFallbackParams) {
   const selectedSmartViewKind = selection.type === "smart" ? selection.kind : null;
   const hasSmartUnreadSelection = selectedSmartViewKind === "unread";
   const hasSmartStarredSelection = selectedSmartViewKind === "starred";
