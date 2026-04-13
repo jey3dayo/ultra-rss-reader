@@ -51,6 +51,45 @@ export type SidebarSmartViewsPropsParams = {
   selectSmartView: SmartViewsViewProps["onSelectSmartView"];
 };
 
+export type SidebarAccountSectionPropsParams = {
+  t: TFunction<"sidebar">;
+  selectedAccountName?: string;
+  lastSyncedLabel: string;
+  accounts: SidebarAccountSectionProps["accounts"];
+  accountStatusLabels: SidebarAccountSectionProps["accountStatusLabels"];
+  selectedAccountId: SidebarAccountSectionProps["selectedAccountId"];
+  isAccountListOpen: boolean;
+  accountMenuId: string;
+  accountDropdownRef: SidebarAccountSectionProps["containerRef"];
+  accountTriggerRef: SidebarAccountSectionProps["triggerRef"];
+  accountItemRefs: SidebarAccountSectionProps["itemRefs"];
+  toggleAccountList: () => void;
+  handleSelectAccount: SidebarAccountSectionProps["onSelectAccount"];
+  closeAccountList: () => void;
+};
+
+export type SidebarContentSectionsPropsParams = {
+  t: TFunction<"sidebar">;
+  isFeedsSectionOpen: boolean;
+  toggleFeedsSection: () => void;
+  feedViewportRef: SidebarContentSectionsProps["viewportRef"];
+  openFeedCleanup: () => void;
+  handleOpenSettings: () => void;
+  selectedAccountId: SidebarContentSectionsProps["selectedAccountId"];
+  isAddFeedDialogOpen: boolean;
+  handleAddFeedDialogOpenChange: (open: boolean) => void;
+  showSidebarTags: boolean;
+  isTagsSectionOpen: boolean;
+  toggleTagsSection: () => void;
+  handleOpenAccountSettings: () => void;
+  feedTreeProps: SidebarContentSectionsProps["feedTreeProps"];
+  tags: SidebarContentSectionsProps["tags"];
+  tagArticleCounts: SidebarContentSectionsProps["tagArticleCounts"];
+  selection: SidebarContentSectionsProps["selection"];
+  selectTag: SidebarContentSectionsProps["onSelectTag"];
+  renderTagContextMenu: SidebarContentSectionsProps["renderTagContextMenu"];
+};
+
 export type SidebarSectionPropsParams = {
   t: TFunction<"sidebar">;
   syncProgress: SidebarHeaderPropsParams["syncProgress"];
@@ -88,4 +127,12 @@ export type SidebarSectionPropsParams = {
   selection: SidebarContentSectionsProps["selection"];
   selectTag: SidebarContentSectionsProps["onSelectTag"];
   renderTagContextMenu: SidebarContentSectionsProps["renderTagContextMenu"];
+};
+
+export type SidebarViewPropsParams = {
+  opaqueSidebars: boolean;
+  headerProps: SidebarHeaderProps;
+  accountSectionProps: SidebarAccountProps;
+  smartViewsProps: SmartViewsViewProps;
+  contentSectionsProps: SidebarContentProps;
 };

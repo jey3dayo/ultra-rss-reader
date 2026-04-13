@@ -1,19 +1,5 @@
 import { cn } from "@/lib/utils";
-import type {
-  SidebarAccountProps,
-  SidebarContentProps,
-  SidebarHeaderProps,
-  SidebarViewPropsResult,
-} from "./sidebar.types";
-import type { SmartViewsViewProps } from "./smart-views-view";
-
-type UseSidebarViewPropsParams = {
-  opaqueSidebars: boolean;
-  headerProps: SidebarHeaderProps;
-  accountSectionProps: SidebarAccountProps;
-  smartViewsProps: SmartViewsViewProps;
-  contentSectionsProps: SidebarContentProps;
-};
+import type { SidebarViewPropsParams, SidebarViewPropsResult } from "./sidebar.types";
 
 export function useSidebarViewProps({
   opaqueSidebars,
@@ -21,7 +7,7 @@ export function useSidebarViewProps({
   accountSectionProps,
   smartViewsProps,
   contentSectionsProps,
-}: UseSidebarViewPropsParams): SidebarViewPropsResult {
+}: SidebarViewPropsParams): SidebarViewPropsResult {
   return {
     sidebarClassName: cn(
       "flex h-full flex-col border-r border-border bg-sidebar text-sidebar-foreground",

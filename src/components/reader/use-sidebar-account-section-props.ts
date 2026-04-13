@@ -1,22 +1,5 @@
-import type { TFunction } from "i18next";
+import type { SidebarAccountSectionPropsParams } from "./sidebar.types";
 import type { SidebarAccountSectionProps } from "./sidebar-account-section";
-
-type UseSidebarAccountSectionPropsParams = {
-  t: TFunction<"sidebar">;
-  selectedAccountName?: string;
-  lastSyncedLabel: string;
-  accounts: SidebarAccountSectionProps["accounts"];
-  accountStatusLabels: SidebarAccountSectionProps["accountStatusLabels"];
-  selectedAccountId: SidebarAccountSectionProps["selectedAccountId"];
-  isAccountListOpen: boolean;
-  accountMenuId: string;
-  accountDropdownRef: SidebarAccountSectionProps["containerRef"];
-  accountTriggerRef: SidebarAccountSectionProps["triggerRef"];
-  accountItemRefs: SidebarAccountSectionProps["itemRefs"];
-  toggleAccountList: () => void;
-  handleSelectAccount: SidebarAccountSectionProps["onSelectAccount"];
-  closeAccountList: () => void;
-};
 
 export function useSidebarAccountSectionProps({
   t,
@@ -33,7 +16,7 @@ export function useSidebarAccountSectionProps({
   toggleAccountList,
   handleSelectAccount,
   closeAccountList,
-}: UseSidebarAccountSectionPropsParams): SidebarAccountSectionProps {
+}: SidebarAccountSectionPropsParams): SidebarAccountSectionProps {
   return {
     containerRef: accountDropdownRef,
     title: selectedAccountName ?? t("app_name"),

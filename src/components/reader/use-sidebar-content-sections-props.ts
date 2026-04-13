@@ -1,27 +1,5 @@
-import type { TFunction } from "i18next";
+import type { SidebarContentSectionsPropsParams } from "./sidebar.types";
 import type { SidebarContentSectionsProps } from "./sidebar-content-sections";
-
-type UseSidebarContentSectionsPropsParams = {
-  t: TFunction<"sidebar">;
-  isFeedsSectionOpen: boolean;
-  toggleFeedsSection: () => void;
-  feedViewportRef: SidebarContentSectionsProps["viewportRef"];
-  openFeedCleanup: () => void;
-  handleOpenSettings: () => void;
-  selectedAccountId: SidebarContentSectionsProps["selectedAccountId"];
-  isAddFeedDialogOpen: boolean;
-  handleAddFeedDialogOpenChange: (open: boolean) => void;
-  showSidebarTags: boolean;
-  isTagsSectionOpen: boolean;
-  toggleTagsSection: () => void;
-  handleOpenAccountSettings: () => void;
-  feedTreeProps: SidebarContentSectionsProps["feedTreeProps"];
-  tags: SidebarContentSectionsProps["tags"];
-  tagArticleCounts: SidebarContentSectionsProps["tagArticleCounts"];
-  selection: SidebarContentSectionsProps["selection"];
-  selectTag: SidebarContentSectionsProps["onSelectTag"];
-  renderTagContextMenu: SidebarContentSectionsProps["renderTagContextMenu"];
-};
 
 export function useSidebarContentSectionsProps({
   t,
@@ -43,7 +21,7 @@ export function useSidebarContentSectionsProps({
   selection,
   selectTag,
   renderTagContextMenu,
-}: UseSidebarContentSectionsPropsParams): SidebarContentSectionsProps {
+}: SidebarContentSectionsPropsParams): SidebarContentSectionsProps {
   return {
     subscriptionsLabel: t("subscriptions"),
     isFeedsSectionOpen,
