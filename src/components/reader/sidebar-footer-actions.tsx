@@ -1,20 +1,14 @@
 import { FolderTree, Settings } from "lucide-react";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
 import { Button } from "@/components/ui/button";
-
-type SidebarFooterActionsProps = {
-  feedCleanupLabel: string;
-  settingsLabel: string;
-  onOpenFeedCleanup: () => void;
-  onOpenSettings: () => void;
-};
+import type { SidebarFooterActionsViewProps } from "./sidebar.types";
 
 export function SidebarFooterActions({
   feedCleanupLabel,
   settingsLabel,
   onOpenFeedCleanup,
   onOpenSettings,
-}: SidebarFooterActionsProps) {
+}: SidebarFooterActionsViewProps) {
   return (
     <div className="flex h-10 items-center justify-center gap-1.5 border-t border-border bg-sidebar px-2">
       <Button

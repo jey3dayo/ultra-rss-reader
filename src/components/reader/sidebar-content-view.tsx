@@ -1,21 +1,7 @@
-import type { ReactNode, RefObject } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type { SidebarContentViewProps } from "./sidebar.types";
 import { SidebarFeedSection } from "./sidebar-feed-section";
 import { SidebarFooterActions } from "./sidebar-footer-actions";
-
-type SidebarContentViewProps = {
-  subscriptionsLabel: string;
-  isFeedsSectionOpen: boolean;
-  onToggleFeedsSection: () => void;
-  viewportRef: RefObject<HTMLDivElement | null>;
-  feedTree: ReactNode;
-  tagSection: ReactNode;
-  feedCleanupLabel: string;
-  settingsLabel: string;
-  onOpenFeedCleanup: () => void;
-  onOpenSettings: () => void;
-  addFeedDialog?: ReactNode;
-};
 
 export function SidebarContentView({
   subscriptionsLabel,

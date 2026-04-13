@@ -1,9 +1,10 @@
 import type { TFunction } from "i18next";
+import type { ReactNode, RefObject } from "react";
+import type { FeedTreeViewProps } from "./feed-tree-view";
 import type { SidebarAccountSectionProps } from "./sidebar-account-section";
 import type { SidebarContentSectionsProps } from "./sidebar-content-sections";
 import type { SidebarSelection } from "./sidebar-feed-tree.types";
 import type { SidebarHeaderViewProps } from "./sidebar-header-view";
-import type { FeedTreeViewProps } from "./feed-tree-view";
 import type { SmartViewsViewProps } from "./smart-views-view";
 
 export type SidebarHeaderProps = SidebarHeaderViewProps;
@@ -136,6 +137,33 @@ export type SidebarViewPropsParams = {
   accountSectionProps: SidebarAccountProps;
   smartViewsProps: SmartViewsViewProps;
   contentSectionsProps: SidebarContentProps;
+};
+
+export type SidebarFeedSectionViewProps = {
+  title: string;
+  isOpen: boolean;
+  onToggle: () => void;
+};
+
+export type SidebarFooterActionsViewProps = {
+  feedCleanupLabel: string;
+  settingsLabel: string;
+  onOpenFeedCleanup: () => void;
+  onOpenSettings: () => void;
+};
+
+export type SidebarContentViewProps = {
+  subscriptionsLabel: string;
+  isFeedsSectionOpen: boolean;
+  onToggleFeedsSection: () => void;
+  viewportRef: RefObject<HTMLDivElement | null>;
+  feedTree: ReactNode;
+  tagSection: ReactNode;
+  feedCleanupLabel: string;
+  settingsLabel: string;
+  onOpenFeedCleanup: () => void;
+  onOpenSettings: () => void;
+  addFeedDialog?: ReactNode;
 };
 
 export type SidebarContextMenuRenderersResult = {

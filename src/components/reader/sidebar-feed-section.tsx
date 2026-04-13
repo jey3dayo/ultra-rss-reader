@@ -1,11 +1,6 @@
 import { SidebarSectionShell } from "@/components/shared/sidebar-section-shell";
+import type { SidebarFeedSectionViewProps } from "./sidebar.types";
 
-type SidebarFeedSectionProps = {
-  title: string;
-  isOpen: boolean;
-  onToggle: () => void;
-};
-
-export function SidebarFeedSection({ title, isOpen, onToggle }: SidebarFeedSectionProps) {
+export function SidebarFeedSection({ title, isOpen, onToggle }: SidebarFeedSectionViewProps) {
   return <SidebarSectionShell title={title} isOpen={isOpen} onToggle={onToggle} />;
 }
