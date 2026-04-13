@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { APP_EVENTS } from "@/constants/events";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useAccountArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -27,10 +26,11 @@ import type { TagListItemViewModel } from "./tag-list-view";
 import { useSidebarAccountSelection } from "./use-sidebar-account-selection";
 import { useSidebarAccountSwitcher } from "./use-sidebar-account-switcher";
 import { useSidebarFeedDragState } from "./use-sidebar-feed-drag-state";
+import { useSidebarFeedNavigation } from "./use-sidebar-feed-navigation";
 import { useSidebarFeedTree } from "./use-sidebar-feed-tree";
 import { useSidebarStartupFolderExpansion } from "./use-sidebar-startup-folder-expansion";
-import { useSidebarVisibilityFallback } from "./use-sidebar-visibility-fallback";
 import { useSidebarSync } from "./use-sidebar-sync";
+import { useSidebarVisibilityFallback } from "./use-sidebar-visibility-fallback";
 
 export function Sidebar() {
   const { t } = useTranslation("sidebar");
@@ -230,52 +230,14 @@ export function Sidebar() {
     setViewMode,
   });
 
-  const navigateFeed = useCallback(
-    (direction: 1 | -1) => {
-      if (orderedFeedIds.length === 0) return;
-      const currentIndex = selectedFeedId ? orderedFeedIds.indexOf(selectedFeedId) : -1;
-      let nextIndex: number;
-      if (currentIndex === -1) {
-        // No feed selected: go to first (next) or last (prev)
-        nextIndex = direction === 1 ? 0 : orderedFeedIds.length - 1;
-      } else {
-        nextIndex = currentIndex + direction;
-        // Clamp to bounds
-        if (nextIndex < 0 || nextIndex >= orderedFeedIds.length) return;
-      }
-      const nextFeedId = orderedFeedIds[nextIndex];
-      if (!nextFeedId) {
-        return;
-      }
-
-      const nextFeedFolderId = feedById.get(nextFeedId)?.folder_id;
-      if (nextFeedFolderId && !expandedFolderIds.has(nextFeedFolderId)) {
-        setExpandedFolders([...expandedFolderIds, nextFeedFolderId]);
-      }
-
-      selectFeed(nextFeedId);
-      requestAnimationFrame(() => {
-        const nextFeedButton = document.querySelector<HTMLButtonElement>(`[data-feed-id="${nextFeedId}"]`);
-        if (!nextFeedButton) {
-          return;
-        }
-
-        nextFeedButton.focus({ preventScroll: true });
-        nextFeedButton.scrollIntoView?.({ block: "nearest", inline: "nearest" });
-      });
-    },
-    [expandedFolderIds, feedById, orderedFeedIds, selectFeed, selectedFeedId, setExpandedFolders],
-  );
-
-  // Listen for feed navigation events from keyboard shortcuts / menu
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const direction = (e as CustomEvent<1 | -1>).detail;
-      navigateFeed(direction);
-    };
-    window.addEventListener(APP_EVENTS.navigateFeed, handler);
-    return () => window.removeEventListener(APP_EVENTS.navigateFeed, handler);
-  }, [navigateFeed]);
+  useSidebarFeedNavigation({
+    orderedFeedIds,
+    selectedFeedId,
+    expandedFolderIds,
+    getFeedFolderId: (feedId) => feedById.get(feedId)?.folder_id,
+    setExpandedFolders,
+    selectFeed,
+  });
 
   const handleDropToFolderRequest = useCallback(
     (folderId: string) => {
