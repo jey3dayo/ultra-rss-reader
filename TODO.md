@@ -636,6 +636,11 @@
   - 対応: `feed-tree.types.ts` に feed/folder/drop target/view props contract を集約して、drag/sidebar helper と view component は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/feed-tree.types.ts`, `src/components/reader/feed-tree-view.tsx`, `src/components/reader/feed-tree-folder-section.tsx`, `src/components/reader/feed-tree-row.tsx`, `src/components/reader/use-feed-tree-drag.ts`, `src/components/reader/use-sidebar-feed-tree.ts`
 
+- [x] feed-tree drag hook の contract を shared types に寄せる
+  - 問題: `use-feed-tree-drag.ts` に drag params/result contract が local 定義で残っていて、feed tree drag 境界の正本を追いにくかった
+  - 対応: `feed-tree.types.ts` に drag params/result contract を追加して、drag hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/feed-tree.types.ts`, `src/components/reader/use-feed-tree-drag.ts`
+
 - [x] sidebar runtime の返り値 contract を shared types に寄せる
   - 問題: `use-sidebar-runtime.ts` の返り値が暗黙型のままで、account switcher / ui state / sources / sync を束ねた runtime 境界の正本を追いにくかった
   - 対応: `sidebar-runtime.types.ts` に account switcher / ui state / runtime result contract を切り出して、関連 hooks は shared types を再利用する形に寄せた
@@ -644,7 +649,22 @@
 - [x] sidebar feed drag state の contract を shared types に寄せる
   - 問題: `use-sidebar-feed-drag-state.ts` に drag state params/result と `feedById` の最小 shape が local 定義で残っていて、feed section 内の drag 境界の正本を追いにくかった
   - 対応: `sidebar-feed-section.types.ts` に drag state params/result contract を追加して、drag state hook と feed tree props helper は shared types を再利用する形に寄せた
-  - 対象: `src/components/reader/sidebar-feed-section.types.ts`, `src/components/reader/use-sidebar-feed-drag-state.ts`, `src/components/reader/use-sidebar-feed-tree-props.ts`
+  - 対象: `src/components/reader/sidebar-feed-section.types.ts`, `src/components/reader/use-sidebar-feed-drag-state.ts`
+
+- [x] feed-tree drag hook の contract を shared types に寄せる
+  - 問題: `use-feed-tree-drag.ts` に params/result alias が local 定義で残っていて、drag hook 境界の正本が hook file に閉じていた
+  - 対応: `feed-tree.types.ts` に `UseFeedTreeDragParams` / `UseFeedTreeDragResult` を追加して、drag hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/feed-tree.types.ts`, `src/components/reader/use-feed-tree-drag.ts`
+
+- [x] sidebar feed navigation の contract を shared types に寄せる
+  - 問題: `use-sidebar-feed-navigation.ts` に navigation params が local 定義で残っていて、feed section 内の navigation 境界の正本を追いにくかった
+  - 対応: `sidebar-feed-section.types.ts` に navigation params contract を追加して、navigation hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar-feed-section.types.ts`, `src/components/reader/use-sidebar-feed-navigation.ts`
+
+- [x] sidebar smart views hook の contract を shared types に寄せる
+  - 問題: `use-sidebar-smart-views.ts` に smart view params が local 定義で残っていて、sidebar section が束ねる smart views 境界の正本を追いにくかった
+  - 対応: `sidebar.types.ts` に smart views params/result contract を追加して、smart views hook と section props helper は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar.types.ts`, `src/components/reader/use-sidebar-smart-views.ts`, `src/components/reader/use-sidebar-smart-views-props.ts`
 
 ## 2026-04-13 Premortem フォローアップ
 
