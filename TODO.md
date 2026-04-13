@@ -631,6 +631,11 @@
   - 対応: `sidebar-tag-items.types.ts` に params/item contract を切り出して、`use-sidebar-tag-items.ts` と `tag-list-view.tsx` と `sidebar-content-sections.tsx` は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/sidebar-tag-items.types.ts`, `src/components/reader/use-sidebar-tag-items.ts`, `src/components/reader/tag-list-view.tsx`, `src/components/reader/sidebar-content-sections.tsx`
 
+- [x] sidebar runtime の返り値 contract を shared types に寄せる
+  - 問題: `use-sidebar-runtime.ts` の返り値が暗黙型のままで、account switcher / ui state / sources / sync を束ねた runtime 境界の正本を追いにくかった
+  - 対応: `sidebar-runtime.types.ts` に account switcher / ui state / runtime result contract を切り出して、関連 hooks は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar-runtime.types.ts`, `src/components/reader/use-sidebar-account-switcher.ts`, `src/components/reader/use-sidebar-ui-state.ts`, `src/components/reader/use-sidebar-runtime.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
