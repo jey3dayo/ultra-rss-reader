@@ -1,19 +1,12 @@
 import { Result } from "@praha/byethrow";
-import {
-  type KeyboardEvent as ReactKeyboardEvent,
-  type RefObject,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-} from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, type RefObject, useCallback, useMemo, useRef } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { APP_EVENTS } from "@/constants/events";
 import { calculateArticleNavigationScrollTop, getAdjacentArticleId } from "@/lib/article-list";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
-import { buildKeyToActionMap, keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
+import { buildKeyToActionMap, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
 import { handleArticleListKeyboardAction } from "./article-list-keyboard-action";
+import { useArticleListGlobalEvents } from "./use-article-list-global-events";
 
 type UseArticleListInteractionsParams = {
   filteredArticles: ArticleDto[];
@@ -89,33 +82,11 @@ export function useArticleListInteractions({
     [filteredArticles, selectedArticleId, selectArticle],
   );
 
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const direction = (event as CustomEvent<1 | -1>).detail;
-      navigateArticle(direction);
-    };
-
-    window.addEventListener(APP_EVENTS.navigateArticle, handler);
-    return () => {
-      window.removeEventListener(APP_EVENTS.navigateArticle, handler);
-    };
-  }, [navigateArticle]);
-
-  useEffect(() => {
-    const handleFocusSearch = () => {
-      openSearch();
-    };
-    const handleMarkAllReadEvent = () => {
-      handleMarkAllRead();
-    };
-
-    window.addEventListener(keyboardEvents.focusSearch, handleFocusSearch);
-    window.addEventListener(keyboardEvents.markAllRead, handleMarkAllReadEvent);
-    return () => {
-      window.removeEventListener(keyboardEvents.focusSearch, handleFocusSearch);
-      window.removeEventListener(keyboardEvents.markAllRead, handleMarkAllReadEvent);
-    };
-  }, [handleMarkAllRead, openSearch]);
+  useArticleListGlobalEvents({
+    onNavigateArticle: navigateArticle,
+    onFocusSearch: openSearch,
+    onMarkAllRead: handleMarkAllRead,
+  });
 
   const handleListKeyDownCapture = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
