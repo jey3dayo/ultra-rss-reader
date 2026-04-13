@@ -7,7 +7,6 @@ import type { UiSelection } from "@/stores/ui-store";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 import type { UseArticleListEffectsParams } from "./use-article-list-effects";
 import type { UseArticleListGroupsParams } from "./use-article-list-groups";
-import type { UseArticleListHeaderControlsResult } from "./use-article-list-header-controls";
 import type { UseArticleListInteractionsParams } from "./use-article-list-interactions";
 import type { UseArticleListViewPropsParams } from "./use-article-list-view-props";
 import type { UseArticleListViewStateParams } from "./use-article-list-view-state";
@@ -88,6 +87,13 @@ export type ArticleListFooterProps = {
   viewMode: ArticleListViewMode;
   modes?: readonly ArticleListViewMode[];
   onSetViewMode: (mode: ArticleListViewMode) => void;
+};
+
+export type ArticleListFeedModeControlProps = {
+  ariaLabel: string;
+  value: FeedDisplayPresetOption;
+  options: Array<{ value: FeedDisplayPresetOption; label: string }>;
+  onValueChange: (value: FeedDisplayPresetOption) => void;
 };
 
 export type UseArticleListViewPropsResult = {
@@ -179,6 +185,15 @@ export type UseArticleListHeaderControlsParams = {
   onSetDisplayMode: (value: FeedDisplayPresetOption) => void;
   openSidebar: () => void;
   toggleSidebar: () => void;
+};
+
+export type UseArticleListHeaderControlsResult = {
+  showSidebarButton: boolean;
+  sidebarButtonLabel: string;
+  sidebarButtonText?: string;
+  isSidebarVisible?: boolean;
+  feedModeControl: ReactNode;
+  handleSidebarToggle: () => void;
 };
 
 export type UseArticleListBodyPropsParams = {

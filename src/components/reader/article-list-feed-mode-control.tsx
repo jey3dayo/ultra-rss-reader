@@ -1,12 +1,6 @@
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FeedDisplayPresetOption } from "@/lib/article-display";
-
-type ArticleListFeedModeControlProps = {
-  ariaLabel: string;
-  value: FeedDisplayPresetOption;
-  options: Array<{ value: FeedDisplayPresetOption; label: string }>;
-  onValueChange: (value: FeedDisplayPresetOption) => void;
-};
+import type { ArticleListFeedModeControlProps } from "./article-list.types";
 
 export function ArticleListFeedModeControl({
   ariaLabel,
