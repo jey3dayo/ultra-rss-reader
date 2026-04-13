@@ -1,4 +1,4 @@
-import type { ActiveDropTarget } from "./feed-tree-folder-section";
+import type { ActiveDropTarget } from "./feed-tree.types";
 
 export const FEED_DROP_TARGET_KIND_ATTRIBUTE = "data-feed-drop-kind";
 export const FEED_DROP_TARGET_ID_ATTRIBUTE = "data-feed-drop-target";

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import type { SidebarAccountSwitcherResult } from "./sidebar-runtime.types";
 
-export function useSidebarAccountSwitcher() {
+export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
   const [isAccountListOpen, setIsAccountListOpen] = useState(false);
   const accountDropdownRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);

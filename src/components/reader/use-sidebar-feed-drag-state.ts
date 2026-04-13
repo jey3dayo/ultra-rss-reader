@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { ActiveDropTarget } from "./feed-tree-view";
+import type { ActiveDropTarget } from "./feed-tree.types";
 
 type FeedDragStateFeed = {
   folder_id: string | null;

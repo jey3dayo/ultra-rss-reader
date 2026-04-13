@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { ActiveDropTarget } from "./feed-tree-folder-section";
+import type { ActiveDropTarget } from "./feed-tree.types";
 
 type ApplyFeedTreeHoverTargetParams = {
   target: ActiveDropTarget;

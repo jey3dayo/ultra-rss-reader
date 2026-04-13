@@ -1,5 +1,4 @@
-import type { ActiveDropTarget } from "./feed-tree-folder-section";
-import type { FeedTreeFeedViewModel } from "./feed-tree-row";
+import type { ActiveDropTarget, FeedTreeFeedViewModel } from "./feed-tree.types";
 
 const POINTER_DRAG_THRESHOLD = 6;
 

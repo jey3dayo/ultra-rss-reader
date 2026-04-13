@@ -1,41 +1,11 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "./feed-tree-drop-target";
-import { type FeedTreeFeedViewModel, FeedTreeRow } from "./feed-tree-row";
+import type { FeedTreeFolderSectionProps } from "./feed-tree.types";
+import { FeedTreeRow } from "./feed-tree-row";
 import { SidebarNavButton } from "./sidebar-nav-button";
-
-export type FeedTreeFolderViewModel = {
-  id: string;
-  name: string;
-  accountId: string;
-  sortOrder: number;
-  unreadCount: number;
-  isExpanded: boolean;
-  isSelected: boolean;
-  feeds: FeedTreeFeedViewModel[];
-};
-
-export type ActiveDropTarget = { kind: "folder"; folderId: string } | { kind: "unfoldered" } | null;
-
-export type FeedTreeFolderSectionProps = {
-  folder: FeedTreeFolderViewModel;
-  activeDropTarget: ActiveDropTarget;
-  draggedFeedId?: string | null;
-  onToggleFolder: (folderId: string) => void;
-  onSelectFolder?: (folderId: string) => void;
-  onSelectFeed: (feedId: string) => void;
-  displayFavicons: boolean;
-  renderFolderContextMenu?: (folder: FeedTreeFolderViewModel) => ReactNode;
-  renderFeedContextMenu?: (feed: FeedTreeFeedViewModel) => ReactNode;
-  canDragFeeds?: boolean;
-  onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
-  onDropToFolder?: (folderId: string) => void;
-  onPointerDownFeed?: (feed: FeedTreeFeedViewModel, event: ReactPointerEvent<HTMLButtonElement>) => void;
-  consumeSuppressedHandleClick?: () => boolean;
-};
 
 export function FeedTreeFolderSection({
   folder,

@@ -1,5 +1,5 @@
 import { FeedFavicon } from "@/components/shared/feed-favicon";
-import type { FeedTreeFeedViewModel } from "./feed-tree-row";
+import type { FeedTreeFeedViewModel } from "./feed-tree.types";
 
 export type FeedTreeDragOverlayPreview = {
   feed: FeedTreeFeedViewModel;

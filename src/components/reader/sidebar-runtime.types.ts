@@ -1,0 +1,72 @@
+import type { Dispatch, RefObject, SetStateAction } from "react";
+import type { DevIntent } from "@/lib/dev-intent";
+import type { useUiStore } from "@/stores/ui-store";
+import type { SidebarSourcesResult } from "./sidebar-sources.types";
+import type { SidebarSyncResult } from "./sidebar-sync.types";
+
+type SidebarUiStoreState = ReturnType<typeof useUiStore.getState>;
+
+export type SidebarAccountSwitcherResult = {
+  isAccountListOpen: boolean;
+  accountDropdownRef: RefObject<HTMLDivElement | null>;
+  accountTriggerRef: RefObject<HTMLButtonElement | null>;
+  accountItemRefs: RefObject<Array<HTMLButtonElement | null>>;
+  accountMenuId: string;
+  closeAccountList: (restoreFocus?: boolean) => void;
+  toggleAccountList: () => void;
+};
+
+export type SidebarUiStateResult = Pick<
+  SidebarUiStoreState,
+  | "layoutMode"
+  | "selectedAccountId"
+  | "selectAccount"
+  | "restoreAccountSelection"
+  | "clearSelectedAccount"
+  | "selection"
+  | "viewMode"
+  | "selectFeed"
+  | "selectFolder"
+  | "selectAll"
+  | "selectSmartView"
+  | "selectTag"
+  | "setViewMode"
+  | "expandedFolderIds"
+  | "setExpandedFolders"
+  | "toggleFolder"
+  | "openSettings"
+  | "openFeedCleanup"
+  | "isAddFeedDialogOpen"
+  | "openAddFeedDialog"
+  | "closeAddFeedDialog"
+  | "setSettingsAddAccount"
+  | "showToast"
+  | "syncProgress"
+  | "applySyncProgress"
+  | "clearSyncProgress"
+> & {
+  showUnreadCount: boolean;
+  showStarredCount: boolean;
+  showSidebarUnread: boolean;
+  showSidebarStarred: boolean;
+  showSidebarTags: boolean;
+  displayFavicons: boolean;
+  grayscaleFavicons: boolean;
+  sortSubscriptions: string;
+  startupFolderExpansion: "all_collapsed" | "restore_previous" | "unread_folders";
+  opaqueSidebars: boolean;
+  savedAccountId: string;
+  setPref: (key: string, value: string) => void;
+};
+
+export type SidebarRuntimeResult = SidebarAccountSwitcherResult &
+  SidebarUiStateResult &
+  SidebarSourcesResult &
+  SidebarSyncResult & {
+    isFeedsSectionOpen: boolean;
+    setIsFeedsSectionOpen: Dispatch<SetStateAction<boolean>>;
+    isTagsSectionOpen: boolean;
+    setIsTagsSectionOpen: Dispatch<SetStateAction<boolean>>;
+    feedViewportRef: RefObject<HTMLDivElement | null>;
+    activeDevIntent: DevIntent;
+  };

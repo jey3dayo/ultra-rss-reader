@@ -4,8 +4,7 @@ import {
   createFeedTreePointerDragSession,
   type FeedTreePointerDragSession,
 } from "./feed-tree-drag-session";
-import type { ActiveDropTarget } from "./feed-tree-folder-section";
-import type { FeedTreeFeedViewModel } from "./feed-tree-row";
+import type { ActiveDropTarget, FeedTreeFeedViewModel } from "./feed-tree.types";
 import { useFeedTreeHandleClickSuppression } from "./use-feed-tree-handle-click-suppression";
 import { useFeedTreePointerDragEvents } from "./use-feed-tree-pointer-drag-events";
 

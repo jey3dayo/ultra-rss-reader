@@ -3,9 +3,8 @@ import { applyFeedTreePointerDropOutcome, resolveFeedTreePointerDropOutcome } fr
 import type { FeedTreeDragOverlayPreview } from "./feed-tree-drag-overlay";
 import { getFeedTreePointerDragSessionForPointer, shouldStartFeedTreePointerDrag, updateFeedTreePointerDragSessionPosition } from "./feed-tree-drag-session";
 import { getFeedDropTargetAtPoint, isSameFeedDropTarget } from "./feed-tree-drop-target";
-import type { ActiveDropTarget } from "./feed-tree-folder-section";
+import type { ActiveDropTarget, FeedTreeFeedViewModel } from "./feed-tree.types";
 import { applyFeedTreeHoverTarget } from "./feed-tree-hover-target";
-import type { FeedTreeFeedViewModel } from "./feed-tree-row";
 
 type UseFeedTreePointerDragEventsParams = {
   isPointerTracking: boolean;

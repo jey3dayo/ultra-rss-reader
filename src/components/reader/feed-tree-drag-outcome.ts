@@ -1,5 +1,5 @@
 import type { FeedTreePointerDragSession } from "./feed-tree-drag-session";
-import type { ActiveDropTarget } from "./feed-tree-folder-section";
+import type { ActiveDropTarget } from "./feed-tree.types";
 
 export type FeedTreePointerDropOutcome =
   | { type: "clear" }

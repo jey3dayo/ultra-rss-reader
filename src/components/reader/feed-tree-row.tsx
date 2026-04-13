@@ -3,23 +3,11 @@ import { GripVertical } from "lucide-react";
 import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
-import type { TriStateDisplayMode } from "@/lib/article-display";
 import { cn } from "@/lib/utils";
+import type { FeedTreeFeedViewModel } from "./feed-tree.types";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
-export type FeedTreeFeedViewModel = {
-  id: string;
-  accountId: string;
-  folderId: string | null;
-  title: string;
-  url: string;
-  siteUrl: string;
-  unreadCount: number;
-  readerMode: TriStateDisplayMode;
-  webPreviewMode: TriStateDisplayMode;
-  isSelected: boolean;
-  grayscaleFavicon: boolean;
-};
+export type { FeedTreeFeedViewModel } from "./feed-tree.types";
 
 type DragHandleProps = {
   feedTitle: string;

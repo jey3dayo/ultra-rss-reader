@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { type FeedTreeFeedViewModel, FeedTreeRow } from "./feed-tree-row";
+import type { FeedTreeFeedViewModel } from "./feed-tree.types";
+import { FeedTreeRow } from "./feed-tree-row";
 
 type FeedTreeUnfolderedSectionProps = {
   unfolderedFeeds: FeedTreeFeedViewModel[];

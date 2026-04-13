@@ -1,46 +1,12 @@
-import type { ReactNode } from "react";
 import { FeedTreeDragOverlay } from "./feed-tree-drag-overlay";
 import { FeedTreeEmptyState } from "./feed-tree-empty-state";
-import { type ActiveDropTarget, FeedTreeFolderSection, type FeedTreeFolderViewModel } from "./feed-tree-folder-section";
-import type { FeedTreeFeedViewModel } from "./feed-tree-row";
+import { FeedTreeFolderSection } from "./feed-tree-folder-section";
+import type { FeedTreeViewProps } from "./feed-tree.types";
 import { FeedTreeUnfolderedDropZone } from "./feed-tree-unfoldered-drop-zone";
 import { FeedTreeUnfolderedSection } from "./feed-tree-unfoldered-section";
 import { useFeedTreeDrag } from "./use-feed-tree-drag";
 
-export type { ActiveDropTarget, FeedTreeFolderViewModel } from "./feed-tree-folder-section";
-export type { FeedTreeFeedViewModel } from "./feed-tree-row";
-
-export type FeedTreeViewProps = {
-  isOpen: boolean;
-  folders: FeedTreeFolderViewModel[];
-  unfolderedFeeds: FeedTreeFeedViewModel[];
-  unfolderedLabel?: string;
-  onToggleFolder: (folderId: string) => void;
-  onSelectFolder?: (folderId: string) => void;
-  onSelectFeed: (feedId: string) => void;
-  displayFavicons: boolean;
-  emptyState:
-    | {
-        kind: "message";
-        message: string;
-      }
-    | {
-        kind: "action";
-        label: string;
-        onAction: () => void;
-      };
-  renderFolderContextMenu?: (folder: FeedTreeFolderViewModel) => ReactNode;
-  renderFeedContextMenu?: (feed: FeedTreeFeedViewModel) => ReactNode;
-  canDragFeeds?: boolean;
-  draggedFeedId?: string | null;
-  activeDropTarget?: ActiveDropTarget;
-  onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
-  onDragEnterFolder?: (folderId: string) => void;
-  onDragEnterUnfoldered?: () => void;
-  onDropToFolder?: (folderId: string) => void;
-  onDropToUnfoldered?: () => void;
-  onDragEnd?: () => void;
-};
+export type { ActiveDropTarget, FeedTreeFeedViewModel, FeedTreeFolderViewModel, FeedTreeViewProps } from "./feed-tree.types";
 
 export function FeedTreeView({
   isOpen,

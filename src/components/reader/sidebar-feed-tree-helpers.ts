@@ -1,6 +1,6 @@
 import type { FeedDto } from "@/api/tauri-commands";
 import type { SidebarFeedTreeViewMode } from "./sidebar-feed-tree.types";
-import type { FeedTreeFeedViewModel } from "./feed-tree-row";
+import type { FeedTreeFeedViewModel } from "./feed-tree.types";
 
 type SortFeeds = (candidateFeeds: FeedDto[]) => FeedDto[];
 
