@@ -33,7 +33,13 @@ export function AccountSyncSectionView({
       ) : null}
       {onSyncNow && (
         <div className="pt-3">
-          <LoadingButton size="sm" onClick={onSyncNow} loading={isSyncing} loadingLabel={syncingLabel}>
+          <LoadingButton
+            size="sm"
+            className="w-full justify-center sm:w-auto"
+            onClick={onSyncNow}
+            loading={isSyncing}
+            loadingLabel={syncingLabel}
+          >
             {syncNowLabel}
           </LoadingButton>
         </div>

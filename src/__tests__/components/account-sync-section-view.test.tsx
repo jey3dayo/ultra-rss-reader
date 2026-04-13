@@ -124,6 +124,8 @@ describe("AccountSyncSectionView", () => {
     const button = screen.getByRole("button", { name: "Syncing..." });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button).toHaveClass("w-full");
+    expect(button).toHaveClass("sm:w-auto");
     expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
   });
 });

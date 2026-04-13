@@ -26,7 +26,9 @@ describe("AccountDangerZoneView", () => {
     await user.click(screen.getByRole("button", { name: "Export OPML" }));
     await user.click(screen.getByRole("button", { name: "Delete account" }));
 
+    expect(screen.getByRole("button", { name: "Export OPML" })).toHaveClass("w-full");
     expect(screen.getByRole("button", { name: "Delete account" })).toHaveAttribute("data-delete-button");
+    expect(screen.getByRole("button", { name: "Delete account" })).toHaveClass("w-full");
     expect(onExport).toHaveBeenCalledTimes(1);
     expect(onRequestDelete).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("This action cannot be undone.")).not.toBeInTheDocument();
@@ -53,6 +55,8 @@ describe("AccountDangerZoneView", () => {
 
     expect(screen.getByText("This action cannot be undone.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete" })).toHaveAttribute("data-delete-button");
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("w-full");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("w-full");
 
     await user.click(screen.getByRole("button", { name: "Delete" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
