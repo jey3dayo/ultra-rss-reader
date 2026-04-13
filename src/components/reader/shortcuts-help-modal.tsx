@@ -1,8 +1,16 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandShortcut,
+} from "@/components/ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from "@/components/ui/command";
-import { getShortcutDisplay, shortcutDefinitions, type ShortcutDefinition } from "@/lib/keyboard-shortcuts";
+import { getShortcutDisplay, type ShortcutDefinition, shortcutDefinitions } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 

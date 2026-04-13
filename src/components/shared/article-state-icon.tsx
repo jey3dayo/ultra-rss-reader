@@ -1,5 +1,5 @@
-import type { ComponentProps } from "react";
 import { Star } from "lucide-react";
+import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 type UnreadIconProps = {
@@ -26,11 +26,5 @@ export function UnreadIcon({ unread, className }: UnreadIconProps) {
 }
 
 export function StarIcon({ starred, className, ...props }: StarIconProps) {
-  return (
-    <Star
-      className={cn(className, starred && "fill-yellow-400 text-yellow-400")}
-      aria-hidden="true"
-      {...props}
-    />
-  );
+  return <Star className={cn(className, starred && "fill-yellow-400 text-yellow-400")} aria-hidden="true" {...props} />;
 }

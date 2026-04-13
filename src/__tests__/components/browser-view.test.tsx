@@ -3,8 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
-import { usePreferencesStore } from "@/stores/preferences-store";
 import { usePlatformStore } from "@/stores/platform-store";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { type MockTauriCommandCall, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
@@ -173,11 +173,11 @@ describe("BrowserView", () => {
       value: 1,
     });
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
-    getBoundingClientRectSpy = vi
-      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
-      .mockImplementation(function (this: HTMLElement) {
-        return createDomRect(resolveMockRect(this));
-      });
+    getBoundingClientRectSpy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return createDomRect(resolveMockRect(this));
+    });
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     usePlatformStore.setState(usePlatformStore.getInitialState());

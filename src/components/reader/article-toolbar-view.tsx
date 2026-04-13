@@ -38,10 +38,7 @@ export type ArticleToolbarViewProps = {
   onOpenInExternalBrowser: () => void;
 };
 
-export type ArticleToolbarActionStripProps = Omit<
-  ArticleToolbarViewProps,
-  "showCloseButton" | "onCloseView"
->;
+export type ArticleToolbarActionStripProps = Omit<ArticleToolbarViewProps, "showCloseButton" | "onCloseView">;
 
 export function ArticleToolbarActionStrip({
   canToggleRead,

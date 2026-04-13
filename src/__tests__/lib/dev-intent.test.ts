@@ -1,10 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  parseDevIntent,
-  readDevIntent,
-  readDevWebUrl,
-  readDevWindowSize,
-} from "@/lib/dev-intent";
+import { parseDevIntent, readDevIntent, readDevWebUrl, readDevWindowSize } from "@/lib/dev-intent";
 
 describe("dev-intent helpers", () => {
   afterEach(() => {

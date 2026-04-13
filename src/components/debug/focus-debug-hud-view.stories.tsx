@@ -85,7 +85,8 @@ export const LongJapaneseGeometry: Story = {
     defaultExpanded: true,
     defaultShowGeometry: true,
     selectedArticleId: "70781cf0-19a3-4d98-b6be-cd11a3cefdd3:tag:google.com,2005:reader/item/00064ece7c8032fc",
-    activeElementDescription: "div | article=70781cf0-19a3-4d98-b6be-cd11a3cefdd3:tag:google.com,2005:reader/item/00064ece7c8032fc | role=option | label=我々が築き、掘っている未来",
+    activeElementDescription:
+      "div | article=70781cf0-19a3-4d98-b6be-cd11a3cefdd3:tag:google.com,2005:reader/item/00064ece7c8032fc | role=option | label=我々が築き、掘っている未来",
     browserGeometryRows: [
       { label: "viewport", value: "1274 x 801" },
       { label: "host", value: "1274 x 745" },

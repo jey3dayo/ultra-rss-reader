@@ -1,4 +1,12 @@
-import { CircleHelpIcon, FlaskConicalIcon, HashIcon, NewspaperIcon, RefreshCwIcon, RssIcon, SettingsIcon } from "lucide-react";
+import {
+  CircleHelpIcon,
+  FlaskConicalIcon,
+  HashIcon,
+  NewspaperIcon,
+  RefreshCwIcon,
+  RssIcon,
+  SettingsIcon,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchArticles } from "@/hooks/use-articles";

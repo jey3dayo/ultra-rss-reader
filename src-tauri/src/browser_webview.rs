@@ -308,7 +308,11 @@ fn normalize_saved_browser_shortcut(binding: &str) -> Option<String> {
     let mut shift = false;
     let mut key: Option<&str> = None;
 
-    for segment in binding.split('+').map(str::trim).filter(|segment| !segment.is_empty()) {
+    for segment in binding
+        .split('+')
+        .map(str::trim)
+        .filter(|segment| !segment.is_empty())
+    {
         match segment {
             "⌘" | "Ctrl" | "ctrl" | "CmdOrCtrl" | "cmdorctrl" => {
                 command_or_control = true;
@@ -386,9 +390,7 @@ fn browser_preview_script_bindings(
         .collect()
 }
 
-fn browser_preview_script_bridge_source(
-    prefs: &HashMap<String, String>,
-) -> Option<String> {
+fn browser_preview_script_bridge_source(prefs: &HashMap<String, String>) -> Option<String> {
     let bindings = browser_preview_script_bindings(prefs);
     if bindings.is_empty() {
         return None;
@@ -506,8 +508,7 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
     use std::sync::mpsc;
 
     use webview2_com::{
-        AddScriptToExecuteOnDocumentCreatedCompletedHandler,
-        AcceleratorKeyPressedEventHandler,
+        AcceleratorKeyPressedEventHandler, AddScriptToExecuteOnDocumentCreatedCompletedHandler,
         Microsoft::Web::WebView2::Win32::{
             ICoreWebView2AcceleratorKeyPressedEventArgs, COREWEBVIEW2_KEY_EVENT_KIND,
             COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN, COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN,
@@ -859,10 +860,9 @@ mod tests {
 
     use super::{
         browser_preview_action_for_shortcut, browser_preview_script_bindings,
-        browser_webview_diagnostics_enabled,
-        set_browser_webview_diagnostics_enabled, should_trigger_timeout_fallback,
-        supports_native_navigation, BrowserNavigationAvailability, BrowserWebviewState,
-        BrowserWebviewTracker,
+        browser_webview_diagnostics_enabled, set_browser_webview_diagnostics_enabled,
+        should_trigger_timeout_fallback, supports_native_navigation, BrowserNavigationAvailability,
+        BrowserWebviewState, BrowserWebviewTracker,
     };
     use crate::platform::{platform_info_for_kind, PlatformKind};
 
@@ -1047,7 +1047,10 @@ mod tests {
         let prefs = HashMap::from([
             ("shortcut_toggle_read".to_string(), "x".to_string()),
             ("shortcut_toggle_star".to_string(), "Shift+S".to_string()),
-            ("shortcut_open_external_browser".to_string(), "⌘+B".to_string()),
+            (
+                "shortcut_open_external_browser".to_string(),
+                "⌘+B".to_string(),
+            ),
             ("shortcut_next_article".to_string(), "n".to_string()),
             ("shortcut_prev_article".to_string(), "p".to_string()),
             ("shortcut_next_feed".to_string(), "Shift+F".to_string()),
@@ -1098,7 +1101,10 @@ mod tests {
         let prefs = HashMap::from([
             ("shortcut_toggle_read".to_string(), "x".to_string()),
             ("shortcut_toggle_star".to_string(), "Shift+S".to_string()),
-            ("shortcut_open_external_browser".to_string(), "⌘+B".to_string()),
+            (
+                "shortcut_open_external_browser".to_string(),
+                "⌘+B".to_string(),
+            ),
             ("shortcut_next_article".to_string(), "n".to_string()),
             ("shortcut_prev_article".to_string(), "p".to_string()),
             ("shortcut_next_feed".to_string(), "Shift+F".to_string()),
