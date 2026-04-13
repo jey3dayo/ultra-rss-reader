@@ -1,15 +1,20 @@
 import type { TFunction } from "i18next";
 import type { ReactNode, RefObject } from "react";
+import type { AccountSwitcherProps } from "./account-switcher.types";
 import type { FeedTreeViewProps } from "./feed-tree.types";
-import type { SidebarAccountSectionProps } from "./sidebar-account-section";
 import type { SidebarContentSectionsProps } from "./sidebar-content-sections";
 import type { SidebarSelection } from "./sidebar-feed-tree.types";
 import type { SidebarHeaderViewProps } from "./sidebar-header-view";
 import type { SmartViewsViewProps } from "./smart-views-view";
 
 export type SidebarHeaderProps = SidebarHeaderViewProps;
-export type SidebarAccountProps = SidebarAccountSectionProps;
 export type SidebarContentProps = SidebarContentSectionsProps;
+
+export type SidebarAccountSectionProps = AccountSwitcherProps & {
+  containerRef: RefObject<HTMLDivElement | null>;
+};
+
+export type SidebarAccountProps = SidebarAccountSectionProps;
 
 export type SidebarSectionPropsResult = {
   headerProps: SidebarHeaderProps;

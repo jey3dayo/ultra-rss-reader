@@ -1,5 +1,4 @@
-import type { SidebarAccountSectionPropsParams } from "./sidebar.types";
-import type { SidebarAccountSectionProps } from "./sidebar-account-section";
+import type { SidebarAccountSectionProps, SidebarAccountSectionPropsParams } from "./sidebar.types";
 
 export function useSidebarAccountSectionProps({
   t,

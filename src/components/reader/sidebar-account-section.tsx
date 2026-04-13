@@ -1,10 +1,5 @@
-import type { RefObject } from "react";
-import type { AccountSwitcherProps } from "./account-switcher.types";
 import { AccountSwitcherView } from "./account-switcher-view";
-
-export type SidebarAccountSectionProps = AccountSwitcherProps & {
-  containerRef: RefObject<HTMLDivElement | null>;
-};
+import type { SidebarAccountSectionProps } from "./sidebar.types";
 
 export function SidebarAccountSection({
   containerRef,
