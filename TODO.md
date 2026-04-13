@@ -91,13 +91,11 @@
     1. feed-cleanup 内部で card shell と detail row を小さく切り出す
     2. review / editor / overview の重複クラスを置き換える
 
-- [ ] oversized reader components を段階分割する
-  - 問題: `article-view.tsx` と `sidebar.tsx` はまだ責務が広く、今後の変更コストが高い
+- [x] oversized reader components を段階分割する
+  - 問題: `article-view.tsx` と `sidebar.tsx` はまだ責務が広く、今後の変更コストが高かった
   - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/sidebar.tsx`, `src/components/reader/article-list.tsx`
-  - 計画:
-    1. `article-view` は browser overlay coordination と article actions を段階的に外へ出す
-    2. `sidebar` は account restore / startup expansion / hidden-state fallback を hook 化する
-    3. 1 回で大きく割らず、warning を 1 つずつ消す単位で進める
+  - 結果: top-level view は `article-view.tsx` / `sidebar.tsx` / `article-list.tsx` とも薄い shell になり、browser overlay・article actions・sidebar account/feed wiring は個別 hook / subview に分離された
+  - 方針: 1 回で大きく割らず、warning を 1 つずつ消す単位で進めた
 
 - [x] article-tag-picker の popover list/new-tag row を subview 化する
   - 問題: `article-tag-picker-view.tsx` に assigned tag 表示と popover list/new-tag row の JSX がまとまっていて、view shell と subview 描画が混ざっていた
