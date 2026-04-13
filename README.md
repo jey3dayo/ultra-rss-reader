@@ -129,6 +129,7 @@ Always run `mise run check` before committing.
 
 ## Troubleshooting
 
+- Use [docs/incident-runbook.md](docs/incident-runbook.md) for the shortest path to logs, backups, and failure-specific triage steps.
 - If the app looks stale during development, make sure you are using `pnpm tauri dev` or `pnpm dev`, not `pnpm preview`.
 - If `pnpm preview` does not reflect a recent frontend change, run `pnpm build` first so `dist/` is regenerated.
 

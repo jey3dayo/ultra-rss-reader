@@ -69,3 +69,5 @@ Write down:
 - Whether native keyring verification passed
 - Whether packaged updater verification passed
 - Where the supporting logs or screenshots were saved, if any
+
+If something fails during this checklist, continue from [incident-runbook.md](./incident-runbook.md) instead of improvising ad-hoc recovery steps.
