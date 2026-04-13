@@ -2,17 +2,10 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAccountArticles, useArticles, useMarkAllRead } from "@/hooks/use-articles";
-import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
+import { useAccountArticles, useArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useArticlesByTag } from "@/hooks/use-tags";
-import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
-import {
-  displayPresetToTriStateModes,
-  feedModesToDisplayPresetOption,
-  resolveFeedDisplayOverrides,
-} from "@/lib/article-display";
-import { getUnreadArticleIds, groupArticles, selectVisibleArticles } from "@/lib/article-list";
+import { groupArticles, selectVisibleArticles } from "@/lib/article-list";
 import { buildKeyToActionMap } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -24,6 +17,7 @@ import { ArticleListHeader } from "./article-list-header";
 import { ArticleListScreenView } from "./article-list-screen-view";
 import { contextMenuStyles } from "./context-menu-styles";
 import { useArticleListGroups } from "./use-article-list-groups";
+import { useArticleListHeaderActions } from "./use-article-list-header-actions";
 import { useArticleListInteractions } from "./use-article-list-interactions";
 import { useArticleListSearch } from "./use-article-list-search";
 import { useArticleListViewState } from "./use-article-list-view-state";
@@ -52,8 +46,6 @@ export function ArticleList() {
   const selectionStyle = usePreferencesStore((s) => s.prefs.list_selection_style ?? "modern");
   const recentlyReadIds = useUiStore((s) => s.recentlyReadIds);
   const retainedArticleIds = useUiStore((s) => s.retainedArticleIds);
-  const confirmMarkAllRead = useConfirmMarkAllRead();
-  const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const folderId = selection.type === "folder" ? selection.folderId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
@@ -190,7 +182,6 @@ export function ArticleList() {
   const listRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const scrollToTopOnChange = usePreferencesStore((s) => s.prefs.scroll_to_top_on_change ?? "true");
-  const markAllRead = useMarkAllRead();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to top when selection changes
   useEffect(() => {
@@ -200,37 +191,12 @@ export function ArticleList() {
   }, [selection, scrollToTopOnChange]);
 
   const selectedFeed = useMemo(() => feeds?.find((f) => f.id === feedId), [feeds, feedId]);
-  const selectedFeedDisplayPreset = feedModesToDisplayPresetOption(
-    resolveFeedDisplayOverrides(selectedFeed).readerMode,
-    resolveFeedDisplayOverrides(selectedFeed).webPreviewMode,
-  );
-  const displayPresetOptions = useMemo(
-    () => [
-      { value: "default", label: t("display_mode_default") },
-      { value: "standard", label: t("display_mode_standard") },
-      { value: "preview", label: t("display_mode_preview") },
-    ],
-    [t],
-  );
-
-  const handleSetDisplayMode = useCallback(
-    async (nextPreset: "default" | "standard" | "preview") => {
-      if (!feedId) return;
-      const nextModes = displayPresetToTriStateModes(nextPreset);
-      await updateFeedDisplaySettings(feedId, nextModes.readerMode, nextModes.webPreviewMode);
-    },
-    [feedId, updateFeedDisplaySettings],
-  );
-
-  const doMarkAllRead = useCallback(() => {
-    const unreadIds = getUnreadArticleIds(filteredArticles);
-    markAllRead.mutate(unreadIds);
-  }, [filteredArticles, markAllRead]);
-
-  const handleMarkAllRead = useCallback(() => {
-    const unreadIds = getUnreadArticleIds(filteredArticles);
-    confirmMarkAllRead({ count: unreadIds.length, onConfirm: doMarkAllRead });
-  }, [filteredArticles, confirmMarkAllRead, doMarkAllRead]);
+  const { selectedFeedDisplayPreset, displayPresetOptions, handleSetDisplayMode, handleMarkAllRead } =
+    useArticleListHeaderActions({
+      feedId,
+      selectedFeed,
+      filteredArticles,
+    });
 
   const handleSidebarToggle = useCallback(() => {
     if (layoutMode === "wide") {
