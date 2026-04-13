@@ -87,11 +87,7 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
           </div>
         ) : null}
         {showReaderBody ? (
-          <div
-            {...readerBodyProps}
-            className="min-h-0 flex-1"
-            data-testid="article-reader-body"
-          >
+          <div {...readerBodyProps} className="min-h-0 flex-1" data-testid="article-reader-body">
             <ArticleReaderBody article={article} feedName={feedName} />
           </div>
         ) : (

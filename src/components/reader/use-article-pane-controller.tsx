@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useSetRead } from "@/hooks/use-articles";
-import type { ArticlePaneProps } from "./article-view.types";
 import { ArticleToolbarActionStrip } from "./article-toolbar-view";
+import type { ArticlePaneProps } from "./article-view.types";
 import { useArticleAutoMark } from "./use-article-auto-mark";
 import { useArticleBrowserOverlay } from "./use-article-browser-overlay";
 import { useArticleToolbarControls } from "./use-article-toolbar-controls";
