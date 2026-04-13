@@ -28,7 +28,16 @@ Important implementation constraints:
 
 ## Development Commands
 
-- [mise.toml](mise.toml): Canonical task definitions for `check`, `ci`, formatting, linting, testing, and app launch modes.
+- `mise run check`: Default local verification gate (`format` + `lint` + `test`).
+- `mise run ci`: CI-equivalent gate (`format:check` + `lint` + `test` + `build`).
+- `mise run app:dev`: Default native Tauri development mode with `DEV_CREDENTIALS=1`.
+- `mise run app:dev:browser`: Browser-mode UI debugging on `http://127.0.0.1:4173/`.
+- `mise run app:dev:web-preview`: Native dev mode that opens `VITE_DEV_WEB_URL` directly in Web Preview.
+- `mise run app:dev:feed-cleanup` and `mise run app:dev:browser:feed-cleanup`: Shortcut dev modes for the Feed Cleanup UI.
+- `mise run test:e2e`: Playwright browser-mode E2E coverage.
+- `mise run test:live`: FreshRSS live integration tests that require encrypted `.env` credentials.
+- `mise run app:build`: Native production build for the current platform.
+- [mise.toml](mise.toml): Canonical task definitions for verification, testing, and app launch modes.
 - [package.json](package.json): Frontend scripts and JavaScript dependencies.
 - [src-tauri/Cargo.toml](src-tauri/Cargo.toml): Rust crate metadata and native dependencies.
 
@@ -37,8 +46,15 @@ Important implementation constraints:
 - [docs/superpowers/specs](docs/superpowers/specs/): Dated design documents for feature behavior and UI decisions.
 - [docs/superpowers/plans](docs/superpowers/plans/): Dated implementation plans and execution checklists.
 
+## Operational Docs
+
+- [docs/incident-runbook.md](docs/incident-runbook.md): Fastest path to logs, backups, and failure-specific recovery steps.
+- [docs/feed-content-privacy.md](docs/feed-content-privacy.md): Privacy and CSP expectations for remote article content and embedded pages.
+- [docs/release-manual-verification.md](docs/release-manual-verification.md): Required manual verification before tagging a release or handing off packaged builds.
+
 ## Optional
 
+- [TODO.md](TODO.md): Active and upcoming work tracking.
 - [src/__tests__](src/__tests__): Frontend unit tests and integration-style component tests.
 - [tests](tests/): Additional browser/dev support tests and shared helpers.
 - [src-tauri/tests/integration_test.rs](src-tauri/tests/integration_test.rs): Rust integration coverage.
