@@ -1,12 +1,12 @@
 import { addToHistory } from "@/hooks/use-command-history";
 import { executeAction } from "@/lib/actions";
 import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/lib/dev-scenario-runtime";
-import { createCommandPaletteHistoryValue } from "./command-palette-history";
 import type {
   PaletteAction,
   UseCommandPaletteHandlersParams,
   UseCommandPaletteHandlersResult,
 } from "./command-palette.types";
+import { createCommandPaletteHistoryValue } from "./command-palette-history";
 
 export function useCommandPaletteHandlers({
   closePalette,
