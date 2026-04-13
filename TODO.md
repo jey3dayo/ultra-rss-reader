@@ -61,6 +61,21 @@
     1. `Cancel/Submit` パターンを `FormActionButtons` へ統一する
     2. loading label と disabled 条件を既存どおり保つ
 
+- [x] reader dialog の stacked field を `src/components/shared` に寄せる
+  - 問題: `feed-dialog-form-view.tsx` / `folder-select-view.tsx` / `rename-tag-dialog-view.tsx` に同じ縦積み label+field パターンがある
+  - 対象: `src/components/shared/*`, `src/components/reader/*`
+  - 計画:
+    1. shared に stacked input/select field を追加する
+    2. reader dialog から順に置き換える
+    3. accessible name と selected label を既存テストで維持する
+
+- [x] feed cleanup editor の input/select を shared field に寄せる
+  - 問題: `feed-cleanup-feed-editor.tsx` にも stacked input/select パターンが残っている
+  - 対象: `src/components/feed-cleanup/feed-cleanup-feed-editor.tsx`, `src/components/shared/*`
+  - 計画:
+    1. title と display mode を shared field に置き換える
+    2. folder select と見た目・accessibility を揃える
+
 - [ ] oversized reader components を段階分割する
   - 問題: `article-view.tsx` と `sidebar.tsx` はまだ責務が広く、今後の変更コストが高い
   - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/sidebar.tsx`, `src/components/reader/article-list.tsx`
@@ -72,6 +87,13 @@
 - [x] browser/list で意味を持つマジックナンバーを constants に寄せる
   - 対象: `src/components/reader/article-list.tsx`, `src/constants/browser.ts`, `src/constants/reader.ts`, `src/lib/browser-debug-geometry.ts`, `src/lib/browser-webview.ts`
   - 方針: 検索 debounce 時間、browser scale factor fallback、geometry 表示精度を定数名で管理する
+
+- [x] app/runtime・dev scenario・data settings の意味付き数値を constants 化する
+  - 対象: `src/App.tsx`, `src/stores/ui-store.ts`, `src/dev/scenarios/helpers.ts`, `src/components/settings/data-settings.tsx`
+  - 方針:
+    1. sleep 復帰判定・toast duration・dev scenario retry/wait・byte formatting を対象にする
+    2. Tailwind の見た目寸法や Storybook のサンプル値までは広げない
+    3. 定数ファイルは責務ごとに分け、既存の並行作業と衝突しにくくする
 
 - [x] settings 系の散在型を `types` として整理する
   - 問題: view component 内に export された props / control 型が点在し、import 境界と責務の境界が一致していない
@@ -92,3 +114,15 @@
     1. `feed-cleanup.types.ts` を新設して page / panel 間で共有する view props 型を集約
     2. `FeedCleanupPageView` の inline props を `FeedCleanupPageViewProps` に置き換えた
     3. review / queue / overview の props 型も同じ types file から参照するように整理した
+
+- [x] feed cleanup の delete/editor props も `types` に寄せる
+  - 問題: `feed-cleanup-delete-dialog.tsx` と `feed-cleanup-feed-editor.tsx` に view props の inline 定義が残っている
+  - 対象: `src/components/feed-cleanup/feed-cleanup-delete-dialog.tsx`, `src/components/feed-cleanup/feed-cleanup-feed-editor.tsx`, `src/components/feed-cleanup/feed-cleanup.types.ts`
+
+- [x] add account 系の view props を `types` に寄せる
+  - 問題: `add-account-form-view.tsx` に form control と section props の中心定義が残っている
+  - 対象: `src/components/settings/add-account-form-view.tsx`, `src/components/settings/*types*.ts`
+
+- [x] reader の再利用境界がある state/controller 型を `types` 化する
+  - 問題: `use-sidebar-feed-tree.ts` と `use-add-feed-dialog-controller.ts` に再利用余地のある union/state 型が残っている
+  - 対象: `src/components/reader/use-sidebar-feed-tree.ts`, `src/components/reader/use-add-feed-dialog-controller.ts`
