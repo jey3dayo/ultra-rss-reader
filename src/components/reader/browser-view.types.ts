@@ -8,6 +8,7 @@ import type {
 import type { BrowserViewerGeometry, BrowserViewerScope } from "@/lib/browser-viewer-geometry";
 import type { ToastData } from "@/stores/ui-store";
 import type { BrowserSurfaceIssue } from "./browser-surface-issue";
+import type { BrowserWebviewFallbackPayload } from "./browser-webview-state";
 
 export type BrowserViewScope = "content-pane" | "main-stage";
 export type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
@@ -159,7 +160,7 @@ export type UseBrowserViewSurfaceControllerResult = {
   surfaceIssue: BrowserSurfaceIssue | null;
   setSurfaceIssue: (issue: BrowserSurfaceIssue | null) => void;
   handleLostEmbeddedBrowserWebview: (error: AppError) => void;
-  handleBrowserWebviewFallback: (payload: import("./browser-webview-state").BrowserWebviewFallbackPayload) => void;
+  handleBrowserWebviewFallback: (payload: BrowserWebviewFallbackPayload) => void;
   showSurfaceFailure: (error: AppError) => void;
   activeSurfaceIssue: BrowserSurfaceIssue | null;
 };
@@ -184,7 +185,7 @@ export type UseBrowserViewSurfaceStateResult = UseBrowserViewSurfaceControllerRe
 export type UseBrowserWebviewEventsParams = {
   showDiagnostics: boolean;
   onStateChanged: (payload: BrowserWebviewState) => void;
-  onFallback: (payload: import("./browser-webview-state").BrowserWebviewFallbackPayload) => void;
+  onFallback: (payload: BrowserWebviewFallbackPayload) => void;
   onClosed: () => void;
   onDiagnostics: (payload: BrowserWebviewDiagnosticsPayload) => void;
 };
