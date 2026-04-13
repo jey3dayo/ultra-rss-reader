@@ -6,9 +6,10 @@ import {
   createOrUpdateBrowserWebview,
   setBrowserWebviewBounds,
 } from "@/api/tauri-commands";
-import { type BrowserWebviewBounds, toBrowserWebviewBounds } from "@/lib/browser-webview";
+import type { BrowserWebviewBounds } from "@/lib/browser-webview";
 import { useUiStore } from "@/stores/ui-store";
 import { isMissingEmbeddedBrowserWebviewError } from "./browser-webview-state";
+import { resolveBrowserWebviewBounds, shouldApplySyncedBrowserState } from "./browser-webview-sync-helpers";
 
 type UseBrowserWebviewSyncParams = {
   hostRef: RefObject<HTMLDivElement | null>;
@@ -77,13 +78,7 @@ export function useBrowserWebviewSync({
 
   const syncBrowserWebview = useCallback(
     async (requestedUrl: string, mode: "create" | "resize") => {
-      const rect = hostRef.current?.getBoundingClientRect();
-      const usePhysicalBounds = platformKind === "windows";
-      const bounds = rect
-        ? toBrowserWebviewBounds(rect, {
-            unit: usePhysicalBounds ? "physical" : "logical",
-          })
-        : null;
+      const bounds = resolveBrowserWebviewBounds(hostRef, platformKind);
       if (!bounds) {
         return;
       }
@@ -123,7 +118,7 @@ export function useBrowserWebviewSync({
       webviewCreatedRef.current = true;
       const state = Result.unwrap(result);
       const previousState = browserStateRef.current;
-      if (!previousState || (previousState.url === requestedUrl && (previousState.is_loading || !state.is_loading))) {
+      if (shouldApplySyncedBrowserState(previousState, requestedUrl, state)) {
         browserStateRef.current = state;
         setBrowserState(state);
       }
