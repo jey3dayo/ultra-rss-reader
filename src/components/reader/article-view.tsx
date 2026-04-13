@@ -4,22 +4,9 @@ import { useTranslation } from "react-i18next";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
-import { useFeeds } from "@/hooks/use-feeds";
-import {
-  useArticlesByTag,
-  useArticleTags,
-  useCreateTag,
-  useTagArticle,
-  useTags,
-  useUntagArticle,
-} from "@/hooks/use-tags";
-import {
-  findSelectedArticle,
-  formatArticleDate,
-  resolveArticleDateLocale,
-  shouldOpenExternalBrowser,
-} from "@/lib/article-view";
+import { useSetRead, useToggleStar } from "@/hooks/use-articles";
+import { useArticleTags, useCreateTag, useTagArticle, useTags, useUntagArticle } from "@/hooks/use-tags";
+import { formatArticleDate, resolveArticleDateLocale, shouldOpenExternalBrowser } from "@/lib/article-view";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -31,8 +18,9 @@ import { ArticleShareMenu } from "./article-share-menu";
 import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-tag-picker-view";
 import { ArticleToolbarActionStrip, ArticleToolbarView, type ArticleToolbarViewLabels } from "./article-toolbar-view";
 import { BrowserView } from "./browser-view";
+import { useArticleActions } from "./use-article-actions";
 import { useArticleBrowserOverlay } from "./use-article-browser-overlay";
-import { useArticlePaneActions } from "./use-article-pane-actions";
+import { useArticleViewSelection } from "./use-article-view-selection";
 
 function openArticleInExternalBrowser(url: string) {
   const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
@@ -67,22 +55,16 @@ export function ArticleToolbar({
   const viewMode = useUiStore((s) => s.viewMode);
   const actionCopyLink = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_copy_link"));
   const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
-
-  const retainIfNeeded = useCallback(
-    (nextRead: boolean) => {
-      if (!article) {
-        return;
-      }
-
-      // Retain before mutating so unread view does not drop the article during
-      // the refetch triggered by mark-as-read. It should disappear only after
-      // the user changes feed/view and retainedArticleIds is cleared.
-      if (nextRead && viewMode === "unread") {
-        retainArticle(article.id);
-      }
-    },
-    [article, retainArticle, viewMode],
-  );
+  const { setReadStatus, setStarStatus, handleOpenExternalBrowser, handleCopyLink } = useArticleActions({
+    article,
+    viewMode,
+    supportsReadingList,
+    showToast,
+    addRecentlyRead,
+    retainArticle,
+    setRead,
+    toggleStar,
+  });
 
   return (
     <ArticleToolbarView
@@ -125,44 +107,11 @@ export function ArticleToolbar({
         openInExternalBrowser: t("open_in_external_browser"),
       }}
       onCloseView={onCloseView}
-      onToggleRead={(pressed) => {
-        if (!article) return;
-        retainIfNeeded(pressed);
-        setRead.mutate(
-          { id: article.id, read: pressed },
-          {
-            onSuccess: () => {
-              if (pressed) {
-                addRecentlyRead(article.id);
-              }
-            },
-          },
-        );
-      }}
-      onToggleStar={(pressed) => {
-        if (!article) return;
-        toggleStar.mutate(
-          { id: article.id, starred: pressed },
-          {
-            onSuccess: () => {
-              if (!pressed && viewMode === "starred") retainArticle(article.id);
-              showToast(pressed ? t("article_starred") : t("article_unstarred"));
-            },
-          },
-        );
-      }}
-      onCopyLink={() => {
-        if (article?.url) {
-          navigator.clipboard.writeText(article.url);
-          showToast(t("link_copied"));
-        }
-      }}
+      onToggleRead={setReadStatus}
+      onToggleStar={(pressed) => setStarStatus(pressed, { showStatusToast: true })}
+      onCopyLink={handleCopyLink}
       onOpenInBrowser={onToggleBrowserOverlay}
-      onOpenInExternalBrowser={async () => {
-        if (article?.url) {
-          await openArticleInExternalBrowser(article.url);
-        }
-      }}
+      onOpenInExternalBrowser={handleOpenExternalBrowser}
     />
   );
 }
@@ -412,7 +361,7 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
       contentMode,
       feed,
     });
-  const { setReadStatus, setStarStatus, handleOpenExternalBrowser, handleCopyLink } = useArticlePaneActions({
+  const { setReadStatus, setStarStatus, handleOpenExternalBrowser, handleCopyLink } = useArticleActions({
     article,
     viewMode,
     supportsReadingList,
@@ -421,8 +370,10 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
     retainArticle,
     setRead,
     toggleStar,
-    onToggleBrowserOverlay: handleToggleBrowserOverlay,
-    onCloseBrowserOverlay: handleCloseBrowserOverlay,
+    keyboardShortcuts: {
+      onToggleBrowserOverlay: handleToggleBrowserOverlay,
+      onCloseBrowserOverlay: handleCloseBrowserOverlay,
+    },
   });
 
   useEffect(() => {
@@ -544,41 +495,21 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
 
 export function ArticleView() {
   const { t } = useTranslation("reader");
-  const contentMode = useUiStore((s) => s.contentMode);
-  const browserUrl = useUiStore((s) => s.browserUrl);
-  const feedCleanupOpen = useUiStore((s) => s.feedCleanupOpen);
-  const selectedAccountId = useUiStore((s) => s.selectedAccountId);
-  const selectedArticleId = useUiStore((s) => s.selectedArticleId);
-  const selection = useUiStore((s) => s.selection);
-  const feedId = selection.type === "feed" ? selection.feedId : null;
-  const tagId = selection.type === "tag" ? selection.tagId : null;
-  const { data: articles } = useArticles(feedId);
-  const { data: accountArticles } = useAccountArticles(selectedAccountId);
-  const { data: tagArticles } = useArticlesByTag(tagId, selectedAccountId);
-  const { data: feeds } = useFeeds(selectedAccountId);
+  const selectionState = useArticleViewSelection();
 
-  if (feedCleanupOpen) {
+  if (selectionState.kind === "feed-cleanup") {
     return <FeedCleanupPage />;
   }
 
-  if (contentMode === "browser" && browserUrl && !selectedArticleId) {
+  if (selectionState.kind === "browser-only") {
     return <BrowserOnlyState />;
   }
 
-  if (contentMode === "empty" || !selectedArticleId) {
+  if (selectionState.kind === "empty") {
     return <EmptyState />;
   }
 
-  const articleResult = findSelectedArticle({
-    selectedArticleId,
-    feedId,
-    tagId,
-    articles,
-    accountArticles,
-    tagArticles,
-  });
-
-  if (Result.isFailure(articleResult)) {
+  if (selectionState.kind === "not-found") {
     return (
       <div className="flex h-full flex-1 flex-col bg-background">
         <div className="flex flex-1 items-center justify-center text-muted-foreground">{t("article_not_found")}</div>
@@ -586,8 +517,7 @@ export function ArticleView() {
     );
   }
 
-  const article = Result.unwrap(articleResult);
-  const feed = feeds?.find((candidate) => candidate.id === article.feed_id);
-
-  return <ArticlePane article={article} feed={feed} feedName={feed?.title} />;
+  return (
+    <ArticlePane article={selectionState.article} feed={selectionState.feed} feedName={selectionState.feed?.title} />
+  );
 }

@@ -11,8 +11,13 @@ type SetReadMutation = UseMutationResult<unknown, Error, { id: string; read: boo
 type ToggleStarMutation = UseMutationResult<unknown, Error, { id: string; starred: boolean }, unknown>;
 type ShowToast = (message: string) => void;
 
-type UseArticlePaneActionsParams = {
-  article: ArticleDto;
+type KeyboardShortcutHandlers = {
+  onToggleBrowserOverlay: () => void;
+  onCloseBrowserOverlay: () => void;
+};
+
+type UseArticleActionsParams = {
+  article: ArticleDto | null;
   viewMode: "all" | "unread" | "starred";
   supportsReadingList: boolean;
   showToast: ShowToast;
@@ -20,11 +25,10 @@ type UseArticlePaneActionsParams = {
   retainArticle: (articleId: string) => void;
   setRead: SetReadMutation;
   toggleStar: ToggleStarMutation;
-  onToggleBrowserOverlay: () => void;
-  onCloseBrowserOverlay: () => void;
+  keyboardShortcuts?: KeyboardShortcutHandlers;
 };
 
-type UseArticlePaneActionsResult = {
+type UseArticleActionsResult = {
   setReadStatus: (pressed: boolean) => void;
   setStarStatus: (pressed: boolean, options?: { showStatusToast?: boolean }) => void;
   handleToggleRead: () => void;
@@ -47,7 +51,7 @@ function openArticleInExternalBrowser(url: string, showToast: ShowToast) {
   );
 }
 
-export function useArticlePaneActions({
+export function useArticleActions({
   article,
   viewMode,
   supportsReadingList,
@@ -56,45 +60,60 @@ export function useArticlePaneActions({
   retainArticle,
   setRead,
   toggleStar,
-  onToggleBrowserOverlay,
-  onCloseBrowserOverlay,
-}: UseArticlePaneActionsParams): UseArticlePaneActionsResult {
+  keyboardShortcuts,
+}: UseArticleActionsParams): UseArticleActionsResult {
   const { t } = useTranslation("reader");
+  const articleId = article?.id ?? null;
+  const articleUrl = article?.url ?? null;
+  const isRead = article?.is_read ?? false;
+  const isStarred = article?.is_starred ?? false;
 
   const retainIfNeeded = useCallback(
     (nextRead: boolean) => {
+      if (!articleId) {
+        return;
+      }
+
       if (nextRead && viewMode === "unread") {
-        retainArticle(article.id);
+        retainArticle(articleId);
       }
     },
-    [article.id, retainArticle, viewMode],
+    [articleId, retainArticle, viewMode],
   );
 
   const setReadStatus = useCallback(
     (pressed: boolean) => {
+      if (!articleId) {
+        return;
+      }
+
       retainIfNeeded(pressed);
       setRead.mutate(
-        { id: article.id, read: pressed },
+        { id: articleId, read: pressed },
         {
           onSuccess: () => {
             if (pressed) {
-              addRecentlyRead(article.id);
+              addRecentlyRead(articleId);
             }
           },
         },
       );
     },
-    [addRecentlyRead, article.id, retainIfNeeded, setRead],
+    [addRecentlyRead, articleId, retainIfNeeded, setRead],
   );
 
   const setStarStatus = useCallback(
     (pressed: boolean, options?: { showStatusToast?: boolean }) => {
+      if (!articleId) {
+        return;
+      }
+
       toggleStar.mutate(
-        { id: article.id, starred: pressed },
+        { id: articleId, starred: pressed },
         {
           onSuccess: () => {
             if (!pressed && viewMode === "starred") {
-              retainArticle(article.id);
+              retainArticle(articleId);
             }
             if (options?.showStatusToast) {
               showToast(pressed ? t("article_starred") : t("article_unstarred"));
@@ -103,31 +122,39 @@ export function useArticlePaneActions({
         },
       );
     },
-    [article.id, retainArticle, showToast, t, toggleStar, viewMode],
+    [articleId, retainArticle, showToast, t, toggleStar, viewMode],
   );
 
   const handleToggleRead = useCallback(() => {
-    setReadStatus(!article.is_read);
-  }, [article.is_read, setReadStatus]);
+    if (!articleId) {
+      return;
+    }
+
+    setReadStatus(!isRead);
+  }, [articleId, isRead, setReadStatus]);
 
   const handleToggleStar = useCallback(() => {
-    setStarStatus(!article.is_starred);
-  }, [article.is_starred, setStarStatus]);
+    if (!articleId) {
+      return;
+    }
+
+    setStarStatus(!isStarred);
+  }, [articleId, isStarred, setStarStatus]);
 
   const handleOpenExternalBrowser = useCallback(() => {
-    if (!article.url) {
+    if (!articleUrl) {
       return;
     }
 
-    void openArticleInExternalBrowser(article.url, showToast);
-  }, [article.url, showToast]);
+    void openArticleInExternalBrowser(articleUrl, showToast);
+  }, [articleUrl, showToast]);
 
   const handleCopyLink = useCallback(() => {
-    if (!article.url) {
+    if (!articleUrl) {
       return;
     }
 
-    void copyToClipboard(article.url).then((result) =>
+    void copyToClipboard(articleUrl).then((result) =>
       Result.pipe(
         result,
         Result.inspect(() => showToast(t("link_copied"))),
@@ -137,14 +164,14 @@ export function useArticlePaneActions({
         }),
       ),
     );
-  }, [article.url, showToast, t]);
+  }, [articleUrl, showToast, t]);
 
   const handleAddToReadingList = useCallback(() => {
-    if (!supportsReadingList || !article.url) {
+    if (!supportsReadingList || !articleUrl) {
       return;
     }
 
-    void addToReadingList(article.url).then((result) =>
+    void addToReadingList(articleUrl).then((result) =>
       Result.pipe(
         result,
         Result.inspect(() => showToast(t("added_to_reading_list"))),
@@ -154,19 +181,24 @@ export function useArticlePaneActions({
         }),
       ),
     );
-  }, [article.url, showToast, supportsReadingList, t]);
+  }, [articleUrl, showToast, supportsReadingList, t]);
 
   useEffect(() => {
-    window.addEventListener(keyboardEvents.openInAppBrowser, onToggleBrowserOverlay);
-    window.addEventListener(keyboardEvents.closeBrowserOverlay, onCloseBrowserOverlay);
+    if (!keyboardShortcuts) {
+      return;
+    }
+
+    window.addEventListener(keyboardEvents.openInAppBrowser, keyboardShortcuts.onToggleBrowserOverlay);
+    window.addEventListener(keyboardEvents.closeBrowserOverlay, keyboardShortcuts.onCloseBrowserOverlay);
     window.addEventListener(keyboardEvents.toggleRead, handleToggleRead);
     window.addEventListener(keyboardEvents.toggleStar, handleToggleStar);
     window.addEventListener(keyboardEvents.openExternalBrowser, handleOpenExternalBrowser);
     window.addEventListener(keyboardEvents.copyLink, handleCopyLink);
     window.addEventListener(keyboardEvents.addToReadingList, handleAddToReadingList);
+
     return () => {
-      window.removeEventListener(keyboardEvents.openInAppBrowser, onToggleBrowserOverlay);
-      window.removeEventListener(keyboardEvents.closeBrowserOverlay, onCloseBrowserOverlay);
+      window.removeEventListener(keyboardEvents.openInAppBrowser, keyboardShortcuts.onToggleBrowserOverlay);
+      window.removeEventListener(keyboardEvents.closeBrowserOverlay, keyboardShortcuts.onCloseBrowserOverlay);
       window.removeEventListener(keyboardEvents.toggleRead, handleToggleRead);
       window.removeEventListener(keyboardEvents.toggleStar, handleToggleStar);
       window.removeEventListener(keyboardEvents.openExternalBrowser, handleOpenExternalBrowser);
@@ -179,8 +211,7 @@ export function useArticlePaneActions({
     handleOpenExternalBrowser,
     handleToggleRead,
     handleToggleStar,
-    onCloseBrowserOverlay,
-    onToggleBrowserOverlay,
+    keyboardShortcuts,
   ]);
 
   return {
