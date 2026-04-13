@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import type { FeedCleanupPageViewProps } from "./feed-cleanup.types";
 import { FeedCleanupOverviewPanel } from "./feed-cleanup-overview-panel";
 import { FeedCleanupQueuePanel } from "./feed-cleanup-queue-panel";
@@ -120,16 +119,15 @@ export function FeedCleanupPageView({
 
   const layoutClassName =
     layoutMode === "three-wide"
-      ? "grid-cols-[260px_minmax(0,1fr)_320px] overflow-hidden"
+      ? "grid min-h-0 flex-1 grid-cols-[260px_minmax(0,1fr)_320px] gap-0 overflow-hidden"
       : layoutMode === "three-compact"
-        ? "grid-cols-[220px_minmax(0,1fr)_300px] overflow-hidden"
-        : "overflow-y-auto lg:grid-cols-[240px_minmax(280px,1fr)]";
+        ? "grid min-h-0 flex-1 grid-cols-[220px_minmax(0,1fr)_300px] gap-0 overflow-hidden"
+        : "min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[240px_minmax(280px,1fr)] lg:gap-0 lg:content-start";
 
   const reviewPanelClassName =
     layoutMode === "two-column"
       ? "lg:col-span-2"
       : "col-span-1 sticky top-4 max-h-[calc(100dvh-7.5rem)] self-start overflow-hidden";
-  const stackedLayout = layoutMode === "two-column";
 
   return (
     <div
@@ -160,11 +158,7 @@ export function FeedCleanupPageView({
         </div>
       ) : null}
 
-      <div
-        ref={layoutRef}
-        data-testid="feed-cleanup-layout"
-        className={cn("grid min-h-0 flex-1 gap-0", layoutClassName)}
-      >
+      <div ref={layoutRef} data-testid="feed-cleanup-layout" className={layoutClassName}>
         <FeedCleanupOverviewPanel
           overviewLabel={overviewLabel}
           filtersLabel={filtersLabel}
@@ -188,7 +182,6 @@ export function FeedCleanupPageView({
         />
 
         <FeedCleanupQueuePanel
-          stackedLayout={stackedLayout}
           integrityMode={integrityMode}
           queueLabel={queueLabel}
           integrityQueueLabel={integrityQueueLabel}

@@ -14,7 +14,6 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const baseLabels = {
-  stackedLayout: false,
   queueLabel: "Cleanup Queue",
   integrityQueueLabel: "Broken references",
   integrityEmptyLabel: "No broken references found.",

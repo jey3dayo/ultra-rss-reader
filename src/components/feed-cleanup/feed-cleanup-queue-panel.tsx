@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 import type { FeedCleanupQueuePanelProps } from "./feed-cleanup.types";
 
 export function FeedCleanupQueuePanel({
-  stackedLayout,
   integrityMode,
   queueLabel,
   integrityQueueLabel,
@@ -26,10 +25,7 @@ export function FeedCleanupQueuePanel({
   return (
     <section className="min-h-0 border-b border-border px-4 py-4 lg:border-r lg:border-b-0">
       <h3 className="mb-3 text-sm font-semibold">{integrityMode ? integrityQueueLabel : queueLabel}</h3>
-      <div
-        data-testid="feed-cleanup-queue-list"
-        className={cn("space-y-2 pr-1", !stackedLayout && "h-[calc(100%-2rem)] overflow-y-auto")}
-      >
+      <div data-testid="feed-cleanup-queue-list" className="space-y-2 pr-1 lg:h-[calc(100%-2rem)] lg:overflow-y-auto">
         {integrityMode ? (
           integrityIssues.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
