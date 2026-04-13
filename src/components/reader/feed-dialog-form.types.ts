@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 import type { CopyableReadonlyFieldItem } from "@/components/shared/copyable-field.types";
-import type { DiscoveredFeedOption } from "./discovered-feed-options-view";
+import type { DiscoveredFeedOption } from "./add-feed-dialog.types";
 import type { FolderSelectViewProps } from "./folder-select-view";
 
 export type FeedDialogUrlSectionProps = {

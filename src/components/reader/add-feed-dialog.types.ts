@@ -72,6 +72,19 @@ export type AddFeedDialogControllerDerived = {
   discoveredFeedOptions: Array<{ value: string; label: string }>;
 };
 
+export type DiscoveredFeedOption = {
+  value: string;
+  label: string;
+};
+
+export type DiscoveredFeedOptionsViewProps = {
+  summary: string;
+  name: string;
+  value: string;
+  options: DiscoveredFeedOption[];
+  onValueChange: (value: string) => void;
+};
+
 export type ResolveAddFeedDialogDerivedParams = {
   state: AddFeedDialogState;
   isCreatingFolder: boolean;

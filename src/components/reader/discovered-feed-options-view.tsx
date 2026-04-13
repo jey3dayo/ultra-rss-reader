@@ -1,10 +1,6 @@
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
-
-export type DiscoveredFeedOption = {
-  value: string;
-  label: string;
-};
+import type { DiscoveredFeedOptionsViewProps } from "./add-feed-dialog.types";
 
 export function DiscoveredFeedOptionsView({
   summary,
@@ -12,13 +8,7 @@ export function DiscoveredFeedOptionsView({
   value,
   options,
   onValueChange,
-}: {
-  summary: string;
-  name: string;
-  value: string;
-  options: DiscoveredFeedOption[];
-  onValueChange: (value: string) => void;
-}) {
+}: DiscoveredFeedOptionsViewProps) {
   return (
     <div className="space-y-1">
       <p className="text-xs text-muted-foreground">{summary}</p>
