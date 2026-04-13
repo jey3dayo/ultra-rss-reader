@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { type Dispatch, type RefObject, type SetStateAction, useCallback, useRef } from "react";
+import { type Dispatch, type MutableRefObject, type RefObject, type SetStateAction, useCallback, useRef } from "react";
 import {
   type AppError,
   type BrowserWebviewState,
@@ -13,7 +13,7 @@ import { isMissingEmbeddedBrowserWebviewError } from "./browser-webview-state";
 type UseBrowserWebviewSyncParams = {
   hostRef: RefObject<HTMLDivElement | null>;
   platformKind: string;
-  browserStateRef: RefObject<BrowserWebviewState | null>;
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
   captureLayoutDiagnostics: () => void;
   setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
   onMissingEmbeddedBrowserWebview: (error: AppError) => void;
