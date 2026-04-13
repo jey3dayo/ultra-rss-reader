@@ -1,12 +1,8 @@
-import { useEffect } from "react";
 import type { UseBrowserOverlayShortcutsParams } from "./browser-view.types";
+import { useBrowserUrlEffect } from "./use-browser-url-effect";
 
 export function useBrowserOverlayShortcuts({ browserUrl, handleCloseOverlay }: UseBrowserOverlayShortcutsParams) {
-  useEffect(() => {
-    if (!browserUrl) {
-      return undefined;
-    }
-
+  useBrowserUrlEffect(browserUrl, () => {
     const frame = requestAnimationFrame(() => {
       document.querySelector<HTMLElement>('[data-testid="browser-overlay-chrome"] button')?.focus();
     });
@@ -25,5 +21,5 @@ export function useBrowserOverlayShortcuts({ browserUrl, handleCloseOverlay }: U
       window.cancelAnimationFrame(frame);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [browserUrl, handleCloseOverlay]);
+  }, [handleCloseOverlay]);
 }

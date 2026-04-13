@@ -1,7 +1,7 @@
-import { useEffect } from "react";
 import { BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
 import { useUiStore } from "@/stores/ui-store";
 import type { UseBrowserWebviewLoadTimeoutParams } from "./browser-view.types";
+import { useBrowserUrlEffect } from "./use-browser-url-effect";
 
 export function useBrowserWebviewLoadTimeout({
   browserUrl,
@@ -9,25 +9,29 @@ export function useBrowserWebviewLoadTimeout({
   isStillLoading,
   showSurfaceFailure,
 }: UseBrowserWebviewLoadTimeoutParams) {
-  useEffect(() => {
-    if (!browserUrl || !isLoading) {
-      return undefined;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      const activeUrl = useUiStore.getState().browserUrl;
-      if (activeUrl !== browserUrl || !isStillLoading()) {
-        return;
+  useBrowserUrlEffect(
+    browserUrl,
+    (activeBrowserUrl) => {
+      if (!isLoading) {
+        return undefined;
       }
 
-      showSurfaceFailure({
-        type: "UserVisible",
-        message: `Timed out waiting for embedded browser webview to finish loading: ${browserUrl}`,
-      });
-    }, BROWSER_WINDOW_LOAD_TIMEOUT_MS);
+      const timeoutId = window.setTimeout(() => {
+        const activeUrl = useUiStore.getState().browserUrl;
+        if (activeUrl !== activeBrowserUrl || !isStillLoading()) {
+          return;
+        }
 
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [browserUrl, isLoading, isStillLoading, showSurfaceFailure]);
+        showSurfaceFailure({
+          type: "UserVisible",
+          message: `Timed out waiting for embedded browser webview to finish loading: ${activeBrowserUrl}`,
+        });
+      }, BROWSER_WINDOW_LOAD_TIMEOUT_MS);
+
+      return () => {
+        window.clearTimeout(timeoutId);
+      };
+    },
+    [isLoading, isStillLoading, showSurfaceFailure],
+  );
 }
