@@ -18,7 +18,11 @@ import { FeedContextMenuView } from "./feed-context-menu-view";
 import { RenameDialog } from "./rename-feed-dialog";
 import { UnsubscribeDialog } from "./unsubscribe-feed-dialog";
 
-export function FeedContextMenuContent({ feed }: { feed: FeedDto }) {
+export type FeedContextMenuContentProps = {
+  feed: FeedDto;
+};
+
+export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   const { t } = useTranslation("reader");
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showUnsubscribeDialog, setShowUnsubscribeDialog] = useState(false);

@@ -4,6 +4,25 @@ import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleStatusToast, ArticleToastActionParams } from "./article-actions.types";
 
+type ArticleBrowserToastOperation = () => ReturnType<typeof copyToClipboard>;
+
+function runToastOperation(
+  operation: ArticleBrowserToastOperation,
+  { showToast, successMessage }: ArticleToastActionParams,
+  errorLabel: string,
+) {
+  return operation().then((result) =>
+    Result.pipe(
+      result,
+      Result.inspect(() => showToast(successMessage)),
+      Result.inspectError((error) => {
+        console.error(`${errorLabel}:`, error);
+        showToast(error.message);
+      }),
+    ),
+  );
+}
+
 export function openArticleInExternalBrowser(
   url: string,
   showToast: ArticleStatusToast = useUiStore.getState().showToast,
@@ -21,27 +40,9 @@ export function openArticleInExternalBrowser(
 }
 
 export function copyArticleLink(url: string, { showToast, successMessage }: ArticleToastActionParams) {
-  return copyToClipboard(url).then((result) =>
-    Result.pipe(
-      result,
-      Result.inspect(() => showToast(successMessage)),
-      Result.inspectError((error) => {
-        console.error("Copy failed:", error);
-        showToast(error.message);
-      }),
-    ),
-  );
+  return runToastOperation(() => copyToClipboard(url), { showToast, successMessage }, "Copy failed");
 }
 
 export function addArticleToReadingList(url: string, { showToast, successMessage }: ArticleToastActionParams) {
-  return addToReadingList(url).then((result) =>
-    Result.pipe(
-      result,
-      Result.inspect(() => showToast(successMessage)),
-      Result.inspectError((error) => {
-        console.error("Add to reading list failed:", error);
-        showToast(error.message);
-      }),
-    ),
-  );
+  return runToastOperation(() => addToReadingList(url), { showToast, successMessage }, "Add to reading list failed");
 }

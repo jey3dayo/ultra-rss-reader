@@ -4,7 +4,12 @@ import { useMarkFolderRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { FolderContextMenuView } from "./folder-context-menu-view";
 
-export function FolderContextMenuContent({ folder, folderUnread }: { folder: FolderDto; folderUnread: number }) {
+export type FolderContextMenuContentProps = {
+  folder: FolderDto;
+  folderUnread: number;
+};
+
+export function FolderContextMenuContent({ folder, folderUnread }: FolderContextMenuContentProps) {
   const { t } = useTranslation("reader");
   const confirmMarkAllRead = useConfirmMarkAllRead();
   const markFolderRead = useMarkFolderRead();

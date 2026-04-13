@@ -1,10 +1,19 @@
 import { Tooltip } from "@base-ui/react/tooltip";
 
-export function TooltipProvider({ children }: { children: React.ReactNode }) {
+export type TooltipProviderProps = {
+  children: React.ReactNode;
+};
+
+export type AppTooltipProps = {
+  label: string;
+  children: React.ReactElement;
+};
+
+export function TooltipProvider({ children }: TooltipProviderProps) {
   return <Tooltip.Provider>{children}</Tooltip.Provider>;
 }
 
-export function AppTooltip({ label, children }: { label: string; children: React.ReactElement }) {
+export function AppTooltip({ label, children }: AppTooltipProps) {
   return (
     <Tooltip.Root>
       <Tooltip.Trigger render={children} />

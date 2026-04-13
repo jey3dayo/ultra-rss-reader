@@ -2,7 +2,12 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { useTranslation } from "react-i18next";
 import { contextMenuStyles } from "./context-menu-styles";
 
-export function TagContextMenuView({ onRename, onDelete }: { onRename: () => void; onDelete: () => void }) {
+export type TagContextMenuViewProps = {
+  onRename: () => void;
+  onDelete: () => void;
+};
+
+export function TagContextMenuView({ onRename, onDelete }: TagContextMenuViewProps) {
   const { t } = useTranslation("reader");
 
   return (

@@ -19,7 +19,11 @@ const TAG_COLOR_PRESETS = [
   "#6b7280",
 ];
 
-export function TagContextMenuContent({ tag }: { tag: TagDto }) {
+export type TagContextMenuContentProps = {
+  tag: TagDto;
+};
+
+export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
   const { t } = useTranslation("reader");
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
