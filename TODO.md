@@ -110,6 +110,11 @@
   - 問題: `article-tag-picker-view.tsx` に assigned tag chip の一覧描画が残っていて、view shell と chip list 描画が混ざっていた
   - 対象: `src/components/reader/article-tag-picker-view.tsx`, `src/components/reader/article-tag-chip-list.tsx`
 
+- [x] article action hooks の contract を shared types に寄せる
+  - 問題: `use-article-actions.ts` が `Parameters<typeof useArticleStatusActions>` に依存していて、status/actions hook の契約を 1 箇所で追いづらかった
+  - 対応: `article-actions.types.ts` を追加して `useArticleStatusActions` / `useArticleActions` の params/result/mutation 型を寄せ、hook 実装は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/article-actions.types.ts`, `src/components/reader/use-article-actions.ts`, `src/components/reader/use-article-status-actions.ts`
+
 - [x] command-palette の結果リスト描画を view component に切り出す
   - 問題: `command-palette.tsx` に actions/feeds/tags/articles/dev scenarios の `CommandList` 描画がまとまっていて、state 管理と view 描画が混ざっていた
   - 対象: `src/components/reader/command-palette.tsx`, `src/components/reader/command-palette-results.tsx`
@@ -775,6 +780,11 @@
   - 問題: `UseArticleListHeaderControlsResult` が `use-article-list-header-controls.tsx` に残っていて、`article-list.types.ts` から result contract を一望できなかった
   - 対応: `article-list.types.ts` に header controls result contract を追加して、header controls hook と view props helper は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-header-controls.tsx`, `src/components/reader/use-article-list-view-props.ts`
+
+- [x] article list header actions result の正本を shared types に寄せる
+  - 問題: `UseArticleListHeaderActionsResult` が `use-article-list-header-actions.ts` に残っていて、header actions の result contract を `article-list.types.ts` から追えなかった
+  - 対応: `article-list.types.ts` に header actions result contract を追加して、header actions hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-header-actions.ts`
 
 - [x] article list header subview props の正本を shared types に寄せる
   - 問題: `article-list-header.tsx` / `article-list-header-actions.tsx` / `article-list-header-search.tsx` に props contract が分散していて、header 境界の正本を `article-list.types.ts` から追えなかった
