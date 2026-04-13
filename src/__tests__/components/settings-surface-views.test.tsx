@@ -62,7 +62,8 @@ describe("Settings surface views", () => {
     await user.click(screen.getByRole("switch", { name: "Open links in background" }));
 
     expect(onLanguageChange).toHaveBeenCalledWith("en");
-    expect(onOpenInBackgroundChange).toHaveBeenCalledWith(false);
+    expect(onOpenInBackgroundChange).toHaveBeenCalledOnce();
+    expect(onOpenInBackgroundChange.mock.calls[0]?.[0]).toBe(false);
   });
 
   it("renders appearance and reading settings as props-only sections", async () => {

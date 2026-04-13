@@ -86,7 +86,8 @@ describe("AccountSyncSectionView", () => {
     await user.click(await screen.findByRole("option", { name: "Three months" }));
 
     expect(onSyncIntervalChange).toHaveBeenCalledWith("7200");
-    expect(onSyncOnWakeChange).toHaveBeenCalledWith(false);
+    expect(onSyncOnWakeChange).toHaveBeenCalledOnce();
+    expect(onSyncOnWakeChange.mock.calls[0]?.[0]).toBe(false);
     expect(onKeepReadItemsChange).toHaveBeenCalledWith("90");
   });
 
