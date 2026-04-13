@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
@@ -17,15 +17,15 @@ import { ArticleMetaView } from "./article-meta-view";
 import { ArticleShareMenu } from "./article-share-menu";
 import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-tag-picker-view";
 import { ArticleToolbarActionStrip, ArticleToolbarView, type ArticleToolbarViewLabels } from "./article-toolbar-view";
-import { useArticleActions } from "./use-article-actions";
-import { useArticleAutoMark } from "./use-article-auto-mark";
-import { useArticleBrowserOverlay } from "./use-article-browser-overlay";
 import {
   ArticleEmptyStateShell,
   ArticleNotFoundStateView,
   BrowserOnlyStateView,
   BrowserOverlaySurface,
 } from "./article-view-state";
+import { useArticleActions } from "./use-article-actions";
+import { useArticleAutoMark } from "./use-article-auto-mark";
+import { useArticleBrowserOverlay } from "./use-article-browser-overlay";
 import { useArticleViewSelection } from "./use-article-view-selection";
 
 function openArticleInExternalBrowser(url: string) {
@@ -130,10 +130,10 @@ function EmptyState() {
         <ArticleToolbar article={null} isBrowserOpen={false} onCloseView={() => {}} onToggleBrowserOverlay={() => {}} />
       }
       body={
-      <ArticleEmptyStateView
-        message={t("select_article_to_read")}
-        hints={[t("empty_state_pick_from_list"), t("empty_state_search_hint"), t("empty_state_web_preview_hint")]}
-      />
+        <ArticleEmptyStateView
+          message={t("select_article_to_read")}
+          hints={[t("empty_state_pick_from_list"), t("empty_state_search_hint"), t("empty_state_web_preview_hint")]}
+        />
       }
     />
   );
@@ -215,8 +215,7 @@ function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedNam
   const cmdClickBrowser = usePreferencesStore((s) => s.prefs.cmd_click_browser ?? "false");
   const selectFeed = useUiStore((s) => s.selectFeed);
   const articleUrl = article.url;
-  const contentContainerRef = useRef<HTMLDivElement | null>(null);
-  const contentContainerElement = contentContainerRef.current;
+  const [contentContainerElement, setContentContainerElement] = useState<HTMLDivElement | null>(null);
   const articleContentHtml = article.content_sanitized;
 
   const openArticleUrl = useCallback(
@@ -304,7 +303,7 @@ function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedNam
           <ArticleTagChips articleId={article.id} />
         </div>
 
-        <div ref={contentContainerRef}>
+        <div ref={setContentContainerElement}>
           <ArticleContentView thumbnailUrl={article.thumbnail} contentHtml={articleContentHtml} feedName={feedName} />
         </div>
       </article>

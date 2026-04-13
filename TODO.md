@@ -162,9 +162,17 @@
   - 問題: `ArticleToolbar` にも read/star/copy/external browser の重複実装が残り、`ArticlePane` と action ロジックが二重管理になっていた
   - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-actions.ts`
 
+- [x] article-view の auto mark as read effect を hook 化する
+  - 問題: `ArticlePane` に `after_reading=mark_as_read` の副作用と retain/recently-read 連携が残っていた
+  - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-auto-mark.ts`
+
 - [x] ArticleView の selection 解決を hook 化する
   - 問題: `ArticleView` に feed/account/tag/all の分岐、not-found 判定、selected article/feed 解決が残っていた
   - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-view-selection.ts`
+
+- [x] article-view の state view を別 file に切り出す
+  - 問題: `EmptyState` / `BrowserOnlyState` / not-found 表示が `article-view.tsx` に残り、view orchestration と state 表示が混ざっていた
+  - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/article-view-state.tsx`
 
   - [x] article-list の navigation と keyboard interaction を hook 化する
   - 問題: `article-list.tsx` に記事移動、ショートカット listener、list key handling が集まっていて、表示データ導出と責務が混ざっていた
@@ -180,13 +188,9 @@
 
 ## 2026-04-13 Premortem フォローアップ
 
-- [ ] release 前の native/manual verification gate を明文化する
+- [x] release 前の native/manual verification gate を明文化する
   - 問題: `mise run ci` では FreshRSS live、native keyring、packaged updater の確認が落ちるため、CI 緑でも実機で壊れる余地がある
-  - 対象: `README.md`, `CLAUDE.md`, `docs/` または release 手順書
-  - 計画:
-    1. release 前に必須な手動確認項目を 1 つのチェックリストへ集約する
-    2. FreshRSS live / native keyring / packaged updater の責務分担を明記する
-    3. 実施結果を残しやすい形にして、release 時の抜け漏れを防ぐ
+  - 対象: `README.md`, `CLAUDE.md`, `docs/release-manual-verification.md`
 
 - [ ] sync の partial success を見える化する
   - 問題: `pending_mutations` はあるが mutation push は batch 契約のままで、部分成功時に何が反映済みか追いにくい
