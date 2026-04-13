@@ -28,7 +28,7 @@ export function useArticleListHeaderActions({
   const markAllRead = useMarkAllRead();
 
   const selectedFeedDisplayPreset = resolveFeedDisplayPreset(selectedFeed);
-  const displayPresetOptions = useMemo(
+  const displayPresetOptions = useMemo<Array<{ value: FeedDisplayPresetOption; label: string }>>(
     () => [
       { value: "default", label: t("display_mode_default") },
       { value: "standard", label: t("display_mode_standard") },
