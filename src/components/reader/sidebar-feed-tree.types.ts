@@ -6,6 +6,13 @@ export type SidebarSelection = UiSelection;
 
 export type SidebarFeedTreeViewMode = "all" | "unread" | "starred";
 
+export type SidebarSortFeeds = (candidateFeeds: FeedDto[]) => FeedDto[];
+
+export type SidebarFeedTreeViewModelOptions = {
+  selectedFeedId: string | null;
+  grayscaleFavicons: boolean;
+};
+
 export type UseSidebarFeedTreeParams = {
   feeds: FeedDto[] | undefined;
   folders: FolderDto[] | undefined;

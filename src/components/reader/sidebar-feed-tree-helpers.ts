@@ -1,18 +1,15 @@
 import type { FeedDto } from "@/api/tauri-commands";
-import type { SidebarFeedTreeViewMode } from "./sidebar-feed-tree.types";
+import type {
+  SidebarFeedTreeViewMode,
+  SidebarFeedTreeViewModelOptions,
+  SidebarSortFeeds,
+} from "./sidebar-feed-tree.types";
 import type { FeedTreeFeedViewModel } from "./feed-tree.types";
-
-type SortFeeds = (candidateFeeds: FeedDto[]) => FeedDto[];
-
-type FeedTreeViewModelOptions = {
-  selectedFeedId: string | null;
-  grayscaleFavicons: boolean;
-};
 
 export function getVisibleSidebarFeeds(
   feeds: FeedDto[],
   viewMode: SidebarFeedTreeViewMode,
-  sortFeeds: SortFeeds,
+  sortFeeds: SidebarSortFeeds,
 ): FeedDto[] {
   const sortedFeeds = sortFeeds(feeds);
   if (viewMode === "unread") {
@@ -23,7 +20,7 @@ export function getVisibleSidebarFeeds(
 
 export function mapFeedsToFeedTreeViewModels(
   feeds: FeedDto[],
-  { selectedFeedId, grayscaleFavicons }: FeedTreeViewModelOptions,
+  { selectedFeedId, grayscaleFavicons }: SidebarFeedTreeViewModelOptions,
 ): FeedTreeFeedViewModel[] {
   return feeds.map((feed) => ({
     id: feed.id,
