@@ -456,6 +456,10 @@
   - 問題: `use-feed-tree-drag.ts` に drop outcome 後の callback dispatch と pointer cleanup が残っていて、drag orchestration と outcome 適用が混ざっていた
   - 対象: `src/components/reader/use-feed-tree-drag.ts`, `src/components/reader/feed-tree-drag-outcome.ts`, `src/__tests__/components/feed-tree-drag-outcome.test.ts`
 
+- [x] feed tree の point-to-target 解決を drop target helper に寄せる
+  - 問題: `use-feed-tree-drag.ts` に `document.elementFromPoint` を使った drop target 解決が残っていて、drag orchestration と target 解決が混ざっていた
+  - 対象: `src/components/reader/use-feed-tree-drag.ts`, `src/components/reader/feed-tree-drop-target.ts`, `src/__tests__/components/feed-tree-drop-target.test.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
