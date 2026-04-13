@@ -3,6 +3,7 @@ import type { SidebarAccountSectionProps } from "./sidebar-account-section";
 import type { SidebarContentSectionsProps } from "./sidebar-content-sections";
 import type { SidebarSelection } from "./sidebar-feed-tree.types";
 import type { SidebarHeaderViewProps } from "./sidebar-header-view";
+import type { FeedTreeViewProps } from "./feed-tree-view";
 import type { SmartViewsViewProps } from "./smart-views-view";
 
 export type SidebarHeaderProps = SidebarHeaderViewProps;
@@ -135,4 +136,10 @@ export type SidebarViewPropsParams = {
   accountSectionProps: SidebarAccountProps;
   smartViewsProps: SmartViewsViewProps;
   contentSectionsProps: SidebarContentProps;
+};
+
+export type SidebarContextMenuRenderersResult = {
+  renderFolderContextMenu?: FeedTreeViewProps["renderFolderContextMenu"];
+  renderFeedContextMenu?: FeedTreeViewProps["renderFeedContextMenu"];
+  renderTagContextMenu: SidebarContentSectionsProps["renderTagContextMenu"];
 };

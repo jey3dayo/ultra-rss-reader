@@ -2,10 +2,11 @@ import { useCallback } from "react";
 import { FeedContextMenuContent } from "./feed-context-menu";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 import { FolderContextMenuContent } from "./folder-context-menu";
+import type { SidebarContextMenuRenderersResult } from "./sidebar.types";
 import { TagContextMenuContent } from "./tag-context-menu";
 import type { TagListItemViewModel } from "./tag-list-view";
 
-export function useSidebarContextMenuRenderers() {
+export function useSidebarContextMenuRenderers(): SidebarContextMenuRenderersResult {
   const renderFolderContextMenu = useCallback(
     (folder: FeedTreeFolderViewModel) => (
       <FolderContextMenuContent
