@@ -115,6 +115,10 @@
   - 問題: 自動再試行待ちの account があっても sidebar からは状態が見えず、settings を開かないと backoff 状況が分からなかった
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/account-switcher-view.tsx`, `src/hooks/use-account-sync-statuses.ts`
 
+- [x] account sync retry 時刻 formatter を reader/settings で共通化する
+  - 問題: sidebar と settings に retry 時刻の整形ロジックが重複していた
+  - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-sync.ts`, `src/components/settings/account-detail.tsx`, `src/lib/account-sync-status-format.ts`
+
 - [x] sidebar の account restore / startup expansion / hidden-state fallback を hook 化する
   - 問題: `sidebar.tsx` に account 復元、起動時 folder 展開、visibility fallback の effect が集まり、責務が重くなっていた
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-account-selection.ts`, `src/components/reader/use-sidebar-startup-folder-expansion.ts`, `src/components/reader/use-sidebar-visibility-fallback.ts`
