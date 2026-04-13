@@ -37,3 +37,11 @@ export function getFeedDropTargetFromElement(element: Element | null): ActiveDro
 
   return null;
 }
+
+export function getFeedDropTargetAtPoint(x: number, y: number): ActiveDropTarget {
+  if (typeof document.elementFromPoint !== "function") {
+    return null;
+  }
+
+  return getFeedDropTargetFromElement(document.elementFromPoint(x, y));
+}

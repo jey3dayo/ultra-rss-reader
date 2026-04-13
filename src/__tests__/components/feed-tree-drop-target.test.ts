@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   FEED_DROP_TARGET_ID_ATTRIBUTE,
   FEED_DROP_TARGET_KIND_ATTRIBUTE,
+  getFeedDropTargetAtPoint,
   getFeedDropTargetFromElement,
   isSameFeedDropTarget,
 } from "@/components/reader/feed-tree-drop-target";
@@ -41,5 +42,35 @@ describe("getFeedDropTargetFromElement", () => {
       kind: "unfoldered",
     });
     expect(getFeedDropTargetFromElement(wrapper)).toBeNull();
+  });
+});
+
+describe("getFeedDropTargetAtPoint", () => {
+  it("resolves the drop target from document.elementFromPoint", () => {
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = `
+      <div ${FEED_DROP_TARGET_KIND_ATTRIBUTE}="folder" ${FEED_DROP_TARGET_ID_ATTRIBUTE}="folder-1">
+        <span id="folder-child"></span>
+      </div>
+    `;
+
+    const originalElementFromPoint = document.elementFromPoint;
+
+    try {
+      Object.defineProperty(document, "elementFromPoint", {
+        configurable: true,
+        value: vi.fn(() => wrapper.querySelector("#folder-child")),
+      });
+
+      expect(getFeedDropTargetAtPoint(10, 20)).toEqual({
+        kind: "folder",
+        folderId: "folder-1",
+      });
+    } finally {
+      Object.defineProperty(document, "elementFromPoint", {
+        configurable: true,
+        value: originalElementFromPoint,
+      });
+    }
   });
 });
