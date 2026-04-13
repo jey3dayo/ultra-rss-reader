@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
+import { StackedInputField } from "@/components/shared/stacked-input-field";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const EMPTY_COLOR_OPTIONS: string[] = [];
@@ -61,18 +61,16 @@ export function RenameTagDialogView({
           }}
           className="space-y-4"
         >
-          <label className="block text-sm text-muted-foreground">
-            {t("name")}
-            <Input
-              ref={inputRef}
-              name="tag-name"
-              type="text"
-              value={name}
-              onChange={(event) => onNameChange(event.target.value)}
-              className="mt-1"
-              disabled={loading}
-            />
-          </label>
+          <StackedInputField
+            label={t("name")}
+            inputRef={inputRef}
+            name="tag-name"
+            type="text"
+            value={name}
+            onChange={onNameChange}
+            inputClassName="mt-1"
+            disabled={loading}
+          />
           {colorOptions.length > 0 && (
             <div className="space-y-1.5">
               <span className="block text-sm text-muted-foreground">{t("color")}</span>

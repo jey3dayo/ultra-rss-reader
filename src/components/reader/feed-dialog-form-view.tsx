@@ -4,6 +4,8 @@ import {
   CopyableReadonlyFieldList,
 } from "@/components/shared/copyable-readonly-field-list";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
+import { StackedInputField } from "@/components/shared/stacked-input-field";
+import { StackedSelectField } from "@/components/shared/stacked-select-field";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,7 +16,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type DiscoveredFeedOption, DiscoveredFeedOptionsView } from "./discovered-feed-options-view";
 import { FolderSelectView, type FolderSelectViewProps } from "./folder-select-view";
 
@@ -102,8 +103,6 @@ export function FeedDialogFormView({
 }) {
   const urlHelperTextId = useId();
   const urlInputId = useId();
-  const getSelectLabel = (section: FeedDialogSelectSectionProps, value: string | null) =>
-    section.options.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -178,43 +177,30 @@ export function FeedDialogFormView({
           )}
 
           {textSection && (
-            <label className="block text-sm text-muted-foreground">
-              {textSection.label}
-              <Input
-                ref={textSection.inputRef}
-                name={textSection.name}
-                type="text"
-                value={textSection.value}
-                onChange={(event) => textSection.onValueChange(event.target.value)}
-                className="mt-1"
-                disabled={textSection.disabled}
-              />
-            </label>
+            <StackedInputField
+              label={textSection.label}
+              inputRef={textSection.inputRef}
+              name={textSection.name}
+              type="text"
+              value={textSection.value}
+              onChange={textSection.onValueChange}
+              inputClassName="mt-1"
+              disabled={textSection.disabled}
+            />
           )}
 
           {readonlyFields && <CopyableReadonlyFieldList fields={readonlyFields} />}
 
           {selectSection && (
-            <div className="block text-sm text-muted-foreground">
-              <span className="mb-1 block">{selectSection.label}</span>
-              <Select
-                name={selectSection.name}
-                value={selectSection.value}
-                onValueChange={(value) => value !== null && selectSection.onValueChange(value)}
-                disabled={selectSection.disabled}
-              >
-                <SelectTrigger aria-label={selectSection.label} className="mt-1 w-full">
-                  <SelectValue>{(value: string | null) => getSelectLabel(selectSection, value)}</SelectValue>
-                </SelectTrigger>
-                <SelectPopup>
-                  {selectSection.options.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectPopup>
-              </Select>
-            </div>
+            <StackedSelectField
+              label={selectSection.label}
+              name={selectSection.name}
+              value={selectSection.value}
+              options={selectSection.options}
+              onChange={selectSection.onValueChange}
+              disabled={selectSection.disabled}
+              triggerClassName="mt-1 w-full"
+            />
           )}
 
           {folderSelectProps && <FolderSelectView {...folderSelectProps} />}

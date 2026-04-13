@@ -1,14 +1,13 @@
-import { useId } from "react";
 import { useTranslation } from "react-i18next";
-import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { CopyableReadonlyFieldList } from "@/components/shared/copyable-readonly-field-list";
 import { DeleteButton } from "@/components/shared/delete-button";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
+import { StackedInputField } from "@/components/shared/stacked-input-field";
+import { StackedSelectField } from "@/components/shared/stacked-select-field";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FeedEditDisplayPreset } from "../reader/feed-edit-submit";
 import { FolderSelectView } from "../reader/folder-select-view";
+import type { FeedCleanupFeedEditorProps } from "./feed-cleanup.types";
 import { useFeedCleanupFeedEditorController } from "./use-feed-cleanup-feed-editor-controller";
 
 export function FeedCleanupFeedEditor({
@@ -21,21 +20,10 @@ export function FeedCleanupFeedEditor({
   onCancel,
   onDelete,
   onSaved,
-}: {
-  feed: FeedDto;
-  folders: FolderDto[];
-  maintenanceTitle: string;
-  maintenanceDescription: string;
-  refetchLabel: string;
-  unsubscribeLabel: string;
-  onCancel: () => void;
-  onDelete: () => void;
-  onSaved: () => void;
-}) {
+}: FeedCleanupFeedEditorProps) {
   const { t } = useTranslation("reader");
   const { t: tCleanup } = useTranslation("cleanup");
   const { t: tc } = useTranslation("common");
-  const folderLabelId = useId();
   const controller = useFeedCleanupFeedEditorController({
     feed,
     folders,
@@ -52,45 +40,27 @@ export function FeedCleanupFeedEditor({
       </div>
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
-        <label className="block text-sm text-muted-foreground">
-          {t("title")}
-          <Input
-            name="feed-title"
-            type="text"
-            value={controller.title}
-            onChange={(event) => controller.setTitle(event.target.value)}
-            className="mt-1"
-            disabled={controller.loading}
-          />
-        </label>
+        <StackedInputField
+          label={t("title")}
+          name="feed-title"
+          type="text"
+          value={controller.title}
+          onChange={controller.setTitle}
+          inputClassName="mt-1"
+          disabled={controller.loading}
+        />
 
-        <div className="block text-sm text-muted-foreground">
-          <span className="mb-1 block">{t("display_mode")}</span>
-          <Select
-            name="feed-display-mode"
-            value={controller.displayPreset}
-            onValueChange={(value) => value !== null && controller.setDisplayPreset(value as FeedEditDisplayPreset)}
-            disabled={controller.loading}
-          >
-            <SelectTrigger aria-label={t("display_mode")} className="mt-1 w-full">
-              <SelectValue>
-                {(value: string | null) =>
-                  controller.displayModeOptions.find((option) => option.value === value)?.label ?? value ?? ""
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectPopup>
-              {controller.displayModeOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectPopup>
-          </Select>
-        </div>
+        <StackedSelectField
+          label={t("display_mode")}
+          name="feed-display-mode"
+          value={controller.displayPreset}
+          options={controller.displayModeOptions}
+          onChange={(value) => controller.setDisplayPreset(value as FeedEditDisplayPreset)}
+          disabled={controller.loading}
+          triggerClassName="mt-1 w-full"
+        />
 
         <FolderSelectView
-          labelId={folderLabelId}
           label={t("folder")}
           value={controller.folderSelectProps.folderSelectValue}
           options={controller.folderSelectProps.folderOptions}

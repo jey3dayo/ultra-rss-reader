@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
-import { Input } from "@/components/ui/input";
-import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { StackedInputField } from "@/components/shared/stacked-input-field";
+import { StackedSelectField } from "@/components/shared/stacked-select-field";
 
 export const NEW_FOLDER_VALUE = "__new__";
 
@@ -10,7 +10,7 @@ export type FolderSelectOption = {
 };
 
 export type FolderSelectViewProps = {
-  labelId: string;
+  labelId?: string;
   label: string;
   value: string;
   options: FolderSelectOption[];
@@ -48,48 +48,32 @@ export function FolderSelectView({
       ? [{ value: NEW_FOLDER_VALUE, label: newFolderOptionLabel }]
       : []),
   ];
-  const getFolderLabel = (selectedValue: string | null) =>
-    resolvedOptions.find((option) => option.value === (selectedValue ?? ""))?.label ?? selectedValue ?? "";
 
   return (
     <>
-      <div className="block text-sm text-muted-foreground">
-        <span id={labelId} className="mb-1 block">
-          {label}
-        </span>
-        <Select
-          name="feed-folder"
-          value={value}
-          onValueChange={(nextValue) => nextValue !== null && onValueChange(nextValue)}
-          disabled={disabled}
-        >
-          <SelectTrigger aria-labelledby={labelId} className="mt-1 w-full">
-            <SelectValue>{(selectedValue: string | null) => getFolderLabel(selectedValue)}</SelectValue>
-          </SelectTrigger>
-          <SelectPopup>
-            {resolvedOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectPopup>
-        </Select>
-      </div>
+      <StackedSelectField
+        labelId={labelId}
+        label={label}
+        name="feed-folder"
+        value={value}
+        options={resolvedOptions.map((option) => ({ value: option.value, label: option.label }))}
+        onChange={onValueChange}
+        disabled={disabled}
+        triggerClassName="mt-1 w-full"
+      />
 
       {canCreateFolder && isCreatingFolder && (
-        <label className="block text-sm text-muted-foreground">
-          {newFolderLabel}
-          <Input
-            ref={newFolderInputRef}
-            name="new-folder-name"
-            type="text"
-            value={newFolderName}
-            onChange={(event) => onNewFolderNameChange(event.target.value)}
-            placeholder={newFolderPlaceholder}
-            className="mt-1"
-            disabled={disabled}
-          />
-        </label>
+        <StackedInputField
+          label={newFolderLabel}
+          inputRef={newFolderInputRef}
+          name="new-folder-name"
+          type="text"
+          value={newFolderName}
+          onChange={onNewFolderNameChange}
+          placeholder={newFolderPlaceholder}
+          inputClassName="mt-1"
+          disabled={disabled}
+        />
       )}
     </>
   );
