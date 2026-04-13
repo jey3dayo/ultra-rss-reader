@@ -11,11 +11,11 @@
 
 ## 2026-04-13 Storybook 巡回メモ
 
-- [ ] `Reader/DeleteTagDialogView` の Storybook がクラッシュする
+- [x] `Reader/DeleteTagDialogView` の Storybook がクラッシュする
   - 症状: `reader-deletetagdialogview--default` が `Objects are not valid as a React child (found: object with keys {name})` で描画失敗する
-  - 原因候補: `DeleteTagDialogView` の `<Trans>` fallback で `<strong>{{ name: tagName } as never}</strong>` を直接子にしており、object child を render しようとしている
-  - 対象: `src/components/reader/delete-tag-dialog-view.tsx`, `src/components/reader/delete-tag-dialog-view.stories.tsx`
-  - メモ: `unsubscribe-feed-dialog.tsx` と同じ placeholder の渡し方に揃えると直せそう
+  - 原因: Storybook preview で i18n 初期化が走っておらず、`<Trans>` fallback をそのまま描画して落ちていた
+  - 対象: `.storybook/preview.ts`, `src/components/reader/delete-tag-dialog-view.stories.tsx`
+  - メモ: Storybook 全体で `src/lib/i18n` を読み込む形に寄せた
 
 - [x] `Reader/FeedTreeView` の Storybook が外部 favicon 404 を毎回出す
   - 症状: `reader-feedtreeview--*` で `https://t3.gstatic.com/faviconV2?...url=http://example.com...` が 404 になり、console noise が残る
