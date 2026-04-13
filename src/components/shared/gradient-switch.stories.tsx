@@ -57,7 +57,7 @@ export const WithLabel: Story = {
 
 export const SettingsRow: Story = {
   render: (args) => (
-    <div className="w-[400px] space-y-0">
+    <div className="w-full max-w-[400px] space-y-0">
       <div className="flex min-h-[44px] items-center justify-between border-b border-border py-3">
         <span className="text-sm text-foreground">バックグラウンドでリンクを開く</span>
         <GradientSwitch {...args} />
