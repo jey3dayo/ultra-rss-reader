@@ -107,9 +107,17 @@
   - 問題: `command-palette.tsx` に translations/input/dev-scenario loading/results props 組み立てが残っていて、画面構成と controller orchestration が混ざっていた
   - 対象: `src/components/reader/command-palette.tsx`, `src/components/reader/use-command-palette-controller.ts`
 
+- [x] command-palette の action 定義を hook に寄せる
+  - 問題: `useCommandPaletteController` に action list の定義と shortcut label 解決が残っていて、controller orchestration と action 定義が混ざっていた
+  - 対象: `src/components/reader/use-command-palette-controller.ts`, `src/components/reader/use-command-palette-actions.ts`
+
 - [x] command-palette の view props 組み立てを hook に寄せる
   - 問題: `useCommandPaletteController` に results props と prefix hint の組み立てが残っていて、controller orchestration と view props 導出が混ざっていた
   - 対象: `src/components/reader/use-command-palette-controller.ts`, `src/components/reader/use-command-palette-view-props.ts`
+
+- [x] browser-view の webview state helper を module 化する
+  - 問題: `useBrowserViewController` に initial state / missing-webview 判定 / loading state merge が残っていて、controller orchestration と webview state helper が混ざっていた
+  - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/browser-webview-state.ts`, `src/__tests__/components/browser-webview-state.test.ts`
 
 - [x] sidebar の feed navigation と event listener を hook 化する
   - 問題: `sidebar.tsx` に feed 移動、folder 自動展開、`APP_EVENTS.navigateFeed` 購読が残っていて、tree 導出と責務が混ざっている
