@@ -19,8 +19,7 @@ export function DeleteTagDialogView({ open, tagName, onOpenChange, onConfirm }: 
       description={
         <p className="text-sm text-muted-foreground">
           <Trans i18nKey="confirm_delete_tag" ns="reader" values={{ name: tagName }}>
-            Are you sure you want to delete <strong>{{ name: tagName } as never}</strong>? This tag will be removed from
-            all articles.
+            Are you sure you want to delete <strong>{tagName}</strong>? This tag will be removed from all articles.
           </Trans>
         </p>
       }

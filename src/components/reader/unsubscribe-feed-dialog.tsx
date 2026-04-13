@@ -19,8 +19,8 @@ export function UnsubscribeDialog({ feed, open, onOpenChange, onConfirm }: Unsub
       title={t("unsubscribe")}
       description={
         <Trans i18nKey="confirm_unsubscribe" ns="reader" values={{ title: feed.title }}>
-          Are you sure you want to unsubscribe from <strong>{{ title: feed.title } as never}</strong>? All articles from
-          this feed will be deleted.
+          Are you sure you want to unsubscribe from <strong>{feed.title}</strong>? All articles from this feed will be
+          deleted.
         </Trans>
       }
       cancelLabel={tc("cancel")}
