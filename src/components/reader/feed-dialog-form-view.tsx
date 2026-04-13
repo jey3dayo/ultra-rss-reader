@@ -1,8 +1,5 @@
-import { type RefObject, useId } from "react";
-import {
-  type CopyableReadonlyFieldItem,
-  CopyableReadonlyFieldList,
-} from "@/components/shared/copyable-readonly-field-list";
+import { useId } from "react";
+import { CopyableReadonlyFieldList } from "@/components/shared/copyable-readonly-field-list";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { StackedInputField } from "@/components/shared/stacked-input-field";
 import { StackedSelectField } from "@/components/shared/stacked-select-field";
@@ -14,41 +11,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FeedDialogUrlSection, type FeedDialogUrlSectionProps } from "./feed-dialog-url-section";
-import { FolderSelectView, type FolderSelectViewProps } from "./folder-select-view";
+import type { FeedDialogFormViewProps } from "./feed-dialog-form.types";
 
-export type FeedDialogFormLabels = {
-  title: string;
-  description?: string;
-  cancel: string;
-  submit: string;
-  submitting: string;
-};
+export type {
+  FeedDialogFormLabels,
+  FeedDialogFormUrlSectionProps,
+  FeedDialogReadonlyFieldProps,
+  FeedDialogSelectOption,
+  FeedDialogSelectSectionProps,
+  FeedDialogTextSectionProps,
+} from "./feed-dialog-form.types";
 
-export type FeedDialogTextSectionProps = {
-  label: string;
-  name: string;
-  value: string;
-  onValueChange: (value: string) => void;
-  disabled: boolean;
-  inputRef?: RefObject<HTMLInputElement | null>;
-};
-
-export type FeedDialogReadonlyFieldProps = CopyableReadonlyFieldItem;
-
-export type FeedDialogSelectOption = {
-  value: string;
-  label: string;
-};
-
-export type FeedDialogSelectSectionProps = {
-  label: string;
-  name: string;
-  value: string;
-  options: FeedDialogSelectOption[];
-  disabled: boolean;
-  onValueChange: (value: string) => void;
-};
+import { FeedDialogUrlSection } from "./feed-dialog-url-section";
+import { FolderSelectView } from "./folder-select-view";
 
 export function FeedDialogFormView({
   open,
@@ -64,21 +39,7 @@ export function FeedDialogFormView({
   error,
   successMessage,
   onSubmit,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  loading: boolean;
-  isSubmitDisabled: boolean;
-  labels: FeedDialogFormLabels;
-  urlSection?: FeedDialogUrlSectionProps;
-  textSection?: FeedDialogTextSectionProps;
-  readonlyFields?: FeedDialogReadonlyFieldProps[];
-  selectSection?: FeedDialogSelectSectionProps;
-  folderSelectProps?: FolderSelectViewProps;
-  error?: string | null;
-  successMessage?: string | null;
-  onSubmit: () => void;
-}) {
+}: FeedDialogFormViewProps) {
   const urlHelperTextId = useId();
   const urlInputId = useId();
 
