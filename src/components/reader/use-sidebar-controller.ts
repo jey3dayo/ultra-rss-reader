@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useResolvedDevIntent } from "@/hooks/use-resolved-dev-intent";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
-import { cn } from "@/lib/utils";
 import { useSidebarAccountSelection } from "./use-sidebar-account-selection";
 import { useSidebarAccountSwitcher } from "./use-sidebar-account-switcher";
 import { useSidebarContextMenuRenderers } from "./use-sidebar-context-menu-renderers";
@@ -12,6 +11,7 @@ import { useSidebarSources } from "./use-sidebar-sources";
 import { useSidebarSync } from "./use-sidebar-sync";
 import { useSidebarUiActions } from "./use-sidebar-ui-actions";
 import { useSidebarUiState } from "./use-sidebar-ui-state";
+import { useSidebarViewProps } from "./use-sidebar-view-props";
 
 export function useSidebarController() {
   const { t } = useTranslation("sidebar");
@@ -157,11 +157,8 @@ export function useSidebarController() {
     renderFeedContextMenu,
   });
 
-  return {
-    sidebarClassName: cn(
-      "flex h-full flex-col border-r border-border bg-sidebar text-sidebar-foreground",
-      opaqueSidebars && "bg-opacity-100",
-    ),
+  return useSidebarViewProps({
+    opaqueSidebars,
     headerProps: {
       isSyncing: syncProgress.active && syncProgress.kind !== "manual_account",
       onSync: handleSync,
@@ -217,5 +214,5 @@ export function useSidebarController() {
       onSelectTag: selectTag,
       renderTagContextMenu,
     },
-  };
+  });
 }
