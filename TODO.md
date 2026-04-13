@@ -42,11 +42,20 @@
   - 対象: `src/components/debug/focus-debug-hud-view.stories.tsx`
   - メモ: `w-full max-w-[640px]` に寄せて、mobile 再確認では対象 story の overflow が 0 になった
 
+- [x] Reader / Shared の中幅 story wrapper が mobile viewport で横にはみ出す
+  - 症状: 390px viewport で `Reader/ArticleListScreenView` と `Reader/ArticleGroupsView` の `380px` wrapper、`Reader/FolderSelectView` と shared stacked field stories の `320px` wrapper が Storybook 側 padding と合わさって横 overflow を作る
+  - 原因: story decorator が `w-[380px]` / `w-[320px]` 固定で、component 自体ではなく Storybook 土台の幅が viewport に追従しない
+  - 対象: `src/components/reader/article-list-screen-view.stories.tsx`, `src/components/reader/article-groups-view.stories.tsx`, `src/components/reader/folder-select-view.stories.tsx`, `src/components/shared/stacked-input-field.stories.tsx`, `src/components/shared/stacked-select-field.stories.tsx`
+  - メモ: `w-full max-w-*` に寄せて、narrow story でも component 本来の responsive 挙動を見やすくした
+
 ## 2026-04-13 Browser 巡回メモ
 
-- [ ] ブラウザ巡回で再現した不具合をここへ追記する
-  - 対象: browser-mode app (`mise run app:dev:browser`)
-  - メモ: 再現手順と修正対象ファイルを確認しながら更新する
+- [x] browser-mode で `get_account_sync_status` が毎回 validation error を出す
+  - 症状: `mise run app:dev:browser` で起動し、初期表示・設定・購読の整理を開くたびに console に `[tauri-commands] get_account_sync_status validation failed: Invalid input: expected object, received null` が繰り返し出る
+  - 影響: sidebar/account settings/feed cleanup で同期状態取得のたびに browser 巡回ノイズが増え、未同期・再試行 UI の確認がしづらい
+  - 原因: `src/dev-mocks.ts` に `get_account_sync_status` の mock handler がなく、default `null` が `AccountSyncStatusSchema` に弾かれていた
+  - 対象: `src/dev-mocks.ts`, `src/__tests__/dev-mocks.test.ts`
+  - 対応: browser-mode mock に空の sync status DTO を追加し、回帰防止テストを追加した
 
 ## 2026-04-12 購読整理 UI copy / 情報設計メモ
 
