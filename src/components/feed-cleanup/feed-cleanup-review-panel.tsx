@@ -2,6 +2,7 @@ import { DeleteButton } from "@/components/shared/delete-button";
 import { Button } from "@/components/ui/button";
 import type { FeedCleanupTone } from "@/lib/feed-cleanup";
 import { cn } from "@/lib/utils";
+import { FeedCleanupCard, FeedCleanupDetailRow } from "./feed-cleanup-card";
 import type { FeedCleanupReviewPanelProps } from "./feed-cleanup.types";
 
 function formatDate(value: string | null, locale: string): string {
@@ -80,29 +81,29 @@ export function FeedCleanupReviewPanel({
                 <p className="mt-3 text-sm text-current/80">{integrityDetailLabels.summary}</p>
               </div>
 
-              <div className="rounded-xl border border-border bg-card px-4 py-4">
+              <FeedCleanupCard>
                 <h4 className="text-base font-semibold">
                   {`${integrityDetailLabels.queue_item_title}: ${selectedIntegrityIssue.missing_feed_id}`}
                 </h4>
                 <dl className="mt-4 grid gap-2 text-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground">{integrityDetailLabels.missing_feed_id}</dt>
-                    <dd>{selectedIntegrityIssue.missing_feed_id}</dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground">{integrityDetailLabels.article_count}</dt>
-                    <dd>{selectedIntegrityIssue.article_count}</dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground">{integrityDetailLabels.latest_article}</dt>
-                    <dd>{selectedIntegrityIssue.latest_article_title ?? integrityDetailLabels.unknown_article}</dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground">{integrityDetailLabels.latest_published_at}</dt>
-                    <dd>{formatDate(selectedIntegrityIssue.latest_article_published_at, dateLocale)}</dd>
-                  </div>
+                  <FeedCleanupDetailRow
+                    label={integrityDetailLabels.missing_feed_id}
+                    value={selectedIntegrityIssue.missing_feed_id}
+                  />
+                  <FeedCleanupDetailRow
+                    label={integrityDetailLabels.article_count}
+                    value={selectedIntegrityIssue.article_count}
+                  />
+                  <FeedCleanupDetailRow
+                    label={integrityDetailLabels.latest_article}
+                    value={selectedIntegrityIssue.latest_article_title ?? integrityDetailLabels.unknown_article}
+                  />
+                  <FeedCleanupDetailRow
+                    label={integrityDetailLabels.latest_published_at}
+                    value={formatDate(selectedIntegrityIssue.latest_article_published_at, dateLocale)}
+                  />
                 </dl>
-              </div>
+              </FeedCleanupCard>
             </div>
           </div>
         ) : (
@@ -134,36 +135,27 @@ export function FeedCleanupReviewPanel({
               </div>
             ) : null}
 
-            <div className="rounded-xl border border-border bg-card px-4 py-4">
+            <FeedCleanupCard>
               <h4 className="text-base font-semibold">{selectedCandidate.title}</h4>
               <dl className="mt-4 grid gap-2 text-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-muted-foreground">{folderLabel}</dt>
-                  <dd>{selectedCandidate.folderName ?? "—"}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-muted-foreground">{latestArticleLabel}</dt>
-                  <dd>{formatDate(selectedCandidate.latestArticleAt, dateLocale)}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-muted-foreground">{unreadCountLabel}</dt>
-                  <dd>{selectedCandidate.unreadCount}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-muted-foreground">{starredCountLabel}</dt>
-                  <dd>{selectedCandidate.starredCount}</dd>
-                </div>
+                <FeedCleanupDetailRow label={folderLabel} value={selectedCandidate.folderName ?? "—"} />
+                <FeedCleanupDetailRow
+                  label={latestArticleLabel}
+                  value={formatDate(selectedCandidate.latestArticleAt, dateLocale)}
+                />
+                <FeedCleanupDetailRow label={unreadCountLabel} value={selectedCandidate.unreadCount} />
+                <FeedCleanupDetailRow label={starredCountLabel} value={selectedCandidate.starredCount} />
               </dl>
-            </div>
+            </FeedCleanupCard>
 
-            <div className="rounded-xl border border-border bg-card px-4 py-4">
+            <FeedCleanupCard>
               <h4 className="mb-2 text-sm font-semibold">{reasonsLabel}</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 {selectedCandidate.reasonKeys.map((reason) => (
                   <li key={reason}>{reasonLabels[reason]}</li>
                 ))}
               </ul>
-            </div>
+            </FeedCleanupCard>
           </div>
 
           <div className="border-t border-border/70 pt-3">

@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { FeedCleanupCard } from "./feed-cleanup-card";
 import type { FeedCleanupOverviewPanelProps } from "./feed-cleanup.types";
 
 export function FeedCleanupOverviewPanel({
@@ -71,7 +72,7 @@ export function FeedCleanupOverviewPanel({
             </Button>
           </div>
 
-          <div className="rounded-2xl border border-border/70 bg-card/70 px-3 py-3">
+          <FeedCleanupCard className="rounded-2xl border-border/70 bg-card/70 px-3 py-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 {bulkActionsLabel}
@@ -96,7 +97,7 @@ export function FeedCleanupOverviewPanel({
                 {bulkDeferVisibleLabel}
               </Button>
             </div>
-          </div>
+          </FeedCleanupCard>
         </div>
       )}
     </section>

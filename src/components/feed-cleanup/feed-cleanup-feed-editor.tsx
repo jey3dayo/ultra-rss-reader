@@ -7,6 +7,7 @@ import { StackedSelectField } from "@/components/shared/stacked-select-field";
 import { Button } from "@/components/ui/button";
 import type { FeedEditDisplayPreset } from "../reader/feed-edit-submit";
 import { FolderSelectView } from "../reader/folder-select-view";
+import { FeedCleanupCard } from "./feed-cleanup-card";
 import type { FeedCleanupFeedEditorProps } from "./feed-cleanup.types";
 import { useFeedCleanupFeedEditorController } from "./use-feed-cleanup-feed-editor-controller";
 
@@ -104,7 +105,7 @@ export function FeedCleanupFeedEditor({
           ]}
         />
 
-        <section className="space-y-3 rounded-xl border border-border bg-card px-4 py-4">
+        <FeedCleanupCard className="space-y-3">
           <div>
             <h5 className="text-sm font-semibold text-foreground">{maintenanceTitle}</h5>
             <p className="mt-1 text-sm text-muted-foreground">{maintenanceDescription}</p>
@@ -117,7 +118,7 @@ export function FeedCleanupFeedEditor({
           <DeleteButton onClick={onDelete} disabled={controller.loading || controller.refetching}>
             {unsubscribeLabel}
           </DeleteButton>
-        </section>
+        </FeedCleanupCard>
       </div>
 
       <div className="border-t border-border/70 pt-3">
