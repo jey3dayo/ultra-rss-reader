@@ -1,20 +1,14 @@
 import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
-import { getFeedDropTargetFromElement, isSameFeedDropTarget } from "./feed-tree-drop-target";
+import {
+  createFeedTreePointerDragSession,
+  type FeedTreePointerDragSession,
+  shouldStartFeedTreePointerDrag,
+  updateFeedTreePointerDragSessionPosition,
+} from "./feed-tree-drag-session";
 import type { FeedTreeDragOverlayPreview } from "./feed-tree-drag-overlay";
+import { getFeedDropTargetFromElement, isSameFeedDropTarget } from "./feed-tree-drop-target";
 import type { ActiveDropTarget } from "./feed-tree-folder-section";
 import type { FeedTreeFeedViewModel } from "./feed-tree-row";
-const POINTER_DRAG_THRESHOLD = 6;
-
-type PointerDragSession = {
-  feed: FeedTreeFeedViewModel;
-  pointerId: number;
-  originX: number;
-  originY: number;
-  currentX: number;
-  currentY: number;
-  isDragging: boolean;
-  hoverTarget: ActiveDropTarget;
-};
 
 export type UseFeedTreeDragParams = {
   isOpen: boolean;
@@ -58,7 +52,7 @@ export function useFeedTreeDrag({
   const [isPointerTracking, setIsPointerTracking] = useState(false);
   const [pointerDragPreview, setPointerDragPreview] = useState<FeedTreeDragOverlayPreview | null>(null);
   const [pointerHoverTarget, setPointerHoverTarget] = useState<ActiveDropTarget>(null);
-  const pointerDragRef = useRef<PointerDragSession | null>(null);
+  const pointerDragRef = useRef<FeedTreePointerDragSession | null>(null);
   const suppressHandleClickRef = useRef(false);
   const suppressHandleClickTimeoutRef = useRef<number | null>(null);
 
@@ -104,16 +98,7 @@ export function useFeedTreeDrag({
         return;
       }
 
-      pointerDragRef.current = {
-        feed,
-        pointerId: event.pointerId,
-        originX: event.clientX,
-        originY: event.clientY,
-        currentX: event.clientX,
-        currentY: event.clientY,
-        isDragging: false,
-        hoverTarget: null,
-      };
+      pointerDragRef.current = createFeedTreePointerDragSession(feed, event.pointerId, event.clientX, event.clientY);
       setIsPointerTracking(true);
     },
     [canDragFeeds],
@@ -174,17 +159,15 @@ export function useFeedTreeDrag({
         return;
       }
 
-      session.currentX = event.clientX;
-      session.currentY = event.clientY;
+      updateFeedTreePointerDragSessionPosition(session, event.clientX, event.clientY);
 
-      if (!session.isDragging) {
-        const distance = Math.hypot(event.clientX - session.originX, event.clientY - session.originY);
-        if (distance < POINTER_DRAG_THRESHOLD) {
-          return;
-        }
-
+      if (!session.isDragging && shouldStartFeedTreePointerDrag(session, event.clientX, event.clientY)) {
         session.isDragging = true;
         onDragStartFeed?.(session.feed);
+      }
+
+      if (!session.isDragging) {
+        return;
       }
 
       const hoverTarget = getDropTargetAtPoint(event.clientX, event.clientY);
