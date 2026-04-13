@@ -202,6 +202,14 @@
   - 問題: `article-list.tsx` に検索開閉、debounce、input focus、検索 query 実行がまとまっていて、表示データ選別と責務が混ざっていた
   - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-search.ts`
 
+- [x] article-list の grouped view model を hook 化する
+  - 問題: `article-list.tsx` に group label 解決と row 表示用 item 整形が残っていて、表示データ導出と画面構成が混ざっていた
+  - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-groups.ts`
+
+- [x] article-list の view state 判定を hook 化する
+  - 問題: `article-list.tsx` に context strip / footer mode / search-empty 判定が残っていて、表示状態の導出と画面構成が混ざっていた
+  - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-view-state.ts`
+
 - [x] reader の再利用境界がある state/controller 型を `types` 化する
   - 問題: `use-sidebar-feed-tree.ts` と `use-add-feed-dialog-controller.ts` に再利用余地のある union/state 型が残っている
   - 対象: `src/components/reader/use-sidebar-feed-tree.ts`, `src/components/reader/use-add-feed-dialog-controller.ts`
