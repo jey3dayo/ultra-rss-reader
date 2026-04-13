@@ -1,20 +1,14 @@
-import { Result } from "@praha/byethrow";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
-import { openInBrowser } from "@/api/tauri-commands";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSetRead, useToggleStar } from "@/hooks/use-articles";
-import { formatArticleDate, resolveArticleDateLocale, shouldOpenExternalBrowser } from "@/lib/article-view";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { FeedCleanupPage } from "../feed-cleanup/feed-cleanup-page";
-import { ArticleContentView } from "./article-content-view";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
-import { ArticleMetaView } from "./article-meta-view";
+import { ArticleReaderBody } from "./article-reader-body";
 import { ArticleShareMenu } from "./article-share-menu";
-import { ArticleTagChips } from "./article-tag-chips";
 import { ArticleToolbarActionStrip, ArticleToolbarView, type ArticleToolbarViewLabels } from "./article-toolbar-view";
 import {
   ArticleEmptyStateShell,
@@ -26,19 +20,6 @@ import { useArticleActions } from "./use-article-actions";
 import { useArticleAutoMark } from "./use-article-auto-mark";
 import { useArticleBrowserOverlay } from "./use-article-browser-overlay";
 import { useArticleViewSelection } from "./use-article-view-selection";
-
-function openArticleInExternalBrowser(url: string) {
-  const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-  return openInBrowser(url, bg).then((result) =>
-    Result.pipe(
-      result,
-      Result.inspectError((e) => {
-        console.error("Failed to open in browser:", e);
-        useUiStore.getState().showToast(e.message);
-      }),
-    ),
-  );
-}
 
 export function ArticleToolbar({
   article,
@@ -142,108 +123,6 @@ function BrowserOnlyState() {
   const closeBrowser = useUiStore((s) => s.closeBrowser);
 
   return <BrowserOnlyStateView onCloseOverlay={closeBrowser} />;
-}
-
-function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedName?: string }) {
-  const { i18n } = useTranslation();
-  const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
-  const cmdClickBrowser = usePreferencesStore((s) => s.prefs.cmd_click_browser ?? "false");
-  const selectFeed = useUiStore((s) => s.selectFeed);
-  const articleUrl = article.url;
-  const [contentContainerElement, setContentContainerElement] = useState<HTMLDivElement | null>(null);
-  const articleContentHtml = article.content_sanitized;
-
-  const openArticleUrl = useCallback(
-    (url: string, metaKey = false, ctrlKey = false) => {
-      const useExternal = shouldOpenExternalBrowser({
-        openLinks,
-        cmdClickBrowser,
-        metaKey,
-        ctrlKey,
-      });
-
-      if (useExternal) {
-        void openArticleInExternalBrowser(url);
-        return;
-      }
-
-      void openArticleInExternalBrowser(url);
-    },
-    [cmdClickBrowser, openLinks],
-  );
-
-  useEffect(() => {
-    const contentContainer = contentContainerElement;
-    if (!contentContainer || !articleContentHtml) {
-      return;
-    }
-
-    const anchors = Array.from(contentContainer.querySelectorAll("a[href]")) as HTMLAnchorElement[];
-    const handleContentClick = (event: Event) => {
-      const anchor = event.currentTarget;
-      if (!(anchor instanceof HTMLAnchorElement) || !anchor.href) {
-        return;
-      }
-      event.preventDefault();
-      const pointerEvent = event as MouseEvent;
-      openArticleUrl(anchor.href, pointerEvent.metaKey, pointerEvent.ctrlKey);
-    };
-
-    for (const anchor of anchors) {
-      anchor.addEventListener("click", handleContentClick);
-    }
-
-    return () => {
-      for (const anchor of anchors) {
-        anchor.removeEventListener("click", handleContentClick);
-      }
-    };
-  }, [articleContentHtml, contentContainerElement, openArticleUrl]);
-
-  return (
-    <ScrollArea data-testid="article-reader-scroll-area" className="h-full">
-      <article className="mx-auto max-w-3xl px-8 pb-8 pt-10 md:pt-12">
-        <ArticleMetaView
-          title={article.title}
-          author={article.author}
-          feedName={feedName}
-          publishedLabel={formatArticleDate(article.published_at, resolveArticleDateLocale(i18n.language))}
-          onTitleClick={
-            articleUrl
-              ? (e) => {
-                  openArticleUrl(articleUrl, e.metaKey, e.ctrlKey);
-                }
-              : undefined
-          }
-          onTitleAuxClick={
-            articleUrl
-              ? (e) => {
-                  if (e.button === 1) {
-                    e.preventDefault();
-                    void openArticleInExternalBrowser(articleUrl);
-                  }
-                }
-              : undefined
-          }
-          onFeedClick={
-            feedName
-              ? () => {
-                  selectFeed(article.feed_id);
-                }
-              : undefined
-          }
-        />
-
-        <div className="mb-8">
-          <ArticleTagChips articleId={article.id} />
-        </div>
-
-        <div ref={setContentContainerElement}>
-          <ArticleContentView thumbnailUrl={article.thumbnail} contentHtml={articleContentHtml} feedName={feedName} />
-        </div>
-      </article>
-    </ScrollArea>
-  );
 }
 
 export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: FeedDto; feedName?: string }) {
