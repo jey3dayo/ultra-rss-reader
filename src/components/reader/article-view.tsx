@@ -2,9 +2,8 @@ import { Result } from "@praha/byethrow";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
-import { addToReadingList, closeBrowserWebview, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
+import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { APP_EVENTS } from "@/constants/events";
 import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import {
@@ -15,20 +14,12 @@ import {
   useTags,
   useUntagArticle,
 } from "@/hooks/use-tags";
-import { flushPendingBrowserCloseAction } from "@/lib/actions";
-import {
-  type BinaryDisplayMode,
-  resolveAppDefaultDisplayModes,
-  resolveArticleDisplay,
-  resolveFeedDisplayOverrides,
-} from "@/lib/article-display";
 import {
   findSelectedArticle,
   formatArticleDate,
   resolveArticleDateLocale,
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
-import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
@@ -41,6 +32,7 @@ import { ArticleShareMenu } from "./article-share-menu";
 import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-tag-picker-view";
 import { ArticleToolbarActionStrip, ArticleToolbarView, type ArticleToolbarViewLabels } from "./article-toolbar-view";
 import { BrowserView } from "./browser-view";
+import { useArticleBrowserOverlay } from "./use-article-browser-overlay";
 
 function openArticleInExternalBrowser(url: string) {
   const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
@@ -401,9 +393,6 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
   const layoutMode = useUiStore((s) => s.layoutMode);
   const contentMode = useUiStore((s) => s.contentMode);
   const browserUrl = useUiStore((s) => s.browserUrl);
-  const openBrowser = useUiStore((s) => s.openBrowser);
-  const closeBrowser = useUiStore((s) => s.closeBrowser);
-  const setBrowserCloseInFlight = useUiStore((s) => s.setBrowserCloseInFlight);
   const clearArticle = useUiStore((s) => s.clearArticle);
   const showToast = useUiStore((s) => s.showToast);
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
@@ -414,28 +403,15 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
   const prefs = usePreferencesStore((s) => s.prefs);
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
-  const [readerModeOverride, setReaderModeOverride] = useState<BinaryDisplayMode | null>(null);
-  const [webPreviewModeOverride, setWebPreviewModeOverride] = useState<BinaryDisplayMode | null>(null);
-  const overlayFocusReturnTargetRef = useRef<HTMLElement | null>(null);
-  const overlayFocusReturnTargetKeyRef = useRef<string | null>(null);
-  const preserveBrowserOverlayOnNextArticleRef = useRef(false);
   const autoMarkedArticleIdRef = useRef<string | null>(null);
-  const wasBrowserOpenRef = useRef(false);
-  const isBrowserOpen = contentMode === "browser";
-  const intendedBrowserUrl = article.url;
-  const requestedDisplay = resolveArticleDisplay({
-    appDefault: resolveAppDefaultDisplayModes(prefs),
-    feedOverride: resolveFeedDisplayOverrides(feed),
-    temporaryOverride: { readerMode: readerModeOverride, webPreviewMode: webPreviewModeOverride },
-    articleCapabilities: { hasWebPreview: true },
-  });
-  const resolvedDisplay = resolveArticleDisplay({
-    appDefault: resolveAppDefaultDisplayModes(prefs),
-    feedOverride: resolveFeedDisplayOverrides(feed),
-    temporaryOverride: { readerMode: readerModeOverride, webPreviewMode: webPreviewModeOverride },
-    articleCapabilities: { hasWebPreview: Boolean(intendedBrowserUrl) },
-  });
-  const shouldShowBrowserOverlay = Boolean(intendedBrowserUrl) && resolvedDisplay.webPreviewMode;
+  const { isBrowserOpen, resolvedDisplay, handleCloseBrowserOverlay, handleToggleBrowserOverlay } =
+    useArticleBrowserOverlay({
+      articleId: article.id,
+      articleUrl: article.url,
+      browserUrl,
+      contentMode,
+      feed,
+    });
 
   const retainIfNeeded = useCallback(
     (nextRead: boolean) => {
@@ -445,63 +421,6 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
     },
     [article.id, retainArticle, viewMode],
   );
-
-  const previousArticleIdRef = useRef(article.id);
-
-  const focusSelectedArticleRow = useCallback(() => {
-    if (typeof document === "undefined") {
-      return;
-    }
-
-    const selectedArticleTarget = document.querySelector<HTMLElement>(`[data-article-id="${article.id}"]`);
-    if (!selectedArticleTarget || selectedArticleTarget.hasAttribute("disabled")) {
-      return;
-    }
-
-    useUiStore.getState().setFocusedPane("list");
-    selectedArticleTarget.focus({ preventScroll: true });
-  }, [article.id]);
-
-  useEffect(() => {
-    const markKeyboardNavigationIntent = () => {
-      preserveBrowserOverlayOnNextArticleRef.current = webPreviewModeOverride === "on";
-    };
-
-    window.addEventListener(APP_EVENTS.navigateArticle, markKeyboardNavigationIntent);
-    return () => {
-      window.removeEventListener(APP_EVENTS.navigateArticle, markKeyboardNavigationIntent);
-    };
-  }, [webPreviewModeOverride]);
-
-  useEffect(() => {
-    if (previousArticleIdRef.current === article.id) {
-      return;
-    }
-
-    previousArticleIdRef.current = article.id;
-    const shouldPreserveBrowserOverlay =
-      webPreviewModeOverride === "on" && preserveBrowserOverlayOnNextArticleRef.current;
-    preserveBrowserOverlayOnNextArticleRef.current = false;
-    if (shouldPreserveBrowserOverlay) {
-      return;
-    }
-    setReaderModeOverride(null);
-    setWebPreviewModeOverride(null);
-  }, [article.id, webPreviewModeOverride]);
-
-  const rememberOverlayFocusReturnTarget = useCallback(() => {
-    if (typeof document === "undefined") {
-      return;
-    }
-
-    const activeElement = document.activeElement;
-    if (!(activeElement instanceof HTMLElement) || activeElement === document.body) {
-      return;
-    }
-
-    overlayFocusReturnTargetRef.current = activeElement;
-    overlayFocusReturnTargetKeyRef.current = activeElement.getAttribute("data-browser-overlay-return-focus");
-  }, []);
 
   useEffect(() => {
     if (afterReading !== "mark_as_read" || article.is_read || autoMarkedArticleIdRef.current === article.id) {
@@ -526,129 +445,12 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
     );
   }, [addRecentlyRead, afterReading, article.id, article.is_read, retainIfNeeded, setRead, showToast]);
 
-  useEffect(() => {
-    if (!intendedBrowserUrl) {
-      if (isBrowserOpen) {
-        closeBrowser();
-      }
-      return;
-    }
-
-    if (shouldShowBrowserOverlay) {
-      if (!isBrowserOpen || browserUrl !== intendedBrowserUrl) {
-        if (!isBrowserOpen) {
-          rememberOverlayFocusReturnTarget();
-        }
-        openBrowser(intendedBrowserUrl);
-      }
-      return;
-    }
-
-    if (isBrowserOpen) {
-      closeBrowser();
-    }
-  }, [
-    browserUrl,
-    closeBrowser,
-    intendedBrowserUrl,
-    isBrowserOpen,
-    openBrowser,
-    rememberOverlayFocusReturnTarget,
-    shouldShowBrowserOverlay,
-  ]);
-
-  useEffect(() => {
-    if (wasBrowserOpenRef.current && !isBrowserOpen && typeof document !== "undefined") {
-      const previousTarget = overlayFocusReturnTargetRef.current;
-      const previousTargetKey = overlayFocusReturnTargetKeyRef.current;
-      overlayFocusReturnTargetRef.current = null;
-      overlayFocusReturnTargetKeyRef.current = null;
-
-      requestAnimationFrame(() => {
-        const selectedArticleTarget = document.querySelector<HTMLElement>(`[data-article-id="${article.id}"]`);
-        if (selectedArticleTarget && !selectedArticleTarget.hasAttribute("disabled")) {
-          useUiStore.getState().setFocusedPane("list");
-          selectedArticleTarget.focus({ preventScroll: true });
-          return;
-        }
-
-        if (previousTargetKey) {
-          const nextTarget = document.querySelector<HTMLElement>(
-            `[data-browser-overlay-return-focus="${previousTargetKey}"]`,
-          );
-          if (nextTarget && !nextTarget.hasAttribute("disabled")) {
-            nextTarget.focus();
-            return;
-          }
-        }
-
-        if (previousTarget?.isConnected && !previousTarget.hasAttribute("disabled")) {
-          previousTarget.focus();
-          return;
-        }
-
-        document.querySelector<HTMLElement>('[data-browser-overlay-return-focus="open-in-browser"]')?.focus();
-      });
-    }
-
-    wasBrowserOpenRef.current = isBrowserOpen;
-  }, [article.id, isBrowserOpen]);
-
   const handleCloseView = useCallback(() => {
     clearArticle();
     if (layoutMode !== "wide") {
       useUiStore.getState().setFocusedPane("list");
     }
   }, [clearArticle, layoutMode]);
-
-  const handleOpenBrowserOverlay = useCallback(() => {
-    rememberOverlayFocusReturnTarget();
-    setReaderModeOverride(requestedDisplay.readerMode ? "on" : "off");
-    setWebPreviewModeOverride("on");
-  }, [rememberOverlayFocusReturnTarget, requestedDisplay.readerMode]);
-
-  const finalizeCloseBrowserOverlay = useCallback(() => {
-    useUiStore.getState().setFocusedPane("list");
-    focusSelectedArticleRow();
-    setReaderModeOverride(requestedDisplay.readerMode ? "on" : "off");
-    setWebPreviewModeOverride("off");
-    closeBrowser();
-    requestAnimationFrame(() => {
-      focusSelectedArticleRow();
-      flushPendingBrowserCloseAction();
-    });
-  }, [closeBrowser, focusSelectedArticleRow, requestedDisplay.readerMode]);
-
-  const handleCloseBrowserOverlay = useCallback(() => {
-    if (useUiStore.getState().browserCloseInFlight) {
-      emitDebugInputTrace("close-browser ignored (in-flight)");
-      return;
-    }
-    emitDebugInputTrace("close-browser start");
-    setBrowserCloseInFlight(true);
-    void closeBrowserWebview()
-      .then((result) =>
-        Result.pipe(
-          result,
-          Result.inspectError((error) => {
-            console.error("Failed to close embedded browser webview before returning to reader mode:", error);
-          }),
-        ),
-      )
-      .finally(() => {
-        emitDebugInputTrace("close-browser finalize");
-        finalizeCloseBrowserOverlay();
-      });
-  }, [finalizeCloseBrowserOverlay, setBrowserCloseInFlight]);
-
-  const handleToggleBrowserOverlay = useCallback(() => {
-    if (requestedDisplay.webPreviewMode) {
-      handleCloseBrowserOverlay();
-      return;
-    }
-
-    handleOpenBrowserOverlay();
-  }, [handleCloseBrowserOverlay, handleOpenBrowserOverlay, requestedDisplay.webPreviewMode]);
 
   const handleToggleRead = useCallback(() => {
     const markingAsRead = !article.is_read;
