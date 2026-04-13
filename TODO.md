@@ -63,6 +63,13 @@
   - 対象: `src/dev-mocks.ts`, `src/__tests__/dev-mocks.test.ts`
   - 対応: browser-mode mock に空の sync status DTO を追加し、回帰防止テストを追加した
 
+- [x] 390px 幅で設定モーダルの本文カラムが極端に潰れる
+  - 症状: mobile 相当の viewport で設定を開くと、左ナビが `260px` 固定のまま残り、本文が約 `130px` 幅まで圧縮されて combobox や見出しが実質読めなくなる
+  - 影響: narrow 幅で設定各項目の確認や操作がほぼできない
+  - 原因: `src/components/settings/settings-modal-view.tsx` が常に横並び 2 カラム前提で、nav pane に固定幅 `w-[260px]` を持っていた
+  - 対象: `src/components/settings/settings-modal-view.tsx`, `src/__tests__/components/settings-modal-view.test.tsx`
+  - 対応: mobile では縦積み、`sm` 以上で従来の 2 カラムに戻す responsive layout へ変更し、narrow screen 用の回帰テストを追加した
+
 ## 2026-04-12 購読整理 UI copy / 情報設計メモ
 
 - [x] 購読整理画面に一括操作を追加する
