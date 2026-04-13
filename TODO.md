@@ -210,6 +210,11 @@
   - 問題: `useBrowserViewController` に `browserUrl` 切り替え時の request state reset と `nativeDiagnostics` の local state 管理が残っていて、controller orchestration と browser runtime state 管理が混ざっていた
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-webview-request-state.ts`, `src/components/reader/use-browser-native-diagnostics.ts`, `src/components/reader/browser-webview-state.ts`
 
+- [x] browser-view runtime hook の contract を shared types に寄せる
+  - 問題: `use-browser-view-runtime.ts` に local params/result 型と store `ReturnType` 依存が残っていて、browser runtime 境界の正本を `browser-view.types.ts` から追えなかった
+  - 対応: `UseBrowserViewRuntimeParams` / `UseBrowserViewRuntimeResult` を `browser-view.types.ts` に追加して、runtime hook は shared types と explicit store contract を参照する形に寄せた
+  - 対象: `src/components/reader/browser-view.types.ts`, `src/components/reader/use-browser-view-runtime.ts`
+
 - [x] browser-view の load timeout 監視を hook 化する
   - 問題: `useBrowserViewController` に embedded browser の load timeout 監視 effect が残っていて、controller orchestration と runtime timeout 管理が混ざっていた
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-webview-load-timeout.ts`
@@ -785,6 +790,11 @@
   - 問題: `UseArticleListHeaderActionsResult` が `use-article-list-header-actions.ts` に残っていて、header actions の result contract を `article-list.types.ts` から追えなかった
   - 対応: `article-list.types.ts` に header actions result contract を追加して、header actions hook は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-header-actions.ts`
+
+- [x] article list view props の params を shared types に寄せる
+  - 問題: `UseArticleListViewPropsParams` が `use-article-list-view-props.ts` に残っていて、view props 導出境界の正本を `article-list.types.ts` から追えなかった
+  - 対応: `article-list.types.ts` に view props params contract を追加して、view props hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-view-props.ts`
 
 - [x] article list header subview props の正本を shared types に寄せる
   - 問題: `article-list-header.tsx` / `article-list-header-actions.tsx` / `article-list-header-search.tsx` に props contract が分散していて、header 境界の正本を `article-list.types.ts` から追えなかった
