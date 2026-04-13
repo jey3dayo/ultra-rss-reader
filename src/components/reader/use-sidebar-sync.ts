@@ -2,10 +2,10 @@ import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { triggerSync } from "@/api/tauri-commands";
 import type { AccountSyncWarning } from "@/api/schemas/sync-result";
-import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync-result-feedback";
+import { triggerSync } from "@/api/tauri-commands";
 import i18n from "@/lib/i18n";
+import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync-result-feedback";
 import type { SyncProgressEvent, SyncProgressState } from "@/stores/ui-store";
 
 type SyncWarningPayload = AccountSyncWarning[];

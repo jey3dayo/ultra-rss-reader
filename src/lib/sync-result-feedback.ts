@@ -38,7 +38,9 @@ export function getSyncWarningAccountNames(warnings: AccountSyncWarning[]): stri
   return getDistinctAccountNames(warnings);
 }
 
-export function summarizeSyncWarnings(warnings: AccountSyncWarning[]): Extract<SyncFeedback, { kind: "retry-pending" | "warnings" }> {
+export function summarizeSyncWarnings(
+  warnings: AccountSyncWarning[],
+): Extract<SyncFeedback, { kind: "retry-pending" | "warnings" }> {
   return {
     kind: hasRetryPendingWarnings(warnings) ? "retry-pending" : "warnings",
     accounts: getDistinctAccountNames(warnings),
