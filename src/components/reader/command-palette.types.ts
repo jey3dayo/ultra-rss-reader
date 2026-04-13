@@ -12,6 +12,10 @@ export type CommandPaletteActionItem = {
   icon: LucideIcon;
 };
 
+export type PaletteAction = CommandPaletteActionItem & {
+  keywords: string[];
+};
+
 export type CommandPaletteItemValueResolver = (kind: CommandPaletteItemKind, id: string) => string;
 
 export type CommandPaletteResultsProps = {
@@ -63,6 +67,31 @@ export type CommandPaletteControllerResult = CommandPaletteViewPropsResult & {
   input: string;
   setInput: (value: string) => void;
   closePalette: () => void;
+};
+
+export type UseCommandPaletteDataParams = {
+  actions: PaletteAction[];
+  deferredQuery: string;
+  devScenarios: RuntimeDevScenario[];
+  prefix: string | null;
+  query: string;
+  selectedAccountId: string | null;
+};
+
+export type UseCommandPaletteDataResult = {
+  articles: ArticleDto[];
+  filteredActions: PaletteAction[];
+  filteredDevScenarios: RuntimeDevScenario[];
+  filteredFeeds: FeedDto[];
+  filteredTags: TagDto[];
+  recentActions: PaletteAction[];
+  showRecentActions: boolean;
+  showActions: boolean;
+  showDevScenarios: boolean;
+  showFeeds: boolean;
+  showTags: boolean;
+  showArticles: boolean;
+  hasVisibleResults: boolean;
 };
 
 export type CommandPaletteActionGroupsProps = Pick<

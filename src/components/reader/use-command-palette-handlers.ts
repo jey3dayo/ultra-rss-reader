@@ -1,8 +1,8 @@
 import { addToHistory } from "@/hooks/use-command-history";
 import { executeAction } from "@/lib/actions";
 import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/lib/dev-scenario-runtime";
+import type { PaletteAction } from "./command-palette.types";
 import { createCommandPaletteHistoryValue } from "./command-palette-history";
-import type { PaletteAction } from "./use-command-palette-data";
 import type { useCommandPaletteUiState } from "./use-command-palette-ui-state";
 
 type UseCommandPaletteHandlersParams = Pick<

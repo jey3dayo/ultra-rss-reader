@@ -3,13 +3,8 @@ import { useSearchArticles } from "@/hooks/use-articles";
 import { getHistory } from "@/hooks/use-command-history";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useTags } from "@/hooks/use-tags";
-import type { RuntimeDevScenario } from "@/lib/dev-scenario-runtime";
-import type { CommandPaletteActionItem } from "./command-palette.types";
+import type { PaletteAction, UseCommandPaletteDataParams, UseCommandPaletteDataResult } from "./command-palette.types";
 import { parseCommandPaletteHistoryEntry } from "./command-palette-history";
-
-export type PaletteAction = CommandPaletteActionItem & {
-  keywords: string[];
-};
 
 function normalize(text: string): string {
   return text.trim().toLowerCase();
@@ -24,15 +19,6 @@ function matchesQuery(label: string, keywords: readonly string[], query: string)
   return [label, ...keywords].some((value) => normalize(value).includes(needle));
 }
 
-type UseCommandPaletteDataOptions = {
-  actions: PaletteAction[];
-  deferredQuery: string;
-  devScenarios: RuntimeDevScenario[];
-  prefix: string | null;
-  query: string;
-  selectedAccountId: string | null;
-};
-
 export function useCommandPaletteData({
   actions,
   deferredQuery,
@@ -40,7 +26,7 @@ export function useCommandPaletteData({
   prefix,
   query,
   selectedAccountId,
-}: UseCommandPaletteDataOptions) {
+}: UseCommandPaletteDataParams): UseCommandPaletteDataResult {
   const { data: feeds = [] } = useFeeds(selectedAccountId ?? "");
   const { data: tags = [] } = useTags();
   const { data: articles = [] } = useSearchArticles(selectedAccountId, prefix === null ? deferredQuery : "");

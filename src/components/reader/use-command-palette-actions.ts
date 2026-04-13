@@ -2,7 +2,7 @@ import { CircleHelpIcon, NewspaperIcon, RefreshCwIcon, RssIcon, SettingsIcon } f
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { getShortcutDisplay } from "@/lib/keyboard-shortcuts";
-import type { PaletteAction } from "./use-command-palette-data";
+import type { PaletteAction } from "./command-palette.types";
 import type { useCommandPaletteUiState } from "./use-command-palette-ui-state";
 
 type UseCommandPaletteActionsParams = Pick<
