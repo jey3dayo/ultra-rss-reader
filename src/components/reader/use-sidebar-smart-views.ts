@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { TFunction } from "i18next";
 import type { SmartViewItemViewModel } from "./smart-views-view";
 
 type UseSidebarSmartViewsParams = {
@@ -9,7 +10,7 @@ type UseSidebarSmartViewsParams = {
   showStarredCount: boolean;
   showSidebarUnread: boolean;
   showSidebarStarred: boolean;
-  t: (key: string) => string;
+  t: TFunction<"sidebar">;
 };
 
 export function useSidebarSmartViews({

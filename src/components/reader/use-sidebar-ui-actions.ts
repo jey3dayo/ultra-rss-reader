@@ -1,10 +1,11 @@
 import { type Dispatch, type SetStateAction, useCallback } from "react";
+import type { SettingsCategory } from "@/stores/ui-store";
 
 type UseSidebarUiActionsParams = {
   selectedAccountId: string | null;
   selectAccount: (accountId: string) => void;
   setSelectedAccountPreference: (accountId: string) => void;
-  openSettings: (category?: "accounts" | "appearance" | "general" | "advanced") => void;
+  openSettings: (category?: SettingsCategory) => void;
   setSettingsAddAccount: (open: boolean) => void;
   openAddFeedDialog: () => void;
   closeAddFeedDialog: () => void;
