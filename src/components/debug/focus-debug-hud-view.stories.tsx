@@ -44,7 +44,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="relative h-[560px] w-[640px] overflow-hidden bg-[#09090b] p-4">
+      <div className="relative h-[560px] w-full max-w-[640px] overflow-hidden bg-[#09090b] p-4">
         <Story />
       </div>
     ),
