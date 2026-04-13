@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { ArticleDto } from "@/api/tauri-commands";
 
-type FindSelectedArticleParams = {
+export type FindSelectedArticleParams = {
   selectedArticleId: string | null;
   feedId: string | null;
   tagId: string | null;
@@ -10,7 +10,7 @@ type FindSelectedArticleParams = {
   tagArticles: ArticleDto[] | undefined;
 };
 
-type LinkNavigationParams = {
+export type LinkNavigationParams = {
   openLinks: string;
   cmdClickBrowser: string;
   metaKey: boolean;

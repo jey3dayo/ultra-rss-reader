@@ -3,7 +3,7 @@ import type { ArticleDto } from "@/api/tauri-commands";
 
 type ViewMode = "all" | "unread" | "starred";
 
-type SelectVisibleArticlesParams = {
+export type SelectVisibleArticlesParams = {
   articles: ArticleDto[] | undefined;
   accountArticles: ArticleDto[] | undefined;
   tagArticles: ArticleDto[] | undefined;
@@ -19,13 +19,13 @@ type SelectVisibleArticlesParams = {
   retainedArticleIds?: ReadonlySet<string>;
 };
 
-type GroupArticlesParams = {
+export type GroupArticlesParams = {
   articles: ArticleDto[];
   groupBy: string;
   feedNameMap: Map<string, string>;
 };
 
-type CalculateArticleNavigationScrollTopParams = {
+export type CalculateArticleNavigationScrollTopParams = {
   currentScrollTop: number;
   viewportTop: number;
   viewportHeight: number;
