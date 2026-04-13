@@ -8,10 +8,10 @@ import { useArticleListInteractions } from "./use-article-list-interactions";
 import { useArticleListSearch } from "./use-article-list-search";
 import { useArticleListSources } from "./use-article-list-sources";
 import { useArticleListUiState } from "./use-article-list-ui-state";
-import { useArticleListViewProps } from "./use-article-list-view-props";
+import { type UseArticleListViewPropsResult, useArticleListViewProps } from "./use-article-list-view-props";
 import { useArticleListViewState } from "./use-article-list-view-state";
 
-export function useArticleListController() {
+export function useArticleListController(): UseArticleListViewPropsResult {
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
   const { t: ts } = useTranslation("sidebar");

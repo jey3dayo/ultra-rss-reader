@@ -1,10 +1,10 @@
 import type { TFunction } from "i18next";
 import type { ComponentProps, KeyboardEvent, ReactNode, RefObject } from "react";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
-import { ArticleListBody } from "./article-list-body";
-import { ArticleListContextStrip } from "./article-list-context-strip";
-import { ArticleListFooter } from "./article-list-footer";
-import { ArticleListHeader } from "./article-list-header";
+import type { ArticleListBody } from "./article-list-body";
+import type { ArticleListContextStrip } from "./article-list-context-strip";
+import type { ArticleListFooter } from "./article-list-footer";
+import type { ArticleListHeader } from "./article-list-header";
 
 type LayoutMode = "wide" | "compact" | "mobile";
 type ViewMode = "all" | "unread" | "starred";
@@ -55,7 +55,7 @@ type UseArticleListViewPropsParams = {
   setViewMode: (viewMode: ViewMode) => void;
 };
 
-type UseArticleListViewPropsResult = {
+export type UseArticleListViewPropsResult = {
   layoutMode: LayoutMode;
   headerProps: HeaderProps;
   contextStripProps: ContextStripProps;
