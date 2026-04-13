@@ -1,8 +1,5 @@
-import { Result } from "@praha/byethrow";
-import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { triggerSync } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { APP_EVENTS } from "@/constants/events";
 import { useAccounts } from "@/hooks/use-accounts";
@@ -12,7 +9,6 @@ import { useFolders } from "@/hooks/use-folders";
 import { useResolvedDevIntent } from "@/hooks/use-resolved-dev-intent";
 import { useTagArticleCounts, useTags } from "@/hooks/use-tags";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
-import i18n from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -34,26 +30,10 @@ import { useSidebarFeedDragState } from "./use-sidebar-feed-drag-state";
 import { useSidebarFeedTree } from "./use-sidebar-feed-tree";
 import { useSidebarStartupFolderExpansion } from "./use-sidebar-startup-folder-expansion";
 import { useSidebarVisibilityFallback } from "./use-sidebar-visibility-fallback";
-
-function useFormatLastSynced(date: Date | null): string {
-  const { t } = useTranslation("sidebar");
-  if (!date) return t("not_synced_yet");
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  const now = new Date();
-  const isToday =
-    date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
-  if (isToday) {
-    return t("today_at", { time: `${hours}:${minutes}` });
-  }
-  const dateStr = date.toLocaleDateString(i18n.language, { month: "short", day: "numeric" });
-  return t("date_at", { date: dateStr, time: `${hours}:${minutes}` });
-}
+import { useSidebarSync } from "./use-sidebar-sync";
 
 export function Sidebar() {
   const { t } = useTranslation("sidebar");
-  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
-  const lastSyncedFormatted = useFormatLastSynced(lastSyncedAt);
   const [isFeedsSectionOpen, setIsFeedsSectionOpen] = useState(true);
   const [isTagsSectionOpen, setIsTagsSectionOpen] = useState(true);
   const {
@@ -119,6 +99,12 @@ export function Sidebar() {
   const savedAccountId = usePreferencesStore((s) => s.prefs.selected_account_id ?? "");
   const setPref = usePreferencesStore((s) => s.setPref);
   const { intent: activeDevIntent } = useResolvedDevIntent();
+  const { handleSync, lastSyncedLabel } = useSidebarSync({
+    syncProgress,
+    applySyncProgress,
+    clearSyncProgress,
+    showToast,
+  });
 
   useSidebarAccountSelection({
     accounts,
@@ -174,78 +160,6 @@ export function Sidebar() {
     if (view.kind === "starred") return showSidebarStarred;
     return true;
   });
-
-  useEffect(() => {
-    let cancelled = false;
-    let unlisten: (() => void) | undefined;
-    let unlistenProgress: (() => void) | undefined;
-    let unlistenWarning: (() => void) | undefined;
-
-    listen("sync-progress", (event) => {
-      const payload =
-        typeof event === "object" && event !== null && "payload" in event
-          ? (event.payload as Parameters<typeof applySyncProgress>[0])
-          : (event as Parameters<typeof applySyncProgress>[0]);
-      applySyncProgress(payload);
-    }).then((fn) => {
-      if (cancelled) fn();
-      else unlistenProgress = fn;
-    });
-
-    listen("sync-completed", () => {
-      setLastSyncedAt(new Date());
-      clearSyncProgress();
-    }).then((fn) => {
-      if (cancelled) fn();
-      else unlisten = fn;
-    });
-
-    listen("sync-warning", (event) => {
-      const payload =
-        typeof event === "object" && event !== null && "payload" in event
-          ? (event.payload as Array<{ account_name: string }>)
-          : (event as Array<{ account_name: string }>);
-      const names = [...new Set(payload.map((warning) => warning.account_name))].join(", ");
-      if (names) {
-        showToast(t("sync_completed_with_warnings", { accounts: names }));
-      }
-    }).then((fn) => {
-      if (cancelled) fn();
-      else unlistenWarning = fn;
-    });
-
-    return () => {
-      cancelled = true;
-      unlisten?.();
-      unlistenProgress?.();
-      unlistenWarning?.();
-    };
-  }, [applySyncProgress, clearSyncProgress, showToast, t]);
-
-  const handleSync = async () => {
-    if (syncProgress.active) return;
-    const result = await triggerSync();
-    Result.pipe(
-      result,
-      Result.inspect((syncResult) => {
-        if (!syncResult.synced) {
-          showToast(t("sync_already_in_progress"));
-        } else if (syncResult.failed.length > 0) {
-          const names = syncResult.failed.map((f) => f.account_name).join(", ");
-          showToast(t("sync_partial_failure", { accounts: names }));
-        } else if (syncResult.warnings.length > 0) {
-          const names = [...new Set(syncResult.warnings.map((warning) => warning.account_name))].join(", ");
-          showToast(t("sync_completed_with_warnings", { accounts: names }));
-        } else {
-          showToast(t("sync_completed"));
-        }
-      }),
-      Result.inspectError((e) => {
-        console.error("Sync failed:", e);
-        showToast(t("sync_failed"));
-      }),
-    );
-  };
 
   const handleOpenAccountSettings = useCallback(() => {
     openSettings("accounts");
@@ -497,7 +411,7 @@ export function Sidebar() {
       <SidebarAccountSection
         containerRef={accountDropdownRef}
         title={selectedAccount?.name ?? t("app_name")}
-        lastSyncedLabel={lastSyncedFormatted}
+        lastSyncedLabel={lastSyncedLabel}
         accounts={accounts ?? []}
         selectedAccountId={selectedAccountId}
         isExpanded={isAccountListOpen}

@@ -29,7 +29,7 @@ export type SyncProgressEvent = {
   success?: boolean | null;
 };
 
-type SyncProgressState = {
+export type SyncProgressState = {
   active: boolean;
   kind: SyncProgressKind | null;
   total: number;
