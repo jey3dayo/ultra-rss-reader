@@ -265,6 +265,11 @@
   - 対応: `UseBrowserDebugGeometryEventsParams` / `UseBrowserLayoutDiagnosticsParams` / `UseBrowserOverlayFocusReturnParams` / `UseBrowserViewActionsParams` を `browser-view.types.ts` に追加して、各 hook は shared types を参照する形に寄せた
   - 対象: `src/components/reader/browser-view.types.ts`, `src/components/reader/use-browser-debug-geometry-events.ts`, `src/components/reader/use-browser-layout-diagnostics.ts`, `src/components/reader/use-browser-overlay-focus-return.ts`, `src/components/reader/use-browser-view-actions.ts`
 
+- [x] browser subview props の contract を shared types に寄せる
+  - 問題: `browser-diagnostics-rail.tsx` と `browser-surface-state-card.tsx` に local props 型が残っていて、browser overlay subview 境界の正本を `browser-view.types.ts` から追えなかった
+  - 対応: `BrowserDiagnosticsRailProps` と `BrowserSurfaceStateCardProps` を `browser-view.types.ts` に追加して、subview は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/browser-view.types.ts`, `src/components/reader/browser-diagnostics-rail.tsx`, `src/components/reader/browser-surface-state-card.tsx`
+
 - [x] article browser overlay helper の contract を shared types に寄せる
   - 問題: `use-article-browser-overlay.ts` / `use-article-browser-overlay-close.ts` / `use-article-browser-overlay-display.ts` に local params/result 型が残っていて、overlay helper 境界の正本を `article-view.types.ts` から追えなかった
   - 対応: `UseArticleBrowserOverlayParams` / `UseArticleBrowserOverlayResult` / `UseArticleBrowserOverlayCloseParams` / `UseArticleBrowserOverlayDisplayParams` を `article-view.types.ts` に追加して、各 hook は shared types を参照する形に寄せた
@@ -279,6 +284,11 @@
   - 問題: `article-tag-picker-view.tsx` に view model / labels 型が残っていて、`popover` / `chips` / `hook` が component file へ型依存していた
   - 対応: `article-tag-picker.types.ts` を追加して view/popover/hook の shared contract を集約し、関連 component は types file を参照する形に寄せた
   - 対象: `src/components/reader/article-tag-picker.types.ts`, `src/components/reader/article-tag-picker-view.tsx`, `src/components/reader/article-tag-picker-popover.tsx`, `src/components/reader/article-tag-chip-list.tsx`, `src/components/reader/article-tag-chips.tsx`, `src/components/reader/use-article-tag-picker-popover.ts`, `src/__tests__/components/article-tag-picker-view.test.tsx`
+
+- [x] browser subview props の正本を browser-view types に寄せる
+  - 問題: `browser-diagnostics-rail.tsx` と `browser-surface-state-card.tsx` の props contract が subview file に残っていて、browser subview 境界を `browser-view.types.ts` から一望できなかった
+  - 対応: `BrowserDiagnosticsRailProps` と `BrowserSurfaceStateCardProps` を `browser-view.types.ts` に追加して、browser subview は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/browser-view.types.ts`, `src/components/reader/browser-diagnostics-rail.tsx`, `src/components/reader/browser-surface-state-card.tsx`
 
 - [x] browser-view の load timeout 監視を hook 化する
   - 問題: `useBrowserViewController` に embedded browser の load timeout 監視 effect が残っていて、controller orchestration と runtime timeout 管理が混ざっていた
