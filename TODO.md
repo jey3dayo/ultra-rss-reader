@@ -115,6 +115,10 @@
   - 問題: `useCommandPaletteController` に input reset / search state / dev scenario loading effect が残っていて、controller orchestration と runtime state 管理が混ざっていた
   - 対象: `src/components/reader/use-command-palette-controller.ts`, `src/components/reader/use-command-palette-runtime.ts`
 
+- [x] command-palette の選択 handler 群を hook に寄せる
+  - 問題: `useCommandPaletteController` に action/feed/tag/article/dev scenario の選択 handler が残っていて、controller orchestration と選択処理が混ざっていた
+  - 対象: `src/components/reader/use-command-palette-controller.ts`, `src/components/reader/use-command-palette-handlers.ts`
+
 - [x] command-palette の view props 組み立てを hook に寄せる
   - 問題: `useCommandPaletteController` に results props と prefix hint の組み立てが残っていて、controller orchestration と view props 導出が混ざっていた
   - 対象: `src/components/reader/use-command-palette-controller.ts`, `src/components/reader/use-command-palette-view-props.ts`
