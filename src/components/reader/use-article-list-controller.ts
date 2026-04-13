@@ -4,9 +4,7 @@ import { useArticleListEffects } from "./use-article-list-effects";
 import { useArticleListGroups } from "./use-article-list-groups";
 import { useArticleListHeaderController } from "./use-article-list-header-controller";
 import { useArticleListInteractions } from "./use-article-list-interactions";
-import { useArticleListSearch } from "./use-article-list-search";
-import { useArticleListSources } from "./use-article-list-sources";
-import { useArticleListUiState } from "./use-article-list-ui-state";
+import { useArticleListRuntime } from "./use-article-list-runtime";
 import { type UseArticleListViewPropsResult, useArticleListViewProps } from "./use-article-list-view-props";
 import { useArticleListViewState } from "./use-article-list-view-state";
 
@@ -14,10 +12,8 @@ export function useArticleListController(): UseArticleListViewPropsResult {
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
   const { t: ts } = useTranslation("sidebar");
-  const uiState = useArticleListUiState();
   const {
     selection,
-    selectedAccountId,
     selectedArticleId,
     selectArticle,
     clearArticle,
@@ -37,9 +33,6 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     imagePreviews,
     selectionStyle,
     scrollToTopOnChange,
-  } = uiState;
-
-  const {
     feedId,
     folderId,
     tagId,
@@ -52,12 +45,6 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     isLoading,
     isLoadingAccountArticles,
     isLoadingTagArticles,
-  } = useArticleListSources({
-    selection,
-    selectedAccountId,
-  });
-
-  const {
     showSearch,
     searchQuery,
     searchInputRef,
@@ -68,7 +55,7 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     handleToggleSearch,
     handleCloseSearch,
     setSearchQuery,
-  } = useArticleListSearch({ selectedAccountId });
+  } = useArticleListRuntime();
 
   const {
     feedId: resolvedFeedId,
