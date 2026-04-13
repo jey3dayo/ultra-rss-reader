@@ -1,11 +1,9 @@
-import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { useSetRead } from "@/hooks/use-articles";
 import { FeedCleanupPage } from "../feed-cleanup/feed-cleanup-page";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticleReaderBody } from "./article-reader-body";
-import { ArticleToolbarActionStrip, ArticleToolbarView } from "./article-toolbar-view";
+import { ArticleToolbarView } from "./article-toolbar-view";
 import type { ArticlePaneProps } from "./article-view.types";
 import {
   ArticleEmptyStateShell,
@@ -13,8 +11,7 @@ import {
   BrowserOnlyStateView,
   BrowserOverlaySurface,
 } from "./article-view-state";
-import { useArticleAutoMark } from "./use-article-auto-mark";
-import { useArticleBrowserOverlay } from "./use-article-browser-overlay";
+import { useArticlePaneController } from "./use-article-pane-controller";
 import { useArticleToolbarControls } from "./use-article-toolbar-controls";
 import { useArticleViewSelection } from "./use-article-view-selection";
 import { useArticleViewUiState } from "./use-article-view-ui-state";
@@ -71,88 +68,27 @@ function BrowserOnlyState() {
 }
 
 export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
-  const { t } = useTranslation("reader");
   const {
-    layoutMode,
-    contentMode,
-    browserUrl,
-    clearArticle,
-    showToast,
-    addRecentlyRead,
-    retainArticle,
-    viewMode,
-    setFocusedPane,
-    afterReading,
-  } = useArticleViewUiState();
-  const { isBrowserOpen, resolvedDisplay, handleCloseBrowserOverlay, handleToggleBrowserOverlay } =
-    useArticleBrowserOverlay({
-      articleId: article.id,
-      articleUrl: article.url,
-      browserUrl,
-      contentMode,
-      feed,
-    });
-  const actionStripProps = useArticleToolbarControls({
-    article,
-    isBrowserOpen,
-    onToggleBrowserOverlay: handleToggleBrowserOverlay,
-    keyboardShortcuts: {
-      onToggleBrowserOverlay: handleToggleBrowserOverlay,
-      onCloseBrowserOverlay: handleCloseBrowserOverlay,
-    },
-  });
-  const setRead = useSetRead();
-
-  useArticleAutoMark({
-    articleId: article.id,
-    isRead: article.is_read,
-    afterReading,
-    viewMode,
-    retainArticle,
-    addRecentlyRead,
-    setRead,
-    showToast,
-  });
-
-  const handleCloseView = useCallback(() => {
-    clearArticle();
-    if (layoutMode !== "wide") {
-      setFocusedPane("list");
-    }
-  }, [clearArticle, layoutMode, setFocusedPane]);
-
-  const overlayToolbarActions = (
-    <ArticleToolbarActionStrip
-      {...actionStripProps}
-      labels={{
-        ...actionStripProps.labels,
-        previewToggleOn: t("web_preview_mode"),
-      }}
-    />
-  );
+    toolbarProps,
+    browserOverlayProps,
+    showWebPreviewUnavailableWarning,
+    webPreviewUnavailableLabel,
+    showReaderBody,
+    readerBodyProps,
+  } = useArticlePaneController({ article, feed, feedName });
 
   return (
     <div data-testid="article-pane" className="flex h-full flex-1 flex-col bg-background">
-      <ArticleToolbar
-        article={article}
-        isBrowserOpen={isBrowserOpen}
-        onCloseView={handleCloseView}
-        onToggleBrowserOverlay={handleToggleBrowserOverlay}
-      />
-      <BrowserOverlaySurface
-        onCloseOverlay={handleCloseBrowserOverlay}
-        showBrowserView={isBrowserOpen}
-        toolbarActions={overlayToolbarActions}
-      >
-        {resolvedDisplay.fallbackReason === "missing_web_preview" ? (
+      <ArticleToolbar {...toolbarProps} />
+      <BrowserOverlaySurface {...browserOverlayProps}>
+        {showWebPreviewUnavailableWarning ? (
           <div className="border-b border-border bg-amber-500/10 px-4 py-2 text-sm text-amber-900 dark:text-amber-200">
-            {t("web_preview_unavailable")}
+            {webPreviewUnavailableLabel}
           </div>
         ) : null}
-        {resolvedDisplay.readerMode ? (
+        {showReaderBody ? (
           <div
-            aria-hidden={isBrowserOpen}
-            {...(isBrowserOpen ? { inert: true } : {})}
+            {...readerBodyProps}
             className="min-h-0 flex-1"
             data-testid="article-reader-body"
           >
