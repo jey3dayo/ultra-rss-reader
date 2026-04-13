@@ -1,38 +1,5 @@
 import { Button } from "@/components/ui/button";
-import type { FeedCleanupIntegrityDetailLabels } from "./feed-cleanup-review-panel";
-
-export type FeedCleanupFilterOption = {
-  key: "stale_90d" | "no_unread" | "no_stars";
-  label: string;
-};
-
-export type FeedCleanupSummaryCard = {
-  label: string;
-  value: string;
-  caption: string;
-};
-
-type FeedCleanupOverviewPanelProps = {
-  overviewLabel: string;
-  filtersLabel: string;
-  bulkActionsLabel: string;
-  bulkVisibleCountLabel: string;
-  bulkKeepVisibleLabel: string;
-  bulkDeferVisibleLabel: string;
-  summaryCards: ReadonlyArray<FeedCleanupSummaryCard>;
-  integrityMode: boolean;
-  integrityDetailLabels: FeedCleanupIntegrityDetailLabels;
-  filterOptions: ReadonlyArray<FeedCleanupFilterOption>;
-  filterCounts: Record<FeedCleanupFilterOption["key"], number>;
-  activeFilterKeys: Set<FeedCleanupFilterOption["key"]>;
-  visibleCandidateCount: number;
-  showDeferred: boolean;
-  showDeferredLabel: string;
-  onToggleFilter: (key: FeedCleanupFilterOption["key"]) => void;
-  onToggleShowDeferred: () => void;
-  onKeepVisible: () => void;
-  onDeferVisible: () => void;
-};
+import type { FeedCleanupOverviewPanelProps } from "./feed-cleanup.types";
 
 export function FeedCleanupOverviewPanel({
   overviewLabel,

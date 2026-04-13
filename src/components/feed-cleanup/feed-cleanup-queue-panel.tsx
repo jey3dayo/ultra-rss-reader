@@ -1,34 +1,6 @@
-import type { FeedIntegrityIssueDto } from "@/api/schemas/feed-integrity";
-import type {
-  FeedCleanupCandidate,
-  FeedCleanupReasonKey,
-  FeedCleanupSummaryKey,
-  FeedCleanupTone,
-} from "@/lib/feed-cleanup";
 import { summarizeCleanupCandidate } from "@/lib/feed-cleanup";
 import { cn } from "@/lib/utils";
-import type { FeedCleanupIntegrityDetailLabels } from "./feed-cleanup-review-panel";
-
-type FeedCleanupQueuePanelProps = {
-  integrityMode: boolean;
-  queueLabel: string;
-  integrityQueueLabel: string;
-  integrityEmptyLabel: string;
-  integrityIssues: FeedIntegrityIssueDto[];
-  selectedIntegrityIssue: FeedIntegrityIssueDto | null;
-  integrityDetailLabels: FeedCleanupIntegrityDetailLabels;
-  onSelectIntegrityIssue: (missingFeedId: string) => void;
-  emptyLabel: string;
-  queue: Array<FeedCleanupCandidate & { deferred?: boolean }>;
-  selectedCandidate: (FeedCleanupCandidate & { deferred?: boolean }) | null;
-  onSelectCandidate: (candidateId: string) => void;
-  unreadCountLabel: string;
-  starredCountLabel: string;
-  deferredBadgeLabel: string;
-  reasonLabels: Record<FeedCleanupReasonKey, string>;
-  priorityToneLabels: Record<FeedCleanupTone, string>;
-  summaryLabels: Record<FeedCleanupSummaryKey, string>;
-};
+import type { FeedCleanupQueuePanelProps } from "./feed-cleanup.types";
 
 export function FeedCleanupQueuePanel({
   integrityMode,

@@ -1,66 +1,8 @@
-import type { ReactNode } from "react";
-import type { FeedIntegrityIssueDto } from "@/api/schemas/feed-integrity";
 import { DeleteButton } from "@/components/shared/delete-button";
 import { Button } from "@/components/ui/button";
-import type {
-  FeedCleanupCandidate,
-  FeedCleanupReasonKey,
-  FeedCleanupSummaryKey,
-  FeedCleanupTitleKey,
-  FeedCleanupTone,
-} from "@/lib/feed-cleanup";
+import type { FeedCleanupTone } from "@/lib/feed-cleanup";
 import { cn } from "@/lib/utils";
-
-export type FeedCleanupIntegrityDetailLabels = {
-  missing_feed_id: string;
-  article_count: string;
-  latest_article: string;
-  latest_published_at: string;
-  needs_repair: string;
-  needs_repair_badge: string;
-  summary: string;
-  unknown_article: string;
-  queue_item_title: string;
-  queue_item_articles_label: string;
-  filter_note: string;
-};
-
-type FeedCleanupReviewPanelProps = {
-  reviewLabel: string;
-  integrityMode: boolean;
-  dateLocale: string;
-  integrityEmptyLabel: string;
-  selectedIntegrityIssue: FeedIntegrityIssueDto | null;
-  integrityDetailLabels: FeedCleanupIntegrityDetailLabels;
-  selectedCandidate: (FeedCleanupCandidate & { deferred?: boolean }) | null;
-  selectedSummary: {
-    tone: FeedCleanupTone;
-    titleKey: FeedCleanupTitleKey;
-    summaryKey: FeedCleanupSummaryKey;
-  } | null;
-  folderLabel: string;
-  latestArticleLabel: string;
-  unreadCountLabel: string;
-  starredCountLabel: string;
-  reasonsLabel: string;
-  noSelectionLabel: string;
-  reasonLabels: Record<FeedCleanupReasonKey, string>;
-  priorityToneLabels: Record<FeedCleanupTone, string>;
-  priorityLabels: Record<FeedCleanupTitleKey, string>;
-  summaryHeadlineLabels: Record<FeedCleanupTitleKey, string>;
-  summaryLabels: Record<FeedCleanupSummaryKey, string>;
-  editing: boolean;
-  editor: ReactNode;
-  reviewPanelClassName: string;
-  editLabel: string;
-  keepLabel: string;
-  laterLabel: string;
-  deleteLabel: string;
-  onEdit: () => void;
-  onKeep: () => void;
-  onLater: () => void;
-  onDelete: () => void;
-};
+import type { FeedCleanupReviewPanelProps } from "./feed-cleanup.types";
 
 function formatDate(value: string | null, locale: string): string {
   if (!value) {

@@ -1,21 +1,10 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
-import type { FeedIntegrityIssueDto } from "@/api/schemas/feed-integrity";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import type {
-  FeedCleanupCandidate,
-  FeedCleanupReasonKey,
-  FeedCleanupSummaryKey,
-  FeedCleanupTitleKey,
-  FeedCleanupTone,
-} from "@/lib/feed-cleanup";
 import { cn } from "@/lib/utils";
-import {
-  type FeedCleanupFilterOption,
-  FeedCleanupOverviewPanel,
-  type FeedCleanupSummaryCard,
-} from "./feed-cleanup-overview-panel";
+import type { FeedCleanupPageViewProps } from "./feed-cleanup.types";
+import { FeedCleanupOverviewPanel } from "./feed-cleanup-overview-panel";
 import { FeedCleanupQueuePanel } from "./feed-cleanup-queue-panel";
-import { type FeedCleanupIntegrityDetailLabels, FeedCleanupReviewPanel } from "./feed-cleanup-review-panel";
+import { FeedCleanupReviewPanel } from "./feed-cleanup-review-panel";
 
 const FEED_CLEANUP_COMPACT_THREE_COLUMN_WIDTH = 980;
 const FEED_CLEANUP_WIDE_THREE_COLUMN_WIDTH = 1180;
@@ -93,76 +82,7 @@ export function FeedCleanupPageView({
   onKeep,
   onLater,
   onDelete,
-}: {
-  title: string;
-  subtitle: string;
-  closeLabel: string;
-  dateLocale: string;
-  overviewLabel: string;
-  filtersLabel: string;
-  bulkActionsLabel: string;
-  bulkVisibleCountLabel: string;
-  bulkKeepVisibleLabel: string;
-  bulkDeferVisibleLabel: string;
-  queueLabel: string;
-  reviewLabel: string;
-  summaryCards: ReadonlyArray<FeedCleanupSummaryCard>;
-  integrityIssue: {
-    title: string;
-    body: string;
-    actionLabel: string;
-  } | null;
-  integrityMode: boolean;
-  integrityQueueLabel: string;
-  integrityEmptyLabel: string;
-  integrityIssues: FeedIntegrityIssueDto[];
-  selectedIntegrityIssue: FeedIntegrityIssueDto | null;
-  integrityDetailLabels: FeedCleanupIntegrityDetailLabels;
-  filterOptions: ReadonlyArray<FeedCleanupFilterOption>;
-  filterCounts: Record<FeedCleanupFilterOption["key"], number>;
-  activeFilterKeys: Set<FeedCleanupFilterOption["key"]>;
-  visibleCandidateCount: number;
-  queue: Array<FeedCleanupCandidate & { deferred?: boolean }>;
-  selectedCandidate: (FeedCleanupCandidate & { deferred?: boolean }) | null;
-  selectedSummary: {
-    tone: FeedCleanupTone;
-    titleKey: FeedCleanupTitleKey;
-    summaryKey: FeedCleanupSummaryKey;
-  } | null;
-  showDeferred: boolean;
-  showDeferredLabel: string;
-  emptyLabel: string;
-  keepLabel: string;
-  laterLabel: string;
-  deleteLabel: string;
-  editLabel: string;
-  folderLabel: string;
-  latestArticleLabel: string;
-  unreadCountLabel: string;
-  starredCountLabel: string;
-  reasonsLabel: string;
-  noSelectionLabel: string;
-  deferredBadgeLabel: string;
-  reasonLabels: Record<FeedCleanupReasonKey, string>;
-  priorityToneLabels: Record<FeedCleanupTone, string>;
-  priorityLabels: Record<FeedCleanupTitleKey, string>;
-  summaryHeadlineLabels: Record<FeedCleanupTitleKey, string>;
-  summaryLabels: Record<FeedCleanupSummaryKey, string>;
-  editing: boolean;
-  editor: ReactNode;
-  onClose: () => void;
-  onToggleIntegrityMode: () => void;
-  onToggleFilter: (key: FeedCleanupFilterOption["key"]) => void;
-  onToggleShowDeferred: () => void;
-  onKeepVisible: () => void;
-  onDeferVisible: () => void;
-  onSelectCandidate: (candidateId: string) => void;
-  onSelectIntegrityIssue: (missingFeedId: string) => void;
-  onEdit: () => void;
-  onKeep: () => void;
-  onLater: () => void;
-  onDelete: () => void;
-}) {
+}: FeedCleanupPageViewProps) {
   const layoutRef = useRef<HTMLDivElement | null>(null);
   const [layoutWidth, setLayoutWidth] = useState(() => resolveFeedCleanupLayoutWidth(null));
 
