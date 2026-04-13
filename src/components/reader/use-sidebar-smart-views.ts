@@ -1,17 +1,5 @@
 import { useMemo } from "react";
-import type { TFunction } from "i18next";
-import type { SmartViewItemViewModel } from "./smart-views-view";
-
-type UseSidebarSmartViewsParams = {
-  selection: { type: string; kind?: "unread" | "starred" };
-  totalUnread: number;
-  starredCount: number;
-  showUnreadCount: boolean;
-  showStarredCount: boolean;
-  showSidebarUnread: boolean;
-  showSidebarStarred: boolean;
-  t: TFunction<"sidebar">;
-};
+import type { SidebarSmartViewsParams, SidebarSmartViewsResult } from "./sidebar.types";
 
 export function useSidebarSmartViews({
   selection,
@@ -22,10 +10,10 @@ export function useSidebarSmartViews({
   showSidebarUnread,
   showSidebarStarred,
   t,
-}: UseSidebarSmartViewsParams) {
+}: SidebarSmartViewsParams): SidebarSmartViewsResult {
   const selectedSmartViewKind = selection.type === "smart" ? (selection.kind ?? null) : null;
 
-  const smartViews = useMemo<SmartViewItemViewModel[]>(
+  const smartViews = useMemo<SidebarSmartViewsResult>(
     () => [
       {
         kind: "unread",

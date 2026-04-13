@@ -1,5 +1,7 @@
+import type { TFunction } from "i18next";
 import type { SidebarAccountSectionProps } from "./sidebar-account-section";
 import type { SidebarContentSectionsProps } from "./sidebar-content-sections";
+import type { SidebarSelection } from "./sidebar-feed-tree.types";
 import type { SidebarHeaderViewProps } from "./sidebar-header-view";
 import type { SmartViewsViewProps } from "./smart-views-view";
 
@@ -21,7 +23,7 @@ export type SidebarViewPropsResult = SidebarSectionPropsResult & {
 export type SidebarControllerResult = SidebarViewPropsResult;
 
 export type SidebarHeaderPropsParams = {
-  t: import("i18next").TFunction<"sidebar">;
+  t: TFunction<"sidebar">;
   syncProgress: {
     active: boolean;
     kind: string | null;
@@ -30,14 +32,27 @@ export type SidebarHeaderPropsParams = {
   handleAddFeed: () => void;
 };
 
+export type SidebarSmartViewsParams = {
+  selection: SidebarSelection;
+  totalUnread: number;
+  starredCount: number;
+  showUnreadCount: boolean;
+  showStarredCount: boolean;
+  showSidebarUnread: boolean;
+  showSidebarStarred: boolean;
+  t: TFunction<"sidebar">;
+};
+
+export type SidebarSmartViewsResult = SmartViewsViewProps["views"];
+
 export type SidebarSmartViewsPropsParams = {
-  t: import("i18next").TFunction<"sidebar">;
-  visibleSmartViews: SmartViewsViewProps["views"];
+  t: TFunction<"sidebar">;
+  visibleSmartViews: SidebarSmartViewsResult;
   selectSmartView: SmartViewsViewProps["onSelectSmartView"];
 };
 
 export type SidebarSectionPropsParams = {
-  t: import("i18next").TFunction<"sidebar">;
+  t: TFunction<"sidebar">;
   syncProgress: SidebarHeaderPropsParams["syncProgress"];
   handleSync: SidebarHeaderPropsParams["handleSync"];
   handleAddFeed: SidebarHeaderPropsParams["handleAddFeed"];
@@ -54,7 +69,7 @@ export type SidebarSectionPropsParams = {
   toggleAccountList: () => void;
   handleSelectAccount: SidebarAccountSectionProps["onSelectAccount"];
   closeAccountList: () => void;
-  visibleSmartViews: SmartViewsViewProps["views"];
+  visibleSmartViews: SidebarSmartViewsResult;
   selectSmartView: SmartViewsViewProps["onSelectSmartView"];
   isFeedsSectionOpen: boolean;
   toggleFeedsSection: () => void;
