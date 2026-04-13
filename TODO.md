@@ -693,6 +693,16 @@
   - 対応: `FeedEditDisplayPreset` / `FeedEditErrorLike` / `SubmitFeedEditsParams` を `rename-feed-dialog.types.ts` に追加して、submit helper と controller は shared types を参照する形に寄せた
   - 対象: `src/components/reader/rename-feed-dialog.types.ts`, `src/components/reader/feed-edit-submit.ts`, `src/components/reader/use-rename-feed-dialog-controller.ts`
 
+- [x] shared icon / favicon の props を explicit types に寄せる
+  - 問題: `article-state-icon.tsx` と `feed-favicon.tsx` に local props 型が残っていて、shared component contract の正本が component file に閉じていた
+  - 対応: `article-state-icon.types.ts` と `feed-favicon.types.ts` を追加して、component 本体は shared types を参照する形に寄せた
+  - 対象: `src/components/shared/article-state-icon.tsx`, `src/components/shared/article-state-icon.types.ts`, `src/components/shared/feed-favicon.tsx`, `src/components/shared/feed-favicon.types.ts`
+
+- [x] article list / view helper params を explicit export に寄せる
+  - 問題: `article-list.ts` と `article-view.ts` の helper params が local type のままで、data/view helper contract の正本を外から参照できなかった
+  - 対応: `SelectVisibleArticlesParams` / `GroupArticlesParams` / `CalculateArticleNavigationScrollTopParams` / `FindSelectedArticleParams` / `LinkNavigationParams` を export して、lib helper contract を explicit にした
+  - 対象: `src/lib/article-list.ts`, `src/lib/article-view.ts`
+
 - [x] rename feed dialog の view props 組み立てを hook に寄せる
   - 問題: `rename-feed-dialog.tsx` に display preset options、url fields、folder select props、labels の組み立てが残っていて、container wiring と view props 導出が混ざっていた
   - 対象: `src/components/reader/rename-feed-dialog.tsx`, `src/components/reader/use-rename-feed-dialog-view-props.ts`
