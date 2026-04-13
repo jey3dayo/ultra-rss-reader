@@ -723,6 +723,11 @@
   - 対応: `stacked-field.types.ts` を追加して input/select field の props と option contract を集約し、component 本体は shared types を参照する形に寄せた
   - 対象: `src/components/shared/stacked-field.types.ts`, `src/components/shared/stacked-input-field.tsx`, `src/components/shared/stacked-select-field.tsx`
 
+- [x] shared icon toolbar の props を explicit types に寄せる
+  - 問題: `icon-toolbar-control.tsx` に button/toggle/menu trigger の props 型が残っていて、shared icon toolbar contract の正本が component file に分散していた
+  - 対応: `icon-toolbar.types.ts` を追加して control props contract を集約し、component 本体は shared types を参照する形に寄せた
+  - 対象: `src/components/shared/icon-toolbar.types.ts`, `src/components/shared/icon-toolbar-control.tsx`
+
 - [x] shared stacked field の props を explicit types に寄せる
   - 問題: `stacked-input-field.tsx` と `stacked-select-field.tsx` に local props 型が残っていて、shared stacked field contract の正本が component file に分散していた
   - 対応: `stacked-field.types.ts` を追加して input/select の props と select option contract を集約し、component 本体は shared types を参照する形に寄せた
