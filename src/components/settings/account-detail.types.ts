@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import type { KeyboardEvent, ReactNode, RefObject } from "react";
-import type { AccountDto } from "@/api/tauri-commands";
+import type { AccountDto, AccountSyncStatusDto } from "@/api/tauri-commands";
 
 export type AccountSelectOption = {
   value: string;
@@ -164,6 +164,18 @@ export type UseAccountDetailDangerZoneResult = {
   handleExportOpml: () => Promise<void>;
   handleDelete: () => Promise<void>;
 };
+
+export type AccountDetailSyncStatusTranslator =
+  | TFunction<"settings">
+  | ((key: string, options?: { count?: number }) => string);
+
+export type UseAccountDetailSyncStatusRowsParams = {
+  syncStatus: AccountSyncStatusDto | undefined;
+  language: string;
+  t: AccountDetailSyncStatusTranslator;
+};
+
+export type UseAccountDetailSyncStatusRowsResult = AccountSyncStatusRow[];
 
 export type UpdateAccountSyncParams = {
   syncIntervalSecs?: number;
