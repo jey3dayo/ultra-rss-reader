@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { FeedDto } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import {
   type BinaryDisplayMode,
@@ -8,12 +7,7 @@ import {
   resolveFeedDisplayOverrides,
 } from "@/lib/article-display";
 import { usePreferencesStore } from "@/stores/preferences-store";
-
-type UseArticleBrowserOverlayDisplayParams = {
-  articleId: string;
-  articleUrl: string | null;
-  feed?: FeedDto;
-};
+import type { UseArticleBrowserOverlayDisplayParams } from "./article-view.types";
 
 export function useArticleBrowserOverlayDisplay({
   articleId,

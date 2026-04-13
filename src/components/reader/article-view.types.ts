@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import type { resolveArticleDisplay } from "@/lib/article-display";
+import type { ContentMode } from "@/stores/ui-store";
 import type { ArticleToolbarActionStripProps } from "./article-toolbar.types";
 
 export type ArticlePaneProps = {
@@ -51,4 +53,32 @@ export type BrowserOnlyStateViewProps = {
 
 export type ArticleNotFoundStateViewProps = {
   message: string;
+};
+
+export type UseArticleBrowserOverlayParams = {
+  articleId: string;
+  articleUrl: string | null;
+  browserUrl: string | null;
+  contentMode: ContentMode;
+  feed?: FeedDto;
+};
+
+export type UseArticleBrowserOverlayResult = {
+  isBrowserOpen: boolean;
+  resolvedDisplay: ReturnType<typeof resolveArticleDisplay>;
+  handleCloseBrowserOverlay: () => void;
+  handleToggleBrowserOverlay: () => void;
+};
+
+export type UseArticleBrowserOverlayCloseParams = {
+  closeBrowser: () => void;
+  focusSelectedArticleRow: () => void;
+  setBrowserCloseInFlight: (inFlight: boolean) => void;
+  setBrowserOverlayClosedPreference: () => void;
+};
+
+export type UseArticleBrowserOverlayDisplayParams = {
+  articleId: string;
+  articleUrl: string | null;
+  feed?: FeedDto;
 };

@@ -4,13 +4,7 @@ import { closeBrowserWebview } from "@/api/tauri-commands";
 import { flushPendingBrowserCloseAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import { useUiStore } from "@/stores/ui-store";
-
-type UseArticleBrowserOverlayCloseParams = {
-  closeBrowser: () => void;
-  focusSelectedArticleRow: () => void;
-  setBrowserCloseInFlight: (inFlight: boolean) => void;
-  setBrowserOverlayClosedPreference: () => void;
-};
+import type { UseArticleBrowserOverlayCloseParams } from "./article-view.types";
 
 export function useArticleBrowserOverlayClose({
   closeBrowser,
