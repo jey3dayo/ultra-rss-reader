@@ -2,15 +2,17 @@ export type Pane = "sidebar" | "list" | "content";
 export type ResponsiveLayoutMode = "wide" | "compact" | "mobile";
 type SlidingLayoutMode = "compact" | "mobile";
 type FocusedPane = "sidebar" | "list" | "content";
+const MOBILE_LAYOUT_BREAKPOINT = 640;
+const COMPACT_LAYOUT_BREAKPOINT = 1100;
 
 export function resolveResponsiveLayoutMode(
   preferredLayoutMode: "wide" | "compact",
   viewportWidth: number,
 ): ResponsiveLayoutMode {
-  if (viewportWidth < 500) {
+  if (viewportWidth < MOBILE_LAYOUT_BREAKPOINT) {
     return "mobile";
   }
-  if (viewportWidth < 1100) {
+  if (viewportWidth < COMPACT_LAYOUT_BREAKPOINT) {
     return "compact";
   }
   return preferredLayoutMode;

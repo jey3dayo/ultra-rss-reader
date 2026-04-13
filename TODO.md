@@ -70,6 +70,13 @@
   - 対象: `src/components/settings/settings-modal-view.tsx`, `src/__tests__/components/settings-modal-view.test.tsx`
   - 対応: mobile では縦積み、`sm` 以上で従来の 2 カラムに戻す responsive layout へ変更し、narrow screen 用の回帰テストを追加した
 
+- [x] 500px 幅で reader が compact 2 カラムのままになり本文が実質読めない
+  - 症状: 500px 幅で記事を開くと list/content の 2 カラム split が維持され、content pane が約 100px 台まで潰れて見出しも本文も縦積み気味になる
+  - 影響: narrow tablet / split view 相当の幅で article reader が実用にならず、toolbar も icon-only に寄って導線確認がしづらい
+  - 原因: `resolveResponsiveLayoutMode` の mobile 閾値が `500px` と低く、`sm` 未満の幅でも compact layout へ残っていた
+  - 対象: `src/hooks/use-layout.ts`, `src/__tests__/hooks/use-layout.test.ts`
+  - 対応: mobile breakpoint を `640px` に引き上げ、500px / 639px は single-pane mobile、640px 以上だけ compact に入るよう回帰テストを追加した
+
 ## 2026-04-12 購読整理 UI copy / 情報設計メモ
 
 - [x] 購読整理画面に一括操作を追加する

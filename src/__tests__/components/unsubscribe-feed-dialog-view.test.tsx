@@ -28,6 +28,8 @@ describe("UnsubscribeFeedDialogView", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Unsubscribe" })).toBeInTheDocument();
     expect(screen.getByText(/Tech Blog/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Unsubscribe" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
 
     await user.click(screen.getByRole("button", { name: "Unsubscribe" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));

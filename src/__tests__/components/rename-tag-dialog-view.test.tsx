@@ -27,6 +27,8 @@ describe("RenameTagDialogView", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toHaveValue("Work");
+    expect(screen.getByRole("button", { name: "Save" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
 
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Fresh" } });
     await user.click(screen.getByRole("button", { name: "Save" }));

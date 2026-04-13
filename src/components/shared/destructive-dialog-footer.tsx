@@ -12,10 +12,10 @@ export function DestructiveDialogFooter({
 }: DestructiveDialogFooterProps) {
   return (
     <DialogFooter>
-      <Button variant="outline" onClick={onCancel} disabled={pending}>
+      <Button variant="outline" onClick={onCancel} disabled={pending} className="min-h-11">
         {cancelLabel}
       </Button>
-      <DeleteButton onClick={onConfirm} disabled={pending}>
+      <DeleteButton onClick={onConfirm} disabled={pending} className="min-h-11">
         {confirmLabel}
       </DeleteButton>
     </DialogFooter>

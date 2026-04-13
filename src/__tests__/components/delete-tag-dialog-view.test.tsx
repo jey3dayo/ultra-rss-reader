@@ -14,6 +14,8 @@ describe("DeleteTagDialogView", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("Delete Tag")).toBeInTheDocument();
     expect(screen.getByText(/Work/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
 
     await user.click(screen.getByRole("button", { name: "Delete" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));

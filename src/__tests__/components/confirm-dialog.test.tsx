@@ -15,5 +15,7 @@ describe("AppConfirmDialog", () => {
     render(<AppConfirmDialog />, { wrapper: createWrapper() });
 
     expect(screen.getByRole("dialog", { name: "Confirm" })).toHaveAccessibleDescription("Delete this feed?");
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
   });
 });

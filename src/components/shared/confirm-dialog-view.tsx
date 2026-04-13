@@ -29,10 +29,10 @@ export function ConfirmDialogView({
             {message}
           </p>
           <div className="flex w-full flex-col gap-2">
-            <Button onClick={onConfirm} className="w-full">
+            <Button onClick={onConfirm} className="min-h-11 w-full">
               {actionLabel}
             </Button>
-            <Button variant="ghost" onClick={onCancel} className="w-full text-muted-foreground">
+            <Button variant="ghost" onClick={onCancel} className="min-h-11 w-full text-muted-foreground">
               {cancelLabel}
             </Button>
           </div>

@@ -24,6 +24,8 @@ describe("DestructiveConfirmDialogView", () => {
     expect(screen.getByRole("dialog", { name: "Delete item" })).toBeInTheDocument();
     expect(screen.getByText("This cannot be undone.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete" })).toHaveAttribute("data-delete-button");
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
 
     await user.click(screen.getByRole("button", { name: "Delete" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));

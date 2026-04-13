@@ -89,6 +89,8 @@ describe("RenameFeedDialogView", () => {
     );
     expect(screen.getByRole("combobox", { name: "Display Mode" })).toHaveTextContent("Preview");
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("Work");
+    expect(screen.getByRole("button", { name: "Save" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
 
     const titleInput = screen.getByLabelText("Title");
     titleInput.focus();

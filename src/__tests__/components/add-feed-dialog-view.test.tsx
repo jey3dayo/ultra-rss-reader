@@ -80,6 +80,8 @@ describe("AddFeedDialogView", () => {
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("New folder");
     expect(screen.getByLabelText("Folder name")).toHaveValue("Reading");
     expect(screen.getByText("Feed detected")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
 
     await user.click(screen.getByRole("button", { name: "Discover" }));
     await user.click(screen.getByText("News Feed"));

@@ -15,10 +15,10 @@ export function FormActionButtons({
 }: FormActionButtonsProps) {
   return (
     <>
-      <Button type={cancelType} variant="outline" onClick={onCancel} disabled={cancelDisabled}>
+      <Button type={cancelType} variant="outline" onClick={onCancel} disabled={cancelDisabled} className="min-h-11">
         {cancelLabel}
       </Button>
-      <Button type={submitType} onClick={onSubmit} disabled={submitDisabled}>
+      <Button type={submitType} onClick={onSubmit} disabled={submitDisabled} className="min-h-11">
         {loading && submittingLabel ? submittingLabel : submitLabel}
       </Button>
     </>

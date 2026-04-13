@@ -92,7 +92,13 @@ describe("resolveResponsiveLayoutMode", () => {
     expect(resolveResponsiveLayoutMode("wide", 900)).toBe("compact");
   });
 
-  it("downgrades compact layout to mobile on very small screens", () => {
+  it("downgrades compact layout to mobile on small screens before the compact split gets too cramped", () => {
+    expect(resolveResponsiveLayoutMode("compact", 500)).toBe("mobile");
+    expect(resolveResponsiveLayoutMode("wide", 639)).toBe("mobile");
     expect(resolveResponsiveLayoutMode("compact", 420)).toBe("mobile");
+  });
+
+  it("keeps 640px-wide screens in compact layout", () => {
+    expect(resolveResponsiveLayoutMode("compact", 640)).toBe("compact");
   });
 });
