@@ -230,6 +230,11 @@
   - 対応: `UseBrowserViewSurfaceControllerParams` / `UseBrowserViewSurfaceControllerResult` を `browser-view.types.ts` に追加して、surface controller hook は shared types を参照する形に寄せた
   - 対象: `src/components/reader/browser-view.types.ts`, `src/components/reader/use-browser-view-surface-controller.ts`
 
+- [x] browser-view surface state の contract を shared types に寄せる
+  - 問題: `use-browser-view-surface-state.ts` に local params 型が残っていて、surface state 境界の正本を `browser-view.types.ts` から追えなかった
+  - 対応: `UseBrowserViewSurfaceStateParams` / `UseBrowserViewSurfaceStateResult` を `browser-view.types.ts` に追加して、surface state hook は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/browser-view.types.ts`, `src/components/reader/use-browser-view-surface-state.ts`
+
 - [x] browser-view の load timeout 監視を hook 化する
   - 問題: `useBrowserViewController` に embedded browser の load timeout 監視 effect が残っていて、controller orchestration と runtime timeout 管理が混ざっていた
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-webview-load-timeout.ts`
@@ -820,6 +825,11 @@
   - 問題: `UseArticleListViewStateParams` / `UseArticleListViewStateResult` が `use-article-list-view-state.ts` に残っていて、view state 導出境界の正本を `article-list.types.ts` から追えなかった
   - 対応: `article-list.types.ts` に view state params/result contract を追加して、view state hook は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-view-state.ts`
+
+- [x] article list effects の params を shared types に寄せる
+  - 問題: `UseArticleListEffectsParams` が `use-article-list-effects.ts` に残っていて、effect 導出境界の正本を `article-list.types.ts` から追えなかった
+  - 対応: `article-list.types.ts` に effects params contract を追加して、effects hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-effects.ts`
 
 - [x] article list header subview props の正本を shared types に寄せる
   - 問題: `article-list-header.tsx` / `article-list-header-actions.tsx` / `article-list-header-search.tsx` に props contract が分散していて、header 境界の正本を `article-list.types.ts` から追えなかった
