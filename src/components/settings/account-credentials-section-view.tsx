@@ -1,8 +1,7 @@
-import { SectionHeading } from "@/components/shared/section-heading";
 import { CopyableTextField } from "@/components/shared/copyable-text-field";
-import { LabeledControlRow } from "@/components/shared/labeled-control-row";
+import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LoadingButton } from "@/components/shared/loading-button";
-import { Input } from "@/components/ui/input";
+import { SectionHeading } from "@/components/shared/section-heading";
 
 export type AccountCredentialsSectionViewProps = {
   heading: string;
@@ -74,25 +73,23 @@ export function AccountCredentialsSectionView({
           </div>
         </div>
       )}
-      <LabeledControlRow label={usernameLabel}>
-        <Input
-          value={usernameValue}
-          onChange={(e) => onUsernameChange(e.target.value)}
-          onBlur={onUsernameBlur}
-          className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
-        />
-      </LabeledControlRow>
-      <LabeledControlRow label={passwordLabel}>
-        <Input
-          type="password"
-          value={passwordValue}
-          onChange={(e) => onPasswordChange(e.target.value)}
-          onFocus={onPasswordFocus}
-          onBlur={onPasswordBlur}
-          placeholder={passwordPlaceholder}
-          className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
-        />
-      </LabeledControlRow>
+      <LabeledInputRow
+        label={usernameLabel}
+        value={usernameValue}
+        onChange={onUsernameChange}
+        onBlur={onUsernameBlur}
+        inputClassName="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
+      />
+      <LabeledInputRow
+        label={passwordLabel}
+        type="password"
+        value={passwordValue}
+        onChange={onPasswordChange}
+        onFocus={onPasswordFocus}
+        onBlur={onPasswordBlur}
+        placeholder={passwordPlaceholder}
+        inputClassName="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
+      />
       {onTestConnection && (
         <div className="pt-3">
           <LoadingButton

@@ -1,8 +1,8 @@
 import { useId } from "react";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
+import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type AddAccountFormOption = {
@@ -82,21 +82,17 @@ function AddAccountSelectRow({ control }: { control: AddAccountFormSelectControl
 }
 
 function AddAccountInputRow({ control }: { control: AddAccountFormInputControl }) {
-  const inputId = useId();
-
   return (
-    <LabeledControlRow label={control.label} htmlFor={inputId}>
-      <Input
-        id={inputId}
-        name={control.name}
-        type={control.type}
-        value={control.value}
-        onChange={(event) => control.onChange(event.target.value)}
-        placeholder={control.placeholder}
-        className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
-        disabled={control.disabled}
-      />
-    </LabeledControlRow>
+    <LabeledInputRow
+      label={control.label}
+      name={control.name}
+      type={control.type}
+      value={control.value}
+      onChange={control.onChange}
+      placeholder={control.placeholder}
+      inputClassName="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
+      disabled={control.disabled}
+    />
   );
 }
 

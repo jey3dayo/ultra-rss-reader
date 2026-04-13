@@ -1,14 +1,13 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft } from "lucide-react";
-import { useId, useMemo, useReducer, useState } from "react";
+import { useMemo, useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { addAccount } from "@/api/tauri-commands";
 import { SERVICE_CATEGORIES } from "@/components/settings/service-picker";
+import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { SectionHeading } from "@/components/shared/section-heading";
-import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import {
   addAccountFormInitialState,
@@ -39,10 +38,6 @@ export function AccountConfigForm({ kind, onBack }: { kind: AddAccountProviderKi
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const formConfig = useMemo(() => getAddAccountFormConfig(form.kind), [form.kind]);
-  const accountNameId = useId();
-  const serverUrlId = useId();
-  const credentialId = useId();
-  const passwordId = useId();
 
   const serviceDef = findServiceDefinition(kind);
 
@@ -130,56 +125,48 @@ export function AccountConfigForm({ kind, onBack }: { kind: AddAccountProviderKi
       >
         <section className="mb-6">
           <SectionHeading>{t("account.account")}</SectionHeading>
-          <LabeledControlRow label={t("account.name")} htmlFor={accountNameId}>
-            <Input
-              id={accountNameId}
-              name="account-name"
-              value={form.name}
-              onChange={(e) => dispatch({ type: "setField", field: "name", value: e.target.value })}
-              placeholder={form.kind}
-              className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
-              disabled={submitting}
-            />
-          </LabeledControlRow>
+          <LabeledInputRow
+            label={t("account.name")}
+            name="account-name"
+            value={form.name}
+            onChange={(value) => dispatch({ type: "setField", field: "name", value })}
+            placeholder={form.kind}
+            inputClassName="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
+            disabled={submitting}
+          />
         </section>
 
         {formConfig.requiresCredentials && (
           <section className="mb-6">
             <SectionHeading>{formConfig.sectionHeading}</SectionHeading>
             {formConfig.showServerUrl && (
-              <LabeledControlRow label={t("account.server_url")} htmlFor={serverUrlId}>
-                <Input
-                  id={serverUrlId}
-                  name="server-url"
-                  value={form.serverUrl}
-                  onChange={(e) => dispatch({ type: "setField", field: "serverUrl", value: e.target.value })}
-                  placeholder={t("account.server_url_placeholder")}
-                  className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
-                  disabled={submitting}
-                />
-              </LabeledControlRow>
+              <LabeledInputRow
+                label={t("account.server_url")}
+                name="server-url"
+                value={form.serverUrl}
+                onChange={(value) => dispatch({ type: "setField", field: "serverUrl", value })}
+                placeholder={t("account.server_url_placeholder")}
+                inputClassName="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
+                disabled={submitting}
+              />
             )}
-            <LabeledControlRow label={formConfig.credentialLabel ?? ""} htmlFor={credentialId}>
-              <Input
-                id={credentialId}
-                name={formConfig.credentialName ?? undefined}
-                value={form.username}
-                onChange={(e) => dispatch({ type: "setField", field: "username", value: e.target.value })}
-                className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
-                disabled={submitting}
-              />
-            </LabeledControlRow>
-            <LabeledControlRow label={t("account.password")} htmlFor={passwordId}>
-              <Input
-                id={passwordId}
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={(e) => dispatch({ type: "setField", field: "password", value: e.target.value })}
-                className="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
-                disabled={submitting}
-              />
-            </LabeledControlRow>
+            <LabeledInputRow
+              label={formConfig.credentialLabel ?? ""}
+              name={formConfig.credentialName ?? undefined}
+              value={form.username}
+              onChange={(value) => dispatch({ type: "setField", field: "username", value })}
+              inputClassName="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
+              disabled={submitting}
+            />
+            <LabeledInputRow
+              label={t("account.password")}
+              name="password"
+              type="password"
+              value={form.password}
+              onChange={(value) => dispatch({ type: "setField", field: "password", value })}
+              inputClassName="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
+              disabled={submitting}
+            />
           </section>
         )}
 

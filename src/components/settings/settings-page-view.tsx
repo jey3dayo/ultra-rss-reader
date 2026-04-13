@@ -6,11 +6,11 @@ import type {
   SettingsPageViewProps,
 } from "@/components/settings/settings-page.types";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
+import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 function SettingsPageSelectRow({ control }: { control: SettingsPageSelectControl }) {
   return (
@@ -40,17 +40,17 @@ function SettingsPageSwitchRow({ control }: { control: SettingsPageSwitchControl
 
 function SettingsPageTextRow({ control }: { control: SettingsPageTextControl }) {
   return (
-    <LabeledControlRow label={control.label} htmlFor={control.name} className="gap-4" labelClassName="w-40 shrink-0">
-      <Input
-        id={control.name}
-        name={control.name}
-        value={control.value}
-        onChange={(event) => control.onChange(event.currentTarget.value)}
-        placeholder={control.placeholder}
-        disabled={control.disabled}
-        className="h-10 flex-1"
-      />
-    </LabeledControlRow>
+    <LabeledInputRow
+      label={control.label}
+      name={control.name}
+      value={control.value}
+      onChange={control.onChange}
+      placeholder={control.placeholder}
+      disabled={control.disabled}
+      rowClassName="gap-4"
+      labelClassName="w-40 shrink-0"
+      inputClassName="h-10 flex-1"
+    />
   );
 }
 
@@ -78,7 +78,7 @@ export function SettingsPageView({ title, sections }: SettingsPageViewProps) {
       </h2>
       {sections.map((section, index) => (
         <section key={section.id} className={index === sections.length - 1 ? undefined : "mb-5 sm:mb-6"}>
-          <SectionHeading>{section.heading}</SectionHeading>
+          <SectionHeading className="mb-2 sm:mb-3">{section.heading}</SectionHeading>
           {section.controls.map((control) =>
             control.type === "select" ? (
               <SettingsPageSelectRow key={control.id} control={control} />
