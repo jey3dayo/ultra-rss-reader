@@ -1,12 +1,9 @@
-import { Result } from "@praha/byethrow";
 import { useCallback, useEffect } from "react";
 import type { FeedDto } from "@/api/tauri-commands";
-import { closeBrowserWebview } from "@/api/tauri-commands";
-import { flushPendingBrowserCloseAction } from "@/lib/actions";
 import { resolveArticleDisplay } from "@/lib/article-display";
-import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import type { ContentMode } from "@/stores/ui-store";
 import { useUiStore } from "@/stores/ui-store";
+import { useArticleBrowserOverlayClose } from "./use-article-browser-overlay-close";
 import { useArticleBrowserOverlayDisplay } from "./use-article-browser-overlay-display";
 import { useBrowserOverlayFocusReturn } from "./use-browser-overlay-focus-return";
 
@@ -88,38 +85,12 @@ export function useArticleBrowserOverlay({
     setBrowserOverlayOpenPreference();
   }, [rememberOverlayFocusReturnTarget, setBrowserOverlayOpenPreference]);
 
-  const finalizeCloseBrowserOverlay = useCallback(() => {
-    useUiStore.getState().setFocusedPane("list");
-    focusSelectedArticleRow();
-    setBrowserOverlayClosedPreference();
-    closeBrowser();
-    requestAnimationFrame(() => {
-      focusSelectedArticleRow();
-      flushPendingBrowserCloseAction();
-    });
-  }, [closeBrowser, focusSelectedArticleRow, setBrowserOverlayClosedPreference]);
-
-  const handleCloseBrowserOverlay = useCallback(() => {
-    if (useUiStore.getState().browserCloseInFlight) {
-      emitDebugInputTrace("close-browser ignored (in-flight)");
-      return;
-    }
-    emitDebugInputTrace("close-browser start");
-    setBrowserCloseInFlight(true);
-    void closeBrowserWebview()
-      .then((result) =>
-        Result.pipe(
-          result,
-          Result.inspectError((error) => {
-            console.error("Failed to close embedded browser webview before returning to reader mode:", error);
-          }),
-        ),
-      )
-      .finally(() => {
-        emitDebugInputTrace("close-browser finalize");
-        finalizeCloseBrowserOverlay();
-      });
-  }, [finalizeCloseBrowserOverlay, setBrowserCloseInFlight]);
+  const handleCloseBrowserOverlay = useArticleBrowserOverlayClose({
+    closeBrowser,
+    focusSelectedArticleRow,
+    setBrowserCloseInFlight,
+    setBrowserOverlayClosedPreference,
+  });
 
   const handleToggleBrowserOverlay = useCallback(() => {
     if (requestedDisplay.webPreviewMode) {
