@@ -4,13 +4,10 @@ import { useAccountArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { useTagArticleCounts, useTags } from "@/hooks/use-tags";
+import type { SidebarSourcesParams, SidebarSourcesResult } from "./sidebar-sources.types";
 import { useSidebarAccountStatusLabels } from "./use-sidebar-account-status-labels";
 
-type UseSidebarSourcesParams = {
-  selectedAccountId: string | null;
-};
-
-export function useSidebarSources({ selectedAccountId }: UseSidebarSourcesParams) {
+export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): SidebarSourcesResult {
   const { data: accounts } = useAccounts();
   const { data: feeds } = useFeeds(selectedAccountId);
   const { data: folders } = useFolders(selectedAccountId);
