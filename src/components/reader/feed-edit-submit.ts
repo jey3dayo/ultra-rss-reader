@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { renameFeed } from "@/api/tauri-commands";
 import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/article-display";
 import { createFolderIfNeeded } from "./feed-folder-flow";
+import { invalidateFeedQueries } from "./feed-query-cache";
 import type { SubmitFeedEditsParams } from "./rename-feed-dialog.types";
 
 export type { FeedEditDisplayPreset, SubmitFeedEditsParams } from "./rename-feed-dialog.types";
@@ -67,11 +68,9 @@ export async function submitFeedEdits({
     displaySettingsSucceeded = await updateDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode);
   }
 
-  if ((didRename && renameSucceeded) || (didUpdateDisplayMode && displaySettingsSucceeded)) {
-    void queryClient.invalidateQueries({ queryKey: ["feeds"] });
-  }
-
-  void queryClient.invalidateQueries({ queryKey: ["folders"] });
+  invalidateFeedQueries(queryClient, {
+    includeFeeds: (didRename && renameSucceeded) || (didUpdateDisplayMode && displaySettingsSucceeded),
+  });
 
   return renameSucceeded && displaySettingsSucceeded;
 }

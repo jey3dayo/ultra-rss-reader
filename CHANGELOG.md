@@ -32,6 +32,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 - browser view / sidebar / feed cleanup / account detail まわりの責務分割を進め、reader 実装のリファクタを継続した
 - settings / shared / reader helper の contract を types file に寄せ、view props / controller hook の境界を整理した
+- settings page の preference view props input、account detail の cache/error toast、reader の feed/folder cache invalidation を shared helper に寄せて重複を減らした
 - debug HUD と image viewer 周辺を整理し、fullscreen preview 検証用の内部構成を簡素化した
 - responsive Storybook・Vitest・e2e の回帰確認を増やし、テスト名の整理とローカル release skill の追加で開発フローと release 準備を整えた
 

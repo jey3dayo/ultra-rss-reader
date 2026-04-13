@@ -4,9 +4,9 @@
 
 ## In Progress
 
-- [ ] settings page の preference view props input を shared types に寄せる
-  - `settings-page.types.ts` に共通 params を持たせ、`use-general/appearance/reading/actions/debug-settings-view-props` の入力契約を揃える
-  - 仕上げで import 整理と format/check を通し、settings helper contract の追跡をしやすくする
+- [ ] similarity 由来の reader cleanup は「完全重複の小ヘルパー」に限定して継続する
+  - event/listener 骨格の似た hook は false positive として扱い、責務をまたぐ大きな抽象化は避ける
+  - 次に触るなら feed/tag/sidebar 周辺で cache invalidation や error message 変換のような局所重複を優先する
 
 ## UI/UX 監査の残り
 
@@ -28,3 +28,4 @@
 - Feed Cleanup の bulk action / priority cue 追加と、settings / shared / reader の contract refactor batch を完了した
 - release manual verification、incident runbook、feed content privacy/CSP 方針を docs に整理した
 - focus debug HUD の右寄せ・shell 統一・overlay strip 除去、browser surface fallback card の横幅調整、settings の web preview launch action の inline 化を進めた
+- settings page の preference view props input を shared types に寄せ、account detail の cache/error toast と reader の feed query cache を small helper として共通化した

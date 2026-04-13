@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import type { UseAddFeedDialogActionsParams, UseAddFeedDialogActionsResult } from "./add-feed-dialog.types";
 import { createFolderIfNeeded } from "./feed-folder-flow";
+import { invalidateFeedQueries } from "./feed-query-cache";
 
 export function useAddFeedDialogActions({
   accountId,
@@ -100,9 +101,7 @@ export function useAddFeedDialogActions({
       );
     }
 
-    queryClient.invalidateQueries({ queryKey: ["feeds"] });
-    queryClient.invalidateQueries({ queryKey: ["accountUnreadCount"] });
-    queryClient.invalidateQueries({ queryKey: ["folders"] });
+    invalidateFeedQueries(queryClient, { includeAccountUnreadCount: true });
     onOpenChange(false);
     dispatch({ type: "set-loading", loading: false });
   }, [

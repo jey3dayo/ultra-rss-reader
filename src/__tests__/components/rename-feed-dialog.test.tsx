@@ -144,6 +144,7 @@ describe("RenameDialog", () => {
       args: { feedId: "feed-1", folderId: "folder-new" },
     });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["feeds"] });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["folders"] });
   });
 
   it("does not create a folder when the dialog closes without saving", async () => {
@@ -233,6 +234,7 @@ describe("RenameDialog", () => {
         args: { feedId: "feed-1", readerMode: "on", webPreviewMode: "on" },
       });
       expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["feeds"] });
+      expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["folders"] });
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
   });
