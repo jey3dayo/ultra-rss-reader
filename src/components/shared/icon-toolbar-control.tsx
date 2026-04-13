@@ -4,11 +4,7 @@ import { cva } from "class-variance-authority";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { AppTooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type {
-  IconToolbarButtonProps,
-  IconToolbarMenuTriggerProps,
-  IconToolbarToggleProps,
-} from "./icon-toolbar.types";
+import type { IconToolbarButtonProps, IconToolbarMenuTriggerProps, IconToolbarToggleProps } from "./icon-toolbar.types";
 
 export const iconToolbarButtonClassName = cn(
   buttonVariants({ variant: "ghost", size: "icon" }),
