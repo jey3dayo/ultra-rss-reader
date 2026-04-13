@@ -3,11 +3,11 @@ import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import type { SidebarControllerResult } from "./sidebar.types";
 import { useSidebarAccountSelection } from "./use-sidebar-account-selection";
 import { useSidebarContextMenuRenderers } from "./use-sidebar-context-menu-renderers";
+import { useSidebarControllerActions } from "./use-sidebar-controller-actions";
 import { useSidebarFeedSectionController } from "./use-sidebar-feed-section-controller";
 import { useSidebarRuntime } from "./use-sidebar-runtime";
 import { useSidebarSectionProps } from "./use-sidebar-section-props";
 import { useSidebarSmartViews } from "./use-sidebar-smart-views";
-import { useSidebarUiActions } from "./use-sidebar-ui-actions";
 import { useSidebarViewProps } from "./use-sidebar-view-props";
 
 export function useSidebarController(): SidebarControllerResult {
@@ -75,6 +75,30 @@ export function useSidebarController(): SidebarControllerResult {
   } = useSidebarRuntime();
   const updateFeedFolderMutation = useUpdateFeedFolder();
 
+  const {
+    setSelectedAccountPreference,
+    moveFeedToFolder,
+    moveFeedToUnfoldered,
+    handleSelectAccount,
+    toggleFeedsSection,
+    toggleTagsSection,
+    handleOpenSettings,
+    handleOpenAccountSettings,
+    handleAddFeed,
+    handleAddFeedDialogOpenChange,
+  } = useSidebarControllerActions({
+    selectedAccountId,
+    selectAccount,
+    openSettings,
+    setSettingsAddAccount,
+    openAddFeedDialog,
+    closeAddFeedDialog,
+    setIsFeedsSectionOpen,
+    setIsTagsSectionOpen,
+    setPref,
+    updateFeedFolder: updateFeedFolderMutation.mutateAsync,
+  });
+
   useSidebarAccountSelection({
     accounts,
     selectedAccountId,
@@ -83,27 +107,7 @@ export function useSidebarController(): SidebarControllerResult {
     activeDevIntent,
     clearSelectedAccount,
     restoreAccountSelection,
-    setSelectedAccountPreference: (accountId) => setPref("selected_account_id", accountId),
-  });
-
-  const {
-    handleSelectAccount,
-    toggleFeedsSection,
-    toggleTagsSection,
-    handleOpenSettings,
-    handleOpenAccountSettings,
-    handleAddFeed,
-    handleAddFeedDialogOpenChange,
-  } = useSidebarUiActions({
-    selectedAccountId,
-    selectAccount,
-    setSelectedAccountPreference: (accountId) => setPref("selected_account_id", accountId),
-    openSettings,
-    setSettingsAddAccount,
-    openAddFeedDialog,
-    closeAddFeedDialog,
-    setIsFeedsSectionOpen,
-    setIsTagsSectionOpen,
+    setSelectedAccountPreference,
   });
 
   const visibleSmartViews = useSidebarSmartViews({
@@ -139,8 +143,8 @@ export function useSidebarController(): SidebarControllerResult {
     setViewMode,
     toggleFolder,
     displayFavicons,
-    moveFeedToFolder: (feedId, folderId) => updateFeedFolderMutation.mutateAsync({ feedId, folderId }),
-    moveFeedToUnfoldered: (feedId) => updateFeedFolderMutation.mutateAsync({ feedId, folderId: null }),
+    moveFeedToFolder,
+    moveFeedToUnfoldered,
     renderFolderContextMenu,
     renderFeedContextMenu,
   });
