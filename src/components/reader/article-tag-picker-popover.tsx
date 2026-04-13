@@ -38,7 +38,7 @@ export function ArticleTagPickerPopover({
             onAssignTag(tag.id);
             onExpandedChange(false);
           }}
-          className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm text-popover-foreground hover:bg-accent"
+          className="flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm text-popover-foreground hover:bg-accent"
         >
           {tag.color && (
             <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: tag.color }} />
@@ -64,14 +64,14 @@ export function ArticleTagPickerPopover({
             }
           }}
           placeholder={labels.newTagPlaceholder}
-          className="h-auto flex-1 rounded border-none bg-transparent px-1 py-1 text-xs shadow-none ring-0 focus-visible:ring-0"
+          className="h-11 flex-1 rounded border-none bg-transparent px-1 text-sm shadow-none ring-0 focus-visible:ring-0"
         />
         <Button
           variant="ghost"
           size="icon-sm"
           onClick={onCreateTag}
           disabled={!newTagName.trim()}
-          className="h-5 w-5 text-muted-foreground"
+          className="h-11 w-11 text-muted-foreground"
           aria-label={labels.createTag}
         >
           <Plus className="h-3 w-3" />

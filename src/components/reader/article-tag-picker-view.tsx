@@ -59,7 +59,7 @@ export function ArticleTagPickerView({
             type="button"
             onClick={() => onExpandedChange(!isExpanded)}
             onKeyDown={handleTriggerKeyDown}
-            className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-dashed border-muted-foreground px-2 text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+            className="inline-flex h-11 min-w-11 items-center justify-center rounded-full border border-dashed border-muted-foreground px-3 text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
             aria-label={labels.addTag}
             aria-haspopup="listbox"
             aria-expanded={isExpanded}

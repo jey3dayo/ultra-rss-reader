@@ -36,10 +36,15 @@ describe("ArticleTagPickerView", () => {
     );
 
     const removeButton = screen.getByRole("button", { name: "Remove tag Later" });
-    expect(removeButton).toHaveClass("size-6");
+    expect(removeButton).toHaveClass("size-11");
     expect(screen.getByText("Tags")).toBeInTheDocument();
     expect(screen.getByText("Add and organize article tags")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("h-8");
+    expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("h-11");
+    expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("min-w-11");
+    expect(screen.getByRole("option", { name: "Important" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("textbox", { name: "" })).toHaveClass("h-11");
+    expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass("h-11");
+    expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass("w-11");
 
     await user.click(removeButton);
     await user.click(screen.getByRole("option", { name: "Important" }));
