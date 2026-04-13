@@ -81,6 +81,32 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-content-fade-bottom")).toBeInTheDocument();
   });
 
+  it("stacks the navigation above the content on narrow screens", () => {
+    render(
+      <SettingsModalView
+        open={true}
+        title="Preferences"
+        closeLabel="Close preferences"
+        navigation={<div>Settings navigation</div>}
+        accountsHeading="Accounts"
+        accountsNavigation={<div>Accounts navigation</div>}
+        content={<div>Settings content</div>}
+        onClose={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    const surface = screen.getByTestId("settings-modal-surface");
+    const navPane = surface.firstElementChild as HTMLElement;
+
+    expect(surface).toHaveClass("flex-col");
+    expect(surface).toHaveClass("sm:flex-row");
+    expect(navPane).toHaveClass("w-full");
+    expect(navPane).toHaveClass("sm:w-[260px]");
+    expect(navPane).toHaveClass("border-b");
+    expect(navPane).toHaveClass("sm:border-r");
+  });
+
   it("does not render dialog content when closed", () => {
     render(
       <SettingsModalView

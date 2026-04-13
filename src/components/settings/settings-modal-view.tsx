@@ -23,11 +23,11 @@ export function SettingsModalView({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         data-testid="settings-modal-surface"
-        className="flex h-[88vh] max-h-[840px] max-w-[920px] gap-0 overflow-hidden p-0 sm:max-w-[920px]"
+        className="flex h-[88vh] max-h-[840px] max-w-[920px] flex-col gap-0 overflow-hidden p-0 sm:flex-row sm:max-w-[920px]"
         showCloseButton={false}
       >
         {isLoading && <IndeterminateProgress className="absolute inset-x-0 top-0 z-10" />}
-        <div className="flex w-[260px] flex-col border-r border-border bg-sidebar">
+        <div className="flex max-h-[42vh] w-full shrink-0 flex-col border-b border-border bg-sidebar sm:max-h-none sm:w-[260px] sm:border-r sm:border-b-0">
           <DialogHeader className="flex flex-row items-center gap-3 border-b border-border px-4 py-4">
             <Button
               variant="ghost"
@@ -67,7 +67,7 @@ export function SettingsModalView({
           </div>
         </div>
 
-        <div className="flex flex-1 flex-col overflow-hidden bg-popover">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-popover">
           <div className="relative min-h-0 flex-1">
             <div
               data-testid="settings-content-fade-top"
