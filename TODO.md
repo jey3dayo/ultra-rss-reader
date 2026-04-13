@@ -152,6 +152,16 @@
   - 対応: `CommandPaletteResultsProps` から `Pick` した group props 型を `command-palette.types.ts` に寄せて、subview 側は再利用に寄せた
   - 対象: `src/components/reader/command-palette.types.ts`, `src/components/reader/command-palette-action-groups.tsx`, `src/components/reader/command-palette-resource-groups.tsx`
 
+- [x] command-palette の view props result 型を shared types に寄せる
+  - 問題: `use-command-palette-view-props.ts` の `resultsProps` / `prefixHints` の返り値 shape が local なままで、controller と view の接着境界を型として再利用しづらかった
+  - 対応: `command-palette.types.ts` に `CommandPaletteViewResultsProps` / `CommandPalettePrefixHints` / `CommandPaletteViewPropsResult` を追加して、view props hook の返り値を shared types に寄せた
+  - 対象: `src/components/reader/command-palette.types.ts`, `src/components/reader/use-command-palette-view-props.ts`
+
+- [x] command-palette controller の返り値型を shared types に寄せる
+  - 問題: `use-command-palette-controller.ts` の返り値が暗黙型のままで、state wiring と `view props` をあわせた最終 contract を型として追いにくかった
+  - 対応: `CommandPaletteControllerResult` を `command-palette.types.ts` に追加して、controller の返り値を shared contract に寄せた
+  - 対象: `src/components/reader/command-palette.types.ts`, `src/components/reader/use-command-palette-controller.ts`
+
 - [x] command-palette の recent history helper を共通化する
   - 問題: `use-command-palette-data.ts` と `use-command-palette-handlers.ts` に history prefix / parse / format ルールが重複していて、recent action 表示と履歴書き込みの契約が分散していた
   - 対応: `command-palette-history.ts` に history entry の parse/format を寄せて、unit test で prefix 契約を固定した
@@ -300,6 +310,16 @@
   - 問題: `use-sidebar-section-props.ts` に subscriptions/tags/add-feed dialog 向け props 組み立てが残っていて、section props 集約と content section 専用の props 導出が混ざっていた
   - 対応: `use-sidebar-content-sections-props.ts` へ content sections props の組み立てを寄せて、section props 本体は header/account/smart views の接着に寄せた
   - 対象: `src/components/reader/use-sidebar-section-props.ts`, `src/components/reader/use-sidebar-content-sections-props.ts`
+
+- [x] sidebar の header / smart views props 組み立てを helper に寄せる
+  - 問題: `use-sidebar-section-props.ts` に sync/add-feed header と smart views section の local object 組み立てが残っていて、section props 集約と top-level section の view model 導出が混ざっていた
+  - 対応: `use-sidebar-header-props.ts` と `use-sidebar-smart-views-props.ts` へ props 導出を寄せて、section props 本体は helper 間の接着に寄せた
+  - 対象: `src/components/reader/use-sidebar-section-props.ts`, `src/components/reader/use-sidebar-header-props.ts`, `src/components/reader/use-sidebar-smart-views-props.ts`
+
+- [x] sidebar の feed tree props 組み立てを helper に寄せる
+  - 問題: `use-sidebar-feed-section-controller.ts` に drag callbacks の request wrapper と `FeedTreeViewProps` の object 組み立てが残っていて、feed tree orchestration と view props 導出が混ざっていた
+  - 対応: `use-sidebar-feed-tree-props.ts` へ `FeedTreeViewProps` 導出を寄せて、feed section controller 本体は tree data と drag/navigation orchestration に寄せた
+  - 対象: `src/components/reader/use-sidebar-feed-section-controller.ts`, `src/components/reader/use-sidebar-feed-tree-props.ts`
 
 - [x] sidebar の runtime state wiring を hook 化する
   - 問題: `useSidebarController` に section open state、account switcher、source query、sync wiring の初期化が残っていて、controller orchestration と runtime 配線が混ざっていた
