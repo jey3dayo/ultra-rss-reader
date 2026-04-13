@@ -6,7 +6,7 @@ type UseSidebarFeedNavigationParams = {
   selectedFeedId: string | null;
   expandedFolderIds: Set<string>;
   getFeedFolderId: (feedId: string) => string | null | undefined;
-  setExpandedFolders: (folderIds: string[]) => void;
+  setExpandedFolders: (folderIds: Iterable<string>) => void;
   selectFeed: (feedId: string) => void;
 };
 

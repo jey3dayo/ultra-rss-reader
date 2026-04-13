@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { STORAGE_KEYS } from "@/constants/storage";
 
-type StartupFolderExpansionMode = "all_collapsed" | "restore_previous" | "unread_folders";
+export type StartupFolderExpansionMode = "all_collapsed" | "restore_previous" | "unread_folders";
 
 type UseSidebarStartupFolderExpansionParams = {
   selectedAccountId: string | null;

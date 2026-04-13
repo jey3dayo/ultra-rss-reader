@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useResolvedDevIntent } from "@/hooks/use-resolved-dev-intent";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
@@ -6,16 +6,12 @@ import { cn } from "@/lib/utils";
 import { useSidebarAccountSelection } from "./use-sidebar-account-selection";
 import { useSidebarAccountSwitcher } from "./use-sidebar-account-switcher";
 import { useSidebarContextMenuRenderers } from "./use-sidebar-context-menu-renderers";
-import { useSidebarFeedDragState } from "./use-sidebar-feed-drag-state";
-import { useSidebarFeedNavigation } from "./use-sidebar-feed-navigation";
-import { useSidebarFeedTree } from "./use-sidebar-feed-tree";
+import { useSidebarFeedSectionController } from "./use-sidebar-feed-section-controller";
 import { useSidebarSmartViews } from "./use-sidebar-smart-views";
 import { useSidebarSources } from "./use-sidebar-sources";
-import { useSidebarStartupFolderExpansion } from "./use-sidebar-startup-folder-expansion";
 import { useSidebarSync } from "./use-sidebar-sync";
 import { useSidebarUiActions } from "./use-sidebar-ui-actions";
 import { useSidebarUiState } from "./use-sidebar-ui-state";
-import { useSidebarVisibilityFallback } from "./use-sidebar-visibility-fallback";
 
 export function useSidebarController() {
   const { t } = useTranslation("sidebar");
@@ -78,8 +74,6 @@ export function useSidebarController() {
     folders,
     tags,
     tagArticleCounts,
-    feedList,
-    folderList,
     totalUnread,
     starredCount,
   } = useSidebarSources({ selectedAccountId });
@@ -134,26 +128,9 @@ export function useSidebarController() {
     showSidebarStarred,
     t,
   });
-
-  const canDragFeeds = folderList.length > 0;
-  const initialFeedById = useMemo(() => new Map(feedList.map((feed) => [feed.id, feed])), [feedList]);
-  const {
-    draggedFeedId,
-    activeDropTarget,
-    clearDragState,
-    handleDragStartFeed,
-    handleDragEnterFolder,
-    handleDragEnterUnfoldered,
-    handleDropToFolder,
-    handleDropToUnfoldered,
-  } = useSidebarFeedDragState({
-    canDragFeeds,
-    isFeedsSectionOpen,
-    feedById: initialFeedById,
-    moveFeedToFolder: (feedId, folderId) => updateFeedFolderMutation.mutateAsync({ feedId, folderId }),
-    moveFeedToUnfoldered: (feedId) => updateFeedFolderMutation.mutateAsync({ feedId, folderId: null }),
-  });
-  const { feedById, selectedFeedId, feedTreeFolders, unfolderedFeedViews, orderedFeedIds } = useSidebarFeedTree({
+  const { renderFolderContextMenu, renderFeedContextMenu, renderTagContextMenu } = useSidebarContextMenuRenderers();
+  const { feedTreeProps } = useSidebarFeedSectionController({
+    selectedAccountId,
     feeds,
     folders,
     selection,
@@ -161,53 +138,24 @@ export function useSidebarController() {
     expandedFolderIds,
     sortSubscriptions,
     grayscaleFavicons,
-    draggedFeedId,
-  });
-  const firstFeedId = orderedFeedIds[0] ?? null;
-
-  useSidebarStartupFolderExpansion({
-    selectedAccountId,
-    expandedFolderIds,
-    feedList,
-    folderList,
+    isFeedsSectionOpen,
     startupFolderExpansion,
-    feedsReady: feeds !== undefined,
-    foldersReady: folders !== undefined,
-    setExpandedFolders,
-  });
-
-  useSidebarVisibilityFallback({
-    firstFeedId,
-    selection,
-    viewMode,
     showSidebarUnread,
     showSidebarStarred,
     showSidebarTags,
+    setExpandedFolders,
     selectFeed,
+    selectFolder,
     selectAll,
     selectSmartView,
     setViewMode,
+    toggleFolder,
+    displayFavicons,
+    moveFeedToFolder: (feedId, folderId) => updateFeedFolderMutation.mutateAsync({ feedId, folderId }),
+    moveFeedToUnfoldered: (feedId) => updateFeedFolderMutation.mutateAsync({ feedId, folderId: null }),
+    renderFolderContextMenu,
+    renderFeedContextMenu,
   });
-
-  useSidebarFeedNavigation({
-    orderedFeedIds,
-    selectedFeedId,
-    expandedFolderIds,
-    getFeedFolderId: (feedId) => feedById.get(feedId)?.folder_id,
-    setExpandedFolders,
-    selectFeed,
-  });
-
-  const handleDropToFolderRequest = useCallback(
-    (folderId: string) => {
-      void handleDropToFolder(folderId);
-    },
-    [handleDropToFolder],
-  );
-  const handleDropToUnfolderedRequest = useCallback(() => {
-    void handleDropToUnfoldered();
-  }, [handleDropToUnfoldered]);
-  const { renderFolderContextMenu, renderFeedContextMenu, renderTagContextMenu } = useSidebarContextMenuRenderers();
 
   return {
     sidebarClassName: cn(
@@ -262,26 +210,7 @@ export function useSidebarController() {
       isTagsSectionOpen,
       onToggleTagsSection: toggleTagsSection,
       onOpenAccountSettings: handleOpenAccountSettings,
-      feedTreeProps: {
-        isOpen: isFeedsSectionOpen,
-        folders: feedTreeFolders,
-        unfolderedFeeds: unfolderedFeedViews,
-        onToggleFolder: toggleFolder,
-        onSelectFolder: selectFolder,
-        onSelectFeed: selectFeed,
-        displayFavicons,
-        canDragFeeds,
-        draggedFeedId,
-        activeDropTarget,
-        onDragStartFeed: (feed: { id: string }) => handleDragStartFeed(feed.id),
-        onDragEnterFolder: handleDragEnterFolder,
-        onDragEnterUnfoldered: handleDragEnterUnfoldered,
-        onDropToFolder: handleDropToFolderRequest,
-        onDropToUnfoldered: handleDropToUnfolderedRequest,
-        onDragEnd: clearDragState,
-        renderFolderContextMenu,
-        renderFeedContextMenu,
-      },
+      feedTreeProps,
       tags,
       tagArticleCounts,
       selection,

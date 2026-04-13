@@ -1,3 +1,4 @@
+import type { StartupFolderExpansionMode } from "./use-sidebar-startup-folder-expansion";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -41,8 +42,8 @@ export function useSidebarUiState() {
   const displayFavicons = usePreferencesStore((s) => (s.prefs.display_favicons ?? "true") === "true");
   const grayscaleFavicons = usePreferencesStore((s) => (s.prefs.grayscale_favicons ?? "false") === "true");
   const sortSubscriptions = usePreferencesStore((s) => s.prefs.sort_subscriptions ?? "folders_first");
-  const startupFolderExpansion = usePreferencesStore((s) =>
-    resolvePreferenceValue(s.prefs, "startup_folder_expansion"),
+  const startupFolderExpansion = usePreferencesStore(
+    (s) => resolvePreferenceValue(s.prefs, "startup_folder_expansion") as StartupFolderExpansionMode,
   );
   const opaqueSidebars = usePreferencesStore((s) => (s.prefs.opaque_sidebars ?? "false") === "true");
   const savedAccountId = usePreferencesStore((s) => s.prefs.selected_account_id ?? "");
