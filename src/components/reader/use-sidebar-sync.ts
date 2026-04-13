@@ -3,28 +3,23 @@ import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { AccountSyncWarning } from "@/api/schemas/sync-result";
 import { triggerSync } from "@/api/tauri-commands";
 import i18n from "@/lib/i18n";
 import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync-result-feedback";
-import type { SyncProgressEvent, SyncProgressState } from "@/stores/ui-store";
+import type {
+  SidebarSyncParams,
+  SidebarSyncProgressPayload,
+  SidebarSyncResult,
+  SidebarSyncWarningPayload,
+} from "./sidebar-sync.types";
 import { resolveSidebarSyncFeedbackMessage } from "./sidebar-sync-feedback";
-
-type SyncWarningPayload = AccountSyncWarning[];
-
-type UseSidebarSyncParams = {
-  syncProgress: SyncProgressState;
-  applySyncProgress: (event: SyncProgressEvent) => void;
-  clearSyncProgress: () => void;
-  showToast: (message: string) => void;
-};
 
 export function useSidebarSync({
   syncProgress,
   applySyncProgress,
   clearSyncProgress,
   showToast,
-}: UseSidebarSyncParams) {
+}: SidebarSyncParams): SidebarSyncResult {
   const { t } = useTranslation("sidebar");
   const queryClient = useQueryClient();
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
@@ -62,8 +57,8 @@ export function useSidebarSync({
     listen("sync-progress", (event) => {
       const payload =
         typeof event === "object" && event !== null && "payload" in event
-          ? (event.payload as SyncProgressEvent)
-          : (event as SyncProgressEvent);
+          ? (event.payload as SidebarSyncProgressPayload)
+          : (event as SidebarSyncProgressPayload);
       applySyncProgress(payload);
     }).then((fn) => {
       if (cancelled) {
@@ -88,8 +83,8 @@ export function useSidebarSync({
     listen("sync-warning", (event) => {
       const payload =
         typeof event === "object" && event !== null && "payload" in event
-          ? (event.payload as SyncWarningPayload)
-          : (event as SyncWarningPayload);
+          ? (event.payload as SidebarSyncWarningPayload)
+          : (event as SidebarSyncWarningPayload);
       if (payload.length > 0) {
         invalidateAccountSyncStatuses();
         showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncWarnings(payload)));

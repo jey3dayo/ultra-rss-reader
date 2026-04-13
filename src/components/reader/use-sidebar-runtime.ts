@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useResolvedDevIntent } from "@/hooks/use-resolved-dev-intent";
+import type { SidebarSyncResult } from "./sidebar-sync.types";
 import { useSidebarAccountSwitcher } from "./use-sidebar-account-switcher";
 import { useSidebarSources } from "./use-sidebar-sources";
 import { useSidebarSync } from "./use-sidebar-sync";
@@ -22,7 +23,7 @@ export function useSidebarRuntime() {
   const sources = useSidebarSources({ selectedAccountId });
   const feedViewportRef = useRef<HTMLDivElement>(null);
   const { intent: activeDevIntent } = useResolvedDevIntent();
-  const { handleSync, lastSyncedLabel } = useSidebarSync({
+  const { handleSync, lastSyncedLabel }: SidebarSyncResult = useSidebarSync({
     syncProgress,
     applySyncProgress,
     clearSyncProgress,

@@ -1,26 +1,5 @@
 import { useCallback } from "react";
-import type { FeedTreeViewProps } from "./feed-tree-view";
-
-type UseSidebarFeedTreePropsParams = {
-  isFeedsSectionOpen: boolean;
-  feedTreeFolders: FeedTreeViewProps["folders"];
-  unfolderedFeedViews: FeedTreeViewProps["unfolderedFeeds"];
-  toggleFolder: FeedTreeViewProps["onToggleFolder"];
-  selectFolder: FeedTreeViewProps["onSelectFolder"];
-  selectFeed: FeedTreeViewProps["onSelectFeed"];
-  displayFavicons: FeedTreeViewProps["displayFavicons"];
-  canDragFeeds: boolean;
-  draggedFeedId: FeedTreeViewProps["draggedFeedId"];
-  activeDropTarget: FeedTreeViewProps["activeDropTarget"];
-  handleDragStartFeed: (feedId: string) => void;
-  handleDragEnterFolder: NonNullable<FeedTreeViewProps["onDragEnterFolder"]>;
-  handleDragEnterUnfoldered: NonNullable<FeedTreeViewProps["onDragEnterUnfoldered"]>;
-  handleDropToFolder: (folderId: string) => Promise<unknown>;
-  handleDropToUnfoldered: () => Promise<unknown>;
-  clearDragState: NonNullable<FeedTreeViewProps["onDragEnd"]>;
-  renderFolderContextMenu?: FeedTreeViewProps["renderFolderContextMenu"];
-  renderFeedContextMenu?: FeedTreeViewProps["renderFeedContextMenu"];
-};
+import type { SidebarFeedTreeProps, SidebarFeedTreePropsParams } from "./sidebar-feed-section.types";
 
 export function useSidebarFeedTreeProps({
   isFeedsSectionOpen,
@@ -41,7 +20,7 @@ export function useSidebarFeedTreeProps({
   clearDragState,
   renderFolderContextMenu,
   renderFeedContextMenu,
-}: UseSidebarFeedTreePropsParams): Omit<FeedTreeViewProps, "emptyState" | "unfolderedLabel"> {
+}: SidebarFeedTreePropsParams): SidebarFeedTreeProps {
   const handleDropToFolderRequest = useCallback(
     (folderId: string) => {
       void handleDropToFolder(folderId);

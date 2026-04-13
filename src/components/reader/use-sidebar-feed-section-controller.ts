@@ -1,40 +1,11 @@
 import { useMemo } from "react";
-import type { FeedDto, FolderDto } from "@/api/tauri-commands";
-import type { FeedTreeViewProps } from "./feed-tree-view";
+import type { SidebarFeedSectionParams, SidebarFeedSectionResult } from "./sidebar-feed-section.types";
 import { useSidebarFeedDragState } from "./use-sidebar-feed-drag-state";
 import { useSidebarFeedNavigation } from "./use-sidebar-feed-navigation";
 import { useSidebarFeedTree } from "./use-sidebar-feed-tree";
 import { useSidebarFeedTreeProps } from "./use-sidebar-feed-tree-props";
 import { useSidebarStartupFolderExpansion } from "./use-sidebar-startup-folder-expansion";
 import { useSidebarVisibilityFallback } from "./use-sidebar-visibility-fallback";
-
-type UseSidebarFeedSectionControllerParams = {
-  selectedAccountId: string | null;
-  feeds: FeedDto[] | undefined;
-  folders: FolderDto[] | undefined;
-  selection: Parameters<typeof useSidebarFeedTree>[0]["selection"];
-  viewMode: Parameters<typeof useSidebarFeedTree>[0]["viewMode"];
-  expandedFolderIds: Set<string>;
-  sortSubscriptions: string;
-  grayscaleFavicons: boolean;
-  isFeedsSectionOpen: boolean;
-  startupFolderExpansion: Parameters<typeof useSidebarStartupFolderExpansion>[0]["startupFolderExpansion"];
-  showSidebarUnread: boolean;
-  showSidebarStarred: boolean;
-  showSidebarTags: boolean;
-  setExpandedFolders: Parameters<typeof useSidebarStartupFolderExpansion>[0]["setExpandedFolders"];
-  selectFeed: (feedId: string) => void;
-  selectFolder: (folderId: string) => void;
-  selectAll: () => void;
-  selectSmartView: (kind: "unread" | "starred") => void;
-  setViewMode: (mode: "all" | "unread" | "starred") => void;
-  toggleFolder: (folderId: string) => void;
-  displayFavicons: boolean;
-  moveFeedToFolder: (feedId: string, folderId: string) => Promise<unknown>;
-  moveFeedToUnfoldered: (feedId: string) => Promise<unknown>;
-  renderFolderContextMenu?: FeedTreeViewProps["renderFolderContextMenu"];
-  renderFeedContextMenu?: FeedTreeViewProps["renderFeedContextMenu"];
-};
 
 export function useSidebarFeedSectionController({
   selectedAccountId,
@@ -62,7 +33,7 @@ export function useSidebarFeedSectionController({
   moveFeedToUnfoldered,
   renderFolderContextMenu,
   renderFeedContextMenu,
-}: UseSidebarFeedSectionControllerParams) {
+}: SidebarFeedSectionParams): SidebarFeedSectionResult {
   const feedList = feeds ?? [];
   const folderList = folders ?? [];
   const canDragFeeds = folderList.length > 0;

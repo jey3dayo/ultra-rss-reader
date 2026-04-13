@@ -1,7 +1,8 @@
 import type { ReactNode, RefObject } from "react";
 import { AddFeedDialog } from "./add-feed-dialog";
-import { FeedTreeView, type FeedTreeViewProps } from "./feed-tree-view";
+import { FeedTreeView } from "./feed-tree-view";
 import { SidebarContentView } from "./sidebar-content-view";
+import type { SidebarFeedTreeProps } from "./sidebar-feed-section.types";
 import { SidebarTagSection } from "./sidebar-tag-section";
 import { useSidebarTagItems } from "./use-sidebar-tag-items";
 
@@ -25,7 +26,7 @@ export type SidebarContentSectionsProps = {
   isTagsSectionOpen: boolean;
   onToggleTagsSection: () => void;
   onOpenAccountSettings: () => void;
-  feedTreeProps: Omit<FeedTreeViewProps, "emptyState" | "unfolderedLabel">;
+  feedTreeProps: SidebarFeedTreeProps;
   tags: Parameters<typeof useSidebarTagItems>[0]["tags"];
   tagArticleCounts: Parameters<typeof useSidebarTagItems>[0]["tagArticleCounts"];
   selection: Parameters<typeof useSidebarTagItems>[0]["selection"];
