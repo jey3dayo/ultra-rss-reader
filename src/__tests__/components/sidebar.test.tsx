@@ -26,25 +26,41 @@ let syncProgressListener:
       success?: boolean | null;
     }) => void)
   | null = null;
+let syncWarningListener:
+  | ((
+      event: Array<{ account_id: string; account_name: string; message: string; kind?: "generic" | "retry_pending" }>,
+    ) => void)
+  | null = null;
 const renderedFeedContextMenuFeeds: Array<{ id: string; folder_id: string | null }> = [];
 
 vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn(async (eventName: string, callback: typeof syncCompletedListener | typeof syncProgressListener) => {
-    if (eventName === "sync-completed") {
-      syncCompletedListener = callback as typeof syncCompletedListener;
-    }
-    if (eventName === "sync-progress") {
-      syncProgressListener = callback as typeof syncProgressListener;
-    }
-    return () => {
+  listen: vi.fn(
+    async (
+      eventName: string,
+      callback: typeof syncCompletedListener | typeof syncProgressListener | typeof syncWarningListener,
+    ) => {
       if (eventName === "sync-completed") {
-        syncCompletedListener = null;
+        syncCompletedListener = callback as typeof syncCompletedListener;
       }
       if (eventName === "sync-progress") {
-        syncProgressListener = null;
+        syncProgressListener = callback as typeof syncProgressListener;
       }
-    };
-  }),
+      if (eventName === "sync-warning") {
+        syncWarningListener = callback as typeof syncWarningListener;
+      }
+      return () => {
+        if (eventName === "sync-completed") {
+          syncCompletedListener = null;
+        }
+        if (eventName === "sync-progress") {
+          syncProgressListener = null;
+        }
+        if (eventName === "sync-warning") {
+          syncWarningListener = null;
+        }
+      };
+    },
+  ),
 }));
 
 vi.mock("@/components/reader/feed-context-menu", () => ({
@@ -65,6 +81,7 @@ describe("Sidebar", () => {
   beforeEach(() => {
     syncCompletedListener = null;
     syncProgressListener = null;
+    syncWarningListener = null;
     renderedFeedContextMenuFeeds.length = 0;
     devIntentState.intent = null;
     useUiStore.setState(useUiStore.getInitialState());
@@ -712,6 +729,44 @@ describe("Sidebar", () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     fireEvent.click(screen.getByLabelText("Sync feeds"));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "Sync completed, but some changes for FreshRSS will retry next sync",
+      });
+    });
+  });
+
+  it("shows a warning toast from sync-warning events", async () => {
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(syncWarningListener).not.toBeNull();
+
+    syncWarningListener?.([
+      { account_id: "acc-2", account_name: "FreshRSS", message: "Skipped 3 entries." },
+      { account_id: "acc-3", account_name: "Local", message: "Reused stale cursor." },
+    ]);
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "Sync completed with warnings for: FreshRSS, Local",
+      });
+    });
+  });
+
+  it("shows a retry-pending toast from sync-warning events when queued retries are present", async () => {
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(syncWarningListener).not.toBeNull();
+
+    syncWarningListener?.([
+      {
+        account_id: "acc-2",
+        account_name: "FreshRSS",
+        message: "Local change will retry on the next sync.",
+        kind: "retry_pending",
+      },
+    ]);
 
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({
