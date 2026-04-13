@@ -2,6 +2,7 @@ import { Plus, Rss } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SERVICE_CATEGORIES } from "./add-account-services";
 import type { AccountsNavViewProps } from "./settings-nav.types";
+
 export type { AccountNavItem, AccountsNavViewProps } from "./settings-nav.types";
 
 const ACCOUNT_ICON_BG: Record<string, string> = Object.fromEntries(

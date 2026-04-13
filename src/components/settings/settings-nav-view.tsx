@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { SettingsNavViewProps } from "./settings-nav.types";
+
 export type { SettingsNavItem, SettingsNavItemId, SettingsNavViewProps } from "./settings-nav.types";
 
 export function SettingsNavView({ items, onSelectCategory }: SettingsNavViewProps) {

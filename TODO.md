@@ -310,6 +310,11 @@
   - 対応: `settings-nav.types.ts` を追加して account/settings nav の item/props contract を集約し、modal と view component と tests は shared types を参照する形に寄せた
   - 対象: `src/components/settings/settings-nav.types.ts`, `src/components/settings/accounts-nav-view.tsx`, `src/components/settings/settings-nav-view.tsx`, `src/components/settings/settings-modal.tsx`, `src/__tests__/components/accounts-nav-view.test.tsx`, `src/__tests__/components/settings-nav-view.test.tsx`
 
+- [x] shortcuts help / sidebar nav button の props 正本を shared types に寄せる
+  - 問題: `shortcuts-help-modal.tsx` と `sidebar-nav-button.tsx` に props contract が残っていて、reader subview 境界を shared types から追いにくかった
+  - 対応: `shortcuts-help-modal.types.ts` を追加し、`SidebarNavButtonProps` を `sidebar.types.ts` に寄せて、subview は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/shortcuts-help-modal.types.ts`, `src/components/reader/shortcuts-help-modal.tsx`, `src/components/reader/sidebar.types.ts`, `src/components/reader/sidebar-nav-button.tsx`
+
 - [x] feed cleanup candidate builder の input contract を explicit type に寄せる
   - 問題: `use-feed-cleanup-page-state.ts` が `Parameters<typeof buildFeedCleanupCandidates>` で helper 入力型を引いていて、feed cleanup state 境界の正本を名前付き type で追えなかった
   - 対応: `BuildFeedCleanupCandidatesParams` を `src/lib/feed-cleanup.ts` に追加して、page state hook は explicit type を参照する形に寄せた
