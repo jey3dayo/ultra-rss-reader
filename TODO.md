@@ -494,6 +494,11 @@
   - 問題: `use-article-list-view-props.ts` に `headerControls` / `viewState` の result shape が再定義で残っていて、hook 境界の変更が view props 側へ伝播しにくかった
   - 対象: `src/components/reader/use-article-list-controller.ts`, `src/components/reader/use-article-list-view-props.ts`, `src/components/reader/use-article-list-header-controls.tsx`, `src/components/reader/use-article-list-view-state.ts`
 
+- [x] article list の body props 組み立てを helper に寄せる
+  - 問題: `use-article-list-view-props.ts` に loading/empty/groups/context menu 用の body props 組み立てが残っていて、header/context/footer との境界に対して body だけ責務が重かった
+  - 対応: `use-article-list-body-props.ts` へ body props 導出を寄せて、`use-article-list-view-props.ts` は section ごとの接着に寄せた
+  - 対象: `src/components/reader/use-article-list-view-props.ts`, `src/components/reader/use-article-list-body-props.ts`
+
 - [x] browser view の subview props/controller slice 型を `types` に寄せる
   - 問題: `browser-overlay-chrome.tsx` と `browser-overlay-stage.tsx` に subview 用の `Pick<BrowserViewController, ...>` と union props が local 定義で散っていて、overlay refactor の型境界を追いにくかった
   - 対象: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-overlay-chrome.tsx`, `src/components/reader/browser-overlay-stage.tsx`, `src/components/reader/browser-view.types.ts`
