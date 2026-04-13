@@ -127,6 +127,14 @@
   - 問題: `useBrowserViewController` に initial state / missing-webview 判定 / loading state merge が残っていて、controller orchestration と webview state helper が混ざっていた
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/browser-webview-state.ts`, `src/__tests__/components/browser-webview-state.test.ts`
 
+- [x] browser-view の debug geometry event dispatch を hook 化する
+  - 問題: `useBrowserViewController` に browser debug HUD 向け event dispatch effect が残っていて、controller orchestration と diagnostics bridge が混ざっていた
+  - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-debug-geometry-events.ts`
+
+- [x] browser-view の surface issue helper を module 化する
+  - 問題: `useBrowserViewController` と `browser-view.tsx` に failed/blocked/browser-mode 用の issue 定義が散っていて、surface state 表現と controller orchestration が混ざっていた
+  - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/browser-view.tsx`, `src/components/reader/browser-surface-issue.ts`, `src/__tests__/components/browser-surface-issue.test.ts`
+
 - [x] sidebar の feed navigation と event listener を hook 化する
   - 問題: `sidebar.tsx` に feed 移動、folder 自動展開、`APP_EVENTS.navigateFeed` 購読が残っていて、tree 導出と責務が混ざっている
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-feed-navigation.ts`
