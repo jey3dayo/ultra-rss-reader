@@ -179,6 +179,7 @@
     "test_connection": "Test Connection",
     "testing_connection": "Testing…",
     "connection_success": "Connection successful",
+    "connection_unsuccessful": "connection could not be verified",
     "connection_failed": "Connection failed: {{message}}",
     "sync_now": "Sync Now",
     "syncing_now": "Syncing…",

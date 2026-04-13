@@ -179,6 +179,7 @@
     "test_connection": "接続テスト",
     "testing_connection": "テスト中…",
     "connection_success": "接続に成功しました",
+    "connection_unsuccessful": "接続を確認できませんでした",
     "connection_failed": "接続に失敗しました: {{message}}",
     "sync_now": "今すぐ同期",
     "syncing_now": "同期中…",

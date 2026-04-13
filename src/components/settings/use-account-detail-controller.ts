@@ -162,8 +162,14 @@ export function useAccountDetailController({ account, t, onAccountDeleted }: Use
         Result.inspectError((e) => {
           useUiStore.getState().showToast(t("account.connection_failed", { message: e.message }));
         }),
-        Result.inspect(() => {
-          useUiStore.getState().showToast(t("account.connection_success"));
+        Result.inspect((connected) => {
+          useUiStore
+            .getState()
+            .showToast(
+              connected
+                ? t("account.connection_success")
+                : t("account.connection_failed", { message: t("account.connection_unsuccessful") }),
+            );
         }),
       );
     } finally {
