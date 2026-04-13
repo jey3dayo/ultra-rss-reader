@@ -1,4 +1,14 @@
 import type { AccountDto, ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
+import {
+  DEV_FEED_DISPLAY_MODE_SCORE,
+  DEV_FEED_HINT_SCORE_STEP,
+  DEV_FEED_MAX_UNREAD_SCORE,
+  DEV_WINDOW_RESIZE_RETRY_DELAYS_MS,
+  DEV_WINDOW_RESIZE_TOLERANCE_PX,
+  DEV_WINDOW_UNMAXIMIZE_SETTLE_DELAY_MS,
+  OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_DELAY_MS,
+  OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_LATE_DELAY_MS,
+} from "@/dev/scenarios/constants";
 import type { DevScenario, DevScenarioContext, DevScenarioId } from "@/dev/scenarios/types";
 import { loadDevRuntimeOptions, readDevWebUrl, readDevWindowSize } from "@/lib/dev-intent";
 import { resolveFeedLandingArticle } from "@/lib/feed-landing";
@@ -171,12 +181,9 @@ export async function runOpenWebPreviewUrlScenario(ctx: DevScenarioContext): Pro
   };
 
   applyPreviewState();
-  window.setTimeout(applyPreviewState, 300);
-  window.setTimeout(applyPreviewState, 1200);
+  window.setTimeout(applyPreviewState, OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_DELAY_MS);
+  window.setTimeout(applyPreviewState, OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_LATE_DELAY_MS);
 }
-
-const DEV_WINDOW_RESIZE_RETRY_DELAYS_MS = [0, 80, 180, 320] as const;
-const DEV_WINDOW_RESIZE_TOLERANCE_PX = 1;
 
 function sizeMatchesWithinTolerance(
   current: { width: number; height: number },
@@ -209,7 +216,7 @@ async function applyDevWindowSize(): Promise<void> {
 
     if (await win.isMaximized()) {
       await win.unmaximize();
-      await wait(80);
+      await wait(DEV_WINDOW_UNMAXIMIZE_SETTLE_DELAY_MS);
     }
 
     const readCurrentLogicalSize = async () => {
@@ -314,10 +321,13 @@ function rankPreferredDevFeeds(feeds: FeedDto[]): FeedDto[] {
 function scorePreferredDevFeed(feed: FeedDto): number {
   const normalized = [feed.title, feed.url, feed.site_url].filter(Boolean).join(" ").toLowerCase();
   const hintScore = DEFAULT_DEV_FEED_HINTS.reduce((score, hint, index) => {
-    return normalized.includes(hint.toLowerCase()) ? score + (DEFAULT_DEV_FEED_HINTS.length - index) * 100 : score;
+    return normalized.includes(hint.toLowerCase())
+      ? score + (DEFAULT_DEV_FEED_HINTS.length - index) * DEV_FEED_HINT_SCORE_STEP
+      : score;
   }, 0);
 
-  const unreadScore = Math.min(feed.unread_count, 100);
-  const displayModeScore = feed.reader_mode === "on" && feed.web_preview_mode === "on" ? 500 : 0;
+  const unreadScore = Math.min(feed.unread_count, DEV_FEED_MAX_UNREAD_SCORE);
+  const displayModeScore =
+    feed.reader_mode === "on" && feed.web_preview_mode === "on" ? DEV_FEED_DISPLAY_MODE_SCORE : 0;
   return displayModeScore + hintScore + unreadScore;
 }
