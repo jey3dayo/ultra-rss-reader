@@ -1,4 +1,5 @@
 import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
+import { resolveFeedTreePointerDropOutcome } from "./feed-tree-drag-outcome";
 import type { FeedTreeDragOverlayPreview } from "./feed-tree-drag-overlay";
 import {
   createFeedTreePointerDragSession,
@@ -6,10 +7,10 @@ import {
   shouldStartFeedTreePointerDrag,
   updateFeedTreePointerDragSessionPosition,
 } from "./feed-tree-drag-session";
-import { resolveFeedTreePointerDropOutcome } from "./feed-tree-drag-outcome";
 import { getFeedDropTargetFromElement, isSameFeedDropTarget } from "./feed-tree-drop-target";
 import type { ActiveDropTarget } from "./feed-tree-folder-section";
 import type { FeedTreeFeedViewModel } from "./feed-tree-row";
+import { useFeedTreeHandleClickSuppression } from "./use-feed-tree-handle-click-suppression";
 
 export type UseFeedTreeDragParams = {
   isOpen: boolean;
@@ -54,19 +55,11 @@ export function useFeedTreeDrag({
   const [pointerDragPreview, setPointerDragPreview] = useState<FeedTreeDragOverlayPreview | null>(null);
   const [pointerHoverTarget, setPointerHoverTarget] = useState<ActiveDropTarget>(null);
   const pointerDragRef = useRef<FeedTreePointerDragSession | null>(null);
-  const suppressHandleClickRef = useRef(false);
-  const suppressHandleClickTimeoutRef = useRef<number | null>(null);
+  const { consumeSuppressedHandleClick, queueSuppressHandleClickReset } = useFeedTreeHandleClickSuppression();
 
   const activeVisualDropTarget = isPointerTracking ? pointerHoverTarget : activeDropTarget;
   const activeUnfoldered = canDragFeeds && activeVisualDropTarget?.kind === "unfoldered";
   const showUnfolderedDropZone = canDragFeeds && (normalizedDraggedFeedId !== null || pointerDragPreview !== null);
-
-  const clearSuppressHandleClickTimer = useCallback(() => {
-    if (suppressHandleClickTimeoutRef.current !== null) {
-      window.clearTimeout(suppressHandleClickTimeoutRef.current);
-      suppressHandleClickTimeoutRef.current = null;
-    }
-  }, []);
 
   const clearPointerTracking = useCallback(() => {
     pointerDragRef.current = null;
@@ -74,17 +67,6 @@ export function useFeedTreeDrag({
     setPointerDragPreview(null);
     setPointerHoverTarget(null);
   }, []);
-
-  const consumeSuppressedHandleClick = useCallback(() => suppressHandleClickRef.current, []);
-
-  const queueSuppressHandleClickReset = useCallback(() => {
-    clearSuppressHandleClickTimer();
-    suppressHandleClickRef.current = true;
-    suppressHandleClickTimeoutRef.current = window.setTimeout(() => {
-      suppressHandleClickRef.current = false;
-      suppressHandleClickTimeoutRef.current = null;
-    }, 0);
-  }, [clearSuppressHandleClickTimer]);
 
   const getDropTargetAtPoint = useCallback((x: number, y: number): ActiveDropTarget => {
     if (typeof document.elementFromPoint !== "function") {
@@ -222,12 +204,6 @@ export function useFeedTreeDrag({
     onDropToUnfoldered,
     queueSuppressHandleClickReset,
   ]);
-
-  useEffect(() => {
-    return () => {
-      clearSuppressHandleClickTimer();
-    };
-  }, [clearSuppressHandleClickTimer]);
 
   return {
     isPointerTracking,

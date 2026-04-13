@@ -5,17 +5,12 @@ import type {
   BrowserDebugGeometryLayoutDiagnostics,
   BrowserDebugGeometryNativeDiagnostics,
 } from "@/lib/browser-debug-geometry";
-import { resolveBrowserViewerGeometry } from "@/lib/browser-viewer-geometry";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import {
-  getBrowserOverlayActionButtonClass,
-  getBrowserOverlayCloseButtonClass,
-  getBrowserOverlayStageClass,
-} from "./browser-overlay-presentation";
 import { isBrowserRuntimeUnavailable } from "./browser-runtime-availability";
 import type { BrowserSurfaceIssue } from "./browser-surface-issue";
+import { resolveBrowserViewPresentation } from "./browser-view-presentation";
 import { type BrowserWebviewFallbackPayload, initialBrowserState } from "./browser-webview-state";
 import { useBrowserDebugGeometryEvents } from "./use-browser-debug-geometry-events";
 import { useBrowserLayoutDiagnostics } from "./use-browser-layout-diagnostics";
@@ -36,7 +31,7 @@ type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
 
 type BrowserViewLayoutDiagnostics = BrowserDebugGeometryLayoutDiagnostics;
 
-type BrowserViewGeometry = ReturnType<typeof resolveBrowserViewerGeometry>;
+type BrowserViewGeometry = ReturnType<typeof resolveBrowserViewPresentation>["geometry"];
 
 export type BrowserViewController = {
   browserUrl: string | null;
@@ -188,24 +183,20 @@ export function useBrowserViewController({
     fallbackInFlightRef,
   });
 
-  const geometry = useMemo(
+  const presentation = useMemo(
     () =>
-      resolveBrowserViewerGeometry({
+      resolveBrowserViewPresentation({
         scope,
         viewportWidth,
         diagnosticsVisible: showDiagnostics,
       }),
     [scope, showDiagnostics, viewportWidth],
   );
-  const isCompactViewer = geometry.compact;
-  const closeButtonClass = getBrowserOverlayCloseButtonClass(isCompactViewer);
-  const actionButtonClass = getBrowserOverlayActionButtonClass(isCompactViewer);
-  const stageClass = getBrowserOverlayStageClass(scope);
 
   return {
     browserUrl,
     showDiagnostics,
-    geometry,
+    geometry: presentation.geometry,
     layoutDiagnostics,
     nativeDiagnostics,
     activeSurfaceIssue,
@@ -213,9 +204,9 @@ export function useBrowserViewController({
     handleCloseOverlay,
     handleRetry,
     handleOpenExternal,
-    closeButtonClass,
-    actionButtonClass,
-    stageClass,
+    closeButtonClass: presentation.closeButtonClass,
+    actionButtonClass: presentation.actionButtonClass,
+    stageClass: presentation.stageClass,
     hostRef,
     overlayRef,
     stageRef,
