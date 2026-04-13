@@ -55,6 +55,7 @@ describe("Settings surface views", () => {
 
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Language" })).toHaveTextContent("System default");
+    expect(screen.getByRole("combobox", { name: "Language" })).toHaveClass("w-full");
     expect(screen.getByText("Open links in the background when possible.")).toBeInTheDocument();
 
     await user.click(screen.getByRole("combobox", { name: "Language" }));
@@ -99,6 +100,7 @@ describe("Settings surface views", () => {
 
     expect(screen.getByRole("heading", { level: 2, name: "Appearance" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Theme" })).toHaveTextContent("Dark");
+    expect(screen.getByRole("combobox", { name: "Theme" })).toHaveClass("w-full");
 
     await user.click(screen.getByRole("combobox", { name: "Theme" }));
     await user.click(await screen.findByRole("option", { name: "Light" }));
@@ -132,6 +134,7 @@ describe("Settings surface views", () => {
 
     expect(screen.getByRole("heading", { level: 2, name: "Reading" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Default display mode" })).toHaveTextContent("Standard");
+    expect(screen.getByRole("combobox", { name: "Default display mode" })).toHaveClass("w-full");
   });
 
   it("renders action service rows and delegates switch changes", async () => {

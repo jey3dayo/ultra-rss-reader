@@ -12,7 +12,12 @@ export function LabeledControlRow({
   const labelClasses = cn("text-sm text-foreground", labelClassName);
 
   return (
-    <div className={cn("flex min-h-[44px] items-center justify-between gap-3 border-b border-border py-3", className)}>
+    <div
+      className={cn(
+        "flex min-h-[44px] flex-col items-stretch justify-between gap-2 border-b border-border py-3 sm:flex-row sm:items-center sm:gap-3",
+        className,
+      )}
+    >
       {htmlFor ? (
         <label id={labelId} htmlFor={htmlFor} className={labelClasses}>
           {label}
