@@ -17,6 +17,13 @@ export function initialBrowserState(url: string): BrowserWebviewState {
   };
 }
 
+export function resolveBrowserStateForRequestedUrl(
+  previousState: BrowserWebviewState | null,
+  requestedUrl: string,
+): BrowserWebviewState {
+  return previousState?.url === requestedUrl ? previousState : initialBrowserState(requestedUrl);
+}
+
 export function isMissingEmbeddedBrowserWebviewError(error: AppError) {
   return error.message.includes(MISSING_EMBEDDED_BROWSER_WEBVIEW_ERROR);
 }

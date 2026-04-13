@@ -3,12 +3,43 @@ import {
   initialBrowserState,
   isMissingEmbeddedBrowserWebviewError,
   mergeBrowserState,
+  resolveBrowserStateForRequestedUrl,
 } from "@/components/reader/browser-webview-state";
 
 describe("browser-webview-state", () => {
   it("creates an initial loading state for a requested url", () => {
     expect(initialBrowserState("https://example.com/article")).toEqual({
       url: "https://example.com/article",
+      can_go_back: false,
+      can_go_forward: false,
+      is_loading: true,
+    });
+  });
+
+  it("reuses the current state when the requested url has not changed", () => {
+    const currentState = {
+      url: "https://example.com/article",
+      can_go_back: true,
+      can_go_forward: false,
+      is_loading: false,
+    } satisfies ReturnType<typeof initialBrowserState>;
+
+    expect(resolveBrowserStateForRequestedUrl(currentState, "https://example.com/article")).toBe(currentState);
+  });
+
+  it("resets to the initial loading state when the requested url changes", () => {
+    expect(
+      resolveBrowserStateForRequestedUrl(
+        {
+          url: "https://example.com/old",
+          can_go_back: true,
+          can_go_forward: true,
+          is_loading: false,
+        },
+        "https://example.com/new",
+      ),
+    ).toEqual({
+      url: "https://example.com/new",
       can_go_back: false,
       can_go_forward: false,
       is_loading: true,

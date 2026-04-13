@@ -1,4 +1,4 @@
-import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type RefObject, useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import type {
@@ -19,6 +19,7 @@ import type { BrowserSurfaceIssue } from "./browser-surface-issue";
 import { type BrowserWebviewFallbackPayload, initialBrowserState, mergeBrowserState } from "./browser-webview-state";
 import { useBrowserDebugGeometryEvents } from "./use-browser-debug-geometry-events";
 import { useBrowserLayoutDiagnostics } from "./use-browser-layout-diagnostics";
+import { useBrowserNativeDiagnostics } from "./use-browser-native-diagnostics";
 import { useBrowserOverlayShortcuts } from "./use-browser-overlay-shortcuts";
 import { useBrowserOverlayViewportWidth } from "./use-browser-overlay-viewport-width";
 import { useBrowserViewActions } from "./use-browser-view-actions";
@@ -27,6 +28,7 @@ import { useBrowserWebviewBoundsSync } from "./use-browser-webview-bounds-sync";
 import { useBrowserWebviewCleanup } from "./use-browser-webview-cleanup";
 import { useBrowserWebviewEvents } from "./use-browser-webview-events";
 import { useBrowserWebviewLoadTimeout } from "./use-browser-webview-load-timeout";
+import { useBrowserWebviewRequestState } from "./use-browser-webview-request-state";
 import { useBrowserWebviewSync } from "./use-browser-webview-sync";
 
 type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
@@ -73,7 +75,7 @@ export function useBrowserViewController({
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const fallbackInFlightRef = useRef(false);
-  const [nativeDiagnostics, setNativeDiagnostics] = useState<BrowserWebviewDiagnosticsPayload | null>(null);
+  const { nativeDiagnostics, handleNativeDiagnostics } = useBrowserNativeDiagnostics(showDiagnostics);
   const viewportWidth = useBrowserOverlayViewportWidth();
   const isLoading = browserUrl ? (browserState?.is_loading ?? true) : false;
 
@@ -129,9 +131,7 @@ export function useBrowserViewController({
       [handleBrowserWebviewFallback],
     ),
     onClosed: handleCloseOverlay,
-    onDiagnostics: useCallback((payload: BrowserWebviewDiagnosticsPayload) => {
-      setNativeDiagnostics(payload);
-    }, []),
+    onDiagnostics: handleNativeDiagnostics,
   });
 
   useBrowserDebugGeometryEvents({
@@ -150,19 +150,14 @@ export function useBrowserViewController({
     showSurfaceFailure,
   });
 
-  useEffect(() => {
-    fallbackInFlightRef.current = false;
-    resetBrowserWebviewSyncState();
-
-    if (!browserUrl) return undefined;
-
-    setBrowserState((state) => {
-      const nextState = state?.url === browserUrl ? state : initialBrowserState(browserUrl);
-      browserStateRef.current = nextState;
-      return nextState;
-    });
-    setSurfaceIssue(null);
-  }, [browserUrl, resetBrowserWebviewSyncState, setSurfaceIssue]);
+  useBrowserWebviewRequestState({
+    browserUrl,
+    browserStateRef,
+    fallbackInFlightRef,
+    resetBrowserWebviewSyncState,
+    setBrowserState,
+    setSurfaceIssue,
+  });
 
   useBrowserWebviewBoundsSync({
     browserUrl,
@@ -170,14 +165,6 @@ export function useBrowserViewController({
     waitForBrowserWebviewListeners,
     syncBrowserWebview,
   });
-
-  useEffect(() => {
-    if (showDiagnostics) {
-      return;
-    }
-
-    setNativeDiagnostics(null);
-  }, [showDiagnostics]);
 
   useBrowserWebviewCleanup();
 
