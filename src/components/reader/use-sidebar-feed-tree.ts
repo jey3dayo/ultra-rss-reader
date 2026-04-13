@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree-view";
-import type { UseSidebarFeedTreeParams } from "./sidebar-feed-tree.types";
+import type { UseSidebarFeedTreeParams, UseSidebarFeedTreeResult } from "./sidebar-feed-tree.types";
 
 export function useSidebarFeedTree({
   feeds,
@@ -13,7 +13,7 @@ export function useSidebarFeedTree({
   sortSubscriptions,
   grayscaleFavicons,
   draggedFeedId,
-}: UseSidebarFeedTreeParams) {
+}: UseSidebarFeedTreeParams): UseSidebarFeedTreeResult {
   const feedList: FeedDto[] = feeds ?? [];
   const folderList: FolderDto[] = folders ?? [];
 

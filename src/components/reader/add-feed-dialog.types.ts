@@ -1,11 +1,13 @@
 import type { RefObject } from "react";
-import type { DiscoveredFeedDto } from "@/api/tauri-commands";
+import type { DiscoveredFeedDto, FolderDto } from "@/api/tauri-commands";
 import type { FolderSelectViewProps } from "./folder-select-view";
+
+export type AddFeedDialogSuccessMessage = "feed_url_ready" | "feed_detected";
 
 export type AddFeedDialogState = {
   url: string;
   error: string | null;
-  successMessage: string | null;
+  successMessage: AddFeedDialogSuccessMessage | null;
   loading: boolean;
   discovering: boolean;
   discoveredFeeds: DiscoveredFeedDto[];
@@ -25,6 +27,14 @@ export type AddFeedDialogAction =
   | { type: "set-loading"; loading: boolean }
   | { type: "set-submit-error"; error: string };
 
+export type AddFeedDialogControllerParams = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  accountId: string;
+  folders: FolderDto[] | undefined;
+  noFolderLabel: string;
+};
+
 export type AddFeedDialogViewLabels = {
   title: string;
   description: string;
@@ -35,6 +45,44 @@ export type AddFeedDialogViewLabels = {
   cancel: string;
   add: string;
   adding: string;
+};
+
+export type AddFeedDialogControllerFolderSelectProps = {
+  selectedFolderId: string | null;
+  newFolderName: string;
+  isCreatingFolder: boolean;
+  newFolderInputRef: RefObject<HTMLInputElement | null>;
+  folderSelectValue: string;
+  handleFolderChange: (value: string) => void;
+  setNewFolderName: (value: string) => void;
+  folderOptions: FolderSelectViewProps["options"];
+};
+
+export type AddFeedDialogControllerDerived = {
+  hasManualUrl: boolean;
+  isManualUrlValid: boolean;
+  urlHint: string | null;
+  urlHintTone: "muted" | "error";
+  isSubmitDisabled: boolean;
+  isDiscoverDisabled: boolean;
+  discoveredFeedOptions: Array<{ value: string; label: string }>;
+};
+
+export type AddFeedDialogController = {
+  inputRef: RefObject<HTMLInputElement | null>;
+  url: string;
+  error: string | null;
+  successMessage: string | null;
+  loading: boolean;
+  discovering: boolean;
+  discoveredFeeds: DiscoveredFeedDto[];
+  selectedFeedUrl: string | null;
+  setUrl: (url: string) => void;
+  setSelectedFeedUrl: (value: string | null) => void;
+  handleDiscover: () => Promise<void>;
+  handleSubmit: () => Promise<void>;
+  folderSelectProps: AddFeedDialogControllerFolderSelectProps;
+  derived: AddFeedDialogControllerDerived;
 };
 
 export type AddFeedDialogViewProps = {

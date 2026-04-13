@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { triggerSync } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { APP_EVENTS } from "@/constants/events";
-import { STORAGE_KEYS } from "@/constants/storage";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useAccountArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -29,9 +28,12 @@ import { SidebarTagSection } from "./sidebar-tag-section";
 import { type SmartViewItemViewModel, SmartViewsView } from "./smart-views-view";
 import { TagContextMenuContent } from "./tag-context-menu";
 import type { TagListItemViewModel } from "./tag-list-view";
+import { useSidebarAccountSelection } from "./use-sidebar-account-selection";
 import { useSidebarAccountSwitcher } from "./use-sidebar-account-switcher";
 import { useSidebarFeedDragState } from "./use-sidebar-feed-drag-state";
 import { useSidebarFeedTree } from "./use-sidebar-feed-tree";
+import { useSidebarStartupFolderExpansion } from "./use-sidebar-startup-folder-expansion";
+import { useSidebarVisibilityFallback } from "./use-sidebar-visibility-fallback";
 
 function useFormatLastSynced(date: Date | null): string {
   const { t } = useTranslation("sidebar");
@@ -46,41 +48,6 @@ function useFormatLastSynced(date: Date | null): string {
   }
   const dateStr = date.toLocaleDateString(i18n.language, { month: "short", day: "numeric" });
   return t("date_at", { date: dateStr, time: `${hours}:${minutes}` });
-}
-
-type StoredSidebarExpandedFolders = Record<string, string[]>;
-
-function readStoredSidebarExpandedFolders(): StoredSidebarExpandedFolders {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEYS.sidebarExpandedFolders);
-    if (!raw) {
-      return {};
-    }
-
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") {
-      return {};
-    }
-
-    const entries = Object.entries(parsed).flatMap(([accountId, folderIds]) =>
-      Array.isArray(folderIds) && folderIds.every((folderId) => typeof folderId === "string")
-        ? [[accountId, folderIds] as const]
-        : [],
-    );
-    return Object.fromEntries(entries);
-  } catch {
-    return {};
-  }
-}
-
-function getStoredSidebarExpandedFolders(accountId: string): string[] {
-  return readStoredSidebarExpandedFolders()[accountId] ?? [];
-}
-
-function setStoredSidebarExpandedFolders(accountId: string, folderIds: Iterable<string>): void {
-  const nextState = readStoredSidebarExpandedFolders();
-  nextState[accountId] = [...new Set(folderIds)];
-  window.localStorage.setItem(STORAGE_KEYS.sidebarExpandedFolders, JSON.stringify(nextState));
 }
 
 export function Sidebar() {
@@ -148,63 +115,23 @@ export function Sidebar() {
   const opaqueSidebars = usePreferencesStore((s) => (s.prefs.opaque_sidebars ?? "false") === "true");
   const updateFeedFolderMutation = useUpdateFeedFolder();
   const feedViewportRef = useRef<HTMLDivElement>(null);
-  const startupExpansionTokenRef = useRef<string | null>(null);
 
   const savedAccountId = usePreferencesStore((s) => s.prefs.selected_account_id ?? "");
   const setPref = usePreferencesStore((s) => s.setPref);
   const { intent: activeDevIntent } = useResolvedDevIntent();
 
-  // Restore saved account or auto-select first account
-  useEffect(() => {
-    if (!accounts) return;
-
-    if (accounts.length === 0) {
-      if (selectedAccountId !== null) {
-        clearSelectedAccount();
-      }
-      if (savedAccountId) {
-        setPref("selected_account_id", "");
-      }
-      return;
-    }
-
-    const hasValidSelection =
-      selectedAccountId !== null && accounts.some((account) => account.id === selectedAccountId);
-    if (hasValidSelection) return;
-
-    if (activeDevIntent === "open-web-preview-url") {
-      return;
-    }
-
-    const restoredAccountId = savedAccountId && accounts.some((a) => a.id === savedAccountId) ? savedAccountId : null;
-    const nextAccountId = restoredAccountId ?? accounts[0].id;
-    restoreAccountSelection(nextAccountId, {
-      focusedPane: restoredAccountId && layoutMode === "mobile" ? "sidebar" : "list",
-    });
-    if (savedAccountId !== nextAccountId) {
-      setPref("selected_account_id", nextAccountId);
-    }
-  }, [
-    activeDevIntent,
+  useSidebarAccountSelection({
     accounts,
-    clearSelectedAccount,
-    layoutMode,
-    restoreAccountSelection,
-    savedAccountId,
     selectedAccountId,
-    setPref,
-  ]);
+    savedAccountId,
+    layoutMode,
+    activeDevIntent,
+    clearSelectedAccount,
+    restoreAccountSelection,
+    setSelectedAccountPreference: (accountId) => setPref("selected_account_id", accountId),
+  });
 
   const selectedAccount = accounts?.find((a) => a.id === selectedAccountId);
-
-  useEffect(() => {
-    if (!selectedAccountId) {
-      startupExpansionTokenRef.current = null;
-      return;
-    }
-
-    setStoredSidebarExpandedFolders(selectedAccountId, expandedFolderIds);
-  }, [expandedFolderIds, selectedAccountId]);
 
   const handleSelectAccount = useCallback(
     (id: string) => {
@@ -364,115 +291,30 @@ export function Sidebar() {
     draggedFeedId,
   });
   const firstFeedId = orderedFeedIds[0] ?? null;
-  const hasSmartUnreadSelection = selection.type === "smart" && selection.kind === "unread";
-  const hasSmartStarredSelection = selection.type === "smart" && selection.kind === "starred";
-  const hasFilterOnlyUnread = viewMode === "unread" && !hasSmartUnreadSelection;
-  const hasFilterOnlyStarred = viewMode === "starred" && !hasSmartStarredSelection;
-  useEffect(() => {
-    if (!selectedAccountId) {
-      startupExpansionTokenRef.current = null;
-      return;
-    }
 
-    if (!feeds || !folders) {
-      return;
-    }
-
-    const token = `${selectedAccountId}:${startupFolderExpansion}`;
-    if (startupExpansionTokenRef.current === token) {
-      return;
-    }
-
-    if (expandedFolderIds.size > 0 && startupFolderExpansion !== "restore_previous") {
-      startupExpansionTokenRef.current = token;
-      return;
-    }
-
-    const validFolderIds = new Set(folderList.map((folder) => folder.id));
-    let nextExpandedFolderIds = new Set<string>();
-
-    if (startupFolderExpansion === "unread_folders") {
-      nextExpandedFolderIds = new Set(
-        feedList
-          .filter((feed) => feed.folder_id && feed.unread_count > 0)
-          .map((feed) => feed.folder_id)
-          .filter((folderId): folderId is string => typeof folderId === "string")
-          .filter((folderId) => validFolderIds.has(folderId)),
-      );
-    } else if (startupFolderExpansion === "restore_previous") {
-      nextExpandedFolderIds = new Set(
-        getStoredSidebarExpandedFolders(selectedAccountId).filter((folderId) => validFolderIds.has(folderId)),
-      );
-    }
-
-    setExpandedFolders(nextExpandedFolderIds);
-    startupExpansionTokenRef.current = token;
-  }, [
+  useSidebarStartupFolderExpansion({
+    selectedAccountId,
+    expandedFolderIds,
     feedList,
     folderList,
-    feeds,
-    folders,
-    expandedFolderIds,
-    selectedAccountId,
-    setExpandedFolders,
     startupFolderExpansion,
-  ]);
+    feedsReady: feeds !== undefined,
+    foldersReady: folders !== undefined,
+    setExpandedFolders,
+  });
 
-  useEffect(() => {
-    const fallbackToFeedOrAll = () => {
-      if (firstFeedId) {
-        selectFeed(firstFeedId);
-        return;
-      }
-      selectAll();
-    };
-
-    if (hasFilterOnlyStarred && !showSidebarStarred) {
-      setViewMode("all");
-      return;
-    }
-
-    if (hasSmartStarredSelection && !showSidebarStarred) {
-      if (showSidebarUnread) {
-        selectSmartView("unread");
-      } else {
-        fallbackToFeedOrAll();
-      }
-      return;
-    }
-
-    if (selection.type === "tag" && !showSidebarTags) {
-      if (showSidebarUnread) {
-        selectSmartView("unread");
-      } else {
-        fallbackToFeedOrAll();
-      }
-      return;
-    }
-
-    if (hasFilterOnlyUnread && !showSidebarUnread) {
-      setViewMode("all");
-      return;
-    }
-
-    if (hasSmartUnreadSelection && !showSidebarUnread) {
-      fallbackToFeedOrAll();
-    }
-  }, [
+  useSidebarVisibilityFallback({
     firstFeedId,
-    hasFilterOnlyStarred,
-    hasFilterOnlyUnread,
-    hasSmartStarredSelection,
-    hasSmartUnreadSelection,
-    selectAll,
-    selectFeed,
-    selectSmartView,
     selection,
-    setViewMode,
+    viewMode,
+    showSidebarUnread,
     showSidebarStarred,
     showSidebarTags,
-    showSidebarUnread,
-  ]);
+    selectFeed,
+    selectAll,
+    selectSmartView,
+    setViewMode,
+  });
 
   const navigateFeed = useCallback(
     (direction: 1 | -1) => {

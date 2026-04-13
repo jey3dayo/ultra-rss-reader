@@ -4,7 +4,12 @@ import { useEffect, useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import { useUiStore } from "@/stores/ui-store";
-import type { AddFeedDialogAction, AddFeedDialogState } from "./add-feed-dialog.types";
+import type {
+  AddFeedDialogAction,
+  AddFeedDialogController,
+  AddFeedDialogControllerParams,
+  AddFeedDialogState,
+} from "./add-feed-dialog.types";
 import { createFolderIfNeeded } from "./feed-folder-flow";
 import { buildFolderOptions, useFolderSelection } from "./use-folder-selection";
 
@@ -112,13 +117,7 @@ export function useAddFeedDialogController({
   accountId,
   folders,
   noFolderLabel,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  accountId: string;
-  folders: Array<{ id: string; account_id: string; name: string; sort_order: number }> | undefined;
-  noFolderLabel: string;
-}) {
+}: AddFeedDialogControllerParams): AddFeedDialogController {
   const { t } = useTranslation("reader");
   const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
   const inputRef = useRef<HTMLInputElement>(null);

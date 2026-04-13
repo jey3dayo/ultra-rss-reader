@@ -44,8 +44,8 @@ export type UiSelection =
   | { type: "tag"; tagId: string }
   | { type: "all" };
 
-type LayoutMode = "wide" | "compact" | "mobile";
-type FocusedPane = "sidebar" | "list" | "content";
+export type LayoutMode = "wide" | "compact" | "mobile";
+export type FocusedPane = "sidebar" | "list" | "content";
 export type ContentMode = "empty" | "reader" | "browser" | "loading";
 export type PendingBrowserCloseAction = "prev-article" | "next-article" | "prev-feed" | "next-feed";
 export type SettingsCategory =
