@@ -214,6 +214,18 @@
   - 問題: `article-list.tsx` に effective view mode、filtered articles、grouped articles、selected feed 解決が残っていて、データ導出と画面構成が混ざっていた
   - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-data.ts`
 
+- [x] article-list の query source 解決を hook 化する
+  - 問題: `article-list.tsx` に selection から feed/tag/account scope を解決して query hook を呼ぶ責務が残っていた
+  - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-sources.ts`
+
+- [x] article-list の selection/scroll effect を hook 化する
+  - 問題: `article-list.tsx` に選択記事の可視判定と selection change 時の scroll reset effect が残っていた
+  - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-effects.ts`
+
+- [x] article-list の feed display preset control を view component 化する
+  - 問題: `article-list.tsx` に display preset Select の JSX が残っていて、header 配線と control 描画が混ざっていた
+  - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/article-list-feed-mode-control.tsx`
+
 - [x] reader の再利用境界がある state/controller 型を `types` 化する
   - 問題: `use-sidebar-feed-tree.ts` と `use-add-feed-dialog-controller.ts` に再利用余地のある union/state 型が残っている
   - 対象: `src/components/reader/use-sidebar-feed-tree.ts`, `src/components/reader/use-add-feed-dialog-controller.ts`
