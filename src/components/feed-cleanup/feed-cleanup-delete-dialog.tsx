@@ -1,6 +1,5 @@
-import { DeleteButton } from "@/components/shared/delete-button";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DestructiveDialogFooter } from "@/components/shared/destructive-dialog-footer";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { FeedCleanupCandidate } from "@/lib/feed-cleanup";
 
 function formatDate(value: string | null, locale: string): string {
@@ -72,14 +71,13 @@ export function FeedCleanupDeleteDialog({
             </ul>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
-            {cancelLabel}
-          </Button>
-          <DeleteButton onClick={onConfirm} disabled={pending}>
-            {deleteLabel}
-          </DeleteButton>
-        </DialogFooter>
+        <DestructiveDialogFooter
+          cancelLabel={cancelLabel}
+          confirmLabel={deleteLabel}
+          pending={pending}
+          onCancel={() => onOpenChange(false)}
+          onConfirm={onConfirm}
+        />
       </DialogContent>
     </Dialog>
   );

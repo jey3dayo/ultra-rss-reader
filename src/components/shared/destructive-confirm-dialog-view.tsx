@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
-import { DeleteButton } from "@/components/shared/delete-button";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DestructiveDialogFooter } from "@/components/shared/destructive-dialog-footer";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export function DestructiveConfirmDialogView({
   open,
@@ -29,14 +28,13 @@ export function DestructiveConfirmDialogView({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div className="text-sm text-muted-foreground">{description}</div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
-            {cancelLabel}
-          </Button>
-          <DeleteButton onClick={onConfirm} disabled={pending}>
-            {confirmLabel}
-          </DeleteButton>
-        </DialogFooter>
+        <DestructiveDialogFooter
+          cancelLabel={cancelLabel}
+          confirmLabel={confirmLabel}
+          pending={pending}
+          onCancel={() => onOpenChange(false)}
+          onConfirm={onConfirm}
+        />
       </DialogContent>
     </Dialog>
   );
