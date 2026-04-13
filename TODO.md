@@ -284,10 +284,6 @@
   - 問題: `article-tag-picker-view.tsx` に view model / labels 型が残っていて、`popover` / `chips` / `hook` が component file へ型依存していた
   - 対応: `article-tag-picker.types.ts` を追加して view/popover/hook の shared contract を集約し、関連 component は types file を参照する形に寄せた
   - 対象: `src/components/reader/article-tag-picker.types.ts`, `src/components/reader/article-tag-picker-view.tsx`, `src/components/reader/article-tag-picker-popover.tsx`, `src/components/reader/article-tag-chip-list.tsx`, `src/components/reader/article-tag-chips.tsx`, `src/components/reader/use-article-tag-picker-popover.ts`, `src/__tests__/components/article-tag-picker-view.test.tsx`
-
-- [x] browser subview props の正本を browser-view types に寄せる
-  - 問題: `browser-diagnostics-rail.tsx` と `browser-surface-state-card.tsx` の props contract が subview file に残っていて、browser subview 境界を `browser-view.types.ts` から一望できなかった
-  - 対応: `BrowserDiagnosticsRailProps` と `BrowserSurfaceStateCardProps` を `browser-view.types.ts` に追加して、browser subview は shared types を参照する形に寄せた
   - 対象: `src/components/reader/browser-view.types.ts`, `src/components/reader/browser-diagnostics-rail.tsx`, `src/components/reader/browser-surface-state-card.tsx`
 
 - [x] browser-view の load timeout 監視を hook 化する
