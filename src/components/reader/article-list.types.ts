@@ -91,6 +91,18 @@ export type ArticleListFeedModeControlProps = {
   onValueChange: (value: FeedDisplayPresetOption) => void;
 };
 
+export type ArticleListItemProps = {
+  article: ArticleDto;
+  isSelected: boolean;
+  isRecentlyRead: boolean;
+  dimArchived: string;
+  textPreview: string;
+  imagePreviews: string;
+  selectionStyle: string;
+  feedName: string | undefined;
+  onSelect: () => void;
+};
+
 export type UseArticleListViewPropsResult = {
   layoutMode: ArticleListLayoutMode;
   headerProps: ArticleListHeaderProps;

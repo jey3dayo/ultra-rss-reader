@@ -1,22 +1,10 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
-import type { ArticleDto } from "@/api/tauri-commands";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { formatArticleTime } from "@/lib/article-list";
 import { stripHtmlTags } from "@/lib/html";
 import { cn } from "@/lib/utils";
-
-type ArticleListItemProps = {
-  article: ArticleDto;
-  isSelected: boolean;
-  isRecentlyRead: boolean;
-  dimArchived: string;
-  textPreview: string;
-  imagePreviews: string;
-  selectionStyle: string;
-  feedName: string | undefined;
-  onSelect: () => void;
-};
+import type { ArticleListItemProps } from "./article-list.types";
 
 export function ArticleListItem({
   article,
