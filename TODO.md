@@ -103,6 +103,10 @@
   - 問題: `command-palette.tsx` に feeds/tags/articles の query と recent/history/filter 判定が残っていて、検索データ導出と画面構成が混ざっていた
   - 対象: `src/components/reader/command-palette.tsx`, `src/components/reader/use-command-palette-data.ts`
 
+- [x] command-palette の orchestration を controller hook に寄せる
+  - 問題: `command-palette.tsx` に translations/input/dev-scenario loading/results props 組み立てが残っていて、画面構成と controller orchestration が混ざっていた
+  - 対象: `src/components/reader/command-palette.tsx`, `src/components/reader/use-command-palette-controller.ts`
+
 - [x] sidebar の feed navigation と event listener を hook 化する
   - 問題: `sidebar.tsx` に feed 移動、folder 自動展開、`APP_EVENTS.navigateFeed` 購読が残っていて、tree 導出と責務が混ざっている
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-feed-navigation.ts`
@@ -154,6 +158,10 @@
 - [x] sidebar の feed section wiring を controller hook に寄せる
   - 問題: `useSidebarController` に drag state / feed tree / startup expansion / visibility fallback / feed navigation の接着が残っていて、controller orchestration が重くなっていた
   - 対象: `src/components/reader/use-sidebar-controller.ts`, `src/components/reader/use-sidebar-feed-section-controller.ts`
+
+- [x] sidebar の section props 組み立てを view props hook に寄せる
+  - 問題: `useSidebarController` に header/account/smart views/content sections の props 組み立てが残っていて、controller orchestration と view props 導出が混ざっていた
+  - 対象: `src/components/reader/use-sidebar-controller.ts`, `src/components/reader/use-sidebar-view-props.ts`
 
 - [x] sidebar の account restore / startup expansion / hidden-state fallback を hook 化する
   - 問題: `sidebar.tsx` に account 復元、起動時 folder 展開、visibility fallback の effect が集まり、責務が重くなっていた
