@@ -150,6 +150,10 @@
   - 問題: `ArticlePane` に read/star/copy/reading list の action と keyboard listener が残り、overlay 分離後も責務が重かった
   - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-pane-actions.ts`
 
+- [x] article-list の navigation と keyboard interaction を hook 化する
+  - 問題: `article-list.tsx` に記事移動、ショートカット listener、list key handling が集まっていて、表示データ導出と責務が混ざっていた
+  - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-interactions.ts`
+
 - [x] reader の再利用境界がある state/controller 型を `types` 化する
   - 問題: `use-sidebar-feed-tree.ts` と `use-add-feed-dialog-controller.ts` に再利用余地のある union/state 型が残っている
   - 対象: `src/components/reader/use-sidebar-feed-tree.ts`, `src/components/reader/use-add-feed-dialog-controller.ts`
@@ -180,12 +184,9 @@
     2. log directory、backup directory、manual verification の参照先を 1 か所に集約する
     3. release 前確認と障害対応の両方から辿れる導線にする
 
-- [ ] DB migration recovery の追加 hardening を必要時に進める
-  - 問題: transaction + backup + restore + fail-fast はあるが、Windows の file lock や権限不足の失敗注入までは十分に固め切れていない
-  - 対象: `src-tauri/src/infra/db/*`, migration recovery 関連テスト, `docs/`
-  - 方針:
-    1. 通常開発では後回しにし、migration を触るタスクと同時に扱う
-    2. file lock / backup restore の失敗系テストや手順補強を優先する
+- [ ] DB migration recovery の追加 hardening は migration 変更時に issue #23 を参照する
+  - 常設 TODO ではなく、次に migration を触るタイミングでまとめて扱う
+  - 失敗系テストや復旧手順の補強は issue #23 に集約する
 
 - [ ] feed content の privacy/CSP 方針を決める
   - 問題: 互換性のため remote image / frame を許可しており、privacy と表示互換のトレードオフが未整理
