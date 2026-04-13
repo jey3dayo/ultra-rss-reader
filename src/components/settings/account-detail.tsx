@@ -4,6 +4,7 @@ import { AccountDetailView } from "@/components/settings/account-detail-view";
 import { useAccountDetailController } from "@/components/settings/use-account-detail-controller";
 import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { useAccounts } from "@/hooks/use-accounts";
+import { formatAccountSyncRetryDateTime } from "@/lib/account-sync-status-format";
 import { useUiStore } from "@/stores/ui-store";
 
 function AccountDetailContent({
@@ -34,17 +35,8 @@ function AccountDetailContent({
 
     const rows: Array<{ label: string; value: string }> = [];
     if (syncStatus.next_retry_at) {
-      const retryAt = new Date(syncStatus.next_retry_at);
-      const formattedRetryAt = Number.isNaN(retryAt.getTime())
-        ? syncStatus.next_retry_at
-        : retryAt.toLocaleString(i18n.language, {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          });
-      rows.push({ label: t("account.next_automatic_retry"), value: formattedRetryAt });
+      const formattedRetryAt = formatAccountSyncRetryDateTime(syncStatus.next_retry_at, i18n.language);
+      rows.push({ label: t("account.next_automatic_retry"), value: formattedRetryAt ?? syncStatus.next_retry_at });
     }
     if (syncStatus.error_count > 0) {
       rows.push({

@@ -106,40 +106,38 @@ export function AccountSwitcherView({
             }
           }}
         >
-          {accounts.map((account, index) =>
-            (() => {
-              const statusLabel = accountStatusLabels?.[account.id];
-              return (
-                <button
-                  type="button"
-                  key={account.id}
-                  ref={(element) => {
-                    itemRefs.current[index] = element;
-                  }}
-                  onClick={() => {
-                    onSelectAccount(account.id);
-                    onClose(false);
-                  }}
-                  role="menuitemradio"
-                  aria-checked={account.id === selectedAccountId}
-                  className={cn(
-                    "flex w-full rounded-md px-3 py-2 text-left text-sm",
-                    account.id === selectedAccountId
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                  )}
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate">{account.name}</span>
-                      <span className="text-xs text-muted-foreground">{account.kind}</span>
-                    </div>
-                    {statusLabel ? <p className="text-xs text-muted-foreground">{statusLabel}</p> : null}
+          {accounts.map((account, index) => {
+            const statusLabel = accountStatusLabels?.[account.id];
+            return (
+              <button
+                type="button"
+                key={account.id}
+                ref={(element) => {
+                  itemRefs.current[index] = element;
+                }}
+                onClick={() => {
+                  onSelectAccount(account.id);
+                  onClose(false);
+                }}
+                role="menuitemradio"
+                aria-checked={account.id === selectedAccountId}
+                className={cn(
+                  "flex w-full rounded-md px-3 py-2 text-left text-sm",
+                  account.id === selectedAccountId
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                )}
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate">{account.name}</span>
+                    <span className="text-xs text-muted-foreground">{account.kind}</span>
                   </div>
-                </button>
-              );
-            })(),
-          )}
+                  {statusLabel ? <p className="text-xs text-muted-foreground">{statusLabel}</p> : null}
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
