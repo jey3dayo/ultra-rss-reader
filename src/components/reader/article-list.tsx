@@ -1,5 +1,4 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
-import { Result } from "@praha/byethrow";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -250,7 +249,7 @@ export function ArticleList() {
     async (nextPreset: "default" | "standard" | "preview") => {
       if (!feedId) return;
       const nextModes = displayPresetToTriStateModes(nextPreset);
-      Result.pipe(await updateFeedDisplaySettings(feedId, nextModes.readerMode, nextModes.webPreviewMode));
+      await updateFeedDisplaySettings(feedId, nextModes.readerMode, nextModes.webPreviewMode);
     },
     [feedId, updateFeedDisplaySettings],
   );

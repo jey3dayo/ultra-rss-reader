@@ -27,7 +27,7 @@ type SubmitFeedEditsParams = {
     feedId: string,
     readerMode: "inherit" | "on" | "off",
     webPreviewMode: "inherit" | "on" | "off",
-  ) => Promise<unknown>;
+  ) => Promise<boolean>;
 };
 
 export async function submitFeedEdits({
@@ -63,19 +63,24 @@ export async function submitFeedEdits({
   const didMoveFolder = resolvedFolderId !== feed.folder_id;
   const currentDisplayPreset = resolveFeedDisplayPreset(feed);
   const didUpdateDisplayMode = displayPreset !== currentDisplayPreset;
-  let folderUpdateSucceeded = false;
+  let renameSucceeded = true;
+  let displaySettingsSucceeded = true;
 
   if (didRename) {
     Result.pipe(
       await renameFeed(feed.id, trimmed),
+      Result.inspect(() => {
+        renameSucceeded = true;
+      }),
       Result.inspectError((error) => {
+        renameSucceeded = false;
         showToast(renameErrorMessage(error));
       }),
     );
   }
 
   if (didMoveFolder) {
-    folderUpdateSucceeded = await updateFeedFolder({
+    await updateFeedFolder({
       feedId: feed.id,
       folderId: resolvedFolderId,
     });
@@ -83,14 +88,14 @@ export async function submitFeedEdits({
 
   if (didUpdateDisplayMode) {
     const nextModes = displayPresetToTriStateModes(displayPreset);
-    await updateDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode);
+    displaySettingsSucceeded = await updateDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode);
   }
 
-  if ((didRename || didUpdateDisplayMode) && !folderUpdateSucceeded) {
+  if ((didRename && renameSucceeded) || (didUpdateDisplayMode && displaySettingsSucceeded)) {
     void queryClient.invalidateQueries({ queryKey: ["feeds"] });
   }
 
   void queryClient.invalidateQueries({ queryKey: ["folders"] });
 
-  return true;
+  return renameSucceeded && displaySettingsSucceeded;
 }

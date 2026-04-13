@@ -237,6 +237,91 @@ describe("RenameDialog", () => {
     });
   });
 
+  it("keeps the dialog open when the display-mode update fails", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+    const onOpenChange = vi.fn();
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_folders":
+          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+        case "update_feed_display_settings":
+          throw { type: "UserVisible", message: "display update failed" };
+        default:
+          return undefined;
+      }
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />
+      </QueryClientProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Set preview" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "update_feed_display_settings",
+        args: { feedId: "feed-1", readerMode: "on", webPreviewMode: "on" },
+      });
+    });
+
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps the dialog open when renaming fails", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+    const onOpenChange = vi.fn();
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_folders":
+          return sampleFolders.filter((folder) => folder.account_id === args.accountId);
+        case "rename_feed":
+          throw { type: "UserVisible", message: "rename failed" };
+        default:
+          return undefined;
+      }
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RenameDialog feed={sampleFeeds[0]} open={true} onOpenChange={onOpenChange} />
+      </QueryClientProvider>,
+    );
+
+    await user.clear(screen.getByLabelText("Title"));
+    await user.type(screen.getByLabelText("Title"), "Renamed Feed");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "rename_feed",
+        args: { feedId: "feed-1", title: "Renamed Feed" },
+      });
+    });
+
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
   it("copies website and feed URLs from the edit dialog", async () => {
     const user = userEvent.setup();
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];

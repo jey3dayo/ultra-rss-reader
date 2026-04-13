@@ -1,4 +1,3 @@
-import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,7 +10,11 @@ export function useUpdateFeedDisplaySettings() {
   const showToast = useUiStore((state) => state.showToast);
 
   return useCallback(
-    async (feedId: string, readerMode: "inherit" | "on" | "off", webPreviewMode: "inherit" | "on" | "off") => {
+    async (
+      feedId: string,
+      readerMode: "inherit" | "on" | "off",
+      webPreviewMode: "inherit" | "on" | "off",
+    ): Promise<boolean> => {
       const previousFeedsQueries = qc.getQueriesData<FeedDto[]>({ queryKey: ["feeds"] });
 
       qc.setQueriesData<FeedDto[]>({ queryKey: ["feeds"] }, (prev) =>
@@ -21,19 +24,16 @@ export function useUpdateFeedDisplaySettings() {
       );
 
       const result = await updateFeedDisplaySettings(feedId, readerMode, webPreviewMode);
+      if (result.type === "Failure") {
+        for (const [queryKey, previousFeeds] of previousFeedsQueries) {
+          qc.setQueryData(queryKey, previousFeeds);
+        }
+        showToast(t("failed_to_update_display_settings", { message: result.error.message }));
+        return false;
+      }
 
-      return Result.pipe(
-        result,
-        Result.inspect(() => {
-          void qc.invalidateQueries({ queryKey: ["feeds"] });
-        }),
-        Result.inspectError((error) => {
-          for (const [queryKey, previousFeeds] of previousFeedsQueries) {
-            qc.setQueryData(queryKey, previousFeeds);
-          }
-          showToast(t("failed_to_update_display_settings", { message: error.message }));
-        }),
-      );
+      void qc.invalidateQueries({ queryKey: ["feeds"] });
+      return true;
     },
     [qc, showToast, t],
   );
