@@ -1,12 +1,11 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { type KeyboardEvent, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
 import {
   copyToClipboard,
   deleteAccount,
   exportOpml,
-  renameAccount,
   syncAccount,
   testAccountConnection,
   updateAccountCredentials,
@@ -19,6 +18,7 @@ import type {
   UseAccountDetailControllerParams,
   UseAccountDetailControllerResult,
 } from "./account-detail.types";
+import { useAccountDetailNameEditor } from "./use-account-detail-name-editor";
 
 export function useAccountDetailController({
   account,
@@ -28,61 +28,16 @@ export function useAccountDetailController({
 }: UseAccountDetailControllerParams): UseAccountDetailControllerResult {
   const qc = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [editingName, setEditingName] = useState(false);
-  const [savingName, setSavingName] = useState(false);
-  const [nameDraft, setNameDraft] = useState("");
-  const nameInputRef = useRef<HTMLInputElement>(null);
   const [credServerUrl, setCredServerUrl] = useState<string | null>(null);
   const [credUsername, setCredUsername] = useState<string | null>(null);
   const [credPassword, setCredPassword] = useState<string | null>(null);
   const [testingConnection, setTestingConnection] = useState(false);
   const pendingCredentialSaveRef = useRef<Promise<boolean> | null>(null);
-
-  const startEditingName = () => {
-    setNameDraft(account.name);
-    setEditingName(true);
-    requestAnimationFrame(() => {
-      nameInputRef.current?.focus();
-      nameInputRef.current?.select();
-    });
-  };
-
-  const commitRename = async () => {
-    const trimmed = nameDraft.trim();
-    if (!trimmed || trimmed === account.name) {
-      setNameDraft(account.name);
-      setEditingName(false);
-      return;
-    }
-
-    setSavingName(true);
-    let renameSucceeded = false;
-    Result.pipe(
-      await renameAccount(account.id, trimmed),
-      Result.inspectError((e) =>
-        useUiStore.getState().showToast(t("account.failed_to_rename", { message: e.message })),
-      ),
-      Result.inspect((updated) => {
-        renameSucceeded = true;
-        setNameDraft(updated.name);
-        qc.setQueryData<AccountDto[]>(["accounts"], (prev) => prev?.map((a) => (a.id === updated.id ? updated : a)));
-        qc.invalidateQueries({ queryKey: ["accounts"] });
-      }),
-    );
-    setSavingName(false);
-    if (renameSucceeded) {
-      setEditingName(false);
-    }
-  };
-
-  const handleNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      void commitRename();
-    } else if (e.key === "Escape") {
-      setEditingName(false);
-    }
-  };
+  const nameEditor = useAccountDetailNameEditor({
+    account,
+    queryClient: qc,
+    t,
+  });
 
   const handleSyncUpdate = async (partial: UpdateAccountSyncParams) => {
     Result.pipe(
@@ -271,11 +226,7 @@ export function useAccountDetailController({
   return {
     confirmDelete,
     setConfirmDelete,
-    editingName,
-    savingName,
-    nameDraft,
-    setNameDraft,
-    nameInputRef,
+    ...nameEditor,
     credServerUrl,
     credUsername,
     credPassword,
@@ -283,10 +234,7 @@ export function useAccountDetailController({
     setCredServerUrl,
     setCredUsername,
     setCredPassword,
-    startEditingName,
-    commitRename,
     commitCredentials,
-    handleNameKeyDown,
     handleSyncUpdate,
     handleTestConnection,
     handleSyncNow,

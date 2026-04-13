@@ -1,3 +1,4 @@
+import type { QueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import type { KeyboardEvent, ReactNode, RefObject } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
@@ -99,6 +100,23 @@ export type UseAccountDetailControllerParams = {
   onSyncStatusChanged?: () => void;
 };
 
+export type UseAccountDetailNameEditorParams = {
+  account: AccountDetailAccount;
+  queryClient: QueryClient;
+  t: TFunction<"settings">;
+};
+
+export type UseAccountDetailNameEditorResult = {
+  editingName: boolean;
+  savingName: boolean;
+  nameDraft: string;
+  setNameDraft: (value: string) => void;
+  nameInputRef: RefObject<HTMLInputElement | null>;
+  startEditingName: () => void;
+  commitRename: () => Promise<void>;
+  handleNameKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+};
+
 export type UpdateAccountSyncParams = {
   syncIntervalSecs?: number;
   syncOnWake?: boolean;
@@ -108,11 +126,6 @@ export type UpdateAccountSyncParams = {
 export type UseAccountDetailControllerResult = {
   confirmDelete: boolean;
   setConfirmDelete: (value: boolean) => void;
-  editingName: boolean;
-  savingName: boolean;
-  nameDraft: string;
-  setNameDraft: (value: string) => void;
-  nameInputRef: RefObject<HTMLInputElement | null>;
   credServerUrl: string | null;
   credUsername: string | null;
   credPassword: string | null;
@@ -120,10 +133,7 @@ export type UseAccountDetailControllerResult = {
   setCredServerUrl: (value: string | null) => void;
   setCredUsername: (value: string | null) => void;
   setCredPassword: (value: string | null) => void;
-  startEditingName: () => void;
-  commitRename: () => Promise<void>;
   commitCredentials: () => Promise<boolean>;
-  handleNameKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
   handleSyncUpdate: (partial: UpdateAccountSyncParams) => Promise<void>;
   handleTestConnection: () => Promise<void>;
   handleSyncNow: () => Promise<void>;
@@ -133,7 +143,7 @@ export type UseAccountDetailControllerResult = {
   onPasswordFocus: () => void;
   syncIntervalOptions: AccountSelectOption[];
   keepReadItemsOptions: AccountSelectOption[];
-};
+} & UseAccountDetailNameEditorResult;
 
 export type UseAccountDetailViewPropsParams = {
   account: AccountDetailAccount;
