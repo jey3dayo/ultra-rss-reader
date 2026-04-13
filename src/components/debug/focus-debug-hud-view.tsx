@@ -1,5 +1,5 @@
 import { Copy } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { BrowserDebugGeometryRow } from "@/lib/browser-debug-geometry";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +28,8 @@ export type FocusDebugHudViewProps = {
   activeElementDescription: string;
   browserGeometryRows?: BrowserDebugGeometryRow[];
   traces: string[];
-  onCopyPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => void;
+  onCopyClick: () => void;
+  onCopyPointerDown?: (event: React.PointerEvent<HTMLButtonElement>) => void;
   defaultExpanded?: boolean;
   defaultShowGeometry?: boolean;
 };
@@ -42,12 +43,15 @@ export function FocusDebugHudView({
   activeElementDescription,
   browserGeometryRows = EMPTY_BROWSER_GEOMETRY_ROWS,
   traces,
+  onCopyClick,
   onCopyPointerDown,
   defaultExpanded = false,
   defaultShowGeometry = false,
 }: FocusDebugHudViewProps) {
   const [expanded, setExpanded] = useState(() => defaultExpanded);
   const [showGeometry, setShowGeometry] = useState(() => defaultShowGeometry);
+  const tracePanelId = useId();
+  const geometryPanelId = useId();
 
   const visibleTraces = expanded ? traces : traces.slice(-2);
   const latestTrace = traces.length > 0 ? traces[traces.length - 1] : "No trace yet";
@@ -79,8 +83,10 @@ export function FocusDebugHudView({
             <button
               type="button"
               onClick={() => setExpanded((current) => !current)}
+              aria-expanded={expanded}
+              aria-controls={tracePanelId}
               className={cn(
-                "inline-flex min-h-9 items-center rounded-lg border border-white/12 bg-white/[0.03] px-2.5 py-1.5",
+                "inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-white/12 bg-white/[0.03] px-3 py-2",
                 "text-[11px] font-medium text-white/76 transition-colors",
                 "hover:border-white/22 hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/24",
               )}
@@ -90,9 +96,10 @@ export function FocusDebugHudView({
             <button
               type="button"
               aria-label="Copy debug HUD"
+              onClick={onCopyClick}
               onPointerDown={onCopyPointerDown}
               className={cn(
-                "inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-white/14 bg-white/[0.04] px-2.5 py-1.5",
+                "inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-lg border border-white/14 bg-white/[0.04] px-3 py-2",
                 "text-[11px] font-medium text-white/88 transition-colors",
                 "hover:border-white/24 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/24",
               )}
@@ -145,13 +152,22 @@ export function FocusDebugHudView({
                 <button
                   type="button"
                   onClick={() => setShowGeometry((current) => !current)}
-                  className="text-[10px] font-medium uppercase tracking-[0.16em] text-white/52 transition-colors hover:text-white/82"
+                  aria-expanded={showGeometry}
+                  aria-controls={geometryPanelId}
+                  className={cn(
+                    "inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-3 py-2",
+                    "text-[10px] font-medium uppercase tracking-[0.16em] text-white/52 transition-colors",
+                    "hover:bg-white/[0.04] hover:text-white/82 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/24",
+                  )}
                 >
                   {showGeometry ? "Hide" : "Show"}
                 </button>
               </div>
               {showGeometry ? (
-                <div className="grid gap-x-3 gap-y-1.5 font-mono text-[11px] leading-5 sm:grid-cols-[auto_minmax(0,1fr)]">
+                <div
+                  id={geometryPanelId}
+                  className="grid gap-x-3 gap-y-1.5 font-mono text-[11px] leading-5 sm:grid-cols-[auto_minmax(0,1fr)]"
+                >
                   {browserGeometryRows.map((row) => (
                     <div key={`${row.label}:${row.value}`} className="contents">
                       <div className="text-white/46">{row.label}</div>
@@ -169,7 +185,7 @@ export function FocusDebugHudView({
         ) : null}
 
         {expanded ? (
-          <div className="min-h-0 flex-1 px-2 py-2">
+          <div id={tracePanelId} className="min-h-0 flex-1 px-2 py-2">
             <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-white/8 bg-black/28">
               <div className="border-b border-white/8 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-white/42">
                 Trace

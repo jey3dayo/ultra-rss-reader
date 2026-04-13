@@ -236,11 +236,13 @@ function FocusDebugHud() {
       activeElementDescription={activeElementDescription}
       browserGeometryRows={browserGeometry ? getBrowserGeometryRows(browserGeometry) : []}
       traces={traces}
+      onCopyClick={() => {
+        emitDebugInputTrace("hud-click");
+        void handleCopy();
+      }}
       onCopyPointerDown={(event) => {
         event.preventDefault();
         emitDebugInputTrace("hud-pointer-down");
-        emitDebugInputTrace("hud-click");
-        void handleCopy();
       }}
     />
   );
