@@ -31,6 +31,36 @@
     2. settings 周辺の重複実装を順次置き換える
     3. 既存の accessibility と selected label 表示をテストで維持する
 
+- [x] settings/account 系の input row を `src/components/shared` へ寄せる
+  - 問題: `LabeledControlRow + Input` の組み合わせが account form / credentials view / settings page にまだ散在している
+  - 対象: `src/components/shared/*`, `src/components/settings/*`
+  - 計画:
+    1. 汎用な labeled input row を `shared` に追加する
+    2. account 系の素直な text/password/url 行から順に置き換える
+    3. name 属性と label 関連付けを既存テストで維持する
+
+- [x] confirm dialog 系の shell / footer を `src/components/shared` に寄せる
+  - 問題: `ConfirmDialog` と `ConfirmDialogView` がほぼ同型で、destructive footer も複数 dialog に重複している
+  - 対象: `src/components/ui/confirm-dialog.tsx`, `src/components/shared/*`, `src/components/feed-cleanup/*`
+  - 計画:
+    1. store wrapper は `ConfirmDialogView` を再利用する
+    2. destructive dialog footer を shared 化する
+    3. dialog 既存テストで close / confirm 導線を維持する
+
+- [x] add account form の select row を `shared` へ寄せる
+  - 問題: `add-account-form-view.tsx` にだけ local な select row helper が残っている
+  - 対象: `src/components/settings/add-account-form-view.tsx`, `src/components/shared/labeled-select-row.tsx`
+  - 計画:
+    1. local helper を `LabeledSelectRow` へ置き換える
+    2. 既存の name 属性と表示ラベルを維持する
+
+- [x] form footer の submit/cancel ボタンを shared に寄せる
+  - 問題: `FormActionButtons` がある一方で、settings form と rename dialog に同型の footer 実装が残っている
+  - 対象: `src/components/shared/form-action-buttons.tsx`, `src/components/settings/*`, `src/components/reader/*`
+  - 計画:
+    1. `Cancel/Submit` パターンを `FormActionButtons` へ統一する
+    2. loading label と disabled 条件を既存どおり保つ
+
 - [ ] oversized reader components を段階分割する
   - 問題: `article-view.tsx` と `sidebar.tsx` はまだ責務が広く、今後の変更コストが高い
   - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/sidebar.tsx`, `src/components/reader/article-list.tsx`
@@ -54,3 +84,11 @@
     1. `settings-page.types.ts` を新設して settings page 系の props / control 型を集約
     2. `account-detail.types.ts` を新設して account detail 系 section props を集約
     3. 既存 view component は描画責務に寄せ、型 export を剥がした
+
+- [x] feed cleanup view props を `types` として整理する
+  - 問題: `feed-cleanup-page-view.tsx` に大きな inline props 型が埋め込まれ、overview / queue / review panel 間の共有型も view file 側に散っていた
+  - 対象: `src/components/feed-cleanup/feed-cleanup-page-view.tsx`, `src/components/feed-cleanup/feed-cleanup-*.tsx`
+  - 実施:
+    1. `feed-cleanup.types.ts` を新設して page / panel 間で共有する view props 型を集約
+    2. `FeedCleanupPageView` の inline props を `FeedCleanupPageViewProps` に置き換えた
+    3. review / queue / overview の props 型も同じ types file から参照するように整理した

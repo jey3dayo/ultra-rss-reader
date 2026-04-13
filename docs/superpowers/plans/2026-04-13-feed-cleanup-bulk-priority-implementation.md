@@ -10,7 +10,7 @@
 
 ---
 
-### Task 1: Add failing integration tests for bulk actions
+## Task 1: Add failing integration tests for bulk actions
 
 **Files:**
 
@@ -37,6 +37,7 @@ Expected: FAIL because the bulk action button or behavior does not exist yet.
 - [ ] **Step 5: Add failing scope and empty-state tests**
 
 Add tests for:
+
 - integrity mode hides the bulk action row
 - 0 visible candidates disables both bulk actions
 - a filter-scoped bulk action affects only currently visible candidates
@@ -46,7 +47,7 @@ Add tests for:
 Run: `pnpm exec vitest run src/__tests__/components/feed-cleanup-page.test.tsx --reporter=verbose --testNamePattern="visible|integrity mode|filtered candidates|no visible candidates"`
 Expected: FAIL for missing UI/state behavior, not for test setup mistakes.
 
-### Task 2: Implement bulk action state and overview wiring
+## Task 2: Implement bulk action state and overview wiring
 
 **Files:**
 
@@ -78,7 +79,7 @@ Either disable bulk actions while inline edit or delete confirm is active, or ad
 Run: `pnpm exec vitest run src/__tests__/components/feed-cleanup-page.test.tsx --reporter=verbose --testNamePattern="visible"`
 Expected: PASS for the new bulk action cases.
 
-### Task 3: Tighten priority guidance copy
+## Task 3: Tighten priority guidance copy
 
 **Files:**
 
@@ -100,7 +101,7 @@ Keep the test surface focused on user-visible priority guidance in queue/review,
 Run: `pnpm exec vitest run src/__tests__/components/feed-cleanup-page.test.tsx --reporter=verbose --testTimeout=30000`
 Expected: PASS
 
-### Task 4: Refresh Storybook states and task tracking
+## Task 4: Refresh Storybook states and task tracking
 
 **Files:**
 
@@ -122,7 +123,7 @@ Update `TODO.md` so the bulk action and priority-display items move to done once
 Run: `pnpm run build-storybook`
 Expected: PASS
 
-### Task 5: Final verification
+## Task 5: Final verification
 
 **Files:**
 
