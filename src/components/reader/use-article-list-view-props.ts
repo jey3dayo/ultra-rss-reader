@@ -1,10 +1,12 @@
 import type { TFunction } from "i18next";
-import type { ComponentProps, KeyboardEvent, ReactNode, RefObject } from "react";
+import type { ComponentProps, KeyboardEvent, RefObject } from "react";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 import type { ArticleListBody } from "./article-list-body";
 import type { ArticleListContextStrip } from "./article-list-context-strip";
 import type { ArticleListFooter } from "./article-list-footer";
 import type { ArticleListHeader } from "./article-list-header";
+import type { UseArticleListHeaderControlsResult } from "./use-article-list-header-controls";
+import type { UseArticleListViewStateResult } from "./use-article-list-view-state";
 
 type LayoutMode = "wide" | "compact" | "mobile";
 type ViewMode = "all" | "unread" | "starred";
@@ -20,29 +22,16 @@ type UseArticleListViewPropsParams = {
   showSearch: boolean;
   searchQuery: string;
   searchInputRef: RefObject<HTMLInputElement | null>;
-  showSidebarButton: boolean;
-  sidebarButtonLabel: string;
-  sidebarButtonText?: string;
-  isSidebarVisible?: boolean;
-  feedModeControl: ReactNode;
   handleMarkAllRead: () => void;
-  handleSidebarToggle: () => void;
   handleToggleSearch: () => void;
   handleCloseSearch: () => void;
   setSearchQuery: (value: string) => void;
-  contextStripContext: {
-    primaryLabel: string | null;
-    secondaryLabel: string | null;
-    tone: "unread" | "starred" | null;
-  };
   listRef: RefObject<HTMLDivElement | null>;
   viewportRef: RefObject<HTMLDivElement | null>;
   handleListKeyDownCapture: (event: KeyboardEvent<HTMLDivElement>) => void;
   isLoading: boolean;
   isLoadingAccountArticles: boolean;
   isLoadingTagArticles: boolean;
-  isSearchLoading: boolean;
-  isSearchEmptyState: boolean;
   trimmedDebouncedQuery: string;
   articleGroups: ArticleGroupsViewGroup[];
   dimArchived: string;
@@ -51,9 +40,17 @@ type UseArticleListViewPropsParams = {
   selectionStyle: string;
   selectArticle: (articleId: string) => void;
   effectiveViewMode: ViewMode;
-  footerModes: ReadonlyArray<ViewMode>;
   setViewMode: (viewMode: ViewMode) => void;
-};
+} & Pick<
+  UseArticleListHeaderControlsResult,
+  | "showSidebarButton"
+  | "sidebarButtonLabel"
+  | "sidebarButtonText"
+  | "isSidebarVisible"
+  | "feedModeControl"
+  | "handleSidebarToggle"
+> &
+  Pick<UseArticleListViewStateResult, "contextStripContext" | "footerModes" | "isSearchLoading" | "isSearchEmptyState">;
 
 export type UseArticleListViewPropsResult = {
   layoutMode: LayoutMode;

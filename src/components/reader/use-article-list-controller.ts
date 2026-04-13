@@ -2,8 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useArticleListData } from "./use-article-list-data";
 import { useArticleListEffects } from "./use-article-list-effects";
 import { useArticleListGroups } from "./use-article-list-groups";
-import { useArticleListHeaderActions } from "./use-article-list-header-actions";
-import { useArticleListHeaderControls } from "./use-article-list-header-controls";
+import { useArticleListHeaderController } from "./use-article-list-header-controller";
 import { useArticleListInteractions } from "./use-article-list-interactions";
 import { useArticleListSearch } from "./use-article-list-search";
 import { useArticleListSources } from "./use-article-list-sources";
@@ -101,22 +100,21 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     groupBy,
   });
 
-  const { contextStripContext, footerModes, isPrimarySourceLoading, isSearchLoading, isSearchEmptyState } =
-    useArticleListViewState({
-      selection,
-      t,
-      feedId: resolvedFeedId,
-      tagId: resolvedTagId,
-      accountListScopeId: resolvedAccountListScopeId,
-      isLoading,
-      isLoadingAccountArticles,
-      isLoadingTagArticles,
-      showSearch,
-      trimmedDebouncedQuery,
-      searchResults,
-      isSearching,
-      filteredArticleCount: filteredArticles.length,
-    });
+  const viewState = useArticleListViewState({
+    selection,
+    t,
+    feedId: resolvedFeedId,
+    tagId: resolvedTagId,
+    accountListScopeId: resolvedAccountListScopeId,
+    isLoading,
+    isLoadingAccountArticles,
+    isLoadingTagArticles,
+    showSearch,
+    trimmedDebouncedQuery,
+    searchResults,
+    isSearching,
+    filteredArticleCount: filteredArticles.length,
+  });
 
   const articleGroups = useArticleListGroups({
     groupedArticles,
@@ -127,12 +125,20 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     t,
   });
 
-  const { selectedFeedDisplayPreset, displayPresetOptions, handleSetDisplayMode, handleMarkAllRead } =
-    useArticleListHeaderActions({
-      feedId: resolvedFeedId,
-      selectedFeed,
-      filteredArticles,
-    });
+  const headerController = useArticleListHeaderController({
+    feedId: resolvedFeedId,
+    selectedFeed,
+    filteredArticles,
+    layoutMode,
+    sidebarOpen,
+    sidebarSubscriptionsLabel: ts("subscriptions"),
+    feedDisplayLabel: t("display_mode"),
+    showSidebarLabel: t("show_sidebar"),
+    hideSidebarLabel: t("hide_sidebar"),
+    openSidebar,
+    toggleSidebar,
+  });
+  const { handleMarkAllRead, ...headerControls } = headerController;
 
   const { listRef, viewportRef, handleListKeyDownCapture } = useArticleListInteractions({
     filteredArticles,
@@ -152,32 +158,8 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     viewportRef,
     filteredArticles,
     selectedArticleId,
-    isPrimarySourceLoading,
+    isPrimarySourceLoading: viewState.isPrimarySourceLoading,
     clearArticle,
-  });
-
-  const {
-    showSidebarButton,
-    sidebarButtonLabel,
-    sidebarButtonText,
-    isSidebarVisible,
-    feedModeControl,
-    handleSidebarToggle,
-  } = useArticleListHeaderControls({
-    layoutMode,
-    sidebarOpen,
-    sidebarSubscriptionsLabel: ts("subscriptions"),
-    feedDisplayLabel: t("display_mode"),
-    showSidebarLabel: t("show_sidebar"),
-    hideSidebarLabel: t("hide_sidebar"),
-    resolvedFeedId,
-    selectedFeedDisplayPreset,
-    displayPresetOptions,
-    onSetDisplayMode: (value) => {
-      void handleSetDisplayMode(value);
-    },
-    openSidebar,
-    toggleSidebar,
   });
 
   return useArticleListViewProps({
@@ -187,25 +169,16 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     showSearch,
     searchQuery,
     searchInputRef,
-    showSidebarButton,
-    sidebarButtonLabel,
-    sidebarButtonText,
-    isSidebarVisible,
-    feedModeControl,
     handleMarkAllRead,
-    handleSidebarToggle,
     handleToggleSearch,
     handleCloseSearch,
     setSearchQuery,
-    contextStripContext,
     listRef,
     viewportRef,
     handleListKeyDownCapture,
     isLoading,
     isLoadingAccountArticles,
     isLoadingTagArticles,
-    isSearchLoading,
-    isSearchEmptyState,
     trimmedDebouncedQuery,
     articleGroups,
     dimArchived,
@@ -214,7 +187,8 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     selectionStyle,
     selectArticle,
     effectiveViewMode,
-    footerModes,
     setViewMode,
+    ...headerControls,
+    ...viewState,
   });
 }

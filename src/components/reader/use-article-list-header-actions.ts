@@ -17,11 +17,18 @@ type UseArticleListHeaderActionsParams = {
   filteredArticles: ArticleDto[];
 };
 
+export type UseArticleListHeaderActionsResult = {
+  selectedFeedDisplayPreset: FeedDisplayPresetOption;
+  displayPresetOptions: Array<{ value: FeedDisplayPresetOption; label: string }>;
+  handleSetDisplayMode: (nextPreset: FeedDisplayPresetOption) => Promise<void>;
+  handleMarkAllRead: () => void;
+};
+
 export function useArticleListHeaderActions({
   feedId,
   selectedFeed,
   filteredArticles,
-}: UseArticleListHeaderActionsParams) {
+}: UseArticleListHeaderActionsParams): UseArticleListHeaderActionsResult {
   const { t } = useTranslation("reader");
   const confirmMarkAllRead = useConfirmMarkAllRead();
   const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
