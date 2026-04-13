@@ -3,6 +3,7 @@ import { renameFeed } from "@/api/tauri-commands";
 import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/article-display";
 import { createFolderIfNeeded } from "./feed-folder-flow";
 import type { SubmitFeedEditsParams } from "./rename-feed-dialog.types";
+
 export type { FeedEditDisplayPreset, SubmitFeedEditsParams } from "./rename-feed-dialog.types";
 
 export async function submitFeedEdits({
