@@ -1,10 +1,14 @@
 import { Menu } from "@base-ui/react/menu";
 import { Toggle } from "@base-ui/react/toggle";
-import { cva, type VariantProps } from "class-variance-authority";
-import type React from "react";
+import { cva } from "class-variance-authority";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { AppTooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import type {
+  IconToolbarButtonProps,
+  IconToolbarMenuTriggerProps,
+  IconToolbarToggleProps,
+} from "./icon-toolbar.types";
 
 export const iconToolbarButtonClassName = cn(
   buttonVariants({ variant: "ghost", size: "icon" }),
@@ -23,26 +27,6 @@ const iconToolbarControlVariants = cva(iconToolbarButtonClassName, {
     pressedTone: "neutral",
   },
 });
-
-type IconToolbarControlBaseProps = {
-  label: string;
-  disabled?: boolean;
-  className?: string;
-  children: React.ReactNode;
-};
-
-type IconToolbarButtonProps = IconToolbarControlBaseProps & {
-  onClick: () => void;
-};
-
-type IconToolbarToggleProps = IconToolbarControlBaseProps &
-  VariantProps<typeof iconToolbarControlVariants> & {
-    pressed: boolean;
-    onPressedChange: (nextPressed: boolean) => void;
-    focusTargetKey?: string;
-  };
-
-type IconToolbarMenuTriggerProps = IconToolbarControlBaseProps;
 
 export function IconToolbarButton({ label, disabled = false, className, children, onClick }: IconToolbarButtonProps) {
   return (
