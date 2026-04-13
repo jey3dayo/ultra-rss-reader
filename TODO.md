@@ -103,6 +103,10 @@
   - 問題: `article-tag-picker-view.tsx` に assigned tag 表示と popover list/new-tag row の JSX がまとまっていて、view shell と subview 描画が混ざっていた
   - 対象: `src/components/reader/article-tag-picker-view.tsx`, `src/components/reader/article-tag-picker-popover.tsx`
 
+- [x] article-tag-picker の assigned tag chips を subview 化する
+  - 問題: `article-tag-picker-view.tsx` に assigned tag chip の一覧描画が残っていて、view shell と chip list 描画が混ざっていた
+  - 対象: `src/components/reader/article-tag-picker-view.tsx`, `src/components/reader/article-tag-chip-list.tsx`
+
 - [x] command-palette の結果リスト描画を view component に切り出す
   - 問題: `command-palette.tsx` に actions/feeds/tags/articles/dev scenarios の `CommandList` 描画がまとまっていて、state 管理と view 描画が混ざっていた
   - 対象: `src/components/reader/command-palette.tsx`, `src/components/reader/command-palette-results.tsx`
