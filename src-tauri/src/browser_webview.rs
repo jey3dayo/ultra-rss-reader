@@ -18,13 +18,16 @@ static BROWSER_WEBVIEW_DIAGNOSTICS_ENABLED: AtomicBool = AtomicBool::new(false);
 static BROWSER_CLOSE_GRACE_UNTIL_MS: AtomicU64 = AtomicU64::new(0);
 const BROWSER_CLOSE_GRACE_WINDOW_MS: u64 = 800;
 
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 struct BrowserPreviewShortcutSpec {
     pref_key: &'static str,
     default_binding: &'static str,
     app_action: &'static str,
+    #[cfg_attr(not(any(test, windows)), allow(dead_code))]
     supports_script_bridge: bool,
 }
 
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 const BROWSER_PREVIEW_SHORTCUT_SPECS: &[BrowserPreviewShortcutSpec] = &[
     BrowserPreviewShortcutSpec {
         pref_key: "shortcut_close_or_clear",
@@ -277,6 +280,7 @@ fn focus_main_webview_window<R: Runtime>(app_handle: &AppHandle<R>) {
     }
 }
 
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 fn normalize_browser_shortcut(key: &str, command_or_control: bool, shift: bool) -> Option<String> {
     if key.is_empty() {
         return None;
@@ -303,6 +307,7 @@ fn normalize_browser_shortcut(key: &str, command_or_control: bool, shift: bool) 
     Some(parts.join("+"))
 }
 
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 fn normalize_saved_browser_shortcut(binding: &str) -> Option<String> {
     let mut command_or_control = false;
     let mut shift = false;
@@ -337,6 +342,7 @@ fn now_epoch_millis() -> u64 {
         .unwrap_or(0)
 }
 
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 fn begin_browser_close_grace_window() {
     BROWSER_CLOSE_GRACE_UNTIL_MS.store(
         now_epoch_millis().saturating_add(BROWSER_CLOSE_GRACE_WINDOW_MS),
@@ -344,10 +350,12 @@ fn begin_browser_close_grace_window() {
     );
 }
 
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 fn browser_close_grace_window_active() -> bool {
     now_epoch_millis() <= BROWSER_CLOSE_GRACE_UNTIL_MS.load(Ordering::SeqCst)
 }
 
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 fn is_browser_close_grace_action(action: &str) -> bool {
     matches!(
         action,
@@ -355,6 +363,7 @@ fn is_browser_close_grace_action(action: &str) -> bool {
     )
 }
 
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 pub fn browser_preview_action_for_shortcut(
     prefs: &HashMap<String, String>,
     key: &str,
@@ -373,6 +382,7 @@ pub fn browser_preview_action_for_shortcut(
     })
 }
 
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 fn browser_preview_script_bindings(
     prefs: &HashMap<String, String>,
 ) -> HashMap<String, &'static str> {
@@ -390,6 +400,7 @@ fn browser_preview_script_bindings(
         .collect()
 }
 
+#[cfg_attr(not(any(test, windows)), allow(dead_code))]
 fn browser_preview_script_bridge_source(prefs: &HashMap<String, String>) -> Option<String> {
     let bindings = browser_preview_script_bindings(prefs);
     if bindings.is_empty() {

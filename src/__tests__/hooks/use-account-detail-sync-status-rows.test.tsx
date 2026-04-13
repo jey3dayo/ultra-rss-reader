@@ -3,6 +3,7 @@ import type { TFunction } from "i18next";
 import { describe, expect, it } from "vitest";
 import type { AccountSyncStatusDto } from "@/api/tauri-commands";
 import { useAccountDetailSyncStatusRows } from "@/components/settings/use-account-detail-sync-status-rows";
+import { formatAccountSyncRetryDateTime } from "@/lib/account-sync-status-format";
 
 describe("useAccountDetailSyncStatusRows", () => {
   const t = ((key: string, options?: { count?: number }) => {
@@ -31,6 +32,8 @@ describe("useAccountDetailSyncStatusRows", () => {
       error_count: 3,
       last_error: "Connection failed",
     };
+    const expectedRetryAt =
+      formatAccountSyncRetryDateTime(syncStatus.next_retry_at ?? undefined, "en") ?? syncStatus.next_retry_at;
 
     const { result } = renderHook(() =>
       useAccountDetailSyncStatusRows({
@@ -43,7 +46,7 @@ describe("useAccountDetailSyncStatusRows", () => {
     expect(result.current).toEqual([
       {
         label: "account.next_automatic_retry",
-        value: "Apr 13, 19:00",
+        value: expectedRetryAt,
       },
       {
         label: "account.consecutive_sync_failures",

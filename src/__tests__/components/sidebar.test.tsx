@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
+import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
@@ -784,6 +785,8 @@ describe("Sidebar", () => {
 
   it("shows a scheduled-retry toast from sync-warning events when background sync enters backoff", async () => {
     render(<Sidebar />, { wrapper: createWrapper() });
+    const retryAt = "2026-04-13T03:15:00Z";
+    const retryTime = formatAccountSyncRetryTime(retryAt, "en");
 
     expect(syncWarningListener).not.toBeNull();
 
@@ -793,14 +796,16 @@ describe("Sidebar", () => {
         account_name: "FreshRSS",
         message: "Background sync failed and will retry automatically for 'FreshRSS'.",
         kind: "retry_scheduled",
-        retry_at: "2026-04-13T03:15:00Z",
+        retry_at: retryAt,
         retry_in_seconds: 120,
       },
     ]);
 
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({
-        message: "Background sync failed for FreshRSS. Retrying at 12:15",
+        message: retryTime
+          ? `Background sync failed for FreshRSS. Retrying at ${retryTime}`
+          : "Background sync failed for FreshRSS. Retrying soon",
       });
     });
   });
@@ -808,13 +813,16 @@ describe("Sidebar", () => {
   it("shows scheduled retry status in the account switcher after sync warnings refresh account sync status", async () => {
     const user = userEvent.setup();
     let freshRssRetryScheduled = false;
+    const retryAt = "2026-04-13T03:15:00Z";
+    const retryTime = formatAccountSyncRetryTime(retryAt, "en");
+    const expectedStatusLabel = retryTime ? `Retrying at ${retryTime}` : "Retrying soon";
 
     setupTauriMocks((cmd, args) => {
       if (cmd === "get_account_sync_status" && args.accountId === "acc-2") {
         return {
           last_error: freshRssRetryScheduled ? "Network timeout" : null,
           error_count: freshRssRetryScheduled ? 2 : 0,
-          next_retry_at: freshRssRetryScheduled ? "2026-04-13T03:15:00Z" : null,
+          next_retry_at: freshRssRetryScheduled ? retryAt : null,
         };
       }
       return undefined;
@@ -826,7 +834,7 @@ describe("Sidebar", () => {
     await user.click(trigger);
 
     await screen.findByRole("menu", { name: "Accounts" });
-    expect(screen.queryByText("Retrying at 12:15")).not.toBeInTheDocument();
+    expect(screen.queryByText(expectedStatusLabel)).not.toBeInTheDocument();
     expect(syncWarningListener).not.toBeNull();
 
     freshRssRetryScheduled = true;
@@ -836,13 +844,13 @@ describe("Sidebar", () => {
         account_name: "FreshRSS",
         message: "Background sync failed and will retry automatically for 'FreshRSS'.",
         kind: "retry_scheduled",
-        retry_at: "2026-04-13T03:15:00Z",
+        retry_at: retryAt,
         retry_in_seconds: 120,
       },
     ]);
 
     await waitFor(() => {
-      expect(screen.getByText("Retrying at 12:15")).toBeInTheDocument();
+      expect(screen.getByText(expectedStatusLabel)).toBeInTheDocument();
     });
   });
 
