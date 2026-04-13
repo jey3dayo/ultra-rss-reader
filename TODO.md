@@ -115,6 +115,11 @@
   - 対応: `article-actions.types.ts` を追加して `useArticleStatusActions` / `useArticleActions` の params/result/mutation 型を寄せ、hook 実装は shared types を参照する形に寄せた
   - 対象: `src/components/reader/article-actions.types.ts`, `src/components/reader/use-article-actions.ts`, `src/components/reader/use-article-status-actions.ts`
 
+- [x] article browser action helper の toast contract を shared types に寄せる
+  - 問題: `article-browser-actions.ts` に local な toast params 型が残っていて、article action 系 helper と hook の contract が分かれていた
+  - 対応: `ArticleToastActionParams` と `ArticleStatusToast` を `article-actions.types.ts` に寄せて、browser action helper は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/article-actions.types.ts`, `src/components/reader/article-browser-actions.ts`
+
 - [x] command-palette の結果リスト描画を view component に切り出す
   - 問題: `command-palette.tsx` に actions/feeds/tags/articles/dev scenarios の `CommandList` 描画がまとまっていて、state 管理と view 描画が混ざっていた
   - 対象: `src/components/reader/command-palette.tsx`, `src/components/reader/command-palette-results.tsx`
