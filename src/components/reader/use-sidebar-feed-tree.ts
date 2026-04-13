@@ -4,10 +4,8 @@ import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 import type { UseSidebarFeedTreeParams, UseSidebarFeedTreeResult } from "./sidebar-feed-tree.types";
 import {
-  collectFeedIds,
   getVisibleSidebarFeeds,
-  getVisibleSidebarFolderFeeds,
-  getVisibleSidebarUnfolderedFeeds,
+  getVisibleSidebarFeedTreeData,
   mapFeedsToFeedTreeViewModels,
 } from "./sidebar-feed-tree-helpers";
 
@@ -53,6 +51,18 @@ export function useSidebarFeedTree({
     [sortFeeds, viewMode],
   );
 
+  const { visibleFolderFeedsById, visibleUnfolderedFeeds, orderedFeedIds } = useMemo(
+    () =>
+      getVisibleSidebarFeedTreeData({
+        sortedFolderList,
+        selectedFolderId,
+        feedsByFolder,
+        unfolderedFeeds,
+        getVisibleFeeds,
+      }),
+    [feedsByFolder, getVisibleFeeds, selectedFolderId, sortedFolderList, unfolderedFeeds],
+  );
+
   const hideEmptyFoldersInCurrentView = viewMode === "unread" && draggedFeedId === null;
 
   const feedTreeFolders = useMemo<FeedTreeFolderViewModel[]>(
@@ -60,12 +70,7 @@ export function useSidebarFeedTree({
       sortedFolderList
         .map((folder) => {
           const rawFolderFeeds = feedsByFolder.get(folder.id) ?? [];
-          const folderFeeds = getVisibleSidebarFolderFeeds({
-            folderId: folder.id,
-            selectedFolderId,
-            feedsByFolder,
-            getVisibleFeeds,
-          });
+          const folderFeeds = visibleFolderFeedsById.get(folder.id) ?? [];
           const folderUnread = rawFolderFeeds.reduce((sum, feed) => sum + feed.unread_count, 0);
           return {
             id: folder.id,
@@ -82,56 +87,23 @@ export function useSidebarFeedTree({
     [
       expandedFolderIds,
       feedsByFolder,
-      getVisibleFeeds,
       grayscaleFavicons,
       hideEmptyFoldersInCurrentView,
       selectedFeedId,
       selectedFolderId,
       sortedFolderList,
+      visibleFolderFeedsById,
     ],
   );
 
   const unfolderedFeedViews = useMemo<FeedTreeFeedViewModel[]>(
     () =>
-      mapFeedsToFeedTreeViewModels(
-        getVisibleSidebarUnfolderedFeeds({
-          selectedFolderId,
-          unfolderedFeeds,
-          getVisibleFeeds,
-        }),
-        {
-          selectedFeedId,
-          grayscaleFavicons,
-        },
-      ),
-    [getVisibleFeeds, grayscaleFavicons, selectedFeedId, selectedFolderId, unfolderedFeeds],
+      mapFeedsToFeedTreeViewModels(visibleUnfolderedFeeds, {
+        selectedFeedId,
+        grayscaleFavicons,
+      }),
+    [grayscaleFavicons, selectedFeedId, visibleUnfolderedFeeds],
   );
-
-  const orderedFeedIds = useMemo(() => {
-    const ids: string[] = [];
-
-    for (const folder of sortedFolderList) {
-      const folderFeeds = getVisibleSidebarFolderFeeds({
-        folderId: folder.id,
-        selectedFolderId,
-        feedsByFolder,
-        getVisibleFeeds,
-      });
-      ids.push(...collectFeedIds(folderFeeds));
-    }
-
-    ids.push(
-      ...collectFeedIds(
-        getVisibleSidebarUnfolderedFeeds({
-          selectedFolderId,
-          unfolderedFeeds,
-          getVisibleFeeds,
-        }),
-      ),
-    );
-
-    return ids;
-  }, [feedsByFolder, getVisibleFeeds, selectedFolderId, sortedFolderList, unfolderedFeeds]);
 
   return {
     feedById,
