@@ -428,6 +428,14 @@
   - 問題: `rename-feed-dialog-view.tsx` が `feed-dialog-form-view.tsx` から型を直接 import していて、component file と型境界が混ざっていた
   - 対象: `src/components/reader/feed-dialog-form-view.tsx`, `src/components/reader/feed-dialog-form.types.ts`, `src/components/reader/rename-feed-dialog-view.tsx`
 
+- [x] rename feed dialog の view/controller 型を `types` に寄せる
+  - 問題: `rename-feed-dialog-view.tsx` と `use-rename-feed-dialog-controller.ts` に inline props / params / return 型が残っていて、component file と型境界が混ざっていた
+  - 対象: `src/components/reader/rename-feed-dialog-view.tsx`, `src/components/reader/use-rename-feed-dialog-controller.ts`, `src/components/reader/rename-feed-dialog.types.ts`
+
+- [x] rename feed dialog の view props 組み立てを hook に寄せる
+  - 問題: `rename-feed-dialog.tsx` に display preset options、url fields、folder select props、labels の組み立てが残っていて、container wiring と view props 導出が混ざっていた
+  - 対象: `src/components/reader/rename-feed-dialog.tsx`, `src/components/reader/use-rename-feed-dialog-view-props.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
