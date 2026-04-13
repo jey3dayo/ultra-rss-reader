@@ -1,6 +1,6 @@
 import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { BrowserWebviewState } from "@/api/tauri-commands";
+import type { AppError, BrowserWebviewState } from "@/api/tauri-commands";
 import type {
   BrowserDebugGeometryLayoutDiagnostics,
   BrowserDebugGeometryNativeDiagnostics,
@@ -15,14 +15,18 @@ import {
   getBrowserOverlayCloseButtonClass,
   getBrowserOverlayStageClass,
 } from "./browser-overlay-presentation";
-import { type BrowserSurfaceIssue, createBrowserSurfaceFallback } from "./browser-surface-issue";
+import {
+  type BrowserSurfaceIssue,
+  createBrowserSurfaceFailure,
+  createBrowserSurfaceFallback,
+  resolveRuntimeUnavailableSurfaceIssue,
+} from "./browser-surface-issue";
 import { type BrowserWebviewFallbackPayload, initialBrowserState, mergeBrowserState } from "./browser-webview-state";
 import { useBrowserDebugGeometryEvents } from "./use-browser-debug-geometry-events";
 import { useBrowserLayoutDiagnostics } from "./use-browser-layout-diagnostics";
 import { useBrowserOverlayShortcuts } from "./use-browser-overlay-shortcuts";
 import { useBrowserOverlayViewportWidth } from "./use-browser-overlay-viewport-width";
 import { useBrowserViewActions } from "./use-browser-view-actions";
-import { useBrowserViewSurfaceState } from "./use-browser-view-surface-state";
 import { useBrowserWebviewBoundsSync } from "./use-browser-webview-bounds-sync";
 import { useBrowserWebviewCleanup } from "./use-browser-webview-cleanup";
 import { useBrowserWebviewEvents } from "./use-browser-webview-events";
@@ -74,12 +78,24 @@ export function useBrowserViewController({
   const stageRef = useRef<HTMLDivElement | null>(null);
   const fallbackInFlightRef = useRef(false);
   const [nativeDiagnostics, setNativeDiagnostics] = useState<BrowserWebviewDiagnosticsPayload | null>(null);
+  const [surfaceIssue, setSurfaceIssue] = useState<BrowserSurfaceIssue | null>(null);
   const viewportWidth = useBrowserOverlayViewportWidth();
-  const isLoading = browserUrl ? (browserState?.is_loading ?? true) : false;
 
   const handleCloseOverlay = useCallback(() => {
     onCloseOverlay();
   }, [onCloseOverlay]);
+
+  const handleLostEmbeddedBrowserWebview = useCallback(
+    (error: AppError) => {
+      console.warn("Embedded browser webview disappeared while overlay was open:", error.message);
+      fallbackInFlightRef.current = false;
+      browserStateRef.current = null;
+      setBrowserState(null);
+      setSurfaceIssue(null);
+      handleCloseOverlay();
+    },
+    [handleCloseOverlay],
+  );
 
   const { layoutDiagnostics, captureLayoutDiagnostics } = useBrowserLayoutDiagnostics({
     browserUrl,
@@ -88,36 +104,41 @@ export function useBrowserViewController({
     stageRef,
     hostRef,
   });
-  const runtimeUnavailable =
-    (typeof window !== "undefined" &&
-      (window.__DEV_BROWSER_MOCKS__ === true || window.__ULTRA_RSS_BROWSER_MOCKS__ === true)) ||
-    !hasTauriRuntime();
-  const { setSurfaceIssue, handleLostEmbeddedBrowserWebview, showSurfaceFailure, activeSurfaceIssue } =
-    useBrowserViewSurfaceState({
-      browserStateRef,
-      fallbackInFlightRef,
-      isLoading,
-      runtimeUnavailable,
-      onCloseOverlay: handleCloseOverlay,
-      setBrowserState,
-      browserMode: t("browser_embed_browser_mode"),
-      browserModeHint: t("browser_embed_browser_mode_hint"),
-      failed: t("browser_embed_failed"),
-      failedHint: t("browser_embed_failed_hint"),
-    });
+
+  const showSurfaceFailure = useCallback(
+    (error: AppError) => {
+      if (fallbackInFlightRef.current) {
+        return;
+      }
+      fallbackInFlightRef.current = true;
+      console.error("Failed to open embedded browser webview:", error);
+      setSurfaceIssue(
+        createBrowserSurfaceFailure(error.message, {
+          failed: t("browser_embed_failed"),
+          failedHint: t("browser_embed_failed_hint"),
+        }),
+      );
+      setBrowserState((currentState) => {
+        if (!currentState) {
+          return currentState;
+        }
+        const nextState = { ...currentState, is_loading: false };
+        browserStateRef.current = nextState;
+        return nextState;
+      });
+    },
+    [t],
+  );
 
   const waitForBrowserWebviewListeners = useBrowserWebviewEvents({
     showDiagnostics,
-    onStateChanged: useCallback(
-      (payload: BrowserWebviewState) => {
-        const nextState = mergeBrowserState(browserStateRef.current, payload, useUiStore.getState().browserUrl ?? "");
-        browserStateRef.current = nextState;
-        setBrowserState(nextState);
-        setSurfaceIssue(null);
-        fallbackInFlightRef.current = false;
-      },
-      [setSurfaceIssue],
-    ),
+    onStateChanged: useCallback((payload: BrowserWebviewState) => {
+      const nextState = mergeBrowserState(browserStateRef.current, payload, useUiStore.getState().browserUrl ?? "");
+      browserStateRef.current = nextState;
+      setBrowserState(nextState);
+      setSurfaceIssue(null);
+      fallbackInFlightRef.current = false;
+    }, []),
     onFallback: useCallback(
       (payload: BrowserWebviewFallbackPayload) => {
         setSurfaceIssue(
@@ -137,7 +158,7 @@ export function useBrowserViewController({
           return nextState;
         });
       },
-      [setSurfaceIssue, t],
+      [t],
     ),
     onClosed: handleCloseOverlay,
     onDiagnostics: useCallback((payload: BrowserWebviewDiagnosticsPayload) => {
@@ -165,7 +186,9 @@ export function useBrowserViewController({
     fallbackInFlightRef.current = false;
     resetBrowserWebviewSyncState();
 
-    if (!browserUrl) return undefined;
+    if (!browserUrl) {
+      return;
+    }
 
     setBrowserState((state) => {
       const nextState = state?.url === browserUrl ? state : initialBrowserState(browserUrl);
@@ -173,7 +196,7 @@ export function useBrowserViewController({
       return nextState;
     });
     setSurfaceIssue(null);
-  }, [browserUrl, resetBrowserWebviewSyncState, setSurfaceIssue]);
+  }, [browserUrl, resetBrowserWebviewSyncState]);
 
   useBrowserWebviewBoundsSync({
     browserUrl,
@@ -192,6 +215,8 @@ export function useBrowserViewController({
 
   useBrowserWebviewCleanup();
 
+  const isLoading = browserUrl ? (browserState?.is_loading ?? true) : false;
+
   useBrowserWebviewLoadTimeout({
     browserUrl,
     isLoading,
@@ -200,6 +225,21 @@ export function useBrowserViewController({
   });
 
   useBrowserOverlayShortcuts({ browserUrl, handleCloseOverlay });
+
+  const runtimeUnavailable =
+    (typeof window !== "undefined" &&
+      (window.__DEV_BROWSER_MOCKS__ === true || window.__ULTRA_RSS_BROWSER_MOCKS__ === true)) ||
+    !hasTauriRuntime();
+  const activeSurfaceIssue =
+    surfaceIssue ??
+    resolveRuntimeUnavailableSurfaceIssue({
+      runtimeUnavailable,
+      isLoading,
+      labels: {
+        browserMode: t("browser_embed_browser_mode"),
+        browserModeHint: t("browser_embed_browser_mode_hint"),
+      },
+    });
 
   const { handleRetry, handleOpenExternal } = useBrowserViewActions({
     browserUrl,
