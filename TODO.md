@@ -621,6 +621,11 @@
   - 対応: `sidebar-sources.types.ts` に params/result contract を切り出して、sources hook は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/sidebar-sources.types.ts`, `src/components/reader/use-sidebar-sources.ts`
 
+- [x] sidebar controller actions の contract を shared types に寄せる
+  - 問題: `use-sidebar-controller-actions.ts` が `Parameters<typeof useSidebarUiActions>` と mutation 由来の local alias に依存していて、action helper 境界の正本を追いにくかった
+  - 対応: `sidebar-controller.types.ts` に params/result contract を切り出して、`use-sidebar-ui-actions.ts` と `use-sidebar-controller-actions.ts` は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar-controller.types.ts`, `src/components/reader/use-sidebar-ui-actions.ts`, `src/components/reader/use-sidebar-controller-actions.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
