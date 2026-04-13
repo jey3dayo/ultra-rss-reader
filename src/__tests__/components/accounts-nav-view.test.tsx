@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { type AccountNavItem, AccountsNavView } from "@/components/settings/accounts-nav-view";
+import { AccountsNavView } from "@/components/settings/accounts-nav-view";
+import type { AccountNavItem } from "@/components/settings/settings-nav.types";
 
 describe("AccountsNavView", () => {
   it("renders account rows and add-account action from props", () => {

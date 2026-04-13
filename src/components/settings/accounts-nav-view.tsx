@@ -1,25 +1,12 @@
 import { Plus, Rss } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SERVICE_CATEGORIES } from "./add-account-services";
+import type { AccountsNavViewProps } from "./settings-nav.types";
+export type { AccountNavItem, AccountsNavViewProps } from "./settings-nav.types";
 
 const ACCOUNT_ICON_BG: Record<string, string> = Object.fromEntries(
   SERVICE_CATEGORIES.flatMap((cat) => cat.services.map((s) => [s.kind, s.iconBg])),
 );
-
-export type AccountNavItem = {
-  id: string;
-  name: string;
-  kind: string;
-  isActive: boolean;
-};
-
-type AccountsNavViewProps = {
-  accounts: AccountNavItem[];
-  addAccountLabel: string;
-  isAddAccountActive: boolean;
-  onSelectAccount: (accountId: string) => void;
-  onAddAccount: () => void;
-};
 
 export function AccountsNavView({
   accounts,

@@ -2,7 +2,7 @@ import { BookOpen, Bug, Database, Palette, Settings, Share2 } from "lucide-react
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { AccountDetail } from "@/components/settings/account-detail";
-import { type AccountNavItem, AccountsNavView } from "@/components/settings/accounts-nav-view";
+import { AccountsNavView } from "@/components/settings/accounts-nav-view";
 import { ActionsSettings } from "@/components/settings/actions-settings";
 import { AddAccountForm } from "@/components/settings/add-account-form";
 import { AppearanceSettings } from "@/components/settings/appearance-settings";
@@ -11,7 +11,8 @@ import { DebugSettings } from "@/components/settings/debug-settings";
 import { GeneralSettings } from "@/components/settings/general-settings";
 import { ReadingSettings } from "@/components/settings/reading-settings";
 import { SettingsModalView } from "@/components/settings/settings-modal-view";
-import { type SettingsNavItem, type SettingsNavItemId, SettingsNavView } from "@/components/settings/settings-nav-view";
+import { SettingsNavView } from "@/components/settings/settings-nav-view";
+import type { AccountNavItem, SettingsNavItem, SettingsNavItemId } from "@/components/settings/settings-nav.types";
 import { ShortcutsSettings } from "@/components/settings/shortcuts-settings";
 import { useAccounts } from "@/hooks/use-accounts";
 import type { SettingsCategory } from "@/stores/ui-store";

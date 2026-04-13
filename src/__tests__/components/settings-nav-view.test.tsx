@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { type SettingsNavItem, SettingsNavView } from "@/components/settings/settings-nav-view";
+import { SettingsNavView } from "@/components/settings/settings-nav-view";
+import type { SettingsNavItem } from "@/components/settings/settings-nav.types";
 
 describe("SettingsNavView", () => {
   it("renders category entries from props and reports selection", () => {

@@ -1,19 +1,6 @@
-import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-
-export type SettingsNavItemId = string;
-
-export type SettingsNavItem = {
-  id: SettingsNavItemId;
-  label: string;
-  icon: ReactNode;
-  isActive: boolean;
-};
-
-type SettingsNavViewProps = {
-  items: SettingsNavItem[];
-  onSelectCategory: (categoryId: SettingsNavItemId) => void;
-};
+import type { SettingsNavViewProps } from "./settings-nav.types";
+export type { SettingsNavItem, SettingsNavItemId, SettingsNavViewProps } from "./settings-nav.types";
 
 export function SettingsNavView({ items, onSelectCategory }: SettingsNavViewProps) {
   return (
