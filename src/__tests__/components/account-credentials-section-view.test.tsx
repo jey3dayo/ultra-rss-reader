@@ -46,6 +46,13 @@ describe("AccountCredentialsSectionView", () => {
     render(
       <AccountCredentialsSectionView
         heading="Credentials"
+        serverUrlLabel="Server URL"
+        serverUrlValue="https://freshrss.example.com"
+        serverUrlPlaceholder="https://freshrss.example.com"
+        onServerUrlChange={() => {}}
+        onServerUrlBlur={() => {}}
+        serverUrlCopyLabel="Copy Server URL"
+        onServerUrlCopy={() => {}}
         usernameLabel="Username"
         usernameValue="debug"
         onUsernameChange={() => {}}
@@ -62,9 +69,14 @@ describe("AccountCredentialsSectionView", () => {
       />,
     );
 
+    expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass("w-full");
+    expect(screen.getByRole("textbox", { name: "Username" })).toHaveClass("w-full");
+    expect(screen.getByPlaceholderText("Enter password")).toHaveClass("w-full");
     const button = screen.getByRole("button", { name: "Testing..." });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button).toHaveClass("w-full");
+    expect(button).toHaveClass("sm:w-auto");
     expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
   });
 });

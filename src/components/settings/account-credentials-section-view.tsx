@@ -56,7 +56,7 @@ export function AccountCredentialsSectionView({
     <section className="mb-6">
       <SectionHeading>{heading}</SectionHeading>
       {serverUrlLabel && onServerUrlChange && (
-        <div className="flex min-h-[44px] items-center justify-between gap-3 border-b border-border py-3">
+        <div className="flex min-h-[44px] flex-col items-stretch gap-3 border-b border-border py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex-1">
             <CopyableTextField
               label={serverUrlLabel}
@@ -64,7 +64,7 @@ export function AccountCredentialsSectionView({
               type="url"
               value={serverUrlValue ?? ""}
               placeholder={serverUrlPlaceholder}
-              className="h-auto border-border bg-background px-2 py-1 text-sm"
+              className="h-auto w-full border-border bg-background px-2 py-1 text-sm"
               copyLabel={serverUrlCopyLabel}
               onCopy={onServerUrlCopy}
               onChange={onServerUrlChange}
@@ -78,7 +78,8 @@ export function AccountCredentialsSectionView({
         value={usernameValue}
         onChange={onUsernameChange}
         onBlur={onUsernameBlur}
-        inputClassName="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
+        rowClassName="flex-col items-stretch sm:flex-row sm:items-center"
+        inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:w-auto"
       />
       <LabeledInputRow
         label={passwordLabel}
@@ -88,12 +89,14 @@ export function AccountCredentialsSectionView({
         onFocus={onPasswordFocus}
         onBlur={onPasswordBlur}
         placeholder={passwordPlaceholder}
-        inputClassName="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
+        rowClassName="flex-col items-stretch sm:flex-row sm:items-center"
+        inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:w-auto"
       />
       {onTestConnection && (
         <div className="pt-3">
           <LoadingButton
             size="sm"
+            className="w-full justify-center sm:w-auto"
             onClick={onTestConnection}
             loading={isTestingConnection}
             loadingLabel={testingConnectionLabel}
