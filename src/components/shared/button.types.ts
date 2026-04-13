@@ -19,3 +19,16 @@ export type DestructiveDialogFooterProps = {
   onCancel: () => void;
   onConfirm: () => void;
 };
+
+export type FormActionButtonsProps = {
+  cancelLabel: string;
+  submitLabel: string;
+  submittingLabel?: string;
+  loading?: boolean;
+  submitDisabled?: boolean;
+  cancelDisabled?: boolean;
+  onCancel: () => void;
+  onSubmit?: () => void;
+  cancelType?: "button" | "submit";
+  submitType?: "button" | "submit";
+};
