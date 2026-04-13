@@ -179,6 +179,10 @@
   - 問題: `useBrowserViewController` に close/action/stage の class 導出が残っていて、controller orchestration と presentation ルールが混ざっていた
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/browser-overlay-presentation.ts`, `src/__tests__/components/browser-overlay-presentation.test.ts`
 
+- [x] browser-view の geometry/class presentation 導出を helper 化する
+  - 問題: `useBrowserViewController` に geometry 解決と compact 判定を前提にした class 導出が残っていて、controller orchestration と presentation view model 導出が混ざっていた
+  - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/browser-view-presentation.ts`, `src/__tests__/components/browser-view-presentation.test.ts`
+
 - [x] browser-view の native event listener 登録を hook 化する
   - 問題: `useBrowserViewController` に state/fallback/closed/diagnostics の listener 登録が残っていて、controller orchestration と native event bridge が混ざっていた
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-webview-events.ts`
@@ -443,6 +447,10 @@
 - [x] feed tree drop outcome helper の契約を unit test で固定する
   - 問題: `feed-tree-drag-outcome.ts` が pointer drag 終了時の outcome 分岐を担っているが、helper 単体の回帰テストがなかった
   - 対象: `src/components/reader/feed-tree-drag-outcome.ts`, `src/__tests__/components/feed-tree-drag-outcome.test.ts`
+
+- [x] feed tree handle click suppression を hook 化する
+  - 問題: `use-feed-tree-drag.ts` に drag 後 click 抑制の timer/ref 管理が残っていて、drag orchestration と handle click suppression が混ざっていた
+  - 対象: `src/components/reader/use-feed-tree-drag.ts`, `src/components/reader/use-feed-tree-handle-click-suppression.ts`, `src/__tests__/hooks/use-feed-tree-handle-click-suppression.test.tsx`
 
 ## 2026-04-13 Premortem フォローアップ
 
