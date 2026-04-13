@@ -7,6 +7,13 @@ const meta = {
   parameters: {
     layout: "fullscreen",
   },
+  decorators: [
+    (Story) => (
+      <div className="mx-auto w-full max-w-[420px] border border-border/70 bg-background">
+        <Story />
+      </div>
+    ),
+  ],
 } satisfies Meta<typeof FeedCleanupReviewPanel>;
 
 export default meta;
@@ -63,7 +70,7 @@ const baseLabels = {
     stale_but_supported: "The feed is quiet, but it may still matter.",
     healthy_feed: "This subscription still looks healthy.",
   },
-  reviewPanelClassName: "max-w-[320px]",
+  reviewPanelClassName: "w-full max-w-[380px]",
   editLabel: "Edit Feed",
   keepLabel: "Keep",
   laterLabel: "Later",

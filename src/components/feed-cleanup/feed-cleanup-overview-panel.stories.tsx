@@ -8,6 +8,13 @@ const meta = {
   parameters: {
     layout: "fullscreen",
   },
+  decorators: [
+    (Story) => (
+      <div className="mx-auto w-full max-w-[1040px] border border-border/70 bg-background">
+        <Story />
+      </div>
+    ),
+  ],
 } satisfies Meta<typeof FeedCleanupOverviewPanel>;
 
 export default meta;
@@ -61,7 +68,7 @@ function InteractiveOverviewPanel({ initialIntegrityMode }: { initialIntegrityMo
   const [showDeferred, setShowDeferred] = useState(false);
 
   return (
-    <div className="max-w-[280px]">
+    <div className="w-full">
       <FeedCleanupOverviewPanel
         {...baseArgs}
         integrityMode={initialIntegrityMode}

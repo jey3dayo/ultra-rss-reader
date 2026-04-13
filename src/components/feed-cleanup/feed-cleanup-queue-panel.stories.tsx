@@ -7,6 +7,13 @@ const meta = {
   parameters: {
     layout: "fullscreen",
   },
+  decorators: [
+    (Story) => (
+      <div className="mx-auto w-full max-w-[720px] border border-border/70 bg-background">
+        <Story />
+      </div>
+    ),
+  ],
 } satisfies Meta<typeof FeedCleanupQueuePanel>;
 
 export default meta;
