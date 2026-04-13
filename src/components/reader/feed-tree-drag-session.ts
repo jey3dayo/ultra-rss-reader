@@ -48,3 +48,14 @@ export function shouldStartFeedTreePointerDrag(
 ): boolean {
   return Math.hypot(clientX - session.originX, clientY - session.originY) >= POINTER_DRAG_THRESHOLD;
 }
+
+export function getFeedTreePointerDragSessionForPointer(
+  session: FeedTreePointerDragSession | null,
+  pointerId: number,
+): FeedTreePointerDragSession | null {
+  if (!session || session.pointerId !== pointerId) {
+    return null;
+  }
+
+  return session;
+}

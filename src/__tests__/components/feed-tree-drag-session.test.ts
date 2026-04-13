@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createFeedTreePointerDragSession,
+  getFeedTreePointerDragSessionForPointer,
   shouldStartFeedTreePointerDrag,
   updateFeedTreePointerDragSessionPosition,
 } from "@/components/reader/feed-tree-drag-session";
@@ -52,5 +53,13 @@ describe("feedTreeDragSession", () => {
 
     expect(shouldStartFeedTreePointerDrag(session, 104, 104)).toBe(false);
     expect(shouldStartFeedTreePointerDrag(session, 106, 100)).toBe(true);
+  });
+
+  it("returns only the session for the matching pointer id", () => {
+    const session = createFeedTreePointerDragSession(feed, 7, 100, 100);
+
+    expect(getFeedTreePointerDragSessionForPointer(session, 7)).toBe(session);
+    expect(getFeedTreePointerDragSessionForPointer(session, 8)).toBeNull();
+    expect(getFeedTreePointerDragSessionForPointer(null, 7)).toBeNull();
   });
 });
