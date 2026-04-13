@@ -1,5 +1,5 @@
-import type { ActiveDropTarget } from "./feed-tree-folder-section";
 import type { FeedTreePointerDragSession } from "./feed-tree-drag-session";
+import type { ActiveDropTarget } from "./feed-tree-folder-section";
 
 export type FeedTreePointerDropOutcome =
   | { type: "clear" }
@@ -13,7 +13,7 @@ export function resolveFeedTreePointerDropOutcome(
   target: ActiveDropTarget,
   shouldCancel: boolean,
 ): FeedTreePointerDropOutcome {
-  if (!session || !session.isDragging) {
+  if (!session?.isDragging) {
     return { type: "clear" };
   }
 
