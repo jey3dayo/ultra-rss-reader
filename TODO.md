@@ -175,9 +175,14 @@
   - 問題: `useBrowserViewController` に closeBrowserWebview の cleanup effect が残っていて、controller orchestration と webview lifecycle cleanup が混ざっていた
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-webview-cleanup.ts`
 
-- [x] browser-view の layout diagnostics state を hook 化する
-  - 問題: `useBrowserViewController` に `captureLayoutDiagnostics` と HUD 用 state 管理が残っていて、controller orchestration と diagnostics 導出が混ざっていた
-  - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-layout-diagnostics.ts`
+- [x] browser-view の retry / external-open handler を hook 化する
+  - 問題: `useBrowserViewController` に retry と external browser open の action handler が残っていて、controller orchestration と surface action が混ざっていた
+  - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-view-actions.ts`
+
+- [x] browser-view の diagnostics rail / surface state card を view component 化する
+  - 問題: `browser-view.tsx` に diagnostics rail と surface failure card の詳細 JSX が残っていて、overlay shell 描画と subview 実装が混ざっていた
+  - 対象: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-diagnostics-rail.tsx`, `src/components/reader/browser-surface-state-card.tsx`
+
 
 - [x] sidebar の feed navigation と event listener を hook 化する
   - 問題: `sidebar.tsx` に feed 移動、folder 自動展開、`APP_EVENTS.navigateFeed` 購読が残っていて、tree 導出と責務が混ざっている
