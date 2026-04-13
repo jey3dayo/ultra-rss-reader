@@ -305,6 +305,11 @@
   - 対応: `AccountDetailAccount` と `UseAccountDetailControllerParams` を `account-detail.types.ts` に追加して、view component と controller は shared types を参照する形に寄せた
   - 対象: `src/components/settings/account-detail.types.ts`, `src/components/settings/account-detail.tsx`, `src/components/settings/use-account-detail-controller.ts`
 
+- [x] account detail sync update の contract を shared types に寄せる
+  - 問題: `use-account-detail-controller.ts` に local な sync update params 型が残っていて、account detail controller 境界の正本を `account-detail.types.ts` から追えなかった
+  - 対応: `UpdateAccountSyncParams` を `account-detail.types.ts` に追加して、controller は shared types を参照する形に寄せた
+  - 対象: `src/components/settings/account-detail.types.ts`, `src/components/settings/use-account-detail-controller.ts`
+
 - [x] settings nav の contract を shared types に寄せる
   - 問題: `accounts-nav-view.tsx` と `settings-nav-view.tsx` に nav item / props 型が分散していて、`settings-modal.tsx` が component file から型を引いていた
   - 対応: `settings-nav.types.ts` を追加して account/settings nav の item/props contract を集約し、modal と view component と tests は shared types を参照する形に寄せた
@@ -672,6 +677,11 @@
 - [x] rename feed dialog の view/controller 型を `types` に寄せる
   - 問題: `rename-feed-dialog-view.tsx` と `use-rename-feed-dialog-controller.ts` に inline props / params / return 型が残っていて、component file と型境界が混ざっていた
   - 対象: `src/components/reader/rename-feed-dialog-view.tsx`, `src/components/reader/use-rename-feed-dialog-controller.ts`, `src/components/reader/rename-feed-dialog.types.ts`
+
+- [x] rename feed submit contract を dialog types に寄せる
+  - 問題: `feed-edit-submit.ts` に local な submit params と display preset 型が残っていて、rename feed save flow の正本が helper file に分散していた
+  - 対応: `FeedEditDisplayPreset` / `FeedEditErrorLike` / `SubmitFeedEditsParams` を `rename-feed-dialog.types.ts` に追加して、submit helper と controller は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/rename-feed-dialog.types.ts`, `src/components/reader/feed-edit-submit.ts`, `src/components/reader/use-rename-feed-dialog-controller.ts`
 
 - [x] rename feed dialog の view props 組み立てを hook に寄せる
   - 問題: `rename-feed-dialog.tsx` に display preset options、url fields、folder select props、labels の組み立てが残っていて、container wiring と view props 導出が混ざっていた
