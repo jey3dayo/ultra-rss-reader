@@ -4,11 +4,9 @@ import { ChevronLeft } from "lucide-react";
 import { useMemo, useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { addAccount } from "@/api/tauri-commands";
-import { SERVICE_CATEGORIES } from "@/components/settings/service-picker";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { SectionHeading } from "@/components/shared/section-heading";
-import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import {
   addAccountFormInitialState,
   addAccountFormReducer,
@@ -18,17 +16,10 @@ import {
 } from "@/lib/add-account-form";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
+import { findServiceDefinition } from "./add-account-services";
+import type { AccountConfigFormProps } from "./add-account-services.types";
 
-function findServiceDefinition(kind: AddAccountProviderKind) {
-  for (const category of SERVICE_CATEGORIES) {
-    for (const service of category.services) {
-      if (service.kind === kind) return service;
-    }
-  }
-  return null;
-}
-
-export function AccountConfigForm({ kind, onBack }: { kind: AddAccountProviderKind; onBack: () => void }) {
+export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
   const { t } = useTranslation("settings");
   const { t: tc } = useTranslation("common");
   const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);

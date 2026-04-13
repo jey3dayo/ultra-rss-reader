@@ -1,75 +1,12 @@
-import { ChevronRight, Monitor, Thermometer } from "lucide-react";
-import type { ComponentType } from "react";
+import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { FreshRssLogoIcon, InoreaderLogoIcon } from "@/components/icons/provider-icons";
 import { SectionHeading } from "@/components/shared/section-heading";
 import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import { cn } from "@/lib/utils";
+import { SERVICE_CATEGORIES } from "./add-account-services";
+import type { ServicePickerProps } from "./add-account-services.types";
 
-type ServiceKind = AddAccountProviderKind | "Fever";
-
-type ServiceDefinition = {
-  kind: ServiceKind;
-  icon: ComponentType<{ className?: string }>;
-  iconBg: string;
-  nameKey: string;
-  descKey: string;
-  disabled?: boolean;
-};
-
-type ServiceCategory = {
-  labelKey: string;
-  services: ServiceDefinition[];
-};
-
-const SERVICE_CATEGORIES: ServiceCategory[] = [
-  {
-    labelKey: "account.category_local",
-    services: [
-      {
-        kind: "Local",
-        icon: Monitor,
-        iconBg: "bg-orange-500",
-        nameKey: "account.local_feeds",
-        descKey: "account.local_desc",
-      },
-    ],
-  },
-  {
-    labelKey: "account.category_self_hosted",
-    services: [
-      {
-        kind: "FreshRss",
-        icon: FreshRssLogoIcon,
-        iconBg: "bg-[#0062BE]",
-        nameKey: "account.freshrss",
-        descKey: "account.freshrss_desc",
-      },
-      {
-        kind: "Fever",
-        icon: Thermometer,
-        iconBg: "bg-gray-500",
-        nameKey: "account.fever",
-        descKey: "account.fever_desc",
-        disabled: true,
-      },
-    ],
-  },
-  {
-    labelKey: "account.category_services",
-    services: [
-      {
-        kind: "Inoreader",
-        icon: InoreaderLogoIcon,
-        iconBg: "bg-[#1875F3]",
-        nameKey: "account.inoreader",
-        descKey: "account.inoreader_desc",
-      },
-    ],
-  },
-];
-
-export function ServicePicker({ onSelect }: { onSelect: (kind: AddAccountProviderKind) => void }) {
+export function ServicePicker({ onSelect }: ServicePickerProps) {
   const { t } = useTranslation("settings");
 
   return (
@@ -123,6 +60,3 @@ export function ServicePicker({ onSelect }: { onSelect: (kind: AddAccountProvide
     </div>
   );
 }
-
-export type { ServiceCategory, ServiceDefinition, ServiceKind };
-export { SERVICE_CATEGORIES };

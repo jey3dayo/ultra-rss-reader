@@ -1,6 +1,6 @@
 import { Plus, Rss } from "lucide-react";
-import { SERVICE_CATEGORIES } from "@/components/settings/service-picker";
 import { cn } from "@/lib/utils";
+import { SERVICE_CATEGORIES } from "./add-account-services";
 
 const ACCOUNT_ICON_BG: Record<string, string> = Object.fromEntries(
   SERVICE_CATEGORIES.flatMap((cat) => cat.services.map((s) => [s.kind, s.iconBg])),

@@ -138,6 +138,10 @@
   - 問題: `add-account-form-view.tsx` に form control と section props の中心定義が残っている
   - 対象: `src/components/settings/add-account-form-view.tsx`, `src/components/settings/*types*.ts`
 
+- [x] add account service 定義と props 型を `types` / 定義 module に寄せる
+  - 問題: `service-picker.tsx` が service 定義・props 型・UI をまとめて持ち、`account-config-form.tsx` / `accounts-nav-view.tsx` が component file へ直接依存していた
+  - 対象: `src/components/settings/service-picker.tsx`, `src/components/settings/account-config-form.tsx`, `src/components/settings/accounts-nav-view.tsx`
+
 - [x] reader の再利用境界がある state/controller 型を `types` 化する
   - 問題: `use-sidebar-feed-tree.ts` と `use-add-feed-dialog-controller.ts` に再利用余地のある union/state 型が残っている
   - 対象: `src/components/reader/use-sidebar-feed-tree.ts`, `src/components/reader/use-add-feed-dialog-controller.ts`
