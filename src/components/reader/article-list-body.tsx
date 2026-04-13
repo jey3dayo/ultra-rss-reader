@@ -5,7 +5,7 @@ import type { ArticleGroupsViewGroup } from "./article-groups-view";
 import { ArticleListScreenView } from "./article-list-screen-view";
 import { contextMenuStyles } from "./context-menu-styles";
 
-type ArticleListBodyProps = {
+export type ArticleListBodyProps = {
   listAriaLabel: string;
   listRef: RefObject<HTMLDivElement | null>;
   viewportRef: RefObject<HTMLDivElement | null>;

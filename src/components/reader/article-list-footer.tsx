@@ -6,9 +6,9 @@ import { useTranslation } from "react-i18next";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
 
-type ViewMode = "all" | "unread" | "starred";
+export type ViewMode = "all" | "unread" | "starred";
 
-type ArticleListFooterProps = {
+export type ArticleListFooterProps = {
   viewMode: ViewMode;
   modes?: readonly ViewMode[];
   onSetViewMode: (mode: ViewMode) => void;

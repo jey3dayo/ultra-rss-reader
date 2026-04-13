@@ -1,4 +1,4 @@
-type ArticleListContextStripProps = {
+export type ArticleListContextStripProps = {
   primaryLabel?: string | null;
   secondaryLabel?: string | null;
   tone?: "unread" | "starred" | null;

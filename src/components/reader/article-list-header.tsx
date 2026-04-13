@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-type ArticleListHeaderProps = {
+export type ArticleListHeaderProps = {
   showSearch: boolean;
   searchQuery: string;
   searchInputRef: RefObject<HTMLInputElement | null>;
