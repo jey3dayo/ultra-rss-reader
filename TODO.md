@@ -746,6 +746,16 @@
   - 対応: `article-list.types.ts` に body props params contract を追加して、body props helper は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-body-props.ts`
 
+- [x] article list search hook の contract を shared types に寄せる
+  - 問題: `use-article-list-search.ts` の params/result 契約が hook file に閉じていて、runtime 配下の search 境界の正本を追いにくかった
+  - 対応: `article-list.types.ts` に search params/result contract を追加して、search hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-search.ts`
+
+- [x] article list header subview props の正本を shared types に寄せる
+  - 問題: `article-list-header.tsx` / `article-list-header-actions.tsx` / `article-list-header-search.tsx` に props contract が分散していて、header 境界の正本を `article-list.types.ts` から追えなかった
+  - 対応: `article-list.types.ts` に header/actions/search props contract を集約して、header subview は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/article-list-header.tsx`, `src/components/reader/article-list-header-actions.tsx`, `src/components/reader/article-list-header-search.tsx`
+
 - [x] sidebar header/content view props の正本を sidebar types に寄せる
   - 問題: `sidebar.types.ts` が `sidebar-header-view.tsx` と `sidebar-content-sections.tsx` の exported props に依存していて、shared types 側から component file へ逆参照していた
   - 対応: `sidebar.types.ts` に header/content section の props contract を持たせて、component と helper は shared types を再利用する形に寄せた
