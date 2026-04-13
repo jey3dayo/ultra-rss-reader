@@ -2,6 +2,7 @@ import { CheckCheck, PanelLeft, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useUiStore } from "@/stores/ui-store";
 import type { ArticleListHeaderActionsProps } from "./article-list.types";
 
 export function ArticleListHeaderActions({
@@ -16,9 +17,13 @@ export function ArticleListHeaderActions({
   onToggleSearch,
   onCloseSearch,
   markAllReadLabel,
+  markAllReadButtonText,
   searchArticlesLabel,
+  searchArticlesButtonText,
   closeSearchLabel,
 }: ArticleListHeaderActionsProps) {
+  const isMobile = useUiStore((state) => state.layoutMode === "mobile");
+
   return (
     <TooltipProvider>
       <div className="flex items-center">
@@ -49,23 +54,29 @@ export function ArticleListHeaderActions({
         <AppTooltip label={markAllReadLabel}>
           <Button
             variant="ghost"
-            size="icon"
+            size={isMobile ? "sm" : "icon"}
             aria-label={markAllReadLabel}
             onClick={onMarkAllRead}
-            className="text-muted-foreground"
+            className={cn("text-muted-foreground", isMobile && "gap-1.5 px-2.5 text-xs font-semibold tracking-wide")}
           >
             <CheckCheck className="h-4 w-4" />
+            {isMobile ? <span>{markAllReadButtonText}</span> : null}
           </Button>
         </AppTooltip>
         <AppTooltip label={searchArticlesLabel}>
           <Button
             variant="ghost"
-            size="icon"
+            size={isMobile ? "sm" : "icon"}
             onClick={onToggleSearch}
             aria-label={searchArticlesLabel}
-            className={cn("text-muted-foreground", showSearch && "text-foreground")}
+            className={cn(
+              "text-muted-foreground",
+              isMobile && "gap-1.5 px-2.5 text-xs font-semibold tracking-wide",
+              showSearch && "text-foreground",
+            )}
           >
             <Search className="h-4 w-4" />
+            {isMobile ? <span>{searchArticlesButtonText}</span> : null}
           </Button>
         </AppTooltip>
         {showSearch && (

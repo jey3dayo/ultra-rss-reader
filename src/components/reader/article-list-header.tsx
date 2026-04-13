@@ -20,7 +20,9 @@ export function ArticleListHeader({
 }: ArticleListHeaderProps) {
   const { t } = useTranslation("reader");
   const markAllReadLabel = t("mark_all_as_read");
+  const markAllReadButtonText = t("mark_all_read_short");
   const searchArticlesLabel = t("search_articles");
+  const searchArticlesButtonText = t("search_short");
   const closeSearchLabel = t("close_search");
   const searchArticlesPlaceholder = t("search_articles_placeholder");
   return (
@@ -38,7 +40,9 @@ export function ArticleListHeader({
           onToggleSearch={onToggleSearch}
           onCloseSearch={onCloseSearch}
           markAllReadLabel={markAllReadLabel}
+          markAllReadButtonText={markAllReadButtonText}
           searchArticlesLabel={searchArticlesLabel}
+          searchArticlesButtonText={searchArticlesButtonText}
           closeSearchLabel={closeSearchLabel}
         />
       </div>

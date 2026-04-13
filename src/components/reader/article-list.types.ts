@@ -47,7 +47,9 @@ export type ArticleListHeaderActionsProps = Pick<
   | "onCloseSearch"
 > & {
   markAllReadLabel: string;
+  markAllReadButtonText: string;
   searchArticlesLabel: string;
+  searchArticlesButtonText: string;
   closeSearchLabel: string;
 };
 

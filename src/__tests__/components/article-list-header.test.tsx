@@ -1,11 +1,16 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleListHeader } from "@/components/reader/article-list-header";
+import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 
 describe("ArticleListHeader", () => {
+  beforeEach(() => {
+    useUiStore.setState({ layoutMode: "wide" });
+  });
+
   it("keeps the drag region separate from interactive controls", () => {
     const { container } = render(
       <ArticleListHeader
@@ -118,5 +123,28 @@ describe("ArticleListHeader", () => {
     );
 
     expect(screen.getByRole("button", { name: "Show sidebar" })).toHaveTextContent("Subscriptions");
+  });
+
+  it("shows short action labels in mobile layout", () => {
+    useUiStore.setState({ layoutMode: "mobile" });
+
+    render(
+      <ArticleListHeader
+        showSearch={false}
+        searchQuery=""
+        searchInputRef={createRef<HTMLInputElement>()}
+        showSidebarButton={false}
+        sidebarButtonLabel="Show sidebar"
+        onMarkAllRead={vi.fn()}
+        onToggleSidebar={vi.fn()}
+        onToggleSearch={vi.fn()}
+        onCloseSearch={vi.fn()}
+        onSearchQueryChange={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveTextContent("Read");
+    expect(screen.getByRole("button", { name: "Search articles" })).toHaveTextContent("Search");
   });
 });
