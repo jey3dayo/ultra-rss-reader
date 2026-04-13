@@ -1,70 +1,12 @@
-import { CircleAlert, ExternalLink, LoaderCircle, RotateCcw, X } from "lucide-react";
+import { ExternalLink, LoaderCircle, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { IconToolbarButton } from "@/components/shared/icon-toolbar-control";
-import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import {
-  type BrowserDebugGeometryLayoutDiagnostics,
-  type BrowserDebugGeometryNativeDiagnostics,
-  getBrowserGeometryStripItems,
-} from "@/lib/browser-debug-geometry";
-import type { BrowserSurfaceIssue } from "./browser-surface-issue";
+import { BrowserDiagnosticsRail } from "./browser-diagnostics-rail";
+import { BrowserSurfaceStateCard } from "./browser-surface-state-card";
 import { useBrowserViewController } from "./use-browser-view-controller";
-
-type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
-
-type BrowserViewLayoutDiagnostics = BrowserDebugGeometryLayoutDiagnostics;
-
-function BrowserSurfaceStateCard({
-  issue,
-  showTechnicalDetail,
-  onRetry,
-  onOpenExternal,
-  labels,
-}: {
-  issue: BrowserSurfaceIssue;
-  showTechnicalDetail: boolean;
-  onRetry: () => void;
-  onOpenExternal: () => void;
-  labels: {
-    technicalDetail: string;
-    retryWebPreview: string;
-    openInExternalBrowser: string;
-  };
-}) {
-  return (
-    <div
-      data-testid="browser-surface-state"
-      className="max-w-md rounded-2xl border border-white/10 bg-black/62 px-5 py-4 text-center shadow-[0_18px_40px_rgba(0,0,0,0.32)] backdrop-blur-md"
-    >
-      <div className="flex items-center justify-center gap-2 text-white">
-        <CircleAlert aria-hidden="true" className="size-4 text-orange-300" />
-        <p className="text-sm font-semibold">{issue.title}</p>
-      </div>
-      <p className="mt-2 text-sm text-white/72">{issue.description}</p>
-      {showTechnicalDetail && issue.detail ? (
-        <div className="mt-3 space-y-1.5 text-left">
-          <p className="text-[11px] font-medium tracking-[0.08em] text-white/45 uppercase">{labels.technicalDetail}</p>
-          <p className="rounded-lg border border-white/8 bg-white/5 px-3 py-2 text-xs text-white/68">{issue.detail}</p>
-        </div>
-      ) : null}
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-        {issue.canRetry ? (
-          <Button type="button" variant="outline" size="sm" onClick={onRetry}>
-            <RotateCcw className="h-3.5 w-3.5" />
-            {labels.retryWebPreview}
-          </Button>
-        ) : null}
-        <Button type="button" variant="secondary" size="sm" onClick={onOpenExternal}>
-          <ExternalLink className="h-3.5 w-3.5" />
-          {labels.openInExternalBrowser}
-        </Button>
-      </div>
-    </div>
-  );
-}
 
 type BrowserViewProps = {
   scope?: "content-pane" | "main-stage";
@@ -74,51 +16,6 @@ type BrowserViewProps = {
   };
   toolbarActions?: ReactNode;
 };
-
-function BrowserDiagnosticsRail({
-  layoutDiagnostics,
-  nativeDiagnostics,
-  compact,
-  top,
-}: {
-  layoutDiagnostics: BrowserViewLayoutDiagnostics | null;
-  nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
-  compact: boolean;
-  top: number;
-}) {
-  const items = getBrowserGeometryStripItems({ layoutDiagnostics, nativeDiagnostics }, compact);
-
-  if (items.length === 0) {
-    return null;
-  }
-
-  return (
-    <div
-      data-testid="browser-overlay-diagnostics"
-      style={{ top: `${top}px` }}
-      className={
-        compact
-          ? "pointer-events-none absolute left-1/2 z-[90] w-[calc(100vw-7.5rem)] max-w-[calc(100vw-7.5rem)] -translate-x-1/2"
-          : "pointer-events-none absolute left-1/2 z-[90] w-[min(780px,calc(100vw-11rem))] -translate-x-1/2"
-      }
-    >
-      <div
-        className={
-          compact
-            ? "mx-auto flex min-w-0 max-w-full items-center justify-start gap-2 overflow-x-auto rounded-2xl border border-white/12 bg-black/68 px-3 py-1.5 whitespace-nowrap font-mono text-[10px] leading-4 text-white/96 shadow-[0_16px_36px_rgba(0,0,0,0.46)] backdrop-blur-xl [text-shadow:0_1px_8px_rgba(0,0,0,0.72)]"
-            : "mx-auto flex min-w-0 max-w-full items-center justify-center gap-2 overflow-hidden rounded-full border border-white/12 bg-black/62 px-4 py-2 whitespace-nowrap font-mono text-[10px] leading-4 text-white/96 shadow-[0_16px_36px_rgba(0,0,0,0.46)] backdrop-blur-xl [text-shadow:0_1px_8px_rgba(0,0,0,0.72)]"
-        }
-      >
-        {items.map((item, index) => (
-          <span key={item} className="contents">
-            <span className="shrink-0">{item}</span>
-            {index < items.length - 1 ? <span className="shrink-0 text-white/44">•</span> : null}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, toolbarActions }: BrowserViewProps) {
   const { t } = useTranslation("reader");
