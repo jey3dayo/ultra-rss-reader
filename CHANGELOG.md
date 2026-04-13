@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-04-14
+
 ### Features
 
 - Web プレビューを main stage の fullscreen viewer として扱えるようにし、通常表示とオーバーレイ表示の体験を揃えた
