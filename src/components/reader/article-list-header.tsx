@@ -1,23 +1,7 @@
-import type { RefObject } from "react";
 import { useTranslation } from "react-i18next";
+import type { ArticleListHeaderProps } from "./article-list.types";
 import { ArticleListHeaderActions } from "./article-list-header-actions";
 import { ArticleListHeaderSearch } from "./article-list-header-search";
-
-export type ArticleListHeaderProps = {
-  showSearch: boolean;
-  searchQuery: string;
-  searchInputRef: RefObject<HTMLInputElement | null>;
-  showSidebarButton: boolean;
-  sidebarButtonLabel: string;
-  sidebarButtonText?: string;
-  isSidebarVisible?: boolean;
-  feedModeControl?: React.ReactNode;
-  onMarkAllRead: () => void;
-  onToggleSidebar: () => void;
-  onToggleSearch: () => void;
-  onCloseSearch: () => void;
-  onSearchQueryChange: (query: string) => void;
-};
 
 export function ArticleListHeader({
   showSearch,

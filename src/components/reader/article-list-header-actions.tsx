@@ -2,25 +2,7 @@ import { CheckCheck, PanelLeft, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { ArticleListHeaderProps } from "./article-list-header";
-
-export type ArticleListHeaderActionsProps = Pick<
-  ArticleListHeaderProps,
-  | "showSearch"
-  | "showSidebarButton"
-  | "sidebarButtonLabel"
-  | "sidebarButtonText"
-  | "isSidebarVisible"
-  | "feedModeControl"
-  | "onMarkAllRead"
-  | "onToggleSidebar"
-  | "onToggleSearch"
-  | "onCloseSearch"
-> & {
-  markAllReadLabel: string;
-  searchArticlesLabel: string;
-  closeSearchLabel: string;
-};
+import type { ArticleListHeaderActionsProps } from "./article-list.types";
 
 export function ArticleListHeaderActions({
   showSearch,

@@ -1,13 +1,5 @@
-import type { RefObject } from "react";
 import { Input } from "@/components/ui/input";
-
-type ArticleListHeaderSearchProps = {
-  searchInputRef: RefObject<HTMLInputElement | null>;
-  searchQuery: string;
-  searchArticlesLabel: string;
-  searchArticlesPlaceholder: string;
-  onSearchQueryChange: (query: string) => void;
-};
+import type { ArticleListHeaderSearchProps } from "./article-list.types";
 
 export function ArticleListHeaderSearch({
   searchInputRef,
