@@ -5,15 +5,27 @@ import type {
   BrowserDebugGeometryLayoutDiagnostics,
   BrowserDebugGeometryNativeDiagnostics,
 } from "@/lib/browser-debug-geometry";
+import type { BrowserViewerGeometry, BrowserViewerScope } from "@/lib/browser-viewer-geometry";
 import type { ToastData } from "@/stores/ui-store";
 import type { BrowserSurfaceIssue } from "./browser-surface-issue";
 
 export type BrowserViewScope = "content-pane" | "main-stage";
 export type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
 export type BrowserViewLayoutDiagnostics = BrowserDebugGeometryLayoutDiagnostics;
-export type BrowserViewGeometry = ReturnType<
-  typeof import("./browser-view-presentation").resolveBrowserViewPresentation
->["geometry"];
+export type BrowserViewGeometry = BrowserViewerGeometry;
+
+export type BrowserViewPresentation = {
+  geometry: BrowserViewGeometry;
+  closeButtonClass: string;
+  actionButtonClass: string;
+  stageClass: string;
+};
+
+export type ResolveBrowserViewPresentationParams = {
+  scope: BrowserViewerScope;
+  viewportWidth: number;
+  diagnosticsVisible: boolean;
+};
 
 export type BrowserViewProps = {
   scope?: BrowserViewScope;

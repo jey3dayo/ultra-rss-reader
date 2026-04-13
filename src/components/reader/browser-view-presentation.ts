@@ -1,26 +1,10 @@
-import {
-  type BrowserViewerGeometry,
-  type BrowserViewerScope,
-  resolveBrowserViewerGeometry,
-} from "@/lib/browser-viewer-geometry";
+import { resolveBrowserViewerGeometry } from "@/lib/browser-viewer-geometry";
 import {
   getBrowserOverlayActionButtonClass,
   getBrowserOverlayCloseButtonClass,
   getBrowserOverlayStageClass,
 } from "./browser-overlay-presentation";
-
-export type BrowserViewPresentation = {
-  geometry: BrowserViewerGeometry;
-  closeButtonClass: string;
-  actionButtonClass: string;
-  stageClass: string;
-};
-
-type ResolveBrowserViewPresentationParams = {
-  scope: BrowserViewerScope;
-  viewportWidth: number;
-  diagnosticsVisible: boolean;
-};
+import type { BrowserViewPresentation, ResolveBrowserViewPresentationParams } from "./browser-view.types";
 
 export function resolveBrowserViewPresentation({
   scope,
