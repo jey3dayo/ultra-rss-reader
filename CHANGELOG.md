@@ -8,25 +8,31 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 - Web プレビューを main stage の fullscreen viewer として扱えるようにし、通常表示とオーバーレイ表示の体験を揃えた
 - Web プレビューのツールバー action を記事ツールバーに寄せ、重複していた close / browser 導線を整理した
+- Feed Cleanup に一括継続/保留と優先度表示を追加し、購読候補の仕分けを進めやすくした
+- sync の retry-pending 状態と次回再試行タイミングを sidebar / settings から確認できるようにした
 
 ### Bug Fixes
 
 - fullscreen Web プレビューの chrome / overlay root / compact preview / geometry diagnostics を見直し、狭い幅や Tauri 実機でも表示が崩れにくいようにした
-- Settings モーダルのスクロールと account rename の反映を修正し、設定操作時の不整合を減らした
-- Feed Cleanup を画面幅に追従するレイアウトへ調整し、review panel と broken references 画面の圧縮や重なりを修正した
-- Web プレビューのショートカット、smart view の status 表現、sidebar footer action の見え方を調整し、reader 補助 UI を磨いた
+- Settings モーダルのスクロール、account rename 反映、account detail / add-account / shortcut controls の狭幅レイアウトを修正し、設定操作時の不整合と窮屈さを減らした
+- Feed Cleanup を画面幅に追従するレイアウトへ調整し、overview / queue / review の重なりや情報過密、broken references 画面の圧縮を修正した
+- Storybook の i18n fallback crash、favicon 404 noise、固定幅 wrapper による mobile overflow を解消し、狭幅巡回を安定させた
+- browser-mode の `get_account_sync_status` validation error、Web プレビューのショートカット、smart view の status 表現、sidebar footer action の見え方を調整し、reader 補助 UI を磨いた
+- reader を sub-640px で single-pane 優先に見直し、記事ヘッダー操作や touch target の窮屈さを改善した
 - article list item の pointer / keyboard semantics を整理し、row 操作の a11y warning を解消した
 
 ### Documentation
 
 - fullscreen Web プレビュー geometry の spec / plan と、Feed Cleanup の copy / 情報設計メモを追加した
-- repository context file と UI review ベースの TODO を更新し、次の改善ポイントを整理した
+- release 前の native/manual verification checklist と incident runbook を追加し、CI 外で見るべき確認点を明文化した
+- feed content の privacy/CSP 方針、repository context file、UI review ベースの TODO を更新し、次の改善ポイントを整理した
 
 ### Maintenance
 
 - browser view / sidebar / feed cleanup / account detail まわりの責務分割を進め、reader 実装のリファクタを継続した
+- settings / shared / reader helper の contract を types file に寄せ、view props / controller hook の境界を整理した
 - debug HUD と image viewer 周辺を整理し、fullscreen preview 検証用の内部構成を簡素化した
-- テスト名の整理とローカル release skill の追加で、開発フローと release 準備を整えた
+- responsive Storybook・Vitest・e2e の回帰確認を増やし、テスト名の整理とローカル release skill の追加で開発フローと release 準備を整えた
 
 ## [0.10.0] - 2026-04-09
 
