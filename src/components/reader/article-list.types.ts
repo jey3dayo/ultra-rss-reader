@@ -1,10 +1,9 @@
 import type { TFunction } from "i18next";
-import type { ComponentProps, ReactNode, RefObject } from "react";
+import type { KeyboardEvent, ReactNode, RefObject } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import type { buildKeyToActionMap, KeyboardAction } from "@/lib/keyboard-shortcuts";
 import type { UiSelection } from "@/stores/ui-store";
-import type { ArticleListBody } from "./article-list-body";
-import type { ArticleListContextStrip } from "./article-list-context-strip";
-import type { ArticleListFooter } from "./article-list-footer";
+import type { ArticleGroupsViewGroup } from "./article-groups-view";
 import type { UseArticleListEffectsParams } from "./use-article-list-effects";
 import type { UseArticleListGroupsParams } from "./use-article-list-groups";
 import type { UseArticleListHeaderControlsResult } from "./use-article-list-header-controls";
@@ -57,9 +56,38 @@ export type ArticleListHeaderActionsProps = Pick<
   closeSearchLabel: string;
 };
 
-export type ArticleListContextStripProps = ComponentProps<typeof ArticleListContextStrip>;
-export type ArticleListBodyProps = ComponentProps<typeof ArticleListBody>;
-export type ArticleListFooterProps = ComponentProps<typeof ArticleListFooter>;
+export type ArticleListContextStripProps = {
+  primaryLabel?: string | null;
+  secondaryLabel?: string | null;
+  tone?: "unread" | "starred" | null;
+};
+
+export type ArticleListBodyProps = {
+  listAriaLabel: string;
+  listRef: RefObject<HTMLDivElement | null>;
+  viewportRef: RefObject<HTMLDivElement | null>;
+  onListKeyDownCapture: (event: KeyboardEvent<HTMLDivElement>) => void;
+  isLoading: boolean;
+  loadingMessage: string;
+  emptyMessage: string;
+  emptyDescription?: string;
+  emptyActionLabel?: string;
+  onEmptyAction?: () => void;
+  groups: ArticleGroupsViewGroup[];
+  dimArchived: string;
+  textPreview: string;
+  imagePreviews: string;
+  selectionStyle: string;
+  onSelectArticle: (articleId: string) => void;
+  markAllReadLabel: string;
+  onMarkAllRead: () => void;
+};
+
+export type ArticleListFooterProps = {
+  viewMode: ArticleListViewMode;
+  modes?: readonly ArticleListViewMode[];
+  onSetViewMode: (mode: ArticleListViewMode) => void;
+};
 
 export type UseArticleListViewPropsResult = {
   layoutMode: ArticleListLayoutMode;
@@ -188,6 +216,21 @@ export type UseArticleListGlobalEventsParams = {
   onNavigateArticle: (direction: 1 | -1) => void;
   onFocusSearch: UseArticleListSearchResult["openSearch"];
   onMarkAllRead: () => void;
+};
+
+export type HandleArticleListKeyboardActionParams = {
+  action: KeyboardAction;
+  clearArticle: () => void;
+  toggleSidebar: () => void;
+  openSidebar: () => void;
+};
+
+export type UseArticleListKeydownHandlerParams = {
+  selectedArticleId: string | null;
+  clearArticle: HandleArticleListKeyboardActionParams["clearArticle"];
+  toggleSidebar: HandleArticleListKeyboardActionParams["toggleSidebar"];
+  openSidebar: HandleArticleListKeyboardActionParams["openSidebar"];
+  keyToAction: ReturnType<typeof buildKeyToActionMap>;
 };
 
 export type UseArticleListDataParams = {
