@@ -270,6 +270,11 @@
   - 対応: `BrowserDiagnosticsRailProps` と `BrowserSurfaceStateCardProps` を `browser-view.types.ts` に追加して、subview は shared types を参照する形に寄せた
   - 対象: `src/components/reader/browser-view.types.ts`, `src/components/reader/browser-diagnostics-rail.tsx`, `src/components/reader/browser-surface-state-card.tsx`
 
+- [x] browser presentation helper の contract を shared types に寄せる
+  - 問題: `browser-view-presentation.ts` に local な params/result 型が残っていて、browser overlay presentation helper の正本を `browser-view.types.ts` から追えなかった
+  - 対応: `BrowserViewPresentation` と `ResolveBrowserViewPresentationParams` を `browser-view.types.ts` に追加して、presentation helper は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/browser-view.types.ts`, `src/components/reader/browser-view-presentation.ts`
+
 - [x] article browser overlay helper の contract を shared types に寄せる
   - 問題: `use-article-browser-overlay.ts` / `use-article-browser-overlay-close.ts` / `use-article-browser-overlay-display.ts` に local params/result 型が残っていて、overlay helper 境界の正本を `article-view.types.ts` から追えなかった
   - 対応: `UseArticleBrowserOverlayParams` / `UseArticleBrowserOverlayResult` / `UseArticleBrowserOverlayCloseParams` / `UseArticleBrowserOverlayDisplayParams` を `article-view.types.ts` に追加して、各 hook は shared types を参照する形に寄せた
@@ -289,6 +294,16 @@
   - 問題: `article-list-item.tsx` が local に props contract を持っていて、article list subview 境界を `article-list.types.ts` から一望できなかった
   - 対応: `ArticleListItemProps` を `article-list.types.ts` に移して、item component は shared types を参照する形に寄せた
   - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/article-list-item.tsx`
+
+- [x] account detail の account/controller contract を shared types に寄せる
+  - 問題: `account-detail.tsx` が `ReturnType<typeof useAccounts>` に依存し、`use-account-detail-controller.ts` に local params 型が残っていて、account detail 境界の正本を 1 箇所で追えなかった
+  - 対応: `AccountDetailAccount` と `UseAccountDetailControllerParams` を `account-detail.types.ts` に追加して、view component と controller は shared types を参照する形に寄せた
+  - 対象: `src/components/settings/account-detail.types.ts`, `src/components/settings/account-detail.tsx`, `src/components/settings/use-account-detail-controller.ts`
+
+- [x] browser view presentation contract を shared types に寄せる
+  - 問題: `browser-view-presentation.ts` が local な presentation/result 型を持っていて、presentation helper の正本を `browser-view.types.ts` から追えなかった
+  - 対応: `BrowserViewPresentation` と `ResolveBrowserViewPresentationParams` を `browser-view.types.ts` に追加して、presentation helper は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/browser-view.types.ts`, `src/components/reader/browser-view-presentation.ts`
 
 - [x] browser-view の load timeout 監視を hook 化する
   - 問題: `useBrowserViewController` に embedded browser の load timeout 監視 effect が残っていて、controller orchestration と runtime timeout 管理が混ざっていた
@@ -618,6 +633,11 @@
 - [x] feed dialog の shared props 型を `types` に寄せる
   - 問題: `rename-feed-dialog-view.tsx` が `feed-dialog-form-view.tsx` から型を直接 import していて、component file と型境界が混ざっていた
   - 対象: `src/components/reader/feed-dialog-form-view.tsx`, `src/components/reader/feed-dialog-form.types.ts`, `src/components/reader/rename-feed-dialog-view.tsx`
+
+- [x] feed dialog URL section の view contract を `types` に寄せる
+  - 問題: `feed-dialog-url-section.tsx` に local な view props 型が残っていて、`feed-dialog-form.types.ts` が component file 経由で URL section contract を参照していた
+  - 対応: `FeedDialogUrlSectionProps` と `FeedDialogUrlSectionViewProps` を `feed-dialog-form.types.ts` に集約して、URL section component は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/feed-dialog-form.types.ts`, `src/components/reader/feed-dialog-url-section.tsx`
 
 - [x] rename feed dialog の view/controller 型を `types` に寄せる
   - 問題: `rename-feed-dialog-view.tsx` と `use-rename-feed-dialog-controller.ts` に inline props / params / return 型が残っていて、component file と型境界が混ざっていた
