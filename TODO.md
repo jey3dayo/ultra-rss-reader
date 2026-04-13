@@ -210,6 +210,10 @@
   - 問題: `article-list.tsx` に context strip / footer mode / search-empty 判定が残っていて、表示状態の導出と画面構成が混ざっていた
   - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-view-state.ts`
 
+- [x] article-list の filtered/grouped data 導出を hook 化する
+  - 問題: `article-list.tsx` に effective view mode、filtered articles、grouped articles、selected feed 解決が残っていて、データ導出と画面構成が混ざっていた
+  - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-data.ts`
+
 - [x] reader の再利用境界がある state/controller 型を `types` 化する
   - 問題: `use-sidebar-feed-tree.ts` と `use-add-feed-dialog-controller.ts` に再利用余地のある union/state 型が残っている
   - 対象: `src/components/reader/use-sidebar-feed-tree.ts`, `src/components/reader/use-add-feed-dialog-controller.ts`
