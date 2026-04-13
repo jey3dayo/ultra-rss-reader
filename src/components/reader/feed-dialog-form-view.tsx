@@ -6,7 +6,6 @@ import {
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { StackedInputField } from "@/components/shared/stacked-input-field";
 import { StackedSelectField } from "@/components/shared/stacked-select-field";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -15,8 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { type DiscoveredFeedOption, DiscoveredFeedOptionsView } from "./discovered-feed-options-view";
+import { FeedDialogUrlSection, type FeedDialogUrlSectionProps } from "./feed-dialog-url-section";
 import { FolderSelectView, type FolderSelectViewProps } from "./folder-select-view";
 
 export type FeedDialogFormLabels = {
@@ -25,26 +23,6 @@ export type FeedDialogFormLabels = {
   cancel: string;
   submit: string;
   submitting: string;
-};
-
-export type FeedDialogUrlSectionProps = {
-  label: string;
-  value: string;
-  onValueChange: (value: string) => void;
-  onDiscover: () => void;
-  discoverLabel: string;
-  discoveringLabel: string;
-  discovering: boolean;
-  disabled: boolean;
-  discoverDisabled: boolean;
-  placeholder: string;
-  inputRef?: RefObject<HTMLInputElement | null>;
-  discoveredFeedsFoundLabel: string | null;
-  discoveredFeedOptions: DiscoveredFeedOption[];
-  selectedFeedUrl: string;
-  onSelectedFeedUrlChange: (value: string) => void;
-  helperText?: string | null;
-  helperTone?: "muted" | "error";
 };
 
 export type FeedDialogTextSectionProps = {
@@ -120,61 +98,7 @@ export function FeedDialogFormView({
           }}
           className="space-y-4"
         >
-          {urlSection && (
-            <>
-              <div className="space-y-2">
-                <label htmlFor={urlInputId} className="block text-sm text-muted-foreground">
-                  {urlSection.label}
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    id={urlInputId}
-                    ref={urlSection.inputRef}
-                    name="feed-url"
-                    type="url"
-                    value={urlSection.value}
-                    onChange={(event) => urlSection.onValueChange(event.target.value)}
-                    placeholder={urlSection.placeholder}
-                    disabled={urlSection.disabled}
-                    aria-describedby={urlSection.helperText ? urlHelperTextId : undefined}
-                    aria-errormessage={urlSection.helperTone === "error" ? urlHelperTextId : undefined}
-                    aria-invalid={urlSection.helperTone === "error" ? true : undefined}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={urlSection.onDiscover}
-                    disabled={urlSection.discoverDisabled}
-                    className="shrink-0"
-                  >
-                    {urlSection.discovering ? urlSection.discoveringLabel : urlSection.discoverLabel}
-                  </Button>
-                </div>
-              </div>
-
-              {urlSection.discoveredFeedOptions.length > 0 && urlSection.discoveredFeedsFoundLabel && (
-                <DiscoveredFeedOptionsView
-                  summary={urlSection.discoveredFeedsFoundLabel}
-                  name="discovered-feed"
-                  value={urlSection.selectedFeedUrl}
-                  options={urlSection.discoveredFeedOptions}
-                  onValueChange={urlSection.onSelectedFeedUrlChange}
-                />
-              )}
-
-              {urlSection.helperText ? (
-                <p
-                  id={urlHelperTextId}
-                  className={
-                    urlSection.helperTone === "error" ? "text-sm text-destructive" : "text-sm text-muted-foreground"
-                  }
-                >
-                  {urlSection.helperText}
-                </p>
-              ) : null}
-            </>
-          )}
+          {urlSection && <FeedDialogUrlSection {...urlSection} inputId={urlInputId} helperTextId={urlHelperTextId} />}
 
           {textSection && (
             <StackedInputField
