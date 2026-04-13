@@ -88,6 +88,15 @@ export type FeedTreeRowProps = {
   consumeSuppressedHandleClick?: () => boolean;
 };
 
+export type FeedTreeDragHandleProps = {
+  feedTitle: string;
+  canDragFeeds?: FeedTreeRowProps["canDragFeeds"];
+  isArmed?: FeedTreeRowProps["isDragged"];
+  onArm?: () => void;
+  onPointerDown?: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  consumeSuppressedClick?: FeedTreeRowProps["consumeSuppressedHandleClick"];
+};
+
 export type FeedTreeUnfolderedSectionProps = {
   unfolderedFeeds: FeedTreeFeedViewModel[];
   unfolderedLabel?: string;

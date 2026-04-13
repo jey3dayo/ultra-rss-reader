@@ -1,22 +1,12 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { GripVertical } from "lucide-react";
-import type { PointerEvent as ReactPointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { cn } from "@/lib/utils";
-import type { FeedTreeRowProps } from "./feed-tree.types";
+import type { FeedTreeDragHandleProps, FeedTreeRowProps } from "./feed-tree.types";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
 export type { FeedTreeFeedViewModel, FeedTreeRowProps } from "./feed-tree.types";
-
-type DragHandleProps = {
-  feedTitle: string;
-  canDragFeeds?: boolean;
-  isArmed?: boolean;
-  onArm?: () => void;
-  onPointerDown?: (event: ReactPointerEvent<HTMLButtonElement>) => void;
-  consumeSuppressedClick?: () => boolean;
-};
 
 function DragHandle({
   feedTitle,
@@ -25,7 +15,7 @@ function DragHandle({
   onArm,
   onPointerDown,
   consumeSuppressedClick,
-}: DragHandleProps) {
+}: FeedTreeDragHandleProps) {
   const { t } = useTranslation("sidebar");
 
   if (!canDragFeeds) {
