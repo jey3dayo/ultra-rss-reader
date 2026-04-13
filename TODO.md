@@ -54,6 +54,11 @@
   - 対応: `settings-page.types.ts` に row helper props contract を追加して、settings page view は shared types を再利用する形に寄せた
   - 対象: `src/components/settings/settings-page.types.ts`, `src/components/settings/settings-page-view.tsx`
 
+- [x] settings helper component の inline prop contract を named type に寄せる
+  - 問題: `settings-components.tsx` の `SettingsSwitch` / `SettingsSelect` と `shortcuts-settings-view.tsx` の `ShortcutKeyBadge` が inline object type を持っていて、settings helper contract の追跡がしづらかった
+  - 対応: helper props を named type にして、settings helper component の契約を file 冒頭で追える形に寄せた
+  - 対象: `src/components/settings/settings-components.tsx`, `src/components/settings/shortcuts-settings-view.tsx`
+
 - [x] confirm dialog 系の shell / footer を `src/components/shared` に寄せる
   - 問題: `ConfirmDialog` と `ConfirmDialogView` がほぼ同型で、destructive footer も複数 dialog に重複している
   - 対象: `src/components/ui/confirm-dialog.tsx`, `src/components/shared/*`, `src/components/feed-cleanup/*`
