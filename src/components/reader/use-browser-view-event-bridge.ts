@@ -1,22 +1,10 @@
-import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useCallback } from "react";
-import type { BrowserWebviewState } from "@/api/tauri-commands";
-import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser-debug-geometry";
 import { useUiStore } from "@/stores/ui-store";
+import type { UseBrowserViewEventBridgeParams, UseBrowserViewEventBridgeResult } from "./browser-view.types";
 import type { BrowserWebviewFallbackPayload } from "./browser-webview-state";
 import { useBrowserViewSurfaceController } from "./use-browser-view-surface-controller";
 import { useBrowserWebviewEvents } from "./use-browser-webview-events";
 import { useBrowserWebviewStateChanged } from "./use-browser-webview-state-changed";
-
-type UseBrowserViewEventBridgeParams = {
-  showDiagnostics: boolean;
-  isLoading: boolean;
-  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
-  fallbackInFlightRef: MutableRefObject<boolean>;
-  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
-  onCloseOverlay: () => void;
-  onDiagnostics: (payload: BrowserDebugGeometryNativeDiagnostics) => void;
-};
 
 export function useBrowserViewEventBridge({
   showDiagnostics,
@@ -26,7 +14,7 @@ export function useBrowserViewEventBridge({
   setBrowserState,
   onCloseOverlay,
   onDiagnostics,
-}: UseBrowserViewEventBridgeParams) {
+}: UseBrowserViewEventBridgeParams): UseBrowserViewEventBridgeResult {
   const {
     setSurfaceIssue,
     handleLostEmbeddedBrowserWebview,
@@ -68,5 +56,5 @@ export function useBrowserViewEventBridge({
     showSurfaceFailure,
     activeSurfaceIssue,
     waitForBrowserWebviewListeners,
-  } as const;
+  };
 }

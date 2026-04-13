@@ -1,6 +1,6 @@
 import type { Dispatch, MutableRefObject, ReactNode, RefObject, SetStateAction } from "react";
 import type { PlatformInfo } from "@/api/schemas";
-import type { BrowserWebviewState } from "@/api/tauri-commands";
+import type { AppError, BrowserWebviewState } from "@/api/tauri-commands";
 import type {
   BrowserDebugGeometryLayoutDiagnostics,
   BrowserDebugGeometryNativeDiagnostics,
@@ -96,4 +96,22 @@ export type UseBrowserViewRuntimeResult = {
   viewportWidth: number;
   isLoading: boolean;
   handleCloseOverlay: () => void;
+};
+
+export type UseBrowserViewEventBridgeParams = {
+  showDiagnostics: boolean;
+  isLoading: boolean;
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
+  fallbackInFlightRef: MutableRefObject<boolean>;
+  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
+  onCloseOverlay: () => void;
+  onDiagnostics: (payload: BrowserWebviewDiagnosticsPayload) => void;
+};
+
+export type UseBrowserViewEventBridgeResult = {
+  setSurfaceIssue: (issue: BrowserSurfaceIssue | null) => void;
+  handleLostEmbeddedBrowserWebview: (error: AppError) => void;
+  showSurfaceFailure: (error: AppError) => void;
+  activeSurfaceIssue: BrowserSurfaceIssue | null;
+  waitForBrowserWebviewListeners: () => Promise<void>;
 };
