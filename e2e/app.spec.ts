@@ -118,8 +118,9 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await expect(page.getByTestId("feed-cleanup-review-panel")).toContainText(
       /Why this feed is here|候補に入った理由/i,
     );
-    await expect(page.getByRole("button", { name: /^Keep$|^残す$/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Later|あとで見る/i })).toBeVisible();
+    const reviewActions = page.getByTestId("feed-cleanup-review-actions");
+    await expect(reviewActions.getByRole("button", { name: /^Keep$|^残す$/i })).toBeVisible();
+    await expect(reviewActions.getByRole("button", { name: /^Defer$|^保留$/i })).toBeVisible();
   });
 
   test("keeps feed cleanup actions above the queue on narrow screens", async ({ page }) => {

@@ -18,6 +18,8 @@ export function FeedCleanupPage() {
   const { t: tc } = useTranslation("common");
   const feedCleanupOpen = useUiStore((state) => state.feedCleanupOpen);
   const closeFeedCleanup = useUiStore((state) => state.closeFeedCleanup);
+  const showToast = useUiStore((state) => state.showToast);
+  const clearToast = useUiStore((state) => state.clearToast);
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
   const deleteFeedMutation = useDeleteFeed();
   const { data: feeds = [] } = useFeeds(selectedAccountId);
@@ -71,7 +73,34 @@ export function FeedCleanupPage() {
   const bulkActionDisabled =
     cleanupState.visibleCandidates.length === 0 ||
     cleanupState.isEditingSelectedFeed ||
-    cleanupState.deleteTarget != null;
+    cleanupState.deleteTargets.length > 0;
+
+  const showDecisionToast = (decision: "keep" | "defer") => {
+    const targetIds = cleanupState.decisionTargetIds;
+    if (targetIds.length === 0) {
+      return;
+    }
+
+    const title = feeds.find((feed) => feed.id === targetIds[0])?.title ?? t("queue");
+    const message =
+      targetIds.length === 1
+        ? t(decision === "keep" ? "decision_kept" : "decision_deferred", { title })
+        : t(decision === "keep" ? "decision_kept_other" : "decision_deferred_other", { count: targetIds.length });
+
+    showToast({
+      message,
+      persistent: true,
+      actions: [
+        {
+          label: t("undo"),
+          onClick: () => {
+            cleanupState.undoLastDecision();
+            clearToast();
+          },
+        },
+      ],
+    });
+  };
 
   if (!feedCleanupOpen) {
     return null;
@@ -91,6 +120,10 @@ export function FeedCleanupPage() {
         bulkKeepVisibleLabel={t("bulk_keep_visible")}
         bulkDeferVisibleLabel={t("bulk_defer_visible")}
         queueLabel={t("queue")}
+        bulkSelectionScopeLabel={t("bulk_selection_scope")}
+        bulkKeepActionLabel={t("bulk_keep_selected")}
+        bulkDeferActionLabel={t("bulk_defer_selected")}
+        bulkDeleteActionLabel={t("bulk_delete_selected")}
         reviewLabel={t("review")}
         summaryCards={summaryCards}
         integrityIssue={
@@ -133,7 +166,13 @@ export function FeedCleanupPage() {
         showDeferredLabel={cleanupState.showDeferred ? t("hide_deferred") : t("show_deferred")}
         emptyLabel={t("empty")}
         keepLabel={t("keep")}
-        laterLabel={t("later")}
+        laterLabel={t("defer")}
+        currentStatusLabel={t("current_status")}
+        reviewStatusLabel={t("review_status")}
+        selectedCountLabel={t("selected_count", { count: cleanupState.selectedFeedIds.size })}
+        selectCandidateLabel={t("select_candidate")}
+        selectedStateLabel={t("selected_state")}
+        focusedStateLabel={t("focused_state")}
         deleteLabel={t("delete")}
         editLabel={tr("edit_feed")}
         folderLabel={t("folder")}
@@ -173,7 +212,20 @@ export function FeedCleanupPage() {
         onKeepVisible={cleanupState.markVisibleCandidatesKept}
         onDeferVisible={cleanupState.markVisibleCandidatesDeferred}
         onSelectCandidate={cleanupState.selectCandidate}
+        onToggleCandidateSelection={cleanupState.toggleCandidateSelection}
         onSelectIntegrityIssue={cleanupState.selectIntegrityIssue}
+        onMoveFocusNext={cleanupState.moveFocusNext}
+        onMoveFocusPrevious={cleanupState.moveFocusPrevious}
+        onKeepDecision={() => {
+          cleanupState.markSelectedCandidateKept();
+          showDecisionToast("keep");
+        }}
+        onDeferDecision={() => {
+          cleanupState.markSelectedCandidateDeferred();
+          showDecisionToast("defer");
+        }}
+        onDeleteDecision={cleanupState.requestDeleteForDecisionTargets}
+        onSyncReviewToFocus={cleanupState.syncReviewToFocusedCandidate}
         editing={cleanupState.isEditingSelectedFeed}
         editor={
           cleanupState.isEditingSelectedFeed && cleanupState.selectedFeed ? (
@@ -191,16 +243,40 @@ export function FeedCleanupPage() {
             />
           ) : null
         }
-        onKeep={cleanupState.markSelectedCandidateKept}
+        onKeep={() => {
+          cleanupState.markSelectedCandidateKept();
+          showDecisionToast("keep");
+        }}
         onEdit={cleanupState.startEditingSelectedFeed}
-        onLater={cleanupState.markSelectedCandidateDeferred}
-        onDelete={cleanupState.requestDeleteForSelectedCandidate}
+        onLater={() => {
+          cleanupState.markSelectedCandidateDeferred();
+          showDecisionToast("defer");
+        }}
+        onDelete={cleanupState.requestDeleteForDecisionTargets}
+        selectedFeedIds={cleanupState.selectedFeedIds}
+        focusedFeedId={cleanupState.focusedFeedId}
+        currentStatusValue={cleanupState.selectedCandidate?.deferred ? t("defer") : t("review_status")}
+        keyboardHints={{
+          moveLabel: t("keyboard_move"),
+          moveKeys: t("keyboard_move_keys"),
+          selectLabel: t("keyboard_select"),
+          selectKeys: t("keyboard_select_keys"),
+          reviewLabel: t("keyboard_review"),
+          reviewKeys: t("keyboard_review_keys"),
+          keepKeys: t("keyboard_keep_keys"),
+          deferKeys: t("keyboard_defer_keys"),
+          deleteKeys: t("keyboard_delete_keys"),
+        }}
+        suspendKeyboardShortcuts={cleanupState.deleteTargets.length > 0}
       />
 
       <FeedCleanupDeleteDialog
-        candidate={cleanupState.deleteTarget ?? null}
-        open={cleanupState.deleteTarget != null}
+        candidates={cleanupState.deleteTargets}
+        open={cleanupState.deleteTargets.length > 0}
         title={t("delete_title")}
+        bulkTitle={t("delete_bulk_title")}
+        bulkSummary={t("delete_bulk_summary", { count: cleanupState.deleteTargets.length })}
+        warningLabel={cleanupState.deleteTargets.length > 1 ? t("delete_warning_bulk") : t("delete_warning_single")}
         dateLocale={dateLocale}
         cancelLabel={tc("cancel")}
         deleteLabel={t("delete")}
@@ -215,21 +291,31 @@ export function FeedCleanupPage() {
             cleanupState.clearDeleteTarget();
           }
         }}
-        onConfirm={() => {
-          const target = cleanupState.deleteTarget;
-          if (!target) {
+        onConfirm={async () => {
+          const targets = cleanupState.deleteTargets;
+          if (targets.length === 0) {
             return;
           }
 
-          void deleteFeedMutation
-            .mutateAsync({
-              feedId: target.feedId,
-              title: target.title,
-              onSuccess: () => {
-                cleanupState.deleteSucceeded(target.feedId);
-              },
-            })
-            .catch(() => undefined);
+          const deletedFeedIds: string[] = [];
+
+          for (const target of targets) {
+            try {
+              await deleteFeedMutation.mutateAsync({
+                feedId: target.feedId,
+                title: target.title,
+                onSuccess: () => {
+                  deletedFeedIds.push(target.feedId);
+                },
+              });
+            } catch {
+              break;
+            }
+          }
+
+          if (deletedFeedIds.length > 0) {
+            cleanupState.deleteSucceeded(deletedFeedIds);
+          }
         }}
       />
     </>

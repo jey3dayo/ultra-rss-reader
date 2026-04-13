@@ -15,9 +15,12 @@ function formatDate(value: string | null, locale: string): string {
 }
 
 export function FeedCleanupDeleteDialog({
-  candidate,
+  candidates,
   open,
   title,
+  bulkTitle,
+  bulkSummary,
+  warningLabel,
   dateLocale,
   cancelLabel,
   deleteLabel,
@@ -30,31 +33,47 @@ export function FeedCleanupDeleteDialog({
   onOpenChange,
   onConfirm,
 }: FeedCleanupDeleteDialogProps) {
+  const primaryCandidate = candidates[0] ?? null;
+  const bulkDelete = candidates.length > 1;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false} className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>{bulkDelete ? bulkTitle : title}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 text-sm text-muted-foreground">
-          <p className="font-medium text-foreground">{candidate?.title ?? ""}</p>
-          <p>
-            {latestArticleLabel}: {formatDate(candidate?.latestArticleAt ?? null, dateLocale)}
+          <p className="font-medium text-foreground">{bulkDelete ? bulkSummary : (primaryCandidate?.title ?? "")}</p>
+          <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            {warningLabel}
           </p>
-          <p>
-            {unreadCountLabel}: {candidate?.unreadCount ?? 0}
-          </p>
-          <p>
-            {starredCountLabel}: {candidate?.starredCount ?? 0}
-          </p>
-          <div className="space-y-2">
-            <p className="text-foreground">{reasonsLabel}</p>
+          {bulkDelete ? (
             <ul className="space-y-1">
-              {candidate?.reasonKeys.map((reason) => (
-                <li key={reason}>{reasonLabels[reason]}</li>
+              {candidates.map((candidate) => (
+                <li key={candidate.feedId}>{candidate.title}</li>
               ))}
             </ul>
-          </div>
+          ) : (
+            <>
+              <p>
+                {latestArticleLabel}: {formatDate(primaryCandidate?.latestArticleAt ?? null, dateLocale)}
+              </p>
+              <p>
+                {unreadCountLabel}: {primaryCandidate?.unreadCount ?? 0}
+              </p>
+              <p>
+                {starredCountLabel}: {primaryCandidate?.starredCount ?? 0}
+              </p>
+              <div className="space-y-2">
+                <p className="text-foreground">{reasonsLabel}</p>
+                <ul className="space-y-1">
+                  {primaryCandidate?.reasonKeys.map((reason) => (
+                    <li key={reason}>{reasonLabels[reason]}</li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
         </div>
         <DestructiveDialogFooter
           cancelLabel={cancelLabel}

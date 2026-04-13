@@ -53,7 +53,28 @@ export type FeedCleanupSelectedSummary = {
   summaryKey: FeedCleanupSummaryKey;
 };
 
+export type FeedCleanupKeyboardHints = {
+  moveLabel: string;
+  moveKeys: string;
+  selectLabel: string;
+  selectKeys: string;
+  reviewLabel: string;
+  reviewKeys: string;
+  keepKeys: string;
+  deferKeys: string;
+  deleteKeys: string;
+};
+
 export type FeedCleanupQueueCandidate = FeedCleanupCandidate & { deferred?: boolean };
+
+export type FeedCleanupDecisionStatus = "review" | "keep" | "defer";
+
+export type FeedCleanupLastDecisionAction = {
+  decision: Exclude<FeedCleanupDecisionStatus, "review">;
+  feedIds: string[];
+  previousKeptFeedIds: string[];
+  previousDeferredFeedIds: string[];
+};
 
 export type FeedCleanupOverviewPanelProps = {
   overviewLabel: string;
@@ -89,7 +110,27 @@ export type FeedCleanupQueuePanelProps = {
   emptyLabel: string;
   queue: FeedCleanupQueueCandidate[];
   selectedCandidate: FeedCleanupQueueCandidate | null;
+  selectedFeedIds?: ReadonlySet<string>;
+  focusedFeedId?: string | null;
   onSelectCandidate: (candidateId: string) => void;
+  onToggleCandidateSelection?: (candidateId: string) => void;
+  bulkBarVisible?: boolean;
+  selectedCountLabel?: string;
+  selectCandidateLabel?: string;
+  selectedStateLabel?: string;
+  focusedStateLabel?: string;
+  reviewStatusLabel?: string;
+  deferredLabel?: string;
+  keepLabel?: string;
+  deleteLabel?: string;
+  onKeepSelection?: () => void;
+  onDeferSelection?: () => void;
+  onDeleteSelection?: () => void;
+  bulkSelectionScopeLabel?: string;
+  bulkKeepActionLabel?: string;
+  bulkDeferActionLabel?: string;
+  bulkDeleteActionLabel?: string;
+  keyboardHints?: FeedCleanupKeyboardHints;
   unreadCountLabel: string;
   starredCountLabel: string;
   deferredBadgeLabel: string;
@@ -107,6 +148,9 @@ export type FeedCleanupReviewPanelProps = {
   integrityDetailLabels: FeedCleanupIntegrityDetailLabels;
   selectedCandidate: FeedCleanupQueueCandidate | null;
   selectedSummary: FeedCleanupSelectedSummary | null;
+  currentStatusLabel?: string;
+  currentStatusValue?: string;
+  deferLabel?: string;
   folderLabel: string;
   latestArticleLabel: string;
   unreadCountLabel: string;
@@ -129,6 +173,7 @@ export type FeedCleanupReviewPanelProps = {
   onKeep: () => void;
   onLater: () => void;
   onDelete: () => void;
+  keyboardHints?: FeedCleanupKeyboardHints;
 };
 
 export type FeedCleanupPageViewProps = {
@@ -143,6 +188,10 @@ export type FeedCleanupPageViewProps = {
   bulkKeepVisibleLabel: string;
   bulkDeferVisibleLabel: string;
   queueLabel: string;
+  bulkSelectionScopeLabel: string;
+  bulkKeepActionLabel: string;
+  bulkDeferActionLabel: string;
+  bulkDeleteActionLabel: string;
   reviewLabel: string;
   summaryCards: ReadonlyArray<FeedCleanupSummaryCard>;
   integrityIssue: {
@@ -168,6 +217,12 @@ export type FeedCleanupPageViewProps = {
   emptyLabel: string;
   keepLabel: string;
   laterLabel: string;
+  currentStatusLabel: string;
+  reviewStatusLabel: string;
+  selectedCountLabel: string;
+  selectCandidateLabel: string;
+  selectedStateLabel: string;
+  focusedStateLabel: string;
   deleteLabel: string;
   editLabel: string;
   folderLabel: string;
@@ -191,17 +246,32 @@ export type FeedCleanupPageViewProps = {
   onKeepVisible: () => void;
   onDeferVisible: () => void;
   onSelectCandidate: (candidateId: string) => void;
+  onToggleCandidateSelection: (candidateId: string) => void;
   onSelectIntegrityIssue: (missingFeedId: string) => void;
+  onMoveFocusNext: () => void;
+  onMoveFocusPrevious: () => void;
+  onKeepDecision: () => void;
+  onDeferDecision: () => void;
+  onDeleteDecision: () => void;
+  onSyncReviewToFocus: () => void;
   onEdit: () => void;
   onKeep: () => void;
   onLater: () => void;
   onDelete: () => void;
+  selectedFeedIds: ReadonlySet<string>;
+  focusedFeedId: string | null;
+  currentStatusValue: string;
+  keyboardHints: FeedCleanupKeyboardHints;
+  suspendKeyboardShortcuts: boolean;
 };
 
 export type FeedCleanupDeleteDialogProps = {
-  candidate: FeedCleanupCandidate | null;
+  candidates: FeedCleanupCandidate[];
   open: boolean;
   title: string;
+  bulkTitle: string;
+  bulkSummary: string;
+  warningLabel: string;
   dateLocale: string;
   cancelLabel: string;
   deleteLabel: string;
@@ -284,23 +354,27 @@ export type FeedCleanupPageState = {
   deferredFeedIds: Set<string>;
   showDeferred: boolean;
   selectedFeedId: string | null;
-  deleteTargetId: string | null;
+  focusedFeedId: string | null;
+  selectedFeedIds: Set<string>;
+  deleteTargetIds: string[];
   editingFeedId: string | null;
   queueMode: "cleanup" | "integrity";
   selectedIntegrityFeedId: string | null;
+  lastDecisionAction: FeedCleanupLastDecisionAction | null;
 };
 
 export type FeedCleanupPageAction =
   | { type: "toggle-filter"; key: FeedCleanupFilterKey }
   | { type: "toggle-show-deferred" }
   | { type: "set-selected-feed-id"; feedId: string | null }
+  | { type: "set-focused-feed-id"; feedId: string | null }
+  | { type: "toggle-selected-feed-id"; feedId: string }
+  | { type: "clear-selected-feed-ids" }
   | { type: "set-selected-integrity-feed-id"; feedId: string | null }
   | { type: "toggle-queue-mode" }
   | { type: "set-queue-mode"; mode: FeedCleanupPageState["queueMode"] }
   | { type: "set-editing-feed-id"; feedId: string | null }
-  | { type: "set-delete-target-id"; feedId: string | null }
-  | { type: "mark-kept"; feedId: string }
-  | { type: "mark-many-kept"; feedIds: string[] }
-  | { type: "mark-deferred"; feedId: string }
-  | { type: "mark-many-deferred"; feedIds: string[] }
-  | { type: "delete-succeeded"; feedId: string };
+  | { type: "set-delete-target-ids"; feedIds: string[] }
+  | { type: "apply-decision"; decision: Exclude<FeedCleanupDecisionStatus, "review">; feedIds: string[] }
+  | { type: "undo-last-decision" }
+  | { type: "delete-succeeded"; feedIds: string[] };

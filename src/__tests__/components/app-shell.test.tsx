@@ -134,7 +134,7 @@ describe("AppShell", () => {
     if (!toastMessage) {
       throw new Error("Expected copy toast message to be set");
     }
-    expect(screen.getByText(toastMessage)).toBeInTheDocument();
+    expect(screen.getAllByText(toastMessage).length).toBeGreaterThan(0);
   });
 
   it("copies the debug HUD contents when activated from the keyboard", async () => {

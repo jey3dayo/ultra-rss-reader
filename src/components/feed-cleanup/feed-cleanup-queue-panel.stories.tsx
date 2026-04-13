@@ -64,7 +64,20 @@ const baseLabels = {
     healthy_feed: "This subscription still looks healthy.",
   },
   onSelectCandidate: () => {},
+  onToggleCandidateSelection: () => {},
   onSelectIntegrityIssue: () => {},
+  bulkBarVisible: false,
+  selectedCountLabel: "0 selected",
+  selectCandidateLabel: "Select candidate",
+  selectedStateLabel: "Selected",
+  focusedStateLabel: "Focused",
+  reviewStatusLabel: "Review",
+  deferredLabel: "Defer",
+  keepLabel: "Keep",
+  deleteLabel: "Delete",
+  onKeepSelection: () => {},
+  onDeferSelection: () => {},
+  onDeleteSelection: () => {},
 } as const;
 
 export const CleanupQueue: Story = {
@@ -98,6 +111,10 @@ export const CleanupQueue: Story = {
         deferred: true,
       },
     ],
+    selectedFeedIds: new Set(["feed-1"]),
+    focusedFeedId: "feed-1",
+    bulkBarVisible: true,
+    selectedCountLabel: "1 selected",
     selectedCandidate: {
       feedId: "feed-1",
       title: "Old Product Blog",
@@ -124,6 +141,8 @@ export const IntegrityQueue: Story = {
         latest_article_published_at: "2025-10-05T00:00:00.000Z",
       },
     ],
+    selectedFeedIds: new Set(),
+    focusedFeedId: null,
     selectedIntegrityIssue: {
       missing_feed_id: "missing-feed-42",
       article_count: 12,

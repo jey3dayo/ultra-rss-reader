@@ -5,6 +5,16 @@ import { cn } from "@/lib/utils";
 import type { FeedCleanupReviewPanelProps } from "./feed-cleanup.types";
 import { FeedCleanupCard, FeedCleanupDetailRow } from "./feed-cleanup-card";
 
+function ShortcutBadge({ label }: { label: string }) {
+  return (
+    <span aria-hidden="true">
+      <kbd className="rounded-md border border-border/80 bg-background/80 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+        {label}
+      </kbd>
+    </span>
+  );
+}
+
 function formatDate(value: string | null, locale: string): string {
   if (!value) {
     return "—";
@@ -38,6 +48,9 @@ export function FeedCleanupReviewPanel({
   integrityDetailLabels,
   selectedCandidate,
   selectedSummary,
+  currentStatusLabel = "Current status",
+  currentStatusValue = "Review",
+  deferLabel,
   folderLabel,
   latestArticleLabel,
   unreadCountLabel,
@@ -60,8 +73,20 @@ export function FeedCleanupReviewPanel({
   onKeep,
   onLater,
   onDelete,
+  keyboardHints = {
+    moveLabel: "Move",
+    moveKeys: "J / K",
+    selectLabel: "Select",
+    selectKeys: "Space",
+    reviewLabel: "Review",
+    reviewKeys: "Enter",
+    keepKeys: "Shift+K",
+    deferKeys: "L",
+    deleteKeys: "D",
+  },
 }: FeedCleanupReviewPanelProps) {
   const toneClassName = resolveToneClassName(selectedSummary?.tone ?? null);
+  const resolvedDeferLabel = deferLabel ?? laterLabel;
 
   return (
     <section
@@ -116,6 +141,17 @@ export function FeedCleanupReviewPanel({
       ) : selectedCandidate ? (
         <div className="flex min-h-0 flex-1 flex-col gap-4">
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+            <div className="rounded-2xl border border-border/80 bg-card/70 px-4 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+                    Feed console
+                  </p>
+                  <h4 className="mt-1 text-base font-semibold text-foreground">{selectedCandidate.title}</h4>
+                </div>
+              </div>
+            </div>
+
             {selectedSummary ? (
               <div className={cn("rounded-2xl border px-4 py-4", toneClassName)}>
                 <div
@@ -163,18 +199,55 @@ export function FeedCleanupReviewPanel({
 
           <div className="border-t border-border/70 pt-3">
             <div data-testid="feed-cleanup-review-actions" className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <div className="flex w-full flex-wrap items-center gap-3 rounded-2xl border border-border bg-card/80 px-3 py-2 sm:w-auto">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+                    {currentStatusLabel}
+                  </span>
+                  <span
+                    data-testid="feed-cleanup-current-status-value"
+                    className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground"
+                  >
+                    {currentStatusValue}
+                  </span>
+                </div>
+                <div className="inline-flex rounded-full border border-border bg-background p-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-pressed={currentStatusValue === keepLabel}
+                    className={cn(
+                      "rounded-full px-3",
+                      currentStatusValue === keepLabel && "bg-primary text-primary-foreground hover:bg-primary/90",
+                    )}
+                    onClick={onKeep}
+                  >
+                    {keepLabel}
+                    <ShortcutBadge label={keyboardHints.keepKeys} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-pressed={currentStatusValue === resolvedDeferLabel}
+                    className={cn(
+                      "rounded-full px-3",
+                      currentStatusValue === resolvedDeferLabel &&
+                        "bg-secondary text-secondary-foreground hover:bg-secondary/90",
+                    )}
+                    onClick={onLater}
+                  >
+                    {resolvedDeferLabel}
+                    <ShortcutBadge label={keyboardHints.deferKeys} />
+                  </Button>
+                </div>
+              </div>
+              <DeleteButton className="w-full justify-center sm:w-auto" onClick={onDelete}>
+                {deleteLabel}
+                <ShortcutBadge label={keyboardHints.deleteKeys} />
+              </DeleteButton>
               <Button variant="ghost" className="w-full justify-center sm:w-auto" onClick={onEdit}>
                 {editLabel}
               </Button>
-              <Button variant="outline" className="w-full justify-center sm:w-auto" onClick={onKeep}>
-                {keepLabel}
-              </Button>
-              <Button variant="secondary" className="w-full justify-center sm:w-auto" onClick={onLater}>
-                {laterLabel}
-              </Button>
-              <DeleteButton className="w-full justify-center sm:w-auto" onClick={onDelete}>
-                {deleteLabel}
-              </DeleteButton>
             </div>
           </div>
         </div>

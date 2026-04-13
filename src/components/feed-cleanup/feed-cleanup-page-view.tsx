@@ -32,6 +32,10 @@ export function FeedCleanupPageView({
   bulkKeepVisibleLabel,
   bulkDeferVisibleLabel,
   queueLabel,
+  bulkSelectionScopeLabel,
+  bulkKeepActionLabel,
+  bulkDeferActionLabel,
+  bulkDeleteActionLabel,
   reviewLabel,
   summaryCards,
   integrityIssue,
@@ -53,6 +57,12 @@ export function FeedCleanupPageView({
   emptyLabel,
   keepLabel,
   laterLabel,
+  currentStatusLabel,
+  reviewStatusLabel,
+  selectedCountLabel,
+  selectCandidateLabel,
+  selectedStateLabel,
+  focusedStateLabel,
   deleteLabel,
   editLabel,
   folderLabel,
@@ -76,14 +86,67 @@ export function FeedCleanupPageView({
   onKeepVisible,
   onDeferVisible,
   onSelectCandidate,
+  onToggleCandidateSelection,
   onSelectIntegrityIssue,
+  onMoveFocusNext,
+  onMoveFocusPrevious,
+  onKeepDecision,
+  onDeferDecision,
+  onDeleteDecision,
+  onSyncReviewToFocus,
   onEdit,
   onKeep,
   onLater,
   onDelete,
+  selectedFeedIds,
+  focusedFeedId,
+  currentStatusValue,
+  keyboardHints,
+  suspendKeyboardShortcuts,
 }: FeedCleanupPageViewProps) {
   const layoutRef = useRef<HTMLDivElement | null>(null);
+  const keyboardStateRef = useRef({
+    editing,
+    focusedFeedId,
+    integrityMode,
+    onDeferDecision,
+    onDeleteDecision,
+    onKeepDecision,
+    onMoveFocusNext,
+    onMoveFocusPrevious,
+    onSyncReviewToFocus,
+    onToggleCandidateSelection,
+    suspendKeyboardShortcuts,
+  });
   const [layoutWidth, setLayoutWidth] = useState(() => resolveFeedCleanupLayoutWidth(null));
+
+  useEffect(() => {
+    keyboardStateRef.current = {
+      editing,
+      focusedFeedId,
+      integrityMode,
+      onDeferDecision,
+      onDeleteDecision,
+      onKeepDecision,
+      onMoveFocusNext,
+      onMoveFocusPrevious,
+      onSyncReviewToFocus,
+      onToggleCandidateSelection,
+      suspendKeyboardShortcuts,
+    };
+  }, [
+    editing,
+    focusedFeedId,
+    integrityMode,
+    onDeferDecision,
+    onDeleteDecision,
+    onKeepDecision,
+    onMoveFocusNext,
+    onMoveFocusPrevious,
+    onSyncReviewToFocus,
+    onToggleCandidateSelection,
+    suspendKeyboardShortcuts,
+  ]);
 
   useEffect(() => {
     const updateLayoutWidth = () => {
@@ -108,6 +171,64 @@ export function FeedCleanupPageView({
       observer?.disconnect();
       window.removeEventListener("resize", updateLayoutWidth);
     };
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const state = keyboardStateRef.current;
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (state.integrityMode || state.editing || state.suspendKeyboardShortcuts) {
+        return;
+      }
+
+      switch (event.key) {
+        case "j":
+          event.preventDefault();
+          state.onMoveFocusNext();
+          return;
+        case "k":
+          event.preventDefault();
+          state.onMoveFocusPrevious();
+          return;
+        case "K":
+          event.preventDefault();
+          state.onKeepDecision();
+          return;
+        case "l":
+          event.preventDefault();
+          state.onDeferDecision();
+          return;
+        case "d":
+          event.preventDefault();
+          state.onDeleteDecision();
+          return;
+        case " ":
+          if (!state.focusedFeedId) {
+            return;
+          }
+          event.preventDefault();
+          state.onToggleCandidateSelection(state.focusedFeedId);
+          return;
+        case "Enter":
+          event.preventDefault();
+          state.onSyncReviewToFocus();
+          return;
+        default:
+          return;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const layoutMode =
@@ -182,6 +303,10 @@ export function FeedCleanupPageView({
           <FeedCleanupQueuePanel
             integrityMode={integrityMode}
             queueLabel={queueLabel}
+            bulkSelectionScopeLabel={bulkSelectionScopeLabel}
+            bulkKeepActionLabel={bulkKeepActionLabel}
+            bulkDeferActionLabel={bulkDeferActionLabel}
+            bulkDeleteActionLabel={bulkDeleteActionLabel}
             integrityQueueLabel={integrityQueueLabel}
             integrityEmptyLabel={integrityEmptyLabel}
             integrityIssues={integrityIssues}
@@ -191,7 +316,23 @@ export function FeedCleanupPageView({
             emptyLabel={emptyLabel}
             queue={queue}
             selectedCandidate={selectedCandidate}
+            selectedFeedIds={selectedFeedIds}
+            focusedFeedId={focusedFeedId}
             onSelectCandidate={onSelectCandidate}
+            onToggleCandidateSelection={onToggleCandidateSelection}
+            bulkBarVisible={selectedFeedIds.size > 0}
+            selectedCountLabel={selectedCountLabel}
+            selectCandidateLabel={selectCandidateLabel}
+            selectedStateLabel={selectedStateLabel}
+            focusedStateLabel={focusedStateLabel}
+            reviewStatusLabel={reviewStatusLabel}
+            deferredLabel={laterLabel}
+            keepLabel={keepLabel}
+            deleteLabel={deleteLabel}
+            keyboardHints={keyboardHints}
+            onKeepSelection={onKeepDecision}
+            onDeferSelection={onDeferDecision}
+            onDeleteSelection={onDeleteDecision}
             unreadCountLabel={unreadCountLabel}
             starredCountLabel={starredCountLabel}
             deferredBadgeLabel={deferredBadgeLabel}
@@ -209,6 +350,9 @@ export function FeedCleanupPageView({
             integrityDetailLabels={integrityDetailLabels}
             selectedCandidate={selectedCandidate}
             selectedSummary={selectedSummary}
+            currentStatusLabel={currentStatusLabel}
+            currentStatusValue={currentStatusValue}
+            deferLabel={laterLabel}
             folderLabel={folderLabel}
             latestArticleLabel={latestArticleLabel}
             unreadCountLabel={unreadCountLabel}
@@ -231,6 +375,7 @@ export function FeedCleanupPageView({
             onKeep={onKeep}
             onLater={onLater}
             onDelete={onDelete}
+            keyboardHints={keyboardHints}
           />
         </div>
       </div>
