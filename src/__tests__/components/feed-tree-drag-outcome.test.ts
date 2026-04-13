@@ -1,5 +1,8 @@
-import { describe, expect, it } from "vitest";
-import { resolveFeedTreePointerDropOutcome } from "@/components/reader/feed-tree-drag-outcome";
+import { describe, expect, it, vi } from "vitest";
+import {
+  applyFeedTreePointerDropOutcome,
+  resolveFeedTreePointerDropOutcome,
+} from "@/components/reader/feed-tree-drag-outcome";
 import type { FeedTreePointerDragSession } from "@/components/reader/feed-tree-drag-session";
 import type { FeedTreeFeedViewModel } from "@/components/reader/feed-tree-row";
 
@@ -54,5 +57,70 @@ describe("resolveFeedTreePointerDropOutcome", () => {
 
   it("returns drop-none when an active drag ends outside any target", () => {
     expect(resolveFeedTreePointerDropOutcome(draggingSession, null, false)).toEqual({ type: "drop-none" });
+  });
+});
+
+describe("applyFeedTreePointerDropOutcome", () => {
+  it("clears immediately without queueing suppression for clear outcomes", () => {
+    const queueSuppressHandleClickReset = vi.fn();
+    const clearPointerTracking = vi.fn();
+
+    applyFeedTreePointerDropOutcome({
+      outcome: { type: "clear" },
+      queueSuppressHandleClickReset,
+      clearPointerTracking,
+    });
+
+    expect(queueSuppressHandleClickReset).not.toHaveBeenCalled();
+    expect(clearPointerTracking).toHaveBeenCalledTimes(1);
+  });
+
+  it("dispatches drag end for cancel and drop-none outcomes", () => {
+    const queueSuppressHandleClickReset = vi.fn();
+    const clearPointerTracking = vi.fn();
+    const onDragEnd = vi.fn();
+
+    applyFeedTreePointerDropOutcome({
+      outcome: { type: "cancel" },
+      queueSuppressHandleClickReset,
+      clearPointerTracking,
+      onDragEnd,
+    });
+    applyFeedTreePointerDropOutcome({
+      outcome: { type: "drop-none" },
+      queueSuppressHandleClickReset,
+      clearPointerTracking,
+      onDragEnd,
+    });
+
+    expect(queueSuppressHandleClickReset).toHaveBeenCalledTimes(2);
+    expect(onDragEnd).toHaveBeenCalledTimes(2);
+    expect(clearPointerTracking).toHaveBeenCalledTimes(2);
+  });
+
+  it("dispatches folder and unfoldered drops to the matching callbacks", () => {
+    const queueSuppressHandleClickReset = vi.fn();
+    const clearPointerTracking = vi.fn();
+    const onDropToFolder = vi.fn();
+    const onDropToUnfoldered = vi.fn();
+
+    applyFeedTreePointerDropOutcome({
+      outcome: { type: "drop-folder", folderId: "folder-1" },
+      queueSuppressHandleClickReset,
+      clearPointerTracking,
+      onDropToFolder,
+      onDropToUnfoldered,
+    });
+    applyFeedTreePointerDropOutcome({
+      outcome: { type: "drop-unfoldered" },
+      queueSuppressHandleClickReset,
+      clearPointerTracking,
+      onDropToFolder,
+      onDropToUnfoldered,
+    });
+
+    expect(onDropToFolder).toHaveBeenCalledWith("folder-1");
+    expect(onDropToUnfoldered).toHaveBeenCalledTimes(1);
+    expect(clearPointerTracking).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,5 +1,5 @@
 import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
-import { resolveFeedTreePointerDropOutcome } from "./feed-tree-drag-outcome";
+import { applyFeedTreePointerDropOutcome, resolveFeedTreePointerDropOutcome } from "./feed-tree-drag-outcome";
 import type { FeedTreeDragOverlayPreview } from "./feed-tree-drag-overlay";
 import {
   createFeedTreePointerDragSession,
@@ -108,24 +108,14 @@ export function useFeedTreeDrag({
     };
 
     const finishPointerDrag = (target: ActiveDropTarget, shouldCancel: boolean) => {
-      const outcome = resolveFeedTreePointerDropOutcome(pointerDragRef.current, target, shouldCancel);
-
-      if (outcome.type === "clear") {
-        clearPointerTracking();
-        return;
-      }
-
-      queueSuppressHandleClickReset();
-
-      if (outcome.type === "cancel" || outcome.type === "drop-none") {
-        onDragEnd?.();
-      } else if (outcome.type === "drop-folder") {
-        onDropToFolder?.(outcome.folderId);
-      } else if (outcome.type === "drop-unfoldered") {
-        onDropToUnfoldered?.();
-      }
-
-      clearPointerTracking();
+      applyFeedTreePointerDropOutcome({
+        outcome: resolveFeedTreePointerDropOutcome(pointerDragRef.current, target, shouldCancel),
+        queueSuppressHandleClickReset,
+        clearPointerTracking,
+        onDragEnd,
+        onDropToFolder,
+        onDropToUnfoldered,
+      });
     };
 
     const handlePointerMove = (event: PointerEvent) => {

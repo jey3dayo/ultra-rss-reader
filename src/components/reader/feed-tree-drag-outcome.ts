@@ -8,6 +8,15 @@ export type FeedTreePointerDropOutcome =
   | { type: "drop-unfoldered" }
   | { type: "drop-none" };
 
+type ApplyFeedTreePointerDropOutcomeParams = {
+  outcome: FeedTreePointerDropOutcome;
+  queueSuppressHandleClickReset: () => void;
+  clearPointerTracking: () => void;
+  onDragEnd?: () => void;
+  onDropToFolder?: (folderId: string) => void;
+  onDropToUnfoldered?: () => void;
+};
+
 export function resolveFeedTreePointerDropOutcome(
   session: FeedTreePointerDragSession | null,
   target: ActiveDropTarget,
@@ -30,4 +39,30 @@ export function resolveFeedTreePointerDropOutcome(
   }
 
   return { type: "drop-none" };
+}
+
+export function applyFeedTreePointerDropOutcome({
+  outcome,
+  queueSuppressHandleClickReset,
+  clearPointerTracking,
+  onDragEnd,
+  onDropToFolder,
+  onDropToUnfoldered,
+}: ApplyFeedTreePointerDropOutcomeParams) {
+  if (outcome.type === "clear") {
+    clearPointerTracking();
+    return;
+  }
+
+  queueSuppressHandleClickReset();
+
+  if (outcome.type === "cancel" || outcome.type === "drop-none") {
+    onDragEnd?.();
+  } else if (outcome.type === "drop-folder") {
+    onDropToFolder?.(outcome.folderId);
+  } else if (outcome.type === "drop-unfoldered") {
+    onDropToUnfoldered?.();
+  }
+
+  clearPointerTracking();
 }
