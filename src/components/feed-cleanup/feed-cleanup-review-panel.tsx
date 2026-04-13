@@ -118,7 +118,10 @@ export function FeedCleanupReviewPanel({
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
             {selectedSummary ? (
               <div className={cn("rounded-2xl border px-4 py-4", toneClassName)}>
-                <div className="flex items-start justify-between gap-3">
+                <div
+                  data-testid="feed-cleanup-review-summary-header"
+                  className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+                >
                   <div>
                     <p className="text-xs font-medium uppercase tracking-[0.16em] opacity-70">
                       {priorityLabels[selectedSummary.titleKey]}
@@ -159,17 +162,19 @@ export function FeedCleanupReviewPanel({
           </div>
 
           <div className="border-t border-border/70 pt-3">
-            <div className="flex flex-wrap gap-2">
-              <Button variant="ghost" onClick={onEdit}>
+            <div data-testid="feed-cleanup-review-actions" className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <Button variant="ghost" className="w-full justify-center sm:w-auto" onClick={onEdit}>
                 {editLabel}
               </Button>
-              <Button variant="outline" onClick={onKeep}>
+              <Button variant="outline" className="w-full justify-center sm:w-auto" onClick={onKeep}>
                 {keepLabel}
               </Button>
-              <Button variant="secondary" onClick={onLater}>
+              <Button variant="secondary" className="w-full justify-center sm:w-auto" onClick={onLater}>
                 {laterLabel}
               </Button>
-              <DeleteButton onClick={onDelete}>{deleteLabel}</DeleteButton>
+              <DeleteButton className="w-full justify-center sm:w-auto" onClick={onDelete}>
+                {deleteLabel}
+              </DeleteButton>
             </div>
           </div>
         </div>

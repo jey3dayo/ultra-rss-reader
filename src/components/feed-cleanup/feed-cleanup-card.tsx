@@ -7,7 +7,7 @@ export function FeedCleanupCard({ children, className }: FeedCleanupCardProps) {
 
 export function FeedCleanupDetailRow({ label, value }: FeedCleanupDetailRowProps) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
       <dt className="text-muted-foreground">{label}</dt>
       <dd>{value}</dd>
     </div>

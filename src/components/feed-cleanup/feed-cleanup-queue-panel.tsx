@@ -84,7 +84,10 @@ export function FeedCleanupQueuePanel({
                     : "border-border/80 bg-card/70 hover:border-border hover:bg-card",
                 )}
               >
-                <div className="flex items-start justify-between gap-3">
+                <div
+                  data-testid={`feed-cleanup-queue-card-header-${candidate.feedId}`}
+                  className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+                >
                   <div className="min-w-0">
                     <span className="line-clamp-1 font-medium text-foreground">{candidate.title}</span>
                     <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
@@ -99,7 +102,10 @@ export function FeedCleanupQueuePanel({
                       </span>
                     </div>
                   </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1">
+                  <div
+                    data-testid={`feed-cleanup-queue-card-status-${candidate.feedId}`}
+                    className="flex flex-wrap items-start gap-1.5 sm:shrink-0 sm:flex-col sm:items-end sm:gap-1"
+                  >
                     <span
                       className={cn(
                         "rounded-full px-2.5 py-1 text-[11px] font-medium",

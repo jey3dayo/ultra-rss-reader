@@ -90,6 +90,12 @@
   - 対象: `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-page-view.tsx`, `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`, `src/__tests__/components/feed-cleanup-page.test.tsx`
   - 対応: overview を上部サマリ帯へ圧縮し、filter/bulk を control rail に再編。queue card は compact 版に寄せて未選択時の情報量を抑えた
 
+- [x] `購読の整理` の queue / review card が 390px 幅で横並び前提のまま詰まる
+  - 症状: narrow viewport で queue card のタイトル行と優先度 badge が押し合い、review 側の要約ヘッダ・detail row・action buttons も横並びのままで視線が流れにくい
+  - 影響: mobile 相当の幅で `購読の整理` を巡回すると、候補の読み取りと `編集 / 継続 / あとで見る / 削除` の押し分けがしづらい
+  - 対象: `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-review-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-card.tsx`, `src/__tests__/components/feed-cleanup-queue-panel.test.tsx`, `src/__tests__/components/feed-cleanup-review-panel.test.tsx`
+  - 対応: queue card header を mobile で縦積みにし、review の summary header / detail row / action row も narrow 幅では stacked layout に寄せて回帰テストを追加した
+
 ## 2026-04-12 購読整理 UI copy / 情報設計メモ
 
 - [x] 購読整理画面に一括操作を追加する
