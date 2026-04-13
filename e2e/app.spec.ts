@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
 
+const starredSmartViewButtonName = /^(starred|スター)(\s+\d+)?$/i;
+const unreadSmartViewButtonName = /^(unread|未読)(\s+\d+)?$/i;
+
 test.describe("Ultra RSS Reader - basic rendering", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
@@ -28,6 +31,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
   });
 
   test("keeps an auto-read article visible in unread view until the user changes screens", async ({ page }) => {
+    const sidebar = page.getByTestId("wide-sidebar-content");
     const articleList = page.getByRole("listbox", { name: /Article list|記事一覧/i });
     const firstArticle = articleList.getByRole("option").first();
     const articleId = await firstArticle.getAttribute("data-article-id");
@@ -37,13 +41,15 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
 
     await expect(articleList.locator(`[data-article-id="${articleId}"]`)).toBeVisible();
 
-    await page.getByRole("button", { name: /^STARRED$|^スター$/i }).click();
+    await sidebar.getByRole("button", { name: starredSmartViewButtonName }).click();
 
     await expect(articleList.locator(`[data-article-id="${articleId}"]`)).toHaveCount(0);
   });
 
   test("keeps an unstarred article visible in starred view until the user changes screens", async ({ page }) => {
-    await page.getByRole("button", { name: /^STARRED$|^スター$/i }).click();
+    const sidebar = page.getByTestId("wide-sidebar-content");
+
+    await sidebar.getByRole("button", { name: starredSmartViewButtonName }).click();
 
     const articleList = page.getByRole("listbox", { name: /Article list|記事一覧/i });
     const firstStarredArticle = articleList.getByRole("option").first();
@@ -55,7 +61,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
 
     await expect(articleList.locator(`[data-article-id="${articleId}"]`)).toBeVisible();
 
-    await page.getByRole("button", { name: /^UNREAD$|^未読$/i }).click();
+    await sidebar.getByRole("button", { name: unreadSmartViewButtonName }).click();
 
     await expect(articleList.locator(`[data-article-id="${articleId}"]`)).toHaveCount(0);
   });
