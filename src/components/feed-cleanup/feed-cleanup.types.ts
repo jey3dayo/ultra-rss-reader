@@ -78,6 +78,7 @@ export type FeedCleanupOverviewPanelProps = {
 };
 
 export type FeedCleanupQueuePanelProps = {
+  stackedLayout: boolean;
   integrityMode: boolean;
   queueLabel: string;
   integrityQueueLabel: string;

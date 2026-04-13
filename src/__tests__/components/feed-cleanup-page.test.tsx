@@ -524,4 +524,21 @@ describe("FeedCleanupPage", () => {
     expect(screen.getByRole("button", { name: "Keep all visible" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Defer all visible" })).toBeDisabled();
   });
+
+  it("keeps the queue in normal document flow on narrow screens", async () => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 390,
+    });
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    await screen.findByRole("button", { name: "Old Product Blog" });
+
+    expect(screen.getByTestId("feed-cleanup-layout")).not.toHaveClass("overflow-hidden");
+    expect(screen.getByTestId("feed-cleanup-review-panel")).not.toHaveClass("sticky");
+    expect(screen.getByTestId("feed-cleanup-queue-list")).not.toHaveClass("h-[calc(100%-2rem)]");
+    expect(screen.getByTestId("feed-cleanup-queue-list")).not.toHaveClass("overflow-y-auto");
+  });
 });

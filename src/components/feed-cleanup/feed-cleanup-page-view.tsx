@@ -129,6 +129,7 @@ export function FeedCleanupPageView({
     layoutMode === "two-column"
       ? "lg:col-span-2"
       : "col-span-1 sticky top-4 max-h-[calc(100dvh-7.5rem)] self-start overflow-hidden";
+  const stackedLayout = layoutMode === "two-column";
 
   return (
     <div
@@ -187,6 +188,7 @@ export function FeedCleanupPageView({
         />
 
         <FeedCleanupQueuePanel
+          stackedLayout={stackedLayout}
           integrityMode={integrityMode}
           queueLabel={queueLabel}
           integrityQueueLabel={integrityQueueLabel}
