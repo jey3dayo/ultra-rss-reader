@@ -691,6 +691,11 @@
   - 対応: `sidebar-sources.types.ts` に account status label source/params contract を追加して、status labels hook は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/sidebar-sources.types.ts`, `src/components/reader/use-sidebar-account-status-labels.ts`
 
+- [x] sidebar context menu renderers の contract を shared types に寄せる
+  - 問題: `use-sidebar-context-menu-renderers.tsx` の返り値契約が hook file に閉じていて、controller から使う renderer 境界の正本を追いにくかった
+  - 対応: `sidebar.types.ts` に context menu renderers result contract を追加して、renderer hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar.types.ts`, `src/components/reader/use-sidebar-context-menu-renderers.tsx`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
