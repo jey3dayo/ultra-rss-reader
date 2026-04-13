@@ -716,6 +716,21 @@
   - 対応: `feed-tree.types.ts` に drag handle props contract を追加して、row 補助 component は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/feed-tree.types.ts`, `src/components/reader/feed-tree-row.tsx`
 
+- [x] sidebar/feed section types の feed-tree import を types file へ揃える
+  - 問題: `sidebar.types.ts` と `sidebar-feed-section.types.ts` が `feed-tree-view.tsx` の再 export 経由で `FeedTreeViewProps` を参照していて、型の正本が component file を経由して見えていた
+  - 対応: `FeedTreeViewProps` の import 元を `feed-tree.types.ts` へ揃えて、sidebar 側の shared types が view component を経由しない形に寄せた
+  - 対象: `src/components/reader/sidebar.types.ts`, `src/components/reader/sidebar-feed-section.types.ts`
+
+- [x] account-switcher の props 型を shared types に寄せる
+  - 問題: `account-switcher-view.tsx` と `account-switcher-menu.tsx` に props contract が分散していて、sidebar account section が component file へ型依存していた
+  - 対応: `account-switcher.types.ts` に shared props contract を切り出して、account switcher view/menu と sidebar account section は再利用する形に寄せた
+  - 対象: `src/components/reader/account-switcher.types.ts`, `src/components/reader/account-switcher-view.tsx`, `src/components/reader/account-switcher-menu.tsx`, `src/components/reader/sidebar-account-section.tsx`
+
+- [x] sidebar controller の section orchestration を helper hook に寄せる
+  - 問題: `use-sidebar-controller.ts` に smart views / context menus / feed section / section props 接着が残っていて、runtime wiring と section orchestration が混ざっていた
+  - 対応: `use-sidebar-controller-sections.ts` に section orchestration を切り出して、controller 本体は runtime/actions/view props 接着へ寄せた
+  - 対象: `src/components/reader/use-sidebar-controller.ts`, `src/components/reader/use-sidebar-controller-sections.ts`, `src/components/reader/sidebar.types.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
