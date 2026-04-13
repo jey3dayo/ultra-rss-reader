@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useAccountArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -14,8 +13,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { AddFeedDialog } from "./add-feed-dialog";
 import { FeedTreeView } from "./feed-tree-view";
 import { SidebarAccountSection } from "./sidebar-account-section";
-import { SidebarFeedSection } from "./sidebar-feed-section";
-import { SidebarFooterActions } from "./sidebar-footer-actions";
+import { SidebarContentView } from "./sidebar-content-view";
 import { SidebarHeaderView } from "./sidebar-header-view";
 import { SidebarTagSection } from "./sidebar-tag-section";
 import { SmartViewsView } from "./smart-views-view";
@@ -315,23 +313,19 @@ export function Sidebar() {
         <div className="h-px bg-sidebar-border/35" />
       </div>
 
-      <SidebarFeedSection title={t("subscriptions")} isOpen={isFeedsSectionOpen} onToggle={toggleFeedsSection} />
-
-      <ScrollArea data-testid="sidebar-feed-scroll-area" className="flex-1" viewportRef={feedViewportRef}>
-        <div className="pb-4">
-          {feedTree}
-          {tagSection}
-        </div>
-      </ScrollArea>
-
-      <SidebarFooterActions
+      <SidebarContentView
+        subscriptionsLabel={t("subscriptions")}
+        isFeedsSectionOpen={isFeedsSectionOpen}
+        onToggleFeedsSection={toggleFeedsSection}
+        viewportRef={feedViewportRef}
+        feedTree={feedTree}
+        tagSection={tagSection}
         feedCleanupLabel={t("feed_cleanup")}
         settingsLabel={t("settings")}
         onOpenFeedCleanup={openFeedCleanup}
         onOpenSettings={handleOpenSettings}
+        addFeedDialog={addFeedDialog}
       />
-
-      {addFeedDialog}
     </div>
   );
 }
