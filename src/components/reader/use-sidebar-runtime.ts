@@ -18,13 +18,7 @@ export function useSidebarRuntime() {
     toggleAccountList,
   } = useSidebarAccountSwitcher();
   const uiState = useSidebarUiState();
-  const {
-    selectedAccountId,
-    syncProgress,
-    applySyncProgress,
-    clearSyncProgress,
-    showToast,
-  } = uiState;
+  const { selectedAccountId, syncProgress, applySyncProgress, clearSyncProgress, showToast } = uiState;
   const sources = useSidebarSources({ selectedAccountId });
   const feedViewportRef = useRef<HTMLDivElement>(null);
   const { intent: activeDevIntent } = useResolvedDevIntent();

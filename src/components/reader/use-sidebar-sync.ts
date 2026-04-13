@@ -5,10 +5,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AccountSyncWarning } from "@/api/schemas/sync-result";
 import { triggerSync } from "@/api/tauri-commands";
-import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
 import i18n from "@/lib/i18n";
-import { resolveSyncFeedbackMessage, summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync-result-feedback";
+import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync-result-feedback";
 import type { SyncProgressEvent, SyncProgressState } from "@/stores/ui-store";
+import { resolveSidebarSyncFeedbackMessage } from "./sidebar-sync-feedback";
 
 type SyncWarningPayload = AccountSyncWarning[];
 
@@ -92,22 +92,7 @@ export function useSidebarSync({
           : (event as SyncWarningPayload);
       if (payload.length > 0) {
         invalidateAccountSyncStatuses();
-        const feedback = summarizeSyncWarnings(payload);
-        showToast(
-          resolveSyncFeedbackMessage(feedback, {
-            alreadyInProgress: t("sync_already_in_progress"),
-            partialFailure: (accounts) => t("sync_partial_failure", { accounts }),
-            retryScheduled: (accounts, retryAt) => {
-              const retryTime = formatAccountSyncRetryTime(retryAt, i18n.language);
-              return retryTime
-                ? t("sync_retry_scheduled", { accounts, time: retryTime })
-                : t("sync_retry_scheduled_soon", { accounts });
-            },
-            retryPending: (accounts) => t("sync_completed_with_retry_pending", { accounts }),
-            warnings: (accounts) => t("sync_completed_with_warnings", { accounts }),
-            success: t("sync_completed"),
-          }),
-        );
+        showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncWarnings(payload)));
       }
     }).then((fn) => {
       if (cancelled) {
@@ -135,21 +120,7 @@ export function useSidebarSync({
       result,
       Result.inspect((syncResult) => {
         invalidateAccountSyncStatuses();
-        showToast(
-          resolveSyncFeedbackMessage(summarizeSyncResult(syncResult), {
-            alreadyInProgress: t("sync_already_in_progress"),
-            partialFailure: (accounts) => t("sync_partial_failure", { accounts }),
-            retryScheduled: (accounts, retryAt) => {
-              const retryTime = formatAccountSyncRetryTime(retryAt, i18n.language);
-              return retryTime
-                ? t("sync_retry_scheduled", { accounts, time: retryTime })
-                : t("sync_retry_scheduled_soon", { accounts });
-            },
-            retryPending: (accounts) => t("sync_completed_with_retry_pending", { accounts }),
-            warnings: (accounts) => t("sync_completed_with_warnings", { accounts }),
-            success: t("sync_completed"),
-          }),
-        );
+        showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncResult(syncResult)));
       }),
       Result.inspectError((error) => {
         console.error("Sync failed:", error);

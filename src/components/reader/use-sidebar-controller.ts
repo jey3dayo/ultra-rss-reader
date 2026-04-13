@@ -4,8 +4,8 @@ import { useSidebarAccountSelection } from "./use-sidebar-account-selection";
 import { useSidebarContextMenuRenderers } from "./use-sidebar-context-menu-renderers";
 import { useSidebarFeedSectionController } from "./use-sidebar-feed-section-controller";
 import { useSidebarRuntime } from "./use-sidebar-runtime";
-import { useSidebarSmartViews } from "./use-sidebar-smart-views";
 import { useSidebarSectionProps } from "./use-sidebar-section-props";
+import { useSidebarSmartViews } from "./use-sidebar-smart-views";
 import { useSidebarUiActions } from "./use-sidebar-ui-actions";
 import { useSidebarViewProps } from "./use-sidebar-view-props";
 
