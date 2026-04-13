@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import type { AppError } from "@/api/tauri-commands";
 import {
   type BrowserSurfaceIssue,
   createBrowserSurfaceFailure,
@@ -6,6 +7,7 @@ import {
   resolveRuntimeUnavailableSurfaceIssue,
 } from "./browser-surface-issue";
 import type { UseBrowserViewSurfaceStateParams, UseBrowserViewSurfaceStateResult } from "./browser-view.types";
+import type { BrowserWebviewFallbackPayload } from "./browser-webview-state";
 
 export function useBrowserViewSurfaceState({
   browserStateRef,
@@ -24,7 +26,7 @@ export function useBrowserViewSurfaceState({
   const [surfaceIssue, setSurfaceIssue] = useState<BrowserSurfaceIssue | null>(null);
 
   const handleLostEmbeddedBrowserWebview = useCallback(
-    (error: Parameters<UseBrowserViewSurfaceStateResult["handleLostEmbeddedBrowserWebview"]>[0]) => {
+    (error: AppError) => {
       console.warn("Embedded browser webview disappeared while overlay was open:", error.message);
       fallbackInFlightRef.current = false;
       browserStateRef.current = null;
@@ -36,7 +38,7 @@ export function useBrowserViewSurfaceState({
   );
 
   const showSurfaceFailure = useCallback(
-    (error: Parameters<UseBrowserViewSurfaceStateResult["showSurfaceFailure"]>[0]) => {
+    (error: AppError) => {
       if (fallbackInFlightRef.current) {
         return;
       }
@@ -61,7 +63,7 @@ export function useBrowserViewSurfaceState({
   );
 
   const handleBrowserWebviewFallback = useCallback(
-    (payload: Parameters<UseBrowserViewSurfaceStateResult["handleBrowserWebviewFallback"]>[0]) => {
+    (payload: BrowserWebviewFallbackPayload) => {
       setSurfaceIssue(
         createBrowserSurfaceFallback(payload.error_message, {
           failed,
