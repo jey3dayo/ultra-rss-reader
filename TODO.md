@@ -64,6 +64,11 @@
   - 対応: helper props を named type にして、ui / reader helper component の契約を file 冒頭で追える形に寄せた
   - 対象: `src/components/ui/tooltip.tsx`, `src/components/reader/feed-context-menu.tsx`, `src/components/reader/folder-context-menu.tsx`, `src/components/reader/tag-context-menu-view.tsx`, `src/components/reader/tag-context-menu.tsx`, `src/components/reader/feed-tree-drag-overlay.tsx`
 
+- [x] article/tag mutation hook の inline payload contract を named type に寄せる
+  - 問題: `use-articles.ts` と `use-tags.ts` の mutation 定義に inline object type が残っていて、hook 契約を file 冒頭から追いづらかった
+  - 対応: mutation payload を named type にして、article/tag hook の契約を file 冒頭で追える形に寄せた
+  - 対象: `src/hooks/use-articles.ts`, `src/hooks/use-tags.ts`
+
 - [x] confirm dialog 系の shell / footer を `src/components/shared` に寄せる
   - 問題: `ConfirmDialog` と `ConfirmDialogView` がほぼ同型で、destructive footer も複数 dialog に重複している
   - 対象: `src/components/ui/confirm-dialog.tsx`, `src/components/shared/*`, `src/components/feed-cleanup/*`
