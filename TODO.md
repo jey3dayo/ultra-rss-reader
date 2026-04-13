@@ -95,6 +95,10 @@
   - 問題: `sidebar.tsx` に feed 移動、folder 自動展開、`APP_EVENTS.navigateFeed` 購読が残っていて、tree 導出と責務が混ざっている
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-feed-navigation.ts`
 
+- [x] sidebar の smart view 派生モデルを hook 化する
+  - 問題: `sidebar.tsx` に unread/starred の表示条件と selected 判定が残っていて、表示データ整形と view orchestration が混ざっていた
+  - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-smart-views.ts`
+
 - [x] sidebar の account restore / startup expansion / hidden-state fallback を hook 化する
   - 問題: `sidebar.tsx` に account 復元、起動時 folder 展開、visibility fallback の effect が集まり、責務が重くなっていた
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-account-selection.ts`, `src/components/reader/use-sidebar-startup-folder-expansion.ts`, `src/components/reader/use-sidebar-visibility-fallback.ts`
