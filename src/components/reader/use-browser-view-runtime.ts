@@ -17,7 +17,6 @@ type UseBrowserViewRuntimeResult = {
   browserUrl: string | null;
   showToast: ReturnType<typeof useUiStore.getState>["showToast"];
   platformKind: ReturnType<typeof usePlatformStore.getState>["platform"]["kind"];
-  browserState: BrowserWebviewState | null;
   setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
   browserStateRef: MutableRefObject<BrowserWebviewState | null>;
   hostRef: RefObject<HTMLDivElement | null>;
@@ -56,7 +55,6 @@ export function useBrowserViewRuntime({ onCloseOverlay }: UseBrowserViewRuntimeP
     browserUrl,
     showToast,
     platformKind,
-    browserState,
     setBrowserState,
     browserStateRef,
     hostRef,
