@@ -6,7 +6,6 @@ import type {
   BrowserDebugGeometryNativeDiagnostics,
 } from "@/lib/browser-debug-geometry";
 import { resolveBrowserViewerGeometry } from "@/lib/browser-viewer-geometry";
-import { hasTauriRuntime } from "@/lib/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -15,6 +14,7 @@ import {
   getBrowserOverlayCloseButtonClass,
   getBrowserOverlayStageClass,
 } from "./browser-overlay-presentation";
+import { isBrowserRuntimeUnavailable } from "./browser-runtime-availability";
 import { type BrowserSurfaceIssue, createBrowserSurfaceFallback } from "./browser-surface-issue";
 import { type BrowserWebviewFallbackPayload, initialBrowserState, mergeBrowserState } from "./browser-webview-state";
 import { useBrowserDebugGeometryEvents } from "./use-browser-debug-geometry-events";
@@ -88,10 +88,7 @@ export function useBrowserViewController({
     stageRef,
     hostRef,
   });
-  const runtimeUnavailable =
-    (typeof window !== "undefined" &&
-      (window.__DEV_BROWSER_MOCKS__ === true || window.__ULTRA_RSS_BROWSER_MOCKS__ === true)) ||
-    !hasTauriRuntime();
+  const runtimeUnavailable = isBrowserRuntimeUnavailable();
   const { setSurfaceIssue, handleLostEmbeddedBrowserWebview, showSurfaceFailure, activeSurfaceIssue } =
     useBrowserViewSurfaceState({
       browserStateRef,
