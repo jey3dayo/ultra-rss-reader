@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "./feed-tree-drop-target";
 import { type FeedTreeFeedViewModel, FeedTreeRow } from "./feed-tree-row";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
@@ -59,15 +60,21 @@ export function FeedTreeFolderSection({
   return (
     <div
       className={cn("relative rounded-md", isActive && "bg-sidebar-accent/20")}
-      data-feed-drop-kind={canDragFeeds ? "folder" : undefined}
-      data-feed-drop-target={canDragFeeds ? folder.id : undefined}
+      {...(canDragFeeds
+        ? {
+            [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "folder",
+            [FEED_DROP_TARGET_ID_ATTRIBUTE]: folder.id,
+          }
+        : {})}
     >
       {showDropOverlay ? (
         <button
           type="button"
           aria-label={t("move_to_folder", { name: folder.name })}
-          data-feed-drop-kind="folder"
-          data-feed-drop-target={folder.id}
+          {...{
+            [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "folder",
+            [FEED_DROP_TARGET_ID_ATTRIBUTE]: folder.id,
+          }}
           className="absolute inset-0 z-10 rounded-md"
           onClick={() => {
             onDropToFolder?.(folder.id);
@@ -94,8 +101,12 @@ export function FeedTreeFolderSection({
                 trailingClassName={
                   folder.isSelected ? "text-sidebar-accent-foreground/72" : "text-sidebar-foreground/52"
                 }
-                data-feed-drop-kind={canDragFeeds ? "folder" : undefined}
-                data-feed-drop-target={canDragFeeds ? folder.id : undefined}
+                {...(canDragFeeds
+                  ? {
+                      [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "folder",
+                      [FEED_DROP_TARGET_ID_ATTRIBUTE]: folder.id,
+                    }
+                  : {})}
                 className={cn("flex-1", isActive && "border-dashed bg-sidebar-accent/60 ring-1 ring-sidebar-border")}
               />
             }

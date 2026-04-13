@@ -1,10 +1,8 @@
 import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
+import { getFeedDropTargetFromElement, isSameFeedDropTarget } from "./feed-tree-drop-target";
 import type { FeedTreeDragOverlayPreview } from "./feed-tree-drag-overlay";
 import type { ActiveDropTarget } from "./feed-tree-folder-section";
 import type { FeedTreeFeedViewModel } from "./feed-tree-row";
-
-const DROP_TARGET_KIND_ATTRIBUTE = "data-feed-drop-kind";
-const DROP_TARGET_ID_ATTRIBUTE = "data-feed-drop-target";
 const POINTER_DRAG_THRESHOLD = 6;
 
 type PointerDragSession = {
@@ -17,35 +15,6 @@ type PointerDragSession = {
   isDragging: boolean;
   hoverTarget: ActiveDropTarget;
 };
-
-function isSameDropTarget(left: ActiveDropTarget, right: ActiveDropTarget): boolean {
-  if (left?.kind !== right?.kind) {
-    return false;
-  }
-  if (left?.kind === "folder" && right?.kind === "folder") {
-    return left.folderId === right.folderId;
-  }
-  return left === right;
-}
-
-function getDropTargetFromElement(element: Element | null): ActiveDropTarget {
-  const dropTarget = element?.closest<HTMLElement>(`[${DROP_TARGET_KIND_ATTRIBUTE}]`);
-  if (!dropTarget) {
-    return null;
-  }
-
-  const kind = dropTarget.getAttribute(DROP_TARGET_KIND_ATTRIBUTE);
-  if (kind === "folder") {
-    const folderId = dropTarget.getAttribute(DROP_TARGET_ID_ATTRIBUTE);
-    return folderId ? { kind: "folder", folderId } : null;
-  }
-
-  if (kind === "unfoldered") {
-    return { kind: "unfoldered" };
-  }
-
-  return null;
-}
 
 export type UseFeedTreeDragParams = {
   isOpen: boolean;
@@ -126,7 +95,7 @@ export function useFeedTreeDrag({
     if (typeof document.elementFromPoint !== "function") {
       return null;
     }
-    return getDropTargetFromElement(document.elementFromPoint(x, y));
+    return getFeedDropTargetFromElement(document.elementFromPoint(x, y));
   }, []);
 
   const handlePointerDownFeed = useCallback(
@@ -219,7 +188,7 @@ export function useFeedTreeDrag({
       }
 
       const hoverTarget = getDropTargetAtPoint(event.clientX, event.clientY);
-      if (!isSameDropTarget(session.hoverTarget, hoverTarget)) {
+      if (!isSameFeedDropTarget(session.hoverTarget, hoverTarget)) {
         session.hoverTarget = hoverTarget;
         notifyHoverTarget(hoverTarget);
       }
