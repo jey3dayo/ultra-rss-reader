@@ -35,6 +35,7 @@ import {
 } from "./browser-webview-state";
 import { useBrowserDebugGeometryEvents } from "./use-browser-debug-geometry-events";
 import { useBrowserOverlayShortcuts } from "./use-browser-overlay-shortcuts";
+import { useBrowserOverlayViewportWidth } from "./use-browser-overlay-viewport-width";
 
 type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
 
@@ -88,7 +89,7 @@ export function useBrowserViewController({
   const [layoutDiagnostics, setLayoutDiagnostics] = useState<BrowserViewLayoutDiagnostics | null>(null);
   const [nativeDiagnostics, setNativeDiagnostics] = useState<BrowserWebviewDiagnosticsPayload | null>(null);
   const [surfaceIssue, setSurfaceIssue] = useState<BrowserSurfaceIssue | null>(null);
-  const [viewportWidth, setViewportWidth] = useState(() => (typeof window === "undefined" ? 1400 : window.innerWidth));
+  const viewportWidth = useBrowserOverlayViewportWidth();
 
   const handleCloseOverlay = useCallback(() => {
     onCloseOverlay();
@@ -438,22 +439,6 @@ export function useBrowserViewController({
   }, [browserUrl, isLoading, showSurfaceFailure]);
 
   useBrowserOverlayShortcuts({ browserUrl, handleCloseOverlay });
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return undefined;
-    }
-
-    const handleResize = () => {
-      setViewportWidth(window.innerWidth);
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
 
   const runtimeUnavailable =
     (typeof window !== "undefined" &&
