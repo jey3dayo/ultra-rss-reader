@@ -586,6 +586,11 @@
   - 対応: `sidebar.types.ts` に section/view contract を集約して、sidebar hooks は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/sidebar.types.ts`, `src/components/reader/use-sidebar-header-props.ts`, `src/components/reader/use-sidebar-section-props.ts`, `src/components/reader/use-sidebar-view-props.ts`
 
+- [x] sidebar controller の返り値 contract を shared types に寄せる
+  - 問題: `use-sidebar-controller.ts` の返り値が暗黙型のままで、section/view props を束ねた最終 contract を shared type として追いにくかった
+  - 対応: `SidebarControllerResult` を `sidebar.types.ts` に追加して、controller の返り値を explicit contract に寄せた
+  - 対象: `src/components/reader/sidebar.types.ts`, `src/components/reader/use-sidebar-controller.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
