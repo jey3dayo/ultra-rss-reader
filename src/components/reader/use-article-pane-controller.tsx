@@ -1,14 +1,13 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useSetRead } from "@/hooks/use-articles";
-import { ArticleToolbarActionStrip } from "./article-toolbar-view";
-import type { ArticlePaneProps } from "./article-view.types";
+import type { ArticlePaneControllerResult, ArticlePaneProps } from "./article-view.types";
 import { useArticleAutoMark } from "./use-article-auto-mark";
 import { useArticleBrowserOverlay } from "./use-article-browser-overlay";
 import { useArticleToolbarControls } from "./use-article-toolbar-controls";
 import { useArticleViewUiState } from "./use-article-view-ui-state";
 
-export function useArticlePaneController({ article, feed }: ArticlePaneProps) {
+export function useArticlePaneController({ article, feed }: ArticlePaneProps): ArticlePaneControllerResult {
   const { t } = useTranslation("reader");
   const {
     layoutMode,
@@ -69,15 +68,13 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps) {
     browserOverlayProps: {
       onCloseOverlay: handleCloseBrowserOverlay,
       showBrowserView: isBrowserOpen,
-      toolbarActions: (
-        <ArticleToolbarActionStrip
-          {...actionStripProps}
-          labels={{
-            ...actionStripProps.labels,
-            previewToggleOn: t("web_preview_mode"),
-          }}
-        />
-      ),
+    },
+    browserOverlayActionStripProps: {
+      ...actionStripProps,
+      labels: {
+        ...actionStripProps.labels,
+        previewToggleOn: t("web_preview_mode"),
+      },
     },
     showWebPreviewUnavailableWarning: resolvedDisplay.fallbackReason === "missing_web_preview",
     webPreviewUnavailableLabel: t("web_preview_unavailable"),

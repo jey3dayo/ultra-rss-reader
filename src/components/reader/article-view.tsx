@@ -1,10 +1,9 @@
 import { useTranslation } from "react-i18next";
-import type { ArticleDto } from "@/api/tauri-commands";
 import { FeedCleanupPage } from "../feed-cleanup/feed-cleanup-page";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticleReaderBody } from "./article-reader-body";
-import { ArticleToolbarView } from "./article-toolbar-view";
-import type { ArticlePaneProps } from "./article-view.types";
+import { ArticleToolbarActionStrip, ArticleToolbarView } from "./article-toolbar-view";
+import type { ArticlePaneProps, ArticleToolbarProps } from "./article-view.types";
 import {
   ArticleEmptyStateShell,
   ArticleNotFoundStateView,
@@ -16,17 +15,7 @@ import { useArticleToolbarControls } from "./use-article-toolbar-controls";
 import { useArticleViewSelection } from "./use-article-view-selection";
 import { useArticleViewUiState } from "./use-article-view-ui-state";
 
-export function ArticleToolbar({
-  article,
-  isBrowserOpen,
-  onCloseView,
-  onToggleBrowserOverlay,
-}: {
-  article: ArticleDto | null;
-  isBrowserOpen: boolean;
-  onCloseView: () => void;
-  onToggleBrowserOverlay: () => void;
-}) {
+export function ArticleToolbar({ article, isBrowserOpen, onCloseView, onToggleBrowserOverlay }: ArticleToolbarProps) {
   const actionStripProps = useArticleToolbarControls({
     article,
     isBrowserOpen,
@@ -71,6 +60,7 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
   const {
     toolbarProps,
     browserOverlayProps,
+    browserOverlayActionStripProps,
     showWebPreviewUnavailableWarning,
     webPreviewUnavailableLabel,
     showReaderBody,
@@ -80,7 +70,10 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
   return (
     <div data-testid="article-pane" className="flex h-full flex-1 flex-col bg-background">
       <ArticleToolbar {...toolbarProps} />
-      <BrowserOverlaySurface {...browserOverlayProps}>
+      <BrowserOverlaySurface
+        {...browserOverlayProps}
+        toolbarActions={<ArticleToolbarActionStrip {...browserOverlayActionStripProps} />}
+      >
         {showWebPreviewUnavailableWarning ? (
           <div className="border-b border-border bg-amber-500/10 px-4 py-2 text-sm text-amber-900 dark:text-amber-200">
             {webPreviewUnavailableLabel}
