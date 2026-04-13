@@ -70,3 +70,14 @@ export type SidebarRuntimeResult = SidebarAccountSwitcherResult &
     feedViewportRef: RefObject<HTMLDivElement | null>;
     activeDevIntent: DevIntent;
   };
+
+export type SidebarAccountSelectionParams = {
+  accounts: SidebarSourcesResult["accounts"];
+  selectedAccountId: SidebarUiStateResult["selectedAccountId"];
+  savedAccountId: SidebarUiStateResult["savedAccountId"];
+  layoutMode: SidebarUiStateResult["layoutMode"];
+  activeDevIntent: DevIntent | null;
+  clearSelectedAccount: SidebarUiStateResult["clearSelectedAccount"];
+  restoreAccountSelection: SidebarUiStateResult["restoreAccountSelection"];
+  setSelectedAccountPreference: (accountId: string) => void;
+};

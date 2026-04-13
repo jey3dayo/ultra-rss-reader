@@ -1,18 +1,5 @@
 import { useEffect } from "react";
-import type { AccountDto } from "@/api/tauri-commands";
-import type { DevIntent } from "@/lib/dev-intent";
-import type { LayoutMode } from "@/stores/ui-store";
-
-type UseSidebarAccountSelectionParams = {
-  accounts: AccountDto[] | undefined;
-  selectedAccountId: string | null;
-  savedAccountId: string;
-  layoutMode: LayoutMode;
-  activeDevIntent: DevIntent | null;
-  clearSelectedAccount: () => void;
-  restoreAccountSelection: (id: string, options?: { focusedPane?: "sidebar" | "list" | "content" }) => void;
-  setSelectedAccountPreference: (accountId: string) => void;
-};
+import type { SidebarAccountSelectionParams } from "./sidebar-runtime.types";
 
 export function useSidebarAccountSelection({
   accounts,
@@ -23,7 +10,7 @@ export function useSidebarAccountSelection({
   clearSelectedAccount,
   restoreAccountSelection,
   setSelectedAccountPreference,
-}: UseSidebarAccountSelectionParams) {
+}: SidebarAccountSelectionParams) {
   useEffect(() => {
     if (!accounts) {
       return;

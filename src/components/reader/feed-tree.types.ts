@@ -74,6 +74,31 @@ export type FeedTreeFolderSectionProps = {
   consumeSuppressedHandleClick?: () => boolean;
 };
 
+export type FeedTreeRowProps = {
+  feed: FeedTreeFeedViewModel;
+  displayFavicons: boolean;
+  onSelectFeed: (feedId: string) => void;
+  renderFeedContextMenu?: (feed: FeedTreeFeedViewModel) => ReactNode;
+  canDragFeeds?: boolean;
+  isDragged?: boolean;
+  onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
+  onPointerDownFeed?: (feed: FeedTreeFeedViewModel, event: ReactPointerEvent<HTMLButtonElement>) => void;
+  consumeSuppressedHandleClick?: () => boolean;
+};
+
+export type FeedTreeUnfolderedSectionProps = {
+  unfolderedFeeds: FeedTreeFeedViewModel[];
+  unfolderedLabel?: string;
+  onSelectFeed: FeedTreeRowProps["onSelectFeed"];
+  displayFavicons: FeedTreeRowProps["displayFavicons"];
+  renderFeedContextMenu?: FeedTreeRowProps["renderFeedContextMenu"];
+  canDragFeeds: NonNullable<FeedTreeRowProps["canDragFeeds"]>;
+  normalizedDraggedFeedId: string | null;
+  onDragStartFeed?: FeedTreeRowProps["onDragStartFeed"];
+  onPointerDownFeed: NonNullable<FeedTreeRowProps["onPointerDownFeed"]>;
+  consumeSuppressedHandleClick: NonNullable<FeedTreeRowProps["consumeSuppressedHandleClick"]>;
+};
+
 export type UseFeedTreeDragParams = {
   isOpen: boolean;
   hasFeeds: boolean;

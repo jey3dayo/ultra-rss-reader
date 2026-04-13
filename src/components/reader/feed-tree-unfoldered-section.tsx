@@ -1,19 +1,5 @@
-import type { ReactNode } from "react";
-import type { FeedTreeFeedViewModel } from "./feed-tree.types";
+import type { FeedTreeUnfolderedSectionProps } from "./feed-tree.types";
 import { FeedTreeRow } from "./feed-tree-row";
-
-type FeedTreeUnfolderedSectionProps = {
-  unfolderedFeeds: FeedTreeFeedViewModel[];
-  unfolderedLabel?: string;
-  onSelectFeed: (feedId: string) => void;
-  displayFavicons: boolean;
-  renderFeedContextMenu?: (feed: FeedTreeFeedViewModel) => ReactNode;
-  canDragFeeds: boolean;
-  normalizedDraggedFeedId: string | null;
-  onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
-  onPointerDownFeed: (feed: FeedTreeFeedViewModel, event: React.PointerEvent<HTMLButtonElement>) => void;
-  consumeSuppressedHandleClick: () => boolean;
-};
 
 export function FeedTreeUnfolderedSection({
   unfolderedFeeds,
