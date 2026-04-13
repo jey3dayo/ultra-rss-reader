@@ -6,10 +6,7 @@ type UseBrowserOverlayFocusReturnParams = {
   isBrowserOpen: boolean;
 };
 
-export function useBrowserOverlayFocusReturn({
-  articleId,
-  isBrowserOpen,
-}: UseBrowserOverlayFocusReturnParams) {
+export function useBrowserOverlayFocusReturn({ articleId, isBrowserOpen }: UseBrowserOverlayFocusReturnParams) {
   const overlayFocusReturnTargetRef = useRef<HTMLElement | null>(null);
   const overlayFocusReturnTargetKeyRef = useRef<string | null>(null);
   const wasBrowserOpenRef = useRef(false);
