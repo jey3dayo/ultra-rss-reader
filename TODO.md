@@ -681,6 +681,11 @@
   - 対応: `sidebar-feed-section.types.ts` に visibility fallback params contract を追加して、fallback hook は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/sidebar-feed-section.types.ts`, `src/components/reader/use-sidebar-visibility-fallback.ts`
 
+- [x] feed-tree hover/drop helper の contract を shared types に寄せる
+  - 問題: `feed-tree-hover-target.ts` と `feed-tree-drag-outcome.ts` に local params/result type が残っていて、drag helper 境界の正本を追いにくかった
+  - 対応: `feed-tree.types.ts` に hover target / pointer drop outcome contract を追加して、helper は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/feed-tree.types.ts`, `src/components/reader/feed-tree-hover-target.ts`, `src/components/reader/feed-tree-drag-outcome.ts`
+
 - [x] sidebar account status labels の contract を shared types に寄せる
   - 問題: `use-sidebar-account-status-labels.ts` に local な `AccountLike` が残っていて、sources helper の入力境界の正本を追いにくかった
   - 対応: `sidebar-sources.types.ts` に account status label source/params contract を追加して、status labels hook は shared types を再利用する形に寄せた
