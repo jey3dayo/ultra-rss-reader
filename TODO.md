@@ -186,6 +186,10 @@
   - 問題: `EmptyState` / `BrowserOnlyState` / not-found 表示が `article-view.tsx` に残り、view orchestration と state 表示が混ざっていた
   - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/article-view-state.tsx`
 
+- [x] article-view の reader body と browser action helper を別 file に切り出す
+  - 問題: `article-view.tsx` に content link 処理、article meta/body、tag chips が残っていて、pane orchestration と reader body 実装が混ざっていた
+  - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/article-reader-body.tsx`, `src/components/reader/article-browser-actions.ts`, `src/components/reader/article-tag-chips.tsx`
+
   - [x] article-list の navigation と keyboard interaction を hook 化する
   - 問題: `article-list.tsx` に記事移動、ショートカット listener、list key handling が集まっていて、表示データ導出と責務が混ざっていた
   - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-interactions.ts`
@@ -212,13 +216,9 @@
     2. 失敗した account / mutation の把握に必要な情報を不足なく残す
     3. 既存の sync warning toast とテストを壊さずに観測性を上げる
 
-- [ ] 障害時の軽量 runbook を追加する
+- [x] 障害時の軽量 runbook を追加する
   - 問題: migration / updater / keyring / sync で復旧材料はあるが、どこを見るかと何を試すかが docs 上で分散している
-  - 対象: `docs/` 配下の運用ドキュメント
-  - 計画:
-    1. 典型障害ごとの確認順序を短い runbook にまとめる
-    2. log directory、backup directory、manual verification の参照先を 1 か所に集約する
-    3. release 前確認と障害対応の両方から辿れる導線にする
+  - 対象: `README.md`, `docs/incident-runbook.md`, `docs/release-manual-verification.md`
 
 - [ ] DB migration recovery の追加 hardening は migration 変更時に issue #23 を参照する
   - 常設 TODO ではなく、次に migration を触るタイミングでまとめて扱う
