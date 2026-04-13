@@ -1,7 +1,8 @@
 import { Plus, X } from "lucide-react";
-import { useCallback, useEffect, useId, useRef } from "react";
+import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useArticleTagPickerPopover } from "./use-article-tag-picker-popover";
 
 export type ArticleTagPickerViewLabels = {
   sectionTitle?: string;
@@ -45,73 +46,19 @@ export function ArticleTagPickerView({
   onCreateTag,
 }: ArticleTagPickerViewProps) {
   const pickerId = useId();
-  const pickerRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const newTagInputRef = useRef<HTMLInputElement>(null);
-  const tagOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const restoreFocusOnCloseRef = useRef(false);
-  const hasFocusedOnOpenRef = useRef(false);
-
-  const closePicker = useCallback(
-    (restoreFocus = false) => {
-      restoreFocusOnCloseRef.current = restoreFocus;
-      onExpandedChange(false);
-    },
-    [onExpandedChange],
-  );
-
-  useEffect(() => {
-    if (isExpanded) return;
-    if (!restoreFocusOnCloseRef.current) return;
-
-    restoreFocusOnCloseRef.current = false;
-    requestAnimationFrame(() => triggerRef.current?.focus());
-  }, [isExpanded]);
-
-  useEffect(() => {
-    if (!isExpanded) return;
-
-    const handleMouseDown = (event: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
-        closePicker();
-      }
-    };
-
-    document.addEventListener("mousedown", handleMouseDown);
-    return () => document.removeEventListener("mousedown", handleMouseDown);
-  }, [isExpanded, closePicker]);
-
-  useEffect(() => {
-    if (!isExpanded || hasFocusedOnOpenRef.current) return;
-
-    hasFocusedOnOpenRef.current = true;
-
-    const frameId = requestAnimationFrame(() => {
-      const activeElement = document.activeElement;
-      if (
-        activeElement &&
-        activeElement !== document.body &&
-        activeElement !== triggerRef.current &&
-        pickerRef.current?.contains(activeElement)
-      ) {
-        return;
-      }
-
-      if (availableTags.length > 0) {
-        tagOptionRefs.current[0]?.focus();
-        return;
-      }
-      newTagInputRef.current?.focus();
-    });
-
-    return () => cancelAnimationFrame(frameId);
-  }, [isExpanded, availableTags.length]);
-
-  useEffect(() => {
-    if (!isExpanded) {
-      hasFocusedOnOpenRef.current = false;
-    }
-  }, [isExpanded]);
+  const {
+    pickerRef,
+    triggerRef,
+    newTagInputRef,
+    tagOptionRefs,
+    closePicker,
+    handleTriggerKeyDown,
+    handleListboxKeyDown,
+  } = useArticleTagPickerPopover({
+    isExpanded,
+    availableTagCount: availableTags.length,
+    onExpandedChange,
+  });
 
   const handleCreateTag = () => {
     const trimmedName = newTagName.trim();
@@ -157,18 +104,7 @@ export function ArticleTagPickerView({
             ref={triggerRef}
             type="button"
             onClick={() => onExpandedChange(!isExpanded)}
-            onKeyDown={(event) => {
-              if (event.key === "ArrowDown" && !isExpanded) {
-                event.preventDefault();
-                event.stopPropagation();
-                onExpandedChange(true);
-              }
-              if (event.key === "Escape" && isExpanded) {
-                event.preventDefault();
-                event.stopPropagation();
-                closePicker(true);
-              }
-            }}
+            onKeyDown={handleTriggerKeyDown}
             className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-dashed border-muted-foreground px-2 text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
             aria-label={labels.addTag}
             aria-haspopup="listbox"
@@ -183,27 +119,7 @@ export function ArticleTagPickerView({
               role="listbox"
               aria-label={labels.availableTags}
               className="absolute top-full left-0 z-50 mt-1 min-w-[180px] rounded-lg border border-border bg-popover p-1 shadow-lg"
-              onKeyDown={(event) => {
-                const currentIndex = tagOptionRefs.current.indexOf(document.activeElement as HTMLButtonElement);
-
-                if (event.key === "Escape") {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  closePicker(true);
-                }
-                if (event.key === "ArrowDown" && availableTags.length > 0) {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  const nextIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
-                  tagOptionRefs.current[nextIndex % availableTags.length]?.focus();
-                }
-                if (event.key === "ArrowUp" && availableTags.length > 0) {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  const nextIndex = currentIndex >= 0 ? currentIndex - 1 : availableTags.length - 1;
-                  tagOptionRefs.current[(nextIndex + availableTags.length) % availableTags.length]?.focus();
-                }
-              }}
+              onKeyDown={handleListboxKeyDown}
             >
               {availableTags.map((tag, index) => (
                 <button
