@@ -5,7 +5,7 @@ import { SidebarContentView } from "./sidebar-content-view";
 import { SidebarTagSection } from "./sidebar-tag-section";
 import { useSidebarTagItems } from "./use-sidebar-tag-items";
 
-type SidebarContentSectionsProps = {
+export type SidebarContentSectionsProps = {
   subscriptionsLabel: string;
   isFeedsSectionOpen: boolean;
   onToggleFeedsSection: () => void;

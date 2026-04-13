@@ -321,6 +321,11 @@
   - 対応: `use-sidebar-feed-tree-props.ts` へ `FeedTreeViewProps` 導出を寄せて、feed section controller 本体は tree data と drag/navigation orchestration に寄せた
   - 対象: `src/components/reader/use-sidebar-feed-section-controller.ts`, `src/components/reader/use-sidebar-feed-tree-props.ts`
 
+- [x] sidebar helper 群の shared props 型を component export に寄せる
+  - 問題: `use-sidebar-*-props.ts` と `use-sidebar-view-props.ts` に `Parameters<typeof ...>[0]` 由来の props 型が散っていて、helper が増えるほど型の正本が追いにくくなっていた
+  - 対応: `SidebarHeaderViewProps` / `SidebarAccountSectionProps` / `SidebarContentSectionsProps` を component 側で export して、helper 群はそれを再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar-header-view.tsx`, `src/components/reader/sidebar-account-section.tsx`, `src/components/reader/sidebar-content-sections.tsx`, `src/components/reader/use-sidebar-*.ts`
+
 - [x] sidebar の runtime state wiring を hook 化する
   - 問題: `useSidebarController` に section open state、account switcher、source query、sync wiring の初期化が残っていて、controller orchestration と runtime 配線が混ざっていた
   - 対応: `use-sidebar-runtime.ts` へ runtime state / refs / sync 接着を寄せて、controller 本体は section orchestration に集中させた
@@ -575,6 +580,11 @@
 - [x] browser view runtime の返り値 contract から未使用 state を外す
   - 問題: `use-browser-view-runtime.ts` が `browserState` を返していたが、controller 側では使っておらず runtime 内部 state と外部 contract がずれていた
   - 対象: `src/components/reader/use-browser-view-runtime.ts`
+
+- [x] sidebar の section/view props 型を shared types に寄せる
+  - 問題: `use-sidebar-section-props.ts` / `use-sidebar-view-props.ts` / `use-sidebar-header-props.ts` に sidebar 向け props/result 型 alias が散っていて、型境界の正本を追いにくかった
+  - 対応: `sidebar.types.ts` に section/view contract を集約して、sidebar hooks は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar.types.ts`, `src/components/reader/use-sidebar-header-props.ts`, `src/components/reader/use-sidebar-section-props.ts`, `src/components/reader/use-sidebar-view-props.ts`
 
 ## 2026-04-13 Premortem フォローアップ
 

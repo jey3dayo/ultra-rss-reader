@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-type SidebarHeaderViewProps = {
+export type SidebarHeaderViewProps = {
   isSyncing: boolean;
   onSync: () => void;
   onAddFeed: () => void;

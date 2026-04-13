@@ -1,7 +1,5 @@
 import type { TFunction } from "i18next";
-import type { SidebarContentSections } from "./sidebar-content-sections";
-
-type SidebarContentSectionsProps = Parameters<typeof SidebarContentSections>[0];
+import type { SidebarContentSectionsProps } from "./sidebar-content-sections";
 
 type UseSidebarContentSectionsPropsParams = {
   t: TFunction<"sidebar">;

@@ -2,7 +2,7 @@ import type { RefObject } from "react";
 import type { AccountSwitcherProps } from "./account-switcher-view";
 import { AccountSwitcherView } from "./account-switcher-view";
 
-type SidebarAccountSectionProps = AccountSwitcherProps & {
+export type SidebarAccountSectionProps = AccountSwitcherProps & {
   containerRef: RefObject<HTMLDivElement | null>;
 };
 

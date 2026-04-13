@@ -1,7 +1,5 @@
 import type { TFunction } from "i18next";
-import type { SidebarHeaderView } from "./sidebar-header-view";
-
-type SidebarHeaderProps = Parameters<typeof SidebarHeaderView>[0];
+import type { SidebarHeaderProps } from "./sidebar.types";
 
 type UseSidebarHeaderPropsParams = {
   t: TFunction<"sidebar">;

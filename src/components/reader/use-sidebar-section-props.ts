@@ -1,17 +1,13 @@
 import type { TFunction } from "i18next";
 import type { RefObject } from "react";
-import type { SidebarAccountSection } from "./sidebar-account-section";
-import type { SidebarContentSections } from "./sidebar-content-sections";
-import type { SidebarHeaderView } from "./sidebar-header-view";
+import type { SidebarSectionPropsResult } from "./sidebar.types";
+import type { SidebarAccountSectionProps } from "./sidebar-account-section";
+import type { SidebarContentSectionsProps } from "./sidebar-content-sections";
 import type { SmartViewsViewProps } from "./smart-views-view";
 import { useSidebarAccountSectionProps } from "./use-sidebar-account-section-props";
 import { useSidebarContentSectionsProps } from "./use-sidebar-content-sections-props";
 import { useSidebarHeaderProps } from "./use-sidebar-header-props";
 import { useSidebarSmartViewsProps } from "./use-sidebar-smart-views-props";
-
-type SidebarHeaderProps = Parameters<typeof SidebarHeaderView>[0];
-type SidebarAccountSectionProps = Parameters<typeof SidebarAccountSection>[0];
-type SidebarContentSectionsProps = Parameters<typeof SidebarContentSections>[0];
 
 type UseSidebarSectionPropsParams = {
   t: TFunction<"sidebar">;
@@ -55,13 +51,6 @@ type UseSidebarSectionPropsParams = {
   renderTagContextMenu: SidebarContentSectionsProps["renderTagContextMenu"];
 };
 
-type UseSidebarSectionPropsResult = {
-  headerProps: SidebarHeaderProps;
-  accountSectionProps: SidebarAccountSectionProps;
-  smartViewsProps: SmartViewsViewProps;
-  contentSectionsProps: SidebarContentSectionsProps;
-};
-
 export function useSidebarSectionProps({
   t,
   syncProgress,
@@ -99,7 +88,7 @@ export function useSidebarSectionProps({
   selection,
   selectTag,
   renderTagContextMenu,
-}: UseSidebarSectionPropsParams): UseSidebarSectionPropsResult {
+}: UseSidebarSectionPropsParams): SidebarSectionPropsResult {
   const headerProps = useSidebarHeaderProps({
     t,
     syncProgress,
