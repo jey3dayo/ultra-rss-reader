@@ -64,7 +64,7 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
         <div className="border-b px-4 py-4">
           <DialogHeader className="space-y-2">
             <DialogTitle className="text-lg">{t("shortcuts_help.title")}</DialogTitle>
-            <DialogDescription className="flex items-center gap-2">
+            <DialogDescription className="flex flex-wrap items-center gap-2">
               <span>{t("shortcuts_help.description")}</span>
               <kbd className="text-muted-foreground rounded-md border px-2 py-0.5 font-mono text-xs">?</kbd>
             </DialogDescription>
@@ -80,9 +80,13 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
               return visibleItems.length > 0 ? (
                 <CommandGroup key={category.categoryKey} heading={category.heading}>
                   {visibleItems.map((shortcut) => (
-                    <CommandItem key={shortcut.definition.id} value={shortcut.searchValue}>
+                    <CommandItem
+                      key={shortcut.definition.id}
+                      value={shortcut.searchValue}
+                      className="flex-col items-start gap-1.5 sm:flex-row sm:items-center"
+                    >
                       <span>{shortcut.label}</span>
-                      <CommandShortcut>{shortcut.displayKey}</CommandShortcut>
+                      <CommandShortcut className="ml-0 sm:ml-auto">{shortcut.displayKey}</CommandShortcut>
                     </CommandItem>
                   ))}
                 </CommandGroup>

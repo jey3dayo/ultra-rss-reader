@@ -196,6 +196,15 @@ describe("CommandPalette", () => {
     });
   });
 
+  it("wraps prefix hints so they stay readable on narrow layouts", async () => {
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    expect(await screen.findByTestId("command-palette-prefix-hints")).toHaveClass("flex-wrap");
+    expect(screen.getByTestId("command-palette-prefix-hint-actions")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("command-palette-prefix-hint-feeds")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("command-palette-prefix-hint-tags")).toHaveClass("rounded-md");
+  });
+
   it("shows dev scenarios only in dev builds", async () => {
     const first = render(<CommandPalette />, { wrapper: createWrapper() });
 

@@ -32,16 +32,28 @@ export function CommandPalette() {
           <CommandInput placeholder={placeholder} value={input} onValueChange={setInput} />
           <CommandPaletteResults getCommandItemValue={getCommandItemValue} {...resultsProps} />
           <CommandSeparator />
-          <div className="text-muted-foreground flex items-center gap-4 px-3 py-2 text-xs">
-            <div className="flex items-center gap-1">
+          <div
+            data-testid="command-palette-prefix-hints"
+            className="text-muted-foreground flex flex-wrap items-center gap-2 px-3 py-2 text-xs sm:gap-4"
+          >
+            <div
+              data-testid="command-palette-prefix-hint-actions"
+              className="flex items-center gap-1 rounded-md bg-muted/40 px-2 py-1"
+            >
               <span className="font-mono">&gt;</span>
               <span>{prefixHints.actions}</span>
             </div>
-            <div className="flex items-center gap-1">
+            <div
+              data-testid="command-palette-prefix-hint-feeds"
+              className="flex items-center gap-1 rounded-md bg-muted/40 px-2 py-1"
+            >
               <span className="font-mono">@</span>
               <span>{prefixHints.feeds}</span>
             </div>
-            <div className="flex items-center gap-1">
+            <div
+              data-testid="command-palette-prefix-hint-tags"
+              className="flex items-center gap-1 rounded-md bg-muted/40 px-2 py-1"
+            >
               <span className="font-mono">#</span>
               <span>{prefixHints.tags}</span>
             </div>

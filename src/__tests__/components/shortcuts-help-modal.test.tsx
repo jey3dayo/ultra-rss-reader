@@ -52,6 +52,9 @@ describe("ShortcutsHelpModal", () => {
 
     const option = await screen.findByRole("option", { name: /Open settings/ });
     expect(option).toHaveTextContent("Ctrl .");
+    expect(screen.getByText("?").closest("p")).toHaveClass("flex-wrap");
+    expect(option).toHaveClass("flex-col");
+    expect(option.querySelector("[data-slot='command-shortcut']")).toHaveClass("ml-0");
   });
 
   it("closes when escape is pressed", async () => {
