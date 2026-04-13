@@ -8,8 +8,7 @@ import type { ArticleGroupsViewGroup } from "./article-groups-view";
 import type { UseArticleListEffectsParams } from "./use-article-list-effects";
 import type { UseArticleListGroupsParams } from "./use-article-list-groups";
 import type { UseArticleListInteractionsParams } from "./use-article-list-interactions";
-import type { UseArticleListViewPropsParams } from "./use-article-list-view-props";
-import type { UseArticleListViewStateParams } from "./use-article-list-view-state";
+import type { UseArticleListViewStateParams, UseArticleListViewStateResult } from "./use-article-list-view-state";
 
 export type ArticleListLayoutMode = "wide" | "compact" | "mobile";
 export type ArticleListViewMode = "all" | "unread" | "starred";
@@ -103,6 +102,43 @@ export type UseArticleListViewPropsResult = {
   bodyProps: ArticleListBodyProps;
   footerProps: ArticleListFooterProps;
 };
+
+export type UseArticleListViewPropsParams = {
+  t: TFunction<"reader">;
+  tc: TFunction<"common">;
+  layoutMode: ArticleListLayoutMode;
+  showSearch: boolean;
+  searchQuery: string;
+  searchInputRef: RefObject<HTMLInputElement | null>;
+  handleMarkAllRead: () => void;
+  handleToggleSearch: () => void;
+  handleCloseSearch: () => void;
+  setSearchQuery: (value: string) => void;
+  listRef: RefObject<HTMLDivElement | null>;
+  viewportRef: RefObject<HTMLDivElement | null>;
+  handleListKeyDownCapture: (event: KeyboardEvent<HTMLDivElement>) => void;
+  isLoading: boolean;
+  isLoadingAccountArticles: boolean;
+  isLoadingTagArticles: boolean;
+  trimmedDebouncedQuery: string;
+  articleGroups: ArticleGroupsViewGroup[];
+  dimArchived: string;
+  textPreview: string;
+  imagePreviews: string;
+  selectionStyle: string;
+  selectArticle: (articleId: string) => void;
+  effectiveViewMode: ArticleListViewMode;
+  setViewMode: (viewMode: ArticleListViewMode) => void;
+} & Pick<
+  UseArticleListHeaderControlsResult,
+  | "showSidebarButton"
+  | "sidebarButtonLabel"
+  | "sidebarButtonText"
+  | "isSidebarVisible"
+  | "feedModeControl"
+  | "handleSidebarToggle"
+> &
+  Pick<UseArticleListViewStateResult, "contextStripContext" | "footerModes" | "isSearchLoading" | "isSearchEmptyState">;
 
 export type UseArticleListPresentationParams = {
   t: TFunction<"reader">;
