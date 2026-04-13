@@ -1,15 +1,5 @@
-import type {
-  BrowserDebugGeometryLayoutDiagnostics,
-  BrowserDebugGeometryNativeDiagnostics,
-} from "@/lib/browser-debug-geometry";
 import { getBrowserGeometryStripItems } from "@/lib/browser-debug-geometry";
-
-type BrowserDiagnosticsRailProps = {
-  layoutDiagnostics: BrowserDebugGeometryLayoutDiagnostics | null;
-  nativeDiagnostics: BrowserDebugGeometryNativeDiagnostics | null;
-  compact: boolean;
-  top: number;
-};
+import type { BrowserDiagnosticsRailProps } from "./browser-view.types";
 
 export function BrowserDiagnosticsRail({
   layoutDiagnostics,

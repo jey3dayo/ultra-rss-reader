@@ -1,18 +1,6 @@
 import { CircleAlert, ExternalLink, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { BrowserSurfaceIssue } from "./browser-surface-issue";
-
-type BrowserSurfaceStateCardProps = {
-  issue: BrowserSurfaceIssue;
-  showTechnicalDetail: boolean;
-  onRetry: () => void;
-  onOpenExternal: () => void;
-  labels: {
-    technicalDetail: string;
-    retryWebPreview: string;
-    openInExternalBrowser: string;
-  };
-};
+import type { BrowserSurfaceStateCardProps } from "./browser-view.types";
 
 export function BrowserSurfaceStateCard({
   issue,
