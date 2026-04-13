@@ -117,6 +117,26 @@ export type UseAccountDetailNameEditorResult = {
   handleNameKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
 };
 
+export type UseAccountDetailCredentialsEditorParams = {
+  account: AccountDetailAccount;
+  queryClient: QueryClient;
+  t: TFunction<"settings">;
+};
+
+export type UseAccountDetailCredentialsEditorResult = {
+  credServerUrl: string | null;
+  credUsername: string | null;
+  credPassword: string | null;
+  testingConnection: boolean;
+  setCredServerUrl: (value: string | null) => void;
+  setCredUsername: (value: string | null) => void;
+  setCredPassword: (value: string | null) => void;
+  commitCredentials: () => Promise<boolean>;
+  handleTestConnection: () => Promise<void>;
+  handleCopyServerUrl: () => Promise<void>;
+  onPasswordFocus: () => void;
+};
+
 export type UpdateAccountSyncParams = {
   syncIntervalSecs?: number;
   syncOnWake?: boolean;
@@ -126,24 +146,14 @@ export type UpdateAccountSyncParams = {
 export type UseAccountDetailControllerResult = {
   confirmDelete: boolean;
   setConfirmDelete: (value: boolean) => void;
-  credServerUrl: string | null;
-  credUsername: string | null;
-  credPassword: string | null;
-  testingConnection: boolean;
-  setCredServerUrl: (value: string | null) => void;
-  setCredUsername: (value: string | null) => void;
-  setCredPassword: (value: string | null) => void;
-  commitCredentials: () => Promise<boolean>;
   handleSyncUpdate: (partial: UpdateAccountSyncParams) => Promise<void>;
-  handleTestConnection: () => Promise<void>;
   handleSyncNow: () => Promise<void>;
   handleExportOpml: () => Promise<void>;
   handleDelete: () => Promise<void>;
-  handleCopyServerUrl: () => Promise<void>;
-  onPasswordFocus: () => void;
   syncIntervalOptions: AccountSelectOption[];
   keepReadItemsOptions: AccountSelectOption[];
-} & UseAccountDetailNameEditorResult;
+} & UseAccountDetailNameEditorResult &
+  UseAccountDetailCredentialsEditorResult;
 
 export type UseAccountDetailViewPropsParams = {
   account: AccountDetailAccount;

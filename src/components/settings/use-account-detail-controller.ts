@@ -1,16 +1,8 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
-import {
-  copyToClipboard,
-  deleteAccount,
-  exportOpml,
-  syncAccount,
-  testAccountConnection,
-  updateAccountCredentials,
-  updateAccountSync,
-} from "@/api/tauri-commands";
+import { deleteAccount, exportOpml, syncAccount, updateAccountSync } from "@/api/tauri-commands";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync-result-feedback";
 import { useUiStore } from "@/stores/ui-store";
 import type {
@@ -18,6 +10,7 @@ import type {
   UseAccountDetailControllerParams,
   UseAccountDetailControllerResult,
 } from "./account-detail.types";
+import { useAccountDetailCredentialsEditor } from "./use-account-detail-credentials-editor";
 import { useAccountDetailNameEditor } from "./use-account-detail-name-editor";
 
 export function useAccountDetailController({
@@ -28,12 +21,12 @@ export function useAccountDetailController({
 }: UseAccountDetailControllerParams): UseAccountDetailControllerResult {
   const qc = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [credServerUrl, setCredServerUrl] = useState<string | null>(null);
-  const [credUsername, setCredUsername] = useState<string | null>(null);
-  const [credPassword, setCredPassword] = useState<string | null>(null);
-  const [testingConnection, setTestingConnection] = useState(false);
-  const pendingCredentialSaveRef = useRef<Promise<boolean> | null>(null);
   const nameEditor = useAccountDetailNameEditor({
+    account,
+    queryClient: qc,
+    t,
+  });
+  const credentialsEditor = useAccountDetailCredentialsEditor({
     account,
     queryClient: qc,
     t,
@@ -54,77 +47,6 @@ export function useAccountDetailController({
         qc.setQueryData<AccountDto[]>(["accounts"], (prev) => prev?.map((a) => (a.id === updated.id ? updated : a)));
       }),
     );
-  };
-
-  const commitCredentials = async (): Promise<boolean> => {
-    if (pendingCredentialSaveRef.current) {
-      return pendingCredentialSaveRef.current;
-    }
-
-    const saveTask = (async () => {
-      const serverUrl = credServerUrl ?? account.server_url ?? undefined;
-      const username = credUsername ?? account.username ?? undefined;
-      const password = credPassword || undefined;
-      const serverUrlChanged = credServerUrl !== null && credServerUrl !== (account.server_url ?? "");
-      const usernameChanged = credUsername !== null && credUsername !== (account.username ?? "");
-      const passwordChanged = credPassword !== null && credPassword !== "";
-
-      if (!serverUrlChanged && !usernameChanged && !passwordChanged) {
-        setCredPassword(null);
-        return true;
-      }
-
-      let saved = false;
-      Result.pipe(
-        await updateAccountCredentials(account.id, serverUrl, username, password),
-        Result.inspectError((e) =>
-          useUiStore.getState().showToast(t("account.failed_to_update_sync", { message: e.message })),
-        ),
-        Result.inspect((updated) => {
-          saved = true;
-          qc.setQueryData<AccountDto[]>(["accounts"], (prev) => prev?.map((a) => (a.id === updated.id ? updated : a)));
-          setCredServerUrl(null);
-          setCredUsername(null);
-          setCredPassword(null);
-          useUiStore.getState().showToast(t("account.credentials_saved"));
-        }),
-      );
-
-      return saved;
-    })();
-
-    pendingCredentialSaveRef.current = saveTask.finally(() => {
-      pendingCredentialSaveRef.current = null;
-    });
-
-    return pendingCredentialSaveRef.current;
-  };
-
-  const handleTestConnection = async () => {
-    setTestingConnection(true);
-    try {
-      const credentialsSaved = await commitCredentials();
-      if (!credentialsSaved) return;
-
-      const result = await testAccountConnection(account.id);
-      Result.pipe(
-        result,
-        Result.inspectError((e) => {
-          useUiStore.getState().showToast(t("account.connection_failed", { message: e.message }));
-        }),
-        Result.inspect((connected) => {
-          useUiStore
-            .getState()
-            .showToast(
-              connected
-                ? t("account.connection_success")
-                : t("account.connection_failed", { message: t("account.connection_unsuccessful") }),
-            );
-        }),
-      );
-    } finally {
-      setTestingConnection(false);
-    }
   };
 
   const handleSyncNow = async () => {
@@ -185,25 +107,6 @@ export function useAccountDetailController({
     );
   };
 
-  const handleCopyServerUrl = async () => {
-    const value = credServerUrl ?? account.server_url ?? "";
-    if (!value) return;
-
-    Result.pipe(
-      await copyToClipboard(value),
-      Result.inspect(() => {
-        useUiStore.getState().showToast(t("account.copied_to_clipboard"));
-      }),
-      Result.inspectError((e) => {
-        useUiStore.getState().showToast(e.message);
-      }),
-    );
-  };
-
-  const onPasswordFocus = () => {
-    if (credPassword === null) setCredPassword("");
-  };
-
   const syncIntervalOptions = [
     { value: "900", label: t("account.every_15_minutes") },
     { value: "1800", label: t("account.every_30_minutes") },
@@ -227,21 +130,11 @@ export function useAccountDetailController({
     confirmDelete,
     setConfirmDelete,
     ...nameEditor,
-    credServerUrl,
-    credUsername,
-    credPassword,
-    testingConnection,
-    setCredServerUrl,
-    setCredUsername,
-    setCredPassword,
-    commitCredentials,
+    ...credentialsEditor,
     handleSyncUpdate,
-    handleTestConnection,
     handleSyncNow,
     handleExportOpml,
     handleDelete,
-    handleCopyServerUrl,
-    onPasswordFocus,
     syncIntervalOptions,
     keepReadItemsOptions,
   };
