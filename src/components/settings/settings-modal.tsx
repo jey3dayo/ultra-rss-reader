@@ -10,6 +10,7 @@ import { DataSettings } from "@/components/settings/data-settings";
 import { DebugSettings } from "@/components/settings/debug-settings";
 import { GeneralSettings } from "@/components/settings/general-settings";
 import { ReadingSettings } from "@/components/settings/reading-settings";
+import type { SettingsContentProps } from "@/components/settings/settings-modal.types";
 import { SettingsModalView } from "@/components/settings/settings-modal-view";
 import type { AccountNavItem, SettingsNavItem, SettingsNavItemId } from "@/components/settings/settings-nav.types";
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
@@ -18,15 +19,7 @@ import { useAccounts } from "@/hooks/use-accounts";
 import type { SettingsCategory } from "@/stores/ui-store";
 import { useUiStore } from "@/stores/ui-store";
 
-function SettingsContent({
-  settingsAccountId,
-  settingsAddAccount,
-  settingsCategory,
-}: {
-  settingsAccountId: string | null;
-  settingsAddAccount: boolean;
-  settingsCategory: SettingsCategory;
-}) {
+function SettingsContent({ settingsAccountId, settingsAddAccount, settingsCategory }: SettingsContentProps) {
   if (settingsAccountId) {
     return <AccountDetail />;
   }

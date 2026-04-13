@@ -1,22 +1,11 @@
 import { X } from "lucide-react";
-import type { ReactNode } from "react";
+import type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
 import { IndeterminateProgress } from "@/components/shared/indeterminate-progress";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export type SettingsModalViewProps = {
-  open: boolean;
-  title: string;
-  closeLabel: string;
-  navigation: ReactNode;
-  accountsHeading?: string;
-  accountsNavigation: ReactNode;
-  content: ReactNode;
-  isLoading?: boolean;
-  onClose: () => void;
-  onOpenChange: (open: boolean) => void;
-};
+export type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
 
 export function SettingsModalView({
   open,
