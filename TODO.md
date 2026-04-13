@@ -59,6 +59,11 @@
   - 対応: helper props を named type にして、settings helper component の契約を file 冒頭で追える形に寄せた
   - 対象: `src/components/settings/settings-components.tsx`, `src/components/settings/shortcuts-settings-view.tsx`
 
+- [x] ui / reader helper component の inline prop contract を named type に寄せる
+  - 問題: `tooltip.tsx` と reader の context menu / drag overlay helper に inline object type が残っていて、helper contract の追跡がしづらかった
+  - 対応: helper props を named type にして、ui / reader helper component の契約を file 冒頭で追える形に寄せた
+  - 対象: `src/components/ui/tooltip.tsx`, `src/components/reader/feed-context-menu.tsx`, `src/components/reader/folder-context-menu.tsx`, `src/components/reader/tag-context-menu-view.tsx`, `src/components/reader/tag-context-menu.tsx`, `src/components/reader/feed-tree-drag-overlay.tsx`
+
 - [x] confirm dialog 系の shell / footer を `src/components/shared` に寄せる
   - 問題: `ConfirmDialog` と `ConfirmDialogView` がほぼ同型で、destructive footer も複数 dialog に重複している
   - 対象: `src/components/ui/confirm-dialog.tsx`, `src/components/shared/*`, `src/components/feed-cleanup/*`
