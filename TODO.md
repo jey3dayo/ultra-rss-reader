@@ -9,6 +9,31 @@
   - 対応する場合は tooltip 前提の主要操作を、ラベル表示かメニュー集約で補う
   - 候補箇所: `src/components/reader/sidebar-header-view.tsx`, `src/components/reader/article-list-header.tsx`, `src/components/reader/article-toolbar-view.tsx`
 
+## 2026-04-13 Storybook 巡回メモ
+
+- [ ] `Reader/DeleteTagDialogView` の Storybook がクラッシュする
+  - 症状: `reader-deletetagdialogview--default` が `Objects are not valid as a React child (found: object with keys {name})` で描画失敗する
+  - 原因候補: `DeleteTagDialogView` の `<Trans>` fallback で `<strong>{{ name: tagName } as never}</strong>` を直接子にしており、object child を render しようとしている
+  - 対象: `src/components/reader/delete-tag-dialog-view.tsx`, `src/components/reader/delete-tag-dialog-view.stories.tsx`
+  - メモ: `unsubscribe-feed-dialog.tsx` と同じ placeholder の渡し方に揃えると直せそう
+
+- [x] `Reader/FeedTreeView` の Storybook が外部 favicon 404 を毎回出す
+  - 症状: `reader-feedtreeview--*` で `https://t3.gstatic.com/faviconV2?...url=http://example.com...` が 404 になり、console noise が残る
+  - 原因候補: story fixture の `example.com` / `FeedFavicon` 経由の外部取得に依存しており、存在しない favicon URL へ毎回アクセスしている
+  - 対象: `src/components/reader/feed-tree-view.stories.tsx`, `src/components/shared/feed-favicon.tsx`
+  - メモ: Storybook では favicon 表示を切るか、fixture を 404 しない URL / stub に寄せたい
+
+- [x] Settings 系 Storybook decorator の固定幅で mobile 幅の確認がしづらい
+  - 症状: 390px viewport で `Settings/AccountDetailView` を含む複数 story の右端が切れ、select や value が途中で見切れる
+  - 原因候補: story wrapper が `w-[420px]` / `w-[480px]` / `w-96` 固定になっていて、component ではなく Storybook 側の土台で overflow を作っている
+  - 対象: `src/components/settings/account-detail-view.stories.tsx`, `src/components/settings/account-*.stories.tsx`, `src/components/settings/*settings-view.stories.tsx`, `src/components/settings/settings-components.stories.tsx`
+  - メモ: `w-full max-w-*` 化か viewport addon 前提の responsive wrapper にすると mobile 監査しやすい
+
+- [x] `Reader/DiscoveredFeedOptionsView` の Storybook wrapper も mobile で横幅がはみ出す
+  - 症状: 390px viewport で `w-[420px]` wrapper が残り、mobile 幅チェック時に Storybook 側で 30px ほど overflow する
+  - 対象: `src/components/reader/discovered-feed-options-view.stories.tsx`
+  - メモ: Settings 系と同じ wrapper 方針に揃えて、component 自体の responsive 挙動を見やすくしたい
+
 ## 2026-04-12 購読整理 UI copy / 情報設計メモ
 
 - [x] 購読整理画面に一括操作を追加する

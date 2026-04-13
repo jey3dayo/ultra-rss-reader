@@ -8,7 +8,7 @@ const sectionHeadingMeta = {
   tags: ["autodocs"],
   decorators: [
     (Story) => (
-      <div className="w-96 bg-background p-4">
+      <div className="w-full max-w-[24rem] bg-background p-4">
         <Story />
       </div>
     ),
@@ -37,7 +37,7 @@ export const SettingsRowSwitch: SectionHeadingStory = {
   name: "SettingsRow (Switch)",
   args: { children: "Switch Variants" },
   render: () => (
-    <div className="w-96">
+    <div className="w-full max-w-[24rem]">
       <SettingsRow label="Enable notifications" type="switch" checked={true} />
       <SettingsRow label="Dark mode" type="switch" checked={false} />
       <SettingsRow label="Auto-sync" type="switch" />
@@ -49,7 +49,7 @@ export const SettingsRowSelect: SectionHeadingStory = {
   name: "SettingsRow (Select)",
   args: { children: "Select Variants" },
   render: () => (
-    <div className="w-96">
+    <div className="w-full max-w-[24rem]">
       <SettingsRow label="Theme" type="select" value="Dark" />
       <SettingsRow label="Language" type="select" value="Japanese" />
     </div>
@@ -60,7 +60,7 @@ export const SettingsRowText: SectionHeadingStory = {
   name: "SettingsRow (Text)",
   args: { children: "Text Variants" },
   render: () => (
-    <div className="w-96">
+    <div className="w-full max-w-[24rem]">
       <SettingsRow label="Server URL" type="text" value="https://freshrss.example.com" />
       <SettingsRow
         label="Username"
@@ -76,7 +76,7 @@ export const FullSettingsSection: SectionHeadingStory = {
   name: "Full Settings Section",
   args: { children: "Account" },
   render: () => (
-    <div className="w-96">
+    <div className="w-full max-w-[24rem]">
       <SectionHeading>Account</SectionHeading>
       <SettingsRow label="Server" type="text" value="https://freshrss.example.com" />
       <SettingsRow label="Username" type="text" value="admin" />

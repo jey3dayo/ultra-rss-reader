@@ -51,7 +51,7 @@ const meta = {
     ],
     onToggleFolder: fn(),
     onSelectFeed: fn(),
-    displayFavicons: true,
+    displayFavicons: false,
     emptyState: { kind: "message", message: "No feeds yet" },
     renderFolderContextMenu: fn(),
     renderFeedContextMenu: fn(),
