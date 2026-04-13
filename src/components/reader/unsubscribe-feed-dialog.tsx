@@ -2,17 +2,14 @@ import { Trans, useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { UnsubscribeFeedDialogView } from "./unsubscribe-feed-dialog-view";
 
-export function UnsubscribeDialog({
-  feed,
-  open,
-  onOpenChange,
-  onConfirm,
-}: {
+export type UnsubscribeDialogProps = {
   feed: FeedDto;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
-}) {
+};
+
+export function UnsubscribeDialog({ feed, open, onOpenChange, onConfirm }: UnsubscribeDialogProps) {
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
 

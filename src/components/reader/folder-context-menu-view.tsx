@@ -1,13 +1,12 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { contextMenuStyles } from "./context-menu-styles";
 
-export function FolderContextMenuView({
-  markAllReadLabel,
-  onMarkAllRead,
-}: {
+export type FolderContextMenuViewProps = {
   markAllReadLabel: string;
   onMarkAllRead: () => void;
-}) {
+};
+
+export function FolderContextMenuView({ markAllReadLabel, onMarkAllRead }: FolderContextMenuViewProps) {
   return (
     <ContextMenu.Portal>
       <ContextMenu.Positioner>

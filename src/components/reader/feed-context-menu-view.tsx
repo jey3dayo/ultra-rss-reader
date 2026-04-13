@@ -1,6 +1,21 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { contextMenuStyles } from "./context-menu-styles";
 
+export type FeedContextMenuViewProps = {
+  openSiteLabel: string;
+  markAllReadLabel: string;
+  displayModeLabel: string;
+  displayPresetOptions: Array<{ value: string; label: string }>;
+  selectedDisplayPreset: string;
+  unsubscribeLabel: string;
+  editLabel: string;
+  onOpenSite: () => void;
+  onMarkAllRead: () => void;
+  onSetDisplayPreset: (value: string) => void;
+  onUnsubscribe: () => void;
+  onEdit: () => void;
+};
+
 export function FeedContextMenuView({
   openSiteLabel,
   markAllReadLabel,
@@ -14,20 +29,7 @@ export function FeedContextMenuView({
   onSetDisplayPreset,
   onUnsubscribe,
   onEdit,
-}: {
-  openSiteLabel: string;
-  markAllReadLabel: string;
-  displayModeLabel: string;
-  displayPresetOptions: Array<{ value: string; label: string }>;
-  selectedDisplayPreset: string;
-  unsubscribeLabel: string;
-  editLabel: string;
-  onOpenSite: () => void;
-  onMarkAllRead: () => void;
-  onSetDisplayPreset: (value: string) => void;
-  onUnsubscribe: () => void;
-  onEdit: () => void;
-}) {
+}: FeedContextMenuViewProps) {
   return (
     <ContextMenu.Portal>
       <ContextMenu.Positioner>
