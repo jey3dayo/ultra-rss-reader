@@ -162,6 +162,11 @@
   - 対応: `CommandPaletteControllerResult` を `command-palette.types.ts` に追加して、controller の返り値を shared contract に寄せた
   - 対象: `src/components/reader/command-palette.types.ts`, `src/components/reader/use-command-palette-controller.ts`
 
+- [x] command-palette の runtime / actions / handlers / view-props params を shared types に寄せる
+  - 問題: `command-palette.types.ts` に shared result 型がある一方で、`use-command-palette-runtime.ts` と `use-command-palette-view-props.ts` の params 型、`actions/handlers` の dependency contract は local hook 由来のままで、正本が分かれたままだった
+  - 対応: `UseCommandPaletteRuntimeParams` / `UseCommandPaletteRuntimeResult` / `UseCommandPaletteActionsParams` / `UseCommandPaletteHandlersParams` / `UseCommandPaletteViewPropsParams` を `command-palette.types.ts` に寄せて、`useCommandPaletteUiState` や conditional infer への依存を減らした
+  - 対象: `src/components/reader/command-palette.types.ts`, `src/components/reader/use-command-palette-actions.ts`, `src/components/reader/use-command-palette-runtime.ts`, `src/components/reader/use-command-palette-handlers.ts`, `src/components/reader/use-command-palette-view-props.ts`
+
 - [x] command-palette の recent history helper を共通化する
   - 問題: `use-command-palette-data.ts` と `use-command-palette-handlers.ts` に history prefix / parse / format ルールが重複していて、recent action 表示と履歴書き込みの契約が分散していた
   - 対応: `command-palette-history.ts` に history entry の parse/format を寄せて、unit test で prefix 契約を固定した
@@ -755,6 +760,11 @@
   - 問題: `use-article-list-sources.ts` の params/result 契約が hook file に閉じていて、runtime 配下の query source 境界の正本を追いにくかった
   - 対応: `article-list.types.ts` に sources params/result contract を追加して、sources hook は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-sources.ts`
+
+- [x] article list header controls の contract を shared types に寄せる
+  - 問題: `use-article-list-header-controls.tsx` の params 契約が hook file に閉じていて、header control 導出境界の正本を追いにくかった
+  - 対応: `article-list.types.ts` に header controls params contract を追加して、header controls hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-header-controls.tsx`
 
 - [x] article list header subview props の正本を shared types に寄せる
   - 問題: `article-list-header.tsx` / `article-list-header-actions.tsx` / `article-list-header-search.tsx` に props contract が分散していて、header 境界の正本を `article-list.types.ts` から追えなかった
