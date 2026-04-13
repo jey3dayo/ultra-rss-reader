@@ -681,6 +681,11 @@
   - 対応: `sidebar-feed-section.types.ts` に visibility fallback params contract を追加して、fallback hook は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/sidebar-feed-section.types.ts`, `src/components/reader/use-sidebar-visibility-fallback.ts`
 
+- [x] sidebar account status labels の contract を shared types に寄せる
+  - 問題: `use-sidebar-account-status-labels.ts` に local な `AccountLike` が残っていて、sources helper の入力境界の正本を追いにくかった
+  - 対応: `sidebar-sources.types.ts` に account status label source/params contract を追加して、status labels hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar-sources.types.ts`, `src/components/reader/use-sidebar-account-status-labels.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
