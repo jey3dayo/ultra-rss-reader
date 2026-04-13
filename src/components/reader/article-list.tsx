@@ -1,30 +1,21 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
-import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { APP_EVENTS } from "@/constants/events";
 import { ARTICLE_SEARCH_DEBOUNCE_MS } from "@/constants/reader";
 import { useAccountArticles, useArticles, useMarkAllRead, useSearchArticles } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useArticlesByTag } from "@/hooks/use-tags";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
-import { executeAction } from "@/lib/actions";
 import {
   displayPresetToTriStateModes,
   feedModesToDisplayPresetOption,
   resolveFeedDisplayOverrides,
 } from "@/lib/article-display";
-import {
-  calculateArticleNavigationScrollTop,
-  getAdjacentArticleId,
-  getUnreadArticleIds,
-  groupArticles,
-  selectVisibleArticles,
-} from "@/lib/article-list";
-import { emitDebugInputTrace } from "@/lib/debug-input-trace";
-import { buildKeyToActionMap, keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
+import { getUnreadArticleIds, groupArticles, selectVisibleArticles } from "@/lib/article-list";
+import { buildKeyToActionMap } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -35,6 +26,7 @@ import { ArticleListFooter } from "./article-list-footer";
 import { ArticleListHeader } from "./article-list-header";
 import { ArticleListScreenView } from "./article-list-screen-view";
 import { contextMenuStyles } from "./context-menu-styles";
+import { useArticleListInteractions } from "./use-article-list-interactions";
 
 export function ArticleList() {
   const { t } = useTranslation("reader");
@@ -297,142 +289,19 @@ export function ArticleList() {
     }
     openSidebar();
   }, [layoutMode, openSidebar, toggleSidebar]);
-
-  const navigateArticle = useCallback(
-    (direction: 1 | -1) => {
-      const nextArticleId = getAdjacentArticleId(filteredArticles, selectedArticleId, direction);
-      if (Result.isFailure(nextArticleId)) {
-        return;
-      }
-
-      const articleId = Result.unwrap(nextArticleId);
-      const viewport = viewportRef.current;
-      const btn = listRef.current?.querySelector<HTMLElement>(`[data-article-id="${articleId}"]`);
-
-      selectArticle(articleId);
-
-      if (!viewport || !btn) {
-        return;
-      }
-
-      const stickyHeaderHeight =
-        listRef.current?.querySelector<HTMLElement>("[data-group-header]")?.getBoundingClientRect().height ?? 0;
-      const viewportRect = viewport.getBoundingClientRect();
-      const buttonRect = btn.getBoundingClientRect();
-      const nextScrollTop = calculateArticleNavigationScrollTop({
-        currentScrollTop: viewport.scrollTop,
-        viewportTop: viewportRect.top,
-        viewportHeight: viewport.clientHeight,
-        itemTop: buttonRect.top,
-        itemHeight: buttonRect.height,
-        direction,
-        stickyTopOffset: stickyHeaderHeight,
-        maxScrollTop: viewport.scrollHeight - viewport.clientHeight,
-      });
-
-      if (nextScrollTop !== null) {
-        viewport.scrollTop = nextScrollTop;
-      }
-
-      btn.focus({ preventScroll: true });
-    },
-    [filteredArticles, selectedArticleId, selectArticle],
-  );
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const direction = (e as CustomEvent<1 | -1>).detail;
-      navigateArticle(direction);
-    };
-    window.addEventListener(APP_EVENTS.navigateArticle, handler);
-    return () => window.removeEventListener(APP_EVENTS.navigateArticle, handler);
-  }, [navigateArticle]);
-
-  useEffect(() => {
-    const handleFocusSearch = () => openSearch();
-    const handleMarkAllReadEvent = () => {
-      void handleMarkAllRead();
-    };
-
-    window.addEventListener(keyboardEvents.focusSearch, handleFocusSearch);
-    window.addEventListener(keyboardEvents.markAllRead, handleMarkAllReadEvent);
-    return () => {
-      window.removeEventListener(keyboardEvents.focusSearch, handleFocusSearch);
-      window.removeEventListener(keyboardEvents.markAllRead, handleMarkAllReadEvent);
-    };
-  }, [handleMarkAllRead, openSearch]);
-
-  const handleListKeyDownCapture = useCallback(
-    (event: ReactKeyboardEvent<HTMLDivElement>) => {
-      const target = event.target instanceof Element ? event.target : null;
-      if (!target?.closest('[role="option"]')) {
-        return;
-      }
-
-      const action = resolveKeyboardAction({
-        key: event.key,
-        metaKey: event.metaKey,
-        ctrlKey: event.ctrlKey,
-        shiftKey: event.shiftKey,
-        targetTag: target.tagName,
-        selectedArticleId,
-        contentMode: useUiStore.getState().contentMode,
-        viewMode: useUiStore.getState().viewMode,
-        keyToAction,
-      });
-
-      if (Result.isFailure(action)) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      const resolvedAction = Result.unwrap(action);
-      emitDebugInputTrace(`list-key ${event.key} -> ${resolvedAction.type}`);
-      switch (resolvedAction.type) {
-        case "open-settings":
-          executeAction("open-settings");
-          break;
-        case "open-command-palette":
-          executeAction("open-command-palette");
-          break;
-        case "open-shortcuts-help":
-          useUiStore.getState().openShortcutsHelp();
-          break;
-        case "emit":
-          window.dispatchEvent(new Event(resolvedAction.eventName));
-          break;
-        case "set-view-mode":
-          executeAction(`set-filter-${resolvedAction.mode}`);
-          break;
-        case "close-browser":
-          executeAction("close-browser");
-          break;
-        case "clear-article":
-          clearArticle();
-          break;
-        case "toggle-sidebar":
-          toggleSidebar();
-          break;
-        case "focus-sidebar":
-          openSidebar();
-          break;
-        case "navigate-article":
-          executeAction(resolvedAction.direction === 1 ? "next-article" : "prev-article");
-          break;
-        case "navigate-feed":
-          executeAction(resolvedAction.direction === 1 ? "next-feed" : "prev-feed");
-          break;
-        case "reload-webview":
-          executeAction("reload-webview");
-          break;
-        case "noop":
-          break;
-      }
-    },
-    [clearArticle, keyToAction, openSidebar, selectedArticleId, toggleSidebar],
-  );
+  const { handleListKeyDownCapture } = useArticleListInteractions({
+    filteredArticles,
+    selectedArticleId,
+    selectArticle,
+    clearArticle,
+    openSidebar,
+    toggleSidebar,
+    openSearch,
+    handleMarkAllRead,
+    keyToAction,
+    listRef,
+    viewportRef,
+  });
 
   return (
     <div
