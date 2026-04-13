@@ -666,6 +666,11 @@
   - 対応: `sidebar.types.ts` に smart views params/result contract を追加して、smart views hook と section props helper は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/sidebar.types.ts`, `src/components/reader/use-sidebar-smart-views.ts`, `src/components/reader/use-sidebar-smart-views-props.ts`
 
+- [x] sidebar props helper の contract を shared types に寄せる
+  - 問題: `use-sidebar-account-section-props.ts` / `use-sidebar-content-sections-props.ts` / `use-sidebar-view-props.ts` に local params が残っていて、sidebar props helper 境界の正本を追いにくかった
+  - 対応: `sidebar.types.ts` に account/content/view props params contract を追加して、各 helper は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar.types.ts`, `src/components/reader/use-sidebar-account-section-props.ts`, `src/components/reader/use-sidebar-content-sections-props.ts`, `src/components/reader/use-sidebar-view-props.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
