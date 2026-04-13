@@ -151,20 +151,30 @@ export type UseAccountDetailSyncControlsResult = {
   keepReadItemsOptions: AccountSelectOption[];
 };
 
+export type UseAccountDetailDangerZoneParams = {
+  account: AccountDetailAccount;
+  queryClient: QueryClient;
+  t: TFunction<"settings">;
+  onAccountDeleted: () => void;
+};
+
+export type UseAccountDetailDangerZoneResult = {
+  confirmDelete: boolean;
+  setConfirmDelete: (value: boolean) => void;
+  handleExportOpml: () => Promise<void>;
+  handleDelete: () => Promise<void>;
+};
+
 export type UpdateAccountSyncParams = {
   syncIntervalSecs?: number;
   syncOnWake?: boolean;
   keepReadItemsDays?: number;
 };
 
-export type UseAccountDetailControllerResult = {
-  confirmDelete: boolean;
-  setConfirmDelete: (value: boolean) => void;
-  handleExportOpml: () => Promise<void>;
-  handleDelete: () => Promise<void>;
-} & UseAccountDetailNameEditorResult &
+export type UseAccountDetailControllerResult = {} & UseAccountDetailNameEditorResult &
   UseAccountDetailCredentialsEditorResult &
-  UseAccountDetailSyncControlsResult;
+  UseAccountDetailSyncControlsResult &
+  UseAccountDetailDangerZoneResult;
 
 export type UseAccountDetailViewPropsParams = {
   account: AccountDetailAccount;
