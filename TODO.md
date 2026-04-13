@@ -212,9 +212,9 @@
   - 問題: `mise run ci` では FreshRSS live、native keyring、packaged updater の確認が落ちるため、CI 緑でも実機で壊れる余地がある
   - 対象: `README.md`, `CLAUDE.md`, `docs/release-manual-verification.md`
 
-- [ ] sync の partial success を見える化する
+- [x] sync の partial success を見える化する
   - 問題: `pending_mutations` はあるが mutation push は batch 契約のままで、部分成功時に何が反映済みか追いにくい
-  - 対象: `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/commands/sync_commands.rs`, `src/components/reader/*`, `src/locales/*`
+  - 対象: `src-tauri/src/commands/sync_commands.rs`, `src-tauri/src/commands/sync_providers.rs`, `src-tauri/src/service/sync_scheduler.rs`, `src/components/reader/*`, `src/components/settings/*`, `src/lib/*`, `src/locales/*`
   - 計画:
     1. partial success / warning / retry 待ちを区別できるログと UI 表示を整理する
     2. 失敗した account / mutation の把握に必要な情報を不足なく残す
