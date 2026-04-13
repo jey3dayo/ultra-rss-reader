@@ -148,7 +148,15 @@
 
 - [x] article-view の article actions と keyboard shortcut を hook 化する
   - 問題: `ArticlePane` に read/star/copy/reading list の action と keyboard listener が残り、overlay 分離後も責務が重かった
-  - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-pane-actions.ts`
+  - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-actions.ts`
+
+- [x] article action hook を context menu にも再利用する
+  - 問題: `article-context-menu.tsx` に read/star/open browser の mutation 処理が重複し、`article-view` と同期して保守する必要があった
+  - 対象: `src/components/reader/article-context-menu.tsx`, `src/components/reader/use-article-actions.ts`, `src/components/reader/article-view.tsx`
+
+- [x] article toolbar の action 重複を article action hook へ寄せる
+  - 問題: `ArticleToolbar` にも read/star/copy/external browser の重複実装が残り、`ArticlePane` と action ロジックが二重管理になっていた
+  - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-actions.ts`
 
 - [x] ArticleView の selection 解決を hook 化する
   - 問題: `ArticleView` に feed/account/tag/all の分岐、not-found 判定、selected article/feed 解決が残っていた
