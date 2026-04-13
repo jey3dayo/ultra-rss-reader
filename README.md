@@ -113,7 +113,7 @@ Always run `mise run check` before committing.
 - `mise run test` is the default fast verification loop for repository tests (Rust + Vitest).
 - `mise run test:e2e` runs Playwright against the browser-mode UI flow.
 - `mise run test:live` is opt-in and requires real FreshRSS credentials from `.env`.
-- Features that depend on OS services such as updater installation and native keyring behavior still need platform-specific manual verification.
+- Features that depend on OS services such as updater installation and native keyring behavior still need platform-specific manual verification. Follow [docs/release-manual-verification.md](docs/release-manual-verification.md) before tagging a release or sharing a packaged build.
 
 ### Verification Matrix
 
@@ -125,7 +125,7 @@ Always run `mise run check` before committing.
 | Native keyring integration | Unit / integration tests around app logic only | Manual verification on each target OS |
 | Updater download / install | Config and command-level checks only | Manual verification on packaged builds per target OS |
 
-`mise run ci` intentionally covers format, lint, repository tests, and frontend build. It does not run live-service tests or native packaged-app checks, so release validation still needs a short manual pass for updater and OS-integrated credential flows.
+`mise run ci` intentionally covers format, lint, repository tests, and frontend build. It does not run live-service tests or native packaged-app checks, so release validation still needs the checklist in [docs/release-manual-verification.md](docs/release-manual-verification.md).
 
 ## Troubleshooting
 

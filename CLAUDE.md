@@ -28,6 +28,7 @@ Always run `mise run check` before committing.
 - Release builds write file logs. Use the in-app "Open log directory" flow or `get_log_dir` when you need packaged-app logs for troubleshooting.
 - Setting `DEV_CREDENTIALS=1` switches development builds to the file-based credential store. Production builds should continue using the OS keyring.
 - Use `mise run test:live` only for live FreshRSS verification with encrypted `.env` credentials; keep it separate from the normal local dev loop.
+- Before tagging a release or handing off a packaged build, follow [docs/release-manual-verification.md](docs/release-manual-verification.md).
 - If a debugging or recovery procedure grows beyond a short note, move the detailed workflow into a skill and keep the background details in `README.md` or `docs/`.
 
 ## Temporary Artifacts
