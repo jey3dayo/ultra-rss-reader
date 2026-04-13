@@ -1,12 +1,12 @@
 import { Result } from "@praha/byethrow";
 import { type KeyboardEvent as ReactKeyboardEvent, type RefObject, useCallback, useMemo, useRef } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { calculateArticleNavigationScrollTop, getAdjacentArticleId } from "@/lib/article-list";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import { buildKeyToActionMap, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
 import { handleArticleListKeyboardAction } from "./article-list-keyboard-action";
 import { useArticleListGlobalEvents } from "./use-article-list-global-events";
+import { useArticleListNavigation } from "./use-article-list-navigation";
 
 type UseArticleListInteractionsParams = {
   filteredArticles: ArticleDto[];
@@ -41,46 +41,13 @@ export function useArticleListInteractions({
   const listRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
 
-  const navigateArticle = useCallback(
-    (direction: 1 | -1) => {
-      const nextArticleId = getAdjacentArticleId(filteredArticles, selectedArticleId, direction);
-      if (Result.isFailure(nextArticleId)) {
-        return;
-      }
-
-      const articleId = Result.unwrap(nextArticleId);
-      const viewport = viewportRef.current;
-      const button = listRef.current?.querySelector<HTMLElement>(`[data-article-id="${articleId}"]`);
-
-      selectArticle(articleId);
-
-      if (!viewport || !button) {
-        return;
-      }
-
-      const stickyHeaderHeight =
-        listRef.current?.querySelector<HTMLElement>("[data-group-header]")?.getBoundingClientRect().height ?? 0;
-      const viewportRect = viewport.getBoundingClientRect();
-      const buttonRect = button.getBoundingClientRect();
-      const nextScrollTop = calculateArticleNavigationScrollTop({
-        currentScrollTop: viewport.scrollTop,
-        viewportTop: viewportRect.top,
-        viewportHeight: viewport.clientHeight,
-        itemTop: buttonRect.top,
-        itemHeight: buttonRect.height,
-        direction,
-        stickyTopOffset: stickyHeaderHeight,
-        maxScrollTop: viewport.scrollHeight - viewport.clientHeight,
-      });
-
-      if (nextScrollTop !== null) {
-        viewport.scrollTop = nextScrollTop;
-      }
-
-      button.focus({ preventScroll: true });
-    },
-    [filteredArticles, selectedArticleId, selectArticle],
-  );
+  const navigateArticle = useArticleListNavigation({
+    filteredArticles,
+    selectedArticleId,
+    selectArticle,
+    listRef,
+    viewportRef,
+  });
 
   useArticleListGlobalEvents({
     onNavigateArticle: navigateArticle,
