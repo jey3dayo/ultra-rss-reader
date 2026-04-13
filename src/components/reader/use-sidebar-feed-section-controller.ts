@@ -1,9 +1,10 @@
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import type { FeedTreeViewProps } from "./feed-tree-view";
 import { useSidebarFeedDragState } from "./use-sidebar-feed-drag-state";
 import { useSidebarFeedNavigation } from "./use-sidebar-feed-navigation";
 import { useSidebarFeedTree } from "./use-sidebar-feed-tree";
+import { useSidebarFeedTreeProps } from "./use-sidebar-feed-tree-props";
 import { useSidebarStartupFolderExpansion } from "./use-sidebar-startup-folder-expansion";
 import { useSidebarVisibilityFallback } from "./use-sidebar-visibility-fallback";
 
@@ -130,37 +131,28 @@ export function useSidebarFeedSectionController({
     selectFeed,
   });
 
-  const handleDropToFolderRequest = useCallback(
-    (folderId: string) => {
-      void handleDropToFolder(folderId);
-    },
-    [handleDropToFolder],
-  );
-
-  const handleDropToUnfolderedRequest = useCallback(() => {
-    void handleDropToUnfoldered();
-  }, [handleDropToUnfoldered]);
+  const feedTreeProps = useSidebarFeedTreeProps({
+    isFeedsSectionOpen,
+    feedTreeFolders,
+    unfolderedFeedViews,
+    toggleFolder,
+    selectFolder,
+    selectFeed,
+    displayFavicons,
+    canDragFeeds,
+    draggedFeedId,
+    activeDropTarget,
+    handleDragStartFeed,
+    handleDragEnterFolder,
+    handleDragEnterUnfoldered,
+    handleDropToFolder,
+    handleDropToUnfoldered,
+    clearDragState,
+    renderFolderContextMenu,
+    renderFeedContextMenu,
+  });
 
   return {
-    feedTreeProps: {
-      isOpen: isFeedsSectionOpen,
-      folders: feedTreeFolders,
-      unfolderedFeeds: unfolderedFeedViews,
-      onToggleFolder: toggleFolder,
-      onSelectFolder: selectFolder,
-      onSelectFeed: selectFeed,
-      displayFavicons,
-      canDragFeeds,
-      draggedFeedId,
-      activeDropTarget,
-      onDragStartFeed: (feed: { id: string }) => handleDragStartFeed(feed.id),
-      onDragEnterFolder: handleDragEnterFolder,
-      onDragEnterUnfoldered: handleDragEnterUnfoldered,
-      onDropToFolder: handleDropToFolderRequest,
-      onDropToUnfoldered: handleDropToUnfolderedRequest,
-      onDragEnd: clearDragState,
-      renderFolderContextMenu,
-      renderFeedContextMenu,
-    } satisfies Omit<FeedTreeViewProps, "emptyState" | "unfolderedLabel">,
+    feedTreeProps,
   };
 }
