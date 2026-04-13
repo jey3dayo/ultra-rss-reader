@@ -73,6 +73,10 @@
   - 問題: `feed-dialog-form-view.tsx` に URL input / discover button / discovered feed options / helper text の JSX が残っていて、dialog shell と section 描画が混ざっていた
   - 対象: `src/components/reader/feed-dialog-form-view.tsx`, `src/components/reader/feed-dialog-url-section.tsx`
 
+- [x] feed tree view の unfoldered drop zone を view component に切り出す
+  - 問題: `feed-tree-view.tsx` に unfoldered drop zone の JSX と styling が残っていて、tree shell と drop target 描画が混ざっていた
+  - 対象: `src/components/reader/feed-tree-view.tsx`, `src/components/reader/feed-tree-unfoldered-drop-zone.tsx`
+
 - [x] feed cleanup editor の input/select を shared field に寄せる
   - 問題: `feed-cleanup-feed-editor.tsx` にも stacked input/select パターンが残っている
   - 対象: `src/components/feed-cleanup/feed-cleanup-feed-editor.tsx`, `src/components/shared/*`
@@ -410,6 +414,10 @@
 - [x] feed tree の drop target helper を module 化する
   - 問題: `use-feed-tree-drag.ts` に drop target attribute 名、target 解決、同値判定が残っていて、drag orchestration と target helper が混ざっていた
   - 対象: `src/components/reader/use-feed-tree-drag.ts`, `src/components/reader/feed-tree-drop-target.ts`, `src/components/reader/feed-tree-view.tsx`, `src/components/reader/feed-tree-folder-section.tsx`
+
+- [x] feed dialog の shared props 型を `types` に寄せる
+  - 問題: `rename-feed-dialog-view.tsx` が `feed-dialog-form-view.tsx` から型を直接 import していて、component file と型境界が混ざっていた
+  - 対象: `src/components/reader/feed-dialog-form-view.tsx`, `src/components/reader/feed-dialog-form.types.ts`, `src/components/reader/rename-feed-dialog-view.tsx`
 
 ## 2026-04-13 Premortem フォローアップ
 
