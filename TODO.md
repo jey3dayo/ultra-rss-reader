@@ -73,6 +73,11 @@
   - 問題: `feed-dialog-form-view.tsx` に URL input / discover button / discovered feed options / helper text の JSX が残っていて、dialog shell と section 描画が混ざっていた
   - 対象: `src/components/reader/feed-dialog-form-view.tsx`, `src/components/reader/feed-dialog-url-section.tsx`
 
+- [x] rename feed dialog view props の params を shared types に寄せる
+  - 問題: `use-rename-feed-dialog-view-props.ts` にだけ local な params 型が残っていて、rename dialog の view contract の正本が分かれていた
+  - 対応: `UseRenameFeedDialogViewPropsParams` を `rename-feed-dialog.types.ts` に追加して、view props hook は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/rename-feed-dialog.types.ts`, `src/components/reader/use-rename-feed-dialog-view-props.ts`
+
 - [x] feed tree view の unfoldered drop zone を view component に切り出す
   - 問題: `feed-tree-view.tsx` に unfoldered drop zone の JSX と styling が残っていて、tree shell と drop target 描画が混ざっていた
   - 対象: `src/components/reader/feed-tree-view.tsx`, `src/components/reader/feed-tree-unfoldered-drop-zone.tsx`
@@ -765,6 +770,11 @@
   - 問題: `use-article-list-header-controls.tsx` の params 契約が hook file に閉じていて、header control 導出境界の正本を追いにくかった
   - 対応: `article-list.types.ts` に header controls params contract を追加して、header controls hook は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-header-controls.tsx`
+
+- [x] article list header controls result の正本を shared types に寄せる
+  - 問題: `UseArticleListHeaderControlsResult` が `use-article-list-header-controls.tsx` に残っていて、`article-list.types.ts` から result contract を一望できなかった
+  - 対応: `article-list.types.ts` に header controls result contract を追加して、header controls hook と view props helper は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-header-controls.tsx`, `src/components/reader/use-article-list-view-props.ts`
 
 - [x] article list header subview props の正本を shared types に寄せる
   - 問題: `article-list-header.tsx` / `article-list-header-actions.tsx` / `article-list-header-search.tsx` に props contract が分散していて、header 境界の正本を `article-list.types.ts` から追えなかった
