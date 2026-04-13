@@ -5,6 +5,29 @@ import type { StartupFolderExpansionMode } from "./use-sidebar-startup-folder-ex
 
 export type SidebarFeedTreeProps = Omit<FeedTreeViewProps, "emptyState" | "unfolderedLabel">;
 
+export type SidebarFeedDragStateFeed = {
+  folder_id: string | null;
+};
+
+export type SidebarFeedDragStateParams = {
+  canDragFeeds: boolean;
+  isFeedsSectionOpen: boolean;
+  feedById: Map<string, SidebarFeedDragStateFeed>;
+  moveFeedToFolder: (feedId: string, folderId: string) => Promise<unknown>;
+  moveFeedToUnfoldered: (feedId: string) => Promise<unknown>;
+};
+
+export type SidebarFeedDragStateResult = {
+  draggedFeedId: string | null;
+  activeDropTarget: FeedTreeViewProps["activeDropTarget"];
+  clearDragState: NonNullable<FeedTreeViewProps["onDragEnd"]>;
+  handleDragStartFeed: (feedId: string) => void;
+  handleDragEnterFolder: NonNullable<FeedTreeViewProps["onDragEnterFolder"]>;
+  handleDragEnterUnfoldered: NonNullable<FeedTreeViewProps["onDragEnterUnfoldered"]>;
+  handleDropToFolder: (folderId: string) => Promise<unknown>;
+  handleDropToUnfoldered: () => Promise<unknown>;
+};
+
 export type SidebarFeedSectionParams = {
   selectedAccountId: string | null;
   feeds: FeedDto[] | undefined;
@@ -42,14 +65,14 @@ export type SidebarFeedTreePropsParams = {
   selectFeed: FeedTreeViewProps["onSelectFeed"];
   displayFavicons: FeedTreeViewProps["displayFavicons"];
   canDragFeeds: boolean;
-  draggedFeedId: FeedTreeViewProps["draggedFeedId"];
-  activeDropTarget: FeedTreeViewProps["activeDropTarget"];
+  draggedFeedId: SidebarFeedDragStateResult["draggedFeedId"];
+  activeDropTarget: SidebarFeedDragStateResult["activeDropTarget"];
   handleDragStartFeed: (feedId: string) => void;
-  handleDragEnterFolder: NonNullable<FeedTreeViewProps["onDragEnterFolder"]>;
-  handleDragEnterUnfoldered: NonNullable<FeedTreeViewProps["onDragEnterUnfoldered"]>;
-  handleDropToFolder: (folderId: string) => Promise<unknown>;
-  handleDropToUnfoldered: () => Promise<unknown>;
-  clearDragState: NonNullable<FeedTreeViewProps["onDragEnd"]>;
+  handleDragEnterFolder: SidebarFeedDragStateResult["handleDragEnterFolder"];
+  handleDragEnterUnfoldered: SidebarFeedDragStateResult["handleDragEnterUnfoldered"];
+  handleDropToFolder: SidebarFeedDragStateResult["handleDropToFolder"];
+  handleDropToUnfoldered: SidebarFeedDragStateResult["handleDropToUnfoldered"];
+  clearDragState: SidebarFeedDragStateResult["clearDragState"];
   renderFolderContextMenu?: FeedTreeViewProps["renderFolderContextMenu"];
   renderFeedContextMenu?: FeedTreeViewProps["renderFeedContextMenu"];
 };

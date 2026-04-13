@@ -1,17 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { ActiveDropTarget } from "./feed-tree.types";
-
-type FeedDragStateFeed = {
-  folder_id: string | null;
-};
-
-type UseSidebarFeedDragStateParams = {
-  canDragFeeds: boolean;
-  isFeedsSectionOpen: boolean;
-  feedById: Map<string, FeedDragStateFeed>;
-  moveFeedToFolder: (feedId: string, folderId: string) => Promise<unknown>;
-  moveFeedToUnfoldered: (feedId: string) => Promise<unknown>;
-};
+import type { SidebarFeedDragStateParams, SidebarFeedDragStateResult } from "./sidebar-feed-section.types";
 
 export function useSidebarFeedDragState({
   canDragFeeds,
@@ -19,9 +7,9 @@ export function useSidebarFeedDragState({
   feedById,
   moveFeedToFolder,
   moveFeedToUnfoldered,
-}: UseSidebarFeedDragStateParams) {
+}: SidebarFeedDragStateParams): SidebarFeedDragStateResult {
   const [draggedFeedId, setDraggedFeedId] = useState<string | null>(null);
-  const [activeDropTarget, setActiveDropTarget] = useState<ActiveDropTarget>(null);
+  const [activeDropTarget, setActiveDropTarget] = useState<SidebarFeedDragStateResult["activeDropTarget"]>(null);
 
   const clearDragState = useCallback(() => {
     setDraggedFeedId(null);
