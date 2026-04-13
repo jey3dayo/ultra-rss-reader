@@ -1,6 +1,5 @@
-import { Result } from "@praha/byethrow";
 import { useCallback } from "react";
-import { openInBrowser } from "@/api/tauri-commands";
+import { openUrlInExternalBrowser } from "./article-browser-actions";
 import type { UseBrowserViewActionsParams } from "./browser-view.types";
 
 export function useBrowserViewActions({
@@ -38,14 +37,11 @@ export function useBrowserViewActions({
       return;
     }
 
-    const result = await openInBrowser(browserUrl, false);
-    Result.pipe(
-      result,
-      Result.inspectError((error) => {
-        console.error("Failed to open preview in external browser:", error);
-        showToast(error.message);
-      }),
-    );
+    await openUrlInExternalBrowser(browserUrl, {
+      background: false,
+      showToast,
+      errorLabel: "Failed to open preview in external browser",
+    });
   }, [browserUrl, showToast]);
 
   return {

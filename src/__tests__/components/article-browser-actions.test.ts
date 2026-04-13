@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { addArticleToReadingList, copyArticleLink } from "@/components/reader/article-browser-actions";
+import {
+  addArticleToReadingList,
+  copyArticleLink,
+  openUrlInExternalBrowser,
+} from "@/components/reader/article-browser-actions";
 import { type MockTauriCommandCall, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 describe("article-browser-actions", () => {
@@ -90,5 +94,47 @@ describe("article-browser-actions", () => {
     });
 
     expect(showToast).toHaveBeenCalledWith("Reading list unavailable");
+  });
+
+  it("opens a URL in the external browser with the requested background mode", async () => {
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "open_in_browser":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    await openUrlInExternalBrowser("https://example.com/article", {
+      background: false,
+      showToast,
+      errorLabel: "Failed to open preview in external browser",
+    });
+
+    expect(calls).toContainEqual({
+      cmd: "open_in_browser",
+      args: { url: "https://example.com/article", background: false },
+    });
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("shows the command error when opening a URL in the external browser fails", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "open_in_browser") {
+        throw { type: "UserVisible", message: "Browser unavailable" };
+      }
+      return undefined;
+    });
+
+    await openUrlInExternalBrowser("https://example.com/article", {
+      background: true,
+      showToast,
+      errorLabel: "Failed to open in browser",
+    });
+
+    expect(showToast).toHaveBeenCalledWith("Browser unavailable");
   });
 });

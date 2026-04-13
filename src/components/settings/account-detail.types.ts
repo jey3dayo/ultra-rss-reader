@@ -137,6 +137,20 @@ export type UseAccountDetailCredentialsEditorResult = {
   onPasswordFocus: () => void;
 };
 
+export type UseAccountDetailSyncControlsParams = {
+  account: AccountDetailAccount;
+  queryClient: QueryClient;
+  t: TFunction<"settings">;
+  onSyncStatusChanged?: () => void;
+};
+
+export type UseAccountDetailSyncControlsResult = {
+  handleSyncUpdate: (partial: UpdateAccountSyncParams) => Promise<void>;
+  handleSyncNow: () => Promise<void>;
+  syncIntervalOptions: AccountSelectOption[];
+  keepReadItemsOptions: AccountSelectOption[];
+};
+
 export type UpdateAccountSyncParams = {
   syncIntervalSecs?: number;
   syncOnWake?: boolean;
@@ -146,14 +160,11 @@ export type UpdateAccountSyncParams = {
 export type UseAccountDetailControllerResult = {
   confirmDelete: boolean;
   setConfirmDelete: (value: boolean) => void;
-  handleSyncUpdate: (partial: UpdateAccountSyncParams) => Promise<void>;
-  handleSyncNow: () => Promise<void>;
   handleExportOpml: () => Promise<void>;
   handleDelete: () => Promise<void>;
-  syncIntervalOptions: AccountSelectOption[];
-  keepReadItemsOptions: AccountSelectOption[];
 } & UseAccountDetailNameEditorResult &
-  UseAccountDetailCredentialsEditorResult;
+  UseAccountDetailCredentialsEditorResult &
+  UseAccountDetailSyncControlsResult;
 
 export type UseAccountDetailViewPropsParams = {
   account: AccountDetailAccount;
