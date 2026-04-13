@@ -671,6 +671,11 @@
   - 対応: `sidebar.types.ts` に account/content/view props params contract を追加して、各 helper は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/sidebar.types.ts`, `src/components/reader/use-sidebar-account-section-props.ts`, `src/components/reader/use-sidebar-content-sections-props.ts`, `src/components/reader/use-sidebar-view-props.ts`
 
+- [x] sidebar account selection の contract を shared types に寄せる
+  - 問題: `use-sidebar-account-selection.ts` に account auto-selection params が local 定義で残っていて、runtime 配下の selection 境界の正本を追いにくかった
+  - 対応: `sidebar-runtime.types.ts` に account selection params contract を追加して、selection hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar-runtime.types.ts`, `src/components/reader/use-sidebar-account-selection.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
