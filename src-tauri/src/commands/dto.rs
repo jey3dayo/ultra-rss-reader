@@ -100,7 +100,15 @@ pub struct AccountSyncError {
 pub struct AccountSyncWarning {
     pub account_id: String,
     pub account_name: String,
+    pub kind: AccountSyncWarningKind,
     pub message: String,
+}
+
+#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AccountSyncWarningKind {
+    Generic,
+    RetryPending,
 }
 
 #[derive(Debug, Serialize, Clone, Copy)]

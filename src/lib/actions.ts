@@ -200,6 +200,9 @@ export function executeAction(action: AppAction): void {
               case "partial-failure":
                 store.showToast(i18n.t("sidebar:sync_partial_failure", { accounts: feedback.accounts }));
                 break;
+              case "retry-pending":
+                store.showToast(i18n.t("sidebar:sync_completed_with_retry_pending", { accounts: feedback.accounts }));
+                break;
               case "warnings":
                 store.showToast(i18n.t("sidebar:sync_completed_with_warnings", { accounts: feedback.accounts }));
                 break;

@@ -3,7 +3,7 @@ use std::sync::Mutex;
 
 use tracing::warn;
 
-use crate::commands::dto::AppError;
+use crate::commands::dto::{AccountSyncWarningKind, AppError};
 use crate::domain::account::Account;
 use crate::domain::article::{generate_entry_id, Article};
 use crate::domain::feed::Feed;
@@ -30,7 +30,13 @@ use super::feed_commands::lock_db;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct ProviderSyncOutcome {
-    pub warnings: Vec<String>,
+    pub warnings: Vec<ProviderSyncWarning>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ProviderSyncWarning {
+    pub kind: AccountSyncWarningKind,
+    pub message: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -234,16 +240,22 @@ pub(super) async fn sync_greader_feed(
 
     let mut warnings = Vec::new();
     if feed_outcome.skipped_entries > 0 {
-        warnings.push(format!(
-            "Feed '{}' skipped {} entry item(s) during sync.",
-            feed.title, feed_outcome.skipped_entries
-        ));
+        warnings.push(ProviderSyncWarning {
+            kind: AccountSyncWarningKind::Generic,
+            message: format!(
+                "Feed '{}' skipped {} entry item(s) during sync.",
+                feed.title, feed_outcome.skipped_entries
+            ),
+        });
     }
     if article_count_before > 0 && article_count_after == 0 {
-        warnings.push(format!(
-            "Feed '{}' had {} saved article(s) before sync and 0 after sync.",
-            feed.title, article_count_before
-        ));
+        warnings.push(ProviderSyncWarning {
+            kind: AccountSyncWarningKind::Generic,
+            message: format!(
+                "Feed '{}' had {} saved article(s) before sync and 0 after sync.",
+                feed.title, article_count_before
+            ),
+        });
     }
 
     Ok(ProviderSyncOutcome { warnings })
@@ -362,10 +374,13 @@ async fn sync_greader_feeds(
                         feed.title,
                         feed_outcome.skipped_entries
                     );
-                    warnings.push(format!(
-                        "Feed '{}' skipped {} entry item(s) during sync.",
-                        feed.title, feed_outcome.skipped_entries
-                    ));
+                    warnings.push(ProviderSyncWarning {
+                        kind: AccountSyncWarningKind::Generic,
+                        message: format!(
+                            "Feed '{}' skipped {} entry item(s) during sync.",
+                            feed.title, feed_outcome.skipped_entries
+                        ),
+                    });
                 }
             }
             Ok(None) => {}
@@ -432,6 +447,13 @@ async fn sync_greader_feeds(
                     "Failed to push mutation {} for entry {}: {e}. Will retry next sync.",
                     pm.mutation_type, pm.remote_entry_id
                 );
+                warnings.push(ProviderSyncWarning {
+                    kind: AccountSyncWarningKind::RetryPending,
+                    message: format!(
+                        "Local change '{}' for entry {} will retry next sync.",
+                        pm.mutation_type, pm.remote_entry_id
+                    ),
+                });
             }
         }
     }
@@ -495,10 +517,13 @@ async fn sync_greader_feeds(
                 feed.title,
                 before_count
             );
-            warnings.push(format!(
-                "Feed '{}' had {} saved article(s) before sync and 0 after sync.",
-                feed.title, before_count
-            ));
+            warnings.push(ProviderSyncWarning {
+                kind: AccountSyncWarningKind::Generic,
+                message: format!(
+                    "Feed '{}' had {} saved article(s) before sync and 0 after sync.",
+                    feed.title, before_count
+                ),
+            });
         }
     }
 

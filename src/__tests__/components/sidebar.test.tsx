@@ -688,6 +688,38 @@ describe("Sidebar", () => {
     });
   });
 
+  it("shows a retry-pending toast when sync completes with queued retries", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "trigger_sync") {
+        return {
+          synced: true,
+          total: 1,
+          succeeded: 1,
+          failed: [],
+          warnings: [
+            {
+              account_id: "acc-2",
+              account_name: "FreshRSS",
+              message: "Local change will retry on the next sync.",
+              kind: "retry_pending",
+            },
+          ],
+        };
+      }
+      return null;
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent.click(screen.getByLabelText("Sync feeds"));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "Sync completed, but some changes for FreshRSS will retry next sync",
+      });
+    });
+  });
+
   it("keeps the sync button idle for manual account sync progress", async () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 

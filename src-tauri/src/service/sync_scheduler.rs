@@ -126,12 +126,13 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             tracing::warn!(
                                 "Background sync warning for account '{}': {}",
                                 account.name,
-                                warning
+                                warning.message
                             );
                             warnings_to_emit.push(AccountSyncWarning {
                                 account_id: account.id.as_ref().to_string(),
                                 account_name: account.name.clone(),
-                                message: warning.clone(),
+                                kind: warning.kind,
+                                message: warning.message.clone(),
                             });
                         }
                         reporter.emit_account_finished(account, true);

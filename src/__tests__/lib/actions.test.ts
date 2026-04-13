@@ -431,6 +431,37 @@ describe("executeAction", () => {
       });
     });
 
+    it("uses the translated retry-pending toast when sync queues a retry", async () => {
+      triggerSyncMock.mockResolvedValueOnce(
+        Result.succeed({
+          synced: true,
+          total: 1,
+          succeeded: 1,
+          failed: [],
+          warnings: [
+            {
+              account_id: "acc-2",
+              account_name: "FreshRSS",
+              message: "Local change will retry on the next sync.",
+              kind: "retry_pending",
+            },
+          ],
+        }),
+      );
+
+      executeAction("sync-all");
+
+      await waitFor(() => {
+        expect(useUiStore.getState().toastMessage).toEqual({
+          message: "translated:sidebar:sync_completed_with_retry_pending:FreshRSS",
+        });
+      });
+
+      expect(i18nTMock).toHaveBeenCalledWith("sidebar:sync_completed_with_retry_pending", {
+        accounts: "FreshRSS",
+      });
+    });
+
     it("uses the translated unexpected-error toast with details", async () => {
       triggerSyncMock.mockResolvedValueOnce(Result.fail({ type: "UserVisible", message: "boom" }));
 

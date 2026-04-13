@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { triggerSync } from "@/api/tauri-commands";
 import type { AccountSyncWarning } from "@/api/schemas/sync-result";
-import { getSyncWarningAccountNames, summarizeSyncResult } from "@/lib/sync-result-feedback";
+import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync-result-feedback";
 import i18n from "@/lib/i18n";
 import type { SyncProgressEvent, SyncProgressState } from "@/stores/ui-store";
 
@@ -83,9 +83,13 @@ export function useSidebarSync({
         typeof event === "object" && event !== null && "payload" in event
           ? (event.payload as SyncWarningPayload)
           : (event as SyncWarningPayload);
-      const names = getSyncWarningAccountNames(payload);
-      if (names) {
-        showToast(t("sync_completed_with_warnings", { accounts: names }));
+      if (payload.length > 0) {
+        const feedback = summarizeSyncWarnings(payload);
+        showToast(
+          feedback.kind === "retry-pending"
+            ? t("sync_completed_with_retry_pending", { accounts: feedback.accounts })
+            : t("sync_completed_with_warnings", { accounts: feedback.accounts }),
+        );
       }
     }).then((fn) => {
       if (cancelled) {
@@ -119,6 +123,9 @@ export function useSidebarSync({
             break;
           case "partial-failure":
             showToast(t("sync_partial_failure", { accounts: feedback.accounts }));
+            break;
+          case "retry-pending":
+            showToast(t("sync_completed_with_retry_pending", { accounts: feedback.accounts }));
             break;
           case "warnings":
             showToast(t("sync_completed_with_warnings", { accounts: feedback.accounts }));

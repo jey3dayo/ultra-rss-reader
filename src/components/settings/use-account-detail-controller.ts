@@ -192,6 +192,9 @@ export function useAccountDetailController({ account, t, onAccountDeleted }: Use
           case "partial-failure":
             useUiStore.getState().showToast(t("account.sync_failed", { message: feedback.accounts }));
             break;
+          case "retry-pending":
+            useUiStore.getState().showToast(t("account.sync_completed_with_retry_pending"));
+            break;
           case "warnings":
             useUiStore.getState().showToast(t("account.sync_completed_with_warnings"));
             break;

@@ -267,10 +267,11 @@ async fn run_full_sync_with_progress(
                     outcome
                         .warnings
                         .into_iter()
-                        .map(|message| AccountSyncWarning {
+                        .map(|warning| AccountSyncWarning {
                             account_id: account.id.as_ref().to_string(),
                             account_name: account.name.clone(),
-                            message,
+                            kind: warning.kind,
+                            message: warning.message,
                         }),
                 );
             }
@@ -473,10 +474,11 @@ pub async fn trigger_sync_account(
                     outcome
                         .warnings
                         .into_iter()
-                        .map(|message| AccountSyncWarning {
+                        .map(|warning| AccountSyncWarning {
                             account_id: account.id.as_ref().to_string(),
                             account_name: name.clone(),
-                            message,
+                            kind: warning.kind,
+                            message: warning.message,
                         }),
                 );
             reporter.emit_account_finished(&account, true);
@@ -560,10 +562,11 @@ pub async fn trigger_sync_feed(
                     outcome
                         .warnings
                         .into_iter()
-                        .map(|message| AccountSyncWarning {
+                        .map(|warning| AccountSyncWarning {
                             account_id: account.id.as_ref().to_string(),
                             account_name: account.name.clone(),
-                            message,
+                            kind: warning.kind,
+                            message: warning.message,
                         }),
                 );
             reporter.emit_account_finished(&account, true);
