@@ -6,6 +6,8 @@ import type { SidebarHeaderView } from "./sidebar-header-view";
 import type { SmartViewsViewProps } from "./smart-views-view";
 import { useSidebarAccountSectionProps } from "./use-sidebar-account-section-props";
 import { useSidebarContentSectionsProps } from "./use-sidebar-content-sections-props";
+import { useSidebarHeaderProps } from "./use-sidebar-header-props";
+import { useSidebarSmartViewsProps } from "./use-sidebar-smart-views-props";
 
 type SidebarHeaderProps = Parameters<typeof SidebarHeaderView>[0];
 type SidebarAccountSectionProps = Parameters<typeof SidebarAccountSection>[0];
@@ -98,6 +100,12 @@ export function useSidebarSectionProps({
   selectTag,
   renderTagContextMenu,
 }: UseSidebarSectionPropsParams): UseSidebarSectionPropsResult {
+  const headerProps = useSidebarHeaderProps({
+    t,
+    syncProgress,
+    handleSync,
+    handleAddFeed,
+  });
   const accountSectionProps = useSidebarAccountSectionProps({
     t,
     selectedAccountName,
@@ -135,21 +143,16 @@ export function useSidebarSectionProps({
     selectTag,
     renderTagContextMenu,
   });
+  const smartViewsProps = useSidebarSmartViewsProps({
+    t,
+    visibleSmartViews,
+    selectSmartView,
+  });
 
   return {
-    headerProps: {
-      isSyncing: syncProgress.active && syncProgress.kind !== "manual_account",
-      onSync: handleSync,
-      onAddFeed: handleAddFeed,
-      syncButtonLabel: t("sync_feeds"),
-      addFeedButtonLabel: t("add_feed"),
-    },
+    headerProps,
     accountSectionProps,
-    smartViewsProps: {
-      title: t("smart_views"),
-      views: visibleSmartViews,
-      onSelectSmartView: selectSmartView,
-    },
+    smartViewsProps,
     contentSectionsProps,
   };
 }
