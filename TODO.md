@@ -152,6 +152,11 @@
   - 対応: `CommandPaletteResultsProps` から `Pick` した group props 型を `command-palette.types.ts` に寄せて、subview 側は再利用に寄せた
   - 対象: `src/components/reader/command-palette.types.ts`, `src/components/reader/command-palette-action-groups.tsx`, `src/components/reader/command-palette-resource-groups.tsx`
 
+- [x] command-palette の recent history helper を共通化する
+  - 問題: `use-command-palette-data.ts` と `use-command-palette-handlers.ts` に history prefix / parse / format ルールが重複していて、recent action 表示と履歴書き込みの契約が分散していた
+  - 対応: `command-palette-history.ts` に history entry の parse/format を寄せて、unit test で prefix 契約を固定した
+  - 対象: `src/components/reader/command-palette-history.ts`, `src/components/reader/use-command-palette-data.ts`, `src/components/reader/use-command-palette-handlers.ts`, `src/__tests__/components/command-palette-history.test.ts`
+
 - [x] article-pane controller から overlay action JSX を外す
   - 問題: `useArticlePaneController` が browser overlay の action strip JSX を直接返していて、controller orchestration と view 描画が混ざっていた
   - 対象: `src/components/reader/use-article-pane-controller.tsx`, `src/components/reader/article-view.tsx`, `src/components/reader/article-view.types.ts`
