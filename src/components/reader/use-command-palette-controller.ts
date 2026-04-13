@@ -9,6 +9,7 @@ import { loadRuntimeDevScenarios, type RuntimeDevScenario, runRuntimeDevScenario
 import { getShortcutDisplay } from "@/lib/keyboard-shortcuts";
 import { COMMAND_PALETTE_HISTORY_PREFIX, type PaletteAction, useCommandPaletteData } from "./use-command-palette-data";
 import { useCommandPaletteUiState } from "./use-command-palette-ui-state";
+import { useCommandPaletteViewProps } from "./use-command-palette-view-props";
 
 export function useCommandPaletteController() {
   const { t } = useTranslation("reader");
@@ -175,10 +176,16 @@ export function useCommandPaletteController() {
     input,
     setInput,
     closePalette,
-    title: t("shortcuts.open_command_palette"),
-    description: t("command_palette.placeholder"),
-    placeholder: t("command_palette.placeholder"),
-    resultsProps: {
+    ...useCommandPaletteViewProps({
+      title: t("shortcuts.open_command_palette"),
+      description: t("command_palette.placeholder"),
+      placeholder: t("command_palette.placeholder"),
+      noResultsLabel: t("command_palette.no_results"),
+      recentActionsHeading: t("command_palette.recent_actions"),
+      actionsHeading: t("command_palette.actions"),
+      feedsHeading: t("command_palette.feeds"),
+      tagsHeading: t("command_palette.tags"),
+      articlesHeading: t("command_palette.articles"),
       recentActions,
       filteredActions,
       filteredDevScenarios,
@@ -192,22 +199,14 @@ export function useCommandPaletteController() {
       showTags,
       showArticles,
       hasVisibleResults,
-      noResultsLabel: t("command_palette.no_results"),
-      recentActionsHeading: t("command_palette.recent_actions"),
-      actionsHeading: t("command_palette.actions"),
-      feedsHeading: t("command_palette.feeds"),
-      tagsHeading: t("command_palette.tags"),
-      articlesHeading: t("command_palette.articles"),
       onActionSelect: handleActionSelect,
       onDevScenarioSelect: handleDevScenarioSelect,
       onFeedSelect: handleFeedSelect,
       onTagSelect: handleTagSelect,
       onArticleSelect: handleArticleSelect,
-    },
-    prefixHints: {
-      actions: t("command_palette.prefix_hint_actions"),
-      feeds: t("command_palette.prefix_hint_feeds"),
-      tags: t("command_palette.prefix_hint_tags"),
-    },
+      prefixHintActions: t("command_palette.prefix_hint_actions"),
+      prefixHintFeeds: t("command_palette.prefix_hint_feeds"),
+      prefixHintTags: t("command_palette.prefix_hint_tags"),
+    }),
   };
 }

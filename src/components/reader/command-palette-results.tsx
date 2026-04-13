@@ -11,7 +11,7 @@ export type CommandPaletteActionItem = {
   icon: LucideIcon;
 };
 
-type CommandPaletteResultsProps = {
+export type CommandPaletteResultsProps = {
   recentActions: CommandPaletteActionItem[];
   filteredActions: CommandPaletteActionItem[];
   filteredDevScenarios: RuntimeDevScenario[];
