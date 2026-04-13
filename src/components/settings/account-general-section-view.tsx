@@ -22,7 +22,7 @@ export function AccountGeneralSectionView({
   return (
     <section className="mb-6">
       <SectionHeading>{heading}</SectionHeading>
-      <LabeledControlRow label={nameLabel}>
+      <LabeledControlRow label={nameLabel} className="flex-col items-stretch sm:flex-row sm:items-center">
         {isEditingName ? (
           <Input
             ref={nameInputRef}
@@ -32,7 +32,7 @@ export function AccountGeneralSectionView({
             onBlur={onCommitName}
             onKeyDown={onNameKeyDown}
             disabled={isSavingName}
-            className="h-auto w-auto border-border bg-background px-2 py-1 text-right text-sm text-muted-foreground"
+            className="h-auto w-full border-border bg-background px-2 py-1 text-left text-sm text-muted-foreground sm:w-auto sm:text-right"
           />
         ) : (
           <button

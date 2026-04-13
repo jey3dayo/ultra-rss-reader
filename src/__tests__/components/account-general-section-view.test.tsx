@@ -60,6 +60,8 @@ describe("AccountGeneralSectionView", () => {
     );
 
     const input = screen.getByDisplayValue("Personal FreshRSS");
+    expect(input).toHaveClass("w-full");
+    expect(input).toHaveClass("sm:w-auto");
 
     fireEvent.change(input, { target: { value: "Renamed account" } });
     fireEvent.keyDown(input, { key: "Enter" });
