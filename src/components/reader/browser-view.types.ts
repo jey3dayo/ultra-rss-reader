@@ -149,3 +149,13 @@ export type UseBrowserViewSurfaceStateParams = {
 };
 
 export type UseBrowserViewSurfaceStateResult = UseBrowserViewSurfaceControllerResult;
+
+export type UseBrowserWebviewEventsParams = {
+  showDiagnostics: boolean;
+  onStateChanged: (payload: BrowserWebviewState) => void;
+  onFallback: (payload: import("./browser-webview-state").BrowserWebviewFallbackPayload) => void;
+  onClosed: () => void;
+  onDiagnostics: (payload: BrowserWebviewDiagnosticsPayload) => void;
+};
+
+export type UseBrowserWebviewEventsResult = () => Promise<void>;

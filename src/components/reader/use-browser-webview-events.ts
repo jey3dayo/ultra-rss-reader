@@ -3,15 +3,8 @@ import { useCallback, useLayoutEffect, useRef } from "react";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
 import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser-debug-geometry";
+import type { UseBrowserWebviewEventsParams, UseBrowserWebviewEventsResult } from "./browser-view.types";
 import type { BrowserWebviewFallbackPayload } from "./browser-webview-state";
-
-type UseBrowserWebviewEventsParams = {
-  showDiagnostics: boolean;
-  onStateChanged: (payload: BrowserWebviewState) => void;
-  onFallback: (payload: BrowserWebviewFallbackPayload) => void;
-  onClosed: () => void;
-  onDiagnostics: (payload: BrowserDebugGeometryNativeDiagnostics) => void;
-};
 
 export function useBrowserWebviewEvents({
   showDiagnostics,
@@ -19,7 +12,7 @@ export function useBrowserWebviewEvents({
   onFallback,
   onClosed,
   onDiagnostics,
-}: UseBrowserWebviewEventsParams): () => Promise<void> {
+}: UseBrowserWebviewEventsParams): UseBrowserWebviewEventsResult {
   const listenerReadyRef = useRef<Promise<void> | null>(null);
   const unlistenRef = useRef<Array<() => void>>([]);
 
