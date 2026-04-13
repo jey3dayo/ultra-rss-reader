@@ -7,7 +7,6 @@ import type { UiSelection } from "@/stores/ui-store";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 import type { UseArticleListEffectsParams } from "./use-article-list-effects";
 import type { UseArticleListGroupsParams } from "./use-article-list-groups";
-import type { UseArticleListViewStateParams, UseArticleListViewStateResult } from "./use-article-list-view-state";
 
 export type ArticleListLayoutMode = "wide" | "compact" | "mobile";
 export type ArticleListViewMode = "all" | "unread" | "starred";
@@ -118,6 +117,34 @@ export type UseArticleListInteractionsResult = {
   listRef: RefObject<HTMLDivElement | null>;
   viewportRef: RefObject<HTMLDivElement | null>;
   handleListKeyDownCapture: (event: KeyboardEvent<HTMLDivElement>) => void;
+};
+
+export type UseArticleListViewStateParams = {
+  selection: UiSelection;
+  t: TFunction<"reader">;
+  feedId: string | null;
+  tagId: string | null;
+  accountListScopeId: string | null;
+  isLoading: boolean;
+  isLoadingAccountArticles: boolean;
+  isLoadingTagArticles: boolean;
+  showSearch: boolean;
+  trimmedDebouncedQuery: string;
+  searchResults: unknown[] | undefined;
+  isSearching: boolean;
+  filteredArticleCount: number;
+};
+
+export type UseArticleListViewStateResult = {
+  contextStripContext: {
+    primaryLabel: string | null;
+    secondaryLabel: string | null;
+    tone: "unread" | "starred" | null;
+  };
+  footerModes: ReadonlyArray<"all" | "unread" | "starred">;
+  isPrimarySourceLoading: boolean;
+  isSearchLoading: boolean;
+  isSearchEmptyState: boolean;
 };
 
 export type UseArticleListViewPropsParams = {

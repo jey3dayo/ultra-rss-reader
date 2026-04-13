@@ -1,34 +1,5 @@
-import type { TFunction } from "i18next";
 import { useMemo } from "react";
-import type { UiSelection } from "@/stores/ui-store";
-
-export type UseArticleListViewStateParams = {
-  selection: UiSelection;
-  t: TFunction<"reader">;
-  feedId: string | null;
-  tagId: string | null;
-  accountListScopeId: string | null;
-  isLoading: boolean;
-  isLoadingAccountArticles: boolean;
-  isLoadingTagArticles: boolean;
-  showSearch: boolean;
-  trimmedDebouncedQuery: string;
-  searchResults: unknown[] | undefined;
-  isSearching: boolean;
-  filteredArticleCount: number;
-};
-
-export type UseArticleListViewStateResult = {
-  contextStripContext: {
-    primaryLabel: string | null;
-    secondaryLabel: string | null;
-    tone: "unread" | "starred" | null;
-  };
-  footerModes: ReadonlyArray<"all" | "unread" | "starred">;
-  isPrimarySourceLoading: boolean;
-  isSearchLoading: boolean;
-  isSearchEmptyState: boolean;
-};
+import type { UseArticleListViewStateParams, UseArticleListViewStateResult } from "./article-list.types";
 
 export function useArticleListViewState({
   selection,
