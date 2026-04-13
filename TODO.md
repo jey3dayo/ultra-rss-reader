@@ -163,6 +163,14 @@
   - 問題: `useBrowserViewController` に state/fallback/closed/diagnostics の listener 登録が残っていて、controller orchestration と native event bridge が混ざっていた
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-webview-events.ts`
 
+- [x] browser-view の bounds sync effect を hook 化する
+  - 問題: `useBrowserViewController` に host resize / window resize の effect が残っていて、controller orchestration と webview bounds 同期が混ざっていた
+  - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-webview-bounds-sync.ts`
+
+- [x] browser-view の unmount cleanup を hook 化する
+  - 問題: `useBrowserViewController` に closeBrowserWebview の cleanup effect が残っていて、controller orchestration と webview lifecycle cleanup が混ざっていた
+  - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-webview-cleanup.ts`
+
 - [x] sidebar の feed navigation と event listener を hook 化する
   - 問題: `sidebar.tsx` に feed 移動、folder 自動展開、`APP_EVENTS.navigateFeed` 購読が残っていて、tree 導出と責務が混ざっている
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-feed-navigation.ts`
