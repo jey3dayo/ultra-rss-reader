@@ -275,6 +275,11 @@
   - 対応: `BrowserViewPresentation` と `ResolveBrowserViewPresentationParams` を `browser-view.types.ts` に追加して、presentation helper は shared types を参照する形に寄せた
   - 対象: `src/components/reader/browser-view.types.ts`, `src/components/reader/browser-view-presentation.ts`
 
+- [x] reader shell component の props contract を shared types に寄せる
+  - 問題: `sidebar-nav-button.tsx` と `shortcuts-help-modal.tsx` に local props 型が残っていて、reader shell component 境界の正本が component file に分散していた
+  - 対応: `SidebarNavButtonProps` を `sidebar.types.ts` に、`ShortcutsHelpModalProps` を `shortcuts-help-modal.types.ts` に寄せて、component は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/sidebar.types.ts`, `src/components/reader/sidebar-nav-button.tsx`, `src/components/reader/shortcuts-help-modal.types.ts`, `src/components/reader/shortcuts-help-modal.tsx`
+
 - [x] article browser overlay helper の contract を shared types に寄せる
   - 問題: `use-article-browser-overlay.ts` / `use-article-browser-overlay-close.ts` / `use-article-browser-overlay-display.ts` に local params/result 型が残っていて、overlay helper 境界の正本を `article-view.types.ts` から追えなかった
   - 対応: `UseArticleBrowserOverlayParams` / `UseArticleBrowserOverlayResult` / `UseArticleBrowserOverlayCloseParams` / `UseArticleBrowserOverlayDisplayParams` を `article-view.types.ts` に追加して、各 hook は shared types を参照する形に寄せた
@@ -300,10 +305,20 @@
   - 対応: `AccountDetailAccount` と `UseAccountDetailControllerParams` を `account-detail.types.ts` に追加して、view component と controller は shared types を参照する形に寄せた
   - 対象: `src/components/settings/account-detail.types.ts`, `src/components/settings/account-detail.tsx`, `src/components/settings/use-account-detail-controller.ts`
 
+- [x] settings nav の contract を shared types に寄せる
+  - 問題: `accounts-nav-view.tsx` と `settings-nav-view.tsx` に nav item / props 型が分散していて、`settings-modal.tsx` が component file から型を引いていた
+  - 対応: `settings-nav.types.ts` を追加して account/settings nav の item/props contract を集約し、modal と view component と tests は shared types を参照する形に寄せた
+  - 対象: `src/components/settings/settings-nav.types.ts`, `src/components/settings/accounts-nav-view.tsx`, `src/components/settings/settings-nav-view.tsx`, `src/components/settings/settings-modal.tsx`, `src/__tests__/components/accounts-nav-view.test.tsx`, `src/__tests__/components/settings-nav-view.test.tsx`
+
 - [x] feed cleanup candidate builder の input contract を explicit type に寄せる
   - 問題: `use-feed-cleanup-page-state.ts` が `Parameters<typeof buildFeedCleanupCandidates>` で helper 入力型を引いていて、feed cleanup state 境界の正本を名前付き type で追えなかった
   - 対応: `BuildFeedCleanupCandidatesParams` を `src/lib/feed-cleanup.ts` に追加して、page state hook は explicit type を参照する形に寄せた
   - 対象: `src/lib/feed-cleanup.ts`, `src/components/feed-cleanup/use-feed-cleanup-page-state.ts`
+
+- [x] article list keyboard helper の contract を explicit type に寄せる
+  - 問題: `article-list.types.ts` が `Parameters<typeof buildKeyToActionMap>` と `ReturnType<typeof buildKeyToActionMap>` に依存していて、keyboard helper 境界の正本を名前付き type で追えなかった
+  - 対応: `KeyboardShortcutPrefs` と `KeyToActionMap` を `src/lib/keyboard-shortcuts.ts` に追加して、article list types は explicit type を参照する形に寄せた
+  - 対象: `src/lib/keyboard-shortcuts.ts`, `src/components/reader/article-list.types.ts`
 
 - [x] browser view presentation contract を shared types に寄せる
   - 問題: `browser-view-presentation.ts` が local な presentation/result 型を持っていて、presentation helper の正本を `browser-view.types.ts` から追えなかった

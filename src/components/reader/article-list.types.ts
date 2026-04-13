@@ -2,7 +2,7 @@ import type { TFunction } from "i18next";
 import type { KeyboardEvent, ReactNode, RefObject } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type { FeedDisplayPresetOption } from "@/lib/article-display";
-import type { buildKeyToActionMap, KeyboardAction } from "@/lib/keyboard-shortcuts";
+import type { KeyboardAction, KeyboardShortcutPrefs, KeyToActionMap } from "@/lib/keyboard-shortcuts";
 import type { UiSelection } from "@/stores/ui-store";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 
@@ -120,7 +120,7 @@ export type UseArticleListInteractionsParams = {
   toggleSidebar: () => void;
   openSearch: () => void;
   handleMarkAllRead: () => void;
-  keyboardPrefs: Parameters<typeof buildKeyToActionMap>[0];
+  keyboardPrefs: KeyboardShortcutPrefs;
 };
 
 export type UseArticleListInteractionsResult = {
@@ -397,7 +397,7 @@ export type UseArticleListKeydownHandlerParams = {
   clearArticle: HandleArticleListKeyboardActionParams["clearArticle"];
   toggleSidebar: HandleArticleListKeyboardActionParams["toggleSidebar"];
   openSidebar: HandleArticleListKeyboardActionParams["openSidebar"];
-  keyToAction: ReturnType<typeof buildKeyToActionMap>;
+  keyToAction: KeyToActionMap;
 };
 
 export type UseArticleListDataParams = {

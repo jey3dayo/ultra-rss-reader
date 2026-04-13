@@ -204,19 +204,22 @@ export const shortcutDefinitions: ShortcutDefinition[] = [
 /** Preference key prefix for shortcut overrides. */
 export const shortcutPrefKey = (id: ShortcutActionId): string => `shortcut_${id}`;
 
-export function getShortcutKey(id: ShortcutActionId, prefs: Record<string, string>): string {
+export type KeyboardShortcutPrefs = Record<string, string>;
+export type KeyToActionMap = Map<string, ShortcutActionId>;
+
+export function getShortcutKey(id: ShortcutActionId, prefs: KeyboardShortcutPrefs): string {
   const definition = shortcutDefinitions.find((item) => item.id === id);
   return prefs[shortcutPrefKey(id)] ?? definition?.defaultKey ?? "";
 }
 
 /** All default shortcut preference entries (for preferences-store defaults). */
-export const shortcutDefaults: Record<string, string> = Object.fromEntries(
+export const shortcutDefaults: KeyboardShortcutPrefs = Object.fromEntries(
   shortcutDefinitions.map((d) => [shortcutPrefKey(d.id), d.defaultKey]),
 );
 
 /** Build a reverse mapping: key string -> ShortcutActionId. */
-export function buildKeyToActionMap(prefs: Record<string, string>): Map<string, ShortcutActionId> {
-  const map = new Map<string, ShortcutActionId>();
+export function buildKeyToActionMap(prefs: KeyboardShortcutPrefs): KeyToActionMap {
+  const map: KeyToActionMap = new Map();
   for (const def of shortcutDefinitions) {
     const key = getShortcutKey(def.id, prefs);
     map.set(key, def.id);
@@ -248,7 +251,7 @@ export function formatKeyForDisplay(key: string, platformKind: PlatformInfo["kin
 
 export function getShortcutDisplay(
   id: ShortcutActionId,
-  prefs: Record<string, string>,
+  prefs: KeyboardShortcutPrefs,
   platformKind: PlatformInfo["kind"],
 ): string {
   return formatKeyForDisplay(getShortcutKey(id, prefs), platformKind);
@@ -263,7 +266,7 @@ type KeyboardContext = {
   selectedArticleId: string | null;
   contentMode: ContentMode;
   viewMode: ViewMode;
-  keyToAction?: Map<string, ShortcutActionId>;
+  keyToAction?: KeyToActionMap;
 };
 
 function nextViewMode(current: ViewMode): ViewMode {
