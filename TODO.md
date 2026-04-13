@@ -200,6 +200,11 @@
   - 問題: `article-view.tsx` に `ArticleToolbar` / `ArticlePane` の実装が残っていて、selection 分岐と pane view 描画が混ざっていた
   - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/article-pane-view.tsx`
 
+- [x] article-view subview props を shared types に寄せる
+  - 問題: `article-content-view.tsx` / `article-meta-view.tsx` / `article-empty-state-view.tsx` の props shape が component 実装側に寄っていて、`article-view` 系 subview contract の正本を `article-view.types.ts` から追いづらかった
+  - 対応: `ArticleContentViewProps` / `ArticleMetaViewProps` / `ArticleEmptyStateViewProps` を `article-view.types.ts` に寄せて、subview 側は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/article-view.types.ts`, `src/components/reader/article-content-view.tsx`, `src/components/reader/article-meta-view.tsx`, `src/components/reader/article-empty-state-view.tsx`
+
 - [x] browser-view の webview state helper を module 化する
   - 問題: `useBrowserViewController` に initial state / missing-webview 判定 / loading state merge が残っていて、controller orchestration と webview state helper が混ざっていた
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/browser-webview-state.ts`, `src/__tests__/components/browser-webview-state.test.ts`
@@ -702,6 +707,16 @@
   - 問題: `labeled-control-row.tsx` / `labeled-input-row.tsx` / `labeled-select-row.tsx` / `labeled-switch-row.tsx` に local props 型が残っていて、shared form row contract の正本が component file に分散していた
   - 対応: `form-row.types.ts` を追加して各 row の props と select option contract を集約し、component 本体は shared types を参照する形に寄せた
   - 対象: `src/components/shared/form-row.types.ts`, `src/components/shared/labeled-control-row.tsx`, `src/components/shared/labeled-input-row.tsx`, `src/components/shared/labeled-select-row.tsx`, `src/components/shared/labeled-switch-row.tsx`
+
+- [x] shared button/footer の props を explicit types に寄せる
+  - 問題: `loading-button.tsx` / `delete-button.tsx` / `destructive-dialog-footer.tsx` に local props 型が残っていて、shared action component contract の正本が component file に分散していた
+  - 対応: `button.types.ts` を追加して button/footer の props contract を集約し、component 本体は shared types を参照する形に寄せた
+  - 対象: `src/components/shared/button.types.ts`, `src/components/shared/loading-button.tsx`, `src/components/shared/delete-button.tsx`, `src/components/shared/destructive-dialog-footer.tsx`
+
+- [x] article state subview の props を `article-view.types.ts` に寄せる
+  - 問題: `article-content-view.tsx` / `article-meta-view.tsx` / `article-empty-state-view.tsx` に local props 型が残っていて、article state subview contract の正本が component file に分散していた
+  - 対応: `ArticleContentViewProps` / `ArticleMetaViewProps` / `ArticleEmptyStateViewProps` を `article-view.types.ts` に集約し、subview 本体は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/article-view.types.ts`, `src/components/reader/article-content-view.tsx`, `src/components/reader/article-meta-view.tsx`, `src/components/reader/article-empty-state-view.tsx`
 
 - [x] article list / view helper params を explicit export に寄せる
   - 問題: `article-list.ts` と `article-view.ts` の helper params が local type のままで、data/view helper contract の正本を外から参照できなかった
