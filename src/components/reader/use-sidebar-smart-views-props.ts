@@ -1,11 +1,10 @@
-import type { SidebarSmartViewsPropsParams } from "./sidebar.types";
-import type { SmartViewsViewProps } from "./smart-views-view";
+import type { SidebarSmartViewsProps, SidebarSmartViewsPropsParams } from "./sidebar.types";
 
 export function useSidebarSmartViewsProps({
   t,
   visibleSmartViews,
   selectSmartView,
-}: SidebarSmartViewsPropsParams): SmartViewsViewProps {
+}: SidebarSmartViewsPropsParams): SidebarSmartViewsProps {
   return {
     title: t("smart_views"),
     views: visibleSmartViews,

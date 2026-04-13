@@ -1,22 +1,7 @@
+import type { SidebarSmartViewsProps } from "./sidebar.types";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
-export type SmartViewKind = "unread" | "starred";
-
-export type SmartViewItemViewModel = {
-  kind: SmartViewKind;
-  label: string;
-  count: number;
-  showCount: boolean;
-  isSelected: boolean;
-};
-
-export type SmartViewsViewProps = {
-  title?: string;
-  views: SmartViewItemViewModel[];
-  onSelectSmartView: (kind: SmartViewKind) => void;
-};
-
-export function SmartViewsView({ title, views, onSelectSmartView }: SmartViewsViewProps) {
+export function SmartViewsView({ title, views, onSelectSmartView }: SidebarSmartViewsProps) {
   return (
     <div className="space-y-2 px-2 py-1.5">
       {title ? (

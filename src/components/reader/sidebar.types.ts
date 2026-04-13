@@ -5,7 +5,6 @@ import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarFeedTreeProps } from "./sidebar-feed-section.types";
 import type { SidebarSelection } from "./sidebar-feed-tree.types";
 import type { SidebarTagItemsParams, SidebarTagListProps } from "./sidebar-tag-items.types";
-import type { SmartViewsViewProps } from "./smart-views-view";
 
 export type SidebarHeaderProps = {
   isSyncing: boolean;
@@ -47,6 +46,22 @@ export type SidebarContentSectionsProps = {
 
 export type SidebarContentProps = SidebarContentSectionsProps;
 
+export type SmartViewKind = "unread" | "starred";
+
+export type SmartViewItemViewModel = {
+  kind: SmartViewKind;
+  label: string;
+  count: number;
+  showCount: boolean;
+  isSelected: boolean;
+};
+
+export type SidebarSmartViewsProps = {
+  title?: string;
+  views: SmartViewItemViewModel[];
+  onSelectSmartView: (kind: SmartViewKind) => void;
+};
+
 export type SidebarAccountSectionProps = AccountSwitcherProps & {
   containerRef: RefObject<HTMLDivElement | null>;
 };
@@ -56,7 +71,7 @@ export type SidebarAccountProps = SidebarAccountSectionProps;
 export type SidebarSectionPropsResult = {
   headerProps: SidebarHeaderProps;
   accountSectionProps: SidebarAccountProps;
-  smartViewsProps: SmartViewsViewProps;
+  smartViewsProps: SidebarSmartViewsProps;
   contentSectionsProps: SidebarContentProps;
 };
 
@@ -85,7 +100,7 @@ export type SidebarControllerSectionsParams = {
   selectFeed: (feedId: string) => void;
   selectFolder: (folderId: string) => void;
   selectAll: () => void;
-  selectSmartView: SmartViewsViewProps["onSelectSmartView"];
+  selectSmartView: SidebarSmartViewsProps["onSelectSmartView"];
   selectTag: SidebarContentSectionsProps["onSelectTag"];
   setViewMode: (mode: import("./sidebar-feed-tree.types").SidebarFeedTreeViewMode) => void;
   toggleFolder: (folderId: string) => void;
@@ -145,12 +160,12 @@ export type SidebarSmartViewsParams = {
   t: TFunction<"sidebar">;
 };
 
-export type SidebarSmartViewsResult = SmartViewsViewProps["views"];
+export type SidebarSmartViewsResult = SidebarSmartViewsProps["views"];
 
 export type SidebarSmartViewsPropsParams = {
   t: TFunction<"sidebar">;
   visibleSmartViews: SidebarSmartViewsResult;
-  selectSmartView: SmartViewsViewProps["onSelectSmartView"];
+  selectSmartView: SidebarSmartViewsProps["onSelectSmartView"];
 };
 
 export type SidebarAccountSectionPropsParams = {
@@ -211,7 +226,7 @@ export type SidebarSectionPropsParams = {
   handleSelectAccount: SidebarAccountSectionProps["onSelectAccount"];
   closeAccountList: () => void;
   visibleSmartViews: SidebarSmartViewsResult;
-  selectSmartView: SmartViewsViewProps["onSelectSmartView"];
+  selectSmartView: SidebarSmartViewsProps["onSelectSmartView"];
   isFeedsSectionOpen: boolean;
   toggleFeedsSection: () => void;
   feedViewportRef: import("react").RefObject<HTMLDivElement | null>;
@@ -235,7 +250,7 @@ export type SidebarViewPropsParams = {
   opaqueSidebars: boolean;
   headerProps: SidebarHeaderProps;
   accountSectionProps: SidebarAccountProps;
-  smartViewsProps: SmartViewsViewProps;
+  smartViewsProps: SidebarSmartViewsProps;
   contentSectionsProps: SidebarContentProps;
 };
 
