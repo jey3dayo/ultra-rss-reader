@@ -1,7 +1,6 @@
 import type { TFunction } from "i18next";
 import type { KeyboardEvent, ReactNode, RefObject } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
-import type { AccountDangerZoneViewProps } from "@/components/settings/account-danger-zone-view";
 
 export type AccountSelectOption = {
   value: string;
@@ -54,6 +53,18 @@ export type AccountGeneralSectionViewProps = {
   onNameDraftChange: (value: string) => void;
   onCommitName: () => void;
   onNameKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
+};
+
+export type AccountDangerZoneViewProps = {
+  exportLabel: string;
+  deleteLabel: string;
+  cancelLabel: string;
+  confirmDeleteLabel: string;
+  isConfirmingDelete: boolean;
+  onExport: () => void;
+  onRequestDelete: () => void;
+  onConfirmDelete: () => void;
+  onCancelDelete: () => void;
 };
 
 export type AccountDetailViewProps = {

@@ -1,17 +1,6 @@
 import { DeleteButton } from "@/components/shared/delete-button";
 import { Button } from "@/components/ui/button";
-
-export type AccountDangerZoneViewProps = {
-  exportLabel: string;
-  deleteLabel: string;
-  cancelLabel: string;
-  confirmDeleteLabel: string;
-  isConfirmingDelete: boolean;
-  onExport: () => void;
-  onRequestDelete: () => void;
-  onConfirmDelete: () => void;
-  onCancelDelete: () => void;
-};
+import type { AccountDangerZoneViewProps } from "./account-detail.types";
 
 export function AccountDangerZoneView({
   exportLabel,
