@@ -407,10 +407,6 @@
   - 問題: `use-sidebar-feed-tree.ts` と `use-add-feed-dialog-controller.ts` に再利用余地のある union/state 型が残っている
   - 対象: `src/components/reader/use-sidebar-feed-tree.ts`, `src/components/reader/use-add-feed-dialog-controller.ts`
 
-- [x] feed dialog の URL section を view component に切り出す
-  - 問題: `feed-dialog-form-view.tsx` に URL 入力、discover button、候補 select、helper text の JSX が残っていて、dialog shell と field 描画が混ざっていた
-  - 対象: `src/components/reader/feed-dialog-form-view.tsx`, `src/components/reader/feed-dialog-url-section.tsx`
-
 - [x] feed tree の drop target helper を module 化する
   - 問題: `use-feed-tree-drag.ts` に drop target attribute 名、target 解決、同値判定が残っていて、drag orchestration と target helper が混ざっていた
   - 対象: `src/components/reader/use-feed-tree-drag.ts`, `src/components/reader/feed-tree-drop-target.ts`, `src/components/reader/feed-tree-view.tsx`, `src/components/reader/feed-tree-folder-section.tsx`
