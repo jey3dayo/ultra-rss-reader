@@ -34,6 +34,20 @@
   - 対象: `src/components/reader/discovered-feed-options-view.stories.tsx`
   - メモ: Settings 系と同じ wrapper 方針に揃えて、component 自体の responsive 挙動を見やすくしたい
 
+## 2026-04-13 Storybook 再監査メモ
+
+- [x] `Debug/FocusDebugHudView` の story wrapper が mobile viewport で横にはみ出す
+  - 症状: 390px viewport で `debug-focusdebughudview--default` / `--closing` / `--empty-trace` / `--collapsed-long-japanese` の wrapper 幅 `640px` がそのまま残り、右へ約 `266px` はみ出す
+  - 原因: story decorator が `h-[560px] w-[640px]` 固定で、component 自体は `100vw` を考慮していても Storybook 土台が mobile 幅に追従しない
+  - 対象: `src/components/debug/focus-debug-hud-view.stories.tsx`
+  - メモ: `w-full max-w-[640px]` に寄せて、mobile 再確認では対象 story の overflow が 0 になった
+
+## 2026-04-13 Browser 巡回メモ
+
+- [ ] ブラウザ巡回で再現した不具合をここへ追記する
+  - 対象: browser-mode app (`mise run app:dev:browser`)
+  - メモ: 再現手順と修正対象ファイルを確認しながら更新する
+
 ## 2026-04-12 購読整理 UI copy / 情報設計メモ
 
 - [x] 購読整理画面に一括操作を追加する
