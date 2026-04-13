@@ -1,15 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useAccounts } from "@/hooks/use-accounts";
-import { useAccountArticles } from "@/hooks/use-articles";
-import { useFeeds } from "@/hooks/use-feeds";
-import { useFolders } from "@/hooks/use-folders";
 import { useResolvedDevIntent } from "@/hooks/use-resolved-dev-intent";
-import { useTagArticleCounts, useTags } from "@/hooks/use-tags";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import { cn } from "@/lib/utils";
-import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
-import { useUiStore } from "@/stores/ui-store";
 import { AddFeedDialog } from "./add-feed-dialog";
 import { FeedTreeView } from "./feed-tree-view";
 import { SidebarAccountSection } from "./sidebar-account-section";
@@ -18,17 +11,18 @@ import { SidebarHeaderView } from "./sidebar-header-view";
 import { SidebarTagSection } from "./sidebar-tag-section";
 import { SmartViewsView } from "./smart-views-view";
 import { useSidebarAccountSelection } from "./use-sidebar-account-selection";
-import { useSidebarAccountStatusLabels } from "./use-sidebar-account-status-labels";
 import { useSidebarAccountSwitcher } from "./use-sidebar-account-switcher";
 import { useSidebarContextMenuRenderers } from "./use-sidebar-context-menu-renderers";
 import { useSidebarFeedDragState } from "./use-sidebar-feed-drag-state";
 import { useSidebarFeedNavigation } from "./use-sidebar-feed-navigation";
 import { useSidebarFeedTree } from "./use-sidebar-feed-tree";
 import { useSidebarSmartViews } from "./use-sidebar-smart-views";
+import { useSidebarSources } from "./use-sidebar-sources";
 import { useSidebarStartupFolderExpansion } from "./use-sidebar-startup-folder-expansion";
 import { useSidebarSync } from "./use-sidebar-sync";
 import { useSidebarTagItems } from "./use-sidebar-tag-items";
 import { useSidebarUiActions } from "./use-sidebar-ui-actions";
+import { useSidebarUiState } from "./use-sidebar-ui-state";
 import { useSidebarVisibilityFallback } from "./use-sidebar-visibility-fallback";
 
 export function Sidebar() {
@@ -44,60 +38,61 @@ export function Sidebar() {
     closeAccountList,
     toggleAccountList,
   } = useSidebarAccountSwitcher();
-  const { data: accounts } = useAccounts();
-  const accountStatusLabels = useSidebarAccountStatusLabels(accounts);
-  const layoutMode = useUiStore((s) => s.layoutMode);
-  const selectedAccountId = useUiStore((s) => s.selectedAccountId);
-  const selectAccount = useUiStore((s) => s.selectAccount);
-  const restoreAccountSelection = useUiStore((s) => s.restoreAccountSelection);
-  const clearSelectedAccount = useUiStore((s) => s.clearSelectedAccount);
-  const selection = useUiStore((s) => s.selection);
-  const viewMode = useUiStore((s) => s.viewMode);
-  const selectFeed = useUiStore((s) => s.selectFeed);
-  const selectFolder = useUiStore((s) => s.selectFolder);
-  const selectAll = useUiStore((s) => s.selectAll);
-  const selectSmartView = useUiStore((s) => s.selectSmartView);
-  const selectTag = useUiStore((s) => s.selectTag);
-  const setViewMode = useUiStore((s) => s.setViewMode);
-  const expandedFolderIds = useUiStore((s) => s.expandedFolderIds);
-  const setExpandedFolders = useUiStore((s) => s.setExpandedFolders);
-  const toggleFolder = useUiStore((s) => s.toggleFolder);
-  const openSettings = useUiStore((s) => s.openSettings);
-  const openFeedCleanup = useUiStore((s) => s.openFeedCleanup);
-  const isAddFeedDialogOpen = useUiStore((s) => s.isAddFeedDialogOpen);
-  const openAddFeedDialog = useUiStore((s) => s.openAddFeedDialog);
-  const closeAddFeedDialog = useUiStore((s) => s.closeAddFeedDialog);
-  const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
-  const showToast = useUiStore((s) => s.showToast);
-  const syncProgress = useUiStore((s) => s.syncProgress);
-  const applySyncProgress = useUiStore((s) => s.applySyncProgress);
-  const clearSyncProgress = useUiStore((s) => s.clearSyncProgress);
-  const { data: feeds } = useFeeds(selectedAccountId);
-  const { data: folders } = useFolders(selectedAccountId);
-  const { data: tags } = useTags();
-  const { data: tagArticleCounts } = useTagArticleCounts(selectedAccountId);
-  const { data: accountArticles } = useAccountArticles(selectedAccountId);
-  const showUnreadCount = usePreferencesStore((s) => (s.prefs.show_unread_count ?? "true") === "true");
-  const showStarredCount = usePreferencesStore((s) => (s.prefs.show_starred_count ?? "true") === "true");
-  const showSidebarUnread = usePreferencesStore(
-    (s) => resolvePreferenceValue(s.prefs, "show_sidebar_unread") === "true",
-  );
-  const showSidebarStarred = usePreferencesStore(
-    (s) => resolvePreferenceValue(s.prefs, "show_sidebar_starred") === "true",
-  );
-  const showSidebarTags = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "show_sidebar_tags") === "true");
-  const displayFavicons = usePreferencesStore((s) => (s.prefs.display_favicons ?? "true") === "true");
-  const grayscaleFavicons = usePreferencesStore((s) => (s.prefs.grayscale_favicons ?? "false") === "true");
-  const sortSubscriptions = usePreferencesStore((s) => s.prefs.sort_subscriptions ?? "folders_first");
-  const startupFolderExpansion = usePreferencesStore((s) =>
-    resolvePreferenceValue(s.prefs, "startup_folder_expansion"),
-  );
-  const opaqueSidebars = usePreferencesStore((s) => (s.prefs.opaque_sidebars ?? "false") === "true");
+  const {
+    layoutMode,
+    selectedAccountId,
+    selectAccount,
+    restoreAccountSelection,
+    clearSelectedAccount,
+    selection,
+    viewMode,
+    selectFeed,
+    selectFolder,
+    selectAll,
+    selectSmartView,
+    selectTag,
+    setViewMode,
+    expandedFolderIds,
+    setExpandedFolders,
+    toggleFolder,
+    openSettings,
+    openFeedCleanup,
+    isAddFeedDialogOpen,
+    openAddFeedDialog,
+    closeAddFeedDialog,
+    setSettingsAddAccount,
+    showToast,
+    syncProgress,
+    applySyncProgress,
+    clearSyncProgress,
+    showUnreadCount,
+    showStarredCount,
+    showSidebarUnread,
+    showSidebarStarred,
+    showSidebarTags,
+    displayFavicons,
+    grayscaleFavicons,
+    sortSubscriptions,
+    startupFolderExpansion,
+    opaqueSidebars,
+    savedAccountId,
+    setPref,
+  } = useSidebarUiState();
+  const {
+    accounts,
+    accountStatusLabels,
+    selectedAccount,
+    feeds,
+    folders,
+    tags,
+    tagArticleCounts,
+    feedList,
+    folderList,
+    totalUnread,
+    starredCount,
+  } = useSidebarSources({ selectedAccountId });
   const updateFeedFolderMutation = useUpdateFeedFolder();
   const feedViewportRef = useRef<HTMLDivElement>(null);
-
-  const savedAccountId = usePreferencesStore((s) => s.prefs.selected_account_id ?? "");
-  const setPref = usePreferencesStore((s) => s.setPref);
   const { intent: activeDevIntent } = useResolvedDevIntent();
   const { handleSync, lastSyncedLabel } = useSidebarSync({
     syncProgress,
@@ -116,8 +111,6 @@ export function Sidebar() {
     restoreAccountSelection,
     setSelectedAccountPreference: (accountId) => setPref("selected_account_id", accountId),
   });
-
-  const selectedAccount = accounts?.find((a) => a.id === selectedAccountId);
   const {
     handleSelectAccount,
     toggleFeedsSection,
@@ -137,9 +130,6 @@ export function Sidebar() {
     setIsFeedsSectionOpen,
     setIsTagsSectionOpen,
   });
-
-  const totalUnread = feeds?.reduce((sum, f) => sum + f.unread_count, 0) ?? 0;
-  const starredCount = useMemo(() => accountArticles?.filter((a) => a.is_starred).length ?? 0, [accountArticles]);
   const visibleSmartViews = useSidebarSmartViews({
     selection,
     totalUnread,
