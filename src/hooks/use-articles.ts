@@ -15,6 +15,16 @@ import {
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
 
+export type SetReadMutationInput = {
+  id: string;
+  read: boolean;
+};
+
+export type ToggleStarMutationInput = {
+  id: string;
+  starred: boolean;
+};
+
 function invalidateArticleQueries(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: ["articles"] });
   qc.invalidateQueries({ queryKey: ["accountArticles"] });
@@ -36,7 +46,7 @@ export function useFeedIntegrityReport() {
 }
 
 export const useSetRead = createMutation(
-  ({ id, read }: { id: string; read: boolean }) => markArticleRead(id, read),
+  ({ id, read }: SetReadMutationInput) => markArticleRead(id, read),
   invalidateArticleQueries,
 );
 
@@ -58,6 +68,6 @@ export function useSearchArticles(accountId: string | null, query: string) {
 }
 
 export const useToggleStar = createMutation(
-  ({ id, starred }: { id: string; starred: boolean }) => toggleArticleStar(id, starred),
+  ({ id, starred }: ToggleStarMutationInput) => toggleArticleStar(id, starred),
   invalidateArticleQueries,
 );

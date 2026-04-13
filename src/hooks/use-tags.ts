@@ -15,6 +15,26 @@ import {
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
 
+export type CreateTagMutationInput = {
+  name: string;
+  color?: string;
+};
+
+export type ArticleTagMutationInput = {
+  articleId: string;
+  tagId: string;
+};
+
+export type RenameTagMutationInput = {
+  tagId: string;
+  name: string;
+  color?: string | null;
+};
+
+export type DeleteTagMutationInput = {
+  tagId: string;
+};
+
 export function useTags() {
   return useQuery({
     queryKey: ["tags"],
@@ -43,7 +63,7 @@ export function useArticlesByTag(tagId: string | null, accountId?: string | null
 export function useCreateTag() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ name, color }: { name: string; color?: string }) => createTag(name, color).then(Result.unwrap()),
+    mutationFn: ({ name, color }: CreateTagMutationInput) => createTag(name, color).then(Result.unwrap()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tags"] });
     },
@@ -57,12 +77,12 @@ function invalidateArticleTagQueries(qc: QueryClient) {
 }
 
 export const useTagArticle = createMutation(
-  ({ articleId, tagId }: { articleId: string; tagId: string }) => tagArticle(articleId, tagId),
+  ({ articleId, tagId }: ArticleTagMutationInput) => tagArticle(articleId, tagId),
   invalidateArticleTagQueries,
 );
 
 export const useUntagArticle = createMutation(
-  ({ articleId, tagId }: { articleId: string; tagId: string }) => untagArticle(articleId, tagId),
+  ({ articleId, tagId }: ArticleTagMutationInput) => untagArticle(articleId, tagId),
   invalidateArticleTagQueries,
 );
 
@@ -74,8 +94,11 @@ function invalidateTagQueries(qc: QueryClient) {
 }
 
 export const useRenameTag = createMutation(
-  ({ tagId, name, color }: { tagId: string; name: string; color?: string | null }) => renameTag(tagId, name, color),
+  ({ tagId, name, color }: RenameTagMutationInput) => renameTag(tagId, name, color),
   invalidateTagQueries,
 );
 
-export const useDeleteTag = createMutation(({ tagId }: { tagId: string }) => deleteTag(tagId), invalidateTagQueries);
+export const useDeleteTag = createMutation(
+  ({ tagId }: DeleteTagMutationInput) => deleteTag(tagId),
+  invalidateTagQueries,
+);
