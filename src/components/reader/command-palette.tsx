@@ -1,12 +1,4 @@
-import {
-  CircleHelpIcon,
-  FlaskConicalIcon,
-  HashIcon,
-  NewspaperIcon,
-  RefreshCwIcon,
-  RssIcon,
-  SettingsIcon,
-} from "lucide-react";
+import { CircleHelpIcon, NewspaperIcon, RefreshCwIcon, RssIcon, SettingsIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchArticles } from "@/hooks/use-articles";
@@ -22,24 +14,12 @@ import { getShortcutDisplay } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-  CommandShortcut,
-} from "../ui/command";
+import { Command, CommandInput, CommandSeparator } from "../ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
+import { type CommandPaletteActionItem, CommandPaletteResults } from "./command-palette-results";
 
-type PaletteAction = {
-  id: AppAction | "open-shortcuts-help";
-  label: string;
-  shortcut?: string;
+type PaletteAction = CommandPaletteActionItem & {
   keywords: string[];
-  icon: typeof SettingsIcon;
 };
 
 type HistoryEntry = { kind: "action"; id: AppAction } | { kind: "feed" | "tag" | "article"; id: string };
@@ -280,109 +260,33 @@ export function CommandPalette() {
           className="[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
         >
           <CommandInput placeholder={t("command_palette.placeholder")} value={input} onValueChange={setInput} />
-          <CommandList>
-            {showRecentActions && recentActions.length > 0 ? (
-              <CommandGroup heading={t("command_palette.recent_actions")}>
-                {recentActions.map((action) => {
-                  const Icon = action.icon;
-                  return (
-                    <CommandItem
-                      key={`recent-${action.id}`}
-                      value={getCommandItemValue("action", action.id)}
-                      onSelect={() => handleActionSelect(action.id)}
-                    >
-                      <Icon />
-                      <span>{action.label}</span>
-                      {action.shortcut ? <CommandShortcut>{action.shortcut}</CommandShortcut> : null}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            ) : null}
-
-            {!showRecentActions && showActions && filteredActions.length > 0 ? (
-              <CommandGroup heading={t("command_palette.actions")}>
-                {filteredActions.map((action) => {
-                  const Icon = action.icon;
-                  return (
-                    <CommandItem
-                      key={action.id}
-                      value={getCommandItemValue("action", action.id)}
-                      onSelect={() => handleActionSelect(action.id)}
-                    >
-                      <Icon />
-                      <span>{action.label}</span>
-                      {action.shortcut ? <CommandShortcut>{action.shortcut}</CommandShortcut> : null}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            ) : null}
-
-            {!showRecentActions && showDevScenarios && filteredDevScenarios.length > 0 ? (
-              <CommandGroup heading="Dev Scenarios">
-                {filteredDevScenarios.map((scenario) => (
-                  <CommandItem
-                    key={scenario.id}
-                    value={getCommandItemValue("scenario", scenario.id)}
-                    onSelect={() => handleDevScenarioSelect(scenario.id)}
-                  >
-                    <FlaskConicalIcon />
-                    <span>{scenario.title}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            ) : null}
-
-            {!showRecentActions && showFeeds && filteredFeeds.length > 0 ? (
-              <CommandGroup heading={t("command_palette.feeds")}>
-                {filteredFeeds.map((feed) => (
-                  <CommandItem
-                    key={feed.id}
-                    value={getCommandItemValue("feed", feed.id)}
-                    onSelect={() => handleFeedSelect(feed.id)}
-                  >
-                    <RssIcon />
-                    <span>{feed.title}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            ) : null}
-
-            {!showRecentActions && showTags && filteredTags.length > 0 ? (
-              <CommandGroup heading={t("command_palette.tags")}>
-                {filteredTags.map((tag) => (
-                  <CommandItem
-                    key={tag.id}
-                    value={getCommandItemValue("tag", tag.id)}
-                    onSelect={() => handleTagSelect(tag.id)}
-                  >
-                    <HashIcon />
-                    <span>{tag.name}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            ) : null}
-
-            {!showRecentActions && showArticles && articles.length > 0 ? (
-              <CommandGroup heading={t("command_palette.articles")}>
-                {articles.map((article) => (
-                  <CommandItem
-                    key={article.id}
-                    value={getCommandItemValue("article", article.id)}
-                    onSelect={() => handleArticleSelect(article.feed_id, article.id)}
-                  >
-                    <NewspaperIcon />
-                    <span>{article.title}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            ) : null}
-
-            {!showRecentActions && !hasVisibleResults ? (
-              <CommandEmpty>{t("command_palette.no_results")}</CommandEmpty>
-            ) : null}
-          </CommandList>
+          <CommandPaletteResults
+            recentActions={recentActions}
+            filteredActions={filteredActions}
+            filteredDevScenarios={filteredDevScenarios}
+            filteredFeeds={filteredFeeds}
+            filteredTags={filteredTags}
+            articles={articles}
+            showRecentActions={showRecentActions}
+            showActions={showActions}
+            showDevScenarios={showDevScenarios}
+            showFeeds={showFeeds}
+            showTags={showTags}
+            showArticles={showArticles}
+            hasVisibleResults={hasVisibleResults}
+            noResultsLabel={t("command_palette.no_results")}
+            recentActionsHeading={t("command_palette.recent_actions")}
+            actionsHeading={t("command_palette.actions")}
+            feedsHeading={t("command_palette.feeds")}
+            tagsHeading={t("command_palette.tags")}
+            articlesHeading={t("command_palette.articles")}
+            getCommandItemValue={getCommandItemValue}
+            onActionSelect={handleActionSelect}
+            onDevScenarioSelect={handleDevScenarioSelect}
+            onFeedSelect={handleFeedSelect}
+            onTagSelect={handleTagSelect}
+            onArticleSelect={handleArticleSelect}
+          />
           <CommandSeparator />
           <div className="text-muted-foreground flex items-center gap-4 px-3 py-2 text-xs">
             <div className="flex items-center gap-1">
