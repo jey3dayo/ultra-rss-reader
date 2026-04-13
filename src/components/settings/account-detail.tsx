@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { AccountCredentialsSectionView } from "@/components/settings/account-credentials-section-view";
+import type { AccountDetailAccount } from "@/components/settings/account-detail.types";
 import { AccountDetailView } from "@/components/settings/account-detail-view";
 import { useAccountDetailController } from "@/components/settings/use-account-detail-controller";
 import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
@@ -7,13 +8,7 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { formatAccountSyncRetryDateTime } from "@/lib/account-sync-status-format";
 import { useUiStore } from "@/stores/ui-store";
 
-function AccountDetailContent({
-  account,
-  isSyncing,
-}: {
-  account: NonNullable<ReturnType<typeof useAccounts>["data"]>[number];
-  isSyncing: boolean;
-}) {
+function AccountDetailContent({ account, isSyncing }: { account: AccountDetailAccount; isSyncing: boolean }) {
   const { t, i18n } = useTranslation("settings");
   const { t: tc } = useTranslation("common");
   const syncStatusQuery = useAccountSyncStatus(account.id);

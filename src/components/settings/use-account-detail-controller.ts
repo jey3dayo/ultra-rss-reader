@@ -1,6 +1,5 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import type { TFunction } from "i18next";
 import { type KeyboardEvent, useRef, useState } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
 import {
@@ -15,20 +14,12 @@ import {
 } from "@/api/tauri-commands";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync-result-feedback";
 import { useUiStore } from "@/stores/ui-store";
-
-type Account = NonNullable<AccountDto | undefined>;
+import type { UseAccountDetailControllerParams } from "./account-detail.types";
 
 type UpdateSyncParams = {
   syncIntervalSecs?: number;
   syncOnWake?: boolean;
   keepReadItemsDays?: number;
-};
-
-type UseAccountDetailControllerParams = {
-  account: Account;
-  t: TFunction<"settings">;
-  onAccountDeleted: () => void;
-  onSyncStatusChanged?: () => void;
 };
 
 export function useAccountDetailController({

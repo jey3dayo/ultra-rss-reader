@@ -1,4 +1,6 @@
+import type { TFunction } from "i18next";
 import type { KeyboardEvent, ReactNode, RefObject } from "react";
+import type { AccountDto } from "@/api/tauri-commands";
 import type { AccountDangerZoneViewProps } from "@/components/settings/account-danger-zone-view";
 
 export type AccountSelectOption = {
@@ -61,4 +63,13 @@ export type AccountDetailViewProps = {
   credentialsSection?: ReactNode;
   syncSection: AccountSyncSectionViewProps;
   dangerZone: AccountDangerZoneViewProps;
+};
+
+export type AccountDetailAccount = AccountDto;
+
+export type UseAccountDetailControllerParams = {
+  account: AccountDetailAccount;
+  t: TFunction<"settings">;
+  onAccountDeleted: () => void;
+  onSyncStatusChanged?: () => void;
 };
