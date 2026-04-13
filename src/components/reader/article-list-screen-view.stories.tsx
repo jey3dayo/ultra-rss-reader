@@ -49,7 +49,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="h-[480px] w-[380px] overflow-hidden border border-border bg-card">
+      <div className="h-[480px] w-full max-w-[380px] overflow-hidden border border-border bg-card">
         <Story />
       </div>
     ),

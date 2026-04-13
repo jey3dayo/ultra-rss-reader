@@ -72,7 +72,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="w-[380px] bg-card">
+      <div className="w-full max-w-[380px] bg-card">
         <Story />
       </div>
     ),
