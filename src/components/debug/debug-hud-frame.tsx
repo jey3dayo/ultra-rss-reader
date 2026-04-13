@@ -29,13 +29,7 @@ type DebugHudFrameProps = {
   surface?: DebugHudFrameSurface;
 } & Omit<ComponentPropsWithoutRef<"div">, "children" | "className">;
 
-export function DebugHudFrame({
-  as,
-  children,
-  className,
-  surface = "panelCollapsed",
-  ...props
-}: DebugHudFrameProps) {
+export function DebugHudFrame({ as, children, className, surface = "panelCollapsed", ...props }: DebugHudFrameProps) {
   const Component = as ?? "div";
 
   return (

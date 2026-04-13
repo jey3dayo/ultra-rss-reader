@@ -9,7 +9,8 @@ describe("BrowserSurfaceStateCard", () => {
         issue={{
           kind: "unsupported",
           title: "browser mode では埋め込み Webプレビューを表示できません。",
-          description: "ネイティブの埋め込み表示はデスクトップアプリで確認し、ここでは外部ブラウザ導線を使ってください。",
+          description:
+            "ネイティブの埋め込み表示はデスクトップアプリで確認し、ここでは外部ブラウザ導線を使ってください。",
           detail: null,
           canRetry: false,
         }}
