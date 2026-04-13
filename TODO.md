@@ -183,6 +183,10 @@
   - 問題: `browser-view.tsx` に diagnostics rail と surface failure card の詳細 JSX が残っていて、overlay shell 描画と subview 実装が混ざっていた
   - 対象: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-diagnostics-rail.tsx`, `src/components/reader/browser-surface-state-card.tsx`
 
+- [x] browser-view の surface state と runtime-unavailable 判定を hook 化する
+  - 問題: `useBrowserViewController` に `surfaceIssue` state、failure handler、runtime-unavailable 判定が残っていて、controller orchestration と surface state 管理が混ざっていた
+  - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-view-surface-state.ts`
+
 
 - [x] sidebar の feed navigation と event listener を hook 化する
   - 問題: `sidebar.tsx` に feed 移動、folder 自動展開、`APP_EVENTS.navigateFeed` 購読が残っていて、tree 導出と責務が混ざっている
