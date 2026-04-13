@@ -111,6 +111,10 @@
   - 問題: `sidebar.tsx` に folder/feed/tag の context menu renderer callback が残っていて、view tree 構築と描画補助が混ざっていた
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-context-menu-renderers.ts`
 
+- [x] sidebar account switcher に sync retry 状態を表示する
+  - 問題: 自動再試行待ちの account があっても sidebar からは状態が見えず、settings を開かないと backoff 状況が分からなかった
+  - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/account-switcher-view.tsx`, `src/hooks/use-account-sync-statuses.ts`
+
 - [x] sidebar の account restore / startup expansion / hidden-state fallback を hook 化する
   - 問題: `sidebar.tsx` に account 復元、起動時 folder 展開、visibility fallback の effect が集まり、責務が重くなっていた
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-account-selection.ts`, `src/components/reader/use-sidebar-startup-folder-expansion.ts`, `src/components/reader/use-sidebar-visibility-fallback.ts`
@@ -225,6 +229,10 @@
 - [x] article-list の feed display preset control を view component 化する
   - 問題: `article-list.tsx` に display preset Select の JSX が残っていて、header 配線と control 描画が混ざっていた
   - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/article-list-feed-mode-control.tsx`
+
+- [x] article-list の header control props 導出を hook 化する
+  - 問題: `article-list.tsx` に sidebar button 文言・表示条件と feed mode control 配線が残っていて、header state 導出と画面構成が混ざっていた
+  - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-header-controls.tsx`
 
 - [x] reader の再利用境界がある state/controller 型を `types` 化する
   - 問題: `use-sidebar-feed-tree.ts` と `use-add-feed-dialog-controller.ts` に再利用余地のある union/state 型が残っている
