@@ -45,6 +45,10 @@ describe("AccountDetailView", () => {
             options: [{ value: "30", label: "One month" }],
             onChange: vi.fn(),
           },
+          statusRows: [
+            { label: "Next automatic retry", value: "Apr 13, 12:15" },
+            { label: "Last sync error", value: "Network timeout" },
+          ],
         }}
         dangerZone={{
           exportLabel: "Export OPML",
@@ -64,6 +68,8 @@ describe("AccountDetailView", () => {
     expect(screen.getByText("FreshRss")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 3, name: "General" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 3, name: "Syncing" })).toBeInTheDocument();
+    expect(screen.getByText("Next automatic retry")).toBeInTheDocument();
+    expect(screen.getByText("Apr 13, 12:15")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Export OPML" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete account" })).toBeInTheDocument();
   });

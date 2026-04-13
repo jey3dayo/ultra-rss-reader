@@ -5,6 +5,8 @@ import { z } from "zod";
 import {
   type AccountDto,
   AccountDtoSchema,
+  type AccountSyncStatusDto,
+  AccountSyncStatusSchema,
   type AppError,
   AppErrorSchema,
   type ArticleDto,
@@ -35,6 +37,7 @@ import {
   FeedIntegrityReportDtoSchema,
   type FolderDto,
   FolderDtoSchema,
+  getAccountSyncStatusArgs,
   getArticleTagsArgs,
   getTagArticleCountsArgs,
   listAccountArticlesArgs,
@@ -85,6 +88,7 @@ export type BrowserWebviewState = z.infer<typeof BrowserWebviewStateSchema>;
 // Re-export types so existing consumers don't break
 export type {
   AccountDto,
+  AccountSyncStatusDto,
   AppError,
   ArticleDto,
   DatabaseInfoDto,
@@ -245,6 +249,13 @@ export const testAccountConnection = (accountId: string) =>
 
 export const deleteAccount = (accountId: string) =>
   safeInvoke("delete_account", { response: z.null(), args: deleteAccountArgs }, { accountId });
+
+export const getAccountSyncStatus = (accountId: string) =>
+  safeInvoke(
+    "get_account_sync_status",
+    { response: AccountSyncStatusSchema, args: getAccountSyncStatusArgs },
+    { accountId },
+  );
 
 export const discoverFeeds = (url: string) =>
   safeInvoke("discover_feeds", { response: z.array(DiscoveredFeedDtoSchema), args: discoverFeedsArgs }, { url });

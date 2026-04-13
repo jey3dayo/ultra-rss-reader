@@ -29,6 +29,7 @@ vi.mock("@/components/settings/account-detail-view", () => ({
       syncNowLabel?: string;
       syncingLabel?: string;
       onSyncNow?: () => void;
+      statusRows?: Array<{ label: string; value: string }>;
       keepReadItems: {
         options: Array<{ value: string; label: string }>;
         onChange: (value: string) => void;
@@ -68,6 +69,14 @@ vi.mock("@/components/settings/account-detail-view", () => ({
             <li key={option.value}>{option.label}</li>
           ))}
         </ul>
+        <dl>
+          {props.syncSection.statusRows?.map((row) => (
+            <div key={row.label}>
+              <dt>{row.label}</dt>
+              <dd>{row.value}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
     );
   },
@@ -175,6 +184,107 @@ describe("AccountDetail", () => {
       const lastCall = accountDetailViewSpy.mock.calls[accountDetailViewSpy.mock.calls.length - 1];
       expect(lastCall?.[0].syncSection.isSyncing).toBe(true);
     });
+  });
+
+  it("shows scheduler retry details in the sync section when the account is in backoff", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        return [
+          {
+            id: "acc-1",
+            kind: "FreshRss",
+            name: "FreshRSS",
+            username: "user",
+            server_url: "https://freshrss.example.com",
+            sync_interval_secs: 3600,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+          },
+        ];
+      }
+      if (cmd === "get_account_sync_status") {
+        return {
+          last_error: "Network timeout",
+          error_count: 2,
+          next_retry_at: "2026-04-13T03:15:00Z",
+        };
+      }
+      return null;
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      const lastCall = accountDetailViewSpy.mock.calls[accountDetailViewSpy.mock.calls.length - 1];
+      expect(lastCall?.[0].syncSection.statusRows).toEqual([
+        expect.objectContaining({ label: "Next automatic retry", value: expect.any(String) }),
+        { label: "Consecutive sync failures", value: "2 failures" },
+        { label: "Last sync error", value: "Network timeout" },
+      ]);
+    });
+  });
+
+  it("refreshes the sync status after a successful manual sync", async () => {
+    const user = userEvent.setup();
+    let statusCallCount = 0;
+
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "get_account_sync_status":
+          statusCallCount += 1;
+          return statusCallCount === 1
+            ? {
+                last_error: "Network timeout",
+                error_count: 2,
+                next_retry_at: "2026-04-13T03:15:00Z",
+              }
+            : {
+                last_error: null,
+                error_count: 0,
+                next_retry_at: null,
+              };
+        case "trigger_sync_account":
+          return {
+            synced: true,
+            total: 1,
+            succeeded: 1,
+            failed: [],
+            warnings: [],
+          };
+        default:
+          return null;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      const firstResolvedCall = accountDetailViewSpy.mock.calls[accountDetailViewSpy.mock.calls.length - 1];
+      expect(firstResolvedCall?.[0].syncSection.statusRows).toEqual(
+        expect.arrayContaining([expect.objectContaining({ label: "Last sync error", value: "Network timeout" })]),
+      );
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Sync Now" }));
+
+    await waitFor(() => {
+      const lastCall = accountDetailViewSpy.mock.calls[accountDetailViewSpy.mock.calls.length - 1];
+      expect(lastCall?.[0].syncSection.statusRows).toEqual([]);
+    });
+    expect(statusCallCount).toBeGreaterThanOrEqual(2);
   });
 
   it("marks the sync section as syncing for the active manual account", async () => {

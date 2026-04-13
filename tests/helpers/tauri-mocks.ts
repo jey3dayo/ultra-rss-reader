@@ -1,6 +1,6 @@
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { commandArgsSchemas } from "@/api/schemas";
-import type { AccountDto, ArticleDto, FeedDto } from "@/api/tauri-commands";
+import type { AccountDto, AccountSyncStatusDto, ArticleDto, FeedDto } from "@/api/tauri-commands";
 
 export type MockTauriCommandCall = {
   cmd: string;
@@ -152,6 +152,12 @@ const defaultHandler: MockHandler = (cmd, args) => {
       return true;
     case "delete_account":
       return null;
+    case "get_account_sync_status":
+      return {
+        last_error: null,
+        error_count: 0,
+        next_retry_at: null,
+      } satisfies AccountSyncStatusDto;
     case "open_in_browser":
       return null;
     case "get_platform_info":

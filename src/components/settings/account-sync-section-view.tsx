@@ -9,6 +9,7 @@ export function AccountSyncSectionView({
   syncInterval,
   syncOnWake,
   keepReadItems,
+  statusRows,
   syncNowLabel,
   syncingLabel,
   onSyncNow,
@@ -20,6 +21,16 @@ export function AccountSyncSectionView({
       <AccountSelectRow control={syncInterval} />
       <LabeledSwitchRow label={syncOnWake.label} checked={syncOnWake.checked} onChange={syncOnWake.onChange} />
       <AccountSelectRow control={keepReadItems} />
+      {statusRows && statusRows.length > 0 ? (
+        <div className="mt-3 space-y-2 rounded-md border border-border/60 bg-muted/30 p-3 text-sm">
+          {statusRows.map((row) => (
+            <div key={row.label} className="space-y-1">
+              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{row.label}</div>
+              <div className="break-words text-foreground">{row.value}</div>
+            </div>
+          ))}
+        </div>
+      ) : null}
       {onSyncNow && (
         <div className="pt-3">
           <LoadingButton size="sm" onClick={onSyncNow} loading={isSyncing} loadingLabel={syncingLabel}>

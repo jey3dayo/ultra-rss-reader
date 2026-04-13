@@ -58,6 +58,10 @@ const meta = {
         options: keepReadItemsOptions,
         onChange: fn(),
       },
+      statusRows: [
+        { label: "Next automatic retry", value: "Apr 13, 12:15" },
+        { label: "Last sync error", value: "Network timeout while contacting FreshRSS" },
+      ],
     },
     dangerZone: {
       exportLabel: "Export OPML",

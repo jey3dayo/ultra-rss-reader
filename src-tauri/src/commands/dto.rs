@@ -90,6 +90,13 @@ pub struct SyncResult {
 }
 
 #[derive(Debug, Serialize, Clone)]
+pub struct AccountSyncStatus {
+    pub last_error: Option<String>,
+    pub error_count: i32,
+    pub next_retry_at: Option<String>,
+}
+
+#[derive(Debug, Serialize, Clone)]
 pub struct AccountSyncError {
     pub account_id: String,
     pub account_name: String,

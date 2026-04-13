@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { AccountCredentialsSectionView } from "@/components/settings/account-credentials-section-view";
 import { AccountDetailView } from "@/components/settings/account-detail-view";
 import { useAccountDetailController } from "@/components/settings/use-account-detail-controller";
+import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -12,14 +13,50 @@ function AccountDetailContent({
   account: NonNullable<ReturnType<typeof useAccounts>["data"]>[number];
   isSyncing: boolean;
 }) {
-  const { t } = useTranslation("settings");
+  const { t, i18n } = useTranslation("settings");
   const { t: tc } = useTranslation("common");
+  const syncStatusQuery = useAccountSyncStatus(account.id);
   const setSettingsAccountId = useUiStore((s) => s.setSettingsAccountId);
   const controller = useAccountDetailController({
     account,
     t,
     onAccountDeleted: () => setSettingsAccountId(null),
+    onSyncStatusChanged: () => {
+      void syncStatusQuery.refetch();
+    },
   });
+
+  const syncStatusRows = (() => {
+    const syncStatus = syncStatusQuery.data;
+    if (!syncStatus) {
+      return [];
+    }
+
+    const rows: Array<{ label: string; value: string }> = [];
+    if (syncStatus.next_retry_at) {
+      const retryAt = new Date(syncStatus.next_retry_at);
+      const formattedRetryAt = Number.isNaN(retryAt.getTime())
+        ? syncStatus.next_retry_at
+        : retryAt.toLocaleString(i18n.language, {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          });
+      rows.push({ label: t("account.next_automatic_retry"), value: formattedRetryAt });
+    }
+    if (syncStatus.error_count > 0) {
+      rows.push({
+        label: t("account.consecutive_sync_failures"),
+        value: t("account.consecutive_sync_failures_value", { count: syncStatus.error_count }),
+      });
+    }
+    if (syncStatus.last_error) {
+      rows.push({ label: t("account.last_sync_error"), value: syncStatus.last_error });
+    }
+    return rows;
+  })();
 
   return (
     <AccountDetailView
@@ -98,6 +135,7 @@ function AccountDetailContent({
           options: controller.keepReadItemsOptions,
           onChange: (value) => controller.handleSyncUpdate({ keepReadItemsDays: Number(value) }),
         },
+        statusRows: syncStatusRows,
         syncNowLabel: t("account.sync_now"),
         syncingLabel: t("account.syncing_now"),
         onSyncNow: controller.handleSyncNow,

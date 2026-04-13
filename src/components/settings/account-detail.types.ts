@@ -25,6 +25,7 @@ export type AccountSyncSectionViewProps = {
   syncInterval: AccountSelectControl;
   syncOnWake: AccountSwitchControl;
   keepReadItems: AccountSelectControl;
+  statusRows?: Array<{ label: string; value: string }>;
   syncNowLabel?: string;
   syncingLabel?: string;
   onSyncNow?: () => void;

@@ -5,28 +5,32 @@ use tauri::{AppHandle, Emitter, State};
 use tracing::warn;
 
 use crate::commands::dto::{
-    AccountSyncError, AccountSyncWarning, AppError, SyncProgressEvent, SyncProgressKind,
-    SyncProgressStage, SyncResult,
+    AccountSyncError, AccountSyncStatus, AccountSyncWarning, AppError, SyncProgressEvent,
+    SyncProgressKind, SyncProgressStage, SyncResult,
 };
 use crate::commands::AppState;
 use crate::domain::account::Account;
 use crate::domain::feed::Feed;
 use crate::domain::provider::ProviderKind;
-use crate::domain::types::FeedId;
+use crate::domain::types::{AccountId, FeedId};
 use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
 use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
+use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
 use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::local::LocalProvider;
 use crate::repository::account::AccountRepository;
 use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
 use crate::repository::preference::PreferenceRepository;
+use crate::repository::sync_state::{SyncState, SyncStateRepository};
 
 use super::feed_commands::lock_db;
 use super::sync_providers::{sync_greader_account, sync_greader_feed, sync_local_feed};
+
+const SCHEDULER_SYNC_STATE_SCOPE: &str = "scheduler";
 
 /// RAII guard that resets the `AtomicBool` to `false` on drop, ensuring the
 /// sync flag is always cleared even on early return or panic.
@@ -263,6 +267,12 @@ async fn run_full_sync_with_progress(
         match result {
             Ok(outcome) => {
                 succeeded += 1;
+                if let Err(error) = clear_scheduler_sync_status(db, &account.id) {
+                    warn!(
+                        "Failed to clear scheduler sync status for account '{}' after manual sync: {error}",
+                        account.name
+                    );
+                }
                 warnings.extend(
                     outcome
                         .warnings
@@ -303,6 +313,34 @@ async fn run_full_sync_with_progress(
         failed,
         warnings,
     })
+}
+
+fn clear_scheduler_sync_status(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+) -> Result<(), AppError> {
+    let db_guard = lock_db(db)?;
+    let repo = SqliteSyncStateRepository::new(db_guard.writer());
+    let mut state = repo
+        .get(account_id, SCHEDULER_SYNC_STATE_SCOPE)?
+        .unwrap_or_else(|| SyncState {
+            account_id: account_id.clone(),
+            scope_key: SCHEDULER_SYNC_STATE_SCOPE.to_string(),
+            timestamp_usec: None,
+            continuation: None,
+            etag: None,
+            last_modified: None,
+            last_success_at: None,
+            last_error: None,
+            error_count: 0,
+            next_retry_at: None,
+        });
+    state.error_count = 0;
+    state.last_error = None;
+    state.next_retry_at = None;
+    state.last_success_at = Some(chrono::Utc::now().to_rfc3339());
+    repo.save(&state)?;
+    Ok(())
 }
 
 pub async fn run_automatic_sync(
@@ -426,6 +464,28 @@ pub async fn trigger_automatic_sync(
 }
 
 #[tauri::command]
+pub fn get_account_sync_status(
+    state: State<'_, AppState>,
+    account_id: String,
+) -> Result<AccountSyncStatus, AppError> {
+    let db_guard = lock_db(&state.db)?;
+    let repo = SqliteSyncStateRepository::new(db_guard.reader());
+    let state = repo.get(&AccountId(account_id), SCHEDULER_SYNC_STATE_SCOPE)?;
+    Ok(match state {
+        Some(sync_state) => AccountSyncStatus {
+            last_error: sync_state.last_error,
+            error_count: sync_state.error_count,
+            next_retry_at: sync_state.next_retry_at,
+        },
+        None => AccountSyncStatus {
+            last_error: None,
+            error_count: 0,
+            next_retry_at: None,
+        },
+    })
+}
+
+#[tauri::command]
 pub async fn trigger_sync_account(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
@@ -470,6 +530,12 @@ pub async fn trigger_sync_account(
     match sync_account(&state.db, &account).await {
         Ok(outcome) => {
             result.succeeded = 1;
+            if let Err(error) = clear_scheduler_sync_status(&state.db, &account.id) {
+                warn!(
+                    "Failed to clear scheduler sync status for account '{}' after manual sync: {error}",
+                    account.name
+                );
+            }
             result
                 .warnings
                 .extend(
@@ -560,6 +626,12 @@ pub async fn trigger_sync_feed(
     match sync_feed(&state.db, &account, &feed).await {
         Ok(outcome) => {
             result.succeeded = 1;
+            if let Err(error) = clear_scheduler_sync_status(&state.db, &account.id) {
+                warn!(
+                    "Failed to clear scheduler sync status for account '{}' after feed sync: {error}",
+                    account.name
+                );
+            }
             result
                 .warnings
                 .extend(

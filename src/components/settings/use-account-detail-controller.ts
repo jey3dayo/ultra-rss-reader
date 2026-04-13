@@ -28,9 +28,15 @@ type UseAccountDetailControllerParams = {
   account: Account;
   t: TFunction<"settings">;
   onAccountDeleted: () => void;
+  onSyncStatusChanged?: () => void;
 };
 
-export function useAccountDetailController({ account, t, onAccountDeleted }: UseAccountDetailControllerParams) {
+export function useAccountDetailController({
+  account,
+  t,
+  onAccountDeleted,
+  onSyncStatusChanged,
+}: UseAccountDetailControllerParams) {
   const qc = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -184,6 +190,7 @@ export function useAccountDetailController({ account, t, onAccountDeleted }: Use
       Result.inspect((syncResult) => {
         qc.invalidateQueries({ queryKey: ["feeds"] });
         qc.invalidateQueries({ queryKey: ["articles"] });
+        onSyncStatusChanged?.();
         useUiStore.getState().showToast(
           resolveSyncFeedbackMessage(summarizeSyncResult(syncResult), {
             alreadyInProgress: t("account.syncing_now"),

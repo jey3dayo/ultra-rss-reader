@@ -1,4 +1,5 @@
 export { type AccountDto, AccountDtoSchema } from "./account";
+export { type AccountSyncStatusDto, AccountSyncStatusSchema } from "./account-sync-status";
 export { type ArticleDto, ArticleDtoSchema } from "./article";
 export {
   addAccountArgs,
@@ -17,6 +18,7 @@ export {
   deleteTagArgs,
   discoverFeedsArgs,
   exportOpmlArgs,
+  getAccountSyncStatusArgs,
   getArticleTagsArgs,
   getTagArticleCountsArgs,
   listAccountArticlesArgs,

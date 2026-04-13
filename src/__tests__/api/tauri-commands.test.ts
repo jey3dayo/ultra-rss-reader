@@ -4,6 +4,7 @@ import {
   addAccount,
   countAccountUnreadArticles,
   createOrUpdateBrowserWebview,
+  getAccountSyncStatus,
   getPlatformInfo,
   goBackBrowserWebview,
   listAccountArticles,
@@ -129,6 +130,17 @@ describe("tauri-commands with mockIPC", () => {
           supports_native_browser_navigation: true,
           uses_dev_file_credentials: false,
         },
+      });
+    });
+  });
+
+  describe("getAccountSyncStatus", () => {
+    it("returns account sync status from getAccountSyncStatus", async () => {
+      const value = Result.unwrap(await getAccountSyncStatus("acc-1"));
+      expect(value).toEqual({
+        last_error: null,
+        error_count: 0,
+        next_retry_at: null,
       });
     });
   });

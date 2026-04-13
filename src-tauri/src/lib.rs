@@ -211,6 +211,7 @@ pub fn run() {
             commands::feed_commands::update_feed_display_settings,
             commands::feed_commands::discover_feeds,
             commands::sync_commands::trigger_sync,
+            commands::sync_commands::get_account_sync_status,
             commands::sync_commands::trigger_sync_account,
             commands::sync_commands::trigger_sync_feed,
             commands::sync_commands::trigger_automatic_sync,
