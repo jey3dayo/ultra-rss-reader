@@ -123,6 +123,14 @@
   - 問題: `useCommandPaletteController` に results props と prefix hint の組み立てが残っていて、controller orchestration と view props 導出が混ざっていた
   - 対象: `src/components/reader/use-command-palette-controller.ts`, `src/components/reader/use-command-palette-view-props.ts`
 
+- [x] article-pane controller から overlay action JSX を外す
+  - 問題: `useArticlePaneController` が browser overlay の action strip JSX を直接返していて、controller orchestration と view 描画が混ざっていた
+  - 対象: `src/components/reader/use-article-pane-controller.tsx`, `src/components/reader/article-view.tsx`, `src/components/reader/article-view.types.ts`
+
+- [x] article-view の pane view 実装を別 file に切り出す
+  - 問題: `article-view.tsx` に `ArticleToolbar` / `ArticlePane` の実装が残っていて、selection 分岐と pane view 描画が混ざっていた
+  - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/article-pane-view.tsx`
+
 - [x] browser-view の webview state helper を module 化する
   - 問題: `useBrowserViewController` に initial state / missing-webview 判定 / loading state merge が残っていて、controller orchestration と webview state helper が混ざっていた
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/browser-webview-state.ts`, `src/__tests__/components/browser-webview-state.test.ts`
@@ -273,6 +281,14 @@
 - [x] article-view の pane orchestration を controller hook に寄せる
   - 問題: `ArticlePane` に browser overlay / auto mark / close handler / overlay toolbar action の接着が残っていて、pane orchestration が重かった
   - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-pane-controller.tsx`
+
+- [x] article-view の pane props を types と controller result に寄せる
+  - 問題: `ArticleToolbar` props と overlay action strip の JSX 組み立てが `article-view.tsx` に残っていて、view props 境界と controller result が揃っていなかった
+  - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/article-view.types.ts`, `src/components/reader/use-article-pane-controller.tsx`
+
+- [x] article-view の pane view を別 file に切り出す
+  - 問題: `article-view.tsx` に `ArticlePane` / `ArticleToolbar` の描画実装が残っていて、selection state view と pane view が混ざっていた
+  - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/article-pane-view.tsx`
 
 - [x] article-view の state view を別 file に切り出す
   - 問題: `EmptyState` / `BrowserOnlyState` / not-found 表示が `article-view.tsx` に残り、view orchestration と state 表示が混ざっていた
