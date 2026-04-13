@@ -1,8 +1,11 @@
-import type { ReactNode } from "react";
+import type { Dispatch, MutableRefObject, ReactNode, RefObject, SetStateAction } from "react";
+import type { PlatformInfo } from "@/api/schemas";
+import type { BrowserWebviewState } from "@/api/tauri-commands";
 import type {
   BrowserDebugGeometryLayoutDiagnostics,
   BrowserDebugGeometryNativeDiagnostics,
 } from "@/lib/browser-debug-geometry";
+import type { ToastData } from "@/stores/ui-store";
 import type { BrowserSurfaceIssue } from "./browser-surface-issue";
 
 export type BrowserViewScope = "content-pane" | "main-stage";
@@ -71,4 +74,26 @@ export type BrowserOverlayStageController = Pick<
 
 export type BrowserOverlayStageProps = {
   controller: BrowserOverlayStageController;
+};
+
+export type UseBrowserViewRuntimeParams = {
+  onCloseOverlay: () => void;
+};
+
+export type UseBrowserViewRuntimeResult = {
+  showDiagnostics: boolean;
+  browserUrl: string | null;
+  showToast: (message: string | ToastData) => void;
+  platformKind: PlatformInfo["kind"];
+  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
+  hostRef: RefObject<HTMLDivElement | null>;
+  overlayRef: RefObject<HTMLDivElement | null>;
+  stageRef: RefObject<HTMLDivElement | null>;
+  fallbackInFlightRef: MutableRefObject<boolean>;
+  nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
+  handleNativeDiagnostics: (payload: BrowserWebviewDiagnosticsPayload) => void;
+  viewportWidth: number;
+  isLoading: boolean;
+  handleCloseOverlay: () => void;
 };
