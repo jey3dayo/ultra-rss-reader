@@ -1,20 +1,12 @@
 import { useCallback } from "react";
-import type { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
+import type { SidebarControllerActionsParams, SidebarControllerActionsResult } from "./sidebar-controller.types";
 import { useSidebarUiActions } from "./use-sidebar-ui-actions";
-
-type UpdateFeedFolderVariables = Parameters<ReturnType<typeof useUpdateFeedFolder>["mutateAsync"]>[0];
-type SidebarUiActionParams = Omit<Parameters<typeof useSidebarUiActions>[0], "setSelectedAccountPreference">;
-
-type UseSidebarControllerActionsParams = SidebarUiActionParams & {
-  setPref: (key: string, value: string) => void;
-  updateFeedFolder: (variables: UpdateFeedFolderVariables) => Promise<unknown>;
-};
 
 export function useSidebarControllerActions({
   setPref,
   updateFeedFolder,
   ...uiActionsParams
-}: UseSidebarControllerActionsParams) {
+}: SidebarControllerActionsParams): SidebarControllerActionsResult {
   const setSelectedAccountPreference = useCallback(
     (accountId: string) => {
       setPref("selected_account_id", accountId);

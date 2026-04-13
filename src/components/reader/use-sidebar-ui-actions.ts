@@ -1,17 +1,5 @@
-import { type Dispatch, type SetStateAction, useCallback } from "react";
-import type { SettingsCategory } from "@/stores/ui-store";
-
-type UseSidebarUiActionsParams = {
-  selectedAccountId: string | null;
-  selectAccount: (accountId: string) => void;
-  setSelectedAccountPreference: (accountId: string) => void;
-  openSettings: (category?: SettingsCategory) => void;
-  setSettingsAddAccount: (open: boolean) => void;
-  openAddFeedDialog: () => void;
-  closeAddFeedDialog: () => void;
-  setIsFeedsSectionOpen: Dispatch<SetStateAction<boolean>>;
-  setIsTagsSectionOpen: Dispatch<SetStateAction<boolean>>;
-};
+import { useCallback } from "react";
+import type { SidebarUiActionsParams, SidebarUiActionsResult } from "./sidebar-controller.types";
 
 export function useSidebarUiActions({
   selectedAccountId,
@@ -23,7 +11,7 @@ export function useSidebarUiActions({
   closeAddFeedDialog,
   setIsFeedsSectionOpen,
   setIsTagsSectionOpen,
-}: UseSidebarUiActionsParams) {
+}: SidebarUiActionsParams): SidebarUiActionsResult {
   const handleSelectAccount = useCallback(
     (accountId: string) => {
       selectAccount(accountId);
