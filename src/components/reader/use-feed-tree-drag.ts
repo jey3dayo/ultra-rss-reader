@@ -1,13 +1,14 @@
 import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
 import { applyFeedTreePointerDropOutcome, resolveFeedTreePointerDropOutcome } from "./feed-tree-drag-outcome";
 import type { FeedTreeDragOverlayPreview } from "./feed-tree-drag-overlay";
+import { applyFeedTreeHoverTarget } from "./feed-tree-hover-target";
 import {
   createFeedTreePointerDragSession,
   type FeedTreePointerDragSession,
   shouldStartFeedTreePointerDrag,
   updateFeedTreePointerDragSessionPosition,
 } from "./feed-tree-drag-session";
-import { getFeedDropTargetFromElement, isSameFeedDropTarget } from "./feed-tree-drop-target";
+import { getFeedDropTargetAtPoint, isSameFeedDropTarget } from "./feed-tree-drop-target";
 import type { ActiveDropTarget } from "./feed-tree-folder-section";
 import type { FeedTreeFeedViewModel } from "./feed-tree-row";
 import { useFeedTreeHandleClickSuppression } from "./use-feed-tree-handle-click-suppression";
@@ -68,13 +69,6 @@ export function useFeedTreeDrag({
     setPointerHoverTarget(null);
   }, []);
 
-  const getDropTargetAtPoint = useCallback((x: number, y: number): ActiveDropTarget => {
-    if (typeof document.elementFromPoint !== "function") {
-      return null;
-    }
-    return getFeedDropTargetFromElement(document.elementFromPoint(x, y));
-  }, []);
-
   const handlePointerDownFeed = useCallback(
     (feed: FeedTreeFeedViewModel, event: ReactPointerEvent<HTMLButtonElement>) => {
       if (!canDragFeeds || event.button !== 0) {
@@ -97,15 +91,6 @@ export function useFeedTreeDrag({
     if (!isPointerTracking) {
       return;
     }
-
-    const notifyHoverTarget = (target: ActiveDropTarget) => {
-      setPointerHoverTarget(target);
-      if (target?.kind === "folder") {
-        onDragEnterFolder?.(target.folderId);
-      } else if (target?.kind === "unfoldered") {
-        onDragEnterUnfoldered?.();
-      }
-    };
 
     const finishPointerDrag = (target: ActiveDropTarget, shouldCancel: boolean) => {
       applyFeedTreePointerDropOutcome({
@@ -135,10 +120,15 @@ export function useFeedTreeDrag({
         return;
       }
 
-      const hoverTarget = getDropTargetAtPoint(event.clientX, event.clientY);
+      const hoverTarget = getFeedDropTargetAtPoint(event.clientX, event.clientY);
       if (!isSameFeedDropTarget(session.hoverTarget, hoverTarget)) {
         session.hoverTarget = hoverTarget;
-        notifyHoverTarget(hoverTarget);
+        applyFeedTreeHoverTarget({
+          target: hoverTarget,
+          setPointerHoverTarget,
+          onDragEnterFolder,
+          onDragEnterUnfoldered,
+        });
       }
 
       setPointerDragPreview({
@@ -153,7 +143,7 @@ export function useFeedTreeDrag({
       if (!session || event.pointerId !== session.pointerId) {
         return;
       }
-      finishPointerDrag(getDropTargetAtPoint(event.clientX, event.clientY), false);
+      finishPointerDrag(getFeedDropTargetAtPoint(event.clientX, event.clientY), false);
     };
 
     const handlePointerCancel = (event: PointerEvent) => {
@@ -184,7 +174,6 @@ export function useFeedTreeDrag({
     };
   }, [
     clearPointerTracking,
-    getDropTargetAtPoint,
     isPointerTracking,
     onDragEnd,
     onDragEnterFolder,
