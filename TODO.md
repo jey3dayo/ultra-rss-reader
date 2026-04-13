@@ -731,6 +731,11 @@
   - 対応: `use-sidebar-controller-sections.ts` に section orchestration を切り出して、controller 本体は runtime/actions/view props 接着へ寄せた
   - 対象: `src/components/reader/use-sidebar-controller.ts`, `src/components/reader/use-sidebar-controller-sections.ts`, `src/components/reader/sidebar.types.ts`
 
+- [x] sidebar account section props の正本を sidebar types に寄せる
+  - 問題: `sidebar-account-section.tsx` が自前で `SidebarAccountSectionProps` を定義していて、section contract の正本が component file に残っていた
+  - 対応: `sidebar.types.ts` に `SidebarAccountSectionProps` を移して、section component は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/sidebar.types.ts`, `src/components/reader/sidebar-account-section.tsx`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
