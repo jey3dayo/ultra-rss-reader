@@ -5,43 +5,51 @@ import {
   updateFeedTreePointerDragSessionPosition,
 } from "@/components/reader/feed-tree-drag-session";
 
-const feed = {
-  id: "feed-1",
-  accountId: "account-1",
-  folderId: null,
-  title: "Feed 1",
-  url: "https://example.com/feed.xml",
-  siteUrl: "https://example.com",
-  unreadCount: 3,
-  readerMode: "inherit",
-  webPreviewMode: "inherit",
-  isSelected: false,
-  grayscaleFavicon: false,
-} as const;
+describe("feedTreeDragSession", () => {
+  const feed = {
+    id: "feed-1",
+    accountId: "account-1",
+    folderId: null,
+    title: "Tech Feed",
+    url: "https://example.com/feed.xml",
+    siteUrl: "https://example.com",
+    unreadCount: 3,
+    readerMode: "inherit",
+    webPreviewMode: "inherit",
+    isSelected: false,
+    grayscaleFavicon: false,
+  };
 
-describe("feed tree drag session helpers", () => {
-  it("creates a fresh pointer drag session from the initial pointer position", () => {
-    const session = createFeedTreePointerDragSession(feed, 7, 10, 20);
+  it("creates a new session from the initial pointer position", () => {
+    const session = createFeedTreePointerDragSession(feed, 7, 120, 240);
 
-    expect(session).toMatchObject({
+    expect(session).toEqual({
       feed,
       pointerId: 7,
-      originX: 10,
-      originY: 20,
-      currentX: 10,
-      currentY: 20,
+      originX: 120,
+      originY: 240,
+      currentX: 120,
+      currentY: 240,
       isDragging: false,
       hoverTarget: null,
     });
   });
 
-  it("updates pointer position and starts dragging only after crossing the threshold", () => {
-    const session = createFeedTreePointerDragSession(feed, 7, 10, 20);
+  it("updates the current pointer position without touching the origin", () => {
+    const session = createFeedTreePointerDragSession(feed, 7, 120, 240);
 
-    updateFeedTreePointerDragSessionPosition(session, 13, 23);
-    expect(shouldStartFeedTreePointerDrag(session, 13, 23)).toBe(false);
+    updateFeedTreePointerDragSessionPosition(session, 150, 275);
 
-    updateFeedTreePointerDragSessionPosition(session, 16, 26);
-    expect(shouldStartFeedTreePointerDrag(session, 16, 26)).toBe(true);
+    expect(session.originX).toBe(120);
+    expect(session.originY).toBe(240);
+    expect(session.currentX).toBe(150);
+    expect(session.currentY).toBe(275);
+  });
+
+  it("starts dragging only after the drag threshold is reached", () => {
+    const session = createFeedTreePointerDragSession(feed, 7, 100, 100);
+
+    expect(shouldStartFeedTreePointerDrag(session, 104, 104)).toBe(false);
+    expect(shouldStartFeedTreePointerDrag(session, 106, 100)).toBe(true);
   });
 });
