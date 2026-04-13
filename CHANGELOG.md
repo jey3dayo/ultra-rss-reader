@@ -14,11 +14,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 ### Bug Fixes
 
 - fullscreen Web プレビューの chrome / overlay root / compact preview / geometry diagnostics を見直し、狭い幅や Tauri 実機でも表示が崩れにくいようにした
-- Settings モーダルのスクロール、account rename 反映、account detail / add-account / shortcut controls の狭幅レイアウトを修正し、設定操作時の不整合と窮屈さを減らした
+- Settings モーダルのスクロール、account rename 反映、account detail / add-account / shortcut controls の狭幅レイアウト、settings 内の web preview launch action を修正し、設定操作時の不整合と窮屈さを減らした
 - Feed Cleanup を画面幅に追従するレイアウトへ調整し、overview / queue / review の重なりや情報過密、broken references 画面の圧縮を修正した
 - Storybook の i18n fallback crash、favicon 404 noise、固定幅 wrapper による mobile overflow を解消し、狭幅巡回を安定させた
 - browser-mode の `get_account_sync_status` validation error、Web プレビューのショートカット、smart view の status 表現、sidebar footer action の見え方を調整し、reader 補助 UI を磨いた
 - reader を sub-640px で single-pane 優先に見直し、記事ヘッダー操作や touch target の窮屈さを改善した
+- focus debug HUD の配置と shell を見直して overlay strip を除去し、browser surface fallback card の狭幅表示も広げて debug / fallback 導線を確認しやすくした
 - article list item の pointer / keyboard semantics を整理し、row 操作の a11y warning を解消した
 
 ### Documentation

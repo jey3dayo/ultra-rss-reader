@@ -1,7 +1,12 @@
 # Ultra RSS Reader — TODO
 
-次回リリース候補は `minor` だが、version bump / tag / publish は現行の作業が落ち着いてから行う。
-2026-04-12〜2026-04-13 に完了した Storybook / browser / feed cleanup / refactor / premortem フォローアップは `CHANGELOG.md` の `[Unreleased]` へ整理済み。
+次回リリース候補は `minor` を想定しており、2026-04-14 時点の committed な進捗は `CHANGELOG.md` の `[Unreleased]` へ反映済み。
+
+## In Progress
+
+- [ ] settings page の preference view props input を shared types に寄せる
+  - `settings-page.types.ts` に共通 params を持たせ、`use-general/appearance/reading/actions/debug-settings-view-props` の入力契約を揃える
+  - 仕上げで import 整理と format/check を通し、settings helper contract の追跡をしやすくする
 
 ## UI/UX 監査の残り
 
@@ -22,3 +27,4 @@
 - browser-mode の account sync status mock、settings modal、reader narrow layout、feed cleanup responsive layout を調整した
 - Feed Cleanup の bulk action / priority cue 追加と、settings / shared / reader の contract refactor batch を完了した
 - release manual verification、incident runbook、feed content privacy/CSP 方針を docs に整理した
+- focus debug HUD の右寄せ・shell 統一・overlay strip 除去、browser surface fallback card の横幅調整、settings の web preview launch action の inline 化を進めた
