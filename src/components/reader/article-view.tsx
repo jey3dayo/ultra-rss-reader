@@ -5,7 +5,6 @@ import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSetRead, useToggleStar } from "@/hooks/use-articles";
-import { useArticleTags, useCreateTag, useTagArticle, useTags, useUntagArticle } from "@/hooks/use-tags";
 import { formatArticleDate, resolveArticleDateLocale, shouldOpenExternalBrowser } from "@/lib/article-view";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
@@ -15,7 +14,7 @@ import { ArticleContentView } from "./article-content-view";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticleMetaView } from "./article-meta-view";
 import { ArticleShareMenu } from "./article-share-menu";
-import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-tag-picker-view";
+import { ArticleTagChips } from "./article-tag-chips";
 import { ArticleToolbarActionStrip, ArticleToolbarView, type ArticleToolbarViewLabels } from "./article-toolbar-view";
 import {
   ArticleEmptyStateShell,
@@ -143,70 +142,6 @@ function BrowserOnlyState() {
   const closeBrowser = useUiStore((s) => s.closeBrowser);
 
   return <BrowserOnlyStateView onCloseOverlay={closeBrowser} />;
-}
-
-function toArticleTagPickerTagView(tag: { id: string; name: string; color: string | null }): ArticleTagPickerTagView {
-  return {
-    id: tag.id,
-    name: tag.name,
-    color: tag.color,
-  };
-}
-
-function ArticleTagChips({ articleId }: { articleId: string }) {
-  const { t } = useTranslation("reader");
-  const { data: articleTags } = useArticleTags(articleId);
-  const { data: allTags } = useTags();
-  const tagArticleMutation = useTagArticle();
-  const untagArticleMutation = useUntagArticle();
-  const createTagMutation = useCreateTag();
-  const [showPicker, setShowPicker] = useState(false);
-  const [newTagName, setNewTagName] = useState("");
-
-  const assignedTagIds = new Set(articleTags?.map((tag) => tag.id) ?? []);
-  const assignedTags = (articleTags ?? []).map(toArticleTagPickerTagView);
-  const unassignedTags = (allTags ?? []).filter((tag) => !assignedTagIds.has(tag.id)).map(toArticleTagPickerTagView);
-
-  const handleCreateAndAssign = (name: string) => {
-    if (!name) return;
-    createTagMutation.mutate(
-      { name },
-      {
-        onSuccess: (tag) => {
-          tagArticleMutation.mutate({ articleId, tagId: tag.id });
-          setNewTagName("");
-          setShowPicker(false);
-        },
-      },
-    );
-  };
-
-  return (
-    <ArticleTagPickerView
-      assignedTags={assignedTags}
-      availableTags={unassignedTags}
-      newTagName={newTagName}
-      isExpanded={showPicker}
-      labels={{
-        sectionTitle: t("tags_section_title"),
-        sectionHint: t("tags_section_hint"),
-        addTag: t("add_tag"),
-        availableTags: t("available_tags"),
-        newTagPlaceholder: t("new_tag_placeholder"),
-        createTag: t("create_tag"),
-        removeTag: (name) => t("remove_tag", { name }),
-      }}
-      onExpandedChange={setShowPicker}
-      onNewTagNameChange={setNewTagName}
-      onAssignTag={(tagId) => {
-        tagArticleMutation.mutate({ articleId, tagId });
-      }}
-      onRemoveTag={(tagId) => {
-        untagArticleMutation.mutate({ articleId, tagId });
-      }}
-      onCreateTag={handleCreateAndAssign}
-    />
-  );
 }
 
 function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedName?: string }) {
