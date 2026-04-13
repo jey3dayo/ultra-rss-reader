@@ -26,6 +26,7 @@ describe("FeedItemView", () => {
     const button = screen.getByRole("button", { name: /AUTOMATON/i });
 
     expect(button).toHaveClass("bg-sidebar-accent");
+    expect(button).toHaveClass("min-h-11");
     expect(button).not.toHaveAttribute("aria-haspopup");
     expect(screen.getByText("42")).toBeInTheDocument();
 

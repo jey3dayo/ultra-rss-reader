@@ -20,7 +20,7 @@ export type FeedItemContentProps = {
 
 function getFeedItemClassName(isSelected: boolean) {
   return cn(
-    "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm",
+    "flex min-h-11 w-full items-center justify-between rounded-md px-2 py-1.5 text-sm",
     isSelected ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/50",
   );
 }

@@ -56,7 +56,7 @@ export function FeedTreeFolderSection({
           type="button"
           aria-label={t("toggle_folder", { name: folder.name })}
           aria-expanded={folder.isExpanded}
-          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
           onClick={() => onToggleFolder(folder.id)}
         >
           {folder.isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
@@ -77,7 +77,10 @@ export function FeedTreeFolderSection({
                       [FEED_DROP_TARGET_ID_ATTRIBUTE]: folder.id,
                     }
                   : {})}
-                className={cn("flex-1", isActive && "border-dashed bg-sidebar-accent/60 ring-1 ring-sidebar-border")}
+                className={cn(
+                  "min-h-11 flex-1",
+                  isActive && "border-dashed bg-sidebar-accent/60 ring-1 ring-sidebar-border",
+                )}
               />
             }
             onClick={() => onSelectFolder?.(folder.id)}

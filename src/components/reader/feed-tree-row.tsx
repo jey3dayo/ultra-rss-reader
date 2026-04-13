@@ -34,7 +34,7 @@ function DragHandle({
         onArm?.();
       }}
       className={cn(
-        "inline-flex h-6 w-6 shrink-0 cursor-grab items-center justify-center rounded text-sidebar-foreground/40 opacity-0 transition-opacity hover:bg-sidebar-accent/40 hover:text-foreground focus-visible:opacity-100 active:cursor-grabbing group-hover/feed-row:opacity-100 group-focus-within/feed-row:opacity-100",
+        "inline-flex h-11 w-11 shrink-0 cursor-grab items-center justify-center rounded-md text-sidebar-foreground/40 opacity-0 transition-opacity hover:bg-sidebar-accent/40 hover:text-foreground focus-visible:opacity-100 active:cursor-grabbing group-hover/feed-row:opacity-100 group-focus-within/feed-row:opacity-100",
         isArmed && "bg-sidebar-accent/60 text-foreground opacity-100",
       )}
     >
@@ -76,7 +76,7 @@ export function FeedTreeRow({
               trailing={feed.unreadCount > 0 ? feed.unreadCount.toLocaleString() : undefined}
               trailingClassName={feed.isSelected ? "text-sidebar-accent-foreground/68" : "text-sidebar-foreground/38"}
               data-feed-id={feed.id}
-              className={cn(canDragFeeds && "pl-5")}
+              className={cn("min-h-11", canDragFeeds && "pl-5")}
             />
           }
           onClick={() => onSelectFeed(feed.id)}

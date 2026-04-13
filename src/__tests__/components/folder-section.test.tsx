@@ -57,8 +57,10 @@ describe("FolderSectionView", () => {
     const feedButton = screen.getByRole("button", { name: /Beta/i });
 
     expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(trigger).toHaveClass("min-h-11");
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(feedButton).toHaveClass("bg-sidebar-accent");
+    expect(feedButton).toHaveClass("min-h-11");
     expect(feedButton).not.toHaveAttribute("aria-haspopup");
     expect(container.querySelector('[data-slot="collapsible-content"]')).not.toBeNull();
 

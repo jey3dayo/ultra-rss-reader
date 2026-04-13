@@ -9,7 +9,7 @@ export function FeedTreeEmptyState(props: FeedTreeEmptyStateProps) {
         <button
           type="button"
           onClick={props.onAction}
-          className="text-muted-foreground underline decoration-muted-foreground/50 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/50"
+          className="inline-flex min-h-11 items-center justify-center rounded-md px-3 text-muted-foreground underline decoration-muted-foreground/50 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/50"
         >
           {props.label}
         </button>
