@@ -22,6 +22,16 @@ export type FeedCleanupSummaryCard = {
   caption: string;
 };
 
+export type FeedCleanupCardProps = {
+  children: ReactNode;
+  className?: string;
+};
+
+export type FeedCleanupDetailRowProps = {
+  label: ReactNode;
+  value: ReactNode;
+};
+
 export type FeedCleanupIntegrityDetailLabels = {
   missing_feed_id: string;
   article_count: string;
