@@ -6,6 +6,11 @@ export type ArticleStatusViewMode = "all" | "unread" | "starred";
 
 export type ArticleStatusToast = (message: string) => void;
 
+export type ArticleToastActionParams = {
+  showToast: ArticleStatusToast;
+  successMessage: string;
+};
+
 export type SetReadMutation = UseMutationResult<unknown, Error, { id: string; read: boolean }, unknown>;
 
 export type ToggleStarMutation = UseMutationResult<unknown, Error, { id: string; starred: boolean }, unknown>;

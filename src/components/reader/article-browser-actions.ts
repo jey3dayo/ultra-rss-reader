@@ -2,15 +2,12 @@ import { Result } from "@praha/byethrow";
 import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+import type { ArticleStatusToast, ArticleToastActionParams } from "./article-actions.types";
 
-type ShowToast = (message: string) => void;
-
-type ArticleToastActionParams = {
-  showToast: ShowToast;
-  successMessage: string;
-};
-
-export function openArticleInExternalBrowser(url: string, showToast: ShowToast = useUiStore.getState().showToast) {
+export function openArticleInExternalBrowser(
+  url: string,
+  showToast: ArticleStatusToast = useUiStore.getState().showToast,
+) {
   const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
   return openInBrowser(url, bg).then((result) =>
     Result.pipe(
