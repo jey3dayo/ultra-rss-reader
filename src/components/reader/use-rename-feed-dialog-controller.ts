@@ -1,7 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { FeedDto } from "@/api/tauri-commands";
 import { useFolders } from "@/hooks/use-folders";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
@@ -9,17 +8,14 @@ import { resolveFeedDisplayPreset } from "@/lib/article-display";
 import { copyValueToClipboard } from "@/lib/clipboard";
 import { useUiStore } from "@/stores/ui-store";
 import { type FeedEditDisplayPreset, submitFeedEdits } from "./feed-edit-submit";
+import type { RenameFeedDialogController, RenameFeedDialogControllerParams } from "./rename-feed-dialog.types";
 import { buildFolderOptions, useFolderSelection } from "./use-folder-selection";
 
 export function useRenameFeedDialogController({
   feed,
   open,
   onOpenChange,
-}: {
-  feed: FeedDto;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
+}: RenameFeedDialogControllerParams): RenameFeedDialogController {
   const { t } = useTranslation("reader");
   const [title, setTitle] = useState(feed.title);
   const [displayPreset, setDisplayPreset] = useState<FeedEditDisplayPreset>(() => resolveFeedDisplayPreset(feed));

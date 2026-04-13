@@ -1,19 +1,12 @@
-import type { RefObject } from "react";
-import type { FeedDialogReadonlyFieldProps, FeedDialogSelectOption } from "./feed-dialog-form.types";
 import { FeedDialogFormView } from "./feed-dialog-form-view";
-import type { FolderSelectViewProps } from "./folder-select-view";
+import type { RenameFeedDialogViewProps } from "./rename-feed-dialog.types";
 
-export type RenameFeedDialogViewLabels = {
-  title: string;
-  titleField: string;
-  displayMode: string;
-  cancel: string;
-  save: string;
-  saving: string;
-};
-
-export type RenameFeedDialogViewOption = FeedDialogSelectOption;
-export type RenameFeedDialogViewUrlField = Omit<FeedDialogReadonlyFieldProps, "name">;
+export type {
+  RenameFeedDialogViewLabels,
+  RenameFeedDialogViewOption,
+  RenameFeedDialogViewProps,
+  RenameFeedDialogViewUrlField,
+} from "./rename-feed-dialog.types";
 
 export function RenameFeedDialogView({
   open,
@@ -29,21 +22,7 @@ export function RenameFeedDialogView({
   labels,
   inputRef,
   onSubmit,
-}: {
-  open: boolean;
-  title: string;
-  loading: boolean;
-  displayMode: string;
-  displayModeOptions: RenameFeedDialogViewOption[];
-  urlFields: RenameFeedDialogViewUrlField[];
-  onOpenChange: (open: boolean) => void;
-  onTitleChange: (value: string) => void;
-  onDisplayModeChange: (value: string) => void;
-  folderSelectProps?: FolderSelectViewProps;
-  labels: RenameFeedDialogViewLabels;
-  inputRef?: RefObject<HTMLInputElement | null>;
-  onSubmit: () => void;
-}) {
+}: RenameFeedDialogViewProps) {
   return (
     <FeedDialogFormView
       open={open}
