@@ -736,6 +736,11 @@
   - 対応: `sidebar.types.ts` に `SidebarAccountSectionProps` を移して、section component は shared types を参照する形に寄せた
   - 対象: `src/components/reader/sidebar.types.ts`, `src/components/reader/sidebar-account-section.tsx`
 
+- [x] article list presentation 周辺の contract を shared types に寄せる
+  - 問題: `use-article-list-presentation.ts` の params と周辺 hook の入力型が local 定義のままで、presentation 層の境界を横断して追いにくかった
+  - 対応: `article-list.types.ts` に presentation params contract を追加し、関連 hook は export した shared params/result を再利用する形に寄せた
+  - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-presentation.ts`, `src/components/reader/use-article-list-view-state.ts`, `src/components/reader/use-article-list-view-props.ts`, `src/components/reader/use-article-list-groups.ts`, `src/components/reader/use-article-list-header-controller.ts`, `src/components/reader/use-article-list-interactions.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
