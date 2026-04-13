@@ -7,8 +7,12 @@ import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import { resolveFeedDisplayPreset } from "@/lib/article-display";
 import { copyValueToClipboard } from "@/lib/clipboard";
 import { useUiStore } from "@/stores/ui-store";
-import { type FeedEditDisplayPreset, submitFeedEdits } from "./feed-edit-submit";
-import type { RenameFeedDialogController, RenameFeedDialogControllerParams } from "./rename-feed-dialog.types";
+import { submitFeedEdits } from "./feed-edit-submit";
+import type {
+  FeedEditDisplayPreset,
+  RenameFeedDialogController,
+  RenameFeedDialogControllerParams,
+} from "./rename-feed-dialog.types";
 import { buildFolderOptions, useFolderSelection } from "./use-folder-selection";
 
 export function useRenameFeedDialogController({

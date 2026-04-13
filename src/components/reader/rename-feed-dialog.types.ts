@@ -1,8 +1,33 @@
+import type { QueryClient } from "@tanstack/react-query";
 import type { RefObject } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import type { FeedDialogReadonlyFieldProps, FeedDialogSelectOption } from "./feed-dialog-form.types";
-import type { FeedEditDisplayPreset } from "./feed-edit-submit";
 import type { FolderSelectViewProps } from "./folder-select-view";
+
+export type FeedEditDisplayPreset = "default" | "standard" | "preview";
+
+export type FeedEditErrorLike = {
+  message: string;
+};
+
+export type SubmitFeedEditsParams = {
+  feed: FeedDto;
+  title: string;
+  displayPreset: FeedEditDisplayPreset;
+  selectedFolderId: string | null;
+  isCreatingFolder: boolean;
+  newFolderName: string;
+  queryClient: QueryClient;
+  showToast: (message: string) => void;
+  createFolderErrorMessage: (error: FeedEditErrorLike) => string;
+  renameErrorMessage: (error: FeedEditErrorLike) => string;
+  updateFeedFolder: (args: { feedId: string; folderId: string | null }) => Promise<boolean>;
+  updateDisplaySettings: (
+    feedId: string,
+    readerMode: "inherit" | "on" | "off",
+    webPreviewMode: "inherit" | "on" | "off",
+  ) => Promise<boolean>;
+};
 
 export type RenameFeedDialogViewLabels = {
   title: string;

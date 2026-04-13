@@ -1,34 +1,9 @@
 import { Result } from "@praha/byethrow";
-import type { QueryClient } from "@tanstack/react-query";
-import type { FeedDto } from "@/api/tauri-commands";
 import { renameFeed } from "@/api/tauri-commands";
 import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/article-display";
 import { createFolderIfNeeded } from "./feed-folder-flow";
-
-export type FeedEditDisplayPreset = "default" | "standard" | "preview";
-
-type ErrorLike = {
-  message: string;
-};
-
-type SubmitFeedEditsParams = {
-  feed: FeedDto;
-  title: string;
-  displayPreset: FeedEditDisplayPreset;
-  selectedFolderId: string | null;
-  isCreatingFolder: boolean;
-  newFolderName: string;
-  queryClient: QueryClient;
-  showToast: (message: string) => void;
-  createFolderErrorMessage: (error: ErrorLike) => string;
-  renameErrorMessage: (error: ErrorLike) => string;
-  updateFeedFolder: (args: { feedId: string; folderId: string | null }) => Promise<boolean>;
-  updateDisplaySettings: (
-    feedId: string,
-    readerMode: "inherit" | "on" | "off",
-    webPreviewMode: "inherit" | "on" | "off",
-  ) => Promise<boolean>;
-};
+import type { SubmitFeedEditsParams } from "./rename-feed-dialog.types";
+export type { FeedEditDisplayPreset, SubmitFeedEditsParams } from "./rename-feed-dialog.types";
 
 export async function submitFeedEdits({
   feed,
