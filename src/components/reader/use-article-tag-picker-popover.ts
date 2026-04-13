@@ -1,10 +1,5 @@
 import { type KeyboardEvent, useCallback, useEffect, useRef } from "react";
-
-type UseArticleTagPickerPopoverParams = {
-  isExpanded: boolean;
-  availableTagCount: number;
-  onExpandedChange: (expanded: boolean) => void;
-};
+import type { UseArticleTagPickerPopoverParams } from "./article-tag-picker-view";
 
 export function useArticleTagPickerPopover({
   isExpanded,

@@ -33,6 +33,10 @@ export type ArticleTagPickerViewProps = {
   onCreateTag: (name: string) => void;
 };
 
+export type UseArticleTagPickerPopoverParams = Pick<ArticleTagPickerViewProps, "isExpanded" | "onExpandedChange"> & {
+  availableTagCount: number;
+};
+
 export function ArticleTagPickerView({
   assignedTags,
   availableTags,
