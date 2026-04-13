@@ -626,6 +626,11 @@
   - 対応: `sidebar-controller.types.ts` に params/result contract を切り出して、`use-sidebar-ui-actions.ts` と `use-sidebar-controller-actions.ts` は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/sidebar-controller.types.ts`, `src/components/reader/use-sidebar-ui-actions.ts`, `src/components/reader/use-sidebar-controller-actions.ts`
 
+- [x] sidebar tag item helper の contract を shared types に寄せる
+  - 問題: `sidebar-content-sections.tsx` が `useSidebarTagItems` の `Parameters` / `ReturnType` に依存していて、tag section の入力・出力境界を追いにくかった
+  - 対応: `sidebar-tag-items.types.ts` に params/item contract を切り出して、`use-sidebar-tag-items.ts` と `tag-list-view.tsx` と `sidebar-content-sections.tsx` は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar-tag-items.types.ts`, `src/components/reader/use-sidebar-tag-items.ts`, `src/components/reader/tag-list-view.tsx`, `src/components/reader/sidebar-content-sections.tsx`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
