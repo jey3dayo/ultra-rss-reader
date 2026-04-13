@@ -31,6 +31,7 @@ import { useSidebarFeedTree } from "./use-sidebar-feed-tree";
 import { useSidebarSmartViews } from "./use-sidebar-smart-views";
 import { useSidebarStartupFolderExpansion } from "./use-sidebar-startup-folder-expansion";
 import { useSidebarSync } from "./use-sidebar-sync";
+import { useSidebarTagItems } from "./use-sidebar-tag-items";
 import { useSidebarVisibilityFallback } from "./use-sidebar-visibility-fallback";
 
 export function Sidebar() {
@@ -290,19 +291,7 @@ export function Sidebar() {
         label: t("add_account_to_start"),
         onAction: handleOpenAccountSettings,
       };
-  const tagItems = useMemo(
-    () =>
-      (tags ?? []).map(
-        (tag): TagListItemViewModel => ({
-          id: tag.id,
-          name: tag.name,
-          color: tag.color,
-          articleCount: tagArticleCounts?.[tag.id] ?? 0,
-          isSelected: selection.type === "tag" && selection.tagId === tag.id,
-        }),
-      ),
-    [selection, tagArticleCounts, tags],
-  );
+  const tagItems = useSidebarTagItems({ tags, tagArticleCounts, selection });
   const feedTree = (
     <FeedTreeView
       isOpen={isFeedsSectionOpen}
