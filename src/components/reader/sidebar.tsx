@@ -141,8 +141,6 @@ export function Sidebar() {
     t,
   });
 
-  const feedList = feeds ?? [];
-  const folderList = folders ?? [];
   const canDragFeeds = folderList.length > 0;
   const initialFeedById = useMemo(() => new Map(feedList.map((feed) => [feed.id, feed])), [feedList]);
   const {
