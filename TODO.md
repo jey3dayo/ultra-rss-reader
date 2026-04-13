@@ -84,6 +84,12 @@
   - 対象: `src/components/feed-cleanup/feed-cleanup-page-view.tsx`, `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`, `src/__tests__/components/feed-cleanup-page.test.tsx`
   - 対応: stacked 幅では layout container を block flow + page scroll に戻し、queue の内部 scroll は `lg` 以上だけに限定して narrow screen 用の回帰テストを追加した
 
+- [x] `購読の整理` の概要と整理キューが desktop 幅でも詰まりすぎる
+  - 症状: summary / filters / bulk actions が左カラムに積まれ、整理キューも 1 カードあたりの情報量が多くて視線が散りやすかった
+  - 影響: feed cleanup の巡回時に「状況把握」と「仕分け作業」が混線し、キューの選別速度が落ちる
+  - 対象: `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-page-view.tsx`, `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`, `src/__tests__/components/feed-cleanup-page.test.tsx`
+  - 対応: overview を上部サマリ帯へ圧縮し、filter/bulk を control rail に再編。queue card は compact 版に寄せて未選択時の情報量を抑えた
+
 ## 2026-04-12 購読整理 UI copy / 情報設計メモ
 
 - [x] 購読整理画面に一括操作を追加する
