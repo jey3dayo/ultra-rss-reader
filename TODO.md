@@ -228,9 +228,10 @@
   - 常設 TODO ではなく、次に migration を触るタイミングでまとめて扱う
   - 失敗系テストや復旧手順の補強は issue #23 に集約する
 
-- [ ] feed content の privacy/CSP 方針を決める
+- [x] feed content の privacy/CSP 方針を決める
   - 問題: 互換性のため remote image / frame を許可しており、privacy と表示互換のトレードオフが未整理
   - 対象: `README.md`, `src-tauri/tauri.conf.json`, browser / reader 関連 docs
-  - 方針:
-    1. まずはプロダクト方針を決めてから実装に入る
-    2. tracking pixel 対策や tighter CSP は、その方針に沿って段階的に進める
+  - 実施:
+    1. compatibility-first を現行方針として明文化した
+    2. 詳細は `docs/feed-content-privacy.md` を正本とした
+    3. tighter CSP や tracking pixel 対策は段階的 hardening として扱う
