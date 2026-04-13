@@ -14,14 +14,10 @@ type UseBrowserViewSurfaceStateParams = {
   runtimeUnavailable: boolean;
   onCloseOverlay: () => void;
   setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
-  browserModeLabels: {
-    browserMode: string;
-    browserModeHint: string;
-  };
-  failureLabels: {
-    failed: string;
-    failedHint: string;
-  };
+  browserMode: string;
+  browserModeHint: string;
+  failed: string;
+  failedHint: string;
 };
 
 export function useBrowserViewSurfaceState({
@@ -31,8 +27,10 @@ export function useBrowserViewSurfaceState({
   runtimeUnavailable,
   onCloseOverlay,
   setBrowserState,
-  browserModeLabels,
-  failureLabels,
+  browserMode,
+  browserModeHint,
+  failed,
+  failedHint,
 }: UseBrowserViewSurfaceStateParams) {
   const [surfaceIssue, setSurfaceIssue] = useState<BrowserSurfaceIssue | null>(null);
 
@@ -55,7 +53,12 @@ export function useBrowserViewSurfaceState({
       }
       fallbackInFlightRef.current = true;
       console.error("Failed to open embedded browser webview:", error);
-      setSurfaceIssue(createBrowserSurfaceFailure(error.message, failureLabels));
+      setSurfaceIssue(
+        createBrowserSurfaceFailure(error.message, {
+          failed,
+          failedHint,
+        }),
+      );
       setBrowserState((currentState) => {
         if (!currentState) {
           return currentState;
@@ -65,7 +68,7 @@ export function useBrowserViewSurfaceState({
         return nextState;
       });
     },
-    [browserStateRef, failureLabels, fallbackInFlightRef, setBrowserState],
+    [browserStateRef, failed, failedHint, fallbackInFlightRef, setBrowserState],
   );
 
   const activeSurfaceIssue = useMemo(
@@ -74,9 +77,12 @@ export function useBrowserViewSurfaceState({
       resolveRuntimeUnavailableSurfaceIssue({
         runtimeUnavailable,
         isLoading,
-        labels: browserModeLabels,
+        labels: {
+          browserMode,
+          browserModeHint,
+        },
       }),
-    [browserModeLabels, isLoading, runtimeUnavailable, surfaceIssue],
+    [browserMode, browserModeHint, isLoading, runtimeUnavailable, surfaceIssue],
   );
 
   return {

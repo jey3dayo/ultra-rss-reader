@@ -15,10 +15,7 @@ import {
   getBrowserOverlayCloseButtonClass,
   getBrowserOverlayStageClass,
 } from "./browser-overlay-presentation";
-import {
-  type BrowserSurfaceIssue,
-  createBrowserSurfaceFallback,
-} from "./browser-surface-issue";
+import { type BrowserSurfaceIssue, createBrowserSurfaceFallback } from "./browser-surface-issue";
 import { type BrowserWebviewFallbackPayload, initialBrowserState, mergeBrowserState } from "./browser-webview-state";
 import { useBrowserDebugGeometryEvents } from "./use-browser-debug-geometry-events";
 import { useBrowserLayoutDiagnostics } from "./use-browser-layout-diagnostics";
@@ -103,25 +100,24 @@ export function useBrowserViewController({
       runtimeUnavailable,
       onCloseOverlay: handleCloseOverlay,
       setBrowserState,
-      browserModeLabels: {
-        browserMode: t("browser_embed_browser_mode"),
-        browserModeHint: t("browser_embed_browser_mode_hint"),
-      },
-      failureLabels: {
-        failed: t("browser_embed_failed"),
-        failedHint: t("browser_embed_failed_hint"),
-      },
+      browserMode: t("browser_embed_browser_mode"),
+      browserModeHint: t("browser_embed_browser_mode_hint"),
+      failed: t("browser_embed_failed"),
+      failedHint: t("browser_embed_failed_hint"),
     });
 
   const waitForBrowserWebviewListeners = useBrowserWebviewEvents({
     showDiagnostics,
-    onStateChanged: useCallback((payload: BrowserWebviewState) => {
-      const nextState = mergeBrowserState(browserStateRef.current, payload, useUiStore.getState().browserUrl ?? "");
-      browserStateRef.current = nextState;
-      setBrowserState(nextState);
-      setSurfaceIssue(null);
-      fallbackInFlightRef.current = false;
-    }, []),
+    onStateChanged: useCallback(
+      (payload: BrowserWebviewState) => {
+        const nextState = mergeBrowserState(browserStateRef.current, payload, useUiStore.getState().browserUrl ?? "");
+        browserStateRef.current = nextState;
+        setBrowserState(nextState);
+        setSurfaceIssue(null);
+        fallbackInFlightRef.current = false;
+      },
+      [setSurfaceIssue],
+    ),
     onFallback: useCallback(
       (payload: BrowserWebviewFallbackPayload) => {
         setSurfaceIssue(
@@ -141,7 +137,7 @@ export function useBrowserViewController({
           return nextState;
         });
       },
-      [t],
+      [setSurfaceIssue, t],
     ),
     onClosed: handleCloseOverlay,
     onDiagnostics: useCallback((payload: BrowserWebviewDiagnosticsPayload) => {
@@ -177,7 +173,7 @@ export function useBrowserViewController({
       return nextState;
     });
     setSurfaceIssue(null);
-  }, [browserUrl, resetBrowserWebviewSyncState]);
+  }, [browserUrl, resetBrowserWebviewSyncState, setSurfaceIssue]);
 
   useBrowserWebviewBoundsSync({
     browserUrl,
