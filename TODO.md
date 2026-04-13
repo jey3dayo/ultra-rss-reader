@@ -260,6 +260,11 @@
   - 対応: `UseBrowserDebugGeometryEventsParams` / `UseBrowserLayoutDiagnosticsParams` / `UseBrowserOverlayFocusReturnParams` / `UseBrowserViewActionsParams` を `browser-view.types.ts` に追加して、各 hook は shared types を参照する形に寄せた
   - 対象: `src/components/reader/browser-view.types.ts`, `src/components/reader/use-browser-debug-geometry-events.ts`, `src/components/reader/use-browser-layout-diagnostics.ts`, `src/components/reader/use-browser-overlay-focus-return.ts`, `src/components/reader/use-browser-view-actions.ts`
 
+- [x] article browser overlay helper の contract を shared types に寄せる
+  - 問題: `use-article-browser-overlay.ts` / `use-article-browser-overlay-close.ts` / `use-article-browser-overlay-display.ts` に local params/result 型が残っていて、overlay helper 境界の正本を `article-view.types.ts` から追えなかった
+  - 対応: `UseArticleBrowserOverlayParams` / `UseArticleBrowserOverlayResult` / `UseArticleBrowserOverlayCloseParams` / `UseArticleBrowserOverlayDisplayParams` を `article-view.types.ts` に追加して、各 hook は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/article-view.types.ts`, `src/components/reader/use-article-browser-overlay.ts`, `src/components/reader/use-article-browser-overlay-close.ts`, `src/components/reader/use-article-browser-overlay-display.ts`
+
 - [x] browser-view の load timeout 監視を hook 化する
   - 問題: `useBrowserViewController` に embedded browser の load timeout 監視 effect が残っていて、controller orchestration と runtime timeout 管理が混ざっていた
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-webview-load-timeout.ts`
