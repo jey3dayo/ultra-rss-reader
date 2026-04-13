@@ -1,9 +1,6 @@
 import type { RefObject } from "react";
-import {
-  FeedDialogFormView,
-  type FeedDialogReadonlyFieldProps,
-  type FeedDialogSelectOption,
-} from "./feed-dialog-form-view";
+import type { FeedDialogReadonlyFieldProps, FeedDialogSelectOption } from "./feed-dialog-form.types";
+import { FeedDialogFormView } from "./feed-dialog-form-view";
 import type { FolderSelectViewProps } from "./folder-select-view";
 
 export type RenameFeedDialogViewLabels = {
