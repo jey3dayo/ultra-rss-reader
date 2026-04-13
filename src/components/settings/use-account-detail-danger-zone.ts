@@ -1,8 +1,8 @@
 import { Result } from "@praha/byethrow";
 import { useState } from "react";
 import { deleteAccount, exportOpml } from "@/api/tauri-commands";
-import { useUiStore } from "@/stores/ui-store";
 import type { UseAccountDetailDangerZoneParams, UseAccountDetailDangerZoneResult } from "./account-detail.types";
+import { createAccountDetailErrorToast } from "./account-detail-toast";
 
 export function useAccountDetailDangerZone({
   account,
@@ -11,13 +11,13 @@ export function useAccountDetailDangerZone({
   onAccountDeleted,
 }: UseAccountDetailDangerZoneParams): UseAccountDetailDangerZoneResult {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const showExportError = createAccountDetailErrorToast(t, "account.failed_to_export_opml");
+  const showDeleteError = createAccountDetailErrorToast(t, "account.failed_to_delete");
 
   const handleExportOpml = async () => {
     Result.pipe(
       await exportOpml(account.id),
-      Result.inspectError((error) =>
-        useUiStore.getState().showToast(t("account.failed_to_export_opml", { message: error.message })),
-      ),
+      Result.inspectError(showExportError),
       Result.inspect((opmlString) => {
         const blob = new Blob([opmlString], { type: "application/xml" });
         const url = URL.createObjectURL(blob);
@@ -34,9 +34,7 @@ export function useAccountDetailDangerZone({
   const handleDelete = async () => {
     Result.pipe(
       await deleteAccount(account.id),
-      Result.inspectError((error) =>
-        useUiStore.getState().showToast(t("account.failed_to_delete", { message: error.message })),
-      ),
+      Result.inspectError(showDeleteError),
       Result.inspect(() => {
         queryClient.invalidateQueries({ queryKey: ["accounts"] });
         queryClient.invalidateQueries({ queryKey: ["feeds"] });

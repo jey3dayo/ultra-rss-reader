@@ -7,6 +7,7 @@ import type {
   UseAccountDetailCredentialsEditorResult,
 } from "./account-detail.types";
 import { updateCachedAccount } from "./account-detail-query-cache";
+import { createAccountDetailErrorToast } from "./account-detail-toast";
 
 export function useAccountDetailCredentialsEditor({
   account,
@@ -18,6 +19,8 @@ export function useAccountDetailCredentialsEditor({
   const [credPassword, setCredPassword] = useState<string | null>(null);
   const [testingConnection, setTestingConnection] = useState(false);
   const pendingCredentialSaveRef = useRef<Promise<boolean> | null>(null);
+  const showCredentialSaveError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
+  const showConnectionError = createAccountDetailErrorToast(t, "account.connection_failed");
 
   const commitCredentials = async (): Promise<boolean> => {
     if (pendingCredentialSaveRef.current) {
@@ -40,9 +43,7 @@ export function useAccountDetailCredentialsEditor({
       let saved = false;
       Result.pipe(
         await updateAccountCredentials(account.id, serverUrl, username, password),
-        Result.inspectError((error) =>
-          useUiStore.getState().showToast(t("account.failed_to_update_sync", { message: error.message })),
-        ),
+        Result.inspectError(showCredentialSaveError),
         Result.inspect((updated) => {
           saved = true;
           updateCachedAccount(queryClient, updated);
@@ -74,9 +75,7 @@ export function useAccountDetailCredentialsEditor({
       const result = await testAccountConnection(account.id);
       Result.pipe(
         result,
-        Result.inspectError((error) => {
-          useUiStore.getState().showToast(t("account.connection_failed", { message: error.message }));
-        }),
+        Result.inspectError(showConnectionError),
         Result.inspect((connected) => {
           useUiStore
             .getState()

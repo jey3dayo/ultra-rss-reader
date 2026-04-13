@@ -1,9 +1,9 @@
 import { Result } from "@praha/byethrow";
 import { type KeyboardEvent, useRef, useState } from "react";
 import { renameAccount } from "@/api/tauri-commands";
-import { useUiStore } from "@/stores/ui-store";
 import type { UseAccountDetailNameEditorParams, UseAccountDetailNameEditorResult } from "./account-detail.types";
 import { updateCachedAccount } from "./account-detail-query-cache";
+import { createAccountDetailErrorToast } from "./account-detail-toast";
 
 export function useAccountDetailNameEditor({
   account,
@@ -14,6 +14,7 @@ export function useAccountDetailNameEditor({
   const [savingName, setSavingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const showRenameError = createAccountDetailErrorToast(t, "account.failed_to_rename");
 
   const startEditingName = () => {
     setNameDraft(account.name);
@@ -36,9 +37,7 @@ export function useAccountDetailNameEditor({
     let renameSucceeded = false;
     Result.pipe(
       await renameAccount(account.id, trimmed),
-      Result.inspectError((error) =>
-        useUiStore.getState().showToast(t("account.failed_to_rename", { message: error.message })),
-      ),
+      Result.inspectError(showRenameError),
       Result.inspect((updated) => {
         renameSucceeded = true;
         setNameDraft(updated.name);

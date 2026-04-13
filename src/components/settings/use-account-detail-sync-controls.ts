@@ -8,6 +8,7 @@ import type {
   UseAccountDetailSyncControlsResult,
 } from "./account-detail.types";
 import { updateCachedAccount } from "./account-detail-query-cache";
+import { createAccountDetailErrorToast } from "./account-detail-toast";
 
 export function useAccountDetailSyncControls({
   account,
@@ -15,6 +16,9 @@ export function useAccountDetailSyncControls({
   t,
   onSyncStatusChanged,
 }: UseAccountDetailSyncControlsParams): UseAccountDetailSyncControlsResult {
+  const showSyncUpdateError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
+  const showSyncError = createAccountDetailErrorToast(t, "account.sync_failed");
+
   const handleSyncUpdate = async (partial: UpdateAccountSyncParams) => {
     Result.pipe(
       await updateAccountSync(
@@ -23,9 +27,7 @@ export function useAccountDetailSyncControls({
         partial.syncOnWake ?? account.sync_on_wake,
         partial.keepReadItemsDays ?? account.keep_read_items_days,
       ),
-      Result.inspectError((error) =>
-        useUiStore.getState().showToast(t("account.failed_to_update_sync", { message: error.message })),
-      ),
+      Result.inspectError(showSyncUpdateError),
       Result.inspect((updated) => {
         updateCachedAccount(queryClient, updated);
       }),
@@ -51,9 +53,7 @@ export function useAccountDetailSyncControls({
           }),
         );
       }),
-      Result.inspectError((error) => {
-        useUiStore.getState().showToast(t("account.sync_failed", { message: error.message }));
-      }),
+      Result.inspectError(showSyncError),
     );
   };
 
