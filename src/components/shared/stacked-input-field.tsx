@@ -1,20 +1,7 @@
-import { type RefObject, useId } from "react";
+import { useId } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-
-type StackedInputFieldProps = {
-  label: string;
-  name?: string;
-  type?: string;
-  value: string;
-  placeholder?: string;
-  disabled?: boolean;
-  inputRef?: RefObject<HTMLInputElement | null>;
-  onChange: (value: string) => void;
-  className?: string;
-  labelClassName?: string;
-  inputClassName?: string;
-};
+import type { StackedInputFieldProps } from "./stacked-field.types";
 
 export function StackedInputField({
   label,

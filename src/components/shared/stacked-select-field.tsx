@@ -1,24 +1,7 @@
 import { useId } from "react";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-
-export type StackedSelectOption = {
-  value: string;
-  label: string;
-};
-
-type StackedSelectFieldProps = {
-  labelId?: string;
-  label: string;
-  name: string;
-  value: string;
-  options: readonly StackedSelectOption[];
-  disabled?: boolean;
-  onChange: (value: string) => void;
-  className?: string;
-  labelClassName?: string;
-  triggerClassName?: string;
-};
+import type { StackedSelectFieldProps, StackedSelectOption } from "./stacked-field.types";
 
 function getOptionLabel(options: readonly StackedSelectOption[], value: string | null) {
   return options.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
