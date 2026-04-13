@@ -713,6 +713,11 @@
   - 対応: `button.types.ts` を追加して button/footer の props contract を集約し、component 本体は shared types を参照する形に寄せた
   - 対象: `src/components/shared/button.types.ts`, `src/components/shared/loading-button.tsx`, `src/components/shared/delete-button.tsx`, `src/components/shared/destructive-dialog-footer.tsx`
 
+- [x] shared sidebar section の props を explicit types に寄せる
+  - 問題: `sidebar-section-shell.tsx` と `sidebar-section-toggle.tsx` に local props 型が残っていて、shared sidebar section contract の正本が component file に分散していた
+  - 対応: `sidebar-section.types.ts` を追加して shell/toggle の props contract を集約し、component 本体は shared types を参照する形に寄せた
+  - 対象: `src/components/shared/sidebar-section.types.ts`, `src/components/shared/sidebar-section-shell.tsx`, `src/components/shared/sidebar-section-toggle.tsx`
+
 - [x] article state subview の props を `article-view.types.ts` に寄せる
   - 問題: `article-content-view.tsx` / `article-meta-view.tsx` / `article-empty-state-view.tsx` に local props 型が残っていて、article state subview contract の正本が component file に分散していた
   - 対応: `ArticleContentViewProps` / `ArticleMetaViewProps` / `ArticleEmptyStateViewProps` を `article-view.types.ts` に集約し、subview 本体は shared types を参照する形に寄せた
