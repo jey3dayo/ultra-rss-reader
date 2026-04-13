@@ -741,6 +741,11 @@
   - 対応: `article-list.types.ts` に presentation params contract を追加し、関連 hook は export した shared params/result を再利用する形に寄せた
   - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-presentation.ts`, `src/components/reader/use-article-list-view-state.ts`, `src/components/reader/use-article-list-view-props.ts`, `src/components/reader/use-article-list-groups.ts`, `src/components/reader/use-article-list-header-controller.ts`, `src/components/reader/use-article-list-interactions.ts`
 
+- [x] sidebar header/content view props の正本を sidebar types に寄せる
+  - 問題: `sidebar.types.ts` が `sidebar-header-view.tsx` と `sidebar-content-sections.tsx` の exported props に依存していて、shared types 側から component file へ逆参照していた
+  - 対応: `sidebar.types.ts` に header/content section の props contract を持たせて、component と helper は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar.types.ts`, `src/components/reader/sidebar-header-view.tsx`, `src/components/reader/sidebar-content-sections.tsx`, `src/components/reader/use-sidebar-content-sections-props.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
