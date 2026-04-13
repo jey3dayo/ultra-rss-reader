@@ -2,33 +2,11 @@ import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { addLocalFeed, type DiscoveredFeedDto, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
+import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
 import { useUiStore } from "@/stores/ui-store";
+import type { AddFeedDialogAction, AddFeedDialogState } from "./add-feed-dialog.types";
 import { createFolderIfNeeded } from "./feed-folder-flow";
 import { buildFolderOptions, useFolderSelection } from "./use-folder-selection";
-
-type AddFeedDialogState = {
-  url: string;
-  error: string | null;
-  successMessage: string | null;
-  loading: boolean;
-  discovering: boolean;
-  discoveredFeeds: DiscoveredFeedDto[];
-  selectedFeedUrl: string | null;
-};
-
-type AddFeedDialogAction =
-  | { type: "reset" }
-  | { type: "set-url"; url: string }
-  | { type: "start-discover" }
-  | { type: "discover-empty" }
-  | { type: "discover-single"; feeds: DiscoveredFeedDto[] }
-  | { type: "discover-multiple"; feeds: DiscoveredFeedDto[] }
-  | { type: "discover-error"; error: string }
-  | { type: "set-selected-feed-url"; url: string | null }
-  | { type: "set-invalid-url-error"; error: string }
-  | { type: "set-loading"; loading: boolean }
-  | { type: "set-submit-error"; error: string };
 
 function createInitialState(): AddFeedDialogState {
   return {

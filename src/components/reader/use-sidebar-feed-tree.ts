@@ -2,24 +2,7 @@ import { useCallback, useMemo } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree-view";
-
-type SidebarSelection =
-  | { type: "all" }
-  | { type: "smart"; kind: "unread" | "starred" }
-  | { type: "folder"; folderId: string }
-  | { type: "feed"; feedId: string }
-  | { type: "tag"; tagId: string };
-
-type UseSidebarFeedTreeParams = {
-  feeds: FeedDto[] | undefined;
-  folders: FolderDto[] | undefined;
-  selection: SidebarSelection;
-  viewMode: "all" | "unread" | "starred";
-  expandedFolderIds: Set<string>;
-  sortSubscriptions: string;
-  grayscaleFavicons: boolean;
-  draggedFeedId: string | null;
-};
+import type { UseSidebarFeedTreeParams } from "./sidebar-feed-tree.types";
 
 export function useSidebarFeedTree({
   feeds,

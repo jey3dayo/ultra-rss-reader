@@ -1,19 +1,5 @@
-import type { RefObject } from "react";
-import type { DiscoveredFeedOption } from "./discovered-feed-options-view";
+import type { AddFeedDialogViewProps } from "./add-feed-dialog.types";
 import { FeedDialogFormView } from "./feed-dialog-form-view";
-import type { FolderSelectViewProps } from "./folder-select-view";
-
-export type AddFeedDialogViewLabels = {
-  title: string;
-  description: string;
-  urlLabel: string;
-  urlPlaceholder: string;
-  discover: string;
-  discovering: string;
-  cancel: string;
-  add: string;
-  adding: string;
-};
 
 export function AddFeedDialogView({
   open,
@@ -37,29 +23,7 @@ export function AddFeedDialogView({
   labels,
   inputRef,
   onSubmit,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  url: string;
-  onUrlChange: (value: string) => void;
-  onDiscover: () => void;
-  discovering: boolean;
-  loading: boolean;
-  discoveredFeedsFoundLabel: string | null;
-  discoveredFeedOptions: DiscoveredFeedOption[];
-  selectedFeedUrl: string;
-  onSelectedFeedUrlChange: (value: string) => void;
-  folderSelectProps: FolderSelectViewProps;
-  error: string | null;
-  successMessage: string | null;
-  urlHint: string | null;
-  urlHintTone: "muted" | "error";
-  isDiscoverDisabled: boolean;
-  isSubmitDisabled: boolean;
-  labels: AddFeedDialogViewLabels;
-  inputRef?: RefObject<HTMLInputElement | null>;
-  onSubmit: () => void;
-}) {
+}: AddFeedDialogViewProps) {
   return (
     <FeedDialogFormView
       open={open}
