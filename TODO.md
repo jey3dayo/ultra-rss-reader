@@ -146,6 +146,50 @@
   - 問題: `article-view.tsx` に display mode 解決、overlay 開閉、focus return がまとまっていて、`ArticlePane` の責務が広かった
   - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-browser-overlay.ts`
 
+- [x] article-view の article actions と keyboard shortcut を hook 化する
+  - 問題: `ArticlePane` に read/star/copy/reading list の action と keyboard listener が残り、overlay 分離後も責務が重かった
+  - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-pane-actions.ts`
+
 - [x] reader の再利用境界がある state/controller 型を `types` 化する
   - 問題: `use-sidebar-feed-tree.ts` と `use-add-feed-dialog-controller.ts` に再利用余地のある union/state 型が残っている
   - 対象: `src/components/reader/use-sidebar-feed-tree.ts`, `src/components/reader/use-add-feed-dialog-controller.ts`
+
+## 2026-04-13 Premortem フォローアップ
+
+- [ ] release 前の native/manual verification gate を明文化する
+  - 問題: `mise run ci` では FreshRSS live、native keyring、packaged updater の確認が落ちるため、CI 緑でも実機で壊れる余地がある
+  - 対象: `README.md`, `CLAUDE.md`, `docs/` または release 手順書
+  - 計画:
+    1. release 前に必須な手動確認項目を 1 つのチェックリストへ集約する
+    2. FreshRSS live / native keyring / packaged updater の責務分担を明記する
+    3. 実施結果を残しやすい形にして、release 時の抜け漏れを防ぐ
+
+- [ ] sync の partial success を見える化する
+  - 問題: `pending_mutations` はあるが mutation push は batch 契約のままで、部分成功時に何が反映済みか追いにくい
+  - 対象: `src-tauri/src/service/sync_flow.rs`, `src-tauri/src/commands/sync_commands.rs`, `src/components/reader/*`, `src/locales/*`
+  - 計画:
+    1. partial success / warning / retry 待ちを区別できるログと UI 表示を整理する
+    2. 失敗した account / mutation の把握に必要な情報を不足なく残す
+    3. 既存の sync warning toast とテストを壊さずに観測性を上げる
+
+- [ ] 障害時の軽量 runbook を追加する
+  - 問題: migration / updater / keyring / sync で復旧材料はあるが、どこを見るかと何を試すかが docs 上で分散している
+  - 対象: `docs/` 配下の運用ドキュメント
+  - 計画:
+    1. 典型障害ごとの確認順序を短い runbook にまとめる
+    2. log directory、backup directory、manual verification の参照先を 1 か所に集約する
+    3. release 前確認と障害対応の両方から辿れる導線にする
+
+- [ ] DB migration recovery の追加 hardening を必要時に進める
+  - 問題: transaction + backup + restore + fail-fast はあるが、Windows の file lock や権限不足の失敗注入までは十分に固め切れていない
+  - 対象: `src-tauri/src/infra/db/*`, migration recovery 関連テスト, `docs/`
+  - 方針:
+    1. 通常開発では後回しにし、migration を触るタスクと同時に扱う
+    2. file lock / backup restore の失敗系テストや手順補強を優先する
+
+- [ ] feed content の privacy/CSP 方針を決める
+  - 問題: 互換性のため remote image / frame を許可しており、privacy と表示互換のトレードオフが未整理
+  - 対象: `README.md`, `src-tauri/tauri.conf.json`, browser / reader 関連 docs
+  - 方針:
+    1. まずはプロダクト方針を決めてから実装に入る
+    2. tracking pixel 対策や tighter CSP は、その方針に沿って段階的に進める
