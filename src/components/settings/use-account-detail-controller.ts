@@ -14,14 +14,18 @@ import {
 } from "@/api/tauri-commands";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync-result-feedback";
 import { useUiStore } from "@/stores/ui-store";
-import type { UpdateAccountSyncParams, UseAccountDetailControllerParams } from "./account-detail.types";
+import type {
+  UpdateAccountSyncParams,
+  UseAccountDetailControllerParams,
+  UseAccountDetailControllerResult,
+} from "./account-detail.types";
 
 export function useAccountDetailController({
   account,
   t,
   onAccountDeleted,
   onSyncStatusChanged,
-}: UseAccountDetailControllerParams) {
+}: UseAccountDetailControllerParams): UseAccountDetailControllerResult {
   const qc = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -292,5 +296,5 @@ export function useAccountDetailController({
     onPasswordFocus,
     syncIntervalOptions,
     keepReadItemsOptions,
-  } as const;
+  };
 }
