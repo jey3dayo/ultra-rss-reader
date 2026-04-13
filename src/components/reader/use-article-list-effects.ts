@@ -1,16 +1,5 @@
-import { type RefObject, useEffect } from "react";
-import type { ArticleDto } from "@/api/tauri-commands";
-import type { UiSelection } from "@/stores/ui-store";
-
-export type UseArticleListEffectsParams = {
-  selection: UiSelection;
-  scrollToTopOnChange: string;
-  viewportRef: RefObject<HTMLDivElement | null>;
-  filteredArticles: ArticleDto[];
-  selectedArticleId: string | null;
-  isPrimarySourceLoading: boolean;
-  clearArticle: () => void;
-};
+import { useEffect } from "react";
+import type { UseArticleListEffectsParams } from "./article-list.types";
 
 export function useArticleListEffects({
   selection,

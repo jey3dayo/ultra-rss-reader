@@ -5,7 +5,6 @@ import type { FeedDisplayPresetOption } from "@/lib/article-display";
 import type { buildKeyToActionMap, KeyboardAction } from "@/lib/keyboard-shortcuts";
 import type { UiSelection } from "@/stores/ui-store";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
-import type { UseArticleListEffectsParams } from "./use-article-list-effects";
 import type { UseArticleListGroupsParams } from "./use-article-list-groups";
 
 export type ArticleListLayoutMode = "wide" | "compact" | "mobile";
@@ -145,6 +144,16 @@ export type UseArticleListViewStateResult = {
   isPrimarySourceLoading: boolean;
   isSearchLoading: boolean;
   isSearchEmptyState: boolean;
+};
+
+export type UseArticleListEffectsParams = {
+  selection: UiSelection;
+  scrollToTopOnChange: string;
+  viewportRef: RefObject<HTMLDivElement | null>;
+  filteredArticles: ArticleDto[];
+  selectedArticleId: string | null;
+  isPrimarySourceLoading: boolean;
+  clearArticle: () => void;
 };
 
 export type UseArticleListViewPropsParams = {
