@@ -1,16 +1,11 @@
-import { ContextMenu } from "@base-ui/react/context-menu";
-import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { buildKeyToActionMap } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { ArticleContextMenu } from "./article-context-menu";
+import { ArticleListBody } from "./article-list-body";
 import { ArticleListContextStrip } from "./article-list-context-strip";
 import { ArticleListFooter } from "./article-list-footer";
 import { ArticleListHeader } from "./article-list-header";
-import { ArticleListScreenView } from "./article-list-screen-view";
-import { contextMenuStyles } from "./context-menu-styles";
 import { useArticleListData } from "./use-article-list-data";
 import { useArticleListEffects } from "./use-article-list-effects";
 import { useArticleListGroups } from "./use-article-list-groups";
@@ -103,7 +98,6 @@ export function ArticleList() {
     sortUnread,
     groupBy,
   });
-  const keyToAction = useMemo(() => buildKeyToActionMap(keyboardPrefs), [keyboardPrefs]);
 
   const { contextStripContext, footerModes, isPrimarySourceLoading, isSearchLoading, isSearchEmptyState } =
     useArticleListViewState({
@@ -131,9 +125,24 @@ export function ArticleList() {
     t,
   });
 
-  const listRef = useRef<HTMLDivElement>(null);
-  const viewportRef = useRef<HTMLDivElement>(null);
   const scrollToTopOnChange = usePreferencesStore((s) => s.prefs.scroll_to_top_on_change ?? "true");
+  const { selectedFeedDisplayPreset, displayPresetOptions, handleSetDisplayMode, handleMarkAllRead } =
+    useArticleListHeaderActions({
+      feedId: resolvedFeedId,
+      selectedFeed,
+      filteredArticles,
+    });
+  const { listRef, viewportRef, handleListKeyDownCapture } = useArticleListInteractions({
+    filteredArticles,
+    selectedArticleId,
+    selectArticle,
+    clearArticle,
+    openSidebar,
+    toggleSidebar,
+    openSearch,
+    handleMarkAllRead,
+    keyboardPrefs,
+  });
   useArticleListEffects({
     selection,
     scrollToTopOnChange,
@@ -143,13 +152,6 @@ export function ArticleList() {
     isPrimarySourceLoading,
     clearArticle,
   });
-
-  const { selectedFeedDisplayPreset, displayPresetOptions, handleSetDisplayMode, handleMarkAllRead } =
-    useArticleListHeaderActions({
-      feedId: resolvedFeedId,
-      selectedFeed,
-      filteredArticles,
-    });
   const {
     showSidebarButton,
     sidebarButtonLabel,
@@ -172,19 +174,6 @@ export function ArticleList() {
     },
     openSidebar,
     toggleSidebar,
-  });
-  const { handleListKeyDownCapture } = useArticleListInteractions({
-    filteredArticles,
-    selectedArticleId,
-    selectArticle,
-    clearArticle,
-    openSidebar,
-    toggleSidebar,
-    openSearch,
-    handleMarkAllRead,
-    keyToAction,
-    listRef,
-    viewportRef,
   });
 
   return (
@@ -214,42 +203,28 @@ export function ArticleList() {
         secondaryLabel={contextStripContext.secondaryLabel}
         tone={contextStripContext.tone}
       />
-
-      {/* Article List */}
-      <ContextMenu.Root>
-        <ContextMenu.Trigger render={<div />} className="flex-1 overflow-hidden">
-          <ArticleListScreenView
-            listAriaLabel={t("article_list")}
-            listRef={listRef}
-            viewportRef={viewportRef}
-            onListKeyDownCapture={handleListKeyDownCapture}
-            isLoading={isLoading || isLoadingAccountArticles || isLoadingTagArticles || isSearchLoading}
-            loadingMessage={tc("loading")}
-            emptyMessage={
-              isSearchEmptyState ? t("search_no_results_title", { query: trimmedDebouncedQuery }) : t("no_articles")
-            }
-            emptyDescription={isSearchEmptyState ? t("search_no_results_description") : undefined}
-            emptyActionLabel={isSearchEmptyState ? t("clear_search_action") : undefined}
-            onEmptyAction={isSearchEmptyState ? handleCloseSearch : undefined}
-            groups={articleGroups}
-            dimArchived={dimArchived}
-            textPreview={textPreview}
-            imagePreviews={imagePreviews}
-            selectionStyle={selectionStyle}
-            onSelectArticle={selectArticle}
-            renderRow={({ article, content }) => <ArticleContextMenu article={article}>{content}</ArticleContextMenu>}
-          />
-        </ContextMenu.Trigger>
-        <ContextMenu.Portal>
-          <ContextMenu.Positioner>
-            <ContextMenu.Popup className={contextMenuStyles.popup}>
-              <ContextMenu.Item className={contextMenuStyles.item} onClick={handleMarkAllRead}>
-                {t("mark_all_as_read")}
-              </ContextMenu.Item>
-            </ContextMenu.Popup>
-          </ContextMenu.Positioner>
-        </ContextMenu.Portal>
-      </ContextMenu.Root>
+      <ArticleListBody
+        listAriaLabel={t("article_list")}
+        listRef={listRef}
+        viewportRef={viewportRef}
+        onListKeyDownCapture={handleListKeyDownCapture}
+        isLoading={isLoading || isLoadingAccountArticles || isLoadingTagArticles || isSearchLoading}
+        loadingMessage={tc("loading")}
+        emptyMessage={
+          isSearchEmptyState ? t("search_no_results_title", { query: trimmedDebouncedQuery }) : t("no_articles")
+        }
+        emptyDescription={isSearchEmptyState ? t("search_no_results_description") : undefined}
+        emptyActionLabel={isSearchEmptyState ? t("clear_search_action") : undefined}
+        onEmptyAction={isSearchEmptyState ? handleCloseSearch : undefined}
+        groups={articleGroups}
+        dimArchived={dimArchived}
+        textPreview={textPreview}
+        imagePreviews={imagePreviews}
+        selectionStyle={selectionStyle}
+        onSelectArticle={selectArticle}
+        markAllReadLabel={t("mark_all_as_read")}
+        onMarkAllRead={handleMarkAllRead}
+      />
 
       <ArticleListFooter viewMode={effectiveViewMode} modes={footerModes} onSetViewMode={setViewMode} />
     </div>

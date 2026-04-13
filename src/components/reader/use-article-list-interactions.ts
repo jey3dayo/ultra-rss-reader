@@ -1,11 +1,18 @@
 import { Result } from "@praha/byethrow";
-import { type KeyboardEvent as ReactKeyboardEvent, type RefObject, useCallback, useEffect } from "react";
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  type RefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import { executeAction } from "@/lib/actions";
 import { calculateArticleNavigationScrollTop, getAdjacentArticleId } from "@/lib/article-list";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
-import { type buildKeyToActionMap, keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
+import { buildKeyToActionMap, keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
 
 type UseArticleListInteractionsParams = {
@@ -17,12 +24,12 @@ type UseArticleListInteractionsParams = {
   toggleSidebar: () => void;
   openSearch: () => void;
   handleMarkAllRead: () => void;
-  keyToAction: ReturnType<typeof buildKeyToActionMap>;
-  listRef: RefObject<HTMLDivElement | null>;
-  viewportRef: RefObject<HTMLDivElement | null>;
+  keyboardPrefs: Parameters<typeof buildKeyToActionMap>[0];
 };
 
 type UseArticleListInteractionsResult = {
+  listRef: RefObject<HTMLDivElement | null>;
+  viewportRef: RefObject<HTMLDivElement | null>;
   handleListKeyDownCapture: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
 };
 
@@ -35,10 +42,12 @@ export function useArticleListInteractions({
   toggleSidebar,
   openSearch,
   handleMarkAllRead,
-  keyToAction,
-  listRef,
-  viewportRef,
+  keyboardPrefs,
 }: UseArticleListInteractionsParams): UseArticleListInteractionsResult {
+  const keyToAction = useMemo(() => buildKeyToActionMap(keyboardPrefs), [keyboardPrefs]);
+  const listRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+
   const navigateArticle = useCallback(
     (direction: 1 | -1) => {
       const nextArticleId = getAdjacentArticleId(filteredArticles, selectedArticleId, direction);
@@ -77,7 +86,7 @@ export function useArticleListInteractions({
 
       button.focus({ preventScroll: true });
     },
-    [filteredArticles, listRef, selectedArticleId, selectArticle, viewportRef],
+    [filteredArticles, selectedArticleId, selectArticle],
   );
 
   useEffect(() => {
@@ -181,6 +190,8 @@ export function useArticleListInteractions({
   );
 
   return {
+    listRef,
+    viewportRef,
     handleListKeyDownCapture,
   };
 }
