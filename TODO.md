@@ -591,6 +591,11 @@
   - 対応: `SidebarControllerResult` を `sidebar.types.ts` に追加して、controller の返り値を explicit contract に寄せた
   - 対象: `src/components/reader/sidebar.types.ts`, `src/components/reader/use-sidebar-controller.ts`
 
+- [x] article-list view props の contract を shared types に寄せる
+  - 問題: `use-article-list-view-props.ts` に layout/view mode と section props/result 型が local 定義で残っていて、controller から参照する返り値 contract の正本が hook file に閉じていた
+  - 対応: `article-list.types.ts` に view props contract を寄せて、controller / view props hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-view-props.ts`, `src/components/reader/use-article-list-controller.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
