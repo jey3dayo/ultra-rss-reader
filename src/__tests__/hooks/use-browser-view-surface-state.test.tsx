@@ -43,7 +43,7 @@ describe("useBrowserViewSurfaceState", () => {
     const onCloseOverlay = vi.fn();
     const { result, rerender } = renderHook(
       ({ isLoading }) => {
-        const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(createLoadingState());
+        const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() => createLoadingState());
         const browserStateRef = useRef(browserState);
         browserStateRef.current = browserState;
         const fallbackInFlightRef = useRef(false);
@@ -79,7 +79,7 @@ describe("useBrowserViewSurfaceState", () => {
   it("shows a surface failure once and marks the browser state as no longer loading", () => {
     const onCloseOverlay = vi.fn();
     const { result } = renderHook(() => {
-      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(createLoadingState());
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() => createLoadingState());
       const browserStateRef = useRef(browserState);
       browserStateRef.current = browserState;
       const fallbackInFlightRef = useRef(false);
@@ -124,7 +124,7 @@ describe("useBrowserViewSurfaceState", () => {
   it("clears state and closes the overlay when the embedded webview disappears", () => {
     const onCloseOverlay = vi.fn();
     const { result } = renderHook(() => {
-      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(createLoadingState());
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() => createLoadingState());
       const browserStateRef = useRef(browserState);
       browserStateRef.current = browserState;
       const fallbackInFlightRef = useRef(true);
@@ -159,7 +159,7 @@ describe("useBrowserViewSurfaceState", () => {
   it("turns fallback payloads into surface issues and stops the loading state", () => {
     const onCloseOverlay = vi.fn();
     const { result } = renderHook(() => {
-      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(createLoadingState());
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() => createLoadingState());
       const browserStateRef = useRef(browserState);
       browserStateRef.current = browserState;
       const fallbackInFlightRef = useRef(false);

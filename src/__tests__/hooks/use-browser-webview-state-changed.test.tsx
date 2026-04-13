@@ -17,7 +17,7 @@ describe("useBrowserWebviewStateChanged", () => {
   it("merges the incoming state with the current browser state and clears fallback mode", () => {
     const setSurfaceIssue = vi.fn();
     const { result } = renderHook(() => {
-      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() =>
         createState("https://example.com/old", false),
       );
       const browserStateRef = useRef<BrowserWebviewState | null>(browserState);

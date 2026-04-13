@@ -24,8 +24,8 @@ export function Sidebar({
   onOpenSettings,
   totalUnread,
 }: SidebarProps) {
-  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>(
-    folders.reduce((acc, folder) => ({ ...acc, [folder.id]: folder.isExpanded }), {})
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>(() =>
+    folders.reduce((acc, folder) => ({ ...acc, [folder.id]: folder.isExpanded }), {}),
   )
 
   const toggleFolder = (folderId: string) => {
