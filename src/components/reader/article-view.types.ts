@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
-import type { ArticleToolbarActionStripProps } from "./article-toolbar-view";
+import type { ArticleToolbarActionStripProps } from "./article-toolbar.types";
 
 export type ArticlePaneProps = {
   article: ArticleDto;

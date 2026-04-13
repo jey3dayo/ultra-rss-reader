@@ -6,7 +6,7 @@ import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleShareMenu } from "./article-share-menu";
-import type { ArticleToolbarActionStripProps } from "./article-toolbar-view";
+import type { ArticleToolbarActionStripProps } from "./article-toolbar.types";
 import type { ArticleActionKeyboardShortcuts } from "./use-article-action-shortcuts";
 import { useArticleActions } from "./use-article-actions";
 

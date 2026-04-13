@@ -2,43 +2,7 @@ import { Copy, ExternalLink, Eye, X } from "lucide-react";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { IconToolbarButton, IconToolbarToggle } from "@/components/shared/icon-toolbar-control";
 import { TooltipProvider } from "@/components/ui/tooltip";
-
-export type ArticleToolbarViewLabels = {
-  closeView: string;
-  toggleRead: string;
-  toggleStar: string;
-  previewToggleOff: string;
-  previewToggleOn: string;
-  copyLink: string;
-  openInExternalBrowser: string;
-};
-
-export type ArticleToolbarViewProps = {
-  showCloseButton: boolean;
-  hideActionStrip?: boolean;
-  canToggleRead: boolean;
-  canToggleStar: boolean;
-  isRead: boolean;
-  isStarred: boolean;
-  isBrowserOpen: boolean;
-  hideBrowserOverlayActions?: boolean;
-  showCopyLinkButton: boolean;
-  canCopyLink: boolean;
-  showOpenInBrowserButton: boolean;
-  canOpenInBrowser: boolean;
-  showOpenInExternalBrowserButton: boolean;
-  canOpenInExternalBrowser: boolean;
-  shareMenuControl?: React.ReactNode;
-  labels: ArticleToolbarViewLabels;
-  onCloseView: () => void;
-  onToggleRead: (nextRead: boolean) => void;
-  onToggleStar: (nextStarred: boolean) => void;
-  onCopyLink: () => void;
-  onOpenInBrowser: () => void;
-  onOpenInExternalBrowser: () => void;
-};
-
-export type ArticleToolbarActionStripProps = Omit<ArticleToolbarViewProps, "showCloseButton" | "onCloseView">;
+import type { ArticleToolbarActionStripProps, ArticleToolbarViewProps } from "./article-toolbar.types";
 
 export function ArticleToolbarActionStrip({
   canToggleRead,
