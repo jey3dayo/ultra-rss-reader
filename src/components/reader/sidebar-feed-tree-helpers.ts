@@ -3,7 +3,9 @@ import type { FeedTreeFeedViewModel } from "./feed-tree.types";
 import type {
   SidebarFeedTreeViewMode,
   SidebarFeedTreeViewModelOptions,
+  SidebarFolderFeedVisibilityParams,
   SidebarSortFeeds,
+  SidebarUnfolderedFeedVisibilityParams,
 } from "./sidebar-feed-tree.types";
 
 export function getVisibleSidebarFeeds(
@@ -39,4 +41,29 @@ export function mapFeedsToFeedTreeViewModels(
 
 export function collectFeedIds(feeds: FeedDto[]): string[] {
   return feeds.map((feed) => feed.id);
+}
+
+export function getVisibleSidebarFolderFeeds({
+  folderId,
+  selectedFolderId,
+  feedsByFolder,
+  getVisibleFeeds,
+}: SidebarFolderFeedVisibilityParams): FeedDto[] {
+  if (selectedFolderId !== null && folderId !== selectedFolderId) {
+    return [];
+  }
+
+  return getVisibleFeeds(feedsByFolder.get(folderId) ?? []);
+}
+
+export function getVisibleSidebarUnfolderedFeeds({
+  selectedFolderId,
+  unfolderedFeeds,
+  getVisibleFeeds,
+}: SidebarUnfolderedFeedVisibilityParams): FeedDto[] {
+  if (selectedFolderId !== null) {
+    return [];
+  }
+
+  return getVisibleFeeds(unfolderedFeeds);
 }

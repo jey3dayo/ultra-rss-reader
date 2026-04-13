@@ -3,7 +3,13 @@ import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 import type { UseSidebarFeedTreeParams, UseSidebarFeedTreeResult } from "./sidebar-feed-tree.types";
-import { collectFeedIds, getVisibleSidebarFeeds, mapFeedsToFeedTreeViewModels } from "./sidebar-feed-tree-helpers";
+import {
+  collectFeedIds,
+  getVisibleSidebarFeeds,
+  getVisibleSidebarFolderFeeds,
+  getVisibleSidebarUnfolderedFeeds,
+  mapFeedsToFeedTreeViewModels,
+} from "./sidebar-feed-tree-helpers";
 
 export function useSidebarFeedTree({
   feeds,
@@ -54,8 +60,12 @@ export function useSidebarFeedTree({
       sortedFolderList
         .map((folder) => {
           const rawFolderFeeds = feedsByFolder.get(folder.id) ?? [];
-          const folderFeeds =
-            selectedFolderId !== null && folder.id !== selectedFolderId ? [] : getVisibleFeeds(rawFolderFeeds);
+          const folderFeeds = getVisibleSidebarFolderFeeds({
+            folderId: folder.id,
+            selectedFolderId,
+            feedsByFolder,
+            getVisibleFeeds,
+          });
           const folderUnread = rawFolderFeeds.reduce((sum, feed) => sum + feed.unread_count, 0);
           return {
             id: folder.id,
@@ -83,10 +93,17 @@ export function useSidebarFeedTree({
 
   const unfolderedFeedViews = useMemo<FeedTreeFeedViewModel[]>(
     () =>
-      mapFeedsToFeedTreeViewModels(selectedFolderId === null ? getVisibleFeeds(unfolderedFeeds) : [], {
-        selectedFeedId,
-        grayscaleFavicons,
-      }),
+      mapFeedsToFeedTreeViewModels(
+        getVisibleSidebarUnfolderedFeeds({
+          selectedFolderId,
+          unfolderedFeeds,
+          getVisibleFeeds,
+        }),
+        {
+          selectedFeedId,
+          grayscaleFavicons,
+        },
+      ),
     [getVisibleFeeds, grayscaleFavicons, selectedFeedId, selectedFolderId, unfolderedFeeds],
   );
 
@@ -94,14 +111,24 @@ export function useSidebarFeedTree({
     const ids: string[] = [];
 
     for (const folder of sortedFolderList) {
-      const folderFeeds =
-        selectedFolderId !== null && folder.id !== selectedFolderId
-          ? []
-          : getVisibleFeeds(feedsByFolder.get(folder.id) ?? []);
+      const folderFeeds = getVisibleSidebarFolderFeeds({
+        folderId: folder.id,
+        selectedFolderId,
+        feedsByFolder,
+        getVisibleFeeds,
+      });
       ids.push(...collectFeedIds(folderFeeds));
     }
 
-    ids.push(...collectFeedIds(selectedFolderId === null ? getVisibleFeeds(unfolderedFeeds) : []));
+    ids.push(
+      ...collectFeedIds(
+        getVisibleSidebarUnfolderedFeeds({
+          selectedFolderId,
+          unfolderedFeeds,
+          getVisibleFeeds,
+        }),
+      ),
+    );
 
     return ids;
   }, [feedsByFolder, getVisibleFeeds, selectedFolderId, sortedFolderList, unfolderedFeeds]);

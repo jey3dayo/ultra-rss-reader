@@ -14,6 +14,19 @@ export type SidebarFeedTreeViewModelOptions = {
   grayscaleFavicons: boolean;
 };
 
+export type SidebarFolderFeedVisibilityParams = {
+  folderId: string;
+  selectedFolderId: string | null;
+  feedsByFolder: Map<string, FeedDto[]>;
+  getVisibleFeeds: SidebarSortFeeds;
+};
+
+export type SidebarUnfolderedFeedVisibilityParams = {
+  selectedFolderId: string | null;
+  unfolderedFeeds: FeedDto[];
+  getVisibleFeeds: SidebarSortFeeds;
+};
+
 export type UseSidebarFeedTreeParams = {
   feeds: FeedDto[] | undefined;
   folders: FolderDto[] | undefined;
