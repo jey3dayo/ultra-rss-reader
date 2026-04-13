@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "@/components/app-shell";
 import { APP_EVENTS } from "@/constants/events";
@@ -122,7 +123,7 @@ describe("AppShell", () => {
     render(<AppShell />, { wrapper: createWrapper() });
 
     const copyButton = screen.getByRole("button", { name: "Copy debug HUD" });
-    fireEvent.pointerDown(copyButton);
+    fireEvent.click(copyButton);
 
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage?.message).toBeTruthy();
@@ -134,6 +135,33 @@ describe("AppShell", () => {
       throw new Error("Expected copy toast message to be set");
     }
     expect(screen.getByText(toastMessage)).toBeInTheDocument();
+  });
+
+  it("copies the debug HUD contents when activated from the keyboard", async () => {
+    const user = userEvent.setup();
+
+    usePreferencesStore.setState((state) => ({
+      ...state,
+      prefs: { ...state.prefs, debug_browser_hud: "true" },
+    }));
+    useUiStore.setState({
+      focusedPane: "list",
+      contentMode: "reader",
+      selectedArticleId: "art-1",
+    });
+
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    const copyButton = screen.getByRole("button", { name: "Copy debug HUD" });
+    copyButton.focus();
+
+    expect(copyButton).toHaveFocus();
+
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage?.message).toBeTruthy();
+    });
   });
 
   it("shows browser geometry rows inside the debug HUD when preview diagnostics are published", async () => {
