@@ -596,6 +596,21 @@
   - 対応: `article-list.types.ts` に view props contract を寄せて、controller / view props hook は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-view-props.ts`, `src/components/reader/use-article-list-controller.ts`
 
+- [x] sidebar feed section controller の contract を shared types に寄せる
+  - 問題: `use-sidebar-feed-section-controller.ts` に `feed-tree` / `startup-folder-expansion` 由来の local param alias が残っていて、controller 境界の正本が hook file に閉じていた
+  - 対応: `sidebar-feed-section.types.ts` に params/result contract を切り出して、feed section controller は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar-feed-section.types.ts`, `src/components/reader/use-sidebar-feed-section-controller.ts`
+
+- [x] sidebar feed tree props helper の contract を shared types に寄せる
+  - 問題: `use-sidebar-feed-tree-props.ts` に `FeedTreeViewProps` 由来の local param/result alias が残っていて、feed section 内の helper 境界が別 file に閉じていた
+  - 対応: `sidebar-feed-section.types.ts` に `SidebarFeedTreeProps` / `SidebarFeedTreePropsParams` を追加して、feed tree props helper は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar-feed-section.types.ts`, `src/components/reader/use-sidebar-feed-tree-props.ts`
+
+- [x] sidebar sync hook の contract を shared types に寄せる
+  - 問題: `use-sidebar-sync.ts` に sync params/result と warning payload alias が local 定義で残っていて、runtime から参照する sync 境界の正本が hook file に閉じていた
+  - 対応: `sidebar-sync.types.ts` に sync params/result/payload を切り出して、sync hook と runtime は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar-sync.types.ts`, `src/components/reader/use-sidebar-sync.ts`, `src/components/reader/use-sidebar-runtime.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
