@@ -99,6 +99,10 @@
   - 問題: `sidebar.tsx` に unread/starred の表示条件と selected 判定が残っていて、表示データ整形と view orchestration が混ざっていた
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-smart-views.ts`
 
+- [x] sidebar の tag item 派生モデルを hook 化する
+  - 問題: `sidebar.tsx` に tags/counts/selected 状態の合成が残っていて、tag section 用の view model 整形が本体に混ざっていた
+  - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-tag-items.ts`
+
 - [x] sidebar の account restore / startup expansion / hidden-state fallback を hook 化する
   - 問題: `sidebar.tsx` に account 復元、起動時 folder 展開、visibility fallback の effect が集まり、責務が重くなっていた
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-account-selection.ts`, `src/components/reader/use-sidebar-startup-folder-expansion.ts`, `src/components/reader/use-sidebar-visibility-fallback.ts`
