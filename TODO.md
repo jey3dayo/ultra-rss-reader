@@ -419,6 +419,11 @@
   - 対応: `use-article-list-global-events.ts` に window event 購読を寄せて、interactions hook は DOM refs と keyboard action 解決に寄せた
   - 対象: `src/components/reader/use-article-list-interactions.ts`, `src/components/reader/use-article-list-global-events.ts`
 
+- [x] article-list の focused navigation を hook 化する
+  - 問題: `use-article-list-interactions.ts` に adjacent article 解決、scroll 補正、focus return が残っていて、keyboard action 解決と DOM navigation が混ざっていた
+  - 対応: `use-article-list-navigation.ts` に row navigation を寄せて、interactions hook は global event bridge と key handling に寄せた
+  - 対象: `src/components/reader/use-article-list-interactions.ts`, `src/components/reader/use-article-list-navigation.ts`
+
 - [x] article-list の search state と debounce を hook 化する
   - 問題: `article-list.tsx` に検索開閉、debounce、input focus、検索 query 実行がまとまっていて、表示データ選別と責務が混ざっていた
   - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-search.ts`
