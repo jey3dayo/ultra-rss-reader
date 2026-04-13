@@ -108,4 +108,18 @@ describe("performUpdateCheck", () => {
     expect(mockCheckForUpdate).toHaveBeenCalledTimes(1);
     expect(useUiStore.getState().toastMessage?.message).toBe("v1.2.4 が利用可能です");
   });
+
+  it("shows a toast when restart fails", async () => {
+    mockRestartApp.mockResolvedValue(Result.fail({ type: "UserVisible", message: "restart failed" }));
+
+    const { showRestartToast } = await import("@/hooks/use-updater");
+    const useUiStore = await getUiStore();
+    useUiStore.setState(useUiStore.getInitialState());
+
+    showRestartToast();
+    useUiStore.getState().toastMessage?.actions?.find((action) => action.label === "再起動")?.onClick();
+    await flushAsyncWork();
+
+    expect(useUiStore.getState().toastMessage?.message).toBe("再起動に失敗しました");
+  });
 });

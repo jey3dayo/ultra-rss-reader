@@ -72,7 +72,7 @@ function startDownload(): void {
   );
 }
 
-function showRestartToast(): void {
+export function showRestartToast(): void {
   const store = useUiStore.getState();
   store.showToast({
     message: "更新の準備ができました",
@@ -81,7 +81,15 @@ function showRestartToast(): void {
       {
         label: "再起動",
         onClick: () => {
-          restartApp();
+          void restartApp().then((result) =>
+            Result.pipe(
+              result,
+              Result.inspectError((error) => {
+                console.error("App restart failed:", error);
+                store.showToast("再起動に失敗しました");
+              }),
+            ),
+          );
         },
       },
       {
