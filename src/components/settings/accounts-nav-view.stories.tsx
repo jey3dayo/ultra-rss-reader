@@ -20,7 +20,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="w-[260px] bg-sidebar p-2 text-sidebar-foreground">
+      <div className="w-full max-w-[260px] bg-sidebar p-2 text-sidebar-foreground">
         <Story />
       </div>
     ),
