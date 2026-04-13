@@ -1,8 +1,8 @@
 import type {
-  SettingsPageActionControl,
-  SettingsPageSelectControl,
-  SettingsPageSwitchControl,
-  SettingsPageTextControl,
+  SettingsPageActionRowProps,
+  SettingsPageSelectRowProps,
+  SettingsPageSwitchRowProps,
+  SettingsPageTextRowProps,
   SettingsPageViewProps,
 } from "@/components/settings/settings-page.types";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
@@ -12,7 +12,7 @@ import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Button } from "@/components/ui/button";
 
-function SettingsPageSelectRow({ control }: { control: SettingsPageSelectControl }) {
+function SettingsPageSelectRow({ control }: SettingsPageSelectRowProps) {
   return (
     <LabeledSelectRow
       label={control.label}
@@ -27,7 +27,7 @@ function SettingsPageSelectRow({ control }: { control: SettingsPageSelectControl
   );
 }
 
-function SettingsPageSwitchRow({ control }: { control: SettingsPageSwitchControl }) {
+function SettingsPageSwitchRow({ control }: SettingsPageSwitchRowProps) {
   return (
     <LabeledSwitchRow
       label={control.label}
@@ -38,7 +38,7 @@ function SettingsPageSwitchRow({ control }: { control: SettingsPageSwitchControl
   );
 }
 
-function SettingsPageTextRow({ control }: { control: SettingsPageTextControl }) {
+function SettingsPageTextRow({ control }: SettingsPageTextRowProps) {
   return (
     <LabeledInputRow
       label={control.label}
@@ -54,7 +54,7 @@ function SettingsPageTextRow({ control }: { control: SettingsPageTextControl }) 
   );
 }
 
-function SettingsPageActionRow({ control }: { control: SettingsPageActionControl }) {
+function SettingsPageActionRow({ control }: SettingsPageActionRowProps) {
   return (
     <LabeledControlRow label={control.label} className="gap-4">
       <Button

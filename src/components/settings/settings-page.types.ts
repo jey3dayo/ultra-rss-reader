@@ -61,3 +61,19 @@ export type SettingsPageViewProps = {
   title: string;
   sections: SettingsPageSection[];
 };
+
+export type SettingsPageSelectRowProps = {
+  control: SettingsPageSelectControl;
+};
+
+export type SettingsPageSwitchRowProps = {
+  control: SettingsPageSwitchControl;
+};
+
+export type SettingsPageTextRowProps = {
+  control: SettingsPageTextControl;
+};
+
+export type SettingsPageActionRowProps = {
+  control: SettingsPageActionControl;
+};
