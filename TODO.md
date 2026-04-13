@@ -66,6 +66,11 @@
     1. `Cancel/Submit` パターンを `FormActionButtons` へ統一する
     2. loading label と disabled 条件を既存どおり保つ
 
+- [x] shared button/layout 補助 component の contract を types file に寄せる
+  - 問題: `form-action-buttons.tsx` / `section-heading.tsx` / `indeterminate-progress.tsx` に local props 型が残っていて、shared helper contract の正本が component file 側に分散していた
+  - 対応: `button.types.ts` と `layout.types.ts` に contract を寄せて、button/layout helper component は shared types を再利用する形に寄せた
+  - 対象: `src/components/shared/button.types.ts`, `src/components/shared/layout.types.ts`, `src/components/shared/form-action-buttons.tsx`, `src/components/shared/section-heading.tsx`, `src/components/shared/indeterminate-progress.tsx`
+
 - [x] reader dialog の stacked field を `src/components/shared` に寄せる
   - 問題: `feed-dialog-form-view.tsx` / `folder-select-view.tsx` / `rename-tag-dialog-view.tsx` に同じ縦積み label+field パターンがある
   - 対象: `src/components/shared/*`, `src/components/reader/*`
