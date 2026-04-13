@@ -1,24 +1,9 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
-import type { ReactNode } from "react";
 import { SidebarSectionToggle } from "@/components/shared/sidebar-section-toggle";
 import { SidebarNavButton } from "./sidebar-nav-button";
+import type { SidebarTagItem, SidebarTagListProps } from "./sidebar-tag-items.types";
 
-export type TagListItemViewModel = {
-  id: string;
-  name: string;
-  color: string | null;
-  articleCount: number;
-  isSelected: boolean;
-};
-
-export type TagListViewProps = {
-  tagsLabel: string;
-  isOpen: boolean;
-  onToggleOpen: () => void;
-  tags: TagListItemViewModel[];
-  onSelectTag: (tagId: string) => void;
-  renderContextMenu?: (tag: TagListItemViewModel) => ReactNode;
-};
+export type TagListItemViewModel = SidebarTagItem;
 
 export function TagListView({
   tagsLabel,
@@ -27,7 +12,7 @@ export function TagListView({
   tags,
   onSelectTag,
   renderContextMenu,
-}: TagListViewProps) {
+}: SidebarTagListProps) {
   if (tags.length === 0) return null;
 
   return (

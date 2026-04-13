@@ -1,17 +1,15 @@
 import { useMemo } from "react";
-import type { TagListItemViewModel } from "./tag-list-view";
+import type { SidebarTagItem, SidebarTagItemsParams, SidebarTagItemsResult } from "./sidebar-tag-items.types";
 
-type UseSidebarTagItemsParams = {
-  tags: Array<{ id: string; name: string; color: string | null }> | undefined;
-  tagArticleCounts: Record<string, number> | undefined;
-  selection: { type: string; tagId?: string };
-};
-
-export function useSidebarTagItems({ tags, tagArticleCounts, selection }: UseSidebarTagItemsParams) {
+export function useSidebarTagItems({
+  tags,
+  tagArticleCounts,
+  selection,
+}: SidebarTagItemsParams): SidebarTagItemsResult {
   return useMemo(
     () =>
       (tags ?? []).map(
-        (tag): TagListItemViewModel => ({
+        (tag): SidebarTagItem => ({
           id: tag.id,
           name: tag.name,
           color: tag.color,
