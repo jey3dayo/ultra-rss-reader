@@ -1,4 +1,3 @@
-import type { TFunction } from "i18next";
 import { displayPresetToPreferenceValues, resolveAppDefaultDisplayPreset } from "@/lib/article-display";
 import type { DevIntent } from "@/lib/dev-intent";
 import { resolvePreferenceValue } from "@/stores/preferences-store";

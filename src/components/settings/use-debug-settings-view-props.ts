@@ -1,4 +1,3 @@
-import type { TFunction } from "i18next";
 import { resolvePreferenceValue } from "@/stores/preferences-store";
 import type { SettingsPageViewProps, SettingsPreferenceViewPropsParams } from "./settings-page.types";
 

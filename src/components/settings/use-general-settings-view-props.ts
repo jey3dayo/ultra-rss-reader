@@ -1,4 +1,3 @@
-import type { TFunction } from "i18next";
 import { SHORTCUT_MODIFIER_BY_PLATFORM } from "@/constants/platform";
 import { resolvePreferenceValue } from "@/stores/preferences-store";
 import type { GeneralSettingsViewProps } from "./general-settings-view";

@@ -2,12 +2,6 @@
 
 次回リリース候補は `minor` を想定しており、2026-04-14 時点の committed な進捗は `CHANGELOG.md` の `[Unreleased]` へ反映済み。
 
-## In Progress
-
-- [ ] similarity 由来の reader cleanup は「完全重複の小ヘルパー」に限定して継続する
-  - event/listener 骨格の似た hook は false positive として扱い、責務をまたぐ大きな抽象化は避ける
-  - 次に触るなら feed/tag/sidebar 周辺で cache invalidation や error message 変換のような局所重複を優先する
-
 ## UI/UX 監査の残り
 
 - [ ] モバイル向け UI を正式対応する段階で、アイコンのみ導線の見直しを再開する
