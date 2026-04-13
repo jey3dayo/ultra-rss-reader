@@ -271,6 +271,16 @@
   - 問題: `useSidebarController` に header/account/smart views/content sections の props 組み立てが残っていて、controller orchestration と view props 導出が混ざっていた
   - 対象: `src/components/reader/use-sidebar-controller.ts`, `src/components/reader/use-sidebar-view-props.ts`
 
+- [x] sidebar の runtime state wiring を hook 化する
+  - 問題: `useSidebarController` に section open state、account switcher、source query、sync wiring の初期化が残っていて、controller orchestration と runtime 配線が混ざっていた
+  - 対応: `use-sidebar-runtime.ts` へ runtime state / refs / sync 接着を寄せて、controller 本体は section orchestration に集中させた
+  - 対象: `src/components/reader/use-sidebar-controller.ts`, `src/components/reader/use-sidebar-runtime.ts`, `src/components/reader/use-sidebar-sync.ts`
+
+- [x] sidebar sync feedback message 解決を helper に寄せる
+  - 問題: `use-sidebar-sync.ts` に warning/manual sync 両経路の toast 文言辞書が重複していて、sync feedback の表現と event orchestration が混ざっていた
+  - 対応: `sidebar-sync-feedback.ts` に summary -> localized message の変換を寄せて、warning/manual sync の両方から再利用するようにした
+  - 対象: `src/components/reader/use-sidebar-sync.ts`, `src/components/reader/sidebar-sync-feedback.ts`
+
 - [x] sidebar の account restore / startup expansion / hidden-state fallback を hook 化する
   - 問題: `sidebar.tsx` に account 復元、起動時 folder 展開、visibility fallback の effect が集まり、責務が重くなっていた
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-account-selection.ts`, `src/components/reader/use-sidebar-startup-folder-expansion.ts`, `src/components/reader/use-sidebar-visibility-fallback.ts`
