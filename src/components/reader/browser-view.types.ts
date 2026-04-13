@@ -132,3 +132,20 @@ export type UseBrowserViewSurfaceControllerResult = {
   showSurfaceFailure: (error: AppError) => void;
   activeSurfaceIssue: BrowserSurfaceIssue | null;
 };
+
+export type UseBrowserViewSurfaceStateParams = {
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
+  fallbackInFlightRef: MutableRefObject<boolean>;
+  isLoading: boolean;
+  runtimeUnavailable: boolean;
+  onCloseOverlay: () => void;
+  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
+  browserMode: string;
+  browserModeHint: string;
+  failed: string;
+  failedHint: string;
+  blocked: string;
+  blockedHint: string;
+};
+
+export type UseBrowserViewSurfaceStateResult = UseBrowserViewSurfaceControllerResult;

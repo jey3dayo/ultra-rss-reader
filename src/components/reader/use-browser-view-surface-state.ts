@@ -1,28 +1,11 @@
-import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useCallback, useMemo, useState } from "react";
-import type { AppError, BrowserWebviewState } from "@/api/tauri-commands";
 import {
   type BrowserSurfaceIssue,
   createBrowserSurfaceFailure,
   createBrowserSurfaceFallback,
   resolveRuntimeUnavailableSurfaceIssue,
 } from "./browser-surface-issue";
-import type { BrowserWebviewFallbackPayload } from "./browser-webview-state";
-
-type UseBrowserViewSurfaceStateParams = {
-  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
-  fallbackInFlightRef: MutableRefObject<boolean>;
-  isLoading: boolean;
-  runtimeUnavailable: boolean;
-  onCloseOverlay: () => void;
-  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
-  browserMode: string;
-  browserModeHint: string;
-  failed: string;
-  failedHint: string;
-  blocked: string;
-  blockedHint: string;
-};
+import type { UseBrowserViewSurfaceStateParams, UseBrowserViewSurfaceStateResult } from "./browser-view.types";
 
 export function useBrowserViewSurfaceState({
   browserStateRef,
@@ -37,11 +20,11 @@ export function useBrowserViewSurfaceState({
   failedHint,
   blocked,
   blockedHint,
-}: UseBrowserViewSurfaceStateParams) {
+}: UseBrowserViewSurfaceStateParams): UseBrowserViewSurfaceStateResult {
   const [surfaceIssue, setSurfaceIssue] = useState<BrowserSurfaceIssue | null>(null);
 
   const handleLostEmbeddedBrowserWebview = useCallback(
-    (error: AppError) => {
+    (error: Parameters<UseBrowserViewSurfaceStateResult["handleLostEmbeddedBrowserWebview"]>[0]) => {
       console.warn("Embedded browser webview disappeared while overlay was open:", error.message);
       fallbackInFlightRef.current = false;
       browserStateRef.current = null;
@@ -53,7 +36,7 @@ export function useBrowserViewSurfaceState({
   );
 
   const showSurfaceFailure = useCallback(
-    (error: AppError) => {
+    (error: Parameters<UseBrowserViewSurfaceStateResult["showSurfaceFailure"]>[0]) => {
       if (fallbackInFlightRef.current) {
         return;
       }
@@ -78,7 +61,7 @@ export function useBrowserViewSurfaceState({
   );
 
   const handleBrowserWebviewFallback = useCallback(
-    (payload: BrowserWebviewFallbackPayload) => {
+    (payload: Parameters<UseBrowserViewSurfaceStateResult["handleBrowserWebviewFallback"]>[0]) => {
       setSurfaceIssue(
         createBrowserSurfaceFallback(payload.error_message, {
           failed,
@@ -120,5 +103,5 @@ export function useBrowserViewSurfaceState({
     handleBrowserWebviewFallback,
     showSurfaceFailure,
     activeSurfaceIssue,
-  } as const;
+  };
 }
