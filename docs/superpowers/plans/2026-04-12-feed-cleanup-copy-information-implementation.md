@@ -13,6 +13,7 @@
 ## Task 1: Red tests for renamed navigation and page positioning
 
 **Files:**
+
 - Modify: `src/__tests__/lib/ja-locales.test.ts`
 - Modify: `src/__tests__/components/sidebar.test.tsx`
 - Modify: `src/__tests__/components/command-palette.test.tsx`
@@ -41,6 +42,7 @@ git commit -m "test(feed-cleanup): cover renamed navigation copy"
 ## Task 2: Red tests for cleanup-page copy and labeled metadata
 
 **Files:**
+
 - Modify: `src/__tests__/components/feed-cleanup-page.test.tsx`
 
 - [ ] **Step 1: Update the page-level expectations to the approved copy**
@@ -71,6 +73,7 @@ git commit -m "test(feed-cleanup): cover revised cleanup copy"
 ## Task 3: Implement the i18n copy updates
 
 **Files:**
+
 - Modify: `src/locales/ja/sidebar.json`
 - Modify: `src/locales/en/sidebar.json`
 - Modify: `src/locales/ja/cleanup.json`
@@ -103,6 +106,7 @@ git commit -m "feat(feed-cleanup): refresh cleanup terminology"
 ## Task 4: Implement the feed-cleanup view copy and metadata presentation
 
 **Files:**
+
 - Modify: `src/components/feed-cleanup/feed-cleanup-page-view.tsx`
 - Modify: `src/components/feed-cleanup/feed-cleanup-delete-dialog.tsx`
 - Modify: `src/components/feed-cleanup/feed-cleanup-page.tsx`
@@ -139,6 +143,7 @@ git commit -m "feat(feed-cleanup): clarify review copy and metadata"
 ## Task 5: Final verification sweep
 
 **Files:**
+
 - Verify: `src/__tests__/lib/ja-locales.test.ts`
 - Verify: `src/__tests__/components/sidebar.test.tsx`
 - Verify: `src/__tests__/components/command-palette.test.tsx`

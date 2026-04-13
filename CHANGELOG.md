@@ -4,12 +4,29 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+### Features
+
+- Web プレビューを main stage の fullscreen viewer として扱えるようにし、通常表示とオーバーレイ表示の体験を揃えた
+- Web プレビューのツールバー action を記事ツールバーに寄せ、重複していた close / browser 導線を整理した
+
 ### Bug Fixes
 
-- Web プレビュー overlay 表示中に背面ツールバーの重複アクションを隠し、close / external browser 導線の曖昧さを解消した
-- Feed Cleanup をラップトップ幅で 2 カラム fallback できるようにし、review panel の圧縮と broken references 画面の重なりを修正した
-- 記事詳細にタグ見出しと補助文を追加し、タグ追加導線を空状態でも見つけやすくした
-- Settings モーダル内ページの spacing と sticky heading を見直し、低いビューポートでも主要設定が把握しやすいようにした
+- fullscreen Web プレビューの chrome / overlay root / compact preview / geometry diagnostics を見直し、狭い幅や Tauri 実機でも表示が崩れにくいようにした
+- Settings モーダルのスクロールと account rename の反映を修正し、設定操作時の不整合を減らした
+- Feed Cleanup を画面幅に追従するレイアウトへ調整し、review panel と broken references 画面の圧縮や重なりを修正した
+- Web プレビューのショートカット、smart view の status 表現、sidebar footer action の見え方を調整し、reader 補助 UI を磨いた
+- article list item の pointer / keyboard semantics を整理し、row 操作の a11y warning を解消した
+
+### Documentation
+
+- fullscreen Web プレビュー geometry の spec / plan と、Feed Cleanup の copy / 情報設計メモを追加した
+- repository context file と UI review ベースの TODO を更新し、次の改善ポイントを整理した
+
+### Maintenance
+
+- browser view / sidebar / feed cleanup / account detail まわりの責務分割を進め、reader 実装のリファクタを継続した
+- debug HUD と image viewer 周辺を整理し、fullscreen preview 検証用の内部構成を簡素化した
+- テスト名の整理とローカル release skill の追加で、開発フローと release 準備を整えた
 
 ## [0.10.0] - 2026-04-09
 
