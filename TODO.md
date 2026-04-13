@@ -210,6 +210,11 @@
   - 対応: `use-browser-view-surface-state.ts` の安全網を維持したまま、translation/runtime 判定の接着を `use-browser-view-surface-controller.ts` へ寄せて controller 本体を軽くした
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-view-surface-state.ts`, `src/components/reader/use-browser-view-surface-controller.ts`
 
+- [x] browser-view の runtime state wiring を hook 化する
+  - 問題: `useBrowserViewController` に diagnostics 設定、browser URL、overlay refs、native diagnostics、viewport width などの runtime state 配線が残っていて、controller orchestration と runtime 初期化が混ざっていた
+  - 対応: `use-browser-view-runtime.ts` に runtime state と ref 初期化を寄せて、controller 本体は orchestration に集中させた
+  - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-view-runtime.ts`
+
 - [x] sidebar の feed navigation と event listener を hook 化する
   - 問題: `sidebar.tsx` に feed 移動、folder 自動展開、`APP_EVENTS.navigateFeed` 購読が残っていて、tree 導出と責務が混ざっている
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-feed-navigation.ts`
