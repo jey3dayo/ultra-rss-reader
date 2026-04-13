@@ -7,7 +7,6 @@ import type { UiSelection } from "@/stores/ui-store";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 import type { UseArticleListEffectsParams } from "./use-article-list-effects";
 import type { UseArticleListGroupsParams } from "./use-article-list-groups";
-import type { UseArticleListInteractionsParams } from "./use-article-list-interactions";
 import type { UseArticleListViewStateParams, UseArticleListViewStateResult } from "./use-article-list-view-state";
 
 export type ArticleListLayoutMode = "wide" | "compact" | "mobile";
@@ -101,6 +100,24 @@ export type UseArticleListViewPropsResult = {
   contextStripProps: ArticleListContextStripProps;
   bodyProps: ArticleListBodyProps;
   footerProps: ArticleListFooterProps;
+};
+
+export type UseArticleListInteractionsParams = {
+  filteredArticles: ArticleDto[];
+  selectedArticleId: string | null;
+  selectArticle: (articleId: string) => void;
+  clearArticle: () => void;
+  openSidebar: () => void;
+  toggleSidebar: () => void;
+  openSearch: () => void;
+  handleMarkAllRead: () => void;
+  keyboardPrefs: Parameters<typeof buildKeyToActionMap>[0];
+};
+
+export type UseArticleListInteractionsResult = {
+  listRef: RefObject<HTMLDivElement | null>;
+  viewportRef: RefObject<HTMLDivElement | null>;
+  handleListKeyDownCapture: (event: KeyboardEvent<HTMLDivElement>) => void;
 };
 
 export type UseArticleListViewPropsParams = {

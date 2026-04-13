@@ -1,27 +1,9 @@
-import { type KeyboardEvent as ReactKeyboardEvent, type RefObject, useMemo, useRef } from "react";
-import type { ArticleDto } from "@/api/tauri-commands";
+import { useMemo, useRef } from "react";
 import { buildKeyToActionMap } from "@/lib/keyboard-shortcuts";
+import type { UseArticleListInteractionsParams, UseArticleListInteractionsResult } from "./article-list.types";
 import { useArticleListGlobalEvents } from "./use-article-list-global-events";
 import { useArticleListKeydownHandler } from "./use-article-list-keydown-handler";
 import { useArticleListNavigation } from "./use-article-list-navigation";
-
-export type UseArticleListInteractionsParams = {
-  filteredArticles: ArticleDto[];
-  selectedArticleId: string | null;
-  selectArticle: (articleId: string) => void;
-  clearArticle: () => void;
-  openSidebar: () => void;
-  toggleSidebar: () => void;
-  openSearch: () => void;
-  handleMarkAllRead: () => void;
-  keyboardPrefs: Parameters<typeof buildKeyToActionMap>[0];
-};
-
-export type UseArticleListInteractionsResult = {
-  listRef: RefObject<HTMLDivElement | null>;
-  viewportRef: RefObject<HTMLDivElement | null>;
-  handleListKeyDownCapture: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
-};
 
 export function useArticleListInteractions({
   filteredArticles,
