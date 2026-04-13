@@ -150,9 +150,17 @@
   - 問題: `ArticlePane` に read/star/copy/reading list の action と keyboard listener が残り、overlay 分離後も責務が重かった
   - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-pane-actions.ts`
 
-- [x] article-list の navigation と keyboard interaction を hook 化する
+- [x] ArticleView の selection 解決を hook 化する
+  - 問題: `ArticleView` に feed/account/tag/all の分岐、not-found 判定、selected article/feed 解決が残っていた
+  - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-view-selection.ts`
+
+  - [x] article-list の navigation と keyboard interaction を hook 化する
   - 問題: `article-list.tsx` に記事移動、ショートカット listener、list key handling が集まっていて、表示データ導出と責務が混ざっていた
   - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-interactions.ts`
+
+- [x] article-list の search state と debounce を hook 化する
+  - 問題: `article-list.tsx` に検索開閉、debounce、input focus、検索 query 実行がまとまっていて、表示データ選別と責務が混ざっていた
+  - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-search.ts`
 
 - [x] reader の再利用境界がある state/controller 型を `types` 化する
   - 問題: `use-sidebar-feed-tree.ts` と `use-add-feed-dialog-controller.ts` に再利用余地のある union/state 型が残っている
