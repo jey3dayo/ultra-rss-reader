@@ -676,6 +676,11 @@
   - 対応: `sidebar-runtime.types.ts` に account selection params contract を追加して、selection hook は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/sidebar-runtime.types.ts`, `src/components/reader/use-sidebar-account-selection.ts`
 
+- [x] sidebar visibility fallback の contract を shared types に寄せる
+  - 問題: `use-sidebar-visibility-fallback.ts` に fallback params が local 定義で残っていて、feed section helper 境界の正本を追いにくかった
+  - 対応: `sidebar-feed-section.types.ts` に visibility fallback params contract を追加して、fallback hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar-feed-section.types.ts`, `src/components/reader/use-sidebar-visibility-fallback.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
