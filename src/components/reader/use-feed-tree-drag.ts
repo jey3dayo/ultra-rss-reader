@@ -1,11 +1,11 @@
 import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
+import type { FeedTreeDragOverlayPreview } from "./feed-tree-drag-overlay";
 import {
   createFeedTreePointerDragSession,
   type FeedTreePointerDragSession,
   shouldStartFeedTreePointerDrag,
   updateFeedTreePointerDragSessionPosition,
 } from "./feed-tree-drag-session";
-import type { FeedTreeDragOverlayPreview } from "./feed-tree-drag-overlay";
 import { getFeedDropTargetFromElement, isSameFeedDropTarget } from "./feed-tree-drop-target";
 import type { ActiveDropTarget } from "./feed-tree-folder-section";
 import type { FeedTreeFeedViewModel } from "./feed-tree-row";
