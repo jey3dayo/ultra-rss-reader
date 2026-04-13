@@ -15,6 +15,12 @@ type BrowserSurfaceIssueLabels = {
   browserModeHint: string;
 };
 
+export type ResolveRuntimeUnavailableSurfaceIssueParams = {
+  runtimeUnavailable: boolean;
+  isLoading: boolean;
+  labels: Pick<BrowserSurfaceIssueLabels, "browserMode" | "browserModeHint">;
+};
+
 export function createBrowserSurfaceFailure(
   errorMessage: string,
   labels: Pick<BrowserSurfaceIssueLabels, "failed" | "failedHint">,
@@ -45,11 +51,7 @@ export function resolveRuntimeUnavailableSurfaceIssue({
   runtimeUnavailable,
   isLoading,
   labels,
-}: {
-  runtimeUnavailable: boolean;
-  isLoading: boolean;
-  labels: Pick<BrowserSurfaceIssueLabels, "browserMode" | "browserModeHint">;
-}): BrowserSurfaceIssue | null {
+}: ResolveRuntimeUnavailableSurfaceIssueParams): BrowserSurfaceIssue | null {
   if (!runtimeUnavailable || isLoading) {
     return null;
   }

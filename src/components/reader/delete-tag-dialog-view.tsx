@@ -1,17 +1,14 @@
 import { Trans, useTranslation } from "react-i18next";
 import { DestructiveConfirmDialogView } from "@/components/shared/destructive-confirm-dialog-view";
 
-export function DeleteTagDialogView({
-  open,
-  tagName,
-  onOpenChange,
-  onConfirm,
-}: {
+export type DeleteTagDialogViewProps = {
   open: boolean;
   tagName: string;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
-}) {
+};
+
+export function DeleteTagDialogView({ open, tagName, onOpenChange, onConfirm }: DeleteTagDialogViewProps) {
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
 

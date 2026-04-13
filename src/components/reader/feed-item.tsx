@@ -12,6 +12,12 @@ export type FeedItemViewProps = {
   grayscaleFavicons?: boolean;
 };
 
+export type FeedItemContentProps = {
+  feed: FeedDto;
+  displayFavicons: boolean;
+  grayscaleFavicons: boolean;
+};
+
 function getFeedItemClassName(isSelected: boolean) {
   return cn(
     "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm",
@@ -19,15 +25,7 @@ function getFeedItemClassName(isSelected: boolean) {
   );
 }
 
-function FeedItemContent({
-  feed,
-  displayFavicons,
-  grayscaleFavicons,
-}: {
-  feed: FeedDto;
-  displayFavicons: boolean;
-  grayscaleFavicons: boolean;
-}) {
+function FeedItemContent({ feed, displayFavicons, grayscaleFavicons }: FeedItemContentProps) {
   const leadingVisualSlotClass = "flex h-5 w-5 shrink-0 items-center justify-center";
 
   return (

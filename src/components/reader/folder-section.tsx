@@ -20,19 +20,17 @@ export type FolderSectionViewProps = {
   grayscaleFavicons?: boolean;
 };
 
+export type FolderSectionTriggerContentProps = {
+  folderName: string;
+  folderUnread: number;
+  isExpanded: boolean;
+};
+
 function getFolderTriggerClassName() {
   return "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent/50";
 }
 
-function FolderSectionTriggerContent({
-  folderName,
-  folderUnread,
-  isExpanded,
-}: {
-  folderName: string;
-  folderUnread: number;
-  isExpanded: boolean;
-}) {
+function FolderSectionTriggerContent({ folderName, folderUnread, isExpanded }: FolderSectionTriggerContentProps) {
   return (
     <>
       <div className="flex items-center gap-1">

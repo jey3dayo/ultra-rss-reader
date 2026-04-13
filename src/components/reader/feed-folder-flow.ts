@@ -1,19 +1,21 @@
 import { Result } from "@praha/byethrow";
 import { type AppError, createFolder } from "@/api/tauri-commands";
 
+export type CreateFolderIfNeededParams = {
+  accountId: string;
+  selectedFolderId: string | null;
+  isCreatingFolder: boolean;
+  newFolderName: string;
+  onError: (error: AppError) => void;
+};
+
 export async function createFolderIfNeeded({
   accountId,
   selectedFolderId,
   isCreatingFolder,
   newFolderName,
   onError,
-}: {
-  accountId: string;
-  selectedFolderId: string | null;
-  isCreatingFolder: boolean;
-  newFolderName: string;
-  onError: (error: AppError) => void;
-}): Promise<string | null | undefined> {
+}: CreateFolderIfNeededParams): Promise<string | null | undefined> {
   if (!isCreatingFolder || !newFolderName.trim()) {
     return selectedFolderId;
   }
