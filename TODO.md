@@ -107,6 +107,10 @@
   - 問題: `command-palette.tsx` に translations/input/dev-scenario loading/results props 組み立てが残っていて、画面構成と controller orchestration が混ざっていた
   - 対象: `src/components/reader/command-palette.tsx`, `src/components/reader/use-command-palette-controller.ts`
 
+- [x] command-palette の view props 組み立てを hook に寄せる
+  - 問題: `useCommandPaletteController` に results props と prefix hint の組み立てが残っていて、controller orchestration と view props 導出が混ざっていた
+  - 対象: `src/components/reader/use-command-palette-controller.ts`, `src/components/reader/use-command-palette-view-props.ts`
+
 - [x] sidebar の feed navigation と event listener を hook 化する
   - 問題: `sidebar.tsx` に feed 移動、folder 自動展開、`APP_EVENTS.navigateFeed` 購読が残っていて、tree 導出と責務が混ざっている
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-feed-navigation.ts`
@@ -241,6 +245,10 @@
 - [x] article-view の store selector 群を ui state hook に寄せる
   - 問題: `article-view.tsx` に `useUiStore` / `usePreferencesStore` の読み出しが残っていて、pane orchestration と state wiring が混ざっていた
   - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-view-ui-state.ts`
+
+- [x] article-view の pane orchestration を controller hook に寄せる
+  - 問題: `ArticlePane` に browser overlay / auto mark / close handler / overlay toolbar action の接着が残っていて、pane orchestration が重かった
+  - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-pane-controller.tsx`
 
 - [x] article-view の state view を別 file に切り出す
   - 問題: `EmptyState` / `BrowserOnlyState` / not-found 表示が `article-view.tsx` に残り、view orchestration と state 表示が混ざっていた
