@@ -9,11 +9,11 @@ import {
 } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
-import { executeAction } from "@/lib/actions";
 import { calculateArticleNavigationScrollTop, getAdjacentArticleId } from "@/lib/article-list";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import { buildKeyToActionMap, keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
+import { handleArticleListKeyboardAction } from "./article-list-keyboard-action";
 
 type UseArticleListInteractionsParams = {
   filteredArticles: ArticleDto[];
@@ -145,46 +145,12 @@ export function useArticleListInteractions({
 
       const resolvedAction = Result.unwrap(action);
       emitDebugInputTrace(`list-key ${event.key} -> ${resolvedAction.type}`);
-      switch (resolvedAction.type) {
-        case "open-settings":
-          executeAction("open-settings");
-          break;
-        case "open-command-palette":
-          executeAction("open-command-palette");
-          break;
-        case "open-shortcuts-help":
-          useUiStore.getState().openShortcutsHelp();
-          break;
-        case "emit":
-          window.dispatchEvent(new Event(resolvedAction.eventName));
-          break;
-        case "set-view-mode":
-          executeAction(`set-filter-${resolvedAction.mode}`);
-          break;
-        case "close-browser":
-          executeAction("close-browser");
-          break;
-        case "clear-article":
-          clearArticle();
-          break;
-        case "toggle-sidebar":
-          toggleSidebar();
-          break;
-        case "focus-sidebar":
-          openSidebar();
-          break;
-        case "navigate-article":
-          executeAction(resolvedAction.direction === 1 ? "next-article" : "prev-article");
-          break;
-        case "navigate-feed":
-          executeAction(resolvedAction.direction === 1 ? "next-feed" : "prev-feed");
-          break;
-        case "reload-webview":
-          executeAction("reload-webview");
-          break;
-        case "noop":
-          break;
-      }
+      handleArticleListKeyboardAction({
+        action: resolvedAction,
+        clearArticle,
+        toggleSidebar,
+        openSidebar,
+      });
     },
     [clearArticle, keyToAction, openSidebar, selectedArticleId, toggleSidebar],
   );
