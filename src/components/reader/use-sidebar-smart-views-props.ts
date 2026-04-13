@@ -1,17 +1,11 @@
-import type { TFunction } from "i18next";
+import type { SidebarSmartViewsPropsParams } from "./sidebar.types";
 import type { SmartViewsViewProps } from "./smart-views-view";
-
-type UseSidebarSmartViewsPropsParams = {
-  t: TFunction<"sidebar">;
-  visibleSmartViews: SmartViewsViewProps["views"];
-  selectSmartView: SmartViewsViewProps["onSelectSmartView"];
-};
 
 export function useSidebarSmartViewsProps({
   t,
   visibleSmartViews,
   selectSmartView,
-}: UseSidebarSmartViewsPropsParams): SmartViewsViewProps {
+}: SidebarSmartViewsPropsParams): SmartViewsViewProps {
   return {
     title: t("smart_views"),
     views: visibleSmartViews,

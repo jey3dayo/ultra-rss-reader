@@ -1,55 +1,8 @@
-import type { TFunction } from "i18next";
-import type { RefObject } from "react";
-import type { SidebarSectionPropsResult } from "./sidebar.types";
-import type { SidebarAccountSectionProps } from "./sidebar-account-section";
-import type { SidebarContentSectionsProps } from "./sidebar-content-sections";
-import type { SmartViewsViewProps } from "./smart-views-view";
+import type { SidebarSectionPropsParams, SidebarSectionPropsResult } from "./sidebar.types";
 import { useSidebarAccountSectionProps } from "./use-sidebar-account-section-props";
 import { useSidebarContentSectionsProps } from "./use-sidebar-content-sections-props";
 import { useSidebarHeaderProps } from "./use-sidebar-header-props";
 import { useSidebarSmartViewsProps } from "./use-sidebar-smart-views-props";
-
-type UseSidebarSectionPropsParams = {
-  t: TFunction<"sidebar">;
-  syncProgress: {
-    active: boolean;
-    kind: string | null;
-  };
-  handleSync: () => void | Promise<void>;
-  handleAddFeed: () => void;
-  selectedAccountName?: string;
-  lastSyncedLabel: string;
-  accounts: SidebarAccountSectionProps["accounts"];
-  accountStatusLabels: SidebarAccountSectionProps["accountStatusLabels"];
-  selectedAccountId: SidebarAccountSectionProps["selectedAccountId"];
-  isAccountListOpen: boolean;
-  accountMenuId: string;
-  accountDropdownRef: SidebarAccountSectionProps["containerRef"];
-  accountTriggerRef: SidebarAccountSectionProps["triggerRef"];
-  accountItemRefs: SidebarAccountSectionProps["itemRefs"];
-  toggleAccountList: () => void;
-  handleSelectAccount: SidebarAccountSectionProps["onSelectAccount"];
-  closeAccountList: () => void;
-  visibleSmartViews: SmartViewsViewProps["views"];
-  selectSmartView: SmartViewsViewProps["onSelectSmartView"];
-  isFeedsSectionOpen: boolean;
-  toggleFeedsSection: () => void;
-  feedViewportRef: RefObject<HTMLDivElement | null>;
-  openFeedCleanup: () => void;
-  handleOpenSettings: () => void;
-  isAddFeedDialogOpen: boolean;
-  handleAddFeedDialogOpenChange: (open: boolean) => void;
-  showSidebarTags: boolean;
-  isTagsSectionOpen: boolean;
-  toggleTagsSection: () => void;
-  handleOpenAccountSettings: () => void;
-  feedTreeProps: SidebarContentSectionsProps["feedTreeProps"];
-  tags: SidebarContentSectionsProps["tags"];
-  tagArticleCounts: SidebarContentSectionsProps["tagArticleCounts"];
-  selection: SidebarContentSectionsProps["selection"];
-  selectTag: SidebarContentSectionsProps["onSelectTag"];
-  renderTagContextMenu: SidebarContentSectionsProps["renderTagContextMenu"];
-};
 
 export function useSidebarSectionProps({
   t,
@@ -88,7 +41,7 @@ export function useSidebarSectionProps({
   selection,
   selectTag,
   renderTagContextMenu,
-}: UseSidebarSectionPropsParams): SidebarSectionPropsResult {
+}: SidebarSectionPropsParams): SidebarSectionPropsResult {
   const headerProps = useSidebarHeaderProps({
     t,
     syncProgress,

@@ -8,7 +8,7 @@ type UseSidebarAccountSelectionParams = {
   selectedAccountId: string | null;
   savedAccountId: string;
   layoutMode: LayoutMode;
-  activeDevIntent: DevIntent;
+  activeDevIntent: DevIntent | null;
   clearSelectedAccount: () => void;
   restoreAccountSelection: (id: string, options?: { focusedPane?: "sidebar" | "list" | "content" }) => void;
   setSelectedAccountPreference: (accountId: string) => void;

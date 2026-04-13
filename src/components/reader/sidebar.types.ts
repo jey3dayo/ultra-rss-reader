@@ -19,3 +19,58 @@ export type SidebarViewPropsResult = SidebarSectionPropsResult & {
 };
 
 export type SidebarControllerResult = SidebarViewPropsResult;
+
+export type SidebarHeaderPropsParams = {
+  t: import("i18next").TFunction<"sidebar">;
+  syncProgress: {
+    active: boolean;
+    kind: string | null;
+  };
+  handleSync: () => void | Promise<void>;
+  handleAddFeed: () => void;
+};
+
+export type SidebarSmartViewsPropsParams = {
+  t: import("i18next").TFunction<"sidebar">;
+  visibleSmartViews: SmartViewsViewProps["views"];
+  selectSmartView: SmartViewsViewProps["onSelectSmartView"];
+};
+
+export type SidebarSectionPropsParams = {
+  t: import("i18next").TFunction<"sidebar">;
+  syncProgress: SidebarHeaderPropsParams["syncProgress"];
+  handleSync: SidebarHeaderPropsParams["handleSync"];
+  handleAddFeed: SidebarHeaderPropsParams["handleAddFeed"];
+  selectedAccountName?: string;
+  lastSyncedLabel: string;
+  accounts: SidebarAccountSectionProps["accounts"];
+  accountStatusLabels: SidebarAccountSectionProps["accountStatusLabels"];
+  selectedAccountId: SidebarAccountSectionProps["selectedAccountId"];
+  isAccountListOpen: boolean;
+  accountMenuId: string;
+  accountDropdownRef: SidebarAccountSectionProps["containerRef"];
+  accountTriggerRef: SidebarAccountSectionProps["triggerRef"];
+  accountItemRefs: SidebarAccountSectionProps["itemRefs"];
+  toggleAccountList: () => void;
+  handleSelectAccount: SidebarAccountSectionProps["onSelectAccount"];
+  closeAccountList: () => void;
+  visibleSmartViews: SmartViewsViewProps["views"];
+  selectSmartView: SmartViewsViewProps["onSelectSmartView"];
+  isFeedsSectionOpen: boolean;
+  toggleFeedsSection: () => void;
+  feedViewportRef: import("react").RefObject<HTMLDivElement | null>;
+  openFeedCleanup: () => void;
+  handleOpenSettings: () => void;
+  isAddFeedDialogOpen: boolean;
+  handleAddFeedDialogOpenChange: (open: boolean) => void;
+  showSidebarTags: boolean;
+  isTagsSectionOpen: boolean;
+  toggleTagsSection: () => void;
+  handleOpenAccountSettings: () => void;
+  feedTreeProps: SidebarContentSectionsProps["feedTreeProps"];
+  tags: SidebarContentSectionsProps["tags"];
+  tagArticleCounts: SidebarContentSectionsProps["tagArticleCounts"];
+  selection: SidebarContentSectionsProps["selection"];
+  selectTag: SidebarContentSectionsProps["onSelectTag"];
+  renderTagContextMenu: SidebarContentSectionsProps["renderTagContextMenu"];
+};
