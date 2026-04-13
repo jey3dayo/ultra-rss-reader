@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { MouseEventHandler, ReactNode } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type { ResolvedArticleDisplay } from "@/lib/article-display";
 import type { ContentMode } from "@/stores/ui-store";
@@ -20,6 +20,22 @@ export type ArticleToolbarProps = {
 export type ArticleReaderBodyProps = {
   article: ArticleDto;
   feedName?: string;
+};
+
+export type ArticleContentViewProps = {
+  thumbnailUrl?: string | null;
+  contentHtml: string;
+  feedName?: string | null;
+};
+
+export type ArticleMetaViewProps = {
+  title: string;
+  author?: string | null;
+  feedName?: string | null;
+  publishedLabel: string;
+  onTitleClick?: MouseEventHandler<HTMLButtonElement>;
+  onTitleAuxClick?: MouseEventHandler<HTMLButtonElement>;
+  onFeedClick?: () => void;
 };
 
 export type BrowserOverlaySurfaceProps = {
@@ -53,6 +69,11 @@ export type BrowserOnlyStateViewProps = {
 
 export type ArticleNotFoundStateViewProps = {
   message: string;
+};
+
+export type ArticleEmptyStateViewProps = {
+  message: string;
+  hints?: string[];
 };
 
 export type UseArticleBrowserOverlayParams = {

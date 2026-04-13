@@ -1,13 +1,6 @@
 import { LoaderCircle } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-
-type LoadingButtonProps = ComponentProps<typeof Button> & {
-  loading?: boolean;
-  loadingLabel?: ReactNode;
-  disabledWhenLoading?: boolean;
-  spinner?: ReactNode;
-};
+import type { LoadingButtonProps } from "./button.types";
 
 export function LoadingButton({
   children,

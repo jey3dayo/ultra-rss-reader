@@ -1,7 +1,4 @@
-export type ArticleEmptyStateViewProps = {
-  message: string;
-  hints?: string[];
-};
+import type { ArticleEmptyStateViewProps } from "./article-view.types";
 
 const EMPTY_HINTS: string[] = [];
 

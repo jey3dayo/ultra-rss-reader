@@ -1,14 +1,4 @@
-import type { MouseEventHandler } from "react";
-
-export type ArticleMetaViewProps = {
-  title: string;
-  author?: string | null;
-  feedName?: string | null;
-  publishedLabel: string;
-  onTitleClick?: MouseEventHandler<HTMLButtonElement>;
-  onTitleAuxClick?: MouseEventHandler<HTMLButtonElement>;
-  onFeedClick?: () => void;
-};
+import type { ArticleMetaViewProps } from "./article-view.types";
 
 export function ArticleMetaView({
   title,

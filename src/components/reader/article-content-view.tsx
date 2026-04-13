@@ -1,11 +1,6 @@
 import { useMemo } from "react";
 import { stripLeadingDuplicateLabel } from "@/lib/html";
-
-export type ArticleContentViewProps = {
-  thumbnailUrl?: string | null;
-  contentHtml: string;
-  feedName?: string | null;
-};
+import type { ArticleContentViewProps } from "./article-view.types";
 
 export function ArticleContentView({ thumbnailUrl, contentHtml, feedName }: ArticleContentViewProps) {
   const displayHtml = useMemo(() => stripLeadingDuplicateLabel(contentHtml, feedName), [contentHtml, feedName]);
