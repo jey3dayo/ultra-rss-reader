@@ -17,6 +17,15 @@ type UseArticleListHeaderControlsParams = {
   toggleSidebar: () => void;
 };
 
+export type UseArticleListHeaderControlsResult = {
+  showSidebarButton: boolean;
+  sidebarButtonLabel: string;
+  sidebarButtonText?: string;
+  isSidebarVisible?: boolean;
+  feedModeControl: React.ReactNode;
+  handleSidebarToggle: () => void;
+};
+
 export function useArticleListHeaderControls({
   layoutMode,
   sidebarOpen,
@@ -30,7 +39,7 @@ export function useArticleListHeaderControls({
   onSetDisplayMode,
   openSidebar,
   toggleSidebar,
-}: UseArticleListHeaderControlsParams) {
+}: UseArticleListHeaderControlsParams): UseArticleListHeaderControlsResult {
   const handleSidebarToggle = useCallback(() => {
     if (layoutMode === "wide") {
       toggleSidebar();

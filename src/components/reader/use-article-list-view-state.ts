@@ -18,7 +18,7 @@ type UseArticleListViewStateParams = {
   filteredArticleCount: number;
 };
 
-type UseArticleListViewStateResult = {
+export type UseArticleListViewStateResult = {
   contextStripContext: {
     primaryLabel: string | null;
     secondaryLabel: string | null;
