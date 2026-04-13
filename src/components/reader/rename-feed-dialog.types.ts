@@ -38,6 +38,8 @@ export type RenameFeedDialogControllerParams = {
   onOpenChange: (open: boolean) => void;
 };
 
+export type RenameDialogProps = RenameFeedDialogControllerParams;
+
 export type RenameFeedDialogControllerFolderSelectProps = {
   folderSelectValue: string;
   folderOptions: FolderDto extends never ? never : FolderSelectViewProps["options"];
