@@ -97,4 +97,57 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await expect(page.getByRole("menuitem", { name: /Copy link|リンクをコピー/i })).toBeVisible();
     await expect(page.getByRole("menuitem", { name: /Open in External Browser|外部ブラウザで開く/i })).toBeVisible();
   });
+
+  test("opens feed cleanup from the sidebar and shows split review controls", async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await page.goto("/");
+
+    await page.getByRole("button", { name: /Review Subscriptions|購読の整理/i }).click();
+
+    await expect(page.getByRole("heading", { name: /Review Subscriptions|購読の整理/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Overview|概要/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Cleanup Queue|整理キュー/i })).toBeVisible();
+    await expect(
+      page.getByTestId("feed-cleanup-review-panel").getByRole("heading", { name: /^Review$|^確認$/i }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: /Keep all visible|表示中をまとめて継続/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Defer all visible|表示中をまとめて保留/i })).toBeVisible();
+
+    await page.getByTestId("feed-cleanup-queue-list").getByRole("button").first().click();
+
+    await expect(page.getByTestId("feed-cleanup-review-panel")).toContainText(
+      /Why this feed is here|候補に入った理由/i,
+    );
+    await expect(page.getByRole("button", { name: /^Keep$|^残す$/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Later|あとで見る/i })).toBeVisible();
+  });
+
+  test("keeps feed cleanup actions above the queue on narrow screens", async ({ page }) => {
+    await page.setViewportSize({ width: 639, height: 900 });
+    await page.goto("/");
+
+    await page.getByRole("button", { name: /Show sidebar|サイドバーを表示/i }).click();
+
+    const feedCleanupButton = page.getByRole("button", { name: /Review Subscriptions|購読の整理/i });
+    await feedCleanupButton.scrollIntoViewIfNeeded();
+    await feedCleanupButton.click();
+
+    const keepAllVisibleButton = page.getByRole("button", { name: /Keep all visible|表示中をまとめて継続/i });
+    const queueHeading = page.getByRole("heading", { name: /Cleanup Queue|整理キュー/i });
+
+    await expect(keepAllVisibleButton).toBeVisible();
+    await expect(queueHeading).toBeVisible();
+
+    const keepBox = await keepAllVisibleButton.boundingBox();
+    const queueBox = await queueHeading.boundingBox();
+
+    expect(keepBox).not.toBeNull();
+    expect(queueBox).not.toBeNull();
+
+    if (!keepBox || !queueBox) {
+      throw new Error("Expected feed cleanup controls to have measurable bounds.");
+    }
+
+    expect(keepBox.y).toBeLessThan(queueBox.y);
+  });
 });
