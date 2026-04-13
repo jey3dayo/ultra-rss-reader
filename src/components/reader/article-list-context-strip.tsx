@@ -1,8 +1,4 @@
-export type ArticleListContextStripProps = {
-  primaryLabel?: string | null;
-  secondaryLabel?: string | null;
-  tone?: "unread" | "starred" | null;
-};
+import type { ArticleListContextStripProps } from "./article-list.types";
 
 const TONE_STYLES = {
   unread: {

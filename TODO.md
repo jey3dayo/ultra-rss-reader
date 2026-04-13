@@ -751,10 +751,20 @@
   - 対応: `article-list.types.ts` に search params/result contract を追加して、search hook は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-search.ts`
 
+- [x] article list sources hook の contract を shared types に寄せる
+  - 問題: `use-article-list-sources.ts` の params/result 契約が hook file に閉じていて、runtime 配下の query source 境界の正本を追いにくかった
+  - 対応: `article-list.types.ts` に sources params/result contract を追加して、sources hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-sources.ts`
+
 - [x] article list header subview props の正本を shared types に寄せる
   - 問題: `article-list-header.tsx` / `article-list-header-actions.tsx` / `article-list-header-search.tsx` に props contract が分散していて、header 境界の正本を `article-list.types.ts` から追えなかった
   - 対応: `article-list.types.ts` に header/actions/search props contract を集約して、header subview は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/article-list-header.tsx`, `src/components/reader/article-list-header-actions.tsx`, `src/components/reader/article-list-header-search.tsx`
+
+- [x] article list context/body/footer props の正本を shared types に寄せる
+  - 問題: `article-list-context-strip.tsx` / `article-list-body.tsx` / `article-list-footer.tsx` に view props contract が分散していて、list shell の境界を `article-list.types.ts` から追えなかった
+  - 対応: `article-list.types.ts` に context/body/footer props contract を集約して、subview は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/article-list-context-strip.tsx`, `src/components/reader/article-list-body.tsx`, `src/components/reader/article-list-footer.tsx`
 
 - [x] sidebar header/content view props の正本を sidebar types に寄せる
   - 問題: `sidebar.types.ts` が `sidebar-header-view.tsx` と `sidebar-content-sections.tsx` の exported props に依存していて、shared types 側から component file へ逆参照していた

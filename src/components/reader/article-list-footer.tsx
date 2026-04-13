@@ -5,14 +5,7 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
-
-export type ViewMode = "all" | "unread" | "starred";
-
-export type ArticleListFooterProps = {
-  viewMode: ViewMode;
-  modes?: readonly ViewMode[];
-  onSetViewMode: (mode: ViewMode) => void;
-};
+import type { ArticleListFooterProps, ArticleListViewMode } from "./article-list.types";
 
 const VIEW_MODES = [
   { value: "unread", icon: null, labelKey: "filter_unread" },
@@ -28,7 +21,7 @@ export function ArticleListFooter({
   const { t } = useTranslation("reader");
   const handleChange = useCallback(
     (groupValue: string[]) => {
-      const latest = groupValue[groupValue.length - 1] as ViewMode | undefined;
+      const latest = groupValue[groupValue.length - 1] as ArticleListViewMode | undefined;
       if (latest) onSetViewMode(latest);
     },
     [onSetViewMode],
