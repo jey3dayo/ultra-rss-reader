@@ -440,6 +440,10 @@
   - 問題: `feed-tree-drag-session.ts` が pointer drag の閾値と session 更新を担っているが、helper 単体の回帰テストがなかった
   - 対象: `src/components/reader/feed-tree-drag-session.ts`, `src/__tests__/components/feed-tree-drag-session.test.ts`
 
+- [x] feed tree drop outcome helper の契約を unit test で固定する
+  - 問題: `feed-tree-drag-outcome.ts` が pointer drag 終了時の outcome 分岐を担っているが、helper 単体の回帰テストがなかった
+  - 対象: `src/components/reader/feed-tree-drag-outcome.ts`, `src/__tests__/components/feed-tree-drag-outcome.test.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
