@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useFeedLanding } from "@/hooks/use-feed-landing";
+import type { CommandPaletteControllerResult } from "./command-palette.types";
 import { useCommandPaletteActions } from "./use-command-palette-actions";
 import { useCommandPaletteData } from "./use-command-palette-data";
 import { useCommandPaletteHandlers } from "./use-command-palette-handlers";
@@ -7,7 +8,7 @@ import { useCommandPaletteRuntime } from "./use-command-palette-runtime";
 import { useCommandPaletteUiState } from "./use-command-palette-ui-state";
 import { useCommandPaletteViewProps } from "./use-command-palette-view-props";
 
-export function useCommandPaletteController() {
+export function useCommandPaletteController(): CommandPaletteControllerResult {
   const { t } = useTranslation("reader");
   const {
     open,

@@ -42,6 +42,29 @@ export type CommandPaletteResultsProps = {
   onArticleSelect: (feedId: string, articleId: string) => void;
 };
 
+export type CommandPaletteViewResultsProps = Omit<CommandPaletteResultsProps, "getCommandItemValue">;
+
+export type CommandPalettePrefixHints = {
+  actions: string;
+  feeds: string;
+  tags: string;
+};
+
+export type CommandPaletteViewPropsResult = {
+  title: string;
+  description: string;
+  placeholder: string;
+  resultsProps: CommandPaletteViewResultsProps;
+  prefixHints: CommandPalettePrefixHints;
+};
+
+export type CommandPaletteControllerResult = CommandPaletteViewPropsResult & {
+  open: boolean;
+  input: string;
+  setInput: (value: string) => void;
+  closePalette: () => void;
+};
+
 export type CommandPaletteActionGroupsProps = Pick<
   CommandPaletteResultsProps,
   | "recentActions"
