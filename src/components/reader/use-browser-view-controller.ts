@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import {
   type AppError,
   type BrowserWebviewState,
-  closeBrowserWebview,
   createOrUpdateBrowserWebview,
   openInBrowser,
   setBrowserWebviewBounds,
@@ -39,6 +38,8 @@ import {
 import { useBrowserDebugGeometryEvents } from "./use-browser-debug-geometry-events";
 import { useBrowserOverlayShortcuts } from "./use-browser-overlay-shortcuts";
 import { useBrowserOverlayViewportWidth } from "./use-browser-overlay-viewport-width";
+import { useBrowserWebviewBoundsSync } from "./use-browser-webview-bounds-sync";
+import { useBrowserWebviewCleanup } from "./use-browser-webview-cleanup";
 import { useBrowserWebviewEvents } from "./use-browser-webview-events";
 import { useBrowserWebviewLoadTimeout } from "./use-browser-webview-load-timeout";
 
@@ -321,44 +322,12 @@ export function useBrowserViewController({
     setSurfaceIssue(null);
   }, [browserUrl]);
 
-  useLayoutEffect(() => {
-    if (!browserUrl || !hostRef.current) {
-      return undefined;
-    }
-
-    let cancelled = false;
-
-    const syncBounds = (mode: "create" | "resize") => {
-      void waitForBrowserWebviewListeners().then(() => {
-        if (cancelled || useUiStore.getState().browserUrl !== browserUrl) {
-          return;
-        }
-
-        void syncBrowserWebview(browserUrl, mode);
-      });
-    };
-
-    syncBounds("create");
-
-    const observer =
-      typeof ResizeObserver === "undefined"
-        ? null
-        : new ResizeObserver(() => {
-            syncBounds("resize");
-          });
-    observer?.observe(hostRef.current);
-
-    const handleResize = () => {
-      syncBounds("resize");
-    };
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      cancelled = true;
-      observer?.disconnect();
-      window.removeEventListener("resize", handleResize);
-    };
-  }, [browserUrl, syncBrowserWebview, waitForBrowserWebviewListeners]);
+  useBrowserWebviewBoundsSync({
+    browserUrl,
+    hostRef,
+    waitForBrowserWebviewListeners,
+    syncBrowserWebview,
+  });
 
   useLayoutEffect(() => {
     if (!browserUrl || !showDiagnostics) {
@@ -377,18 +346,7 @@ export function useBrowserViewController({
     setNativeDiagnostics(null);
   }, [showDiagnostics]);
 
-  useEffect(() => {
-    return () => {
-      void closeBrowserWebview().then((result) => {
-        Result.pipe(
-          result,
-          Result.inspectError((error) => {
-            console.error("Failed to close embedded browser webview:", error);
-          }),
-        );
-      });
-    };
-  }, []);
+  useBrowserWebviewCleanup();
 
   const isLoading = browserUrl ? (browserState?.is_loading ?? true) : false;
 
