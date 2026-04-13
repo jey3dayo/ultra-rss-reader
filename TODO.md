@@ -137,6 +137,11 @@
   - 問題: `useCommandPaletteController` に results props と prefix hint の組み立てが残っていて、controller orchestration と view props 導出が混ざっていた
   - 対象: `src/components/reader/use-command-palette-controller.ts`, `src/components/reader/use-command-palette-view-props.ts`
 
+- [x] command-palette の results group 描画を subview に分ける
+  - 問題: `command-palette-results.tsx` に recent/actions と feeds/tags/articles/dev scenarios の `CommandGroup` 描画がまとまっていて、results shell と group 実装が混ざっていた
+  - 対応: `command-palette-action-groups.tsx` と `command-palette-resource-groups.tsx` に group 描画を分けて、results 本体は list shell に寄せた
+  - 対象: `src/components/reader/command-palette-results.tsx`, `src/components/reader/command-palette-action-groups.tsx`, `src/components/reader/command-palette-resource-groups.tsx`
+
 - [x] article-pane controller から overlay action JSX を外す
   - 問題: `useArticlePaneController` が browser overlay の action strip JSX を直接返していて、controller orchestration と view 描画が混ざっていた
   - 対象: `src/components/reader/use-article-pane-controller.tsx`, `src/components/reader/article-view.tsx`, `src/components/reader/article-view.types.ts`
