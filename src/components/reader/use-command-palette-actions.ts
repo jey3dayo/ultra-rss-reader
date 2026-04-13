@@ -2,19 +2,16 @@ import { CircleHelpIcon, NewspaperIcon, RefreshCwIcon, RssIcon, SettingsIcon } f
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { getShortcutDisplay } from "@/lib/keyboard-shortcuts";
-import type { PaletteAction } from "./command-palette.types";
-import type { useCommandPaletteUiState } from "./use-command-palette-ui-state";
+import type { UseCommandPaletteActionsParams, UseCommandPaletteActionsResult } from "./command-palette.types";
 
-type UseCommandPaletteActionsParams = Pick<
-  ReturnType<typeof useCommandPaletteUiState>,
-  "platformKind" | "shortcutPrefs"
->;
-
-export function useCommandPaletteActions({ platformKind, shortcutPrefs }: UseCommandPaletteActionsParams) {
+export function useCommandPaletteActions({
+  platformKind,
+  shortcutPrefs,
+}: UseCommandPaletteActionsParams): UseCommandPaletteActionsResult {
   const { t } = useTranslation("reader");
   const { t: tSidebar } = useTranslation("sidebar");
 
-  return useMemo<PaletteAction[]>(
+  return useMemo(
     () => [
       {
         id: "open-settings",

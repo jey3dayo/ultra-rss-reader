@@ -1,17 +1,12 @@
 import { addToHistory } from "@/hooks/use-command-history";
 import { executeAction } from "@/lib/actions";
 import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/lib/dev-scenario-runtime";
-import type { PaletteAction } from "./command-palette.types";
 import { createCommandPaletteHistoryValue } from "./command-palette-history";
-import type { useCommandPaletteUiState } from "./use-command-palette-ui-state";
-
-type UseCommandPaletteHandlersParams = Pick<
-  ReturnType<typeof useCommandPaletteUiState>,
-  "openShortcutsHelp" | "showToast" | "selectFeed" | "selectTag" | "selectArticle"
-> & {
-  closePalette: () => void;
-  openFeedLanding: (feedId: string) => Promise<void>;
-};
+import type {
+  PaletteAction,
+  UseCommandPaletteHandlersParams,
+  UseCommandPaletteHandlersResult,
+} from "./command-palette.types";
 
 export function useCommandPaletteHandlers({
   closePalette,
@@ -21,7 +16,7 @@ export function useCommandPaletteHandlers({
   selectTag,
   selectArticle,
   openFeedLanding,
-}: UseCommandPaletteHandlersParams) {
+}: UseCommandPaletteHandlersParams): UseCommandPaletteHandlersResult {
   function handleActionSelect(action: PaletteAction["id"]) {
     if (action === "open-shortcuts-help") {
       openShortcutsHelp();
