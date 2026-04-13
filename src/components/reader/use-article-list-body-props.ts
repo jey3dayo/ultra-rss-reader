@@ -1,29 +1,5 @@
-import type { TFunction } from "i18next";
-import type { KeyboardEvent, RefObject } from "react";
-import type { ArticleGroupsViewGroup } from "./article-groups-view";
+import type { UseArticleListBodyPropsParams } from "./article-list.types";
 import type { ArticleListBody } from "./article-list-body";
-
-type UseArticleListBodyPropsParams = {
-  t: TFunction<"reader">;
-  tc: TFunction<"common">;
-  listRef: RefObject<HTMLDivElement | null>;
-  viewportRef: RefObject<HTMLDivElement | null>;
-  handleListKeyDownCapture: (event: KeyboardEvent<HTMLDivElement>) => void;
-  isLoading: boolean;
-  isLoadingAccountArticles: boolean;
-  isLoadingTagArticles: boolean;
-  isSearchLoading: boolean;
-  isSearchEmptyState: boolean;
-  trimmedDebouncedQuery: string;
-  articleGroups: ArticleGroupsViewGroup[];
-  dimArchived: string;
-  textPreview: string;
-  imagePreviews: string;
-  selectionStyle: string;
-  selectArticle: (articleId: string) => void;
-  handleCloseSearch: () => void;
-  handleMarkAllRead: () => void;
-};
 
 export function useArticleListBodyProps({
   t,
