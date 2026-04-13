@@ -1,26 +1,10 @@
 import { Menu } from "@base-ui/react/menu";
 import { Result } from "@praha/byethrow";
 import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
-import type { ArticleDto } from "@/api/tauri-commands";
 import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
 import { IconToolbarMenuTrigger } from "@/components/shared/icon-toolbar-control";
+import type { ArticleShareMenuProps } from "./article-menu.types";
 import { contextMenuStyles } from "./context-menu-styles";
-
-type ArticleShareMenuLabels = {
-  share: string;
-  copyLink: string;
-  addToReadingList: string;
-  addedToReadingList: string;
-  shareViaEmail: string;
-  linkCopied: string;
-};
-
-type ArticleShareMenuProps = {
-  article: ArticleDto | null;
-  supportsReadingList: boolean;
-  showToast: (message: string) => void;
-  labels: ArticleShareMenuLabels;
-};
 
 export function ArticleShareMenu({ article, supportsReadingList, showToast, labels }: ArticleShareMenuProps) {
   return (

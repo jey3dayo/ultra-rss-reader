@@ -1,4 +1,5 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
+import type { ArticleContextMenuViewProps } from "./article-menu.types";
 import { contextMenuStyles } from "./context-menu-styles";
 
 export function ArticleContextMenuView({
@@ -8,14 +9,7 @@ export function ArticleContextMenuView({
   onToggleRead,
   onToggleStar,
   onOpenInBrowser,
-}: {
-  toggleReadLabel: string;
-  toggleStarLabel: string;
-  openInBrowserLabel?: string;
-  onToggleRead: () => void;
-  onToggleStar: () => void;
-  onOpenInBrowser?: () => void;
-}) {
+}: ArticleContextMenuViewProps) {
   return (
     <ContextMenu.Portal>
       <ContextMenu.Positioner>
