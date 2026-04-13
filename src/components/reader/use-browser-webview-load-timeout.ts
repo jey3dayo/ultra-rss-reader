@@ -1,13 +1,7 @@
 import { useEffect } from "react";
 import { BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
 import { useUiStore } from "@/stores/ui-store";
-
-type UseBrowserWebviewLoadTimeoutParams = {
-  browserUrl: string | null;
-  isLoading: boolean;
-  isStillLoading: () => boolean;
-  showSurfaceFailure: (error: { type: "UserVisible"; message: string }) => void;
-};
+import type { UseBrowserWebviewLoadTimeoutParams } from "./browser-view.types";
 
 export function useBrowserWebviewLoadTimeout({
   browserUrl,

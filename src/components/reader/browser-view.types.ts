@@ -164,3 +164,18 @@ export type UseBrowserOverlayShortcutsParams = {
   browserUrl: string | null;
   handleCloseOverlay: () => void;
 };
+
+export type UseBrowserWebviewLoadTimeoutParams = {
+  browserUrl: string | null;
+  isLoading: boolean;
+  isStillLoading: () => boolean;
+  showSurfaceFailure: (error: { type: "UserVisible"; message: string }) => void;
+};
+
+export type UseBrowserWebviewStateChangedParams = {
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
+  fallbackInFlightRef: MutableRefObject<boolean>;
+  setBrowserState: (state: BrowserWebviewState) => void;
+  setSurfaceIssue: (issue: null) => void;
+  getRequestedUrl: () => string;
+};
