@@ -1,24 +1,14 @@
 import { Fragment } from "react";
+import type {
+  CopyableReadonlyFieldItem,
+  CopyableReadonlyFieldListProps,
+} from "@/components/shared/copyable-field.types";
 import { cn } from "@/lib/utils";
 import { CopyableReadonlyField } from "./copyable-readonly-field";
 
-export type CopyableReadonlyFieldItem = {
-  key: string;
-  label: string;
-  name: string;
-  value: string;
-  disabled?: boolean;
-  copyLabel?: string;
-  onCopy?: () => void;
-};
+export type { CopyableReadonlyFieldItem };
 
-export function CopyableReadonlyFieldList({
-  fields,
-  className,
-}: {
-  fields: CopyableReadonlyFieldItem[];
-  className?: string;
-}) {
+export function CopyableReadonlyFieldList({ fields, className }: CopyableReadonlyFieldListProps) {
   const Wrapper = className ? "div" : Fragment;
   const wrapperProps = className ? { className: cn("space-y-3", className) } : {};
 

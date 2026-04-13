@@ -1,3 +1,4 @@
+import type { CopyableReadonlyFieldProps } from "@/components/shared/copyable-field.types";
 import { CopyableTextField } from "@/components/shared/copyable-text-field";
 
 export function CopyableReadonlyField({
@@ -7,14 +8,7 @@ export function CopyableReadonlyField({
   copyLabel,
   disabled = false,
   onCopy,
-}: {
-  label: string;
-  name: string;
-  value: string;
-  copyLabel?: string;
-  disabled?: boolean;
-  onCopy?: () => void;
-}) {
+}: CopyableReadonlyFieldProps) {
   return (
     <CopyableTextField
       label={label}

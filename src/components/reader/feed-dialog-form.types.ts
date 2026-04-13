@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import type { CopyableReadonlyFieldItem } from "@/components/shared/copyable-readonly-field-list";
+import type { CopyableReadonlyFieldItem } from "@/components/shared/copyable-field.types";
 import type { DiscoveredFeedOption } from "./discovered-feed-options-view";
 import type { FolderSelectViewProps } from "./folder-select-view";
 

@@ -1,19 +1,7 @@
 import { CheckCheck } from "lucide-react";
-import type { ComponentType } from "react";
+import type { ConfirmDialogViewProps } from "@/components/shared/dialog.types";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-
-export type ConfirmDialogViewProps = {
-  open: boolean;
-  title: string;
-  message: string;
-  actionLabel: string;
-  cancelLabel: string;
-  icon?: ComponentType<{ className?: string }> | null;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
-  onCancel: () => void;
-};
 
 export function ConfirmDialogView({
   open,
