@@ -207,11 +207,10 @@
   - 問題: `browser-view.tsx` に diagnostics rail と surface failure card の詳細 JSX が残っていて、overlay shell 描画と subview 実装が混ざっていた
   - 対象: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-diagnostics-rail.tsx`, `src/components/reader/browser-surface-state-card.tsx`
 
-- [ ] browser-view の surface state / runtime-unavailable 判定の hook 化を再開する
-  - 問題: `useBrowserViewController` に `surfaceIssue` state、failure handler、runtime-unavailable 判定が残っていて、controller orchestration と surface state 管理が混ざっている
-  - メモ: 一度 `use-browser-view-surface-state.ts` へ寄せたが `browser-view.test.tsx` の listener/bounds 系 3 ケースでタイムアウト回帰が出たため、安定側へ戻して保留にした
-  - 進捗: `use-browser-view-surface-state` の回帰テスト、`browser-runtime-availability.ts`、fallback handler 移管まで先に進めて、安全網を増やした
-  - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-view-surface-state.ts`
+- [x] browser-view の surface state / runtime-unavailable 判定を surface controller hook に寄せる
+  - 問題: `useBrowserViewController` に `surfaceIssue` state、failure handler、runtime-unavailable 判定が残っていて、controller orchestration と surface state 管理が混ざっていた
+  - 対応: `use-browser-view-surface-state.ts` の安全網を維持したまま、translation/runtime 判定の接着を `use-browser-view-surface-controller.ts` へ寄せて controller 本体を軽くした
+  - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-view-surface-state.ts`, `src/components/reader/use-browser-view-surface-controller.ts`
 
 - [x] sidebar の feed navigation と event listener を hook 化する
   - 問題: `sidebar.tsx` に feed 移動、folder 自動展開、`APP_EVENTS.navigateFeed` 購読が残っていて、tree 導出と責務が混ざっている
