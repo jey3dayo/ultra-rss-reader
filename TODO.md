@@ -39,6 +39,11 @@
     2. account 系の素直な text/password/url 行から順に置き換える
     3. name 属性と label 関連付けを既存テストで維持する
 
+- [x] settings page row helper の contract を types file に寄せる
+  - 問題: `settings-page-view.tsx` の select/switch/text/action row helper props が local 定義で残っていて、settings page view contract の正本が component file 側に分散していた
+  - 対応: `settings-page.types.ts` に row helper props contract を追加して、settings page view は shared types を再利用する形に寄せた
+  - 対象: `src/components/settings/settings-page.types.ts`, `src/components/settings/settings-page-view.tsx`
+
 - [x] confirm dialog 系の shell / footer を `src/components/shared` に寄せる
   - 問題: `ConfirmDialog` と `ConfirmDialogView` がほぼ同型で、destructive footer も複数 dialog に重複している
   - 対象: `src/components/ui/confirm-dialog.tsx`, `src/components/shared/*`, `src/components/feed-cleanup/*`
