@@ -4,11 +4,20 @@ import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-function Select({ ...props }: SelectPrimitive.Root.Props<string>) {
+export type SelectProps = SelectPrimitive.Root.Props<string>;
+export type SelectTriggerProps = SelectPrimitive.Trigger.Props;
+export type SelectValueProps = SelectPrimitive.Value.Props;
+export type SelectPopupProps = SelectPrimitive.Popup.Props;
+export type SelectItemProps = SelectPrimitive.Item.Props;
+export type SelectGroupProps = SelectPrimitive.Group.Props;
+export type SelectGroupLabelProps = SelectPrimitive.GroupLabel.Props;
+export type SelectSeparatorProps = React.ComponentProps<"div">;
+
+function Select({ ...props }: SelectProps) {
   return <SelectPrimitive.Root data-slot="select" {...props} />;
 }
 
-function SelectTrigger({ className, children, ...props }: SelectPrimitive.Trigger.Props) {
+function SelectTrigger({ className, children, ...props }: SelectTriggerProps) {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
@@ -26,11 +35,11 @@ function SelectTrigger({ className, children, ...props }: SelectPrimitive.Trigge
   );
 }
 
-function SelectValue({ ...props }: SelectPrimitive.Value.Props) {
+function SelectValue({ ...props }: SelectValueProps) {
   return <SelectPrimitive.Value data-slot="select-value" {...props} />;
 }
 
-function SelectPopup({ className, children, ...props }: SelectPrimitive.Popup.Props) {
+function SelectPopup({ className, children, ...props }: SelectPopupProps) {
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Positioner sideOffset={8}>
@@ -49,7 +58,7 @@ function SelectPopup({ className, children, ...props }: SelectPrimitive.Popup.Pr
   );
 }
 
-function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Props) {
+function SelectItem({ className, children, ...props }: SelectItemProps) {
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
@@ -69,11 +78,11 @@ function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Prop
   );
 }
 
-function SelectGroup({ ...props }: SelectPrimitive.Group.Props) {
+function SelectGroup({ ...props }: SelectGroupProps) {
   return <SelectPrimitive.Group data-slot="select-group" {...props} />;
 }
 
-function SelectGroupLabel({ className, ...props }: SelectPrimitive.GroupLabel.Props) {
+function SelectGroupLabel({ className, ...props }: SelectGroupLabelProps) {
   return (
     <SelectPrimitive.GroupLabel
       data-slot="select-group-label"
@@ -83,7 +92,7 @@ function SelectGroupLabel({ className, ...props }: SelectPrimitive.GroupLabel.Pr
   );
 }
 
-function SelectSeparator({ className, ...props }: React.ComponentProps<"div">) {
+function SelectSeparator({ className, ...props }: SelectSeparatorProps) {
   return <div data-slot="select-separator" className={cn("bg-border -mx-1 my-1 h-px", className)} {...props} />;
 }
 
