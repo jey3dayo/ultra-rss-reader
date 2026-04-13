@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree-view";
+import { collectFeedIds, getVisibleSidebarFeeds, mapFeedsToFeedTreeViewModels } from "./sidebar-feed-tree-helpers";
 import type { UseSidebarFeedTreeParams, UseSidebarFeedTreeResult } from "./sidebar-feed-tree.types";
 
 export function useSidebarFeedTree({
@@ -41,14 +42,8 @@ export function useSidebarFeedTree({
   const selectedFeedId = selection.type === "feed" ? selection.feedId : null;
   const selectedFolderId = selection.type === "folder" ? selection.folderId : null;
 
-  const filterFolderFeedsForSidebar = useCallback(
-    (folderFeeds: FeedDto[]) => {
-      const sortedFeeds = sortFeeds(folderFeeds);
-      if (viewMode === "unread") {
-        return sortedFeeds.filter((feed) => feed.unread_count > 0);
-      }
-      return sortedFeeds;
-    },
+  const getVisibleFeeds = useCallback(
+    (candidateFeeds: FeedDto[]) => getVisibleSidebarFeeds(candidateFeeds, viewMode, sortFeeds),
     [sortFeeds, viewMode],
   );
 
@@ -58,11 +53,9 @@ export function useSidebarFeedTree({
     () =>
       sortedFolderList
         .map((folder) => {
-          const rawFolderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
+          const rawFolderFeeds = feedsByFolder.get(folder.id) ?? [];
           const folderFeeds =
-            selectedFolderId !== null && folder.id !== selectedFolderId
-              ? []
-              : filterFolderFeedsForSidebar(rawFolderFeeds);
+            selectedFolderId !== null && folder.id !== selectedFolderId ? [] : getVisibleFeeds(rawFolderFeeds);
           const folderUnread = rawFolderFeeds.reduce((sum, feed) => sum + feed.unread_count, 0);
           return {
             id: folder.id,
@@ -72,71 +65,46 @@ export function useSidebarFeedTree({
             unreadCount: folderUnread,
             isExpanded: expandedFolderIds.has(folder.id),
             isSelected: selectedFolderId === folder.id,
-            feeds: folderFeeds.map((feed) => ({
-              id: feed.id,
-              accountId: feed.account_id,
-              folderId: feed.folder_id,
-              title: feed.title,
-              url: feed.url,
-              siteUrl: feed.site_url,
-              unreadCount: feed.unread_count,
-              readerMode: feed.reader_mode ?? "inherit",
-              webPreviewMode: feed.web_preview_mode ?? "inherit",
-              isSelected: selectedFeedId === feed.id,
-              grayscaleFavicon: grayscaleFavicons,
-            })),
+            feeds: mapFeedsToFeedTreeViewModels(folderFeeds, { selectedFeedId, grayscaleFavicons }),
           };
         })
         .filter((folder) => !hideEmptyFoldersInCurrentView || folder.isSelected || folder.feeds.length > 0),
     [
       expandedFolderIds,
       feedsByFolder,
-      filterFolderFeedsForSidebar,
+      getVisibleFeeds,
       grayscaleFavicons,
       hideEmptyFoldersInCurrentView,
       selectedFeedId,
       selectedFolderId,
-      sortFeeds,
       sortedFolderList,
     ],
   );
 
   const unfolderedFeedViews = useMemo<FeedTreeFeedViewModel[]>(
     () =>
-      (selectedFolderId === null ? filterFolderFeedsForSidebar(unfolderedFeeds) : []).map((feed) => ({
-        id: feed.id,
-        accountId: feed.account_id,
-        folderId: feed.folder_id,
-        title: feed.title,
-        url: feed.url,
-        siteUrl: feed.site_url,
-        unreadCount: feed.unread_count,
-        readerMode: feed.reader_mode ?? "inherit",
-        webPreviewMode: feed.web_preview_mode ?? "inherit",
-        isSelected: selectedFeedId === feed.id,
-        grayscaleFavicon: grayscaleFavicons,
-      })),
-    [filterFolderFeedsForSidebar, grayscaleFavicons, selectedFeedId, selectedFolderId, unfolderedFeeds],
+      mapFeedsToFeedTreeViewModels(selectedFolderId === null ? getVisibleFeeds(unfolderedFeeds) : [], {
+        selectedFeedId,
+        grayscaleFavicons,
+      }),
+    [getVisibleFeeds, grayscaleFavicons, selectedFeedId, selectedFolderId, unfolderedFeeds],
   );
 
   const orderedFeedIds = useMemo(() => {
     const ids: string[] = [];
 
     for (const folder of sortedFolderList) {
-      const rawFolderFeeds = sortFeeds(feedsByFolder.get(folder.id) ?? []);
       const folderFeeds =
-        selectedFolderId !== null && folder.id !== selectedFolderId ? [] : filterFolderFeedsForSidebar(rawFolderFeeds);
-      for (const feed of folderFeeds) {
-        ids.push(feed.id);
-      }
+        selectedFolderId !== null && folder.id !== selectedFolderId
+          ? []
+          : getVisibleFeeds(feedsByFolder.get(folder.id) ?? []);
+      ids.push(...collectFeedIds(folderFeeds));
     }
 
-    for (const feed of selectedFolderId === null ? filterFolderFeedsForSidebar(unfolderedFeeds) : []) {
-      ids.push(feed.id);
-    }
+    ids.push(...collectFeedIds(selectedFolderId === null ? getVisibleFeeds(unfolderedFeeds) : []));
 
     return ids;
-  }, [filterFolderFeedsForSidebar, feedsByFolder, selectedFolderId, sortFeeds, sortedFolderList, unfolderedFeeds]);
+  }, [feedsByFolder, getVisibleFeeds, selectedFolderId, sortedFolderList, unfolderedFeeds]);
 
   return {
     feedById,
