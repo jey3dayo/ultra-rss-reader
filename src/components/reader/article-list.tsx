@@ -1,5 +1,5 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
-import { useCallback, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { buildKeyToActionMap } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
@@ -7,7 +7,6 @@ import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenu } from "./article-context-menu";
 import { ArticleListContextStrip } from "./article-list-context-strip";
-import { ArticleListFeedModeControl } from "./article-list-feed-mode-control";
 import { ArticleListFooter } from "./article-list-footer";
 import { ArticleListHeader } from "./article-list-header";
 import { ArticleListScreenView } from "./article-list-screen-view";
@@ -16,6 +15,7 @@ import { useArticleListData } from "./use-article-list-data";
 import { useArticleListEffects } from "./use-article-list-effects";
 import { useArticleListGroups } from "./use-article-list-groups";
 import { useArticleListHeaderActions } from "./use-article-list-header-actions";
+import { useArticleListHeaderControls } from "./use-article-list-header-controls";
 import { useArticleListInteractions } from "./use-article-list-interactions";
 import { useArticleListSearch } from "./use-article-list-search";
 import { useArticleListSources } from "./use-article-list-sources";
@@ -150,14 +150,29 @@ export function ArticleList() {
       selectedFeed,
       filteredArticles,
     });
-
-  const handleSidebarToggle = useCallback(() => {
-    if (layoutMode === "wide") {
-      toggleSidebar();
-      return;
-    }
-    openSidebar();
-  }, [layoutMode, openSidebar, toggleSidebar]);
+  const {
+    showSidebarButton,
+    sidebarButtonLabel,
+    sidebarButtonText,
+    isSidebarVisible,
+    feedModeControl,
+    handleSidebarToggle,
+  } = useArticleListHeaderControls({
+    layoutMode,
+    sidebarOpen,
+    sidebarSubscriptionsLabel: ts("subscriptions"),
+    feedDisplayLabel: t("display_mode"),
+    showSidebarLabel: t("show_sidebar"),
+    hideSidebarLabel: t("hide_sidebar"),
+    resolvedFeedId,
+    selectedFeedDisplayPreset,
+    displayPresetOptions,
+    onSetDisplayMode: (value) => {
+      void handleSetDisplayMode(value);
+    },
+    openSidebar,
+    toggleSidebar,
+  });
   const { handleListKeyDownCapture } = useArticleListInteractions({
     filteredArticles,
     selectedArticleId,
@@ -183,24 +198,11 @@ export function ArticleList() {
         showSearch={showSearch}
         searchQuery={searchQuery}
         searchInputRef={searchInputRef}
-        showSidebarButton={layoutMode === "mobile" || layoutMode === "wide" || layoutMode === "compact"}
-        sidebarButtonLabel={
-          layoutMode === "wide" ? t(sidebarOpen ? "hide_sidebar" : "show_sidebar") : t("show_sidebar")
-        }
-        sidebarButtonText={layoutMode === "compact" ? ts("subscriptions") : undefined}
-        isSidebarVisible={layoutMode === "wide" ? sidebarOpen : undefined}
-        feedModeControl={
-          resolvedFeedId ? (
-            <ArticleListFeedModeControl
-              ariaLabel={t("display_mode")}
-              value={selectedFeedDisplayPreset}
-              options={displayPresetOptions}
-              onValueChange={(value) => {
-                void handleSetDisplayMode(value);
-              }}
-            />
-          ) : null
-        }
+        showSidebarButton={showSidebarButton}
+        sidebarButtonLabel={sidebarButtonLabel}
+        sidebarButtonText={sidebarButtonText}
+        isSidebarVisible={isSidebarVisible}
+        feedModeControl={feedModeControl}
         onMarkAllRead={handleMarkAllRead}
         onToggleSidebar={handleSidebarToggle}
         onToggleSearch={handleToggleSearch}
