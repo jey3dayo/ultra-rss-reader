@@ -7,7 +7,7 @@ import {
 import type { FeedTreeFeedViewModel } from "@/components/reader/feed-tree-row";
 
 describe("feedTreeDragSession", () => {
-  const feed: FeedTreeFeedViewModel = {
+  const feed = {
     id: "feed-1",
     accountId: "account-1",
     folderId: null,
@@ -19,7 +19,7 @@ describe("feedTreeDragSession", () => {
     webPreviewMode: "inherit",
     isSelected: false,
     grayscaleFavicon: false,
-  };
+  } as const satisfies FeedTreeFeedViewModel;
 
   it("creates a new session from the initial pointer position", () => {
     const session = createFeedTreePointerDragSession(feed, 7, 120, 240);
