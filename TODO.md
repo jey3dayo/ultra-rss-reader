@@ -641,6 +641,11 @@
   - 対応: `sidebar-runtime.types.ts` に account switcher / ui state / runtime result contract を切り出して、関連 hooks は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/sidebar-runtime.types.ts`, `src/components/reader/use-sidebar-account-switcher.ts`, `src/components/reader/use-sidebar-ui-state.ts`, `src/components/reader/use-sidebar-runtime.ts`
 
+- [x] sidebar feed drag state の contract を shared types に寄せる
+  - 問題: `use-sidebar-feed-drag-state.ts` に drag state params/result と `feedById` の最小 shape が local 定義で残っていて、feed section 内の drag 境界の正本を追いにくかった
+  - 対応: `sidebar-feed-section.types.ts` に drag state params/result contract を追加して、drag state hook と feed tree props helper は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar-feed-section.types.ts`, `src/components/reader/use-sidebar-feed-drag-state.ts`, `src/components/reader/use-sidebar-feed-tree-props.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
