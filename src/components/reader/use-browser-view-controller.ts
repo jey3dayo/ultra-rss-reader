@@ -11,7 +11,6 @@ import {
   setBrowserWebviewBounds,
 } from "@/api/tauri-commands";
 import { BROWSER_WINDOW_EVENTS, BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
-import { APP_EVENTS } from "@/constants/events";
 import type {
   BrowserDebugGeometryLayoutDiagnostics,
   BrowserDebugGeometryNativeDiagnostics,
@@ -23,23 +22,22 @@ import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import {
+  type BrowserSurfaceIssue,
+  createBrowserSurfaceFailure,
+  createBrowserSurfaceFallback,
+  resolveRuntimeUnavailableSurfaceIssue,
+} from "./browser-surface-issue";
+import {
   type BrowserWebviewFallbackPayload,
   initialBrowserState,
   isMissingEmbeddedBrowserWebviewError,
   mergeBrowserState,
 } from "./browser-webview-state";
+import { useBrowserDebugGeometryEvents } from "./use-browser-debug-geometry-events";
 
 type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
 
 type BrowserViewLayoutDiagnostics = BrowserDebugGeometryLayoutDiagnostics;
-
-type BrowserSurfaceIssue = {
-  kind: "failed" | "unsupported";
-  title: string;
-  description: string;
-  detail?: string | null;
-  canRetry?: boolean;
-};
 
 type BrowserViewGeometry = ReturnType<typeof resolveBrowserViewerGeometry>;
 
@@ -149,13 +147,12 @@ export function useBrowserViewController({
       }
       fallbackInFlightRef.current = true;
       console.error("Failed to open embedded browser webview:", error);
-      setSurfaceIssue({
-        kind: "failed",
-        title: t("browser_embed_failed"),
-        description: t("browser_embed_failed_hint"),
-        detail: error.message,
-        canRetry: true,
-      });
+      setSurfaceIssue(
+        createBrowserSurfaceFailure(error.message, {
+          failed: t("browser_embed_failed"),
+          failedHint: t("browser_embed_failed_hint"),
+        }),
+      );
       setBrowserState((currentState) => {
         if (!currentState) {
           return currentState;
@@ -182,13 +179,14 @@ export function useBrowserViewController({
       }),
       listen<BrowserWebviewFallbackPayload>(BROWSER_WINDOW_EVENTS.fallback, ({ payload }) => {
         if (cancelled) return;
-        setSurfaceIssue({
-          kind: payload.error_message ? "failed" : "unsupported",
-          title: payload.error_message ? t("browser_embed_failed") : t("browser_embed_blocked"),
-          description: payload.error_message ? t("browser_embed_failed_hint") : t("browser_embed_blocked_hint"),
-          detail: payload.error_message,
-          canRetry: Boolean(payload.error_message),
-        });
+        setSurfaceIssue(
+          createBrowserSurfaceFallback(payload.error_message, {
+            failed: t("browser_embed_failed"),
+            failedHint: t("browser_embed_failed_hint"),
+            blocked: t("browser_embed_blocked"),
+            blockedHint: t("browser_embed_blocked_hint"),
+          }),
+        );
         setBrowserState((currentState) => {
           if (!currentState) {
             return currentState;
@@ -230,25 +228,11 @@ export function useBrowserViewController({
     };
   }, [handleCloseOverlay, showDiagnostics, t]);
 
-  useEffect(() => {
-    if (!showDiagnostics) {
-      window.dispatchEvent(new CustomEvent(APP_EVENTS.browserDebugGeometry, { detail: null }));
-      return;
-    }
-
-    window.dispatchEvent(
-      new CustomEvent(APP_EVENTS.browserDebugGeometry, {
-        detail: {
-          layoutDiagnostics,
-          nativeDiagnostics,
-        },
-      }),
-    );
-
-    return () => {
-      window.dispatchEvent(new CustomEvent(APP_EVENTS.browserDebugGeometry, { detail: null }));
-    };
-  }, [layoutDiagnostics, nativeDiagnostics, showDiagnostics]);
+  useBrowserDebugGeometryEvents({
+    showDiagnostics,
+    layoutDiagnostics,
+    nativeDiagnostics,
+  });
 
   const syncBrowserBounds = useCallback(
     async (bounds: BrowserWebviewBounds) => {
@@ -499,15 +483,14 @@ export function useBrowserViewController({
     !hasTauriRuntime();
   const activeSurfaceIssue =
     surfaceIssue ??
-    (runtimeUnavailable && !isLoading
-      ? {
-          kind: "unsupported",
-          title: t("browser_embed_browser_mode"),
-          description: t("browser_embed_browser_mode_hint"),
-          detail: null,
-          canRetry: false,
-        }
-      : null);
+    resolveRuntimeUnavailableSurfaceIssue({
+      runtimeUnavailable,
+      isLoading,
+      labels: {
+        browserMode: t("browser_embed_browser_mode"),
+        browserModeHint: t("browser_embed_browser_mode_hint"),
+      },
+    });
 
   const handleRetry = useCallback(() => {
     fallbackInFlightRef.current = false;

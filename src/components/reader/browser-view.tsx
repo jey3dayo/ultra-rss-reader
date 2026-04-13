@@ -10,19 +10,12 @@ import {
   type BrowserDebugGeometryNativeDiagnostics,
   getBrowserGeometryStripItems,
 } from "@/lib/browser-debug-geometry";
+import type { BrowserSurfaceIssue } from "./browser-surface-issue";
 import { useBrowserViewController } from "./use-browser-view-controller";
 
 type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
 
 type BrowserViewLayoutDiagnostics = BrowserDebugGeometryLayoutDiagnostics;
-
-type BrowserSurfaceIssue = {
-  kind: "failed" | "unsupported";
-  title: string;
-  description: string;
-  detail?: string | null;
-  canRetry?: boolean;
-};
 
 function BrowserSurfaceStateCard({
   issue,
