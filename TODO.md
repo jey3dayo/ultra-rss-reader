@@ -106,6 +106,11 @@
     1. feed-cleanup 内部で card shell と detail row を小さく切り出す
     2. review / editor / overview の重複クラスを置き換える
 
+- [x] feed-cleanup helper view contract を types file に寄せる
+  - 問題: `feed-cleanup-card.tsx` の `FeedCleanupCard` / `FeedCleanupDetailRow` props が local 定義で残っていて、feed-cleanup view helper の正本が component file 側に分散していた
+  - 対応: `feed-cleanup.types.ts` に helper props contract を追加して、card/detail row helper は shared types を再利用する形に寄せた
+  - 対象: `src/components/feed-cleanup/feed-cleanup.types.ts`, `src/components/feed-cleanup/feed-cleanup-card.tsx`
+
 - [x] oversized reader components を段階分割する
   - 問題: `article-view.tsx` と `sidebar.tsx` はまだ責務が広く、今後の変更コストが高かった
   - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/sidebar.tsx`, `src/components/reader/article-list.tsx`
@@ -254,6 +259,11 @@
   - 問題: `use-browser-view-surface-state.ts` に local params 型が残っていて、surface state 境界の正本を `browser-view.types.ts` から追えなかった
   - 対応: `UseBrowserViewSurfaceStateParams` / `UseBrowserViewSurfaceStateResult` を `browser-view.types.ts` に追加して、surface state hook は shared types を参照する形に寄せた
   - 対象: `src/components/reader/browser-view.types.ts`, `src/components/reader/use-browser-view-surface-state.ts`
+
+- [x] browser-view surface state の error / fallback 引数を explicit contract に寄せる
+  - 問題: `use-browser-view-surface-state.ts` が `Parameters<UseBrowserViewSurfaceStateResult[...]>` に依存していて、surface state hook の入力契約が戻り値型経由でしか追えなかった
+  - 対応: `AppError` と `BrowserWebviewFallbackPayload` を直接参照する形に寄せ、`browser-view.types.ts` 側の inline `import("./browser-webview-state")` 参照も explicit import にそろえた
+  - 対象: `src/components/reader/use-browser-view-surface-state.ts`, `src/components/reader/browser-view.types.ts`
 
 - [x] browser-webview events の contract を shared types に寄せる
   - 問題: `use-browser-webview-events.ts` に local params 型が残っていて、webview event listener 境界の正本を `browser-view.types.ts` から追えなかった
