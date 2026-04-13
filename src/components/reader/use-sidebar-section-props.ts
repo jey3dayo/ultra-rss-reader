@@ -4,6 +4,8 @@ import type { SidebarAccountSection } from "./sidebar-account-section";
 import type { SidebarContentSections } from "./sidebar-content-sections";
 import type { SidebarHeaderView } from "./sidebar-header-view";
 import type { SmartViewsViewProps } from "./smart-views-view";
+import { useSidebarAccountSectionProps } from "./use-sidebar-account-section-props";
+import { useSidebarContentSectionsProps } from "./use-sidebar-content-sections-props";
 
 type SidebarHeaderProps = Parameters<typeof SidebarHeaderView>[0];
 type SidebarAccountSectionProps = Parameters<typeof SidebarAccountSection>[0];
@@ -96,6 +98,44 @@ export function useSidebarSectionProps({
   selectTag,
   renderTagContextMenu,
 }: UseSidebarSectionPropsParams): UseSidebarSectionPropsResult {
+  const accountSectionProps = useSidebarAccountSectionProps({
+    t,
+    selectedAccountName,
+    lastSyncedLabel,
+    accounts,
+    accountStatusLabels,
+    selectedAccountId,
+    isAccountListOpen,
+    accountMenuId,
+    accountDropdownRef,
+    accountTriggerRef,
+    accountItemRefs,
+    toggleAccountList,
+    handleSelectAccount,
+    closeAccountList,
+  });
+  const contentSectionsProps = useSidebarContentSectionsProps({
+    t,
+    isFeedsSectionOpen,
+    toggleFeedsSection,
+    feedViewportRef,
+    openFeedCleanup,
+    handleOpenSettings,
+    selectedAccountId,
+    isAddFeedDialogOpen,
+    handleAddFeedDialogOpenChange,
+    showSidebarTags,
+    isTagsSectionOpen,
+    toggleTagsSection,
+    handleOpenAccountSettings,
+    feedTreeProps,
+    tags,
+    tagArticleCounts,
+    selection,
+    selectTag,
+    renderTagContextMenu,
+  });
+
   return {
     headerProps: {
       isSyncing: syncProgress.active && syncProgress.kind !== "manual_account",
@@ -104,53 +144,12 @@ export function useSidebarSectionProps({
       syncButtonLabel: t("sync_feeds"),
       addFeedButtonLabel: t("add_feed"),
     },
-    accountSectionProps: {
-      containerRef: accountDropdownRef,
-      title: selectedAccountName ?? t("app_name"),
-      lastSyncedLabel,
-      accounts,
-      accountStatusLabels,
-      selectedAccountId,
-      isExpanded: isAccountListOpen,
-      menuId: accountMenuId,
-      menuLabel: t("accounts"),
-      triggerRef: accountTriggerRef,
-      itemRefs: accountItemRefs,
-      onToggle: toggleAccountList,
-      onSelectAccount: handleSelectAccount,
-      onClose: closeAccountList,
-    },
+    accountSectionProps,
     smartViewsProps: {
       title: t("smart_views"),
       views: visibleSmartViews,
       onSelectSmartView: selectSmartView,
     },
-    contentSectionsProps: {
-      subscriptionsLabel: t("subscriptions"),
-      isFeedsSectionOpen,
-      onToggleFeedsSection: toggleFeedsSection,
-      viewportRef: feedViewportRef,
-      feedCleanupLabel: t("feed_cleanup"),
-      settingsLabel: t("settings"),
-      onOpenFeedCleanup: openFeedCleanup,
-      onOpenSettings: handleOpenSettings,
-      selectedAccountId,
-      isAddFeedDialogOpen,
-      onAddFeedDialogOpenChange: handleAddFeedDialogOpenChange,
-      addAccountToStartLabel: t("add_account_to_start"),
-      pressPlusToAddFeedLabel: t("press_plus_to_add_feed"),
-      tagsLabel: t("tags"),
-      noFolderLabel: t("no_folder"),
-      showSidebarTags,
-      isTagsSectionOpen,
-      onToggleTagsSection: toggleTagsSection,
-      onOpenAccountSettings: handleOpenAccountSettings,
-      feedTreeProps,
-      tags,
-      tagArticleCounts,
-      selection,
-      onSelectTag: selectTag,
-      renderTagContextMenu,
-    },
+    contentSectionsProps,
   };
 }
