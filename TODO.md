@@ -606,10 +606,20 @@
   - 対応: `sidebar-feed-section.types.ts` に `SidebarFeedTreeProps` / `SidebarFeedTreePropsParams` を追加して、feed tree props helper は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/sidebar-feed-section.types.ts`, `src/components/reader/use-sidebar-feed-tree-props.ts`
 
+- [x] sidebar controller の action wiring を helper に寄せる
+  - 問題: `use-sidebar-controller.ts` に `selected_account_id` 保存 callback と feed folder mutation wrapper の匿名関数が残っていて、controller orchestration と action wiring が混ざっていた
+  - 対応: `use-sidebar-controller-actions.ts` に account preference 保存・feed folder mutation wrapper・UI actions 接着を寄せて、controller 本体は section orchestration に寄せた
+  - 対象: `src/components/reader/use-sidebar-controller.ts`, `src/components/reader/use-sidebar-controller-actions.ts`
+
 - [x] sidebar sync hook の contract を shared types に寄せる
   - 問題: `use-sidebar-sync.ts` に sync params/result と warning payload alias が local 定義で残っていて、runtime から参照する sync 境界の正本が hook file に閉じていた
   - 対応: `sidebar-sync.types.ts` に sync params/result/payload を切り出して、sync hook と runtime は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/sidebar-sync.types.ts`, `src/components/reader/use-sidebar-sync.ts`, `src/components/reader/use-sidebar-runtime.ts`
+
+- [x] sidebar sources hook の contract を shared types に寄せる
+  - 問題: `use-sidebar-sources.ts` の selected account param と source query の返り値 shape が local 定義のままで、runtime が束ねる source 境界の正本を追いにくかった
+  - 対応: `sidebar-sources.types.ts` に params/result contract を切り出して、sources hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar-sources.types.ts`, `src/components/reader/use-sidebar-sources.ts`
 
 ## 2026-04-13 Premortem フォローアップ
 
