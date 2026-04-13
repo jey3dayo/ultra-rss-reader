@@ -3,11 +3,9 @@ import { displayPresetToPreferenceValues, resolveAppDefaultDisplayPreset } from 
 import type { DevIntent } from "@/lib/dev-intent";
 import { resolvePreferenceValue } from "@/stores/preferences-store";
 import type { ReadingSettingsViewProps } from "./reading-settings-view";
+import type { SettingsPreferenceViewPropsParams } from "./settings-page.types";
 
-type UseReadingSettingsViewPropsParams = {
-  t: TFunction<"settings">;
-  prefs: Record<string, string>;
-  setPref: (key: string, value: string) => void;
+type UseReadingSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {
   devIntent: DevIntent;
 };
 

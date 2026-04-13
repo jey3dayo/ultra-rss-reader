@@ -1,18 +1,12 @@
-import type { TFunction } from "i18next";
 import { resolvePreferenceValue } from "@/stores/preferences-store";
 import type { AppearanceSettingsViewProps } from "./appearance-settings-view";
-
-type UseAppearanceSettingsViewPropsParams = {
-  t: TFunction<"settings">;
-  prefs: Record<string, string>;
-  setPref: (key: string, value: string) => void;
-};
+import type { SettingsPreferenceViewPropsParams } from "./settings-page.types";
 
 export function useAppearanceSettingsViewProps({
   t,
   prefs,
   setPref,
-}: UseAppearanceSettingsViewPropsParams): AppearanceSettingsViewProps {
+}: SettingsPreferenceViewPropsParams): AppearanceSettingsViewProps {
   return {
     title: t("appearance.heading"),
     sections: [

@@ -1,3 +1,11 @@
+import type { TFunction } from "i18next";
+
+export type SettingsPreferenceViewPropsParams = {
+  t: TFunction<"settings">;
+  prefs: Record<string, string>;
+  setPref: (key: string, value: string) => void;
+};
+
 export type SettingsPageOption = {
   value: string;
   label: string;

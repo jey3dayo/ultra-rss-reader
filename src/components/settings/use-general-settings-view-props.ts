@@ -2,11 +2,9 @@ import type { TFunction } from "i18next";
 import { SHORTCUT_MODIFIER_BY_PLATFORM } from "@/constants/platform";
 import { resolvePreferenceValue } from "@/stores/preferences-store";
 import type { GeneralSettingsViewProps } from "./general-settings-view";
+import type { SettingsPreferenceViewPropsParams } from "./settings-page.types";
 
-type UseGeneralSettingsViewPropsParams = {
-  t: TFunction<"settings">;
-  prefs: Record<string, string>;
-  setPref: (key: string, value: string) => void;
+type UseGeneralSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {
   platformKind: keyof typeof SHORTCUT_MODIFIER_BY_PLATFORM;
   supportsBackgroundBrowserOpen: boolean;
 };

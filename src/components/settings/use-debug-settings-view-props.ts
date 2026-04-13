@@ -1,11 +1,8 @@
 import type { TFunction } from "i18next";
 import { resolvePreferenceValue } from "@/stores/preferences-store";
-import type { SettingsPageViewProps } from "./settings-page.types";
+import type { SettingsPageViewProps, SettingsPreferenceViewPropsParams } from "./settings-page.types";
 
-type UseDebugSettingsViewPropsParams = {
-  t: TFunction<"settings">;
-  prefs: Record<string, string>;
-  setPref: (key: string, value: string) => void;
+type UseDebugSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {
   devBuild: boolean;
   openWebPreviewUrl: () => void;
   openWebPreviewGeometryCheck: () => void;

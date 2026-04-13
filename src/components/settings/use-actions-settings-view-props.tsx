@@ -1,19 +1,13 @@
-import type { TFunction } from "i18next";
 import { Copy } from "lucide-react";
 import { resolvePreferenceValue } from "@/stores/preferences-store";
 import type { ActionsSettingsViewProps } from "./actions-settings-view";
-
-type UseActionsSettingsViewPropsParams = {
-  t: TFunction<"settings">;
-  prefs: Record<string, string>;
-  setPref: (key: string, value: string) => void;
-};
+import type { SettingsPreferenceViewPropsParams } from "./settings-page.types";
 
 export function useActionsSettingsViewProps({
   t,
   prefs,
   setPref,
-}: UseActionsSettingsViewPropsParams): ActionsSettingsViewProps {
+}: SettingsPreferenceViewPropsParams): ActionsSettingsViewProps {
   const serviceEntries = [
     {
       id: "action-copy-link",
