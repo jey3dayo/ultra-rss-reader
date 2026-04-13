@@ -1,39 +1,6 @@
 import { useMemo } from "react";
-import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { groupArticles, selectVisibleArticles } from "@/lib/article-list";
-import type { UiSelection } from "@/stores/ui-store";
-
-type UseArticleListDataParams = {
-  selection: UiSelection;
-  feedId: string | null;
-  folderId: string | null;
-  tagId: string | null;
-  smartViewKind: "unread" | "starred" | null;
-  accountListScopeId: string | null;
-  viewMode: "all" | "unread" | "starred";
-  selectedArticleId: string | null;
-  retainedArticleIds: Set<string>;
-  feeds: FeedDto[] | undefined;
-  articles: ArticleDto[] | undefined;
-  accountArticles: ArticleDto[] | undefined;
-  tagArticles: ArticleDto[] | undefined;
-  searchResults: ArticleDto[] | undefined;
-  showSearch: boolean;
-  trimmedDebouncedQuery: string;
-  sortUnread: string;
-  groupBy: string;
-};
-
-type UseArticleListDataResult = {
-  feedId: string | null;
-  tagId: string | null;
-  accountListScopeId: string | null;
-  effectiveViewMode: "all" | "unread" | "starred";
-  feedNameMap: Map<string, string>;
-  filteredArticles: ArticleDto[];
-  groupedArticles: Record<string, ArticleDto[]>;
-  selectedFeed: FeedDto | undefined;
-};
+import type { UseArticleListDataParams, UseArticleListDataResult } from "./article-list.types";
 
 export function useArticleListData({
   selection,

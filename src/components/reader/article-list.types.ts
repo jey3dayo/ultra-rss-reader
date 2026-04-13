@@ -1,5 +1,7 @@
 import type { TFunction } from "i18next";
 import type { ComponentProps } from "react";
+import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import type { UiSelection } from "@/stores/ui-store";
 import type { ArticleListBody } from "./article-list-body";
 import type { ArticleListContextStrip } from "./article-list-context-strip";
 import type { ArticleListFooter } from "./article-list-footer";
@@ -69,4 +71,36 @@ export type UseArticleListPresentationParams = {
   handleToggleSearch: () => void;
   handleCloseSearch: () => void;
   setSearchQuery: (value: string) => void;
+};
+
+export type UseArticleListDataParams = {
+  selection: UiSelection;
+  feedId: string | null;
+  folderId: string | null;
+  tagId: string | null;
+  smartViewKind: "unread" | "starred" | null;
+  accountListScopeId: string | null;
+  viewMode: ArticleListViewMode;
+  selectedArticleId: string | null;
+  retainedArticleIds: Set<string>;
+  feeds: FeedDto[] | undefined;
+  articles: ArticleDto[] | undefined;
+  accountArticles: ArticleDto[] | undefined;
+  tagArticles: ArticleDto[] | undefined;
+  searchResults: ArticleDto[] | undefined;
+  showSearch: boolean;
+  trimmedDebouncedQuery: string;
+  sortUnread: string;
+  groupBy: string;
+};
+
+export type UseArticleListDataResult = {
+  feedId: string | null;
+  tagId: string | null;
+  accountListScopeId: string | null;
+  effectiveViewMode: ArticleListViewMode;
+  feedNameMap: Map<string, string>;
+  filteredArticles: ArticleDto[];
+  groupedArticles: Record<string, ArticleDto[]>;
+  selectedFeed: FeedDto | undefined;
 };
