@@ -320,6 +320,11 @@
   - 対応: `shortcuts-help-modal.types.ts` を追加し、`SidebarNavButtonProps` を `sidebar.types.ts` に寄せて、subview は shared types を参照する形に寄せた
   - 対象: `src/components/reader/shortcuts-help-modal.types.ts`, `src/components/reader/shortcuts-help-modal.tsx`, `src/components/reader/sidebar.types.ts`, `src/components/reader/sidebar-nav-button.tsx`
 
+- [x] shared visual atom の props 正本を types file に寄せる
+  - 問題: `article-state-icon.tsx` と `feed-favicon.tsx` に local props 型が残っていて、shared visual atom の境界が component file に分散していた
+  - 対応: `article-state-icon.types.ts` と `feed-favicon.types.ts` を追加して、component は shared types を参照する形に寄せた
+  - 対象: `src/components/shared/article-state-icon.types.ts`, `src/components/shared/article-state-icon.tsx`, `src/components/shared/feed-favicon.types.ts`, `src/components/shared/feed-favicon.tsx`
+
 - [x] feed cleanup candidate builder の input contract を explicit type に寄せる
   - 問題: `use-feed-cleanup-page-state.ts` が `Parameters<typeof buildFeedCleanupCandidates>` で helper 入力型を引いていて、feed cleanup state 境界の正本を名前付き type で追えなかった
   - 対応: `BuildFeedCleanupCandidatesParams` を `src/lib/feed-cleanup.ts` に追加して、page state hook は explicit type を参照する形に寄せた
@@ -339,6 +344,11 @@
   - 問題: `browser-view-presentation.ts` が local な presentation/result 型を持っていて、presentation helper の正本を `browser-view.types.ts` から追えなかった
   - 対応: `BrowserViewPresentation` と `ResolveBrowserViewPresentationParams` を `browser-view.types.ts` に追加して、presentation helper は shared types を参照する形に寄せた
   - 対象: `src/components/reader/browser-view.types.ts`, `src/components/reader/browser-view-presentation.ts`
+
+- [x] article utility helper の params contract を explicit export に寄せる
+  - 問題: `src/lib/article-list.ts` と `src/lib/article-view.ts` に helper params 型が local のまま残っていて、utility 境界の正本を外から参照できなかった
+  - 対応: `SelectVisibleArticlesParams` / `GroupArticlesParams` / `CalculateArticleNavigationScrollTopParams` / `FindSelectedArticleParams` / `LinkNavigationParams` を export して、lib 側で explicit contract を持つ形に寄せた
+  - 対象: `src/lib/article-list.ts`, `src/lib/article-view.ts`
 
 - [x] browser-view の load timeout 監視を hook 化する
   - 問題: `useBrowserViewController` に embedded browser の load timeout 監視 effect が残っていて、controller orchestration と runtime timeout 管理が混ざっていた

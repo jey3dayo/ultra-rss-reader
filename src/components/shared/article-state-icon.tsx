@@ -1,16 +1,6 @@
 import { Star } from "lucide-react";
-import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
-
-type UnreadIconProps = {
-  unread: boolean;
-  className?: string;
-};
-
-type StarIconProps = {
-  starred: boolean;
-  className?: string;
-} & ComponentProps<typeof Star>;
+import type { StarIconProps, UnreadIconProps } from "./article-state-icon.types";
 
 export function UnreadIcon({ unread, className }: UnreadIconProps) {
   return (

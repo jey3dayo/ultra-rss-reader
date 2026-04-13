@@ -2,13 +2,7 @@ import { Result } from "@praha/byethrow";
 import { useState } from "react";
 import { extractSiteHost } from "@/lib/feed";
 import { cn } from "@/lib/utils";
-
-type FeedFaviconProps = {
-  title: string;
-  url: string;
-  siteUrl: string;
-  grayscale?: boolean;
-};
+import type { FeedFaviconProps } from "./feed-favicon.types";
 
 export function FeedFavicon({ title, url, siteUrl, grayscale = false }: FeedFaviconProps) {
   const [failed, setFailed] = useState(false);
