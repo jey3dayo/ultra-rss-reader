@@ -253,26 +253,6 @@ export type UseArticleListKeydownHandlerParams = {
   keyToAction: ReturnType<typeof buildKeyToActionMap>;
 };
 
-export type UseArticleListSourcesParams = {
-  selection: UiSelection;
-  selectedAccountId: string | null;
-};
-
-export type UseArticleListSourcesResult = {
-  feedId: string | null;
-  folderId: string | null;
-  tagId: string | null;
-  smartViewKind: "unread" | "starred" | null;
-  accountListScopeId: string | null;
-  feeds: FeedDto[] | undefined;
-  articles: ArticleDto[] | undefined;
-  accountArticles: ArticleDto[] | undefined;
-  tagArticles: ArticleDto[] | undefined;
-  isLoading: boolean;
-  isLoadingAccountArticles: boolean;
-  isLoadingTagArticles: boolean;
-};
-
 export type UseArticleListDataParams = {
   selection: UseArticleListSourcesParams["selection"];
   feedId: UseArticleListSourcesResult["feedId"];
