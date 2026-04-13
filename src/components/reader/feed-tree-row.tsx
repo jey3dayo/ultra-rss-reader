@@ -76,7 +76,7 @@ export function FeedTreeRow({
               trailing={feed.unreadCount > 0 ? feed.unreadCount.toLocaleString() : undefined}
               trailingClassName={feed.isSelected ? "text-sidebar-accent-foreground/68" : "text-sidebar-foreground/38"}
               data-feed-id={feed.id}
-              className={cn("min-h-11", canDragFeeds && "pl-5")}
+              className={cn("min-h-11", canDragFeeds && "pl-11")}
             />
           }
           onClick={() => onSelectFeed(feed.id)}

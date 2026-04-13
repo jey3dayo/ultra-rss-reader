@@ -280,8 +280,11 @@ describe("FeedTreeView", () => {
     );
 
     const handle = screen.getByRole("button", { name: "Drag Beta" });
+    const feedButton = document.querySelector('[data-feed-id="feed-2"]');
     expect(handle).toHaveClass("h-11");
     expect(handle).toHaveClass("w-11");
+    expect(feedButton).not.toBeNull();
+    expect(feedButton).toHaveClass("pl-11");
     const folderTarget = screen.getByRole("button", { name: "Move to Empty" });
     fireEvent.click(handle);
     fireEvent.click(folderTarget);
