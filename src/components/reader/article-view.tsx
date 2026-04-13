@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
-import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
+import { openInBrowser } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccountArticles, useArticles, useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -20,7 +20,6 @@ import {
   resolveArticleDateLocale,
   shouldOpenExternalBrowser,
 } from "@/lib/article-view";
-import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -33,6 +32,7 @@ import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-ta
 import { ArticleToolbarActionStrip, ArticleToolbarView, type ArticleToolbarViewLabels } from "./article-toolbar-view";
 import { BrowserView } from "./browser-view";
 import { useArticleBrowserOverlay } from "./use-article-browser-overlay";
+import { useArticlePaneActions } from "./use-article-pane-actions";
 
 function openArticleInExternalBrowser(url: string) {
   const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
@@ -412,15 +412,18 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
       contentMode,
       feed,
     });
-
-  const retainIfNeeded = useCallback(
-    (nextRead: boolean) => {
-      if (nextRead && viewMode === "unread") {
-        retainArticle(article.id);
-      }
-    },
-    [article.id, retainArticle, viewMode],
-  );
+  const { setReadStatus, setStarStatus, handleOpenExternalBrowser, handleCopyLink } = useArticlePaneActions({
+    article,
+    viewMode,
+    supportsReadingList,
+    showToast,
+    addRecentlyRead,
+    retainArticle,
+    setRead,
+    toggleStar,
+    onToggleBrowserOverlay: handleToggleBrowserOverlay,
+    onCloseBrowserOverlay: handleCloseBrowserOverlay,
+  });
 
   useEffect(() => {
     if (afterReading !== "mark_as_read" || article.is_read || autoMarkedArticleIdRef.current === article.id) {
@@ -428,7 +431,9 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
     }
 
     autoMarkedArticleIdRef.current = article.id;
-    retainIfNeeded(true);
+    if (viewMode === "unread") {
+      retainArticle(article.id);
+    }
     setRead.mutate(
       {
         id: article.id,
@@ -443,7 +448,7 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
         },
       },
     );
-  }, [addRecentlyRead, afterReading, article.id, article.is_read, retainIfNeeded, setRead, showToast]);
+  }, [addRecentlyRead, afterReading, article.id, article.is_read, retainArticle, setRead, showToast, viewMode]);
 
   const handleCloseView = useCallback(() => {
     clearArticle();
@@ -451,66 +456,6 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
       useUiStore.getState().setFocusedPane("list");
     }
   }, [clearArticle, layoutMode]);
-
-  const handleToggleRead = useCallback(() => {
-    const markingAsRead = !article.is_read;
-    retainIfNeeded(markingAsRead);
-    setRead.mutate(
-      { id: article.id, read: markingAsRead },
-      {
-        onSuccess: () => {
-          if (markingAsRead) {
-            addRecentlyRead(article.id);
-          }
-        },
-      },
-    );
-  }, [addRecentlyRead, article.id, article.is_read, retainIfNeeded, setRead]);
-
-  const handleToggleStar = useCallback(() => {
-    const nextStarred = !article.is_starred;
-    toggleStar.mutate(
-      { id: article.id, starred: nextStarred },
-      {
-        onSuccess: () => {
-          if (!nextStarred && viewMode === "starred") retainArticle(article.id);
-        },
-      },
-    );
-  }, [article.id, article.is_starred, retainArticle, toggleStar, viewMode]);
-
-  const handleOpenExternalBrowser = useCallback(() => {
-    if (!article.url) return;
-    void openArticleInExternalBrowser(article.url);
-  }, [article.url]);
-
-  const handleCopyLink = useCallback(() => {
-    if (!article.url) return;
-    void copyToClipboard(article.url).then((result) =>
-      Result.pipe(
-        result,
-        Result.inspect(() => showToast(t("link_copied"))),
-        Result.inspectError((e) => {
-          console.error("Copy failed:", e);
-          showToast(e.message);
-        }),
-      ),
-    );
-  }, [article.url, showToast, t]);
-
-  const handleAddToReadingList = useCallback(() => {
-    if (!supportsReadingList || !article.url) return;
-    void addToReadingList(article.url).then((result) =>
-      Result.pipe(
-        result,
-        Result.inspect(() => showToast(t("added_to_reading_list"))),
-        Result.inspectError((e) => {
-          console.error("Add to reading list failed:", e);
-          showToast(e.message);
-        }),
-      ),
-    );
-  }, [article.url, showToast, supportsReadingList, t]);
 
   const toolbarLabels: ArticleToolbarViewLabels = {
     closeView: t("close_view"),
@@ -554,64 +499,13 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
         ...toolbarLabels,
         previewToggleOn: t("web_preview_mode"),
       }}
-      onToggleRead={(pressed) => {
-        if (!article) return;
-        retainIfNeeded(pressed);
-        setRead.mutate(
-          { id: article.id, read: pressed },
-          {
-            onSuccess: () => {
-              if (pressed) {
-                addRecentlyRead(article.id);
-              }
-            },
-          },
-        );
-      }}
-      onToggleStar={(pressed) => {
-        if (!article) return;
-        toggleStar.mutate(
-          { id: article.id, starred: pressed },
-          {
-            onSuccess: () => {
-              if (!pressed && viewMode === "starred") retainArticle(article.id);
-              showToast(pressed ? t("article_starred") : t("article_unstarred"));
-            },
-          },
-        );
-      }}
+      onToggleRead={setReadStatus}
+      onToggleStar={(pressed) => setStarStatus(pressed, { showStatusToast: true })}
       onCopyLink={handleCopyLink}
       onOpenInBrowser={handleToggleBrowserOverlay}
       onOpenInExternalBrowser={handleOpenExternalBrowser}
     />
   );
-
-  useEffect(() => {
-    window.addEventListener(keyboardEvents.openInAppBrowser, handleToggleBrowserOverlay);
-    window.addEventListener(keyboardEvents.closeBrowserOverlay, handleCloseBrowserOverlay);
-    window.addEventListener(keyboardEvents.toggleRead, handleToggleRead);
-    window.addEventListener(keyboardEvents.toggleStar, handleToggleStar);
-    window.addEventListener(keyboardEvents.openExternalBrowser, handleOpenExternalBrowser);
-    window.addEventListener(keyboardEvents.copyLink, handleCopyLink);
-    window.addEventListener(keyboardEvents.addToReadingList, handleAddToReadingList);
-    return () => {
-      window.removeEventListener(keyboardEvents.openInAppBrowser, handleToggleBrowserOverlay);
-      window.removeEventListener(keyboardEvents.closeBrowserOverlay, handleCloseBrowserOverlay);
-      window.removeEventListener(keyboardEvents.toggleRead, handleToggleRead);
-      window.removeEventListener(keyboardEvents.toggleStar, handleToggleStar);
-      window.removeEventListener(keyboardEvents.openExternalBrowser, handleOpenExternalBrowser);
-      window.removeEventListener(keyboardEvents.copyLink, handleCopyLink);
-      window.removeEventListener(keyboardEvents.addToReadingList, handleAddToReadingList);
-    };
-  }, [
-    handleAddToReadingList,
-    handleCloseBrowserOverlay,
-    handleCopyLink,
-    handleOpenExternalBrowser,
-    handleToggleBrowserOverlay,
-    handleToggleRead,
-    handleToggleStar,
-  ]);
 
   return (
     <div data-testid="article-pane" className="flex h-full flex-1 flex-col bg-background">
