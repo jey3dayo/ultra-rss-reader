@@ -1,13 +1,6 @@
 import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-
-type LabeledSwitchRowProps = {
-  label: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  disabled?: boolean;
-  rowClassName?: string;
-};
+import type { LabeledSwitchRowProps } from "./form-row.types";
 
 export function LabeledSwitchRow({ label, checked, onChange, disabled, rowClassName }: LabeledSwitchRowProps) {
   return (

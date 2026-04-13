@@ -1,6 +1,7 @@
+import type { LabeledSelectOption } from "@/components/shared/form-row.types";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { type LabeledSelectOption, LabeledSelectRow } from "@/components/shared/labeled-select-row";
+import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { cn } from "@/lib/utils";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";

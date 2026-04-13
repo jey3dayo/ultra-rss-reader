@@ -1,14 +1,5 @@
-import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-
-type LabeledControlRowProps = {
-  label: string;
-  children?: ReactNode;
-  htmlFor?: string;
-  labelId?: string;
-  className?: string;
-  labelClassName?: string;
-};
+import type { LabeledControlRowProps } from "./form-row.types";
 
 export function LabeledControlRow({
   label,

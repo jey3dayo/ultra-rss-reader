@@ -2,23 +2,7 @@ import { useId } from "react";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-
-export type LabeledSelectOption = {
-  value: string;
-  label: string;
-};
-
-type LabeledSelectRowProps = {
-  label: string;
-  name: string;
-  value: string;
-  options: LabeledSelectOption[];
-  onChange: (value: string) => void;
-  disabled?: boolean;
-  open?: boolean;
-  rowClassName?: string;
-  triggerClassName?: string;
-};
+import type { LabeledSelectOption, LabeledSelectRowProps } from "./form-row.types";
 
 function getOptionLabel(options: LabeledSelectOption[], value: string | null) {
   return options.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
