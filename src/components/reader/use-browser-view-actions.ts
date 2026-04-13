@@ -1,18 +1,7 @@
 import { Result } from "@praha/byethrow";
-import { type MutableRefObject, useCallback } from "react";
-import { type BrowserWebviewState, openInBrowser } from "@/api/tauri-commands";
-
-type UseBrowserViewActionsParams = {
-  browserUrl: string | null;
-  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
-  setBrowserState: (state: BrowserWebviewState | null) => void;
-  resetBrowserWebviewSyncState: () => void;
-  setSurfaceIssue: (issue: null) => void;
-  showToast: (message: string) => void;
-  syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
-  initialBrowserState: (url: string) => BrowserWebviewState;
-  fallbackInFlightRef: MutableRefObject<boolean>;
-};
+import { useCallback } from "react";
+import { openInBrowser } from "@/api/tauri-commands";
+import type { UseBrowserViewActionsParams } from "./browser-view.types";
 
 export function useBrowserViewActions({
   browserUrl,

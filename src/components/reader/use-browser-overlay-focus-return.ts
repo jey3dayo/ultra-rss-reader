@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useUiStore } from "@/stores/ui-store";
-
-type UseBrowserOverlayFocusReturnParams = {
-  articleId: string;
-  isBrowserOpen: boolean;
-};
+import type { UseBrowserOverlayFocusReturnParams } from "./browser-view.types";
 
 export function useBrowserOverlayFocusReturn({ articleId, isBrowserOpen }: UseBrowserOverlayFocusReturnParams) {
   const overlayFocusReturnTargetRef = useRef<HTMLElement | null>(null);

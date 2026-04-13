@@ -205,3 +205,34 @@ export type UseBrowserWebviewSyncParams = {
   onMissingEmbeddedBrowserWebview: (error: AppError) => void;
   showSurfaceFailure: (error: AppError) => void;
 };
+
+export type UseBrowserDebugGeometryEventsParams = {
+  showDiagnostics: boolean;
+  layoutDiagnostics: BrowserDebugGeometryLayoutDiagnostics | null;
+  nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
+};
+
+export type UseBrowserLayoutDiagnosticsParams = {
+  browserUrl: string | null;
+  showDiagnostics: boolean;
+  overlayRef: RefObject<HTMLDivElement | null>;
+  stageRef: RefObject<HTMLDivElement | null>;
+  hostRef: RefObject<HTMLDivElement | null>;
+};
+
+export type UseBrowserOverlayFocusReturnParams = {
+  articleId: string;
+  isBrowserOpen: boolean;
+};
+
+export type UseBrowserViewActionsParams = {
+  browserUrl: string | null;
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
+  setBrowserState: (state: BrowserWebviewState | null) => void;
+  resetBrowserWebviewSyncState: () => void;
+  setSurfaceIssue: (issue: null) => void;
+  showToast: (message: string) => void;
+  syncBrowserWebview: (requestedUrl: string, mode: "create" | "resize") => Promise<void>;
+  initialBrowserState: (url: string) => BrowserWebviewState;
+  fallbackInFlightRef: MutableRefObject<boolean>;
+};

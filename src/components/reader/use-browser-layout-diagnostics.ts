@@ -1,14 +1,7 @@
-import { type RefObject, useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import type { BrowserDebugGeometryLayoutDiagnostics } from "@/lib/browser-debug-geometry";
 import { toBrowserWebviewBounds } from "@/lib/browser-webview";
-
-type UseBrowserLayoutDiagnosticsParams = {
-  browserUrl: string | null;
-  showDiagnostics: boolean;
-  overlayRef: RefObject<HTMLDivElement | null>;
-  stageRef: RefObject<HTMLDivElement | null>;
-  hostRef: RefObject<HTMLDivElement | null>;
-};
+import type { UseBrowserLayoutDiagnosticsParams } from "./browser-view.types";
 
 export function useBrowserLayoutDiagnostics({
   browserUrl,
