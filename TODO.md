@@ -424,6 +424,11 @@
   - 対応: `use-article-list-navigation.ts` に row navigation を寄せて、interactions hook は global event bridge と key handling に寄せた
   - 対象: `src/components/reader/use-article-list-interactions.ts`, `src/components/reader/use-article-list-navigation.ts`
 
+- [x] article-list の keydown action 解決を hook 化する
+  - 問題: `use-article-list-interactions.ts` に `resolveKeyboardAction` と UI action dispatch が残っていて、DOM refs 管理と keyboard action 解決が混ざっていた
+  - 対応: `use-article-list-keydown-handler.ts` に list option 向け key handling を寄せて、interactions hook は refs / navigation / global event 接着に寄せた
+  - 対象: `src/components/reader/use-article-list-interactions.ts`, `src/components/reader/use-article-list-keydown-handler.ts`
+
 - [x] article-list の search state と debounce を hook 化する
   - 問題: `article-list.tsx` に検索開閉、debounce、input focus、検索 query 実行がまとまっていて、表示データ選別と責務が混ざっていた
   - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-search.ts`
