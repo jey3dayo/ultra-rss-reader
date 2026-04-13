@@ -1,16 +1,10 @@
-import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
-import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { isBrowserRuntimeUnavailable } from "./browser-runtime-availability";
+import type {
+  UseBrowserViewSurfaceControllerParams,
+  UseBrowserViewSurfaceControllerResult,
+} from "./browser-view.types";
 import { useBrowserViewSurfaceState } from "./use-browser-view-surface-state";
-
-type UseBrowserViewSurfaceControllerParams = {
-  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
-  fallbackInFlightRef: MutableRefObject<boolean>;
-  isLoading: boolean;
-  onCloseOverlay: () => void;
-  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
-};
 
 export function useBrowserViewSurfaceController({
   browserStateRef,
@@ -18,7 +12,7 @@ export function useBrowserViewSurfaceController({
   isLoading,
   onCloseOverlay,
   setBrowserState,
-}: UseBrowserViewSurfaceControllerParams) {
+}: UseBrowserViewSurfaceControllerParams): UseBrowserViewSurfaceControllerResult {
   const { t } = useTranslation("reader");
   const runtimeUnavailable = isBrowserRuntimeUnavailable();
 

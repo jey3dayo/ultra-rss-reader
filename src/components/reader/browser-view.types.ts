@@ -115,3 +115,20 @@ export type UseBrowserViewEventBridgeResult = {
   activeSurfaceIssue: BrowserSurfaceIssue | null;
   waitForBrowserWebviewListeners: () => Promise<void>;
 };
+
+export type UseBrowserViewSurfaceControllerParams = {
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>;
+  fallbackInFlightRef: MutableRefObject<boolean>;
+  isLoading: boolean;
+  onCloseOverlay: () => void;
+  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
+};
+
+export type UseBrowserViewSurfaceControllerResult = {
+  surfaceIssue: BrowserSurfaceIssue | null;
+  setSurfaceIssue: (issue: BrowserSurfaceIssue | null) => void;
+  handleLostEmbeddedBrowserWebview: (error: AppError) => void;
+  handleBrowserWebviewFallback: (payload: import("./browser-webview-state").BrowserWebviewFallbackPayload) => void;
+  showSurfaceFailure: (error: AppError) => void;
+  activeSurfaceIssue: BrowserSurfaceIssue | null;
+};
