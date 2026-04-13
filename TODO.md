@@ -344,6 +344,11 @@
   - 問題: `article-context-menu.tsx` に read/star/open browser の mutation 処理が重複し、`article-view` と同期して保守する必要があった
   - 対象: `src/components/reader/article-context-menu.tsx`, `src/components/reader/use-article-actions.ts`, `src/components/reader/article-view.tsx`
 
+- [x] article action hook の read/star status 更新を専用 hook に寄せる
+  - 問題: `use-article-actions.ts` に read/star mutation、retain 条件、toggle handler がまとまっていて、browser/link action と status action の責務が混ざっていた
+  - 対応: `use-article-status-actions.ts` へ status mutation と toggle handler を寄せて、`use-article-actions.ts` は browser/link action と shortcut 接着に寄せた
+  - 対象: `src/components/reader/use-article-actions.ts`, `src/components/reader/use-article-status-actions.ts`
+
 - [x] article toolbar の action 重複を article action hook へ寄せる
   - 問題: `ArticleToolbar` にも read/star/copy/external browser の重複実装が残り、`ArticlePane` と action ロジックが二重管理になっていた
   - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-actions.ts`
