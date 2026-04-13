@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useCommandSearch } from "@/hooks/use-command-search";
 import { loadRuntimeDevScenarios, type RuntimeDevScenario } from "@/lib/dev-scenario-runtime";
+import type { UseCommandPaletteRuntimeParams, UseCommandPaletteRuntimeResult } from "./command-palette.types";
 
-export function useCommandPaletteRuntime(open: boolean) {
+export function useCommandPaletteRuntime({ open }: UseCommandPaletteRuntimeParams): UseCommandPaletteRuntimeResult {
   const [input, setInput] = useState("");
   const [devScenarios, setDevScenarios] = useState<RuntimeDevScenario[]>([]);
   const { prefix, query, deferredQuery } = useCommandSearch(input);

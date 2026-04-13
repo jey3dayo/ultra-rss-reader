@@ -1,8 +1,9 @@
 import type { LucideIcon } from "lucide-react";
+import type { PlatformInfo } from "@/api/schemas";
 import type { ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import type { AppAction } from "@/lib/actions";
 import type { RuntimeDevScenario } from "@/lib/dev-scenario-runtime";
-import type { useCommandPaletteUiState } from "./use-command-palette-ui-state";
+import type { ToastData } from "@/stores/ui-store";
 
 export type CommandPaletteItemKind = "action" | "feed" | "tag" | "article" | "scenario";
 
@@ -95,18 +96,20 @@ export type UseCommandPaletteDataResult = {
   hasVisibleResults: boolean;
 };
 
-export type UseCommandPaletteActionsParams = Pick<
-  ReturnType<typeof useCommandPaletteUiState>,
-  "platformKind" | "shortcutPrefs"
->;
+export type UseCommandPaletteActionsParams = {
+  platformKind: PlatformInfo["kind"];
+  shortcutPrefs: Record<string, string>;
+};
 
 export type UseCommandPaletteActionsResult = PaletteAction[];
 
-export type UseCommandPaletteHandlersParams = Pick<
-  ReturnType<typeof useCommandPaletteUiState>,
-  "openShortcutsHelp" | "showToast" | "selectFeed" | "selectTag" | "selectArticle"
-> & {
+export type UseCommandPaletteHandlersParams = {
   closePalette: () => void;
+  openShortcutsHelp: () => void;
+  showToast: (message: string | ToastData) => void;
+  selectFeed: (feedId: string) => void;
+  selectTag: (tagId: string) => void;
+  selectArticle: (articleId: string) => void;
   openFeedLanding: (feedId: string) => Promise<void>;
 };
 
@@ -116,6 +119,19 @@ export type UseCommandPaletteHandlersResult = {
   handleTagSelect: (tagId: string) => void;
   handleArticleSelect: (feedId: string, articleId: string) => void;
   handleDevScenarioSelect: (scenarioId: RuntimeDevScenario["id"]) => void;
+};
+
+export type UseCommandPaletteRuntimeParams = {
+  open: boolean;
+};
+
+export type UseCommandPaletteRuntimeResult = {
+  input: string;
+  setInput: (value: string) => void;
+  devScenarios: RuntimeDevScenario[];
+  prefix: string | null;
+  query: string;
+  deferredQuery: string;
 };
 
 export type UseCommandPaletteViewPropsParams = {

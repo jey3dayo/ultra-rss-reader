@@ -23,7 +23,7 @@ export function useCommandPaletteController(): CommandPaletteControllerResult {
     shortcutPrefs,
   } = useCommandPaletteUiState();
   const openFeedLanding = useFeedLanding();
-  const { input, setInput, devScenarios, prefix, query, deferredQuery } = useCommandPaletteRuntime(open);
+  const { input, setInput, devScenarios, prefix, query, deferredQuery } = useCommandPaletteRuntime({ open });
   const actions = useCommandPaletteActions({ platformKind, shortcutPrefs });
   const closePalette = () => {
     closeCommandPalette();
