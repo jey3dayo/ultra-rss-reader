@@ -99,6 +99,10 @@
   - 問題: `command-palette.tsx` に `useUiStore` / `usePreferencesStore` / `usePlatformStore` の読み出しが残っていて、画面構成と state wiring が混ざっていた
   - 対象: `src/components/reader/command-palette.tsx`, `src/components/reader/use-command-palette-ui-state.ts`
 
+- [x] command-palette の query source と filtered result 導出を hook 化する
+  - 問題: `command-palette.tsx` に feeds/tags/articles の query と recent/history/filter 判定が残っていて、検索データ導出と画面構成が混ざっていた
+  - 対象: `src/components/reader/command-palette.tsx`, `src/components/reader/use-command-palette-data.ts`
+
 - [x] sidebar の feed navigation と event listener を hook 化する
   - 問題: `sidebar.tsx` に feed 移動、folder 自動展開、`APP_EVENTS.navigateFeed` 購読が残っていて、tree 導出と責務が混ざっている
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-feed-navigation.ts`
