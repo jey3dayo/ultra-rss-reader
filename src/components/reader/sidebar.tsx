@@ -20,7 +20,7 @@ import { SidebarFeedSection } from "./sidebar-feed-section";
 import { SidebarFooterActions } from "./sidebar-footer-actions";
 import { SidebarHeaderView } from "./sidebar-header-view";
 import { SidebarTagSection } from "./sidebar-tag-section";
-import { type SmartViewItemViewModel, SmartViewsView } from "./smart-views-view";
+import { SmartViewsView } from "./smart-views-view";
 import { TagContextMenuContent } from "./tag-context-menu";
 import type { TagListItemViewModel } from "./tag-list-view";
 import { useSidebarAccountSelection } from "./use-sidebar-account-selection";
@@ -28,6 +28,7 @@ import { useSidebarAccountSwitcher } from "./use-sidebar-account-switcher";
 import { useSidebarFeedDragState } from "./use-sidebar-feed-drag-state";
 import { useSidebarFeedNavigation } from "./use-sidebar-feed-navigation";
 import { useSidebarFeedTree } from "./use-sidebar-feed-tree";
+import { useSidebarSmartViews } from "./use-sidebar-smart-views";
 import { useSidebarStartupFolderExpansion } from "./use-sidebar-startup-folder-expansion";
 import { useSidebarSync } from "./use-sidebar-sync";
 import { useSidebarVisibilityFallback } from "./use-sidebar-visibility-fallback";
@@ -138,27 +139,15 @@ export function Sidebar() {
 
   const totalUnread = feeds?.reduce((sum, f) => sum + f.unread_count, 0) ?? 0;
   const starredCount = useMemo(() => accountArticles?.filter((a) => a.is_starred).length ?? 0, [accountArticles]);
-  const selectedSmartViewKind = selection.type === "smart" ? selection.kind : null;
-  const smartViews: SmartViewItemViewModel[] = [
-    {
-      kind: "unread",
-      label: t("unread"),
-      count: totalUnread,
-      showCount: showUnreadCount,
-      isSelected: selectedSmartViewKind === "unread",
-    },
-    {
-      kind: "starred",
-      label: t("starred"),
-      count: starredCount,
-      showCount: showStarredCount && starredCount > 0,
-      isSelected: selectedSmartViewKind === "starred",
-    },
-  ];
-  const visibleSmartViews = smartViews.filter((view) => {
-    if (view.kind === "unread") return showSidebarUnread;
-    if (view.kind === "starred") return showSidebarStarred;
-    return true;
+  const visibleSmartViews = useSidebarSmartViews({
+    selection,
+    totalUnread,
+    starredCount,
+    showUnreadCount,
+    showStarredCount,
+    showSidebarUnread,
+    showSidebarStarred,
+    t,
   });
 
   const handleOpenAccountSettings = useCallback(() => {
