@@ -1,6 +1,7 @@
 import { addToHistory } from "@/hooks/use-command-history";
 import { executeAction } from "@/lib/actions";
 import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/lib/dev-scenario-runtime";
+import { createCommandPaletteHistoryValue } from "./command-palette-history";
 import type { PaletteAction } from "./use-command-palette-data";
 import type { useCommandPaletteUiState } from "./use-command-palette-ui-state";
 
@@ -11,13 +12,6 @@ type UseCommandPaletteHandlersParams = Pick<
   closePalette: () => void;
   openFeedLanding: (feedId: string) => Promise<void>;
 };
-
-const COMMAND_PALETTE_HISTORY_PREFIX = {
-  action: "action:",
-  feed: "feed:",
-  tag: "tag:",
-  article: "article:",
-} as const;
 
 export function useCommandPaletteHandlers({
   closePalette,
@@ -34,25 +28,25 @@ export function useCommandPaletteHandlers({
       closePalette();
       return;
     }
-    addToHistory(`${COMMAND_PALETTE_HISTORY_PREFIX.action}${action}`);
+    addToHistory(createCommandPaletteHistoryValue({ kind: "action", id: action }));
     executeAction(action);
     closePalette();
   }
 
   function handleFeedSelect(feedId: string) {
-    addToHistory(`${COMMAND_PALETTE_HISTORY_PREFIX.feed}${feedId}`);
+    addToHistory(createCommandPaletteHistoryValue({ kind: "feed", id: feedId }));
     void openFeedLanding(feedId);
     closePalette();
   }
 
   function handleTagSelect(tagId: string) {
-    addToHistory(`${COMMAND_PALETTE_HISTORY_PREFIX.tag}${tagId}`);
+    addToHistory(createCommandPaletteHistoryValue({ kind: "tag", id: tagId }));
     selectTag(tagId);
     closePalette();
   }
 
   function handleArticleSelect(feedId: string, articleId: string) {
-    addToHistory(`${COMMAND_PALETTE_HISTORY_PREFIX.article}${articleId}`);
+    addToHistory(createCommandPaletteHistoryValue({ kind: "article", id: articleId }));
     selectFeed(feedId);
     selectArticle(articleId);
     closePalette();

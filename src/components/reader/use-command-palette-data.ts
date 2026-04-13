@@ -3,22 +3,13 @@ import { useSearchArticles } from "@/hooks/use-articles";
 import { getHistory } from "@/hooks/use-command-history";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useTags } from "@/hooks/use-tags";
-import type { AppAction } from "@/lib/actions";
 import type { RuntimeDevScenario } from "@/lib/dev-scenario-runtime";
+import { parseCommandPaletteHistoryEntry } from "./command-palette-history";
 import type { CommandPaletteActionItem } from "./command-palette.types";
 
 export type PaletteAction = CommandPaletteActionItem & {
   keywords: string[];
 };
-
-type HistoryEntry = { kind: "action"; id: AppAction } | { kind: "feed" | "tag" | "article"; id: string };
-
-export const COMMAND_PALETTE_HISTORY_PREFIX = {
-  action: "action:",
-  feed: "feed:",
-  tag: "tag:",
-  article: "article:",
-} as const;
 
 function normalize(text: string): string {
   return text.trim().toLowerCase();
@@ -31,25 +22,6 @@ function matchesQuery(label: string, keywords: readonly string[], query: string)
 
   const needle = normalize(query);
   return [label, ...keywords].some((value) => normalize(value).includes(needle));
-}
-
-function parseHistoryEntry(value: string): HistoryEntry | null {
-  if (value.startsWith(COMMAND_PALETTE_HISTORY_PREFIX.action)) {
-    return {
-      kind: "action",
-      id: value.slice(COMMAND_PALETTE_HISTORY_PREFIX.action.length) as AppAction,
-    };
-  }
-  if (value.startsWith(COMMAND_PALETTE_HISTORY_PREFIX.feed)) {
-    return { kind: "feed", id: value.slice(COMMAND_PALETTE_HISTORY_PREFIX.feed.length) };
-  }
-  if (value.startsWith(COMMAND_PALETTE_HISTORY_PREFIX.tag)) {
-    return { kind: "tag", id: value.slice(COMMAND_PALETTE_HISTORY_PREFIX.tag.length) };
-  }
-  if (value.startsWith(COMMAND_PALETTE_HISTORY_PREFIX.article)) {
-    return { kind: "article", id: value.slice(COMMAND_PALETTE_HISTORY_PREFIX.article.length) };
-  }
-  return null;
 }
 
 type UseCommandPaletteDataOptions = {
@@ -90,8 +62,8 @@ export function useCommandPaletteData({
   const recentActions = useMemo(() => {
     const actionMap = new Map(actions.map((action) => [action.id, action]));
     return getHistory()
-      .map(parseHistoryEntry)
-      .filter((entry): entry is Extract<HistoryEntry, { kind: "action" }> => entry?.kind === "action")
+      .map(parseCommandPaletteHistoryEntry)
+      .filter((entry): entry is Extract<NonNullable<ReturnType<typeof parseCommandPaletteHistoryEntry>>, { kind: "action" }> => entry?.kind === "action")
       .map((entry) => actionMap.get(entry.id))
       .filter((action): action is PaletteAction => action != null);
   }, [actions]);
