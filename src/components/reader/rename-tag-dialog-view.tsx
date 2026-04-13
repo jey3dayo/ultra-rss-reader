@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
+import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -111,12 +111,16 @@ export function RenameTagDialogView({
           )}
         </form>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            {tc("cancel")}
-          </Button>
-          <Button onClick={onSubmit} disabled={!name.trim() || loading}>
-            {loading ? tc("saving") : tc("save")}
-          </Button>
+          <FormActionButtons
+            cancelLabel={tc("cancel")}
+            submitLabel={tc("save")}
+            submittingLabel={tc("saving")}
+            loading={loading}
+            submitDisabled={!name.trim() || loading}
+            cancelDisabled={loading}
+            onCancel={() => onOpenChange(false)}
+            onSubmit={onSubmit}
+          />
         </DialogFooter>
       </DialogContent>
     </Dialog>

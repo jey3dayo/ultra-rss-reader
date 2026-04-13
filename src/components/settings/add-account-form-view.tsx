@@ -1,7 +1,7 @@
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
+import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { SectionHeading } from "@/components/shared/section-heading";
-import { Button } from "@/components/ui/button";
 
 export type AddAccountFormOption = {
   value: string;
@@ -118,12 +118,16 @@ export function AddAccountFormView({
         {errorMessage && <p className="mb-4 text-sm text-destructive">{errorMessage}</p>}
 
         <div className="flex gap-3">
-          <Button type="submit" disabled={submitting}>
-            {submitting ? submittingLabel : submitLabel}
-          </Button>
-          <Button variant="outline" type="button" onClick={onCancel} disabled={submitting}>
-            {cancelLabel}
-          </Button>
+          <FormActionButtons
+            cancelLabel={cancelLabel}
+            submitLabel={submitLabel}
+            submittingLabel={submittingLabel}
+            loading={submitting}
+            submitDisabled={submitting}
+            cancelDisabled={submitting}
+            onCancel={onCancel}
+            submitType="submit"
+          />
         </div>
       </form>
     </div>

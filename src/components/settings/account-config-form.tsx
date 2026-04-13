@@ -5,9 +5,9 @@ import { useMemo, useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { addAccount } from "@/api/tauri-commands";
 import { SERVICE_CATEGORIES } from "@/components/settings/service-picker";
+import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { SectionHeading } from "@/components/shared/section-heading";
-import { Button } from "@/components/ui/button";
 import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import {
   addAccountFormInitialState,
@@ -173,12 +173,16 @@ export function AccountConfigForm({ kind, onBack }: { kind: AddAccountProviderKi
         {errorMessage && <p className="mb-4 text-sm text-destructive">{errorMessage}</p>}
 
         <div className="flex gap-3">
-          <Button type="submit" disabled={submitting}>
-            {submitting ? (formConfig.requiresCredentials ? tc("connection_testing") : tc("adding")) : tc("add")}
-          </Button>
-          <Button variant="outline" type="button" onClick={() => setSettingsAddAccount(false)} disabled={submitting}>
-            {tc("cancel")}
-          </Button>
+          <FormActionButtons
+            cancelLabel={tc("cancel")}
+            submitLabel={tc("add")}
+            submittingLabel={formConfig.requiresCredentials ? tc("connection_testing") : tc("adding")}
+            loading={submitting}
+            submitDisabled={submitting}
+            cancelDisabled={submitting}
+            onCancel={() => setSettingsAddAccount(false)}
+            submitType="submit"
+          />
         </div>
       </form>
     </div>

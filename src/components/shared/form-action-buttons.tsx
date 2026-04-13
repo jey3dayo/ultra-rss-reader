@@ -9,6 +9,8 @@ export function FormActionButtons({
   cancelDisabled = false,
   onCancel,
   onSubmit,
+  cancelType = "button",
+  submitType = "button",
 }: {
   cancelLabel: string;
   submitLabel: string;
@@ -17,14 +19,16 @@ export function FormActionButtons({
   submitDisabled?: boolean;
   cancelDisabled?: boolean;
   onCancel: () => void;
-  onSubmit: () => void;
+  onSubmit?: () => void;
+  cancelType?: "button" | "submit";
+  submitType?: "button" | "submit";
 }) {
   return (
     <>
-      <Button variant="outline" onClick={onCancel} disabled={cancelDisabled}>
+      <Button type={cancelType} variant="outline" onClick={onCancel} disabled={cancelDisabled}>
         {cancelLabel}
       </Button>
-      <Button onClick={onSubmit} disabled={submitDisabled}>
+      <Button type={submitType} onClick={onSubmit} disabled={submitDisabled}>
         {loading && submittingLabel ? submittingLabel : submitLabel}
       </Button>
     </>
