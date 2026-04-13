@@ -21,6 +21,8 @@
   "sync_completed_with_warnings": "Sync completed with warnings for: {{accounts}}",
   "sync_retry_scheduled": "Background sync failed for {{accounts}}. Retrying at {{time}}",
   "sync_retry_scheduled_soon": "Background sync failed for {{accounts}}. Retrying automatically soon",
+  "account_retry_scheduled_short": "Retrying at {{time}}",
+  "account_retry_scheduled_short_soon": "Retrying automatically soon",
   "sync_already_in_progress": "Sync already in progress",
   "sync_failed": "Sync failed",
   "sync_failed_with_message": "Sync failed: {{message}}",

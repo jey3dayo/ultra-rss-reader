@@ -805,6 +805,47 @@ describe("Sidebar", () => {
     });
   });
 
+  it("shows scheduled retry status in the account switcher after sync warnings refresh account sync status", async () => {
+    const user = userEvent.setup();
+    let freshRssRetryScheduled = false;
+
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "get_account_sync_status" && args.accountId === "acc-2") {
+        return {
+          last_error: freshRssRetryScheduled ? "Network timeout" : null,
+          error_count: freshRssRetryScheduled ? 2 : 0,
+          next_retry_at: freshRssRetryScheduled ? "2026-04-13T03:15:00Z" : null,
+        };
+      }
+      return undefined;
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const trigger = await screen.findByRole("button", { name: /Local/ });
+    await user.click(trigger);
+
+    await screen.findByRole("menu", { name: "Accounts" });
+    expect(screen.queryByText("Retrying at 12:15")).not.toBeInTheDocument();
+    expect(syncWarningListener).not.toBeNull();
+
+    freshRssRetryScheduled = true;
+    syncWarningListener?.([
+      {
+        account_id: "acc-2",
+        account_name: "FreshRSS",
+        message: "Background sync failed and will retry automatically for 'FreshRSS'.",
+        kind: "retry_scheduled",
+        retry_at: "2026-04-13T03:15:00Z",
+        retry_in_seconds: 120,
+      },
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getByText("Retrying at 12:15")).toBeInTheDocument();
+    });
+  });
+
   it("keeps the sync button idle for manual account sync progress", async () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 

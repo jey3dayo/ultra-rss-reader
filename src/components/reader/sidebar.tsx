@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAccounts } from "@/hooks/use-accounts";
+import { useAccountSyncStatuses } from "@/hooks/use-account-sync-statuses";
 import { useAccountArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
@@ -32,8 +33,21 @@ import { useSidebarTagItems } from "./use-sidebar-tag-items";
 import { useSidebarUiActions } from "./use-sidebar-ui-actions";
 import { useSidebarVisibilityFallback } from "./use-sidebar-visibility-fallback";
 
+function formatAccountRetryTime(retryAt: string, language: string): string | null {
+  const date = new Date(retryAt);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toLocaleTimeString(language, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 export function Sidebar() {
-  const { t } = useTranslation("sidebar");
+  const { t, i18n } = useTranslation("sidebar");
   const [isFeedsSectionOpen, setIsFeedsSectionOpen] = useState(true);
   const [isTagsSectionOpen, setIsTagsSectionOpen] = useState(true);
   const {
@@ -46,6 +60,7 @@ export function Sidebar() {
     toggleAccountList,
   } = useSidebarAccountSwitcher();
   const { data: accounts } = useAccounts();
+  const accountSyncStatuses = useAccountSyncStatuses(accounts);
   const layoutMode = useUiStore((s) => s.layoutMode);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectAccount = useUiStore((s) => s.selectAccount);
@@ -105,6 +120,28 @@ export function Sidebar() {
     clearSyncProgress,
     showToast,
   });
+  const accountStatusLabels = useMemo(
+    () =>
+      Object.fromEntries(
+        (accounts ?? []).flatMap((account) => {
+          const syncStatus = accountSyncStatuses[account.id];
+          if (!syncStatus?.next_retry_at) {
+            return [];
+          }
+
+          const retryTime = formatAccountRetryTime(syncStatus.next_retry_at, i18n.language);
+          return [
+            [
+              account.id,
+              retryTime
+                ? t("account_retry_scheduled_short", { time: retryTime })
+                : t("account_retry_scheduled_short_soon"),
+            ],
+          ];
+        }),
+      ),
+    [accountSyncStatuses, accounts, i18n.language, t],
+  );
 
   useSidebarAccountSelection({
     accounts,
@@ -295,6 +332,7 @@ export function Sidebar() {
         title={selectedAccount?.name ?? t("app_name")}
         lastSyncedLabel={lastSyncedLabel}
         accounts={accounts ?? []}
+        accountStatusLabels={accountStatusLabels}
         selectedAccountId={selectedAccountId}
         isExpanded={isAccountListOpen}
         menuId={accountMenuId}

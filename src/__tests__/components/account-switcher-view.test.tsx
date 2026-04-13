@@ -19,6 +19,7 @@ describe("AccountSwitcherView", () => {
         title="Ultra RSS"
         lastSyncedLabel="Not synced yet"
         accounts={sampleAccounts}
+        accountStatusLabels={{ "acc-2": "Retrying at 12:15" }}
         selectedAccountId="acc-1"
         isExpanded={true}
         menuId="account-menu"
@@ -34,6 +35,7 @@ describe("AccountSwitcherView", () => {
     expect(screen.getByRole("button", { name: /Local/ })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("menu", { name: "Accounts" })).toBeInTheDocument();
     expect(screen.getAllByRole("menuitemradio")).toHaveLength(2);
+    expect(screen.getByText("Retrying at 12:15")).toBeInTheDocument();
 
     await user.click(screen.getByRole("menuitemradio", { name: /FreshRSS/ }));
 
@@ -54,6 +56,7 @@ describe("AccountSwitcherView", () => {
         title="Ultra RSS"
         lastSyncedLabel="Not synced yet"
         accounts={sampleAccounts}
+        accountStatusLabels={{}}
         selectedAccountId="acc-1"
         isExpanded={true}
         menuId="account-menu"

@@ -35,6 +35,9 @@ const meta = {
     title: "Ultra RSS",
     lastSyncedLabel: "Today at 10:42",
     accounts: sampleAccounts,
+    accountStatusLabels: {
+      "acc-2": "Retrying at 12:15",
+    },
     selectedAccountId: "acc-1",
     isExpanded: false,
     menuId: "account-switcher-menu",
@@ -68,6 +71,7 @@ export const Expanded: Story = {
 export const SingleAccount: Story = {
   args: {
     accounts: [sampleAccounts[0]],
+    accountStatusLabels: {},
     lastSyncedLabel: "Not synced yet",
     isExpanded: false,
   },

@@ -11,6 +11,7 @@ export function SidebarAccountSection({
   title,
   lastSyncedLabel,
   accounts,
+  accountStatusLabels,
   selectedAccountId,
   isExpanded,
   menuId,
@@ -27,6 +28,7 @@ export function SidebarAccountSection({
         title={title}
         lastSyncedLabel={lastSyncedLabel}
         accounts={accounts}
+        accountStatusLabels={accountStatusLabels}
         selectedAccountId={selectedAccountId}
         isExpanded={isExpanded}
         menuId={menuId}

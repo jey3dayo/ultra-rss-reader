@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AccountSyncWarning } from "@/api/schemas/sync-result";
@@ -41,7 +42,11 @@ export function useSidebarSync({
   showToast,
 }: UseSidebarSyncParams) {
   const { t } = useTranslation("sidebar");
+  const queryClient = useQueryClient();
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const invalidateAccountSyncStatuses = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ["account-sync-status"] });
+  }, [queryClient]);
 
   const lastSyncedLabel = useMemo(() => {
     if (!lastSyncedAt) {
@@ -87,6 +92,7 @@ export function useSidebarSync({
     listen("sync-completed", () => {
       setLastSyncedAt(new Date());
       clearSyncProgress();
+      invalidateAccountSyncStatuses();
     }).then((fn) => {
       if (cancelled) {
         fn();
@@ -101,6 +107,7 @@ export function useSidebarSync({
           ? (event.payload as SyncWarningPayload)
           : (event as SyncWarningPayload);
       if (payload.length > 0) {
+        invalidateAccountSyncStatuses();
         const feedback = summarizeSyncWarnings(payload);
         showToast(
           resolveSyncFeedbackMessage(feedback, {
@@ -132,7 +139,7 @@ export function useSidebarSync({
       unlistenProgress?.();
       unlistenWarning?.();
     };
-  }, [applySyncProgress, clearSyncProgress, showToast, t]);
+  }, [applySyncProgress, clearSyncProgress, invalidateAccountSyncStatuses, showToast, t]);
 
   const handleSync = useCallback(async () => {
     if (syncProgress.active) {
@@ -143,6 +150,7 @@ export function useSidebarSync({
     Result.pipe(
       result,
       Result.inspect((syncResult) => {
+        invalidateAccountSyncStatuses();
         showToast(
           resolveSyncFeedbackMessage(summarizeSyncResult(syncResult), {
             alreadyInProgress: t("sync_already_in_progress"),
@@ -164,7 +172,7 @@ export function useSidebarSync({
         showToast(t("sync_failed"));
       }),
     );
-  }, [showToast, syncProgress.active, t]);
+  }, [invalidateAccountSyncStatuses, showToast, syncProgress.active, t]);
 
   return {
     handleSync,
