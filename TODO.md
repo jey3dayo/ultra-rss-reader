@@ -741,6 +741,11 @@
   - 対応: `article-list.types.ts` に presentation params contract を追加し、関連 hook は export した shared params/result を再利用する形に寄せた
   - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-presentation.ts`, `src/components/reader/use-article-list-view-state.ts`, `src/components/reader/use-article-list-view-props.ts`, `src/components/reader/use-article-list-groups.ts`, `src/components/reader/use-article-list-header-controller.ts`, `src/components/reader/use-article-list-interactions.ts`
 
+- [x] article list body props の contract を shared types に寄せる
+  - 問題: `use-article-list-body-props.ts` の params 契約が hook file に閉じていて、body 組み立て境界の正本を追いにくかった
+  - 対応: `article-list.types.ts` に body props params contract を追加して、body props helper は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-body-props.ts`
+
 - [x] sidebar header/content view props の正本を sidebar types に寄せる
   - 問題: `sidebar.types.ts` が `sidebar-header-view.tsx` と `sidebar-content-sections.tsx` の exported props に依存していて、shared types 側から component file へ逆参照していた
   - 対応: `sidebar.types.ts` に header/content section の props contract を持たせて、component と helper は shared types を再利用する形に寄せた
