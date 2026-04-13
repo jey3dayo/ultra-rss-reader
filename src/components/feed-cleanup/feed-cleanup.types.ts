@@ -2,6 +2,7 @@ import type { ReactNode, RefObject } from "react";
 import type { FeedIntegrityIssueDto } from "@/api/schemas/feed-integrity";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import type {
+  BuildFeedCleanupCandidatesParams,
   FeedCleanupCandidate,
   FeedCleanupReasonKey,
   FeedCleanupSummaryKey,
@@ -260,3 +261,46 @@ export type FeedCleanupFeedEditorController = {
   handleRefetch: () => Promise<void>;
   folderSelectProps: FeedCleanupFeedEditorControllerFolderSelectProps;
 };
+
+export type FeedCleanupFilterKey = "stale_90d" | "no_unread" | "no_stars";
+
+export type FeedCleanupPageInput = {
+  feedCleanupOpen: boolean;
+  devIntent: string | null;
+  feeds: BuildFeedCleanupCandidatesParams["feeds"];
+  folders: BuildFeedCleanupCandidatesParams["folders"];
+  accountArticles: BuildFeedCleanupCandidatesParams["articles"];
+  integrityReport:
+    | {
+        orphaned_article_count: number;
+        orphaned_feeds: FeedIntegrityIssueDto[];
+      }
+    | undefined;
+};
+
+export type FeedCleanupPageState = {
+  activeFilters: Set<FeedCleanupFilterKey>;
+  keptFeedIds: Set<string>;
+  deferredFeedIds: Set<string>;
+  showDeferred: boolean;
+  selectedFeedId: string | null;
+  deleteTargetId: string | null;
+  editingFeedId: string | null;
+  queueMode: "cleanup" | "integrity";
+  selectedIntegrityFeedId: string | null;
+};
+
+export type FeedCleanupPageAction =
+  | { type: "toggle-filter"; key: FeedCleanupFilterKey }
+  | { type: "toggle-show-deferred" }
+  | { type: "set-selected-feed-id"; feedId: string | null }
+  | { type: "set-selected-integrity-feed-id"; feedId: string | null }
+  | { type: "toggle-queue-mode" }
+  | { type: "set-queue-mode"; mode: FeedCleanupPageState["queueMode"] }
+  | { type: "set-editing-feed-id"; feedId: string | null }
+  | { type: "set-delete-target-id"; feedId: string | null }
+  | { type: "mark-kept"; feedId: string }
+  | { type: "mark-many-kept"; feedIds: string[] }
+  | { type: "mark-deferred"; feedId: string }
+  | { type: "mark-many-deferred"; feedIds: string[] }
+  | { type: "delete-succeeded"; feedId: string };

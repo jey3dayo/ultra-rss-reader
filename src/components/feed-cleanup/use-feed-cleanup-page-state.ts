@@ -1,50 +1,12 @@
 import { useEffect, useMemo, useReducer } from "react";
-import type { FeedIntegrityIssueDto } from "@/api/schemas/feed-integrity";
-import type { BuildFeedCleanupCandidatesParams, FeedCleanupCandidate } from "@/lib/feed-cleanup";
+import type { FeedCleanupCandidate } from "@/lib/feed-cleanup";
 import { buildFeedCleanupCandidates, summarizeCleanupCandidate } from "@/lib/feed-cleanup";
-
-export type FeedCleanupFilterKey = "stale_90d" | "no_unread" | "no_stars";
-
-type FeedCleanupPageInput = {
-  feedCleanupOpen: boolean;
-  devIntent: string | null;
-  feeds: BuildFeedCleanupCandidatesParams["feeds"];
-  folders: BuildFeedCleanupCandidatesParams["folders"];
-  accountArticles: BuildFeedCleanupCandidatesParams["articles"];
-  integrityReport:
-    | {
-        orphaned_article_count: number;
-        orphaned_feeds: FeedIntegrityIssueDto[];
-      }
-    | undefined;
-};
-
-type FeedCleanupPageState = {
-  activeFilters: Set<FeedCleanupFilterKey>;
-  keptFeedIds: Set<string>;
-  deferredFeedIds: Set<string>;
-  showDeferred: boolean;
-  selectedFeedId: string | null;
-  deleteTargetId: string | null;
-  editingFeedId: string | null;
-  queueMode: "cleanup" | "integrity";
-  selectedIntegrityFeedId: string | null;
-};
-
-type FeedCleanupPageAction =
-  | { type: "toggle-filter"; key: FeedCleanupFilterKey }
-  | { type: "toggle-show-deferred" }
-  | { type: "set-selected-feed-id"; feedId: string | null }
-  | { type: "set-selected-integrity-feed-id"; feedId: string | null }
-  | { type: "toggle-queue-mode" }
-  | { type: "set-queue-mode"; mode: FeedCleanupPageState["queueMode"] }
-  | { type: "set-editing-feed-id"; feedId: string | null }
-  | { type: "set-delete-target-id"; feedId: string | null }
-  | { type: "mark-kept"; feedId: string }
-  | { type: "mark-many-kept"; feedIds: string[] }
-  | { type: "mark-deferred"; feedId: string }
-  | { type: "mark-many-deferred"; feedIds: string[] }
-  | { type: "delete-succeeded"; feedId: string };
+import type {
+  FeedCleanupFilterKey,
+  FeedCleanupPageAction,
+  FeedCleanupPageInput,
+  FeedCleanupPageState,
+} from "./feed-cleanup.types";
 
 function createInitialState(): FeedCleanupPageState {
   return {
