@@ -1,13 +1,8 @@
 import { useTranslation } from "react-i18next";
 import type { UseArticleListViewPropsResult } from "./article-list.types";
 import { useArticleListData } from "./use-article-list-data";
-import { useArticleListEffects } from "./use-article-list-effects";
-import { useArticleListGroups } from "./use-article-list-groups";
-import { useArticleListHeaderController } from "./use-article-list-header-controller";
-import { useArticleListInteractions } from "./use-article-list-interactions";
+import { useArticleListPresentation } from "./use-article-list-presentation";
 import { useArticleListRuntime } from "./use-article-list-runtime";
-import { useArticleListViewProps } from "./use-article-list-view-props";
-import { useArticleListViewState } from "./use-article-list-view-state";
 
 export function useArticleListController(): UseArticleListViewPropsResult {
   const { t } = useTranslation("reader");
@@ -88,9 +83,11 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     groupBy,
   });
 
-  const viewState = useArticleListViewState({
-    selection,
+  return useArticleListPresentation({
     t,
+    tc,
+    ts,
+    selection,
     feedId: resolvedFeedId,
     tagId: resolvedTagId,
     accountListScopeId: resolvedAccountListScopeId,
@@ -101,82 +98,32 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     trimmedDebouncedQuery,
     searchResults,
     isSearching,
-    filteredArticleCount: filteredArticles.length,
-  });
-
-  const articleGroups = useArticleListGroups({
+    filteredArticles,
     groupedArticles,
     groupBy,
     feedNameMap,
     selectedArticleId,
     recentlyReadIds,
-    t,
-  });
-
-  const headerController = useArticleListHeaderController({
-    feedId: resolvedFeedId,
     selectedFeed,
-    filteredArticles,
     layoutMode,
     sidebarOpen,
-    sidebarSubscriptionsLabel: ts("subscriptions"),
-    feedDisplayLabel: t("display_mode"),
-    showSidebarLabel: t("show_sidebar"),
-    hideSidebarLabel: t("hide_sidebar"),
     openSidebar,
     toggleSidebar,
-  });
-  const { handleMarkAllRead, ...headerControls } = headerController;
-
-  const { listRef, viewportRef, handleListKeyDownCapture } = useArticleListInteractions({
-    filteredArticles,
-    selectedArticleId,
     selectArticle,
     clearArticle,
-    openSidebar,
-    toggleSidebar,
     openSearch,
-    handleMarkAllRead,
     keyboardPrefs,
-  });
-
-  useArticleListEffects({
-    selection,
     scrollToTopOnChange,
-    viewportRef,
-    filteredArticles,
-    selectedArticleId,
-    isPrimarySourceLoading: viewState.isPrimarySourceLoading,
-    clearArticle,
-  });
-
-  return useArticleListViewProps({
-    t,
-    tc,
-    layoutMode,
-    showSearch,
-    searchQuery,
-    searchInputRef,
-    handleMarkAllRead,
-    handleToggleSearch,
-    handleCloseSearch,
-    setSearchQuery,
-    listRef,
-    viewportRef,
-    handleListKeyDownCapture,
-    isLoading,
-    isLoadingAccountArticles,
-    isLoadingTagArticles,
-    trimmedDebouncedQuery,
-    articleGroups,
     dimArchived,
     textPreview,
     imagePreviews,
     selectionStyle,
-    selectArticle,
     effectiveViewMode,
     setViewMode,
-    ...headerControls,
-    ...viewState,
+    searchQuery,
+    searchInputRef,
+    handleToggleSearch,
+    handleCloseSearch,
+    setSearchQuery,
   });
 }
