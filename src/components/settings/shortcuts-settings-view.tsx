@@ -30,7 +30,12 @@ export type ShortcutsSettingsViewProps = {
   onResetAll: () => void;
 };
 
-function ShortcutKeyBadge({ item, pressAKeyLabel }: { item: ShortcutsSettingsItem; pressAKeyLabel: string }) {
+export type ShortcutKeyBadgeProps = {
+  item: ShortcutsSettingsItem;
+  pressAKeyLabel: string;
+};
+
+function ShortcutKeyBadge({ item, pressAKeyLabel }: ShortcutKeyBadgeProps) {
   const badgeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {

@@ -8,7 +8,12 @@ import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preference
 
 export { SectionHeading } from "@/components/shared/section-heading";
 
-export function SettingsSwitch({ label, prefKey }: { label: string; prefKey: string }) {
+export type SettingsSwitchProps = {
+  label: string;
+  prefKey: string;
+};
+
+export function SettingsSwitch({ label, prefKey }: SettingsSwitchProps) {
   const checked = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, prefKey) === "true");
   const setPref = usePreferencesStore((s) => s.setPref);
   return <LabeledSwitchRow label={label} checked={checked} onChange={(value) => setPref(prefKey, String(value))} />;
@@ -16,15 +21,13 @@ export function SettingsSwitch({ label, prefKey }: { label: string; prefKey: str
 
 type SelectOption = LabeledSelectOption;
 
-export function SettingsSelect({
-  label,
-  prefKey,
-  options,
-}: {
+export type SettingsSelectProps = {
   label: string;
   prefKey: string;
   options: SelectOption[];
-}) {
+};
+
+export function SettingsSelect({ label, prefKey, options }: SettingsSelectProps) {
   const value = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, prefKey));
   const setPref = usePreferencesStore((s) => s.setPref);
 
