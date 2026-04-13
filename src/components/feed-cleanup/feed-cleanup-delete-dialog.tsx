@@ -1,6 +1,6 @@
 import { DestructiveDialogFooter } from "@/components/shared/destructive-dialog-footer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { FeedCleanupCandidate } from "@/lib/feed-cleanup";
+import type { FeedCleanupDeleteDialogProps } from "./feed-cleanup.types";
 
 function formatDate(value: string | null, locale: string): string {
   if (!value) {
@@ -29,22 +29,7 @@ export function FeedCleanupDeleteDialog({
   pending,
   onOpenChange,
   onConfirm,
-}: {
-  candidate: FeedCleanupCandidate | null;
-  open: boolean;
-  title: string;
-  dateLocale: string;
-  cancelLabel: string;
-  deleteLabel: string;
-  latestArticleLabel: string;
-  unreadCountLabel: string;
-  starredCountLabel: string;
-  reasonsLabel: string;
-  reasonLabels: Record<FeedCleanupCandidate["reasonKeys"][number], string>;
-  pending: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
-}) {
+}: FeedCleanupDeleteDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false} className="sm:max-w-md">

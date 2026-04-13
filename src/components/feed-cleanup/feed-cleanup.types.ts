@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { FeedIntegrityIssueDto } from "@/api/schemas/feed-integrity";
+import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import type {
   FeedCleanupCandidate,
   FeedCleanupReasonKey,
@@ -182,4 +183,33 @@ export type FeedCleanupPageViewProps = {
   onKeep: () => void;
   onLater: () => void;
   onDelete: () => void;
+};
+
+export type FeedCleanupDeleteDialogProps = {
+  candidate: FeedCleanupCandidate | null;
+  open: boolean;
+  title: string;
+  dateLocale: string;
+  cancelLabel: string;
+  deleteLabel: string;
+  latestArticleLabel: string;
+  unreadCountLabel: string;
+  starredCountLabel: string;
+  reasonsLabel: string;
+  reasonLabels: Record<FeedCleanupCandidate["reasonKeys"][number], string>;
+  pending: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+};
+
+export type FeedCleanupFeedEditorProps = {
+  feed: FeedDto;
+  folders: FolderDto[];
+  maintenanceTitle: string;
+  maintenanceDescription: string;
+  refetchLabel: string;
+  unsubscribeLabel: string;
+  onCancel: () => void;
+  onDelete: () => void;
+  onSaved: () => void;
 };
