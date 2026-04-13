@@ -1,19 +1,12 @@
 import { Result } from "@praha/byethrow";
-import type { QueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import type { AccountDto } from "@/api/tauri-commands";
 import { copyToClipboard, testAccountConnection, updateAccountCredentials } from "@/api/tauri-commands";
 import { useUiStore } from "@/stores/ui-store";
 import type {
   UseAccountDetailCredentialsEditorParams,
   UseAccountDetailCredentialsEditorResult,
 } from "./account-detail.types";
-
-function updateCachedAccount(queryClient: QueryClient, updated: AccountDto) {
-  queryClient.setQueryData<AccountDto[]>(["accounts"], (previous) =>
-    previous?.map((item) => (item.id === updated.id ? updated : item)),
-  );
-}
+import { updateCachedAccount } from "./account-detail-query-cache";
 
 export function useAccountDetailCredentialsEditor({
   account,

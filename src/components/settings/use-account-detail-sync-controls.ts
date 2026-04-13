@@ -1,5 +1,4 @@
 import { Result } from "@praha/byethrow";
-import type { AccountDto } from "@/api/tauri-commands";
 import { syncAccount, updateAccountSync } from "@/api/tauri-commands";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync-result-feedback";
 import { useUiStore } from "@/stores/ui-store";
@@ -8,6 +7,7 @@ import type {
   UseAccountDetailSyncControlsParams,
   UseAccountDetailSyncControlsResult,
 } from "./account-detail.types";
+import { updateCachedAccount } from "./account-detail-query-cache";
 
 export function useAccountDetailSyncControls({
   account,
@@ -27,9 +27,7 @@ export function useAccountDetailSyncControls({
         useUiStore.getState().showToast(t("account.failed_to_update_sync", { message: error.message })),
       ),
       Result.inspect((updated) => {
-        queryClient.setQueryData<AccountDto[]>(["accounts"], (previous) =>
-          previous?.map((item) => (item.id === updated.id ? updated : item)),
-        );
+        updateCachedAccount(queryClient, updated);
       }),
     );
   };

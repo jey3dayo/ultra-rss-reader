@@ -1,9 +1,9 @@
 import { Result } from "@praha/byethrow";
 import { type KeyboardEvent, useRef, useState } from "react";
-import type { AccountDto } from "@/api/tauri-commands";
 import { renameAccount } from "@/api/tauri-commands";
 import { useUiStore } from "@/stores/ui-store";
 import type { UseAccountDetailNameEditorParams, UseAccountDetailNameEditorResult } from "./account-detail.types";
+import { updateCachedAccount } from "./account-detail-query-cache";
 
 export function useAccountDetailNameEditor({
   account,
@@ -42,9 +42,7 @@ export function useAccountDetailNameEditor({
       Result.inspect((updated) => {
         renameSucceeded = true;
         setNameDraft(updated.name);
-        queryClient.setQueryData<AccountDto[]>(["accounts"], (previous) =>
-          previous?.map((item) => (item.id === updated.id ? updated : item)),
-        );
+        updateCachedAccount(queryClient, updated);
         queryClient.invalidateQueries({ queryKey: ["accounts"] });
       }),
     );
