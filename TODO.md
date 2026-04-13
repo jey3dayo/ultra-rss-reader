@@ -107,6 +107,10 @@
   - 問題: `sidebar.tsx` に section toggle / account 選択 / settings-add-feed 導線の callback 群が残っていて、表示ロジックと UI action が混ざっていた
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-ui-actions.ts`
 
+- [x] sidebar の context menu renderer 群を hook 化する
+  - 問題: `sidebar.tsx` に folder/feed/tag の context menu renderer callback が残っていて、view tree 構築と描画補助が混ざっていた
+  - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-context-menu-renderers.ts`
+
 - [x] sidebar の account restore / startup expansion / hidden-state fallback を hook 化する
   - 問題: `sidebar.tsx` に account 復元、起動時 folder 展開、visibility fallback の effect が集まり、責務が重くなっていた
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-account-selection.ts`, `src/components/reader/use-sidebar-startup-folder-expansion.ts`, `src/components/reader/use-sidebar-visibility-fallback.ts`
