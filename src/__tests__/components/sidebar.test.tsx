@@ -28,7 +28,14 @@ let syncProgressListener:
   | null = null;
 let syncWarningListener:
   | ((
-      event: Array<{ account_id: string; account_name: string; message: string; kind?: "generic" | "retry_pending" }>,
+      event: Array<{
+        account_id: string;
+        account_name: string;
+        message: string;
+        kind?: "generic" | "retry_pending" | "retry_scheduled";
+        retry_at?: string;
+        retry_in_seconds?: number;
+      }>,
     ) => void)
   | null = null;
 const renderedFeedContextMenuFeeds: Array<{ id: string; folder_id: string | null }> = [];
@@ -771,6 +778,29 @@ describe("Sidebar", () => {
     await waitFor(() => {
       expect(useUiStore.getState().toastMessage).toEqual({
         message: "Sync completed, but some changes for FreshRSS will retry next sync",
+      });
+    });
+  });
+
+  it("shows a scheduled-retry toast from sync-warning events when background sync enters backoff", async () => {
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(syncWarningListener).not.toBeNull();
+
+    syncWarningListener?.([
+      {
+        account_id: "acc-2",
+        account_name: "FreshRSS",
+        message: "Background sync failed and will retry automatically for 'FreshRSS'.",
+        kind: "retry_scheduled",
+        retry_at: "2026-04-13T03:15:00Z",
+        retry_in_seconds: 120,
+      },
+    ]);
+
+    await waitFor(() => {
+      expect(useUiStore.getState().toastMessage).toEqual({
+        message: "Background sync failed for FreshRSS. Retrying at 12:15",
       });
     });
   });

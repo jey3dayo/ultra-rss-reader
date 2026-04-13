@@ -37,6 +37,8 @@ pub(crate) struct ProviderSyncOutcome {
 pub(crate) struct ProviderSyncWarning {
     pub kind: AccountSyncWarningKind,
     pub message: String,
+    pub retry_at: Option<String>,
+    pub retry_in_seconds: Option<u64>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -246,6 +248,8 @@ pub(super) async fn sync_greader_feed(
                 "Feed '{}' skipped {} entry item(s) during sync.",
                 feed.title, feed_outcome.skipped_entries
             ),
+            retry_at: None,
+            retry_in_seconds: None,
         });
     }
     if article_count_before > 0 && article_count_after == 0 {
@@ -255,6 +259,8 @@ pub(super) async fn sync_greader_feed(
                 "Feed '{}' had {} saved article(s) before sync and 0 after sync.",
                 feed.title, article_count_before
             ),
+            retry_at: None,
+            retry_in_seconds: None,
         });
     }
 
@@ -380,6 +386,8 @@ async fn sync_greader_feeds(
                             "Feed '{}' skipped {} entry item(s) during sync.",
                             feed.title, feed_outcome.skipped_entries
                         ),
+                        retry_at: None,
+                        retry_in_seconds: None,
                     });
                 }
             }
@@ -453,6 +461,8 @@ async fn sync_greader_feeds(
                         "Local change '{}' for entry {} will retry next sync.",
                         pm.mutation_type, pm.remote_entry_id
                     ),
+                    retry_at: None,
+                    retry_in_seconds: None,
                 });
             }
         }
@@ -523,6 +533,8 @@ async fn sync_greader_feeds(
                     "Feed '{}' had {} saved article(s) before sync and 0 after sync.",
                     feed.title, before_count
                 ),
+                retry_at: None,
+                retry_in_seconds: None,
             });
         }
     }

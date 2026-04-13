@@ -272,6 +272,8 @@ async fn run_full_sync_with_progress(
                             account_name: account.name.clone(),
                             kind: warning.kind,
                             message: warning.message,
+                            retry_at: warning.retry_at,
+                            retry_in_seconds: warning.retry_in_seconds,
                         }),
                 );
             }
@@ -479,6 +481,8 @@ pub async fn trigger_sync_account(
                             account_name: name.clone(),
                             kind: warning.kind,
                             message: warning.message,
+                            retry_at: warning.retry_at,
+                            retry_in_seconds: warning.retry_in_seconds,
                         }),
                 );
             reporter.emit_account_finished(&account, true);
@@ -567,6 +571,8 @@ pub async fn trigger_sync_feed(
                             account_name: account.name.clone(),
                             kind: warning.kind,
                             message: warning.message,
+                            retry_at: warning.retry_at,
+                            retry_in_seconds: warning.retry_in_seconds,
                         }),
                 );
             reporter.emit_account_finished(&account, true);

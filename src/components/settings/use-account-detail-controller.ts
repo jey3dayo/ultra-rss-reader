@@ -13,7 +13,7 @@ import {
   updateAccountCredentials,
   updateAccountSync,
 } from "@/api/tauri-commands";
-import { summarizeSyncResult } from "@/lib/sync-result-feedback";
+import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync-result-feedback";
 import { useUiStore } from "@/stores/ui-store";
 
 type Account = NonNullable<AccountDto | undefined>;
@@ -184,24 +184,16 @@ export function useAccountDetailController({ account, t, onAccountDeleted }: Use
       Result.inspect((syncResult) => {
         qc.invalidateQueries({ queryKey: ["feeds"] });
         qc.invalidateQueries({ queryKey: ["articles"] });
-        const feedback = summarizeSyncResult(syncResult);
-        switch (feedback.kind) {
-          case "already-in-progress":
-            useUiStore.getState().showToast(t("account.syncing_now"));
-            break;
-          case "partial-failure":
-            useUiStore.getState().showToast(t("account.sync_failed", { message: feedback.accounts }));
-            break;
-          case "retry-pending":
-            useUiStore.getState().showToast(t("account.sync_completed_with_retry_pending"));
-            break;
-          case "warnings":
-            useUiStore.getState().showToast(t("account.sync_completed_with_warnings"));
-            break;
-          case "success":
-            useUiStore.getState().showToast(t("account.sync_complete"));
-            break;
-        }
+        useUiStore.getState().showToast(
+          resolveSyncFeedbackMessage(summarizeSyncResult(syncResult), {
+            alreadyInProgress: t("account.syncing_now"),
+            partialFailure: (accounts) => t("account.sync_failed", { message: accounts }),
+            retryScheduled: () => t("account.sync_completed_with_retry_pending"),
+            retryPending: () => t("account.sync_completed_with_retry_pending"),
+            warnings: () => t("account.sync_completed_with_warnings"),
+            success: t("account.sync_complete"),
+          }),
+        );
       }),
       Result.inspectError((e) => {
         useUiStore.getState().showToast(t("account.sync_failed", { message: e.message }));

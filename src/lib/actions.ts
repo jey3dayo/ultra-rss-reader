@@ -5,7 +5,7 @@ import { runManualUpdateCheck } from "@/hooks/use-updater";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import i18n from "@/lib/i18n";
 import { keyboardEvents, type ViewMode } from "@/lib/keyboard-shortcuts";
-import { summarizeSyncResult } from "@/lib/sync-result-feedback";
+import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync-result-feedback";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -192,24 +192,16 @@ export function executeAction(action: AppAction): void {
         Result.pipe(
           result,
           Result.inspect((syncResult) => {
-            const feedback = summarizeSyncResult(syncResult);
-            switch (feedback.kind) {
-              case "already-in-progress":
-                store.showToast(i18n.t("sidebar:sync_already_in_progress"));
-                break;
-              case "partial-failure":
-                store.showToast(i18n.t("sidebar:sync_partial_failure", { accounts: feedback.accounts }));
-                break;
-              case "retry-pending":
-                store.showToast(i18n.t("sidebar:sync_completed_with_retry_pending", { accounts: feedback.accounts }));
-                break;
-              case "warnings":
-                store.showToast(i18n.t("sidebar:sync_completed_with_warnings", { accounts: feedback.accounts }));
-                break;
-              case "success":
-                store.showToast(i18n.t("sidebar:sync_completed"));
-                break;
-            }
+            store.showToast(
+              resolveSyncFeedbackMessage(summarizeSyncResult(syncResult), {
+                alreadyInProgress: i18n.t("sidebar:sync_already_in_progress"),
+                partialFailure: (accounts) => i18n.t("sidebar:sync_partial_failure", { accounts }),
+                retryScheduled: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
+                retryPending: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
+                warnings: (accounts) => i18n.t("sidebar:sync_completed_with_warnings", { accounts }),
+                success: i18n.t("sidebar:sync_completed"),
+              }),
+            );
           }),
           Result.inspectError((e) => {
             console.error("Menu sync failed:", e);

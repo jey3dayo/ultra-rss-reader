@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { getSyncWarningAccountNames, summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync-result-feedback";
+import {
+  getSyncWarningAccountNames,
+  resolveSyncFeedbackMessage,
+  summarizeSyncResult,
+  summarizeSyncWarnings,
+} from "@/lib/sync-result-feedback";
 
 describe("sync-result-feedback", () => {
   it("summarizes an already-running sync", () => {
@@ -73,5 +78,63 @@ describe("sync-result-feedback", () => {
         { account_id: "acc-2", account_name: "Local", message: "warn 2" },
       ]),
     ).toEqual({ kind: "retry-pending", accounts: "FreshRSS, Local" });
+  });
+
+  it("prefers scheduled retries over other warning kinds", () => {
+    expect(
+      summarizeSyncWarnings([
+        {
+          account_id: "acc-1",
+          account_name: "FreshRSS",
+          message: "Retry scheduled",
+          kind: "retry_scheduled",
+          retry_at: "2026-04-13T03:15:00Z",
+          retry_in_seconds: 120,
+        },
+        { account_id: "acc-2", account_name: "Local", message: "Retry later", kind: "retry_pending" },
+      ]),
+    ).toEqual({
+      kind: "retry-scheduled",
+      accounts: "FreshRSS, Local",
+      retryAt: "2026-04-13T03:15:00Z",
+      retryInSeconds: 120,
+    });
+  });
+
+  it("resolves retry-scheduled messages with retry metadata", () => {
+    expect(
+      resolveSyncFeedbackMessage(
+        {
+          kind: "retry-scheduled",
+          accounts: "FreshRSS, Local",
+          retryAt: "2026-04-13T03:15:00Z",
+          retryInSeconds: 120,
+        },
+        {
+          alreadyInProgress: "already running",
+          partialFailure: (accounts) => `partial:${accounts}`,
+          retryScheduled: (accounts, retryAt, retryInSeconds) => `scheduled:${accounts}:${retryAt}:${retryInSeconds}`,
+          retryPending: (accounts) => `pending:${accounts}`,
+          warnings: (accounts) => `warnings:${accounts}`,
+          success: "done",
+        },
+      ),
+    ).toBe("scheduled:FreshRSS, Local:2026-04-13T03:15:00Z:120");
+  });
+
+  it("resolves success messages without account interpolation", () => {
+    expect(
+      resolveSyncFeedbackMessage(
+        { kind: "success" },
+        {
+          alreadyInProgress: "already running",
+          partialFailure: (accounts) => `partial:${accounts}`,
+          retryScheduled: (accounts, retryAt, retryInSeconds) => `scheduled:${accounts}:${retryAt}:${retryInSeconds}`,
+          retryPending: (accounts) => `pending:${accounts}`,
+          warnings: (accounts) => `warnings:${accounts}`,
+          success: "done",
+        },
+      ),
+    ).toBe("done");
   });
 });

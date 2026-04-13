@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use futures::FutureExt;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::commands::dto::{AccountSyncWarning, SyncProgressKind};
+use crate::commands::dto::{AccountSyncWarning, AccountSyncWarningKind, SyncProgressKind};
 use crate::commands::sync_commands::{purge_old_articles, sync_account, SyncProgressReporter};
 use crate::domain::account::Account;
 use crate::domain::types::AccountId;
@@ -24,6 +24,12 @@ const SYNC_STATE_SCOPE: &str = "scheduler";
 /// Per-account scheduling state kept in memory.
 struct AccountSchedule {
     next_sync: Instant,
+}
+
+struct RetryBackoffState {
+    error_count: i32,
+    next_retry_at: Option<String>,
+    retry_in_seconds: u64,
 }
 
 /// Start a background task that periodically syncs accounts based on their
@@ -133,6 +139,8 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                                 account_name: account.name.clone(),
                                 kind: warning.kind,
                                 message: warning.message.clone(),
+                                retry_at: warning.retry_at.clone(),
+                                retry_in_seconds: warning.retry_in_seconds,
                             });
                         }
                         reporter.emit_account_finished(account, true);
@@ -148,16 +156,27 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             account.name
                         );
                         reporter.emit_account_finished(account, false);
-                        let error_count = increment_error_count(&state.db, &account.id, &e);
-                        let backoff = calculate_backoff(account, error_count);
+                        let backoff_state = increment_error_count(&state.db, &account.id, &e);
+                        let backoff = calculate_backoff(account, backoff_state.error_count);
                         if let Some(schedule) = schedules.get_mut(&account_id_str) {
                             schedule.next_sync = Instant::now() + backoff;
                         }
+                        warnings_to_emit.push(AccountSyncWarning {
+                            account_id: account.id.as_ref().to_string(),
+                            account_name: account.name.clone(),
+                            kind: AccountSyncWarningKind::RetryScheduled,
+                            message: format!(
+                                "Background sync failed and will retry automatically for '{}'.",
+                                account.name
+                            ),
+                            retry_at: backoff_state.next_retry_at.clone(),
+                            retry_in_seconds: Some(backoff_state.retry_in_seconds),
+                        });
                         tracing::info!(
                             "Account '{}' backoff: {}s (error_count={})",
                             account.name,
                             backoff.as_secs(),
-                            error_count
+                            backoff_state.error_count
                         );
                     }
                     Err(_) => {
@@ -259,9 +278,13 @@ fn increment_error_count(
     db: &Mutex<DbManager>,
     account_id: &AccountId,
     error: &crate::commands::dto::AppError,
-) -> i32 {
+) -> RetryBackoffState {
     let Some(db_guard) = db.lock().ok() else {
-        return 1;
+        return RetryBackoffState {
+            error_count: 1,
+            next_retry_at: None,
+            retry_in_seconds: calculate_backoff_secs(1),
+        };
     };
     let repo = SqliteSyncStateRepository::new(db_guard.writer());
     let mut state = repo
@@ -285,9 +308,14 @@ fn increment_error_count(
     // Set next_retry_at for the backoff check
     let backoff_secs = calculate_backoff_secs(state.error_count);
     let next_retry = chrono::Utc::now() + chrono::Duration::seconds(backoff_secs as i64);
-    state.next_retry_at = Some(next_retry.to_rfc3339());
+    let next_retry_at = next_retry.to_rfc3339();
+    state.next_retry_at = Some(next_retry_at.clone());
     let _ = repo.save(&state);
-    state.error_count
+    RetryBackoffState {
+        error_count: state.error_count,
+        next_retry_at: Some(next_retry_at),
+        retry_in_seconds: backoff_secs,
+    }
 }
 
 fn calculate_backoff_secs(error_count: i32) -> u64 {

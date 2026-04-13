@@ -102,6 +102,8 @@ pub struct AccountSyncWarning {
     pub account_name: String,
     pub kind: AccountSyncWarningKind,
     pub message: String,
+    pub retry_at: Option<String>,
+    pub retry_in_seconds: Option<u64>,
 }
 
 #[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
@@ -109,6 +111,7 @@ pub struct AccountSyncWarning {
 pub enum AccountSyncWarningKind {
     Generic,
     RetryPending,
+    RetryScheduled,
 }
 
 #[derive(Debug, Serialize, Clone, Copy)]

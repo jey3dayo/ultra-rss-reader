@@ -19,6 +19,8 @@
   "sync_completed": "同期完了",
   "sync_completed_with_retry_pending": "同期は完了しましたが、{{accounts}} の一部変更は次回同期で再試行されます",
   "sync_completed_with_warnings": "同期は完了しましたが、{{accounts}} で異常を検知しました",
+  "sync_retry_scheduled": "{{accounts}} のバックグラウンド同期に失敗しました。{{time}} に自動再試行します",
+  "sync_retry_scheduled_soon": "{{accounts}} のバックグラウンド同期に失敗しました。まもなく自動再試行します",
   "sync_already_in_progress": "同期はすでに実行中です",
   "sync_failed": "同期に失敗しました",
   "sync_failed_with_message": "同期に失敗しました: {{message}}",

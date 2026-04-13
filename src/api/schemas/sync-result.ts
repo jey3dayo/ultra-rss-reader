@@ -9,8 +9,10 @@ export const AccountSyncErrorSchema = z.object({
 export const AccountSyncWarningSchema = z.object({
   account_id: z.string(),
   account_name: z.string(),
-  kind: z.enum(["generic", "retry_pending"]).optional(),
+  kind: z.enum(["generic", "retry_pending", "retry_scheduled"]).optional(),
   message: z.string(),
+  retry_at: z.string().optional(),
+  retry_in_seconds: z.number().optional(),
 });
 
 export const SyncResultSchema = z.object({
