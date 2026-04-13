@@ -1,9 +1,5 @@
 import { useEffect } from "react";
-
-type UseBrowserOverlayShortcutsParams = {
-  browserUrl: string | null;
-  handleCloseOverlay: () => void;
-};
+import type { UseBrowserOverlayShortcutsParams } from "./browser-view.types";
 
 export function useBrowserOverlayShortcuts({ browserUrl, handleCloseOverlay }: UseBrowserOverlayShortcutsParams) {
   useEffect(() => {

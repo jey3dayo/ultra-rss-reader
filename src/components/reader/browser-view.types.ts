@@ -159,3 +159,8 @@ export type UseBrowserWebviewEventsParams = {
 };
 
 export type UseBrowserWebviewEventsResult = () => Promise<void>;
+
+export type UseBrowserOverlayShortcutsParams = {
+  browserUrl: string | null;
+  handleCloseOverlay: () => void;
+};
