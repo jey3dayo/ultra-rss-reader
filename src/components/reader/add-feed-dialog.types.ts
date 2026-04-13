@@ -37,6 +37,8 @@ export type AddFeedDialogControllerParams = {
   noFolderLabel: string;
 };
 
+export type AddFeedDialogProps = Omit<AddFeedDialogControllerParams, "folders" | "noFolderLabel">;
+
 export type AddFeedDialogViewLabels = {
   title: string;
   description: string;
@@ -137,4 +139,11 @@ export type AddFeedDialogViewProps = {
   labels: AddFeedDialogViewLabels;
   inputRef?: RefObject<HTMLInputElement | null>;
   onSubmit: () => void;
+};
+
+export type UseAddFeedDialogViewPropsParams = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  folderLabelId: string;
+  controller: AddFeedDialogController;
 };
