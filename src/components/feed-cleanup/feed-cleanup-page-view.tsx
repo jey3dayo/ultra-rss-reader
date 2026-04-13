@@ -5,8 +5,8 @@ import { FeedCleanupOverviewPanel } from "./feed-cleanup-overview-panel";
 import { FeedCleanupQueuePanel } from "./feed-cleanup-queue-panel";
 import { FeedCleanupReviewPanel } from "./feed-cleanup-review-panel";
 
-const FEED_CLEANUP_COMPACT_THREE_COLUMN_WIDTH = 980;
-const FEED_CLEANUP_WIDE_THREE_COLUMN_WIDTH = 1180;
+const FEED_CLEANUP_SPLIT_LAYOUT_WIDTH = 900;
+const FEED_CLEANUP_WIDE_LAYOUT_WIDTH = 1180;
 
 function resolveFeedCleanupLayoutWidth(measuredWidth: number | null): number {
   if (measuredWidth != null && measuredWidth > 0) {
@@ -111,23 +111,20 @@ export function FeedCleanupPageView({
   }, []);
 
   const layoutMode =
-    layoutWidth >= FEED_CLEANUP_WIDE_THREE_COLUMN_WIDTH
-      ? "three-wide"
-      : layoutWidth >= FEED_CLEANUP_COMPACT_THREE_COLUMN_WIDTH
-        ? "three-compact"
-        : "two-column";
+    layoutWidth >= FEED_CLEANUP_WIDE_LAYOUT_WIDTH
+      ? "wide"
+      : layoutWidth >= FEED_CLEANUP_SPLIT_LAYOUT_WIDTH
+        ? "split"
+        : "stacked";
 
-  const layoutClassName =
-    layoutMode === "three-wide"
-      ? "grid min-h-0 flex-1 grid-cols-[260px_minmax(0,1fr)_320px] gap-0 overflow-hidden"
-      : layoutMode === "three-compact"
-        ? "grid min-h-0 flex-1 grid-cols-[220px_minmax(0,1fr)_300px] gap-0 overflow-hidden"
-        : "min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[240px_minmax(280px,1fr)] lg:gap-0 lg:content-start";
+  const mainLayoutClassName =
+    layoutMode === "wide"
+      ? "grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_320px] gap-6 overflow-hidden px-6 py-5"
+      : layoutMode === "split"
+        ? "grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_300px] gap-5 overflow-hidden px-5 py-5"
+        : "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5";
 
-  const reviewPanelClassName =
-    layoutMode === "two-column"
-      ? "lg:col-span-2"
-      : "col-span-1 sticky top-4 max-h-[calc(100dvh-7.5rem)] self-start overflow-hidden";
+  const reviewPanelClassName = layoutMode === "stacked" ? "" : "sticky top-0 max-h-full self-start overflow-hidden";
 
   return (
     <div
@@ -158,7 +155,7 @@ export function FeedCleanupPageView({
         </div>
       ) : null}
 
-      <div ref={layoutRef} data-testid="feed-cleanup-layout" className={layoutClassName}>
+      <div ref={layoutRef} className="min-h-0 flex flex-1 flex-col overflow-hidden">
         <FeedCleanupOverviewPanel
           overviewLabel={overviewLabel}
           filtersLabel={filtersLabel}
@@ -181,59 +178,61 @@ export function FeedCleanupPageView({
           onDeferVisible={onDeferVisible}
         />
 
-        <FeedCleanupQueuePanel
-          integrityMode={integrityMode}
-          queueLabel={queueLabel}
-          integrityQueueLabel={integrityQueueLabel}
-          integrityEmptyLabel={integrityEmptyLabel}
-          integrityIssues={integrityIssues}
-          selectedIntegrityIssue={selectedIntegrityIssue}
-          integrityDetailLabels={integrityDetailLabels}
-          onSelectIntegrityIssue={onSelectIntegrityIssue}
-          emptyLabel={emptyLabel}
-          queue={queue}
-          selectedCandidate={selectedCandidate}
-          onSelectCandidate={onSelectCandidate}
-          unreadCountLabel={unreadCountLabel}
-          starredCountLabel={starredCountLabel}
-          deferredBadgeLabel={deferredBadgeLabel}
-          reasonLabels={reasonLabels}
-          priorityToneLabels={priorityToneLabels}
-          summaryLabels={summaryLabels}
-        />
+        <div data-testid="feed-cleanup-layout" className={mainLayoutClassName}>
+          <FeedCleanupQueuePanel
+            integrityMode={integrityMode}
+            queueLabel={queueLabel}
+            integrityQueueLabel={integrityQueueLabel}
+            integrityEmptyLabel={integrityEmptyLabel}
+            integrityIssues={integrityIssues}
+            selectedIntegrityIssue={selectedIntegrityIssue}
+            integrityDetailLabels={integrityDetailLabels}
+            onSelectIntegrityIssue={onSelectIntegrityIssue}
+            emptyLabel={emptyLabel}
+            queue={queue}
+            selectedCandidate={selectedCandidate}
+            onSelectCandidate={onSelectCandidate}
+            unreadCountLabel={unreadCountLabel}
+            starredCountLabel={starredCountLabel}
+            deferredBadgeLabel={deferredBadgeLabel}
+            reasonLabels={reasonLabels}
+            priorityToneLabels={priorityToneLabels}
+            summaryLabels={summaryLabels}
+          />
 
-        <FeedCleanupReviewPanel
-          reviewLabel={reviewLabel}
-          integrityMode={integrityMode}
-          dateLocale={dateLocale}
-          integrityEmptyLabel={integrityEmptyLabel}
-          selectedIntegrityIssue={selectedIntegrityIssue}
-          integrityDetailLabels={integrityDetailLabels}
-          selectedCandidate={selectedCandidate}
-          selectedSummary={selectedSummary}
-          folderLabel={folderLabel}
-          latestArticleLabel={latestArticleLabel}
-          unreadCountLabel={unreadCountLabel}
-          starredCountLabel={starredCountLabel}
-          reasonsLabel={reasonsLabel}
-          noSelectionLabel={noSelectionLabel}
-          reasonLabels={reasonLabels}
-          priorityToneLabels={priorityToneLabels}
-          priorityLabels={priorityLabels}
-          summaryHeadlineLabels={summaryHeadlineLabels}
-          summaryLabels={summaryLabels}
-          editing={editing}
-          editor={editor}
-          reviewPanelClassName={reviewPanelClassName}
-          editLabel={editLabel}
-          keepLabel={keepLabel}
-          laterLabel={laterLabel}
-          deleteLabel={deleteLabel}
-          onEdit={onEdit}
-          onKeep={onKeep}
-          onLater={onLater}
-          onDelete={onDelete}
-        />
+          <FeedCleanupReviewPanel
+            reviewLabel={reviewLabel}
+            integrityMode={integrityMode}
+            dateLocale={dateLocale}
+            integrityEmptyLabel={integrityEmptyLabel}
+            selectedIntegrityIssue={selectedIntegrityIssue}
+            integrityDetailLabels={integrityDetailLabels}
+            selectedCandidate={selectedCandidate}
+            selectedSummary={selectedSummary}
+            folderLabel={folderLabel}
+            latestArticleLabel={latestArticleLabel}
+            unreadCountLabel={unreadCountLabel}
+            starredCountLabel={starredCountLabel}
+            reasonsLabel={reasonsLabel}
+            noSelectionLabel={noSelectionLabel}
+            reasonLabels={reasonLabels}
+            priorityToneLabels={priorityToneLabels}
+            priorityLabels={priorityLabels}
+            summaryHeadlineLabels={summaryHeadlineLabels}
+            summaryLabels={summaryLabels}
+            editing={editing}
+            editor={editor}
+            reviewPanelClassName={reviewPanelClassName}
+            editLabel={editLabel}
+            keepLabel={keepLabel}
+            laterLabel={laterLabel}
+            deleteLabel={deleteLabel}
+            onEdit={onEdit}
+            onKeep={onKeep}
+            onLater={onLater}
+            onDelete={onDelete}
+          />
+        </div>
       </div>
     </div>
   );

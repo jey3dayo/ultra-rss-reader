@@ -235,11 +235,11 @@ describe("FeedCleanupPage", () => {
 
     const queueCandidate = screen.getByRole("button", { name: "Old Product Blog" });
     expect(queueCandidate).not.toHaveTextContent(/Work · \d+d · 0 unread · 0 starred/);
-    expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("grid-cols-[220px_minmax(0,1fr)_300px]");
+    expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("grid-cols-[minmax(0,1fr)_300px]");
+    expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("gap-5");
     expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("overflow-hidden");
-    expect(screen.getByTestId("feed-cleanup-review-panel")).toHaveClass("col-span-1");
     expect(screen.getByTestId("feed-cleanup-review-panel")).toHaveClass("sticky");
-    expect(screen.getByTestId("feed-cleanup-review-panel")).toHaveClass("top-4");
+    expect(screen.getByTestId("feed-cleanup-review-panel")).toHaveClass("top-0");
 
     await user.click(screen.getByRole("button", { name: "Later" }));
 
@@ -536,6 +536,7 @@ describe("FeedCleanupPage", () => {
 
     await screen.findByRole("button", { name: "Old Product Blog" });
 
+    expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("flex-col");
     expect(screen.getByTestId("feed-cleanup-layout")).not.toHaveClass("overflow-hidden");
     expect(screen.getByTestId("feed-cleanup-review-panel")).not.toHaveClass("sticky");
     expect(screen.getByTestId("feed-cleanup-queue-list")).not.toHaveClass("h-[calc(100%-2rem)]");

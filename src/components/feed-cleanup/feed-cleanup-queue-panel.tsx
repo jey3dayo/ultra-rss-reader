@@ -23,9 +23,16 @@ export function FeedCleanupQueuePanel({
   summaryLabels,
 }: FeedCleanupQueuePanelProps) {
   return (
-    <section className="min-h-0 border-b border-border px-4 py-4 lg:border-r lg:border-b-0">
-      <h3 className="mb-3 text-sm font-semibold">{integrityMode ? integrityQueueLabel : queueLabel}</h3>
-      <div data-testid="feed-cleanup-queue-list" className="space-y-2 pr-1 lg:h-[calc(100%-2rem)] lg:overflow-y-auto">
+    <section className="min-h-0 px-4 py-4 sm:px-6 sm:py-5 lg:border-r lg:border-border/70">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold">{integrityMode ? integrityQueueLabel : queueLabel}</h3>
+        {!integrityMode ? (
+          <span className="text-[11px] font-medium tracking-[0.12em] text-muted-foreground uppercase">
+            {queue.length}
+          </span>
+        ) : null}
+      </div>
+      <div data-testid="feed-cleanup-queue-list" className="space-y-3 pr-1 lg:h-[calc(100%-2rem)] lg:overflow-y-auto">
         {integrityMode ? (
           integrityIssues.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
@@ -71,25 +78,23 @@ export function FeedCleanupQueuePanel({
                 aria-label={candidate.title}
                 onClick={() => onSelectCandidate(candidate.feedId)}
                 className={cn(
-                  "flex w-full cursor-pointer flex-col gap-3 rounded-2xl border px-4 py-3 text-left transition-colors",
+                  "flex w-full cursor-pointer flex-col gap-3 rounded-3xl border px-4 py-4 text-left transition-[border-color,background-color,box-shadow] duration-200",
                   selectedCandidate?.feedId === candidate.feedId
-                    ? "border-primary/60 bg-primary/10"
-                    : "border-border bg-card hover:bg-muted/60",
+                    ? "border-primary/55 bg-primary/8 shadow-[0_0_0_1px_hsl(var(--primary)/0.08)]"
+                    : "border-border/80 bg-card/70 hover:border-border hover:bg-card",
                 )}
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <span className="line-clamp-1 font-medium text-foreground">{candidate.title}</span>
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <span>{candidate.folderName ?? "—"}</span>
-                      <span>·</span>
-                      <span>{candidate.staleDays ?? 0}d</span>
-                      <span>·</span>
-                      <span>
+                    <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                      <span className="rounded-full border border-border/70 bg-background/70 px-2.5 py-1">
+                        {candidate.folderName ?? "—"}
+                      </span>
+                      <span className="rounded-full border border-border/70 bg-background/70 px-2.5 py-1">
                         {candidate.unreadCount} {unreadCountLabel.toLowerCase()}
                       </span>
-                      <span>·</span>
-                      <span>
+                      <span className="rounded-full border border-border/70 bg-background/70 px-2.5 py-1">
                         {candidate.starredCount} {starredCountLabel.toLowerCase()}
                       </span>
                     </div>
@@ -115,7 +120,7 @@ export function FeedCleanupQueuePanel({
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {candidate.reasonKeys.map((reason) => (
+                  {candidate.reasonKeys.slice(0, 2).map((reason) => (
                     <span
                       key={reason}
                       className="rounded-full border border-border/80 bg-background/80 px-2 py-1 text-[11px] text-muted-foreground"
@@ -123,12 +128,20 @@ export function FeedCleanupQueuePanel({
                       {reasonLabels[reason]}
                     </span>
                   ))}
-                  {candidate.reasonKeys.length === 0 ? (
+                  {candidate.reasonKeys.length > 2 ? (
+                    <span className="rounded-full border border-border/80 bg-background/80 px-2 py-1 text-[11px] text-muted-foreground">
+                      +{candidate.reasonKeys.length - 2}
+                    </span>
+                  ) : null}
+                  {candidate.reasonKeys.length === 0 && selectedCandidate?.feedId !== candidate.feedId ? (
                     <span className="rounded-full border border-border/80 bg-background/80 px-2 py-1 text-[11px] text-muted-foreground">
                       {summaryLabels.healthy_feed}
                     </span>
                   ) : null}
                 </div>
+                {selectedCandidate?.feedId === candidate.feedId ? (
+                  <p className="text-sm leading-6 text-muted-foreground">{summaryLabels[queueSummary.summaryKey]}</p>
+                ) : null}
               </button>
             );
           })
