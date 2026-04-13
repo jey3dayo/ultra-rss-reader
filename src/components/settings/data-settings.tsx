@@ -1,104 +1,33 @@
-import { Result } from "@praha/byethrow";
-import { openPath } from "@tauri-apps/plugin-opener";
-import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getDatabaseInfo, getLogDir, vacuumDatabase } from "@/api/tauri-commands";
-import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { SectionHeading } from "@/components/shared/section-heading";
-import { Button } from "@/components/ui/button";
-import { BYTES_PER_KIBIBYTE, BYTES_PER_MEBIBYTE, DATA_SIZE_FRACTION_DIGITS } from "@/constants/data-size";
+import { DataSettingsView } from "@/components/settings/data-settings-view";
 import { useUiStore } from "@/stores/ui-store";
-
-function formatBytes(bytes: number): string {
-  if (bytes < BYTES_PER_KIBIBYTE) return `${bytes} B`;
-  if (bytes < BYTES_PER_MEBIBYTE) return `${(bytes / BYTES_PER_KIBIBYTE).toFixed(DATA_SIZE_FRACTION_DIGITS)} KB`;
-  return `${(bytes / BYTES_PER_MEBIBYTE).toFixed(DATA_SIZE_FRACTION_DIGITS)} MB`;
-}
+import { useDataSettingsController } from "./use-data-settings-controller";
 
 export function DataSettings() {
   const { t } = useTranslation("settings");
   const showToast = useUiStore((s) => s.showToast);
   const setSettingsLoading = useUiStore((s) => s.setSettingsLoading);
-  const [totalSize, setTotalSize] = useState<number | null>(null);
-  const [vacuuming, setVacuuming] = useState(false);
-
-  const fetchDbInfo = useCallback(async () => {
-    Result.pipe(
-      await getDatabaseInfo(),
-      Result.inspect((info) => setTotalSize(info.total_size_bytes)),
-      Result.inspectError((e) => console.error("Failed to get database info:", e)),
-    );
-  }, []);
-
-  useEffect(() => {
-    fetchDbInfo();
-  }, [fetchDbInfo]);
-
-  const handleVacuum = async () => {
-    if (vacuuming) return;
-    const sizeBefore = totalSize;
-    setVacuuming(true);
-    setSettingsLoading(true);
-    try {
-      Result.pipe(
-        await vacuumDatabase(),
-        Result.inspect((info) => {
-          setTotalSize(info.total_size_bytes);
-          const saved = sizeBefore != null ? sizeBefore - info.total_size_bytes : 0;
-          showToast(t("data.vacuum_success", { saved: saved > 0 ? `-${formatBytes(saved)}` : formatBytes(0) }));
-        }),
-        Result.inspectError((e) => {
-          console.error("VACUUM failed:", e);
-          showToast(t("data.vacuum_failed", { message: e.message }));
-        }),
-      );
-    } finally {
-      setVacuuming(false);
-      setSettingsLoading(false);
-    }
-  };
-
-  const openLogDir = async () => {
-    Result.pipe(
-      await getLogDir(),
-      Result.inspect(async (dir) => {
-        try {
-          await openPath(dir);
-        } catch (e) {
-          console.error("Failed to open log directory:", e);
-          showToast(t("data.open_log_dir_failed", { message: String(e) }));
-        }
-      }),
-      Result.inspectError((e) => {
-        console.error("Failed to get log directory:", e);
-        showToast(t("data.open_log_dir_failed", { message: e.message }));
-      }),
-    );
-  };
+  const controller = useDataSettingsController({
+    t,
+    showToast,
+    setSettingsLoading,
+  });
 
   return (
-    <div className="p-6">
-      <h2 className="mb-6 text-center text-lg font-semibold">{t("data.heading")}</h2>
-      <section className="mb-6">
-        <SectionHeading>{t("data.database")}</SectionHeading>
-        <LabeledControlRow label={t("data.database_size")}>
-          <span className="text-sm text-muted-foreground">{totalSize != null ? formatBytes(totalSize) : "…"}</span>
-        </LabeledControlRow>
-      </section>
-      <section>
-        <SectionHeading>{t("data.optimization")}</SectionHeading>
-        <p className="mb-3 text-xs text-muted-foreground">{t("data.vacuum_description")}</p>
-        <Button variant="outline" size="sm" disabled={vacuuming} onClick={handleVacuum}>
-          {vacuuming ? t("data.vacuuming") : t("data.vacuum")}
-        </Button>
-      </section>
-      <section className="mt-6">
-        <SectionHeading>{t("data.logs")}</SectionHeading>
-        <p className="mb-3 text-xs text-muted-foreground">{t("data.open_log_dir_description")}</p>
-        <Button variant="outline" size="sm" onClick={openLogDir}>
-          {t("data.open_log_dir")}
-        </Button>
-      </section>
-    </div>
+    <DataSettingsView
+      title={t("data.heading")}
+      databaseHeading={t("data.database")}
+      databaseSizeLabel={t("data.database_size")}
+      databaseSizeValue={controller.databaseSizeValue}
+      optimizationHeading={t("data.optimization")}
+      vacuumDescription={t("data.vacuum_description")}
+      vacuumLabel={controller.vacuuming ? t("data.vacuuming") : t("data.vacuum")}
+      vacuuming={controller.vacuuming}
+      logsHeading={t("data.logs")}
+      openLogDirDescription={t("data.open_log_dir_description")}
+      openLogDirLabel={t("data.open_log_dir")}
+      onVacuum={() => void controller.handleVacuum()}
+      onOpenLogDir={() => void controller.handleOpenLogDir()}
+    />
   );
 }
