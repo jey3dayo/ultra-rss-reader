@@ -73,3 +73,9 @@ export type UseAccountDetailControllerParams = {
   onAccountDeleted: () => void;
   onSyncStatusChanged?: () => void;
 };
+
+export type UpdateAccountSyncParams = {
+  syncIntervalSecs?: number;
+  syncOnWake?: boolean;
+  keepReadItemsDays?: number;
+};

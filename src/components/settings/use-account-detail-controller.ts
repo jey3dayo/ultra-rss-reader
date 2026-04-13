@@ -14,13 +14,7 @@ import {
 } from "@/api/tauri-commands";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync-result-feedback";
 import { useUiStore } from "@/stores/ui-store";
-import type { UseAccountDetailControllerParams } from "./account-detail.types";
-
-type UpdateSyncParams = {
-  syncIntervalSecs?: number;
-  syncOnWake?: boolean;
-  keepReadItemsDays?: number;
-};
+import type { UpdateAccountSyncParams, UseAccountDetailControllerParams } from "./account-detail.types";
 
 export function useAccountDetailController({
   account,
@@ -86,7 +80,7 @@ export function useAccountDetailController({
     }
   };
 
-  const handleSyncUpdate = async (partial: UpdateSyncParams) => {
+  const handleSyncUpdate = async (partial: UpdateAccountSyncParams) => {
     Result.pipe(
       await updateAccountSync(
         account.id,
