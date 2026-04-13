@@ -48,6 +48,12 @@
   - 対象: `src/components/reader/article-list-screen-view.stories.tsx`, `src/components/reader/article-groups-view.stories.tsx`, `src/components/reader/folder-select-view.stories.tsx`, `src/components/shared/stacked-input-field.stories.tsx`, `src/components/shared/stacked-select-field.stories.tsx`
   - メモ: `w-full max-w-*` に寄せて、narrow story でも component 本来の responsive 挙動を見やすくした
 
+- [x] `Shared/GradientSwitch` の settings row story が mobile viewport で横にはみ出す
+  - 症状: 390px viewport で `shared-gradientswitch--settings-row` の `400px` wrapper が Storybook padding と合わさって右へはみ出す
+  - 原因: `SettingsRow` story のサンプル wrapper が `w-[400px]` 固定で、component ではなく Storybook 側の土台が narrow viewport に追従しない
+  - 対象: `src/components/shared/gradient-switch.stories.tsx`
+  - メモ: `w-full max-w-[400px]` に寄せて、狭い幅でも row 自体の折り返し/配置を確認しやすくした
+
 ## 2026-04-13 Browser 巡回メモ
 
 - [x] browser-mode で `get_account_sync_status` が毎回 validation error を出す
