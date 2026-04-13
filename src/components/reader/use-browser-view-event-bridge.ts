@@ -1,9 +1,9 @@
-import { useCallback } from "react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import { useCallback } from "react";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser-debug-geometry";
 import { useUiStore } from "@/stores/ui-store";
-import { type BrowserWebviewFallbackPayload } from "./browser-webview-state";
+import type { BrowserWebviewFallbackPayload } from "./browser-webview-state";
 import { useBrowserViewSurfaceController } from "./use-browser-view-surface-controller";
 import { useBrowserWebviewEvents } from "./use-browser-webview-events";
 import { useBrowserWebviewStateChanged } from "./use-browser-webview-state-changed";
