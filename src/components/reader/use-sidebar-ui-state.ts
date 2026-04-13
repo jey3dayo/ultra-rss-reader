@@ -1,7 +1,7 @@
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+import type { StartupFolderExpansionMode } from "./sidebar-feed-section.types";
 import type { SidebarUiStateResult } from "./sidebar-runtime.types";
-import type { StartupFolderExpansionMode } from "./use-sidebar-startup-folder-expansion";
 
 export function useSidebarUiState(): SidebarUiStateResult {
   const layoutMode = useUiStore((s) => s.layoutMode);

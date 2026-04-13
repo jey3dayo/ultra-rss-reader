@@ -1,9 +1,10 @@
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import type { FeedTreeViewProps } from "./feed-tree-view";
 import type { SidebarFeedTreeViewMode, SidebarSelection } from "./sidebar-feed-tree.types";
-import type { StartupFolderExpansionMode } from "./use-sidebar-startup-folder-expansion";
 
 export type SidebarFeedTreeProps = Omit<FeedTreeViewProps, "emptyState" | "unfolderedLabel">;
+
+export type StartupFolderExpansionMode = "all_collapsed" | "restore_previous" | "unread_folders";
 
 export type SidebarFeedDragStateFeed = {
   folder_id: string | null;
@@ -35,6 +36,30 @@ export type SidebarFeedNavigationParams = {
   getFeedFolderId: (feedId: string) => string | null | undefined;
   setExpandedFolders: (folderIds: Iterable<string>) => void;
   selectFeed: (feedId: string) => void;
+};
+
+export type SidebarStartupFolderExpansionParams = {
+  selectedAccountId: string | null;
+  expandedFolderIds: Set<string>;
+  feedList: FeedDto[];
+  folderList: FolderDto[];
+  startupFolderExpansion: StartupFolderExpansionMode;
+  feedsReady: boolean;
+  foldersReady: boolean;
+  setExpandedFolders: (folderIds: Iterable<string>) => void;
+};
+
+export type SidebarVisibilityFallbackParams = {
+  firstFeedId: string | null;
+  selection: SidebarSelection;
+  viewMode: SidebarFeedTreeViewMode;
+  showSidebarUnread: boolean;
+  showSidebarStarred: boolean;
+  showSidebarTags: boolean;
+  selectFeed: (feedId: string) => void;
+  selectAll: () => void;
+  selectSmartView: (kind: "unread" | "starred") => void;
+  setViewMode: (mode: SidebarFeedTreeViewMode) => void;
 };
 
 export type SidebarFeedSectionParams = {

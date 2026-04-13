@@ -1,19 +1,6 @@
 import { useEffect, useRef } from "react";
-import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { STORAGE_KEYS } from "@/constants/storage";
-
-export type StartupFolderExpansionMode = "all_collapsed" | "restore_previous" | "unread_folders";
-
-type UseSidebarStartupFolderExpansionParams = {
-  selectedAccountId: string | null;
-  expandedFolderIds: Set<string>;
-  feedList: FeedDto[];
-  folderList: FolderDto[];
-  startupFolderExpansion: StartupFolderExpansionMode;
-  feedsReady: boolean;
-  foldersReady: boolean;
-  setExpandedFolders: (folderIds: Iterable<string>) => void;
-};
+import type { SidebarStartupFolderExpansionParams } from "./sidebar-feed-section.types";
 
 type StoredSidebarExpandedFolders = Record<string, string[]>;
 
@@ -59,7 +46,7 @@ export function useSidebarStartupFolderExpansion({
   feedsReady,
   foldersReady,
   setExpandedFolders,
-}: UseSidebarStartupFolderExpansionParams) {
+}: SidebarStartupFolderExpansionParams) {
   const startupExpansionTokenRef = useRef<string | null>(null);
 
   useEffect(() => {
