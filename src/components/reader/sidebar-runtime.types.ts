@@ -1,11 +1,9 @@
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import type { DevIntent } from "@/lib/dev-intent";
 import type { SortSubscriptions } from "@/stores/preferences-store";
-import type { useUiStore } from "@/stores/ui-store";
+import type { UiStoreState } from "@/stores/ui-store";
 import type { SidebarSourcesResult } from "./sidebar-sources.types";
 import type { SidebarSyncResult } from "./sidebar-sync.types";
-
-type SidebarUiStoreState = ReturnType<typeof useUiStore.getState>;
 
 export type SidebarAccountSwitcherResult = {
   isAccountListOpen: boolean;
@@ -18,7 +16,7 @@ export type SidebarAccountSwitcherResult = {
 };
 
 export type SidebarUiStateResult = Pick<
-  SidebarUiStoreState,
+  UiStoreState,
   | "layoutMode"
   | "selectedAccountId"
   | "selectAccount"

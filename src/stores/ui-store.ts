@@ -155,6 +155,8 @@ interface UiActions {
   closeConfirm: () => void;
 }
 
+export type UiStoreState = UiState & UiActions;
+
 const initialState: UiState = {
   layoutMode: "wide",
   focusedPane: "sidebar",

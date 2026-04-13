@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
-import type { resolveArticleDisplay } from "@/lib/article-display";
+import type { ResolvedArticleDisplay } from "@/lib/article-display";
 import type { ContentMode } from "@/stores/ui-store";
 import type { ArticleToolbarActionStripProps } from "./article-toolbar.types";
 
@@ -65,7 +65,7 @@ export type UseArticleBrowserOverlayParams = {
 
 export type UseArticleBrowserOverlayResult = {
   isBrowserOpen: boolean;
-  resolvedDisplay: ReturnType<typeof resolveArticleDisplay>;
+  resolvedDisplay: ResolvedArticleDisplay;
   handleCloseBrowserOverlay: () => void;
   handleToggleBrowserOverlay: () => void;
 };
