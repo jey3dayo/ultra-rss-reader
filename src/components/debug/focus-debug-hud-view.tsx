@@ -1,5 +1,6 @@
 import { Copy } from "lucide-react";
 import { useId, useState } from "react";
+import { DebugHudFrame } from "@/components/debug/debug-hud-frame";
 import type { BrowserDebugGeometryRow } from "@/lib/browser-debug-geometry";
 import { cn } from "@/lib/utils";
 
@@ -59,17 +60,14 @@ export function FocusDebugHudView({
 
   return (
     <div className="pointer-events-none fixed right-4 bottom-4 z-[2147483647] max-w-[min(28rem,calc(100vw-1rem))]">
-      <section
+      <DebugHudFrame
+        as="section"
         data-debug-hud=""
+        surface={expanded ? "panelExpanded" : "panelCollapsed"}
         className={cn(
           "pointer-events-auto flex flex-col overflow-hidden transition-[width,height,opacity,background-color,border-color,box-shadow] duration-200",
           expanded ? "w-[min(24rem,calc(100vw-1rem))]" : "w-[min(20rem,calc(100vw-1rem))]",
           expanded ? "h-[min(22rem,calc(100vh-2rem))]" : "h-auto",
-          expanded
-            ? "rounded-2xl border border-white/8 bg-black/76 opacity-88 hover:opacity-60 focus-within:opacity-100"
-            : "rounded-2xl border border-white/6 bg-black/56 opacity-80 hover:border-white/10 hover:bg-black/40 hover:opacity-35 focus-within:border-white/14 focus-within:bg-black/72 focus-within:opacity-100",
-          "backdrop-blur-md",
-          expanded ? "shadow-[0_16px_38px_rgba(0,0,0,0.36)]" : "shadow-[0_14px_30px_rgba(0,0,0,0.22)]",
         )}
       >
         <header className="flex items-start justify-between gap-3 border-b border-white/10 px-3 py-2.5">
@@ -218,7 +216,7 @@ export function FocusDebugHudView({
             </div>
           </div>
         )}
-      </section>
+      </DebugHudFrame>
     </div>
   );
 }

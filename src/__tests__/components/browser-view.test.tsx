@@ -421,7 +421,7 @@ describe("BrowserView", () => {
     expect(screen.getByText("If this takes too long, open it in your external browser.")).toBeInTheDocument();
   });
 
-  it("shows the debug hud without moving the fullscreen stage", async () => {
+  it("keeps the fullscreen stage unchanged when debug hud is enabled", async () => {
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
     usePreferencesStore.setState({
       prefs: { debug_browser_hud: "true" },
@@ -436,11 +436,11 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-    const diagnostics = await screen.findByTestId("browser-overlay-diagnostics");
     const stage = screen.getByTestId("browser-overlay-stage");
 
-    expect(diagnostics).toBeInTheDocument();
-    expect(diagnostics).toHaveStyle({ top: "64px" });
+    await waitFor(() => {
+      expect(screen.queryByTestId("browser-overlay-diagnostics")).not.toBeInTheDocument();
+    });
     expect(stage).toHaveStyle({ top: "56px" });
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
   });
@@ -474,7 +474,7 @@ describe("BrowserView", () => {
     expect(externalButton).toBeInTheDocument();
   });
 
-  it("keeps the diagnostics overlay off the fullscreen surface at narrow widths", async () => {
+  it("does not render the diagnostics strip at narrow widths", async () => {
     setWindowSize(500, 900);
     mockRootRect({ left: 0, top: 0, width: 500, height: 900 });
     usePreferencesStore.setState({
@@ -490,11 +490,11 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-    const diagnostics = await screen.findByTestId("browser-overlay-diagnostics");
     const stage = screen.getByTestId("browser-overlay-stage");
 
-    expect(diagnostics).toBeInTheDocument();
-    expect(diagnostics).toHaveStyle({ top: "66px" });
+    await waitFor(() => {
+      expect(screen.queryByTestId("browser-overlay-diagnostics")).not.toBeInTheDocument();
+    });
     expect(stage).toHaveStyle({ top: "64px" });
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
   });

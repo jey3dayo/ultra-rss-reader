@@ -1,5 +1,4 @@
 import { createPortal } from "react-dom";
-import { BrowserDiagnosticsRail } from "./browser-diagnostics-rail";
 import { BrowserOverlayChrome } from "./browser-overlay-chrome";
 import { BrowserOverlayStage } from "./browser-overlay-stage";
 import type { BrowserViewProps } from "./browser-view.types";
@@ -24,14 +23,6 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, to
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_15rem_at_10rem_0.5rem,rgba(255,255,255,0.04),transparent_58%)]"
       />
-      {controller.showDiagnostics ? (
-        <BrowserDiagnosticsRail
-          layoutDiagnostics={controller.layoutDiagnostics}
-          nativeDiagnostics={controller.nativeDiagnostics}
-          compact={controller.geometry.diagnostics.compact}
-          top={controller.geometry.diagnostics.top}
-        />
-      ) : null}
       {controller.geometry.chromeRail.visible ? (
         <div
           aria-hidden="true"

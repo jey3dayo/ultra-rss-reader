@@ -94,13 +94,6 @@ export type BrowserOverlayStageProps = {
   controller: BrowserOverlayStageController;
 };
 
-export type BrowserDiagnosticsRailProps = {
-  layoutDiagnostics: BrowserViewLayoutDiagnostics | null;
-  nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
-  compact: boolean;
-  top: number;
-};
-
 export type BrowserSurfaceStateCardProps = {
   issue: BrowserSurfaceIssue;
   showTechnicalDetail: boolean;
