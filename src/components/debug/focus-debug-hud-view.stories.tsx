@@ -38,6 +38,7 @@ const meta = {
     activeElementDescription: "div | article=art-2 | role=option | label=Second Article",
     browserGeometryRows: sampleGeometryRows,
     traces: sampleTraces,
+    onCopyClick: fn(),
     onCopyPointerDown: fn(),
     defaultExpanded: false,
     defaultShowGeometry: false,
