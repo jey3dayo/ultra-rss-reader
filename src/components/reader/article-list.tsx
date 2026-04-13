@@ -5,7 +5,6 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/c
 import { useAccountArticles, useArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useArticlesByTag } from "@/hooks/use-tags";
-import { groupArticles, selectVisibleArticles } from "@/lib/article-list";
 import { buildKeyToActionMap } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -16,6 +15,7 @@ import { ArticleListFooter } from "./article-list-footer";
 import { ArticleListHeader } from "./article-list-header";
 import { ArticleListScreenView } from "./article-list-screen-view";
 import { contextMenuStyles } from "./context-menu-styles";
+import { useArticleListData } from "./use-article-list-data";
 import { useArticleListGroups } from "./use-article-list-groups";
 import { useArticleListHeaderActions } from "./use-article-list-header-actions";
 import { useArticleListInteractions } from "./use-article-list-interactions";
@@ -46,15 +46,14 @@ export function ArticleList() {
   const selectionStyle = usePreferencesStore((s) => s.prefs.list_selection_style ?? "modern");
   const recentlyReadIds = useUiStore((s) => s.recentlyReadIds);
   const retainedArticleIds = useUiStore((s) => s.retainedArticleIds);
-  const feedId = selection.type === "feed" ? selection.feedId : null;
-  const folderId = selection.type === "folder" ? selection.folderId : null;
-  const tagId = selection.type === "tag" ? selection.tagId : null;
+  const { data: feeds } = useFeeds(selectedAccountId);
   const smartViewKind = selection.type === "smart" ? selection.kind : null;
+  const feedId = selection.type === "feed" ? selection.feedId : null;
+  const tagId = selection.type === "tag" ? selection.tagId : null;
   const accountListScopeId = feedId || tagId ? null : selectedAccountId;
   const { data: articles, isLoading } = useArticles(feedId);
   const { data: accountArticles, isLoading: isLoadingAccountArticles } = useAccountArticles(accountListScopeId);
   const { data: tagArticles, isLoading: isLoadingTagArticles } = useArticlesByTag(tagId, selectedAccountId);
-  const { data: feeds } = useFeeds(selectedAccountId);
   const {
     showSearch,
     searchQuery,
@@ -67,88 +66,40 @@ export function ArticleList() {
     handleCloseSearch,
     setSearchQuery,
   } = useArticleListSearch({ selectedAccountId });
-  const effectiveViewMode = useMemo<"all" | "unread" | "starred">(() => {
-    if (smartViewKind === "unread") {
-      return "unread";
-    }
-
-    if (smartViewKind === "starred") {
-      return viewMode === "unread" ? "unread" : "all";
-    }
-
-    return viewMode;
-  }, [smartViewKind, viewMode]);
-  const effectiveRetainedArticleIds = useMemo(() => {
-    if (
-      selection.type === "smart" &&
-      selection.kind === "starred" &&
-      effectiveViewMode === "all" &&
-      selectedArticleId
-    ) {
-      return new Set([...retainedArticleIds, selectedArticleId]);
-    }
-
-    return retainedArticleIds;
-  }, [effectiveViewMode, retainedArticleIds, selectedArticleId, selection]);
-
-  const feedNameMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const f of feeds ?? []) map.set(f.id, f.title);
-    return map;
-  }, [feeds]);
-  const folderFeedIds = useMemo(() => {
-    if (!folderId) return null;
-    return new Set((feeds ?? []).filter((feed) => feed.folder_id === folderId).map((feed) => feed.id));
-  }, [feeds, folderId]);
-
-  const filteredArticles = useMemo(() => {
-    return selectVisibleArticles({
-      articles,
-      accountArticles,
-      tagArticles,
-      searchResults,
-      feedId,
-      tagId,
-      folderFeedIds,
-      viewMode: effectiveViewMode,
-      smartViewKind,
-      showSearch,
-      searchQuery: trimmedDebouncedQuery,
-      sortUnread,
-      retainedArticleIds: effectiveRetainedArticleIds,
-    });
-  }, [
-    effectiveRetainedArticleIds,
-    accountArticles,
-    articles,
-    feedId,
-    folderFeedIds,
-    tagArticles,
-    tagId,
+  const {
+    feedId: resolvedFeedId,
+    tagId: resolvedTagId,
+    accountListScopeId: resolvedAccountListScopeId,
     effectiveViewMode,
-    smartViewKind,
+    feedNameMap,
+    filteredArticles,
+    groupedArticles,
+    selectedFeed,
+  } = useArticleListData({
+    selection,
+    selectedAccountId,
+    viewMode,
+    selectedArticleId,
+    retainedArticleIds,
+    feeds,
+    articles,
+    accountArticles,
+    tagArticles,
+    searchResults,
     showSearch,
     trimmedDebouncedQuery,
-    searchResults,
     sortUnread,
-  ]);
-
-  const groupedArticles = useMemo(() => {
-    return groupArticles({
-      articles: filteredArticles,
-      groupBy,
-      feedNameMap,
-    });
-  }, [filteredArticles, groupBy, feedNameMap]);
+    groupBy,
+  });
   const keyToAction = useMemo(() => buildKeyToActionMap(keyboardPrefs), [keyboardPrefs]);
 
   const { contextStripContext, footerModes, isPrimarySourceLoading, isSearchLoading, isSearchEmptyState } =
     useArticleListViewState({
       selection,
       t,
-      feedId,
-      tagId,
-      accountListScopeId,
+      feedId: resolvedFeedId,
+      tagId: resolvedTagId,
+      accountListScopeId: resolvedAccountListScopeId,
       isLoading,
       isLoadingAccountArticles,
       isLoadingTagArticles,
@@ -190,10 +141,9 @@ export function ArticleList() {
     }
   }, [selection, scrollToTopOnChange]);
 
-  const selectedFeed = useMemo(() => feeds?.find((f) => f.id === feedId), [feeds, feedId]);
   const { selectedFeedDisplayPreset, displayPresetOptions, handleSetDisplayMode, handleMarkAllRead } =
     useArticleListHeaderActions({
-      feedId,
+      feedId: resolvedFeedId,
       selectedFeed,
       filteredArticles,
     });
@@ -237,7 +187,7 @@ export function ArticleList() {
         sidebarButtonText={layoutMode === "compact" ? ts("subscriptions") : undefined}
         isSidebarVisible={layoutMode === "wide" ? sidebarOpen : undefined}
         feedModeControl={
-          feedId ? (
+          resolvedFeedId ? (
             <Select
               name="feed-display-preset"
               value={selectedFeedDisplayPreset}
