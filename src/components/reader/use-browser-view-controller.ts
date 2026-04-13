@@ -1,5 +1,4 @@
 import { Result } from "@praha/byethrow";
-import { listen } from "@tauri-apps/api/event";
 import { type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -10,7 +9,6 @@ import {
   openInBrowser,
   setBrowserWebviewBounds,
 } from "@/api/tauri-commands";
-import { BROWSER_WINDOW_EVENTS, BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
 import type {
   BrowserDebugGeometryLayoutDiagnostics,
   BrowserDebugGeometryNativeDiagnostics,
@@ -21,6 +19,11 @@ import { hasTauriRuntime } from "@/lib/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+import {
+  getBrowserOverlayActionButtonClass,
+  getBrowserOverlayCloseButtonClass,
+  getBrowserOverlayStageClass,
+} from "./browser-overlay-presentation";
 import {
   type BrowserSurfaceIssue,
   createBrowserSurfaceFailure,
@@ -36,6 +39,8 @@ import {
 import { useBrowserDebugGeometryEvents } from "./use-browser-debug-geometry-events";
 import { useBrowserOverlayShortcuts } from "./use-browser-overlay-shortcuts";
 import { useBrowserOverlayViewportWidth } from "./use-browser-overlay-viewport-width";
+import { useBrowserWebviewEvents } from "./use-browser-webview-events";
+import { useBrowserWebviewLoadTimeout } from "./use-browser-webview-load-timeout";
 
 type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
 
@@ -80,8 +85,6 @@ export function useBrowserViewController({
   const hostRef = useRef<HTMLDivElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
-  const listenerReadyRef = useRef<Promise<void> | null>(null);
-  const unlistenRef = useRef<Array<() => void>>([]);
   const fallbackInFlightRef = useRef(false);
   const webviewCreatedRef = useRef(false);
   const createInFlightRef = useRef(false);
@@ -167,20 +170,17 @@ export function useBrowserViewController({
     [t],
   );
 
-  useLayoutEffect(() => {
-    let cancelled = false;
-
-    listenerReadyRef.current = Promise.all([
-      listen<BrowserWebviewState>(BROWSER_WINDOW_EVENTS.stateChanged, ({ payload }) => {
-        if (cancelled) return;
-        const nextState = mergeBrowserState(browserStateRef.current, payload, useUiStore.getState().browserUrl ?? "");
-        browserStateRef.current = nextState;
-        setBrowserState(nextState);
-        setSurfaceIssue(null);
-        fallbackInFlightRef.current = false;
-      }),
-      listen<BrowserWebviewFallbackPayload>(BROWSER_WINDOW_EVENTS.fallback, ({ payload }) => {
-        if (cancelled) return;
+  const waitForBrowserWebviewListeners = useBrowserWebviewEvents({
+    showDiagnostics,
+    onStateChanged: useCallback((payload: BrowserWebviewState) => {
+      const nextState = mergeBrowserState(browserStateRef.current, payload, useUiStore.getState().browserUrl ?? "");
+      browserStateRef.current = nextState;
+      setBrowserState(nextState);
+      setSurfaceIssue(null);
+      fallbackInFlightRef.current = false;
+    }, []),
+    onFallback: useCallback(
+      (payload: BrowserWebviewFallbackPayload) => {
         setSurfaceIssue(
           createBrowserSurfaceFallback(payload.error_message, {
             failed: t("browser_embed_failed"),
@@ -197,38 +197,14 @@ export function useBrowserViewController({
           browserStateRef.current = nextState;
           return nextState;
         });
-      }),
-      listen(BROWSER_WINDOW_EVENTS.closed, () => {
-        if (cancelled) return;
-        handleCloseOverlay();
-      }),
-      ...(showDiagnostics
-        ? [
-            listen<BrowserWebviewDiagnosticsPayload>(BROWSER_WINDOW_EVENTS.diagnostics, ({ payload }) => {
-              if (cancelled) return;
-              setNativeDiagnostics(payload);
-            }),
-          ]
-        : []),
-    ]).then((cleanups) => {
-      if (cancelled) {
-        cleanups.forEach((cleanup) => {
-          cleanup();
-        });
-        return;
-      }
-      unlistenRef.current = cleanups;
-    });
-
-    return () => {
-      cancelled = true;
-      unlistenRef.current.forEach((cleanup) => {
-        cleanup();
-      });
-      unlistenRef.current = [];
-      listenerReadyRef.current = null;
-    };
-  }, [handleCloseOverlay, showDiagnostics, t]);
+      },
+      [t],
+    ),
+    onClosed: handleCloseOverlay,
+    onDiagnostics: useCallback((payload: BrowserWebviewDiagnosticsPayload) => {
+      setNativeDiagnostics(payload);
+    }, []),
+  });
 
   useBrowserDebugGeometryEvents({
     showDiagnostics,
@@ -353,7 +329,7 @@ export function useBrowserViewController({
     let cancelled = false;
 
     const syncBounds = (mode: "create" | "resize") => {
-      void (listenerReadyRef.current ?? Promise.resolve()).then(() => {
+      void waitForBrowserWebviewListeners().then(() => {
         if (cancelled || useUiStore.getState().browserUrl !== browserUrl) {
           return;
         }
@@ -382,7 +358,7 @@ export function useBrowserViewController({
       observer?.disconnect();
       window.removeEventListener("resize", handleResize);
     };
-  }, [browserUrl, syncBrowserWebview]);
+  }, [browserUrl, syncBrowserWebview, waitForBrowserWebviewListeners]);
 
   useLayoutEffect(() => {
     if (!browserUrl || !showDiagnostics) {
@@ -416,27 +392,12 @@ export function useBrowserViewController({
 
   const isLoading = browserUrl ? (browserState?.is_loading ?? true) : false;
 
-  useEffect(() => {
-    if (!browserUrl || !isLoading) {
-      return undefined;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      const activeUrl = useUiStore.getState().browserUrl;
-      if (activeUrl !== browserUrl || !browserStateRef.current?.is_loading) {
-        return;
-      }
-
-      showSurfaceFailure({
-        type: "UserVisible",
-        message: `Timed out waiting for embedded browser webview to finish loading: ${browserUrl}`,
-      });
-    }, BROWSER_WINDOW_LOAD_TIMEOUT_MS);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [browserUrl, isLoading, showSurfaceFailure]);
+  useBrowserWebviewLoadTimeout({
+    browserUrl,
+    isLoading,
+    isStillLoading: () => Boolean(browserStateRef.current?.is_loading),
+    showSurfaceFailure,
+  });
 
   useBrowserOverlayShortcuts({ browserUrl, handleCloseOverlay });
 
@@ -492,16 +453,9 @@ export function useBrowserViewController({
     [scope, showDiagnostics, viewportWidth],
   );
   const isCompactViewer = geometry.compact;
-  const closeButtonClass = isCompactViewer
-    ? "pointer-events-auto border border-white/10 bg-black/32 text-white/92 shadow-[0_10px_26px_rgba(0,0,0,0.34)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/18 hover:bg-white/12 hover:text-white hover:shadow-[0_12px_28px_rgba(0,0,0,0.28)] focus-visible:border-white/18 focus-visible:bg-white/14 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/18 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/20 active:bg-white/18 active:shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
-    : "pointer-events-auto border border-white/12 bg-black/30 text-white/96 shadow-[0_12px_30px_rgba(0,0,0,0.34)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/20 hover:bg-black/44 hover:text-white hover:shadow-[0_14px_32px_rgba(0,0,0,0.3)] focus-visible:border-white/22 focus-visible:bg-black/48 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/22 active:bg-black/54 active:shadow-[0_10px_20px_rgba(0,0,0,0.24)]";
-  const actionButtonClass = isCompactViewer
-    ? "pointer-events-auto border border-white/10 bg-black/32 text-white/92 shadow-[0_10px_26px_rgba(0,0,0,0.34)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/18 hover:bg-white/12 hover:text-white hover:shadow-[0_12px_28px_rgba(0,0,0,0.28)] focus-visible:border-white/18 focus-visible:bg-white/14 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/18 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/20 active:bg-white/18 active:shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
-    : "pointer-events-auto border border-white/12 bg-black/26 text-white/94 shadow-[0_12px_30px_rgba(0,0,0,0.3)] backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/20 hover:bg-black/40 hover:text-white hover:shadow-[0_14px_32px_rgba(0,0,0,0.28)] focus-visible:border-white/22 focus-visible:bg-black/44 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/22 active:bg-black/50 active:shadow-[0_10px_20px_rgba(0,0,0,0.24)]";
-  const stageClass =
-    scope === "main-stage"
-      ? "absolute z-10 overflow-hidden bg-background"
-      : "absolute z-10 overflow-hidden border border-white/6 bg-background shadow-[0_20px_48px_rgba(0,0,0,0.24)]";
+  const closeButtonClass = getBrowserOverlayCloseButtonClass(isCompactViewer);
+  const actionButtonClass = getBrowserOverlayActionButtonClass(isCompactViewer);
+  const stageClass = getBrowserOverlayStageClass(scope);
 
   return {
     browserUrl,
