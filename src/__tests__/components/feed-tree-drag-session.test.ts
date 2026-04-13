@@ -4,9 +4,10 @@ import {
   shouldStartFeedTreePointerDrag,
   updateFeedTreePointerDragSessionPosition,
 } from "@/components/reader/feed-tree-drag-session";
+import type { FeedTreeFeedViewModel } from "@/components/reader/feed-tree-row";
 
 describe("feedTreeDragSession", () => {
-  const feed = {
+  const feed: FeedTreeFeedViewModel = {
     id: "feed-1",
     accountId: "account-1",
     folderId: null,
