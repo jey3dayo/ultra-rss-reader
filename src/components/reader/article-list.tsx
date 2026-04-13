@@ -1,10 +1,9 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { Result } from "@praha/byethrow";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ARTICLE_SEARCH_DEBOUNCE_MS } from "@/constants/reader";
-import { useAccountArticles, useArticles, useMarkAllRead, useSearchArticles } from "@/hooks/use-articles";
+import { useAccountArticles, useArticles, useMarkAllRead } from "@/hooks/use-articles";
 import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useArticlesByTag } from "@/hooks/use-tags";
@@ -27,6 +26,7 @@ import { ArticleListHeader } from "./article-list-header";
 import { ArticleListScreenView } from "./article-list-screen-view";
 import { contextMenuStyles } from "./context-menu-styles";
 import { useArticleListInteractions } from "./use-article-list-interactions";
+import { useArticleListSearch } from "./use-article-list-search";
 
 export function ArticleList() {
   const { t } = useTranslation("reader");
@@ -63,19 +63,18 @@ export function ArticleList() {
   const { data: accountArticles, isLoading: isLoadingAccountArticles } = useAccountArticles(accountListScopeId);
   const { data: tagArticles, isLoading: isLoadingTagArticles } = useArticlesByTag(tagId, selectedAccountId);
   const { data: feeds } = useFeeds(selectedAccountId);
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-
-  // Debounce search query to avoid excessive IPC calls
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(searchQuery), ARTICLE_SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const trimmedDebouncedQuery = debouncedQuery.trim();
-  const { data: searchResults, isFetching: isSearching } = useSearchArticles(selectedAccountId, trimmedDebouncedQuery);
+  const {
+    showSearch,
+    searchQuery,
+    searchInputRef,
+    trimmedDebouncedQuery,
+    searchResults,
+    isSearching,
+    openSearch,
+    handleToggleSearch,
+    handleCloseSearch,
+    setSearchQuery,
+  } = useArticleListSearch({ selectedAccountId });
   const effectiveViewMode = useMemo<"all" | "unread" | "starred">(() => {
     if (smartViewKind === "unread") {
       return "unread";
@@ -265,22 +264,6 @@ export function ArticleList() {
     const unreadIds = getUnreadArticleIds(filteredArticles);
     confirmMarkAllRead({ count: unreadIds.length, onConfirm: doMarkAllRead });
   }, [filteredArticles, confirmMarkAllRead, doMarkAllRead]);
-
-  const openSearch = useCallback(() => {
-    setShowSearch(true);
-    requestAnimationFrame(() => searchInputRef.current?.focus());
-  }, []);
-
-  const handleToggleSearch = useCallback(() => {
-    setShowSearch((v) => !v);
-    if (!showSearch) openSearch();
-    else setSearchQuery("");
-  }, [showSearch, openSearch]);
-
-  const handleCloseSearch = useCallback(() => {
-    setShowSearch(false);
-    setSearchQuery("");
-  }, []);
 
   const handleSidebarToggle = useCallback(() => {
     if (layoutMode === "wide") {
