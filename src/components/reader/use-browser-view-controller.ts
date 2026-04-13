@@ -1,26 +1,21 @@
-import { type RefObject, useCallback, useMemo, useRef, useState } from "react";
-import type { BrowserWebviewState } from "@/api/tauri-commands";
+import { type RefObject, useMemo } from "react";
 import type {
   BrowserDebugGeometryLayoutDiagnostics,
   BrowserDebugGeometryNativeDiagnostics,
 } from "@/lib/browser-debug-geometry";
-import { usePlatformStore } from "@/stores/platform-store";
-import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
-import { useUiStore } from "@/stores/ui-store";
 import type { BrowserSurfaceIssue } from "./browser-surface-issue";
 import { resolveBrowserViewPresentation } from "./browser-view-presentation";
 import { initialBrowserState } from "./browser-webview-state";
 import { useBrowserDebugGeometryEvents } from "./use-browser-debug-geometry-events";
 import { useBrowserLayoutDiagnostics } from "./use-browser-layout-diagnostics";
-import { useBrowserNativeDiagnostics } from "./use-browser-native-diagnostics";
 import { useBrowserOverlayShortcuts } from "./use-browser-overlay-shortcuts";
-import { useBrowserOverlayViewportWidth } from "./use-browser-overlay-viewport-width";
 import { useBrowserViewActions } from "./use-browser-view-actions";
 import { useBrowserViewEventBridge } from "./use-browser-view-event-bridge";
 import { useBrowserWebviewBoundsSync } from "./use-browser-webview-bounds-sync";
 import { useBrowserWebviewCleanup } from "./use-browser-webview-cleanup";
 import { useBrowserWebviewLoadTimeout } from "./use-browser-webview-load-timeout";
 import { useBrowserWebviewRequestState } from "./use-browser-webview-request-state";
+import { useBrowserViewRuntime } from "./use-browser-view-runtime";
 import { useBrowserWebviewSync } from "./use-browser-webview-sync";
 
 type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
@@ -55,24 +50,23 @@ export function useBrowserViewController({
   scope: "content-pane" | "main-stage";
   onCloseOverlay: () => void;
 }): BrowserViewController {
-  const prefs = usePreferencesStore((s) => s.prefs);
-  const showDiagnostics = resolvePreferenceValue(prefs, "debug_browser_hud") === "true";
-  const browserUrl = useUiStore((s) => s.browserUrl);
-  const showToast = useUiStore((s) => s.showToast);
-  const platformKind = usePlatformStore((state) => state.platform.kind);
-  const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(null);
-  const browserStateRef = useRef<BrowserWebviewState | null>(null);
-  const hostRef = useRef<HTMLDivElement | null>(null);
-  const overlayRef = useRef<HTMLDivElement | null>(null);
-  const stageRef = useRef<HTMLDivElement | null>(null);
-  const fallbackInFlightRef = useRef(false);
-  const { nativeDiagnostics, handleNativeDiagnostics } = useBrowserNativeDiagnostics(showDiagnostics);
-  const viewportWidth = useBrowserOverlayViewportWidth();
-  const isLoading = browserUrl ? (browserState?.is_loading ?? true) : false;
-
-  const handleCloseOverlay = useCallback(() => {
-    onCloseOverlay();
-  }, [onCloseOverlay]);
+  const {
+    showDiagnostics,
+    browserUrl,
+    showToast,
+    platformKind,
+    setBrowserState,
+    browserStateRef,
+    hostRef,
+    overlayRef,
+    stageRef,
+    fallbackInFlightRef,
+    nativeDiagnostics,
+    handleNativeDiagnostics,
+    viewportWidth,
+    isLoading,
+    handleCloseOverlay,
+  } = useBrowserViewRuntime({ onCloseOverlay });
 
   const { layoutDiagnostics, captureLayoutDiagnostics } = useBrowserLayoutDiagnostics({
     browserUrl,
