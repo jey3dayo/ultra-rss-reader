@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { resolveFeedTreePointerDropOutcome } from "@/components/reader/feed-tree-drag-outcome";
-import { createFeedTreePointerDragSession } from "@/components/reader/feed-tree-drag-session";
+import type { FeedTreePointerDragSession } from "@/components/reader/feed-tree-drag-session";
+import type { FeedTreeFeedViewModel } from "@/components/reader/feed-tree-row";
 
 const feed = {
   id: "feed-1",
   accountId: "account-1",
   folderId: null,
-  title: "Feed 1",
+  title: "Tech Feed",
   url: "https://example.com/feed.xml",
   siteUrl: "https://example.com",
   unreadCount: 3,
@@ -14,38 +15,44 @@ const feed = {
   webPreviewMode: "inherit",
   isSelected: false,
   grayscaleFavicon: false,
-} as const;
+} as const satisfies FeedTreeFeedViewModel;
+
+const draggingSession: FeedTreePointerDragSession = {
+  feed,
+  pointerId: 3,
+  originX: 10,
+  originY: 20,
+  currentX: 12,
+  currentY: 24,
+  isDragging: true,
+  hoverTarget: null,
+};
 
 describe("resolveFeedTreePointerDropOutcome", () => {
-  it("clears when there is no active drag session", () => {
+  it("clears when no session is active or dragging has not started", () => {
     expect(resolveFeedTreePointerDropOutcome(null, null, false)).toEqual({ type: "clear" });
-  });
-
-  it("clears when the pointer never crossed the drag threshold", () => {
-    const session = createFeedTreePointerDragSession(feed, 1, 10, 20);
-    expect(resolveFeedTreePointerDropOutcome(session, { kind: "folder", folderId: "folder-1" }, false)).toEqual({
+    expect(resolveFeedTreePointerDropOutcome({ ...draggingSession, isDragging: false }, null, false)).toEqual({
       type: "clear",
     });
   });
 
-  it("returns cancel for cancelled drags", () => {
-    const session = createFeedTreePointerDragSession(feed, 1, 10, 20);
-    session.isDragging = true;
-
-    expect(resolveFeedTreePointerDropOutcome(session, null, true)).toEqual({ type: "cancel" });
+  it("returns cancel when escape or pointer cancel ends an active drag", () => {
+    expect(resolveFeedTreePointerDropOutcome(draggingSession, null, true)).toEqual({ type: "cancel" });
   });
 
-  it("returns folder and unfoldered drop outcomes", () => {
-    const session = createFeedTreePointerDragSession(feed, 1, 10, 20);
-    session.isDragging = true;
-
-    expect(resolveFeedTreePointerDropOutcome(session, { kind: "folder", folderId: "folder-1" }, false)).toEqual({
-      type: "drop-folder",
-      folderId: "folder-1",
-    });
-    expect(resolveFeedTreePointerDropOutcome(session, { kind: "unfoldered" }, false)).toEqual({
+  it("routes folder and unfoldered drops to the matching outcomes", () => {
+    expect(resolveFeedTreePointerDropOutcome(draggingSession, { kind: "folder", folderId: "folder-1" }, false)).toEqual(
+      {
+        type: "drop-folder",
+        folderId: "folder-1",
+      },
+    );
+    expect(resolveFeedTreePointerDropOutcome(draggingSession, { kind: "unfoldered" }, false)).toEqual({
       type: "drop-unfoldered",
     });
-    expect(resolveFeedTreePointerDropOutcome(session, null, false)).toEqual({ type: "drop-none" });
+  });
+
+  it("returns drop-none when an active drag ends outside any target", () => {
+    expect(resolveFeedTreePointerDropOutcome(draggingSession, null, false)).toEqual({ type: "drop-none" });
   });
 });
