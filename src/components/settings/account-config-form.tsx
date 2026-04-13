@@ -122,7 +122,8 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
             value={form.name}
             onChange={(value) => dispatch({ type: "setField", field: "name", value })}
             placeholder={form.kind}
-            inputClassName="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
+            rowClassName="flex-col items-stretch sm:flex-row sm:items-center"
+            inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:w-auto"
             disabled={submitting}
           />
         </section>
@@ -137,7 +138,8 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
                 value={form.serverUrl}
                 onChange={(value) => dispatch({ type: "setField", field: "serverUrl", value })}
                 placeholder={t("account.server_url_placeholder")}
-                inputClassName="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
+                rowClassName="flex-col items-stretch sm:flex-row sm:items-center"
+                inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:w-auto"
                 disabled={submitting}
               />
             )}
@@ -146,7 +148,8 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
               name={formConfig.credentialName ?? undefined}
               value={form.username}
               onChange={(value) => dispatch({ type: "setField", field: "username", value })}
-              inputClassName="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
+              rowClassName="flex-col items-stretch sm:flex-row sm:items-center"
+              inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:w-auto"
               disabled={submitting}
             />
             <LabeledInputRow
@@ -155,7 +158,8 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
               type="password"
               value={form.password}
               onChange={(value) => dispatch({ type: "setField", field: "password", value })}
-              inputClassName="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
+              rowClassName="flex-col items-stretch sm:flex-row sm:items-center"
+              inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:w-auto"
               disabled={submitting}
             />
           </section>

@@ -102,6 +102,10 @@ describe("AddAccountFormView", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Add Account" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Type" })).toHaveTextContent("FreshRSS");
     expect(screen.getByLabelText("Server URL")).toHaveValue("https://example.com");
+    expect(screen.getByLabelText("Name")).toHaveClass("w-full");
+    expect(screen.getByLabelText("Server URL")).toHaveClass("w-full");
+    expect(screen.getByLabelText("Username")).toHaveClass("w-full");
+    expect(screen.getByLabelText("Password")).toHaveClass("w-full");
     expect(screen.getByLabelText("Username")).toHaveValue("alice");
     expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
   });

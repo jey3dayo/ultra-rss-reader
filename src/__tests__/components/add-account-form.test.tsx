@@ -39,6 +39,8 @@ describe("AddAccountForm", () => {
 
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
     expect(screen.getByLabelText("Server URL")).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveClass("w-full");
+    expect(screen.getByLabelText("Server URL")).toHaveClass("w-full");
 
     await user.click(screen.getByRole("button", { name: /Back/ }));
 

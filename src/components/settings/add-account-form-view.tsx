@@ -30,7 +30,8 @@ function AddAccountInputRow({ control }: AddAccountFormInputRowProps) {
       value={control.value}
       onChange={control.onChange}
       placeholder={control.placeholder}
-      inputClassName="h-auto w-auto border-border bg-background px-2 py-1 text-sm"
+      rowClassName="flex-col items-stretch sm:flex-row sm:items-center"
+      inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:w-auto"
       disabled={control.disabled}
     />
   );
