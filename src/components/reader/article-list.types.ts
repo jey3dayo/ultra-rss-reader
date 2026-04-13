@@ -97,6 +97,28 @@ export type UseArticleListHeaderControllerResult = UseArticleListHeaderControlsR
   handleMarkAllRead: () => void;
 };
 
+export type UseArticleListBodyPropsParams = {
+  t: TFunction<"reader">;
+  tc: TFunction<"common">;
+  listRef: ArticleListBodyProps["listRef"];
+  viewportRef: ArticleListBodyProps["viewportRef"];
+  handleListKeyDownCapture: ArticleListBodyProps["onListKeyDownCapture"];
+  isLoading: boolean;
+  isLoadingAccountArticles: boolean;
+  isLoadingTagArticles: boolean;
+  isSearchLoading: boolean;
+  isSearchEmptyState: boolean;
+  trimmedDebouncedQuery: string;
+  articleGroups: ArticleListBodyProps["groups"];
+  dimArchived: ArticleListBodyProps["dimArchived"];
+  textPreview: ArticleListBodyProps["textPreview"];
+  imagePreviews: ArticleListBodyProps["imagePreviews"];
+  selectionStyle: ArticleListBodyProps["selectionStyle"];
+  selectArticle: ArticleListBodyProps["onSelectArticle"];
+  handleCloseSearch: () => void;
+  handleMarkAllRead: () => void;
+};
+
 export type UseArticleListDataParams = {
   selection: UiSelection;
   feedId: string | null;
