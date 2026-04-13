@@ -452,6 +452,10 @@
   - 問題: `use-feed-tree-drag.ts` に drag 後 click 抑制の timer/ref 管理が残っていて、drag orchestration と handle click suppression が混ざっていた
   - 対象: `src/components/reader/use-feed-tree-drag.ts`, `src/components/reader/use-feed-tree-handle-click-suppression.ts`, `src/__tests__/hooks/use-feed-tree-handle-click-suppression.test.tsx`
 
+- [x] feed tree drop outcome の side-effect dispatch を helper 化する
+  - 問題: `use-feed-tree-drag.ts` に drop outcome 後の callback dispatch と pointer cleanup が残っていて、drag orchestration と outcome 適用が混ざっていた
+  - 対象: `src/components/reader/use-feed-tree-drag.ts`, `src/components/reader/feed-tree-drag-outcome.ts`, `src/__tests__/components/feed-tree-drag-outcome.test.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
