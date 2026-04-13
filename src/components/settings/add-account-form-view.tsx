@@ -1,53 +1,12 @@
+import type {
+  AddAccountFormInputControl,
+  AddAccountFormSelectControl,
+  AddAccountFormViewProps,
+} from "@/components/settings/add-account-form.types";
+import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
-import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { SectionHeading } from "@/components/shared/section-heading";
-
-export type AddAccountFormOption = {
-  value: string;
-  label: string;
-};
-
-export type AddAccountFormSelectControl = {
-  label: string;
-  name: string;
-  value: string;
-  options: AddAccountFormOption[];
-  onChange: (value: string) => void;
-  disabled: boolean;
-};
-
-export type AddAccountFormInputControl = {
-  label: string;
-  name: string;
-  value: string;
-  placeholder?: string;
-  type?: string;
-  onChange: (value: string) => void;
-  disabled: boolean;
-};
-
-export type AddAccountCredentialsSection = {
-  heading: string;
-  serverUrl?: AddAccountFormInputControl;
-  credential: AddAccountFormInputControl;
-  password: AddAccountFormInputControl;
-};
-
-export type AddAccountFormViewProps = {
-  title: string;
-  accountHeading: string;
-  accountType: AddAccountFormSelectControl;
-  accountName: AddAccountFormInputControl;
-  credentialsSection?: AddAccountCredentialsSection;
-  errorMessage?: string | null;
-  submitLabel: string;
-  submittingLabel: string;
-  cancelLabel: string;
-  submitting: boolean;
-  onSubmit: () => void;
-  onCancel: () => void;
-};
 
 function AddAccountSelectRow({ control }: { control: AddAccountFormSelectControl }) {
   return (
