@@ -151,6 +151,10 @@
   - 問題: `sidebar.tsx` に account/sync/tree/ui action まわりの hook 配線が残っていて、画面構成と controller 責務が混ざっていた
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-controller.ts`
 
+- [x] sidebar の feed section wiring を controller hook に寄せる
+  - 問題: `useSidebarController` に drag state / feed tree / startup expansion / visibility fallback / feed navigation の接着が残っていて、controller orchestration が重くなっていた
+  - 対象: `src/components/reader/use-sidebar-controller.ts`, `src/components/reader/use-sidebar-feed-section-controller.ts`
+
 - [x] sidebar の account restore / startup expansion / hidden-state fallback を hook 化する
   - 問題: `sidebar.tsx` に account 復元、起動時 folder 展開、visibility fallback の effect が集まり、責務が重くなっていた
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-account-selection.ts`, `src/components/reader/use-sidebar-startup-folder-expansion.ts`, `src/components/reader/use-sidebar-visibility-fallback.ts`
@@ -225,6 +229,10 @@
 - [x] ArticleView の selection 解決を hook 化する
   - 問題: `ArticleView` に feed/account/tag/all の分岐、not-found 判定、selected article/feed 解決が残っていた
   - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-view-selection.ts`
+
+- [x] article-view の store selector 群を ui state hook に寄せる
+  - 問題: `article-view.tsx` に `useUiStore` / `usePreferencesStore` の読み出しが残っていて、pane orchestration と state wiring が混ざっていた
+  - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-view-ui-state.ts`
 
 - [x] article-view の state view を別 file に切り出す
   - 問題: `EmptyState` / `BrowserOnlyState` / not-found 表示が `article-view.tsx` に残り、view orchestration と state 表示が混ざっていた
