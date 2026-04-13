@@ -464,6 +464,10 @@
   - 問題: `use-feed-tree-drag.ts` の `move/up/cancel` に pointerId 一致確認が重複していて、drag orchestration と session guard が混ざっていた
   - 対象: `src/components/reader/use-feed-tree-drag.ts`, `src/components/reader/feed-tree-drag-session.ts`, `src/__tests__/components/feed-tree-drag-session.test.ts`
 
+- [x] article list の view props 型を component 実体に揃える
+  - 問題: `use-article-list-view-props.ts` の手書き型が header/context/body/footer component の props とずれていて、`tsc` が `article-list` で停止していた
+  - 対象: `src/components/reader/use-article-list-view-props.ts`, `src/components/reader/article-list-header.tsx`, `src/components/reader/article-list-context-strip.tsx`, `src/components/reader/article-list-body.tsx`, `src/components/reader/article-list-footer.tsx`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する

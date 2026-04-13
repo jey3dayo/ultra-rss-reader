@@ -1,5 +1,4 @@
 import { type RefObject, useCallback, useMemo, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import type {
   BrowserDebugGeometryLayoutDiagnostics,
@@ -8,7 +7,6 @@ import type {
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
-import { isBrowserRuntimeUnavailable } from "./browser-runtime-availability";
 import type { BrowserSurfaceIssue } from "./browser-surface-issue";
 import { resolveBrowserViewPresentation } from "./browser-view-presentation";
 import { type BrowserWebviewFallbackPayload, initialBrowserState } from "./browser-webview-state";
@@ -18,7 +16,7 @@ import { useBrowserNativeDiagnostics } from "./use-browser-native-diagnostics";
 import { useBrowserOverlayShortcuts } from "./use-browser-overlay-shortcuts";
 import { useBrowserOverlayViewportWidth } from "./use-browser-overlay-viewport-width";
 import { useBrowserViewActions } from "./use-browser-view-actions";
-import { useBrowserViewSurfaceState } from "./use-browser-view-surface-state";
+import { useBrowserViewSurfaceController } from "./use-browser-view-surface-controller";
 import { useBrowserWebviewBoundsSync } from "./use-browser-webview-bounds-sync";
 import { useBrowserWebviewCleanup } from "./use-browser-webview-cleanup";
 import { useBrowserWebviewEvents } from "./use-browser-webview-events";
@@ -60,7 +58,6 @@ export function useBrowserViewController({
   onCloseOverlay: () => void;
 }): BrowserViewController {
   const prefs = usePreferencesStore((s) => s.prefs);
-  const { t } = useTranslation("reader");
   const showDiagnostics = resolvePreferenceValue(prefs, "debug_browser_hud") === "true";
   const browserUrl = useUiStore((s) => s.browserUrl);
   const showToast = useUiStore((s) => s.showToast);
@@ -86,26 +83,18 @@ export function useBrowserViewController({
     stageRef,
     hostRef,
   });
-  const runtimeUnavailable = isBrowserRuntimeUnavailable();
   const {
     setSurfaceIssue,
     handleLostEmbeddedBrowserWebview,
     handleBrowserWebviewFallback,
     showSurfaceFailure,
     activeSurfaceIssue,
-  } = useBrowserViewSurfaceState({
+  } = useBrowserViewSurfaceController({
     browserStateRef,
     fallbackInFlightRef,
     isLoading,
-    runtimeUnavailable,
     onCloseOverlay: handleCloseOverlay,
     setBrowserState,
-    browserMode: t("browser_embed_browser_mode"),
-    browserModeHint: t("browser_embed_browser_mode_hint"),
-    failed: t("browser_embed_failed"),
-    failedHint: t("browser_embed_failed_hint"),
-    blocked: t("browser_embed_blocked"),
-    blockedHint: t("browser_embed_blocked_hint"),
   });
   const handleBrowserWebviewStateChanged = useBrowserWebviewStateChanged({
     browserStateRef,
