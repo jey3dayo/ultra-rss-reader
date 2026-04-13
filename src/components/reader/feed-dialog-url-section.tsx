@@ -1,32 +1,7 @@
-import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { type DiscoveredFeedOption, DiscoveredFeedOptionsView } from "./discovered-feed-options-view";
-
-export type FeedDialogUrlSectionProps = {
-  label: string;
-  value: string;
-  onValueChange: (value: string) => void;
-  onDiscover: () => void;
-  discoverLabel: string;
-  discoveringLabel: string;
-  discovering: boolean;
-  disabled: boolean;
-  discoverDisabled: boolean;
-  placeholder: string;
-  inputRef?: RefObject<HTMLInputElement | null>;
-  discoveredFeedsFoundLabel: string | null;
-  discoveredFeedOptions: DiscoveredFeedOption[];
-  selectedFeedUrl: string;
-  onSelectedFeedUrlChange: (value: string) => void;
-  helperText?: string | null;
-  helperTone?: "muted" | "error";
-};
-
-type FeedDialogUrlSectionViewProps = FeedDialogUrlSectionProps & {
-  inputId: string;
-  helperTextId: string;
-};
+import { DiscoveredFeedOptionsView } from "./discovered-feed-options-view";
+import type { FeedDialogUrlSectionViewProps } from "./feed-dialog-form.types";
 
 export function FeedDialogUrlSection({
   label,
