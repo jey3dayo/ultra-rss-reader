@@ -238,6 +238,14 @@
   - 問題: `article-list.tsx` に sidebar button 文言・表示条件と feed mode control 配線が残っていて、header state 導出と画面構成が混ざっていた
   - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-header-controls.tsx`
 
+- [x] article-list の interaction hook に key map / refs を寄せる
+  - 問題: `article-list.tsx` に keyboard shortcut map の生成と list/viewport ref の所有が残っていて、interaction orchestration と画面構成が混ざっていた
+  - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-interactions.ts`
+
+- [x] article-list の body/context menu を view component に切り出す
+  - 問題: `article-list.tsx` に list body と mark-all-read context menu の JSX が残っていて、画面構成と list shell 描画が混ざっていた
+  - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/article-list-body.tsx`
+
 - [x] reader の再利用境界がある state/controller 型を `types` 化する
   - 問題: `use-sidebar-feed-tree.ts` と `use-add-feed-dialog-controller.ts` に再利用余地のある union/state 型が残っている
   - 対象: `src/components/reader/use-sidebar-feed-tree.ts`, `src/components/reader/use-add-feed-dialog-controller.ts`
