@@ -9,16 +9,10 @@ import {
 describe("isSameFeedDropTarget", () => {
   it("compares folder targets by folder id", () => {
     expect(
-      isSameFeedDropTarget(
-        { kind: "folder", folderId: "folder-1" },
-        { kind: "folder", folderId: "folder-1" },
-      ),
+      isSameFeedDropTarget({ kind: "folder", folderId: "folder-1" }, { kind: "folder", folderId: "folder-1" }),
     ).toBe(true);
     expect(
-      isSameFeedDropTarget(
-        { kind: "folder", folderId: "folder-1" },
-        { kind: "folder", folderId: "folder-2" },
-      ),
+      isSameFeedDropTarget({ kind: "folder", folderId: "folder-1" }, { kind: "folder", folderId: "folder-2" }),
     ).toBe(false);
   });
 

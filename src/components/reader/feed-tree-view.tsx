@@ -1,10 +1,8 @@
 import type { ReactNode } from "react";
-import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
-import { FEED_DROP_TARGET_KIND_ATTRIBUTE } from "./feed-tree-drop-target";
 import { FeedTreeDragOverlay } from "./feed-tree-drag-overlay";
 import { type ActiveDropTarget, FeedTreeFolderSection, type FeedTreeFolderViewModel } from "./feed-tree-folder-section";
 import { type FeedTreeFeedViewModel, FeedTreeRow } from "./feed-tree-row";
+import { FeedTreeUnfolderedDropZone } from "./feed-tree-unfoldered-drop-zone";
 import { useFeedTreeDrag } from "./use-feed-tree-drag";
 
 export type { ActiveDropTarget, FeedTreeFolderViewModel } from "./feed-tree-folder-section";
@@ -41,46 +39,6 @@ export type FeedTreeViewProps = {
   onDropToUnfoldered?: () => void;
   onDragEnd?: () => void;
 };
-
-function UnfolderedDropZone({
-  enabled,
-  active,
-  onDropToUnfoldered,
-}: {
-  enabled: boolean;
-  active: boolean;
-  onDropToUnfoldered?: () => void;
-}) {
-  const { t } = useTranslation("sidebar");
-  const isActive = active;
-
-  if (!enabled) {
-    return null;
-  }
-
-  return (
-    <button
-      type="button"
-      aria-label={t("move_to_no_folder")}
-      data-testid="unfoldered-drop-zone"
-      {...{ [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "unfoldered" }}
-      className={cn(
-        "w-full rounded-md text-left transition-all",
-        isActive
-          ? "min-h-8 border border-dashed border-sidebar-border bg-sidebar-accent/60 px-2 py-1 text-xs text-sidebar-accent-foreground"
-          : "h-2 border border-transparent bg-sidebar-border/30",
-      )}
-      onClick={() => {
-        if (!enabled) {
-          return;
-        }
-        onDropToUnfoldered?.();
-      }}
-    >
-      {isActive ? t("drop_to_remove_from_folder") : null}
-    </button>
-  );
-}
 
 export function FeedTreeView({
   isOpen,
@@ -154,7 +112,7 @@ export function FeedTreeView({
     <>
       <div className="space-y-1 px-2">
         {showUnfolderedDropZone ? (
-          <UnfolderedDropZone
+          <FeedTreeUnfolderedDropZone
             enabled={canDragFeeds}
             active={activeUnfoldered}
             onDropToUnfoldered={onDropToUnfoldered}
