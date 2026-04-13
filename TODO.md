@@ -142,6 +142,10 @@
   - 問題: `service-picker.tsx` が service 定義・props 型・UI をまとめて持ち、`account-config-form.tsx` / `accounts-nav-view.tsx` が component file へ直接依存していた
   - 対象: `src/components/settings/service-picker.tsx`, `src/components/settings/account-config-form.tsx`, `src/components/settings/accounts-nav-view.tsx`
 
+- [x] article-view の browser overlay coordination を hook 化する
+  - 問題: `article-view.tsx` に display mode 解決、overlay 開閉、focus return がまとまっていて、`ArticlePane` の責務が広かった
+  - 対象: `src/components/reader/article-view.tsx`, `src/components/reader/use-article-browser-overlay.ts`
+
 - [x] reader の再利用境界がある state/controller 型を `types` 化する
   - 問題: `use-sidebar-feed-tree.ts` と `use-add-feed-dialog-controller.ts` に再利用余地のある union/state 型が残っている
   - 対象: `src/components/reader/use-sidebar-feed-tree.ts`, `src/components/reader/use-add-feed-dialog-controller.ts`
