@@ -167,9 +167,17 @@
   - 問題: `useBrowserViewController` に host resize / window resize の effect が残っていて、controller orchestration と webview bounds 同期が混ざっていた
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-webview-bounds-sync.ts`
 
+- [x] browser-view の webview sync command orchestration を hook 化する
+  - 問題: `useBrowserViewController` に create/update bounds の command orchestration と pending sync state が残っていて、controller orchestration と native webview runtime state が混ざっていた
+  - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-webview-sync.ts`
+
 - [x] browser-view の unmount cleanup を hook 化する
   - 問題: `useBrowserViewController` に closeBrowserWebview の cleanup effect が残っていて、controller orchestration と webview lifecycle cleanup が混ざっていた
   - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-webview-cleanup.ts`
+
+- [x] browser-view の layout diagnostics state を hook 化する
+  - 問題: `useBrowserViewController` に `captureLayoutDiagnostics` と HUD 用 state 管理が残っていて、controller orchestration と diagnostics 導出が混ざっていた
+  - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/use-browser-layout-diagnostics.ts`
 
 - [x] sidebar の feed navigation と event listener を hook 化する
   - 問題: `sidebar.tsx` に feed 移動、folder 自動展開、`APP_EVENTS.navigateFeed` 購読が残っていて、tree 導出と責務が混ざっている
