@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 import type { ReactNode, RefObject } from "react";
-import type { FeedTreeViewProps } from "./feed-tree-view";
+import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarAccountSectionProps } from "./sidebar-account-section";
 import type { SidebarContentSectionsProps } from "./sidebar-content-sections";
 import type { SidebarSelection } from "./sidebar-feed-tree.types";
@@ -23,6 +23,64 @@ export type SidebarViewPropsResult = SidebarSectionPropsResult & {
 };
 
 export type SidebarControllerResult = SidebarViewPropsResult;
+
+export type SidebarControllerSectionsParams = {
+  t: TFunction<"sidebar">;
+  selectedAccountId: string | null;
+  feeds: import("./sidebar-sources.types").SidebarSourcesResult["feeds"];
+  folders: import("./sidebar-sources.types").SidebarSourcesResult["folders"];
+  selection: SidebarSelection;
+  viewMode: import("./sidebar-feed-tree.types").SidebarFeedTreeViewMode;
+  expandedFolderIds: Set<string>;
+  sortSubscriptions: string;
+  grayscaleFavicons: boolean;
+  isFeedsSectionOpen: boolean;
+  startupFolderExpansion: import("./sidebar-feed-section.types").StartupFolderExpansionMode;
+  showSidebarUnread: boolean;
+  showSidebarStarred: boolean;
+  showSidebarTags: boolean;
+  setExpandedFolders: (folderIds: Iterable<string>) => void;
+  selectFeed: (feedId: string) => void;
+  selectFolder: (folderId: string) => void;
+  selectAll: () => void;
+  selectSmartView: SmartViewsViewProps["onSelectSmartView"];
+  selectTag: SidebarContentSectionsProps["onSelectTag"];
+  setViewMode: (mode: import("./sidebar-feed-tree.types").SidebarFeedTreeViewMode) => void;
+  toggleFolder: (folderId: string) => void;
+  displayFavicons: boolean;
+  accounts: import("./sidebar-sources.types").SidebarSourcesResult["accounts"];
+  accountStatusLabels: SidebarAccountSectionProps["accountStatusLabels"];
+  selectedAccount: import("./sidebar-sources.types").SidebarSourcesResult["selectedAccount"];
+  isAccountListOpen: boolean;
+  accountMenuId: string;
+  accountDropdownRef: SidebarAccountSectionProps["containerRef"];
+  accountTriggerRef: SidebarAccountSectionProps["triggerRef"];
+  accountItemRefs: SidebarAccountSectionProps["itemRefs"];
+  toggleAccountList: () => void;
+  handleSelectAccount: SidebarAccountSectionProps["onSelectAccount"];
+  closeAccountList: () => void;
+  syncProgress: SidebarHeaderPropsParams["syncProgress"];
+  handleSync: SidebarHeaderPropsParams["handleSync"];
+  handleAddFeed: SidebarHeaderPropsParams["handleAddFeed"];
+  toggleFeedsSection: () => void;
+  lastSyncedLabel: string;
+  totalUnread: number;
+  starredCount: number;
+  showUnreadCount: boolean;
+  showStarredCount: boolean;
+  feedViewportRef: SidebarContentSectionsProps["viewportRef"];
+  openFeedCleanup: () => void;
+  handleOpenSettings: () => void;
+  isAddFeedDialogOpen: boolean;
+  handleAddFeedDialogOpenChange: (open: boolean) => void;
+  isTagsSectionOpen: boolean;
+  toggleTagsSection: () => void;
+  handleOpenAccountSettings: () => void;
+  tags: SidebarContentSectionsProps["tags"];
+  tagArticleCounts: SidebarContentSectionsProps["tagArticleCounts"];
+  moveFeedToFolder: (feedId: string, folderId: string) => Promise<unknown>;
+  moveFeedToUnfoldered: (feedId: string) => Promise<unknown>;
+};
 
 export type SidebarHeaderPropsParams = {
   t: TFunction<"sidebar">;

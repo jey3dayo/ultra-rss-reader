@@ -2,12 +2,9 @@ import { useTranslation } from "react-i18next";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import type { SidebarControllerResult } from "./sidebar.types";
 import { useSidebarAccountSelection } from "./use-sidebar-account-selection";
-import { useSidebarContextMenuRenderers } from "./use-sidebar-context-menu-renderers";
 import { useSidebarControllerActions } from "./use-sidebar-controller-actions";
-import { useSidebarFeedSectionController } from "./use-sidebar-feed-section-controller";
+import { useSidebarControllerSections } from "./use-sidebar-controller-sections";
 import { useSidebarRuntime } from "./use-sidebar-runtime";
-import { useSidebarSectionProps } from "./use-sidebar-section-props";
-import { useSidebarSmartViews } from "./use-sidebar-smart-views";
 import { useSidebarViewProps } from "./use-sidebar-view-props";
 
 export function useSidebarController(): SidebarControllerResult {
@@ -110,18 +107,8 @@ export function useSidebarController(): SidebarControllerResult {
     setSelectedAccountPreference,
   });
 
-  const visibleSmartViews = useSidebarSmartViews({
-    selection,
-    totalUnread,
-    starredCount,
-    showUnreadCount,
-    showStarredCount,
-    showSidebarUnread,
-    showSidebarStarred,
+  const { headerProps, accountSectionProps, smartViewsProps, contentSectionsProps } = useSidebarControllerSections({
     t,
-  });
-  const { renderFolderContextMenu, renderFeedContextMenu, renderTagContextMenu } = useSidebarContextMenuRenderers();
-  const { feedTreeProps } = useSidebarFeedSectionController({
     selectedAccountId,
     feeds,
     folders,
@@ -143,22 +130,9 @@ export function useSidebarController(): SidebarControllerResult {
     setViewMode,
     toggleFolder,
     displayFavicons,
-    moveFeedToFolder,
-    moveFeedToUnfoldered,
-    renderFolderContextMenu,
-    renderFeedContextMenu,
-  });
-
-  const { headerProps, accountSectionProps, smartViewsProps, contentSectionsProps } = useSidebarSectionProps({
-    t,
-    syncProgress,
-    handleSync,
-    handleAddFeed,
-    selectedAccountName: selectedAccount?.name,
-    lastSyncedLabel,
-    accounts: accounts ?? [],
+    accounts,
     accountStatusLabels,
-    selectedAccountId,
+    selectedAccount,
     isAccountListOpen,
     accountMenuId,
     accountDropdownRef,
@@ -167,25 +141,28 @@ export function useSidebarController(): SidebarControllerResult {
     toggleAccountList,
     handleSelectAccount,
     closeAccountList,
-    visibleSmartViews,
-    selectSmartView,
-    isFeedsSectionOpen,
+    syncProgress,
+    handleSync,
+    handleAddFeed,
     toggleFeedsSection,
+    lastSyncedLabel,
+    totalUnread,
+    starredCount,
+    showUnreadCount,
+    showStarredCount,
     feedViewportRef,
     openFeedCleanup,
     handleOpenSettings,
     isAddFeedDialogOpen,
     handleAddFeedDialogOpenChange,
-    showSidebarTags,
     isTagsSectionOpen,
     toggleTagsSection,
     handleOpenAccountSettings,
-    feedTreeProps,
     tags,
     tagArticleCounts,
-    selection,
+    moveFeedToFolder,
+    moveFeedToUnfoldered,
     selectTag,
-    renderTagContextMenu,
   });
 
   return useSidebarViewProps({

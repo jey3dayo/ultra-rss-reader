@@ -1,5 +1,5 @@
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
-import type { FeedTreeViewProps } from "./feed-tree-view";
+import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarFeedTreeViewMode, SidebarSelection } from "./sidebar-feed-tree.types";
 
 export type SidebarFeedTreeProps = Omit<FeedTreeViewProps, "emptyState" | "unfolderedLabel">;

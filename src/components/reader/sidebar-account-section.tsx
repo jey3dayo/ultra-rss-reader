@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import type { AccountSwitcherProps } from "./account-switcher-view";
+import type { AccountSwitcherProps } from "./account-switcher.types";
 import { AccountSwitcherView } from "./account-switcher-view";
 
 export type SidebarAccountSectionProps = AccountSwitcherProps & {

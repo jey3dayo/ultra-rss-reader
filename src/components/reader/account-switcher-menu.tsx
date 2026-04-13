@@ -1,17 +1,6 @@
 import type { RefObject } from "react";
-import type { AccountDto } from "@/api/tauri-commands";
 import { cn } from "@/lib/utils";
-
-export type AccountSwitcherMenuProps = {
-  accounts: AccountDto[];
-  accountStatusLabels?: Record<string, string>;
-  selectedAccountId: string | null;
-  menuId: string;
-  menuLabel: string;
-  itemRefs: RefObject<Array<HTMLButtonElement | null>>;
-  onSelectAccount: (accountId: string) => void;
-  onClose: (restoreFocus: boolean) => void;
-};
+import type { AccountSwitcherMenuProps } from "./account-switcher.types";
 
 export function focusAccountItem(
   itemRefs: RefObject<Array<HTMLButtonElement | null>>,

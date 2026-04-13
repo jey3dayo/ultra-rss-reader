@@ -1,25 +1,8 @@
 import { ChevronDown } from "lucide-react";
-import type { RefObject } from "react";
 import { useEffect } from "react";
-import type { AccountDto } from "@/api/tauri-commands";
 import { cn } from "@/lib/utils";
+import type { AccountSwitcherProps } from "./account-switcher.types";
 import { AccountSwitcherMenu, focusAccountItem } from "./account-switcher-menu";
-
-export type AccountSwitcherProps = {
-  title: string;
-  lastSyncedLabel: string;
-  accounts: AccountDto[];
-  accountStatusLabels?: Record<string, string>;
-  selectedAccountId: string | null;
-  isExpanded: boolean;
-  menuId: string;
-  menuLabel: string;
-  triggerRef: RefObject<HTMLButtonElement | null>;
-  itemRefs: RefObject<Array<HTMLButtonElement | null>>;
-  onToggle: () => void;
-  onSelectAccount: (accountId: string) => void;
-  onClose: (restoreFocus: boolean) => void;
-};
 
 export function AccountSwitcherView({
   title,
