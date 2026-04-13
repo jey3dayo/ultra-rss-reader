@@ -14,6 +14,7 @@ import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import type { ContentMode } from "@/stores/ui-store";
 import { useUiStore } from "@/stores/ui-store";
+import { useBrowserOverlayFocusReturn } from "./use-browser-overlay-focus-return";
 
 type UseArticleBrowserOverlayParams = {
   articleId: string;
@@ -43,11 +44,8 @@ export function useArticleBrowserOverlay({
   const setBrowserCloseInFlight = useUiStore((s) => s.setBrowserCloseInFlight);
   const [readerModeOverride, setReaderModeOverride] = useState<BinaryDisplayMode | null>(null);
   const [webPreviewModeOverride, setWebPreviewModeOverride] = useState<BinaryDisplayMode | null>(null);
-  const overlayFocusReturnTargetRef = useRef<HTMLElement | null>(null);
-  const overlayFocusReturnTargetKeyRef = useRef<string | null>(null);
   const preserveBrowserOverlayOnNextArticleRef = useRef(false);
   const previousArticleIdRef = useRef(articleId);
-  const wasBrowserOpenRef = useRef(false);
   const isBrowserOpen = contentMode === "browser";
   const requestedDisplay = resolveArticleDisplay({
     appDefault: resolveAppDefaultDisplayModes(prefs),
@@ -62,20 +60,10 @@ export function useArticleBrowserOverlay({
     articleCapabilities: { hasWebPreview: Boolean(articleUrl) },
   });
   const shouldShowBrowserOverlay = Boolean(articleUrl) && resolvedDisplay.webPreviewMode;
-
-  const focusSelectedArticleRow = useCallback(() => {
-    if (typeof document === "undefined") {
-      return;
-    }
-
-    const selectedArticleTarget = document.querySelector<HTMLElement>(`[data-article-id="${articleId}"]`);
-    if (!selectedArticleTarget || selectedArticleTarget.hasAttribute("disabled")) {
-      return;
-    }
-
-    useUiStore.getState().setFocusedPane("list");
-    selectedArticleTarget.focus({ preventScroll: true });
-  }, [articleId]);
+  const { focusSelectedArticleRow, rememberOverlayFocusReturnTarget } = useBrowserOverlayFocusReturn({
+    articleId,
+    isBrowserOpen,
+  });
 
   useEffect(() => {
     const markKeyboardNavigationIntent = () => {
@@ -103,20 +91,6 @@ export function useArticleBrowserOverlay({
     setReaderModeOverride(null);
     setWebPreviewModeOverride(null);
   }, [articleId, webPreviewModeOverride]);
-
-  const rememberOverlayFocusReturnTarget = useCallback(() => {
-    if (typeof document === "undefined") {
-      return;
-    }
-
-    const activeElement = document.activeElement;
-    if (!(activeElement instanceof HTMLElement) || activeElement === document.body) {
-      return;
-    }
-
-    overlayFocusReturnTargetRef.current = activeElement;
-    overlayFocusReturnTargetKeyRef.current = activeElement.getAttribute("data-browser-overlay-return-focus");
-  }, []);
 
   useEffect(() => {
     if (!articleUrl) {
@@ -148,43 +122,6 @@ export function useArticleBrowserOverlay({
     rememberOverlayFocusReturnTarget,
     shouldShowBrowserOverlay,
   ]);
-
-  useEffect(() => {
-    if (wasBrowserOpenRef.current && !isBrowserOpen && typeof document !== "undefined") {
-      const previousTarget = overlayFocusReturnTargetRef.current;
-      const previousTargetKey = overlayFocusReturnTargetKeyRef.current;
-      overlayFocusReturnTargetRef.current = null;
-      overlayFocusReturnTargetKeyRef.current = null;
-
-      requestAnimationFrame(() => {
-        const selectedArticleTarget = document.querySelector<HTMLElement>(`[data-article-id="${articleId}"]`);
-        if (selectedArticleTarget && !selectedArticleTarget.hasAttribute("disabled")) {
-          useUiStore.getState().setFocusedPane("list");
-          selectedArticleTarget.focus({ preventScroll: true });
-          return;
-        }
-
-        if (previousTargetKey) {
-          const nextTarget = document.querySelector<HTMLElement>(
-            `[data-browser-overlay-return-focus="${previousTargetKey}"]`,
-          );
-          if (nextTarget && !nextTarget.hasAttribute("disabled")) {
-            nextTarget.focus();
-            return;
-          }
-        }
-
-        if (previousTarget?.isConnected && !previousTarget.hasAttribute("disabled")) {
-          previousTarget.focus();
-          return;
-        }
-
-        document.querySelector<HTMLElement>('[data-browser-overlay-return-focus="open-in-browser"]')?.focus();
-      });
-    }
-
-    wasBrowserOpenRef.current = isBrowserOpen;
-  }, [articleId, isBrowserOpen]);
 
   const handleOpenBrowserOverlay = useCallback(() => {
     rememberOverlayFocusReturnTarget();
