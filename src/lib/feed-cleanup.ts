@@ -22,6 +22,14 @@ export type FeedCleanupCandidate = {
   reasonKeys: FeedCleanupReasonKey[];
 };
 
+export type BuildFeedCleanupCandidatesParams = {
+  feeds: FeedDto[];
+  folders: FolderDto[];
+  articles: ArticleDto[];
+  now: Date;
+  hiddenFeedIds: ReadonlySet<string>;
+};
+
 export function summarizeCleanupCandidate(candidate: FeedCleanupCandidate): {
   tone: FeedCleanupTone;
   titleKey: FeedCleanupTitleKey;
@@ -76,13 +84,7 @@ export function buildFeedCleanupCandidates({
   articles,
   now,
   hiddenFeedIds,
-}: {
-  feeds: FeedDto[];
-  folders: FolderDto[];
-  articles: ArticleDto[];
-  now: Date;
-  hiddenFeedIds: ReadonlySet<string>;
-}): FeedCleanupCandidate[] {
+}: BuildFeedCleanupCandidatesParams): FeedCleanupCandidate[] {
   const folderNameById = new Map(folders.map((folder) => [folder.id, folder.name]));
   const articleGroups = new Map<string, ArticleDto[]>();
 

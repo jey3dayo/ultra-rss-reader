@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useReducer } from "react";
 import type { FeedIntegrityIssueDto } from "@/api/schemas/feed-integrity";
-import type { FeedCleanupCandidate } from "@/lib/feed-cleanup";
+import type { BuildFeedCleanupCandidatesParams, FeedCleanupCandidate } from "@/lib/feed-cleanup";
 import { buildFeedCleanupCandidates, summarizeCleanupCandidate } from "@/lib/feed-cleanup";
 
 export type FeedCleanupFilterKey = "stale_90d" | "no_unread" | "no_stars";
@@ -8,9 +8,9 @@ export type FeedCleanupFilterKey = "stale_90d" | "no_unread" | "no_stars";
 type FeedCleanupPageInput = {
   feedCleanupOpen: boolean;
   devIntent: string | null;
-  feeds: Parameters<typeof buildFeedCleanupCandidates>[0]["feeds"];
-  folders: Parameters<typeof buildFeedCleanupCandidates>[0]["folders"];
-  accountArticles: Parameters<typeof buildFeedCleanupCandidates>[0]["articles"];
+  feeds: BuildFeedCleanupCandidatesParams["feeds"];
+  folders: BuildFeedCleanupCandidatesParams["folders"];
+  accountArticles: BuildFeedCleanupCandidatesParams["articles"];
   integrityReport:
     | {
         orphaned_article_count: number;
