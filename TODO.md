@@ -110,6 +110,11 @@
   - 問題: `article-tag-picker-view.tsx` に assigned tag chip の一覧描画が残っていて、view shell と chip list 描画が混ざっていた
   - 対象: `src/components/reader/article-tag-picker-view.tsx`, `src/components/reader/article-tag-chip-list.tsx`
 
+- [x] article-tag-picker の contract を shared types に寄せる
+  - 問題: `article-tag-picker-view.tsx` / `article-tag-picker-popover.tsx` / `article-tag-chip-list.tsx` / `use-article-tag-picker-popover.ts` に view props と popover params が分散していて、tag picker 境界の正本を 1 箇所で追えなかった
+  - 対応: `article-tag-picker.types.ts` を追加して view/popover/chip-list/picker hook の contract を集約し、各 component/hook は shared types を参照する形に寄せた
+  - 対象: `src/components/reader/article-tag-picker.types.ts`, `src/components/reader/article-tag-picker-view.tsx`, `src/components/reader/article-tag-picker-popover.tsx`, `src/components/reader/article-tag-chip-list.tsx`, `src/components/reader/use-article-tag-picker-popover.ts`
+
 - [x] article action hooks の contract を shared types に寄せる
   - 問題: `use-article-actions.ts` が `Parameters<typeof useArticleStatusActions>` に依存していて、status/actions hook の契約を 1 箇所で追いづらかった
   - 対応: `article-actions.types.ts` を追加して `useArticleStatusActions` / `useArticleActions` の params/result/mutation 型を寄せ、hook 実装は shared types を参照する形に寄せた
@@ -269,6 +274,11 @@
   - 問題: `use-article-action-shortcuts.ts` / `use-article-auto-mark.ts` / `use-article-toolbar-controls.tsx` に local contract が残っていて、action と toolbar helper の正本が hook file に分散していた
   - 対応: `ArticleActionKeyboardShortcuts` と `UseArticleAutoMarkParams` を `article-actions.types.ts` に、`UseArticleToolbarControlsParams` を `article-toolbar.types.ts` に寄せて、helper は shared types を参照する形に寄せた
   - 対象: `src/components/reader/article-actions.types.ts`, `src/components/reader/article-toolbar.types.ts`, `src/components/reader/use-article-action-shortcuts.ts`, `src/components/reader/use-article-auto-mark.ts`, `src/components/reader/use-article-toolbar-controls.tsx`
+
+- [x] article tag picker の shared contract を types file に寄せる
+  - 問題: `article-tag-picker-view.tsx` に view model / labels 型が残っていて、`popover` / `chips` / `hook` が component file へ型依存していた
+  - 対応: `article-tag-picker.types.ts` を追加して view/popover/hook の shared contract を集約し、関連 component は types file を参照する形に寄せた
+  - 対象: `src/components/reader/article-tag-picker.types.ts`, `src/components/reader/article-tag-picker-view.tsx`, `src/components/reader/article-tag-picker-popover.tsx`, `src/components/reader/article-tag-chip-list.tsx`, `src/components/reader/article-tag-chips.tsx`, `src/components/reader/use-article-tag-picker-popover.ts`, `src/__tests__/components/article-tag-picker-view.test.tsx`
 
 - [x] browser-view の load timeout 監視を hook 化する
   - 問題: `useBrowserViewController` に embedded browser の load timeout 監視 effect が残っていて、controller orchestration と runtime timeout 管理が混ざっていた
