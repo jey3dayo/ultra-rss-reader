@@ -631,6 +631,11 @@
   - 対応: `sidebar-tag-items.types.ts` に params/item contract を切り出して、`use-sidebar-tag-items.ts` と `tag-list-view.tsx` と `sidebar-content-sections.tsx` は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/sidebar-tag-items.types.ts`, `src/components/reader/use-sidebar-tag-items.ts`, `src/components/reader/tag-list-view.tsx`, `src/components/reader/sidebar-content-sections.tsx`
 
+- [x] feed-tree の shared view model 型を types file に寄せる
+  - 問題: `feed-tree-view.tsx` / `feed-tree-folder-section.tsx` / `feed-tree-row.tsx` に folder/feed/drop target の型定義が分散していて、drag helper や sidebar helper が view file へ型依存していた
+  - 対応: `feed-tree.types.ts` に feed/folder/drop target/view props contract を集約して、drag/sidebar helper と view component は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/feed-tree.types.ts`, `src/components/reader/feed-tree-view.tsx`, `src/components/reader/feed-tree-folder-section.tsx`, `src/components/reader/feed-tree-row.tsx`, `src/components/reader/use-feed-tree-drag.ts`, `src/components/reader/use-sidebar-feed-tree.ts`
+
 - [x] sidebar runtime の返り値 contract を shared types に寄せる
   - 問題: `use-sidebar-runtime.ts` の返り値が暗黙型のままで、account switcher / ui state / sources / sync を束ねた runtime 境界の正本を追いにくかった
   - 対応: `sidebar-runtime.types.ts` に account switcher / ui state / runtime result contract を切り出して、関連 hooks は shared types を再利用する形に寄せた
