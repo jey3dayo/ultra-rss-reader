@@ -179,6 +179,14 @@ export type CommandPaletteActionGroupsProps = Pick<
   | "onActionSelect"
 >;
 
+export type CommandPaletteActionItemsProps = Pick<
+  CommandPaletteActionGroupsProps,
+  "getCommandItemValue" | "onActionSelect"
+> & {
+  actions: CommandPaletteActionItem[];
+  keyPrefix?: string;
+};
+
 export type CommandPaletteResourceGroupsProps = Pick<
   CommandPaletteResultsProps,
   | "filteredDevScenarios"

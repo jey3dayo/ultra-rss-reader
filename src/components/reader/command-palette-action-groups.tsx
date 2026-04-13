@@ -1,15 +1,12 @@
 import { CommandGroup, CommandItem, CommandShortcut } from "../ui/command";
-import type { CommandPaletteActionGroupsProps, CommandPaletteActionItem } from "./command-palette.types";
+import type { CommandPaletteActionGroupsProps, CommandPaletteActionItemsProps } from "./command-palette.types";
 
 function CommandPaletteActionItems({
   actions,
   keyPrefix,
   getCommandItemValue,
   onActionSelect,
-}: {
-  actions: CommandPaletteActionItem[];
-  keyPrefix?: string;
-} & Pick<CommandPaletteActionGroupsProps, "getCommandItemValue" | "onActionSelect">) {
+}: CommandPaletteActionItemsProps) {
   return actions.map((action) => {
     const Icon = action.icon;
     return (
