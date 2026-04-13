@@ -1,23 +1,90 @@
-import { X } from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
+import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { IconToolbarButton } from "@/components/shared/icon-toolbar-control";
-import { cn } from "@/lib/utils";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import type { BrowserViewController } from "./use-browser-view-controller";
 
-type BrowserOverlayChromeProps = {
-  closeLabel: string;
-  onClose: () => void;
-  className?: string;
+type BrowserOverlayChromeOverlayProps = {
+  controller: Pick<
+    BrowserViewController,
+    "geometry" | "handleCloseOverlay" | "handleOpenExternal" | "closeButtonClass" | "actionButtonClass"
+  >;
+  closeOverlayLabel: string;
+  toolbarActions?: ReactNode;
 };
 
-export function BrowserOverlayChrome({ closeLabel, onClose, className }: BrowserOverlayChromeProps) {
-  return (
-    <div data-testid="browser-overlay-chrome" className={cn("pointer-events-none absolute z-[60]", className)}>
+type BrowserOverlayChromeCloseOnlyProps = {
+  closeLabel: string;
+  onClose: () => void;
+};
+
+type BrowserOverlayChromeProps = BrowserOverlayChromeOverlayProps | BrowserOverlayChromeCloseOnlyProps;
+
+const browserOverlayChromeCloseButtonClassName =
+  "size-[46px] rounded-full border border-white/10 bg-white/8 text-white shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md focus-visible:ring-2 focus-visible:ring-white/70 active:scale-[0.97] active:bg-white/16";
+
+function isCloseOnlyProps(props: BrowserOverlayChromeProps): props is BrowserOverlayChromeCloseOnlyProps {
+  return "closeLabel" in props;
+}
+
+export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
+  const { t } = useTranslation("reader");
+
+  if (isCloseOnlyProps(props)) {
+    return (
       <IconToolbarButton
-        label={closeLabel}
-        onClick={onClose}
-        className="pointer-events-auto size-[46px] rounded-[12px] border border-transparent bg-transparent text-white/86 shadow-none backdrop-blur-0 transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:border-white/14 hover:bg-white/10 hover:text-white hover:shadow-[0_12px_28px_rgba(0,0,0,0.28)] focus-visible:border-white/18 focus-visible:bg-white/11 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white/18 focus-visible:ring-offset-0 active:scale-[0.97] active:border-white/18 active:bg-white/16 active:shadow-[0_8px_18px_rgba(0,0,0,0.22)]"
+        label={props.closeLabel}
+        onClick={props.onClose}
+        className={browserOverlayChromeCloseButtonClassName}
       >
-        <X className="h-4 w-4" />
+        <X aria-hidden="true" className="size-4" />
       </IconToolbarButton>
-    </div>
+    );
+  }
+
+  const { controller, closeOverlayLabel, toolbarActions } = props;
+
+  return (
+    <TooltipProvider>
+      <div
+        data-testid="browser-overlay-chrome"
+        style={{
+          left: `${controller.geometry.chrome.close.left}px`,
+          top: `${controller.geometry.chrome.close.top}px`,
+        }}
+        className="pointer-events-none absolute z-[60]"
+      >
+        <IconToolbarButton
+          label={closeOverlayLabel}
+          onClick={controller.handleCloseOverlay}
+          className={controller.closeButtonClass}
+        >
+          <X aria-hidden="true" className="size-4" />
+        </IconToolbarButton>
+      </div>
+      <div
+        data-testid="browser-overlay-actions"
+        style={{
+          right: `${controller.geometry.chrome.action.right}px`,
+          top: `${controller.geometry.chrome.action.top}px`,
+        }}
+        className="pointer-events-none absolute z-[60]"
+      >
+        <div className="pointer-events-auto flex items-center gap-2">
+          {toolbarActions ?? (
+            <IconToolbarButton
+              label={t("open_in_external_browser")}
+              onClick={() => {
+                void controller.handleOpenExternal();
+              }}
+              className={controller.actionButtonClass}
+            >
+              <ExternalLink className="h-4 w-4" />
+            </IconToolbarButton>
+          )}
+        </div>
+      </div>
+    </TooltipProvider>
   );
 }
