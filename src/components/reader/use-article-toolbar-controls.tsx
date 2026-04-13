@@ -7,8 +7,8 @@ import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preference
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleShareMenu } from "./article-share-menu";
 import type { ArticleToolbarActionStripProps } from "./article-toolbar-view";
-import { useArticleActions } from "./use-article-actions";
 import type { ArticleActionKeyboardShortcuts } from "./use-article-action-shortcuts";
+import { useArticleActions } from "./use-article-actions";
 
 type UseArticleToolbarControlsParams = {
   article: ArticleDto | null;

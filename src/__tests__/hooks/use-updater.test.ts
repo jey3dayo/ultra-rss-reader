@@ -117,7 +117,10 @@ describe("performUpdateCheck", () => {
     useUiStore.setState(useUiStore.getInitialState());
 
     showRestartToast();
-    useUiStore.getState().toastMessage?.actions?.find((action) => action.label === "再起動")?.onClick();
+    useUiStore
+      .getState()
+      .toastMessage?.actions?.find((action) => action.label === "再起動")
+      ?.onClick();
     await flushAsyncWork();
 
     expect(useUiStore.getState().toastMessage?.message).toBe("再起動に失敗しました");

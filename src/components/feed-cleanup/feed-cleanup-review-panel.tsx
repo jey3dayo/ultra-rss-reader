@@ -2,8 +2,8 @@ import { DeleteButton } from "@/components/shared/delete-button";
 import { Button } from "@/components/ui/button";
 import type { FeedCleanupTone } from "@/lib/feed-cleanup";
 import { cn } from "@/lib/utils";
-import { FeedCleanupCard, FeedCleanupDetailRow } from "./feed-cleanup-card";
 import type { FeedCleanupReviewPanelProps } from "./feed-cleanup.types";
+import { FeedCleanupCard, FeedCleanupDetailRow } from "./feed-cleanup-card";
 
 function formatDate(value: string | null, locale: string): string {
   if (!value) {

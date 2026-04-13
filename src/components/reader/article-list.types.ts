@@ -176,6 +176,20 @@ export type UseArticleListSearchResult = {
   setSearchQuery: (query: string) => void;
 };
 
+export type UseArticleListNavigationParams = {
+  filteredArticles: ArticleDto[];
+  selectedArticleId: string | null;
+  selectArticle: ArticleListBodyProps["onSelectArticle"];
+  listRef: ArticleListBodyProps["listRef"];
+  viewportRef: ArticleListBodyProps["viewportRef"];
+};
+
+export type UseArticleListGlobalEventsParams = {
+  onNavigateArticle: (direction: 1 | -1) => void;
+  onFocusSearch: UseArticleListSearchResult["openSearch"];
+  onMarkAllRead: () => void;
+};
+
 export type UseArticleListDataParams = {
   selection: UiSelection;
   feedId: string | null;

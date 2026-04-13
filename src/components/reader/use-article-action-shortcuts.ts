@@ -45,12 +45,5 @@ export function useArticleActionShortcuts({
       window.removeEventListener(keyboardEvents.copyLink, onCopyLink);
       window.removeEventListener(keyboardEvents.addToReadingList, onAddToReadingList);
     };
-  }, [
-    keyboardShortcuts,
-    onAddToReadingList,
-    onCopyLink,
-    onOpenExternalBrowser,
-    onToggleRead,
-    onToggleStar,
-  ]);
+  }, [keyboardShortcuts, onAddToReadingList, onCopyLink, onOpenExternalBrowser, onToggleRead, onToggleStar]);
 }

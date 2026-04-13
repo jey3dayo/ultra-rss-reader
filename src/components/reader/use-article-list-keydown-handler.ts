@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback } from "react";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
-import { buildKeyToActionMap, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
+import { type buildKeyToActionMap, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
 import { handleArticleListKeyboardAction } from "./article-list-keyboard-action";
 

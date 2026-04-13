@@ -4,8 +4,8 @@ import { getHistory } from "@/hooks/use-command-history";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useTags } from "@/hooks/use-tags";
 import type { RuntimeDevScenario } from "@/lib/dev-scenario-runtime";
-import { parseCommandPaletteHistoryEntry } from "./command-palette-history";
 import type { CommandPaletteActionItem } from "./command-palette.types";
+import { parseCommandPaletteHistoryEntry } from "./command-palette-history";
 
 export type PaletteAction = CommandPaletteActionItem & {
   keywords: string[];
@@ -63,7 +63,12 @@ export function useCommandPaletteData({
     const actionMap = new Map(actions.map((action) => [action.id, action]));
     return getHistory()
       .map(parseCommandPaletteHistoryEntry)
-      .filter((entry): entry is Extract<NonNullable<ReturnType<typeof parseCommandPaletteHistoryEntry>>, { kind: "action" }> => entry?.kind === "action")
+      .filter(
+        (
+          entry,
+        ): entry is Extract<NonNullable<ReturnType<typeof parseCommandPaletteHistoryEntry>>, { kind: "action" }> =>
+          entry?.kind === "action",
+      )
       .map((entry) => actionMap.get(entry.id))
       .filter((action): action is PaletteAction => action != null);
   }, [actions]);

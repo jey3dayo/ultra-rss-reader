@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  formatAccountSyncRetryDateTime,
-  formatAccountSyncRetryTime,
-} from "@/lib/account-sync-status-format";
+import { formatAccountSyncRetryDateTime, formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
 
 describe("account-sync-status-format", () => {
   it("formats retry times with hour and minute precision", () => {

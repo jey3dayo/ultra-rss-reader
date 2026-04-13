@@ -5,10 +5,7 @@ type UseBrowserOverlayShortcutsParams = {
   handleCloseOverlay: () => void;
 };
 
-export function useBrowserOverlayShortcuts({
-  browserUrl,
-  handleCloseOverlay,
-}: UseBrowserOverlayShortcutsParams) {
+export function useBrowserOverlayShortcuts({ browserUrl, handleCloseOverlay }: UseBrowserOverlayShortcutsParams) {
   useEffect(() => {
     if (!browserUrl) {
       return undefined;

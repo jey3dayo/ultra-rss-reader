@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { SyncFeedback } from "@/lib/sync-result-feedback";
-import i18n from "@/lib/i18n";
 import { resolveSidebarSyncFeedbackMessage } from "@/components/reader/sidebar-sync-feedback";
+import i18n from "@/lib/i18n";
+import type { SyncFeedback } from "@/lib/sync-result-feedback";
 
 function getSidebarT() {
   return i18n.getFixedT(i18n.language, "sidebar");

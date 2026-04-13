@@ -1,12 +1,17 @@
+import type { FeedTreeViewProps } from "./feed-tree.types";
 import { FeedTreeDragOverlay } from "./feed-tree-drag-overlay";
 import { FeedTreeEmptyState } from "./feed-tree-empty-state";
 import { FeedTreeFolderSection } from "./feed-tree-folder-section";
-import type { FeedTreeViewProps } from "./feed-tree.types";
 import { FeedTreeUnfolderedDropZone } from "./feed-tree-unfoldered-drop-zone";
 import { FeedTreeUnfolderedSection } from "./feed-tree-unfoldered-section";
 import { useFeedTreeDrag } from "./use-feed-tree-drag";
 
-export type { ActiveDropTarget, FeedTreeFeedViewModel, FeedTreeFolderViewModel, FeedTreeViewProps } from "./feed-tree.types";
+export type {
+  ActiveDropTarget,
+  FeedTreeFeedViewModel,
+  FeedTreeFolderViewModel,
+  FeedTreeViewProps,
+} from "./feed-tree.types";
 
 export function FeedTreeView({
   isOpen,

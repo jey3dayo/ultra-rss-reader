@@ -2,8 +2,8 @@ import { useCallback, useMemo } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
-import { collectFeedIds, getVisibleSidebarFeeds, mapFeedsToFeedTreeViewModels } from "./sidebar-feed-tree-helpers";
 import type { UseSidebarFeedTreeParams, UseSidebarFeedTreeResult } from "./sidebar-feed-tree.types";
+import { collectFeedIds, getVisibleSidebarFeeds, mapFeedsToFeedTreeViewModels } from "./sidebar-feed-tree-helpers";
 
 export function useSidebarFeedTree({
   feeds,

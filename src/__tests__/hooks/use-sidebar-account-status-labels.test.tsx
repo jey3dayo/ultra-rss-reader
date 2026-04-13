@@ -25,10 +25,9 @@ describe("useSidebarAccountStatusLabels", () => {
       return undefined;
     });
 
-    const { result } = renderHook(
-      () => useSidebarAccountStatusLabels([{ id: "acc-1" }, { id: "acc-2" }]),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useSidebarAccountStatusLabels([{ id: "acc-1" }, { id: "acc-2" }]), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
       const retryTime = formatAccountSyncRetryTime(retryAt, i18n.language);
@@ -52,10 +51,9 @@ describe("useSidebarAccountStatusLabels", () => {
       return undefined;
     });
 
-    const { result } = renderHook(
-      () => useSidebarAccountStatusLabels([{ id: "acc-1" }, { id: "acc-2" }]),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useSidebarAccountStatusLabels([{ id: "acc-1" }, { id: "acc-2" }]), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current).toEqual({});

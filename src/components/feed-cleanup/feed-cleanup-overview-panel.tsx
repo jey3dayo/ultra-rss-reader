@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { FeedCleanupCard } from "./feed-cleanup-card";
 import type { FeedCleanupOverviewPanelProps } from "./feed-cleanup.types";
+import { FeedCleanupCard } from "./feed-cleanup-card";
 
 export function FeedCleanupOverviewPanel({
   overviewLabel,

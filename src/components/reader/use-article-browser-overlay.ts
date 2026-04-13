@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from "react";
 import type { FeedDto } from "@/api/tauri-commands";
-import { resolveArticleDisplay } from "@/lib/article-display";
+import type { resolveArticleDisplay } from "@/lib/article-display";
 import type { ContentMode } from "@/stores/ui-store";
 import { useUiStore } from "@/stores/ui-store";
 import { useArticleBrowserOverlayClose } from "./use-article-browser-overlay-close";

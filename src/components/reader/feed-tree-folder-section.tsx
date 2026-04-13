@@ -2,8 +2,8 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "./feed-tree-drop-target";
 import type { FeedTreeFolderSectionProps } from "./feed-tree.types";
+import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "./feed-tree-drop-target";
 import { FeedTreeRow } from "./feed-tree-row";
 import { SidebarNavButton } from "./sidebar-nav-button";
 

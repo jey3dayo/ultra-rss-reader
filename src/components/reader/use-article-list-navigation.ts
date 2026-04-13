@@ -1,15 +1,7 @@
 import { Result } from "@praha/byethrow";
-import { type RefObject, useCallback } from "react";
-import type { ArticleDto } from "@/api/tauri-commands";
+import { useCallback } from "react";
 import { calculateArticleNavigationScrollTop, getAdjacentArticleId } from "@/lib/article-list";
-
-type UseArticleListNavigationParams = {
-  filteredArticles: ArticleDto[];
-  selectedArticleId: string | null;
-  selectArticle: (articleId: string) => void;
-  listRef: RefObject<HTMLDivElement | null>;
-  viewportRef: RefObject<HTMLDivElement | null>;
-};
+import type { UseArticleListNavigationParams } from "./article-list.types";
 
 export function useArticleListNavigation({
   filteredArticles,

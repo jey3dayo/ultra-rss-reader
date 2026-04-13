@@ -1,12 +1,7 @@
 import { useEffect } from "react";
 import { APP_EVENTS } from "@/constants/events";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
-
-type UseArticleListGlobalEventsParams = {
-  onNavigateArticle: (direction: 1 | -1) => void;
-  onFocusSearch: () => void;
-  onMarkAllRead: () => void;
-};
+import type { UseArticleListGlobalEventsParams } from "./article-list.types";
 
 export function useArticleListGlobalEvents({
   onNavigateArticle,

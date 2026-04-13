@@ -1,10 +1,10 @@
 import type { FeedDto } from "@/api/tauri-commands";
+import type { FeedTreeFeedViewModel } from "./feed-tree.types";
 import type {
   SidebarFeedTreeViewMode,
   SidebarFeedTreeViewModelOptions,
   SidebarSortFeeds,
 } from "./sidebar-feed-tree.types";
-import type { FeedTreeFeedViewModel } from "./feed-tree.types";
 
 export function getVisibleSidebarFeeds(
   feeds: FeedDto[],

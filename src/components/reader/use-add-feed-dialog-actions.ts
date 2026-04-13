@@ -1,13 +1,9 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
 import type { TFunction } from "i18next";
+import { useCallback } from "react";
 import { addLocalFeed, discoverFeeds, updateFeedFolder } from "@/api/tauri-commands";
-import type {
-  AddFeedDialogAction,
-  AddFeedDialogControllerDerived,
-  AddFeedDialogState,
-} from "./add-feed-dialog.types";
+import type { AddFeedDialogAction, AddFeedDialogControllerDerived, AddFeedDialogState } from "./add-feed-dialog.types";
 import { createFolderIfNeeded } from "./feed-folder-flow";
 
 type UseAddFeedDialogActionsParams = {

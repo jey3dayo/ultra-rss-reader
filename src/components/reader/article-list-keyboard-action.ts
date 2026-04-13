@@ -1,5 +1,5 @@
-import type { KeyboardAction } from "@/lib/keyboard-shortcuts";
 import { executeAction } from "@/lib/actions";
+import type { KeyboardAction } from "@/lib/keyboard-shortcuts";
 import { useUiStore } from "@/stores/ui-store";
 
 type HandleArticleListKeyboardActionParams = {
