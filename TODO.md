@@ -766,6 +766,11 @@
   - 対応: `article-list.types.ts` に context/body/footer props contract を集約して、subview は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/article-list-context-strip.tsx`, `src/components/reader/article-list-body.tsx`, `src/components/reader/article-list-footer.tsx`
 
+- [x] article list sources hook の contract を shared types に寄せる
+  - 問題: `use-article-list-sources.ts` の params/result 契約が hook file に閉じていて、source query 境界の正本を `article-list.types.ts` から追えなかった
+  - 対応: `article-list.types.ts` に sources params/result contract を追加して、sources hook と data hook は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/article-list.types.ts`, `src/components/reader/use-article-list-sources.ts`, `src/components/reader/use-article-list-data.ts`
+
 - [x] sidebar header/content view props の正本を sidebar types に寄せる
   - 問題: `sidebar.types.ts` が `sidebar-header-view.tsx` と `sidebar-content-sections.tsx` の exported props に依存していて、shared types 側から component file へ逆参照していた
   - 対応: `sidebar.types.ts` に header/content section の props contract を持たせて、component と helper は shared types を再利用する形に寄せた
