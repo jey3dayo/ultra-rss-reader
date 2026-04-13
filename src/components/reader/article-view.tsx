@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import type { ArticleDto } from "@/api/tauri-commands";
 import { useSetRead, useToggleStar } from "@/hooks/use-articles";
 import { usePlatformStore } from "@/stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
@@ -10,6 +10,7 @@ import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticleReaderBody } from "./article-reader-body";
 import { ArticleShareMenu } from "./article-share-menu";
 import { ArticleToolbarActionStrip, ArticleToolbarView, type ArticleToolbarViewLabels } from "./article-toolbar-view";
+import type { ArticlePaneProps } from "./article-view.types";
 import {
   ArticleEmptyStateShell,
   ArticleNotFoundStateView,
@@ -125,7 +126,7 @@ function BrowserOnlyState() {
   return <BrowserOnlyStateView onCloseOverlay={closeBrowser} />;
 }
 
-export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; feed?: FeedDto; feedName?: string }) {
+export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
   const { t } = useTranslation("reader");
   const layoutMode = useUiStore((s) => s.layoutMode);
   const contentMode = useUiStore((s) => s.contentMode);

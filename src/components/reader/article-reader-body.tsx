@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { ArticleDto } from "@/api/tauri-commands";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatArticleDate, resolveArticleDateLocale, shouldOpenExternalBrowser } from "@/lib/article-view";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -9,8 +8,9 @@ import { openArticleInExternalBrowser } from "./article-browser-actions";
 import { ArticleContentView } from "./article-content-view";
 import { ArticleMetaView } from "./article-meta-view";
 import { ArticleTagChips } from "./article-tag-chips";
+import type { ArticleReaderBodyProps } from "./article-view.types";
 
-export function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedName?: string }) {
+export function ArticleReaderBody({ article, feedName }: ArticleReaderBodyProps) {
   const { i18n } = useTranslation();
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const cmdClickBrowser = usePreferencesStore((s) => s.prefs.cmd_click_browser ?? "false");

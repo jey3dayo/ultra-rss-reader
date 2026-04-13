@@ -1,13 +1,11 @@
-import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import type {
+  ArticleEmptyStateShellProps,
+  ArticleNotFoundStateViewProps,
+  BrowserOnlyStateViewProps,
+  BrowserOverlaySurfaceProps,
+} from "./article-view.types";
 import { BrowserView } from "./browser-view";
-
-type BrowserOverlaySurfaceProps = {
-  children?: ReactNode;
-  onCloseOverlay: () => void;
-  showBrowserView?: boolean;
-  toolbarActions?: ReactNode;
-};
 
 export function BrowserOverlaySurface({
   children,
@@ -34,7 +32,7 @@ export function BrowserOverlaySurface({
   );
 }
 
-export function ArticleEmptyStateShell({ toolbar, body }: { toolbar: ReactNode; body: ReactNode }) {
+export function ArticleEmptyStateShell({ toolbar, body }: ArticleEmptyStateShellProps) {
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
       {toolbar}
@@ -43,7 +41,7 @@ export function ArticleEmptyStateShell({ toolbar, body }: { toolbar: ReactNode; 
   );
 }
 
-export function BrowserOnlyStateView({ onCloseOverlay }: { onCloseOverlay: () => void }) {
+export function BrowserOnlyStateView({ onCloseOverlay }: BrowserOnlyStateViewProps) {
   return (
     <div className="relative flex h-full flex-1 flex-col bg-background">
       <BrowserOverlaySurface onCloseOverlay={onCloseOverlay} />
@@ -51,7 +49,7 @@ export function BrowserOnlyStateView({ onCloseOverlay }: { onCloseOverlay: () =>
   );
 }
 
-export function ArticleNotFoundStateView({ message }: { message: string }) {
+export function ArticleNotFoundStateView({ message }: ArticleNotFoundStateViewProps) {
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
       <div className="flex flex-1 items-center justify-center text-muted-foreground">{message}</div>
