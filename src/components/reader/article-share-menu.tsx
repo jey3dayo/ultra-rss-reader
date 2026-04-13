@@ -1,8 +1,9 @@
 import { Menu } from "@base-ui/react/menu";
 import { Result } from "@praha/byethrow";
 import { BookmarkPlus, Copy, Mail, Share } from "lucide-react";
-import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
+import { openInBrowser } from "@/api/tauri-commands";
 import { IconToolbarMenuTrigger } from "@/components/shared/icon-toolbar-control";
+import { addArticleToReadingList, copyArticleLink } from "./article-browser-actions";
 import type { ArticleShareMenuProps } from "./article-menu.types";
 import { contextMenuStyles } from "./context-menu-styles";
 
@@ -19,14 +20,10 @@ export function ArticleShareMenu({ article, supportsReadingList, showToast, labe
               className={contextMenuStyles.item}
               onSelect={async () => {
                 if (!article?.url) return;
-                Result.pipe(
-                  await copyToClipboard(article.url),
-                  Result.inspect(() => showToast(labels.linkCopied)),
-                  Result.inspectError((error) => {
-                    console.error("Copy failed:", error);
-                    showToast(error.message);
-                  }),
-                );
+                await copyArticleLink(article.url, {
+                  showToast,
+                  successMessage: labels.linkCopied,
+                });
               }}
             >
               <Copy className="mr-2 h-4 w-4" />
@@ -37,14 +34,10 @@ export function ArticleShareMenu({ article, supportsReadingList, showToast, labe
                 className={contextMenuStyles.item}
                 onSelect={async () => {
                   if (!article?.url) return;
-                  Result.pipe(
-                    await addToReadingList(article.url),
-                    Result.inspect(() => showToast(labels.addedToReadingList)),
-                    Result.inspectError((error) => {
-                      console.error("Add to reading list failed:", error);
-                      showToast(error.message);
-                    }),
-                  );
+                  await addArticleToReadingList(article.url, {
+                    showToast,
+                    successMessage: labels.addedToReadingList,
+                  });
                 }}
               >
                 <BookmarkPlus className="mr-2 h-4 w-4" />

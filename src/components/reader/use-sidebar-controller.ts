@@ -1,24 +1,21 @@
-import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useResolvedDevIntent } from "@/hooks/use-resolved-dev-intent";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import { useSidebarAccountSelection } from "./use-sidebar-account-selection";
-import { useSidebarAccountSwitcher } from "./use-sidebar-account-switcher";
 import { useSidebarContextMenuRenderers } from "./use-sidebar-context-menu-renderers";
 import { useSidebarFeedSectionController } from "./use-sidebar-feed-section-controller";
+import { useSidebarRuntime } from "./use-sidebar-runtime";
 import { useSidebarSmartViews } from "./use-sidebar-smart-views";
-import { useSidebarSources } from "./use-sidebar-sources";
-import { useSidebarSync } from "./use-sidebar-sync";
 import { useSidebarSectionProps } from "./use-sidebar-section-props";
 import { useSidebarUiActions } from "./use-sidebar-ui-actions";
-import { useSidebarUiState } from "./use-sidebar-ui-state";
 import { useSidebarViewProps } from "./use-sidebar-view-props";
 
 export function useSidebarController() {
   const { t } = useTranslation("sidebar");
-  const [isFeedsSectionOpen, setIsFeedsSectionOpen] = useState(true);
-  const [isTagsSectionOpen, setIsTagsSectionOpen] = useState(true);
   const {
+    isFeedsSectionOpen,
+    setIsFeedsSectionOpen,
+    isTagsSectionOpen,
+    setIsTagsSectionOpen,
     isAccountListOpen,
     accountDropdownRef,
     accountTriggerRef,
@@ -26,8 +23,6 @@ export function useSidebarController() {
     accountMenuId,
     closeAccountList,
     toggleAccountList,
-  } = useSidebarAccountSwitcher();
-  const {
     layoutMode,
     selectedAccountId,
     selectAccount,
@@ -50,10 +45,7 @@ export function useSidebarController() {
     openAddFeedDialog,
     closeAddFeedDialog,
     setSettingsAddAccount,
-    showToast,
     syncProgress,
-    applySyncProgress,
-    clearSyncProgress,
     showUnreadCount,
     showStarredCount,
     showSidebarUnread,
@@ -66,8 +58,6 @@ export function useSidebarController() {
     opaqueSidebars,
     savedAccountId,
     setPref,
-  } = useSidebarUiState();
-  const {
     accounts,
     accountStatusLabels,
     selectedAccount,
@@ -77,16 +67,12 @@ export function useSidebarController() {
     tagArticleCounts,
     totalUnread,
     starredCount,
-  } = useSidebarSources({ selectedAccountId });
+    feedViewportRef,
+    activeDevIntent,
+    handleSync,
+    lastSyncedLabel,
+  } = useSidebarRuntime();
   const updateFeedFolderMutation = useUpdateFeedFolder();
-  const feedViewportRef = useRef<HTMLDivElement>(null);
-  const { intent: activeDevIntent } = useResolvedDevIntent();
-  const { handleSync, lastSyncedLabel } = useSidebarSync({
-    syncProgress,
-    applySyncProgress,
-    clearSyncProgress,
-    showToast,
-  });
 
   useSidebarAccountSelection({
     accounts,

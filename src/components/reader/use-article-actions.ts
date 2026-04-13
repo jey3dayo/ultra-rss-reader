@@ -1,10 +1,8 @@
-import { Result } from "@praha/byethrow";
 import type { UseMutationResult } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
-import { usePreferencesStore } from "@/stores/preferences-store";
+import { addArticleToReadingList, copyArticleLink, openArticleInExternalBrowser } from "./article-browser-actions";
 import { type ArticleActionKeyboardShortcuts, useArticleActionShortcuts } from "./use-article-action-shortcuts";
 
 type SetReadMutation = UseMutationResult<unknown, Error, { id: string; read: boolean }, unknown>;
@@ -32,19 +30,6 @@ type UseArticleActionsResult = {
   handleCopyLink: () => void;
   handleAddToReadingList: () => void;
 };
-
-function openArticleInExternalBrowser(url: string, showToast: ShowToast) {
-  const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-  return openInBrowser(url, bg).then((result) =>
-    Result.pipe(
-      result,
-      Result.inspectError((error) => {
-        console.error("Failed to open in browser:", error);
-        showToast(error.message);
-      }),
-    ),
-  );
-}
 
 export function useArticleActions({
   article,
@@ -149,16 +134,10 @@ export function useArticleActions({
       return;
     }
 
-    void copyToClipboard(articleUrl).then((result) =>
-      Result.pipe(
-        result,
-        Result.inspect(() => showToast(t("link_copied"))),
-        Result.inspectError((error) => {
-          console.error("Copy failed:", error);
-          showToast(error.message);
-        }),
-      ),
-    );
+    void copyArticleLink(articleUrl, {
+      showToast,
+      successMessage: t("link_copied"),
+    });
   }, [articleUrl, showToast, t]);
 
   const handleAddToReadingList = useCallback(() => {
@@ -166,16 +145,10 @@ export function useArticleActions({
       return;
     }
 
-    void addToReadingList(articleUrl).then((result) =>
-      Result.pipe(
-        result,
-        Result.inspect(() => showToast(t("added_to_reading_list"))),
-        Result.inspectError((error) => {
-          console.error("Add to reading list failed:", error);
-          showToast(error.message);
-        }),
-      ),
-    );
+    void addArticleToReadingList(articleUrl, {
+      showToast,
+      successMessage: t("added_to_reading_list"),
+    });
   }, [articleUrl, showToast, supportsReadingList, t]);
 
   useArticleActionShortcuts({
