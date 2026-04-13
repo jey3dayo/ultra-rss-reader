@@ -11,12 +11,10 @@ import type { AppAction } from "@/lib/actions";
 import { executeAction } from "@/lib/actions";
 import { loadRuntimeDevScenarios, type RuntimeDevScenario, runRuntimeDevScenario } from "@/lib/dev-scenario-runtime";
 import { getShortcutDisplay } from "@/lib/keyboard-shortcuts";
-import { usePlatformStore } from "@/stores/platform-store";
-import { usePreferencesStore } from "@/stores/preferences-store";
-import { useUiStore } from "@/stores/ui-store";
 import { Command, CommandInput, CommandSeparator } from "../ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
 import { type CommandPaletteActionItem, CommandPaletteResults } from "./command-palette-results";
+import { useCommandPaletteUiState } from "./use-command-palette-ui-state";
 
 type PaletteAction = CommandPaletteActionItem & {
   keywords: string[];
@@ -67,16 +65,19 @@ function getCommandItemValue(kind: HistoryEntry["kind"] | "scenario", id: string
 export function CommandPalette() {
   const { t } = useTranslation("reader");
   const { t: tSidebar } = useTranslation("sidebar");
-  const open = useUiStore((state) => state.commandPaletteOpen);
-  const closeCommandPalette = useUiStore((state) => state.closeCommandPalette);
-  const showToast = useUiStore((state) => state.showToast);
-  const selectedAccountId = useUiStore((state) => state.selectedAccountId);
-  const selectFeed = useUiStore((state) => state.selectFeed);
-  const selectTag = useUiStore((state) => state.selectTag);
-  const selectArticle = useUiStore((state) => state.selectArticle);
+  const {
+    open,
+    closeCommandPalette,
+    openShortcutsHelp,
+    showToast,
+    selectedAccountId,
+    selectFeed,
+    selectTag,
+    selectArticle,
+    platformKind,
+    shortcutPrefs,
+  } = useCommandPaletteUiState();
   const openFeedLanding = useFeedLanding();
-  const platformKind = usePlatformStore((state) => state.platform.kind);
-  const shortcutPrefs = usePreferencesStore((state) => state.prefs);
   const [input, setInput] = useState("");
   const [devScenarios, setDevScenarios] = useState<RuntimeDevScenario[]>([]);
   const { prefix, query, deferredQuery } = useCommandSearch(input);
@@ -205,7 +206,7 @@ export function CommandPalette() {
 
   function handleActionSelect(action: PaletteAction["id"]) {
     if (action === "open-shortcuts-help") {
-      useUiStore.getState().openShortcutsHelp();
+      openShortcutsHelp();
       closePalette();
       return;
     }
