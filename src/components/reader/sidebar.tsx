@@ -12,19 +12,16 @@ import { cn } from "@/lib/utils";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { AddFeedDialog } from "./add-feed-dialog";
-import { FeedContextMenuContent } from "./feed-context-menu";
-import { type FeedTreeFeedViewModel, type FeedTreeFolderViewModel, FeedTreeView } from "./feed-tree-view";
-import { FolderContextMenuContent } from "./folder-context-menu";
+import { FeedTreeView } from "./feed-tree-view";
 import { SidebarAccountSection } from "./sidebar-account-section";
 import { SidebarFeedSection } from "./sidebar-feed-section";
 import { SidebarFooterActions } from "./sidebar-footer-actions";
 import { SidebarHeaderView } from "./sidebar-header-view";
 import { SidebarTagSection } from "./sidebar-tag-section";
 import { SmartViewsView } from "./smart-views-view";
-import { TagContextMenuContent } from "./tag-context-menu";
-import type { TagListItemViewModel } from "./tag-list-view";
 import { useSidebarAccountSelection } from "./use-sidebar-account-selection";
 import { useSidebarAccountSwitcher } from "./use-sidebar-account-switcher";
+import { useSidebarContextMenuRenderers } from "./use-sidebar-context-menu-renderers";
 import { useSidebarFeedDragState } from "./use-sidebar-feed-drag-state";
 import { useSidebarFeedNavigation } from "./use-sidebar-feed-navigation";
 import { useSidebarFeedTree } from "./use-sidebar-feed-tree";
@@ -228,42 +225,7 @@ export function Sidebar() {
   const handleDropToUnfolderedRequest = useCallback(() => {
     void handleDropToUnfoldered();
   }, [handleDropToUnfoldered]);
-  const renderFolderContextMenu = useCallback(
-    (folder: FeedTreeFolderViewModel) => (
-      <FolderContextMenuContent
-        folder={{
-          id: folder.id,
-          account_id: folder.accountId,
-          name: folder.name,
-          sort_order: folder.sortOrder,
-        }}
-        folderUnread={folder.unreadCount}
-      />
-    ),
-    [],
-  );
-  const renderFeedContextMenu = useCallback(
-    (feed: FeedTreeFeedViewModel) => (
-      <FeedContextMenuContent
-        feed={{
-          id: feed.id,
-          account_id: feed.accountId,
-          folder_id: feed.folderId,
-          title: feed.title,
-          url: feed.url,
-          site_url: feed.siteUrl,
-          unread_count: feed.unreadCount,
-          reader_mode: feed.readerMode,
-          web_preview_mode: feed.webPreviewMode,
-        }}
-      />
-    ),
-    [],
-  );
-  const renderTagContextMenu = useCallback(
-    (tag: TagListItemViewModel) => <TagContextMenuContent tag={{ id: tag.id, name: tag.name, color: tag.color }} />,
-    [],
-  );
+  const { renderFolderContextMenu, renderFeedContextMenu, renderTagContextMenu } = useSidebarContextMenuRenderers();
   const feedEmptyState = selectedAccountId
     ? { kind: "message" as const, message: t("press_plus_to_add_feed") }
     : {
