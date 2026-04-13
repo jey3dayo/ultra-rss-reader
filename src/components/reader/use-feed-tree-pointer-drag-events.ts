@@ -1,25 +1,13 @@
-import { type Dispatch, type MutableRefObject, type SetStateAction, useEffect } from "react";
+import { useEffect } from "react";
+import type { ActiveDropTarget, UseFeedTreePointerDragEventsParams } from "./feed-tree.types";
 import { applyFeedTreePointerDropOutcome, resolveFeedTreePointerDropOutcome } from "./feed-tree-drag-outcome";
-import type { FeedTreeDragOverlayPreview } from "./feed-tree-drag-overlay";
-import { getFeedTreePointerDragSessionForPointer, shouldStartFeedTreePointerDrag, updateFeedTreePointerDragSessionPosition } from "./feed-tree-drag-session";
+import {
+  getFeedTreePointerDragSessionForPointer,
+  shouldStartFeedTreePointerDrag,
+  updateFeedTreePointerDragSessionPosition,
+} from "./feed-tree-drag-session";
 import { getFeedDropTargetAtPoint, isSameFeedDropTarget } from "./feed-tree-drop-target";
-import type { ActiveDropTarget, FeedTreeFeedViewModel } from "./feed-tree.types";
 import { applyFeedTreeHoverTarget } from "./feed-tree-hover-target";
-
-type UseFeedTreePointerDragEventsParams = {
-  isPointerTracking: boolean;
-  pointerDragRef: MutableRefObject<ReturnType<typeof getFeedTreePointerDragSessionForPointer> | null>;
-  setPointerDragPreview: Dispatch<SetStateAction<FeedTreeDragOverlayPreview | null>>;
-  setPointerHoverTarget: Dispatch<SetStateAction<ActiveDropTarget>>;
-  queueSuppressHandleClickReset: () => void;
-  clearPointerTracking: () => void;
-  onDragStartFeed?: (feed: FeedTreeFeedViewModel) => void;
-  onDragEnterFolder?: (folderId: string) => void;
-  onDragEnterUnfoldered?: () => void;
-  onDropToFolder?: (folderId: string) => void;
-  onDropToUnfoldered?: () => void;
-  onDragEnd?: () => void;
-};
 
 export function useFeedTreePointerDragEvents({
   isPointerTracking,
