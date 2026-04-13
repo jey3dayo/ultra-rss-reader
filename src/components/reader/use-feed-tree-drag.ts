@@ -6,6 +6,7 @@ import {
   shouldStartFeedTreePointerDrag,
   updateFeedTreePointerDragSessionPosition,
 } from "./feed-tree-drag-session";
+import { resolveFeedTreePointerDropOutcome } from "./feed-tree-drag-outcome";
 import { getFeedDropTargetFromElement, isSameFeedDropTarget } from "./feed-tree-drop-target";
 import type { ActiveDropTarget } from "./feed-tree-folder-section";
 import type { FeedTreeFeedViewModel } from "./feed-tree-row";
@@ -125,31 +126,23 @@ export function useFeedTreeDrag({
     };
 
     const finishPointerDrag = (target: ActiveDropTarget, shouldCancel: boolean) => {
-      const session = pointerDragRef.current;
-      if (!session) {
-        clearPointerTracking();
-        return;
-      }
+      const outcome = resolveFeedTreePointerDropOutcome(pointerDragRef.current, target, shouldCancel);
 
-      if (!session.isDragging) {
+      if (outcome.type === "clear") {
         clearPointerTracking();
         return;
       }
 
       queueSuppressHandleClickReset();
-      if (shouldCancel) {
+
+      if (outcome.type === "cancel" || outcome.type === "drop-none") {
         onDragEnd?.();
-        clearPointerTracking();
-        return;
+      } else if (outcome.type === "drop-folder") {
+        onDropToFolder?.(outcome.folderId);
+      } else if (outcome.type === "drop-unfoldered") {
+        onDropToUnfoldered?.();
       }
 
-      if (target?.kind === "folder") {
-        onDropToFolder?.(target.folderId);
-      } else if (target?.kind === "unfoldered") {
-        onDropToUnfoldered?.();
-      } else {
-        onDragEnd?.();
-      }
       clearPointerTracking();
     };
 
