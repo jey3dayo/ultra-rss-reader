@@ -52,6 +52,8 @@ describe("SidebarHeaderView", () => {
     );
 
     expect(screen.getByRole("button", { name: "Sync feeds" })).toHaveTextContent("Sync");
+    expect(screen.getByRole("button", { name: "Sync feeds" }).querySelector("span")).toHaveClass("text-sm");
     expect(screen.getByRole("button", { name: "Add feed" })).toHaveTextContent("Add");
+    expect(screen.getByRole("button", { name: "Add feed" }).querySelector("span")).toHaveClass("text-sm");
   });
 });

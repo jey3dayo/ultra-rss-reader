@@ -37,7 +37,7 @@ export function ArticleListHeaderActions({
               aria-pressed={isSidebarVisible}
               className={cn(
                 "text-muted-foreground transition-colors duration-200 hover:text-foreground",
-                sidebarButtonText && "gap-1.5 px-2.5 text-xs font-semibold tracking-wide",
+                sidebarButtonText && "gap-2 px-3 text-sm font-medium",
                 isSidebarVisible && "bg-muted text-foreground",
               )}
             >
@@ -57,7 +57,7 @@ export function ArticleListHeaderActions({
             size={isMobile ? "sm" : "icon"}
             aria-label={markAllReadLabel}
             onClick={onMarkAllRead}
-            className={cn("text-muted-foreground", isMobile && "h-11 gap-1.5 px-3 text-xs font-semibold tracking-wide")}
+            className={cn("text-muted-foreground", isMobile && "h-11 gap-2 px-3.5 text-sm font-medium")}
           >
             <CheckCheck className="h-4 w-4" />
             {isMobile ? <span>{markAllReadButtonText}</span> : null}
@@ -71,7 +71,7 @@ export function ArticleListHeaderActions({
             aria-label={searchArticlesLabel}
             className={cn(
               "text-muted-foreground",
-              isMobile && "h-11 gap-1.5 px-3 text-xs font-semibold tracking-wide",
+              isMobile && "h-11 gap-2 px-3.5 text-sm font-medium",
               showSearch && "text-foreground",
             )}
           >

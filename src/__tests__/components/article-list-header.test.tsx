@@ -146,7 +146,9 @@ describe("ArticleListHeader", () => {
 
     expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveTextContent("Read");
     expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveClass("h-11");
+    expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveClass("text-sm");
     expect(screen.getByRole("button", { name: "Search articles" })).toHaveTextContent("Search");
     expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass("h-11");
+    expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass("text-sm");
   });
 });

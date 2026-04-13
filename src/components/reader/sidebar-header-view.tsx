@@ -35,7 +35,7 @@ export function SidebarHeaderView({
               aria-label={syncButtonLabel}
             >
               <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
-              {isMobile ? <span className="text-xs">{syncButtonText}</span> : null}
+              {isMobile ? <span className="text-sm font-medium">{syncButtonText}</span> : null}
             </Button>
           </AppTooltip>
           <AppTooltip label={addFeedButtonLabel}>
@@ -50,7 +50,7 @@ export function SidebarHeaderView({
               aria-label={addFeedButtonLabel}
             >
               <Plus className="h-4 w-4" />
-              {isMobile ? <span className="text-xs">{addFeedButtonText}</span> : null}
+              {isMobile ? <span className="text-sm font-medium">{addFeedButtonText}</span> : null}
             </Button>
           </AppTooltip>
         </div>
