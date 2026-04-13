@@ -2,8 +2,6 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { useSetRead } from "@/hooks/use-articles";
-import { usePreferencesStore } from "@/stores/preferences-store";
-import { useUiStore } from "@/stores/ui-store";
 import { FeedCleanupPage } from "../feed-cleanup/feed-cleanup-page";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticleReaderBody } from "./article-reader-body";
@@ -19,6 +17,7 @@ import { useArticleAutoMark } from "./use-article-auto-mark";
 import { useArticleBrowserOverlay } from "./use-article-browser-overlay";
 import { useArticleToolbarControls } from "./use-article-toolbar-controls";
 import { useArticleViewSelection } from "./use-article-view-selection";
+import { useArticleViewUiState } from "./use-article-view-ui-state";
 
 export function ArticleToolbar({
   article,
@@ -66,21 +65,25 @@ function EmptyState() {
 }
 
 function BrowserOnlyState() {
-  const closeBrowser = useUiStore((s) => s.closeBrowser);
+  const { closeBrowser } = useArticleViewUiState();
 
   return <BrowserOnlyStateView onCloseOverlay={closeBrowser} />;
 }
 
 export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
   const { t } = useTranslation("reader");
-  const layoutMode = useUiStore((s) => s.layoutMode);
-  const contentMode = useUiStore((s) => s.contentMode);
-  const browserUrl = useUiStore((s) => s.browserUrl);
-  const clearArticle = useUiStore((s) => s.clearArticle);
-  const showToast = useUiStore((s) => s.showToast);
-  const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
-  const retainArticle = useUiStore((s) => s.retainArticle);
-  const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
+  const {
+    layoutMode,
+    contentMode,
+    browserUrl,
+    clearArticle,
+    showToast,
+    addRecentlyRead,
+    retainArticle,
+    viewMode,
+    setFocusedPane,
+    afterReading,
+  } = useArticleViewUiState();
   const { isBrowserOpen, resolvedDisplay, handleCloseBrowserOverlay, handleToggleBrowserOverlay } =
     useArticleBrowserOverlay({
       articleId: article.id,
@@ -98,7 +101,6 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
       onCloseBrowserOverlay: handleCloseBrowserOverlay,
     },
   });
-  const viewMode = useUiStore((s) => s.viewMode);
   const setRead = useSetRead();
 
   useArticleAutoMark({
@@ -115,9 +117,9 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
   const handleCloseView = useCallback(() => {
     clearArticle();
     if (layoutMode !== "wide") {
-      useUiStore.getState().setFocusedPane("list");
+      setFocusedPane("list");
     }
-  }, [clearArticle, layoutMode]);
+  }, [clearArticle, layoutMode, setFocusedPane]);
 
   const overlayToolbarActions = (
     <ArticleToolbarActionStrip
