@@ -1,11 +1,5 @@
 import { X } from "lucide-react";
-import type { ArticleTagPickerTagView, ArticleTagPickerViewLabels } from "./article-tag-picker-view";
-
-type ArticleTagChipListProps = {
-  assignedTags: ArticleTagPickerTagView[];
-  labels: ArticleTagPickerViewLabels;
-  onRemoveTag: (tagId: string) => void;
-};
+import type { ArticleTagChipListProps } from "./article-tag-picker.types";
 
 export function ArticleTagChipList({ assignedTags, labels, onRemoveTag }: ArticleTagChipListProps) {
   return assignedTags.map((tag) => (

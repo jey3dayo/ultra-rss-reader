@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useArticleTags, useCreateTag, useTagArticle, useTags, useUntagArticle } from "@/hooks/use-tags";
-import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-tag-picker-view";
+import type { ArticleTagPickerTagView } from "./article-tag-picker.types";
+import { ArticleTagPickerView } from "./article-tag-picker-view";
 
 function toArticleTagPickerTagView(tag: { id: string; name: string; color: string | null }): ArticleTagPickerTagView {
   return {

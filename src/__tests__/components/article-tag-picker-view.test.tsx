@@ -165,7 +165,9 @@ describe("ArticleTagPickerView", () => {
 
   it("keeps the view independent from the tauri api layer", () => {
     expect(articleTagPickerViewSource).not.toContain("@/api/tauri-commands");
-    expect(articleTagPickerViewSource).toContain("export type ArticleTagPickerTagView");
+    expect(articleTagPickerViewSource).toContain(
+      'import type { ArticleTagPickerViewProps } from "./article-tag-picker.types"',
+    );
   });
 
   it("keeps the tag section heading visible even when there are no assigned tags", () => {

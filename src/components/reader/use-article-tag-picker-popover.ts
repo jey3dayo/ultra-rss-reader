@@ -1,5 +1,5 @@
 import { type KeyboardEvent, useCallback, useEffect, useRef } from "react";
-import type { UseArticleTagPickerPopoverParams } from "./article-tag-picker-view";
+import type { UseArticleTagPickerPopoverParams } from "./article-tag-picker.types";
 
 export function useArticleTagPickerPopover({
   isExpanded,

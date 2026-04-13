@@ -1,23 +1,7 @@
 import { Plus } from "lucide-react";
-import type { KeyboardEventHandler, MutableRefObject, RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { ArticleTagPickerTagView, ArticleTagPickerViewLabels } from "./article-tag-picker-view";
-
-type ArticleTagPickerPopoverProps = {
-  pickerId: string;
-  labels: ArticleTagPickerViewLabels;
-  availableTags: ArticleTagPickerTagView[];
-  newTagName: string;
-  newTagInputRef: RefObject<HTMLInputElement | null>;
-  tagOptionRefs: MutableRefObject<Array<HTMLButtonElement | null>>;
-  onExpandedChange: (expanded: boolean) => void;
-  onAssignTag: (tagId: string) => void;
-  onNewTagNameChange: (value: string) => void;
-  onCreateTag: () => void;
-  onClosePicker: (restoreFocus?: boolean) => void;
-  onListboxKeyDown: KeyboardEventHandler<HTMLDivElement>;
-};
+import type { ArticleTagPickerPopoverProps } from "./article-tag-picker.types";
 
 export function ArticleTagPickerPopover({
   pickerId,
