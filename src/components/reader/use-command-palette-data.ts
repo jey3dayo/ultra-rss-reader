@@ -4,6 +4,7 @@ import { getHistory } from "@/hooks/use-command-history";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useTags } from "@/hooks/use-tags";
 import type { PaletteAction, UseCommandPaletteDataParams, UseCommandPaletteDataResult } from "./command-palette.types";
+import type { CommandPaletteHistoryEntry } from "./command-palette-history";
 import { parseCommandPaletteHistoryEntry } from "./command-palette-history";
 
 function normalize(text: string): string {
@@ -49,12 +50,7 @@ export function useCommandPaletteData({
     const actionMap = new Map(actions.map((action) => [action.id, action]));
     return getHistory()
       .map(parseCommandPaletteHistoryEntry)
-      .filter(
-        (
-          entry,
-        ): entry is Extract<NonNullable<ReturnType<typeof parseCommandPaletteHistoryEntry>>, { kind: "action" }> =>
-          entry?.kind === "action",
-      )
+      .filter((entry): entry is Extract<CommandPaletteHistoryEntry, { kind: "action" }> => entry?.kind === "action")
       .map((entry) => actionMap.get(entry.id))
       .filter((action): action is PaletteAction => action != null);
   }, [actions]);

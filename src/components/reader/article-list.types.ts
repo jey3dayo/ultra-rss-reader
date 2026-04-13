@@ -1,6 +1,7 @@
 import type { TFunction } from "i18next";
 import type { KeyboardEvent, ReactNode, RefObject } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import type { FeedDisplayPresetOption } from "@/lib/article-display";
 import type { buildKeyToActionMap, KeyboardAction } from "@/lib/keyboard-shortcuts";
 import type { UiSelection } from "@/stores/ui-store";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
@@ -163,6 +164,21 @@ export type UseArticleListHeaderControllerParams = {
 
 export type UseArticleListHeaderControllerResult = UseArticleListHeaderControlsResult & {
   handleMarkAllRead: () => void;
+};
+
+export type UseArticleListHeaderControlsParams = {
+  layoutMode: ArticleListLayoutMode;
+  sidebarOpen: boolean;
+  sidebarSubscriptionsLabel: string;
+  feedDisplayLabel: string;
+  showSidebarLabel: string;
+  hideSidebarLabel: string;
+  resolvedFeedId: string | null;
+  selectedFeedDisplayPreset: FeedDisplayPresetOption;
+  displayPresetOptions: Array<{ value: FeedDisplayPresetOption; label: string }>;
+  onSetDisplayMode: (value: FeedDisplayPresetOption) => void;
+  openSidebar: () => void;
+  toggleSidebar: () => void;
 };
 
 export type UseArticleListBodyPropsParams = {
