@@ -2,12 +2,9 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccountSyncStatuses } from "@/hooks/use-account-sync-statuses";
 import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
+import type { SidebarAccountStatusLabelsParams } from "./sidebar-sources.types";
 
-type AccountLike = {
-  id: string;
-};
-
-export function useSidebarAccountStatusLabels(accounts: readonly AccountLike[] | undefined) {
+export function useSidebarAccountStatusLabels(accounts: SidebarAccountStatusLabelsParams) {
   const { t, i18n } = useTranslation("sidebar");
   const accountSyncStatuses = useAccountSyncStatuses(accounts);
 
