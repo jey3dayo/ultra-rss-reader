@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import { create } from "zustand";
+import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -36,7 +37,7 @@ type SyncProgressState = {
   activeAccountIds: Set<string>;
 };
 
-type Selection =
+export type UiSelection =
   | { type: "feed"; feedId: string }
   | { type: "folder"; folderId: string }
   | { type: "smart"; kind: "unread" | "starred" }
@@ -67,7 +68,7 @@ interface UiState {
   sidebarOpen: boolean;
   contentMode: ContentMode;
   selectedAccountId: string | null;
-  selection: Selection;
+  selection: UiSelection;
   selectedArticleId: string | null;
   viewMode: "all" | "unread" | "starred";
   searchQuery: string;
@@ -408,7 +409,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       toastTimer = setTimeout(() => {
         set({ toastMessage: null });
         toastTimer = null;
-      }, 4000);
+      }, TOAST_AUTO_DISMISS_TIMEOUT_MS);
     }
   },
   clearToast: () => set({ toastMessage: null }),

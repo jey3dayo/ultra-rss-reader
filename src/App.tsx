@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef } from "react";
 import { listAccounts, syncAccount, triggerSync } from "./api/tauri-commands";
 import { AppShell } from "./components/app-shell";
+import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS } from "./constants/ui-runtime";
 import { useDevIntent } from "./hooks/use-dev-intent";
 import { useResolvedDevIntent } from "./hooks/use-resolved-dev-intent";
 import { queryClient } from "./lib/query-client";
@@ -54,7 +55,7 @@ function AppInner() {
     }
     // Only trigger if hidden for more than 30 seconds (likely sleep, not tab switch)
     const hiddenDuration = Date.now() - lastHiddenAt.current;
-    if (hiddenDuration < 30_000) return;
+    if (hiddenDuration < APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS) return;
 
     listAccounts().then((result) =>
       Result.pipe(

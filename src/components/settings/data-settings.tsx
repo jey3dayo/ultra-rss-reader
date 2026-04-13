@@ -6,12 +6,13 @@ import { getDatabaseInfo, getLogDir, vacuumDatabase } from "@/api/tauri-commands
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Button } from "@/components/ui/button";
+import { BYTES_PER_KIBIBYTE, BYTES_PER_MEBIBYTE, DATA_SIZE_FRACTION_DIGITS } from "@/constants/data-size";
 import { useUiStore } from "@/stores/ui-store";
 
 function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes < BYTES_PER_KIBIBYTE) return `${bytes} B`;
+  if (bytes < BYTES_PER_MEBIBYTE) return `${(bytes / BYTES_PER_KIBIBYTE).toFixed(DATA_SIZE_FRACTION_DIGITS)} KB`;
+  return `${(bytes / BYTES_PER_MEBIBYTE).toFixed(DATA_SIZE_FRACTION_DIGITS)} MB`;
 }
 
 export function DataSettings() {
