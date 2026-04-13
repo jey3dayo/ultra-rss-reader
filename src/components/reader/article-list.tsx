@@ -18,12 +18,12 @@ import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleContextMenu } from "./article-context-menu";
-import type { ArticleGroupsViewGroup } from "./article-groups-view";
 import { ArticleListContextStrip } from "./article-list-context-strip";
 import { ArticleListFooter } from "./article-list-footer";
 import { ArticleListHeader } from "./article-list-header";
 import { ArticleListScreenView } from "./article-list-screen-view";
 import { contextMenuStyles } from "./context-menu-styles";
+import { useArticleListGroups } from "./use-article-list-groups";
 import { useArticleListInteractions } from "./use-article-list-interactions";
 import { useArticleListSearch } from "./use-article-list-search";
 
@@ -198,26 +198,14 @@ export function ArticleList() {
     }
   }, [clearArticle, filteredArticles, isPrimarySourceLoading, selectedArticleId]);
 
-  const articleGroups = useMemo<ArticleGroupsViewGroup[]>(() => {
-    return Object.entries(groupedArticles).map(([groupLabel, groupArticles]) => ({
-      id: groupLabel,
-      label:
-        groupLabel === "TODAY"
-          ? t("today")
-          : groupLabel === "YESTERDAY"
-            ? t("yesterday")
-            : groupLabel === "__unknown_feed__"
-              ? t("unknown_feed")
-              : groupLabel,
-      showLabel: groupBy !== "none",
-      items: groupArticles.map((article) => ({
-        article,
-        feedName: feedNameMap.get(article.feed_id),
-        isSelected: selectedArticleId === article.id,
-        isRecentlyRead: recentlyReadIds.has(article.id),
-      })),
-    }));
-  }, [feedNameMap, groupBy, groupedArticles, recentlyReadIds, selectedArticleId, t]);
+  const articleGroups = useArticleListGroups({
+    groupedArticles,
+    groupBy,
+    feedNameMap,
+    selectedArticleId,
+    recentlyReadIds,
+    t,
+  });
 
   const listRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
