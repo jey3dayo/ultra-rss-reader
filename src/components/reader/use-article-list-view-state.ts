@@ -2,7 +2,7 @@ import type { TFunction } from "i18next";
 import { useMemo } from "react";
 import type { UiSelection } from "@/stores/ui-store";
 
-type UseArticleListViewStateParams = {
+export type UseArticleListViewStateParams = {
   selection: UiSelection;
   t: TFunction<"reader">;
   feedId: string | null;

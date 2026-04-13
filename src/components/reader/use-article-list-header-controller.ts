@@ -6,7 +6,7 @@ import {
   useArticleListHeaderControls,
 } from "./use-article-list-header-controls";
 
-type UseArticleListHeaderControllerParams = {
+export type UseArticleListHeaderControllerParams = {
   feedId: string | null;
   selectedFeed: FeedDto | undefined;
   filteredArticles: ArticleDto[];

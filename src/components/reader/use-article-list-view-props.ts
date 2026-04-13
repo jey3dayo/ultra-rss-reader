@@ -6,7 +6,7 @@ import { useArticleListBodyProps } from "./use-article-list-body-props";
 import type { UseArticleListHeaderControlsResult } from "./use-article-list-header-controls";
 import type { UseArticleListViewStateResult } from "./use-article-list-view-state";
 
-type UseArticleListViewPropsParams = {
+export type UseArticleListViewPropsParams = {
   t: TFunction<"reader">;
   tc: TFunction<"common">;
   layoutMode: ArticleListLayoutMode;

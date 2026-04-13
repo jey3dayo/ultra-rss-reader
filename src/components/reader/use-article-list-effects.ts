@@ -2,7 +2,7 @@ import { type RefObject, useEffect } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import type { UiSelection } from "@/stores/ui-store";
 
-type UseArticleListEffectsParams = {
+export type UseArticleListEffectsParams = {
   selection: UiSelection;
   scrollToTopOnChange: string;
   viewportRef: RefObject<HTMLDivElement | null>;

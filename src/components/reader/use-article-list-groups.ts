@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
 
-type UseArticleListGroupsParams = {
+export type UseArticleListGroupsParams = {
   groupedArticles: Record<string, ArticleDto[]>;
   groupBy: string;
   feedNameMap: Map<string, string>;

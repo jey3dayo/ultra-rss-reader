@@ -5,7 +5,7 @@ import { useArticleListGlobalEvents } from "./use-article-list-global-events";
 import { useArticleListKeydownHandler } from "./use-article-list-keydown-handler";
 import { useArticleListNavigation } from "./use-article-list-navigation";
 
-type UseArticleListInteractionsParams = {
+export type UseArticleListInteractionsParams = {
   filteredArticles: ArticleDto[];
   selectedArticleId: string | null;
   selectArticle: (articleId: string) => void;
@@ -17,7 +17,7 @@ type UseArticleListInteractionsParams = {
   keyboardPrefs: Parameters<typeof buildKeyToActionMap>[0];
 };
 
-type UseArticleListInteractionsResult = {
+export type UseArticleListInteractionsResult = {
   listRef: RefObject<HTMLDivElement | null>;
   viewportRef: RefObject<HTMLDivElement | null>;
   handleListKeyDownCapture: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
