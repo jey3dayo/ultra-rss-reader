@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
 import { FeedTreeDragOverlay } from "./feed-tree-drag-overlay";
+import { FeedTreeEmptyState } from "./feed-tree-empty-state";
 import { type ActiveDropTarget, FeedTreeFolderSection, type FeedTreeFolderViewModel } from "./feed-tree-folder-section";
-import { type FeedTreeFeedViewModel, FeedTreeRow } from "./feed-tree-row";
+import type { FeedTreeFeedViewModel } from "./feed-tree-row";
 import { FeedTreeUnfolderedDropZone } from "./feed-tree-unfoldered-drop-zone";
+import { FeedTreeUnfolderedSection } from "./feed-tree-unfoldered-section";
 import { useFeedTreeDrag } from "./use-feed-tree-drag";
 
 export type { ActiveDropTarget, FeedTreeFolderViewModel } from "./feed-tree-folder-section";
@@ -87,21 +89,7 @@ export function FeedTreeView({
   });
 
   if (!hasFeeds) {
-    return (
-      <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-        {emptyState.kind === "message" ? (
-          emptyState.message
-        ) : (
-          <button
-            type="button"
-            onClick={emptyState.onAction}
-            className="text-muted-foreground underline decoration-muted-foreground/50 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/50"
-          >
-            {emptyState.label}
-          </button>
-        )}
-      </div>
-    );
+    return <FeedTreeEmptyState {...emptyState} />;
   }
 
   if (!isOpen) {
@@ -137,31 +125,20 @@ export function FeedTreeView({
             consumeSuppressedHandleClick={consumeSuppressedHandleClick}
           />
         ))}
-        {hasUnfolderedFeeds && (
-          <div className="space-y-2">
-            {unfolderedLabel ? (
-              <div className="ml-2 px-3 text-[0.68rem] font-medium tracking-[0.08em] text-sidebar-foreground/32 uppercase">
-                {unfolderedLabel}
-              </div>
-            ) : null}
-            <div className="ml-2 space-y-1 border-l border-sidebar-border/25 pl-3">
-              {unfolderedFeeds.map((feed) => (
-                <FeedTreeRow
-                  key={feed.id}
-                  feed={feed}
-                  displayFavicons={displayFavicons}
-                  onSelectFeed={onSelectFeed}
-                  renderFeedContextMenu={renderFeedContextMenu}
-                  canDragFeeds={canDragFeeds}
-                  isDragged={normalizedDraggedFeedId === feed.id}
-                  onDragStartFeed={onDragStartFeed}
-                  onPointerDownFeed={handlePointerDownFeed}
-                  consumeSuppressedHandleClick={consumeSuppressedHandleClick}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+        {hasUnfolderedFeeds ? (
+          <FeedTreeUnfolderedSection
+            unfolderedFeeds={unfolderedFeeds}
+            unfolderedLabel={unfolderedLabel}
+            onSelectFeed={onSelectFeed}
+            displayFavicons={displayFavicons}
+            renderFeedContextMenu={renderFeedContextMenu}
+            canDragFeeds={canDragFeeds}
+            normalizedDraggedFeedId={normalizedDraggedFeedId}
+            onDragStartFeed={onDragStartFeed}
+            onPointerDownFeed={handlePointerDownFeed}
+            consumeSuppressedHandleClick={consumeSuppressedHandleClick}
+          />
+        ) : null}
       </div>
       {pointerDragPreview ? (
         <FeedTreeDragOverlay preview={pointerDragPreview} displayFavicons={displayFavicons} />
