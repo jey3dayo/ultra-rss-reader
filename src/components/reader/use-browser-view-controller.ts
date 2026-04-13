@@ -1,9 +1,5 @@
-import { type RefObject, useMemo } from "react";
-import type {
-  BrowserDebugGeometryLayoutDiagnostics,
-  BrowserDebugGeometryNativeDiagnostics,
-} from "@/lib/browser-debug-geometry";
-import type { BrowserSurfaceIssue } from "./browser-surface-issue";
+import { useMemo } from "react";
+import type { BrowserViewController, BrowserViewScope } from "./browser-view.types";
 import { resolveBrowserViewPresentation } from "./browser-view-presentation";
 import { initialBrowserState } from "./browser-webview-state";
 import { useBrowserDebugGeometryEvents } from "./use-browser-debug-geometry-events";
@@ -18,36 +14,11 @@ import { useBrowserWebviewLoadTimeout } from "./use-browser-webview-load-timeout
 import { useBrowserWebviewRequestState } from "./use-browser-webview-request-state";
 import { useBrowserWebviewSync } from "./use-browser-webview-sync";
 
-type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
-
-type BrowserViewLayoutDiagnostics = BrowserDebugGeometryLayoutDiagnostics;
-
-type BrowserViewGeometry = ReturnType<typeof resolveBrowserViewPresentation>["geometry"];
-
-export type BrowserViewController = {
-  browserUrl: string | null;
-  showDiagnostics: boolean;
-  geometry: BrowserViewGeometry;
-  layoutDiagnostics: BrowserViewLayoutDiagnostics | null;
-  nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
-  activeSurfaceIssue: BrowserSurfaceIssue | null;
-  isLoading: boolean;
-  handleCloseOverlay: () => void;
-  handleRetry: () => void;
-  handleOpenExternal: () => Promise<void>;
-  closeButtonClass: string;
-  actionButtonClass: string;
-  stageClass: string;
-  hostRef: RefObject<HTMLDivElement | null>;
-  overlayRef: RefObject<HTMLDivElement | null>;
-  stageRef: RefObject<HTMLDivElement | null>;
-};
-
 export function useBrowserViewController({
   scope,
   onCloseOverlay,
 }: {
-  scope: "content-pane" | "main-stage";
+  scope: BrowserViewScope;
   onCloseOverlay: () => void;
 }): BrowserViewController {
   const {
