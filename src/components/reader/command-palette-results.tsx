@@ -1,4 +1,4 @@
-import { type LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { ArticleDto, FeedDto, TagDto } from "@/api/tauri-commands";
 import type { AppAction } from "@/lib/actions";
 import type { RuntimeDevScenario } from "@/lib/dev-scenario-runtime";
