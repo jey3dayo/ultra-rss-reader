@@ -13,6 +13,7 @@ import {
   updateAccountCredentials,
   updateAccountSync,
 } from "@/api/tauri-commands";
+import { summarizeSyncResult } from "@/lib/sync-result-feedback";
 import { useUiStore } from "@/stores/ui-store";
 
 type Account = NonNullable<AccountDto | undefined>;
@@ -177,13 +178,20 @@ export function useAccountDetailController({ account, t, onAccountDeleted }: Use
       Result.inspect((syncResult) => {
         qc.invalidateQueries({ queryKey: ["feeds"] });
         qc.invalidateQueries({ queryKey: ["articles"] });
-        if (syncResult.failed.length > 0) {
-          const names = syncResult.failed.map((f) => f.account_name).join(", ");
-          useUiStore.getState().showToast(t("account.sync_failed", { message: names }));
-        } else if (syncResult.warnings.length > 0) {
-          useUiStore.getState().showToast(t("account.sync_completed_with_warnings"));
-        } else {
-          useUiStore.getState().showToast(t("account.sync_complete"));
+        const feedback = summarizeSyncResult(syncResult);
+        switch (feedback.kind) {
+          case "already-in-progress":
+            useUiStore.getState().showToast(t("account.syncing_now"));
+            break;
+          case "partial-failure":
+            useUiStore.getState().showToast(t("account.sync_failed", { message: feedback.accounts }));
+            break;
+          case "warnings":
+            useUiStore.getState().showToast(t("account.sync_completed_with_warnings"));
+            break;
+          case "success":
+            useUiStore.getState().showToast(t("account.sync_complete"));
+            break;
         }
       }),
       Result.inspectError((e) => {

@@ -5,6 +5,7 @@ import { runManualUpdateCheck } from "@/hooks/use-updater";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import i18n from "@/lib/i18n";
 import { keyboardEvents, type ViewMode } from "@/lib/keyboard-shortcuts";
+import { summarizeSyncResult } from "@/lib/sync-result-feedback";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -191,16 +192,20 @@ export function executeAction(action: AppAction): void {
         Result.pipe(
           result,
           Result.inspect((syncResult) => {
-            if (!syncResult.synced) {
-              store.showToast(i18n.t("sidebar:sync_already_in_progress"));
-            } else if (syncResult.failed.length > 0) {
-              const names = syncResult.failed.map((f) => f.account_name).join(", ");
-              store.showToast(i18n.t("sidebar:sync_partial_failure", { accounts: names }));
-            } else if (syncResult.warnings.length > 0) {
-              const names = [...new Set(syncResult.warnings.map((warning) => warning.account_name))].join(", ");
-              store.showToast(i18n.t("sidebar:sync_completed_with_warnings", { accounts: names }));
-            } else {
-              store.showToast(i18n.t("sidebar:sync_completed"));
+            const feedback = summarizeSyncResult(syncResult);
+            switch (feedback.kind) {
+              case "already-in-progress":
+                store.showToast(i18n.t("sidebar:sync_already_in_progress"));
+                break;
+              case "partial-failure":
+                store.showToast(i18n.t("sidebar:sync_partial_failure", { accounts: feedback.accounts }));
+                break;
+              case "warnings":
+                store.showToast(i18n.t("sidebar:sync_completed_with_warnings", { accounts: feedback.accounts }));
+                break;
+              case "success":
+                store.showToast(i18n.t("sidebar:sync_completed"));
+                break;
             }
           }),
           Result.inspectError((e) => {

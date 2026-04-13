@@ -103,6 +103,10 @@
   - 問題: `sidebar.tsx` に tags/counts/selected 状態の合成が残っていて、tag section 用の view model 整形が本体に混ざっていた
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-tag-items.ts`
 
+- [x] sidebar の UI action handler 群を hook 化する
+  - 問題: `sidebar.tsx` に section toggle / account 選択 / settings-add-feed 導線の callback 群が残っていて、表示ロジックと UI action が混ざっていた
+  - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-ui-actions.ts`
+
 - [x] sidebar の account restore / startup expansion / hidden-state fallback を hook 化する
   - 問題: `sidebar.tsx` に account 復元、起動時 folder 展開、visibility fallback の effect が集まり、責務が重くなっていた
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-account-selection.ts`, `src/components/reader/use-sidebar-startup-folder-expansion.ts`, `src/components/reader/use-sidebar-visibility-fallback.ts`

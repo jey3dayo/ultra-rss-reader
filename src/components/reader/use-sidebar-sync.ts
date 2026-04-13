@@ -3,10 +3,12 @@ import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { triggerSync } from "@/api/tauri-commands";
+import type { AccountSyncWarning } from "@/api/schemas/sync-result";
+import { getSyncWarningAccountNames, summarizeSyncResult } from "@/lib/sync-result-feedback";
 import i18n from "@/lib/i18n";
 import type { SyncProgressEvent, SyncProgressState } from "@/stores/ui-store";
 
-type SyncWarningPayload = Array<{ account_name: string }>;
+type SyncWarningPayload = AccountSyncWarning[];
 
 type UseSidebarSyncParams = {
   syncProgress: SyncProgressState;
@@ -14,10 +16,6 @@ type UseSidebarSyncParams = {
   clearSyncProgress: () => void;
   showToast: (message: string) => void;
 };
-
-function getWarningAccountNames(payload: SyncWarningPayload): string {
-  return [...new Set(payload.map((warning) => warning.account_name))].join(", ");
-}
 
 export function useSidebarSync({
   syncProgress,
@@ -85,7 +83,7 @@ export function useSidebarSync({
         typeof event === "object" && event !== null && "payload" in event
           ? (event.payload as SyncWarningPayload)
           : (event as SyncWarningPayload);
-      const names = getWarningAccountNames(payload);
+      const names = getSyncWarningAccountNames(payload);
       if (names) {
         showToast(t("sync_completed_with_warnings", { accounts: names }));
       }
@@ -114,16 +112,20 @@ export function useSidebarSync({
     Result.pipe(
       result,
       Result.inspect((syncResult) => {
-        if (!syncResult.synced) {
-          showToast(t("sync_already_in_progress"));
-        } else if (syncResult.failed.length > 0) {
-          const names = syncResult.failed.map((account) => account.account_name).join(", ");
-          showToast(t("sync_partial_failure", { accounts: names }));
-        } else if (syncResult.warnings.length > 0) {
-          const names = getWarningAccountNames(syncResult.warnings);
-          showToast(t("sync_completed_with_warnings", { accounts: names }));
-        } else {
-          showToast(t("sync_completed"));
+        const feedback = summarizeSyncResult(syncResult);
+        switch (feedback.kind) {
+          case "already-in-progress":
+            showToast(t("sync_already_in_progress"));
+            break;
+          case "partial-failure":
+            showToast(t("sync_partial_failure", { accounts: feedback.accounts }));
+            break;
+          case "warnings":
+            showToast(t("sync_completed_with_warnings", { accounts: feedback.accounts }));
+            break;
+          case "success":
+            showToast(t("sync_completed"));
+            break;
         }
       }),
       Result.inspectError((error) => {
