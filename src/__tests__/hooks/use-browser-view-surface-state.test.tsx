@@ -9,6 +9,8 @@ const labels = {
   browserModeHint: "Use the desktop app for the native preview, or open this page in your external browser.",
   failed: "Web Preview couldn't load.",
   failedHint: "Try again, or open this page in your external browser.",
+  blocked: "This page can't be shown in the in-app browser.",
+  blockedHint: "Open it in your external browser instead.",
 };
 
 function createLoadingState(): BrowserWebviewState {
@@ -152,5 +154,47 @@ describe("useBrowserViewSurfaceState", () => {
     expect(result.current.fallbackInFlightRef.current).toBe(false);
     expect(result.current.activeSurfaceIssue).toBeNull();
     expect(onCloseOverlay).toHaveBeenCalledTimes(1);
+  });
+
+  it("turns fallback payloads into surface issues and stops the loading state", () => {
+    const onCloseOverlay = vi.fn();
+    const { result } = renderHook(() => {
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(createLoadingState());
+      const browserStateRef = useRef(browserState);
+      browserStateRef.current = browserState;
+      const fallbackInFlightRef = useRef(false);
+
+      const hook = useBrowserViewSurfaceState({
+        browserStateRef,
+        fallbackInFlightRef,
+        isLoading: false,
+        runtimeUnavailable: false,
+        onCloseOverlay,
+        setBrowserState,
+        ...labels,
+      });
+
+      return { ...hook, browserState };
+    });
+
+    act(() => {
+      result.current.handleBrowserWebviewFallback({
+        url: "https://example.com/article",
+        opened_external: false,
+        error_message: null,
+      });
+    });
+
+    expect(result.current.browserState).toEqual({
+      ...createLoadingState(),
+      is_loading: false,
+    });
+    expect(result.current.activeSurfaceIssue).toEqual({
+      kind: "unsupported",
+      title: labels.blocked,
+      description: labels.blockedHint,
+      detail: null,
+      canRetry: false,
+    });
   });
 });

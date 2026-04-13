@@ -15,7 +15,7 @@ import {
   getBrowserOverlayStageClass,
 } from "./browser-overlay-presentation";
 import { isBrowserRuntimeUnavailable } from "./browser-runtime-availability";
-import { type BrowserSurfaceIssue, createBrowserSurfaceFallback } from "./browser-surface-issue";
+import type { BrowserSurfaceIssue } from "./browser-surface-issue";
 import { type BrowserWebviewFallbackPayload, initialBrowserState, mergeBrowserState } from "./browser-webview-state";
 import { useBrowserDebugGeometryEvents } from "./use-browser-debug-geometry-events";
 import { useBrowserLayoutDiagnostics } from "./use-browser-layout-diagnostics";
@@ -89,19 +89,26 @@ export function useBrowserViewController({
     hostRef,
   });
   const runtimeUnavailable = isBrowserRuntimeUnavailable();
-  const { setSurfaceIssue, handleLostEmbeddedBrowserWebview, showSurfaceFailure, activeSurfaceIssue } =
-    useBrowserViewSurfaceState({
-      browserStateRef,
-      fallbackInFlightRef,
-      isLoading,
-      runtimeUnavailable,
-      onCloseOverlay: handleCloseOverlay,
-      setBrowserState,
-      browserMode: t("browser_embed_browser_mode"),
-      browserModeHint: t("browser_embed_browser_mode_hint"),
-      failed: t("browser_embed_failed"),
-      failedHint: t("browser_embed_failed_hint"),
-    });
+  const {
+    setSurfaceIssue,
+    handleLostEmbeddedBrowserWebview,
+    handleBrowserWebviewFallback,
+    showSurfaceFailure,
+    activeSurfaceIssue,
+  } = useBrowserViewSurfaceState({
+    browserStateRef,
+    fallbackInFlightRef,
+    isLoading,
+    runtimeUnavailable,
+    onCloseOverlay: handleCloseOverlay,
+    setBrowserState,
+    browserMode: t("browser_embed_browser_mode"),
+    browserModeHint: t("browser_embed_browser_mode_hint"),
+    failed: t("browser_embed_failed"),
+    failedHint: t("browser_embed_failed_hint"),
+    blocked: t("browser_embed_blocked"),
+    blockedHint: t("browser_embed_blocked_hint"),
+  });
 
   const waitForBrowserWebviewListeners = useBrowserWebviewEvents({
     showDiagnostics,
@@ -117,24 +124,9 @@ export function useBrowserViewController({
     ),
     onFallback: useCallback(
       (payload: BrowserWebviewFallbackPayload) => {
-        setSurfaceIssue(
-          createBrowserSurfaceFallback(payload.error_message, {
-            failed: t("browser_embed_failed"),
-            failedHint: t("browser_embed_failed_hint"),
-            blocked: t("browser_embed_blocked"),
-            blockedHint: t("browser_embed_blocked_hint"),
-          }),
-        );
-        setBrowserState((currentState) => {
-          if (!currentState) {
-            return currentState;
-          }
-          const nextState = { ...currentState, is_loading: false };
-          browserStateRef.current = nextState;
-          return nextState;
-        });
+        handleBrowserWebviewFallback(payload);
       },
-      [setSurfaceIssue, t],
+      [handleBrowserWebviewFallback],
     ),
     onClosed: handleCloseOverlay,
     onDiagnostics: useCallback((payload: BrowserWebviewDiagnosticsPayload) => {

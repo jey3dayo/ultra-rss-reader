@@ -4,8 +4,10 @@ import type { AppError, BrowserWebviewState } from "@/api/tauri-commands";
 import {
   type BrowserSurfaceIssue,
   createBrowserSurfaceFailure,
+  createBrowserSurfaceFallback,
   resolveRuntimeUnavailableSurfaceIssue,
 } from "./browser-surface-issue";
+import type { BrowserWebviewFallbackPayload } from "./browser-webview-state";
 
 type UseBrowserViewSurfaceStateParams = {
   browserStateRef: MutableRefObject<BrowserWebviewState | null>;
@@ -18,6 +20,8 @@ type UseBrowserViewSurfaceStateParams = {
   browserModeHint: string;
   failed: string;
   failedHint: string;
+  blocked: string;
+  blockedHint: string;
 };
 
 export function useBrowserViewSurfaceState({
@@ -31,6 +35,8 @@ export function useBrowserViewSurfaceState({
   browserModeHint,
   failed,
   failedHint,
+  blocked,
+  blockedHint,
 }: UseBrowserViewSurfaceStateParams) {
   const [surfaceIssue, setSurfaceIssue] = useState<BrowserSurfaceIssue | null>(null);
 
@@ -71,6 +77,28 @@ export function useBrowserViewSurfaceState({
     [browserStateRef, failed, failedHint, fallbackInFlightRef, setBrowserState],
   );
 
+  const handleBrowserWebviewFallback = useCallback(
+    (payload: BrowserWebviewFallbackPayload) => {
+      setSurfaceIssue(
+        createBrowserSurfaceFallback(payload.error_message, {
+          failed,
+          failedHint,
+          blocked,
+          blockedHint,
+        }),
+      );
+      setBrowserState((currentState) => {
+        if (!currentState) {
+          return currentState;
+        }
+        const nextState = { ...currentState, is_loading: false };
+        browserStateRef.current = nextState;
+        return nextState;
+      });
+    },
+    [blocked, blockedHint, browserStateRef, failed, failedHint, setBrowserState],
+  );
+
   const activeSurfaceIssue = useMemo(
     () =>
       surfaceIssue ??
@@ -89,6 +117,7 @@ export function useBrowserViewSurfaceState({
     surfaceIssue,
     setSurfaceIssue,
     handleLostEmbeddedBrowserWebview,
+    handleBrowserWebviewFallback,
     showSurfaceFailure,
     activeSurfaceIssue,
   } as const;
