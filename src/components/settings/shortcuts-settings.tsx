@@ -2,15 +2,11 @@ import { RotateCcw } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ShortcutsSettingsView } from "@/components/settings/shortcuts-settings-view";
-import {
-  formatKeyForDisplay,
-  type ShortcutActionId,
-  shortcutDefinitions,
-  shortcutPrefKey,
-} from "@/lib/keyboard-shortcuts";
+import { type ShortcutActionId, shortcutDefinitions, shortcutPrefKey } from "@/lib/keyboard-shortcuts";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+import { useShortcutsSettingsViewProps } from "./use-shortcuts-settings-view-props";
 
 type RecordedKeyEvent = Pick<
   globalThis.KeyboardEvent,
@@ -30,14 +26,12 @@ function normalizeRecordedKey(e: Pick<RecordedKeyEvent, "key" | "metaKey" | "ctr
 
 export function ShortcutsSettings() {
   const { t } = useTranslation("settings");
-  const tReader = useTranslation("reader").t;
+  const { t: tReader } = useTranslation("reader");
   const setPref = usePreferencesStore((s) => s.setPref);
   const prefs = usePreferencesStore((s) => s.prefs);
   const platformKind = usePlatformStore((state) => state.platform.kind);
 
   const [recordingId, setRecordingId] = useState<ShortcutActionId | null>(null);
-
-  const categories = [...new Set(shortcutDefinitions.map((d) => d.categoryKey))];
 
   const getKey = useCallback(
     (id: ShortcutActionId) => {
@@ -123,35 +117,19 @@ export function ShortcutsSettings() {
     return current !== undefined && current !== def.defaultKey;
   });
 
-  return (
-    <ShortcutsSettingsView
-      title={t("shortcuts.heading")}
-      conflictMessage={conflictMessage}
-      pressAKeyLabel={t("shortcuts.press_a_key")}
-      resetLabel={t("shortcuts.reset_to_defaults")}
-      resetDisabled={!hasCustomBindings}
-      onResetAll={handleResetAll}
-      categories={categories.map((category) => ({
-        id: category,
-        heading: tReader(category),
-        items: shortcutDefinitions
-          .filter((definition) => definition.categoryKey === category)
-          .map((definition) => {
-            const currentKey = getKey(definition.id);
-            const conflict = findConflict(definition.id, currentKey);
+  const viewProps = useShortcutsSettingsViewProps({
+    t,
+    tReader,
+    platformKind,
+    recordingId,
+    conflictMessage,
+    hasCustomBindings,
+    getKey,
+    findConflict,
+    onResetAll: handleResetAll,
+    onStartRecording: handleStartRecording,
+    onBadgeKeyDown: handleBadgeKeyDown,
+  });
 
-            return {
-              id: definition.id,
-              label: tReader(definition.labelKey),
-              displayKey: formatKeyForDisplay(currentKey, platformKind),
-              isLocked: definition.id === "open_settings",
-              isRecording: recordingId === definition.id,
-              conflictLabel: conflict ? t("shortcuts.conflict", { name: conflict }) : null,
-              onStartRecording: () => handleStartRecording(definition.id),
-              onKeyDown: (event: globalThis.KeyboardEvent) => handleBadgeKeyDown(definition.id, event),
-            };
-          }),
-      }))}
-    />
-  );
+  return <ShortcutsSettingsView {...viewProps} />;
 }
