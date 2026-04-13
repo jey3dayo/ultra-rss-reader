@@ -1,5 +1,5 @@
-import { SectionHeading } from "@/components/shared/section-heading";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
+import { SectionHeading } from "@/components/shared/section-heading";
 
 export type ActionsSettingsService = {
   id: string;
