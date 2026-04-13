@@ -271,6 +271,16 @@
   - 問題: `useSidebarController` に header/account/smart views/content sections の props 組み立てが残っていて、controller orchestration と view props 導出が混ざっていた
   - 対象: `src/components/reader/use-sidebar-controller.ts`, `src/components/reader/use-sidebar-view-props.ts`
 
+- [x] sidebar の account section props 組み立てを helper に寄せる
+  - 問題: `use-sidebar-section-props.ts` に account dropdown/title/menu wiring が残っていて、section props の中でも account section だけ props 組み立て責務が重かった
+  - 対応: `use-sidebar-account-section-props.ts` へ account section props 導出を寄せて、section props 本体は section 間の接着に寄せた
+  - 対象: `src/components/reader/use-sidebar-section-props.ts`, `src/components/reader/use-sidebar-account-section-props.ts`
+
+- [x] sidebar の content sections props 組み立てを helper に寄せる
+  - 問題: `use-sidebar-section-props.ts` に subscriptions/tags/add-feed dialog 向け props 組み立てが残っていて、section props 集約と content section 専用の props 導出が混ざっていた
+  - 対応: `use-sidebar-content-sections-props.ts` へ content sections props の組み立てを寄せて、section props 本体は header/account/smart views の接着に寄せた
+  - 対象: `src/components/reader/use-sidebar-section-props.ts`, `src/components/reader/use-sidebar-content-sections-props.ts`
+
 - [x] sidebar の runtime state wiring を hook 化する
   - 問題: `useSidebarController` に section open state、account switcher、source query、sync wiring の初期化が残っていて、controller orchestration と runtime 配線が混ざっていた
   - 対応: `use-sidebar-runtime.ts` へ runtime state / refs / sync 接着を寄せて、controller 本体は section orchestration に集中させた
@@ -502,6 +512,14 @@
 - [x] browser view の subview props/controller slice 型を `types` に寄せる
   - 問題: `browser-overlay-chrome.tsx` と `browser-overlay-stage.tsx` に subview 用の `Pick<BrowserViewController, ...>` と union props が local 定義で散っていて、overlay refactor の型境界を追いにくかった
   - 対象: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-overlay-chrome.tsx`, `src/components/reader/browser-overlay-stage.tsx`, `src/components/reader/browser-view.types.ts`
+
+- [x] browser view の controller contract 型を `types` に寄せる
+  - 問題: `use-browser-view-controller.ts` に `BrowserViewController` と diagnostics/layout/geometry alias が残っていて、`browser-view.types.ts` を作ったあとも型の正本が分散していた
+  - 対象: `src/components/reader/use-browser-view-controller.ts`, `src/components/reader/browser-view.types.ts`
+
+- [x] browser view runtime の返り値 contract から未使用 state を外す
+  - 問題: `use-browser-view-runtime.ts` が `browserState` を返していたが、controller 側では使っておらず runtime 内部 state と外部 contract がずれていた
+  - 対象: `src/components/reader/use-browser-view-runtime.ts`
 
 ## 2026-04-13 Premortem フォローアップ
 
