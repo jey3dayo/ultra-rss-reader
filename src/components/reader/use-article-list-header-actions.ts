@@ -9,14 +9,7 @@ import {
   resolveFeedDisplayPreset,
 } from "@/lib/article-display";
 import { getUnreadArticleIds } from "@/lib/article-list";
-import type { UseArticleListHeaderActionsParams } from "./article-list.types";
-
-export type UseArticleListHeaderActionsResult = {
-  selectedFeedDisplayPreset: FeedDisplayPresetOption;
-  displayPresetOptions: Array<{ value: FeedDisplayPresetOption; label: string }>;
-  handleSetDisplayMode: (nextPreset: FeedDisplayPresetOption) => Promise<void>;
-  handleMarkAllRead: () => void;
-};
+import type { UseArticleListHeaderActionsParams, UseArticleListHeaderActionsResult } from "./article-list.types";
 
 export function useArticleListHeaderActions({
   feedId,

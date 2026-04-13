@@ -154,6 +154,13 @@ export type UseArticleListHeaderActionsParams = {
   filteredArticles: ArticleDto[];
 };
 
+export type UseArticleListHeaderActionsResult = {
+  selectedFeedDisplayPreset: FeedDisplayPresetOption;
+  displayPresetOptions: Array<{ value: FeedDisplayPresetOption; label: string }>;
+  handleSetDisplayMode: (nextPreset: FeedDisplayPresetOption) => Promise<void>;
+  handleMarkAllRead: () => void;
+};
+
 export type UseArticleListHeaderControllerParams = {
   feedId: string | null;
   selectedFeed: FeedDto | undefined;
