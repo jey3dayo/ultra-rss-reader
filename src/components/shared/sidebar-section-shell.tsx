@@ -1,15 +1,6 @@
-import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import type { SidebarSectionShellProps } from "./sidebar-section.types";
 import { SidebarSectionToggle } from "./sidebar-section-toggle";
-
-type SidebarSectionShellProps = {
-  title?: string;
-  isOpen?: boolean;
-  onToggle?: () => void;
-  headerClassName?: string;
-  bodyClassName?: string;
-  children?: ReactNode;
-};
 
 export function SidebarSectionShell({
   title,

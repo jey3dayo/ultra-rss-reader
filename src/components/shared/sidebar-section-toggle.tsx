@@ -1,12 +1,6 @@
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-type SidebarSectionToggleProps = {
-  label: string;
-  isOpen: boolean;
-  onToggle: () => void;
-  className?: string;
-};
+import type { SidebarSectionToggleProps } from "./sidebar-section.types";
 
 export function SidebarSectionToggle({ label, isOpen, onToggle, className }: SidebarSectionToggleProps) {
   return (
