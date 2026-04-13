@@ -1,25 +1,15 @@
 import type { TFunction } from "i18next";
-import type { ComponentProps, KeyboardEvent, RefObject } from "react";
+import type { KeyboardEvent, RefObject } from "react";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
-import type { ArticleListBody } from "./article-list-body";
-import type { ArticleListContextStrip } from "./article-list-context-strip";
-import type { ArticleListFooter } from "./article-list-footer";
-import type { ArticleListHeader } from "./article-list-header";
+import type { ArticleListLayoutMode, ArticleListViewMode, UseArticleListViewPropsResult } from "./article-list.types";
 import { useArticleListBodyProps } from "./use-article-list-body-props";
 import type { UseArticleListHeaderControlsResult } from "./use-article-list-header-controls";
 import type { UseArticleListViewStateResult } from "./use-article-list-view-state";
 
-type LayoutMode = "wide" | "compact" | "mobile";
-type ViewMode = "all" | "unread" | "starred";
-type HeaderProps = ComponentProps<typeof ArticleListHeader>;
-type ContextStripProps = ComponentProps<typeof ArticleListContextStrip>;
-type BodyProps = ComponentProps<typeof ArticleListBody>;
-type FooterProps = ComponentProps<typeof ArticleListFooter>;
-
 type UseArticleListViewPropsParams = {
   t: TFunction<"reader">;
   tc: TFunction<"common">;
-  layoutMode: LayoutMode;
+  layoutMode: ArticleListLayoutMode;
   showSearch: boolean;
   searchQuery: string;
   searchInputRef: RefObject<HTMLInputElement | null>;
@@ -40,8 +30,8 @@ type UseArticleListViewPropsParams = {
   imagePreviews: string;
   selectionStyle: string;
   selectArticle: (articleId: string) => void;
-  effectiveViewMode: ViewMode;
-  setViewMode: (viewMode: ViewMode) => void;
+  effectiveViewMode: ArticleListViewMode;
+  setViewMode: (viewMode: ArticleListViewMode) => void;
 } & Pick<
   UseArticleListHeaderControlsResult,
   | "showSidebarButton"
@@ -52,14 +42,6 @@ type UseArticleListViewPropsParams = {
   | "handleSidebarToggle"
 > &
   Pick<UseArticleListViewStateResult, "contextStripContext" | "footerModes" | "isSearchLoading" | "isSearchEmptyState">;
-
-export type UseArticleListViewPropsResult = {
-  layoutMode: LayoutMode;
-  headerProps: HeaderProps;
-  contextStripProps: ContextStripProps;
-  bodyProps: BodyProps;
-  footerProps: FooterProps;
-};
 
 export function useArticleListViewProps({
   t,

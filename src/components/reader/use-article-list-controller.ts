@@ -1,11 +1,12 @@
 import { useTranslation } from "react-i18next";
+import type { UseArticleListViewPropsResult } from "./article-list.types";
 import { useArticleListData } from "./use-article-list-data";
 import { useArticleListEffects } from "./use-article-list-effects";
 import { useArticleListGroups } from "./use-article-list-groups";
 import { useArticleListHeaderController } from "./use-article-list-header-controller";
 import { useArticleListInteractions } from "./use-article-list-interactions";
 import { useArticleListRuntime } from "./use-article-list-runtime";
-import { type UseArticleListViewPropsResult, useArticleListViewProps } from "./use-article-list-view-props";
+import { useArticleListViewProps } from "./use-article-list-view-props";
 import { useArticleListViewState } from "./use-article-list-view-state";
 
 export function useArticleListController(): UseArticleListViewPropsResult {
