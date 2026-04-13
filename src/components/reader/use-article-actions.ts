@@ -1,20 +1,15 @@
 import { Result } from "@praha/byethrow";
 import type { UseMutationResult } from "@tanstack/react-query";
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { addToReadingList, copyToClipboard, openInBrowser } from "@/api/tauri-commands";
-import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
+import { type ArticleActionKeyboardShortcuts, useArticleActionShortcuts } from "./use-article-action-shortcuts";
 
 type SetReadMutation = UseMutationResult<unknown, Error, { id: string; read: boolean }, unknown>;
 type ToggleStarMutation = UseMutationResult<unknown, Error, { id: string; starred: boolean }, unknown>;
 type ShowToast = (message: string) => void;
-
-type KeyboardShortcutHandlers = {
-  onToggleBrowserOverlay: () => void;
-  onCloseBrowserOverlay: () => void;
-};
 
 type UseArticleActionsParams = {
   article: ArticleDto | null;
@@ -25,7 +20,7 @@ type UseArticleActionsParams = {
   retainArticle: (articleId: string) => void;
   setRead: SetReadMutation;
   toggleStar: ToggleStarMutation;
-  keyboardShortcuts?: KeyboardShortcutHandlers;
+  keyboardShortcuts?: ArticleActionKeyboardShortcuts;
 };
 
 type UseArticleActionsResult = {
@@ -183,36 +178,14 @@ export function useArticleActions({
     );
   }, [articleUrl, showToast, supportsReadingList, t]);
 
-  useEffect(() => {
-    if (!keyboardShortcuts) {
-      return;
-    }
-
-    window.addEventListener(keyboardEvents.openInAppBrowser, keyboardShortcuts.onToggleBrowserOverlay);
-    window.addEventListener(keyboardEvents.closeBrowserOverlay, keyboardShortcuts.onCloseBrowserOverlay);
-    window.addEventListener(keyboardEvents.toggleRead, handleToggleRead);
-    window.addEventListener(keyboardEvents.toggleStar, handleToggleStar);
-    window.addEventListener(keyboardEvents.openExternalBrowser, handleOpenExternalBrowser);
-    window.addEventListener(keyboardEvents.copyLink, handleCopyLink);
-    window.addEventListener(keyboardEvents.addToReadingList, handleAddToReadingList);
-
-    return () => {
-      window.removeEventListener(keyboardEvents.openInAppBrowser, keyboardShortcuts.onToggleBrowserOverlay);
-      window.removeEventListener(keyboardEvents.closeBrowserOverlay, keyboardShortcuts.onCloseBrowserOverlay);
-      window.removeEventListener(keyboardEvents.toggleRead, handleToggleRead);
-      window.removeEventListener(keyboardEvents.toggleStar, handleToggleStar);
-      window.removeEventListener(keyboardEvents.openExternalBrowser, handleOpenExternalBrowser);
-      window.removeEventListener(keyboardEvents.copyLink, handleCopyLink);
-      window.removeEventListener(keyboardEvents.addToReadingList, handleAddToReadingList);
-    };
-  }, [
-    handleAddToReadingList,
-    handleCopyLink,
-    handleOpenExternalBrowser,
-    handleToggleRead,
-    handleToggleStar,
+  useArticleActionShortcuts({
     keyboardShortcuts,
-  ]);
+    onToggleRead: handleToggleRead,
+    onToggleStar: handleToggleStar,
+    onOpenExternalBrowser: handleOpenExternalBrowser,
+    onCopyLink: handleCopyLink,
+    onAddToReadingList: handleAddToReadingList,
+  });
 
   return {
     setReadStatus,

@@ -8,15 +8,13 @@ import { useUiStore } from "@/stores/ui-store";
 import { ArticleShareMenu } from "./article-share-menu";
 import type { ArticleToolbarActionStripProps } from "./article-toolbar-view";
 import { useArticleActions } from "./use-article-actions";
+import type { ArticleActionKeyboardShortcuts } from "./use-article-action-shortcuts";
 
 type UseArticleToolbarControlsParams = {
   article: ArticleDto | null;
   isBrowserOpen: boolean;
   onToggleBrowserOverlay: () => void;
-  keyboardShortcuts?: {
-    onToggleBrowserOverlay: () => void;
-    onCloseBrowserOverlay: () => void;
-  };
+  keyboardShortcuts?: ArticleActionKeyboardShortcuts;
 };
 
 export function useArticleToolbarControls({
