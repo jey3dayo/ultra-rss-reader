@@ -389,6 +389,11 @@
   - 問題: `article-list.tsx` に記事移動、ショートカット listener、list key handling が集まっていて、表示データ導出と責務が混ざっていた
   - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-interactions.ts`
 
+- [x] article-list の global event listener を interactions hook から分離する
+  - 問題: `use-article-list-interactions.ts` に article navigation と focus-search / mark-all-read の window event 登録が残っていて、DOM interaction と global event bridge が混ざっていた
+  - 対応: `use-article-list-global-events.ts` に window event 購読を寄せて、interactions hook は DOM refs と keyboard action 解決に寄せた
+  - 対象: `src/components/reader/use-article-list-interactions.ts`, `src/components/reader/use-article-list-global-events.ts`
+
 - [x] article-list の search state と debounce を hook 化する
   - 問題: `article-list.tsx` に検索開閉、debounce、input focus、検索 query 実行がまとまっていて、表示データ選別と責務が混ざっていた
   - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-search.ts`
