@@ -16,7 +16,7 @@ import {
 } from "./browser-overlay-presentation";
 import { isBrowserRuntimeUnavailable } from "./browser-runtime-availability";
 import type { BrowserSurfaceIssue } from "./browser-surface-issue";
-import { type BrowserWebviewFallbackPayload, initialBrowserState, mergeBrowserState } from "./browser-webview-state";
+import { type BrowserWebviewFallbackPayload, initialBrowserState } from "./browser-webview-state";
 import { useBrowserDebugGeometryEvents } from "./use-browser-debug-geometry-events";
 import { useBrowserLayoutDiagnostics } from "./use-browser-layout-diagnostics";
 import { useBrowserNativeDiagnostics } from "./use-browser-native-diagnostics";
@@ -29,6 +29,7 @@ import { useBrowserWebviewCleanup } from "./use-browser-webview-cleanup";
 import { useBrowserWebviewEvents } from "./use-browser-webview-events";
 import { useBrowserWebviewLoadTimeout } from "./use-browser-webview-load-timeout";
 import { useBrowserWebviewRequestState } from "./use-browser-webview-request-state";
+import { useBrowserWebviewStateChanged } from "./use-browser-webview-state-changed";
 import { useBrowserWebviewSync } from "./use-browser-webview-sync";
 
 type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
@@ -111,19 +112,17 @@ export function useBrowserViewController({
     blocked: t("browser_embed_blocked"),
     blockedHint: t("browser_embed_blocked_hint"),
   });
+  const handleBrowserWebviewStateChanged = useBrowserWebviewStateChanged({
+    browserStateRef,
+    fallbackInFlightRef,
+    setBrowserState,
+    setSurfaceIssue,
+    getRequestedUrl: () => useUiStore.getState().browserUrl ?? "",
+  });
 
   const waitForBrowserWebviewListeners = useBrowserWebviewEvents({
     showDiagnostics,
-    onStateChanged: useCallback(
-      (payload: BrowserWebviewState) => {
-        const nextState = mergeBrowserState(browserStateRef.current, payload, useUiStore.getState().browserUrl ?? "");
-        browserStateRef.current = nextState;
-        setBrowserState(nextState);
-        setSurfaceIssue(null);
-        fallbackInFlightRef.current = false;
-      },
-      [setSurfaceIssue],
-    ),
+    onStateChanged: handleBrowserWebviewStateChanged,
     onFallback: useCallback(
       (payload: BrowserWebviewFallbackPayload) => {
         handleBrowserWebviewFallback(payload);
