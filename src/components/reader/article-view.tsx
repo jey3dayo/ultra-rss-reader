@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
@@ -17,9 +17,15 @@ import { ArticleMetaView } from "./article-meta-view";
 import { ArticleShareMenu } from "./article-share-menu";
 import { type ArticleTagPickerTagView, ArticleTagPickerView } from "./article-tag-picker-view";
 import { ArticleToolbarActionStrip, ArticleToolbarView, type ArticleToolbarViewLabels } from "./article-toolbar-view";
-import { BrowserView } from "./browser-view";
 import { useArticleActions } from "./use-article-actions";
+import { useArticleAutoMark } from "./use-article-auto-mark";
 import { useArticleBrowserOverlay } from "./use-article-browser-overlay";
+import {
+  ArticleEmptyStateShell,
+  ArticleNotFoundStateView,
+  BrowserOnlyStateView,
+  BrowserOverlaySurface,
+} from "./article-view-state";
 import { useArticleViewSelection } from "./use-article-view-selection";
 
 function openArticleInExternalBrowser(url: string) {
@@ -119,56 +125,24 @@ export function ArticleToolbar({
 function EmptyState() {
   const { t } = useTranslation("reader");
   return (
-    <div className="flex h-full flex-1 flex-col bg-background">
-      <ArticleToolbar article={null} isBrowserOpen={false} onCloseView={() => {}} onToggleBrowserOverlay={() => {}} />
+    <ArticleEmptyStateShell
+      toolbar={
+        <ArticleToolbar article={null} isBrowserOpen={false} onCloseView={() => {}} onToggleBrowserOverlay={() => {}} />
+      }
+      body={
       <ArticleEmptyStateView
         message={t("select_article_to_read")}
         hints={[t("empty_state_pick_from_list"), t("empty_state_search_hint"), t("empty_state_web_preview_hint")]}
       />
-    </div>
-  );
-}
-
-type BrowserOverlaySurfaceProps = {
-  children?: ReactNode;
-  onCloseOverlay: () => void;
-  showBrowserView?: boolean;
-  toolbarActions?: ReactNode;
-};
-
-function BrowserOverlaySurface({
-  children,
-  onCloseOverlay,
-  showBrowserView = true,
-  toolbarActions,
-}: BrowserOverlaySurfaceProps) {
-  const { t } = useTranslation("reader");
-
-  return (
-    <div className="relative flex min-h-0 flex-1 flex-col">
-      {children}
-      {showBrowserView ? (
-        <BrowserView
-          scope="main-stage"
-          onCloseOverlay={onCloseOverlay}
-          labels={{
-            closeOverlay: t("close_browser_overlay"),
-          }}
-          toolbarActions={toolbarActions}
-        />
-      ) : null}
-    </div>
+      }
+    />
   );
 }
 
 function BrowserOnlyState() {
   const closeBrowser = useUiStore((s) => s.closeBrowser);
 
-  return (
-    <div className="relative flex h-full flex-1 flex-col bg-background">
-      <BrowserOverlaySurface onCloseOverlay={closeBrowser} />
-    </div>
-  );
+  return <BrowserOnlyStateView onCloseOverlay={closeBrowser} />;
 }
 
 function toArticleTagPickerTagView(tag: { id: string; name: string; color: string | null }): ArticleTagPickerTagView {
@@ -242,6 +216,7 @@ function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedNam
   const selectFeed = useUiStore((s) => s.selectFeed);
   const articleUrl = article.url;
   const contentContainerRef = useRef<HTMLDivElement | null>(null);
+  const contentContainerElement = contentContainerRef.current;
   const articleContentHtml = article.content_sanitized;
 
   const openArticleUrl = useCallback(
@@ -264,19 +239,20 @@ function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedNam
   );
 
   useEffect(() => {
-    const contentContainer = contentContainerRef.current;
+    const contentContainer = contentContainerElement;
     if (!contentContainer || !articleContentHtml) {
       return;
     }
 
-    const anchors = Array.from(contentContainer.querySelectorAll<HTMLAnchorElement>("a[href]"));
-    const handleContentClick = (event: MouseEvent) => {
+    const anchors = Array.from(contentContainer.querySelectorAll("a[href]")) as HTMLAnchorElement[];
+    const handleContentClick = (event: Event) => {
       const anchor = event.currentTarget;
       if (!(anchor instanceof HTMLAnchorElement) || !anchor.href) {
         return;
       }
       event.preventDefault();
-      openArticleUrl(anchor.href, event.metaKey, event.ctrlKey);
+      const pointerEvent = event as MouseEvent;
+      openArticleUrl(anchor.href, pointerEvent.metaKey, pointerEvent.ctrlKey);
     };
 
     for (const anchor of anchors) {
@@ -288,7 +264,7 @@ function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedNam
         anchor.removeEventListener("click", handleContentClick);
       }
     };
-  }, [articleContentHtml, openArticleUrl]);
+  }, [articleContentHtml, contentContainerElement, openArticleUrl]);
 
   return (
     <ScrollArea data-testid="article-reader-scroll-area" className="h-full">
@@ -310,8 +286,7 @@ function ArticleReaderBody({ article, feedName }: { article: ArticleDto; feedNam
               ? (e) => {
                   if (e.button === 1) {
                     e.preventDefault();
-                    const bg = (usePreferencesStore.getState().prefs.open_links_background ?? "false") === "true";
-                    void openInBrowser(articleUrl, bg);
+                    void openArticleInExternalBrowser(articleUrl);
                   }
                 }
               : undefined
@@ -352,7 +327,6 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
   const prefs = usePreferencesStore((s) => s.prefs);
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
-  const autoMarkedArticleIdRef = useRef<string | null>(null);
   const { isBrowserOpen, resolvedDisplay, handleCloseBrowserOverlay, handleToggleBrowserOverlay } =
     useArticleBrowserOverlay({
       articleId: article.id,
@@ -376,30 +350,16 @@ export function ArticlePane({ article, feed, feedName }: { article: ArticleDto; 
     },
   });
 
-  useEffect(() => {
-    if (afterReading !== "mark_as_read" || article.is_read || autoMarkedArticleIdRef.current === article.id) {
-      return;
-    }
-
-    autoMarkedArticleIdRef.current = article.id;
-    if (viewMode === "unread") {
-      retainArticle(article.id);
-    }
-    setRead.mutate(
-      {
-        id: article.id,
-        read: true,
-      },
-      {
-        onSuccess: () => {
-          addRecentlyRead(article.id);
-        },
-        onError: (error) => {
-          showToast(error.message);
-        },
-      },
-    );
-  }, [addRecentlyRead, afterReading, article.id, article.is_read, retainArticle, setRead, showToast, viewMode]);
+  useArticleAutoMark({
+    articleId: article.id,
+    isRead: article.is_read,
+    afterReading,
+    viewMode,
+    retainArticle,
+    addRecentlyRead,
+    setRead,
+    showToast,
+  });
 
   const handleCloseView = useCallback(() => {
     clearArticle();
@@ -510,11 +470,7 @@ export function ArticleView() {
   }
 
   if (selectionState.kind === "not-found") {
-    return (
-      <div className="flex h-full flex-1 flex-col bg-background">
-        <div className="flex flex-1 items-center justify-center text-muted-foreground">{t("article_not_found")}</div>
-      </div>
-    );
+    return <ArticleNotFoundStateView message={t("article_not_found")} />;
   }
 
   return (
