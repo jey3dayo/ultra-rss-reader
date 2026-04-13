@@ -1,12 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { FEED_DROP_TARGET_KIND_ATTRIBUTE } from "./feed-tree-drop-target";
-
-type FeedTreeUnfolderedDropZoneProps = {
-  enabled: boolean;
-  active: boolean;
-  onDropToUnfoldered?: () => void;
-};
+import type { FeedTreeUnfolderedDropZoneProps } from "./feed-tree.types";
 
 export function FeedTreeUnfolderedDropZone({ enabled, active, onDropToUnfoldered }: FeedTreeUnfolderedDropZoneProps) {
   const { t } = useTranslation("sidebar");

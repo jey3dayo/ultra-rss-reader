@@ -1,13 +1,4 @@
-type FeedTreeEmptyStateProps =
-  | {
-      kind: "message";
-      message: string;
-    }
-  | {
-      kind: "action";
-      label: string;
-      onAction: () => void;
-    };
+import type { FeedTreeEmptyStateProps } from "./feed-tree.types";
 
 export function FeedTreeEmptyState(props: FeedTreeEmptyStateProps) {
   return (

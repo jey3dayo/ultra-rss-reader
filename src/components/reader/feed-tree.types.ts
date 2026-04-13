@@ -34,6 +34,8 @@ export type FeedTreeEmptyState =
   | { kind: "message"; message: string }
   | { kind: "action"; label: string; onAction: () => void };
 
+export type FeedTreeEmptyStateProps = FeedTreeEmptyState;
+
 export type FeedTreeViewProps = {
   isOpen: boolean;
   folders: FeedTreeFolderViewModel[];
@@ -97,6 +99,12 @@ export type FeedTreeUnfolderedSectionProps = {
   onDragStartFeed?: FeedTreeRowProps["onDragStartFeed"];
   onPointerDownFeed: NonNullable<FeedTreeRowProps["onPointerDownFeed"]>;
   consumeSuppressedHandleClick: NonNullable<FeedTreeRowProps["consumeSuppressedHandleClick"]>;
+};
+
+export type FeedTreeUnfolderedDropZoneProps = {
+  enabled: boolean;
+  active: boolean;
+  onDropToUnfoldered?: () => void;
 };
 
 export type UseFeedTreeDragParams = {
