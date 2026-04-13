@@ -91,6 +91,14 @@
     2. `sidebar` は account restore / startup expansion / hidden-state fallback を hook 化する
     3. 1 回で大きく割らず、warning を 1 つずつ消す単位で進める
 
+- [x] command-palette の結果リスト描画を view component に切り出す
+  - 問題: `command-palette.tsx` に actions/feeds/tags/articles/dev scenarios の `CommandList` 描画がまとまっていて、state 管理と view 描画が混ざっていた
+  - 対象: `src/components/reader/command-palette.tsx`, `src/components/reader/command-palette-results.tsx`
+
+- [x] command-palette の store selector 群を ui state hook に寄せる
+  - 問題: `command-palette.tsx` に `useUiStore` / `usePreferencesStore` / `usePlatformStore` の読み出しが残っていて、画面構成と state wiring が混ざっていた
+  - 対象: `src/components/reader/command-palette.tsx`, `src/components/reader/use-command-palette-ui-state.ts`
+
 - [x] sidebar の feed navigation と event listener を hook 化する
   - 問題: `sidebar.tsx` に feed 移動、folder 自動展開、`APP_EVENTS.navigateFeed` 購読が残っていて、tree 導出と責務が混ざっている
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-feed-navigation.ts`
@@ -118,6 +126,26 @@
 - [x] account sync retry 時刻 formatter を reader/settings で共通化する
   - 問題: sidebar と settings に retry 時刻の整形ロジックが重複していた
   - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-sync.ts`, `src/components/settings/account-detail.tsx`, `src/lib/account-sync-status-format.ts`
+
+- [x] sidebar の store selector 群を ui state hook に寄せる
+  - 問題: `sidebar.tsx` に `useUiStore` / `usePreferencesStore` の読み出しが多く残っていて、画面構成と state wiring が混ざっていた
+  - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-ui-state.ts`
+
+- [x] sidebar の query source 取得を sources hook に寄せる
+  - 問題: `sidebar.tsx` に accounts / feeds / folders / tags / account articles の query 呼び出しと基本集計が残っていて、source 取得と view orchestration が混ざっていた
+  - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-sources.ts`
+
+- [x] sidebar の content shell を view component に切り出す
+  - 問題: `sidebar.tsx` に subscriptions section / scroll area / footer actions / add-feed dialog の描画が残っていて、state orchestration と shell 描画が混ざっていた
+  - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/sidebar-content-view.tsx`
+
+- [x] sidebar の content section 組み立てを view component に切り出す
+  - 問題: `sidebar.tsx` に feed tree / tag section / add-feed dialog / empty state の JSX 組み立てが残っていて、view orchestration と section 描画が混ざっていた
+  - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/sidebar-content-sections.tsx`
+
+- [x] sidebar の orchestration を controller hook に寄せる
+  - 問題: `sidebar.tsx` に account/sync/tree/ui action まわりの hook 配線が残っていて、画面構成と controller 責務が混ざっていた
+  - 対象: `src/components/reader/sidebar.tsx`, `src/components/reader/use-sidebar-controller.ts`
 
 - [x] sidebar の account restore / startup expansion / hidden-state fallback を hook 化する
   - 問題: `sidebar.tsx` に account 復元、起動時 folder 展開、visibility fallback の effect が集まり、責務が重くなっていた
@@ -245,6 +273,14 @@
 - [x] article-list の body/context menu を view component に切り出す
   - 問題: `article-list.tsx` に list body と mark-all-read context menu の JSX が残っていて、画面構成と list shell 描画が混ざっていた
   - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/article-list-body.tsx`
+
+- [x] article-list の store selector 群を ui state hook に寄せる
+  - 問題: `article-list.tsx` に `useUiStore` / `usePreferencesStore` の読み出しが多く残っていて、画面構成と state wiring が混ざっていた
+  - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-ui-state.ts`
+
+- [x] article-list の orchestration を controller hook に寄せる
+  - 問題: `article-list.tsx` に data/search/view-state/header/interactions の hook 配線が残っていて、画面構成と controller 責務が混ざっていた
+  - 対象: `src/components/reader/article-list.tsx`, `src/components/reader/use-article-list-controller.ts`
 
 - [x] reader の再利用境界がある state/controller 型を `types` 化する
   - 問題: `use-sidebar-feed-tree.ts` と `use-add-feed-dialog-controller.ts` に再利用余地のある union/state 型が残っている
