@@ -1,33 +1,9 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import type { ArticleDto } from "@/api/tauri-commands";
+import type { UseArticleActionsParams, UseArticleActionsResult } from "./article-actions.types";
 import { addArticleToReadingList, copyArticleLink, openArticleInExternalBrowser } from "./article-browser-actions";
-import { type ArticleActionKeyboardShortcuts, useArticleActionShortcuts } from "./use-article-action-shortcuts";
+import { useArticleActionShortcuts } from "./use-article-action-shortcuts";
 import { useArticleStatusActions } from "./use-article-status-actions";
-
-type ShowToast = (message: string) => void;
-
-type UseArticleActionsParams = {
-  article: ArticleDto | null;
-  viewMode: "all" | "unread" | "starred";
-  supportsReadingList: boolean;
-  showToast: ShowToast;
-  addRecentlyRead: (articleId: string) => void;
-  retainArticle: (articleId: string) => void;
-  setRead: Parameters<typeof useArticleStatusActions>[0]["setRead"];
-  toggleStar: Parameters<typeof useArticleStatusActions>[0]["toggleStar"];
-  keyboardShortcuts?: ArticleActionKeyboardShortcuts;
-};
-
-type UseArticleActionsResult = {
-  setReadStatus: (pressed: boolean) => void;
-  setStarStatus: (pressed: boolean, options?: { showStatusToast?: boolean }) => void;
-  handleToggleRead: () => void;
-  handleToggleStar: () => void;
-  handleOpenExternalBrowser: () => void;
-  handleCopyLink: () => void;
-  handleAddToReadingList: () => void;
-};
 
 export function useArticleActions({
   article,

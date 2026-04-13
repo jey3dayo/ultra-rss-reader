@@ -1,22 +1,5 @@
-import type { UseMutationResult } from "@tanstack/react-query";
 import { useCallback } from "react";
-
-type SetReadMutation = UseMutationResult<unknown, Error, { id: string; read: boolean }, unknown>;
-type ToggleStarMutation = UseMutationResult<unknown, Error, { id: string; starred: boolean }, unknown>;
-
-type UseArticleStatusActionsParams = {
-  articleId: string | null;
-  isRead: boolean;
-  isStarred: boolean;
-  viewMode: "all" | "unread" | "starred";
-  showToast: (message: string) => void;
-  addRecentlyRead: (articleId: string) => void;
-  retainArticle: (articleId: string) => void;
-  setRead: SetReadMutation;
-  toggleStar: ToggleStarMutation;
-  starredMessage: string;
-  unstarredMessage: string;
-};
+import type { UseArticleStatusActionsParams, UseArticleStatusActionsResult } from "./article-actions.types";
 
 export function useArticleStatusActions({
   articleId,
@@ -30,7 +13,7 @@ export function useArticleStatusActions({
   toggleStar,
   starredMessage,
   unstarredMessage,
-}: UseArticleStatusActionsParams) {
+}: UseArticleStatusActionsParams): UseArticleStatusActionsResult {
   const retainIfNeeded = useCallback(
     (nextRead: boolean) => {
       if (!articleId) {
@@ -109,5 +92,5 @@ export function useArticleStatusActions({
     setStarStatus,
     handleToggleRead,
     handleToggleStar,
-  } as const;
+  };
 }
