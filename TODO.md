@@ -111,6 +111,10 @@
   - 問題: `useCommandPaletteController` に action list の定義と shortcut label 解決が残っていて、controller orchestration と action 定義が混ざっていた
   - 対象: `src/components/reader/use-command-palette-controller.ts`, `src/components/reader/use-command-palette-actions.ts`
 
+- [x] command-palette の local state と dev scenario loading を runtime hook に寄せる
+  - 問題: `useCommandPaletteController` に input reset / search state / dev scenario loading effect が残っていて、controller orchestration と runtime state 管理が混ざっていた
+  - 対象: `src/components/reader/use-command-palette-controller.ts`, `src/components/reader/use-command-palette-runtime.ts`
+
 - [x] command-palette の view props 組み立てを hook に寄せる
   - 問題: `useCommandPaletteController` に results props と prefix hint の組み立てが残っていて、controller orchestration と view props 導出が混ざっていた
   - 対象: `src/components/reader/use-command-palette-controller.ts`, `src/components/reader/use-command-palette-view-props.ts`
