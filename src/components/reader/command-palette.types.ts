@@ -41,3 +41,36 @@ export type CommandPaletteResultsProps = {
   onTagSelect: (tagId: string) => void;
   onArticleSelect: (feedId: string, articleId: string) => void;
 };
+
+export type CommandPaletteActionGroupsProps = Pick<
+  CommandPaletteResultsProps,
+  | "recentActions"
+  | "filteredActions"
+  | "showRecentActions"
+  | "showActions"
+  | "recentActionsHeading"
+  | "actionsHeading"
+  | "getCommandItemValue"
+  | "onActionSelect"
+>;
+
+export type CommandPaletteResourceGroupsProps = Pick<
+  CommandPaletteResultsProps,
+  | "filteredDevScenarios"
+  | "filteredFeeds"
+  | "filteredTags"
+  | "articles"
+  | "showRecentActions"
+  | "showDevScenarios"
+  | "showFeeds"
+  | "showTags"
+  | "showArticles"
+  | "feedsHeading"
+  | "tagsHeading"
+  | "articlesHeading"
+  | "getCommandItemValue"
+  | "onDevScenarioSelect"
+  | "onFeedSelect"
+  | "onTagSelect"
+  | "onArticleSelect"
+>;

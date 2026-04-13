@@ -147,6 +147,11 @@
   - 対応: `command-palette.types.ts` に action item / results props / item value resolver を寄せて、results component は描画責務に寄せた
   - 対象: `src/components/reader/command-palette-results.tsx`, `src/components/reader/command-palette.types.ts`, `src/components/reader/use-command-palette-data.ts`, `src/components/reader/use-command-palette-view-props.ts`
 
+- [x] command-palette の group props 型を shared types から再利用する
+  - 問題: `command-palette-action-groups.tsx` と `command-palette-resource-groups.tsx` に local props 型が残っていて、`command-palette.types.ts` を作ったあとも subview 側で境界が重複していた
+  - 対応: `CommandPaletteResultsProps` から `Pick` した group props 型を `command-palette.types.ts` に寄せて、subview 側は再利用に寄せた
+  - 対象: `src/components/reader/command-palette.types.ts`, `src/components/reader/command-palette-action-groups.tsx`, `src/components/reader/command-palette-resource-groups.tsx`
+
 - [x] article-pane controller から overlay action JSX を外す
   - 問題: `useArticlePaneController` が browser overlay の action strip JSX を直接返していて、controller orchestration と view 描画が混ざっていた
   - 対象: `src/components/reader/use-article-pane-controller.tsx`, `src/components/reader/article-view.tsx`, `src/components/reader/article-view.types.ts`

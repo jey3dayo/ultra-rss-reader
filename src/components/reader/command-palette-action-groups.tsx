@@ -1,16 +1,5 @@
 import { CommandGroup, CommandItem, CommandShortcut } from "../ui/command";
-import type { CommandPaletteActionItem } from "./command-palette.types";
-
-type CommandPaletteActionGroupsProps = {
-  recentActions: CommandPaletteActionItem[];
-  filteredActions: CommandPaletteActionItem[];
-  showRecentActions: boolean;
-  showActions: boolean;
-  recentActionsHeading: string;
-  actionsHeading: string;
-  getCommandItemValue: (kind: "action", id: string) => string;
-  onActionSelect: (action: CommandPaletteActionItem["id"]) => void;
-};
+import type { CommandPaletteActionGroupsProps, CommandPaletteActionItem } from "./command-palette.types";
 
 function CommandPaletteActionItems({
   actions,
@@ -20,9 +9,7 @@ function CommandPaletteActionItems({
 }: {
   actions: CommandPaletteActionItem[];
   keyPrefix?: string;
-  getCommandItemValue: (kind: "action", id: string) => string;
-  onActionSelect: (action: CommandPaletteActionItem["id"]) => void;
-}) {
+} & Pick<CommandPaletteActionGroupsProps, "getCommandItemValue" | "onActionSelect">) {
   return actions.map((action) => {
     const Icon = action.icon;
     return (
