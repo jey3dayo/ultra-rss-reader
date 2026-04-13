@@ -16,6 +16,10 @@ export type ArticleTagPickerTagView = {
   color: string | null;
 };
 
+export type ArticleTagChipsProps = {
+  articleId: string;
+};
+
 export type ArticleTagPickerViewProps = {
   assignedTags: ArticleTagPickerTagView[];
   availableTags: ArticleTagPickerTagView[];

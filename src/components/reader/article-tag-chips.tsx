@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useArticleTags, useCreateTag, useTagArticle, useTags, useUntagArticle } from "@/hooks/use-tags";
-import type { ArticleTagPickerTagView } from "./article-tag-picker.types";
+import type { ArticleTagChipsProps, ArticleTagPickerTagView } from "./article-tag-picker.types";
 import { ArticleTagPickerView } from "./article-tag-picker-view";
 
 function toArticleTagPickerTagView(tag: { id: string; name: string; color: string | null }): ArticleTagPickerTagView {
@@ -12,7 +12,7 @@ function toArticleTagPickerTagView(tag: { id: string; name: string; color: strin
   };
 }
 
-export function ArticleTagChips({ articleId }: { articleId: string }) {
+export function ArticleTagChips({ articleId }: ArticleTagChipsProps) {
   const { t } = useTranslation("reader");
   const { data: articleTags } = useArticleTags(articleId);
   const { data: allTags } = useTags();
