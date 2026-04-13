@@ -1,4 +1,4 @@
-import type { AccountSelectControl, AccountSyncSectionViewProps } from "@/components/settings/account-detail.types";
+import type { AccountSelectRowProps, AccountSyncSectionViewProps } from "@/components/settings/account-detail.types";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { LoadingButton } from "@/components/shared/loading-button";
@@ -42,7 +42,7 @@ export function AccountSyncSectionView({
   );
 }
 
-function AccountSelectRow({ control }: { control: AccountSelectControl }) {
+function AccountSelectRow({ control }: AccountSelectRowProps) {
   return (
     <LabeledSelectRow
       label={control.label}
