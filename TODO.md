@@ -490,6 +490,14 @@
   - 問題: `use-article-list-view-props.ts` の手書き型が header/context/body/footer component の props とずれていて、`tsc` が `article-list` で停止していた
   - 対象: `src/components/reader/use-article-list-view-props.ts`, `src/components/reader/article-list-header.tsx`, `src/components/reader/article-list-context-strip.tsx`, `src/components/reader/article-list-body.tsx`, `src/components/reader/article-list-footer.tsx`
 
+- [x] article list の hook result 型を view props 境界へ再利用する
+  - 問題: `use-article-list-view-props.ts` に `headerControls` / `viewState` の result shape が再定義で残っていて、hook 境界の変更が view props 側へ伝播しにくかった
+  - 対象: `src/components/reader/use-article-list-controller.ts`, `src/components/reader/use-article-list-view-props.ts`, `src/components/reader/use-article-list-header-controls.tsx`, `src/components/reader/use-article-list-view-state.ts`
+
+- [x] browser view の subview props/controller slice 型を `types` に寄せる
+  - 問題: `browser-overlay-chrome.tsx` と `browser-overlay-stage.tsx` に subview 用の `Pick<BrowserViewController, ...>` と union props が local 定義で散っていて、overlay refactor の型境界を追いにくかった
+  - 対象: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-overlay-chrome.tsx`, `src/components/reader/browser-overlay-stage.tsx`, `src/components/reader/browser-view.types.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
