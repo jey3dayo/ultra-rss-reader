@@ -1,6 +1,6 @@
 import type {
-  AddAccountFormInputControl,
-  AddAccountFormSelectControl,
+  AddAccountFormInputRowProps,
+  AddAccountFormSelectRowProps,
   AddAccountFormViewProps,
 } from "@/components/settings/add-account-form.types";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
@@ -8,7 +8,7 @@ import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { SectionHeading } from "@/components/shared/section-heading";
 
-function AddAccountSelectRow({ control }: { control: AddAccountFormSelectControl }) {
+function AddAccountSelectRow({ control }: AddAccountFormSelectRowProps) {
   return (
     <LabeledSelectRow
       label={control.label}
@@ -21,7 +21,7 @@ function AddAccountSelectRow({ control }: { control: AddAccountFormSelectControl
   );
 }
 
-function AddAccountInputRow({ control }: { control: AddAccountFormInputControl }) {
+function AddAccountInputRow({ control }: AddAccountFormInputRowProps) {
   return (
     <LabeledInputRow
       label={control.label}

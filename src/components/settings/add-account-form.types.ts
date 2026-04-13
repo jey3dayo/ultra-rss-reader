@@ -29,6 +29,14 @@ export type AddAccountCredentialsSection = {
   password: AddAccountFormInputControl;
 };
 
+export type AddAccountFormSelectRowProps = {
+  control: AddAccountFormSelectControl;
+};
+
+export type AddAccountFormInputRowProps = {
+  control: AddAccountFormInputControl;
+};
+
 export type AddAccountFormViewProps = {
   title: string;
   accountHeading: string;

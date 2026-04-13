@@ -37,6 +37,11 @@ export type BrowserViewProps = {
   toolbarActions?: ReactNode;
 };
 
+export type UseBrowserViewControllerParams = {
+  scope: BrowserViewScope;
+  onCloseOverlay: () => void;
+};
+
 export type BrowserViewController = {
   browserUrl: string | null;
   showDiagnostics: boolean;

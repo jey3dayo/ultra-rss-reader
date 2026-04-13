@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { BrowserViewController, BrowserViewScope } from "./browser-view.types";
+import type { BrowserViewController, UseBrowserViewControllerParams } from "./browser-view.types";
 import { resolveBrowserViewPresentation } from "./browser-view-presentation";
 import { initialBrowserState } from "./browser-webview-state";
 import { useBrowserDebugGeometryEvents } from "./use-browser-debug-geometry-events";
@@ -17,10 +17,7 @@ import { useBrowserWebviewSync } from "./use-browser-webview-sync";
 export function useBrowserViewController({
   scope,
   onCloseOverlay,
-}: {
-  scope: BrowserViewScope;
-  onCloseOverlay: () => void;
-}): BrowserViewController {
+}: UseBrowserViewControllerParams): BrowserViewController {
   const {
     showDiagnostics,
     browserUrl,
