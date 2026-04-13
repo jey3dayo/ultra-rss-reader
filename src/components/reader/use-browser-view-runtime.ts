@@ -31,9 +31,7 @@ type UseBrowserViewRuntimeResult = {
   handleCloseOverlay: () => void;
 };
 
-export function useBrowserViewRuntime({
-  onCloseOverlay,
-}: UseBrowserViewRuntimeParams): UseBrowserViewRuntimeResult {
+export function useBrowserViewRuntime({ onCloseOverlay }: UseBrowserViewRuntimeParams): UseBrowserViewRuntimeResult {
   const prefs = usePreferencesStore((s) => s.prefs);
   const showDiagnostics = resolvePreferenceValue(prefs, "debug_browser_hud") === "true";
   const browserUrl = useUiStore((s) => s.browserUrl);
