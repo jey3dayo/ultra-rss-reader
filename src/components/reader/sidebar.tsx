@@ -32,6 +32,7 @@ import { useSidebarSmartViews } from "./use-sidebar-smart-views";
 import { useSidebarStartupFolderExpansion } from "./use-sidebar-startup-folder-expansion";
 import { useSidebarSync } from "./use-sidebar-sync";
 import { useSidebarTagItems } from "./use-sidebar-tag-items";
+import { useSidebarUiActions } from "./use-sidebar-ui-actions";
 import { useSidebarVisibilityFallback } from "./use-sidebar-visibility-fallback";
 
 export function Sidebar() {
@@ -120,23 +121,25 @@ export function Sidebar() {
   });
 
   const selectedAccount = accounts?.find((a) => a.id === selectedAccountId);
-
-  const handleSelectAccount = useCallback(
-    (id: string) => {
-      selectAccount(id);
-      setPref("selected_account_id", id);
-    },
-    [selectAccount, setPref],
-  );
-  const toggleFeedsSection = useCallback(() => {
-    setIsFeedsSectionOpen((v) => !v);
-  }, []);
-  const toggleTagsSection = useCallback(() => {
-    setIsTagsSectionOpen((v) => !v);
-  }, []);
-  const handleOpenSettings = useCallback(() => {
-    openSettings();
-  }, [openSettings]);
+  const {
+    handleSelectAccount,
+    toggleFeedsSection,
+    toggleTagsSection,
+    handleOpenSettings,
+    handleOpenAccountSettings,
+    handleAddFeed,
+    handleAddFeedDialogOpenChange,
+  } = useSidebarUiActions({
+    selectedAccountId,
+    selectAccount,
+    setSelectedAccountPreference: (accountId) => setPref("selected_account_id", accountId),
+    openSettings,
+    setSettingsAddAccount,
+    openAddFeedDialog,
+    closeAddFeedDialog,
+    setIsFeedsSectionOpen,
+    setIsTagsSectionOpen,
+  });
 
   const totalUnread = feeds?.reduce((sum, f) => sum + f.unread_count, 0) ?? 0;
   const starredCount = useMemo(() => accountArticles?.filter((a) => a.is_starred).length ?? 0, [accountArticles]);
@@ -150,19 +153,6 @@ export function Sidebar() {
     showSidebarStarred,
     t,
   });
-
-  const handleOpenAccountSettings = useCallback(() => {
-    openSettings("accounts");
-    setSettingsAddAccount(true);
-  }, [openSettings, setSettingsAddAccount]);
-
-  const handleAddFeed = useCallback(() => {
-    if (selectedAccountId) {
-      openAddFeedDialog();
-    } else {
-      handleOpenAccountSettings();
-    }
-  }, [handleOpenAccountSettings, openAddFeedDialog, selectedAccountId]);
 
   const feedList = feeds ?? [];
   const folderList = folders ?? [];
@@ -238,16 +228,6 @@ export function Sidebar() {
   const handleDropToUnfolderedRequest = useCallback(() => {
     void handleDropToUnfoldered();
   }, [handleDropToUnfoldered]);
-  const handleAddFeedDialogOpenChange = useCallback(
-    (open: boolean) => {
-      if (open) {
-        openAddFeedDialog();
-      } else {
-        closeAddFeedDialog();
-      }
-    },
-    [closeAddFeedDialog, openAddFeedDialog],
-  );
   const renderFolderContextMenu = useCallback(
     (folder: FeedTreeFolderViewModel) => (
       <FolderContextMenuContent
