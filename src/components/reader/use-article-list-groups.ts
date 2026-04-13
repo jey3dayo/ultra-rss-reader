@@ -1,16 +1,6 @@
-import type { TFunction } from "i18next";
 import { useMemo } from "react";
-import type { ArticleDto } from "@/api/tauri-commands";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
-
-export type UseArticleListGroupsParams = {
-  groupedArticles: Record<string, ArticleDto[]>;
-  groupBy: string;
-  feedNameMap: Map<string, string>;
-  selectedArticleId: string | null;
-  recentlyReadIds: Set<string>;
-  t: TFunction<"reader">;
-};
+import type { UseArticleListGroupsParams } from "./article-list.types";
 
 export function useArticleListGroups({
   groupedArticles,

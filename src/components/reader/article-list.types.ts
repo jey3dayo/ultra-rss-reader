@@ -5,7 +5,6 @@ import type { FeedDisplayPresetOption } from "@/lib/article-display";
 import type { buildKeyToActionMap, KeyboardAction } from "@/lib/keyboard-shortcuts";
 import type { UiSelection } from "@/stores/ui-store";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
-import type { UseArticleListGroupsParams } from "./use-article-list-groups";
 
 export type ArticleListLayoutMode = "wide" | "compact" | "mobile";
 export type ArticleListViewMode = "all" | "unread" | "starred";
@@ -154,6 +153,15 @@ export type UseArticleListEffectsParams = {
   selectedArticleId: string | null;
   isPrimarySourceLoading: boolean;
   clearArticle: () => void;
+};
+
+export type UseArticleListGroupsParams = {
+  groupedArticles: Record<string, ArticleDto[]>;
+  groupBy: string;
+  feedNameMap: Map<string, string>;
+  selectedArticleId: string | null;
+  recentlyReadIds: Set<string>;
+  t: TFunction<"reader">;
 };
 
 export type UseArticleListViewPropsParams = {
