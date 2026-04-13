@@ -436,6 +436,10 @@
   - 問題: `rename-feed-dialog.tsx` に display preset options、url fields、folder select props、labels の組み立てが残っていて、container wiring と view props 導出が混ざっていた
   - 対象: `src/components/reader/rename-feed-dialog.tsx`, `src/components/reader/use-rename-feed-dialog-view-props.ts`
 
+- [x] feed tree drag session helper の契約を unit test で固定する
+  - 問題: `feed-tree-drag-session.ts` が pointer drag の閾値と session 更新を担っているが、helper 単体の回帰テストがなかった
+  - 対象: `src/components/reader/feed-tree-drag-session.ts`, `src/__tests__/components/feed-tree-drag-session.test.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
