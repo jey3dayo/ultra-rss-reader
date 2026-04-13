@@ -75,6 +75,7 @@ export function useArticleToolbarControls({
       previewToggleOn: t("close_browser_overlay"),
       copyLink: t("copy_link"),
       openInExternalBrowser: t("open_in_external_browser"),
+      moreActions: t("more_actions"),
     },
     onToggleRead: setReadStatus,
     onToggleStar: (pressed) => setStarStatus(pressed, { showStatusToast: true }),

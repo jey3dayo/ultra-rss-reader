@@ -1,9 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SidebarHeaderView } from "@/components/reader/sidebar-header-view";
+import { useUiStore } from "@/stores/ui-store";
 
 describe("SidebarHeaderView", () => {
+  beforeEach(() => {
+    useUiStore.setState({ layoutMode: "wide" });
+  });
+
   it("renders sync and add feed actions with labels", async () => {
     const user = userEvent.setup();
     const onSync = vi.fn();
@@ -15,7 +20,9 @@ describe("SidebarHeaderView", () => {
         onSync={onSync}
         onAddFeed={onAddFeed}
         syncButtonLabel="Sync feeds"
+        syncButtonText="Sync"
         addFeedButtonLabel="Add feed"
+        addFeedButtonText="Add"
       />,
     );
 
@@ -27,5 +34,24 @@ describe("SidebarHeaderView", () => {
 
     expect(onSync).toHaveBeenCalledTimes(1);
     expect(onAddFeed).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows short text labels in mobile layout", () => {
+    useUiStore.setState({ layoutMode: "mobile" });
+
+    render(
+      <SidebarHeaderView
+        isSyncing={false}
+        onSync={vi.fn()}
+        onAddFeed={vi.fn()}
+        syncButtonLabel="Sync feeds"
+        syncButtonText="Sync"
+        addFeedButtonLabel="Add feed"
+        addFeedButtonText="Add"
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Sync feeds" })).toHaveTextContent("Sync");
+    expect(screen.getByRole("button", { name: "Add feed" })).toHaveTextContent("Add");
   });
 });

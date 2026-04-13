@@ -12,7 +12,9 @@ export type SidebarHeaderProps = {
   onSync: () => void;
   onAddFeed: () => void;
   syncButtonLabel: string;
+  syncButtonText: string;
   addFeedButtonLabel: string;
+  addFeedButtonText: string;
   isSyncDisabled?: boolean;
   isAddFeedDisabled?: boolean;
 };

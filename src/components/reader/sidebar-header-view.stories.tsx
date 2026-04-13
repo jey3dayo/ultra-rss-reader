@@ -11,7 +11,9 @@ const meta = {
     onSync: fn(),
     onAddFeed: fn(),
     syncButtonLabel: "Sync feeds",
+    syncButtonText: "Sync",
     addFeedButtonLabel: "Add feed",
+    addFeedButtonText: "Add",
   },
   decorators: [
     (Story) => (

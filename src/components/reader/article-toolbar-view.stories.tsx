@@ -27,6 +27,7 @@ const meta = {
       previewToggleOn: "Close Web Preview",
       copyLink: "Copy link",
       openInExternalBrowser: "Open in external browser",
+      moreActions: "More actions",
     },
     onCloseView: fn(),
     onToggleRead: fn(),

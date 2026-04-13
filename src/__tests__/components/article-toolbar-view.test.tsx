@@ -1,9 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleToolbarView } from "@/components/reader/article-toolbar-view";
+import { useUiStore } from "@/stores/ui-store";
 
 describe("ArticleToolbarView", () => {
+  beforeEach(() => {
+    useUiStore.setState({ layoutMode: "wide" });
+  });
+
   it("renders visible actions and calls their handlers", async () => {
     const user = userEvent.setup();
     const onCloseView = vi.fn();
@@ -35,6 +40,7 @@ describe("ArticleToolbarView", () => {
           previewToggleOff: "Open Web Preview",
           previewToggleOn: "Close Web Preview",
           openInExternalBrowser: "Open in External Browser",
+          moreActions: "More actions",
         }}
         onCloseView={onCloseView}
         onToggleRead={onToggleRead}
@@ -92,6 +98,7 @@ describe("ArticleToolbarView", () => {
           previewToggleOff: "Open Web Preview",
           previewToggleOn: "Close Web Preview",
           openInExternalBrowser: "Open in External Browser",
+          moreActions: "More actions",
         }}
         onCloseView={vi.fn()}
         onToggleRead={vi.fn()}
@@ -133,6 +140,7 @@ describe("ArticleToolbarView", () => {
           previewToggleOff: "Open Web Preview",
           previewToggleOn: "Close Web Preview",
           openInExternalBrowser: "Open in External Browser",
+          moreActions: "More actions",
         }}
         onCloseView={vi.fn()}
         onToggleRead={vi.fn()}
@@ -172,6 +180,7 @@ describe("ArticleToolbarView", () => {
           previewToggleOff: "Open Web Preview",
           previewToggleOn: "Close Web Preview",
           openInExternalBrowser: "Open in External Browser",
+          moreActions: "More actions",
         }}
         onCloseView={vi.fn()}
         onToggleRead={vi.fn()}
@@ -210,6 +219,7 @@ describe("ArticleToolbarView", () => {
           previewToggleOff: "Open Web Preview",
           previewToggleOn: "Close Web Preview",
           openInExternalBrowser: "Open in External Browser",
+          moreActions: "More actions",
         }}
         onCloseView={vi.fn()}
         onToggleRead={vi.fn()}
@@ -233,5 +243,56 @@ describe("ArticleToolbarView", () => {
       "Copy link",
       "Open in External Browser",
     ]);
+  });
+
+  it("groups secondary link actions under More actions in mobile layout", async () => {
+    useUiStore.setState({ layoutMode: "mobile" });
+    const user = userEvent.setup();
+    const onCopyLink = vi.fn();
+    const onOpenInExternalBrowser = vi.fn();
+
+    render(
+      <ArticleToolbarView
+        showCloseButton
+        canToggleRead
+        canToggleStar
+        isRead={false}
+        isStarred={false}
+        isBrowserOpen={false}
+        showCopyLinkButton
+        canCopyLink
+        showOpenInBrowserButton
+        canOpenInBrowser
+        showOpenInExternalBrowserButton
+        canOpenInExternalBrowser
+        labels={{
+          closeView: "Close article",
+          toggleRead: "Toggle read",
+          toggleStar: "Toggle star",
+          copyLink: "Copy link",
+          previewToggleOff: "Open Web Preview",
+          previewToggleOn: "Close Web Preview",
+          openInExternalBrowser: "Open in External Browser",
+          moreActions: "More actions",
+        }}
+        onCloseView={vi.fn()}
+        onToggleRead={vi.fn()}
+        onToggleStar={vi.fn()}
+        onCopyLink={onCopyLink}
+        onOpenInBrowser={vi.fn()}
+        onOpenInExternalBrowser={onOpenInExternalBrowser}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Copy link" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open in External Browser" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Copy link" }));
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Open in External Browser" }));
+
+    expect(onCopyLink).toHaveBeenCalledTimes(1);
+    expect(onOpenInExternalBrowser).toHaveBeenCalledTimes(1);
   });
 });

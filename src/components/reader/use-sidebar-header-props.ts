@@ -11,6 +11,8 @@ export function useSidebarHeaderProps({
     onSync: handleSync,
     onAddFeed: handleAddFeed,
     syncButtonLabel: t("sync_feeds"),
+    syncButtonText: t("sync_short"),
     addFeedButtonLabel: t("add_feed"),
+    addFeedButtonText: t("add_short"),
   };
 }

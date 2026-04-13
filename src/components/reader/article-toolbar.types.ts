@@ -10,6 +10,7 @@ export type ArticleToolbarViewLabels = {
   previewToggleOn: string;
   copyLink: string;
   openInExternalBrowser: string;
+  moreActions: string;
 };
 
 export type ArticleToolbarViewProps = {

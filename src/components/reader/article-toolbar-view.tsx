@@ -1,8 +1,63 @@
-import { Copy, ExternalLink, Eye, X } from "lucide-react";
+import { Menu } from "@base-ui/react/menu";
+import { Copy, Ellipsis, ExternalLink, Eye, X } from "lucide-react";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
-import { IconToolbarButton, IconToolbarToggle } from "@/components/shared/icon-toolbar-control";
+import { IconToolbarButton, IconToolbarMenuTrigger, IconToolbarToggle } from "@/components/shared/icon-toolbar-control";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useUiStore } from "@/stores/ui-store";
 import type { ArticleToolbarActionStripProps, ArticleToolbarViewProps } from "./article-toolbar.types";
+import { contextMenuStyles } from "./context-menu-styles";
+
+function ArticleToolbarMoreMenu({
+  showCopyLinkButton,
+  canCopyLink,
+  showOpenInExternalBrowserButton,
+  canOpenInExternalBrowser,
+  labels,
+  onCopyLink,
+  onOpenInExternalBrowser,
+}: Pick<
+  ArticleToolbarActionStripProps,
+  | "showCopyLinkButton"
+  | "canCopyLink"
+  | "showOpenInExternalBrowserButton"
+  | "canOpenInExternalBrowser"
+  | "labels"
+  | "onCopyLink"
+  | "onOpenInExternalBrowser"
+>) {
+  const hasActions =
+    (showCopyLinkButton && canCopyLink) || (showOpenInExternalBrowserButton && canOpenInExternalBrowser);
+
+  if (!hasActions) {
+    return null;
+  }
+
+  return (
+    <Menu.Root>
+      <IconToolbarMenuTrigger label={labels.moreActions}>
+        <Ellipsis className="h-4 w-4" />
+      </IconToolbarMenuTrigger>
+      <Menu.Portal>
+        <Menu.Positioner sideOffset={4}>
+          <Menu.Popup className={contextMenuStyles.popup}>
+            {showCopyLinkButton && canCopyLink ? (
+              <Menu.Item className={contextMenuStyles.item} onClick={onCopyLink}>
+                <Copy className="mr-2 h-4 w-4" />
+                {labels.copyLink}
+              </Menu.Item>
+            ) : null}
+            {showOpenInExternalBrowserButton && canOpenInExternalBrowser ? (
+              <Menu.Item className={contextMenuStyles.item} onClick={onOpenInExternalBrowser}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                {labels.openInExternalBrowser}
+              </Menu.Item>
+            ) : null}
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>
+  );
+}
 
 export function ArticleToolbarActionStrip({
   canToggleRead,
@@ -25,6 +80,8 @@ export function ArticleToolbarActionStrip({
   onOpenInBrowser,
   onOpenInExternalBrowser,
 }: ArticleToolbarActionStripProps) {
+  const isMobile = useUiStore((state) => state.layoutMode === "mobile");
+
   return (
     <div className="flex items-center gap-2">
       <IconToolbarToggle
@@ -55,12 +112,12 @@ export function ArticleToolbarActionStrip({
           <Eye className="h-4 w-4" />
         </IconToolbarToggle>
       )}
-      {showCopyLinkButton && (
+      {showCopyLinkButton && !isMobile && (
         <IconToolbarButton label={labels.copyLink} onClick={onCopyLink} disabled={!canCopyLink}>
           <Copy className="h-4 w-4" />
         </IconToolbarButton>
       )}
-      {showOpenInExternalBrowserButton && !hideBrowserOverlayActions && (
+      {showOpenInExternalBrowserButton && !hideBrowserOverlayActions && !isMobile && (
         <IconToolbarButton
           label={labels.openInExternalBrowser}
           onClick={onOpenInExternalBrowser}
@@ -69,6 +126,17 @@ export function ArticleToolbarActionStrip({
           <ExternalLink className="h-4 w-4" />
         </IconToolbarButton>
       )}
+      {isMobile ? (
+        <ArticleToolbarMoreMenu
+          showCopyLinkButton={showCopyLinkButton}
+          canCopyLink={canCopyLink}
+          showOpenInExternalBrowserButton={showOpenInExternalBrowserButton && !hideBrowserOverlayActions}
+          canOpenInExternalBrowser={canOpenInExternalBrowser}
+          labels={labels}
+          onCopyLink={onCopyLink}
+          onOpenInExternalBrowser={onOpenInExternalBrowser}
+        />
+      ) : null}
       {shareMenuControl}
     </div>
   );
