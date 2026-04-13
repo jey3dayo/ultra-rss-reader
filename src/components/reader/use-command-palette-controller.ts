@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { addToHistory } from "@/hooks/use-command-history";
-import { useCommandSearch } from "@/hooks/use-command-search";
 import { useFeedLanding } from "@/hooks/use-feed-landing";
 import { executeAction } from "@/lib/actions";
-import { loadRuntimeDevScenarios, type RuntimeDevScenario, runRuntimeDevScenario } from "@/lib/dev-scenario-runtime";
+import { type RuntimeDevScenario, runRuntimeDevScenario } from "@/lib/dev-scenario-runtime";
 import { useCommandPaletteActions } from "./use-command-palette-actions";
 import { COMMAND_PALETTE_HISTORY_PREFIX, type PaletteAction, useCommandPaletteData } from "./use-command-palette-data";
+import { useCommandPaletteRuntime } from "./use-command-palette-runtime";
 import { useCommandPaletteUiState } from "./use-command-palette-ui-state";
 import { useCommandPaletteViewProps } from "./use-command-palette-view-props";
 
@@ -25,40 +24,8 @@ export function useCommandPaletteController() {
     shortcutPrefs,
   } = useCommandPaletteUiState();
   const openFeedLanding = useFeedLanding();
-  const [input, setInput] = useState("");
-  const [devScenarios, setDevScenarios] = useState<RuntimeDevScenario[]>([]);
-  const { prefix, query, deferredQuery } = useCommandSearch(input);
+  const { input, setInput, devScenarios, prefix, query, deferredQuery } = useCommandPaletteRuntime(open);
   const actions = useCommandPaletteActions({ platformKind, shortcutPrefs });
-
-  useEffect(() => {
-    if (!open) {
-      setInput("");
-    }
-  }, [open]);
-
-  useEffect(() => {
-    if (!import.meta.env.DEV) {
-      return;
-    }
-
-    let cancelled = false;
-
-    void loadRuntimeDevScenarios()
-      .then((scenarios) => {
-        if (!cancelled) {
-          setDevScenarios(scenarios);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setDevScenarios([]);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const {
     articles,
