@@ -33,6 +33,10 @@ export type SettingsPageTextControl = {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  actionLabel?: string;
+  actionAriaLabel?: string;
+  onAction?: () => void;
+  actionDisabled?: boolean;
 };
 
 export type SettingsPageActionControl = {

@@ -43,8 +43,9 @@ describe("DebugSettings", () => {
 
     render(<DebugSettings />, { wrapper: createWrapper() });
 
+    expect(screen.queryByText("Open a URL in Web Preview")).not.toBeInTheDocument();
     await user.type(screen.getByLabelText("Web preview URL"), "https://example.com/debug");
-    await user.click(screen.getByRole("button", { name: "Open now: Open a URL in Web Preview" }));
+    await user.click(screen.getByRole("button", { name: "Open now: Web preview URL" }));
 
     expect(usePreferencesStore.getState().prefs.debug_web_preview_url).toBe("https://example.com/debug");
     expect(useUiStore.getState().browserUrl).toBe("https://example.com/debug");

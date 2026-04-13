@@ -50,6 +50,10 @@ function SettingsPageTextRow({ control }: SettingsPageTextRowProps) {
       rowClassName="gap-4"
       labelClassName="w-40 shrink-0"
       inputClassName="h-10 flex-1"
+      actionLabel={control.actionLabel}
+      actionAriaLabel={control.actionAriaLabel}
+      onAction={control.onAction}
+      actionDisabled={control.actionDisabled}
     />
   );
 }

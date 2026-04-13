@@ -22,6 +22,10 @@ export type LabeledInputRowProps = {
   rowClassName?: string;
   labelClassName?: string;
   inputClassName?: string;
+  actionLabel?: string;
+  actionAriaLabel?: string;
+  onAction?: () => void;
+  actionDisabled?: boolean;
 };
 
 export type LabeledSelectOption = {
