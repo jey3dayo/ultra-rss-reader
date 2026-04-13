@@ -325,6 +325,11 @@
   - 対応: `KeyboardShortcutPrefs` と `KeyToActionMap` を `src/lib/keyboard-shortcuts.ts` に追加して、article list types は explicit type を参照する形に寄せた
   - 対象: `src/lib/keyboard-shortcuts.ts`, `src/components/reader/article-list.types.ts`
 
+- [x] article display / sidebar runtime の explicit contract を参照する
+  - 問題: `article-view.types.ts` と `sidebar-runtime.types.ts` に `ReturnType<typeof ...>` 依存が残っていて、正本が元 module ではなく infer に隠れていた
+  - 対応: `ResolvedArticleDisplay` を `src/lib/article-display.ts` から、`UiStoreState` を `src/stores/ui-store.ts` から参照する形に寄せて、`ReturnType` 依存を外した
+  - 対象: `src/components/reader/article-view.types.ts`, `src/components/reader/sidebar-runtime.types.ts`, `src/stores/ui-store.ts`
+
 - [x] browser view presentation contract を shared types に寄せる
   - 問題: `browser-view-presentation.ts` が local な presentation/result 型を持っていて、presentation helper の正本を `browser-view.types.ts` から追えなかった
   - 対応: `BrowserViewPresentation` と `ResolveBrowserViewPresentationParams` を `browser-view.types.ts` に追加して、presentation helper は shared types を参照する形に寄せた
