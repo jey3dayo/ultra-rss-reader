@@ -77,6 +77,13 @@
   - 対象: `src/hooks/use-layout.ts`, `src/__tests__/hooks/use-layout.test.ts`
   - 対応: mobile breakpoint を `640px` に引き上げ、500px / 639px は single-pane mobile、640px 以上だけ compact に入るよう回帰テストを追加した
 
+- [x] 390px 幅で `購読の整理` の overview / queue / review が前後に食い込む
+  - 症状: narrow viewport で feed cleanup を開くと、summary の下で filter/bulk actions より先に queue heading が入り込み、review も大きく下へ押し出されて section 順序が崩れて見える
+  - 影響: 390px 前後で feed cleanup の操作順が視覚的に分かりづらく、bulk action と queue 選択の巡回確認がしづらい
+  - 原因: `feed-cleanup-layout` が stacked 幅でも grid/flex item の高さ制約を受け、overview section の中身が本来の順序どおりに高さを取れず次 section と干渉していた
+  - 対象: `src/components/feed-cleanup/feed-cleanup-page-view.tsx`, `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`, `src/__tests__/components/feed-cleanup-page.test.tsx`
+  - 対応: stacked 幅では layout container を block flow + page scroll に戻し、queue の内部 scroll は `lg` 以上だけに限定して narrow screen 用の回帰テストを追加した
+
 ## 2026-04-12 購読整理 UI copy / 情報設計メモ
 
 - [x] 購読整理画面に一括操作を追加する
