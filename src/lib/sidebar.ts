@@ -1,4 +1,5 @@
 import type { FeedDto } from "@/api/tauri-commands";
+import type { SortSubscriptions } from "@/stores/preferences-store";
 
 type GroupedFeeds = {
   feedsByFolder: Map<string, FeedDto[]>;
@@ -20,7 +21,7 @@ export function groupFeedsByFolder(feeds: FeedDto[]): GroupedFeeds {
   return { feedsByFolder: byFolder, unfolderedFeeds: unfoldered };
 }
 
-export function sortFeedsByPreference(feeds: FeedDto[], sortPreference: string): FeedDto[] {
+export function sortFeedsByPreference(feeds: FeedDto[], sortPreference: SortSubscriptions): FeedDto[] {
   switch (sortPreference) {
     case "alphabetical":
       return [...feeds].sort((a, b) => a.title.localeCompare(b.title));

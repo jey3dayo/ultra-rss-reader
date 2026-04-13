@@ -1,4 +1,5 @@
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
+import type { SortSubscriptions } from "@/stores/preferences-store";
 import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarFeedTreeViewMode, SidebarSelection } from "./sidebar-feed-tree.types";
 
@@ -69,7 +70,7 @@ export type SidebarFeedSectionParams = {
   selection: SidebarSelection;
   viewMode: SidebarFeedTreeViewMode;
   expandedFolderIds: Set<string>;
-  sortSubscriptions: string;
+  sortSubscriptions: SortSubscriptions;
   grayscaleFavicons: boolean;
   isFeedsSectionOpen: boolean;
   startupFolderExpansion: StartupFolderExpansionMode;

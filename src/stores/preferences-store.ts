@@ -26,6 +26,7 @@ const persistedBooleanPreferenceSchema = z.enum(["true", "false"]);
 const freeformStringSchema = z.string();
 
 export type Theme = z.infer<typeof themeSchema>;
+export type SortSubscriptions = z.infer<typeof sortSubscriptionsSchema>;
 
 const preferenceSchemas = {
   language: languageSchema,

@@ -1,9 +1,13 @@
 import type { TFunction } from "i18next";
 import type { KeyboardEvent, RefObject } from "react";
 import type { ArticleGroupsViewGroup } from "./article-groups-view";
-import type { ArticleListLayoutMode, ArticleListViewMode, UseArticleListViewPropsResult } from "./article-list.types";
+import type {
+  ArticleListLayoutMode,
+  ArticleListViewMode,
+  UseArticleListHeaderControlsResult,
+  UseArticleListViewPropsResult,
+} from "./article-list.types";
 import { useArticleListBodyProps } from "./use-article-list-body-props";
-import type { UseArticleListHeaderControlsResult } from "./use-article-list-header-controls";
 import type { UseArticleListViewStateResult } from "./use-article-list-view-state";
 
 export type UseArticleListViewPropsParams = {

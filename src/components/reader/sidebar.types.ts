@@ -1,5 +1,6 @@
 import type { TFunction } from "i18next";
 import type { ReactNode, RefObject } from "react";
+import type { SortSubscriptions } from "@/stores/preferences-store";
 import type { AccountSwitcherProps } from "./account-switcher.types";
 import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarFeedTreeProps } from "./sidebar-feed-section.types";
@@ -89,7 +90,7 @@ export type SidebarControllerSectionsParams = {
   selection: SidebarSelection;
   viewMode: import("./sidebar-feed-tree.types").SidebarFeedTreeViewMode;
   expandedFolderIds: Set<string>;
-  sortSubscriptions: string;
+  sortSubscriptions: SortSubscriptions;
   grayscaleFavicons: boolean;
   isFeedsSectionOpen: boolean;
   startupFolderExpansion: import("./sidebar-feed-section.types").StartupFolderExpansionMode;

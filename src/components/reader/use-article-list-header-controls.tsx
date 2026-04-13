@@ -1,15 +1,6 @@
 import { useCallback, useMemo } from "react";
-import type { UseArticleListHeaderControlsParams } from "./article-list.types";
+import type { UseArticleListHeaderControlsParams, UseArticleListHeaderControlsResult } from "./article-list.types";
 import { ArticleListFeedModeControl } from "./article-list-feed-mode-control";
-
-export type UseArticleListHeaderControlsResult = {
-  showSidebarButton: boolean;
-  sidebarButtonLabel: string;
-  sidebarButtonText?: string;
-  isSidebarVisible?: boolean;
-  feedModeControl: React.ReactNode;
-  handleSidebarToggle: () => void;
-};
 
 export function useArticleListHeaderControls({
   layoutMode,

@@ -42,7 +42,7 @@ export function useSidebarUiState(): SidebarUiStateResult {
   const showSidebarTags = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "show_sidebar_tags") === "true");
   const displayFavicons = usePreferencesStore((s) => (s.prefs.display_favicons ?? "true") === "true");
   const grayscaleFavicons = usePreferencesStore((s) => (s.prefs.grayscale_favicons ?? "false") === "true");
-  const sortSubscriptions = usePreferencesStore((s) => s.prefs.sort_subscriptions ?? "folders_first");
+  const sortSubscriptions = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "sort_subscriptions"));
   const startupFolderExpansion = usePreferencesStore(
     (s) => resolvePreferenceValue(s.prefs, "startup_folder_expansion") as StartupFolderExpansionMode,
   );
