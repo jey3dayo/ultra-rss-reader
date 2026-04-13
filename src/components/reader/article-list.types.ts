@@ -204,6 +204,26 @@ export type UseArticleListSearchResult = {
   setSearchQuery: (query: string) => void;
 };
 
+export type UseArticleListSourcesParams = {
+  selection: UiSelection;
+  selectedAccountId: string | null;
+};
+
+export type UseArticleListSourcesResult = {
+  feedId: string | null;
+  folderId: string | null;
+  tagId: string | null;
+  smartViewKind: "unread" | "starred" | null;
+  accountListScopeId: string | null;
+  feeds: FeedDto[] | undefined;
+  articles: ArticleDto[] | undefined;
+  accountArticles: ArticleDto[] | undefined;
+  tagArticles: ArticleDto[] | undefined;
+  isLoading: boolean;
+  isLoadingAccountArticles: boolean;
+  isLoadingTagArticles: boolean;
+};
+
 export type UseArticleListNavigationParams = {
   filteredArticles: ArticleDto[];
   selectedArticleId: string | null;
@@ -254,19 +274,19 @@ export type UseArticleListSourcesResult = {
 };
 
 export type UseArticleListDataParams = {
-  selection: UiSelection;
-  feedId: string | null;
-  folderId: string | null;
-  tagId: string | null;
-  smartViewKind: "unread" | "starred" | null;
-  accountListScopeId: string | null;
+  selection: UseArticleListSourcesParams["selection"];
+  feedId: UseArticleListSourcesResult["feedId"];
+  folderId: UseArticleListSourcesResult["folderId"];
+  tagId: UseArticleListSourcesResult["tagId"];
+  smartViewKind: UseArticleListSourcesResult["smartViewKind"];
+  accountListScopeId: UseArticleListSourcesResult["accountListScopeId"];
   viewMode: ArticleListViewMode;
   selectedArticleId: string | null;
   retainedArticleIds: Set<string>;
-  feeds: FeedDto[] | undefined;
-  articles: ArticleDto[] | undefined;
-  accountArticles: ArticleDto[] | undefined;
-  tagArticles: ArticleDto[] | undefined;
+  feeds: UseArticleListSourcesResult["feeds"];
+  articles: UseArticleListSourcesResult["articles"];
+  accountArticles: UseArticleListSourcesResult["accountArticles"];
+  tagArticles: UseArticleListSourcesResult["tagArticles"];
   searchResults: ArticleDto[] | undefined;
   showSearch: boolean;
   trimmedDebouncedQuery: string;

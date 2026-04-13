@@ -1,14 +1,12 @@
 import { useAccountArticles, useArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useArticlesByTag } from "@/hooks/use-tags";
-import type { UiSelection } from "@/stores/ui-store";
+import type { UseArticleListSourcesParams, UseArticleListSourcesResult } from "./article-list.types";
 
-type UseArticleListSourcesParams = {
-  selection: UiSelection;
-  selectedAccountId: string | null;
-};
-
-export function useArticleListSources({ selection, selectedAccountId }: UseArticleListSourcesParams) {
+export function useArticleListSources({
+  selection,
+  selectedAccountId,
+}: UseArticleListSourcesParams): UseArticleListSourcesResult {
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const folderId = selection.type === "folder" ? selection.folderId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
