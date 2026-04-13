@@ -1,23 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ARTICLE_SEARCH_DEBOUNCE_MS } from "@/constants/reader";
 import { useSearchArticles } from "@/hooks/use-articles";
-
-type UseArticleListSearchParams = {
-  selectedAccountId: string | null;
-};
-
-type UseArticleListSearchResult = {
-  showSearch: boolean;
-  searchQuery: string;
-  searchInputRef: React.RefObject<HTMLInputElement | null>;
-  trimmedDebouncedQuery: string;
-  searchResults: ReturnType<typeof useSearchArticles>["data"];
-  isSearching: boolean;
-  openSearch: () => void;
-  handleToggleSearch: () => void;
-  handleCloseSearch: () => void;
-  setSearchQuery: (query: string) => void;
-};
+import type { UseArticleListSearchParams, UseArticleListSearchResult } from "./article-list.types";
 
 export function useArticleListSearch({ selectedAccountId }: UseArticleListSearchParams): UseArticleListSearchResult {
   const [showSearch, setShowSearch] = useState(false);

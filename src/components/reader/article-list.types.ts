@@ -1,11 +1,10 @@
 import type { TFunction } from "i18next";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode, RefObject } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type { UiSelection } from "@/stores/ui-store";
 import type { ArticleListBody } from "./article-list-body";
 import type { ArticleListContextStrip } from "./article-list-context-strip";
 import type { ArticleListFooter } from "./article-list-footer";
-import type { ArticleListHeader } from "./article-list-header";
 import type { UseArticleListEffectsParams } from "./use-article-list-effects";
 import type { UseArticleListGroupsParams } from "./use-article-list-groups";
 import type { UseArticleListHeaderControlsResult } from "./use-article-list-header-controls";
@@ -16,7 +15,48 @@ import type { UseArticleListViewStateParams } from "./use-article-list-view-stat
 export type ArticleListLayoutMode = "wide" | "compact" | "mobile";
 export type ArticleListViewMode = "all" | "unread" | "starred";
 
-export type ArticleListHeaderProps = ComponentProps<typeof ArticleListHeader>;
+export type ArticleListHeaderSearchProps = {
+  searchInputRef: RefObject<HTMLInputElement | null>;
+  searchQuery: string;
+  searchArticlesLabel: string;
+  searchArticlesPlaceholder: string;
+  onSearchQueryChange: (query: string) => void;
+};
+
+export type ArticleListHeaderProps = {
+  showSearch: boolean;
+  searchQuery: string;
+  searchInputRef: RefObject<HTMLInputElement | null>;
+  showSidebarButton: boolean;
+  sidebarButtonLabel: string;
+  sidebarButtonText?: string;
+  isSidebarVisible?: boolean;
+  feedModeControl?: ReactNode;
+  onMarkAllRead: () => void;
+  onToggleSidebar: () => void;
+  onToggleSearch: () => void;
+  onCloseSearch: () => void;
+  onSearchQueryChange: (query: string) => void;
+};
+
+export type ArticleListHeaderActionsProps = Pick<
+  ArticleListHeaderProps,
+  | "showSearch"
+  | "showSidebarButton"
+  | "sidebarButtonLabel"
+  | "sidebarButtonText"
+  | "isSidebarVisible"
+  | "feedModeControl"
+  | "onMarkAllRead"
+  | "onToggleSidebar"
+  | "onToggleSearch"
+  | "onCloseSearch"
+> & {
+  markAllReadLabel: string;
+  searchArticlesLabel: string;
+  closeSearchLabel: string;
+};
+
 export type ArticleListContextStripProps = ComponentProps<typeof ArticleListContextStrip>;
 export type ArticleListBodyProps = ComponentProps<typeof ArticleListBody>;
 export type ArticleListFooterProps = ComponentProps<typeof ArticleListFooter>;
@@ -117,6 +157,23 @@ export type UseArticleListBodyPropsParams = {
   selectArticle: ArticleListBodyProps["onSelectArticle"];
   handleCloseSearch: () => void;
   handleMarkAllRead: () => void;
+};
+
+export type UseArticleListSearchParams = {
+  selectedAccountId: string | null;
+};
+
+export type UseArticleListSearchResult = {
+  showSearch: boolean;
+  searchQuery: string;
+  searchInputRef: RefObject<HTMLInputElement | null>;
+  trimmedDebouncedQuery: string;
+  searchResults: ArticleDto[] | undefined;
+  isSearching: boolean;
+  openSearch: () => void;
+  handleToggleSearch: () => void;
+  handleCloseSearch: () => void;
+  setSearchQuery: (query: string) => void;
 };
 
 export type UseArticleListDataParams = {
