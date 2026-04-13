@@ -701,6 +701,11 @@
   - 対応: `feed-tree.types.ts` に empty state / unfoldered drop zone props contract を追加して、補助 component は shared types を再利用する形に寄せた
   - 対象: `src/components/reader/feed-tree.types.ts`, `src/components/reader/feed-tree-empty-state.tsx`, `src/components/reader/feed-tree-unfoldered-drop-zone.tsx`
 
+- [x] sidebar feed tree helper の contract を shared types に寄せる
+  - 問題: `sidebar-feed-tree-helpers.ts` に `SortFeeds` と `FeedTreeViewModelOptions` が local 定義で残っていて、feed tree helper 境界の正本を追いにくかった
+  - 対応: `sidebar-feed-tree.types.ts` に helper contract を追加して、feed tree helper は shared types を再利用する形に寄せた
+  - 対象: `src/components/reader/sidebar-feed-tree.types.ts`, `src/components/reader/sidebar-feed-tree-helpers.ts`
+
 ## 2026-04-13 Premortem フォローアップ
 
 - [x] release 前の native/manual verification gate を明文化する
