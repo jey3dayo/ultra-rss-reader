@@ -53,6 +53,8 @@ describe("ShortcutsSettingsView", () => {
     expect(screen.getByText("Shortcut j is already used by Next article")).toBeInTheDocument();
     expect(screen.getByText("Already used")).toBeInTheDocument();
     expect(screen.getByText("⌘ ,")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reset to defaults" })).toHaveClass("w-full");
+    expect(screen.getByRole("button", { name: "J" })).toHaveClass("w-full");
 
     await user.click(screen.getByRole("button", { name: "J" }));
 
@@ -125,6 +127,7 @@ describe("ShortcutsSettingsView", () => {
     );
 
     const recordingButton = screen.getByRole("button", { name: "Press a key" });
+    expect(recordingButton).toHaveClass("w-full");
 
     await waitFor(() => {
       expect(recordingButton).toHaveFocus();

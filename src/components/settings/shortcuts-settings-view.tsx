@@ -52,13 +52,13 @@ function ShortcutKeyBadge({ item, pressAKeyLabel }: ShortcutKeyBadgeProps) {
   }, [item.isRecording, item.onKeyDown]);
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
       <button
         ref={badgeRef}
         type="button"
         data-testid={`shortcut-badge-${item.id}`}
         onClick={item.onStartRecording}
-        className={`rounded-md border px-2.5 py-1 font-mono text-sm transition-colors ${
+        className={`w-full rounded-md border px-2.5 py-1 text-center font-mono text-sm transition-colors sm:w-auto ${
           item.isRecording
             ? "animate-pulse border-ring bg-ring/20 text-foreground"
             : item.conflictLabel
@@ -86,10 +86,16 @@ export function ShortcutsSettingsView({
 }: ShortcutsSettingsViewProps) {
   return (
     <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div />
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <Button variant="outline" size="sm" onClick={onResetAll} disabled={resetDisabled}>
+      <div className="mb-6 flex flex-col gap-3 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+        <div className="hidden sm:block" />
+        <h2 className="text-center text-lg font-semibold">{title}</h2>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onResetAll}
+          disabled={resetDisabled}
+          className="w-full sm:justify-self-end sm:w-auto"
+        >
           {resetLabel}
         </Button>
       </div>
@@ -104,9 +110,13 @@ export function ShortcutsSettingsView({
         <section key={category.id} className="mb-6">
           <SectionHeading>{category.heading}</SectionHeading>
           {category.items.map((item) => (
-            <LabeledControlRow key={item.id} label={item.label}>
+            <LabeledControlRow
+              key={item.id}
+              label={item.label}
+              className="flex-col items-stretch sm:flex-row sm:items-center"
+            >
               {item.isLocked ? (
-                <kbd className="rounded-md border border-border bg-muted px-2.5 py-1 font-mono text-sm text-muted-foreground">
+                <kbd className="w-full rounded-md border border-border bg-muted px-2.5 py-1 text-center font-mono text-sm text-muted-foreground sm:w-auto">
                   {item.displayKey}
                 </kbd>
               ) : (
