@@ -10,6 +10,8 @@ export type FeedCleanupSummaryKey =
   | "stale_but_supported"
   | "healthy_feed";
 
+export type FeedCleanupReasonFactKey = "stale_days" | "unread_count" | "starred_count";
+
 export type FeedCleanupCandidate = {
   feedId: string;
   title: string;
@@ -76,6 +78,25 @@ export function summarizeCleanupCandidate(candidate: FeedCleanupCandidate): {
     titleKey: "keep",
     summaryKey: "healthy_feed",
   };
+}
+
+export function buildCleanupReasonFacts(candidate: FeedCleanupCandidate): Array<{
+  key: FeedCleanupReasonFactKey;
+  value: number;
+}> {
+  const facts: Array<{ key: FeedCleanupReasonFactKey; value: number }> = [];
+
+  if (candidate.reasonKeys.includes("stale_90d") && candidate.staleDays != null) {
+    facts.push({ key: "stale_days", value: candidate.staleDays });
+  }
+  if (candidate.reasonKeys.includes("no_unread")) {
+    facts.push({ key: "unread_count", value: candidate.unreadCount });
+  }
+  if (candidate.reasonKeys.includes("no_stars")) {
+    facts.push({ key: "starred_count", value: candidate.starredCount });
+  }
+
+  return facts;
 }
 
 export function buildFeedCleanupCandidates({

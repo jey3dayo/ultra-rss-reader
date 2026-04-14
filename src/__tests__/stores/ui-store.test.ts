@@ -33,14 +33,27 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().commandPaletteOpen).toBe(false);
   });
 
-  it("opens and closes the feed cleanup surface", () => {
+  it("opens subscriptions index and cleanup as explicit workspaces", () => {
+    expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
     expect(useUiStore.getState().feedCleanupOpen).toBe(false);
 
-    useUiStore.getState().openFeedCleanup();
-    expect(useUiStore.getState().feedCleanupOpen).toBe(true);
+    useUiStore.getState().openSubscriptionsIndex();
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
+      kind: "index",
+      cleanupContext: null,
+    });
     expect(useUiStore.getState().focusedPane).toBe("content");
+    expect(useUiStore.getState().feedCleanupOpen).toBe(false);
 
-    useUiStore.getState().closeFeedCleanup();
+    useUiStore.getState().openFeedCleanup({ reason: "stale_90d", returnTo: "index" });
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
+      kind: "cleanup",
+      cleanupContext: { reason: "stale_90d", returnTo: "index" },
+    });
+    expect(useUiStore.getState().feedCleanupOpen).toBe(true);
+
+    useUiStore.getState().closeSubscriptionsWorkspace();
+    expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
     expect(useUiStore.getState().feedCleanupOpen).toBe(false);
     expect(useUiStore.getState().focusedPane).toBe("list");
   });

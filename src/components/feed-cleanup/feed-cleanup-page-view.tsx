@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { FeedCleanupPageViewProps } from "./feed-cleanup.types";
@@ -24,6 +25,7 @@ export function FeedCleanupPageView({
   title,
   subtitle,
   closeLabel,
+  backToIndexLabel,
   dateLocale,
   overviewLabel,
   filtersLabel,
@@ -79,6 +81,7 @@ export function FeedCleanupPageView({
   summaryLabels,
   editing,
   editor,
+  onBackToIndex,
   onClose,
   onToggleIntegrityMode,
   onToggleFilter,
@@ -258,9 +261,16 @@ export function FeedCleanupPageView({
             <h1 className="text-xl font-semibold text-foreground">{title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
           </div>
-          <Button variant="ghost" onClick={onClose}>
-            {closeLabel}
-          </Button>
+          <div className="flex items-center gap-2">
+            {backToIndexLabel && onBackToIndex ? (
+              <Button variant="ghost" onClick={onBackToIndex}>
+                {backToIndexLabel}
+              </Button>
+            ) : null}
+            <Button variant="ghost" size="icon-sm" aria-label={closeLabel} onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 

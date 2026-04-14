@@ -1,4 +1,5 @@
-import { summarizeCleanupCandidate } from "@/lib/feed-cleanup";
+import { useTranslation } from "react-i18next";
+import { buildCleanupReasonFacts, summarizeCleanupCandidate } from "@/lib/feed-cleanup";
 import { cn } from "@/lib/utils";
 import type { FeedCleanupQueuePanelProps } from "./feed-cleanup.types";
 
@@ -58,10 +59,11 @@ export function FeedCleanupQueuePanel({
   unreadCountLabel,
   starredCountLabel,
   deferredBadgeLabel,
-  reasonLabels,
   priorityToneLabels,
   summaryLabels,
 }: FeedCleanupQueuePanelProps) {
+  const { t } = useTranslation("cleanup");
+
   return (
     <section className="min-h-0 px-4 py-4 sm:px-6 sm:py-5 lg:border-r lg:border-border/70">
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -160,6 +162,7 @@ export function FeedCleanupQueuePanel({
         ) : (
           queue.map((candidate) => {
             const queueSummary = summarizeCleanupCandidate(candidate);
+            const reasonFacts = buildCleanupReasonFacts(candidate);
             const isSelected = selectedFeedIds.has(candidate.feedId);
             const isFocused = focusedFeedId === candidate.feedId;
             const statusLabel = candidate.deferred ? deferredLabel : reviewStatusLabel;
@@ -170,10 +173,11 @@ export function FeedCleanupQueuePanel({
                 data-selected={isSelected}
                 data-focused={isFocused}
                 className={cn(
-                  "rounded-3xl border px-4 py-4 transition-[border-color,background-color,box-shadow] duration-200",
+                  "rounded-3xl border px-4 py-4 transition-[border-color,background-color,box-shadow,opacity,transform] duration-200",
                   selectedCandidate?.feedId === candidate.feedId
-                    ? "border-primary/40 bg-primary/5"
+                    ? "scale-[1.01] border-primary/45 bg-primary/6 shadow-[0_18px_36px_-28px_hsl(var(--primary)/0.9)]"
                     : "border-border/80 bg-card/60",
+                  selectedCandidate?.feedId && selectedCandidate.feedId !== candidate.feedId && "opacity-75",
                   isFocused && "shadow-[0_0_0_1px_hsl(var(--primary)/0.55),0_0_0_4px_hsl(var(--primary)/0.12)]",
                   isSelected && "border-primary/45 bg-primary/[0.08]",
                 )}
@@ -263,20 +267,24 @@ export function FeedCleanupQueuePanel({
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {candidate.reasonKeys.slice(0, 2).map((reason) => (
+                    {reasonFacts.slice(0, 2).map((fact) => (
                       <span
-                        key={reason}
+                        key={fact.key}
                         className="rounded-full border border-border/80 bg-background/80 px-2 py-1 text-[11px] text-muted-foreground"
                       >
-                        {reasonLabels[reason]}
+                        {fact.key === "stale_days"
+                          ? t("fact_stale_days", { count: fact.value })
+                          : fact.key === "unread_count"
+                            ? t("fact_unread_count", { count: fact.value })
+                            : t("fact_starred_count", { count: fact.value })}
                       </span>
                     ))}
-                    {candidate.reasonKeys.length > 2 ? (
+                    {reasonFacts.length > 2 ? (
                       <span className="rounded-full border border-border/80 bg-background/80 px-2 py-1 text-[11px] text-muted-foreground">
-                        +{candidate.reasonKeys.length - 2}
+                        +{reasonFacts.length - 2}
                       </span>
                     ) : null}
-                    {candidate.reasonKeys.length === 0 && selectedCandidate?.feedId !== candidate.feedId ? (
+                    {reasonFacts.length === 0 && selectedCandidate?.feedId !== candidate.feedId ? (
                       <span className="rounded-full border border-border/80 bg-background/80 px-2 py-1 text-[11px] text-muted-foreground">
                         {summaryLabels.healthy_feed}
                       </span>

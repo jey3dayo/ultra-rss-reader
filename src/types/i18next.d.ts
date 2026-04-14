@@ -3,6 +3,7 @@ import type enCleanup from "@/locales/en/cleanup.json";
 import type enReader from "@/locales/en/reader.json";
 import type enSettings from "@/locales/en/settings.json";
 import type enSidebar from "@/locales/en/sidebar.json";
+import type enSubscriptions from "@/locales/en/subscriptions.json";
 
 declare module "i18next" {
   interface CustomTypeOptions {
@@ -13,6 +14,7 @@ declare module "i18next" {
       settings: typeof enSettings;
       reader: typeof enReader;
       sidebar: typeof enSidebar;
+      subscriptions: typeof enSubscriptions;
     };
   }
 }

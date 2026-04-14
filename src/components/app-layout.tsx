@@ -8,13 +8,13 @@ import { Sidebar } from "./reader/sidebar";
 function SlidingPaneLayout({
   layoutMode,
   focusedPane,
-  feedCleanupOpen,
+  subscriptionsWorkspaceOpen,
 }: {
   layoutMode: "compact" | "mobile";
   focusedPane: "sidebar" | "list" | "content";
-  feedCleanupOpen: boolean;
+  subscriptionsWorkspaceOpen: boolean;
 }) {
-  if (feedCleanupOpen) {
+  if (subscriptionsWorkspaceOpen) {
     return (
       <div className="h-full overflow-hidden">
         <ArticleView />
@@ -66,7 +66,9 @@ export function AppLayout() {
   const focusedPane = useUiStore((state) => state.focusedPane);
   const contentMode = useUiStore((state) => state.contentMode);
   const feedCleanupOpen = useUiStore((state) => state.feedCleanupOpen);
+  const subscriptionsWorkspace = useUiStore((state) => state.subscriptionsWorkspace);
   const sidebarOpen = useUiStore((state) => state.sidebarOpen);
+  const subscriptionsWorkspaceOpen = subscriptionsWorkspace !== null || feedCleanupOpen;
 
   return (
     // Keep layout flush to the top edge. macOS titlebar spacing lives in AppShell,
@@ -76,11 +78,15 @@ export function AppLayout() {
         <WideLayout
           focusedPane={focusedPane}
           contentMode={contentMode}
-          feedCleanupOpen={feedCleanupOpen}
+          feedCleanupOpen={subscriptionsWorkspaceOpen}
           sidebarOpen={sidebarOpen}
         />
       ) : (
-        <SlidingPaneLayout layoutMode={layoutMode} focusedPane={focusedPane} feedCleanupOpen={feedCleanupOpen} />
+        <SlidingPaneLayout
+          layoutMode={layoutMode}
+          focusedPane={focusedPane}
+          subscriptionsWorkspaceOpen={subscriptionsWorkspaceOpen}
+        />
       )}
     </div>
   );

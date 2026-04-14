@@ -28,7 +28,7 @@ export function useSidebarContentSectionsProps({
     isFeedsSectionOpen,
     onToggleFeedsSection: toggleFeedsSection,
     viewportRef: feedViewportRef,
-    feedCleanupLabel: t("feed_cleanup"),
+    feedCleanupLabel: t("subscriptions_index"),
     settingsLabel: t("settings"),
     onOpenFeedCleanup: openFeedCleanup,
     onOpenSettings: handleOpenSettings,

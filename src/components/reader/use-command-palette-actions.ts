@@ -34,9 +34,9 @@ export function useCommandPaletteActions({
         icon: RssIcon,
       },
       {
-        id: "open-feed-cleanup",
-        label: tSidebar("feed_cleanup"),
-        keywords: ["feed", "cleanup", "management"],
+        id: "open-subscriptions-index",
+        label: tSidebar("subscriptions_index"),
+        keywords: ["subscriptions", "feeds", "management"],
         icon: RssIcon,
       },
       {

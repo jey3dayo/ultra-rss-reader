@@ -1329,19 +1329,19 @@ describe("ArticleView", () => {
     expect(screen.getByTestId("article-reader-scroll-area")).toHaveClass("h-full");
   });
 
-  it("renders the feed cleanup page instead of the reader when cleanup is open", async () => {
+  it("renders the subscriptions index page instead of the reader when the subscriptions workspace is open", async () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
       selection: { type: "feed", feedId: "feed-1" },
       selectedArticleId: "art-1",
       contentMode: "reader",
-      feedCleanupOpen: true,
+      subscriptionsWorkspace: { kind: "index", cleanupContext: null },
     });
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    expect(await screen.findByRole("heading", { name: "Review Subscriptions" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Subscriptions" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { level: 1, name: "First Article" })).not.toBeInTheDocument();
   });
 

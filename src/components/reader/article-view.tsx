@@ -11,6 +11,11 @@ const LazyFeedCleanupPage = lazy(async () => {
   return { default: mod.FeedCleanupPage };
 });
 
+const LazySubscriptionsIndexPage = lazy(async () => {
+  const mod = await import("../subscriptions-index/subscriptions-index-page");
+  return { default: mod.SubscriptionsIndexPage };
+});
+
 export { ArticlePane, ArticleToolbar } from "./article-pane-view";
 
 function EmptyState() {
@@ -39,6 +44,14 @@ function BrowserOnlyState() {
 export function ArticleView() {
   const { t } = useTranslation("reader");
   const selectionState = useArticleViewSelection();
+
+  if (selectionState.kind === "subscriptions-index") {
+    return (
+      <Suspense fallback={null}>
+        <LazySubscriptionsIndexPage />
+      </Suspense>
+    );
+  }
 
   if (selectionState.kind === "feed-cleanup") {
     return (

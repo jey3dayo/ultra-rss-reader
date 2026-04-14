@@ -1,6 +1,8 @@
+import { useTranslation } from "react-i18next";
 import { DeleteButton } from "@/components/shared/delete-button";
 import { Button } from "@/components/ui/button";
 import type { FeedCleanupTone } from "@/lib/feed-cleanup";
+import { buildCleanupReasonFacts } from "@/lib/feed-cleanup";
 import { cn } from "@/lib/utils";
 import type { FeedCleanupReviewPanelProps } from "./feed-cleanup.types";
 import { FeedCleanupCard, FeedCleanupDetailRow } from "./feed-cleanup-card";
@@ -57,7 +59,6 @@ export function FeedCleanupReviewPanel({
   starredCountLabel,
   reasonsLabel,
   noSelectionLabel,
-  reasonLabels,
   priorityToneLabels,
   priorityLabels,
   summaryHeadlineLabels,
@@ -85,8 +86,10 @@ export function FeedCleanupReviewPanel({
     deleteKeys: "D",
   },
 }: FeedCleanupReviewPanelProps) {
+  const { t } = useTranslation("cleanup");
   const toneClassName = resolveToneClassName(selectedSummary?.tone ?? null);
   const resolvedDeferLabel = deferLabel ?? laterLabel;
+  const reasonFacts = selectedCandidate ? buildCleanupReasonFacts(selectedCandidate) : [];
 
   return (
     <section
@@ -170,7 +173,19 @@ export function FeedCleanupReviewPanel({
                     {priorityToneLabels[selectedSummary.tone]}
                   </span>
                 </div>
-                <p className="mt-3 text-sm text-current/80">{summaryLabels[selectedSummary.summaryKey]}</p>
+                <p className="mt-3 text-sm text-current/80">
+                  {reasonFacts.length > 0
+                    ? reasonFacts
+                        .map((fact) =>
+                          fact.key === "stale_days"
+                            ? t("fact_stale_days", { count: fact.value })
+                            : fact.key === "unread_count"
+                              ? t("fact_unread_count", { count: fact.value })
+                              : t("fact_starred_count", { count: fact.value }),
+                        )
+                        .join(" · ")
+                    : summaryLabels[selectedSummary.summaryKey]}
+                </p>
               </div>
             ) : null}
 
@@ -190,8 +205,14 @@ export function FeedCleanupReviewPanel({
             <FeedCleanupCard>
               <h4 className="mb-2 text-sm font-semibold">{reasonsLabel}</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                {selectedCandidate.reasonKeys.map((reason) => (
-                  <li key={reason}>{reasonLabels[reason]}</li>
+                {reasonFacts.map((fact) => (
+                  <li key={fact.key}>
+                    {fact.key === "stale_days"
+                      ? t("fact_stale_days", { count: fact.value })
+                      : fact.key === "unread_count"
+                        ? t("fact_unread_count", { count: fact.value })
+                        : t("fact_starred_count", { count: fact.value })}
+                  </li>
                 ))}
               </ul>
             </FeedCleanupCard>
@@ -213,27 +234,20 @@ export function FeedCleanupReviewPanel({
                 </div>
                 <div className="inline-flex rounded-full border border-border bg-background p-1">
                   <Button
-                    variant="ghost"
+                    variant="default"
                     size="sm"
                     aria-pressed={currentStatusValue === keepLabel}
-                    className={cn(
-                      "rounded-full px-3",
-                      currentStatusValue === keepLabel && "bg-primary text-primary-foreground hover:bg-primary/90",
-                    )}
+                    className="rounded-full px-3"
                     onClick={onKeep}
                   >
                     {keepLabel}
                     <ShortcutBadge label={keyboardHints.keepKeys} />
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     aria-pressed={currentStatusValue === resolvedDeferLabel}
-                    className={cn(
-                      "rounded-full px-3",
-                      currentStatusValue === resolvedDeferLabel &&
-                        "bg-secondary text-secondary-foreground hover:bg-secondary/90",
-                    )}
+                    className="rounded-full px-3"
                     onClick={onLater}
                   >
                     {resolvedDeferLabel}

@@ -138,9 +138,22 @@ describe("executeAction", () => {
       expect(useUiStore.getState().isAddFeedDialogOpen).toBe(true);
     });
 
-    it("opens the feed cleanup surface", () => {
+    it("opens the subscriptions index workspace", () => {
+      executeAction("open-subscriptions-index");
+      expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
+        kind: "index",
+        cleanupContext: null,
+      });
+      expect(useUiStore.getState().focusedPane).toBe("content");
+    });
+
+    it("opens the feed cleanup workspace with default review context", () => {
       executeAction("open-feed-cleanup");
       expect(useUiStore.getState().feedCleanupOpen).toBe(true);
+      expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
+        kind: "cleanup",
+        cleanupContext: { reason: "review", returnTo: "index" },
+      });
       expect(useUiStore.getState().focusedPane).toBe("content");
     });
   });
@@ -486,6 +499,7 @@ describe("executeAction", () => {
       expect(isAppAction("close-browser")).toBe(true);
       expect(isAppAction("set-filter-unread")).toBe(true);
       expect(isAppAction("open-command-palette")).toBe(true);
+      expect(isAppAction("open-subscriptions-index")).toBe(true);
       expect(isAppAction("open-feed-cleanup")).toBe(true);
     });
 

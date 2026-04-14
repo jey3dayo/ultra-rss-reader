@@ -48,6 +48,15 @@ export type LayoutMode = "wide" | "compact" | "mobile";
 export type FocusedPane = "sidebar" | "list" | "content";
 export type ContentMode = "empty" | "reader" | "browser" | "loading";
 export type PendingBrowserCloseAction = "prev-article" | "next-article" | "prev-feed" | "next-feed";
+export type FeedCleanupContextReason = "review" | "stale_90d" | "no_unread" | "no_stars" | "broken_references";
+export type FeedCleanupContext = {
+  reason: FeedCleanupContextReason;
+  feedId?: string | null;
+  returnTo: "index";
+};
+export type SubscriptionsWorkspace =
+  | { kind: "index"; cleanupContext: null }
+  | { kind: "cleanup"; cleanupContext: FeedCleanupContext | null };
 export type SettingsCategory =
   | "general"
   | "appearance"
@@ -83,6 +92,7 @@ interface UiState {
   settingsLoading: boolean;
   appLoading: boolean;
   feedCleanupOpen: boolean;
+  subscriptionsWorkspace: SubscriptionsWorkspace | null;
   syncProgress: SyncProgressState;
   commandPaletteOpen: boolean;
   shortcutsHelpOpen: boolean;
@@ -132,8 +142,10 @@ interface UiActions {
   setSettingsAddAccount: (show: boolean) => void;
   setSettingsLoading: (loading: boolean) => void;
   setAppLoading: (loading: boolean) => void;
-  openFeedCleanup: () => void;
+  openSubscriptionsIndex: () => void;
+  openFeedCleanup: (context?: FeedCleanupContext) => void;
   closeFeedCleanup: () => void;
+  closeSubscriptionsWorkspace: () => void;
   applySyncProgress: (event: SyncProgressEvent) => void;
   clearSyncProgress: () => void;
   openCommandPalette: () => void;
@@ -178,6 +190,7 @@ const initialState: UiState = {
   settingsLoading: false,
   appLoading: false,
   feedCleanupOpen: false,
+  subscriptionsWorkspace: null,
   syncProgress: {
     active: false,
     kind: null,
@@ -340,9 +353,27 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   setSettingsAddAccount: (show) => set({ settingsAddAccount: show, settingsAccountId: null }),
   setSettingsLoading: (loading) => set({ settingsLoading: loading }),
   setAppLoading: (loading) => set({ appLoading: loading }),
-  openFeedCleanup: () => set({ feedCleanupOpen: true, focusedPane: "content" }),
+  openSubscriptionsIndex: () =>
+    set({
+      subscriptionsWorkspace: { kind: "index", cleanupContext: null },
+      feedCleanupOpen: false,
+      focusedPane: "content",
+    }),
+  openFeedCleanup: (context) =>
+    set({
+      subscriptionsWorkspace: { kind: "cleanup", cleanupContext: context ?? null },
+      feedCleanupOpen: true,
+      focusedPane: "content",
+    }),
   closeFeedCleanup: () =>
     set((state) => ({
+      subscriptionsWorkspace: null,
+      feedCleanupOpen: false,
+      focusedPane: state.selectedArticleId ? "content" : "list",
+    })),
+  closeSubscriptionsWorkspace: () =>
+    set((state) => ({
+      subscriptionsWorkspace: null,
       feedCleanupOpen: false,
       focusedPane: state.selectedArticleId ? "content" : "list",
     })),

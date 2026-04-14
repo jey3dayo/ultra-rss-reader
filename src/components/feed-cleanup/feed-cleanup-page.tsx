@@ -17,6 +17,8 @@ export function FeedCleanupPage() {
   const { t: tr } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
   const feedCleanupOpen = useUiStore((state) => state.feedCleanupOpen);
+  const subscriptionsWorkspace = useUiStore((state) => state.subscriptionsWorkspace);
+  const openSubscriptionsIndex = useUiStore((state) => state.openSubscriptionsIndex);
   const closeFeedCleanup = useUiStore((state) => state.closeFeedCleanup);
   const showToast = useUiStore((state) => state.showToast);
   const clearToast = useUiStore((state) => state.clearToast);
@@ -31,6 +33,7 @@ export function FeedCleanupPage() {
 
   const cleanupState = useFeedCleanupPageState({
     feedCleanupOpen,
+    subscriptionsWorkspace,
     devIntent,
     feeds,
     folders,
@@ -53,21 +56,6 @@ export function FeedCleanupPage() {
       label: t("summary_candidates"),
       value: String(cleanupState.visibleCandidates.length),
       caption: t("summary_candidates_caption", { count: cleanupState.visibleCandidates.length }),
-    },
-    {
-      label: t("summary_review_now"),
-      value: String(cleanupState.reviewNowCount),
-      caption: t("summary_review_now_caption", { count: cleanupState.reviewNowCount }),
-    },
-    {
-      label: t("summary_deferred"),
-      value: String(cleanupState.deferredCount),
-      caption: t("summary_deferred_caption", { count: cleanupState.deferredCount }),
-    },
-    {
-      label: t("summary_integrity"),
-      value: String(integrityReport?.orphaned_article_count ?? 0),
-      caption: t("summary_integrity_caption", { count: integrityReport?.orphaned_article_count ?? 0 }),
     },
   ] as const;
   const bulkActionDisabled =
@@ -112,6 +100,11 @@ export function FeedCleanupPage() {
         title={t("title")}
         subtitle={t("subtitle")}
         closeLabel={tc("close")}
+        backToIndexLabel={
+          subscriptionsWorkspace?.kind === "cleanup" && subscriptionsWorkspace.cleanupContext?.returnTo === "index"
+            ? t("back_to_index")
+            : undefined
+        }
         dateLocale={dateLocale}
         overviewLabel={t("overview")}
         filtersLabel={t("filters")}
@@ -205,6 +198,7 @@ export function FeedCleanupPage() {
           stale_but_supported: t("candidate_summary_stale_but_supported"),
           healthy_feed: t("candidate_summary_healthy_feed"),
         }}
+        onBackToIndex={() => openSubscriptionsIndex()}
         onClose={() => closeFeedCleanup()}
         onToggleIntegrityMode={cleanupState.toggleIntegrityMode}
         onToggleFilter={cleanupState.toggleFilter}

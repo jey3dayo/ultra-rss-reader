@@ -152,15 +152,15 @@ describe("CommandPalette", () => {
     });
   });
 
-  it("opens feed cleanup from the action list and closes the palette", async () => {
+  it("opens the subscriptions index from the action list and closes the palette", async () => {
     const user = userEvent.setup();
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("option", { name: /Review Subscriptions/ }));
+    await user.click(await screen.findByRole("option", { name: /Manage Subscriptions/ }));
 
     await waitFor(() => {
-      expect(useUiStore.getState().feedCleanupOpen).toBe(true);
+      expect(useUiStore.getState().subscriptionsWorkspace).toEqual({ kind: "index", cleanupContext: null });
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
     });
   });

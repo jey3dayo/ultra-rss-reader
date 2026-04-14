@@ -104,6 +104,8 @@ function reducer(state: FeedCleanupPageState, action: FeedCleanupPageAction): Fe
       }
       return { ...state, activeFilters: next };
     }
+    case "set-active-filters":
+      return { ...state, activeFilters: new Set(action.keys) };
     case "toggle-show-deferred":
       return { ...state, showDeferred: !state.showDeferred };
     case "set-selected-feed-id":
@@ -201,6 +203,7 @@ function resolveDecisionTargetIds(
 
 export function useFeedCleanupPageState({
   feedCleanupOpen,
+  subscriptionsWorkspace,
   devIntent,
   feeds,
   folders,
@@ -321,6 +324,47 @@ export function useFeedCleanupPageState({
     dispatch({ type: "set-editing-feed-id", feedId: null });
     dispatch({ type: "set-queue-mode", mode: "integrity" });
   }, [devIntent, feedCleanupOpen, integrityIssues.length]);
+
+  useEffect(() => {
+    if (!feedCleanupOpen || subscriptionsWorkspace?.kind !== "cleanup") {
+      return;
+    }
+
+    const context = subscriptionsWorkspace.cleanupContext;
+    if (!context) {
+      dispatch({ type: "set-active-filters", keys: [] });
+      dispatch({ type: "set-queue-mode", mode: "cleanup" });
+      return;
+    }
+
+    if (context.reason === "broken_references") {
+      dispatch({ type: "set-active-filters", keys: [] });
+      dispatch({ type: "set-queue-mode", mode: "integrity" });
+      return;
+    }
+
+    if (context.reason === "stale_90d" || context.reason === "no_unread" || context.reason === "no_stars") {
+      dispatch({ type: "set-active-filters", keys: [context.reason] });
+    } else {
+      dispatch({ type: "set-active-filters", keys: [] });
+    }
+
+    dispatch({ type: "set-queue-mode", mode: "cleanup" });
+  }, [feedCleanupOpen, subscriptionsWorkspace]);
+
+  useEffect(() => {
+    if (!feedCleanupOpen || subscriptionsWorkspace?.kind !== "cleanup") {
+      return;
+    }
+
+    const targetFeedId = subscriptionsWorkspace.cleanupContext?.feedId ?? null;
+    if (!targetFeedId || !visibleCandidates.some((candidate) => candidate.feedId === targetFeedId)) {
+      return;
+    }
+
+    dispatch({ type: "set-selected-feed-id", feedId: targetFeedId });
+    dispatch({ type: "set-focused-feed-id", feedId: targetFeedId });
+  }, [feedCleanupOpen, subscriptionsWorkspace, visibleCandidates]);
 
   useEffect(() => {
     if (!state.selectedFeedId || state.editingFeedId === state.selectedFeedId) {

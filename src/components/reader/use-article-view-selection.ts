@@ -7,6 +7,7 @@ import { findSelectedArticle } from "@/lib/article-view";
 import { useUiStore } from "@/stores/ui-store";
 
 export type ArticleViewSelectionState =
+  | { kind: "subscriptions-index" }
   | { kind: "feed-cleanup" }
   | { kind: "browser-only"; browserUrl: string }
   | { kind: "empty" }
@@ -17,6 +18,7 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   const contentMode = useUiStore((s) => s.contentMode);
   const browserUrl = useUiStore((s) => s.browserUrl);
   const feedCleanupOpen = useUiStore((s) => s.feedCleanupOpen);
+  const subscriptionsWorkspace = useUiStore((s) => s.subscriptionsWorkspace);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selection = useUiStore((s) => s.selection);
@@ -26,6 +28,10 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   const { data: accountArticles } = useAccountArticles(selectedAccountId);
   const { data: tagArticles } = useArticlesByTag(tagId, selectedAccountId);
   const { data: feeds } = useFeeds(selectedAccountId);
+
+  if (subscriptionsWorkspace?.kind === "index") {
+    return { kind: "subscriptions-index" };
+  }
 
   if (feedCleanupOpen) {
     return { kind: "feed-cleanup" };

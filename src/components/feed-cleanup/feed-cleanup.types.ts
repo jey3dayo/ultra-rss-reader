@@ -9,6 +9,7 @@ import type {
   FeedCleanupTitleKey,
   FeedCleanupTone,
 } from "@/lib/feed-cleanup";
+import type { SubscriptionsWorkspace } from "@/stores/ui-store";
 import type { FeedEditDisplayPreset } from "../reader/feed-edit-submit";
 import type { FolderSelectViewProps } from "../reader/folder-select-view";
 
@@ -180,6 +181,7 @@ export type FeedCleanupPageViewProps = {
   title: string;
   subtitle: string;
   closeLabel: string;
+  backToIndexLabel?: string;
   dateLocale: string;
   overviewLabel: string;
   filtersLabel: string;
@@ -239,6 +241,7 @@ export type FeedCleanupPageViewProps = {
   summaryLabels: Record<FeedCleanupSummaryKey, string>;
   editing: boolean;
   editor: ReactNode;
+  onBackToIndex?: () => void;
   onClose: () => void;
   onToggleIntegrityMode: () => void;
   onToggleFilter: (key: FeedCleanupFilterOption["key"]) => void;
@@ -336,6 +339,7 @@ export type FeedCleanupFilterKey = "stale_90d" | "no_unread" | "no_stars";
 
 export type FeedCleanupPageInput = {
   feedCleanupOpen: boolean;
+  subscriptionsWorkspace: SubscriptionsWorkspace | null;
   devIntent: string | null;
   feeds: BuildFeedCleanupCandidatesParams["feeds"];
   folders: BuildFeedCleanupCandidatesParams["folders"];
@@ -365,6 +369,7 @@ export type FeedCleanupPageState = {
 
 export type FeedCleanupPageAction =
   | { type: "toggle-filter"; key: FeedCleanupFilterKey }
+  | { type: "set-active-filters"; keys: FeedCleanupFilterKey[] }
   | { type: "toggle-show-deferred" }
   | { type: "set-selected-feed-id"; feedId: string | null }
   | { type: "set-focused-feed-id"; feedId: string | null }
