@@ -85,7 +85,8 @@ describe("App", () => {
 
     const { container } = render(<AppLayout />, { wrapper: createWrapper() });
 
-    expect(container.firstElementChild).toHaveClass("desktop-titlebar-offset");
+    expect(container.firstElementChild).not.toHaveClass("desktop-titlebar-offset");
+    expect(container.firstElementChild).not.toHaveClass("desktop-overlay-titlebar");
 
     // Wide mode has no sliding tray
     expect(container.innerHTML).not.toContain("w-[300%]");

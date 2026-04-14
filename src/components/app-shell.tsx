@@ -304,6 +304,8 @@ export function AppShell() {
           data-testid="desktop-titlebar-drag-strip"
           data-tauri-drag-region
           aria-hidden="true"
+          // AppShell owns the macOS overlay titlebar contract.
+          // AppLayout and pane content should stay flush to the top edge.
           className="desktop-titlebar-drag-strip absolute inset-x-0 top-0 z-30"
         />
       ) : null}
@@ -311,6 +313,8 @@ export function AppShell() {
         data-browser-overlay-root=""
         className={cn(
           "pointer-events-none absolute inset-0 z-40",
+          // Browser overlay geometry is measured against the shell, not AppLayout,
+          // so the titlebar helper classes stay here.
           overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar",
         )}
       />

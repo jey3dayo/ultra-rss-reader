@@ -1,7 +1,5 @@
 import { computeTranslateX, isPaneVisible, resolveLayout } from "../hooks/use-layout";
 import { cn } from "../lib/utils";
-import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "../lib/window-chrome";
-import { usePlatformStore } from "../stores/platform-store";
 import { type ContentMode, useUiStore } from "../stores/ui-store";
 import { ArticleList } from "./reader/article-list";
 import { ArticleView } from "./reader/article-view";
@@ -10,19 +8,15 @@ import { Sidebar } from "./reader/sidebar";
 function SlidingPaneLayout({
   layoutMode,
   focusedPane,
-  overlayTitlebar,
   feedCleanupOpen,
 }: {
   layoutMode: "compact" | "mobile";
   focusedPane: "sidebar" | "list" | "content";
-  overlayTitlebar: boolean;
   feedCleanupOpen: boolean;
 }) {
   if (feedCleanupOpen) {
     return (
-      <div
-        className={cn("h-full overflow-hidden", overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar")}
-      >
+      <div className="h-full overflow-hidden">
         <ArticleView />
       </div>
     );
@@ -32,13 +26,7 @@ function SlidingPaneLayout({
   const translateX = computeTranslateX(layoutMode, focusedPane);
 
   return (
-    <div
-      className={cn(
-        "h-full overflow-hidden",
-        // macOS overlay titlebar 以外は上の空間は詰める。
-        overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar",
-      )}
-    >
+    <div className="h-full overflow-hidden">
       <div
         data-testid="sliding-pane-tray"
         className={cn(
@@ -79,20 +67,11 @@ export function AppLayout() {
   const contentMode = useUiStore((state) => state.contentMode);
   const feedCleanupOpen = useUiStore((state) => state.feedCleanupOpen);
   const sidebarOpen = useUiStore((state) => state.sidebarOpen);
-  const platformKind = usePlatformStore((state) => state.platform.kind);
-  const overlayTitlebar = shouldUseDesktopOverlayTitlebar({
-    platformKind,
-    hasTauriRuntime: hasTauriRuntime(),
-  });
 
   return (
-    <div
-      className={cn(
-        "relative h-full overflow-hidden",
-        // macOS overlay titlebar 以外は上の空間は詰める。
-        overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar",
-      )}
-    >
+    // Keep layout flush to the top edge. macOS titlebar spacing lives in AppShell,
+    // otherwise the visible header and the draggable titlebar band diverge again.
+    <div className="relative h-full overflow-hidden">
       {layoutMode === "wide" ? (
         <WideLayout
           focusedPane={focusedPane}
@@ -101,12 +80,7 @@ export function AppLayout() {
           sidebarOpen={sidebarOpen}
         />
       ) : (
-        <SlidingPaneLayout
-          layoutMode={layoutMode}
-          focusedPane={focusedPane}
-          overlayTitlebar={false}
-          feedCleanupOpen={feedCleanupOpen}
-        />
+        <SlidingPaneLayout layoutMode={layoutMode} focusedPane={focusedPane} feedCleanupOpen={feedCleanupOpen} />
       )}
     </div>
   );
