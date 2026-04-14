@@ -34,11 +34,13 @@ export function SettingsModalView({
               size="icon-sm"
               onClick={onClose}
               aria-label={closeLabel}
-              className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              className="text-sidebar-foreground/72 hover:bg-sidebar-accent hover:text-sidebar-foreground"
             >
               <X className="h-4 w-4" />
             </Button>
-            <DialogTitle className="text-base font-medium">{title}</DialogTitle>
+            <DialogTitle className="text-[15px] font-semibold tracking-[0.01em] text-sidebar-foreground">
+              {title}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="relative min-h-0 flex-1">
@@ -59,7 +61,7 @@ export function SettingsModalView({
 
           <div data-testid="settings-accounts-section" className="border-t border-border/80 bg-sidebar/95 px-3 py-3">
             {accountsHeading ? (
-              <p className="mb-2 px-1 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+              <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/48">
                 {accountsHeading}
               </p>
             ) : null}

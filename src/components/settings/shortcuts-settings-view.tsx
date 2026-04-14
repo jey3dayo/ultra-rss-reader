@@ -58,12 +58,12 @@ function ShortcutKeyBadge({ item, pressAKeyLabel }: ShortcutKeyBadgeProps) {
         type="button"
         data-testid={`shortcut-badge-${item.id}`}
         onClick={item.onStartRecording}
-        className={`w-full rounded-md border px-2.5 py-1 text-center font-mono text-sm transition-colors sm:w-auto ${
+        className={`w-full rounded-md border px-2.5 py-1 text-center font-mono text-[13px] font-medium leading-none tracking-[0.02em] transition-colors sm:w-auto ${
           item.isRecording
             ? "animate-pulse border-ring bg-ring/20 text-foreground"
             : item.conflictLabel
               ? "border-destructive bg-destructive/10 text-destructive"
-              : "cursor-pointer border-border bg-muted text-muted-foreground hover:border-ring hover:bg-ring/10"
+              : "cursor-pointer border-border bg-muted/80 text-foreground/78 hover:border-ring hover:bg-ring/10 hover:text-foreground/88"
         }`}
       >
         {item.isRecording ? pressAKeyLabel : item.displayKey}
@@ -85,10 +85,10 @@ export function ShortcutsSettingsView({
   onResetAll,
 }: ShortcutsSettingsViewProps) {
   return (
-    <div className="p-6">
-      <div className="mb-6 flex flex-col gap-3 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+    <div className="p-5 sm:p-6">
+      <div className="mb-5 flex flex-col gap-3 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center">
         <div className="hidden sm:block" />
-        <h2 className="text-center text-lg font-semibold">{title}</h2>
+        <h2 className="text-center text-[19px] font-semibold tracking-[0.01em]">{title}</h2>
         <Button
           variant="outline"
           size="sm"
@@ -107,7 +107,7 @@ export function ShortcutsSettingsView({
       )}
 
       {categories.map((category) => (
-        <section key={category.id} className="mb-6">
+        <section key={category.id} className="mb-5">
           <SectionHeading>{category.heading}</SectionHeading>
           {category.items.map((item) => (
             <LabeledControlRow
@@ -116,7 +116,7 @@ export function ShortcutsSettingsView({
               className="flex-col items-stretch sm:flex-row sm:items-center"
             >
               {item.isLocked ? (
-                <kbd className="w-full rounded-md border border-border bg-muted px-2.5 py-1 text-center font-mono text-sm text-muted-foreground sm:w-auto">
+                <kbd className="w-full rounded-md border border-border bg-muted/80 px-2.5 py-1 text-center font-mono text-[13px] font-medium leading-none tracking-[0.02em] text-foreground/72 sm:w-auto">
                   {item.displayKey}
                 </kbd>
               ) : (

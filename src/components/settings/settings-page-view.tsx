@@ -77,11 +77,11 @@ function SettingsPageActionRow({ control }: SettingsPageActionRowProps) {
 export function SettingsPageView({ title, sections }: SettingsPageViewProps) {
   return (
     <div data-testid="settings-page-root" className="p-5 sm:p-6">
-      <h2 className="sticky top-0 z-10 -mx-5 mb-5 border-b border-border/70 bg-popover/95 px-5 py-3 text-center text-lg font-semibold backdrop-blur-sm sm:-mx-6 sm:mb-6 sm:px-6">
+      <h2 className="sticky top-0 z-10 -mx-5 mb-4 border-b border-border/70 bg-popover/95 px-5 py-3 text-center text-[19px] font-semibold tracking-[0.01em] backdrop-blur-sm sm:-mx-6 sm:mb-5 sm:px-6">
         {title}
       </h2>
       {sections.map((section, index) => (
-        <section key={section.id} className={index === sections.length - 1 ? undefined : "mb-5 sm:mb-6"}>
+        <section key={section.id} className={index === sections.length - 1 ? undefined : "mb-4 sm:mb-5"}>
           <SectionHeading className="mb-2 sm:mb-3">{section.heading}</SectionHeading>
           {section.controls.map((control) =>
             control.type === "select" ? (
@@ -94,7 +94,7 @@ export function SettingsPageView({ title, sections }: SettingsPageViewProps) {
               <SettingsPageActionRow key={control.id} control={control} />
             ),
           )}
-          {section.note && <p className="mt-1.5 text-xs text-muted-foreground sm:mt-2">{section.note}</p>}
+          {section.note && <p className="mt-1.5 text-xs leading-[1.45] text-foreground/56 sm:mt-2">{section.note}</p>}
         </section>
       ))}
     </div>
