@@ -65,10 +65,9 @@ export function AppLayout() {
   const layoutMode = useUiStore((state) => state.layoutMode);
   const focusedPane = useUiStore((state) => state.focusedPane);
   const contentMode = useUiStore((state) => state.contentMode);
-  const feedCleanupOpen = useUiStore((state) => state.feedCleanupOpen);
   const subscriptionsWorkspace = useUiStore((state) => state.subscriptionsWorkspace);
   const sidebarOpen = useUiStore((state) => state.sidebarOpen);
-  const subscriptionsWorkspaceOpen = subscriptionsWorkspace !== null || feedCleanupOpen;
+  const subscriptionsWorkspaceOpen = subscriptionsWorkspace !== null;
 
   return (
     // Keep layout flush to the top edge. macOS titlebar spacing lives in AppShell,
@@ -78,7 +77,7 @@ export function AppLayout() {
         <WideLayout
           focusedPane={focusedPane}
           contentMode={contentMode}
-          feedCleanupOpen={subscriptionsWorkspaceOpen}
+          subscriptionsWorkspaceOpen={subscriptionsWorkspaceOpen}
           sidebarOpen={sidebarOpen}
         />
       ) : (
@@ -95,16 +94,16 @@ export function AppLayout() {
 function WideLayout({
   focusedPane,
   contentMode,
-  feedCleanupOpen,
+  subscriptionsWorkspaceOpen,
   sidebarOpen,
 }: {
   focusedPane: "sidebar" | "list" | "content";
   contentMode: ContentMode;
-  feedCleanupOpen: boolean;
+  subscriptionsWorkspaceOpen: boolean;
   sidebarOpen: boolean;
 }) {
-  const panes = feedCleanupOpen ? ["sidebar", "content"] : resolveLayout("wide", focusedPane, contentMode);
-  const shouldShowSidebar = feedCleanupOpen || sidebarOpen;
+  const panes = subscriptionsWorkspaceOpen ? ["sidebar", "content"] : resolveLayout("wide", focusedPane, contentMode);
+  const shouldShowSidebar = subscriptionsWorkspaceOpen || sidebarOpen;
 
   return (
     <div className="flex h-full overflow-hidden">

@@ -35,7 +35,7 @@ describe("useUiStore", () => {
 
   it("opens subscriptions index and cleanup as explicit workspaces", () => {
     expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
-    expect(useUiStore.getState().feedCleanupOpen).toBe(false);
+    expect("feedCleanupOpen" in useUiStore.getState()).toBe(false);
 
     useUiStore.getState().openSubscriptionsIndex();
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
@@ -43,18 +43,18 @@ describe("useUiStore", () => {
       cleanupContext: null,
     });
     expect(useUiStore.getState().focusedPane).toBe("content");
-    expect(useUiStore.getState().feedCleanupOpen).toBe(false);
+    expect("feedCleanupOpen" in useUiStore.getState()).toBe(false);
 
     useUiStore.getState().openFeedCleanup({ reason: "stale_90d", returnTo: "index" });
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "cleanup",
       cleanupContext: { reason: "stale_90d", returnTo: "index" },
     });
-    expect(useUiStore.getState().feedCleanupOpen).toBe(true);
+    expect("feedCleanupOpen" in useUiStore.getState()).toBe(false);
 
     useUiStore.getState().closeSubscriptionsWorkspace();
     expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
-    expect(useUiStore.getState().feedCleanupOpen).toBe(false);
+    expect("feedCleanupOpen" in useUiStore.getState()).toBe(false);
     expect(useUiStore.getState().focusedPane).toBe("list");
   });
 

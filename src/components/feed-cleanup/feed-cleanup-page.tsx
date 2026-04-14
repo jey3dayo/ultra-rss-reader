@@ -16,7 +16,6 @@ export function FeedCleanupPage() {
   const { t, i18n } = useTranslation("cleanup");
   const { t: tr } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
-  const feedCleanupOpen = useUiStore((state) => state.feedCleanupOpen);
   const subscriptionsWorkspace = useUiStore((state) => state.subscriptionsWorkspace);
   const openSubscriptionsIndex = useUiStore((state) => state.openSubscriptionsIndex);
   const closeFeedCleanup = useUiStore((state) => state.closeFeedCleanup);
@@ -32,7 +31,6 @@ export function FeedCleanupPage() {
   const dateLocale = resolveArticleDateLocale(i18n.language);
 
   const cleanupState = useFeedCleanupPageState({
-    feedCleanupOpen,
     subscriptionsWorkspace,
     devIntent,
     feeds,
@@ -90,7 +88,7 @@ export function FeedCleanupPage() {
     });
   };
 
-  if (!feedCleanupOpen) {
+  if (subscriptionsWorkspace?.kind !== "cleanup") {
     return null;
   }
 

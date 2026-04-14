@@ -202,7 +202,6 @@ function resolveDecisionTargetIds(
 }
 
 export function useFeedCleanupPageState({
-  feedCleanupOpen,
   subscriptionsWorkspace,
   devIntent,
   feeds,
@@ -211,6 +210,7 @@ export function useFeedCleanupPageState({
   integrityReport,
 }: FeedCleanupPageInput) {
   const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
+  const cleanupWorkspaceOpen = subscriptionsWorkspace?.kind === "cleanup";
 
   const hiddenFeedIds = useMemo(() => {
     const hidden = new Set(state.keptFeedIds);
@@ -273,7 +273,7 @@ export function useFeedCleanupPageState({
   const decisionTargetIds = resolveDecisionTargetIds(state);
 
   useEffect(() => {
-    if (!feedCleanupOpen) {
+    if (!cleanupWorkspaceOpen) {
       return;
     }
 
@@ -286,7 +286,7 @@ export function useFeedCleanupPageState({
     if (!visibleCandidates.some((candidate) => candidate.feedId === state.selectedFeedId)) {
       dispatch({ type: "set-selected-feed-id", feedId: firstVisibleFeedId });
     }
-  }, [feedCleanupOpen, state.focusedFeedId, state.selectedFeedId, visibleCandidates]);
+  }, [cleanupWorkspaceOpen, state.focusedFeedId, state.selectedFeedId, visibleCandidates]);
 
   useEffect(() => {
     if (state.queueMode !== "integrity") {
@@ -309,7 +309,7 @@ export function useFeedCleanupPageState({
   }, [integrityIssues, state.queueMode, state.selectedIntegrityFeedId]);
 
   useEffect(() => {
-    if (!feedCleanupOpen) {
+    if (!cleanupWorkspaceOpen) {
       return;
     }
 
@@ -323,10 +323,10 @@ export function useFeedCleanupPageState({
 
     dispatch({ type: "set-editing-feed-id", feedId: null });
     dispatch({ type: "set-queue-mode", mode: "integrity" });
-  }, [devIntent, feedCleanupOpen, integrityIssues.length]);
+  }, [cleanupWorkspaceOpen, devIntent, integrityIssues.length]);
 
   useEffect(() => {
-    if (!feedCleanupOpen || subscriptionsWorkspace?.kind !== "cleanup") {
+    if (!cleanupWorkspaceOpen || subscriptionsWorkspace?.kind !== "cleanup") {
       return;
     }
 
@@ -350,10 +350,10 @@ export function useFeedCleanupPageState({
     }
 
     dispatch({ type: "set-queue-mode", mode: "cleanup" });
-  }, [feedCleanupOpen, subscriptionsWorkspace]);
+  }, [cleanupWorkspaceOpen, subscriptionsWorkspace]);
 
   useEffect(() => {
-    if (!feedCleanupOpen || subscriptionsWorkspace?.kind !== "cleanup") {
+    if (!cleanupWorkspaceOpen || subscriptionsWorkspace?.kind !== "cleanup") {
       return;
     }
 
@@ -364,7 +364,7 @@ export function useFeedCleanupPageState({
 
     dispatch({ type: "set-selected-feed-id", feedId: targetFeedId });
     dispatch({ type: "set-focused-feed-id", feedId: targetFeedId });
-  }, [feedCleanupOpen, subscriptionsWorkspace, visibleCandidates]);
+  }, [cleanupWorkspaceOpen, subscriptionsWorkspace, visibleCandidates]);
 
   useEffect(() => {
     if (!state.selectedFeedId || state.editingFeedId === state.selectedFeedId) {

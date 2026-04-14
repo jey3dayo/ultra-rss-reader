@@ -149,11 +149,11 @@ describe("executeAction", () => {
 
     it("opens the feed cleanup workspace with default review context", () => {
       executeAction("open-feed-cleanup");
-      expect(useUiStore.getState().feedCleanupOpen).toBe(true);
       expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
         kind: "cleanup",
         cleanupContext: { reason: "review", returnTo: "index" },
       });
+      expect("feedCleanupOpen" in useUiStore.getState()).toBe(false);
       expect(useUiStore.getState().focusedPane).toBe("content");
     });
   });

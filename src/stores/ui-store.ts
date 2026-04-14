@@ -91,7 +91,6 @@ interface UiState {
   settingsAddAccount: boolean;
   settingsLoading: boolean;
   appLoading: boolean;
-  feedCleanupOpen: boolean;
   subscriptionsWorkspace: SubscriptionsWorkspace | null;
   syncProgress: SyncProgressState;
   commandPaletteOpen: boolean;
@@ -189,7 +188,6 @@ const initialState: UiState = {
   settingsAddAccount: false,
   settingsLoading: false,
   appLoading: false,
-  feedCleanupOpen: false,
   subscriptionsWorkspace: null,
   syncProgress: {
     active: false,
@@ -356,25 +354,21 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   openSubscriptionsIndex: () =>
     set({
       subscriptionsWorkspace: { kind: "index", cleanupContext: null },
-      feedCleanupOpen: false,
       focusedPane: "content",
     }),
   openFeedCleanup: (context) =>
     set({
       subscriptionsWorkspace: { kind: "cleanup", cleanupContext: context ?? null },
-      feedCleanupOpen: true,
       focusedPane: "content",
     }),
   closeFeedCleanup: () =>
     set((state) => ({
       subscriptionsWorkspace: null,
-      feedCleanupOpen: false,
       focusedPane: state.selectedArticleId ? "content" : "list",
     })),
   closeSubscriptionsWorkspace: () =>
     set((state) => ({
       subscriptionsWorkspace: null,
-      feedCleanupOpen: false,
       focusedPane: state.selectedArticleId ? "content" : "list",
     })),
   applySyncProgress: (event) =>

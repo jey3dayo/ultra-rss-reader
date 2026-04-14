@@ -48,7 +48,7 @@ describe("AppShell", () => {
   });
 
   it("keeps the main layout mounted when the store opens feed cleanup", () => {
-    useUiStore.setState({ feedCleanupOpen: true });
+    useUiStore.setState({ subscriptionsWorkspace: { kind: "cleanup", cleanupContext: null } });
 
     render(<AppShell />, { wrapper: createWrapper() });
 

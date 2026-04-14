@@ -17,7 +17,6 @@ export type ArticleViewSelectionState =
 export function useArticleViewSelection(): ArticleViewSelectionState {
   const contentMode = useUiStore((s) => s.contentMode);
   const browserUrl = useUiStore((s) => s.browserUrl);
-  const feedCleanupOpen = useUiStore((s) => s.feedCleanupOpen);
   const subscriptionsWorkspace = useUiStore((s) => s.subscriptionsWorkspace);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
@@ -33,7 +32,7 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
     return { kind: "subscriptions-index" };
   }
 
-  if (feedCleanupOpen) {
+  if (subscriptionsWorkspace?.kind === "cleanup") {
     return { kind: "feed-cleanup" };
   }
 

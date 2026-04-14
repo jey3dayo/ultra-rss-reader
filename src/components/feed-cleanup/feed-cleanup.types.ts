@@ -338,7 +338,6 @@ export type FeedCleanupFeedEditorController = {
 export type FeedCleanupFilterKey = "stale_90d" | "no_unread" | "no_stars";
 
 export type FeedCleanupPageInput = {
-  feedCleanupOpen: boolean;
   subscriptionsWorkspace: SubscriptionsWorkspace | null;
   devIntent: string | null;
   feeds: BuildFeedCleanupCandidatesParams["feeds"];

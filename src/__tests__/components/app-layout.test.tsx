@@ -41,7 +41,7 @@ describe("AppLayout", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       layoutMode: "wide",
-      feedCleanupOpen: true,
+      subscriptionsWorkspace: { kind: "cleanup", cleanupContext: null },
       focusedPane: "content",
     });
 

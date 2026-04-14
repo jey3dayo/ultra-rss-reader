@@ -156,7 +156,7 @@ describe("SubscriptionsIndexPage", () => {
       kind: "cleanup",
       cleanupContext: { reason: "stale_90d", returnTo: "index" },
     });
-    expect(useUiStore.getState().feedCleanupOpen).toBe(true);
+    expect("feedCleanupOpen" in useUiStore.getState()).toBe(false);
   });
 
   it("opens cleanup with broken-references context from the summary action", async () => {
@@ -170,6 +170,6 @@ describe("SubscriptionsIndexPage", () => {
       kind: "cleanup",
       cleanupContext: { reason: "broken_references", returnTo: "index" },
     });
-    expect(useUiStore.getState().feedCleanupOpen).toBe(true);
+    expect("feedCleanupOpen" in useUiStore.getState()).toBe(false);
   });
 });

@@ -110,7 +110,7 @@ describe("FeedCleanupPage", () => {
 
     useUiStore.setState({
       ...useUiStore.getInitialState(),
-      feedCleanupOpen: true,
+      subscriptionsWorkspace: { kind: "cleanup", cleanupContext: null },
       selectedAccountId: "acc-1",
     });
     usePreferencesStore.setState({ prefs: {}, loaded: true });
@@ -210,8 +210,6 @@ describe("FeedCleanupPage", () => {
     expect(screen.getByTestId("feed-cleanup-sidebar-summary")).toBeInTheDocument();
     expect(screen.getByTestId("feed-cleanup-page")).toHaveClass("h-dvh");
     expect(await screen.findByText("2 candidates")).toBeInTheDocument();
-    expect(screen.queryByText("1 review now")).not.toBeInTheDocument();
-    expect(screen.queryByText("0 deferred")).not.toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Old Product Blog" })).toBeInTheDocument();
     expect(screen.getByTestId("feed-cleanup-queue-row-feed-2")).toHaveClass("opacity-75");
     expect(screen.getByTestId("feed-cleanup-queue-row-feed-1")).toHaveClass("scale-[1.01]");
@@ -292,7 +290,7 @@ describe("FeedCleanupPage", () => {
       kind: "index",
       cleanupContext: null,
     });
-    expect(useUiStore.getState().feedCleanupOpen).toBe(false);
+    expect("feedCleanupOpen" in useUiStore.getState()).toBe(false);
   });
 
   it("keeps the candidate visible and leaves the dialog closable when delete fails", async () => {

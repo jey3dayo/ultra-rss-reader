@@ -70,6 +70,9 @@ describe("FeedCleanupQueuePanel", () => {
     expect(screen.getByTestId("feed-cleanup-queue-card-header-feed-1")).toHaveClass("sm:flex-row");
     expect(screen.getByTestId("feed-cleanup-queue-card-status-feed-1")).toHaveClass("items-start");
     expect(screen.getByTestId("feed-cleanup-queue-card-status-feed-1")).toHaveClass("sm:items-end");
+    expect(screen.getByText("Updated 120 days ago")).toBeInTheDocument();
+    expect(screen.getByText("Unread 0")).toBeInTheDocument();
+    expect(screen.getByText("+1")).toBeInTheDocument();
   });
 
   it("renders explicit selection and focus affordances for cleanup rows", () => {
