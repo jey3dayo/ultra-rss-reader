@@ -67,6 +67,20 @@ function ensureWorkingStorage() {
 }
 
 ensureWorkingStorage();
+
+function ensureGetAnimations() {
+  if (typeof Element === "undefined" || typeof Element.prototype.getAnimations === "function") {
+    return;
+  }
+
+  Object.defineProperty(Element.prototype, "getAnimations", {
+    configurable: true,
+    writable: true,
+    value: () => [],
+  });
+}
+
+ensureGetAnimations();
 import "./helpers/i18n-setup";
 import { teardownTauriMocks } from "./helpers/tauri-mocks";
 

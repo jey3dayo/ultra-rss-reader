@@ -90,6 +90,14 @@ function parsePixelValue(value: string | null | undefined): number | null {
   return match ? Number(match[1]) : null;
 }
 
+type InlineStyleKey = "bottom" | "borderRadius" | "height" | "left" | "right" | "top";
+
+function expectInlineStyles(element: HTMLElement, expected: Partial<Record<InlineStyleKey, string>>) {
+  for (const [property, value] of Object.entries(expected) as [InlineStyleKey, string][]) {
+    expect(element.style[property]).toBe(value);
+  }
+}
+
 function resolveMockRect(element: HTMLElement): MockHostRect {
   if (element.hasAttribute("data-browser-overlay-root")) {
     return rootRect;
@@ -346,8 +354,7 @@ describe("BrowserView", () => {
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
     const stage = screen.getByTestId("browser-overlay-stage");
-
-    expect(stage).toHaveStyle({
+    expectInlineStyles(stage, {
       left: "0px",
       right: "0px",
       top: "56px",
@@ -378,7 +385,7 @@ describe("BrowserView", () => {
     expect(stage.className).not.toMatch(/\bborder\b/);
     expect(stage.className).not.toMatch(/\bshadow-/);
     expect(stage.className).not.toMatch(/\brounded-/);
-    expect(stage).toHaveStyle({
+    expectInlineStyles(stage, {
       left: "0px",
       right: "0px",
       top: "56px",
@@ -386,7 +393,7 @@ describe("BrowserView", () => {
       borderRadius: "0px",
     });
     expect(topRail).toBeInTheDocument();
-    expect(topRail).toHaveStyle({
+    expectInlineStyles(topRail, {
       left: "0px",
       right: "0px",
       top: "0px",
@@ -462,7 +469,7 @@ describe("BrowserView", () => {
     const externalButton = screen.getByRole("button", { name: /open in external browser/i });
     const closeButton = within(chrome).getByRole("button", { name: "Close Web Preview" });
 
-    expect(stage).toHaveStyle({
+    expectInlineStyles(stage, {
       left: "0px",
       right: "0px",
       top: "64px",
