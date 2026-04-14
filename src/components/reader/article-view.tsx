@@ -1,10 +1,15 @@
+import { lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import { FeedCleanupPage } from "../feed-cleanup/feed-cleanup-page";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticlePane, ArticleToolbar } from "./article-pane-view";
 import { ArticleEmptyStateShell, ArticleNotFoundStateView, BrowserOnlyStateView } from "./article-view-state";
 import { useArticleViewSelection } from "./use-article-view-selection";
 import { useArticleViewUiState } from "./use-article-view-ui-state";
+
+const LazyFeedCleanupPage = lazy(async () => {
+  const mod = await import("../feed-cleanup/feed-cleanup-page");
+  return { default: mod.FeedCleanupPage };
+});
 
 export { ArticlePane, ArticleToolbar } from "./article-pane-view";
 
@@ -36,7 +41,11 @@ export function ArticleView() {
   const selectionState = useArticleViewSelection();
 
   if (selectionState.kind === "feed-cleanup") {
-    return <FeedCleanupPage />;
+    return (
+      <Suspense fallback={null}>
+        <LazyFeedCleanupPage />
+      </Suspense>
+    );
   }
 
   if (selectionState.kind === "browser-only") {

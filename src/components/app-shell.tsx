@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { APP_EVENTS } from "../constants/events";
@@ -19,11 +19,27 @@ import { resolvePreferenceValue, usePreferencesStore } from "../stores/preferenc
 import { useUiStore } from "../stores/ui-store";
 import { AppConfirmDialog } from "./app-confirm-dialog";
 import { AppLayout } from "./app-layout";
-import { FocusDebugHudView } from "./debug/focus-debug-hud-view";
-import { CommandPalette } from "./reader/command-palette";
-import { ShortcutsHelpModal } from "./reader/shortcuts-help-modal";
-import { SettingsModal } from "./settings/settings-modal";
 import { IndeterminateProgress } from "./shared/indeterminate-progress";
+
+const LazyFocusDebugHudView = lazy(async () => {
+  const mod = await import("./debug/focus-debug-hud-view");
+  return { default: mod.FocusDebugHudView };
+});
+
+const LazyCommandPalette = lazy(async () => {
+  const mod = await import("./reader/command-palette");
+  return { default: mod.CommandPalette };
+});
+
+const LazyShortcutsHelpModal = lazy(async () => {
+  const mod = await import("./reader/shortcuts-help-modal");
+  return { default: mod.ShortcutsHelpModal };
+});
+
+const LazySettingsModal = lazy(async () => {
+  const mod = await import("./settings/settings-modal");
+  return { default: mod.SettingsModal };
+});
 
 function Toast() {
   const { t } = useTranslation("common");
@@ -227,24 +243,26 @@ function FocusDebugHud() {
   };
 
   const hud = (
-    <FocusDebugHudView
-      focusedPane={focusedPane}
-      contentMode={contentMode}
-      selectedArticleId={selectedArticleId}
-      browserCloseInFlight={browserCloseInFlight}
-      pendingBrowserCloseAction={pendingBrowserCloseAction}
-      activeElementDescription={activeElementDescription}
-      browserGeometryRows={browserGeometry ? getBrowserGeometryRows(browserGeometry) : []}
-      traces={traces}
-      onCopyClick={() => {
-        emitDebugInputTrace("hud-click");
-        void handleCopy();
-      }}
-      onCopyPointerDown={(event) => {
-        event.preventDefault();
-        emitDebugInputTrace("hud-pointer-down");
-      }}
-    />
+    <Suspense fallback={null}>
+      <LazyFocusDebugHudView
+        focusedPane={focusedPane}
+        contentMode={contentMode}
+        selectedArticleId={selectedArticleId}
+        browserCloseInFlight={browserCloseInFlight}
+        pendingBrowserCloseAction={pendingBrowserCloseAction}
+        activeElementDescription={activeElementDescription}
+        browserGeometryRows={browserGeometry ? getBrowserGeometryRows(browserGeometry) : []}
+        traces={traces}
+        onCopyClick={() => {
+          emitDebugInputTrace("hud-click");
+          void handleCopy();
+        }}
+        onCopyPointerDown={(event) => {
+          event.preventDefault();
+          emitDebugInputTrace("hud-pointer-down");
+        }}
+      />
+    </Suspense>
   );
 
   if (typeof document !== "undefined") {
@@ -266,6 +284,7 @@ export function AppShell() {
   const commandPaletteOpen = useUiStore((state) => state.commandPaletteOpen);
   const shortcutsHelpOpen = useUiStore((state) => state.shortcutsHelpOpen);
   const closeShortcutsHelp = useUiStore((state) => state.closeShortcutsHelp);
+  const settingsOpen = useUiStore((state) => state.settingsOpen);
   const appLoading = useUiStore((state) => state.appLoading);
   const prefs = usePreferencesStore((state) => state.prefs);
   const overlayTitlebar = shouldUseDesktopOverlayTitlebar({
@@ -291,13 +310,26 @@ export function AppShell() {
       <div className="min-h-0 flex-1">
         <AppLayout />
       </div>
-      <SettingsModal />
+      {settingsOpen ? (
+        <Suspense fallback={null}>
+          <LazySettingsModal />
+        </Suspense>
+      ) : null}
       <AppConfirmDialog />
       {shortcutsHelpOpen ? (
-        <ShortcutsHelpModal open={shortcutsHelpOpen} onOpenChange={(nextOpen) => !nextOpen && closeShortcutsHelp()} />
+        <Suspense fallback={null}>
+          <LazyShortcutsHelpModal
+            open={shortcutsHelpOpen}
+            onOpenChange={(nextOpen) => !nextOpen && closeShortcutsHelp()}
+          />
+        </Suspense>
       ) : null}
       <Toast />
-      {commandPaletteOpen ? <CommandPalette /> : null}
+      {commandPaletteOpen ? (
+        <Suspense fallback={null}>
+          <LazyCommandPalette />
+        </Suspense>
+      ) : null}
       {showFocusDebugHud ? <FocusDebugHud /> : null}
     </div>
   );

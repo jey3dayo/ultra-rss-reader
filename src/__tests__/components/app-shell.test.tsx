@@ -29,7 +29,7 @@ vi.mock("@/components/app-confirm-dialog", () => ({
 }));
 
 vi.mock("@/components/settings/settings-modal", () => ({
-  SettingsModal: () => null,
+  SettingsModal: () => <div>Settings Modal</div>,
 }));
 
 vi.mock("@/components/reader/command-palette", () => ({
@@ -53,6 +53,12 @@ describe("AppShell", () => {
     render(<AppShell />, { wrapper: createWrapper() });
 
     expect(screen.getByText("App Layout")).toBeInTheDocument();
+  });
+
+  it("does not mount the settings modal until it is opened", () => {
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    expect(screen.queryByText("Settings Modal")).not.toBeInTheDocument();
   });
 
   it("mounts the browser overlay root as a shell child that spans the entire app shell", () => {
@@ -122,7 +128,7 @@ describe("AppShell", () => {
 
     render(<AppShell />, { wrapper: createWrapper() });
 
-    const copyButton = screen.getByRole("button", { name: "Copy debug HUD" });
+    const copyButton = await screen.findByRole("button", { name: "Copy debug HUD" });
     fireEvent.click(copyButton);
 
     await waitFor(() => {
@@ -152,7 +158,7 @@ describe("AppShell", () => {
 
     render(<AppShell />, { wrapper: createWrapper() });
 
-    const copyButton = screen.getByRole("button", { name: "Copy debug HUD" });
+    const copyButton = await screen.findByRole("button", { name: "Copy debug HUD" });
     copyButton.focus();
 
     expect(copyButton).toHaveFocus();
@@ -194,8 +200,8 @@ describe("AppShell", () => {
       }),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "More" }));
-    fireEvent.click(screen.getByRole("button", { name: "Show" }));
+    fireEvent.click(await screen.findByRole("button", { name: "More" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Show" }));
 
     expect(await screen.findByText("Geometry")).toBeInTheDocument();
     expect(screen.getByText("viewport")).toBeInTheDocument();
