@@ -1,8 +1,10 @@
 import { useEffect } from "react";
+import { getPreferredAccountId } from "@/components/accounts/get-preferred-account-id";
 import type { SidebarAccountSelectionParams } from "./sidebar-runtime.types";
 
 export function useSidebarAccountSelection({
   accounts,
+  preferencesLoaded,
   selectedAccountId,
   savedAccountId,
   layoutMode,
@@ -12,6 +14,10 @@ export function useSidebarAccountSelection({
   setSelectedAccountPreference,
 }: SidebarAccountSelectionParams) {
   useEffect(() => {
+    if (!preferencesLoaded) {
+      return;
+    }
+
     if (!accounts) {
       return;
     }
@@ -33,9 +39,11 @@ export function useSidebarAccountSelection({
       return;
     }
 
-    const restoredAccountId =
-      savedAccountId && accounts.some((account) => account.id === savedAccountId) ? savedAccountId : null;
-    const nextAccountId = restoredAccountId ?? accounts[0].id;
+    const nextAccountId = getPreferredAccountId(accounts, savedAccountId);
+    if (!nextAccountId) {
+      return;
+    }
+    const restoredAccountId = savedAccountId === nextAccountId ? nextAccountId : null;
 
     restoreAccountSelection(nextAccountId, {
       focusedPane: restoredAccountId && layoutMode === "mobile" ? "sidebar" : "list",
@@ -49,6 +57,7 @@ export function useSidebarAccountSelection({
     activeDevIntent,
     clearSelectedAccount,
     layoutMode,
+    preferencesLoaded,
     restoreAccountSelection,
     savedAccountId,
     selectedAccountId,

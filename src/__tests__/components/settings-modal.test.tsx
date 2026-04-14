@@ -68,6 +68,21 @@ describe("SettingsModal", () => {
     expect(screen.getByRole("button", { name: /FreshRSS/i })).toBeInTheDocument();
   });
 
+  it("prefers the saved account when opening the accounts section", async () => {
+    usePreferencesStore.setState({
+      prefs: { selected_account_id: "acc-2" },
+      loaded: true,
+    });
+    useUiStore.setState(useUiStore.getInitialState());
+    useUiStore.getState().openSettings("accounts");
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
+    });
+  });
+
   it("shows the debug category in navigation", async () => {
     const user = userEvent.setup();
 

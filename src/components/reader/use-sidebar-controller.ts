@@ -55,6 +55,7 @@ export function useSidebarController(): SidebarControllerResult {
     startupFolderExpansion,
     opaqueSidebars,
     savedAccountId,
+    preferencesLoaded,
     setPref,
     accounts,
     accountStatusLabels,
@@ -98,6 +99,7 @@ export function useSidebarController(): SidebarControllerResult {
 
   useSidebarAccountSelection({
     accounts,
+    preferencesLoaded,
     selectedAccountId,
     savedAccountId,
     layoutMode,

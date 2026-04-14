@@ -44,6 +44,7 @@ export type SidebarUiStateResult = Pick<
   | "applySyncProgress"
   | "clearSyncProgress"
 > & {
+  preferencesLoaded: boolean;
   showUnreadCount: boolean;
   showStarredCount: boolean;
   showSidebarUnread: boolean;
@@ -72,6 +73,7 @@ export type SidebarRuntimeResult = SidebarAccountSwitcherResult &
 
 export type SidebarAccountSelectionParams = {
   accounts: SidebarSourcesResult["accounts"];
+  preferencesLoaded: SidebarUiStateResult["preferencesLoaded"];
   selectedAccountId: SidebarUiStateResult["selectedAccountId"];
   savedAccountId: SidebarUiStateResult["savedAccountId"];
   layoutMode: SidebarUiStateResult["layoutMode"];

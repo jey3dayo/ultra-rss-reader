@@ -31,6 +31,7 @@ export function useSidebarUiState(): SidebarUiStateResult {
   const applySyncProgress = useUiStore((s) => s.applySyncProgress);
   const clearSyncProgress = useUiStore((s) => s.clearSyncProgress);
 
+  const preferencesLoaded = usePreferencesStore((s) => s.loaded);
   const showUnreadCount = usePreferencesStore((s) => (s.prefs.show_unread_count ?? "true") === "true");
   const showStarredCount = usePreferencesStore((s) => (s.prefs.show_starred_count ?? "true") === "true");
   const showSidebarUnread = usePreferencesStore(
@@ -77,6 +78,7 @@ export function useSidebarUiState(): SidebarUiStateResult {
     syncProgress,
     applySyncProgress,
     clearSyncProgress,
+    preferencesLoaded,
     showUnreadCount,
     showStarredCount,
     showSidebarUnread,

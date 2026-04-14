@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { getPreferredAccountId } from "@/components/accounts/get-preferred-account-id";
 import { AccountDetail } from "@/components/settings/account-detail";
 import { ActionsSettings } from "@/components/settings/actions-settings";
 import { AddAccountForm } from "@/components/settings/add-account-form";
@@ -13,6 +14,7 @@ import { SettingsModalView } from "@/components/settings/settings-modal-view";
 import { ShortcutsSettings } from "@/components/settings/shortcuts-settings";
 import { useSettingsModalViewProps } from "@/components/settings/use-settings-modal-view-props";
 import { useAccounts } from "@/hooks/use-accounts";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 function SettingsContent({ settingsAccountId, settingsAddAccount, settingsCategory }: SettingsContentProps) {
@@ -53,17 +55,29 @@ export function SettingsModal() {
   const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
   const settingsLoading = useUiStore((s) => s.settingsLoading);
   const { data: accounts } = useAccounts();
+  const savedAccountId = usePreferencesStore((s) => s.prefs.selected_account_id ?? "");
 
-  // Auto-select first account when navigating to accounts section via menu
+  // Wait for account data before deciding whether to restore or open the add-account flow.
   useEffect(() => {
-    if (settingsCategory === "accounts" && !settingsAccountId && !settingsAddAccount) {
-      if (accounts && accounts.length > 0) {
-        setSettingsAccountId(accounts[0].id);
-      } else {
-        setSettingsAddAccount(true);
-      }
+    if (settingsCategory !== "accounts" || settingsAccountId || settingsAddAccount || !accounts) {
+      return;
     }
-  }, [settingsCategory, settingsAccountId, settingsAddAccount, accounts, setSettingsAccountId, setSettingsAddAccount]);
+
+    const nextAccountId = getPreferredAccountId(accounts, savedAccountId);
+    if (nextAccountId) {
+      setSettingsAccountId(nextAccountId);
+    } else {
+      setSettingsAddAccount(true);
+    }
+  }, [
+    settingsCategory,
+    settingsAccountId,
+    settingsAddAccount,
+    accounts,
+    savedAccountId,
+    setSettingsAccountId,
+    setSettingsAddAccount,
+  ]);
 
   const viewProps = useSettingsModalViewProps({
     t,
