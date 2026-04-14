@@ -14,6 +14,7 @@ import { SettingsModalView } from "@/components/settings/settings-modal-view";
 import { ShortcutsSettings } from "@/components/settings/shortcuts-settings";
 import { useSettingsModalViewProps } from "@/components/settings/use-settings-modal-view-props";
 import { useAccounts } from "@/hooks/use-accounts";
+import { useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -56,14 +57,20 @@ export function SettingsModal() {
   const settingsLoading = useUiStore((s) => s.settingsLoading);
   const { data: accounts } = useAccounts();
   const savedAccountId = usePreferencesStore((s) => s.prefs.selected_account_id ?? "");
+  const accountsSnapshotCandidate = accounts ?? null;
+  const { snapshot: accountsSnapshot } = useScreenSnapshot(
+    accountsSnapshotCandidate,
+    accountsSnapshotCandidate !== null,
+  );
+  const visibleAccounts = accountsSnapshot ?? accounts;
 
   // Wait for account data before deciding whether to restore or open the add-account flow.
   useEffect(() => {
-    if (settingsCategory !== "accounts" || settingsAccountId || settingsAddAccount || !accounts) {
+    if (settingsCategory !== "accounts" || settingsAccountId || settingsAddAccount || !visibleAccounts) {
       return;
     }
 
-    const nextAccountId = getPreferredAccountId(accounts, savedAccountId);
+    const nextAccountId = getPreferredAccountId(visibleAccounts, savedAccountId);
     if (nextAccountId) {
       setSettingsAccountId(nextAccountId);
     } else {
@@ -73,7 +80,7 @@ export function SettingsModal() {
     settingsCategory,
     settingsAccountId,
     settingsAddAccount,
-    accounts,
+    visibleAccounts,
     savedAccountId,
     setSettingsAccountId,
     setSettingsAddAccount,
@@ -86,7 +93,7 @@ export function SettingsModal() {
     settingsAccountId,
     settingsAddAccount,
     settingsLoading,
-    accounts,
+    accounts: visibleAccounts,
     content: (
       <SettingsContent
         settingsAccountId={settingsAccountId}

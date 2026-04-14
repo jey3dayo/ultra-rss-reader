@@ -1,4 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { useEffect } from "react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ActionsSettings } from "@/components/settings/actions-settings";
@@ -8,7 +10,7 @@ import type { SettingsModalViewProps } from "@/components/settings/settings-moda
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { sampleAccounts, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 vi.mock("@/components/settings/settings-modal-view", () => ({
   SettingsModalView: ({
@@ -37,17 +39,39 @@ describe("SettingsModal", () => {
   beforeEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
     useUiStore.getState().openSettings();
-    setupTauriMocks((cmd) => {
-      if (cmd === "list_accounts") {
-        return sampleAccounts;
-      }
-      return null;
-    });
+    setupTauriMocks();
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
   });
+
+  function QueryClientCapture({ onReady }: { onReady: (queryClient: QueryClient) => void }) {
+    const queryClient = useQueryClient();
+
+    useEffect(() => {
+      onReady(queryClient);
+    }, [onReady, queryClient]);
+
+    return null;
+  }
+
+  function createWrapperWithClient(onReady: (queryClient: QueryClient) => void) {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+
+    return function Wrapper({ children }: { children: React.ReactNode }) {
+      return (
+        <QueryClientProvider client={queryClient}>
+          <QueryClientCapture onReady={onReady} />
+          {children}
+        </QueryClientProvider>
+      );
+    };
+  }
 
   it("closes the modal when the view requests it", async () => {
     const user = userEvent.setup();
@@ -66,6 +90,40 @@ describe("SettingsModal", () => {
 
     expect(await screen.findByRole("button", { name: /Local/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /FreshRSS/i })).toBeInTheDocument();
+  });
+
+  it("keeps the previous accounts navigation visible across accounts cache reset and live selection changes", async () => {
+    usePreferencesStore.setState({
+      prefs: { selected_account_id: "acc-1" },
+      loaded: true,
+    });
+    useUiStore.setState(useUiStore.getInitialState());
+    useUiStore.getState().openSettings("accounts");
+
+    let queryClient: QueryClient | undefined;
+    render(<SettingsModal />, {
+      wrapper: createWrapperWithClient((captured) => {
+        queryClient = captured;
+      }),
+    });
+
+    expect(await screen.findByRole("button", { name: /Local/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /FreshRSS/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Local/i })).toHaveClass("bg-sidebar-accent");
+    expect(screen.getByRole("button", { name: /FreshRSS/i })).not.toHaveClass("bg-sidebar-accent");
+
+    await act(async () => {
+      queryClient?.setQueryData(["accounts"], undefined);
+    });
+    act(() => {
+      useUiStore.getState().setSettingsAccountId("acc-2");
+    });
+
+    expect(screen.getByRole("button", { name: /Local/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /FreshRSS/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Local/i })).not.toHaveClass("bg-sidebar-accent");
+    expect(screen.getByRole("button", { name: /FreshRSS/i })).toHaveClass("bg-sidebar-accent");
+    expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
   });
 
   it("prefers the saved account when opening the accounts section", async () => {
