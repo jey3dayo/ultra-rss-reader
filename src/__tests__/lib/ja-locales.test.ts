@@ -7,4 +7,16 @@ describe("Japanese feed management labels", () => {
     expect(jaSidebar.feed_cleanup).toBe("購読の整理");
     expect(jaCleanup.title).toBe("購読の整理");
   });
+
+  it("keeps cleanup decision labels consistent", () => {
+    expect(jaCleanup.defer).toBe("あとで確認");
+    expect(jaCleanup.deferred_badge).toBe("あとで確認");
+    expect(jaCleanup.review_status).toBe("未判断");
+  });
+
+  it("uses natural keep guidance copy in the review panel", () => {
+    expect(jaCleanup.priority_keep).toBe("今は残す");
+    expect(jaCleanup.summary_headline_keep).toBe("今はこのままで大丈夫です");
+    expect(jaCleanup.candidate_summary_healthy_feed).toBe("最近も動きがあり、今すぐ整理する必要はなさそうです。");
+  });
 });
