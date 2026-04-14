@@ -53,8 +53,7 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
     sidebarCountsSnapshotCandidate,
     sidebarCountsSnapshotCandidate !== null,
   );
-  const adoptedCountsSnapshot =
-    sidebarCountsSnapshot?.accountId === selectedAccountId ? sidebarCountsSnapshot : null;
+  const adoptedCountsSnapshot = sidebarCountsSnapshot?.accountId === selectedAccountId ? sidebarCountsSnapshot : null;
   const resolvedTagArticleCounts = adoptedCountsSnapshot?.tagArticleCounts ?? tagArticleCounts;
   const starredCount = adoptedCountsSnapshot?.starredCount ?? liveStarredCount;
 

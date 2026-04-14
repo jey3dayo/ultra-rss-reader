@@ -17,8 +17,8 @@ import { useAccountDetailController } from "@/components/settings/use-account-de
 import { useAccountDetailSyncStatusRows } from "@/components/settings/use-account-detail-sync-status-rows";
 import { useAccountDetailViewProps } from "@/components/settings/use-account-detail-view-props";
 import { useSettingsModalViewProps } from "@/components/settings/use-settings-modal-view-props";
-import { useAccounts } from "@/hooks/use-accounts";
 import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
+import { useAccounts } from "@/hooks/use-accounts";
 import { useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -119,7 +119,7 @@ export function SettingsModal() {
   );
   const visibleAccounts = (accountsSnapshot ?? accounts)?.filter((account) => !deletedAccountIds.includes(account.id));
   const hasSelectedVisibleAccount = settingsAccountId
-    ? visibleAccounts?.some((account) => account.id === settingsAccountId) ?? false
+    ? (visibleAccounts?.some((account) => account.id === settingsAccountId) ?? false)
     : false;
   const resolvedSettingsAccountId =
     settingsCategory !== "accounts" || settingsAddAccount || !visibleAccounts
