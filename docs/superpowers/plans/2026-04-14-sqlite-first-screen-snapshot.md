@@ -42,7 +42,7 @@ Tech Stack: React 19, TypeScript, Zustand, TanStack Query, Vitest, Tauri IPC (`s
 
 ### Task 1: 共通 `useScreenSnapshot` hook を追加する
 
-### Files:
+#### Files
 
 - Create: `src/hooks/use-screen-snapshot.ts`
 - Test: `src/__tests__/hooks/use-screen-snapshot.test.tsx`
@@ -134,7 +134,7 @@ git commit -m "feat(reader): add screen snapshot hook"
 
 ### Task 2: sidebar を SQLite-first snapshot 表示へ切り替える
 
-### Files:
+#### Files
 
 - Modify: `src/components/reader/use-sidebar-sources.ts`
 - Modify: `src/components/reader/sidebar-sources.types.ts`
@@ -240,7 +240,7 @@ git commit -m "fix(sidebar): keep sqlite-backed subscriptions visible while reva
 
 ### Task 3: article list を主データ snapshot で安定化する
 
-### Files:
+#### Files
 
 - Modify: `src/components/reader/use-article-list-sources.ts`
 - Modify: `src/components/reader/article-list.types.ts`
@@ -334,7 +334,7 @@ git commit -m "fix(reader): retain article snapshots during refresh"
 
 ### Task 4: settings / accounts を snapshot ベースで安定化する
 
-### Files:
+#### Files
 
 - Modify: `src/components/settings/settings-modal.tsx`
 - Modify: `src/components/settings/use-settings-modal-view-props.tsx`
@@ -419,7 +419,7 @@ git commit -m "fix(settings): preserve account snapshots during refresh"
 
 ### Task 5: 横断チェックと empty / loading の棚卸しを行う
 
-### Files:
+#### Files
 
 - Modify: `src/hooks/create-query.ts`
 - Modify: `src/components/reader/use-sidebar-sources.ts`
