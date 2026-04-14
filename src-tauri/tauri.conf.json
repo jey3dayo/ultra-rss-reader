@@ -4,7 +4,7 @@
   "version": "0.11.0",
   "identifier": "com.ultra-rss-reader.dev",
   "build": {
-    "beforeDevCommand": "pnpm exec vite",
+    "beforeDevCommand": "pnpm run dev:tauri:vite",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "pnpm exec tsc && pnpm exec vite build",
     "frontendDist": "../dist"

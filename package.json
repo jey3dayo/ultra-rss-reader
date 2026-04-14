@@ -6,6 +6,7 @@
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "pnpm exec vite",
+    "dev:tauri:vite": "node ./scripts/tauri-dev-vite-manager.mjs",
     "build": "pnpm exec tsc && pnpm exec vite build",
     "preview": "pnpm exec vite preview",
     "tauri": "pnpm exec tauri",
