@@ -47,6 +47,7 @@ export function useSidebarUiState(): SidebarUiStateResult {
   const startupFolderExpansion = usePreferencesStore(
     (s) => resolvePreferenceValue(s.prefs, "startup_folder_expansion") as StartupFolderExpansionMode,
   );
+  const sidebarDensity = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "sidebar_density"));
   const opaqueSidebars = usePreferencesStore((s) => (s.prefs.opaque_sidebars ?? "false") === "true");
   const savedAccountId = usePreferencesStore((s) => s.prefs.selected_account_id ?? "");
   const setPref = usePreferencesStore((s) => s.setPref);
@@ -88,6 +89,7 @@ export function useSidebarUiState(): SidebarUiStateResult {
     grayscaleFavicons,
     sortSubscriptions,
     startupFolderExpansion,
+    sidebarDensity,
     opaqueSidebars,
     savedAccountId,
     setPref,

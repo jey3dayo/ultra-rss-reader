@@ -4,12 +4,14 @@ import { useTranslation } from "react-i18next";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { cn } from "@/lib/utils";
 import type { FeedTreeDragHandleProps, FeedTreeRowProps } from "./feed-tree.types";
+import { getSidebarDensityTokens } from "./sidebar-density";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
 export type { FeedTreeFeedViewModel, FeedTreeRowProps } from "./feed-tree.types";
 
 function DragHandle({
   feedTitle,
+  sidebarDensity = "normal",
   canDragFeeds,
   isArmed,
   onArm,
@@ -17,6 +19,7 @@ function DragHandle({
   consumeSuppressedClick,
 }: FeedTreeDragHandleProps) {
   const { t } = useTranslation("sidebar");
+  const tokens = getSidebarDensityTokens(sidebarDensity);
 
   if (!canDragFeeds) {
     return null;
@@ -34,7 +37,8 @@ function DragHandle({
         onArm?.();
       }}
       className={cn(
-        "inline-flex h-11 w-11 shrink-0 cursor-grab items-center justify-center rounded-md text-sidebar-foreground/40 opacity-0 transition-opacity hover:bg-sidebar-accent/40 hover:text-foreground focus-visible:opacity-100 active:cursor-grabbing group-hover/feed-row:opacity-100 group-focus-within/feed-row:opacity-100",
+        "inline-flex shrink-0 cursor-grab items-center justify-center rounded-md text-sidebar-foreground/40 opacity-0 transition-opacity hover:bg-sidebar-accent/40 hover:text-foreground focus-visible:opacity-100 active:cursor-grabbing group-hover/feed-row:opacity-100 group-focus-within/feed-row:opacity-100",
+        tokens.dragHandle,
         isArmed && "bg-sidebar-accent/60 text-foreground opacity-100",
       )}
     >
@@ -44,6 +48,7 @@ function DragHandle({
 }
 
 export function FeedTreeRow({
+  sidebarDensity = "normal",
   feed,
   displayFavicons,
   onSelectFeed,
@@ -54,12 +59,15 @@ export function FeedTreeRow({
   onPointerDownFeed,
   consumeSuppressedHandleClick,
 }: FeedTreeRowProps) {
+  const tokens = getSidebarDensityTokens(sidebarDensity);
+
   return (
     <div className={cn("group/feed-row relative", isDragged && "opacity-70")}>
       <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center">
         <div className="pointer-events-auto">
           <DragHandle
             feedTitle={feed.title}
+            sidebarDensity={sidebarDensity}
             canDragFeeds={canDragFeeds}
             isArmed={isDragged}
             onArm={() => onDragStartFeed?.(feed)}
@@ -72,11 +80,12 @@ export function FeedTreeRow({
         <ContextMenu.Trigger
           render={
             <SidebarNavButton
+              density={sidebarDensity}
               selected={feed.isSelected}
               trailing={feed.unreadCount > 0 ? feed.unreadCount.toLocaleString() : undefined}
               trailingClassName={feed.isSelected ? "text-sidebar-accent-foreground/68" : "text-sidebar-foreground/38"}
               data-feed-id={feed.id}
-              className={cn("min-h-11", canDragFeeds && "pl-11")}
+              className={cn(canDragFeeds && tokens.dragPadding)}
             />
           }
           onClick={() => onSelectFeed(feed.id)}

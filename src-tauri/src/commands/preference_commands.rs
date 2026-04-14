@@ -20,6 +20,7 @@ const ALLOWED_KEYS: &[&str] = &[
     "cmd_click_browser",
     "ask_before_mark_all",
     "list_selection_style",
+    "sidebar_density",
     "layout",
     "opaque_sidebars",
     "grayscale_favicons",

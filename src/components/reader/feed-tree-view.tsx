@@ -1,9 +1,11 @@
+import { cn } from "@/lib/utils";
 import type { FeedTreeViewProps } from "./feed-tree.types";
 import { FeedTreeDragOverlay } from "./feed-tree-drag-overlay";
 import { FeedTreeEmptyState } from "./feed-tree-empty-state";
 import { FeedTreeFolderSection } from "./feed-tree-folder-section";
 import { FeedTreeUnfolderedDropZone } from "./feed-tree-unfoldered-drop-zone";
 import { FeedTreeUnfolderedSection } from "./feed-tree-unfoldered-section";
+import { getSidebarDensityTokens } from "./sidebar-density";
 import { useFeedTreeDrag } from "./use-feed-tree-drag";
 
 export type {
@@ -15,6 +17,7 @@ export type {
 
 export function FeedTreeView({
   isOpen,
+  sidebarDensity = "normal",
   folders,
   unfolderedFeeds,
   unfolderedLabel,
@@ -35,6 +38,7 @@ export function FeedTreeView({
   onDropToUnfoldered,
   onDragEnd,
 }: FeedTreeViewProps) {
+  const tokens = getSidebarDensityTokens(sidebarDensity);
   const hasFeeds = folders.length > 0 || unfolderedFeeds.length > 0;
   const hasUnfolderedFeeds = unfolderedFeeds.length > 0;
   const {
@@ -69,7 +73,7 @@ export function FeedTreeView({
 
   return (
     <>
-      <div className="space-y-1 px-2">
+      <div className={cn("px-2", tokens.treeGap)}>
         {showUnfolderedDropZone ? (
           <FeedTreeUnfolderedDropZone
             enabled={canDragFeeds}
@@ -80,6 +84,7 @@ export function FeedTreeView({
         {folders.map((folder) => (
           <FeedTreeFolderSection
             key={folder.id}
+            sidebarDensity={sidebarDensity}
             folder={folder}
             activeDropTarget={activeVisualDropTarget}
             draggedFeedId={normalizedDraggedFeedId}
@@ -98,6 +103,7 @@ export function FeedTreeView({
         ))}
         {hasUnfolderedFeeds ? (
           <FeedTreeUnfolderedSection
+            sidebarDensity={sidebarDensity}
             unfolderedFeeds={unfolderedFeeds}
             unfolderedLabel={unfolderedLabel}
             onSelectFeed={onSelectFeed}

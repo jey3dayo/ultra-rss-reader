@@ -1,6 +1,7 @@
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import type { SortSubscriptions } from "@/stores/preferences-store";
 import type { FeedTreeViewProps } from "./feed-tree.types";
+import type { SidebarDensity } from "./sidebar-density";
 import type { SidebarFeedTreeViewMode, SidebarSelection } from "./sidebar-feed-tree.types";
 
 export type SidebarFeedTreeProps = Omit<FeedTreeViewProps, "emptyState" | "unfolderedLabel">;
@@ -87,12 +88,14 @@ export type SidebarFeedSectionParams = {
   displayFavicons: boolean;
   moveFeedToFolder: (feedId: string, folderId: string) => Promise<unknown>;
   moveFeedToUnfoldered: (feedId: string) => Promise<unknown>;
+  sidebarDensity: SidebarDensity;
   renderFolderContextMenu?: FeedTreeViewProps["renderFolderContextMenu"];
   renderFeedContextMenu?: FeedTreeViewProps["renderFeedContextMenu"];
 };
 
 export type SidebarFeedTreePropsParams = {
   isFeedsSectionOpen: boolean;
+  sidebarDensity: SidebarDensity;
   feedTreeFolders: FeedTreeViewProps["folders"];
   unfolderedFeedViews: FeedTreeViewProps["unfolderedFeeds"];
   toggleFolder: FeedTreeViewProps["onToggleFolder"];

@@ -3,6 +3,7 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { useAccountArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
+import { useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 import { useTagArticleCounts, useTags } from "@/hooks/use-tags";
 import type { SidebarSourcesParams, SidebarSourcesResult } from "./sidebar-sources.types";
 import { useSidebarAccountStatusLabels } from "./use-sidebar-account-status-labels";
@@ -20,8 +21,18 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
     () => accounts?.find((account) => account.id === selectedAccountId),
     [accounts, selectedAccountId],
   );
-  const feedList = feeds ?? [];
-  const folderList = folders ?? [];
+  const sidebarSnapshotCandidate = useMemo(
+    () =>
+      selectedAccountId !== null && feeds !== undefined && folders !== undefined
+        ? { accountId: selectedAccountId, feeds, folders }
+        : null,
+    [feeds, folders, selectedAccountId],
+  );
+  const { snapshot: sidebarSnapshot } = useScreenSnapshot(sidebarSnapshotCandidate, sidebarSnapshotCandidate !== null);
+  const adoptedSnapshot = sidebarSnapshot?.accountId === selectedAccountId ? sidebarSnapshot : null;
+  const isFeedTreeLoading = selectedAccountId !== null && (feeds === undefined || folders === undefined);
+  const feedList = adoptedSnapshot?.feeds ?? feeds ?? [];
+  const folderList = adoptedSnapshot?.folders ?? folders ?? [];
   const totalUnread = useMemo(() => feedList.reduce((sum, feed) => sum + feed.unread_count, 0), [feedList]);
   const starredCount = useMemo(
     () => accountArticles?.filter((article) => article.is_starred).length ?? 0,
@@ -32,8 +43,9 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
     accounts,
     accountStatusLabels,
     selectedAccount,
-    feeds,
-    folders,
+    feeds: adoptedSnapshot?.feeds ?? feeds,
+    folders: adoptedSnapshot?.folders ?? folders,
+    isFeedTreeLoading,
     tags,
     tagArticleCounts,
     accountArticles,

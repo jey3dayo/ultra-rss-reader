@@ -1,5 +1,7 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { SidebarSectionToggle } from "@/components/shared/sidebar-section-toggle";
+import { cn } from "@/lib/utils";
+import { getSidebarDensityTokens } from "./sidebar-density";
 import { SidebarNavButton } from "./sidebar-nav-button";
 import type { SidebarTagItem, SidebarTagListProps } from "./sidebar-tag-items.types";
 
@@ -9,10 +11,13 @@ export function TagListView({
   tagsLabel,
   isOpen,
   onToggleOpen,
+  sidebarDensity = "normal",
   tags,
   onSelectTag,
   renderContextMenu,
 }: SidebarTagListProps) {
+  const tokens = getSidebarDensityTokens(sidebarDensity);
+
   if (tags.length === 0) return null;
 
   return (
@@ -21,12 +26,13 @@ export function TagListView({
         <SidebarSectionToggle label={tagsLabel} isOpen={isOpen} onToggle={onToggleOpen} />
       </div>
       {isOpen && (
-        <div className="space-y-1 px-2">
+        <div className={cn("px-2", tokens.tagListGap)}>
           {tags.map((tag) => (
             <ContextMenu.Root key={tag.id}>
               <ContextMenu.Trigger
                 render={
                   <SidebarNavButton
+                    density={sidebarDensity}
                     onClick={() => onSelectTag(tag.id)}
                     selected={tag.isSelected}
                     trailing={tag.articleCount > 0 ? tag.articleCount.toLocaleString() : undefined}

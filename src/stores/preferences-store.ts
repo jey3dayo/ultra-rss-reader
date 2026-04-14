@@ -15,6 +15,7 @@ const booleanStringSchema = z.enum(["true", "false"]);
 const sortOrderSchema = z.enum(["newest_first", "oldest_first"]);
 const groupBySchema = z.enum(["date", "feed", "none"]);
 const listSelectionStyleSchema = z.enum(["modern", "classic"]);
+const sidebarDensitySchema = z.enum(["compact", "normal", "spacious"]);
 const layoutSchema = z.enum(["automatic", "wide", "compact"]);
 const fontStyleSchema = z.enum(["sans_serif", "serif", "monospace"]);
 const fontSizeSchema = z.enum(["small", "medium", "large"]);
@@ -38,6 +39,7 @@ const preferenceSchemas = {
   cmd_click_browser: booleanStringSchema,
   ask_before_mark_all: booleanStringSchema,
   list_selection_style: listSelectionStyleSchema,
+  sidebar_density: sidebarDensitySchema,
   layout: layoutSchema,
   theme: themeSchema,
   opaque_sidebars: booleanStringSchema,
@@ -83,6 +85,7 @@ const corePreferenceDefaults = {
   ask_before_mark_all: "true",
   // Appearance
   list_selection_style: "modern",
+  sidebar_density: "normal",
   layout: "automatic",
   theme: "dark",
   opaque_sidebars: "false",

@@ -9,6 +9,7 @@ export function useSidebarFeedTreeProps({
   selectFolder,
   selectFeed,
   displayFavicons,
+  sidebarDensity,
   canDragFeeds,
   draggedFeedId,
   activeDropTarget,
@@ -34,6 +35,7 @@ export function useSidebarFeedTreeProps({
 
   return {
     isOpen: isFeedsSectionOpen,
+    sidebarDensity,
     folders: feedTreeFolders,
     unfolderedFeeds: unfolderedFeedViews,
     onToggleFolder: toggleFolder,

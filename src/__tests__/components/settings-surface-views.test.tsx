@@ -70,6 +70,7 @@ describe("Settings surface views", () => {
   it("renders appearance and reading settings as props-only sections", async () => {
     const user = userEvent.setup();
     const onThemeChange = vi.fn();
+    const onDensityChange = vi.fn();
     const onDisplayPresetChange = vi.fn();
 
     const { rerender } = render(
@@ -80,6 +81,19 @@ describe("Settings surface views", () => {
             id: "appearance-general",
             heading: "General",
             controls: [
+              {
+                id: "list-density",
+                type: "select",
+                name: "sidebar_density",
+                label: "List density",
+                value: "normal",
+                options: [
+                  { value: "compact", label: "Compact" },
+                  { value: "normal", label: "Standard" },
+                  { value: "spacious", label: "Spacious" },
+                ],
+                onChange: onDensityChange,
+              },
               {
                 id: "theme",
                 type: "select",
@@ -99,11 +113,16 @@ describe("Settings surface views", () => {
     );
 
     expect(screen.getByRole("heading", { level: 2, name: "Appearance" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "List density" })).toHaveTextContent("Standard");
     expect(screen.getByRole("combobox", { name: "Theme" })).toHaveTextContent("Dark");
     expect(screen.getByRole("combobox", { name: "Theme" })).toHaveClass("w-full");
 
+    await user.click(screen.getByRole("combobox", { name: "List density" }));
+    await user.click(await screen.findByRole("option", { name: "Spacious" }));
     await user.click(screen.getByRole("combobox", { name: "Theme" }));
     await user.click(await screen.findByRole("option", { name: "Light" }));
+
+    expect(onDensityChange).toHaveBeenCalledWith("spacious");
     expect(onThemeChange).toHaveBeenCalledWith("light");
 
     rerender(

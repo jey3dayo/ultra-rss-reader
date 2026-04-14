@@ -41,6 +41,8 @@ export function useSidebarSectionProps({
   selection,
   selectTag,
   renderTagContextMenu,
+  sidebarDensity,
+  isFeedTreeLoading,
 }: SidebarSectionPropsParams): SidebarSectionPropsResult {
   const headerProps = useSidebarHeaderProps({
     t,
@@ -84,6 +86,8 @@ export function useSidebarSectionProps({
     selection,
     selectTag,
     renderTagContextMenu,
+    sidebarDensity,
+    isFeedTreeLoading,
   });
   const smartViewsProps = useSidebarSmartViewsProps({
     t,

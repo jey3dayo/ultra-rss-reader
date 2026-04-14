@@ -74,11 +74,11 @@ describe("FeedTreeView", () => {
     expect(screen.getByText("Beta")).toBeInTheDocument();
     expect(screen.getByText("No folder")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveClass("h-11");
-    expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveClass("w-11");
-    expect(screen.getByRole("button", { name: "Select folder Work" })).toHaveClass("min-h-11");
-    expect(screen.getByRole("button", { name: /Alpha/ })).toHaveClass("min-h-11");
-    expect(screen.getByRole("button", { name: /Beta/ })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveClass("h-9");
+    expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveClass("w-9");
+    expect(screen.getByRole("button", { name: "Select folder Work" })).toHaveClass("min-h-9");
+    expect(screen.getByRole("button", { name: /Alpha/ })).toHaveClass("min-h-9");
+    expect(screen.getByRole("button", { name: /Beta/ })).toHaveClass("min-h-9");
 
     await user.click(screen.getByRole("button", { name: "Toggle folder Work" }));
     await user.click(screen.getByRole("button", { name: /Alpha/ }));
@@ -281,16 +281,70 @@ describe("FeedTreeView", () => {
 
     const handle = screen.getByRole("button", { name: "Drag Beta" });
     const feedButton = document.querySelector('[data-feed-id="feed-2"]');
-    expect(handle).toHaveClass("h-11");
-    expect(handle).toHaveClass("w-11");
+    expect(handle).toHaveClass("h-9");
+    expect(handle).toHaveClass("w-9");
     expect(feedButton).not.toBeNull();
-    expect(feedButton).toHaveClass("pl-11");
+    expect(feedButton).toHaveClass("pl-9");
     const folderTarget = screen.getByRole("button", { name: "Move to Empty" });
     fireEvent.click(handle);
     fireEvent.click(folderTarget);
 
     expect(onDragStartFeed).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-2" }));
     expect(onDropToFolder).toHaveBeenCalledWith("folder-empty");
+  });
+
+  it("applies compact density tokens to feed rows and drag handles", () => {
+    render(
+      <FeedTreeView
+        isOpen={true}
+        sidebarDensity="compact"
+        canDragFeeds={true}
+        draggedFeedId="feed-2"
+        activeDropTarget={null}
+        folders={[
+          {
+            id: "folder-empty",
+            name: "Empty",
+            accountId: "acc-1",
+            sortOrder: 1,
+            unreadCount: 0,
+            isExpanded: false,
+            isSelected: false,
+            feeds: [],
+          },
+        ]}
+        unfolderedFeeds={[
+          {
+            id: "feed-2",
+            accountId: "acc-1",
+            folderId: null,
+            title: "Beta",
+            url: "https://example.com/beta.xml",
+            siteUrl: "https://example.com/beta",
+            unreadCount: 1,
+            readerMode: "on",
+            webPreviewMode: "off",
+            isSelected: false,
+            grayscaleFavicon: false,
+          },
+        ]}
+        onToggleFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        onDragStartFeed={vi.fn()}
+        onDragEnterFolder={vi.fn()}
+        onDragEnterUnfoldered={vi.fn()}
+        onDropToFolder={vi.fn()}
+        onDropToUnfoldered={vi.fn()}
+        onDragEnd={vi.fn()}
+        displayFavicons={false}
+        emptyState={{ kind: "message", message: "No feeds yet" }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Drag Beta" })).toHaveClass("h-8");
+    expect(screen.getByRole("button", { name: "Drag Beta" })).toHaveClass("w-8");
+    expect(document.querySelector('[data-feed-id="feed-2"]')).toHaveClass("pl-8");
+    expect(screen.getByRole("button", { name: "Toggle folder Empty" })).toHaveClass("h-8");
   });
 
   it("accepts folder moves anywhere inside an expanded folder section", () => {

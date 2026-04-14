@@ -9,6 +9,7 @@ export function useSidebarControllerSections({
   selectedAccountId,
   feeds,
   folders,
+  isFeedTreeLoading,
   selection,
   viewMode,
   expandedFolderIds,
@@ -16,6 +17,7 @@ export function useSidebarControllerSections({
   grayscaleFavicons,
   isFeedsSectionOpen,
   startupFolderExpansion,
+  sidebarDensity,
   showSidebarUnread,
   showSidebarStarred,
   showSidebarTags,
@@ -83,6 +85,7 @@ export function useSidebarControllerSections({
     grayscaleFavicons,
     isFeedsSectionOpen,
     startupFolderExpansion,
+    sidebarDensity,
     showSidebarUnread,
     showSidebarStarred,
     showSidebarTags,
@@ -137,5 +140,7 @@ export function useSidebarControllerSections({
     selection,
     selectTag,
     renderTagContextMenu,
+    sidebarDensity,
+    isFeedTreeLoading,
   });
 }

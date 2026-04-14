@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { AddFeedDialog } from "./add-feed-dialog";
 import { FeedTreeView } from "./feed-tree-view";
 import type { SidebarContentSectionsProps } from "./sidebar.types";
@@ -31,10 +32,15 @@ export function SidebarContentSections({
   selection,
   onSelectTag,
   renderTagContextMenu,
+  sidebarDensity,
+  isFeedTreeLoading,
 }: SidebarContentSectionsProps) {
+  const { t: commonT } = useTranslation("common");
   const tagItems = useSidebarTagItems({ tags, tagArticleCounts, selection });
   const feedEmptyState = selectedAccountId
-    ? { kind: "message" as const, message: pressPlusToAddFeedLabel }
+    ? isFeedTreeLoading
+      ? { kind: "loading" as const, label: commonT("loading") }
+      : { kind: "message" as const, message: pressPlusToAddFeedLabel }
     : {
         kind: "action" as const,
         label: addAccountToStartLabel,
@@ -46,6 +52,7 @@ export function SidebarContentSections({
       tagsLabel={tagsLabel}
       isOpen={isTagsSectionOpen}
       onToggleOpen={onToggleTagsSection}
+      sidebarDensity={sidebarDensity}
       tags={tagItems}
       onSelectTag={onSelectTag}
       renderContextMenu={renderTagContextMenu}
@@ -62,7 +69,14 @@ export function SidebarContentSections({
       isFeedsSectionOpen={isFeedsSectionOpen}
       onToggleFeedsSection={onToggleFeedsSection}
       viewportRef={viewportRef}
-      feedTree={<FeedTreeView {...feedTreeProps} unfolderedLabel={noFolderLabel} emptyState={feedEmptyState} />}
+      feedTree={
+        <FeedTreeView
+          {...feedTreeProps}
+          sidebarDensity={sidebarDensity}
+          unfolderedLabel={noFolderLabel}
+          emptyState={feedEmptyState}
+        />
+      }
       tagSection={tagSection}
       feedCleanupLabel={feedCleanupLabel}
       settingsLabel={settingsLabel}

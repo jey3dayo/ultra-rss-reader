@@ -27,6 +27,19 @@ export function useAppearanceSettingsViewProps({
             onChange: (value) => setPref("list_selection_style", value),
           },
           {
+            id: "list-density",
+            type: "select",
+            name: "sidebar_density",
+            label: t("appearance.list_density"),
+            value: resolvePreferenceValue(prefs, "sidebar_density"),
+            options: [
+              { value: "compact", label: t("appearance.compact_density") },
+              { value: "normal", label: t("appearance.normal_density") },
+              { value: "spacious", label: t("appearance.spacious_density") },
+            ],
+            onChange: (value) => setPref("sidebar_density", value),
+          },
+          {
             id: "layout",
             type: "select",
             name: "layout",

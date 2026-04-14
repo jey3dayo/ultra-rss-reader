@@ -1,7 +1,10 @@
+import { cn } from "@/lib/utils";
 import type { FeedTreeUnfolderedSectionProps } from "./feed-tree.types";
 import { FeedTreeRow } from "./feed-tree-row";
+import { getSidebarDensityTokens } from "./sidebar-density";
 
 export function FeedTreeUnfolderedSection({
+  sidebarDensity = "normal",
   unfolderedFeeds,
   unfolderedLabel,
   onSelectFeed,
@@ -13,21 +16,24 @@ export function FeedTreeUnfolderedSection({
   onPointerDownFeed,
   consumeSuppressedHandleClick,
 }: FeedTreeUnfolderedSectionProps) {
+  const tokens = getSidebarDensityTokens(sidebarDensity);
+
   if (unfolderedFeeds.length === 0) {
     return null;
   }
 
   return (
-    <div className="space-y-2">
+    <div className={tokens.unfolderedGap}>
       {unfolderedLabel ? (
         <div className="ml-2 px-3 text-[0.68rem] font-medium tracking-[0.08em] text-sidebar-foreground/32 uppercase">
           {unfolderedLabel}
         </div>
       ) : null}
-      <div className="ml-2 space-y-1 border-l border-sidebar-border/25 pl-3">
+      <div className={cn("ml-2 border-l border-sidebar-border/25 pl-3", tokens.childGap)}>
         {unfolderedFeeds.map((feed) => (
           <FeedTreeRow
             key={feed.id}
+            sidebarDensity={sidebarDensity}
             feed={feed}
             displayFavicons={displayFavicons}
             onSelectFeed={onSelectFeed}

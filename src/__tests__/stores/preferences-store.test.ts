@@ -42,6 +42,11 @@ describe("usePreferencesStore preferences", () => {
     );
   });
 
+  it("defaults sidebar density to normal and normalizes invalid values", () => {
+    expect(resolvePreferenceValue({}, "sidebar_density")).toBe("normal");
+    expect(resolvePreferenceValue({ sidebar_density: "dense" }, "sidebar_density")).toBe("normal");
+  });
+
   it("does not expose removed share action preferences in defaults", () => {
     expect(preferenceDefaults).not.toHaveProperty("action_share");
     expect(preferenceDefaults).not.toHaveProperty("action_share_menu");

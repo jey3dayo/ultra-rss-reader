@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
 import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
@@ -12,6 +13,15 @@ import { sampleAccounts, sampleFeeds, setupTauriMocks } from "../../../tests/hel
 const { devIntentState } = vi.hoisted(() => ({
   devIntentState: {
     intent: null as string | null,
+  },
+}));
+
+const { sidebarSourceOverrides } = vi.hoisted(() => ({
+  sidebarSourceOverrides: {
+    feedsEnabled: false,
+    feedsData: undefined as FeedDto[] | undefined,
+    foldersEnabled: false,
+    foldersData: undefined as FolderDto[] | undefined,
   },
 }));
 
@@ -71,6 +81,28 @@ vi.mock("@tauri-apps/api/event", () => ({
   ),
 }));
 
+vi.mock("@/hooks/use-feeds", async () => {
+  const actual = await vi.importActual<typeof import("@/hooks/use-feeds")>("@/hooks/use-feeds");
+  return {
+    ...actual,
+    useFeeds: (accountId: string | null) => {
+      const result = actual.useFeeds(accountId);
+      return sidebarSourceOverrides.feedsEnabled ? { ...result, data: sidebarSourceOverrides.feedsData } : result;
+    },
+  };
+});
+
+vi.mock("@/hooks/use-folders", async () => {
+  const actual = await vi.importActual<typeof import("@/hooks/use-folders")>("@/hooks/use-folders");
+  return {
+    ...actual,
+    useFolders: (accountId: string | null) => {
+      const result = actual.useFolders(accountId);
+      return sidebarSourceOverrides.foldersEnabled ? { ...result, data: sidebarSourceOverrides.foldersData } : result;
+    },
+  };
+});
+
 vi.mock("@/components/reader/feed-context-menu", () => ({
   FeedContextMenuContent: ({ feed }: { feed: { id: string; folder_id: string | null } }) => {
     renderedFeedContextMenuFeeds.push(feed);
@@ -92,9 +124,228 @@ describe("Sidebar", () => {
     syncWarningListener = null;
     renderedFeedContextMenuFeeds.length = 0;
     devIntentState.intent = null;
+    sidebarSourceOverrides.feedsEnabled = false;
+    sidebarSourceOverrides.feedsData = undefined;
+    sidebarSourceOverrides.foldersEnabled = false;
+    sidebarSourceOverrides.foldersData = undefined;
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     setupTauriMocks();
+  });
+
+  it("keeps the sidebar in loading state and hides the add-feed CTA while the selected account feeds are unresolved", async () => {
+    setupTauriMocks((cmd, _args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+        case "list_feeds":
+          return new Promise(() => {});
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(
+      screen.queryByRole("button", { name: /Press \+ to add a feed|\+ でフィードを追加/ }),
+    ).not.toBeInTheDocument();
+    expect(await screen.findByText(/Loading…|読み込み中…/)).toBeInTheDocument();
+  });
+
+  it("shows the add-feed CTA only after the selected account feeds resolve to empty data", async () => {
+    setupTauriMocks((cmd, _args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+        case "list_feeds":
+          return [];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText(/Press \+ to add a feed|\+ でフィードを追加/)).toBeInTheDocument();
+    expect(screen.queryByText(/Loading…|読み込み中…/)).not.toBeInTheDocument();
+  });
+
+  it("keeps loading when feeds resolve but folders are still unresolved", async () => {
+    setupTauriMocks((cmd, _args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return new Promise(() => {});
+        case "list_feeds":
+          return [];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(screen.queryByText(/Press \+ to add a feed|\+ でフィードを追加/)).not.toBeInTheDocument();
+    expect(await screen.findByText(/Loading…|読み込み中…/)).toBeInTheDocument();
+  });
+
+  it("keeps loading when folders resolve but feeds are still unresolved", async () => {
+    setupTauriMocks((cmd, _args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [];
+        case "list_feeds":
+          return new Promise(() => {});
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(screen.queryByText(/Press \+ to add a feed|\+ でフィードを追加/)).not.toBeInTheDocument();
+    expect(await screen.findByText(/Loading…|読み込み中…/)).toBeInTheDocument();
+  });
+
+  it("keeps the rendered feed tree on the adopted snapshot while selected account data is pending again", async () => {
+    sidebarSourceOverrides.feedsEnabled = true;
+    sidebarSourceOverrides.foldersEnabled = true;
+    sidebarSourceOverrides.feedsData = [{ ...sampleFeeds[0], title: "Snapshot Feed" }];
+    sidebarSourceOverrides.foldersData = [];
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    const { rerender } = render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Snapshot Feed")).toBeInTheDocument();
+
+    sidebarSourceOverrides.feedsData = undefined;
+    sidebarSourceOverrides.foldersData = undefined;
+    rerender(<Sidebar />);
+
+    expect(await screen.findByText("Snapshot Feed")).toBeInTheDocument();
+    expect(screen.queryByText(/Press \+ to add a feed|\+ でフィードを追加/)).not.toBeInTheDocument();
+  });
+
+  it("keeps loading and suppresses the add-feed CTA when an adopted empty snapshot starts refetching", async () => {
+    sidebarSourceOverrides.feedsEnabled = true;
+    sidebarSourceOverrides.foldersEnabled = true;
+    sidebarSourceOverrides.feedsData = [];
+    sidebarSourceOverrides.foldersData = [];
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    const { rerender } = render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText(/Press \+ to add a feed|\+ でフィードを追加/)).toBeInTheDocument();
+
+    sidebarSourceOverrides.feedsData = undefined;
+    sidebarSourceOverrides.foldersData = undefined;
+    rerender(<Sidebar />);
+
+    expect(screen.queryByText(/Press \+ to add a feed|\+ でフィードを追加/)).not.toBeInTheDocument();
+    expect(await screen.findByText(/Loading…|読み込み中…/)).toBeInTheDocument();
+  });
+
+  it("shows loading instead of the add-feed CTA when switching to a different account that is still unresolved", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return args.accountId === "acc-1"
+            ? [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }]
+            : new Promise(() => {});
+        case "list_feeds":
+          return args.accountId === "acc-1"
+            ? [{ ...sampleFeeds[0], title: "Account A Feed", folder_id: "folder-1" }]
+            : new Promise(() => {});
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      expandedFolderIds: new Set(["folder-1"]),
+    });
+
+    const { rerender } = render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Account A Feed")).toBeInTheDocument();
+
+    useUiStore.setState({
+      ...useUiStore.getState(),
+      selectedAccountId: "acc-2",
+      selection: { type: "smart", kind: "unread" },
+    });
+    rerender(<Sidebar />);
+
+    expect(await screen.findByText(/Loading…|読み込み中…/)).toBeInTheDocument();
+    expect(screen.queryByText(/Press \+ to add a feed|\+ でフィードを追加/)).not.toBeInTheDocument();
   });
 
   it("keeps smart views and the subscriptions header outside the scroll area and delegates smart view selection", async () => {
@@ -170,6 +421,47 @@ describe("Sidebar", () => {
     expect(renderedFeedContextMenuFeeds).toContainEqual(
       expect.objectContaining({ id: "feed-1", folder_id: "folder-1" }),
     );
+  });
+
+  it("passes the compact sidebar density preference through to folder toggles", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
+        case "list_feeds":
+          return [
+            {
+              ...sampleFeeds[0],
+              id: "feed-1",
+              title: "Folder Feed",
+              folder_id: "folder-1",
+              unread_count: 2,
+            },
+          ];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    usePreferencesStore.setState({ prefs: { sidebar_density: "compact" }, loaded: true });
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      expandedFolderIds: new Set(["folder-1"]),
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const folderToggle = await screen.findByRole("button", { name: "Toggle folder Work" });
+    expect(folderToggle).toHaveClass("h-8");
   });
 
   it("shows only unread feeds from the selected folder when viewMode is unread", async () => {

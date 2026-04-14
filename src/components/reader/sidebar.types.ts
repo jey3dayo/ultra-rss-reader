@@ -3,6 +3,7 @@ import type { ComponentPropsWithoutRef, ReactNode, RefObject } from "react";
 import type { SortSubscriptions } from "@/stores/preferences-store";
 import type { AccountSwitcherProps } from "./account-switcher.types";
 import type { FeedTreeViewProps } from "./feed-tree.types";
+import type { SidebarDensity } from "./sidebar-density";
 import type { SidebarFeedTreeProps } from "./sidebar-feed-section.types";
 import type { SidebarSelection } from "./sidebar-feed-tree.types";
 import type { SidebarTagItemsParams, SidebarTagListProps } from "./sidebar-tag-items.types";
@@ -24,6 +25,7 @@ export type SidebarNavButtonProps = ComponentPropsWithoutRef<"button"> & {
   trailing?: ReactNode;
   selected?: boolean;
   size?: "default" | "compact";
+  density?: SidebarDensity;
   contentClassName?: string;
   trailingClassName?: string;
 };
@@ -54,6 +56,8 @@ export type SidebarContentSectionsProps = {
   selection: SidebarTagItemsParams["selection"];
   onSelectTag: SidebarTagListProps["onSelectTag"];
   renderTagContextMenu: NonNullable<SidebarTagListProps["renderContextMenu"]>;
+  sidebarDensity: SidebarDensity;
+  isFeedTreeLoading: boolean;
 };
 
 export type SidebarContentProps = SidebarContentSectionsProps;
@@ -98,6 +102,7 @@ export type SidebarControllerSectionsParams = {
   selectedAccountId: string | null;
   feeds: import("./sidebar-sources.types").SidebarSourcesResult["feeds"];
   folders: import("./sidebar-sources.types").SidebarSourcesResult["folders"];
+  isFeedTreeLoading: import("./sidebar-sources.types").SidebarSourcesResult["isFeedTreeLoading"];
   selection: SidebarSelection;
   viewMode: import("./sidebar-feed-tree.types").SidebarFeedTreeViewMode;
   expandedFolderIds: Set<string>;
@@ -149,6 +154,7 @@ export type SidebarControllerSectionsParams = {
   tagArticleCounts: SidebarContentSectionsProps["tagArticleCounts"];
   moveFeedToFolder: (feedId: string, folderId: string) => Promise<unknown>;
   moveFeedToUnfoldered: (feedId: string) => Promise<unknown>;
+  sidebarDensity: SidebarDensity;
 };
 
 export type SidebarHeaderPropsParams = {
@@ -217,6 +223,8 @@ export type SidebarContentSectionsPropsParams = {
   selection: SidebarContentSectionsProps["selection"];
   selectTag: SidebarContentSectionsProps["onSelectTag"];
   renderTagContextMenu: SidebarContentSectionsProps["renderTagContextMenu"];
+  sidebarDensity: SidebarDensity;
+  isFeedTreeLoading: SidebarContentSectionsProps["isFeedTreeLoading"];
 };
 
 export type SidebarSectionPropsParams = {
@@ -256,6 +264,8 @@ export type SidebarSectionPropsParams = {
   selection: SidebarContentSectionsProps["selection"];
   selectTag: SidebarContentSectionsProps["onSelectTag"];
   renderTagContextMenu: SidebarContentSectionsProps["renderTagContextMenu"];
+  sidebarDensity: SidebarDensity;
+  isFeedTreeLoading: SidebarContentSectionsProps["isFeedTreeLoading"];
 };
 
 export type SidebarViewPropsParams = {

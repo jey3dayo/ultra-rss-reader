@@ -2,6 +2,7 @@ import type { Dispatch, MutableRefObject, ReactNode, PointerEvent as ReactPointe
 import type { TriStateDisplayMode } from "@/lib/article-display";
 import type { FeedTreeDragOverlayPreview } from "./feed-tree-drag-overlay";
 import type { FeedTreePointerDragSession } from "./feed-tree-drag-session";
+import type { SidebarDensity } from "./sidebar-density";
 
 export type FeedTreeFeedViewModel = {
   id: string;
@@ -31,13 +32,18 @@ export type FeedTreeFolderViewModel = {
 export type ActiveDropTarget = { kind: "folder"; folderId: string } | { kind: "unfoldered" } | null;
 
 export type FeedTreeEmptyState =
-  | { kind: "message"; message: string }
-  | { kind: "action"; label: string; onAction: () => void };
+  | { kind: "message"; text: string; message?: never; label?: never }
+  | { kind: "loading"; text: string; message?: never; label?: never }
+  | { kind: "action"; text: string; onAction: () => void; message?: never; label?: never }
+  | { kind: "message"; message: string; text?: never; label?: never }
+  | { kind: "loading"; label: string; text?: never; message?: never }
+  | { kind: "action"; label: string; onAction: () => void; text?: never; message?: never };
 
 export type FeedTreeEmptyStateProps = FeedTreeEmptyState;
 
 export type FeedTreeViewProps = {
   isOpen: boolean;
+  sidebarDensity?: SidebarDensity;
   folders: FeedTreeFolderViewModel[];
   unfolderedFeeds: FeedTreeFeedViewModel[];
   unfolderedLabel?: string;
@@ -60,6 +66,7 @@ export type FeedTreeViewProps = {
 };
 
 export type FeedTreeFolderSectionProps = {
+  sidebarDensity?: SidebarDensity;
   folder: FeedTreeFolderViewModel;
   activeDropTarget: ActiveDropTarget;
   draggedFeedId?: string | null;
@@ -77,6 +84,7 @@ export type FeedTreeFolderSectionProps = {
 };
 
 export type FeedTreeRowProps = {
+  sidebarDensity?: SidebarDensity;
   feed: FeedTreeFeedViewModel;
   displayFavicons: boolean;
   onSelectFeed: (feedId: string) => void;
@@ -90,6 +98,7 @@ export type FeedTreeRowProps = {
 
 export type FeedTreeDragHandleProps = {
   feedTitle: string;
+  sidebarDensity?: SidebarDensity;
   canDragFeeds?: FeedTreeRowProps["canDragFeeds"];
   isArmed?: FeedTreeRowProps["isDragged"];
   onArm?: () => void;
@@ -98,6 +107,7 @@ export type FeedTreeDragHandleProps = {
 };
 
 export type FeedTreeUnfolderedSectionProps = {
+  sidebarDensity?: SidebarDensity;
   unfolderedFeeds: FeedTreeFeedViewModel[];
   unfolderedLabel?: string;
   onSelectFeed: FeedTreeRowProps["onSelectFeed"];

@@ -20,6 +20,8 @@ export function useSidebarContentSectionsProps({
   selection,
   selectTag,
   renderTagContextMenu,
+  sidebarDensity,
+  isFeedTreeLoading,
 }: SidebarContentSectionsPropsParams): SidebarContentSectionsProps {
   return {
     subscriptionsLabel: t("subscriptions"),
@@ -47,5 +49,7 @@ export function useSidebarContentSectionsProps({
     selection,
     onSelectTag: selectTag,
     renderTagContextMenu,
+    sidebarDensity,
+    isFeedTreeLoading,
   };
 }

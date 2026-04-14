@@ -5,9 +5,11 @@ import { cn } from "@/lib/utils";
 import type { FeedTreeFolderSectionProps } from "./feed-tree.types";
 import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "./feed-tree-drop-target";
 import { FeedTreeRow } from "./feed-tree-row";
+import { getSidebarDensityTokens } from "./sidebar-density";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
 export function FeedTreeFolderSection({
+  sidebarDensity = "normal",
   folder,
   activeDropTarget,
   draggedFeedId,
@@ -24,6 +26,7 @@ export function FeedTreeFolderSection({
   consumeSuppressedHandleClick,
 }: FeedTreeFolderSectionProps) {
   const { t } = useTranslation("sidebar");
+  const tokens = getSidebarDensityTokens(sidebarDensity);
   const showDropOverlay = canDragFeeds && draggedFeedId !== null;
   const isActive = canDragFeeds && activeDropTarget?.kind === "folder" && activeDropTarget.folderId === folder.id;
 
@@ -56,7 +59,10 @@ export function FeedTreeFolderSection({
           type="button"
           aria-label={t("toggle_folder", { name: folder.name })}
           aria-expanded={folder.isExpanded}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
+          className={cn(
+            "inline-flex shrink-0 items-center justify-center rounded-md text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60",
+            tokens.folderToggle,
+          )}
           onClick={() => onToggleFolder(folder.id)}
         >
           {folder.isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
@@ -65,6 +71,7 @@ export function FeedTreeFolderSection({
           <ContextMenu.Trigger
             render={
               <SidebarNavButton
+                density={sidebarDensity}
                 aria-label={t("select_folder", { name: folder.name })}
                 selected={folder.isSelected}
                 trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
@@ -77,10 +84,7 @@ export function FeedTreeFolderSection({
                       [FEED_DROP_TARGET_ID_ATTRIBUTE]: folder.id,
                     }
                   : {})}
-                className={cn(
-                  "min-h-11 flex-1",
-                  isActive && "border-dashed bg-sidebar-accent/60 ring-1 ring-sidebar-border",
-                )}
+                className={cn("flex-1", isActive && "border-dashed bg-sidebar-accent/60 ring-1 ring-sidebar-border")}
               />
             }
             onClick={() => onSelectFolder?.(folder.id)}
@@ -91,10 +95,11 @@ export function FeedTreeFolderSection({
         </ContextMenu.Root>
       </div>
       {folder.isExpanded && (
-        <div className="mt-1 ml-2 space-y-1 border-l border-sidebar-border/30 pl-3">
+        <div className={cn("mt-0.5 ml-2 border-l border-sidebar-border/30 pl-3", tokens.childGap)}>
           {folder.feeds.map((feed) => (
             <FeedTreeRow
               key={feed.id}
+              sidebarDensity={sidebarDensity}
               feed={feed}
               displayFavicons={displayFavicons}
               onSelectFeed={onSelectFeed}
