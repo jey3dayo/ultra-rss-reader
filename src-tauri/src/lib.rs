@@ -12,6 +12,8 @@ pub mod service;
 use std::sync::atomic::AtomicBool;
 #[cfg(not(test))]
 use std::sync::{Arc, Mutex};
+#[cfg(not(test))]
+use std::time::Duration;
 
 #[cfg(not(test))]
 use commands::updater_commands::PendingUpdate;
@@ -64,6 +66,28 @@ fn database_init_error_message(error: &DomainError, db_path: &std::path::Path) -
             db_path.display()
         ),
     }
+}
+
+#[cfg(not(test))]
+fn focus_main_webview_on_startup<R: tauri::Runtime>(app_handle: tauri::AppHandle<R>) {
+    tauri::async_runtime::spawn(async move {
+        // On macOS overlay titlebar windows, the native webview can start unfocused
+        // even though the app window is visible. Delay one tick so the window is
+        // fully realized before restoring focus.
+        tokio::time::sleep(Duration::from_millis(150)).await;
+
+        let app_handle_for_main_thread = app_handle.clone();
+        let _ = app_handle.run_on_main_thread(move || {
+            if let Some(window) = app_handle_for_main_thread.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+
+            if let Some(webview) = app_handle_for_main_thread.get_webview("main") {
+                let _ = webview.set_focus();
+            }
+        });
+    });
 }
 
 #[cfg(not(debug_assertions))]
@@ -169,6 +193,8 @@ pub fn run() {
                     .set_title_bar_style(main_window_title_bar_style())
                     .expect("Failed to configure main window title bar style");
             }
+
+            focus_main_webview_on_startup(app.handle().clone());
 
             app.manage(AppState {
                 db: Mutex::new(db),
