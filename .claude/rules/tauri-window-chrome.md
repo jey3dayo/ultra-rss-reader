@@ -23,14 +23,16 @@ Tauri の header / titlebar は OS ごとに挙動が違う。特に macOS は o
 
 - `src-tauri/src/lib.rs` では macOS のみ `tauri::TitleBarStyle::Overlay`、それ以外は `Visible` を使う
 - `src/lib/window-chrome.ts` の `shouldUseDesktopOverlayTitlebar()` も macOS + Tauri runtime のときだけ `true` を返す
-- フロント側は `src/styles/global.css` の `--desktop-titlebar-offset: 44px` を使って、macOS overlay 時だけ `desktop-titlebar-offset` で上端に退避スペースを作る
-- `src/components/app-shell.tsx` には macOS overlay 時専用の `desktop-titlebar-drag-strip` を置き、見えている titlebar 帯そのものをドラッグ可能にしている
+- フロント側は `src/styles/global.css` の `--desktop-titlebar-offset: 44px` を使うが、この offset は `AppLayout` には入れない
+- `src/components/app-shell.tsx` が macOS overlay 時専用の `desktop-titlebar-drag-strip` と `data-browser-overlay-root` を持ち、titlebar helper class は shell 側だけに付ける
+- `src/components/app-layout.tsx` は常に top flush を保ち、pane header 自体が titlebar 領域まで上がる前提で組む
 - 各 header / toolbar 内の `data-tauri-drag-region` は中央の spacer に限定し、ボタン群を drag region に含めない。これで操作ボタンのクリック性を守る
 
 ## 制約
 
 - OS ごとの titlebar 方針を勝手に共通化しない
 - macOS overlay titlebar を使う変更では、Rust 側の `TitleBarStyle` とフロント側の offset / drag region を必ずセットで見直す
+- `desktop-titlebar-offset` / `desktop-overlay-titlebar` を `AppLayout` や pane root に再度付けない
 - header の見た目だけを直すために、`padding-top` や `top` を場当たり的に足して帳尻を合わせない
 - `data-tauri-drag-region` を header 全体に広げない。操作ボタンが押せなくなるため、drag は専用 strip または中央 spacer に限定する
 - Windows / Linux 向け変更で macOS overlay 専用クラスを常時有効にしない
@@ -38,9 +40,10 @@ Tauri の header / titlebar は OS ごとに挙動が違う。特に macOS は o
 ## 変更時の確認ポイント
 
 - macOS で上端の見えている帯を実際にドラッグできること
+- macOS で pane 全体が 44px 下がらず、header が titlebar 領域まで上がっていること
 - macOS で action button が drag に奪われず普通に押せること
 - Windows で overlay 前提の余白や drag strip が混入しないこと
-- `TitleBarStyle`、`shouldUseDesktopOverlayTitlebar()`、`desktop-titlebar-offset` の 3 点が矛盾していないこと
+- `TitleBarStyle`、`shouldUseDesktopOverlayTitlebar()`、shell 側 helper class の 3 点が矛盾していないこと
 
 ## テスト方針
 
@@ -51,6 +54,7 @@ Tauri の header / titlebar は OS ごとに挙動が違う。特に macOS は o
 ## 避けること
 
 - macOS の空白を消したいだけで overlay titlebar の仕組みを理解せず CSS だけ削る
+- `desktop-titlebar-offset` を shell と layout の両方に入れて二重に top inset を作る
 - header 内の interactive 要素を drag region で覆う
 - ネイティブ側は `Visible` のまま、フロントだけ overlay 前提の offset を入れる
 - 逆にネイティブ側だけ `Overlay` にして、フロント側の offset / drag strip を追加しない
