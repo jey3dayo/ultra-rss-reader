@@ -96,6 +96,10 @@
   padding-top: var(--desktop-titlebar-offset);
 }
 
+.desktop-titlebar-drag-strip {
+  height: var(--desktop-titlebar-offset);
+}
+
 *,
 *::before,
 *::after {

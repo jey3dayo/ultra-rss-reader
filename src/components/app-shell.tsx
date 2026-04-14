@@ -299,6 +299,14 @@ export function AppShell() {
 
   return (
     <div className="relative flex h-full flex-col">
+      {overlayTitlebar ? (
+        <div
+          data-testid="desktop-titlebar-drag-strip"
+          data-tauri-drag-region
+          aria-hidden="true"
+          className="desktop-titlebar-drag-strip absolute inset-x-0 top-0 z-30"
+        />
+      ) : null}
       <div
         data-browser-overlay-root=""
         className={cn(

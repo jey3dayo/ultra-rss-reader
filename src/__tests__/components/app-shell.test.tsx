@@ -103,9 +103,12 @@ describe("AppShell", () => {
       const { container } = render(<AppShell />, { wrapper: createWrapper() });
 
       const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
+      const titlebarDragStrip = container.querySelector<HTMLElement>("[data-testid='desktop-titlebar-drag-strip']");
 
       expect(overlayRoot).toHaveClass("desktop-titlebar-offset");
       expect(overlayRoot).toHaveClass("desktop-overlay-titlebar");
+      expect(titlebarDragStrip).toHaveAttribute("data-tauri-drag-region");
+      expect(titlebarDragStrip).toHaveClass("desktop-titlebar-drag-strip");
     } finally {
       if (originalTauriInternalsDescriptor) {
         Object.defineProperty(window, "__TAURI_INTERNALS__", originalTauriInternalsDescriptor);
