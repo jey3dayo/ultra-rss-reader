@@ -34,10 +34,29 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
   const feedList = adoptedSnapshot?.feeds ?? feeds ?? [];
   const folderList = adoptedSnapshot?.folders ?? folders ?? [];
   const totalUnread = useMemo(() => feedList.reduce((sum, feed) => sum + feed.unread_count, 0), [feedList]);
-  const starredCount = useMemo(
+  const liveStarredCount = useMemo(
     () => accountArticles?.filter((article) => article.is_starred).length ?? 0,
     [accountArticles],
   );
+  const sidebarCountsSnapshotCandidate = useMemo(
+    () =>
+      selectedAccountId !== null && tagArticleCounts !== undefined && accountArticles !== undefined
+        ? {
+            accountId: selectedAccountId,
+            tagArticleCounts,
+            starredCount: liveStarredCount,
+          }
+        : null,
+    [accountArticles, liveStarredCount, selectedAccountId, tagArticleCounts],
+  );
+  const { snapshot: sidebarCountsSnapshot } = useScreenSnapshot(
+    sidebarCountsSnapshotCandidate,
+    sidebarCountsSnapshotCandidate !== null,
+  );
+  const adoptedCountsSnapshot =
+    sidebarCountsSnapshot?.accountId === selectedAccountId ? sidebarCountsSnapshot : null;
+  const resolvedTagArticleCounts = adoptedCountsSnapshot?.tagArticleCounts ?? tagArticleCounts;
+  const starredCount = adoptedCountsSnapshot?.starredCount ?? liveStarredCount;
 
   return {
     accounts,
@@ -47,7 +66,7 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
     folders: adoptedSnapshot?.folders ?? folders,
     isFeedTreeLoading,
     tags,
-    tagArticleCounts,
+    tagArticleCounts: resolvedTagArticleCounts,
     accountArticles,
     feedList,
     folderList,

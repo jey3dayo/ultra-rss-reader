@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { FeedDto, FolderDto } from "@/api/tauri-commands";
+import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
 import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
@@ -22,6 +22,10 @@ const { sidebarSourceOverrides } = vi.hoisted(() => ({
     feedsData: undefined as FeedDto[] | undefined,
     foldersEnabled: false,
     foldersData: undefined as FolderDto[] | undefined,
+    accountArticlesEnabled: false,
+    accountArticlesData: undefined as ArticleDto[] | undefined,
+    tagArticleCountsEnabled: false,
+    tagArticleCountsData: undefined as Record<string, number> | undefined,
   },
 }));
 
@@ -103,6 +107,32 @@ vi.mock("@/hooks/use-folders", async () => {
   };
 });
 
+vi.mock("@/hooks/use-articles", async () => {
+  const actual = await vi.importActual<typeof import("@/hooks/use-articles")>("@/hooks/use-articles");
+  return {
+    ...actual,
+    useAccountArticles: (accountId: string | null) => {
+      const result = actual.useAccountArticles(accountId);
+      return sidebarSourceOverrides.accountArticlesEnabled
+        ? { ...result, data: sidebarSourceOverrides.accountArticlesData }
+        : result;
+    },
+  };
+});
+
+vi.mock("@/hooks/use-tags", async () => {
+  const actual = await vi.importActual<typeof import("@/hooks/use-tags")>("@/hooks/use-tags");
+  return {
+    ...actual,
+    useTagArticleCounts: (accountId: string | null) => {
+      const result = actual.useTagArticleCounts(accountId);
+      return sidebarSourceOverrides.tagArticleCountsEnabled
+        ? { ...result, data: sidebarSourceOverrides.tagArticleCountsData }
+        : result;
+    },
+  };
+});
+
 vi.mock("@/components/reader/feed-context-menu", () => ({
   FeedContextMenuContent: ({ feed }: { feed: { id: string; folder_id: string | null } }) => {
     renderedFeedContextMenuFeeds.push(feed);
@@ -128,6 +158,10 @@ describe("Sidebar", () => {
     sidebarSourceOverrides.feedsData = undefined;
     sidebarSourceOverrides.foldersEnabled = false;
     sidebarSourceOverrides.foldersData = undefined;
+    sidebarSourceOverrides.accountArticlesEnabled = false;
+    sidebarSourceOverrides.accountArticlesData = undefined;
+    sidebarSourceOverrides.tagArticleCountsEnabled = false;
+    sidebarSourceOverrides.tagArticleCountsData = undefined;
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: true });
     setupTauriMocks();
@@ -301,6 +335,95 @@ describe("Sidebar", () => {
 
     expect(screen.queryByText(/Press \+ to add a feed|\+ でフィードを追加/)).not.toBeInTheDocument();
     expect(await screen.findByText(/Loading…|読み込み中…/)).toBeInTheDocument();
+  });
+
+  it("keeps the starred smart-view count during refetch", async () => {
+    sidebarSourceOverrides.accountArticlesEnabled = true;
+    sidebarSourceOverrides.accountArticlesData = [
+      {
+        id: "article-1",
+        feed_id: "feed-1",
+        title: "Starred",
+        content_sanitized: "<p>starred</p>",
+        summary: null,
+        url: "https://example.com/starred",
+        author: null,
+        published_at: "2026-04-14T00:00:00Z",
+        thumbnail: null,
+        is_read: false,
+        is_starred: true,
+      },
+    ];
+    sidebarSourceOverrides.tagArticleCountsEnabled = true;
+    sidebarSourceOverrides.tagArticleCountsData = {};
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_folders":
+          return [];
+        case "list_tags":
+          return [];
+        case "list_account_articles":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    const { rerender } = render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("button", { name: /Starred/ })).toHaveTextContent("1");
+
+    sidebarSourceOverrides.accountArticlesData = undefined;
+    rerender(<Sidebar />);
+
+    expect(await screen.findByRole("button", { name: /Starred/ })).toHaveTextContent("1");
+  });
+
+  it("keeps tag badge counts during refetch", async () => {
+    sidebarSourceOverrides.tagArticleCountsEnabled = true;
+    sidebarSourceOverrides.tagArticleCountsData = { "tag-1": 3 };
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_folders":
+          return [];
+        case "list_tags":
+          return [{ id: "tag-1", name: "Important", color: "#ff0000" }];
+        case "list_account_articles":
+          return [];
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    const { rerender } = render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("button", { name: /Important/ })).toHaveTextContent("3");
+
+    sidebarSourceOverrides.tagArticleCountsData = undefined;
+    rerender(<Sidebar />);
+
+    expect(await screen.findByRole("button", { name: /Important/ })).toHaveTextContent("3");
   });
 
   it("shows loading instead of the add-feed CTA when switching to a different account that is still unresolved", async () => {

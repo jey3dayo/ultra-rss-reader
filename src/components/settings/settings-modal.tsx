@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { AccountDto } from "@/api/tauri-commands";
 import { getPreferredAccountId } from "@/components/accounts/get-preferred-account-id";
-import { AccountDetail } from "@/components/settings/account-detail";
+import { AccountDetailView } from "@/components/settings/account-detail-view";
 import { ActionsSettings } from "@/components/settings/actions-settings";
 import { AddAccountForm } from "@/components/settings/add-account-form";
 import { AppearanceSettings } from "@/components/settings/appearance-settings";
@@ -12,18 +13,71 @@ import { ReadingSettings } from "@/components/settings/reading-settings";
 import type { SettingsContentProps } from "@/components/settings/settings-modal.types";
 import { SettingsModalView } from "@/components/settings/settings-modal-view";
 import { ShortcutsSettings } from "@/components/settings/shortcuts-settings";
+import { useAccountDetailController } from "@/components/settings/use-account-detail-controller";
+import { useAccountDetailSyncStatusRows } from "@/components/settings/use-account-detail-sync-status-rows";
+import { useAccountDetailViewProps } from "@/components/settings/use-account-detail-view-props";
 import { useSettingsModalViewProps } from "@/components/settings/use-settings-modal-view-props";
 import { useAccounts } from "@/hooks/use-accounts";
+import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
-function SettingsContent({ settingsAccountId, settingsAddAccount, settingsCategory }: SettingsContentProps) {
-  if (settingsAccountId) {
-    return <AccountDetail />;
+function SnapshotBackedAccountDetail({
+  account,
+  onAccountDeleted,
+}: {
+  account: AccountDto;
+  onAccountDeleted: (accountId: string) => void;
+}) {
+  const { t, i18n } = useTranslation("settings");
+  const { t: tc } = useTranslation("common");
+  const syncProgress = useUiStore((s) => s.syncProgress);
+  const syncStatusQuery = useAccountSyncStatus(account.id);
+  const controller = useAccountDetailController({
+    account,
+    t,
+    onAccountDeleted: () => onAccountDeleted(account.id),
+    onSyncStatusChanged: () => {
+      void syncStatusQuery.refetch();
+    },
+  });
+  const syncStatusRows = useAccountDetailSyncStatusRows({
+    syncStatus: syncStatusQuery.data,
+    language: i18n.language,
+    t,
+  });
+  const isSyncing =
+    syncProgress.active && (syncProgress.kind !== "manual_account" || syncProgress.activeAccountIds.has(account.id));
+  const viewProps = useAccountDetailViewProps({
+    account,
+    controller,
+    isSyncing,
+    syncStatusRows,
+    t,
+    tc,
+  });
+
+  return <AccountDetailView {...viewProps} />;
+}
+
+function SettingsContent({
+  settingsAddAccount,
+  settingsCategory,
+  selectedAccount,
+  onAccountDeleted,
+}: Omit<SettingsContentProps, "settingsAccountId"> & {
+  selectedAccount?: AccountDto;
+  onAccountDeleted: (accountId: string) => void;
+}) {
+  if (selectedAccount) {
+    return <SnapshotBackedAccountDetail account={selectedAccount} onAccountDeleted={onAccountDeleted} />;
   }
-  if (settingsAddAccount) {
-    return <AddAccountForm />;
+  if (settingsCategory === "accounts") {
+    if (settingsAddAccount) {
+      return <AddAccountForm />;
+    }
+    return null;
   }
   switch (settingsCategory) {
     case "appearance":
@@ -55,6 +109,7 @@ export function SettingsModal() {
   const setSettingsAccountId = useUiStore((s) => s.setSettingsAccountId);
   const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
   const settingsLoading = useUiStore((s) => s.settingsLoading);
+  const [deletedAccountIds, setDeletedAccountIds] = useState<string[]>([]);
   const { data: accounts } = useAccounts();
   const savedAccountId = usePreferencesStore((s) => s.prefs.selected_account_id ?? "");
   const accountsSnapshotCandidate = accounts ?? null;
@@ -62,18 +117,66 @@ export function SettingsModal() {
     accountsSnapshotCandidate,
     accountsSnapshotCandidate !== null,
   );
-  const visibleAccounts = accountsSnapshot ?? accounts;
+  const visibleAccounts = (accountsSnapshot ?? accounts)?.filter((account) => !deletedAccountIds.includes(account.id));
+  const hasSelectedVisibleAccount = settingsAccountId
+    ? visibleAccounts?.some((account) => account.id === settingsAccountId) ?? false
+    : false;
+  const resolvedSettingsAccountId =
+    settingsCategory !== "accounts" || settingsAddAccount || !visibleAccounts
+      ? null
+      : hasSelectedVisibleAccount
+        ? settingsAccountId
+        : getPreferredAccountId(visibleAccounts, savedAccountId);
+  const selectedVisibleAccount =
+    resolvedSettingsAccountId && visibleAccounts
+      ? visibleAccounts.find((account) => account.id === resolvedSettingsAccountId)
+      : undefined;
 
-  // Wait for account data before deciding whether to restore or open the add-account flow.
   useEffect(() => {
-    if (settingsCategory !== "accounts" || settingsAccountId || settingsAddAccount || !visibleAccounts) {
+    if (deletedAccountIds.length === 0 || accounts === undefined) {
       return;
     }
 
-    const nextAccountId = getPreferredAccountId(visibleAccounts, savedAccountId);
-    if (nextAccountId) {
-      setSettingsAccountId(nextAccountId);
-    } else {
+    const liveAccountIds = new Set(accounts.map((account) => account.id));
+    setDeletedAccountIds((current) => {
+      const next = current.filter((accountId) => liveAccountIds.has(accountId));
+      return next.length === current.length ? current : next;
+    });
+  }, [accounts, deletedAccountIds]);
+
+  useEffect(() => {
+    if (settingsCategory !== "accounts" || !visibleAccounts) {
+      return;
+    }
+
+    if (settingsAccountId && !hasSelectedVisibleAccount) {
+      if (resolvedSettingsAccountId) {
+        if (settingsAddAccount) {
+          setSettingsAddAccount(false);
+        }
+        setSettingsAccountId(resolvedSettingsAccountId);
+      } else {
+        setSettingsAccountId(null);
+        setSettingsAddAccount(true);
+      }
+      return;
+    }
+
+    if (settingsAddAccount) {
+      return;
+    }
+
+    if (resolvedSettingsAccountId) {
+      if (settingsAccountId !== resolvedSettingsAccountId) {
+        setSettingsAccountId(resolvedSettingsAccountId);
+      }
+      return;
+    }
+
+    if (settingsAccountId) {
+      setSettingsAccountId(null);
+    }
+    if (!settingsAddAccount) {
       setSettingsAddAccount(true);
     }
   }, [
@@ -81,10 +184,16 @@ export function SettingsModal() {
     settingsAccountId,
     settingsAddAccount,
     visibleAccounts,
-    savedAccountId,
+    hasSelectedVisibleAccount,
+    resolvedSettingsAccountId,
     setSettingsAccountId,
     setSettingsAddAccount,
   ]);
+
+  const handleAccountDeleted = (accountId: string) => {
+    setDeletedAccountIds((current) => (current.includes(accountId) ? current : [...current, accountId]));
+    setSettingsAccountId(null);
+  };
 
   const viewProps = useSettingsModalViewProps({
     t,
@@ -96,9 +205,10 @@ export function SettingsModal() {
     accounts: visibleAccounts,
     content: (
       <SettingsContent
-        settingsAccountId={settingsAccountId}
         settingsAddAccount={settingsAddAccount}
         settingsCategory={settingsCategory}
+        selectedAccount={selectedVisibleAccount}
+        onAccountDeleted={handleAccountDeleted}
       />
     ),
     closeSettings,

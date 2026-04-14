@@ -33,7 +33,11 @@ export function useArticleListSources({
   const primarySourceArticles =
     selectionContext.kind === "feed" ? articles : selectionContext.kind === "tag" ? tagArticles : accountArticles;
   const primarySourceLoading =
-    selectionContext.kind === "feed" ? isLoading : selectionContext.kind === "tag" ? isLoadingTagArticles : isLoadingAccountArticles;
+    selectionContext.kind === "feed"
+      ? isLoading
+      : selectionContext.kind === "tag"
+        ? isLoadingTagArticles
+        : isLoadingAccountArticles;
   const primarySourceSnapshotCandidate = useMemo<ArticleListPrimarySourceSnapshot | null>(
     () =>
       primarySourceArticles === undefined

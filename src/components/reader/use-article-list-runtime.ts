@@ -1,8 +1,8 @@
+import type { UiSelection } from "@/stores/ui-store";
 import type { ArticleListPrimarySourceContext } from "./article-list.types";
 import { useArticleListSearch } from "./use-article-list-search";
 import { useArticleListSources } from "./use-article-list-sources";
 import { useArticleListUiState } from "./use-article-list-ui-state";
-import type { UiSelection } from "@/stores/ui-store";
 
 function getPrimarySourceContext(
   selection: UiSelection,

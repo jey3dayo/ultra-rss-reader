@@ -57,14 +57,22 @@ describe("ArticleList", () => {
       selection: { type: "tag", tagId: "tag-1" } as const,
       initialArticle: { ...sampleArticles[0], id: "tag-snapshot", title: "Tag Snapshot Article" },
     },
-  ])("keeps the $label list visible while the primary source revalidates", async ({ label, selection, initialArticle }) => {
+  ])("keeps the $label list visible while the primary source revalidates", async ({
+    label,
+    selection,
+    initialArticle,
+  }) => {
     const articlesSpy = vi.spyOn(articleHooks, "useArticles");
     const accountArticlesSpy = vi.spyOn(articleHooks, "useAccountArticles");
     const tagArticlesSpy = vi.spyOn(tagHooks, "useArticlesByTag");
 
     articlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<typeof articleHooks.useArticles>);
-    accountArticlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<typeof articleHooks.useAccountArticles>);
-    tagArticlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<typeof tagHooks.useArticlesByTag>);
+    accountArticlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<
+      typeof articleHooks.useAccountArticles
+    >);
+    tagArticlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<
+      typeof tagHooks.useArticlesByTag
+    >);
 
     if (label === "feed") {
       articlesSpy.mockReturnValue({
@@ -126,8 +134,12 @@ describe("ArticleList", () => {
     const tagArticlesSpy = vi.spyOn(tagHooks, "useArticlesByTag");
 
     articlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<typeof articleHooks.useArticles>);
-    accountArticlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<typeof articleHooks.useAccountArticles>);
-    tagArticlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<typeof tagHooks.useArticlesByTag>);
+    accountArticlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<
+      typeof articleHooks.useAccountArticles
+    >);
+    tagArticlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<
+      typeof tagHooks.useArticlesByTag
+    >);
 
     articlesSpy.mockImplementation((feedId) => {
       if (feedId === "feed-1") {

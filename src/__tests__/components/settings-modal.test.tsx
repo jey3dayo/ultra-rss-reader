@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { useEffect } from "react";
 import userEvent from "@testing-library/user-event";
+import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ActionsSettings } from "@/components/settings/actions-settings";
 import { ReadingSettings } from "@/components/settings/reading-settings";
@@ -10,7 +10,7 @@ import type { SettingsModalViewProps } from "@/components/settings/settings-moda
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { sampleAccounts, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 vi.mock("@/components/settings/settings-modal-view", () => ({
   SettingsModalView: ({
@@ -92,7 +92,24 @@ describe("SettingsModal", () => {
     expect(screen.getByRole("button", { name: /FreshRSS/i })).toBeInTheDocument();
   });
 
-  it("keeps the previous accounts navigation visible across accounts cache reset and live selection changes", async () => {
+  it("does not fall back to general settings on a cold accounts open while accounts are unresolved", () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        return new Promise(() => {});
+      }
+      return null;
+    });
+    useUiStore.setState(useUiStore.getInitialState());
+    useUiStore.getState().openSettings("accounts");
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    expect(screen.queryByRole("switch", { name: "Show Unread" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("account-detail-layout")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Add account/i })).toBeInTheDocument();
+  });
+
+  it("keeps account navigation and detail visible during reset and recovers stale selection to a valid account", async () => {
     usePreferencesStore.setState({
       prefs: { selected_account_id: "acc-1" },
       loaded: true,
@@ -109,21 +126,132 @@ describe("SettingsModal", () => {
 
     expect(await screen.findByRole("button", { name: /Local/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /FreshRSS/i })).toBeInTheDocument();
+    expect(screen.getByTestId("account-detail-layout")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Local" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Local/i })).toHaveClass("bg-sidebar-accent");
     expect(screen.getByRole("button", { name: /FreshRSS/i })).not.toHaveClass("bg-sidebar-accent");
 
     await act(async () => {
       queryClient?.setQueryData(["accounts"], undefined);
     });
-    act(() => {
-      useUiStore.getState().setSettingsAccountId("acc-2");
-    });
 
+    expect(screen.getByTestId("account-detail-layout")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Local" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Local/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /FreshRSS/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Local/i })).not.toHaveClass("bg-sidebar-accent");
+
+    await act(async () => {
+      queryClient?.setQueryData(["accounts"], [sampleAccounts[1]]);
+    });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
+    });
+
+    expect(screen.getByTestId("account-detail-layout")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Local/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /FreshRSS/i })).toHaveClass("bg-sidebar-accent");
-    expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
+  });
+
+  it("does not keep showing a deleted account while accounts are pending after delete", async () => {
+    const user = userEvent.setup();
+    let queryClient: QueryClient | undefined;
+    let listedAccounts = [...sampleAccounts];
+    let pauseAccountsQuery = false;
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        return pauseAccountsQuery ? new Promise(() => {}) : listedAccounts;
+      }
+      if (cmd === "delete_account") {
+        listedAccounts = [sampleAccounts[1]];
+        pauseAccountsQuery = true;
+        return null;
+      }
+      return null;
+    });
+
+    usePreferencesStore.setState({
+      prefs: { selected_account_id: "acc-1" },
+      loaded: true,
+    });
+    useUiStore.setState(useUiStore.getInitialState());
+    useUiStore.getState().openSettings("accounts");
+
+    render(<SettingsModal />, {
+      wrapper: createWrapperWithClient((captured) => {
+        queryClient = captured;
+      }),
+    });
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Local" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Delete Account" }));
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
+    });
+
+    expect(screen.queryByRole("heading", { level: 2, name: "Local" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Local/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /FreshRSS/i })).toHaveClass("bg-sidebar-accent");
+
+    await act(async () => {
+      queryClient?.setQueryData(["accounts"], [sampleAccounts[1]]);
+    });
+
+    expect(screen.queryByRole("heading", { level: 2, name: "Local" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
+  });
+
+  it("does not resurrect a deleted account when reopening the modal while accounts are still pending", async () => {
+    const user = userEvent.setup();
+    let listedAccounts = [...sampleAccounts];
+    let pauseAccountsQuery = false;
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        return pauseAccountsQuery ? new Promise(() => {}) : listedAccounts;
+      }
+      if (cmd === "delete_account") {
+        listedAccounts = [sampleAccounts[1]];
+        pauseAccountsQuery = true;
+        return null;
+      }
+      return null;
+    });
+
+    usePreferencesStore.setState({
+      prefs: { selected_account_id: "acc-1" },
+      loaded: true,
+    });
+    useUiStore.setState(useUiStore.getInitialState());
+    useUiStore.getState().openSettings("accounts");
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Local" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Delete Account" }));
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
+    });
+
+    act(() => {
+      useUiStore.getState().closeSettings();
+    });
+
+    act(() => {
+      useUiStore.getState().openSettings("accounts");
+    });
+
+    expect(screen.queryByRole("heading", { level: 2, name: "Local" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Local/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /FreshRSS/i })).toBeInTheDocument();
   });
 
   it("prefers the saved account when opening the accounts section", async () => {
