@@ -2,17 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 設定画面とサイドバーのアカウント初期選択を、最後に使ったアカウント優先で統一する
+Goal: 設定画面とサイドバーのアカウント初期選択を、最後に使ったアカウント優先で統一する
 
-**Architecture:** `accounts` と `savedAccountId` から初期選択候補を決める小さな helper を追加し、設定モーダルとサイドバーの両方で再利用する。見た目順や永続化方式は変えず、既存の `selected_account_id` をそのまま使う。
+Architecture: `accounts` と `savedAccountId` から初期選択候補を決める小さな helper を追加し、設定モーダルとサイドバーの両方で再利用する。見た目順や永続化方式は変えず、既存の `selected_account_id` をそのまま使う。
 
-**Tech Stack:** React 19, TypeScript, Zustand, Vitest, Testing Library
+Tech Stack: React 19, TypeScript, Zustand, Vitest, Testing Library
 
 ---
 
 ## Task 1: 初期選択 helper をテスト駆動で追加する
 
-**Files:**
+### Files
 
 - Create: `src/components/accounts/get-preferred-account-id.ts`
 - Test: `src/__tests__/components/get-preferred-account-id.test.ts`
@@ -37,7 +37,7 @@ Expected: PASS
 
 ## Task 2: 設定モーダルの初期選択を helper に寄せる
 
-**Files:**
+### Files
 
 - Modify: `src/components/settings/settings-modal.tsx`
 - Modify: `src/__tests__/components/settings-modal.test.tsx`
@@ -62,7 +62,7 @@ Expected: PASS
 
 ## Task 3: サイドバー選択ロジックを helper に寄せて回帰を防ぐ
 
-**Files:**
+### Files
 
 - Modify: `src/components/reader/use-sidebar-account-selection.ts`
 - Modify: `src/__tests__/components/sidebar-account-selection.test.tsx` or existing related test file
@@ -87,7 +87,7 @@ Expected: PASS
 
 ## Task 4: 仕上げの確認
 
-**Files:**
+### Files
 
 - Modify: touched files only if final cleanup is needed
 

@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 設定画面 `外観 > 一般` に `リスト密度` を追加し、sidebar の行高・縦 gap・トグルサイズを `狭く / 標準 / 広く` で即時切替できるようにする。
+Goal: 設定画面 `外観 > 一般` に `リスト密度` を追加し、sidebar の行高・縦 gap・トグルサイズを `狭く / 標準 / 広く` で即時切替できるようにする。
 
-**Architecture:** preference は内部 key `sidebar_density` として `preferences-store` に追加し、sidebar 専用の density helper で token 化する。sidebar root / controller で preference を 1 回だけ解決し、`SidebarNavButton` と `feed-tree*` / `tag-list` に props で流す。
+Architecture: preference は内部 key `sidebar_density` として `preferences-store` に追加し、sidebar 専用の density helper で token 化する。sidebar root / controller で preference を 1 回だけ解決し、`SidebarNavButton` と `feed-tree*` / `tag-list` に props で流す。
 
-**Tech Stack:** React 19, TypeScript, Zustand, TanStack Query, Vitest, i18next, Tailwind utility classes
+Tech Stack: React 19, TypeScript, Zustand, TanStack Query, Vitest, i18next, Tailwind utility classes
 
 ---
 
@@ -61,7 +61,7 @@
 
 ## Task 1: preference と設定画面に `リスト密度` を追加する
 
-**Files:**
+### Files
 
 - Modify: `src/stores/preferences-store.ts`
 - Modify: `src/components/settings/use-appearance-settings-view-props.ts`
@@ -193,7 +193,7 @@ git commit -m "feat(settings): add sidebar density preference"
 
 ## Task 2: sidebar 専用 density helper を追加する
 
-**Files:**
+### Files
 
 - Create: `src/components/reader/sidebar-density.ts`
 - Test: `src/__tests__/components/sidebar-density.test.ts`
@@ -295,7 +295,7 @@ git commit -m "feat(sidebar): add density tokens"
 
 ## Task 3: density を sidebar controller から UI へ配線する
 
-**Files:**
+### Files
 
 - Modify: `src/components/reader/sidebar.types.ts`
 - Modify: `src/components/reader/use-sidebar-runtime.ts`
@@ -401,7 +401,7 @@ git commit -m "feat(sidebar): wire density preference through controller"
 
 ## Task 4: sidebar row / tree / tag list を density-aware にする
 
-**Files:**
+### Files
 
 - Modify: `src/components/reader/sidebar-nav-button.tsx`
 - Modify: `src/components/reader/feed-tree-row.tsx`
