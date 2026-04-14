@@ -1,10 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { ArticleList } from "@/components/reader/article-list";
 import { ArticleView } from "@/components/reader/article-view";
 import { APP_EVENTS } from "@/constants/events";
+import * as articleHooks from "@/hooks/use-articles";
+import * as tagHooks from "@/hooks/use-tags";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -12,6 +14,10 @@ import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 describe("ArticleList", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: false });
@@ -32,6 +38,138 @@ describe("ArticleList", () => {
         default:
           return null;
       }
+    });
+  });
+
+  it.each([
+    {
+      label: "feed",
+      selection: { type: "feed", feedId: "feed-1" } as const,
+      initialArticle: { ...sampleArticles[0], id: "feed-snapshot", title: "Feed Snapshot Article" },
+    },
+    {
+      label: "all",
+      selection: { type: "all" } as const,
+      initialArticle: { ...sampleArticles[0], id: "all-snapshot", title: "All Snapshot Article" },
+    },
+    {
+      label: "tag",
+      selection: { type: "tag", tagId: "tag-1" } as const,
+      initialArticle: { ...sampleArticles[0], id: "tag-snapshot", title: "Tag Snapshot Article" },
+    },
+  ])("keeps the $label list visible while the primary source revalidates", async ({ label, selection, initialArticle }) => {
+    const articlesSpy = vi.spyOn(articleHooks, "useArticles");
+    const accountArticlesSpy = vi.spyOn(articleHooks, "useAccountArticles");
+    const tagArticlesSpy = vi.spyOn(tagHooks, "useArticlesByTag");
+
+    articlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<typeof articleHooks.useArticles>);
+    accountArticlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<typeof articleHooks.useAccountArticles>);
+    tagArticlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<typeof tagHooks.useArticlesByTag>);
+
+    if (label === "feed") {
+      articlesSpy.mockReturnValue({
+        data: [initialArticle],
+        isLoading: false,
+      } as ReturnType<typeof articleHooks.useArticles>);
+    } else if (label === "all") {
+      accountArticlesSpy.mockReturnValue({
+        data: [initialArticle],
+        isLoading: false,
+      } as ReturnType<typeof articleHooks.useAccountArticles>);
+    } else {
+      tagArticlesSpy.mockReturnValue({
+        data: [initialArticle],
+        isLoading: false,
+      } as ReturnType<typeof tagHooks.useArticlesByTag>);
+    }
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection,
+      viewMode: "all",
+    });
+
+    const { rerender } = render(<ArticleList />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText(initialArticle.title)).toBeInTheDocument();
+    });
+
+    if (label === "feed") {
+      articlesSpy.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+      } as ReturnType<typeof articleHooks.useArticles>);
+    } else if (label === "all") {
+      accountArticlesSpy.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+      } as ReturnType<typeof articleHooks.useAccountArticles>);
+    } else {
+      tagArticlesSpy.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+      } as ReturnType<typeof tagHooks.useArticlesByTag>);
+    }
+
+    rerender(<ArticleList />);
+
+    await waitFor(() => {
+      expect(screen.getByText(initialArticle.title)).toBeInTheDocument();
+    });
+  });
+
+  it("does not reuse a feed snapshot after switching to the all-articles context", async () => {
+    const articlesSpy = vi.spyOn(articleHooks, "useArticles");
+    const accountArticlesSpy = vi.spyOn(articleHooks, "useAccountArticles");
+    const tagArticlesSpy = vi.spyOn(tagHooks, "useArticlesByTag");
+
+    articlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<typeof articleHooks.useArticles>);
+    accountArticlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<typeof articleHooks.useAccountArticles>);
+    tagArticlesSpy.mockReturnValue({ data: undefined, isLoading: false } as ReturnType<typeof tagHooks.useArticlesByTag>);
+
+    articlesSpy.mockImplementation((feedId) => {
+      if (feedId === "feed-1") {
+        return {
+          data: [{ ...sampleArticles[0], id: "feed-1-snapshot", title: "Feed 1 Snapshot Article" }],
+          isLoading: false,
+        } as ReturnType<typeof articleHooks.useArticles>;
+      }
+
+      return {
+        data: undefined,
+        isLoading: false,
+      } as ReturnType<typeof articleHooks.useArticles>;
+    });
+    accountArticlesSpy.mockImplementation((accountId) => {
+      if (accountId === "acc-1" && useUiStore.getState().selection.type === "all") {
+        return {
+          data: undefined,
+          isLoading: true,
+        } as ReturnType<typeof articleHooks.useAccountArticles>;
+      }
+
+      return {
+        data: undefined,
+        isLoading: false,
+      } as ReturnType<typeof articleHooks.useAccountArticles>;
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+
+    const { rerender } = render(<ArticleList />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText("Feed 1 Snapshot Article")).toBeInTheDocument();
+    });
+
+    useUiStore.getState().selectAll();
+    rerender(<ArticleList />);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Feed 1 Snapshot Article")).not.toBeInTheDocument();
     });
   });
 

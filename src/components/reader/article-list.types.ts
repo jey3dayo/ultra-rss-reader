@@ -355,7 +355,20 @@ export type UseArticleListSearchResult = {
 
 export type UseArticleListSourcesParams = {
   selection: UiSelection;
+  selectionContext: ArticleListPrimarySourceContext;
   selectedAccountId: string | null;
+};
+
+export type ArticleListPrimarySourceKind = "feed" | "account" | "tag";
+
+export type ArticleListPrimarySourceContext = {
+  kind: ArticleListPrimarySourceKind;
+  key: string;
+};
+
+export type ArticleListPrimarySourceSnapshot = {
+  contextKey: string;
+  articles: ArticleDto[] | undefined;
 };
 
 export type UseArticleListSourcesResult = {
