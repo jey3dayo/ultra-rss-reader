@@ -29,7 +29,7 @@ Tech Stack: React 19, TypeScript, Zustand, Vitest, Tauri 2 child webview, HWND s
 
 ## Task 1: Lock In Viewer Behavior With Failing Tests
 
-### Files:
+## Task 1 Files
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\article-view.test.tsx`
@@ -101,7 +101,7 @@ Do not commit in a red state. Keep this task uncommitted until implementation pa
 
 ## Task 2: Move The Overlay Root To The Full App Surface
 
-### Files:
+## Task 2 Files
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\app-layout.tsx`
 
@@ -149,7 +149,7 @@ git commit -m "refactor(layout): lift browser overlay root to app shell"
 
 ## Task 3: Implement The Minimal Viewer Shell
 
-### Files:
+## Task 3 Files
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\browser-view.tsx`
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
@@ -219,7 +219,7 @@ git commit -m "feat(reader): adopt minimal web preview viewer"
 
 ## Task 4: Unify Article Entry And Intent Entry
 
-### Files:
+## Task 4 Files
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\article-view.tsx`
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\article-view.test.tsx`
@@ -266,7 +266,7 @@ git commit -m "refactor(reader): unify web preview entry paths"
 
 ## Task 5: Regression Checks, Tauri Verification, And TODO Cleanup
 
-### Files:
+## Task 5 Files
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\TODO.md`
 

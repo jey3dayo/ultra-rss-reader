@@ -31,7 +31,7 @@ Spec: `docs/superpowers/specs/2026-03-30-file-logging-design.md`
 
 ### Task 1: Add Rust Dependencies
 
-### Files:
+### Task 1 Files
 
 - Modify: `src-tauri/Cargo.toml`
 
@@ -62,7 +62,7 @@ EOF
 
 ### Task 2: Create `log_commands.rs`
 
-### Files:
+### Task 2 Files
 
 - Create: `src-tauri/src/commands/log_commands.rs`
 - Modify: `src-tauri/src/commands/mod.rs`
@@ -109,7 +109,7 @@ EOF
 
 ### Task 3: Conditional Tracing Initialization and Log Cleanup
 
-### Files:
+### Task 3 Files
 
 - Modify: `src-tauri/src/lib.rs`
 
@@ -231,7 +231,7 @@ EOF
 
 ### Task 4: Frontend - Add `getLogDir` Command and Mock
 
-### Files:
+### Task 4 Files
 
 - Modify: `src/api/tauri-commands.ts`
 - Modify: `src/dev-mocks.ts`
@@ -274,7 +274,7 @@ EOF
 
 ### Task 5: Install `@tauri-apps/plugin-opener` npm Package
 
-### Files:
+### Task 5 Files
 
 - Modify: `package.json`
 
@@ -297,7 +297,7 @@ EOF
 
 ### Task 6: Add i18n Keys
 
-### Files:
+### Task 6 Files
 
 - Modify: `src/locales/en/settings.json`
 - Modify: `src/locales/ja/settings.json`
@@ -335,7 +335,7 @@ EOF
 
 ### Task 7: Add "Open Log Directory" Button to Data Settings
 
-### Files:
+### Task 7 Files
 
 - Modify: `src/components/settings/data-settings.tsx`
 

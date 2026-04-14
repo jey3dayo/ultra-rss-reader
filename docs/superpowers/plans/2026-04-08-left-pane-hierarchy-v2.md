@@ -12,7 +12,7 @@ Tech Stack: React 19, TypeScript, Vitest, Testing Library, i18next
 
 ## Task 1: Lock the approved structure with tests
 
-### Files:
+## Task 1 Files
 
 - Modify: `src/__tests__/components/smart-views-view.test.tsx`
 - Modify: `src/__tests__/components/feed-tree-view.test.tsx`
@@ -24,7 +24,7 @@ Tech Stack: React 19, TypeScript, Vitest, Testing Library, i18next
 
 ## Task 2: Implement the smart view and subscription presentation changes
 
-### Files:
+## Task 2 Files
 
 - Modify: `src/components/reader/smart-views-view.tsx`
 - Modify: `src/components/reader/feed-tree-view.tsx`
@@ -40,7 +40,7 @@ Tech Stack: React 19, TypeScript, Vitest, Testing Library, i18next
 
 ## Task 3: Verify the change stays stable
 
-### Files:
+## Task 3 Files
 
 - Test: `src/__tests__/components/smart-views-view.test.tsx`
 - Test: `src/__tests__/components/feed-tree-view.test.tsx`

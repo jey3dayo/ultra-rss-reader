@@ -12,7 +12,7 @@ Tech Stack: React 19, TypeScript, Vitest, Testing Library, Storybook, i18next, Z
 
 ## Task 1: Add failing integration tests for bulk actions
 
-### Files:
+## Task 1 Files
 
 - Modify: `src/__tests__/components/feed-cleanup-page.test.tsx`
 
@@ -49,7 +49,7 @@ Expected: FAIL for missing UI/state behavior, not for test setup mistakes.
 
 ## Task 2: Implement bulk action state and overview wiring
 
-### Files:
+## Task 2 Files
 
 - Modify: `src/components/feed-cleanup/use-feed-cleanup-page-state.ts`
 - Modify: `src/components/feed-cleanup/feed-cleanup-page.tsx`
@@ -81,7 +81,7 @@ Expected: PASS for the new bulk action cases.
 
 ## Task 3: Tighten priority guidance copy
 
-### Files:
+## Task 3 Files
 
 - Modify: `src/locales/ja/cleanup.json`
 - Modify: `src/locales/en/cleanup.json`
@@ -103,7 +103,7 @@ Expected: PASS
 
 ## Task 4: Refresh Storybook states and task tracking
 
-### Files:
+## Task 4 Files
 
 - Modify: `src/components/feed-cleanup/feed-cleanup-overview-panel.stories.tsx`
 - Modify: `src/components/feed-cleanup/feed-cleanup-queue-panel.stories.tsx`
@@ -125,7 +125,7 @@ Expected: PASS
 
 ## Task 5: Final verification
 
-### Files:
+## Task 5 Files
 
 - Verify only
 

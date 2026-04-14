@@ -12,7 +12,7 @@ Tech Stack: React 19, TypeScript, Zustand, Vitest, Tauri commands
 
 ## Task 1: Add failing tests for the new preference
 
-### Files:
+## Task 1 Files
 
 - Modify: `src/__tests__/components/general-settings.test.tsx`
 - Modify: `src/__tests__/app-root.test.tsx`
@@ -24,7 +24,7 @@ Tech Stack: React 19, TypeScript, Zustand, Vitest, Tauri commands
 
 ## Task 2: Implement the preference and startup sync behavior
 
-### Files:
+## Task 2 Files
 
 - Modify: `src/stores/preferences-store.ts`
 - Modify: `src/components/settings/general-settings.tsx`
@@ -40,7 +40,7 @@ Tech Stack: React 19, TypeScript, Zustand, Vitest, Tauri commands
 
 ## Task 3: Verify
 
-### Files:
+## Task 3 Files
 
 - Modify: `src/__tests__/components/general-settings.test.tsx`
 - Modify: `src/__tests__/app-root.test.tsx`

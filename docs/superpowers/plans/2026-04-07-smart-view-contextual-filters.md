@@ -38,7 +38,7 @@ Spec: `docs/superpowers/specs/2026-04-07-smart-view-contextual-filters-design.md
 
 ## Task 1: Smart view の state semantics を先に固定する
 
-### Files:
+## Task 1 Files
 
 - Modify: `src/stores/ui-store.ts`
 - Test: `src/__tests__/stores/ui-store.test.ts`
@@ -109,7 +109,7 @@ git commit -m "feat: redefine smart view default modes"
 
 ## Task 2: article filtering を smart view 起点で表現できるようにする
 
-### Files:
+## Task 2 Files
 
 - Modify: `src/lib/article-list.ts`
 - Test: `src/__tests__/lib/article-list.test.ts`
@@ -225,7 +225,7 @@ git commit -m "feat: support contextual smart view filtering"
 
 ## Task 3: Footer を動的 option set にし、context strip を追加する
 
-### Files:
+## Task 3 Files
 
 - Create: `src/components/reader/article-list-context-strip.tsx`
 - Modify: `src/components/reader/article-list-footer.tsx`
@@ -401,7 +401,7 @@ git commit -m "feat: add contextual smart view chrome"
 
 ## Task 4: Sidebar と一覧の組み合わせを回帰テストで固定する
 
-### Files:
+## Task 4 Files
 
 - Modify: `src/__tests__/components/sidebar.test.tsx`
 - Modify: `src/__tests__/components/article-list.test.tsx`
@@ -453,7 +453,7 @@ git commit -m "test: cover smart view contextual filter behavior"
 
 ## Task 5: Feature 全体を検証する
 
-### Files:
+## Task 5 Files
 
 - Modify: なし
 

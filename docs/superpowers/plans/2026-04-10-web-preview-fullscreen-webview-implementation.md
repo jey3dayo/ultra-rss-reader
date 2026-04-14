@@ -25,7 +25,7 @@ Tech Stack: React 19, TypeScript, Zustand, Vitest, Tauri 2 child webview, PowerS
 
 ## Task 1: Lock In The Fullscreen Geometry Contract
 
-### Files:
+## Task 1 Files
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\lib\browser-viewer-geometry.test.ts`
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\lib\browser-viewer-geometry.ts`
@@ -106,7 +106,7 @@ git commit -m "refactor(reader): make browser viewer geometry full bleed"
 
 ## Task 2: Encode The New BrowserView Behavior In Red Tests
 
-### Files:
+## Task 2 Files
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
 
@@ -168,7 +168,7 @@ Expected: FAIL on stage inset, rail visibility, scrim-close behavior, and fullsc
 
 ## Task 3: Implement The Fullscreen Browser Surface
 
-### Files:
+## Task 3 Files
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\browser-view.tsx`
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
@@ -226,7 +226,7 @@ git commit -m "feat(reader): make web preview fullscreen in main stage"
 
 ## Task 4: Verify Native Bounds Sync And Preserve Existing Entry Flow
 
-### Files:
+## Task 4 Files
 
 - Optional Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src-tauri\src\commands\browser_webview_commands.rs`
 - Optional Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\article-view.tsx`
@@ -268,7 +268,7 @@ If nothing changed, skip this commit.
 
 ## Task 5: Manual App Verification
 
-### Files:
+## Task 5 Files
 
 - No required source edits
 

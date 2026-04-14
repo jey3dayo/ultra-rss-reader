@@ -37,7 +37,7 @@ Tech Stack: React 19, TypeScript, Zustand, Lucide React, Vitest, Tauri sync even
 
 ## Task 1: Add failing UI tests for the new loading-button behavior
 
-### Files:
+## Task 1 Files
 
 - Create: `src/__tests__/components/account-credentials-section-view.test.tsx`
 - Modify: `src/__tests__/components/account-sync-section-view.test.tsx`
@@ -67,7 +67,7 @@ Tech Stack: React 19, TypeScript, Zustand, Lucide React, Vitest, Tauri sync even
 
 ## Task 2: Implement the shared `LoadingButton` and wire it into both settings actions
 
-### Files:
+## Task 2 Files
 
 - Create: `src/components/shared/loading-button.tsx`
 - Modify: `src/components/settings/account-credentials-section-view.tsx`
@@ -99,7 +99,7 @@ Tech Stack: React 19, TypeScript, Zustand, Lucide React, Vitest, Tauri sync even
 
 ## Task 3: Localize account sync loading and keep full-sync loading global
 
-### Files:
+## Task 3 Files
 
 - Modify: `src/components/settings/account-detail.tsx`
 - Modify: `src/stores/ui-store.ts`
@@ -150,7 +150,7 @@ Tech Stack: React 19, TypeScript, Zustand, Lucide React, Vitest, Tauri sync even
 
 ## Task 4: Verify the full behavior and guard against regressions
 
-### Files:
+## Task 4 Files
 
 - Modify: `src/__tests__/components/account-credentials-section-view.test.tsx`
 - Modify: `src/__tests__/components/account-sync-section-view.test.tsx`

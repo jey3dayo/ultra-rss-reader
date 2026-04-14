@@ -31,7 +31,7 @@ Tech Stack: React 19, TypeScript, Vitest, Testing Library, Storybook, i18next
 
 ### Task 1: Lock The New Toolbar Contract In Tests
 
-### Files:
+### Task 1 Files
 
 - Modify: `src/__tests__/components/article-toolbar-view.test.tsx`
 - Modify: `src/__tests__/components/article-view.test.tsx`
@@ -114,7 +114,7 @@ git commit -m "test: define single preview toggle behavior"
 
 ### Task 2: Replace The Toolbar UI With A Single Eye Toggle
 
-### Files:
+### Task 2 Files
 
 - Modify: `src/components/reader/article-toolbar-view.tsx`
 - Modify: `src/components/reader/article-view.tsx`
@@ -206,7 +206,7 @@ git commit -m "feat: replace display preset group with preview toggle"
 
 ### Task 3: Update Copy, Stories, And Final Verification
 
-### Files:
+### Task 3 Files
 
 - Modify: `src/components/reader/article-toolbar-view.stories.tsx`
 - Modify: `src/locales/en/reader.json`

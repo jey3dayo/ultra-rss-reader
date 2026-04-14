@@ -12,7 +12,7 @@ Tech Stack: React 19, TypeScript, i18next, Vitest
 
 ## Task 1: Add failing tests for the two-mode preset model
 
-### Files:
+## Task 1 Files
 
 - Modify: `src/__tests__/lib/article-display.test.ts`
 - Modify: `src/__tests__/components/settings-surface-views.test.tsx`
@@ -23,7 +23,7 @@ Tech Stack: React 19, TypeScript, i18next, Vitest
 
 ## Task 2: Implement the collapsed preset logic
 
-### Files:
+## Task 2 Files
 
 - Modify: `src/lib/article-display.ts`
 - Modify: `src/components/reader/article-view.tsx`
@@ -34,7 +34,7 @@ Tech Stack: React 19, TypeScript, i18next, Vitest
 
 ## Task 3: Update labels and option lists
 
-### Files:
+## Task 3 Files
 
 - Modify: `src/components/reader/display-mode-toggle-group.tsx`
 - Modify: `src/components/reader/article-list.tsx`
@@ -52,7 +52,7 @@ Tech Stack: React 19, TypeScript, i18next, Vitest
 
 ## Task 4: Update stories and tests, then verify
 
-### Files:
+## Task 4 Files
 
 - Modify: affected story/test files under `src/components/**` and `src/__tests__/**`
 

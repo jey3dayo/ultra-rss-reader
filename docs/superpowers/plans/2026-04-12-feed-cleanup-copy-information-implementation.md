@@ -12,7 +12,7 @@ Tech Stack: React 19, TypeScript, react-i18next, Vitest, Testing Library
 
 ## Task 1: Red tests for renamed navigation and page positioning
 
-### Files:
+## Task 1 Files
 
 - Modify: `src/__tests__/lib/ja-locales.test.ts`
 - Modify: `src/__tests__/components/sidebar.test.tsx`
@@ -41,7 +41,7 @@ git commit -m "test(feed-cleanup): cover renamed navigation copy"
 
 ## Task 2: Red tests for cleanup-page copy and labeled metadata
 
-### Files:
+## Task 2 Files
 
 - Modify: `src/__tests__/components/feed-cleanup-page.test.tsx`
 
@@ -72,7 +72,7 @@ git commit -m "test(feed-cleanup): cover revised cleanup copy"
 
 ## Task 3: Implement the i18n copy updates
 
-### Files:
+## Task 3 Files
 
 - Modify: `src/locales/ja/sidebar.json`
 - Modify: `src/locales/en/sidebar.json`
@@ -105,7 +105,7 @@ git commit -m "feat(feed-cleanup): refresh cleanup terminology"
 
 ## Task 4: Implement the feed-cleanup view copy and metadata presentation
 
-### Files:
+## Task 4 Files
 
 - Modify: `src/components/feed-cleanup/feed-cleanup-page-view.tsx`
 - Modify: `src/components/feed-cleanup/feed-cleanup-delete-dialog.tsx`
@@ -142,7 +142,7 @@ git commit -m "feat(feed-cleanup): clarify review copy and metadata"
 
 ## Task 5: Final verification sweep
 
-### Files:
+## Task 5 Files
 
 - Verify: `src/__tests__/lib/ja-locales.test.ts`
 - Verify: `src/__tests__/components/sidebar.test.tsx`

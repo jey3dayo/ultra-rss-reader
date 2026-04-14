@@ -81,7 +81,7 @@ If this optional branch starts to sprawl, stop and defer sync-failure filtering 
 
 ## Task 1: Add Pure Cleanup Candidate Derivation
 
-### Files:
+## Task 1 Files
 
 - Create: `src/lib/feed-cleanup.ts`
 - Test: `src/__tests__/lib/feed-cleanup.test.ts`
@@ -144,7 +144,7 @@ git commit -m "feat: add feed cleanup candidate helpers"
 
 ## Task 2: Add Shared Delete Feed Behavior
 
-### Files:
+## Task 2 Files
 
 - Create: `src/hooks/use-delete-feed.ts`
 - Modify: `src/components/reader/feed-context-menu.tsx`
@@ -194,7 +194,7 @@ git commit -m "refactor: share feed deletion behavior"
 
 ## Task 3: Add Cleanup Surface State and Sidebar Entry
 
-### Files:
+## Task 3 Files
 
 - Modify: `src/stores/ui-store.ts`
 - Modify: `src/components/app-shell.tsx`
@@ -251,7 +251,7 @@ git commit -m "feat: add feed cleanup entry point"
 
 ## Task 4: Build the Cleanup Surface and Phase 1 Interaction Loop
 
-### Files:
+## Task 4 Files
 
 - Create: `src/components/feed-cleanup/feed-cleanup-page.tsx`
 - Create: `src/components/feed-cleanup/feed-cleanup-page-view.tsx`
@@ -338,7 +338,7 @@ git commit -m "feat: add feed cleanup management surface"
 
 ## Task 5: Wire Real Delete Actions and Candidate Refresh
 
-### Files:
+## Task 5 Files
 
 - Modify: `src/components/feed-cleanup/feed-cleanup-page.tsx`
 - Modify: `src/hooks/use-delete-feed.ts`
@@ -387,7 +387,7 @@ git commit -m "feat: connect feed cleanup deletion flow"
 
 ## Task 6: Document and Verify
 
-### Files:
+## Task 6 Files
 
 - Modify: `README.md`
 

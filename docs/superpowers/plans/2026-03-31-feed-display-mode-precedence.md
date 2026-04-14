@@ -12,7 +12,7 @@ Tech Stack: React 19, TypeScript, Zustand, Vitest, Tauri 2, Rust, SQLite
 
 ## Task 1: Add failing frontend regression tests
 
-### Files:
+## Task 1 Files
 
 - Modify: `src/__tests__/components/article-view.test.tsx`
 - Modify: `src/__tests__/components/rename-feed-dialog-view.test.tsx`
@@ -25,7 +25,7 @@ Tech Stack: React 19, TypeScript, Zustand, Vitest, Tauri 2, Rust, SQLite
 
 ## Task 2: Implement inherit-aware display mode resolution
 
-### Files:
+## Task 2 Files
 
 - Modify: `src/lib/article-view.ts`
 - Modify: `src/components/reader/article-view.tsx`
@@ -41,7 +41,7 @@ Tech Stack: React 19, TypeScript, Zustand, Vitest, Tauri 2, Rust, SQLite
 
 ## Task 3: Update backend defaults and persisted data
 
-### Files:
+## Task 3 Files
 
 - Add: `src-tauri/migrations/V7__feed_display_mode_inherit.sql`
 - Modify: `src-tauri/src/infra/db/migration.rs`
@@ -57,7 +57,7 @@ Tech Stack: React 19, TypeScript, Zustand, Vitest, Tauri 2, Rust, SQLite
 
 ## Task 4: Verify end-to-end behavior
 
-### Files:
+## Task 4 Files
 
 - Modify: `src/__tests__/components/article-view.test.tsx`
 - Modify: `src/__tests__/components/settings-modal.test.tsx`

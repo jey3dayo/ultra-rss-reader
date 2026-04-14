@@ -12,7 +12,7 @@ Tech Stack: React 19, TypeScript, Zustand, Vitest, react-i18next
 
 ## Task 1: Red tests for the new actions settings shape
 
-### Files:
+## Task 1 Files
 
 - Modify: `src/__tests__/components/actions-settings.test.tsx`
 - Modify: `src/__tests__/components/settings-modal.test.tsx`
@@ -23,7 +23,7 @@ Tech Stack: React 19, TypeScript, Zustand, Vitest, react-i18next
 
 ## Task 2: Red tests for toolbar/menu behavior
 
-### Files:
+## Task 2 Files
 
 - Modify: `src/__tests__/components/article-view.test.tsx`
 
@@ -33,7 +33,7 @@ Tech Stack: React 19, TypeScript, Zustand, Vitest, react-i18next
 
 ## Task 3: Minimal implementation
 
-### Files:
+## Task 3 Files
 
 - Modify: `src/components/settings/actions-settings.tsx`
 - Modify: `src/components/reader/article-view.tsx`
@@ -45,7 +45,7 @@ Tech Stack: React 19, TypeScript, Zustand, Vitest, react-i18next
 
 ## Task 4: Verification
 
-### Files:
+## Task 4 Files
 
 - Verify: `src/__tests__/components/actions-settings.test.tsx`
 - Verify: `src/__tests__/components/settings-modal.test.tsx`

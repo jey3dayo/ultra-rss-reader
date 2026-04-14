@@ -34,7 +34,7 @@ Tech Stack: React 19, TypeScript, TanStack Query, Zustand, Vitest, Testing Libra
 
 ## Task 1: フォルダ更新処理を共通 hook に切り出す
 
-### Files:
+## Task 1 Files
 
 - Create: `src/hooks/use-update-feed-folder.ts`
 - Create: `src/__tests__/hooks/use-update-feed-folder.test.tsx`
@@ -225,7 +225,7 @@ git commit -m "refactor: share feed folder update mutation"
 
 ## Task 2: FeedTreeView に drag handle と drop target を追加する
 
-### Files:
+## Task 2 Files
 
 - Modify: `src/components/reader/feed-tree-view.tsx`
 - Modify: `src/components/reader/feed-tree-view.stories.tsx`
@@ -445,7 +445,7 @@ git commit -m "feat: add feed tree drag-and-drop presentation"
 
 ## Task 3: Sidebar に drag state と drop 保存を接続する
 
-### Files:
+## Task 3 Files
 
 - Modify: `src/components/reader/sidebar.tsx`
 - Modify: `src/__tests__/components/sidebar.test.tsx`
@@ -611,7 +611,7 @@ git commit -m "feat: move feeds between folders from sidebar"
 
 ## Task 4: 回帰検証と手動確認を完了する
 
-### Files:
+## Task 4 Files
 
 - Modify: なし
 

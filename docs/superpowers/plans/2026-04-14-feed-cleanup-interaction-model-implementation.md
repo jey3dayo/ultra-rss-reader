@@ -12,7 +12,7 @@ Tech Stack: React 19, TypeScript, Vitest, Testing Library, i18next, Zustand toas
 
 ## Task 1: Add failing tests for decision-rail and bulk-selection behavior
 
-### Files:
+## Task 1 Files
 
 - Modify: `src/__tests__/components/feed-cleanup-page.test.tsx`
 - Modify: `src/__tests__/components/feed-cleanup-queue-panel.test.tsx`
@@ -52,7 +52,7 @@ Expected: FAIL for missing interaction behavior, not for harness or i18n mistake
 
 ## Task 2: Implement cleanup interaction state and undo model
 
-### Files:
+## Task 2 Files
 
 - Modify: `src/components/feed-cleanup/use-feed-cleanup-page-state.ts`
 - Modify: `src/components/feed-cleanup/feed-cleanup.types.ts`
@@ -92,7 +92,7 @@ Expected: PASS for reducer-driven interaction behavior.
 
 ## Task 3: Rebuild the queue as a selectable, keyboard-driven worklist
 
-### Files:
+## Task 3 Files
 
 - Modify: `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`
 - Modify: `src/components/feed-cleanup/feed-cleanup-page-view.tsx`
@@ -126,7 +126,7 @@ Expected: PASS
 
 ## Task 4: Reframe the review panel as a feed console with a decision rail
 
-### Files:
+## Task 4 Files
 
 - Modify: `src/components/feed-cleanup/feed-cleanup-review-panel.tsx`
 - Modify: `src/__tests__/components/feed-cleanup-review-panel.test.tsx`
@@ -156,7 +156,7 @@ Expected: PASS
 
 ## Task 5: Update locale copy and stories for the new model
 
-### Files:
+## Task 5 Files
 
 - Modify: `src/locales/en/cleanup.json`
 - Modify: `src/locales/ja/cleanup.json`
@@ -183,7 +183,7 @@ Expected: PASS
 
 ## Task 6: Final verification
 
-### Files:
+## Task 6 Files
 
 - Verify only
 

@@ -42,7 +42,7 @@ Spec: `docs/superpowers/specs/2026-04-02-command-palette-feed-landing-design.md`
 
 ## Task 1: Add Pure Feed-Landing Helpers
 
-### Files:
+## Task 1 Files
 
 - Create: `src/lib/feed-landing.ts`
 - Test: `src/__tests__/lib/feed-landing.test.ts`
@@ -181,7 +181,7 @@ git commit -m "feat: add feed landing helpers"
 
 ## Task 2: Implement the Reusable Feed-Landing Intent
 
-### Files:
+## Task 2 Files
 
 - Create: `src/hooks/use-feed-landing.ts`
 - Test: `src/__tests__/hooks/use-feed-landing.test.tsx`
@@ -386,7 +386,7 @@ git commit -m "feat: add reusable feed landing intent"
 
 ## Task 3: Wire Command Palette Into the Landing Intent
 
-### Files:
+## Task 3 Files
 
 - Modify: `src/components/reader/command-palette.tsx`
 - Modify: `src/__tests__/components/command-palette.test.tsx`
@@ -451,7 +451,7 @@ git commit -m "feat: land command palette feed picks on latest article"
 
 ## Task 4: Document the New Usage and Run Verification
 
-### Files:
+## Task 4 Files
 
 - Modify: `README.md`
 

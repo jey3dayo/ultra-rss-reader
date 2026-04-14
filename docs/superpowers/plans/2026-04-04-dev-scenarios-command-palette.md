@@ -50,7 +50,7 @@ Spec: `docs/superpowers/specs/2026-04-04-dev-scenarios-command-palette-design.md
 
 ## Task 1: Scenario 型と registry を追加する
 
-### Files:
+## Task 1 Files
 
 - Create: `src/dev/scenarios/types.ts`
 - Create: `src/dev/scenarios/registry.ts`
@@ -208,7 +208,7 @@ git commit -m "feat: add dev scenario registry and env parsing"
 
 ## Task 2: Scenario runner を導入して image-viewer-overlay を移植する
 
-### Files:
+## Task 2 Files
 
 - Create: `src/dev/scenarios/helpers.ts`
 - Create: `src/dev/scenarios/runner.ts`
@@ -397,7 +397,7 @@ git commit -m "feat: move dev intent execution into shared scenario runner"
 
 ## Task 3: Command Palette に Dev Scenarios グループを追加する
 
-### Files:
+## Task 3 Files
 
 - Modify: `src/components/reader/command-palette.tsx`
 - Modify: `src/__tests__/components/command-palette.test.tsx`
@@ -507,7 +507,7 @@ git commit -m "feat: add dev scenarios group to command palette"
 
 ## Task 4: ナビゲーション系 scenario を追加する
 
-### Files:
+## Task 4 Files
 
 - Modify: `src/dev/scenarios/registry.ts`
 - Modify: `src/dev/scenarios/helpers.ts`
@@ -647,7 +647,7 @@ git commit -m "feat: add navigation dev scenarios"
 
 ## Task 5: 操作 smoke scenario を追加する
 
-### Files:
+## Task 5 Files
 
 - Modify: `src/dev/scenarios/registry.ts`
 - Modify: `src/__tests__/dev/scenarios/runner.test.ts`
@@ -725,7 +725,7 @@ git commit -m "feat: add action-based dev smoke scenarios"
 
 ## Task 6: 全体確認と回帰チェックを行う
 
-### Files:
+## Task 6 Files
 
 - Verify: `src/dev/scenarios/*.ts`
 - Verify: `src/lib/dev-intent.ts`

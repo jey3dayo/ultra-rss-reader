@@ -36,7 +36,7 @@ Spec: `docs/superpowers/specs/2026-04-07-folder-selection-feed-filter-design.md`
 
 ## Task 1: FeedTreeView に folder selection UI を追加する
 
-### Files:
+## Task 1 Files
 
 - Modify: `src/components/reader/feed-tree-view.tsx`
 - Test: `src/__tests__/components/feed-tree-view.test.tsx`
@@ -160,7 +160,7 @@ git commit -m "feat: add folder selection controls to feed tree"
 
 ## Task 2: Sidebar で folder selection に応じた feed list を組み立てる
 
-### Files:
+## Task 2 Files
 
 - Modify: `src/components/reader/sidebar.tsx`
 - Test: `src/__tests__/components/sidebar.test.tsx`
@@ -327,7 +327,7 @@ git commit -m "feat: filter sidebar feeds by selected folder"
 
 ## Task 3: article-list helper に folder scope filtering を追加する
 
-### Files:
+## Task 3 Files
 
 - Modify: `src/lib/article-list.ts`
 - Test: `src/__tests__/lib/article-list.test.ts`
@@ -451,7 +451,7 @@ git commit -m "feat: add folder feed scope to article filtering"
 
 ## Task 4: ArticleList で folder selection の記事表示と検索スコープを接続する
 
-### Files:
+## Task 4 Files
 
 - Modify: `src/components/reader/article-list.tsx`
 - Test: `src/__tests__/components/article-list.test.tsx`
@@ -621,7 +621,7 @@ git commit -m "feat: scope article list to selected folder"
 
 ## Task 5: 回帰確認と手動検証を完了する
 
-### Files:
+## Task 5 Files
 
 - Modify: なし
 

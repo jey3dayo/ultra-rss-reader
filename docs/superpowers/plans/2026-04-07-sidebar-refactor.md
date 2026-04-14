@@ -45,7 +45,7 @@ Spec: `docs/superpowers/specs/2026-04-07-sidebar-refactor-design.md`
 
 ## Task 1: `shared` に sidebar section shell を導入する
 
-### Files:
+## Task 1 Files
 
 - Create: `src/components/shared/sidebar-section-shell.tsx`
 - Modify: `src/components/shared/sidebar-section-toggle.tsx`
@@ -125,7 +125,7 @@ git commit -m "refactor: add sidebar section shell"
 
 ## Task 2: sidebar の section markup を専用コンポーネントへ抽出する
 
-### Files:
+## Task 2 Files
 
 - Create: `src/components/reader/sidebar-account-section.tsx`
 - Create: `src/components/reader/sidebar-feed-section.tsx`
@@ -270,7 +270,7 @@ git commit -m "refactor: split sidebar sections"
 
 ## Task 3: feed tree の row / folder / overlay を抽出する
 
-### Files:
+## Task 3 Files
 
 - Create: `src/components/reader/feed-tree-row.tsx`
 - Create: `src/components/reader/feed-tree-folder-section.tsx`
@@ -384,7 +384,7 @@ git commit -m "refactor: extract feed tree display parts"
 
 ## Task 4: pointer drag state を `use-feed-tree-drag.ts` へ抽出する
 
-### Files:
+## Task 4 Files
 
 - Create: `src/components/reader/use-feed-tree-drag.ts`
 - Modify: `src/components/reader/feed-tree-view.tsx`
@@ -474,7 +474,7 @@ git commit -m "refactor: extract feed tree drag state"
 
 ## Task 5: `sidebar.tsx` の coordinator 化を仕上げて regression を確認する
 
-### Files:
+## Task 5 Files
 
 - Modify: `src/components/reader/sidebar.tsx`
 - Modify: `src/components/reader/sidebar-feed-section.tsx`
@@ -558,7 +558,7 @@ git commit -m "refactor: slim sidebar coordinator"
 
 ## Task 6: repo 標準チェックと手動確認を完了する
 
-### Files:
+## Task 6 Files
 
 - Modify: なし
 
