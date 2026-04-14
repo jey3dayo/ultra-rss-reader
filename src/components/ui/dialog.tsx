@@ -11,8 +11,11 @@ export type DialogTriggerProps = DialogPrimitive.Trigger.Props;
 export type DialogPortalProps = DialogPrimitive.Portal.Props;
 export type DialogCloseProps = DialogPrimitive.Close.Props;
 export type DialogOverlayProps = DialogPrimitive.Backdrop.Props;
+export type DialogOverlayPreset = "modal" | "readable";
 export type DialogContentProps = DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean;
+  overlayPreset?: DialogOverlayPreset;
+  overlayClassName?: string;
 };
 export type DialogHeaderProps = React.ComponentProps<"div">;
 export type DialogFooterProps = React.ComponentProps<"div"> & {
@@ -37,12 +40,21 @@ function DialogClose({ ...props }: DialogCloseProps) {
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
 }
 
+function getDialogOverlayPresetClass(preset: DialogOverlayPreset) {
+  switch (preset) {
+    case "readable":
+      return "bg-black/45 supports-backdrop-filter:backdrop-blur-none";
+    default:
+      return "bg-black/10 supports-backdrop-filter:backdrop-blur-xs";
+  }
+}
+
 function DialogOverlay({ className, ...props }: DialogOverlayProps) {
   return (
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className,
       )}
       {...props}
@@ -50,10 +62,17 @@ function DialogOverlay({ className, ...props }: DialogOverlayProps) {
   );
 }
 
-function DialogContent({ className, children, showCloseButton = true, ...props }: DialogContentProps) {
+function DialogContent({
+  className,
+  children,
+  showCloseButton = true,
+  overlayPreset = "modal",
+  overlayClassName,
+  ...props
+}: DialogContentProps) {
   return (
     <DialogPortal>
-      <DialogOverlay />
+      <DialogOverlay className={cn(getDialogOverlayPresetClass(overlayPreset), overlayClassName)} />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(

@@ -205,6 +205,16 @@ describe("CommandPalette", () => {
     expect(screen.getByTestId("command-palette-prefix-hint-tags")).toHaveClass("rounded-md");
   });
 
+  it("keeps the backdrop readable for feed lookup by disabling blur on the overlay", async () => {
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    await screen.findByPlaceholderText("Search commands…");
+
+    const overlay = document.querySelector('[data-slot="dialog-overlay"]');
+    expect(overlay).toHaveClass("bg-black/45");
+    expect(overlay).toHaveClass("supports-backdrop-filter:backdrop-blur-none");
+  });
+
   it("shows dev scenarios only in dev builds", async () => {
     const first = render(<CommandPalette />, { wrapper: createWrapper() });
 
