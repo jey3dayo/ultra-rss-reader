@@ -10,17 +10,19 @@ export function resolveBrowserViewPresentation({
   scope,
   viewportWidth,
   diagnosticsVisible,
+  overlayTitlebar,
 }: ResolveBrowserViewPresentationParams): BrowserViewPresentation {
   const geometry = resolveBrowserViewerGeometry({
     scope,
     viewportWidth,
     diagnosticsVisible,
+    overlayTitlebar,
   });
   const isCompactViewer = geometry.compact;
 
   return {
     geometry,
-    closeButtonClass: getBrowserOverlayCloseButtonClass(isCompactViewer),
+    closeButtonClass: getBrowserOverlayCloseButtonClass(isCompactViewer, overlayTitlebar),
     actionButtonClass: getBrowserOverlayActionButtonClass(isCompactViewer),
     stageClass: getBrowserOverlayStageClass(scope),
   };

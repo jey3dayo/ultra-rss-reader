@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
 import type { BrowserViewController, UseBrowserViewControllerParams } from "./browser-view.types";
 import { resolveBrowserViewPresentation } from "./browser-view-presentation";
 import { initialBrowserState } from "./browser-webview-state";
@@ -35,6 +36,10 @@ export function useBrowserViewController({
     isLoading,
     handleCloseOverlay,
   } = useBrowserViewRuntime({ onCloseOverlay });
+  const overlayTitlebar = shouldUseDesktopOverlayTitlebar({
+    platformKind,
+    hasTauriRuntime: hasTauriRuntime(),
+  });
 
   const { layoutDiagnostics, captureLayoutDiagnostics } = useBrowserLayoutDiagnostics({
     browserUrl,
@@ -120,8 +125,9 @@ export function useBrowserViewController({
         scope,
         viewportWidth,
         diagnosticsVisible: showDiagnostics,
+        overlayTitlebar,
       }),
-    [scope, showDiagnostics, viewportWidth],
+    [overlayTitlebar, scope, showDiagnostics, viewportWidth],
   );
 
   return {

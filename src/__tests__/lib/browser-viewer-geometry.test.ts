@@ -89,6 +89,43 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.chrome.action.size).toBe(44);
   });
 
+  it("reserves extra leading space for macOS overlay titlebars in main-stage mode", () => {
+    const geometry = resolveBrowserViewerGeometry({
+      scope: "main-stage",
+      viewportWidth: 1280,
+      diagnosticsVisible: true,
+      overlayTitlebar: true,
+    });
+
+    expect(geometry.stage.top).toBe(64);
+    expect(geometry.chromeRail.height).toBe(64);
+    expect(geometry.chrome.close.left).toBe(10);
+    expect(geometry.chrome.close.top).toBe(20);
+    expect(geometry.chrome.close.size).toBe(30);
+    expect(geometry.chrome.action.right).toBe(16);
+    expect(geometry.chrome.action.top).toBe(12);
+    expect(geometry.chrome.action.size).toBe(44);
+    expect(geometry.diagnostics.top).toBe(72);
+  });
+
+  it("keeps the compact macOS overlay contract aligned with the same close button geometry", () => {
+    const geometry = resolveBrowserViewerGeometry({
+      scope: "main-stage",
+      viewportWidth: 620,
+      diagnosticsVisible: false,
+      overlayTitlebar: true,
+    });
+
+    expect(geometry.stage.top).toBe(64);
+    expect(geometry.chromeRail.height).toBe(64);
+    expect(geometry.chrome.close.left).toBe(10);
+    expect(geometry.chrome.close.top).toBe(20);
+    expect(geometry.chrome.close.size).toBe(30);
+    expect(geometry.chrome.action.right).toBe(12);
+    expect(geometry.chrome.action.top).toBe(12);
+    expect(geometry.chrome.action.size).toBe(44);
+  });
+
   it("keeps the ultra-compact main-stage contract aligned with the same full-width host", () => {
     const geometry = resolveBrowserViewerGeometry({
       scope: "main-stage",

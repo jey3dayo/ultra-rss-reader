@@ -409,6 +409,65 @@ describe("BrowserView", () => {
     expect(chrome).toBeInTheDocument();
   });
 
+  it("moves the main-stage close button away from macOS traffic lights when overlay titlebar is active", () => {
+    const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
+
+    try {
+      Object.defineProperty(window, "__TAURI_INTERNALS__", {
+        configurable: true,
+        writable: true,
+        value: {},
+      });
+      mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+      usePlatformStore.setState({
+        platform: {
+          kind: "macos",
+          capabilities: {
+            supports_reading_list: false,
+            supports_background_browser_open: false,
+            supports_runtime_window_icon_replacement: true,
+            supports_native_browser_navigation: true,
+            uses_dev_file_credentials: false,
+          },
+        },
+        loaded: true,
+        loadError: false,
+        inFlightLoad: null,
+      });
+      useUiStore.setState({
+        selectedArticleId: "art-1",
+        contentMode: "browser",
+        browserUrl: "https://example.com/article",
+      });
+
+      render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+      const stage = screen.getByTestId("browser-overlay-stage");
+      const chrome = screen.getByTestId("browser-overlay-chrome");
+      const topRail = screen.getByTestId("browser-overlay-top-rail");
+
+      expectInlineStyles(stage, {
+        top: "64px",
+      });
+      expectInlineStyles(topRail, {
+        height: "64px",
+      });
+      expectInlineStyles(chrome, {
+        left: "10px",
+        top: "20px",
+      });
+      const closeButton = within(chrome).getByRole("button", { name: "Close Web Preview" });
+      expect(closeButton).toHaveClass("size-[30px]");
+      expect(closeButton).not.toHaveClass("size-10");
+    } finally {
+      if (originalTauriInternalsDescriptor) {
+        Object.defineProperty(window, "__TAURI_INTERNALS__", originalTauriInternalsDescriptor);
+      } else {
+        delete window.__TAURI_INTERNALS__;
+      }
+    }
+  });
+
   it("shows loading feedback while the embedded preview is still starting", async () => {
     mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
 

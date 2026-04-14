@@ -26,6 +26,7 @@ export type ResolveBrowserViewPresentationParams = {
   scope: BrowserViewerScope;
   viewportWidth: number;
   diagnosticsVisible: boolean;
+  overlayTitlebar?: boolean;
 };
 
 export type BrowserViewProps = {

@@ -4,6 +4,7 @@ export type BrowserViewerGeometryInput = {
   scope: BrowserViewerScope;
   viewportWidth: number;
   diagnosticsVisible: boolean;
+  overlayTitlebar?: boolean;
 };
 
 export type BrowserViewerGeometry = {
@@ -48,13 +49,24 @@ export type BrowserViewerGeometry = {
   };
 };
 
-function resolveMainStageGeometry(viewportWidth: number, diagnosticsVisible: boolean): BrowserViewerGeometry {
+function resolveMainStageGeometry(
+  viewportWidth: number,
+  diagnosticsVisible: boolean,
+  overlayTitlebar: boolean,
+): BrowserViewerGeometry {
   const compact = viewportWidth <= 768;
   const ultraCompact = viewportWidth <= 520;
   const chromeHorizontalInset = compact ? 12 : 16;
-  const chromeVerticalInset = 12;
-  const buttonSize = 44;
-  const hostTopInset = compact ? chromeVerticalInset + buttonSize + 8 : 56;
+  const closeVerticalInset = overlayTitlebar ? 20 : 12;
+  const actionVerticalInset = 12;
+  const closeHorizontalInset = overlayTitlebar ? 10 : chromeHorizontalInset;
+  const closeButtonSize = overlayTitlebar ? 30 : 44;
+  const actionButtonSize = 44;
+  const hostTopInset = overlayTitlebar
+    ? 64
+    : compact
+      ? Math.max(closeVerticalInset + closeButtonSize, actionVerticalInset + actionButtonSize) + 8
+      : 56;
   const diagnosticsTop = compact ? hostTopInset + 2 : diagnosticsVisible ? hostTopInset + 8 : 16;
 
   return {
@@ -83,14 +95,14 @@ function resolveMainStageGeometry(viewportWidth: number, diagnosticsVisible: boo
     },
     chrome: {
       close: {
-        left: chromeHorizontalInset,
-        top: chromeVerticalInset,
-        size: buttonSize,
+        left: closeHorizontalInset,
+        top: closeVerticalInset,
+        size: closeButtonSize,
       },
       action: {
         right: chromeHorizontalInset,
-        top: chromeVerticalInset,
-        size: buttonSize,
+        top: actionVerticalInset,
+        size: actionButtonSize,
       },
     },
     diagnostics: {
@@ -104,9 +116,10 @@ export function resolveBrowserViewerGeometry({
   scope,
   viewportWidth,
   diagnosticsVisible,
+  overlayTitlebar = false,
 }: BrowserViewerGeometryInput): BrowserViewerGeometry {
   if (scope === "main-stage") {
-    return resolveMainStageGeometry(viewportWidth, diagnosticsVisible);
+    return resolveMainStageGeometry(viewportWidth, diagnosticsVisible, overlayTitlebar);
   }
 
   return {

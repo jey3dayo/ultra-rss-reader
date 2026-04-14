@@ -9,6 +9,8 @@ describe("browser-overlay-presentation", () => {
   it("returns the compact and desktop close button variants", () => {
     expect(getBrowserOverlayCloseButtonClass(true)).toContain("bg-black/32");
     expect(getBrowserOverlayCloseButtonClass(false)).toContain("bg-black/30");
+    expect(getBrowserOverlayCloseButtonClass(false, true)).toContain("size-[30px]");
+    expect(getBrowserOverlayCloseButtonClass(false, true)).not.toContain("size-10");
   });
 
   it("returns the compact and desktop action button variants", () => {
