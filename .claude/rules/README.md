@@ -12,6 +12,7 @@
 ## Frontend / Tauri
 
 - [tauri-ipc-error-handling.md](./tauri-ipc-error-handling.md): Tauri IPC のエラーハンドリング方針
+- [tauri-window-chrome.md](./tauri-window-chrome.md): OS ごとに異なる titlebar / header の扱いと現在の実装方針
 - [preferences-pattern.md](./preferences-pattern.md): Preferences の読み書きパターン
 - [dev-scenarios-command-palette.md](./dev-scenarios-command-palette.md): dev intent と command palette の共通 runner / 責務分離ルール
 
