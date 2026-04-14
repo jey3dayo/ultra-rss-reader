@@ -23,6 +23,11 @@ describe("AccountSyncSectionView", () => {
           checked: true,
           onChange: () => {},
         }}
+        syncOnStartup={{
+          label: "Sync on startup",
+          checked: false,
+          onChange: () => {},
+        }}
         keepReadItems={{
           name: "keep-read-items",
           label: "Keep read items",
@@ -39,6 +44,7 @@ describe("AccountSyncSectionView", () => {
     expect(screen.getByRole("heading", { level: 3, name: "Syncing" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Sync" })).toHaveTextContent("Every hour");
     expect(screen.getByRole("switch", { name: "Sync on wake" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Sync on startup" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Keep read items" })).toHaveTextContent("Forever");
   });
 
@@ -46,6 +52,7 @@ describe("AccountSyncSectionView", () => {
     const user = userEvent.setup();
     const onSyncIntervalChange = vi.fn();
     const onSyncOnWakeChange = vi.fn();
+    const onSyncOnStartupChange = vi.fn();
     const onKeepReadItemsChange = vi.fn();
 
     render(
@@ -66,6 +73,11 @@ describe("AccountSyncSectionView", () => {
           checked: true,
           onChange: onSyncOnWakeChange,
         }}
+        syncOnStartup={{
+          label: "Sync on startup",
+          checked: false,
+          onChange: onSyncOnStartupChange,
+        }}
         keepReadItems={{
           name: "keep-read-items",
           label: "Keep read items",
@@ -82,12 +94,15 @@ describe("AccountSyncSectionView", () => {
     await user.click(screen.getByRole("combobox", { name: "Sync" }));
     await user.click(await screen.findByRole("option", { name: "Every 2 hours" }));
     await user.click(screen.getByRole("switch", { name: "Sync on wake" }));
+    await user.click(screen.getByRole("switch", { name: "Sync on startup" }));
     await user.click(screen.getByRole("combobox", { name: "Keep read items" }));
     await user.click(await screen.findByRole("option", { name: "Three months" }));
 
     expect(onSyncIntervalChange).toHaveBeenCalledWith("7200");
     expect(onSyncOnWakeChange).toHaveBeenCalledOnce();
     expect(onSyncOnWakeChange.mock.calls[0]?.[0]).toBe(false);
+    expect(onSyncOnStartupChange).toHaveBeenCalledOnce();
+    expect(onSyncOnStartupChange.mock.calls[0]?.[0]).toBe(true);
     expect(onKeepReadItemsChange).toHaveBeenCalledWith("90");
   });
 
@@ -104,6 +119,11 @@ describe("AccountSyncSectionView", () => {
         }}
         syncOnWake={{
           label: "Sync on wake",
+          checked: true,
+          onChange: () => {},
+        }}
+        syncOnStartup={{
+          label: "Sync on startup",
           checked: true,
           onChange: () => {},
         }}

@@ -3,20 +3,26 @@ import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/App";
 
-const { loadPreferencesMock, triggerSyncMock, syncAccountMock, listAccountsMock, preferencesState, devIntentState } =
-  vi.hoisted(() => ({
-    loadPreferencesMock: vi.fn(),
-    triggerSyncMock: vi.fn(() => Promise.resolve(Result.succeed(true))),
-    syncAccountMock: vi.fn(() => Promise.resolve(Result.succeed(true))),
-    listAccountsMock: vi.fn(() => Promise.resolve(Result.succeed([]))),
-    preferencesState: {
-      prefs: {},
-      loaded: true,
-    },
-    devIntentState: {
-      intent: null as string | null,
-    },
-  }));
+const {
+  loadPreferencesMock,
+  triggerStartupSyncMock,
+  syncAccountMock,
+  listAccountsMock,
+  preferencesState,
+  devIntentState,
+} = vi.hoisted(() => ({
+  loadPreferencesMock: vi.fn(),
+  triggerStartupSyncMock: vi.fn(() => Promise.resolve(Result.succeed(true))),
+  syncAccountMock: vi.fn(() => Promise.resolve(Result.succeed(true))),
+  listAccountsMock: vi.fn(() => Promise.resolve(Result.succeed([]))),
+  preferencesState: {
+    prefs: {},
+    loaded: true,
+  },
+  devIntentState: {
+    intent: null as string | null,
+  },
+}));
 
 vi.mock("@/components/app-shell", () => ({
   AppShell: () => <div>App Shell</div>,
@@ -38,7 +44,7 @@ vi.mock("@/stores/preferences-store", () => ({
 vi.mock("@/api/tauri-commands", () => ({
   listAccounts: listAccountsMock,
   syncAccount: syncAccountMock,
-  triggerSync: triggerSyncMock,
+  triggerStartupSync: triggerStartupSyncMock,
 }));
 
 vi.mock("@/hooks/use-resolved-dev-intent", () => ({
@@ -55,7 +61,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 describe("App", () => {
   beforeEach(() => {
     loadPreferencesMock.mockClear();
-    triggerSyncMock.mockClear();
+    triggerStartupSyncMock.mockClear();
     syncAccountMock.mockClear();
     listAccountsMock.mockClear();
     preferencesState.prefs = {};
@@ -72,7 +78,7 @@ describe("App", () => {
       expect(loadPreferencesMock).toHaveBeenCalledTimes(1);
     });
     await waitFor(() => {
-      expect(triggerSyncMock).toHaveBeenCalledTimes(1);
+      expect(triggerStartupSyncMock).toHaveBeenCalledTimes(1);
     });
     expect(syncAccountMock).not.toHaveBeenCalled();
   });
@@ -85,7 +91,7 @@ describe("App", () => {
     await waitFor(() => {
       expect(loadPreferencesMock).toHaveBeenCalledTimes(1);
     });
-    expect(triggerSyncMock).not.toHaveBeenCalled();
+    expect(triggerStartupSyncMock).not.toHaveBeenCalled();
   });
 
   it("does not trigger startup sync while any dev intent is active", async () => {
@@ -97,6 +103,6 @@ describe("App", () => {
     await waitFor(() => {
       expect(loadPreferencesMock).toHaveBeenCalledTimes(1);
     });
-    expect(triggerSyncMock).not.toHaveBeenCalled();
+    expect(triggerStartupSyncMock).not.toHaveBeenCalled();
   });
 });

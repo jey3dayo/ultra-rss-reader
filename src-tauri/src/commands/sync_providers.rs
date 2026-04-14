@@ -763,6 +763,7 @@ mod tests {
             server_url: Some(server_url.to_string()),
             username: Some("u".to_string()),
             sync_interval_secs: 3600,
+            sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
         }
@@ -805,6 +806,7 @@ mod tests {
             server_url: None,
             username: None,
             sync_interval_secs: 3600,
+            sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
         }

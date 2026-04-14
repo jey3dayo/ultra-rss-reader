@@ -167,6 +167,7 @@ pub struct AccountDto {
     pub server_url: Option<String>,
     pub username: Option<String>,
     pub sync_interval_secs: i64,
+    pub sync_on_startup: bool,
     pub sync_on_wake: bool,
     pub keep_read_items_days: i64,
 }
@@ -262,6 +263,7 @@ impl From<crate::domain::account::Account> for AccountDto {
             server_url: a.server_url,
             username: a.username,
             sync_interval_secs: a.sync_interval_secs,
+            sync_on_startup: a.sync_on_startup,
             sync_on_wake: a.sync_on_wake,
             keep_read_items_days: a.keep_read_items_days,
         }

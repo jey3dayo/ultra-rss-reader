@@ -10,6 +10,7 @@ pub trait AccountRepository {
         &self,
         id: &AccountId,
         sync_interval_secs: i64,
+        sync_on_startup: bool,
         sync_on_wake: bool,
         keep_read_items_days: i64,
     ) -> DomainResult<()>;

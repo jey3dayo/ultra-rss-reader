@@ -2,7 +2,7 @@ import { Result } from "@praha/byethrow";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef } from "react";
-import { listAccounts, syncAccount, triggerSync } from "./api/tauri-commands";
+import { listAccounts, syncAccount, triggerStartupSync } from "./api/tauri-commands";
 import { AppShell } from "./components/app-shell";
 import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS } from "./constants/ui-runtime";
 import { useDevIntent } from "./hooks/use-dev-intent";
@@ -36,7 +36,7 @@ function AppInner() {
     }
 
     startupSyncRequested.current = true;
-    triggerSync().then((result) =>
+    triggerStartupSync().then((result) =>
       Result.pipe(
         result,
         Result.inspectError((error) => {

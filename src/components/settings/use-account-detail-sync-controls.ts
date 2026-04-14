@@ -24,6 +24,7 @@ export function useAccountDetailSyncControls({
       await updateAccountSync(
         account.id,
         partial.syncIntervalSecs ?? account.sync_interval_secs,
+        partial.syncOnStartup ?? account.sync_on_startup,
         partial.syncOnWake ?? account.sync_on_wake,
         partial.keepReadItemsDays ?? account.keep_read_items_days,
       ),

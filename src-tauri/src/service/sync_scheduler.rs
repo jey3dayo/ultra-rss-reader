@@ -382,6 +382,7 @@ mod tests {
             server_url: None,
             username: None,
             sync_interval_secs: 900,
+            sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
         };
@@ -397,6 +398,7 @@ mod tests {
             server_url: None,
             username: None,
             sync_interval_secs: 0,
+            sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
         };
@@ -412,6 +414,7 @@ mod tests {
             server_url: None,
             username: None,
             sync_interval_secs: 60,
+            sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
         };
@@ -430,6 +433,7 @@ mod tests {
             server_url: None,
             username: None,
             sync_interval_secs: 60,
+            sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
         };

@@ -60,6 +60,7 @@ async fn local_feed_e2e() {
         server_url: None,
         username: None,
         sync_interval_secs: 3600,
+        sync_on_startup: true,
         sync_on_wake: false,
         keep_read_items_days: 30,
     };
@@ -240,6 +241,7 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
                 server_url: Some(server.url()),
                 username: Some("u".into()),
                 sync_interval_secs: 3600,
+                sync_on_startup: true,
                 sync_on_wake: false,
                 keep_read_items_days: 30,
             })

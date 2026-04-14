@@ -51,6 +51,7 @@ pub async fn add_account(
         server_url,
         username,
         sync_interval_secs: 3600,
+        sync_on_startup: true,
         sync_on_wake: false,
         keep_read_items_days: 30,
     };
@@ -112,6 +113,7 @@ pub fn update_account_sync(
     state: State<'_, AppState>,
     account_id: String,
     sync_interval_secs: i64,
+    sync_on_startup: bool,
     sync_on_wake: bool,
     keep_read_items_days: i64,
 ) -> Result<AccountDto, AppError> {
@@ -120,7 +122,13 @@ pub fn update_account_sync(
     })?;
     let repo = SqliteAccountRepository::new(db.writer());
     let id = AccountId(account_id);
-    repo.update_sync_settings(&id, sync_interval_secs, sync_on_wake, keep_read_items_days)?;
+    repo.update_sync_settings(
+        &id,
+        sync_interval_secs,
+        sync_on_startup,
+        sync_on_wake,
+        keep_read_items_days,
+    )?;
     let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
         message: "Account not found".into(),
     })?;

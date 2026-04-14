@@ -25,6 +25,7 @@ export type AccountSwitchControl = {
 export type AccountSyncSectionViewProps = {
   heading: string;
   syncInterval: AccountSelectControl;
+  syncOnStartup: AccountSwitchControl;
   syncOnWake: AccountSwitchControl;
   keepReadItems: AccountSelectControl;
   statusRows?: AccountSyncStatusRow[];
@@ -182,6 +183,7 @@ export type UseAccountDetailSyncStatusRowsResult = AccountSyncStatusRow[];
 
 export type UpdateAccountSyncParams = {
   syncIntervalSecs?: number;
+  syncOnStartup?: boolean;
   syncOnWake?: boolean;
   keepReadItemsDays?: number;
 };

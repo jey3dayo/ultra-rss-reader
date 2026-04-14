@@ -38,6 +38,11 @@ describe("AccountDetailView", () => {
             checked: false,
             onChange: vi.fn(),
           },
+          syncOnStartup: {
+            label: "Sync on startup",
+            checked: true,
+            onChange: vi.fn(),
+          },
           keepReadItems: {
             name: "keep-read-items",
             label: "Keep read items",
@@ -109,6 +114,11 @@ describe("AccountDetailView", () => {
           syncOnWake: {
             label: "Sync on wake",
             checked: false,
+            onChange: vi.fn(),
+          },
+          syncOnStartup: {
+            label: "Sync on startup",
+            checked: true,
             onChange: vi.fn(),
           },
           keepReadItems: {

@@ -82,6 +82,7 @@ describe("tauri-commands with mockIPC", () => {
         server_url: null,
         username: null,
         sync_interval_secs: 3600,
+        sync_on_startup: true,
         sync_on_wake: false,
         keep_read_items_days: 30,
       });

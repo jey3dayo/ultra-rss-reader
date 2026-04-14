@@ -17,6 +17,7 @@ export const sampleAccounts: AccountDto[] = [
     username: null,
     server_url: null,
     sync_interval_secs: 3600,
+    sync_on_startup: true,
     sync_on_wake: false,
     keep_read_items_days: 30,
   },
@@ -27,6 +28,7 @@ export const sampleAccounts: AccountDto[] = [
     username: "user",
     server_url: "https://freshrss.example.com",
     sync_interval_secs: 3600,
+    sync_on_startup: true,
     sync_on_wake: false,
     keep_read_items_days: 30,
   },
@@ -124,6 +126,7 @@ const defaultHandler: MockHandler = (cmd, args) => {
         username: null,
         server_url: args.serverUrl != null ? String(args.serverUrl) : null,
         sync_interval_secs: 3600,
+        sync_on_startup: true,
         sync_on_wake: false,
         keep_read_items_days: 30,
       } satisfies AccountDto;
@@ -194,6 +197,7 @@ const defaultHandler: MockHandler = (cmd, args) => {
     case "close_browser_webview":
       return null;
     case "trigger_sync":
+    case "trigger_startup_sync":
     case "trigger_sync_account":
     case "trigger_sync_feed":
       return { synced: true, total: 1, succeeded: 1, failed: [], warnings: [] };

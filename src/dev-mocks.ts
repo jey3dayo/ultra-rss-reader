@@ -115,6 +115,7 @@ export function setupDevMocks() {
           username: null,
           server_url: serverUrl ?? null,
           sync_interval_secs: 3600,
+          sync_on_startup: true,
           sync_on_wake: false,
           keep_read_items_days: 30,
         };
@@ -123,10 +124,12 @@ export function setupDevMocks() {
       }
 
       case "update_account_sync": {
-        const { accountId, syncIntervalSecs, syncOnWake, keepReadItemsDays } = updateAccountSyncArgs.parse(payload);
+        const { accountId, syncIntervalSecs, syncOnStartup, syncOnWake, keepReadItemsDays } =
+          updateAccountSyncArgs.parse(payload);
         const target = mockAccounts.find((a) => a.id === accountId);
         if (target) {
           target.sync_interval_secs = syncIntervalSecs;
+          target.sync_on_startup = syncOnStartup;
           target.sync_on_wake = syncOnWake;
           target.keep_read_items_days = keepReadItemsDays;
         }
@@ -515,6 +518,7 @@ export function setupDevMocks() {
         return null;
 
       case "trigger_sync":
+      case "trigger_startup_sync":
       case "trigger_sync_account":
       case "trigger_sync_feed":
         return { synced: true, total: 1, succeeded: 1, failed: [], warnings: [] };

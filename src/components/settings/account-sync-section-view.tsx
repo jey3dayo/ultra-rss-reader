@@ -7,6 +7,7 @@ import { LoadingButton } from "@/components/shared/loading-button";
 export function AccountSyncSectionView({
   heading,
   syncInterval,
+  syncOnStartup,
   syncOnWake,
   keepReadItems,
   statusRows,
@@ -18,6 +19,7 @@ export function AccountSyncSectionView({
   return (
     <SettingsSection heading={heading} className="mb-6">
       <AccountSelectRow control={syncInterval} />
+      <LabeledSwitchRow label={syncOnStartup.label} checked={syncOnStartup.checked} onChange={syncOnStartup.onChange} />
       <LabeledSwitchRow label={syncOnWake.label} checked={syncOnWake.checked} onChange={syncOnWake.onChange} />
       <AccountSelectRow control={keepReadItems} />
       {statusRows && statusRows.length > 0 ? (

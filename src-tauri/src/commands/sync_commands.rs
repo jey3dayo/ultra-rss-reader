@@ -214,6 +214,21 @@ async fn run_full_sync_with_progress(
     syncing: &AtomicBool,
     reporter: Option<SyncProgressReporter>,
 ) -> Result<SyncResult, AppError> {
+    let accounts: Vec<Account> = {
+        let db_guard = lock_db(db)?;
+        let account_repo = SqliteAccountRepository::new(db_guard.reader());
+        account_repo.find_all()?
+    };
+
+    run_sync_for_accounts_with_progress(db, syncing, accounts, reporter).await
+}
+
+async fn run_sync_for_accounts_with_progress(
+    db: &Mutex<DbManager>,
+    syncing: &AtomicBool,
+    accounts: Vec<Account>,
+    reporter: Option<SyncProgressReporter>,
+) -> Result<SyncResult, AppError> {
     if syncing
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         .is_err()
@@ -228,12 +243,6 @@ async fn run_full_sync_with_progress(
         });
     }
     let _guard = SyncGuard(syncing);
-
-    let accounts: Vec<Account> = {
-        let db_guard = lock_db(db)?;
-        let account_repo = SqliteAccountRepository::new(db_guard.reader());
-        account_repo.find_all()?
-    };
 
     let total = accounts.len();
     let mut succeeded = 0usize;
@@ -313,6 +322,47 @@ async fn run_full_sync_with_progress(
         failed,
         warnings,
     })
+}
+
+#[tauri::command]
+pub async fn trigger_startup_sync(
+    app_handle: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<SyncResult, AppError> {
+    let accounts = {
+        let db_guard = lock_db(&state.db)?;
+        let account_repo = SqliteAccountRepository::new(db_guard.reader());
+        account_repo
+            .find_all()?
+            .into_iter()
+            .filter(|account| account.sync_on_startup)
+            .collect::<Vec<_>>()
+    };
+    if accounts.is_empty() {
+        return Ok(SyncResult {
+            synced: false,
+            total: 0,
+            succeeded: 0,
+            failed: Vec::new(),
+            warnings: Vec::new(),
+        });
+    }
+    let reporter = SyncProgressReporter::new(
+        app_handle.clone(),
+        SyncProgressKind::ManualAll,
+        accounts.len(),
+    );
+    let result =
+        run_sync_for_accounts_with_progress(&state.db, &state.syncing, accounts, Some(reporter))
+            .await?;
+    if result.synced {
+        enable_automatic_sync(
+            state.automatic_sync_enabled.as_ref(),
+            state.automatic_sync_notify.as_ref(),
+        );
+        let _ = app_handle.emit("sync-completed", ());
+    }
+    Ok(result)
 }
 
 fn clear_scheduler_sync_status(
@@ -837,6 +887,7 @@ mod tests {
             server_url: None,
             username: None,
             sync_interval_secs: 3600,
+            sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
         };
@@ -872,8 +923,8 @@ mod tests {
             db_guard
                 .writer()
                 .execute(
-                    "INSERT INTO accounts (id, kind, name, sync_interval_secs, sync_on_wake, keep_read_items_days) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                    rusqlite::params![account.id.as_ref(), "Local", account.name, account.sync_interval_secs, account.sync_on_wake, account.keep_read_items_days],
+                    "INSERT INTO accounts (id, kind, name, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    rusqlite::params![account.id.as_ref(), "Local", account.name, account.sync_interval_secs, account.sync_on_startup, account.sync_on_wake, account.keep_read_items_days],
                 )
                 .unwrap();
             let feed_repo = SqliteFeedRepository::new(db_guard.writer());

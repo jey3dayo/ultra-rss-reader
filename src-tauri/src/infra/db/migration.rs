@@ -13,6 +13,7 @@ const MIGRATION_V7: &str = include_str!("../../../migrations/V7__feed_display_mo
 const MIGRATION_V8: &str = include_str!("../../../migrations/V8__feed_reader_preview_modes.sql");
 const MIGRATION_V9: &str =
     include_str!("../../../migrations/V9__reader_preview_default_preferences.sql");
+const MIGRATION_V11: &str = include_str!("../../../migrations/V11__account_sync_on_startup.sql");
 
 /// Result of a migration run.
 pub struct MigrationResult {
@@ -31,7 +32,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 10;
+pub const LATEST_VERSION: i32 = 11;
 
 pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     let tx = conn.transaction()?;
@@ -67,7 +68,10 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 10 || feed_mode_columns_need_repair(&tx)? {
         repaired_schema = repair_missing_feed_mode_columns(&tx)?;
-        set_schema_version(&tx, LATEST_VERSION)?;
+        set_schema_version(&tx, 10)?;
+    }
+    if from_version < 11 {
+        tx.execute_batch(MIGRATION_V11)?;
     }
 
     let to_version = get_schema_version(&tx);
@@ -294,6 +298,20 @@ mod tests {
         assert!(
             has_timestamp_usec,
             "latest sync_state cursor column should exist"
+        );
+    }
+
+    #[test]
+    fn latest_schema_includes_account_startup_sync_column() {
+        let mut conn = open_in_memory();
+        run_migrations(&mut conn).unwrap();
+
+        let has_sync_on_startup: bool = conn
+            .prepare("SELECT sync_on_startup FROM accounts LIMIT 0")
+            .is_ok();
+        assert!(
+            has_sync_on_startup,
+            "latest accounts schema should include sync_on_startup"
         );
     }
 

@@ -225,13 +225,14 @@ export const addAccount = (kind: string, name: string, serverUrl?: string, usern
 export const updateAccountSync = (
   accountId: string,
   syncIntervalSecs: number,
+  syncOnStartup: boolean,
   syncOnWake: boolean,
   keepReadItemsDays: number,
 ) =>
   safeInvoke(
     "update_account_sync",
     { response: AccountDtoSchema, args: updateAccountSyncArgs },
-    { accountId, syncIntervalSecs, syncOnWake, keepReadItemsDays },
+    { accountId, syncIntervalSecs, syncOnStartup, syncOnWake, keepReadItemsDays },
   );
 
 export const updateAccountCredentials = (accountId: string, serverUrl?: string, username?: string, password?: string) =>
@@ -309,6 +310,8 @@ export const reloadBrowserWebview = () => safeInvoke("reload_browser_webview", {
 export const closeBrowserWebview = () => safeInvoke("close_browser_webview", { response: z.null() });
 
 export const triggerSync = () => safeInvoke("trigger_sync", { response: SyncResultSchema });
+
+export const triggerStartupSync = () => safeInvoke("trigger_startup_sync", { response: SyncResultSchema });
 
 export const triggerAutomaticSync = () => safeInvoke("trigger_automatic_sync", { response: SyncResultSchema });
 

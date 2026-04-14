@@ -30,6 +30,9 @@ vi.mock("@/components/settings/account-detail-view", () => ({
       syncingLabel?: string;
       onSyncNow?: () => void;
       statusRows?: Array<{ label: string; value: string }>;
+      syncOnStartup: {
+        onChange: (checked: boolean) => void;
+      };
       keepReadItems: {
         options: Array<{ value: string; label: string }>;
         onChange: (value: string) => void;
@@ -56,6 +59,9 @@ vi.mock("@/components/settings/account-detail-view", () => ({
           </button>
         )}
         {props.credentialsSection}
+        <button type="button" onClick={() => props.syncSection.syncOnStartup.onChange(true)}>
+          Enable startup sync
+        </button>
         <button type="button" onClick={() => props.syncSection.keepReadItems.onChange("60")}>
           Select 60 days
         </button>
@@ -107,6 +113,7 @@ describe("AccountDetail", () => {
               username: null,
               server_url: null,
               sync_interval_secs: 3600,
+              sync_on_startup: false,
               sync_on_wake: false,
               keep_read_items_days: 30,
             },
@@ -119,6 +126,7 @@ describe("AccountDetail", () => {
             username: null,
             server_url: null,
             sync_interval_secs: Number(args.syncIntervalSecs),
+            sync_on_startup: Boolean(args.syncOnStartup),
             sync_on_wake: Boolean(args.syncOnWake),
             keep_read_items_days: Number(args.keepReadItemsDays),
           };
@@ -139,6 +147,7 @@ describe("AccountDetail", () => {
         args: {
           accountId: "acc-1",
           syncIntervalSecs: 3600,
+          syncOnStartup: false,
           syncOnWake: false,
           keepReadItemsDays: 60,
         },
@@ -146,6 +155,63 @@ describe("AccountDetail", () => {
     });
 
     expect(accountDetailViewSpy).toHaveBeenCalled();
+  });
+
+  it("persists the startup sync toggle through update_account_sync", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "Local",
+              name: "Local",
+              username: null,
+              server_url: null,
+              sync_interval_secs: 3600,
+              sync_on_startup: false,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "update_account_sync":
+          return {
+            id: "acc-1",
+            kind: "Local",
+            name: "Local",
+            username: null,
+            server_url: null,
+            sync_interval_secs: Number(args.syncIntervalSecs),
+            sync_on_startup: Boolean(args.syncOnStartup),
+            sync_on_wake: Boolean(args.syncOnWake),
+            keep_read_items_days: Number(args.keepReadItemsDays),
+          };
+        default:
+          return null;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Enable startup sync" }));
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "update_account_sync",
+        args: {
+          accountId: "acc-1",
+          syncIntervalSecs: 3600,
+          syncOnStartup: true,
+          syncOnWake: false,
+          keepReadItemsDays: 30,
+        },
+      });
+    });
   });
 
   it("marks the sync section as syncing while global sync progress is active", async () => {
@@ -159,6 +225,7 @@ describe("AccountDetail", () => {
             username: null,
             server_url: null,
             sync_interval_secs: 3600,
+            sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
           },
@@ -197,6 +264,7 @@ describe("AccountDetail", () => {
             username: "user",
             server_url: "https://freshrss.example.com",
             sync_interval_secs: 3600,
+            sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
           },
@@ -239,6 +307,7 @@ describe("AccountDetail", () => {
               username: "user",
               server_url: "https://freshrss.example.com",
               sync_interval_secs: 3600,
+              sync_on_startup: true,
               sync_on_wake: false,
               keep_read_items_days: 30,
             },
@@ -298,6 +367,7 @@ describe("AccountDetail", () => {
             username: null,
             server_url: null,
             sync_interval_secs: 3600,
+            sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
           },
@@ -342,6 +412,7 @@ describe("AccountDetail", () => {
               username: "user",
               server_url: "https://freshrss.example.com",
               sync_interval_secs: 3600,
+              sync_on_startup: true,
               sync_on_wake: false,
               keep_read_items_days: 30,
             },
@@ -356,6 +427,7 @@ describe("AccountDetail", () => {
                 username: "user",
                 server_url: "https://freshrss.example.com",
                 sync_interval_secs: 3600,
+                sync_on_startup: true,
                 sync_on_wake: false,
                 keep_read_items_days: 30,
               });
@@ -410,6 +482,7 @@ describe("AccountDetail", () => {
               username: "user",
               server_url: "https://freshrss.example.com",
               sync_interval_secs: 3600,
+              sync_on_startup: true,
               sync_on_wake: false,
               keep_read_items_days: 30,
             },
@@ -422,6 +495,7 @@ describe("AccountDetail", () => {
             username: "user",
             server_url: "https://freshrss.example.com",
             sync_interval_secs: 3600,
+            sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
           };
@@ -462,6 +536,7 @@ describe("AccountDetail", () => {
               username: "user",
               server_url: "https://freshrss.example.com",
               sync_interval_secs: 3600,
+              sync_on_startup: true,
               sync_on_wake: false,
               keep_read_items_days: 30,
             },
@@ -501,6 +576,7 @@ describe("AccountDetail", () => {
               username: "user",
               server_url: "https://freshrss.example.com",
               sync_interval_secs: 3600,
+              sync_on_startup: true,
               sync_on_wake: false,
               keep_read_items_days: 30,
             },
@@ -538,6 +614,7 @@ describe("AccountDetail", () => {
               username: "user",
               server_url: "https://freshrss.example.com",
               sync_interval_secs: 3600,
+              sync_on_startup: true,
               sync_on_wake: false,
               keep_read_items_days: 30,
             },
@@ -580,6 +657,7 @@ describe("AccountDetail", () => {
               username: "user",
               server_url: "https://freshrss.example.com",
               sync_interval_secs: 3600,
+              sync_on_startup: true,
               sync_on_wake: false,
               keep_read_items_days: 30,
             },
@@ -629,6 +707,7 @@ describe("AccountDetail", () => {
               username: "user",
               server_url: "https://freshrss.example.com",
               sync_interval_secs: 3600,
+              sync_on_startup: true,
               sync_on_wake: false,
               keep_read_items_days: 30,
             },
@@ -666,6 +745,7 @@ describe("AccountDetail", () => {
             username: "user",
             server_url: "https://freshrss.example.com",
             sync_interval_secs: 3600,
+            sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
           },
@@ -697,6 +777,7 @@ describe("AccountDetail", () => {
               username: "user",
               server_url: "https://freshrss.example.com",
               sync_interval_secs: 3600,
+              sync_on_startup: true,
               sync_on_wake: false,
               keep_read_items_days: 30,
             },
@@ -710,6 +791,7 @@ describe("AccountDetail", () => {
             username: "user",
             server_url: "https://freshrss.example.com",
             sync_interval_secs: 3600,
+            sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
           };

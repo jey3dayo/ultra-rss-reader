@@ -46,6 +46,11 @@ const meta = {
         options: syncIntervalOptions,
         onChange: fn(),
       },
+      syncOnStartup: {
+        label: "Sync on startup",
+        checked: true,
+        onChange: fn(),
+      },
       syncOnWake: {
         label: "Sync on wake",
         checked: true,

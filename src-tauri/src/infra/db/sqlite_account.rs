@@ -41,15 +41,16 @@ fn row_to_account(row: &rusqlite::Row) -> rusqlite::Result<Account> {
         server_url: row.get(3)?,
         username: row.get(4)?,
         sync_interval_secs: row.get(5)?,
-        sync_on_wake: row.get::<_, bool>(6)?,
-        keep_read_items_days: row.get(7)?,
+        sync_on_startup: row.get::<_, bool>(6)?,
+        sync_on_wake: row.get::<_, bool>(7)?,
+        keep_read_items_days: row.get(8)?,
     })
 }
 
 impl AccountRepository for SqliteAccountRepository<'_> {
     fn find_all(&self) -> DomainResult<Vec<Account>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, kind, name, server_url, username, sync_interval_secs, sync_on_wake, keep_read_items_days FROM accounts",
+            "SELECT id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days FROM accounts",
         )?;
         let accounts = stmt
             .query_map([], row_to_account)?
@@ -59,7 +60,7 @@ impl AccountRepository for SqliteAccountRepository<'_> {
 
     fn find_by_id(&self, id: &AccountId) -> DomainResult<Option<Account>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, kind, name, server_url, username, sync_interval_secs, sync_on_wake, keep_read_items_days FROM accounts WHERE id = ?1",
+            "SELECT id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days FROM accounts WHERE id = ?1",
         )?;
         let account = stmt.query_row(params![id.0], row_to_account).optional()?;
         Ok(account)
@@ -67,7 +68,7 @@ impl AccountRepository for SqliteAccountRepository<'_> {
 
     fn save(&self, account: &Account) -> DomainResult<()> {
         self.conn.execute(
-            "INSERT OR REPLACE INTO accounts (id, kind, name, server_url, username, sync_interval_secs, sync_on_wake, keep_read_items_days) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            "INSERT OR REPLACE INTO accounts (id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
                 account.id.0,
                 provider_kind_to_str(&account.kind),
@@ -75,6 +76,7 @@ impl AccountRepository for SqliteAccountRepository<'_> {
                 account.server_url,
                 account.username,
                 account.sync_interval_secs,
+                account.sync_on_startup,
                 account.sync_on_wake,
                 account.keep_read_items_days,
             ],
@@ -86,12 +88,13 @@ impl AccountRepository for SqliteAccountRepository<'_> {
         &self,
         id: &AccountId,
         sync_interval_secs: i64,
+        sync_on_startup: bool,
         sync_on_wake: bool,
         keep_read_items_days: i64,
     ) -> DomainResult<()> {
         self.conn.execute(
-            "UPDATE accounts SET sync_interval_secs = ?1, sync_on_wake = ?2, keep_read_items_days = ?3 WHERE id = ?4",
-            params![sync_interval_secs, sync_on_wake, keep_read_items_days, id.0],
+            "UPDATE accounts SET sync_interval_secs = ?1, sync_on_startup = ?2, sync_on_wake = ?3, keep_read_items_days = ?4 WHERE id = ?5",
+            params![sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days, id.0],
         )?;
         Ok(())
     }
@@ -141,6 +144,7 @@ mod tests {
             server_url: None,
             username: None,
             sync_interval_secs: 3600,
+            sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
         }
@@ -199,5 +203,23 @@ mod tests {
         let all = repo.find_all().unwrap();
         assert_eq!(all.len(), 1);
         assert_eq!(all[0].name, "Updated");
+    }
+
+    #[test]
+    fn update_sync_settings_persists_startup_flag() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        let account = make_account("Startup");
+        repo.save(&account).unwrap();
+
+        repo.update_sync_settings(&account.id, 7200, false, true, 90)
+            .unwrap();
+
+        let saved = repo.find_by_id(&account.id).unwrap().unwrap();
+        assert_eq!(saved.sync_interval_secs, 7200);
+        assert!(!saved.sync_on_startup);
+        assert!(saved.sync_on_wake);
+        assert_eq!(saved.keep_read_items_days, 90);
     }
 }

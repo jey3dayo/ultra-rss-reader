@@ -72,6 +72,11 @@ export function useAccountDetailViewProps({
         options: controller.syncIntervalOptions,
         onChange: (value) => controller.handleSyncUpdate({ syncIntervalSecs: Number(value) }),
       },
+      syncOnStartup: {
+        label: t("account.sync_on_startup"),
+        checked: account.sync_on_startup,
+        onChange: (value) => controller.handleSyncUpdate({ syncOnStartup: value }),
+      },
       syncOnWake: {
         label: t("account.sync_on_wake"),
         checked: account.sync_on_wake,

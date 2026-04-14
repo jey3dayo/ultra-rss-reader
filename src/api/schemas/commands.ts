@@ -63,6 +63,7 @@ export const addAccountArgs = z.object({
 export const updateAccountSyncArgs = z.object({
   accountId: z.string(),
   syncIntervalSecs: z.number(),
+  syncOnStartup: z.boolean(),
   syncOnWake: z.boolean(),
   keepReadItemsDays: z.number(),
 });
