@@ -74,8 +74,8 @@ describe("FeedTreeView", () => {
     expect(screen.getByText("Beta")).toBeInTheDocument();
     expect(screen.getByText("No folder")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveClass("h-9");
-    expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveClass("w-9");
+    expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveClass("h-7");
+    expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveClass("w-7");
     expect(screen.getByRole("button", { name: "Select folder Work" })).toHaveClass("min-h-9");
     expect(screen.getByRole("button", { name: /Alpha/ })).toHaveClass("min-h-9");
     expect(screen.getByRole("button", { name: /Beta/ })).toHaveClass("min-h-9");
@@ -281,10 +281,10 @@ describe("FeedTreeView", () => {
 
     const handle = screen.getByRole("button", { name: "Drag Beta" });
     const feedButton = document.querySelector('[data-feed-id="feed-2"]');
-    expect(handle).toHaveClass("h-9");
-    expect(handle).toHaveClass("w-9");
+    expect(handle).toHaveClass("h-7");
+    expect(handle).toHaveClass("w-7");
     expect(feedButton).not.toBeNull();
-    expect(feedButton).toHaveClass("pl-9");
+    expect(feedButton).toHaveClass("pl-7");
     const folderTarget = screen.getByRole("button", { name: "Move to Empty" });
     fireEvent.click(handle);
     fireEvent.click(folderTarget);

@@ -10,6 +10,9 @@ describe("getSidebarDensityTokens", () => {
     expect(compact.navButton).toContain("min-h-8");
     expect(normal.navButton).toContain("min-h-9");
     expect(spacious.navButton).toContain("min-h-10");
+    expect(compact.navButtonPaddingX).toContain("px-1.5");
+    expect(normal.treeInset).toContain("ml-1");
+    expect(spacious.sectionLabelInset).toContain("px-3");
 
     expect(compact.treeGap).toContain("space-y-0");
     expect(normal.treeGap).toContain("space-y-0.5");

@@ -5,6 +5,7 @@ import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { cn } from "@/lib/utils";
 import type { FeedTreeDragHandleProps, FeedTreeRowProps } from "./feed-tree.types";
 import { getSidebarDensityTokens } from "./sidebar-density";
+import { SidebarLeadingControlButton } from "./sidebar-leading-control-button";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
 export type { FeedTreeFeedViewModel, FeedTreeRowProps } from "./feed-tree.types";
@@ -19,16 +20,16 @@ function DragHandle({
   consumeSuppressedClick,
 }: FeedTreeDragHandleProps) {
   const { t } = useTranslation("sidebar");
-  const tokens = getSidebarDensityTokens(sidebarDensity);
 
   if (!canDragFeeds) {
     return null;
   }
 
   return (
-    <button
-      type="button"
+    <SidebarLeadingControlButton
       aria-label={t("drag_feed", { name: feedTitle })}
+      density={sidebarDensity}
+      visibleMode="on-row-hover"
       onPointerDown={onPointerDown}
       onClick={() => {
         if (consumeSuppressedClick?.()) {
@@ -37,13 +38,12 @@ function DragHandle({
         onArm?.();
       }}
       className={cn(
-        "inline-flex shrink-0 cursor-grab items-center justify-center rounded-md text-sidebar-foreground/40 opacity-0 transition-opacity hover:bg-sidebar-accent/40 hover:text-foreground focus-visible:opacity-100 active:cursor-grabbing group-hover/feed-row:opacity-100 group-focus-within/feed-row:opacity-100",
-        tokens.dragHandle,
+        "cursor-grab text-sidebar-foreground/40 hover:bg-sidebar-accent/40 hover:text-foreground active:cursor-grabbing",
         isArmed && "bg-sidebar-accent/60 text-foreground opacity-100",
       )}
     >
-      <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
-    </button>
+      <GripVertical className="h-3 w-3" aria-hidden="true" />
+    </SidebarLeadingControlButton>
   );
 }
 

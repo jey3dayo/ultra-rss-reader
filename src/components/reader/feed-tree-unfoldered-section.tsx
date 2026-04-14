@@ -25,11 +25,16 @@ export function FeedTreeUnfolderedSection({
   return (
     <div className={tokens.unfolderedGap}>
       {unfolderedLabel ? (
-        <div className="ml-2 px-3 text-[0.68rem] font-medium tracking-[0.08em] text-sidebar-foreground/32 uppercase">
+        <div
+          className={cn(
+            "text-[0.68rem] font-medium tracking-[0.08em] text-sidebar-foreground/32 uppercase",
+            tokens.sectionLabelInset,
+          )}
+        >
           {unfolderedLabel}
         </div>
       ) : null}
-      <div className={cn("ml-2 border-l border-sidebar-border/25 pl-3", tokens.childGap)}>
+      <div className={cn("border-l border-sidebar-border/25", tokens.treeInset, tokens.childGap)}>
         {unfolderedFeeds.map((feed) => (
           <FeedTreeRow
             key={feed.id}

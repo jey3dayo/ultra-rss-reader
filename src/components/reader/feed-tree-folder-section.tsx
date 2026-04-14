@@ -6,6 +6,7 @@ import type { FeedTreeFolderSectionProps } from "./feed-tree.types";
 import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "./feed-tree-drop-target";
 import { FeedTreeRow } from "./feed-tree-row";
 import { getSidebarDensityTokens } from "./sidebar-density";
+import { SidebarLeadingControlButton } from "./sidebar-leading-control-button";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
 export function FeedTreeFolderSection({
@@ -54,19 +55,16 @@ export function FeedTreeFolderSection({
           }}
         />
       ) : null}
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
+      <div className="flex items-center gap-0.5">
+        <SidebarLeadingControlButton
           aria-label={t("toggle_folder", { name: folder.name })}
           aria-expanded={folder.isExpanded}
-          className={cn(
-            "inline-flex shrink-0 items-center justify-center rounded-md text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/55 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60",
-            tokens.folderToggle,
-          )}
+          density={sidebarDensity}
+          className={cn("-mr-1 text-sidebar-foreground/70 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground")}
           onClick={() => onToggleFolder(folder.id)}
         >
           {folder.isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-        </button>
+        </SidebarLeadingControlButton>
         <ContextMenu.Root>
           <ContextMenu.Trigger
             render={
@@ -84,7 +82,10 @@ export function FeedTreeFolderSection({
                       [FEED_DROP_TARGET_ID_ATTRIBUTE]: folder.id,
                     }
                   : {})}
-                className={cn("flex-1", isActive && "border-dashed bg-sidebar-accent/60 ring-1 ring-sidebar-border")}
+                className={cn(
+                  "flex-1 px-0.5 pl-0",
+                  isActive && "border-dashed bg-sidebar-accent/60 ring-1 ring-sidebar-border",
+                )}
               />
             }
             onClick={() => onSelectFolder?.(folder.id)}
@@ -95,7 +96,7 @@ export function FeedTreeFolderSection({
         </ContextMenu.Root>
       </div>
       {folder.isExpanded && (
-        <div className={cn("mt-0.5 ml-2 border-l border-sidebar-border/30 pl-3", tokens.childGap)}>
+        <div className={cn("mt-0.5 border-l border-sidebar-border/30", tokens.treeInset, tokens.childGap)}>
           {folder.feeds.map((feed) => (
             <FeedTreeRow
               key={feed.id}

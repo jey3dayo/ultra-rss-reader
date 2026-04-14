@@ -26,7 +26,8 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
         ref={ref}
         type={type}
         className={cn(
-          "relative flex w-full items-center justify-between overflow-hidden rounded-md px-2 text-sm transition-[background-color,color,box-shadow] duration-150 focus:outline-none focus-visible:bg-sidebar-accent/65 focus-visible:text-sidebar-foreground focus-visible:shadow-[inset_0_0_0_1px_hsl(var(--sidebar-border)/0.48)]",
+          "relative flex w-full items-center justify-between overflow-hidden rounded-md text-sm transition-[background-color,color,box-shadow] duration-150 focus:outline-none focus-visible:bg-sidebar-accent/65 focus-visible:text-sidebar-foreground focus-visible:shadow-[inset_0_0_0_1px_hsl(var(--sidebar-border)/0.48)]",
+          tokens.navButtonPaddingX,
           size === "default" ? "min-h-10 py-2" : tokens.navButton,
           selected
             ? "bg-sidebar-accent/85 text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_hsl(var(--sidebar-border)/0.55)] before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-sidebar-primary"
@@ -35,7 +36,9 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
         )}
         {...props}
       >
-        <span className={cn("flex min-w-0 items-center gap-2", contentClassName)}>{children}</span>
+        <span className={cn("flex min-w-0 items-center", tokens.navButtonContentGap, contentClassName)}>
+          {children}
+        </span>
         {trailing ? (
           <span
             className={cn(
