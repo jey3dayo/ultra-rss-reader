@@ -163,6 +163,8 @@
     "one_year": "1年",
     "forever": "無期限",
     "reading": "閲覧",
+    "data_section": "データ",
+    "danger_zone": "危険な操作",
     "applies_to_all": "(すべてのアカウントに適用)",
     "sort_subscriptions": "購読の並び順",
     "folders_first": "フォルダ優先",

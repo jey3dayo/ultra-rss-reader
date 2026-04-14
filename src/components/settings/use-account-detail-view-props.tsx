@@ -52,7 +52,7 @@ export function useAccountDetailViewProps({
           onUsernameChange={controller.setCredUsername}
           onUsernameBlur={controller.commitCredentials}
           passwordLabel={t("account.password")}
-          passwordValue={controller.credPassword ?? ""}
+          passwordValue={controller.passwordDisplayValue}
           passwordPlaceholder={t("account.password_placeholder")}
           onPasswordChange={controller.setCredPassword}
           onPasswordFocus={controller.onPasswordFocus}
@@ -91,6 +91,8 @@ export function useAccountDetailViewProps({
       isSyncing,
     },
     dangerZone: {
+      dataHeading: t("account.data_section"),
+      dangerHeading: t("account.danger_zone"),
       exportLabel: t("account.export_opml"),
       deleteLabel: !controller.confirmDelete ? t("account.delete_account") : tc("delete"),
       cancelLabel: tc("cancel"),

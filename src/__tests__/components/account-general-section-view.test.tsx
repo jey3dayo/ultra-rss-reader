@@ -29,11 +29,14 @@ describe("AccountGeneralSectionView", () => {
 
     expect(screen.getByRole("heading", { level: 3, name: "General" })).toBeInTheDocument();
     expect(screen.getByText("Description")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Personal FreshRSS" })).toBeInTheDocument();
+    const nameInput = screen.getByRole("textbox", { name: "Description" });
+    expect(nameInput).toHaveValue("Personal FreshRSS");
+    expect(nameInput).toHaveAttribute("readonly");
+    expect(nameInput).toHaveClass("sm:flex-1");
     expect(screen.getByText("FreshRSS")).toBeInTheDocument();
     expect(screen.getByText("https://freshrss.example.com")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Personal FreshRSS" }));
+    await user.click(nameInput);
 
     expect(onStartEditingName).toHaveBeenCalledTimes(1);
   });
@@ -61,7 +64,7 @@ describe("AccountGeneralSectionView", () => {
 
     const input = screen.getByDisplayValue("Personal FreshRSS");
     expect(input).toHaveClass("w-full");
-    expect(input).toHaveClass("sm:w-auto");
+    expect(input).toHaveClass("sm:flex-1");
 
     fireEvent.change(input, { target: { value: "Renamed account" } });
     fireEvent.keyDown(input, { key: "Enter" });

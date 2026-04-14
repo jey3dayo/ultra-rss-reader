@@ -163,6 +163,8 @@
     "one_year": "1 year",
     "forever": "Forever",
     "reading": "Reading",
+    "data_section": "Data",
+    "danger_zone": "Danger Zone",
     "applies_to_all": "(applies to all accounts)",
     "sort_subscriptions": "Sort subscriptions",
     "folders_first": "Folders first",

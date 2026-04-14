@@ -7,6 +7,8 @@ const meta = {
   component: AccountDangerZoneView,
   tags: ["autodocs"],
   args: {
+    dataHeading: "Data",
+    dangerHeading: "Danger Zone",
     exportLabel: "Export OPML",
     deleteLabel: "Delete account",
     cancelLabel: "Cancel",

@@ -62,6 +62,8 @@ export type AccountGeneralSectionViewProps = {
 };
 
 export type AccountDangerZoneViewProps = {
+  dataHeading: string;
+  dangerHeading: string;
   exportLabel: string;
   deleteLabel: string;
   cancelLabel: string;
@@ -127,6 +129,7 @@ export type UseAccountDetailCredentialsEditorResult = {
   credServerUrl: string | null;
   credUsername: string | null;
   credPassword: string | null;
+  passwordDisplayValue: string;
   testingConnection: boolean;
   setCredServerUrl: (value: string | null) => void;
   setCredUsername: (value: string | null) => void;

@@ -57,7 +57,12 @@ export function SettingsRow(props: SettingsRowProps) {
       {props.type === "switch" && <GradientSwitch checked={props.checked} disabled />}
       {props.type === "select" && <span className="text-sm text-muted-foreground">{props.value} &#9662;</span>}
       {props.type === "text" && (
-        <span className={cn("text-sm text-muted-foreground", props.truncate && "max-w-[200px] truncate")}>
+        <span
+          className={cn(
+            "w-full text-left text-sm text-muted-foreground sm:min-w-0 sm:flex-1",
+            props.truncate && "truncate",
+          )}
+        >
           {props.value}
         </span>
       )}

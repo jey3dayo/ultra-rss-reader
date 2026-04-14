@@ -1,7 +1,7 @@
-import { CopyableTextField } from "@/components/shared/copyable-text-field";
+import { Copy } from "lucide-react";
+import { SettingsSection } from "@/components/settings/settings-section";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LoadingButton } from "@/components/shared/loading-button";
-import { SectionHeading } from "@/components/shared/section-heading";
 
 export type AccountCredentialsSectionViewProps = {
   heading: string;
@@ -53,33 +53,41 @@ export function AccountCredentialsSectionView({
   isTestingConnection,
 }: AccountCredentialsSectionViewProps) {
   return (
-    <section className="mb-6">
-      <SectionHeading>{heading}</SectionHeading>
+    <SettingsSection heading={heading} className="mb-6">
       {serverUrlLabel && onServerUrlChange && (
-        <div className="flex min-h-[44px] flex-col items-stretch gap-3 border-b border-border py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0 flex-1">
-            <CopyableTextField
-              label={serverUrlLabel}
-              name="server-url"
-              type="url"
-              value={serverUrlValue ?? ""}
-              placeholder={serverUrlPlaceholder}
-              className="h-auto w-full border-border bg-background px-2 py-1 text-sm"
-              copyLabel={serverUrlCopyLabel}
-              onCopy={onServerUrlCopy}
-              onChange={onServerUrlChange}
-              onBlur={onServerUrlBlur}
-            />
-          </div>
-        </div>
+        <LabeledInputRow
+          label={serverUrlLabel}
+          name="server-url"
+          type="url"
+          value={serverUrlValue ?? ""}
+          placeholder={serverUrlPlaceholder}
+          onChange={onServerUrlChange}
+          onBlur={onServerUrlBlur}
+          rowClassName="flex-col items-stretch sm:flex-row sm:items-center sm:justify-start"
+          labelClassName="sm:w-24 sm:shrink-0"
+          controlClassName="sm:min-w-0 sm:flex-1"
+          inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:flex-1"
+          actionLabel={serverUrlCopyLabel}
+          actionAriaLabel={serverUrlCopyLabel}
+          actionTooltipLabel={serverUrlCopyLabel}
+          actionIcon={<Copy className="h-3.5 w-3.5" />}
+          actionPlacement="inside"
+          actionVariant="ghost"
+          actionSize="icon-sm"
+          actionClassName="right-0"
+          onAction={onServerUrlCopy}
+          actionDisabled={!serverUrlValue}
+        />
       )}
       <LabeledInputRow
         label={usernameLabel}
         value={usernameValue}
         onChange={onUsernameChange}
         onBlur={onUsernameBlur}
-        rowClassName="flex-col items-stretch sm:flex-row sm:items-center"
-        inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:w-auto"
+        rowClassName="flex-col items-stretch sm:flex-row sm:items-center sm:justify-start"
+        labelClassName="sm:w-24 sm:shrink-0"
+        controlClassName="sm:min-w-0 sm:flex-1"
+        inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:flex-1"
       />
       <LabeledInputRow
         label={passwordLabel}
@@ -89,8 +97,10 @@ export function AccountCredentialsSectionView({
         onFocus={onPasswordFocus}
         onBlur={onPasswordBlur}
         placeholder={passwordPlaceholder}
-        rowClassName="flex-col items-stretch sm:flex-row sm:items-center"
-        inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:w-auto"
+        rowClassName="flex-col items-stretch sm:flex-row sm:items-center sm:justify-start"
+        labelClassName="sm:w-24 sm:shrink-0"
+        controlClassName="sm:min-w-0 sm:flex-1"
+        inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:flex-1"
       />
       {onTestConnection && (
         <div className="pt-3">
@@ -105,6 +115,6 @@ export function AccountCredentialsSectionView({
           </LoadingButton>
         </div>
       )}
-    </section>
+    </SettingsSection>
   );
 }

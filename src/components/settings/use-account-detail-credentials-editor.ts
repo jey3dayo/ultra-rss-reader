@@ -9,6 +9,8 @@ import type {
 import { updateCachedAccount } from "./account-detail-query-cache";
 import { createAccountDetailErrorToast } from "./account-detail-toast";
 
+const MASKED_PASSWORD_VALUE = "••••••••";
+
 export function useAccountDetailCredentialsEditor({
   account,
   queryClient,
@@ -17,10 +19,12 @@ export function useAccountDetailCredentialsEditor({
   const [credServerUrl, setCredServerUrl] = useState<string | null>(null);
   const [credUsername, setCredUsername] = useState<string | null>(null);
   const [credPassword, setCredPassword] = useState<string | null>(null);
+  const [hasSavedPassword, setHasSavedPassword] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const pendingCredentialSaveRef = useRef<Promise<boolean> | null>(null);
   const showCredentialSaveError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
   const showConnectionError = createAccountDetailErrorToast(t, "account.connection_failed");
+  const passwordDisplayValue = credPassword ?? (hasSavedPassword ? MASKED_PASSWORD_VALUE : "");
 
   const commitCredentials = async (): Promise<boolean> => {
     if (pendingCredentialSaveRef.current) {
@@ -50,6 +54,7 @@ export function useAccountDetailCredentialsEditor({
           setCredServerUrl(null);
           setCredUsername(null);
           setCredPassword(null);
+          setHasSavedPassword((current) => current || passwordChanged);
           useUiStore.getState().showToast(t("account.credentials_saved"));
         }),
       );
@@ -118,6 +123,7 @@ export function useAccountDetailCredentialsEditor({
     credServerUrl,
     credUsername,
     credPassword,
+    passwordDisplayValue,
     testingConnection,
     setCredServerUrl,
     setCredUsername,

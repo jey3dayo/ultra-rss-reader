@@ -1,3 +1,4 @@
+import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import type {
   SettingsPageActionRowProps,
   SettingsPageSelectRowProps,
@@ -5,11 +6,11 @@ import type {
   SettingsPageTextRowProps,
   SettingsPageViewProps,
 } from "@/components/settings/settings-page.types";
+import { SettingsSection } from "@/components/settings/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
-import { SectionHeading } from "@/components/shared/section-heading";
 import { Button } from "@/components/ui/button";
 
 function SettingsPageSelectRow({ control }: SettingsPageSelectRowProps) {
@@ -76,13 +77,15 @@ function SettingsPageActionRow({ control }: SettingsPageActionRowProps) {
 
 export function SettingsPageView({ title, sections }: SettingsPageViewProps) {
   return (
-    <div data-testid="settings-page-root" className="p-5 sm:p-6">
-      <h2 className="sticky top-0 z-10 -mx-5 mb-4 border-b border-border/70 bg-popover/95 px-5 py-3 text-center text-[19px] font-semibold tracking-[0.01em] backdrop-blur-sm sm:-mx-6 sm:mb-5 sm:px-6">
-        {title}
-      </h2>
+    <SettingsContentLayout title={title} outerTestId="settings-page-root">
       {sections.map((section, index) => (
-        <section key={section.id} className={index === sections.length - 1 ? undefined : "mb-4 sm:mb-5"}>
-          <SectionHeading className="mb-2 sm:mb-3">{section.heading}</SectionHeading>
+        <SettingsSection
+          key={section.id}
+          heading={section.heading}
+          note={section.note}
+          className={index === sections.length - 1 ? undefined : "mb-4 sm:mb-5"}
+          headingClassName="mb-2 sm:mb-3"
+        >
           {section.controls.map((control) =>
             control.type === "select" ? (
               <SettingsPageSelectRow key={control.id} control={control} />
@@ -94,9 +97,8 @@ export function SettingsPageView({ title, sections }: SettingsPageViewProps) {
               <SettingsPageActionRow key={control.id} control={control} />
             ),
           )}
-          {section.note && <p className="mt-1.5 text-xs leading-[1.45] text-foreground/56 sm:mt-2">{section.note}</p>}
-        </section>
+        </SettingsSection>
       ))}
-    </div>
+    </SettingsContentLayout>
   );
 }

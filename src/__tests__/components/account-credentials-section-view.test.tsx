@@ -70,13 +70,46 @@ describe("AccountCredentialsSectionView", () => {
     );
 
     expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass("w-full");
+    expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass("sm:flex-1");
     expect(screen.getByRole("textbox", { name: "Username" })).toHaveClass("w-full");
     expect(screen.getByPlaceholderText("Enter password")).toHaveClass("w-full");
+    expect(screen.getByRole("button", { name: "Copy Server URL" })).toBeInTheDocument();
     const button = screen.getByRole("button", { name: "Testing..." });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("aria-busy", "true");
     expect(button).toHaveClass("w-full");
     expect(button).toHaveClass("sm:w-auto");
     expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
+  });
+
+  it("uses a fixed desktop label column and flexible credential inputs", () => {
+    render(
+      <AccountCredentialsSectionView
+        heading="Credentials"
+        serverUrlLabel="Server URL"
+        serverUrlValue="https://freshrss.example.com"
+        serverUrlPlaceholder="https://freshrss.example.com"
+        onServerUrlChange={() => {}}
+        onServerUrlBlur={() => {}}
+        serverUrlCopyLabel="Copy Server URL"
+        onServerUrlCopy={() => {}}
+        usernameLabel="Username"
+        usernameValue="debug"
+        onUsernameChange={() => {}}
+        onUsernameBlur={() => {}}
+        passwordLabel="Password"
+        passwordValue=""
+        passwordPlaceholder="Enter password"
+        onPasswordChange={() => {}}
+        onPasswordBlur={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("Server URL")).toHaveClass("sm:w-24");
+    expect(screen.getByText("Username")).toHaveClass("sm:w-24");
+    expect(screen.getByText("Username")).toHaveClass("sm:shrink-0");
+    expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass("sm:flex-1");
+    expect(screen.getByRole("textbox", { name: "Username" })).toHaveClass("sm:flex-1");
+    expect(screen.getByPlaceholderText("Enter password")).toHaveClass("sm:flex-1");
   });
 });

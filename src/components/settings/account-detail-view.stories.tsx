@@ -64,6 +64,8 @@ const meta = {
       ],
     },
     dangerZone: {
+      dataHeading: "Data",
+      dangerHeading: "Danger Zone",
       exportLabel: "Export OPML",
       deleteLabel: "Delete account",
       cancelLabel: "Cancel",
@@ -92,6 +94,8 @@ export const Default: Story = {};
 export const ConfirmingDelete: Story = {
   args: {
     dangerZone: {
+      dataHeading: "Data",
+      dangerHeading: "Danger Zone",
       exportLabel: "Export OPML",
       deleteLabel: "Delete",
       cancelLabel: "Cancel",
