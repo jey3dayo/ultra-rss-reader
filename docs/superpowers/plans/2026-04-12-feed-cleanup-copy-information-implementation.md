@@ -2,17 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Feed Cleanup を「購読の整理 / Review Subscriptions」という位置づけに寄せ、一覧と詳細の copy / metadata 表示を理由つきで理解しやすい形へ更新する。
+Goal: Feed Cleanup を「購読の整理 / Review Subscriptions」という位置づけに寄せ、一覧と詳細の copy / metadata 表示を理由つきで理解しやすい形へ更新する。
 
-**Architecture:** i18n locale を source of truth として、sidebar・command palette・cleanup page・delete dialog の terminology を一括で揃える。UI 実装は `FeedCleanupPageView` の metadata row と review panel の順序・ラベルだけを最小変更し、candidate selection や action logic には触れない。
+Architecture: i18n locale を source of truth として、sidebar・command palette・cleanup page・delete dialog の terminology を一括で揃える。UI 実装は `FeedCleanupPageView` の metadata row と review panel の順序・ラベルだけを最小変更し、candidate selection や action logic には触れない。
 
-**Tech Stack:** React 19, TypeScript, react-i18next, Vitest, Testing Library
+Tech Stack: React 19, TypeScript, react-i18next, Vitest, Testing Library
 
 ---
 
 ## Task 1: Red tests for renamed navigation and page positioning
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/lib/ja-locales.test.ts`
 - Modify: `src/__tests__/components/sidebar.test.tsx`
@@ -41,7 +41,7 @@ git commit -m "test(feed-cleanup): cover renamed navigation copy"
 
 ## Task 2: Red tests for cleanup-page copy and labeled metadata
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/feed-cleanup-page.test.tsx`
 
@@ -72,7 +72,7 @@ git commit -m "test(feed-cleanup): cover revised cleanup copy"
 
 ## Task 3: Implement the i18n copy updates
 
-**Files:**
+### Files:
 
 - Modify: `src/locales/ja/sidebar.json`
 - Modify: `src/locales/en/sidebar.json`
@@ -105,7 +105,7 @@ git commit -m "feat(feed-cleanup): refresh cleanup terminology"
 
 ## Task 4: Implement the feed-cleanup view copy and metadata presentation
 
-**Files:**
+### Files:
 
 - Modify: `src/components/feed-cleanup/feed-cleanup-page-view.tsx`
 - Modify: `src/components/feed-cleanup/feed-cleanup-delete-dialog.tsx`
@@ -142,7 +142,7 @@ git commit -m "feat(feed-cleanup): clarify review copy and metadata"
 
 ## Task 5: Final verification sweep
 
-**Files:**
+### Files:
 
 - Verify: `src/__tests__/lib/ja-locales.test.ts`
 - Verify: `src/__tests__/components/sidebar.test.tsx`

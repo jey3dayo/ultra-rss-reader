@@ -2,17 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Implement the approved feed-cleanup interaction model so cleanup behaves like a dedicated decision workspace with explicit single/bulk actions and keyboard-driven selection.
+Goal: Implement the approved feed-cleanup interaction model so cleanup behaves like a dedicated decision workspace with explicit single/bulk actions and keyboard-driven selection.
 
-**Architecture:** Extend `useFeedCleanupPageState()` to own cleanup-focused interaction state: selected rows, focused row, reversible keep/defer actions, and bulk delete confirmation. Thread that state through `FeedCleanupPage` into the queue and review surfaces so the queue owns navigation and bulk selection, while the review panel becomes a feed console with a decision rail. Reuse the existing toast system for undo and keep delete as the only confirm-gated action.
+Architecture: Extend `useFeedCleanupPageState()` to own cleanup-focused interaction state: selected rows, focused row, reversible keep/defer actions, and bulk delete confirmation. Thread that state through `FeedCleanupPage` into the queue and review surfaces so the queue owns navigation and bulk selection, while the review panel becomes a feed console with a decision rail. Reuse the existing toast system for undo and keep delete as the only confirm-gated action.
 
-**Tech Stack:** React 19, TypeScript, Vitest, Testing Library, i18next, Zustand toast state, existing feed-cleanup components
+Tech Stack: React 19, TypeScript, Vitest, Testing Library, i18next, Zustand toast state, existing feed-cleanup components
 
 ---
 
 ## Task 1: Add failing tests for decision-rail and bulk-selection behavior
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/feed-cleanup-page.test.tsx`
 - Modify: `src/__tests__/components/feed-cleanup-queue-panel.test.tsx`
@@ -52,7 +52,7 @@ Expected: FAIL for missing interaction behavior, not for harness or i18n mistake
 
 ## Task 2: Implement cleanup interaction state and undo model
 
-**Files:**
+### Files:
 
 - Modify: `src/components/feed-cleanup/use-feed-cleanup-page-state.ts`
 - Modify: `src/components/feed-cleanup/feed-cleanup.types.ts`
@@ -92,7 +92,7 @@ Expected: PASS for reducer-driven interaction behavior.
 
 ## Task 3: Rebuild the queue as a selectable, keyboard-driven worklist
 
-**Files:**
+### Files:
 
 - Modify: `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`
 - Modify: `src/components/feed-cleanup/feed-cleanup-page-view.tsx`
@@ -126,7 +126,7 @@ Expected: PASS
 
 ## Task 4: Reframe the review panel as a feed console with a decision rail
 
-**Files:**
+### Files:
 
 - Modify: `src/components/feed-cleanup/feed-cleanup-review-panel.tsx`
 - Modify: `src/__tests__/components/feed-cleanup-review-panel.test.tsx`
@@ -156,7 +156,7 @@ Expected: PASS
 
 ## Task 5: Update locale copy and stories for the new model
 
-**Files:**
+### Files:
 
 - Modify: `src/locales/en/cleanup.json`
 - Modify: `src/locales/ja/cleanup.json`
@@ -183,7 +183,7 @@ Expected: PASS
 
 ## Task 6: Final verification
 
-**Files:**
+### Files:
 
 - Verify only
 

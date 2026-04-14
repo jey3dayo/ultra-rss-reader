@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `wide + widescreen` で購読 sidebar を外した 2 ペインを復元し、右ペインを `reader` と埋め込み `webview` で切り替えられるようにする
+Goal: `wide + widescreen` で購読 sidebar を外した 2 ペインを復元し、右ペインを `reader` と埋め込み `webview` で切り替えられるようにする
 
-**Architecture:** React 側は `displayMode` を layout の source of truth にし、右ペインの中身だけを `contentMode` で `reader/browser` 切り替えする。Tauri 側は `WebviewWindow` をやめて main window の child `Webview` を管理し、pane の DOM rect を受け取って生成・再配置する。
+Architecture: React 側は `displayMode` を layout の source of truth にし、右ペインの中身だけを `contentMode` で `reader/browser` 切り替えする。Tauri 側は `WebviewWindow` をやめて main window の child `Webview` を管理し、pane の DOM rect を受け取って生成・再配置する。
 
-**Tech Stack:** React, Zustand, TanStack Query hooks, Zod, Vitest, Tauri 2 (`unstable` multiwebview), Rust commands
+Tech Stack: React, Zustand, TanStack Query hooks, Zod, Vitest, Tauri 2 (`unstable` multiwebview), Rust commands
 
-**Spec:** `docs/superpowers/specs/2026-04-01-embedded-browser-widescreen-design.md`
+Spec: `docs/superpowers/specs/2026-04-01-embedded-browser-widescreen-design.md`
 
 ---
 
@@ -57,7 +57,7 @@
 
 ### Task 1: widescreen の 2 ペイン layout を復元する
 
-**Files:**
+### Files:
 
 - Modify: `src/hooks/use-layout.ts`
 - Modify: `src/components/app-layout.tsx`
@@ -139,7 +139,7 @@ git commit -m "feat: restore widescreen two-pane layout"
 
 ### Task 2: article pane を shared toolbar + reader/browser 分岐へ整理する
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/article-view.tsx`
 - Modify: `src/components/reader/article-toolbar-view.tsx`
@@ -252,7 +252,7 @@ git commit -m "feat: toggle embedded browser from article toolbar"
 
 ### Task 3: embedded browser の bounds 同期と frontend command を実装する
 
-**Files:**
+### Files:
 
 - Create: `src/lib/browser-webview.ts`
 - Modify: `src/components/reader/browser-view.tsx`
@@ -416,7 +416,7 @@ git commit -m "feat: sync embedded browser bounds from the content pane"
 
 ### Task 4: Tauri backend を child webview ベースへ置き換える
 
-**Files:**
+### Files:
 
 - Modify: `src-tauri/src/browser_webview.rs`
 - Modify: `src-tauri/src/commands/browser_webview_commands.rs`
@@ -551,7 +551,7 @@ git commit -m "feat: embed browser webview inside the main window"
 
 ### Task 5: fallback copy・browser regressions・display mode 連携を仕上げる
 
-**Files:**
+### Files:
 
 - Modify: `src/locales/en/reader.json`
 - Modify: `src/locales/ja/reader.json`
@@ -645,7 +645,7 @@ git commit -m "test: cover embedded browser regressions"
 
 ### Task 6: format / lint / typecheck / app-level verification を通す
 
-**Files:**
+### Files:
 
 - Modify: touched files only if verification reveals issues
 

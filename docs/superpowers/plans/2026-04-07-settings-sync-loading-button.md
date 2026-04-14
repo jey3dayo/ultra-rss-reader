@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the noisy settings sync/loading bars with shared button-level loading states for connection testing and account sync, while keeping full-app loading feedback for full syncs.
+Goal: Replace the noisy settings sync/loading bars with shared button-level loading states for connection testing and account sync, while keeping full-app loading feedback for full syncs.
 
-**Architecture:** Add a focused `LoadingButton` shared component that wraps the existing UI button without changing the base `Button` API. Wire it into the account credentials and account sync sections, then narrow the global loading state so `manual_account` syncs stay local to the pressed button while `manual_all` and `automatic` syncs still drive the app-wide progress UI.
+Architecture: Add a focused `LoadingButton` shared component that wraps the existing UI button without changing the base `Button` API. Wire it into the account credentials and account sync sections, then narrow the global loading state so `manual_account` syncs stay local to the pressed button while `manual_all` and `automatic` syncs still drive the app-wide progress UI.
 
-**Tech Stack:** React 19, TypeScript, Zustand, Lucide React, Vitest, Tauri sync events
+Tech Stack: React 19, TypeScript, Zustand, Lucide React, Vitest, Tauri sync events
 
 ---
 
@@ -37,7 +37,7 @@
 
 ## Task 1: Add failing UI tests for the new loading-button behavior
 
-**Files:**
+### Files:
 
 - Create: `src/__tests__/components/account-credentials-section-view.test.tsx`
 - Modify: `src/__tests__/components/account-sync-section-view.test.tsx`
@@ -67,7 +67,7 @@
 
 ## Task 2: Implement the shared `LoadingButton` and wire it into both settings actions
 
-**Files:**
+### Files:
 
 - Create: `src/components/shared/loading-button.tsx`
 - Modify: `src/components/settings/account-credentials-section-view.tsx`
@@ -99,7 +99,7 @@
 
 ## Task 3: Localize account sync loading and keep full-sync loading global
 
-**Files:**
+### Files:
 
 - Modify: `src/components/settings/account-detail.tsx`
 - Modify: `src/stores/ui-store.ts`
@@ -150,7 +150,7 @@
 
 ## Task 4: Verify the full behavior and guard against regressions
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/account-credentials-section-view.test.tsx`
 - Modify: `src/__tests__/components/account-sync-section-view.test.tsx`

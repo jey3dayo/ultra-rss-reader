@@ -2,17 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a global "sync on startup" preference that defaults to enabled and triggers one full sync when the app starts.
+Goal: Add a global "sync on startup" preference that defaults to enabled and triggers one full sync when the app starts.
 
-**Architecture:** Store the new toggle in the existing preferences table and preferences store so it behaves like other global settings. Trigger startup sync from `App.tsx` only after preferences finish loading, and use the existing full-sync command so automatic-sync unlocking stays aligned with current backend behavior.
+Architecture: Store the new toggle in the existing preferences table and preferences store so it behaves like other global settings. Trigger startup sync from `App.tsx` only after preferences finish loading, and use the existing full-sync command so automatic-sync unlocking stays aligned with current backend behavior.
 
-**Tech Stack:** React 19, TypeScript, Zustand, Vitest, Tauri commands
+Tech Stack: React 19, TypeScript, Zustand, Vitest, Tauri commands
 
 ---
 
 ## Task 1: Add failing tests for the new preference
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/general-settings.test.tsx`
 - Modify: `src/__tests__/app-root.test.tsx`
@@ -24,7 +24,7 @@
 
 ## Task 2: Implement the preference and startup sync behavior
 
-**Files:**
+### Files:
 
 - Modify: `src/stores/preferences-store.ts`
 - Modify: `src/components/settings/general-settings.tsx`
@@ -40,7 +40,7 @@
 
 ## Task 3: Verify
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/general-settings.test.tsx`
 - Modify: `src/__tests__/app-root.test.tsx`

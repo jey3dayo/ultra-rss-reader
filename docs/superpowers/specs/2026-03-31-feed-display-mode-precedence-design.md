@@ -1,6 +1,6 @@
 # Feed Display Mode Precedence Design
 
-**Goal:** Make per-feed display mode stronger than the global reading default while keeping a global fallback for feeds that do not opt out.
+Goal: Make per-feed display mode stronger than the global reading default while keeping a global fallback for feeds that do not opt out.
 
 ## Decision
 

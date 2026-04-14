@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 幅 `375px` 前後の mobile レイアウトで、初期表示・browser close・reader close のどの経路でも sidebar / list / content を行き来できるようにし、設定・同期・追加導線が画面外へ退避したまま戻れない状態をなくす
+Goal: 幅 `375px` 前後の mobile レイアウトで、初期表示・browser close・reader close のどの経路でも sidebar / list / content を行き来できるようにし、設定・同期・追加導線が画面外へ退避したまま戻れない状態をなくす
 
-**Architecture:** mobile の「実際に前面表示する pane」は `use-layout` に閉じた純粋関数で解決し、`AppLayout` はその解決済み pane を使って描画する。`ui-store` は viewport 条件を持たず「ユーザー操作の結果どこへ戻るか」だけを担当し、browser close の戻り先を store 内で保証する。記事一覧側には既存の mobile sidebar 導線があるため、今回の UI 追加は content 側に揃えることを中心にし、layout / store / reader toolbar の 3 層で再発防止する。
+Architecture: mobile の「実際に前面表示する pane」は `use-layout` に閉じた純粋関数で解決し、`AppLayout` はその解決済み pane を使って描画する。`ui-store` は viewport 条件を持たず「ユーザー操作の結果どこへ戻るか」だけを担当し、browser close の戻り先を store 内で保証する。記事一覧側には既存の mobile sidebar 導線があるため、今回の UI 追加は content 側に揃えることを中心にし、layout / store / reader toolbar の 3 層で再発防止する。
 
-**Tech Stack:** React 19, TypeScript, Zustand, Vitest, Testing Library, Playwright, Tailwind CSS
+Tech Stack: React 19, TypeScript, Zustand, Vitest, Testing Library, Playwright, Tailwind CSS
 
 ---
 

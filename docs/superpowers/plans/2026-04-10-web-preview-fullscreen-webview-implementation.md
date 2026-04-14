@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `main-stage` の `Web Preview` を true fullscreen 化し、native child webview が app window の client area 全面に追従するようにする。
+Goal: `main-stage` の `Web Preview` を true fullscreen 化し、native child webview が app window の client area 全面に追従するようにする。
 
-**Architecture:** fullscreen browser mode の source of truth は app-shell overlay 配下の fullscreen host rect とし、`BrowserView` がそこから native bounds を計測する。`resolveBrowserViewerGeometry()` は `main-stage` だけ full-bleed geometry を返し、diagnostics や floating chrome は surface を縮めない absolute overlay として分離する。Rust/Tauri 側は既存どおり受け取った rect をそのまま child webview に適用する。
+Architecture: fullscreen browser mode の source of truth は app-shell overlay 配下の fullscreen host rect とし、`BrowserView` がそこから native bounds を計測する。`resolveBrowserViewerGeometry()` は `main-stage` だけ full-bleed geometry を返し、diagnostics や floating chrome は surface を縮めない absolute overlay として分離する。Rust/Tauri 側は既存どおり受け取った rect をそのまま child webview に適用する。
 
-**Tech Stack:** React 19, TypeScript, Zustand, Vitest, Tauri 2 child webview, PowerShell/manual app verification
+Tech Stack: React 19, TypeScript, Zustand, Vitest, Tauri 2 child webview, PowerShell/manual app verification
 
 ---
 
@@ -25,7 +25,7 @@
 
 ## Task 1: Lock In The Fullscreen Geometry Contract
 
-**Files:**
+### Files:
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\lib\browser-viewer-geometry.test.ts`
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\lib\browser-viewer-geometry.ts`
@@ -106,7 +106,7 @@ git commit -m "refactor(reader): make browser viewer geometry full bleed"
 
 ## Task 2: Encode The New BrowserView Behavior In Red Tests
 
-**Files:**
+### Files:
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
 
@@ -168,7 +168,7 @@ Expected: FAIL on stage inset, rail visibility, scrim-close behavior, and fullsc
 
 ## Task 3: Implement The Fullscreen Browser Surface
 
-**Files:**
+### Files:
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\browser-view.tsx`
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
@@ -226,7 +226,7 @@ git commit -m "feat(reader): make web preview fullscreen in main stage"
 
 ## Task 4: Verify Native Bounds Sync And Preserve Existing Entry Flow
 
-**Files:**
+### Files:
 
 - Optional Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src-tauri\src\commands\browser_webview_commands.rs`
 - Optional Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\article-view.tsx`
@@ -268,7 +268,7 @@ If nothing changed, skip this commit.
 
 ## Task 5: Manual App Verification
 
-**Files:**
+### Files:
 
 - No required source edits
 

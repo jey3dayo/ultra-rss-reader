@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `Web Preview` を `Minimal Viewer` に置き換え、通常起動と `intent=open-web-preview-url` の両方で同じ immersive UI・同じ close 動作・同じ bounds 計算を使えるようにする。
+Goal: `Web Preview` を `Minimal Viewer` に置き換え、通常起動と `intent=open-web-preview-url` の両方で同じ immersive UI・同じ close 動作・同じ bounds 計算を使えるようにする。
 
-**Architecture:** viewer shell の source of truth は React 側の full-app overlay とし、`BrowserView` が close chrome / scrim / host rect を管理する。`ArticleView` は記事起動と intent 起動を同じ shell へ流し、`AppLayout` は overlay portal の配置を `main-stage` 依存からアプリ全体に引き上げる。Rust/Tauri は既存の native webview create/update フローを維持し、受け取った host rect に一致させるだけに留める。
+Architecture: viewer shell の source of truth は React 側の full-app overlay とし、`BrowserView` が close chrome / scrim / host rect を管理する。`ArticleView` は記事起動と intent 起動を同じ shell へ流し、`AppLayout` は overlay portal の配置を `main-stage` 依存からアプリ全体に引き上げる。Rust/Tauri は既存の native webview create/update フローを維持し、受け取った host rect に一致させるだけに留める。
 
-**Tech Stack:** React 19, TypeScript, Zustand, Vitest, Tauri 2 child webview, HWND screenshot verification
+Tech Stack: React 19, TypeScript, Zustand, Vitest, Tauri 2 child webview, HWND screenshot verification
 
 ---
 
@@ -29,7 +29,7 @@
 
 ## Task 1: Lock In Viewer Behavior With Failing Tests
 
-**Files:**
+### Files:
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\article-view.test.tsx`
@@ -101,7 +101,7 @@ Do not commit in a red state. Keep this task uncommitted until implementation pa
 
 ## Task 2: Move The Overlay Root To The Full App Surface
 
-**Files:**
+### Files:
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\app-layout.tsx`
 
@@ -149,7 +149,7 @@ git commit -m "refactor(layout): lift browser overlay root to app shell"
 
 ## Task 3: Implement The Minimal Viewer Shell
 
-**Files:**
+### Files:
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\browser-view.tsx`
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
@@ -219,7 +219,7 @@ git commit -m "feat(reader): adopt minimal web preview viewer"
 
 ## Task 4: Unify Article Entry And Intent Entry
 
-**Files:**
+### Files:
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\article-view.tsx`
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\article-view.test.tsx`
@@ -266,7 +266,7 @@ git commit -m "refactor(reader): unify web preview entry paths"
 
 ## Task 5: Regression Checks, Tauri Verification, And TODO Cleanup
 
-**Files:**
+### Files:
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\TODO.md`
 

@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** フォルダクリック時に、そのフォルダ配下の記事へ記事リストを切り替えつつ、サイドバーの配下フィード一覧も `unread` / `all` に応じて動的に絞り込めるようにする
+Goal: フォルダクリック時に、そのフォルダ配下の記事へ記事リストを切り替えつつ、サイドバーの配下フィード一覧も `unread` / `all` に応じて動的に絞り込めるようにする
 
-**Architecture:** 既存の `selection.type = "folder"` と `viewMode` をそのまま使い、状態の追加は避ける。`FeedTreeView` で folder row を「展開」と「選択」に分離し、`Sidebar` で folder selection を踏まえた feed view model を組み立て、`ArticleList` と `src/lib/article-list.ts` 側で folder 配下の feed 集合による前段フィルタを適用する。
+Architecture: 既存の `selection.type = "folder"` と `viewMode` をそのまま使い、状態の追加は避ける。`FeedTreeView` で folder row を「展開」と「選択」に分離し、`Sidebar` で folder selection を踏まえた feed view model を組み立て、`ArticleList` と `src/lib/article-list.ts` 側で folder 配下の feed 集合による前段フィルタを適用する。
 
-**Tech Stack:** React 19, TypeScript, Zustand, TanStack Query, Vitest, Testing Library, Tauri command mocks
+Tech Stack: React 19, TypeScript, Zustand, TanStack Query, Vitest, Testing Library, Tauri command mocks
 
-**Spec:** `docs/superpowers/specs/2026-04-07-folder-selection-feed-filter-design.md`
+Spec: `docs/superpowers/specs/2026-04-07-folder-selection-feed-filter-design.md`
 
 ---
 
@@ -36,7 +36,7 @@
 
 ## Task 1: FeedTreeView に folder selection UI を追加する
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/feed-tree-view.tsx`
 - Test: `src/__tests__/components/feed-tree-view.test.tsx`
@@ -160,7 +160,7 @@ git commit -m "feat: add folder selection controls to feed tree"
 
 ## Task 2: Sidebar で folder selection に応じた feed list を組み立てる
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/sidebar.tsx`
 - Test: `src/__tests__/components/sidebar.test.tsx`
@@ -327,7 +327,7 @@ git commit -m "feat: filter sidebar feeds by selected folder"
 
 ## Task 3: article-list helper に folder scope filtering を追加する
 
-**Files:**
+### Files:
 
 - Modify: `src/lib/article-list.ts`
 - Test: `src/__tests__/lib/article-list.test.ts`
@@ -451,7 +451,7 @@ git commit -m "feat: add folder feed scope to article filtering"
 
 ## Task 4: ArticleList で folder selection の記事表示と検索スコープを接続する
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/article-list.tsx`
 - Test: `src/__tests__/components/article-list.test.tsx`
@@ -621,7 +621,7 @@ git commit -m "feat: scope article list to selected folder"
 
 ## Task 5: 回帰確認と手動検証を完了する
 
-**Files:**
+### Files:
 
 - Modify: なし
 

@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `main-stage` の web preview で `overlay root` を唯一の geometry 正本にし、close/action chrome を保ったまま native child webview を左右いっぱいまで安定して配置する。
+Goal: `main-stage` の web preview で `overlay root` を唯一の geometry 正本にし、close/action chrome を保ったまま native child webview を左右いっぱいまで安定して配置する。
 
-**Architecture:** `data-browser-overlay-root` を fullscreen viewer root として固定し、`main-stage` では `overlay root -> host rect -> native bounds` の一方向 contract に揃える。上部には最小の safe lane と極薄 top rail を置き、close/action はその lane に逃がす。`stage` と `host` は同じ surface contract を共有し、diagnostics は rect を変えない検証 overlay として扱う。
+Architecture: `data-browser-overlay-root` を fullscreen viewer root として固定し、`main-stage` では `overlay root -> host rect -> native bounds` の一方向 contract に揃える。上部には最小の safe lane と極薄 top rail を置き、close/action はその lane に逃がす。`stage` と `host` は同じ surface contract を共有し、diagnostics は rect を変えない検証 overlay として扱う。
 
-**Tech Stack:** React 19, TypeScript, Tailwind utilities, Zustand, Vitest, Tauri 2 child webview, PowerShell, Windows Tauri manual verification
+Tech Stack: React 19, TypeScript, Tailwind utilities, Zustand, Vitest, Tauri 2 child webview, PowerShell, Windows Tauri manual verification
 
 ---
 
@@ -33,7 +33,7 @@
 
 ## Task 1: Lock The Overlay Root Contract In Tests
 
-**Files:**
+### Files:
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\app-shell.test.tsx`
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\app-layout.test.tsx`
@@ -90,7 +90,7 @@ git commit -m "refactor(reader): anchor web preview overlay at app shell"
 
 ## Task 2: Encode The Main-Stage Geometry Contract In Red
 
-**Files:**
+### Files:
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\lib\browser-viewer-geometry.ts`
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\lib\browser-viewer-geometry.test.ts`
@@ -167,7 +167,7 @@ git commit -m "refactor(reader): define overlay-root browser geometry contract"
 
 ## Task 3: Make BrowserView Honor The Single Host Rect Contract
 
-**Files:**
+### Files:
 
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\browser-view.tsx`
 - Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
@@ -250,7 +250,7 @@ git commit -m "feat(reader): align web preview host and native geometry"
 
 ## Task 4: Verify The Native Tauri Boundary Without Changing Rust Semantics
 
-**Files:**
+### Files:
 
 - Optional Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src-tauri\src\commands\browser_webview_commands.rs`
 
@@ -289,7 +289,7 @@ Skip this commit if there were no code changes.
 
 ## Task 5: Run The Checklist Loop In The Real App
 
-**Files:**
+### Files:
 
 - No required source edits
 

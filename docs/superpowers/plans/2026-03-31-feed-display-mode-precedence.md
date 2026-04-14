@@ -2,17 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make feed-specific display mode override the global reading default, with an explicit inherit state for feeds that should follow the global setting.
+Goal: Make feed-specific display mode override the global reading default, with an explicit inherit state for feeds that should follow the global setting.
 
-**Architecture:** Persist a three-state feed display mode and centralize effective-mode resolution in frontend logic. Migrate old stored `normal` values to `inherit` so existing feeds continue to behave like global-default followers unless they were explicitly widescreen.
+Architecture: Persist a three-state feed display mode and centralize effective-mode resolution in frontend logic. Migrate old stored `normal` values to `inherit` so existing feeds continue to behave like global-default followers unless they were explicitly widescreen.
 
-**Tech Stack:** React 19, TypeScript, Zustand, Vitest, Tauri 2, Rust, SQLite
+Tech Stack: React 19, TypeScript, Zustand, Vitest, Tauri 2, Rust, SQLite
 
 ---
 
 ## Task 1: Add failing frontend regression tests
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/article-view.test.tsx`
 - Modify: `src/__tests__/components/rename-feed-dialog-view.test.tsx`
@@ -25,7 +25,7 @@
 
 ## Task 2: Implement inherit-aware display mode resolution
 
-**Files:**
+### Files:
 
 - Modify: `src/lib/article-view.ts`
 - Modify: `src/components/reader/article-view.tsx`
@@ -41,7 +41,7 @@
 
 ## Task 3: Update backend defaults and persisted data
 
-**Files:**
+### Files:
 
 - Add: `src-tauri/migrations/V7__feed_display_mode_inherit.sql`
 - Modify: `src-tauri/src/infra/db/migration.rs`
@@ -57,7 +57,7 @@
 
 ## Task 4: Verify end-to-end behavior
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/article-view.test.tsx`
 - Modify: `src/__tests__/components/settings-modal.test.tsx`

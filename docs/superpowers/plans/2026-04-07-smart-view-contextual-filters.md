@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** スマートビュー `未読` / `スター` の役割を整理し、`未読` では余計なフィルタを消し、`スター` では `未読 / すべて` だけを補助条件として扱えるようにする
+Goal: スマートビュー `未読` / `スター` の役割を整理し、`未読` では余計なフィルタを消し、`スター` では `未読 / すべて` だけを補助条件として扱えるようにする
 
-**Architecture:** sidebar の smart view は「起点ビュー」、article list footer は「起点に応じて変化する補助条件」として再定義する。`selection.type === "smart"` を起点判定に使い、一覧のデータ選択は `selection.kind` と `viewMode` の組み合わせから導出し、記事一覧ヘッダー直下に非インタラクティブな context strip を追加して現在地を一箇所に集約する。
+Architecture: sidebar の smart view は「起点ビュー」、article list footer は「起点に応じて変化する補助条件」として再定義する。`selection.type === "smart"` を起点判定に使い、一覧のデータ選択は `selection.kind` と `viewMode` の組み合わせから導出し、記事一覧ヘッダー直下に非インタラクティブな context strip を追加して現在地を一箇所に集約する。
 
-**Tech Stack:** React 19, TypeScript, Zustand, TanStack Query, Vitest, Testing Library, Tauri command mocks
+Tech Stack: React 19, TypeScript, Zustand, TanStack Query, Vitest, Testing Library, Tauri command mocks
 
-**Spec:** `docs/superpowers/specs/2026-04-07-smart-view-contextual-filters-design.md`
+Spec: `docs/superpowers/specs/2026-04-07-smart-view-contextual-filters-design.md`
 
 ---
 
@@ -38,7 +38,7 @@
 
 ## Task 1: Smart view の state semantics を先に固定する
 
-**Files:**
+### Files:
 
 - Modify: `src/stores/ui-store.ts`
 - Test: `src/__tests__/stores/ui-store.test.ts`
@@ -109,7 +109,7 @@ git commit -m "feat: redefine smart view default modes"
 
 ## Task 2: article filtering を smart view 起点で表現できるようにする
 
-**Files:**
+### Files:
 
 - Modify: `src/lib/article-list.ts`
 - Test: `src/__tests__/lib/article-list.test.ts`
@@ -225,7 +225,7 @@ git commit -m "feat: support contextual smart view filtering"
 
 ## Task 3: Footer を動的 option set にし、context strip を追加する
 
-**Files:**
+### Files:
 
 - Create: `src/components/reader/article-list-context-strip.tsx`
 - Modify: `src/components/reader/article-list-footer.tsx`
@@ -401,7 +401,7 @@ git commit -m "feat: add contextual smart view chrome"
 
 ## Task 4: Sidebar と一覧の組み合わせを回帰テストで固定する
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/sidebar.test.tsx`
 - Modify: `src/__tests__/components/article-list.test.tsx`
@@ -453,7 +453,7 @@ git commit -m "test: cover smart view contextual filter behavior"
 
 ## Task 5: Feature 全体を検証する
 
-**Files:**
+### Files:
 
 - Modify: なし
 

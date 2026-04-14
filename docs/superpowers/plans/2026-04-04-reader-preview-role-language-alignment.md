@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Align toolbar/menu responsibilities and remove mixed-language UI copy across the current reader/preview experience without changing the existing action wiring or undoing the in-progress `reader/preview` rename.
+Goal: Align toolbar/menu responsibilities and remove mixed-language UI copy across the current reader/preview experience without changing the existing action wiring or undoing the in-progress `reader/preview` rename.
 
-**Architecture:** Treat the current dirty `reader_only` / `reader_and_preview` / `preview_only` work as the baseline and finish the copy/i18n migration around it. Frontend copy should come from locale resources only, while Rust-owned custom menu labels should be resolved from the same `language = system | ja | en` preference semantics and rebuilt when that preference changes. Keep menu structure and internal action IDs stable; only user-visible labels, language resolution helpers, and menu refresh behavior should change.
+Architecture: Treat the current dirty `reader_only` / `reader_and_preview` / `preview_only` work as the baseline and finish the copy/i18n migration around it. Frontend copy should come from locale resources only, while Rust-owned custom menu labels should be resolved from the same `language = system | ja | en` preference semantics and rebuilt when that preference changes. Keep menu structure and internal action IDs stable; only user-visible labels, language resolution helpers, and menu refresh behavior should change.
 
-**Tech Stack:** React 19, TypeScript, Zustand, i18next, Vitest, Tauri 2, Rust, cargo test, mise
+Tech Stack: React 19, TypeScript, Zustand, i18next, Vitest, Tauri 2, Rust, cargo test, mise
 
 ---
 
@@ -80,7 +80,7 @@
 
 ## Task 1: Lock the behavior with failing frontend tests
 
-**Files:**
+### Files:
 
 - Create: `src/__tests__/lib/ui-language.test.ts`
 - Modify: `src/__tests__/components/article-view.test.tsx`
@@ -136,7 +136,7 @@ Expected: FAIL because the new helper does not exist yet and the UI still contai
 
 ## Task 2: Finish frontend language resolution and copy alignment
 
-**Files:**
+### Files:
 
 - Create: `src/lib/ui-language.ts`
 - Modify: `src/stores/preferences-store.ts`
@@ -229,7 +229,7 @@ git commit -m "feat: align reader preview copy across frontend surfaces"
 
 ## Task 3: Localize non-component UI strings and keep action behavior stable
 
-**Files:**
+### Files:
 
 - Modify: `src/lib/actions.ts`
 - Modify: `src/components/app-shell.tsx`
@@ -280,7 +280,7 @@ git commit -m "feat: localize shared action and toast copy"
 
 ## Task 4: Localize native menu labels and rebuild them on language changes
 
-**Files:**
+### Files:
 
 - Modify: `src-tauri/Cargo.toml`
 - Create: `src-tauri/src/menu_i18n.rs`
@@ -383,7 +383,7 @@ git commit -m "feat: localize native menu labels from language preference"
 
 ## Task 5: Verify the integrated experience end to end
 
-**Files:**
+### Files:
 
 - Modify if needed: touched test files from Tasks 1-4 only
 

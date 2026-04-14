@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `dev intent` を `DevScenario` ハーネスへ整理し、`dev build` 限定でコマンドパレットから起動できるようにして、表示再現・ナビゲーション再現・操作 smoke のテストケースを増やしやすくする。
+Goal: `dev intent` を `DevScenario` ハーネスへ整理し、`dev build` 限定でコマンドパレットから起動できるようにして、表示再現・ナビゲーション再現・操作 smoke のテストケースを増やしやすくする。
 
-**Architecture:** 単発の通常操作は既存 `AppAction` に残し、複数 state やデータ選択をまとめるものだけを `DevScenario` として分離する。起動時 env 注入と command palette 選択の両方が同じ scenario registry / runner を使う構成にし、`image-viewer-overlay` の既存挙動を後方互換で維持する。
+Architecture: 単発の通常操作は既存 `AppAction` に残し、複数 state やデータ選択をまとめるものだけを `DevScenario` として分離する。起動時 env 注入と command palette 選択の両方が同じ scenario registry / runner を使う構成にし、`image-viewer-overlay` の既存挙動を後方互換で維持する。
 
-**Tech Stack:** React 19, TypeScript, Vitest, Testing Library, Zustand, React Query, Vite env flags
+Tech Stack: React 19, TypeScript, Vitest, Testing Library, Zustand, React Query, Vite env flags
 
-**Spec:** `docs/superpowers/specs/2026-04-04-dev-scenarios-command-palette-design.md`
+Spec: `docs/superpowers/specs/2026-04-04-dev-scenarios-command-palette-design.md`
 
 ---
 
@@ -50,7 +50,7 @@
 
 ## Task 1: Scenario 型と registry を追加する
 
-**Files:**
+### Files:
 
 - Create: `src/dev/scenarios/types.ts`
 - Create: `src/dev/scenarios/registry.ts`
@@ -208,7 +208,7 @@ git commit -m "feat: add dev scenario registry and env parsing"
 
 ## Task 2: Scenario runner を導入して image-viewer-overlay を移植する
 
-**Files:**
+### Files:
 
 - Create: `src/dev/scenarios/helpers.ts`
 - Create: `src/dev/scenarios/runner.ts`
@@ -397,7 +397,7 @@ git commit -m "feat: move dev intent execution into shared scenario runner"
 
 ## Task 3: Command Palette に Dev Scenarios グループを追加する
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/command-palette.tsx`
 - Modify: `src/__tests__/components/command-palette.test.tsx`
@@ -507,7 +507,7 @@ git commit -m "feat: add dev scenarios group to command palette"
 
 ## Task 4: ナビゲーション系 scenario を追加する
 
-**Files:**
+### Files:
 
 - Modify: `src/dev/scenarios/registry.ts`
 - Modify: `src/dev/scenarios/helpers.ts`
@@ -647,7 +647,7 @@ git commit -m "feat: add navigation dev scenarios"
 
 ## Task 5: 操作 smoke scenario を追加する
 
-**Files:**
+### Files:
 
 - Modify: `src/dev/scenarios/registry.ts`
 - Modify: `src/__tests__/dev/scenarios/runner.test.ts`
@@ -725,7 +725,7 @@ git commit -m "feat: add action-based dev smoke scenarios"
 
 ## Task 6: 全体確認と回帰チェックを行う
 
-**Files:**
+### Files:
 
 - Verify: `src/dev/scenarios/*.ts`
 - Verify: `src/lib/dev-intent.ts`

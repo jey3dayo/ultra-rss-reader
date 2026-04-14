@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** サイドバーの購読行に hover 時だけドラッグハンドルを出し、既存フォルダまたは「フォルダなし」領域へドロップしてフィードの所属フォルダを変更できるようにする
+Goal: サイドバーの購読行に hover 時だけドラッグハンドルを出し、既存フォルダまたは「フォルダなし」領域へドロップしてフィードの所属フォルダを変更できるようにする
 
-**Architecture:** フォルダ更新の保存処理は `useMutation` ベースの小さな共通 hook にまとめ、`RenameDialog` と `Sidebar` の両方で再利用する。`FeedTreeView` は drag handle / drop target の見た目とイベント通知に集中させ、`Sidebar` は drag state と保存完了時の query invalidate を担当する。空フォルダも drop target にするため、`Sidebar` の folder view model 生成ではフィード件数 0 の folder も落とさない。
+Architecture: フォルダ更新の保存処理は `useMutation` ベースの小さな共通 hook にまとめ、`RenameDialog` と `Sidebar` の両方で再利用する。`FeedTreeView` は drag handle / drop target の見た目とイベント通知に集中させ、`Sidebar` は drag state と保存完了時の query invalidate を担当する。空フォルダも drop target にするため、`Sidebar` の folder view model 生成ではフィード件数 0 の folder も落とさない。
 
-**Tech Stack:** React 19, TypeScript, TanStack Query, Zustand, Vitest, Testing Library, Tauri IPC mocks, Tailwind CSS
+Tech Stack: React 19, TypeScript, TanStack Query, Zustand, Vitest, Testing Library, Tauri IPC mocks, Tailwind CSS
 
 ---
 
@@ -34,7 +34,7 @@
 
 ## Task 1: フォルダ更新処理を共通 hook に切り出す
 
-**Files:**
+### Files:
 
 - Create: `src/hooks/use-update-feed-folder.ts`
 - Create: `src/__tests__/hooks/use-update-feed-folder.test.tsx`
@@ -225,7 +225,7 @@ git commit -m "refactor: share feed folder update mutation"
 
 ## Task 2: FeedTreeView に drag handle と drop target を追加する
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/feed-tree-view.tsx`
 - Modify: `src/components/reader/feed-tree-view.stories.tsx`
@@ -445,7 +445,7 @@ git commit -m "feat: add feed tree drag-and-drop presentation"
 
 ## Task 3: Sidebar に drag state と drop 保存を接続する
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/sidebar.tsx`
 - Modify: `src/__tests__/components/sidebar.test.tsx`
@@ -611,7 +611,7 @@ git commit -m "feat: move feeds between folders from sidebar"
 
 ## Task 4: 回帰検証と手動確認を完了する
 
-**Files:**
+### Files:
 
 - Modify: なし
 

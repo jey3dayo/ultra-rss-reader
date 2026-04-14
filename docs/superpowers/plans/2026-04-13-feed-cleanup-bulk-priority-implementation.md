@@ -2,17 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add bulk actions for the currently visible feed-cleanup candidates and strengthen priority guidance without changing candidate scoring.
+Goal: Add bulk actions for the currently visible feed-cleanup candidates and strengthen priority guidance without changing candidate scoring.
 
-**Architecture:** Extend `useFeedCleanupPageState()` with visible-queue bulk actions, thread those actions into `FeedCleanupPage` and `FeedCleanupOverviewPanel`, and keep priority semantics on the existing `summarizeCleanupCandidate()` model. Update component tests first, then make the smallest UI/state/locales changes needed, and finish with Storybook and TODO updates.
+Architecture: Extend `useFeedCleanupPageState()` with visible-queue bulk actions, thread those actions into `FeedCleanupPage` and `FeedCleanupOverviewPanel`, and keep priority semantics on the existing `summarizeCleanupCandidate()` model. Update component tests first, then make the smallest UI/state/locales changes needed, and finish with Storybook and TODO updates.
 
-**Tech Stack:** React 19, TypeScript, Vitest, Testing Library, Storybook, i18next, Zustand-style local state
+Tech Stack: React 19, TypeScript, Vitest, Testing Library, Storybook, i18next, Zustand-style local state
 
 ---
 
 ## Task 1: Add failing integration tests for bulk actions
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/feed-cleanup-page.test.tsx`
 
@@ -49,7 +49,7 @@ Expected: FAIL for missing UI/state behavior, not for test setup mistakes.
 
 ## Task 2: Implement bulk action state and overview wiring
 
-**Files:**
+### Files:
 
 - Modify: `src/components/feed-cleanup/use-feed-cleanup-page-state.ts`
 - Modify: `src/components/feed-cleanup/feed-cleanup-page.tsx`
@@ -81,7 +81,7 @@ Expected: PASS for the new bulk action cases.
 
 ## Task 3: Tighten priority guidance copy
 
-**Files:**
+### Files:
 
 - Modify: `src/locales/ja/cleanup.json`
 - Modify: `src/locales/en/cleanup.json`
@@ -103,7 +103,7 @@ Expected: PASS
 
 ## Task 4: Refresh Storybook states and task tracking
 
-**Files:**
+### Files:
 
 - Modify: `src/components/feed-cleanup/feed-cleanup-overview-panel.stories.tsx`
 - Modify: `src/components/feed-cleanup/feed-cleanup-queue-panel.stories.tsx`
@@ -125,7 +125,7 @@ Expected: PASS
 
 ## Task 5: Final verification
 
-**Files:**
+### Files:
 
 - Verify only
 

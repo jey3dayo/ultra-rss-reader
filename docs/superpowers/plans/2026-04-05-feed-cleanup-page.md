@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a dedicated Feed Cleanup management surface that helps users find stale subscriptions, review why they are candidates, and keep, defer, or delete them safely.
+Goal: Add a dedicated Feed Cleanup management surface that helps users find stale subscriptions, review why they are candidates, and keep, defer, or delete them safely.
 
-**Architecture:** Implement the first release as a dedicated full-size dialog surface opened from the sidebar, not as a settings tab. Derive cleanup candidates on the frontend from existing `feeds + accountArticles + folders` data so the first version ships without new persistence or database migrations, then reuse the existing delete-feed command behind a shared hook and a richer confirmation dialog.
+Architecture: Implement the first release as a dedicated full-size dialog surface opened from the sidebar, not as a settings tab. Derive cleanup candidates on the frontend from existing `feeds + accountArticles + folders` data so the first version ships without new persistence or database migrations, then reuse the existing delete-feed command behind a shared hook and a richer confirmation dialog.
 
-**Tech Stack:** React 19, TypeScript, Zustand, TanStack React Query, i18next, Vitest, Testing Library, Tauri commands
+Tech Stack: React 19, TypeScript, Zustand, TanStack React Query, i18next, Vitest, Testing Library, Tauri commands
 
-**Spec:** `docs/superpowers/specs/2026-04-05-feed-cleanup-page-design.md`
+Spec: `docs/superpowers/specs/2026-04-05-feed-cleanup-page-design.md`
 
 ---
 
@@ -81,7 +81,7 @@ If this optional branch starts to sprawl, stop and defer sync-failure filtering 
 
 ## Task 1: Add Pure Cleanup Candidate Derivation
 
-**Files:**
+### Files:
 
 - Create: `src/lib/feed-cleanup.ts`
 - Test: `src/__tests__/lib/feed-cleanup.test.ts`
@@ -144,7 +144,7 @@ git commit -m "feat: add feed cleanup candidate helpers"
 
 ## Task 2: Add Shared Delete Feed Behavior
 
-**Files:**
+### Files:
 
 - Create: `src/hooks/use-delete-feed.ts`
 - Modify: `src/components/reader/feed-context-menu.tsx`
@@ -194,7 +194,7 @@ git commit -m "refactor: share feed deletion behavior"
 
 ## Task 3: Add Cleanup Surface State and Sidebar Entry
 
-**Files:**
+### Files:
 
 - Modify: `src/stores/ui-store.ts`
 - Modify: `src/components/app-shell.tsx`
@@ -251,7 +251,7 @@ git commit -m "feat: add feed cleanup entry point"
 
 ## Task 4: Build the Cleanup Surface and Phase 1 Interaction Loop
 
-**Files:**
+### Files:
 
 - Create: `src/components/feed-cleanup/feed-cleanup-page.tsx`
 - Create: `src/components/feed-cleanup/feed-cleanup-page-view.tsx`
@@ -338,7 +338,7 @@ git commit -m "feat: add feed cleanup management surface"
 
 ## Task 5: Wire Real Delete Actions and Candidate Refresh
 
-**Files:**
+### Files:
 
 - Modify: `src/components/feed-cleanup/feed-cleanup-page.tsx`
 - Modify: `src/hooks/use-delete-feed.ts`
@@ -387,7 +387,7 @@ git commit -m "feat: connect feed cleanup deletion flow"
 
 ## Task 6: Document and Verify
 
-**Files:**
+### Files:
 
 - Modify: `README.md`
 

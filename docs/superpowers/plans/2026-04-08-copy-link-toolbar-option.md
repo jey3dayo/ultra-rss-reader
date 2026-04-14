@@ -2,17 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `コピーリンク` だけを toolbar 表示の設定対象にし、`外部ブラウザ` と `Share menu` は常設へ整理する。
+Goal: `コピーリンク` だけを toolbar 表示の設定対象にし、`外部ブラウザ` と `Share menu` は常設へ整理する。
 
-**Architecture:** Actions 設定画面は `コピーリンク` 1 項目だけを表示し、article toolbar 側は `action_copy_link` だけを参照する。既存の `action_share` / `action_share_menu` は保存スキーマ、allowlist、テストからも削除して完全整理する。
+Architecture: Actions 設定画面は `コピーリンク` 1 項目だけを表示し、article toolbar 側は `action_copy_link` だけを参照する。既存の `action_share` / `action_share_menu` は保存スキーマ、allowlist、テストからも削除して完全整理する。
 
-**Tech Stack:** React 19, TypeScript, Zustand, Vitest, react-i18next
+Tech Stack: React 19, TypeScript, Zustand, Vitest, react-i18next
 
 ---
 
 ## Task 1: Red tests for the new actions settings shape
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/actions-settings.test.tsx`
 - Modify: `src/__tests__/components/settings-modal.test.tsx`
@@ -23,7 +23,7 @@
 
 ## Task 2: Red tests for toolbar/menu behavior
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/article-view.test.tsx`
 
@@ -33,7 +33,7 @@
 
 ## Task 3: Minimal implementation
 
-**Files:**
+### Files:
 
 - Modify: `src/components/settings/actions-settings.tsx`
 - Modify: `src/components/reader/article-view.tsx`
@@ -45,7 +45,7 @@
 
 ## Task 4: Verification
 
-**Files:**
+### Files:
 
 - Verify: `src/__tests__/components/actions-settings.test.tsx`
 - Verify: `src/__tests__/components/settings-modal.test.tsx`

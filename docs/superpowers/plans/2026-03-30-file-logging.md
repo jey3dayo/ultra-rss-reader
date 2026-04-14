@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add file logging for release builds so users can attach logs to support requests.
+Goal: Add file logging for release builds so users can attach logs to support requests.
 
-**Architecture:** `tauri-plugin-log` (with `tracing` feature) replaces `tracing-subscriber` in release builds. Dev builds keep stdout via `tracing-subscriber`. A new `get_log_dir` command exposes the log directory to the frontend. The Data settings section gets an "Open log directory" button.
+Architecture: `tauri-plugin-log` (with `tracing` feature) replaces `tracing-subscriber` in release builds. Dev builds keep stdout via `tracing-subscriber`. A new `get_log_dir` command exposes the log directory to the frontend. The Data settings section gets an "Open log directory" button.
 
-**Tech Stack:** Rust (tauri-plugin-log, log crate), TypeScript/React (settings UI), i18n (en/ja)
+Tech Stack: Rust (tauri-plugin-log, log crate), TypeScript/React (settings UI), i18n (en/ja)
 
-**Spec:** `docs/superpowers/specs/2026-03-30-file-logging-design.md`
+Spec: `docs/superpowers/specs/2026-03-30-file-logging-design.md`
 
 ---
 
@@ -31,7 +31,7 @@
 
 ### Task 1: Add Rust Dependencies
 
-**Files:**
+### Files:
 
 - Modify: `src-tauri/Cargo.toml`
 
@@ -62,7 +62,7 @@ EOF
 
 ### Task 2: Create `log_commands.rs`
 
-**Files:**
+### Files:
 
 - Create: `src-tauri/src/commands/log_commands.rs`
 - Modify: `src-tauri/src/commands/mod.rs`
@@ -109,7 +109,7 @@ EOF
 
 ### Task 3: Conditional Tracing Initialization and Log Cleanup
 
-**Files:**
+### Files:
 
 - Modify: `src-tauri/src/lib.rs`
 
@@ -231,7 +231,7 @@ EOF
 
 ### Task 4: Frontend - Add `getLogDir` Command and Mock
 
-**Files:**
+### Files:
 
 - Modify: `src/api/tauri-commands.ts`
 - Modify: `src/dev-mocks.ts`
@@ -274,7 +274,7 @@ EOF
 
 ### Task 5: Install `@tauri-apps/plugin-opener` npm Package
 
-**Files:**
+### Files:
 
 - Modify: `package.json`
 
@@ -297,7 +297,7 @@ EOF
 
 ### Task 6: Add i18n Keys
 
-**Files:**
+### Files:
 
 - Modify: `src/locales/en/settings.json`
 - Modify: `src/locales/ja/settings.json`
@@ -335,7 +335,7 @@ EOF
 
 ### Task 7: Add "Open Log Directory" Button to Data Settings
 
-**Files:**
+### Files:
 
 - Modify: `src/components/settings/data-settings.tsx`
 

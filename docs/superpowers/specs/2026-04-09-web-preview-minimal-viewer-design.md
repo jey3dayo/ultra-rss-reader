@@ -89,7 +89,7 @@ viewer shell は `modal` より `immersive viewer mode` として扱う。
 
 - 左上 `×`
 - `Esc`
-- **WebView 外の黒い scrim 領域クリック**
+- WebView 外の黒い scrim 領域クリック
 
 外側クリックは 1 回で即 close とする。
 右上アクション押下は close 条件に含めない。

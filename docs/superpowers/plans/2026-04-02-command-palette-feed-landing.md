@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make `@` feed selection in the command palette land on the first visible article for that feed and open browser view automatically when the feed resolves to widescreen mode.
+Goal: Make `@` feed selection in the command palette land on the first visible article for that feed and open browser view automatically when the feed resolves to widescreen mode.
 
-**Architecture:** Keep the UI change limited to `CommandPalette`, but move the landing behavior into a reusable frontend intent. Use a pure helper to mirror article-list visibility/sort rules, then a hook that combines React Query cache access for both feeds and articles, feed display-mode resolution, and existing Zustand store actions.
+Architecture: Keep the UI change limited to `CommandPalette`, but move the landing behavior into a reusable frontend intent. Use a pure helper to mirror article-list visibility/sort rules, then a hook that combines React Query cache access for both feeds and articles, feed display-mode resolution, and existing Zustand store actions.
 
-**Tech Stack:** React 19, TypeScript, TanStack React Query, Zustand, Vitest, Testing Library, react-i18next
+Tech Stack: React 19, TypeScript, TanStack React Query, Zustand, Vitest, Testing Library, react-i18next
 
-**Spec:** `docs/superpowers/specs/2026-04-02-command-palette-feed-landing-design.md`
+Spec: `docs/superpowers/specs/2026-04-02-command-palette-feed-landing-design.md`
 
 ---
 
@@ -42,7 +42,7 @@
 
 ## Task 1: Add Pure Feed-Landing Helpers
 
-**Files:**
+### Files:
 
 - Create: `src/lib/feed-landing.ts`
 - Test: `src/__tests__/lib/feed-landing.test.ts`
@@ -181,7 +181,7 @@ git commit -m "feat: add feed landing helpers"
 
 ## Task 2: Implement the Reusable Feed-Landing Intent
 
-**Files:**
+### Files:
 
 - Create: `src/hooks/use-feed-landing.ts`
 - Test: `src/__tests__/hooks/use-feed-landing.test.tsx`
@@ -386,7 +386,7 @@ git commit -m "feat: add reusable feed landing intent"
 
 ## Task 3: Wire Command Palette Into the Landing Intent
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/command-palette.tsx`
 - Modify: `src/__tests__/components/command-palette.test.tsx`
@@ -451,7 +451,7 @@ git commit -m "feat: land command palette feed picks on latest article"
 
 ## Task 4: Document the New Usage and Run Verification
 
-**Files:**
+### Files:
 
 - Modify: `README.md`
 

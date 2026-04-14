@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the article toolbar `S/P` preset group with a single `Eye` preview toggle so article-local preview control matches the other icon toggles without changing the underlying display-resolution behavior.
+Goal: Replace the article toolbar `S/P` preset group with a single `Eye` preview toggle so article-local preview control matches the other icon toggles without changing the underlying display-resolution behavior.
 
-**Architecture:** Reuse the existing article preview toggle path in `ArticleToolbarView` and `ArticleView` instead of inventing a second preview control. Collapse the current double-control setup by removing `DisplayModeToggleGroup`, repurposing the in-app preview toggle as the single eye-based control, and keeping the `standard` / `preview` resolution logic inside `article-display.ts` and `ArticleView`.
+Architecture: Reuse the existing article preview toggle path in `ArticleToolbarView` and `ArticleView` instead of inventing a second preview control. Collapse the current double-control setup by removing `DisplayModeToggleGroup`, repurposing the in-app preview toggle as the single eye-based control, and keeping the `standard` / `preview` resolution logic inside `article-display.ts` and `ArticleView`.
 
-**Tech Stack:** React 19, TypeScript, Vitest, Testing Library, Storybook, i18next
+Tech Stack: React 19, TypeScript, Vitest, Testing Library, Storybook, i18next
 
 ---
 
@@ -31,7 +31,7 @@
 
 ### Task 1: Lock The New Toolbar Contract In Tests
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/article-toolbar-view.test.tsx`
 - Modify: `src/__tests__/components/article-view.test.tsx`
@@ -114,7 +114,7 @@ git commit -m "test: define single preview toggle behavior"
 
 ### Task 2: Replace The Toolbar UI With A Single Eye Toggle
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/article-toolbar-view.tsx`
 - Modify: `src/components/reader/article-view.tsx`
@@ -206,7 +206,7 @@ git commit -m "feat: replace display preset group with preview toggle"
 
 ### Task 3: Update Copy, Stories, And Final Verification
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/article-toolbar-view.stories.tsx`
 - Modify: `src/locales/en/reader.json`

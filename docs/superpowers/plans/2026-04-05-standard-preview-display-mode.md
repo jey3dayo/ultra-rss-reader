@@ -2,17 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the current three visible reader/preview presets with two user-facing modes, `standard` and `preview`, while keeping storage compatibility.
+Goal: Replace the current three visible reader/preview presets with two user-facing modes, `standard` and `preview`, while keeping storage compatibility.
 
-**Architecture:** Collapse preset resolution to a two-mode UI model in `article-display.ts`, keep the existing persisted `reader_mode` and `web_preview_mode` axes, and treat legacy preview-only persisted values as the same UI-facing `preview` mode. Update UI copy, controls, and tests together so the app no longer exposes duplicate preview variants.
+Architecture: Collapse preset resolution to a two-mode UI model in `article-display.ts`, keep the existing persisted `reader_mode` and `web_preview_mode` axes, and treat legacy preview-only persisted values as the same UI-facing `preview` mode. Update UI copy, controls, and tests together so the app no longer exposes duplicate preview variants.
 
-**Tech Stack:** React 19, TypeScript, i18next, Vitest
+Tech Stack: React 19, TypeScript, i18next, Vitest
 
 ---
 
 ## Task 1: Add failing tests for the two-mode preset model
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/lib/article-display.test.ts`
 - Modify: `src/__tests__/components/settings-surface-views.test.tsx`
@@ -23,7 +23,7 @@
 
 ## Task 2: Implement the collapsed preset logic
 
-**Files:**
+### Files:
 
 - Modify: `src/lib/article-display.ts`
 - Modify: `src/components/reader/article-view.tsx`
@@ -34,7 +34,7 @@
 
 ## Task 3: Update labels and option lists
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/display-mode-toggle-group.tsx`
 - Modify: `src/components/reader/article-list.tsx`
@@ -52,7 +52,7 @@
 
 ## Task 4: Update stories and tests, then verify
 
-**Files:**
+### Files:
 
 - Modify: affected story/test files under `src/components/**` and `src/__tests__/**`
 

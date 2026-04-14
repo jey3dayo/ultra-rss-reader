@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `sidebar.tsx` と `feed-tree-view.tsx` を責務ごとに分割し、薄い `shared` section shell を追加しつつ、drag/drop と sidebar UI の既存挙動を維持する
+Goal: `sidebar.tsx` と `feed-tree-view.tsx` を責務ごとに分割し、薄い `shared` section shell を追加しつつ、drag/drop と sidebar UI の既存挙動を維持する
 
-**Architecture:** `src/components/reader/sidebar.tsx` は store / query / mutation / event listener を束ねる coordinator に寄せ、section ごとの JSX は専用コンポーネントへ抽出する。`src/components/reader/feed-tree-view.tsx` は tree composition に絞り、feed row / folder section / drag overlay / pointer drag state を別ファイルへ分離する。
+Architecture: `src/components/reader/sidebar.tsx` は store / query / mutation / event listener を束ねる coordinator に寄せ、section ごとの JSX は専用コンポーネントへ抽出する。`src/components/reader/feed-tree-view.tsx` は tree composition に絞り、feed row / folder section / drag overlay / pointer drag state を別ファイルへ分離する。
 
-**Tech Stack:** React 19, TypeScript, Zustand, TanStack Query, Vitest, Testing Library, Tauri command mocks, class-variance-authority
+Tech Stack: React 19, TypeScript, Zustand, TanStack Query, Vitest, Testing Library, Tauri command mocks, class-variance-authority
 
-**Spec:** `docs/superpowers/specs/2026-04-07-sidebar-refactor-design.md`
+Spec: `docs/superpowers/specs/2026-04-07-sidebar-refactor-design.md`
 
 ---
 
@@ -45,7 +45,7 @@
 
 ## Task 1: `shared` に sidebar section shell を導入する
 
-**Files:**
+### Files:
 
 - Create: `src/components/shared/sidebar-section-shell.tsx`
 - Modify: `src/components/shared/sidebar-section-toggle.tsx`
@@ -125,7 +125,7 @@ git commit -m "refactor: add sidebar section shell"
 
 ## Task 2: sidebar の section markup を専用コンポーネントへ抽出する
 
-**Files:**
+### Files:
 
 - Create: `src/components/reader/sidebar-account-section.tsx`
 - Create: `src/components/reader/sidebar-feed-section.tsx`
@@ -270,7 +270,7 @@ git commit -m "refactor: split sidebar sections"
 
 ## Task 3: feed tree の row / folder / overlay を抽出する
 
-**Files:**
+### Files:
 
 - Create: `src/components/reader/feed-tree-row.tsx`
 - Create: `src/components/reader/feed-tree-folder-section.tsx`
@@ -384,7 +384,7 @@ git commit -m "refactor: extract feed tree display parts"
 
 ## Task 4: pointer drag state を `use-feed-tree-drag.ts` へ抽出する
 
-**Files:**
+### Files:
 
 - Create: `src/components/reader/use-feed-tree-drag.ts`
 - Modify: `src/components/reader/feed-tree-view.tsx`
@@ -474,7 +474,7 @@ git commit -m "refactor: extract feed tree drag state"
 
 ## Task 5: `sidebar.tsx` の coordinator 化を仕上げて regression を確認する
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/sidebar.tsx`
 - Modify: `src/components/reader/sidebar-feed-section.tsx`
@@ -558,7 +558,7 @@ git commit -m "refactor: slim sidebar coordinator"
 
 ## Task 6: repo 標準チェックと手動確認を完了する
 
-**Files:**
+### Files:
 
 - Modify: なし
 

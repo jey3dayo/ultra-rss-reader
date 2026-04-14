@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Windows / macOS の差分を `PlatformInfo` / `PlatformCapabilities` に集約し、frontend と backend が同じ platform 判定を使うようにする。
+Goal: Windows / macOS の差分を `PlatformInfo` / `PlatformCapabilities` に集約し、frontend と backend が同じ platform 判定を使うようにする。
 
-**Architecture:** Rust 側に platform module と `get_platform_info` command を追加し、OS 依存 helper をそこへ寄せる。frontend は platform store を 1 回ロードして capability を参照し、`navigator.platform` や ad-hoc な OS 推測を削除する。
+Architecture: Rust 側に platform module と `get_platform_info` command を追加し、OS 依存 helper をそこへ寄せる。frontend は platform store を 1 回ロードして capability を参照し、`navigator.platform` や ad-hoc な OS 推測を削除する。
 
-**Tech Stack:** Tauri 2, Rust, React 19, TypeScript, Zod, Zustand, Vitest, cargo test/check
+Tech Stack: Tauri 2, Rust, React 19, TypeScript, Zod, Zustand, Vitest, cargo test/check
 
 Spec: `docs/superpowers/specs/2026-03-31-platform-os-abstraction-design.md`
 
@@ -46,7 +46,7 @@ Spec: `docs/superpowers/specs/2026-03-31-platform-os-abstraction-design.md`
 
 ### Task 1: Rust platform module と `get_platform_info` command を追加する
 
-**Files:**
+### Files:
 
 - Create: `src-tauri/src/platform/mod.rs`
 - Create: `src-tauri/src/commands/platform_commands.rs`
@@ -193,7 +193,7 @@ git commit -m "feat: add shared platform info command"
 
 ### Task 2: backend の OS 依存 helper を platform capability に寄せる
 
-**Files:**
+### Files:
 
 - Modify: `src-tauri/src/infra/keyring_store.rs`
 - Modify: `src-tauri/src/commands/article_commands.rs`
@@ -311,7 +311,7 @@ git commit -m "refactor: route backend os checks through platform info"
 
 ### Task 3: frontend schema / API / mock を追加する
 
-**Files:**
+### Files:
 
 - Create: `src/api/schemas/platform-info.ts`
 - Modify: `src/api/schemas/index.ts`
@@ -429,7 +429,7 @@ git commit -m "feat: add frontend platform info schema and mocks"
 
 ### Task 4: platform store を追加して `AppShell` / `AppLayout` で利用する
 
-**Files:**
+### Files:
 
 - Create: `src/stores/platform-store.ts`
 - Modify: `src/components/app-shell.tsx`
@@ -532,7 +532,7 @@ git commit -m "feat: load shared platform info in app shell"
 
 ### Task 5: `useAppIconTheme` を platform capability ベースに切り替える
 
-**Files:**
+### Files:
 
 - Modify: `src/hooks/use-app-icon-theme.ts`
 - Modify: `src/__tests__/hooks/use-app-icon-theme.test.tsx`
@@ -599,7 +599,7 @@ git commit -m "refactor: drive app icon behavior from platform capabilities"
 
 ### Task 6: `ArticleView` の Reading List action を capability で出し分ける
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/article-view.tsx`
 - Modify: `src/__tests__/components/article-view.test.tsx`
@@ -672,7 +672,7 @@ git commit -m "feat: gate reading list ui by platform capability"
 
 ### Task 7: 全体確認と polish
 
-**Files:**
+### Files:
 
 - Verify only
 
