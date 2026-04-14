@@ -46,6 +46,7 @@ impl DbManager {
                 &backup_file,
                 current_version,
             )?;
+            manager.reconcile_feed_unread_counts()?;
             Ok(manager)
         } else {
             // No migration needed, or fresh DB — just open and migrate
@@ -53,7 +54,10 @@ impl DbManager {
             Self::apply_pragmas(&reader)?;
             let mut manager = Self { writer, reader };
             match super::migration::run_migrations(&mut manager.writer) {
-                Ok(_) => Ok(manager),
+                Ok(_) => {
+                    manager.reconcile_feed_unread_counts()?;
+                    Ok(manager)
+                }
                 Err(e) => Err(DomainError::Migration(format!("Migration failed: {e}"))),
             }
         }
@@ -129,6 +133,7 @@ impl DbManager {
 
         let mut manager = Self { writer, reader };
         let _result = super::migration::run_migrations(&mut manager.writer)?;
+        manager.reconcile_feed_unread_counts()?;
         Ok(manager)
     }
 
@@ -139,6 +144,31 @@ impl DbManager {
              PRAGMA synchronous = NORMAL;
              PRAGMA busy_timeout = 5000;",
         )?;
+        Ok(())
+    }
+
+    fn reconcile_feed_unread_counts(&self) -> DomainResult<()> {
+        let updated_rows = self.writer.execute(
+            "UPDATE feeds
+             SET unread_count = (
+               SELECT COUNT(*)
+               FROM articles
+               WHERE articles.feed_id = feeds.id
+                 AND articles.is_read = 0
+             )
+             WHERE unread_count != (
+               SELECT COUNT(*)
+               FROM articles
+               WHERE articles.feed_id = feeds.id
+                 AND articles.is_read = 0
+             )",
+            [],
+        )?;
+
+        if updated_rows > 0 {
+            tracing::info!("Reconciled unread counts for {updated_rows} feed(s) on startup");
+        }
+
         Ok(())
     }
 
@@ -544,5 +574,53 @@ mod tests {
 
         assert_eq!(reader_mode, "on");
         assert_eq!(web_preview_mode, "off");
+    }
+
+    #[test]
+    fn new_reconciles_stale_feed_unread_counts_from_articles() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("stale-unread-counts.db");
+
+        {
+            let db = DbManager::new(&db_path).unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO accounts (id, kind, name) VALUES ('a1', 'Local', 'Test')",
+                    [],
+                )
+                .unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO feeds (id, account_id, title, url, unread_count) VALUES ('f1', 'a1', 'Feed', 'https://example.com/feed.xml', 0)",
+                    [],
+                )
+                .unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO articles (id, feed_id, title, content_raw, content_sanitized, sanitizer_version, published_at, fetched_at, is_read) \
+                     VALUES ('art-1', 'f1', 'Unread 1', '', '', 1, '2026-04-14T00:00:00Z', '2026-04-14T00:00:00Z', 0)",
+                    [],
+                )
+                .unwrap();
+            db.writer()
+                .execute(
+                    "INSERT INTO articles (id, feed_id, title, content_raw, content_sanitized, sanitizer_version, published_at, fetched_at, is_read) \
+                     VALUES ('art-2', 'f1', 'Unread 2', '', '', 1, '2026-04-14T00:00:00Z', '2026-04-14T00:00:00Z', 0)",
+                    [],
+                )
+                .unwrap();
+        }
+
+        let repaired = DbManager::new(&db_path).unwrap();
+        let unread_count: i32 = repaired
+            .reader()
+            .query_row(
+                "SELECT unread_count FROM feeds WHERE id = 'f1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(unread_count, 2);
     }
 }
