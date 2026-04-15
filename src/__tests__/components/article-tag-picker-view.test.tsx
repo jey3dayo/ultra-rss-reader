@@ -36,15 +36,16 @@ describe("ArticleTagPickerView", () => {
     );
 
     const removeButton = screen.getByRole("button", { name: "Remove tag Later" });
-    expect(removeButton).toHaveClass("size-11");
+    expect(removeButton).toHaveClass("size-8");
     expect(screen.getByText("Tags")).toBeInTheDocument();
-    expect(screen.getByText("Add and organize article tags")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("h-11");
-    expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("min-w-11");
+    expect(screen.queryByText("Add and organize article tags")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("h-10");
+    expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("w-10");
+    expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("rounded-lg");
     expect(screen.getByRole("option", { name: "Important" })).toHaveClass("min-h-11");
-    expect(screen.getByRole("textbox", { name: "" })).toHaveClass("h-11");
-    expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass("h-11");
-    expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass("w-11");
+    expect(screen.getByRole("textbox", { name: "" })).toHaveClass("h-10");
+    expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass("h-10");
+    expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass("w-10");
 
     await user.click(removeButton);
     await user.click(screen.getByRole("option", { name: "Important" }));
@@ -198,7 +199,7 @@ describe("ArticleTagPickerView", () => {
     );
 
     expect(screen.getByText("Tags")).toBeInTheDocument();
-    expect(screen.getByText("Add and organize article tags")).toBeInTheDocument();
+    expect(screen.queryByText("Add and organize article tags")).not.toBeInTheDocument();
   });
 
   it("does not steal focus again when available tags change while open", async () => {
