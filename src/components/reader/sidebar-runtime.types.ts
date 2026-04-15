@@ -35,6 +35,7 @@ export type SidebarUiStateResult = Pick<
   | "setExpandedFolders"
   | "toggleFolder"
   | "openSettings"
+  | "openSubscriptionsIndex"
   | "openFeedCleanup"
   | "isAddFeedDialogOpen"
   | "openAddFeedDialog"

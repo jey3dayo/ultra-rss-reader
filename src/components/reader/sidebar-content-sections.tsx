@@ -11,9 +11,9 @@ export function SidebarContentSections({
   isFeedsSectionOpen,
   onToggleFeedsSection,
   viewportRef,
-  feedCleanupLabel,
+  subscriptionsIndexLabel,
   settingsLabel,
-  onOpenFeedCleanup,
+  onOpenSubscriptionsIndex,
   onOpenSettings,
   selectedAccountId,
   isAddFeedDialogOpen,
@@ -80,9 +80,9 @@ export function SidebarContentSections({
         />
       }
       tagSection={tagSection}
-      feedCleanupLabel={feedCleanupLabel}
+      subscriptionsIndexLabel={subscriptionsIndexLabel}
       settingsLabel={settingsLabel}
-      onOpenFeedCleanup={onOpenFeedCleanup}
+      onOpenSubscriptionsIndex={onOpenSubscriptionsIndex}
       onOpenSettings={onOpenSettings}
       addFeedDialog={addFeedDialog}
     />

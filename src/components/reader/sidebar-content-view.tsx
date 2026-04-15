@@ -10,9 +10,9 @@ export function SidebarContentView({
   viewportRef,
   feedTree,
   tagSection,
-  feedCleanupLabel,
+  subscriptionsIndexLabel,
   settingsLabel,
-  onOpenFeedCleanup,
+  onOpenSubscriptionsIndex,
   onOpenSettings,
   addFeedDialog,
 }: SidebarContentViewProps) {
@@ -28,9 +28,9 @@ export function SidebarContentView({
       </ScrollArea>
 
       <SidebarFooterActions
-        feedCleanupLabel={feedCleanupLabel}
+        subscriptionsIndexLabel={subscriptionsIndexLabel}
         settingsLabel={settingsLabel}
-        onOpenFeedCleanup={onOpenFeedCleanup}
+        onOpenSubscriptionsIndex={onOpenSubscriptionsIndex}
         onOpenSettings={onOpenSettings}
       />
 

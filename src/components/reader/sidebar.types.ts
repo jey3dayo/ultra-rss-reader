@@ -1,7 +1,6 @@
 import type { TFunction } from "i18next";
 import type { ComponentPropsWithoutRef, ReactNode, RefObject } from "react";
 import type { SortSubscriptions } from "@/stores/preferences-store";
-import type { FeedCleanupContext } from "@/stores/ui-store";
 import type { AccountSwitcherProps } from "./account-switcher.types";
 import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarDensity } from "./sidebar-density";
@@ -36,9 +35,9 @@ export type SidebarContentSectionsProps = {
   isFeedsSectionOpen: boolean;
   onToggleFeedsSection: () => void;
   viewportRef: RefObject<HTMLDivElement | null>;
-  feedCleanupLabel: string;
+  subscriptionsIndexLabel: string;
   settingsLabel: string;
-  onOpenFeedCleanup: () => void;
+  onOpenSubscriptionsIndex: () => void;
   onOpenSettings: () => void;
   selectedAccountId: string | null;
   isAddFeedDialogOpen: boolean;
@@ -145,7 +144,7 @@ export type SidebarControllerSectionsParams = {
   showUnreadCount: boolean;
   showStarredCount: boolean;
   feedViewportRef: SidebarContentSectionsProps["viewportRef"];
-  openFeedCleanup: (context?: FeedCleanupContext) => void;
+  openSubscriptionsIndex: () => void;
   handleOpenSettings: () => void;
   handleOpenTagSettings: () => void;
   isAddFeedDialogOpen: boolean;
@@ -211,7 +210,7 @@ export type SidebarContentSectionsPropsParams = {
   isFeedsSectionOpen: boolean;
   toggleFeedsSection: () => void;
   feedViewportRef: SidebarContentSectionsProps["viewportRef"];
-  openFeedCleanup: (context?: FeedCleanupContext) => void;
+  openSubscriptionsIndex: () => void;
   handleOpenSettings: () => void;
   selectedAccountId: SidebarContentSectionsProps["selectedAccountId"];
   isAddFeedDialogOpen: boolean;
@@ -254,7 +253,7 @@ export type SidebarSectionPropsParams = {
   isFeedsSectionOpen: boolean;
   toggleFeedsSection: () => void;
   feedViewportRef: import("react").RefObject<HTMLDivElement | null>;
-  openFeedCleanup: (context?: FeedCleanupContext) => void;
+  openSubscriptionsIndex: () => void;
   handleOpenSettings: () => void;
   isAddFeedDialogOpen: boolean;
   handleAddFeedDialogOpenChange: (open: boolean) => void;
@@ -288,9 +287,9 @@ export type SidebarFeedSectionViewProps = {
 };
 
 export type SidebarFooterActionsViewProps = {
-  feedCleanupLabel: string;
+  subscriptionsIndexLabel: string;
   settingsLabel: string;
-  onOpenFeedCleanup: () => void;
+  onOpenSubscriptionsIndex: () => void;
   onOpenSettings: () => void;
 };
 
@@ -301,9 +300,9 @@ export type SidebarContentViewProps = {
   viewportRef: RefObject<HTMLDivElement | null>;
   feedTree: ReactNode;
   tagSection: ReactNode;
-  feedCleanupLabel: string;
+  subscriptionsIndexLabel: string;
   settingsLabel: string;
-  onOpenFeedCleanup: () => void;
+  onOpenSubscriptionsIndex: () => void;
   onOpenSettings: () => void;
   addFeedDialog?: ReactNode;
 };

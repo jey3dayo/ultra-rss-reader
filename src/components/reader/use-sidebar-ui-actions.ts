@@ -6,6 +6,7 @@ export function useSidebarUiActions({
   selectAccount,
   setSelectedAccountPreference,
   openSettings,
+  openSubscriptionsIndex,
   setSettingsAddAccount,
   openAddFeedDialog,
   closeAddFeedDialog,
@@ -31,6 +32,10 @@ export function useSidebarUiActions({
   const handleOpenSettings = useCallback(() => {
     openSettings();
   }, [openSettings]);
+
+  const handleOpenSubscriptionsIndex = useCallback(() => {
+    openSubscriptionsIndex();
+  }, [openSubscriptionsIndex]);
 
   const handleOpenTagSettings = useCallback(() => {
     openSettings("tags");
@@ -65,6 +70,7 @@ export function useSidebarUiActions({
     handleSelectAccount,
     toggleFeedsSection,
     toggleTagsSection,
+    handleOpenSubscriptionsIndex,
     handleOpenSettings,
     handleOpenTagSettings,
     handleOpenAccountSettings,

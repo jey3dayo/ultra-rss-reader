@@ -229,6 +229,19 @@ describe("Sidebar", () => {
     expect(screen.queryByText(/Loading…|読み込み中…/)).not.toBeInTheDocument();
   });
 
+  it("opens the subscriptions index from the sidebar footer", async () => {
+    const user = userEvent.setup();
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Manage Subscriptions" }));
+
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
+      kind: "index",
+      cleanupContext: null,
+    });
+  });
+
   it("keeps loading when feeds resolve but folders are still unresolved", async () => {
     setupTauriMocks((cmd, _args) => {
       switch (cmd) {
@@ -1574,10 +1587,10 @@ describe("Sidebar", () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     const scrollArea = screen.getByTestId("sidebar-feed-scroll-area");
-    const feedCleanupButton = await screen.findByRole("button", { name: "Review Subscriptions" });
+    const subscriptionsIndexButton = await screen.findByRole("button", { name: "Manage Subscriptions" });
     const settingsButton = screen.getByRole("button", { name: "Settings" });
 
-    expect(feedCleanupButton.closest('[data-slot="scroll-area"]')).toBeNull();
+    expect(subscriptionsIndexButton.closest('[data-slot="scroll-area"]')).toBeNull();
     expect(settingsButton.closest('[data-slot="scroll-area"]')).toBeNull();
     expect(scrollArea).toBeInTheDocument();
 
@@ -1586,16 +1599,16 @@ describe("Sidebar", () => {
     expect(useUiStore.getState().settingsOpen).toBe(true);
   });
 
-  it("opens the feed cleanup surface from the bottom management area", async () => {
+  it("opens the subscriptions index from the bottom management area", async () => {
     const user = userEvent.setup();
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: "Review Subscriptions" }));
+    await user.click(await screen.findByRole("button", { name: "Manage Subscriptions" }));
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
-      kind: "cleanup",
-      cleanupContext: { reason: "review", returnTo: "index" },
+      kind: "index",
+      cleanupContext: null,
     });
     expect(useUiStore.getState().focusedPane).toBe("content");
   });
@@ -1612,10 +1625,10 @@ describe("Sidebar", () => {
     await user.click(screen.getByRole("button", { name: "Settings" }));
     expect(useUiStore.getState().settingsOpen).toBe(true);
 
-    await user.click(screen.getByRole("button", { name: "Review Subscriptions" }));
+    await user.click(screen.getByRole("button", { name: "Manage Subscriptions" }));
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
-      kind: "cleanup",
-      cleanupContext: { reason: "review", returnTo: "index" },
+      kind: "index",
+      cleanupContext: null,
     });
   });
 

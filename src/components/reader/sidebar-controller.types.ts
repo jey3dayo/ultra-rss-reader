@@ -8,6 +8,7 @@ export type SidebarUiActionsParams = {
   selectAccount: (accountId: string) => void;
   setSelectedAccountPreference: SidebarSetSelectedAccountPreference;
   openSettings: (category?: SettingsCategory) => void;
+  openSubscriptionsIndex: () => void;
   setSettingsAddAccount: (open: boolean) => void;
   openAddFeedDialog: () => void;
   closeAddFeedDialog: () => void;
@@ -19,6 +20,7 @@ export type SidebarUiActionsResult = {
   handleSelectAccount: (accountId: string) => void;
   toggleFeedsSection: () => void;
   toggleTagsSection: () => void;
+  handleOpenSubscriptionsIndex: () => void;
   handleOpenSettings: () => void;
   handleOpenTagSettings: () => void;
   handleOpenAccountSettings: () => void;

@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import type { SidebarFooterActionsViewProps } from "./sidebar.types";
 
 export function SidebarFooterActions({
-  feedCleanupLabel,
+  subscriptionsIndexLabel,
   settingsLabel,
-  onOpenFeedCleanup,
+  onOpenSubscriptionsIndex,
   onOpenSettings,
 }: SidebarFooterActionsViewProps) {
   return (
@@ -14,11 +14,11 @@ export function SidebarFooterActions({
       <Button
         variant="ghost"
         size="sm"
-        onClick={onOpenFeedCleanup}
+        onClick={onOpenSubscriptionsIndex}
         className={controlChipVariants({ size: "comfortable", interaction: "action" })}
       >
         <FolderTree className={controlChipIconVariants({ size: "comfortable" })} />
-        <span>{feedCleanupLabel}</span>
+        <span>{subscriptionsIndexLabel}</span>
       </Button>
       <Button
         variant="ghost"
