@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type NavRowButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+type NavRowButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "title"> & {
   title: ReactNode;
   description?: ReactNode;
   leading?: ReactNode;
@@ -25,8 +25,7 @@ export function NavRowButton({
     <button
       type={type}
       className={cn(
-        "group flex w-full items-start gap-3 rounded-md border px-3 py-2 text-left transition-[background-color,border-color,color,box-shadow] duration-150",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+        "group flex w-full items-start gap-3 rounded-md border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
         tone === "sidebar"
           ? "focus-visible:bg-sidebar-accent/65 focus-visible:text-sidebar-foreground"
           : "focus-visible:border-border/70 focus-visible:bg-card/45",

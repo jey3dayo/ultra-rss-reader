@@ -76,27 +76,15 @@ export function FeedCleanupQueuePanel({
             <span>{selectedCountLabel}</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <DecisionButton
-              intent="keep"
-              aria-label={bulkKeepActionLabel}
-              onClick={onKeepSelection}
-            >
+            <DecisionButton intent="keep" aria-label={bulkKeepActionLabel} onClick={onKeepSelection}>
               <Check className="h-4 w-4" />
               {keepLabel}
             </DecisionButton>
-            <DecisionButton
-              intent="defer"
-              aria-label={bulkDeferActionLabel}
-              onClick={onDeferSelection}
-            >
+            <DecisionButton intent="defer" aria-label={bulkDeferActionLabel} onClick={onDeferSelection}>
               <Clock3 className="h-4 w-4" />
               {deferredLabel}
             </DecisionButton>
-            <DecisionButton
-              intent="delete"
-              aria-label={bulkDeleteActionLabel}
-              onClick={onDeleteSelection}
-            >
+            <DecisionButton intent="delete" aria-label={bulkDeleteActionLabel} onClick={onDeleteSelection}>
               <Trash2 className="h-4 w-4" />
               {deleteLabel}
             </DecisionButton>
