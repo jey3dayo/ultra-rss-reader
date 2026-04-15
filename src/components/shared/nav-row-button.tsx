@@ -25,14 +25,14 @@ export function NavRowButton({
     <button
       type={type}
       className={cn(
-        "group flex w-full items-start gap-3 rounded-md border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+        "group flex w-full items-start gap-3 rounded-md px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
         tone === "sidebar"
           ? "focus-visible:bg-sidebar-accent/65 focus-visible:text-sidebar-foreground"
-          : "focus-visible:border-border/70 focus-visible:bg-card/45",
+          : "border focus-visible:border-border/70 focus-visible:bg-card/45",
         tone === "sidebar"
           ? selected
-            ? "border-transparent bg-sidebar-accent text-sidebar-accent-foreground"
-            : "border-transparent text-sidebar-foreground/88 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+            : "text-sidebar-foreground/88 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
           : selected
             ? "border-border/70 bg-card/75 text-foreground"
             : "border-transparent bg-transparent text-foreground hover:border-border/55 hover:bg-card/30",

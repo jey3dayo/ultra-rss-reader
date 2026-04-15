@@ -1,6 +1,59 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { SettingsModalView } from "@/components/settings/settings-modal-view";
+
+const { ResizeObserverMock, resizeObserverCallbacks } = vi.hoisted(() => {
+  const callbacks = new Set<() => void>();
+
+  class ResizeObserverMock {
+    private readonly callback: () => void;
+
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = () => callback([], this as unknown as ResizeObserver);
+      callbacks.add(this.callback);
+    }
+
+    observe() {}
+
+    disconnect() {
+      callbacks.delete(this.callback);
+    }
+
+    unobserve() {}
+  }
+
+  return {
+    ResizeObserverMock,
+    resizeObserverCallbacks: callbacks,
+  };
+});
+
+vi.stubGlobal("ResizeObserver", ResizeObserverMock);
+
+function setScrollMetrics(scrollArea: HTMLElement, clientHeight: number, scrollHeight: number) {
+  const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]');
+
+  if (!(viewport instanceof HTMLElement)) {
+    throw new Error("Expected scroll area viewport");
+  }
+
+  Object.defineProperty(viewport, "clientHeight", {
+    configurable: true,
+    value: clientHeight,
+  });
+  Object.defineProperty(viewport, "scrollHeight", {
+    configurable: true,
+    value: scrollHeight,
+  });
+}
+
+function notifyResizeObservers() {
+  act(() => {
+    for (const callback of resizeObserverCallbacks) {
+      callback();
+    }
+  });
+}
 
 describe("SettingsModalView", () => {
   it("renders header, navigation slots, and content", () => {
@@ -74,13 +127,75 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("max-h-[840px]");
     expect(screen.getByTestId("settings-modal-header")).toHaveClass("min-h-16");
     expect(screen.getByTestId("settings-modal-header")).toHaveClass("py-0");
-    expect(screen.getByTestId("settings-nav-fade-top")).toBeInTheDocument();
-    expect(screen.getByTestId("settings-nav-fade-bottom")).toBeInTheDocument();
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("px-3");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("py-3");
     expect(screen.getByText("Accounts")).toBeInTheDocument();
-    expect(screen.getByTestId("settings-content-fade-top")).toBeInTheDocument();
-    expect(screen.getByTestId("settings-content-fade-bottom")).toBeInTheDocument();
+  });
+
+  it("hides scrollbars and fades when the panes do not overflow", async () => {
+    render(
+      <SettingsModalView
+        open={true}
+        title="Preferences"
+        closeLabel="Close preferences"
+        navigation={<div>Settings navigation</div>}
+        accountsHeading="Accounts"
+        accountsNavigation={<div>Accounts navigation</div>}
+        content={<div>Settings content</div>}
+        onClose={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    const [navScrollArea, contentScrollArea] = screen.getAllByTestId("settings-scroll-area");
+    const hiddenScrollbarClass = "[&>[data-slot='scroll-area-scrollbar']]:hidden";
+
+    setScrollMetrics(navScrollArea, 480, 480);
+    setScrollMetrics(contentScrollArea, 480, 480);
+    notifyResizeObservers();
+    fireEvent(window, new Event("resize"));
+
+    await waitFor(() => {
+      const [nextNavScrollArea, nextContentScrollArea] = screen.getAllByTestId("settings-scroll-area");
+      expect(nextNavScrollArea).toHaveClass(hiddenScrollbarClass);
+      expect(nextContentScrollArea).toHaveClass(hiddenScrollbarClass);
+    });
+
+    expect(screen.queryByTestId("settings-nav-fade-top")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("settings-nav-fade-bottom")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("settings-content-fade-top")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("settings-content-fade-bottom")).not.toBeInTheDocument();
+  });
+
+  it("keeps content scrollbar affordances disabled when the page is marked as non-scrollable", async () => {
+    render(
+      <SettingsModalView
+        open={true}
+        title="Preferences"
+        closeLabel="Close preferences"
+        navigation={<div>Settings navigation</div>}
+        accountsHeading="Accounts"
+        accountsNavigation={<div>Accounts navigation</div>}
+        content={<div>Settings content</div>}
+        contentScrollBehavior="never"
+        onClose={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    const [, contentScrollArea] = screen.getAllByTestId("settings-scroll-area");
+    const hiddenScrollbarClass = "[&>[data-slot='scroll-area-scrollbar']]:hidden";
+
+    setScrollMetrics(contentScrollArea, 480, 720);
+    notifyResizeObservers();
+    fireEvent(window, new Event("resize"));
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("settings-scroll-area")[1]).toHaveClass(hiddenScrollbarClass);
+    });
+
+    expect(screen.queryByTestId("settings-content-fade-top")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("settings-content-fade-bottom")).not.toBeInTheDocument();
   });
 
   it("stacks the navigation above the content on narrow screens", () => {

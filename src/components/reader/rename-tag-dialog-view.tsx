@@ -2,8 +2,8 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { StackedInputField } from "@/components/shared/stacked-input-field";
+import { TagColorPicker } from "@/components/shared/tag-color-picker";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 
 const EMPTY_COLOR_OPTIONS: string[] = [];
 const NO_OP_COLOR_CHANGE = () => {};
@@ -72,40 +72,14 @@ export function RenameTagDialogView({
             disabled={loading}
           />
           {colorOptions.length > 0 && (
-            <div className="space-y-1.5">
-              <span className="block text-sm text-muted-foreground">{t("color")}</span>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <button
-                  type="button"
-                  title={noColorLabel}
-                  className={cn(
-                    "h-6 w-6 rounded-full border-2 transition-[box-shadow]",
-                    color === null
-                      ? "border-primary ring-2 ring-primary/30"
-                      : "border-muted-foreground/30 hover:border-muted-foreground/60",
-                  )}
-                  onClick={() => onColorChange(null)}
-                >
-                  <span className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                    X
-                  </span>
-                </button>
-                {colorOptions.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    className={cn(
-                      "h-6 w-6 rounded-full border-2 transition-[box-shadow]",
-                      color === option
-                        ? "border-primary ring-2 ring-primary/30"
-                        : "border-transparent hover:border-muted-foreground/40",
-                    )}
-                    style={{ backgroundColor: option }}
-                    onClick={() => onColorChange(option)}
-                  />
-                ))}
-              </div>
-            </div>
+            <TagColorPicker
+              label={t("color")}
+              color={color}
+              colorOptions={colorOptions}
+              noColorLabel={noColorLabel ?? t("no_color")}
+              optionAriaLabel={(option) => `${t("color")} ${option}`}
+              onChange={onColorChange}
+            />
           )}
         </form>
         <DialogFooter>

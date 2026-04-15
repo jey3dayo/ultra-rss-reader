@@ -23,6 +23,12 @@ describe("NavRowButton", () => {
     expect(screen.getByText("3")).toBeInTheDocument();
   });
 
+  it("keeps sidebar rows borderless", () => {
+    render(<NavRowButton tone="sidebar" title="Sidebar row" />);
+
+    expect(screen.getByRole("button", { name: "Sidebar row" })).not.toHaveClass("border");
+  });
+
   it("forwards click and disabled state", () => {
     const onClick = vi.fn();
 

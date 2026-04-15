@@ -32,6 +32,7 @@ export function SidebarContentSections({
   selection,
   onSelectTag,
   renderTagContextMenu,
+  renderTagSectionContextMenu,
   sidebarDensity,
   isFeedTreeLoading,
 }: SidebarContentSectionsProps) {
@@ -55,6 +56,7 @@ export function SidebarContentSections({
       sidebarDensity={sidebarDensity}
       tags={tagItems}
       onSelectTag={onSelectTag}
+      renderTagSectionContextMenu={renderTagSectionContextMenu}
       renderContextMenu={renderTagContextMenu}
     />
   ) : null;

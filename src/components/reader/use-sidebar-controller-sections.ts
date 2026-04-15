@@ -53,6 +53,7 @@ export function useSidebarControllerSections({
   feedViewportRef,
   openFeedCleanup,
   handleOpenSettings,
+  handleOpenTagSettings,
   isAddFeedDialogOpen,
   handleAddFeedDialogOpenChange,
   isTagsSectionOpen,
@@ -62,6 +63,7 @@ export function useSidebarControllerSections({
   tagArticleCounts,
   moveFeedToFolder,
   moveFeedToUnfoldered,
+  handleAddTag,
 }: SidebarControllerSectionsParams): SidebarSectionPropsResult {
   const visibleSmartViews = useSidebarSmartViews({
     selection,
@@ -73,7 +75,11 @@ export function useSidebarControllerSections({
     showSidebarStarred,
     t,
   });
-  const { renderFolderContextMenu, renderFeedContextMenu, renderTagContextMenu } = useSidebarContextMenuRenderers();
+  const { renderFolderContextMenu, renderFeedContextMenu, renderTagContextMenu, renderTagSectionContextMenu } =
+    useSidebarContextMenuRenderers({
+      onAddTag: handleAddTag,
+      onManageTags: handleOpenTagSettings,
+    });
   const { feedTreeProps } = useSidebarFeedSectionController({
     selectedAccountId,
     feeds,
@@ -139,6 +145,7 @@ export function useSidebarControllerSections({
     tagArticleCounts,
     selection,
     selectTag,
+    renderTagSectionContextMenu,
     renderTagContextMenu,
     sidebarDensity,
     isFeedTreeLoading,

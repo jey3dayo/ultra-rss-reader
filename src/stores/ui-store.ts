@@ -66,6 +66,7 @@ export type SettingsCategory =
   | "actions"
   | "data"
   | "debug"
+  | "tags"
   | "accounts";
 
 function getSidebarHiddenFallbackPane(state: Pick<UiState, "contentMode">): FocusedPane {
