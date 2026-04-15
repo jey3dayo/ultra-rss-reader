@@ -21,7 +21,7 @@ export function SidebarContentView({
       <SidebarFeedSection title={subscriptionsLabel} isOpen={isFeedsSectionOpen} onToggle={onToggleFeedsSection} />
 
       <ScrollArea data-testid="sidebar-feed-scroll-area" className="flex-1" viewportRef={viewportRef}>
-        <div className="pb-4">
+        <div className="pb-4 pr-3">
           {feedTree}
           {tagSection}
         </div>
