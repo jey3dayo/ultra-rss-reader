@@ -51,6 +51,7 @@ describe("ArticleToolbarView", () => {
       />,
     );
 
+    expect(container.firstElementChild).toHaveClass("h-12");
     expect(container.firstElementChild).not.toHaveAttribute("data-tauri-drag-region");
     expect(container.querySelector("[data-tauri-drag-region]")).not.toBeNull();
 
