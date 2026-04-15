@@ -1,6 +1,7 @@
 import type { TFunction } from "i18next";
 import type { ComponentPropsWithoutRef, ReactNode, RefObject } from "react";
 import type { SortSubscriptions } from "@/stores/preferences-store";
+import type { FeedCleanupContext } from "@/stores/ui-store";
 import type { AccountSwitcherProps } from "./account-switcher.types";
 import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarDensity } from "./sidebar-density";
@@ -144,7 +145,7 @@ export type SidebarControllerSectionsParams = {
   showUnreadCount: boolean;
   showStarredCount: boolean;
   feedViewportRef: SidebarContentSectionsProps["viewportRef"];
-  openFeedCleanup: () => void;
+  openFeedCleanup: (context?: FeedCleanupContext) => void;
   handleOpenSettings: () => void;
   handleOpenTagSettings: () => void;
   isAddFeedDialogOpen: boolean;
@@ -210,7 +211,7 @@ export type SidebarContentSectionsPropsParams = {
   isFeedsSectionOpen: boolean;
   toggleFeedsSection: () => void;
   feedViewportRef: SidebarContentSectionsProps["viewportRef"];
-  openFeedCleanup: () => void;
+  openFeedCleanup: (context?: FeedCleanupContext) => void;
   handleOpenSettings: () => void;
   selectedAccountId: SidebarContentSectionsProps["selectedAccountId"];
   isAddFeedDialogOpen: boolean;
@@ -253,7 +254,7 @@ export type SidebarSectionPropsParams = {
   isFeedsSectionOpen: boolean;
   toggleFeedsSection: () => void;
   feedViewportRef: import("react").RefObject<HTMLDivElement | null>;
-  openFeedCleanup: () => void;
+  openFeedCleanup: (context?: FeedCleanupContext) => void;
   handleOpenSettings: () => void;
   isAddFeedDialogOpen: boolean;
   handleAddFeedDialogOpenChange: (open: boolean) => void;

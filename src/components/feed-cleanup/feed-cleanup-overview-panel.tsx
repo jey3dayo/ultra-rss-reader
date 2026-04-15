@@ -1,19 +1,28 @@
+import { Check, Clock3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ControlChipButton } from "@/components/shared/control-chip-button";
+import { DecisionButton } from "@/components/shared/decision-button";
 import type { FeedCleanupOverviewPanelProps } from "./feed-cleanup.types";
 
 export function FeedCleanupOverviewPanel({
   overviewLabel,
+  bulkActionsLabel,
+  bulkVisibleCountLabel,
+  bulkKeepVisibleLabel,
+  bulkDeferVisibleLabel,
   summaryCards,
   integrityMode,
   integrityDetailLabels,
   filterOptions,
   filterCounts,
   activeFilterKeys,
+  visibleCandidateCount,
   showDeferred,
   showDeferredLabel,
   onToggleFilter,
   onToggleShowDeferred,
+  onKeepVisible,
+  onDeferVisible,
 }: FeedCleanupOverviewPanelProps) {
   const { t } = useTranslation("cleanup");
   const pendingCard = summaryCards[0];
@@ -53,47 +62,68 @@ export function FeedCleanupOverviewPanel({
             {integrityDetailLabels.filter_note}
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            <ControlChipButton
-              pressed={activeFilterKeys.size === 0}
-              size="comfortable"
-              className="gap-2 px-3.5"
-              onClick={() => {
-                filterOptions.forEach((filter) => {
-                  if (activeFilterKeys.has(filter.key)) {
-                    onToggleFilter(filter.key);
-                  }
-                });
-              }}
-            >
-              <span>{t("all_candidates")}</span>
-              <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground dark:bg-background/70">
-                {pendingCard?.value ?? "0"}
-              </span>
-            </ControlChipButton>
-            {filterOptions.map((filter) => (
+          <div className="space-y-3">
+            {visibleCandidateCount > 0 ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/65 bg-card/55 px-3.5 py-3 shadow-elevation-1">
+                <div className="min-w-0">
+                  <p className="font-sans text-sm font-medium text-foreground">{bulkActionsLabel}</p>
+                  <p className="font-serif text-sm text-muted-foreground">{bulkVisibleCountLabel}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <DecisionButton intent="keep" aria-label={bulkKeepVisibleLabel} onClick={onKeepVisible}>
+                    <Check className="h-4 w-4" />
+                    {bulkKeepVisibleLabel}
+                  </DecisionButton>
+                  <DecisionButton intent="defer" aria-label={bulkDeferVisibleLabel} onClick={onDeferVisible}>
+                    <Clock3 className="h-4 w-4" />
+                    {bulkDeferVisibleLabel}
+                  </DecisionButton>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap gap-2">
               <ControlChipButton
-                key={filter.key}
-                pressed={activeFilterKeys.has(filter.key)}
+                pressed={activeFilterKeys.size === 0}
                 size="comfortable"
                 className="gap-2 px-3.5"
-                aria-label={`${filter.label} ${filterCounts[filter.key]}`}
-                onClick={() => onToggleFilter(filter.key)}
+                onClick={() => {
+                  filterOptions.forEach((filter) => {
+                    if (activeFilterKeys.has(filter.key)) {
+                      onToggleFilter(filter.key);
+                    }
+                  });
+                }}
               >
-                <span>{filter.label}</span>
+                <span>{t("all_candidates")}</span>
                 <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground dark:bg-background/70">
-                  {filterCounts[filter.key]}
+                  {pendingCard?.value ?? "0"}
                 </span>
               </ControlChipButton>
-            ))}
-            <ControlChipButton
-              pressed={showDeferred}
-              size="comfortable"
-              className="px-3.5"
-              onClick={onToggleShowDeferred}
-            >
-              {showDeferredLabel}
-            </ControlChipButton>
+              {filterOptions.map((filter) => (
+                <ControlChipButton
+                  key={filter.key}
+                  pressed={activeFilterKeys.has(filter.key)}
+                  size="comfortable"
+                  className="gap-2 px-3.5"
+                  aria-label={`${filter.label} ${filterCounts[filter.key]}`}
+                  onClick={() => onToggleFilter(filter.key)}
+                >
+                  <span>{filter.label}</span>
+                  <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground dark:bg-background/70">
+                    {filterCounts[filter.key]}
+                  </span>
+                </ControlChipButton>
+              ))}
+              <ControlChipButton
+                pressed={showDeferred}
+                size="comfortable"
+                className="px-3.5"
+                onClick={onToggleShowDeferred}
+              >
+                {showDeferredLabel}
+              </ControlChipButton>
+            </div>
           </div>
         )}
       </div>

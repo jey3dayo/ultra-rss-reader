@@ -407,7 +407,13 @@ export function FeedCleanupPageView({
             editor={editor}
             reviewPanelClassName={reviewPanelClassName}
             editLabel={editLabel}
+            keepLabel={keepLabel}
+            laterLabel={laterLabel}
+            deleteLabel={deleteLabel}
             onEdit={onEdit}
+            onKeep={onKeepDecision}
+            onLater={onDeferDecision}
+            onDelete={onDeleteDecision}
             keyboardHints={keyboardHints}
           />
         </div>

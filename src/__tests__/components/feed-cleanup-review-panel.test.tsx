@@ -107,7 +107,13 @@ function buildProps() {
     editor: null,
     reviewPanelClassName: "w-full",
     editLabel: "Edit Feed",
+    keepLabel: "Keep",
+    laterLabel: "Defer",
+    deleteLabel: "Delete",
     onEdit: () => {},
+    onKeep: () => {},
+    onLater: () => {},
+    onDelete: () => {},
   };
 }
 
@@ -129,11 +135,20 @@ describe("FeedCleanupReviewPanel", () => {
 
     expect(screen.getByRole("link", { name: "Old Product Blog" })).toHaveAttribute("href", "https://example.com");
     expect(screen.getByRole("link", { name: "Old Product Blog" }).querySelector("h3")).toHaveClass("font-sans");
-    expect(screen.getByText("Reason flagged")).toBeInTheDocument();
+    expect(screen.getByText("Why this feed is here")).toBeInTheDocument();
     expect(screen.getByText("Updated 120 days ago / Unread 0 / Starred 0")).toHaveClass("font-serif");
     expect(screen.getByText("Updated 120 days ago / Unread 0 / Starred 0")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Open website" })).toBeNull();
     expect(screen.getByRole("button", { name: "Edit Feed" })).toBeInTheDocument();
+  });
+
+  it("shows review actions for the selected candidate", () => {
+    render(<FeedCleanupReviewPanel {...buildProps()} />);
+
+    const actions = screen.getByTestId("feed-cleanup-review-actions");
+    expect(within(actions).getByRole("button", { name: "Keep" })).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "Defer" })).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "Delete" })).toBeInTheDocument();
   });
 
   it("shows the no-selection message when nothing is selected", () => {

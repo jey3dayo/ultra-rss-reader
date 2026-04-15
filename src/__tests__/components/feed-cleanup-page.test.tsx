@@ -180,7 +180,7 @@ describe("FeedCleanupPage", () => {
 
     expect(screen.getByText("2025年11月1日")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "削除" }));
+    await user.click(within(screen.getByTestId("feed-cleanup-review-actions")).getByRole("button", { name: "削除" }));
 
     const deleteDialog = await screen.findByRole("dialog", { name: "フィードを削除" });
 
@@ -229,7 +229,7 @@ describe("FeedCleanupPage", () => {
     expect(within(queueRow).getByRole("button", { name: "Keep" })).toHaveClass("bg-emerald-500/12");
 
     const reviewPanel = screen.getByTestId("feed-cleanup-review-panel");
-    expect(within(reviewPanel).getByText("Reason flagged")).toBeInTheDocument();
+    expect(within(reviewPanel).getByText("Why this feed is here")).toBeInTheDocument();
     expect(within(reviewPanel).getByRole("link", { name: "Old Product Blog" })).toBeInTheDocument();
     expect(within(reviewPanel).getByRole("button", { name: "Edit Feed" })).toBeInTheDocument();
     expect(within(reviewPanel).getByText("Folder")).toBeInTheDocument();

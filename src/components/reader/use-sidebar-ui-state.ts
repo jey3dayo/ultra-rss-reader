@@ -21,7 +21,7 @@ export function useSidebarUiState(): SidebarUiStateResult {
   const setExpandedFolders = useUiStore((s) => s.setExpandedFolders);
   const toggleFolder = useUiStore((s) => s.toggleFolder);
   const openSettings = useUiStore((s) => s.openSettings);
-  const openFeedCleanup = useUiStore((s) => s.openSubscriptionsIndex);
+  const openFeedCleanup = useUiStore((s) => s.openFeedCleanup);
   const isAddFeedDialogOpen = useUiStore((s) => s.isAddFeedDialogOpen);
   const openAddFeedDialog = useUiStore((s) => s.openAddFeedDialog);
   const closeAddFeedDialog = useUiStore((s) => s.closeAddFeedDialog);

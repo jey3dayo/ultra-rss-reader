@@ -1,4 +1,6 @@
+import { Check, Clock3, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { DecisionButton } from "@/components/shared/decision-button";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { buildCleanupReasonFacts } from "@/lib/feed-cleanup";
 import { cn } from "@/lib/utils";
@@ -32,6 +34,7 @@ export function FeedCleanupReviewPanel({
   latestArticleLabel,
   unreadCountLabel,
   starredCountLabel,
+  reasonsLabel,
   noSelectionLabel,
   reasonLabels,
   summaryHeadlineLabels,
@@ -40,7 +43,13 @@ export function FeedCleanupReviewPanel({
   editor,
   reviewPanelClassName,
   editLabel,
+  keepLabel = "Keep",
+  laterLabel = "Defer",
+  deleteLabel = "Delete",
   onEdit,
+  onKeep,
+  onLater,
+  onDelete,
 }: FeedCleanupReviewPanelProps) {
   const { t } = useTranslation("cleanup");
   const reasonFacts = selectedCandidate ? buildCleanupReasonFacts(selectedCandidate) : [];
@@ -90,48 +99,67 @@ export function FeedCleanupReviewPanel({
         editor
       ) : selectedCandidate && selectedFeed && selectedMetrics && selectedSummary ? (
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <FeedDetailPanel
-            title={selectedCandidate.title}
-            titleHref={selectedFeed.site_url}
-            badgeLabel={summaryHeadlineLabels[selectedSummary.titleKey]}
-            badgeTone={selectedSummary.tone}
-            reasonBox={{
-              title: t("reason_box_title"),
-              body:
-                reasonFacts.length > 0
-                  ? reasonFacts
-                      .map((fact) =>
-                        fact.key === "stale_days"
-                          ? t("fact_stale_days", { count: fact.value })
-                          : fact.key === "unread_count"
-                            ? t("fact_unread_count", { count: fact.value })
-                            : t("fact_starred_count", { count: fact.value }),
-                      )
-                      .join(" / ")
-                  : summaryLabels[selectedSummary.summaryKey],
-              tone: selectedSummary.tone,
-            }}
-            metrics={[
-              { label: folderLabel, value: selectedCandidate.folderName ?? "—" },
-              { label: latestArticleLabel, value: formatDate(selectedCandidate.latestArticleAt, dateLocale) },
-              { label: unreadCountLabel, value: selectedCandidate.unreadCount },
-              { label: starredCountLabel, value: selectedCandidate.starredCount },
-            ]}
-            links={[]}
-            recentArticlesHeading={t("recent_articles")}
-            recentArticles={selectedMetrics.previewArticles.map((article) => ({
-              id: article.id,
-              title: article.title,
-              publishedAt: new Date(article.published_at).toLocaleDateString(dateLocale),
-              url: article.url,
-            }))}
-            primaryAction={{
-              label: editLabel,
-              onClick: onEdit,
-              ariaLabel: editLabel,
-            }}
-            reasonChips={selectedCandidate.reasonKeys.map((reasonKey) => reasonLabels[reasonKey])}
-          />
+          <div className="space-y-4">
+            <FeedDetailPanel
+              title={selectedCandidate.title}
+              titleHref={selectedFeed.site_url}
+              badgeLabel={summaryHeadlineLabels[selectedSummary.titleKey]}
+              badgeTone={selectedSummary.tone}
+              reasonBox={{
+                title: reasonsLabel,
+                body:
+                  reasonFacts.length > 0
+                    ? reasonFacts
+                        .map((fact) =>
+                          fact.key === "stale_days"
+                            ? t("fact_stale_days", { count: fact.value })
+                            : fact.key === "unread_count"
+                              ? t("fact_unread_count", { count: fact.value })
+                              : t("fact_starred_count", { count: fact.value }),
+                        )
+                        .join(" / ")
+                    : summaryLabels[selectedSummary.summaryKey],
+                tone: selectedSummary.tone,
+              }}
+              metrics={[
+                { label: folderLabel, value: selectedCandidate.folderName ?? "—" },
+                { label: latestArticleLabel, value: formatDate(selectedCandidate.latestArticleAt, dateLocale) },
+                { label: unreadCountLabel, value: selectedCandidate.unreadCount },
+                { label: starredCountLabel, value: selectedCandidate.starredCount },
+              ]}
+              links={[]}
+              recentArticlesHeading={t("recent_articles")}
+              recentArticles={selectedMetrics.previewArticles.map((article) => ({
+                id: article.id,
+                title: article.title,
+                publishedAt: new Date(article.published_at).toLocaleDateString(dateLocale),
+                url: article.url,
+              }))}
+              primaryAction={{
+                label: editLabel,
+                onClick: onEdit,
+                ariaLabel: editLabel,
+              }}
+              reasonChips={selectedCandidate.reasonKeys.map((reasonKey) => reasonLabels[reasonKey])}
+            />
+            <div
+              data-testid="feed-cleanup-review-actions"
+              className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/70 bg-card/70 px-4 py-3"
+            >
+              <DecisionButton intent="keep" aria-label={keepLabel} onClick={onKeep}>
+                <Check className="h-4 w-4" />
+                {keepLabel}
+              </DecisionButton>
+              <DecisionButton intent="defer" aria-label={laterLabel} onClick={onLater}>
+                <Clock3 className="h-4 w-4" />
+                {laterLabel}
+              </DecisionButton>
+              <DecisionButton intent="delete" aria-label={deleteLabel} onClick={onDelete}>
+                <Trash2 className="h-4 w-4" />
+                {deleteLabel}
+              </DecisionButton>
+            </div>
+          </div>
         </div>
       ) : (
         <p className="rounded-xl border border-dashed border-border px-4 py-6 font-serif text-sm text-muted-foreground">
