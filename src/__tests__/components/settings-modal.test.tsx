@@ -275,8 +275,8 @@ describe("SettingsModal", () => {
     expect(screen.getByRole("button", { name: /FreshRSS/i })).toBeInTheDocument();
     expect(screen.getByTestId("account-detail-layout")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Local" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Local/i })).toHaveClass("bg-sidebar-accent/82");
-    expect(screen.getByRole("button", { name: /FreshRSS/i })).not.toHaveClass("bg-sidebar-accent/82");
+    expect(screen.getByRole("button", { name: /Local/i })).toHaveClass("bg-[var(--bg-selected)]");
+    expect(screen.getByRole("button", { name: /FreshRSS/i })).not.toHaveClass("bg-[var(--bg-selected)]");
 
     await act(async () => {
       queryClient?.setQueryData(["accounts"], undefined);
@@ -298,7 +298,7 @@ describe("SettingsModal", () => {
     expect(screen.getByTestId("account-detail-layout")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Local/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /FreshRSS/i })).toHaveClass("bg-sidebar-accent/82");
+    expect(screen.getByRole("button", { name: /FreshRSS/i })).toHaveClass("bg-[var(--bg-selected)]");
   });
 
   it("does not keep showing a deleted account while accounts are pending after delete", async () => {
@@ -343,7 +343,7 @@ describe("SettingsModal", () => {
     expect(screen.queryByRole("heading", { level: 2, name: "Local" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Local/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /FreshRSS/i })).toHaveClass("bg-sidebar-accent/82");
+    expect(screen.getByRole("button", { name: /FreshRSS/i })).toHaveClass("bg-[var(--bg-selected)]");
 
     await act(async () => {
       queryClient?.setQueryData(["accounts"], [sampleAccounts[1]]);

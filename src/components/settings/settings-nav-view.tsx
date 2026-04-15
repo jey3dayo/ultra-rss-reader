@@ -15,15 +15,16 @@ export function SettingsNavView({ items, onSelectCategory }: SettingsNavViewProp
           aria-pressed={item.isActive}
           onClick={() => onSelectCategory(item.id)}
           className={cn(
-            "items-center rounded-lg px-3 py-2 text-[14px] font-medium leading-[1.3]",
-            item.isActive && "bg-sidebar-accent/82 shadow-none",
+            "relative items-center overflow-hidden rounded-lg px-3 py-2 text-[14px] font-medium leading-[1.3] hover:bg-sidebar-accent/58",
+            item.isActive &&
+              "bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:rounded-full before:bg-primary",
           )}
           leading={
             <span
               className={cn(
                 "flex h-6 w-6 items-center justify-center transition-colors",
                 item.isActive
-                  ? "text-sidebar-accent-foreground/88"
+                  ? "text-sidebar-accent-foreground"
                   : "text-sidebar-foreground/62 group-hover:text-sidebar-foreground/80",
               )}
             >

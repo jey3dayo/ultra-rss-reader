@@ -27,8 +27,9 @@ export function AccountsNavView({
           aria-pressed={account.isActive}
           onClick={() => onSelectAccount(account.id)}
           className={cn(
-            "items-center rounded-lg px-3 py-2 text-sm",
-            account.isActive && "bg-sidebar-accent/82 shadow-none",
+            "relative items-center overflow-hidden rounded-lg px-3 py-2 text-sm hover:bg-sidebar-accent/58",
+            account.isActive &&
+              "bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:rounded-full before:bg-primary",
           )}
           leading={
             <span
@@ -54,8 +55,9 @@ export function AccountsNavView({
         aria-pressed={isAddAccountActive}
         onClick={onAddAccount}
         className={cn(
-          "items-center rounded-lg px-3 py-2 text-sm",
-          isAddAccountActive && "bg-sidebar-accent/82 shadow-none",
+          "relative items-center overflow-hidden rounded-lg px-3 py-2 text-sm hover:bg-sidebar-accent/58",
+          isAddAccountActive &&
+            "bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:rounded-full before:bg-primary",
         )}
         leading={
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
