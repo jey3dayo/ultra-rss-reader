@@ -1,10 +1,10 @@
+import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown } from "lucide-react";
-import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { SidebarSectionToggleProps } from "./sidebar-section.types";
 
-export function SidebarSectionToggle({ label, isOpen, onToggle, className, renderWrapper }: SidebarSectionToggleProps) {
-  const toggle: ReactNode = (
+export function SidebarSectionToggle({ label, isOpen, onToggle, className, contextMenu }: SidebarSectionToggleProps) {
+  const toggle = (
     <button
       type="button"
       onClick={onToggle}
@@ -17,5 +17,15 @@ export function SidebarSectionToggle({ label, isOpen, onToggle, className, rende
       <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", !isOpen && "-rotate-90")} />
     </button>
   );
-  return renderWrapper ? renderWrapper(toggle) : toggle;
+
+  if (!contextMenu) {
+    return toggle;
+  }
+
+  return (
+    <ContextMenu.Root>
+      <ContextMenu.Trigger render={toggle} />
+      {contextMenu}
+    </ContextMenu.Root>
+  );
 }
