@@ -37,7 +37,7 @@ describe("AppLayout", () => {
     });
   });
 
-  it("hides the article list when feed cleanup is open in wide layout", () => {
+  it("shows only the workspace content when feed cleanup is open in wide layout", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       layoutMode: "wide",
@@ -47,9 +47,24 @@ describe("AppLayout", () => {
 
     render(<AppLayout />);
 
-    expect(screen.getByText("Sidebar")).toBeInTheDocument();
     expect(screen.getByText("Article View")).toBeInTheDocument();
     expect(screen.queryByText("Article List")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sidebar")).not.toBeInTheDocument();
+  });
+
+  it("keeps subscriptions workspaces content-only in wide layout", () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "wide",
+      subscriptionsWorkspace: { kind: "index", cleanupContext: null },
+      focusedPane: "content",
+    });
+
+    render(<AppLayout />);
+
+    expect(screen.getByText("Article View")).toBeInTheDocument();
+    expect(screen.queryByTestId("wide-sidebar-shell")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sidebar")).not.toBeInTheDocument();
   });
 
   it("keeps a closable sidebar shell mounted in wide layout for open and close motion", () => {
@@ -67,7 +82,9 @@ describe("AppLayout", () => {
     expect(shell).toHaveClass("transition-[width,opacity,transform,border-color]");
     expect(shell).toHaveClass("w-0");
     expect(shell).toHaveClass("opacity-0");
-    expect(screen.getByTestId("wide-sidebar-content")).toHaveAttribute("aria-hidden", "true");
+    const sidebarContent = screen.getByTestId("wide-sidebar-content");
+    expect(sidebarContent).toHaveAttribute("aria-hidden", "true");
+    expect(sidebarContent).toHaveAttribute("inert");
   });
 
   it("does not render the browser overlay root inside AppLayout", () => {

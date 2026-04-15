@@ -204,65 +204,60 @@ describe("FeedCleanupPage", () => {
     const closeButton = screen.getByRole("button", { name: "Close" });
     expect(closeButton).toBeInTheDocument();
     expect(closeButton).toHaveTextContent("");
-    expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Cleanup Queue" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Review" })).toBeInTheDocument();
     expect(screen.getByTestId("feed-cleanup-sidebar-summary")).toBeInTheDocument();
     expect(screen.getByTestId("feed-cleanup-page")).toHaveClass("h-dvh");
-    expect(await screen.findByText("2 candidates")).toBeInTheDocument();
+    expect(screen.getByText("Pending")).toBeInTheDocument();
+    expect(screen.getByText("Decided")).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Old Product Blog" })).toBeInTheDocument();
-    expect(screen.getByTestId("feed-cleanup-queue-row-feed-2")).toHaveClass("opacity-75");
-    expect(screen.getByTestId("feed-cleanup-queue-row-feed-1")).toHaveClass("scale-[1.01]");
+    expect(screen.getByTestId("feed-cleanup-queue-row-feed-2")).toHaveClass("bg-transparent");
+    expect(screen.getByTestId("feed-cleanup-queue-row-feed-1")).toHaveClass("rounded-xl");
+    expect(screen.getByTestId("feed-cleanup-queue-row-feed-1")).toHaveClass("bg-card/75");
     expect(screen.getByRole("button", { name: "90+ days inactive 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "No unread 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "No stars 1" })).toBeInTheDocument();
-    expect(screen.getAllByText("Review now").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Keep" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Defer" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Delete" })).toHaveAttribute("data-delete-button");
 
     await user.click(screen.getByRole("button", { name: "No unread 1" }));
     await user.click(screen.getByRole("button", { name: "Old Product Blog" }));
 
-    expect(screen.getAllByText("Work").length).toBeGreaterThan(0);
+    const queueRow = screen.getByTestId("feed-cleanup-queue-row-feed-1");
+    expect(queueRow).toHaveClass("bg-card/75");
+    expect(within(queueRow).getByRole("button", { name: "Defer" })).toBeInTheDocument();
+    expect(within(queueRow).getByRole("button", { name: "Delete" })).toBeInTheDocument();
+
     const reviewPanel = screen.getByTestId("feed-cleanup-review-panel");
-    expect(within(reviewPanel).getAllByText("Review now").length).toBeGreaterThan(0);
-    expect(within(reviewPanel).getByText("Updated 164 days ago")).toBeInTheDocument();
-    expect(within(reviewPanel).getByText("Unread 0")).toBeInTheDocument();
-    expect(within(reviewPanel).getByText("Starred 0")).toBeInTheDocument();
-    expect(within(reviewPanel).getByText("Why this feed is here")).toBeInTheDocument();
+    expect(within(reviewPanel).getByText("Reason flagged")).toBeInTheDocument();
+    expect(within(reviewPanel).getByRole("link", { name: "Old Product Blog" })).toBeInTheDocument();
+    expect(within(reviewPanel).getByRole("button", { name: "Edit Feed" })).toBeInTheDocument();
     expect(within(reviewPanel).getByText("Folder")).toBeInTheDocument();
     expect(within(reviewPanel).getByText("Latest article")).toBeInTheDocument();
-    expect(within(reviewPanel).getByText("Unread")).toBeInTheDocument();
-    expect(within(reviewPanel).getByText("Starred")).toBeInTheDocument();
-    expect(within(reviewPanel).getByText("Updated 164 days ago · Unread 0 · Starred 0")).toBeInTheDocument();
-
-    const queueCandidate = screen.getByRole("button", { name: "Old Product Blog" });
-    expect(queueCandidate).not.toHaveTextContent(/Work · \d+d · 0 unread · 0 starred/);
-    expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("grid-cols-[minmax(0,1fr)_300px]");
+    expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("grid-cols-[minmax(0,1fr)_480px]");
     expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("gap-5");
     expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("overflow-hidden");
     expect(screen.getByTestId("feed-cleanup-review-panel")).toHaveClass("sticky");
     expect(screen.getByTestId("feed-cleanup-review-panel")).toHaveClass("top-0");
 
-    await user.click(screen.getByRole("button", { name: "Defer" }));
+    await user.click(within(queueRow).getByRole("button", { name: "Defer" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Old Product Blog" })).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText("0 candidates")).toBeInTheDocument();
+    expect(screen.getByText("Old Product Blog deferred")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Show deferred" }));
     await user.click(screen.getByRole("button", { name: "Old Product Blog" }));
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(
+      within(screen.getByTestId("feed-cleanup-queue-row-feed-1")).getByRole("button", { name: "Delete" }),
+    );
 
     const deleteDialog = screen.getByRole("dialog", { name: "Delete feed" });
 
     expect(within(deleteDialog).getByText("Old Product Blog")).toBeInTheDocument();
     expect(within(deleteDialog).getByText("Why this feed is here")).toBeInTheDocument();
-    expect(within(deleteDialog).getByText("No unread articles")).toBeInTheDocument();
-    expect(within(deleteDialog).getByText("No starred articles")).toBeInTheDocument();
+    expect(within(deleteDialog).getByText("No unread")).toBeInTheDocument();
+    expect(within(deleteDialog).getByText("No stars")).toBeInTheDocument();
 
     await user.click(within(deleteDialog).getByRole("button", { name: "Delete" }));
 
@@ -302,8 +297,9 @@ describe("FeedCleanupPage", () => {
     await user.click(screen.getByRole("button", { name: "Old Product Blog" }));
 
     deleteShouldFail = true;
-    const reviewPanel = screen.getByTestId("feed-cleanup-review-panel");
-    await user.click(within(reviewPanel).getByRole("button", { name: "Delete" }));
+    await user.click(
+      within(screen.getByTestId("feed-cleanup-queue-row-feed-1")).getByRole("button", { name: "Delete" }),
+    );
     const deleteDialog = await screen.findByRole("dialog", { name: "Delete feed" });
     await user.click(within(deleteDialog).getByRole("button", { name: "Delete" }));
 
@@ -453,7 +449,7 @@ describe("FeedCleanupPage", () => {
     expect(await screen.findByRole("dialog", { name: "Delete feed" })).toBeInTheDocument();
   });
 
-  it("keeps all visible cleanup candidates from the overview actions", async () => {
+  it("keeps selected cleanup candidates from the bulk action bar", async () => {
     const user = userEvent.setup();
 
     render(<FeedCleanupPage />, { wrapper: createWrapper() });
@@ -461,17 +457,17 @@ describe("FeedCleanupPage", () => {
     expect(await screen.findByRole("button", { name: "Old Product Blog" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Fresh Feed" })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Keep all visible" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select candidate Old Product Blog" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select candidate Fresh Feed" }));
+    await user.click(screen.getByRole("button", { name: "Keep selected" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Old Product Blog" })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Fresh Feed" })).not.toBeInTheDocument();
     });
-
-    expect(screen.getByText("0 candidates")).toBeInTheDocument();
   });
 
-  it("defers all visible cleanup candidates from the overview actions", async () => {
+  it("defers selected cleanup candidates from the bulk action bar", async () => {
     const user = userEvent.setup();
 
     render(<FeedCleanupPage />, { wrapper: createWrapper() });
@@ -479,14 +475,14 @@ describe("FeedCleanupPage", () => {
     expect(await screen.findByRole("button", { name: "Old Product Blog" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Fresh Feed" })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Defer all visible" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select candidate Old Product Blog" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select candidate Fresh Feed" }));
+    await user.click(screen.getByRole("button", { name: "Defer selected" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Old Product Blog" })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Fresh Feed" })).not.toBeInTheDocument();
     });
-
-    expect(screen.getByText("0 candidates")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Show deferred" }));
 
@@ -494,14 +490,15 @@ describe("FeedCleanupPage", () => {
     expect(screen.getByRole("button", { name: "Fresh Feed" })).toBeInTheDocument();
   });
 
-  it("applies bulk actions only to the currently visible filtered candidates", async () => {
+  it("applies bulk actions only to the currently selected filtered candidates", async () => {
     const user = userEvent.setup();
 
     render(<FeedCleanupPage />, { wrapper: createWrapper() });
 
     await screen.findByRole("button", { name: "Old Product Blog" });
     await user.click(screen.getByRole("button", { name: "No unread 1" }));
-    await user.click(screen.getByRole("button", { name: "Keep all visible" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select candidate Old Product Blog" }));
+    await user.click(screen.getByRole("button", { name: "Keep selected" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Old Product Blog" })).not.toBeInTheDocument();
@@ -512,7 +509,7 @@ describe("FeedCleanupPage", () => {
     expect(screen.getByRole("button", { name: "Fresh Feed" })).toBeInTheDocument();
   });
 
-  it("hides overview bulk actions while reviewing broken references", async () => {
+  it("hides selection bulk actions while reviewing broken references", async () => {
     const user = userEvent.setup();
     integrityReport = {
       orphaned_article_count: 1,
@@ -530,24 +527,20 @@ describe("FeedCleanupPage", () => {
 
     await user.click(await screen.findByRole("button", { name: "Show broken references" }));
 
-    expect(screen.queryByRole("button", { name: "Keep all visible" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Defer all visible" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Keep selected" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Defer selected" })).not.toBeInTheDocument();
   });
 
-  it("disables overview bulk actions when there are no visible candidates", async () => {
+  it("shows no bulk action bar when nothing is selected", async () => {
     const user = userEvent.setup();
 
     render(<FeedCleanupPage />, { wrapper: createWrapper() });
 
     await screen.findByRole("button", { name: "Old Product Blog" });
-    await user.click(screen.getByRole("button", { name: "Keep all visible" }));
-
-    await waitFor(() => {
-      expect(screen.getByText("0 candidates")).toBeInTheDocument();
-    });
-
-    expect(screen.getByRole("button", { name: "Keep all visible" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Defer all visible" })).toBeDisabled();
+    await user.click(screen.getByRole("checkbox", { name: "Select candidate Old Product Blog" }));
+    expect(screen.getByRole("button", { name: "Keep selected" })).toBeInTheDocument();
+    await user.click(screen.getByRole("checkbox", { name: "Select candidate Old Product Blog" }));
+    expect(screen.queryByRole("button", { name: "Keep selected" })).not.toBeInTheDocument();
   });
 
   it("keeps the queue in normal document flow on narrow screens", async () => {
@@ -581,19 +574,6 @@ describe("FeedCleanupPage", () => {
       throw new Error("Cleanup queue section not found");
     }
 
-    const queueWithin = within(queueSection);
-    expect(queueWithin.getByText("Move")).toBeInTheDocument();
-    expect(queueWithin.getByText("J / K")).toBeInTheDocument();
-    expect(queueWithin.getByText("Select")).toBeInTheDocument();
-    expect(queueWithin.getByText("Space")).toBeInTheDocument();
-    expect(queueWithin.getAllByText("Review").length).toBeGreaterThan(0);
-    expect(queueWithin.getByText("Enter")).toBeInTheDocument();
-    expect(screen.getByText("Keep")).toBeInTheDocument();
-    expect(screen.getByText("Shift+K")).toBeInTheDocument();
-    expect(screen.getByText("Defer")).toBeInTheDocument();
-    expect(screen.getByText("L")).toBeInTheDocument();
-    expect(screen.getAllByText("D").length).toBeGreaterThan(0);
-
     expect(screen.getByTestId("feed-cleanup-queue-row-feed-1")).toHaveAttribute("data-focused", "true");
 
     await user.keyboard(" ");
@@ -608,10 +588,6 @@ describe("FeedCleanupPage", () => {
     expect(screen.getByTestId("feed-cleanup-queue-row-feed-2")).toHaveAttribute("data-focused", "true");
 
     await user.keyboard("l");
-
-    await waitFor(() => {
-      expect(screen.getByText("1 candidates")).toBeInTheDocument();
-    });
 
     expect(screen.getByRole("button", { name: "Fresh Feed" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Old Product Blog" })).not.toBeInTheDocument();
@@ -652,5 +628,31 @@ describe("FeedCleanupPage", () => {
     );
     expect(screen.getByRole("button", { name: "Old Product Blog", hidden: true })).toBeInTheDocument();
     expect(screen.queryByText("Old Product Blog kept")).not.toBeInTheDocument();
+  });
+
+  it("opens the shortcut help modal from the header and keyboard", async () => {
+    const user = userEvent.setup();
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    await screen.findByRole("button", { name: "Old Product Blog" });
+
+    await user.click(screen.getByRole("button", { name: "Shortcuts" }));
+
+    expect(screen.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
+    expect(screen.getByText("Navigation")).toBeInTheDocument();
+    expect(screen.getByText("Actions")).toBeInTheDocument();
+    expect(screen.getByText("Next feed")).toBeInTheDocument();
+    expect(screen.getAllByText("Help").length).toBeGreaterThan(0);
+
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Keyboard shortcuts" })).not.toBeInTheDocument();
+    });
+
+    await user.keyboard("?");
+
+    expect(screen.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
   });
 });

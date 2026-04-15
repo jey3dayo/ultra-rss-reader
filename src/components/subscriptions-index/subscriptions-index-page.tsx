@@ -4,16 +4,21 @@ import { useAccountArticles, useFeedIntegrityReport } from "@/hooks/use-articles
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { resolveFeedDisplayPreset } from "@/lib/article-display";
-import { buildFeedCleanupCandidates } from "@/lib/feed-cleanup";
+import { buildCleanupReasonFacts, buildFeedCleanupCandidates, summarizeCleanupCandidate } from "@/lib/feed-cleanup";
 import {
   buildCleanupCandidateMap,
   buildSubscriptionDetailMetrics,
+  buildSubscriptionListGroups,
   buildSubscriptionsIndexSummary,
   resolveSubscriptionRowStatus,
 } from "@/lib/subscriptions-index";
 import type { FeedCleanupContextReason } from "@/stores/ui-store";
 import { useUiStore } from "@/stores/ui-store";
-import type { SubscriptionListRow } from "./subscriptions-index.types";
+import type {
+  SubscriptionDetailCandidate,
+  SubscriptionListRow,
+  SubscriptionSummaryCard,
+} from "./subscriptions-index.types";
 import { SubscriptionsIndexPageView } from "./subscriptions-index-page-view";
 import { useSubscriptionsIndexState } from "./use-subscriptions-index-state";
 
@@ -34,8 +39,10 @@ export function SubscriptionsIndexPage() {
   const { t } = useTranslation("subscriptions");
   const { t: tr } = useTranslation("reader");
   const { t: tCleanup } = useTranslation("cleanup");
+  const { t: tc } = useTranslation("common");
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
   const openFeedCleanup = useUiStore((state) => state.openFeedCleanup);
+  const closeSubscriptionsWorkspace = useUiStore((state) => state.closeSubscriptionsWorkspace);
   const { data: feeds = [] } = useFeeds(selectedAccountId);
   const { data: folders = [] } = useFolders(selectedAccountId);
   const { data: accountArticles = [] } = useAccountArticles(selectedAccountId);
@@ -59,6 +66,7 @@ export function SubscriptionsIndexPage() {
     () =>
       feeds.map((feed) => ({
         feed,
+        folderId: feed.folder_id,
         folderName: feed.folder_id ? (folderNameById.get(feed.folder_id) ?? null) : null,
         latestArticleAt: candidateMap.get(feed.id)?.latestArticleAt ?? null,
         status: resolveSubscriptionRowStatus({
@@ -76,6 +84,56 @@ export function SubscriptionsIndexPage() {
         articles: accountArticles,
       })
     : null;
+  const selectedCandidate = state.selectedRow ? (candidateMap.get(state.selectedRow.feed.id) ?? null) : null;
+  const selectedDetailCandidate = useMemo<SubscriptionDetailCandidate | null>(() => {
+    if (!state.selectedRow) {
+      return null;
+    }
+
+    if (!selectedCandidate) {
+      return {
+        candidate: null,
+        tone: "neutral",
+        statusLabel: t("status_normal"),
+        summary: t("detail_reason_normal"),
+        reasonBoxBody: t("detail_reason_normal"),
+        reasonLabels: [],
+      };
+    }
+
+    const summary = summarizeCleanupCandidate(selectedCandidate);
+    const reasonFacts = buildCleanupReasonFacts(selectedCandidate);
+    const summaryText = t(
+      summary.summaryKey === "stale_and_inactive"
+        ? "detail_reason_stale_and_inactive"
+        : summary.summaryKey === "stale_with_no_stars"
+          ? "detail_reason_stale_with_no_stars"
+          : summary.summaryKey === "inactive_without_signals"
+            ? "detail_reason_inactive_without_signals"
+            : summary.summaryKey === "stale_but_supported"
+              ? "detail_reason_stale_but_supported"
+              : "detail_reason_normal",
+    );
+    return {
+      candidate: selectedCandidate,
+      tone: summary.tone,
+      statusLabel: t(`status_${state.selectedRow.status.labelKey}`),
+      summary: summaryText,
+      reasonBoxBody:
+        reasonFacts.length > 0
+          ? reasonFacts
+              .map((fact) =>
+                fact.key === "stale_days"
+                  ? tCleanup("fact_stale_days", { count: fact.value })
+                  : fact.key === "unread_count"
+                    ? tCleanup("fact_unread_count", { count: fact.value })
+                    : tCleanup("fact_starred_count", { count: fact.value }),
+              )
+              .join(" / ")
+          : summaryText,
+      reasonLabels: selectedCandidate.reasonKeys.map((reasonKey) => tCleanup(`reason_${reasonKey}`)),
+    };
+  }, [selectedCandidate, state.selectedRow, t, tCleanup]);
   const selectedDisplayModeLabel = state.selectedRow
     ? (() => {
         const preset = resolveFeedDisplayPreset(state.selectedRow.feed);
@@ -88,29 +146,44 @@ export function SubscriptionsIndexPage() {
         return tr("display_mode_preview");
       })()
     : tr("display_mode_default");
+  const groupedRows = useMemo(
+    () => buildSubscriptionListGroups(state.visibleRows, t("meta_folder_none")),
+    [state.visibleRows, t],
+  );
 
   const summary = buildSubscriptionsIndexSummary({ feeds, candidates, integrityReport });
   const summaryCards = [
-    { label: t("summary_total"), value: String(summary.totalCount) },
+    {
+      label: t("summary_total"),
+      value: String(summary.totalCount),
+      caption: t("summary_total_caption", { count: summary.totalCount }),
+      tone: "neutral",
+    },
     {
       label: t("summary_review"),
       value: String(summary.reviewCount),
+      caption: t("summary_review_caption", { count: summary.reviewCount }),
       actionLabel: t("open_cleanup_review"),
       onAction: () => openFeedCleanup({ reason: "review", returnTo: "index" }),
+      tone: "review",
     },
     {
       label: t("summary_stale"),
       value: String(summary.staleCount),
+      caption: t("summary_stale_caption", { count: summary.staleCount }),
       actionLabel: t("open_cleanup_stale"),
       onAction: () => openFeedCleanup({ reason: "stale_90d", returnTo: "index" }),
+      tone: "stale",
     },
     {
       label: t("summary_broken"),
       value: String(summary.brokenReferenceCount),
+      caption: t("summary_broken_caption", { count: summary.brokenReferenceCount }),
       actionLabel: t("open_cleanup_broken_references"),
       onAction: () => openFeedCleanup({ reason: "broken_references", returnTo: "index" }),
+      tone: "danger",
     },
-  ];
+  ] satisfies SubscriptionSummaryCard[];
 
   return (
     <SubscriptionsIndexPageView
@@ -119,10 +192,11 @@ export function SubscriptionsIndexPage() {
       summaryCards={summaryCards}
       inventoryHeading={t("inventory_heading")}
       detailHeading={t("detail_heading")}
-      rows={state.visibleRows}
+      groups={groupedRows}
       selectedFeedId={state.selectedFeedId}
       selectedRow={state.selectedRow}
       selectedMetrics={selectedMetrics}
+      selectedDetailCandidate={selectedDetailCandidate}
       emptyLabel={t("empty")}
       detailEmptyLabel={t("detail_empty")}
       statusLabels={{
@@ -141,11 +215,14 @@ export function SubscriptionsIndexPage() {
       latestArticleLabel={tCleanup("latest_article")}
       unreadCountLabel={tCleanup("unread_count")}
       starredCountLabel={tCleanup("starred_count")}
-      websiteUrlLabel={tr("website_url")}
-      feedUrlLabel={tr("feed_url")}
+      reasonHeading={t("detail_reason_heading")}
+      reasonHint={t("detail_reason_hint")}
+      recentArticlesHeading={t("detail_recent_articles")}
       displayModeLabel={tr("display_mode")}
       displayModeValue={selectedDisplayModeLabel}
       openCleanupLabel={t("open_cleanup_for_feed")}
+      backLabel={tc("back")}
+      closeLabel={tc("close")}
       onSelectFeed={state.setSelectedFeedId}
       onOpenCleanup={() => {
         if (!state.selectedRow) {
@@ -158,6 +235,8 @@ export function SubscriptionsIndexPage() {
           returnTo: "index",
         });
       }}
+      onBack={() => closeSubscriptionsWorkspace()}
+      onClose={() => closeSubscriptionsWorkspace()}
     />
   );
 }

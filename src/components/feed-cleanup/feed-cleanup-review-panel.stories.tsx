@@ -45,8 +45,8 @@ const baseLabels = {
   noSelectionLabel: "Select a feed to review.",
   reasonLabels: {
     stale_90d: "No new article for 90+ days",
-    no_unread: "No unread articles",
-    no_stars: "No starred articles",
+    no_unread: "No unread",
+    no_stars: "No stars",
   },
   priorityToneLabels: {
     high: "High priority",

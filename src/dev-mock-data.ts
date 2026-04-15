@@ -164,9 +164,9 @@ export const mockFeeds: FeedDto[] = [
 ];
 
 export const mockTags: TagDto[] = [
-  { id: "tag-important", name: "important", color: "#ef4444" },
-  { id: "tag-read-later", name: "read later", color: "#3b82f6" },
-  { id: "tag-work", name: "work", color: "#22c55e" },
+  { id: "tag-important", name: "important", color: "#cf7868" },
+  { id: "tag-read-later", name: "read later", color: "#6f8eb8" },
+  { id: "tag-work", name: "work", color: "#5f9670" },
 ];
 
 export const mockArticleTags: { article_id: string; tag_id: string }[] = [

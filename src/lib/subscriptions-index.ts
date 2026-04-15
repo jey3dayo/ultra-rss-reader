@@ -1,4 +1,8 @@
 import type { ArticleDto, FeedDto, FeedIntegrityReportDto } from "@/api/tauri-commands";
+import type {
+  SubscriptionListGroup,
+  SubscriptionListRow,
+} from "@/components/subscriptions-index/subscriptions-index.types";
 import type { FeedCleanupCandidate } from "@/lib/feed-cleanup";
 import { summarizeCleanupCandidate } from "@/lib/feed-cleanup";
 
@@ -30,6 +34,33 @@ export function buildSubscriptionsIndexSummary({
 
 export function buildCleanupCandidateMap(candidates: FeedCleanupCandidate[]): Map<string, FeedCleanupCandidate> {
   return new Map(candidates.map((candidate) => [candidate.feedId, candidate]));
+}
+
+export function buildSubscriptionListGroups(
+  rows: SubscriptionListRow[],
+  noFolderLabel: string,
+): SubscriptionListGroup[] {
+  const groups = new Map<string, SubscriptionListGroup>();
+
+  for (const row of rows) {
+    const key = row.folderId ?? "__ungrouped__";
+    const label = row.folderName ?? noFolderLabel;
+    const existing = groups.get(key);
+
+    if (existing) {
+      existing.rows.push(row);
+      continue;
+    }
+
+    groups.set(key, {
+      key,
+      label,
+      rows: [row],
+      folderId: row.folderId,
+    });
+  }
+
+  return Array.from(groups.values()).sort((left, right) => left.label.localeCompare(right.label));
 }
 
 export function resolveSubscriptionRowStatus({

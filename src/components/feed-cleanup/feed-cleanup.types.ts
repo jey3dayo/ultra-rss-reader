@@ -12,6 +12,7 @@ import type {
 import type { SubscriptionsWorkspace } from "@/stores/ui-store";
 import type { FeedEditDisplayPreset } from "../reader/feed-edit-submit";
 import type { FolderSelectViewProps } from "../reader/folder-select-view";
+import type { SubscriptionDetailMetrics } from "../subscriptions-index/subscriptions-index.types";
 
 export type FeedCleanupFilterOption = {
   key: "stale_90d" | "no_unread" | "no_stars";
@@ -127,6 +128,9 @@ export type FeedCleanupQueuePanelProps = {
   onKeepSelection?: () => void;
   onDeferSelection?: () => void;
   onDeleteSelection?: () => void;
+  onKeepCandidate?: (candidateId: string) => void;
+  onDeferCandidate?: (candidateId: string) => void;
+  onDeleteCandidate?: (candidateId: string) => void;
   bulkSelectionScopeLabel?: string;
   bulkKeepActionLabel?: string;
   bulkDeferActionLabel?: string;
@@ -148,6 +152,8 @@ export type FeedCleanupReviewPanelProps = {
   selectedIntegrityIssue: FeedIntegrityIssueDto | null;
   integrityDetailLabels: FeedCleanupIntegrityDetailLabels;
   selectedCandidate: FeedCleanupQueueCandidate | null;
+  selectedFeed?: FeedDto | null;
+  selectedMetrics?: SubscriptionDetailMetrics | null;
   selectedSummary: FeedCleanupSelectedSummary | null;
   currentStatusLabel?: string;
   currentStatusValue?: string;
@@ -167,13 +173,13 @@ export type FeedCleanupReviewPanelProps = {
   editor: ReactNode;
   reviewPanelClassName: string;
   editLabel: string;
-  keepLabel: string;
-  laterLabel: string;
-  deleteLabel: string;
+  keepLabel?: string;
+  laterLabel?: string;
+  deleteLabel?: string;
   onEdit: () => void;
-  onKeep: () => void;
-  onLater: () => void;
-  onDelete: () => void;
+  onKeep?: () => void;
+  onLater?: () => void;
+  onDelete?: () => void;
   keyboardHints?: FeedCleanupKeyboardHints;
 };
 
@@ -213,6 +219,8 @@ export type FeedCleanupPageViewProps = {
   visibleCandidateCount: number;
   queue: FeedCleanupQueueCandidate[];
   selectedCandidate: FeedCleanupQueueCandidate | null;
+  selectedFeed: FeedDto | null;
+  selectedMetrics: SubscriptionDetailMetrics | null;
   selectedSummary: FeedCleanupSelectedSummary | null;
   showDeferred: boolean;
   showDeferredLabel: string;
@@ -256,16 +264,26 @@ export type FeedCleanupPageViewProps = {
   onKeepDecision: () => void;
   onDeferDecision: () => void;
   onDeleteDecision: () => void;
+  onKeepCandidate: (candidateId: string) => void;
+  onDeferCandidate: (candidateId: string) => void;
+  onDeleteCandidate: (candidateId: string) => void;
   onSyncReviewToFocus: () => void;
   onEdit: () => void;
-  onKeep: () => void;
-  onLater: () => void;
-  onDelete: () => void;
   selectedFeedIds: ReadonlySet<string>;
   focusedFeedId: string | null;
   currentStatusValue: string;
   keyboardHints: FeedCleanupKeyboardHints;
   suspendKeyboardShortcuts: boolean;
+  shortcutsLabel: string;
+  shortcutsTitle: string;
+  shortcutsNavigationLabel: string;
+  shortcutsActionsLabel: string;
+  shortcutsHelpLabel: string;
+  shortcutItems: ReadonlyArray<{
+    key: string;
+    label: string;
+    category: "navigation" | "actions";
+  }>;
 };
 
 export type FeedCleanupDeleteDialogProps = {

@@ -222,6 +222,18 @@ export function useFeedCleanupPageState({
     return hidden;
   }, [state.deferredFeedIds, state.keptFeedIds, state.showDeferred]);
 
+  const rawCandidates = useMemo(
+    () =>
+      buildFeedCleanupCandidates({
+        feeds,
+        folders,
+        articles: accountArticles,
+        now: new Date(),
+        hiddenFeedIds: new Set(),
+      }),
+    [accountArticles, feeds, folders],
+  );
+
   const allCandidates = useMemo(
     () =>
       buildFeedCleanupCandidates({
@@ -269,6 +281,10 @@ export function useFeedCleanupPageState({
     (candidate) => summarizeCleanupCandidate(candidate).tone === "high",
   ).length;
   const deferredCount = state.deferredFeedIds.size;
+  const pendingCount = rawCandidates.filter(
+    (candidate) => !state.keptFeedIds.has(candidate.feedId) && !state.deferredFeedIds.has(candidate.feedId),
+  ).length;
+  const decidedCount = state.keptFeedIds.size + state.deferredFeedIds.size;
   const isEditingSelectedFeed = state.selectedFeedId !== null && state.editingFeedId === state.selectedFeedId;
   const decisionTargetIds = resolveDecisionTargetIds(state);
 
@@ -405,6 +421,8 @@ export function useFeedCleanupPageState({
     lastDecisionAction: state.lastDecisionAction,
     isEditingSelectedFeed,
     reviewNowCount,
+    pendingCount,
+    decidedCount,
     deferredCount,
     decisionTargetIds,
     toggleFilter: (key: FeedCleanupFilterKey) => dispatch({ type: "toggle-filter", key }),
@@ -445,6 +463,11 @@ export function useFeedCleanupPageState({
     requestDeleteForDecisionTargets: () => {
       dispatch({ type: "set-delete-target-ids", feedIds: decisionTargetIds });
     },
+    requestDeleteForCandidate: (feedId: string) => {
+      dispatch({ type: "set-focused-feed-id", feedId });
+      dispatch({ type: "set-selected-feed-id", feedId });
+      dispatch({ type: "set-delete-target-ids", feedIds: [feedId] });
+    },
     requestDeleteForSelectedFeed: () => {
       if (selectedFeed) {
         dispatch({ type: "set-delete-target-ids", feedIds: [selectedFeed.id] });
@@ -453,6 +476,11 @@ export function useFeedCleanupPageState({
     clearDeleteTarget: () => dispatch({ type: "set-delete-target-ids", feedIds: [] }),
     markSelectedCandidateKept: () => {
       dispatch({ type: "apply-decision", decision: "keep", feedIds: decisionTargetIds });
+    },
+    markCandidateKept: (feedId: string) => {
+      dispatch({ type: "set-focused-feed-id", feedId });
+      dispatch({ type: "set-selected-feed-id", feedId });
+      dispatch({ type: "apply-decision", decision: "keep", feedIds: [feedId] });
     },
     markVisibleCandidatesKept: () => {
       if (visibleCandidates.length > 0) {
@@ -465,6 +493,11 @@ export function useFeedCleanupPageState({
     },
     markSelectedCandidateDeferred: () => {
       dispatch({ type: "apply-decision", decision: "defer", feedIds: decisionTargetIds });
+    },
+    markCandidateDeferred: (feedId: string) => {
+      dispatch({ type: "set-focused-feed-id", feedId });
+      dispatch({ type: "set-selected-feed-id", feedId });
+      dispatch({ type: "apply-decision", decision: "defer", feedIds: [feedId] });
     },
     markVisibleCandidatesDeferred: () => {
       if (visibleCandidates.length > 0) {

@@ -1,6 +1,6 @@
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { commandArgsSchemas } from "@/api/schemas";
-import type { AccountDto, AccountSyncStatusDto, ArticleDto, FeedDto } from "@/api/tauri-commands";
+import type { AccountDto, AccountSyncStatusDto, ArticleDto, FeedDto, MuteKeywordDto } from "@/api/tauri-commands";
 
 export type MockTauriCommandCall = {
   cmd: string;
@@ -88,6 +88,16 @@ export const sampleArticles: ArticleDto[] = [
   },
 ];
 
+export const sampleMuteKeywords: MuteKeywordDto[] = [
+  {
+    id: "mute-1",
+    keyword: "Kindle Unlimited",
+    scope: "title_and_body",
+    created_at: "2026-04-15T01:00:00Z",
+    updated_at: "2026-04-15T01:00:00Z",
+  },
+];
+
 // --- Mock setup ---
 
 type MockHandler = (cmd: string, args: Record<string, unknown>) => unknown;
@@ -137,6 +147,18 @@ const defaultHandler: MockHandler = (cmd, args) => {
       return null;
     case "search_articles":
       return [];
+    case "list_mute_keywords":
+      return sampleMuteKeywords;
+    case "create_mute_keyword":
+      return {
+        id: "mute-new",
+        keyword: String(args.keyword),
+        scope: String(args.scope) as "title" | "body" | "title_and_body",
+        created_at: "2026-04-15T01:00:00Z",
+        updated_at: "2026-04-15T01:00:00Z",
+      } satisfies MuteKeywordDto;
+    case "delete_mute_keyword":
+      return null;
     case "get_tag_article_counts":
       return {};
     case "add_local_feed":

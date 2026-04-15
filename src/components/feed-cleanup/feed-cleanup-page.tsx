@@ -6,6 +6,7 @@ import { useFolders } from "@/hooks/use-folders";
 import { useResolvedDevIntent } from "@/hooks/use-resolved-dev-intent";
 import { resolveArticleDateLocale } from "@/lib/article-view";
 import type { FeedCleanupReasonKey } from "@/lib/feed-cleanup";
+import { buildSubscriptionDetailMetrics } from "@/lib/subscriptions-index";
 import { useUiStore } from "@/stores/ui-store";
 import { FeedCleanupDeleteDialog } from "./feed-cleanup-delete-dialog";
 import { FeedCleanupFeedEditor } from "./feed-cleanup-feed-editor";
@@ -49,11 +50,22 @@ export function FeedCleanupPage() {
     no_unread: t("reason_no_unread"),
     no_stars: t("reason_no_stars"),
   };
+  const selectedMetrics = cleanupState.selectedFeed
+    ? buildSubscriptionDetailMetrics({
+        feed: cleanupState.selectedFeed,
+        articles: accountArticles,
+      })
+    : null;
   const summaryCards = [
     {
-      label: t("summary_candidates"),
-      value: String(cleanupState.visibleCandidates.length),
-      caption: t("summary_candidates_caption", { count: cleanupState.visibleCandidates.length }),
+      label: t("summary_pending"),
+      value: String(cleanupState.pendingCount),
+      caption: t("summary_pending_caption"),
+    },
+    {
+      label: t("summary_decided"),
+      value: String(cleanupState.decidedCount),
+      caption: t("summary_decided_caption"),
     },
   ] as const;
   const bulkActionDisabled =
@@ -152,6 +164,8 @@ export function FeedCleanupPage() {
         visibleCandidateCount={bulkActionDisabled ? 0 : cleanupState.visibleCandidates.length}
         queue={cleanupState.visibleCandidates}
         selectedCandidate={cleanupState.selectedCandidate}
+        selectedFeed={cleanupState.selectedFeed}
+        selectedMetrics={selectedMetrics}
         selectedSummary={cleanupState.selectedSummary}
         showDeferred={cleanupState.showDeferred}
         showDeferredLabel={cleanupState.showDeferred ? t("hide_deferred") : t("show_deferred")}
@@ -217,6 +231,15 @@ export function FeedCleanupPage() {
           showDecisionToast("defer");
         }}
         onDeleteDecision={cleanupState.requestDeleteForDecisionTargets}
+        onKeepCandidate={(feedId) => {
+          cleanupState.markCandidateKept(feedId);
+          showDecisionToast("keep");
+        }}
+        onDeferCandidate={(feedId) => {
+          cleanupState.markCandidateDeferred(feedId);
+          showDecisionToast("defer");
+        }}
+        onDeleteCandidate={cleanupState.requestDeleteForCandidate}
         onSyncReviewToFocus={cleanupState.syncReviewToFocusedCandidate}
         editing={cleanupState.isEditingSelectedFeed}
         editor={
@@ -235,16 +258,7 @@ export function FeedCleanupPage() {
             />
           ) : null
         }
-        onKeep={() => {
-          cleanupState.markSelectedCandidateKept();
-          showDecisionToast("keep");
-        }}
         onEdit={cleanupState.startEditingSelectedFeed}
-        onLater={() => {
-          cleanupState.markSelectedCandidateDeferred();
-          showDecisionToast("defer");
-        }}
-        onDelete={cleanupState.requestDeleteForDecisionTargets}
         selectedFeedIds={cleanupState.selectedFeedIds}
         focusedFeedId={cleanupState.focusedFeedId}
         currentStatusValue={cleanupState.selectedCandidate?.deferred ? t("defer") : t("review_status")}
@@ -260,6 +274,28 @@ export function FeedCleanupPage() {
           deleteKeys: t("keyboard_delete_keys"),
         }}
         suspendKeyboardShortcuts={cleanupState.deleteTargets.length > 0}
+        shortcutsLabel={t("shortcuts_open")}
+        shortcutsTitle={t("shortcuts_title")}
+        shortcutsNavigationLabel={t("shortcuts_navigation")}
+        shortcutsActionsLabel={t("shortcuts_actions")}
+        shortcutsHelpLabel={t("shortcuts_help")}
+        shortcutItems={[
+          {
+            key: t("keyboard_move_keys").split(" / ")[0] ?? "J",
+            label: t("shortcuts_next_feed"),
+            category: "navigation",
+          },
+          {
+            key: t("keyboard_move_keys").split(" / ")[1] ?? "K",
+            label: t("shortcuts_previous_feed"),
+            category: "navigation",
+          },
+          { key: t("keyboard_select_keys"), label: t("keyboard_select"), category: "navigation" },
+          { key: t("keyboard_review_keys"), label: t("keep"), category: "actions" },
+          { key: t("keyboard_defer_keys"), label: t("defer"), category: "actions" },
+          { key: t("keyboard_delete_keys"), label: t("delete"), category: "actions" },
+          { key: "?", label: t("shortcuts_help"), category: "actions" },
+        ]}
       />
 
       <FeedCleanupDeleteDialog

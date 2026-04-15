@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { SubscriptionListRow } from "./subscriptions-index.types";
 
 export function useSubscriptionsIndexState(rows: SubscriptionListRow[]) {
@@ -36,6 +36,19 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[]) {
       return left.feed.title.localeCompare(right.feed.title);
     });
   }, [rows, searchQuery, showCandidatesOnly, sortKey]);
+
+  useEffect(() => {
+    if (visibleRows.length === 0) {
+      if (selectedFeedId !== null) {
+        setSelectedFeedId(null);
+      }
+      return;
+    }
+
+    if (selectedFeedId === null || !visibleRows.some((row) => row.feed.id === selectedFeedId)) {
+      setSelectedFeedId(visibleRows[0]?.feed.id ?? null);
+    }
+  }, [selectedFeedId, visibleRows]);
 
   const selectedRow = visibleRows.find((row) => row.feed.id === selectedFeedId) ?? null;
 

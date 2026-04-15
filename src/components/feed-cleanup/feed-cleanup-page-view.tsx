@@ -1,6 +1,8 @@
-import { X } from "lucide-react";
+import { Keyboard, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { WorkspaceHeader, workspaceHeaderActionClassName } from "@/components/shared/workspace-header";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { FeedCleanupPageViewProps } from "./feed-cleanup.types";
 import { FeedCleanupOverviewPanel } from "./feed-cleanup-overview-panel";
 import { FeedCleanupQueuePanel } from "./feed-cleanup-queue-panel";
@@ -53,13 +55,14 @@ export function FeedCleanupPageView({
   visibleCandidateCount,
   queue,
   selectedCandidate,
+  selectedFeed,
+  selectedMetrics,
   selectedSummary,
   showDeferred,
   showDeferredLabel,
   emptyLabel,
   keepLabel,
   laterLabel,
-  currentStatusLabel,
   reviewStatusLabel,
   selectedCountLabel,
   selectCandidateLabel,
@@ -96,16 +99,21 @@ export function FeedCleanupPageView({
   onKeepDecision,
   onDeferDecision,
   onDeleteDecision,
+  onKeepCandidate,
+  onDeferCandidate,
+  onDeleteCandidate,
   onSyncReviewToFocus,
   onEdit,
-  onKeep,
-  onLater,
-  onDelete,
   selectedFeedIds,
   focusedFeedId,
-  currentStatusValue,
   keyboardHints,
   suspendKeyboardShortcuts,
+  shortcutsLabel,
+  shortcutsTitle,
+  shortcutsNavigationLabel,
+  shortcutsActionsLabel,
+  shortcutsHelpLabel,
+  shortcutItems,
 }: FeedCleanupPageViewProps) {
   const layoutRef = useRef<HTMLDivElement | null>(null);
   const keyboardStateRef = useRef({
@@ -120,8 +128,11 @@ export function FeedCleanupPageView({
     onSyncReviewToFocus,
     onToggleCandidateSelection,
     suspendKeyboardShortcuts,
+    shortcutsOpen: false,
+    setShortcutsOpen: (_open: boolean) => {},
   });
   const [layoutWidth, setLayoutWidth] = useState(() => resolveFeedCleanupLayoutWidth(null));
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   useEffect(() => {
     keyboardStateRef.current = {
@@ -136,6 +147,8 @@ export function FeedCleanupPageView({
       onSyncReviewToFocus,
       onToggleCandidateSelection,
       suspendKeyboardShortcuts,
+      shortcutsOpen,
+      setShortcutsOpen,
     };
   }, [
     editing,
@@ -149,6 +162,7 @@ export function FeedCleanupPageView({
     onSyncReviewToFocus,
     onToggleCandidateSelection,
     suspendKeyboardShortcuts,
+    shortcutsOpen,
   ]);
 
   useEffect(() => {
@@ -189,11 +203,19 @@ export function FeedCleanupPageView({
         return;
       }
 
+      if (state.shortcutsOpen) {
+        return;
+      }
+
       if (state.integrityMode || state.editing || state.suspendKeyboardShortcuts) {
         return;
       }
 
       switch (event.key) {
+        case "?":
+          event.preventDefault();
+          state.setShortcutsOpen(true);
+          return;
         case "j":
           event.preventDefault();
           state.onMoveFocusNext();
@@ -243,9 +265,9 @@ export function FeedCleanupPageView({
 
   const mainLayoutClassName =
     layoutMode === "wide"
-      ? "grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_320px] gap-6 overflow-hidden px-6 py-5"
+      ? "grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_480px] gap-6 overflow-hidden px-6 py-5"
       : layoutMode === "split"
-        ? "grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_300px] gap-5 overflow-hidden px-5 py-5"
+        ? "grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_480px] gap-5 overflow-hidden px-5 py-5"
         : "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5";
 
   const reviewPanelClassName = layoutMode === "stacked" ? "" : "sticky top-0 max-h-full self-start overflow-hidden";
@@ -253,26 +275,28 @@ export function FeedCleanupPageView({
   return (
     <div
       data-testid="feed-cleanup-page"
-      className="flex h-dvh max-h-dvh min-h-0 flex-1 flex-col overflow-hidden bg-background"
+      className="flex h-dvh max-h-dvh min-h-0 flex-1 flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.16),transparent_24%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--background)))]"
     >
-      <div className="border-b border-border px-6 py-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold text-foreground">{title}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {backToIndexLabel && onBackToIndex ? (
-              <Button variant="ghost" onClick={onBackToIndex}>
-                {backToIndexLabel}
-              </Button>
-            ) : null}
-            <Button variant="ghost" size="icon-sm" aria-label={closeLabel} onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
+      <WorkspaceHeader
+        eyebrow="Triage"
+        title={title}
+        subtitle={subtitle}
+        backLabel={backToIndexLabel}
+        onBack={onBackToIndex}
+        closeLabel={closeLabel}
+        onClose={onClose}
+        actions={
+          <Button
+            aria-label={shortcutsLabel}
+            variant="ghost"
+            className={workspaceHeaderActionClassName}
+            onClick={() => setShortcutsOpen(true)}
+          >
+            <Keyboard className="h-4 w-4" />
+            {shortcutsLabel}
+          </Button>
+        }
+      />
 
       {integrityIssue ? (
         <div className="border-b border-border bg-amber-50/70 px-6 py-3 text-amber-950 dark:bg-amber-500/10 dark:text-amber-100">
@@ -343,6 +367,9 @@ export function FeedCleanupPageView({
             onKeepSelection={onKeepDecision}
             onDeferSelection={onDeferDecision}
             onDeleteSelection={onDeleteDecision}
+            onKeepCandidate={onKeepCandidate}
+            onDeferCandidate={onDeferCandidate}
+            onDeleteCandidate={onDeleteCandidate}
             unreadCountLabel={unreadCountLabel}
             starredCountLabel={starredCountLabel}
             deferredBadgeLabel={deferredBadgeLabel}
@@ -359,10 +386,9 @@ export function FeedCleanupPageView({
             selectedIntegrityIssue={selectedIntegrityIssue}
             integrityDetailLabels={integrityDetailLabels}
             selectedCandidate={selectedCandidate}
+            selectedFeed={selectedFeed}
+            selectedMetrics={selectedMetrics}
             selectedSummary={selectedSummary}
-            currentStatusLabel={currentStatusLabel}
-            currentStatusValue={currentStatusValue}
-            deferLabel={laterLabel}
             folderLabel={folderLabel}
             latestArticleLabel={latestArticleLabel}
             unreadCountLabel={unreadCountLabel}
@@ -378,17 +404,66 @@ export function FeedCleanupPageView({
             editor={editor}
             reviewPanelClassName={reviewPanelClassName}
             editLabel={editLabel}
-            keepLabel={keepLabel}
-            laterLabel={laterLabel}
-            deleteLabel={deleteLabel}
             onEdit={onEdit}
-            onKeep={onKeep}
-            onLater={onLater}
-            onDelete={onDelete}
             keyboardHints={keyboardHints}
           />
         </div>
       </div>
+      <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
+        <DialogContent
+          showCloseButton={false}
+          className="overflow-hidden rounded-[28px] border border-border/70 bg-background/95 p-0 sm:max-w-[480px]"
+          overlayPreset="readable"
+        >
+          <div className="flex items-start justify-between border-b border-border/70 px-6 py-5">
+            <DialogHeader className="space-y-0">
+              <DialogTitle className="text-3xl font-semibold tracking-tight">{shortcutsTitle}</DialogTitle>
+            </DialogHeader>
+            <Button variant="ghost" size="icon-sm" aria-label={closeLabel} onClick={() => setShortcutsOpen(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="grid gap-6 px-6 py-5">
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-muted-foreground">{shortcutsNavigationLabel}</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {shortcutItems
+                  .filter((item) => item.category === "navigation")
+                  .map((item) => (
+                    <div
+                      key={`${item.category}-${item.key}-${item.label}`}
+                      className="flex items-center gap-3 rounded-2xl bg-card/70 px-3 py-2"
+                    >
+                      <kbd className="rounded-md border border-border/80 bg-background/80 px-2 py-1 text-xs font-semibold text-foreground">
+                        {item.key}
+                      </kbd>
+                      <span className="text-sm text-foreground">{item.label}</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-muted-foreground">{shortcutsActionsLabel}</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {shortcutItems
+                  .filter((item) => item.category === "actions")
+                  .map((item) => (
+                    <div
+                      key={`${item.category}-${item.key}-${item.label}`}
+                      className="flex items-center gap-3 rounded-2xl bg-card/70 px-3 py-2"
+                    >
+                      <kbd className="rounded-md border border-border/80 bg-background/80 px-2 py-1 text-xs font-semibold text-foreground">
+                        {item.key}
+                      </kbd>
+                      <span className="text-sm text-foreground">{item.label}</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">{shortcutsHelpLabel}</p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -102,8 +102,8 @@ function WideLayout({
   subscriptionsWorkspaceOpen: boolean;
   sidebarOpen: boolean;
 }) {
-  const panes = subscriptionsWorkspaceOpen ? ["sidebar", "content"] : resolveLayout("wide", focusedPane, contentMode);
-  const shouldShowSidebar = subscriptionsWorkspaceOpen || sidebarOpen;
+  const panes = subscriptionsWorkspaceOpen ? ["content"] : resolveLayout("wide", focusedPane, contentMode);
+  const shouldShowSidebar = !subscriptionsWorkspaceOpen && sidebarOpen;
 
   return (
     <div className="flex h-full overflow-hidden">

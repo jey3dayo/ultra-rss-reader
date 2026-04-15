@@ -10,10 +10,12 @@ import {
   checkBrowserEmbedSupportArgs,
   countAccountUnreadArticlesArgs,
   createFolderArgs,
+  createMuteKeywordArgs,
   createOrUpdateBrowserWebviewArgs,
   createTagArgs,
   deleteAccountArgs,
   deleteFeedArgs,
+  deleteMuteKeywordArgs,
   deleteTagArgs,
   discoverFeedsArgs,
   getArticleTagsArgs,
@@ -41,7 +43,14 @@ import {
   updateFeedDisplaySettingsArgs,
   updateFeedFolderArgs,
 } from "./api/schemas";
-import type { AccountDto, AccountSyncStatusDto, FeedDto, FolderDto, TagDto } from "./api/tauri-commands";
+import type {
+  AccountDto,
+  AccountSyncStatusDto,
+  FeedDto,
+  FolderDto,
+  MuteKeywordDto,
+  TagDto,
+} from "./api/tauri-commands";
 import { mockAccounts, mockArticles, mockArticleTags, mockFeeds, mockFolders, mockTags } from "./dev-mock-data";
 import { readDevIntent, readDevWebUrl, readDevWindowSize } from "./lib/dev-intent";
 
@@ -49,7 +58,9 @@ let nextAccountId = 100;
 let nextFeedId = 100;
 let nextFolderId = 100;
 let nextTagId = 100;
+let nextMuteKeywordId = 100;
 const mockPreferences = new Map<string, string>();
+const mockMuteKeywords: MuteKeywordDto[] = [];
 
 function titleFromUrl(feedUrl: string): string {
   try {
@@ -69,6 +80,35 @@ function recalcUnread(feedId: string) {
 function countUnreadByAccount(accountId: string) {
   const feedIds = mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id);
   return mockArticles.filter((article) => feedIds.includes(article.feed_id) && !article.is_read).length;
+}
+
+function applyMuteKeywordFilter<T extends { title: string; content_sanitized: string; summary: string | null }>(
+  articles: T[],
+) {
+  if (mockMuteKeywords.length === 0) {
+    return articles;
+  }
+
+  const normalize = (value: string) => value.trim().toLowerCase();
+
+  return articles.filter((article) => {
+    const title = normalize(article.title);
+    const body = normalize(article.content_sanitized || article.summary || "");
+
+    return !mockMuteKeywords.some((rule) => {
+      const keyword = normalize(rule.keyword);
+      if (!keyword) {
+        return false;
+      }
+      if (rule.scope === "title") {
+        return title.includes(keyword);
+      }
+      if (rule.scope === "body") {
+        return body.includes(keyword);
+      }
+      return title.includes(keyword) || body.includes(keyword);
+    });
+  });
 }
 
 export function setupDevMocks() {
@@ -223,13 +263,13 @@ export function setupDevMocks() {
 
       case "list_articles": {
         const { feedId } = listArticlesArgs.parse(payload);
-        return mockArticles.filter((a) => a.feed_id === feedId);
+        return applyMuteKeywordFilter(mockArticles.filter((a) => a.feed_id === feedId));
       }
 
       case "list_account_articles": {
         const { accountId } = listAccountArticlesArgs.parse(payload);
         const feedIds = mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id);
-        return mockArticles.filter((a) => feedIds.includes(a.feed_id));
+        return applyMuteKeywordFilter(mockArticles.filter((a) => feedIds.includes(a.feed_id)));
       }
 
       case "count_account_unread_articles": {
@@ -242,7 +282,41 @@ export function setupDevMocks() {
 
       case "search_articles": {
         const { query } = searchArticlesArgs.parse(payload);
-        return mockArticles.filter((a) => a.title.toLowerCase().includes(query.toLowerCase()));
+        return applyMuteKeywordFilter(mockArticles.filter((a) => a.title.toLowerCase().includes(query.toLowerCase())));
+      }
+
+      case "list_mute_keywords":
+        return [...mockMuteKeywords].sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+      case "create_mute_keyword": {
+        const { keyword, scope } = createMuteKeywordArgs.parse(payload);
+        const normalizedKeyword = keyword.trim().toLowerCase();
+        const exists = mockMuteKeywords.some(
+          (rule) => rule.keyword.trim().toLowerCase() === normalizedKeyword && rule.scope === scope,
+        );
+        if (exists) {
+          throw { type: "UserVisible", message: "Mute keyword already exists" };
+        }
+
+        const now = new Date().toISOString();
+        const rule: MuteKeywordDto = {
+          id: `dev-mute-${nextMuteKeywordId++}`,
+          keyword: keyword.trim(),
+          scope,
+          created_at: now,
+          updated_at: now,
+        };
+        mockMuteKeywords.unshift(rule);
+        return rule;
+      }
+
+      case "delete_mute_keyword": {
+        const { muteKeywordId } = deleteMuteKeywordArgs.parse(payload);
+        const index = mockMuteKeywords.findIndex((rule) => rule.id === muteKeywordId);
+        if (index >= 0) {
+          mockMuteKeywords.splice(index, 1);
+        }
+        return null;
       }
 
       case "mark_article_read": {
@@ -353,13 +427,14 @@ export function setupDevMocks() {
       }
 
       case "rename_tag": {
-        const { tagId, name } = renameTagArgs.parse(payload);
+        const { tagId, name, color } = renameTagArgs.parse(payload);
         const renameIdx = mockTags.findIndex((t) => t.id === tagId);
         if (renameIdx >= 0) {
           mockTags[renameIdx].name = name;
+          mockTags[renameIdx].color = color ?? null;
           return mockTags[renameIdx];
         }
-        return null;
+        throw { type: "UserVisible", message: "Tag not found" };
       }
 
       case "delete_tag": {
@@ -406,7 +481,7 @@ export function setupDevMocks() {
           const feedIds = mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id);
           filtered = filtered.filter((a) => feedIds.includes(a.feed_id));
         }
-        return filtered;
+        return applyMuteKeywordFilter(filtered);
       }
 
       case "get_tag_article_counts": {

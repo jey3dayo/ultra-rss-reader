@@ -60,6 +60,7 @@ export type SubscriptionsWorkspace =
 export type SettingsCategory =
   | "general"
   | "appearance"
+  | "mute"
   | "reading"
   | "shortcuts"
   | "actions"
