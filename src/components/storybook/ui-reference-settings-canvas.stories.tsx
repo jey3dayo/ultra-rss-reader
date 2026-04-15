@@ -91,7 +91,7 @@ function ReferenceRadioGroup() {
 
 function ReferenceDragPattern() {
   return (
-    <div className="rounded-[24px] border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5">
+    <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Drag handle pattern</SectionHeading>
       <div className="rounded-2xl border border-border/70 bg-surface-1/90 px-3 py-3">
         <div className="flex items-center gap-3">
@@ -113,7 +113,7 @@ function ReferenceDragPattern() {
           </span>
         </div>
       </div>
-    </div>
+    </SurfaceCard>
   );
 }
 
@@ -179,7 +179,7 @@ function ReaderFilterStripSpecimen() {
   const [mode, setMode] = useState<ReaderFilterMode>("unread");
 
   return (
-    <div className="rounded-[24px] border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5">
+    <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Reader filter strip</SectionHeading>
       <div className="rounded-[20px] border border-sidebar-border/70 bg-sidebar px-3 py-2 text-sidebar-foreground shadow-elevation-1">
         <ToggleGroup
@@ -218,13 +218,13 @@ function ReaderFilterStripSpecimen() {
       <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
         reader 固有の帯なので別ページ化もできるが、今は「よく使う見本を一枚に集約する」方を優先する。
       </p>
-    </div>
+    </SurfaceCard>
   );
 }
 
 function AccountCardStackSpecimen() {
   return (
-    <div className="rounded-[24px] border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5">
+    <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Account card stack</SectionHeading>
       <div className="max-w-[18rem] rounded-[22px] border border-sidebar-border/70 bg-sidebar px-2 py-2 text-sidebar-foreground shadow-elevation-1">
         <AccountsNavView
@@ -238,13 +238,13 @@ function AccountCardStackSpecimen() {
       <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
         avatar とタイトル、補足行をまとめて見せたいときの密度見本。settings の account list に近い。
       </p>
-    </div>
+    </SurfaceCard>
   );
 }
 
 function AnnouncementCardsSpecimen() {
   return (
-    <div className="rounded-[24px] border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5">
+    <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Announcement cards</SectionHeading>
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-4 rounded-[24px] border border-border/60 bg-card/52 px-4 py-3 shadow-elevation-1">
@@ -266,13 +266,13 @@ function AnnouncementCardsSpecimen() {
           </div>
         </div>
       </div>
-    </div>
+    </SurfaceCard>
   );
 }
 
 function NavigationStackSpecimen() {
   return (
-    <div className="rounded-[24px] border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5">
+    <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Folder stack</SectionHeading>
       <div className="max-w-[18rem] rounded-[22px] border border-sidebar-border/70 bg-sidebar px-2 py-2 text-sidebar-foreground shadow-elevation-1">
         <FolderSectionView
@@ -288,7 +288,7 @@ function NavigationStackSpecimen() {
       <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
         folder trigger と feed row の組み合わせ見本。数値列と favicon の密度を見るための断片。
       </p>
-    </div>
+    </SurfaceCard>
   );
 }
 
@@ -296,7 +296,7 @@ function TagPaletteSpecimen() {
   const [color, setColor] = useState<string | null>(TAG_COLOR_PRESETS[3]);
 
   return (
-    <div className="rounded-[24px] border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5">
+    <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Tag palette</SectionHeading>
       <TagColorPicker
         label="カラー"
@@ -309,13 +309,13 @@ function TagPaletteSpecimen() {
       <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
         サイドバーや記事画面で使うタグ色の選択見本。色 chip 群と説明文の関係を見るための断片。
       </p>
-    </div>
+    </SurfaceCard>
   );
 }
 
 function DisabledSwitchSpecimen() {
   return (
-    <div className="rounded-[24px] border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5">
+    <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Disabled switch</SectionHeading>
       <div className="rounded-2xl border border-border/70 bg-surface-1/90 px-3 py-2">
         <LabeledControlRow label="ミュート時に自動既読">
@@ -330,13 +330,13 @@ function DisabledSwitchSpecimen() {
       <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
         利用予定だが今は無効、という状態の見本。注記と disabled control を同時に見せる。
       </p>
-    </div>
+    </SurfaceCard>
   );
 }
 
 function ValidationRowSpecimen() {
   return (
-    <div className="rounded-[24px] border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5">
+    <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Validation row</SectionHeading>
       <div className="rounded-2xl border border-border/70 bg-surface-1/90 px-3 py-3">
         <LabeledInputRow
@@ -351,7 +351,7 @@ function ValidationRowSpecimen() {
           URL は `https://` から始めてください。
         </p>
       </div>
-    </div>
+    </SurfaceCard>
   );
 }
 

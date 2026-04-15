@@ -65,20 +65,24 @@ const surfaceCardVariants = cva(
       },
     ],
     defaultVariants: {
-      variant: "info",
       tone: "default",
       padding: "default",
     },
   },
 );
 
-type SurfaceCardProps = HTMLAttributes<HTMLDivElement> & VariantProps<typeof surfaceCardVariants>;
+type SurfaceCardVariantProps = VariantProps<typeof surfaceCardVariants>;
+
+type SurfaceCardProps = HTMLAttributes<HTMLDivElement> &
+  Omit<SurfaceCardVariantProps, "variant"> & {
+    variant: NonNullable<SurfaceCardVariantProps["variant"]>;
+  };
 
 export function SurfaceCard({ variant, tone, padding, className, ...props }: SurfaceCardProps) {
   return (
     <div
       {...props}
-      data-surface-card={variant ?? "info"}
+      data-surface-card={variant}
       className={cn(surfaceCardVariants({ variant, tone, padding }), className)}
     />
   );

@@ -1,9 +1,17 @@
 import { render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { describe, expect, it } from "vitest";
 
 import { SurfaceCard } from "@/components/shared/surface-card";
 
 describe("SurfaceCard", () => {
+  it("requires an explicit variant in the component API", () => {
+    // @ts-expect-error SurfaceCard requires a semantic variant.
+    const props: ComponentProps<typeof SurfaceCard> = { children: "Missing variant" };
+
+    expect(props.children).toBe("Missing variant");
+  });
+
   it("maps info and section variants to distinct semantic surfaces", () => {
     render(
       <>
