@@ -83,7 +83,7 @@ export function ArticleToolbarActionStrip({
   const isMobile = useUiStore((state) => state.layoutMode === "mobile");
 
   return (
-    <div className="flex items-center gap-1 rounded-full border border-border/70 bg-background/70 px-1.5 py-1 shadow-[0_12px_30px_-24px_hsl(var(--foreground)/0.45)] backdrop-blur-sm">
+    <div className="flex items-center gap-1">
       <IconToolbarToggle
         label={labels.toggleRead}
         pressed={isRead}
