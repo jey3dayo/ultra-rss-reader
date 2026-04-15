@@ -68,8 +68,8 @@ export function ArticleReaderBody({ article, feedName }: ArticleReaderBodyProps)
 
   return (
     <ScrollArea data-testid="article-reader-scroll-area" className="h-full">
-      <article className="mx-auto max-w-[48rem] px-7 pb-16 pt-12 md:px-10 md:pt-16">
-        <section className="rounded-[2rem] border border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.92),hsl(var(--background)/0.98))] px-6 py-6 shadow-[0_24px_70px_-56px_hsl(var(--foreground)/0.55)] sm:px-8 sm:py-8">
+      <article className="mx-auto max-w-[44rem] px-7 pb-20 pt-14 md:px-11 md:pt-20">
+        <div className="space-y-8">
           <ArticleMetaView
             title={article.title}
             author={article.author}
@@ -101,13 +101,13 @@ export function ArticleReaderBody({ article, feedName }: ArticleReaderBodyProps)
             }
           />
 
-          <div className="mt-6 border-t border-border/60 pt-5">
+          <div className="block border-t border-border/35 pt-5">
             <ArticleTagChips articleId={article.id} />
           </div>
-        </section>
 
-        <div className="mt-10" ref={setContentContainerElement}>
-          <ArticleContentView thumbnailUrl={article.thumbnail} contentHtml={articleContentHtml} feedName={feedName} />
+          <div ref={setContentContainerElement}>
+            <ArticleContentView thumbnailUrl={article.thumbnail} contentHtml={articleContentHtml} feedName={feedName} />
+          </div>
         </div>
       </article>
     </ScrollArea>
