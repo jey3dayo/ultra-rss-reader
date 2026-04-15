@@ -1,4 +1,5 @@
 import { Plus, Rss } from "lucide-react";
+import { NavRowButton } from "@/components/shared/nav-row-button";
 import { cn } from "@/lib/utils";
 import { SERVICE_CATEGORIES } from "./add-account-services";
 import type { AccountsNavViewProps } from "./settings-nav.types";
@@ -19,42 +20,44 @@ export function AccountsNavView({
   return (
     <div className="space-y-1">
       {accounts.map((account) => (
-        <button
-          type="button"
+        <NavRowButton
           key={account.id}
+          tone="sidebar"
+          selected={account.isActive}
+          aria-pressed={account.isActive}
           onClick={() => onSelectAccount(account.id)}
-          className={cn(
-            "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors",
-            account.isActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50",
-          )}
-        >
-          <span
-            className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-full",
-              ACCOUNT_ICON_BG[account.kind] ?? "bg-muted",
-            )}
-          >
-            <Rss className="h-4 w-4 text-white" />
-          </span>
-          <div className="flex flex-col items-start">
-            <span className="font-medium">{account.name}</span>
-            <span className="text-xs text-muted-foreground">{account.kind}</span>
-          </div>
-        </button>
+          className="items-center rounded-lg px-3 py-2 text-sm"
+          leading={
+            <span
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-full",
+                ACCOUNT_ICON_BG[account.kind] ?? "bg-muted",
+              )}
+            >
+              <Rss className="h-4 w-4 text-white" />
+            </span>
+          }
+          title={account.name}
+          description={
+            <div className={account.isActive ? "text-sidebar-accent-foreground/72" : "text-sidebar-foreground/62"}>
+              {account.kind}
+            </div>
+          }
+        />
       ))}
-      <button
-        type="button"
+      <NavRowButton
+        tone="sidebar"
+        selected={isAddAccountActive}
+        aria-pressed={isAddAccountActive}
         onClick={onAddAccount}
-        className={cn(
-          "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-muted-foreground",
-          isAddAccountActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50",
-        )}
-      >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-          <Plus className="h-4 w-4" />
-        </span>
-        {addAccountLabel}
-      </button>
+        className="items-center rounded-lg px-3 py-2 text-sm"
+        leading={
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+            <Plus className="h-4 w-4" />
+          </span>
+        }
+        title={addAccountLabel}
+      />
     </div>
   );
 }

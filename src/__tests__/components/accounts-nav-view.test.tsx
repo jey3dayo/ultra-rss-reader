@@ -27,7 +27,10 @@ describe("AccountsNavView", () => {
     const addAccountButton = screen.getByRole("button", { name: "Add account…" });
 
     expect(localButton).toHaveClass("bg-sidebar-accent");
+    expect(localButton).toHaveAttribute("aria-pressed", "true");
     expect(freshRssButton).not.toHaveClass("bg-sidebar-accent");
+    expect(freshRssButton).toHaveAttribute("aria-pressed", "false");
+    expect(addAccountButton).toHaveAttribute("aria-pressed", "false");
 
     fireEvent.click(freshRssButton);
     fireEvent.click(addAccountButton);

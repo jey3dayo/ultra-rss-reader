@@ -1,5 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { NavRowButton } from "@/components/shared/nav-row-button";
 import { SectionHeading } from "@/components/shared/section-heading";
 import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import { cn } from "@/lib/utils";
@@ -23,8 +24,7 @@ export function ServicePicker({ onSelect }: ServicePickerProps) {
               <ul className="space-y-0.5">
                 {category.services.map((service) => (
                   <li key={service.kind}>
-                    <button
-                      type="button"
+                    <NavRowButton
                       disabled={service.disabled}
                       onClick={() => {
                         if (!service.disabled) {
@@ -32,24 +32,21 @@ export function ServicePicker({ onSelect }: ServicePickerProps) {
                         }
                       }}
                       className={cn(
-                        "flex w-full items-center gap-3 rounded-md px-3 py-2.5",
-                        "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        service.disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-accent",
+                        "items-center rounded-lg px-3 py-2.5",
+                        !service.disabled &&
+                          "hover:border-[rgba(38,37,30,0.12)] hover:bg-[rgba(242,241,237,0.9)] focus-visible:shadow-[0_4px_12px_rgba(0,0,0,0.08)]",
                       )}
-                    >
-                      <div
-                        className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", service.iconBg)}
-                      >
-                        <service.icon className="h-[18px] w-[18px] text-white" />
-                      </div>
-                      <div className="flex-1 text-left">
-                        <div className="text-sm font-medium">{t(service.nameKey as "account.local_feeds")}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {t(service.descKey as "account.local_desc")}
+                      leading={
+                        <div
+                          className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", service.iconBg)}
+                        >
+                          <service.icon className="h-[18px] w-[18px] text-white" />
                         </div>
-                      </div>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    </button>
+                      }
+                      title={t(service.nameKey as "account.local_feeds")}
+                      description={<div>{t(service.descKey as "account.local_desc")}</div>}
+                      trailing={<ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                    />
                   </li>
                 ))}
               </ul>

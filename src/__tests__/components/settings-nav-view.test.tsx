@@ -27,7 +27,9 @@ describe("SettingsNavView", () => {
     const appearanceButton = screen.getByRole("button", { name: "Custom category" });
 
     expect(generalButton).toHaveClass("bg-sidebar-accent");
+    expect(generalButton).toHaveAttribute("aria-pressed", "true");
     expect(appearanceButton).not.toHaveClass("bg-sidebar-accent");
+    expect(appearanceButton).toHaveAttribute("aria-pressed", "false");
 
     fireEvent.click(appearanceButton);
 
