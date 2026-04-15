@@ -35,9 +35,10 @@ describe("ArticleEmptyStateView", () => {
 
     const container = screen.getByText("Select an article to read").parentElement;
 
-    expect(container).toHaveClass("border-border/70");
+    expect(container).toHaveAttribute("data-surface-card", "info");
+    expect(container).toHaveClass("rounded-[var(--radius-surface-info)]");
+    expect(container).not.toHaveClass("rounded-[2rem]");
     expect(container).toHaveClass("max-w-xl");
-    expect(container).toHaveClass("bg-[linear-gradient(180deg,hsl(var(--card)/0.9),hsl(var(--background)/0.98))]");
   });
 
   it("uses semantic list markers so wrapped hints stay aligned", () => {

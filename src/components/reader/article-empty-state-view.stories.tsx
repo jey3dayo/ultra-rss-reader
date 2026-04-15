@@ -21,3 +21,6 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+Default.args = {
+  hints: ["Choose an article from the list", "Use / to search", "Open Web Preview from the toolbar"],
+};

@@ -1,3 +1,4 @@
+import { SurfaceCard } from "@/components/shared/surface-card";
 import type { ArticleEmptyStateViewProps } from "./article-view.types";
 
 const EMPTY_HINTS: string[] = [];
@@ -5,7 +6,7 @@ const EMPTY_HINTS: string[] = [];
 export function ArticleEmptyStateView({ message, hints = EMPTY_HINTS }: ArticleEmptyStateViewProps) {
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-10 text-center">
-      <div className="max-w-xl rounded-[2rem] border border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.9),hsl(var(--background)/0.98))] px-7 py-7 text-left text-muted-foreground shadow-[0_28px_80px_-54px_hsl(var(--foreground)/0.55)]">
+      <SurfaceCard variant="info" padding="spacious" className="max-w-xl text-left text-muted-foreground">
         <p className="mb-3 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground/80">Reader</p>
         <p className="text-left text-[1.35rem] font-semibold leading-[1.2] tracking-[-0.02em] text-foreground">
           {message}
@@ -19,7 +20,7 @@ export function ArticleEmptyStateView({ message, hints = EMPTY_HINTS }: ArticleE
             ))}
           </ul>
         ) : null}
-      </div>
+      </SurfaceCard>
     </div>
   );
 }
