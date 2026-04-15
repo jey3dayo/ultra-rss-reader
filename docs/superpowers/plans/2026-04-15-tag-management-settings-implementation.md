@@ -10,9 +10,10 @@
 
 ---
 
-### Task 1: サイドバーのタグ見出しに右クリックメニューを追加する
+## Task 1: サイドバーのタグ見出しに右クリックメニューを追加する
 
 **Files:**
+
 - Create: `src/components/reader/tag-section-context-menu-view.tsx`
 - Create: `src/components/reader/tag-section-context-menu.tsx`
 - Modify: `src/components/shared/sidebar-section.types.ts`
@@ -215,9 +216,10 @@ git add \
 git commit -m "feat: add tag section context menu"
 ```
 
-### Task 2: Settings モーダルに `タグ` カテゴリとタグ管理ビューを追加する
+## Task 2: Settings モーダルに `タグ` カテゴリとタグ管理ビューを追加する
 
 **Files:**
+
 - Create: `src/components/settings/tags-settings.tsx`
 - Create: `src/components/settings/tags-settings-view.tsx`
 - Modify: `src/stores/ui-store.ts`
@@ -413,9 +415,10 @@ git add \
 git commit -m "feat: add tag settings category"
 ```
 
-### Task 3: タグ管理の create / edit / delete と削除後フォールバックを実装する
+## Task 3: タグ管理の create / edit / delete と削除後フォールバックを実装する
 
 **Files:**
+
 - Create: `src/components/settings/create-tag-dialog-view.tsx`
 - Modify: `src/components/settings/tags-settings.tsx`
 - Modify: `src/components/settings/tags-settings-view.tsx`
@@ -593,9 +596,10 @@ git add \
 git commit -m "feat: implement tag management flows"
 ```
 
-### Task 4: 品質ゲートを通して仕上げる
+## Task 4: 品質ゲートを通して仕上げる
 
 **Files:**
+
 - Modify: `src/components/settings/tags-settings.tsx` (if lint/type/test fixes are needed)
 - Modify: `src/components/settings/tags-settings-view.tsx` (if layout/a11y fixes are needed)
 - Modify: `src/components/reader/tag-list-view.tsx` (if interaction fixes are needed)
@@ -699,4 +703,3 @@ git commit -m "feat: add tag management settings"
   - `SettingsCategory` は `tags`
   - サイドバー見出し操作は `onCreateTag` / `onManageTags`
   - 設定画面 component は `TagsSettings` / `TagsSettingsView`
-
