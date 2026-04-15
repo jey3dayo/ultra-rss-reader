@@ -1,4 +1,5 @@
 import type { RefObject } from "react";
+import { NavRowButton } from "@/components/shared/nav-row-button";
 import { cn } from "@/lib/utils";
 import type { AccountSwitcherMenuProps } from "./account-switcher.types";
 
@@ -49,33 +50,34 @@ export function AccountSwitcherMenu({
       {accounts.map((account, index) => {
         const statusLabel = accountStatusLabels?.[account.id];
         return (
-          <button
-            type="button"
+          <NavRowButton
             key={account.id}
+            tone="sidebar"
             ref={(element) => {
               itemRefs.current[index] = element;
             }}
+            title={
+              <div className="flex items-center gap-2">
+                <span className="truncate">{account.name}</span>
+                <span className="text-xs text-muted-foreground">{account.kind}</span>
+              </div>
+            }
+            description={statusLabel ? <p className="text-xs text-muted-foreground">{statusLabel}</p> : undefined}
+            selected={account.id === selectedAccountId}
             onClick={() => {
               onSelectAccount(account.id);
               onClose(false);
             }}
             role="menuitemradio"
             aria-checked={account.id === selectedAccountId}
+            aria-pressed={account.id === selectedAccountId}
             className={cn(
-              "flex w-full rounded-md px-3 py-2 text-left text-sm",
+              "relative w-full overflow-hidden rounded-md px-3 py-2 text-left text-sm hover:bg-sidebar-accent/58",
               account.id === selectedAccountId
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                ? "bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:rounded-full before:bg-primary"
+                : "text-sidebar-foreground",
             )}
-          >
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="truncate">{account.name}</span>
-                <span className="text-xs text-muted-foreground">{account.kind}</span>
-              </div>
-              {statusLabel ? <p className="text-xs text-muted-foreground">{statusLabel}</p> : null}
-            </div>
-          </button>
+          />
         );
       })}
     </div>
