@@ -180,6 +180,7 @@
     "type": "種類",
     "local_feeds": "ローカルフィード",
     "freshrss": "FreshRSS",
+    "feedly": "Feedly",
     "inoreader": "Inoreader",
     "local": "ローカル",
     "name": "名前",
@@ -258,6 +259,7 @@
     "freshrss_desc": "freshrss.org",
     "fever": "Fever",
     "fever_desc": "非推奨",
+    "coming_soon": "工事中",
     "inoreader_desc": "inoreader.com",
     "back_to_services": "サービス選択に戻る"
   },

@@ -45,7 +45,7 @@ export function ServicePicker({ onSelect }: ServicePickerProps) {
                       }
                       title={t(service.nameKey as "account.local_feeds")}
                       description={<div>{t(service.descKey as "account.local_desc")}</div>}
-                      trailing={<ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                      trailing={service.disabled ? null : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                     />
                   </li>
                 ))}

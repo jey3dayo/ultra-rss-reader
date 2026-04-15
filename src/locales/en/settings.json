@@ -180,6 +180,7 @@
     "type": "Type",
     "local_feeds": "Local Feeds",
     "freshrss": "FreshRSS",
+    "feedly": "Feedly",
     "inoreader": "Inoreader",
     "local": "Local",
     "name": "Name",
@@ -258,6 +259,7 @@
     "freshrss_desc": "freshrss.org",
     "fever": "Fever",
     "fever_desc": "Deprecated. Not recommended.",
+    "coming_soon": "工事中",
     "inoreader_desc": "inoreader.com",
     "back_to_services": "Back to service selection"
   },

@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import type { AddAccountProviderKind } from "@/lib/add-account-form";
 
-export type ServiceKind = AddAccountProviderKind | "Fever";
+export type ServiceKind = AddAccountProviderKind | "Feedly" | "Fever";
 
 export type ServiceDefinition = {
   kind: ServiceKind;

@@ -56,6 +56,10 @@
 
 ## Deferred Follow-ups
 
+- [ ] Feedly / Inoreader のアカウント登録対応を予定
+  - `Inoreader` は backend 側の provider kind、認証、同期分岐、GReader provider が既にあるため、主な残タスクは UI 公開、AppId / AppKey の設定導線、実機疎通確認
+  - `Feedly` は現行の Local / GReader 前提の実装にそのままは乗らず、認証と同期を別 provider として増やす前提で見積もる
+  - 優先度を付けるなら `Inoreader` を先に有効化し、その後に `Feedly` を別件として扱う
 - [ ] DB migration recovery の追加 hardening は migration 変更時に issue #23 を参照する
   - 常設 TODO ではなく、次に migration を触るタイミングでまとめて扱う
   - 失敗系テストや復旧手順の補強は issue #23 に集約する

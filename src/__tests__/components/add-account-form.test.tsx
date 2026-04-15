@@ -20,15 +20,22 @@ describe("AddAccountForm", () => {
 
     expect(screen.getByText("Local Feeds")).toBeInTheDocument();
     expect(screen.getByText("FreshRSS")).toBeInTheDocument();
+    expect(screen.getByText("Feedly")).toBeInTheDocument();
     expect(screen.getByText("Inoreader")).toBeInTheDocument();
     expect(screen.getByText("Fever")).toBeInTheDocument();
   });
 
-  it("shows Fever as disabled", () => {
+  it("shows planned services as disabled with a coming-soon label", () => {
     render(<AddAccountForm />, { wrapper: createWrapper() });
 
     const feverButton = screen.getByRole("button", { name: /Fever/ });
+    const feedlyButton = screen.getByRole("button", { name: /Feedly/ });
+    const inoreaderButton = screen.getByRole("button", { name: /Inoreader/ });
+
     expect(feverButton).toBeDisabled();
+    expect(feedlyButton).toBeDisabled();
+    expect(inoreaderButton).toBeDisabled();
+    expect(screen.getAllByText("工事中")).toHaveLength(2);
   });
 
   it("uses semantic hover and focus styles in the service picker", () => {
@@ -57,6 +64,16 @@ describe("AddAccountForm", () => {
     await waitFor(() => {
       expect(screen.getByText("Local Feeds")).toBeInTheDocument();
     });
+  });
+
+  it("does not navigate to the config form when a planned service is clicked", async () => {
+    const user = userEvent.setup();
+    render(<AddAccountForm />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByRole("button", { name: /Feedly/ }));
+
+    expect(screen.getByText("Local Feeds")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
   });
 
   it("shows a toast and skips the IPC call when FreshRSS fields are missing", async () => {
