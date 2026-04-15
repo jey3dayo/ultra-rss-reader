@@ -89,7 +89,7 @@ describe("FeedCleanupQueuePanel", () => {
     );
 
     expect(screen.getByText("1 selected")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Keep selected" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("bg-emerald-600/90");
     expect(screen.getByRole("button", { name: "Defer selected" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete selected" })).toBeInTheDocument();
   });

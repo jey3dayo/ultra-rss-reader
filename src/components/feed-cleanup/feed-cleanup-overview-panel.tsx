@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
+import { ControlChipButton } from "@/components/shared/control-chip-button";
 import type { FeedCleanupOverviewPanelProps } from "./feed-cleanup.types";
 
 export function FeedCleanupOverviewPanel({
@@ -54,9 +54,10 @@ export function FeedCleanupOverviewPanel({
           </div>
         ) : (
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant={activeFilterKeys.size === 0 ? "secondary" : "ghost"}
-              className="rounded-lg border px-3.5"
+            <ControlChipButton
+              pressed={activeFilterKeys.size === 0}
+              size="comfortable"
+              className="gap-2 px-3.5"
               onClick={() => {
                 filterOptions.forEach((filter) => {
                   if (activeFilterKeys.has(filter.key)) {
@@ -66,31 +67,33 @@ export function FeedCleanupOverviewPanel({
               }}
             >
               <span>{t("all_candidates")}</span>
-              <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground">
+              <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground dark:bg-background/70">
                 {pendingCard?.value ?? "0"}
               </span>
-            </Button>
+            </ControlChipButton>
             {filterOptions.map((filter) => (
-              <Button
+              <ControlChipButton
                 key={filter.key}
-                variant={activeFilterKeys.has(filter.key) ? "secondary" : "ghost"}
-                className="rounded-lg border px-3.5"
+                pressed={activeFilterKeys.has(filter.key)}
+                size="comfortable"
+                className="gap-2 px-3.5"
                 aria-label={`${filter.label} ${filterCounts[filter.key]}`}
                 onClick={() => onToggleFilter(filter.key)}
               >
                 <span>{filter.label}</span>
-                <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground">
+                <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground dark:bg-background/70">
                   {filterCounts[filter.key]}
                 </span>
-              </Button>
+              </ControlChipButton>
             ))}
-            <Button
-              variant={showDeferred ? "secondary" : "ghost"}
-              className="rounded-lg border px-3.5"
+            <ControlChipButton
+              pressed={showDeferred}
+              size="comfortable"
+              className="px-3.5"
               onClick={onToggleShowDeferred}
             >
               {showDeferredLabel}
-            </Button>
+            </ControlChipButton>
           </div>
         )}
       </div>

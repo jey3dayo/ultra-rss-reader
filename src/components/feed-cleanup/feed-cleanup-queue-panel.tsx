@@ -1,5 +1,6 @@
 import { Check, Clock3, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { DecisionButton } from "@/components/shared/decision-button";
 import type { FeedCleanupTone } from "@/lib/feed-cleanup";
 import { buildCleanupReasonFacts, summarizeCleanupCandidate } from "@/lib/feed-cleanup";
 import { cn } from "@/lib/utils";
@@ -75,33 +76,30 @@ export function FeedCleanupQueuePanel({
             <span>{selectedCountLabel}</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
+            <DecisionButton
+              intent="keep"
               aria-label={bulkKeepActionLabel}
-              className="inline-flex items-center gap-2 rounded-xl bg-zinc-700 px-3 py-2 text-sm font-medium text-zinc-50 transition-colors hover:bg-zinc-600"
               onClick={onKeepSelection}
             >
               <Check className="h-4 w-4" />
               {keepLabel}
-            </button>
-            <button
-              type="button"
+            </DecisionButton>
+            <DecisionButton
+              intent="defer"
               aria-label={bulkDeferActionLabel}
-              className="inline-flex items-center gap-2 rounded-xl bg-zinc-800 px-3 py-2 text-sm font-medium text-zinc-100 transition-colors hover:bg-zinc-700"
               onClick={onDeferSelection}
             >
               <Clock3 className="h-4 w-4" />
               {deferredLabel}
-            </button>
-            <button
-              type="button"
+            </DecisionButton>
+            <DecisionButton
+              intent="delete"
               aria-label={bulkDeleteActionLabel}
-              className="inline-flex items-center gap-2 rounded-xl bg-red-950/90 px-3 py-2 text-sm font-medium text-red-100 transition-colors hover:bg-red-900"
               onClick={onDeleteSelection}
             >
               <Trash2 className="h-4 w-4" />
               {deleteLabel}
-            </button>
+            </DecisionButton>
           </div>
         </div>
       ) : null}
@@ -279,9 +277,8 @@ export function FeedCleanupQueuePanel({
                   </button>
                   {isSelected || selectedCandidate?.feedId === candidate.feedId ? (
                     <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0">
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600/90 px-3 py-2 text-sm font-medium text-emerald-50 transition-colors hover:bg-emerald-500"
+                      <DecisionButton
+                        intent="keep"
                         onClick={(event) => {
                           event.stopPropagation();
                           onKeepCandidate(candidate.feedId);
@@ -289,10 +286,9 @@ export function FeedCleanupQueuePanel({
                       >
                         <Check className="h-4 w-4" />
                         {keepLabel}
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-2 rounded-xl bg-zinc-800 px-3 py-2 text-sm font-medium text-zinc-100 transition-colors hover:bg-zinc-700"
+                      </DecisionButton>
+                      <DecisionButton
+                        intent="defer"
                         onClick={(event) => {
                           event.stopPropagation();
                           onDeferCandidate(candidate.feedId);
@@ -300,10 +296,9 @@ export function FeedCleanupQueuePanel({
                       >
                         <Clock3 className="h-4 w-4" />
                         {deferredLabel}
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-2 rounded-xl bg-red-950/90 px-3 py-2 text-sm font-medium text-red-100 transition-colors hover:bg-red-900"
+                      </DecisionButton>
+                      <DecisionButton
+                        intent="delete"
                         onClick={(event) => {
                           event.stopPropagation();
                           onDeleteCandidate(candidate.feedId);
@@ -311,7 +306,7 @@ export function FeedCleanupQueuePanel({
                       >
                         <Trash2 className="h-4 w-4" />
                         {deleteLabel}
-                      </button>
+                      </DecisionButton>
                     </div>
                   ) : null}
                 </div>

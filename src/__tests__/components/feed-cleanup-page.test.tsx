@@ -217,6 +217,7 @@ describe("FeedCleanupPage", () => {
     expect(screen.getByRole("button", { name: "90+ days inactive 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "No unread 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "No stars 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "No unread 1" })).toHaveClass("rounded-full");
 
     await user.click(screen.getByRole("button", { name: "No unread 1" }));
     await user.click(screen.getByRole("button", { name: "Old Product Blog" }));
@@ -225,6 +226,7 @@ describe("FeedCleanupPage", () => {
     expect(queueRow).toHaveClass("bg-card/75");
     expect(within(queueRow).getByRole("button", { name: "Defer" })).toBeInTheDocument();
     expect(within(queueRow).getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    expect(within(queueRow).getByRole("button", { name: "Keep" })).toHaveClass("bg-emerald-600/90");
 
     const reviewPanel = screen.getByTestId("feed-cleanup-review-panel");
     expect(within(reviewPanel).getByText("Reason flagged")).toBeInTheDocument();
