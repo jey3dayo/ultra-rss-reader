@@ -48,16 +48,23 @@ export function SettingsSelect({ label, prefKey, options }: SettingsSelectProps)
  *  disabled — these values are synced from the backend and not user-editable here.
  *  Use SettingsGradientSwitch/SettingsSelect for interactive preference rows. */
 export type SettingsRowProps =
-  | { label: string; labelClassName?: string; type: "switch"; checked?: boolean }
-  | { label: string; labelClassName?: string; type: "select"; value?: string }
-  | { label: string; labelClassName?: string; type: "text"; value?: string; truncate?: boolean };
+  | { label: string; labelClassName?: string; valueClassName?: string; type: "switch"; checked?: boolean }
+  | { label: string; labelClassName?: string; valueClassName?: string; type: "select"; value?: string }
+  | {
+      label: string;
+      labelClassName?: string;
+      valueClassName?: string;
+      type: "text";
+      value?: string;
+      truncate?: boolean;
+    };
 
 export function SettingsRow(props: SettingsRowProps) {
   return (
     <LabeledControlRow label={props.label} labelClassName={props.labelClassName}>
       {props.type === "switch" && <GradientSwitch checked={props.checked} disabled />}
       {props.type === "select" && (
-        <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+        <span className={cn("inline-flex items-center gap-2 text-sm text-muted-foreground", props.valueClassName)}>
           <span>{props.value}</span>
           <ChevronDownIcon className="h-4 w-4 opacity-50" aria-hidden="true" />
         </span>
@@ -66,6 +73,7 @@ export function SettingsRow(props: SettingsRowProps) {
         <span
           className={cn(
             "w-full text-left text-sm text-muted-foreground sm:min-w-0 sm:flex-1",
+            props.valueClassName,
             props.truncate && "truncate",
           )}
         >

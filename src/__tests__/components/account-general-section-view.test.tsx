@@ -35,7 +35,7 @@ describe("AccountGeneralSectionView", () => {
     expect(nameInput).toHaveClass("sm:flex-1");
     expect(screen.getByText("Type")).toHaveClass("sm:w-24");
     expect(screen.getByText("Type")).toHaveClass("sm:shrink-0");
-    expect(screen.getByText("FreshRSS")).toBeInTheDocument();
+    expect(screen.getByText("FreshRSS")).toHaveClass("sm:pl-2");
     expect(screen.getByText("https://freshrss.example.com")).toBeInTheDocument();
 
     await user.click(nameInput);

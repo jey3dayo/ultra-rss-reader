@@ -19,6 +19,7 @@ export function AccountGeneralSectionView({
   onNameKeyDown,
 }: AccountGeneralSectionViewProps) {
   const labelColumnClassName = "sm:w-24 sm:shrink-0";
+  const valueColumnClassName = "sm:pl-2";
 
   return (
     <SettingsSection heading={heading} className="mb-6">
@@ -44,6 +45,7 @@ export function AccountGeneralSectionView({
           key={row.label}
           label={row.label}
           labelClassName={labelColumnClassName}
+          valueClassName={valueColumnClassName}
           value={row.value}
           type="text"
           truncate={row.truncate}
