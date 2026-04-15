@@ -11,8 +11,8 @@ describe("browser-view-presentation", () => {
 
     expect(presentation.geometry.compact).toBe(true);
     expect(presentation.geometry.stage.top).toBe(64);
-    expect(presentation.closeButtonClass).toContain("bg-black/32");
-    expect(presentation.actionButtonClass).toContain("bg-black/32");
+    expect(presentation.closeButtonClass).toContain("bg-background/72");
+    expect(presentation.actionButtonClass).toContain("bg-background/72");
     expect(presentation.stageClass).toBe("absolute z-10 overflow-hidden bg-background");
   });
 
@@ -25,8 +25,9 @@ describe("browser-view-presentation", () => {
 
     expect(presentation.geometry.compact).toBe(false);
     expect(presentation.geometry.stage.top).toBe(56);
-    expect(presentation.closeButtonClass).toContain("bg-black/30");
-    expect(presentation.actionButtonClass).toContain("bg-black/26");
-    expect(presentation.stageClass).toContain("shadow-[0_20px_48px_rgba(0,0,0,0.24)]");
+    expect(presentation.closeButtonClass).toContain("bg-background/78");
+    expect(presentation.actionButtonClass).toContain("bg-background/74");
+    expect(presentation.stageClass).toContain("border-border/60");
+    expect(presentation.stageClass).toContain("shadow-elevation-3");
   });
 });

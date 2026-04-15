@@ -13,15 +13,11 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, to
     <div
       ref={controller.overlayRef}
       data-testid="browser-overlay-shell"
-      className="pointer-events-auto absolute inset-0 z-20 isolate overflow-hidden bg-black/88 backdrop-blur-sm"
+      className="pointer-events-auto absolute inset-0 z-20 isolate overflow-hidden bg-background/88 backdrop-blur-sm"
     >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.9)_0%,rgba(0,0,0,0.885)_16%,rgba(0,0,0,0.87)_100%)]"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_15rem_at_10rem_0.5rem,rgba(255,255,255,0.04),transparent_58%)]"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/96 to-background/82"
       />
       {controller.geometry.chromeRail.visible ? (
         <div
@@ -34,7 +30,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, to
             height: `${controller.geometry.chromeRail.height}px`,
             borderRadius: `${controller.geometry.chromeRail.radius}px`,
           }}
-          className="pointer-events-none absolute z-[50] border border-white/7 bg-white/[0.035] shadow-[0_14px_32px_rgba(0,0,0,0.24)] backdrop-blur-md"
+          className="pointer-events-none absolute z-[50] border border-border/60 bg-background/35 shadow-elevation-2 backdrop-blur-md"
         />
       ) : null}
       <div

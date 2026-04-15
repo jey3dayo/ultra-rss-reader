@@ -30,6 +30,8 @@ describe("BrowserSurfaceStateCard", () => {
 
     expect(card).toHaveClass("w-full");
     expect(card).toHaveClass("max-w-[min(42rem,calc(100vw-2rem))]");
+    expect(card).toHaveClass("border-border/70");
+    expect(card).toHaveClass("bg-background/80");
     expect(title).toHaveClass("text-balance");
     expect(title).toHaveClass("leading-tight");
   });

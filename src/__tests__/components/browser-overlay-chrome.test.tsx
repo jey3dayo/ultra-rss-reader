@@ -24,6 +24,7 @@ describe("BrowserOverlayChrome", () => {
     expect(closeButton.className).toContain("size-[46px]");
     expect(closeButton.className).toContain("focus-visible:ring-2");
     expect(closeButton.className).toContain("active:scale-[0.97]");
-    expect(closeButton.className).toContain("active:bg-white/16");
+    expect(closeButton.className).toContain("bg-background/72");
+    expect(closeButton.className).toContain("active:bg-card");
   });
 });

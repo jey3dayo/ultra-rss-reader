@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import type { BrowserOverlayChromeProps } from "./browser-view.types";
 
 const browserOverlayChromeCloseButtonClassName =
-  "size-[46px] rounded-full border border-white/10 bg-white/8 text-white shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md focus-visible:ring-2 focus-visible:ring-white/70 active:scale-[0.97] active:bg-white/16";
+  "size-[46px] rounded-full border border-border/70 bg-background/72 text-foreground shadow-elevation-2 backdrop-blur-md focus-visible:ring-2 focus-visible:ring-ring/70 active:scale-[0.97] active:bg-card active:shadow-elevation-1";
 
 function isCloseOnlyProps(
   props: BrowserOverlayChromeProps,

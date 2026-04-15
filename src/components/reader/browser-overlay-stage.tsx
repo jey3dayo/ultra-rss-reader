@@ -34,12 +34,12 @@ export function BrowserOverlayStage({ controller }: BrowserOverlayStageProps) {
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6">
           <div data-testid="browser-loading-state" className="flex max-w-sm flex-col items-center gap-4 text-center">
             <div className="relative flex items-center justify-center">
-              <div aria-hidden="true" className="absolute size-24 rounded-full bg-white/10 blur-3xl" />
-              <LoaderCircle aria-hidden="true" className="relative size-12 animate-spin text-white/92" />
+              <div aria-hidden="true" className="absolute size-24 rounded-full bg-primary/10 blur-3xl" />
+              <LoaderCircle aria-hidden="true" className="relative size-12 animate-spin text-foreground/92" />
             </div>
             <div className="space-y-1.5">
-              <p className="text-sm font-medium tracking-[0.02em] text-white/92">{t("browser_loading")}</p>
-              <p className="text-sm text-white/60">{t("browser_loading_hint")}</p>
+              <p className="text-sm font-medium tracking-[0.02em] text-foreground/92">{t("browser_loading")}</p>
+              <p className="text-sm text-muted-foreground">{t("browser_loading_hint")}</p>
             </div>
           </div>
         </div>
