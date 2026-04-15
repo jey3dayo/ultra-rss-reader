@@ -21,13 +21,16 @@ export function SettingsContentLayout({
   contentTestId,
 }: SettingsContentLayoutProps) {
   return (
-    <div data-testid={outerTestId} className="p-5 sm:p-6">
+    <div
+      data-testid={outerTestId}
+      className={cn(titleLayout === "sticky-centered" ? "px-5 pb-5 pt-0 sm:px-6 sm:pb-6 sm:pt-0" : "p-5 sm:p-6")}
+    >
       <div
         data-testid={contentTestId}
         className={cn("w-full", titleLayout === "stacked-left" && "mx-auto", maxWidthClassName)}
       >
         {titleLayout === "sticky-centered" ? (
-          <h2 className="sticky top-0 z-10 -mx-5 mb-4 border-b border-border/70 bg-popover/95 px-5 py-3 text-center text-[19px] font-semibold tracking-[0.01em] backdrop-blur-sm sm:-mx-6 sm:mb-5 sm:px-6">
+          <h2 className="sticky top-0 z-10 -mx-5 mb-4 flex min-h-16 items-center justify-center border-b border-border/70 bg-popover/95 px-5 text-center text-[19px] font-semibold tracking-[0.01em] backdrop-blur-sm sm:-mx-6 sm:mb-5 sm:px-6">
             {title}
           </h2>
         ) : (

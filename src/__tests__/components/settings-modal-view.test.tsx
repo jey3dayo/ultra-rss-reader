@@ -72,6 +72,8 @@ describe("SettingsModalView", () => {
 
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("h-[88vh]");
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("max-h-[840px]");
+    expect(screen.getByTestId("settings-modal-header")).toHaveClass("min-h-16");
+    expect(screen.getByTestId("settings-modal-header")).toHaveClass("py-0");
     expect(screen.getByTestId("settings-nav-fade-top")).toBeInTheDocument();
     expect(screen.getByTestId("settings-nav-fade-bottom")).toBeInTheDocument();
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("px-3");

@@ -28,7 +28,10 @@ export function SettingsModalView({
       >
         {isLoading && <IndeterminateProgress className="absolute inset-x-0 top-0 z-10" />}
         <div className="flex max-h-[42vh] w-full shrink-0 flex-col border-b border-border bg-sidebar sm:max-h-none sm:w-[260px] sm:border-r sm:border-b-0">
-          <DialogHeader className="flex flex-row items-center gap-3 border-b border-border px-4 py-4">
+          <DialogHeader
+            data-testid="settings-modal-header"
+            className="flex min-h-16 flex-row items-center gap-3 border-b border-border px-4 py-0"
+          >
             <Button
               variant="ghost"
               size="icon-sm"

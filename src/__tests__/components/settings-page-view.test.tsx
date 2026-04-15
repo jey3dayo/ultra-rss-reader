@@ -31,7 +31,9 @@ describe("SettingsPageView", () => {
       />,
     );
 
-    expect(screen.getByTestId("settings-page-root")).toHaveClass("p-5");
+    expect(screen.getByTestId("settings-page-root")).toHaveClass("px-5");
+    expect(screen.getByTestId("settings-page-root")).toHaveClass("pb-5");
+    expect(screen.getByTestId("settings-page-root")).toHaveClass("pt-0");
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass("sticky");
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass("top-0");
     expect(screen.getByRole("heading", { name: "Language" })).toHaveClass("mb-2");
