@@ -1,4 +1,5 @@
 import { ChevronDown } from "lucide-react";
+import { NavRowButton } from "@/components/shared/nav-row-button";
 import { cn } from "@/lib/utils";
 import type { SubscriptionListGroup, SubscriptionListRow } from "./subscriptions-index.types";
 
@@ -61,28 +62,29 @@ export function SubscriptionsListPane({
               </div>
               <div className="space-y-1 pl-4">
                 {group.rows.map((row) => (
-                  <button
+                  <NavRowButton
                     key={row.feed.id}
-                    type="button"
+                    selected={selectedFeedId === row.feed.id}
                     aria-pressed={selectedFeedId === row.feed.id}
                     onClick={() => onSelectFeed(row.feed.id)}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors duration-150",
-                      selectedFeedId === row.feed.id
-                        ? "border-border/70 bg-card/75"
-                        : "border-border/60 bg-transparent hover:border-border/70 hover:bg-card/30",
+                      "items-center rounded-xl px-3 py-2.5",
+                      selectedFeedId !== row.feed.id && "border-border/60",
                     )}
-                  >
-                    <span
-                      className={cn(
-                        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-medium transition-colors",
-                        selectedFeedId === row.feed.id ? "bg-card text-foreground" : "bg-background/90 text-foreground",
-                      )}
-                    >
-                      {buildFeedAvatar(row.feed.title)}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="line-clamp-1 text-sm font-medium text-foreground">{row.feed.title}</p>
+                    leading={
+                      <span
+                        className={cn(
+                          "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-medium transition-colors",
+                          selectedFeedId === row.feed.id
+                            ? "bg-card text-foreground"
+                            : "bg-background/90 text-foreground",
+                        )}
+                      >
+                        {buildFeedAvatar(row.feed.title)}
+                      </span>
+                    }
+                    title={<span className="text-sm">{row.feed.title}</span>}
+                    description={
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                         <span className="rounded-full border border-border/60 bg-background/60 px-2.5 py-1">
                           {statusLabels[row.status.labelKey]}
@@ -97,8 +99,8 @@ export function SubscriptionsListPane({
                           {formatLatestArticleLabel(row.latestArticleAt)}
                         </span>
                       </div>
-                    </div>
-                  </button>
+                    }
+                  />
                 ))}
               </div>
             </div>

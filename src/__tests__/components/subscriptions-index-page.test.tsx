@@ -159,6 +159,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(selectedFeed).toHaveAccessibleName(/未読 0件/);
     expect(selectedFeed).toHaveAttribute("aria-pressed", "true");
     expect(selectedFeed).toHaveClass("bg-card/75");
+    expect(selectedFeed).toHaveClass("focus-visible:ring-2");
     expect(secondaryFeed).toHaveAccessibleName(/Fresh Feed/);
     expect(secondaryFeed).toHaveAccessibleName(/未読 3件/);
     expect(secondaryFeed).toHaveAttribute("aria-pressed", "false");
