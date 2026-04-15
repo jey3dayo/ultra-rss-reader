@@ -17,6 +17,7 @@ export function ArticleTagPickerView({
   onRemoveTag,
   onCreateTag,
 }: ArticleTagPickerViewProps) {
+  const hasAssignedTags = assignedTags.length > 0;
   const pickerId = useId();
   const {
     pickerRef,
@@ -40,11 +41,11 @@ export function ArticleTagPickerView({
 
   return (
     <section aria-label={labels.sectionTitle ?? "Tags"} className="inline-block max-w-full py-0.5">
-      <div className="flex max-w-full items-center gap-3">
-        <h2 className="shrink-0 text-[0.8rem] font-medium leading-5 tracking-[0.14em] text-muted-foreground/78 uppercase">
+      <div className={`flex max-w-full items-center ${hasAssignedTags ? "gap-3" : "gap-2"}`}>
+        <h2 className="shrink-0 text-[0.76rem] font-medium leading-5 tracking-[0.14em] text-muted-foreground/72 uppercase">
           {labels.sectionTitle ?? "Tags"}
         </h2>
-        <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+        <div className={`flex min-w-0 flex-wrap items-center ${hasAssignedTags ? "gap-2.5" : "gap-1.5"}`}>
           <ArticleTagChipList assignedTags={assignedTags} labels={labels} onRemoveTag={onRemoveTag} />
           <div ref={pickerRef} className="relative" data-disable-global-shortcuts="true">
             <button
@@ -52,7 +53,7 @@ export function ArticleTagPickerView({
               type="button"
               onClick={() => onExpandedChange(!isExpanded)}
               onKeyDown={handleTriggerKeyDown}
-              className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground/78 transition-colors hover:bg-accent/40 hover:text-foreground focus-visible:bg-accent/40 focus-visible:text-foreground"
+              className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground/66 transition-colors hover:bg-accent/30 hover:text-foreground focus-visible:bg-accent/30 focus-visible:text-foreground"
               aria-label={labels.addTag}
               aria-haspopup="listbox"
               aria-expanded={isExpanded}

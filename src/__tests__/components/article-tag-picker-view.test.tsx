@@ -37,7 +37,7 @@ describe("ArticleTagPickerView", () => {
 
     const removeButton = screen.getByRole("button", { name: "Remove tag Later" });
     expect(removeButton).toHaveClass("size-4");
-    expect(screen.getByText("Tags")).toHaveClass("text-[0.8rem]");
+    expect(screen.getByText("Tags")).toHaveClass("text-[0.76rem]");
     expect(screen.getByText("Tags")).toHaveClass("tracking-[0.14em]");
     expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("size-8");
     expect(screen.getByRole("option", { name: "Important" })).toHaveClass("min-h-11");

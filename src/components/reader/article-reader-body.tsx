@@ -68,7 +68,7 @@ export function ArticleReaderBody({ article, feedName }: ArticleReaderBodyProps)
 
   return (
     <ScrollArea data-testid="article-reader-scroll-area" className="h-full">
-      <article className="mx-auto max-w-[44rem] px-7 pb-20 pt-12 md:px-11 md:pt-16">
+      <article className="mx-auto max-w-[44rem] px-7 pb-20 pt-10 md:px-11 md:pt-13">
         <ArticleMetaView
           title={article.title}
           author={article.author}
@@ -100,11 +100,11 @@ export function ArticleReaderBody({ article, feedName }: ArticleReaderBodyProps)
           }
         />
 
-        <div className="mt-6 border-t border-border/28 pt-3.5">
+        <div className="mt-4 border-t border-border/18 pt-2">
           <ArticleTagChips articleId={article.id} />
         </div>
 
-        <div className="mt-8" ref={setContentContainerElement}>
+        <div className="mt-6.5" ref={setContentContainerElement}>
           <ArticleContentView thumbnailUrl={article.thumbnail} contentHtml={articleContentHtml} feedName={feedName} />
         </div>
       </article>
