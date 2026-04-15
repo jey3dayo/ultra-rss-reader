@@ -18,6 +18,7 @@ Use this document when:
 - deciding whether a fix should stay feature-local
 
 Do not use this document as a replacement for `DESIGN.md`. If the question is about color, typography, spacing, component appearance, or layout principles, read `DESIGN.md` first.
+After reading `DESIGN.md`, consult the Storybook reference canvas (`UI Reference / Annotated Settings Canvas`) before introducing new UI patterns.
 
 ## Review Flow
 
