@@ -1,6 +1,6 @@
 # Design System Inspired by Cursor
 
-## Overview
+## Visual Theme & Atmosphere
 
 This design system aims for warm editorial software rather than cold utility UI. The core mood is calm, crafted, and slightly premium: warm cream canvases, warm near-black text, restrained accent usage, and diffused depth that feels atmospheric instead of glossy. It should read like a thoughtfully designed reading tool, not a generic admin dashboard.
 
@@ -13,6 +13,21 @@ When no exact token applies, prefer these defaults:
 - Tonal separation over loud contrast
 - Diffused depth over hard-edged shadow
 - Editorial calm over dashboard aggressiveness
+
+## Review and Reuse Workflow
+
+Use this document as the first checkpoint for UI review and implementation decisions. When a design concern appears, resolve it in this order:
+
+1. **DESIGN.md**: If the issue comes from missing, weak, or contradictory design guidance, update this file first.
+2. **Shared components**: If the issue reflects a reusable UI pattern with the same visual role, interaction behavior, and accessibility expectations across screens, prefer fixing or extracting a shared component.
+3. **Feature-local components**: If the issue depends on screen-specific information architecture, content, or workflow context, keep the fix local to that feature.
+
+Escalation rules:
+
+- Do not promote a component into `shared` only because it looks similar. Promote it only when the semantic role, state model, and accessibility behavior are meaningfully the same.
+- If a repeated design decision appears in two or more places, prefer documenting the rule here before allowing further one-off divergence.
+- If a component intentionally breaks the system for product-specific reasons, keep the exception local and document the reason in code review or follow-up notes.
+- When the right direction is unclear, request a design review using the `ui-ux-pro-max` skill before widening the abstraction.
 
 ## Colors
 
@@ -121,6 +136,82 @@ Elevation scale:
 - **Media and Preview Surfaces**: Code or browser previews may use darker surfaces, but they should still feel framed by warm borders and integrated into the cream-based system rather than floating as disconnected black panels.
 - **Distinctive Components**: The AI timeline remains a special component. It may use the thinking/grep/read/edit palette directly, with each state tied to a clear semantic label and a vertical connection rhythm.
 
+## Layout Principles
+
+### Spacing System
+
+- Base unit: 8px
+- Fine scale: 1.5px, 2px, 2.5px, 3px, 4px, 5px, 6px for micro-adjustments
+- Standard scale: 8px, 10px, 12px, 14px
+- Extended scale: 16px, 24px, 32px, 48px, 64px, 96px
+
+### Grid and Container
+
+- Max content width: approximately 1200px
+- Hero sections favor centered single-column layouts with generous vertical space
+- Feature sections can expand to 2-3 column grids
+- Sidebar and settings layouts should keep warm section separation without harsh visual breaks
+
+### Whitespace Philosophy
+
+- Warm negative space should feel cozy rather than sterile
+- Dense typography should be balanced by generous surrounding margins
+- Section separation should usually come from tone and space rather than hard dividers
+
+### Border Radius Scale
+
+- Micro: 1.5px
+- Small: 2px
+- Medium: 3px
+- Standard: 4px
+- Comfortable: 8px
+- Featured: 10px
+- Full Pill: 9999px
+
+## Interaction and Motion
+
+### Hover States
+
+- Buttons shift text toward the tertiary accent (`#cf2d56`) on hover
+- Links may shift toward primary or add understated underline emphasis
+- Cards intensify shadow or border contrast subtly rather than jumping in scale
+
+### Focus States
+
+- Prefer warm border emphasis or soft depth-based focus
+- Avoid cold blue default focus rings unless an accessibility layer specifically requires them
+
+### Transitions
+
+- Color transitions: 150ms ease
+- Shadow transitions: 200ms ease
+- Transform feedback should remain subtle
+
+## Responsive Behavior
+
+### Breakpoints
+
+| Name          | Width      | Key Changes                                        |
+| ------------- | ---------- | -------------------------------------------------- |
+| Mobile        | <600px     | Single column, reduced padding, stacked navigation |
+| Tablet Small  | 600-768px  | 2-column grids begin                               |
+| Tablet        | 768-900px  | Expanded card grids, sidebar appears               |
+| Desktop Small | 900-1279px | Full layout forming                                |
+| Desktop       | >1279px    | Full layout, maximum content width                 |
+
+### Touch Targets
+
+- Buttons should maintain comfortable touch sizing
+- Pill buttons should preserve tap-friendly proportions
+- Navigation labels should stay readable at mobile sizes
+
+### Collapsing Strategy
+
+- Hero text scales proportionally while preserving tracking character
+- Horizontal navigation may collapse to compact controls on mobile
+- Multi-column cards collapse to single column cleanly
+- Timeline or preview layouts can switch from horizontal emphasis to vertical stacking
+
 ## Do's and Don'ts
 
 - Do keep the entire system warm-toned, using cream, brown, orange, gold, and muted semantic accents as the default language.
@@ -163,82 +254,6 @@ Provider and service icon backgrounds may use brand or near-brand colors as expl
 - Inoreader: `#1875F3`
 
 These colors should be centralized as provider brand tokens or a dedicated exception map, not treated as part of the core UI palette.
-
-### Layout Principles
-
-#### Spacing System
-
-- Base unit: 8px
-- Fine scale: 1.5px, 2px, 2.5px, 3px, 4px, 5px, 6px for micro-adjustments
-- Standard scale: 8px, 10px, 12px, 14px
-- Extended scale: 16px, 24px, 32px, 48px, 64px, 96px
-
-#### Grid and Container
-
-- Max content width: approximately 1200px
-- Hero sections favor centered single-column layouts with generous vertical space
-- Feature sections can expand to 2-3 column grids
-- Sidebar and settings layouts should keep warm section separation without harsh visual breaks
-
-#### Whitespace Philosophy
-
-- Warm negative space should feel cozy rather than sterile
-- Dense typography should be balanced by generous surrounding margins
-- Section separation should usually come from tone and space rather than hard dividers
-
-#### Border Radius Scale
-
-- Micro: 1.5px
-- Small: 2px
-- Medium: 3px
-- Standard: 4px
-- Comfortable: 8px
-- Featured: 10px
-- Full Pill: 9999px
-
-### Interaction and Motion
-
-#### Hover States
-
-- Buttons shift text toward the tertiary accent (`#cf2d56`) on hover
-- Links may shift toward primary or add understated underline emphasis
-- Cards intensify shadow or border contrast subtly rather than jumping in scale
-
-#### Focus States
-
-- Prefer warm border emphasis or soft depth-based focus
-- Avoid cold blue default focus rings unless an accessibility layer specifically requires them
-
-#### Transitions
-
-- Color transitions: 150ms ease
-- Shadow transitions: 200ms ease
-- Transform feedback should remain subtle
-
-### Responsive Behavior
-
-#### Breakpoints
-
-| Name          | Width      | Key Changes                                        |
-| ------------- | ---------- | -------------------------------------------------- |
-| Mobile        | <600px     | Single column, reduced padding, stacked navigation |
-| Tablet Small  | 600-768px  | 2-column grids begin                               |
-| Tablet        | 768-900px  | Expanded card grids, sidebar appears               |
-| Desktop Small | 900-1279px | Full layout forming                                |
-| Desktop       | >1279px    | Full layout, maximum content width                 |
-
-#### Touch Targets
-
-- Buttons should maintain comfortable touch sizing
-- Pill buttons should preserve tap-friendly proportions
-- Navigation labels should stay readable at mobile sizes
-
-#### Collapsing Strategy
-
-- Hero text scales proportionally while preserving tracking character
-- Horizontal navigation may collapse to compact controls on mobile
-- Multi-column cards collapse to single column cleanly
-- Timeline or preview layouts can switch from horizontal emphasis to vertical stacking
 
 ### Agent Prompt Guide
 
