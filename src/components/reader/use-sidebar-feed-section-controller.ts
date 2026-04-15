@@ -22,6 +22,7 @@ export function useSidebarFeedSectionController({
   showSidebarUnread,
   showSidebarStarred,
   showSidebarTags,
+  tags,
   setExpandedFolders,
   selectFeed,
   selectFolder,
@@ -84,6 +85,7 @@ export function useSidebarFeedSectionController({
   useSidebarVisibilityFallback({
     firstFeedId,
     selection,
+    tags,
     viewMode,
     showSidebarUnread,
     showSidebarStarred,

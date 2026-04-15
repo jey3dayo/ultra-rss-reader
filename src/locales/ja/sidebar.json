@@ -9,6 +9,8 @@
   "subscriptions_index": "購読一覧",
   "no_folder": "フォルダなし",
   "tags": "タグ",
+  "add_tag": "タグを追加",
+  "manage_tags": "タグを管理",
   "accounts": "アカウント",
   "feed_cleanup": "購読の整理",
   "settings": "設定",

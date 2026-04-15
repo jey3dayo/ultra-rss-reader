@@ -177,6 +177,17 @@ impl DbManager {
     }
 
     fn reconcile_article_content_text(&self) -> DomainResult<()> {
+        let has_content_text: i32 = self.writer.query_row(
+            "SELECT COUNT(*)
+             FROM pragma_table_info('articles')
+             WHERE name = 'content_text'",
+            [],
+            |row| row.get(0),
+        )?;
+        if has_content_text == 0 {
+            return Ok(());
+        }
+
         let mut stmt = self.writer.prepare(
             "SELECT id, content_sanitized, summary
              FROM articles

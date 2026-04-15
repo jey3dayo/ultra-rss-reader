@@ -53,6 +53,7 @@ export function useSidebarControllerSections({
   feedViewportRef,
   openFeedCleanup,
   handleOpenSettings,
+  handleOpenTagSettings,
   isAddFeedDialogOpen,
   handleAddFeedDialogOpenChange,
   isTagsSectionOpen,
@@ -73,7 +74,10 @@ export function useSidebarControllerSections({
     showSidebarStarred,
     t,
   });
-  const { renderFolderContextMenu, renderFeedContextMenu, renderTagContextMenu } = useSidebarContextMenuRenderers();
+  const { renderFolderContextMenu, renderFeedContextMenu, renderTagContextMenu, renderTagSectionContextMenu } =
+    useSidebarContextMenuRenderers({
+      onManageTags: handleOpenTagSettings,
+    });
   const { feedTreeProps } = useSidebarFeedSectionController({
     selectedAccountId,
     feeds,
@@ -89,6 +93,7 @@ export function useSidebarControllerSections({
     showSidebarUnread,
     showSidebarStarred,
     showSidebarTags,
+    tags,
     setExpandedFolders,
     selectFeed,
     selectFolder,
@@ -139,6 +144,7 @@ export function useSidebarControllerSections({
     tagArticleCounts,
     selection,
     selectTag,
+    renderTagSectionContextMenu,
     renderTagContextMenu,
     sidebarDensity,
     isFeedTreeLoading,

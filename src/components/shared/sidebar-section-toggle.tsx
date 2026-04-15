@@ -3,8 +3,8 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SidebarSectionToggleProps } from "./sidebar-section.types";
 
-export function SidebarSectionToggle({ label, isOpen, onToggle, className }: SidebarSectionToggleProps) {
-  return (
+export function SidebarSectionToggle({ label, isOpen, onToggle, className, contextMenu }: SidebarSectionToggleProps) {
+  const toggle = (
     <button
       type="button"
       onClick={onToggle}
@@ -16,5 +16,16 @@ export function SidebarSectionToggle({ label, isOpen, onToggle, className }: Sid
       <span className="text-sm font-medium text-sidebar-foreground">{label}</span>
       <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", !isOpen && "-rotate-90")} />
     </button>
+  );
+
+  if (!contextMenu) {
+    return toggle;
+  }
+
+  return (
+    <ContextMenu.Root>
+      <ContextMenu.Trigger render={toggle} />
+      {contextMenu}
+    </ContextMenu.Root>
   );
 }

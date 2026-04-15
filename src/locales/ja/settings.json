@@ -6,6 +6,7 @@
   "nav": {
     "general": "一般",
     "appearance": "外観",
+    "tags": "タグ",
     "mute": "ミュート",
     "reading": "閲覧",
     "shortcuts": "ショートカット",
@@ -138,6 +139,26 @@
     "update_failed": "ミュートキーワードの更新に失敗しました: {{message}}",
     "delete_success": "ミュートキーワードを削除しました",
     "delete_failed": "ミュートキーワードの削除に失敗しました: {{message}}"
+  },
+  "tags": {
+    "heading": "タグ",
+    "add_heading": "タグを追加",
+    "note": "サイドバーや記事画面で使うタグをここで作成、編集、削除できます。",
+    "name": "タグ名",
+    "name_placeholder": "あとで読む",
+    "create": "作成",
+    "saved": "保存済みタグ",
+    "empty_state": "まだタグはありません。",
+    "edit": "編集",
+    "edit_aria_label": "「{{name}}」を編集",
+    "delete": "削除",
+    "delete_aria_label": "「{{name}}」を削除",
+    "create_success": "タグを作成しました",
+    "create_failed": "タグの作成に失敗しました: {{message}}",
+    "rename_success": "タグを更新しました",
+    "rename_failed": "タグの更新に失敗しました: {{message}}",
+    "delete_success": "タグを削除しました",
+    "delete_failed": "タグの削除に失敗しました: {{message}}"
   },
   "shortcuts": {
     "heading": "ショートカット",

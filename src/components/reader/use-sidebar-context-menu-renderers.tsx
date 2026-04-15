@@ -5,8 +5,15 @@ import { FolderContextMenuContent } from "./folder-context-menu";
 import type { SidebarContextMenuRenderersResult } from "./sidebar.types";
 import { TagContextMenuContent } from "./tag-context-menu";
 import type { TagListItemViewModel } from "./tag-list-view";
+import { TagSectionContextMenu } from "./tag-section-context-menu";
 
-export function useSidebarContextMenuRenderers(): SidebarContextMenuRenderersResult {
+type UseSidebarContextMenuRenderersParams = {
+  onManageTags: () => void;
+};
+
+export function useSidebarContextMenuRenderers({
+  onManageTags,
+}: UseSidebarContextMenuRenderersParams): SidebarContextMenuRenderersResult {
   const renderFolderContextMenu = useCallback(
     (folder: FeedTreeFolderViewModel) => (
       <FolderContextMenuContent
@@ -46,9 +53,15 @@ export function useSidebarContextMenuRenderers(): SidebarContextMenuRenderersRes
     [],
   );
 
+  const renderTagSectionContextMenu = useCallback(
+    () => <TagSectionContextMenu onManageTags={onManageTags} />,
+    [onManageTags],
+  );
+
   return {
     renderFolderContextMenu,
     renderFeedContextMenu,
     renderTagContextMenu,
+    renderTagSectionContextMenu,
   };
 }

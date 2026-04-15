@@ -6,6 +6,7 @@
   "nav": {
     "general": "General",
     "appearance": "Appearance",
+    "tags": "Tags",
     "mute": "Mute",
     "reading": "Reading",
     "shortcuts": "Shortcuts",
@@ -138,6 +139,26 @@
     "update_failed": "Failed to update mute keyword: {{message}}",
     "delete_success": "Mute keyword deleted",
     "delete_failed": "Failed to delete mute keyword: {{message}}"
+  },
+  "tags": {
+    "heading": "Tags",
+    "add_heading": "Add tag",
+    "note": "Create, edit, and remove tags used from the sidebar and article views.",
+    "name": "Tag name",
+    "name_placeholder": "Unread later",
+    "create": "Create",
+    "saved": "Saved tags",
+    "empty_state": "No tags yet.",
+    "edit": "Edit",
+    "edit_aria_label": "Edit {{name}}",
+    "delete": "Delete",
+    "delete_aria_label": "Delete {{name}}",
+    "create_success": "Tag created",
+    "create_failed": "Failed to create tag: {{message}}",
+    "rename_success": "Tag updated",
+    "rename_failed": "Failed to update tag: {{message}}",
+    "delete_success": "Tag deleted",
+    "delete_failed": "Failed to delete tag: {{message}}"
   },
   "shortcuts": {
     "heading": "Shortcuts",

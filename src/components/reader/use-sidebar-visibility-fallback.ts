@@ -4,6 +4,7 @@ import type { SidebarVisibilityFallbackParams } from "./sidebar-feed-section.typ
 export function useSidebarVisibilityFallback({
   firstFeedId,
   selection,
+  tags,
   viewMode,
   showSidebarUnread,
   showSidebarStarred,
@@ -18,6 +19,8 @@ export function useSidebarVisibilityFallback({
   const hasSmartStarredSelection = selectedSmartViewKind === "starred";
   const hasFilterOnlyUnread = viewMode === "unread" && !hasSmartUnreadSelection;
   const hasFilterOnlyStarred = viewMode === "starred" && !hasSmartStarredSelection;
+  const isMissingSelectedTag =
+    selection.type === "tag" && tags !== undefined && !tags.some((tag) => tag.id === selection.tagId);
 
   useEffect(() => {
     const fallbackToFeedOrAll = () => {
@@ -43,7 +46,7 @@ export function useSidebarVisibilityFallback({
       return;
     }
 
-    if (selection.type === "tag" && !showSidebarTags) {
+    if ((selection.type === "tag" && !showSidebarTags) || isMissingSelectedTag) {
       if (showSidebarUnread) {
         selectSmartView("unread");
       } else {
@@ -64,6 +67,7 @@ export function useSidebarVisibilityFallback({
     firstFeedId,
     hasFilterOnlyStarred,
     hasFilterOnlyUnread,
+    isMissingSelectedTag,
     hasSmartStarredSelection,
     hasSmartUnreadSelection,
     selectAll,

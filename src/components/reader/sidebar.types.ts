@@ -56,6 +56,7 @@ export type SidebarContentSectionsProps = {
   selection: SidebarTagItemsParams["selection"];
   onSelectTag: SidebarTagListProps["onSelectTag"];
   renderTagContextMenu: NonNullable<SidebarTagListProps["renderContextMenu"]>;
+  renderTagSectionContextMenu: NonNullable<SidebarTagListProps["renderTagSectionContextMenu"]>;
   sidebarDensity: SidebarDensity;
   isFeedTreeLoading: boolean;
 };
@@ -145,6 +146,7 @@ export type SidebarControllerSectionsParams = {
   feedViewportRef: SidebarContentSectionsProps["viewportRef"];
   openFeedCleanup: () => void;
   handleOpenSettings: () => void;
+  handleOpenTagSettings: () => void;
   isAddFeedDialogOpen: boolean;
   handleAddFeedDialogOpenChange: (open: boolean) => void;
   isTagsSectionOpen: boolean;
@@ -223,6 +225,7 @@ export type SidebarContentSectionsPropsParams = {
   selection: SidebarContentSectionsProps["selection"];
   selectTag: SidebarContentSectionsProps["onSelectTag"];
   renderTagContextMenu: SidebarContentSectionsProps["renderTagContextMenu"];
+  renderTagSectionContextMenu: SidebarContentSectionsProps["renderTagSectionContextMenu"];
   sidebarDensity: SidebarDensity;
   isFeedTreeLoading: SidebarContentSectionsProps["isFeedTreeLoading"];
 };
@@ -264,6 +267,7 @@ export type SidebarSectionPropsParams = {
   selection: SidebarContentSectionsProps["selection"];
   selectTag: SidebarContentSectionsProps["onSelectTag"];
   renderTagContextMenu: SidebarContentSectionsProps["renderTagContextMenu"];
+  renderTagSectionContextMenu: SidebarContentSectionsProps["renderTagSectionContextMenu"];
   sidebarDensity: SidebarDensity;
   isFeedTreeLoading: SidebarContentSectionsProps["isFeedTreeLoading"];
 };
@@ -307,4 +311,5 @@ export type SidebarContextMenuRenderersResult = {
   renderFolderContextMenu?: FeedTreeViewProps["renderFolderContextMenu"];
   renderFeedContextMenu?: FeedTreeViewProps["renderFeedContextMenu"];
   renderTagContextMenu: SidebarContentSectionsProps["renderTagContextMenu"];
+  renderTagSectionContextMenu: SidebarContentSectionsProps["renderTagSectionContextMenu"];
 };

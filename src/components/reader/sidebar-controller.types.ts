@@ -20,6 +20,7 @@ export type SidebarUiActionsResult = {
   toggleFeedsSection: () => void;
   toggleTagsSection: () => void;
   handleOpenSettings: () => void;
+  handleOpenTagSettings: () => void;
   handleOpenAccountSettings: () => void;
   handleAddFeed: () => void;
   handleAddFeedDialogOpenChange: (open: boolean) => void;

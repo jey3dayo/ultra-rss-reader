@@ -9,6 +9,8 @@
   "subscriptions_index": "Manage Subscriptions",
   "no_folder": "No folder",
   "tags": "Tags",
+  "add_tag": "Add tag",
+  "manage_tags": "Manage tags",
   "accounts": "Accounts",
   "feed_cleanup": "Review Subscriptions",
   "settings": "Settings",

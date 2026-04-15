@@ -15,17 +15,21 @@ export function TagListView({
   tags,
   onSelectTag,
   renderContextMenu,
+  renderTagSectionContextMenu,
 }: SidebarTagListProps) {
   const tokens = getSidebarDensityTokens(sidebarDensity);
-
-  if (tags.length === 0) return null;
 
   return (
     <div>
       <div className="px-2 py-2">
-        <SidebarSectionToggle label={tagsLabel} isOpen={isOpen} onToggle={onToggleOpen} />
+        <SidebarSectionToggle
+          label={tagsLabel}
+          isOpen={isOpen}
+          onToggle={onToggleOpen}
+          contextMenu={renderTagSectionContextMenu?.()}
+        />
       </div>
-      {isOpen && (
+      {isOpen && tags.length > 0 && (
         <div className={cn("px-2", tokens.tagListGap)}>
           {tags.map((tag) => (
             <ContextMenu.Root key={tag.id}>

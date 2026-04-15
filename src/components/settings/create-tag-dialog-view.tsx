@@ -2,37 +2,25 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { StackedInputField } from "@/components/shared/stacked-input-field";
-import { TagColorPicker } from "@/components/shared/tag-color-picker";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-const EMPTY_COLOR_OPTIONS: string[] = [];
-const NO_OP_COLOR_CHANGE = () => {};
-
-export type RenameTagDialogViewProps = {
+export type CreateTagDialogViewProps = {
   open: boolean;
   name: string;
-  color?: string | null;
   loading: boolean;
   onOpenChange: (open: boolean) => void;
   onNameChange: (value: string) => void;
-  onColorChange?: (value: string | null) => void;
-  colorOptions?: string[];
-  noColorLabel?: string;
   onSubmit: () => void;
 };
 
-export function RenameTagDialogView({
+export function CreateTagDialogView({
   open,
   name,
-  color = null,
   loading,
   onOpenChange,
   onNameChange,
-  onColorChange = NO_OP_COLOR_CHANGE,
-  colorOptions = EMPTY_COLOR_OPTIONS,
-  noColorLabel,
   onSubmit,
-}: RenameTagDialogViewProps) {
+}: CreateTagDialogViewProps) {
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -52,7 +40,7 @@ export function RenameTagDialogView({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false} className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t("edit_tag")}</DialogTitle>
+          <DialogTitle>{t("create_tag")}</DialogTitle>
         </DialogHeader>
         <form
           onSubmit={(event) => {
@@ -71,21 +59,11 @@ export function RenameTagDialogView({
             inputClassName="mt-1"
             disabled={loading}
           />
-          {colorOptions.length > 0 && (
-            <TagColorPicker
-              label={t("color")}
-              color={color}
-              colorOptions={colorOptions}
-              noColorLabel={noColorLabel ?? t("no_color")}
-              optionAriaLabel={(option) => `${t("color")} ${option}`}
-              onChange={onColorChange}
-            />
-          )}
         </form>
         <DialogFooter>
           <FormActionButtons
             cancelLabel={tc("cancel")}
-            submitLabel={tc("save")}
+            submitLabel={t("create_tag")}
             submittingLabel={tc("saving")}
             loading={loading}
             submitDisabled={!name.trim() || loading}

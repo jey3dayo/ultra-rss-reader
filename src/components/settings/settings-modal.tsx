@@ -14,6 +14,7 @@ import { ReadingSettings } from "@/components/settings/reading-settings";
 import type { SettingsContentProps } from "@/components/settings/settings-modal.types";
 import { SettingsModalView } from "@/components/settings/settings-modal-view";
 import { ShortcutsSettings } from "@/components/settings/shortcuts-settings";
+import { TagsSettings } from "@/components/settings/tags-settings";
 import { useAccountDetailController } from "@/components/settings/use-account-detail-controller";
 import { useAccountDetailSyncStatusRows } from "@/components/settings/use-account-detail-sync-status-rows";
 import { useAccountDetailViewProps } from "@/components/settings/use-account-detail-view-props";
@@ -87,6 +88,8 @@ function SettingsContent({
       return <ReadingSettings />;
     case "mute":
       return <MuteSettings />;
+    case "tags":
+      return <TagsSettings />;
     case "shortcuts":
       return <ShortcutsSettings />;
     case "actions":

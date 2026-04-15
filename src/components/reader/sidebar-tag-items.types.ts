@@ -27,4 +27,5 @@ export type SidebarTagListProps = {
   tags: SidebarTagItemsResult;
   onSelectTag: (tagId: string) => void;
   renderContextMenu?: (tag: SidebarTagItem) => ReactNode;
+  renderTagSectionContextMenu?: () => ReactNode;
 };
