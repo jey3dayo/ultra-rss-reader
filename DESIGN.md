@@ -14,21 +14,6 @@ When no exact token applies, prefer these defaults:
 - Diffused depth over hard-edged shadow
 - Editorial calm over dashboard aggressiveness
 
-## Review and Reuse Workflow
-
-Use this document as the first checkpoint for UI review and implementation decisions. When a design concern appears, resolve it in this order:
-
-1. **DESIGN.md**: If the issue comes from missing, weak, or contradictory design guidance, update this file first.
-2. **Shared components**: If the issue reflects a reusable UI pattern with the same visual role, interaction behavior, and accessibility expectations across screens, prefer fixing or extracting a shared component.
-3. **Feature-local components**: If the issue depends on screen-specific information architecture, content, or workflow context, keep the fix local to that feature.
-
-Escalation rules:
-
-- Do not promote a component into `shared` only because it looks similar. Promote it only when the semantic role, state model, and accessibility behavior are meaningfully the same.
-- If a repeated design decision appears in two or more places, prefer documenting the rule here before allowing further one-off divergence.
-- If a component intentionally breaks the system for product-specific reasons, keep the exception local and document the reason in code review or follow-up notes.
-- When the right direction is unclear, request a design review using the `ui-ux-pro-max` skill before widening the abstraction.
-
 ## Colors
 
 The base palette names in this section are for Stitch-style design system description and are not a 1:1 mapping to the current CSS token names in `src/styles/global.css`.
