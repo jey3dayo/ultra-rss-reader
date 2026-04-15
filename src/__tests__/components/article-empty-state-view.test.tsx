@@ -33,11 +33,11 @@ describe("ArticleEmptyStateView", () => {
   it("uses semantic surface tokens for the empty-state container", () => {
     render(<ArticleEmptyStateView message="Select an article to read" hints={["Pick one from the list"]} />);
 
-    const container = screen.getByText("Select an article to read").closest("div.max-w-md");
+    const container = screen.getByText("Select an article to read").parentElement;
 
     expect(container).toHaveClass("border-border/70");
-    expect(container).toHaveClass("bg-card/70");
-    expect(container).toHaveClass("shadow-elevation-2");
+    expect(container).toHaveClass("max-w-xl");
+    expect(container).toHaveClass("bg-[linear-gradient(180deg,hsl(var(--card)/0.9),hsl(var(--background)/0.98))]");
   });
 
   it("uses semantic list markers so wrapped hints stay aligned", () => {

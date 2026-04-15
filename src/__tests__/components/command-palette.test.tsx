@@ -211,7 +211,7 @@ describe("CommandPalette", () => {
     await screen.findByPlaceholderText("Search commands…");
 
     const overlay = document.querySelector('[data-slot="dialog-overlay"]');
-    expect(overlay).toHaveClass("bg-[rgba(18,14,11,0.52)]");
+    expect(overlay).toHaveClass("bg-background/60");
     expect(overlay).toHaveClass("supports-backdrop-filter:backdrop-blur-none");
   });
 
