@@ -41,11 +41,13 @@ export function ArticleTagPickerView({
 
   return (
     <section aria-label={labels.sectionTitle ?? "Tags"} className="inline-block max-w-full py-0.5">
-      <div className={`flex max-w-full items-center ${hasAssignedTags ? "gap-3" : "gap-2"}`}>
-        <h2 className="shrink-0 text-[0.76rem] font-medium leading-5 tracking-[0.14em] text-muted-foreground/72 uppercase">
-          {labels.sectionTitle ?? "Tags"}
-        </h2>
-        <div className={`flex min-w-0 flex-wrap items-center ${hasAssignedTags ? "gap-2.5" : "gap-1.5"}`}>
+      <div className={`flex max-w-full items-center ${hasAssignedTags ? "gap-2.5" : "gap-1.5"}`}>
+        {hasAssignedTags ? null : (
+          <h2 className="shrink-0 text-[0.72rem] font-medium leading-5 tracking-[0.14em] text-muted-foreground/62 uppercase">
+            {labels.sectionTitle ?? "Tags"}
+          </h2>
+        )}
+        <div className={`flex min-w-0 flex-wrap items-center ${hasAssignedTags ? "gap-2" : "gap-1"}`}>
           <ArticleTagChipList assignedTags={assignedTags} labels={labels} onRemoveTag={onRemoveTag} />
           <div ref={pickerRef} className="relative" data-disable-global-shortcuts="true">
             <button
@@ -53,13 +55,13 @@ export function ArticleTagPickerView({
               type="button"
               onClick={() => onExpandedChange(!isExpanded)}
               onKeyDown={handleTriggerKeyDown}
-              className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground/66 transition-colors hover:bg-accent/30 hover:text-foreground focus-visible:bg-accent/30 focus-visible:text-foreground"
+              className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground/58 transition-colors hover:bg-accent/24 hover:text-foreground focus-visible:bg-accent/24 focus-visible:text-foreground"
               aria-label={labels.addTag}
               aria-haspopup="listbox"
               aria-expanded={isExpanded}
               aria-controls={pickerId}
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-3 w-3" />
             </button>
             {isExpanded && (
               <ArticleTagPickerPopover

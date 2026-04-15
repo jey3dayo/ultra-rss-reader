@@ -87,7 +87,7 @@ const corePreferenceDefaults = {
   list_selection_style: "modern",
   sidebar_density: "normal",
   layout: "automatic",
-  theme: "dark",
+  theme: "light",
   opaque_sidebars: "false",
   grayscale_favicons: "false",
   font_style: "sans_serif",

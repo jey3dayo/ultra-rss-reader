@@ -25,10 +25,13 @@ describe("ArticleMetaView", () => {
     expect(screen.getByText("Mar 25, 2026")).toBeInTheDocument();
     expect(screen.getByText("Alice")).toBeInTheDocument();
     expect(screen.getByText("Mar 25, 2026").parentElement).toHaveClass("text-[0.8rem]");
+    expect(screen.getByText("Mar 25, 2026").parentElement).toHaveClass("font-sans");
     expect(screen.getByText("Alice").parentElement).toHaveClass("text-[0.95rem]");
+    expect(screen.getByText("Alice").parentElement).toHaveClass("font-serif");
 
     const titleButton = screen.getByRole("button", { name: "First Article" });
     const feedButton = screen.getByRole("button", { name: "Tech Blog" });
+    expect(titleButton.parentElement).toHaveClass("font-sans");
     expect(feedButton).toHaveClass("text-[0.95rem]");
     expect(feedButton).not.toHaveClass("rounded-full");
     expect(feedButton).not.toHaveClass("border");
@@ -48,6 +51,7 @@ describe("ArticleMetaView", () => {
     const heading = screen.getByRole("heading", { level: 1, name: "Offline Article" });
 
     expect(heading).toBeInTheDocument();
+    expect(heading).toHaveClass("font-sans");
     expect(heading).toHaveClass("text-[1.66rem]");
     expect(heading).toHaveClass("sm:text-[2.06rem]");
     expect(heading).toHaveClass("leading-[1.07]");

@@ -53,15 +53,15 @@ const detailLinkClassName =
 
 function resolveBadgeClassName(tone: FeedDetailTone) {
   if (tone === "high") {
-    return "border-rose-500/30 bg-rose-500/12 text-rose-100";
+    return "border-rose-500/25 bg-rose-500/10 text-rose-900 dark:border-rose-500/30 dark:bg-rose-500/12 dark:text-rose-100";
   }
 
   if (tone === "medium") {
-    return "border-amber-500/30 bg-amber-500/12 text-amber-100";
+    return "border-amber-500/25 bg-amber-500/10 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/12 dark:text-amber-100";
   }
 
   if (tone === "low") {
-    return "border-emerald-500/30 bg-emerald-500/12 text-emerald-100";
+    return "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/12 dark:text-emerald-100";
   }
 
   return "border-border/70 bg-background/80 text-muted-foreground";
@@ -69,15 +69,15 @@ function resolveBadgeClassName(tone: FeedDetailTone) {
 
 function resolveReasonBoxClassName(tone: FeedDetailTone) {
   if (tone === "high") {
-    return "border-rose-500/30 bg-rose-500/10 text-rose-100";
+    return "border-rose-500/25 bg-rose-500/10 text-rose-950 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100";
   }
 
   if (tone === "medium") {
-    return "border-amber-500/30 bg-amber-500/10 text-amber-100";
+    return "border-amber-500/25 bg-amber-500/10 text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100";
   }
 
   if (tone === "low") {
-    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-100";
+    return "border-emerald-500/25 bg-emerald-500/10 text-emerald-950 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100";
   }
 
   return "border-border/70 bg-card/70 text-foreground";
@@ -110,15 +110,15 @@ export function FeedDetailPanel({
                 rel="noreferrer"
                 className={cn(detailLinkClassName, "inline-flex items-center gap-2 no-underline")}
               >
-                <h3 className="text-[1.75rem] font-semibold tracking-tight text-foreground">{title}</h3>
+                <h3 className="font-sans text-[1.75rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
                 <ExternalLink aria-hidden="true" className="mt-1 h-4 w-4 shrink-0" />
               </a>
             ) : (
-              <h3 className="text-[1.75rem] font-semibold tracking-tight text-foreground">{title}</h3>
+              <h3 className="font-sans text-[1.75rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
             )}
             {summaryText ? (
               <div className="mt-4 rounded-[20px] border border-border/55 bg-[linear-gradient(180deg,hsl(var(--background)/0.92),hsl(var(--card)/0.78))] px-5 py-3.5 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.035),0_10px_30px_-26px_hsl(var(--foreground)/0.35)]">
-                <p className="text-[0.95rem] leading-7 text-muted-foreground/95">{summaryText}</p>
+                <p className="font-serif text-[0.98rem] leading-7 text-muted-foreground/95">{summaryText}</p>
               </div>
             ) : null}
           </div>
@@ -131,8 +131,8 @@ export function FeedDetailPanel({
 
         {reasonBox ? (
           <div className={cn("rounded-2xl border px-4 py-4", resolveReasonBoxClassName(reasonBox.tone))}>
-            <p className="text-sm font-semibold text-current">{reasonBox.title}</p>
-            <p className="mt-1 text-sm leading-6 text-current/85">{reasonBox.body}</p>
+            <p className="font-sans text-sm font-medium text-current">{reasonBox.title}</p>
+            <p className="mt-1 font-serif text-sm leading-6 text-current/85">{reasonBox.body}</p>
           </div>
         ) : null}
 
@@ -169,7 +169,7 @@ export function FeedDetailPanel({
 
           {recentArticles.length > 0 ? (
             <div className="space-y-3.5 pt-4">
-              <h4 className="text-sm font-semibold text-foreground">{recentArticlesHeading}</h4>
+              <h4 className="font-sans text-sm font-medium text-foreground">{recentArticlesHeading}</h4>
               <div className="space-y-1.5">
                 {recentArticles.map((article) => (
                   <div key={article.id} className="rounded-2xl bg-card/80 px-4 py-2.5">
@@ -181,11 +181,13 @@ export function FeedDetailPanel({
                           rel="noreferrer"
                           className={cn(detailLinkClassName, "line-clamp-2 no-underline")}
                         >
-                          <span className="text-[0.95rem] font-normal leading-6 text-foreground">{article.title}</span>
+                          <span className="font-serif text-[0.95rem] font-normal leading-6 text-foreground">
+                            {article.title}
+                          </span>
                           <ExternalLink aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                         </a>
                       ) : (
-                        <span className="line-clamp-2 text-[0.95rem] font-normal leading-6 text-foreground">
+                        <span className="line-clamp-2 font-serif text-[0.95rem] font-normal leading-6 text-foreground">
                           {article.title}
                         </span>
                       )}

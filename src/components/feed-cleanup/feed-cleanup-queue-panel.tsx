@@ -61,9 +61,11 @@ export function FeedCleanupQueuePanel({
   return (
     <section className="flex h-full min-h-0 flex-col px-4 py-4 sm:px-6 sm:py-5 lg:border-r lg:border-border/70">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold">{integrityMode ? integrityQueueLabel : queueLabel}</h3>
+        <h3 className="font-sans text-sm font-medium tracking-[0.02em]">
+          {integrityMode ? integrityQueueLabel : queueLabel}
+        </h3>
         {!integrityMode ? (
-          <span className="text-[11px] font-medium tracking-[0.12em] text-muted-foreground uppercase">
+          <span className="font-sans text-[11px] font-medium tracking-[0.12em] text-muted-foreground uppercase">
             {queue.length}
           </span>
         ) : null}
@@ -143,7 +145,9 @@ export function FeedCleanupQueuePanel({
                 data-focused={isFocused}
                 className={cn(
                   "rounded-xl border px-3 py-3 transition-colors duration-150",
-                  isCurrent || isSelected ? "border-border/70 bg-card/75" : "border-border/60 bg-transparent",
+                  isCurrent || isSelected
+                    ? "border-border/70 bg-card/75 shadow-elevation-1"
+                    : "border-border/60 bg-transparent",
                   isFocused && "ring-1 ring-primary/30",
                 )}
               >
@@ -191,7 +195,7 @@ export function FeedCleanupQueuePanel({
                     >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
-                          <span className="line-clamp-1 font-medium text-foreground">{candidate.title}</span>
+                          <span className="line-clamp-1 font-sans font-medium text-foreground">{candidate.title}</span>
                           <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
                             <span className="rounded-full border border-border/70 bg-background/70 px-2 py-0.5">
                               {candidate.folderName ?? "—"}
@@ -259,7 +263,7 @@ export function FeedCleanupQueuePanel({
                       ) : null}
                     </div>
                     {selectedCandidate?.feedId === candidate.feedId ? (
-                      <p className="text-sm leading-6 text-muted-foreground">
+                      <p className="font-serif text-sm leading-6 text-muted-foreground">
                         {summaryLabels[queueSummary.summaryKey]}
                       </p>
                     ) : null}

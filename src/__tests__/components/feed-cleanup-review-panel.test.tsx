@@ -125,9 +125,12 @@ describe("FeedCleanupReviewPanel", () => {
     const detailCard = panel.querySelector("div.rounded-3xl");
     expect(detailCard).toHaveClass("border-border/70");
     expect(detailCard).toHaveClass("bg-[linear-gradient(180deg,hsl(var(--card)/0.9),hsl(var(--background)/0.97))]");
+    expect(detailCard).toHaveClass("shadow-elevation-1");
 
     expect(screen.getByRole("link", { name: "Old Product Blog" })).toHaveAttribute("href", "https://example.com");
+    expect(screen.getByRole("link", { name: "Old Product Blog" }).querySelector("h3")).toHaveClass("font-sans");
     expect(screen.getByText("Reason flagged")).toBeInTheDocument();
+    expect(screen.getByText("Updated 120 days ago / Unread 0 / Starred 0")).toHaveClass("font-serif");
     expect(screen.getByText("Updated 120 days ago / Unread 0 / Starred 0")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Open website" })).toBeNull();
     expect(screen.getByRole("button", { name: "Edit Feed" })).toBeInTheDocument();

@@ -9,8 +9,8 @@ describe("usePreferencesStore preferences", () => {
   it("falls back to the default theme when the persisted value is invalid", () => {
     usePreferencesStore.setState({ prefs: { theme: "midnight" }, loaded: true });
 
-    expect(resolvePreferenceValue(usePreferencesStore.getState().prefs, "theme")).toBe("dark");
-    expect(usePreferencesStore.getState().theme()).toBe("dark");
+    expect(resolvePreferenceValue(usePreferencesStore.getState().prefs, "theme")).toBe("light");
+    expect(usePreferencesStore.getState().theme()).toBe("light");
   });
 
   it("defaults reader and web preview preferences independently", () => {

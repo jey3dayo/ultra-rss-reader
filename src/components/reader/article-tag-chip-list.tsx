@@ -9,7 +9,7 @@ export function ArticleTagChipList({ assignedTags, labels, onRemoveTag }: Articl
       color={tag.color}
       onRemove={() => onRemoveTag(tag.id)}
       removeLabel={labels.removeTag(tag.name)}
-      className="bg-background/40"
+      className="bg-background/10"
     />
   ));
 }

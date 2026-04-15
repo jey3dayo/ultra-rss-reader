@@ -11,10 +11,10 @@ export function ArticleMetaView({
 }: ArticleMetaViewProps) {
   return (
     <div className="space-y-3">
-      <div className="text-[0.8rem] font-medium uppercase leading-none tracking-[0.14em] text-muted-foreground/80">
+      <div className="font-sans text-[0.8rem] font-medium uppercase leading-none tracking-[0.14em] text-muted-foreground/80">
         <p>{publishedLabel}</p>
       </div>
-      <h1 className="text-[1.66rem] font-semibold leading-[1.07] tracking-[-0.04em] text-foreground sm:text-[2.06rem]">
+      <h1 className="font-sans text-[1.66rem] font-normal leading-[1.07] tracking-[-0.04em] text-foreground sm:text-[2.06rem]">
         {onTitleClick ? (
           <button
             type="button"
@@ -29,7 +29,7 @@ export function ArticleMetaView({
         )}
       </h1>
       {(feedName || author) && (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.95rem] leading-5 text-muted-foreground/82">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-serif text-[0.95rem] leading-6 text-muted-foreground/82">
           {feedName &&
             (onFeedClick ? (
               <button

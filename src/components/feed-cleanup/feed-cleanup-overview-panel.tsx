@@ -25,24 +25,24 @@ export function FeedCleanupOverviewPanel({
       <div className="space-y-4">
         <div data-testid="feed-cleanup-sidebar-summary" className="flex flex-wrap items-center gap-6">
           {pendingCard ? (
-            <div className="flex items-center gap-4">
-              <span className="inline-flex min-w-12 justify-center rounded-lg border border-border/70 bg-background px-3 py-2 text-2xl font-semibold text-foreground">
+            <div className="flex items-center gap-4 rounded-[24px] border border-border/60 bg-card/52 px-4 py-3 shadow-elevation-1">
+              <span className="inline-flex min-w-12 justify-center rounded-lg border border-border/70 bg-background px-3 py-2 font-sans text-2xl font-medium text-foreground">
                 {pendingCard.value}
               </span>
               <div>
-                <p className="text-base text-foreground">{pendingCard.label}</p>
-                <p className="text-sm text-muted-foreground">{pendingCard.caption}</p>
+                <p className="font-sans text-base text-foreground">{pendingCard.label}</p>
+                <p className="font-serif text-sm text-muted-foreground">{pendingCard.caption}</p>
               </div>
             </div>
           ) : null}
           {decidedCard ? (
-            <div className="flex items-center gap-4 border-l border-border/70 pl-6">
-              <span className="inline-flex min-w-12 justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-2xl font-semibold text-emerald-700 dark:text-emerald-300">
+            <div className="flex items-center gap-4 rounded-[24px] border border-emerald-500/20 bg-emerald-500/8 px-4 py-3 shadow-elevation-1">
+              <span className="inline-flex min-w-12 justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 font-sans text-2xl font-medium text-emerald-700 dark:text-emerald-300">
                 {decidedCard.value}
               </span>
               <div>
-                <p className="text-base text-foreground">{decidedCard.label}</p>
-                <p className="text-sm text-muted-foreground">{decidedCard.caption}</p>
+                <p className="font-sans text-base text-foreground">{decidedCard.label}</p>
+                <p className="font-serif text-sm text-muted-foreground">{decidedCard.caption}</p>
               </div>
             </div>
           ) : null}

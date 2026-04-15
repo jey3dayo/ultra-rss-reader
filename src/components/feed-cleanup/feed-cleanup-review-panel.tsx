@@ -48,7 +48,7 @@ export function FeedCleanupReviewPanel({
   return (
     <section
       data-testid="feed-cleanup-review-panel"
-      className={cn("flex min-h-0 flex-col bg-background/40 px-4 py-4 sm:px-6", reviewPanelClassName)}
+      className={cn("flex min-h-0 flex-col bg-background/72 px-4 py-4 sm:px-6", reviewPanelClassName)}
     >
       <h3 className="sr-only">{reviewLabel}</h3>
       {integrityMode ? (
@@ -82,7 +82,7 @@ export function FeedCleanupReviewPanel({
             </FeedCleanupCard>
           </div>
         ) : (
-          <p className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+          <p className="rounded-xl border border-dashed border-border px-4 py-6 font-serif text-sm text-muted-foreground">
             {integrityEmptyLabel}
           </p>
         )
@@ -134,7 +134,7 @@ export function FeedCleanupReviewPanel({
           />
         </div>
       ) : (
-        <p className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+        <p className="rounded-xl border border-dashed border-border px-4 py-6 font-serif text-sm text-muted-foreground">
           {noSelectionLabel}
         </p>
       )}
