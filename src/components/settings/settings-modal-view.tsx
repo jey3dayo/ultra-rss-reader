@@ -29,10 +29,14 @@ function useScrollOverflowState(dependency: unknown) {
     };
 
     updateOverflow();
+    const animationFrame = window.requestAnimationFrame(() => {
+      updateOverflow();
+    });
     window.addEventListener("resize", updateOverflow);
 
     if (typeof ResizeObserver === "undefined") {
       return () => {
+        window.cancelAnimationFrame(animationFrame);
         window.removeEventListener("resize", updateOverflow);
       };
     }
@@ -40,6 +44,12 @@ function useScrollOverflowState(dependency: unknown) {
     const resizeObserver = new ResizeObserver(() => {
       updateOverflow();
     });
+    const mutationObserver =
+      typeof MutationObserver === "undefined"
+        ? null
+        : new MutationObserver(() => {
+            updateOverflow();
+          });
 
     resizeObserver.observe(viewport);
 
@@ -47,9 +57,17 @@ function useScrollOverflowState(dependency: unknown) {
     if (content instanceof HTMLElement) {
       resizeObserver.observe(content);
     }
+    mutationObserver?.observe(viewport, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+    });
 
     return () => {
+      window.cancelAnimationFrame(animationFrame);
       window.removeEventListener("resize", updateOverflow);
+      mutationObserver?.disconnect();
       resizeObserver.disconnect();
     };
   }, [dependency]);
@@ -75,7 +93,8 @@ export function SettingsModalView({
 }: SettingsModalViewProps) {
   const navigationOverflow = useScrollOverflowState(navigation);
   const contentOverflow = useScrollOverflowState(content);
-  const contentHasOverflow = contentScrollBehavior === "never" ? false : contentOverflow.hasOverflow;
+  const contentHasOverflow =
+    contentScrollBehavior === "always" ? true : contentScrollBehavior === "never" ? false : contentOverflow.hasOverflow;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -118,6 +137,17 @@ export function SettingsModalView({
               className={cn("h-full min-h-0", !navigationOverflow.hasOverflow && HIDDEN_SCROLLBAR_CLASS)}
             >
               {navigation}
+              <div
+                data-testid="settings-mobile-accounts-section"
+                className="border-t border-border/80 bg-sidebar/95 px-3 py-3 sm:hidden"
+              >
+                {accountsHeading ? (
+                  <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/48">
+                    {accountsHeading}
+                  </p>
+                ) : null}
+                {accountsNavigation}
+              </div>
             </ScrollArea>
             {navigationOverflow.hasOverflow ? (
               <div
@@ -128,7 +158,10 @@ export function SettingsModalView({
             ) : null}
           </div>
 
-          <div data-testid="settings-accounts-section" className="border-t border-border/80 bg-sidebar/95 px-3 py-3">
+          <div
+            data-testid="settings-accounts-section"
+            className="hidden border-t border-border/80 bg-sidebar/95 px-3 py-3 sm:block"
+          >
             {accountsHeading ? (
               <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/48">
                 {accountsHeading}

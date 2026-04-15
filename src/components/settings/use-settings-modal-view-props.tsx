@@ -126,11 +126,6 @@ export function useSettingsModalViewProps({
     setSettingsCategory(nextCategory);
   };
 
-  const contentScrollBehavior =
-    settingsAccountId || settingsCategory === "shortcuts" || settingsCategory === "tags" || settingsCategory === "mute"
-      ? "auto"
-      : "never";
-
   return {
     open: settingsOpen,
     title: t("preferences"),
@@ -147,7 +142,6 @@ export function useSettingsModalViewProps({
       />
     ),
     content,
-    contentScrollBehavior,
     isLoading: settingsLoading,
     onClose: closeSettings,
     onOpenChange: (open) => (!open ? closeSettings() : openSettings()),

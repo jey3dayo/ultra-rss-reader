@@ -76,7 +76,8 @@ describe("SettingsModalView", () => {
 
     expect(screen.getByRole("heading", { name: "Preferences" })).toBeInTheDocument();
     expect(screen.getByTestId("settings-nav")).toHaveTextContent("Settings navigation");
-    expect(screen.getByTestId("accounts-nav")).toHaveTextContent("Accounts navigation");
+    expect(screen.getAllByTestId("accounts-nav")).toHaveLength(2);
+    expect(screen.getAllByTestId("accounts-nav")[0]).toHaveTextContent("Accounts navigation");
     expect(screen.getByText("Settings content")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Close preferences" }));
@@ -129,7 +130,25 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-modal-header")).toHaveClass("py-0");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("px-3");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("py-3");
-    expect(screen.getByText("Accounts")).toBeInTheDocument();
+    expect(screen.getAllByText("Accounts")).toHaveLength(2);
+  });
+
+  it("renders a narrow-screen accounts section inside the navigation flow", () => {
+    render(
+      <SettingsModalView
+        open={true}
+        title="Preferences"
+        closeLabel="Close preferences"
+        navigation={<div>Settings navigation</div>}
+        accountsHeading="Accounts"
+        accountsNavigation={<div>Accounts navigation</div>}
+        content={<div>Settings content</div>}
+        onClose={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("settings-mobile-accounts-section")).toBeInTheDocument();
   });
 
   it("hides scrollbars and fades when the panes do not overflow", async () => {
@@ -167,7 +186,7 @@ describe("SettingsModalView", () => {
     expect(screen.queryByTestId("settings-content-fade-bottom")).not.toBeInTheDocument();
   });
 
-  it("keeps content scrollbar affordances disabled when the page is marked as non-scrollable", async () => {
+  it("shows content scrollbar affordances when the content overflows", async () => {
     render(
       <SettingsModalView
         open={true}
@@ -177,25 +196,18 @@ describe("SettingsModalView", () => {
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
         content={<div>Settings content</div>}
-        contentScrollBehavior="never"
+        contentScrollBehavior="always"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
       />,
     );
 
-    const [, contentScrollArea] = screen.getAllByTestId("settings-scroll-area");
-    const hiddenScrollbarClass = "[&>[data-slot='scroll-area-scrollbar']]:hidden";
+    expect(screen.getAllByTestId("settings-scroll-area")[1]).not.toHaveClass(
+      "[&>[data-slot='scroll-area-scrollbar']]:hidden",
+    );
 
-    setScrollMetrics(contentScrollArea, 480, 720);
-    notifyResizeObservers();
-    fireEvent(window, new Event("resize"));
-
-    await waitFor(() => {
-      expect(screen.getAllByTestId("settings-scroll-area")[1]).toHaveClass(hiddenScrollbarClass);
-    });
-
-    expect(screen.queryByTestId("settings-content-fade-top")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("settings-content-fade-bottom")).not.toBeInTheDocument();
+    expect(screen.getByTestId("settings-content-fade-top")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-content-fade-bottom")).toBeInTheDocument();
   });
 
   it("stacks the navigation above the content on narrow screens", () => {
