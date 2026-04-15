@@ -12,10 +12,16 @@ describe("ArticleContentView", () => {
       />,
     );
 
-    expect(screen.getByAltText("")).toHaveAttribute("src", "https://example.com/thumbnail.png");
+    const thumbnail = screen.getByAltText("");
+    expect(thumbnail).toHaveAttribute("src", "https://example.com/thumbnail.png");
+    expect(thumbnail.parentElement).toHaveClass("mb-10");
+    expect(thumbnail.parentElement).toHaveClass("rounded-xl");
     expect(screen.getByText("Hello", { exact: false })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "link" })).toHaveAttribute("href", "https://example.com");
-    expect(container.querySelector(".prose")).not.toBeNull();
+    const prose = container.querySelector(".prose");
+    expect(prose).not.toBeNull();
+    expect(prose).toHaveClass("text-[1.02rem]");
+    expect(prose).toHaveClass("leading-8");
   });
 
   it("omits the thumbnail wrapper when no image is provided", () => {
