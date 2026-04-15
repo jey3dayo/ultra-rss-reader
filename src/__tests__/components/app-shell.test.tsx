@@ -75,7 +75,7 @@ describe("AppShell", () => {
     expect(overlayRoot?.compareDocumentPosition(appLayout)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
-  it("keeps the desktop overlay titlebar helper classes on the shell overlay root", () => {
+  it("keeps the desktop overlay titlebar helper classes on the shell overlay root without adding a shell-wide drag strip", () => {
     const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
 
     try {
@@ -103,12 +103,9 @@ describe("AppShell", () => {
       const { container } = render(<AppShell />, { wrapper: createWrapper() });
 
       const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
-      const titlebarDragStrip = container.querySelector<HTMLElement>("[data-testid='desktop-titlebar-drag-strip']");
-
       expect(overlayRoot).toHaveClass("desktop-titlebar-offset");
       expect(overlayRoot).toHaveClass("desktop-overlay-titlebar");
-      expect(titlebarDragStrip).toHaveAttribute("data-tauri-drag-region");
-      expect(titlebarDragStrip).toHaveClass("desktop-titlebar-drag-strip");
+      expect(container.querySelector("[data-testid='desktop-titlebar-drag-strip']")).toBeNull();
     } finally {
       if (originalTauriInternalsDescriptor) {
         Object.defineProperty(window, "__TAURI_INTERNALS__", originalTauriInternalsDescriptor);

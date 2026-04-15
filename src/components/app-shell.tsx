@@ -299,16 +299,6 @@ export function AppShell() {
 
   return (
     <div className="relative flex h-full flex-col">
-      {overlayTitlebar ? (
-        <div
-          data-testid="desktop-titlebar-drag-strip"
-          data-tauri-drag-region
-          aria-hidden="true"
-          // AppShell owns the macOS overlay titlebar contract.
-          // AppLayout and pane content should stay flush to the top edge.
-          className="desktop-titlebar-drag-strip absolute inset-x-0 top-0 z-30"
-        />
-      ) : null}
       <div
         data-browser-overlay-root=""
         className={cn(

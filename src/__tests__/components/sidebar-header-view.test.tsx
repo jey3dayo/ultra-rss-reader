@@ -26,6 +26,7 @@ describe("SidebarHeaderView", () => {
       />,
     );
 
+    expect(container.firstElementChild).toHaveClass("border-b");
     expect(container.firstElementChild).not.toHaveAttribute("data-tauri-drag-region");
     expect(container.querySelector("[data-tauri-drag-region]")).not.toBeNull();
 
