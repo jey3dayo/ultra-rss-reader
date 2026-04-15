@@ -8,6 +8,10 @@
   - 現時点では mobile を主要提供面にしないため必須対応から外すが、狭い幅での discoverability 課題として保留する
   - 対応する場合は tooltip 前提の主要操作を、ラベル表示かメニュー集約で補う
   - 候補箇所: `src/components/reader/sidebar-header-view.tsx`, `src/components/reader/article-list-header.tsx`, `src/components/reader/article-toolbar-view.tsx`
+- [ ] `DESIGN.md` を参照し、主要コンポーネントのリデザイン方針を整理して段階的に適用する
+  - warm cream 系の配色、太すぎないタイポグラフィ、境界線と余白のルールを既存 UI に馴染む形で再設計する
+  - まずは reader 周辺の主要コンポーネントを対象に、影響の大きいものから優先して見直す
+  - 実装時は既存の操作性と可読性を崩さず、単なる見た目変更ではなく情報階層も合わせて調整する
 
 ## Deferred Follow-ups
 

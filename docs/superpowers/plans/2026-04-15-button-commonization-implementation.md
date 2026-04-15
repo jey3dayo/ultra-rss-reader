@@ -86,6 +86,7 @@
 ## Task 1: Add `NavRowButton`
 
 **Files:**
+
 - Create: `src/components/shared/nav-row-button.tsx`
 - Test: `src/__tests__/components/nav-row-button.test.tsx`
 - Read: `src/components/reader/sidebar-nav-button.tsx`
@@ -169,7 +170,9 @@ export function NavRowButton({
       type={type}
       className={cn(
         "group flex w-full items-start gap-3 rounded-md border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-        tone === "sidebar" ? "focus-visible:bg-sidebar-accent/40" : "focus-visible:border-border/60 focus-visible:bg-card/40",
+        tone === "sidebar"
+          ? "focus-visible:bg-sidebar-accent/40"
+          : "focus-visible:border-border/60 focus-visible:bg-card/40",
         tone === "sidebar"
           ? selected
             ? "border-transparent bg-sidebar-accent text-sidebar-accent-foreground"
@@ -185,7 +188,11 @@ export function NavRowButton({
       {leading ? <span className="shrink-0">{leading}</span> : null}
       <div className="min-w-0 flex-1">
         <div className="truncate font-medium">{title}</div>
-        {description ? <div className="mt-1 text-xs text-muted-foreground">{description}</div> : null}
+        {description ? (
+          <div className="mt-1 text-xs text-muted-foreground">
+            {description}
+          </div>
+        ) : null}
       </div>
       {trailing ? <span className="shrink-0">{trailing}</span> : null}
     </button>
@@ -207,7 +214,7 @@ type NavRowButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   selected?: boolean;
 };
 
-<NavRowButton selected={item.isActive} aria-pressed={item.isActive} />
+<NavRowButton selected={item.isActive} aria-pressed={item.isActive} />;
 ```
 
 - [ ] **Step 5: Run test to verify it passes**
@@ -229,6 +236,7 @@ EOF
 ## Task 2: Add `DecisionButton`
 
 **Files:**
+
 - Create: `src/components/shared/decision-button.tsx`
 - Test: `src/__tests__/components/decision-button.test.tsx`
 - Read: `src/components/shared/delete-button.tsx`
@@ -250,9 +258,15 @@ describe("DecisionButton", () => {
       </>,
     );
 
-    expect(screen.getByRole("button", { name: "Keep" })).toHaveClass("bg-emerald-600/90");
-    expect(screen.getByRole("button", { name: "Later" })).toHaveClass("bg-zinc-800");
-    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("bg-red-950/90");
+    expect(screen.getByRole("button", { name: "Keep" })).toHaveClass(
+      "bg-emerald-600/90",
+    );
+    expect(screen.getByRole("button", { name: "Later" })).toHaveClass(
+      "bg-zinc-800",
+    );
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass(
+      "bg-red-950/90",
+    );
   });
 });
 ```
@@ -279,7 +293,12 @@ const decisionIntentClassName = {
   delete: "bg-red-950/90 text-red-100 hover:bg-red-900",
 } as const;
 
-export function DecisionButton({ intent, className, type = "button", ...props }: DecisionButtonProps) {
+export function DecisionButton({
+  intent,
+  className,
+  type = "button",
+  ...props
+}: DecisionButtonProps) {
   return (
     <button
       type={type}
@@ -313,6 +332,7 @@ EOF
 ## Task 3: Reuse `NavRowButton` in settings navigation
 
 **Files:**
+
 - Modify: `src/components/settings/accounts-nav-view.tsx`
 - Modify: `src/components/settings/settings-nav-view.tsx`
 - Modify: `src/components/settings/service-picker.tsx`
@@ -351,13 +371,18 @@ import { NavRowButton } from "@/components/shared/nav-row-button";
   selected={account.isActive}
   onClick={() => onSelectAccount(account.id)}
   leading={
-    <span className={cn("flex h-8 w-8 items-center justify-center rounded-full", ACCOUNT_ICON_BG[account.kind] ?? "bg-muted")}>
+    <span
+      className={cn(
+        "flex h-8 w-8 items-center justify-center rounded-full",
+        ACCOUNT_ICON_BG[account.kind] ?? "bg-muted",
+      )}
+    >
       <Rss className="h-4 w-4 text-white" />
     </span>
   }
   title={account.name}
   description={account.kind}
-/>
+/>;
 ```
 
 - [ ] **Step 5: Replace settings category rows with `NavRowButton`**
@@ -383,7 +408,7 @@ import { NavRowButton } from "@/components/shared/nav-row-button";
     </span>
   }
   title={item.label}
-/>
+/>;
 ```
 
 - [ ] **Step 6: Replace service rows with `NavRowButton`**
@@ -400,14 +425,19 @@ import { NavRowButton } from "@/components/shared/nav-row-button";
     }
   }}
   leading={
-    <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", service.iconBg)}>
+    <div
+      className={cn(
+        "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+        service.iconBg,
+      )}
+    >
       <service.icon className="h-[18px] w-[18px] text-white" />
     </div>
   }
   title={t(service.nameKey as "account.local_feeds")}
   description={t(service.descKey as "account.local_desc")}
   trailing={<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
-/>
+/>;
 ```
 
 - [ ] **Step 7: Run tests to verify they pass**
@@ -434,6 +464,7 @@ EOF
 ## Task 4: Reuse `NavRowButton` in subscriptions list
 
 **Files:**
+
 - Modify: `src/components/subscriptions-index/subscriptions-list-pane.tsx`
 - Test: `src/__tests__/components/subscriptions-index-page.test.tsx`
 
@@ -483,7 +514,7 @@ import { NavRowButton } from "@/components/shared/nav-row-button";
       </span>
     </div>
   }
-/>
+/>;
 ```
 
 - [ ] **Step 4: Preserve folder drop-target wrappers and list layout**
@@ -514,6 +545,7 @@ EOF
 ## Task 5: Add chip/button wrapper on top of `control-chip`
 
 **Files:**
+
 - Modify: `src/components/shared/control-chip.ts`
 - Optionally Create: `src/components/shared/control-chip-button.tsx`
 - Read: `src/components/reader/sidebar-footer-actions.tsx`
@@ -547,7 +579,10 @@ export function ControlChipButton({
     <button
       type={type}
       data-pressed={pressed ? "" : undefined}
-      className={cn(controlChipVariants({ size, interaction: "toggle" }), className)}
+      className={cn(
+        controlChipVariants({ size, interaction: "toggle" }),
+        className,
+      )}
       {...props}
     >
       {children}
@@ -565,6 +600,7 @@ Expected: either PASS immediately or fail because cleanup still uses old button 
 ## Task 6: Reuse `DecisionButton` and chip wrapper in cleanup queue
 
 **Files:**
+
 - Modify: `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx`
 - Modify: `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`
 - Test: `src/__tests__/components/feed-cleanup-queue-panel.test.tsx`
@@ -573,9 +609,15 @@ Expected: either PASS immediately or fail because cleanup still uses old button 
 - [ ] **Step 1: Update cleanup tests to assert shared button presence**
 
 ```tsx
-expect(within(queueRow).getByRole("button", { name: "Delete" })).toHaveClass("bg-red-950/90");
-expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("bg-emerald-600/90");
-expect(screen.getByRole("button", { name: /No unread/i })).toHaveClass("rounded-md");
+expect(within(queueRow).getByRole("button", { name: "Delete" })).toHaveClass(
+  "bg-red-950/90",
+);
+expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass(
+  "bg-emerald-600/90",
+);
+expect(screen.getByRole("button", { name: /No unread/i })).toHaveClass(
+  "rounded-md",
+);
 ```
 
 - [ ] **Step 2: Run cleanup tests to verify they fail**
@@ -589,10 +631,14 @@ Expected: FAIL because inline buttons still use ad-hoc classes
 ```tsx
 import { DecisionButton } from "@/components/shared/decision-button";
 
-<DecisionButton intent="keep" aria-label={bulkKeepActionLabel} onClick={onKeepSelection}>
+<DecisionButton
+  intent="keep"
+  aria-label={bulkKeepActionLabel}
+  onClick={onKeepSelection}
+>
   <Check className="h-4 w-4" />
   {keepLabel}
-</DecisionButton>
+</DecisionButton>;
 ```
 
 Repeat for `defer` and `delete`.
@@ -629,19 +675,21 @@ Use the current cleanup API names and loop structure already present in `feed-cl
 >
   <span>{t("all_candidates")}</span>
   <span>{pendingCard?.value ?? "0"}</span>
-</ControlChipButton>
+</ControlChipButton>;
 
-{filterOptions.map((filter) => (
-  <ControlChipButton
-    key={filter.key}
-    pressed={activeFilterKeys.has(filter.key)}
-    aria-label={`${filter.label} ${filterCounts[filter.key]}`}
-    onClick={() => onToggleFilter(filter.key)}
-  >
-    <span>{filter.label}</span>
-    <span>{filterCounts[filter.key]}</span>
-  </ControlChipButton>
-))}
+{
+  filterOptions.map((filter) => (
+    <ControlChipButton
+      key={filter.key}
+      pressed={activeFilterKeys.has(filter.key)}
+      aria-label={`${filter.label} ${filterCounts[filter.key]}`}
+      onClick={() => onToggleFilter(filter.key)}
+    >
+      <span>{filter.label}</span>
+      <span>{filterCounts[filter.key]}</span>
+    </ControlChipButton>
+  ));
+}
 ```
 
 - [ ] **Step 6: Keep selection checkbox hit area and row CTA behavior unchanged**
@@ -679,6 +727,7 @@ EOF
 ## Task 7: Full verification and browser review
 
 **Files:**
+
 - No code changes required
 - Read: `tmp/screenshots/button-review-home.png`
 - Read: `tmp/screenshots/button-review-subscriptions.png`
