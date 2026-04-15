@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Component, lazy, type ReactNode, Suspense, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { APP_EVENTS } from "../constants/events";
@@ -36,10 +36,50 @@ const LazyShortcutsHelpModal = lazy(async () => {
   return { default: mod.ShortcutsHelpModal };
 });
 
+async function loadSettingsModalModule() {
+  return import("./settings/settings-modal");
+}
+
+if (import.meta.env.DEV) {
+  void loadSettingsModalModule();
+}
+
 const LazySettingsModal = lazy(async () => {
-  const mod = await import("./settings/settings-modal");
+  const mod = await loadSettingsModalModule();
   return { default: mod.SettingsModal };
 });
+
+type SettingsModalBoundaryProps = {
+  children: ReactNode;
+  onError: () => void;
+};
+
+type SettingsModalBoundaryState = {
+  hasError: boolean;
+};
+
+class SettingsModalBoundary extends Component<SettingsModalBoundaryProps, SettingsModalBoundaryState> {
+  state: SettingsModalBoundaryState = {
+    hasError: false,
+  };
+
+  static getDerivedStateFromError(): SettingsModalBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error("Failed to render settings modal.", error);
+    this.props.onError();
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return null;
+    }
+
+    return this.props.children;
+  }
+}
 
 function Toast() {
   const { t } = useTranslation("common");
@@ -285,6 +325,7 @@ export function AppShell() {
   const shortcutsHelpOpen = useUiStore((state) => state.shortcutsHelpOpen);
   const closeShortcutsHelp = useUiStore((state) => state.closeShortcutsHelp);
   const settingsOpen = useUiStore((state) => state.settingsOpen);
+  const closeSettings = useUiStore((state) => state.closeSettings);
   const appLoading = useUiStore((state) => state.appLoading);
   const prefs = usePreferencesStore((state) => state.prefs);
   const overlayTitlebar = shouldUseDesktopOverlayTitlebar({
@@ -313,9 +354,11 @@ export function AppShell() {
         <AppLayout />
       </div>
       {settingsOpen ? (
-        <Suspense fallback={null}>
-          <LazySettingsModal />
-        </Suspense>
+        <SettingsModalBoundary onError={closeSettings}>
+          <Suspense fallback={null}>
+            <LazySettingsModal />
+          </Suspense>
+        </SettingsModalBoundary>
       ) : null}
       <AppConfirmDialog />
       {shortcutsHelpOpen ? (

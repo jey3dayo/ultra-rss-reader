@@ -9,6 +9,8 @@ import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
+const settingsModalState = vi.hoisted(() => ({ shouldThrow: false }));
+
 vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn(() => Promise.resolve(() => {})),
 }));
@@ -29,7 +31,13 @@ vi.mock("@/components/app-confirm-dialog", () => ({
 }));
 
 vi.mock("@/components/settings/settings-modal", () => ({
-  SettingsModal: () => <div>Settings Modal</div>,
+  SettingsModal: () => {
+    if (settingsModalState.shouldThrow) {
+      throw new Error("settings modal render failed");
+    }
+
+    return <div>Settings Modal</div>;
+  },
 }));
 
 vi.mock("@/components/reader/command-palette", () => ({
@@ -38,6 +46,7 @@ vi.mock("@/components/reader/command-palette", () => ({
 
 describe("AppShell", () => {
   beforeEach(() => {
+    settingsModalState.shouldThrow = false;
     useUiStore.setState(useUiStore.getInitialState());
     usePlatformStore.setState(usePlatformStore.getInitialState());
     usePreferencesStore.setState({
@@ -59,6 +68,18 @@ describe("AppShell", () => {
     render(<AppShell />, { wrapper: createWrapper() });
 
     expect(screen.queryByText("Settings Modal")).not.toBeInTheDocument();
+  });
+
+  it("keeps the app shell mounted when the settings modal fails to render", async () => {
+    settingsModalState.shouldThrow = true;
+    useUiStore.setState({ settingsOpen: true });
+
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    expect(screen.getByText("App Layout")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(useUiStore.getState().settingsOpen).toBe(false);
+    });
   });
 
   it("mounts the browser overlay root as a shell child that spans the entire app shell", () => {
