@@ -26,7 +26,10 @@ export function AccountsNavView({
           selected={account.isActive}
           aria-pressed={account.isActive}
           onClick={() => onSelectAccount(account.id)}
-          className="items-center rounded-lg px-3 py-2 text-sm"
+          className={cn(
+            "items-center rounded-lg px-3 py-2 text-sm",
+            account.isActive && "bg-sidebar-accent/82 shadow-none",
+          )}
           leading={
             <span
               className={cn(
@@ -50,7 +53,10 @@ export function AccountsNavView({
         selected={isAddAccountActive}
         aria-pressed={isAddAccountActive}
         onClick={onAddAccount}
-        className="items-center rounded-lg px-3 py-2 text-sm"
+        className={cn(
+          "items-center rounded-lg px-3 py-2 text-sm",
+          isAddAccountActive && "bg-sidebar-accent/82 shadow-none",
+        )}
         leading={
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
             <Plus className="h-4 w-4" />

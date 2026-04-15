@@ -14,7 +14,10 @@ export function SettingsNavView({ items, onSelectCategory }: SettingsNavViewProp
           selected={item.isActive}
           aria-pressed={item.isActive}
           onClick={() => onSelectCategory(item.id)}
-          className="items-center rounded-lg px-3 py-2 text-[14px] font-medium leading-[1.3]"
+          className={cn(
+            "items-center rounded-lg px-3 py-2 text-[14px] font-medium leading-[1.3]",
+            item.isActive && "bg-sidebar-accent/82 shadow-none",
+          )}
           leading={
             <span
               className={cn(

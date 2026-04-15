@@ -26,9 +26,10 @@ describe("AccountsNavView", () => {
     const freshRssButton = screen.getByRole("button", { name: /FreshRSS/i });
     const addAccountButton = screen.getByRole("button", { name: "Add account…" });
 
-    expect(localButton).toHaveClass("bg-sidebar-accent");
+    expect(localButton).toHaveClass("bg-sidebar-accent/82");
+    expect(localButton).toHaveClass("shadow-none");
     expect(localButton).toHaveAttribute("aria-pressed", "true");
-    expect(freshRssButton).not.toHaveClass("bg-sidebar-accent");
+    expect(freshRssButton).not.toHaveClass("bg-sidebar-accent/82");
     expect(freshRssButton).toHaveAttribute("aria-pressed", "false");
     expect(addAccountButton).toHaveAttribute("aria-pressed", "false");
 

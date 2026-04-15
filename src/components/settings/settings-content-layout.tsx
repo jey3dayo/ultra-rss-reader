@@ -30,7 +30,7 @@ export function SettingsContentLayout({
         className={cn("w-full", titleLayout === "stacked-left" && "mx-auto", maxWidthClassName)}
       >
         {titleLayout === "sticky-centered" ? (
-          <h2 className="sticky top-0 z-10 -mx-5 mb-4 flex min-h-16 items-center justify-center border-b border-border/70 bg-popover/95 px-5 text-center text-[19px] font-semibold tracking-[0.01em] backdrop-blur-sm sm:-mx-6 sm:mb-5 sm:px-6">
+          <h2 className="sticky top-0 z-10 -mx-5 mb-4 flex min-h-[4.5rem] items-center justify-center border-b border-border/70 bg-popover/95 px-5 text-center text-[19px] font-semibold tracking-[0.01em] backdrop-blur-sm sm:-mx-6 sm:mb-5 sm:px-6">
             {title}
           </h2>
         ) : (
