@@ -18,7 +18,7 @@ export function ArticleMetaView({
         {onTitleClick ? (
           <button
             type="button"
-            className="-mx-1 block w-[calc(100%+0.5rem)] rounded-md px-1 py-0.5 text-left transition-colors hover:bg-foreground/5"
+            className="-mx-1 -my-1 block w-[calc(100%+0.5rem)] rounded-md px-1 py-1.5 text-left transition-colors hover:bg-foreground/5"
             onClick={onTitleClick}
             onAuxClick={onTitleAuxClick}
           >

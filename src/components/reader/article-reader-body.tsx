@@ -100,11 +100,11 @@ export function ArticleReaderBody({ article, feedName }: ArticleReaderBodyProps)
           }
         />
 
-        <div className="mt-4 border-t border-border/18 pt-2">
+        <div className="mt-3.5 border-t border-border/10 pt-1.5">
           <ArticleTagChips articleId={article.id} />
         </div>
 
-        <div className="mt-6.5" ref={setContentContainerElement}>
+        <div className="mt-5.5" ref={setContentContainerElement}>
           <ArticleContentView thumbnailUrl={article.thumbnail} contentHtml={articleContentHtml} feedName={feedName} />
         </div>
       </article>
