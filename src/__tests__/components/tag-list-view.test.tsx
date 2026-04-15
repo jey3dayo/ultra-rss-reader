@@ -5,10 +5,8 @@ import { TagListView } from "@/components/reader/tag-list-view";
 import { TagSectionContextMenuView } from "@/components/reader/tag-section-context-menu-view";
 
 describe("TagListView", () => {
-  it("opens the tag section context menu on right click without changing left-click toggle behavior", async () => {
+  it("opens the tag section context menu from the actual tags header on right click", async () => {
     const onToggleOpen = vi.fn();
-    const onAddTag = vi.fn();
-    const onManageTags = vi.fn();
 
     render(
       <TagListView
@@ -21,8 +19,8 @@ describe("TagListView", () => {
           <TagSectionContextMenuView
             addTagLabel="Add tag"
             manageTagsLabel="Manage tags"
-            onAddTag={onAddTag}
-            onManageTags={onManageTags}
+            onAddTag={vi.fn()}
+            onManageTags={vi.fn()}
           />
         )}
         renderContextMenu={() => <div />}
@@ -34,8 +32,36 @@ describe("TagListView", () => {
     fireEvent.contextMenu(toggle);
 
     expect(onToggleOpen).not.toHaveBeenCalled();
-    expect(await screen.findByRole("menuitem", { name: "Add tag" })).toBeInTheDocument();
+    expect(await screen.findByRole("menuitem", { name: "Add tag" })).not.toHaveAttribute("aria-disabled", "true");
     expect(screen.getByRole("menuitem", { name: "Manage tags" })).toBeInTheDocument();
+  });
+
+  it("keeps left click on the tags header wired to section toggle when a section menu is available", async () => {
+    const user = userEvent.setup();
+    const onToggleOpen = vi.fn();
+
+    render(
+      <TagListView
+        tagsLabel="Tags"
+        tags={[]}
+        isOpen={false}
+        onToggleOpen={onToggleOpen}
+        onSelectTag={vi.fn()}
+        renderTagSectionContextMenu={() => (
+          <TagSectionContextMenuView
+            addTagLabel="Add tag"
+            manageTagsLabel="Manage tags"
+            onAddTag={vi.fn()}
+            onManageTags={vi.fn()}
+          />
+        )}
+        renderContextMenu={() => <div />}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Tags" }));
+
+    expect(onToggleOpen).toHaveBeenCalledTimes(1);
   });
 
   it("renders tag rows with counts and selects the clicked tag", async () => {

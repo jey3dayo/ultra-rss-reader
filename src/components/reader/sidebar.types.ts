@@ -137,7 +137,6 @@ export type SidebarControllerSectionsParams = {
   syncProgress: SidebarHeaderPropsParams["syncProgress"];
   handleSync: SidebarHeaderPropsParams["handleSync"];
   handleAddFeed: SidebarHeaderPropsParams["handleAddFeed"];
-  handleAddTag: () => void;
   toggleFeedsSection: () => void;
   lastSyncedLabel: string;
   totalUnread: number;

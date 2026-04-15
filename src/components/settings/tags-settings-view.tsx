@@ -1,8 +1,9 @@
 import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import { SettingsSection } from "@/components/settings/settings-section";
+import { LabeledControlRow } from "@/components/shared/labeled-control-row";
+import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { TagColorPicker } from "@/components/shared/tag-color-picker";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 export type TagsSettingsListItem = {
   id: string;
@@ -68,44 +69,34 @@ export function TagsSettingsView({
   return (
     <SettingsContentLayout title={title} outerTestId="tags-settings-root">
       <SettingsSection heading={addHeading} note={intro} className="mb-6">
-        <div className="mx-auto w-full max-w-xl rounded-xl border border-border/70 bg-background/35 p-4 sm:p-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="tags-settings-name" className="block text-sm font-medium text-foreground/88">
-                {nameLabel}
-              </label>
-              <Input
-                id="tags-settings-name"
-                name="tag_name"
-                aria-label={nameLabel}
-                value={nameValue}
-                onChange={(event) => onNameChange(event.target.value)}
-                placeholder={namePlaceholder}
-                className="h-11 rounded-lg border-border/80 bg-background/80 px-3 shadow-none"
-              />
-            </div>
-
-            <div className="rounded-lg border border-border/70 bg-background/55 p-3 sm:p-4">
-              <TagColorPicker
-                label={colorLabel}
-                color={colorValue}
-                colorOptions={colorOptions}
-                noColorLabel={noColorLabel}
-                optionAriaLabel={colorOptionAriaLabel}
-                onChange={onColorChange}
-              />
-            </div>
-
-            <Button
-              type="button"
-              className="h-11 w-full rounded-lg text-sm font-medium"
-              onClick={onCreate}
-              disabled={createDisabled}
-            >
-              {createLabel}
-            </Button>
+        <LabeledInputRow
+          label={nameLabel}
+          name="tag_name"
+          value={nameValue}
+          placeholder={namePlaceholder}
+          onChange={onNameChange}
+          actionLabel={createLabel}
+          actionAriaLabel={createLabel}
+          onAction={onCreate}
+          actionDisabled={createDisabled}
+          rowClassName="items-start sm:items-center"
+          labelClassName="sm:w-40 sm:shrink-0"
+          controlClassName="sm:justify-end"
+          inputClassName="h-10"
+          actionClassName="h-10 sm:px-4"
+        />
+        <LabeledControlRow label={colorLabel} labelClassName="sm:w-40 sm:shrink-0">
+          <div className="w-full sm:max-w-[360px]">
+            <TagColorPicker
+              label={colorLabel}
+              color={colorValue}
+              colorOptions={colorOptions}
+              noColorLabel={noColorLabel}
+              optionAriaLabel={colorOptionAriaLabel}
+              onChange={onColorChange}
+            />
           </div>
-        </div>
+        </LabeledControlRow>
       </SettingsSection>
 
       <SettingsSection heading={savedHeading}>
@@ -113,21 +104,16 @@ export function TagsSettingsView({
           <p className="border-b border-border py-3 text-sm text-muted-foreground">{emptyState}</p>
         ) : (
           tags.map((tag) => (
-            <LabeledControlRow
-              key={tag.id}
-              label={
-                <span className="flex items-center gap-2">
+            <LabeledControlRow key={tag.id} label={tag.name} labelClassName="sm:max-w-[280px] sm:shrink-0 sm:truncate">
+              <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                {tag.color ? (
                   <span
                     aria-hidden="true"
-                    className="inline-block h-2.5 w-2.5 rounded-full border border-border/70"
-                    style={{ backgroundColor: tag.color ?? "transparent" }}
+                    data-testid={`tags-settings-swatch-${tag.id}`}
+                    className="inline-block h-5 w-5 shrink-0 rounded-full border border-border/70 sm:mr-1"
+                    style={{ backgroundColor: tag.color }}
                   />
-                  <span className="truncate">{tag.name}</span>
-                </span>
-              }
-              labelClassName="sm:max-w-[280px] sm:shrink-0 sm:truncate"
-            >
-              <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                ) : null}
                 <Button
                   type="button"
                   variant="outline"

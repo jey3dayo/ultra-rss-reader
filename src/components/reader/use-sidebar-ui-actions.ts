@@ -41,10 +41,6 @@ export function useSidebarUiActions({
     setSettingsAddAccount(true);
   }, [openSettings, setSettingsAddAccount]);
 
-  const handleAddTag = useCallback(() => {
-    // Intentionally left as a callback hook for the next task.
-  }, []);
-
   const handleAddFeed = useCallback(() => {
     if (selectedAccountId) {
       openAddFeedDialog();
@@ -73,7 +69,6 @@ export function useSidebarUiActions({
     handleOpenTagSettings,
     handleOpenAccountSettings,
     handleAddFeed,
-    handleAddTag,
     handleAddFeedDialogOpenChange,
   };
 }

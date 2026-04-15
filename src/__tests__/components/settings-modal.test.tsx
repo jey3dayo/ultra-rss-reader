@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,7 +10,7 @@ import type { SettingsModalViewProps } from "@/components/settings/settings-moda
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { sampleAccounts, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import { sampleAccounts, type sampleTags, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 vi.mock("@/components/settings/settings-modal-view", () => ({
   SettingsModalView: ({
@@ -105,6 +105,19 @@ describe("SettingsModal", () => {
     expect(await screen.findByRole("button", { name: "Mute" })).toBeInTheDocument();
   });
 
+  it("shows the tags settings category in navigation", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_tags") {
+        return [];
+      }
+      return undefined;
+    });
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("button", { name: "Tags" })).toBeInTheDocument();
+  });
+
   it("switches to mute settings and shows the empty state", async () => {
     const user = userEvent.setup();
 
@@ -137,6 +150,83 @@ describe("SettingsModal", () => {
 
     expect(screen.getByRole("combobox", { name: "Scope for Kindle Unlimited" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+  });
+
+  it("switches to tags settings and creates a tag from the add row", async () => {
+    const user = userEvent.setup();
+    let mockTags: typeof sampleTags = [];
+
+    setupTauriMocks((cmd, args) => {
+      if (cmd === "list_tags") {
+        return mockTags;
+      }
+      if (cmd === "create_tag") {
+        const nextTag = {
+          id: "tag-created",
+          name: "Later",
+          color: typeof args.color === "string" ? args.color : null,
+        };
+        mockTags = [nextTag];
+        return nextTag;
+      }
+      return undefined;
+    });
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Tags" }));
+
+    expect(await screen.findByText("No tags yet.")).toBeInTheDocument();
+    const nameInput = screen.getByRole("textbox", { name: "Tag name" });
+    const createButton = screen.getByRole("button", { name: "Create" });
+
+    expect(nameInput).toBeInTheDocument();
+    expect(createButton).toBeDisabled();
+
+    await user.type(nameInput, "Later");
+    await user.click(screen.getByRole("button", { name: "Color #6f8eb8" }));
+
+    expect(createButton).toBeEnabled();
+
+    await user.click(createButton);
+
+    expect(await screen.findByText("Later")).toBeInTheDocument();
+    expect(screen.getByTestId("tags-settings-swatch-tag-created")).toBeInTheDocument();
+    expect(nameInput).toHaveValue("");
+  });
+
+  it("renames and deletes saved tags while preserving color state", async () => {
+    const user = userEvent.setup();
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Tags" }));
+
+    expect(await screen.findByText("Tech")).toBeInTheDocument();
+    expect(screen.getByText("Later")).toBeInTheDocument();
+    expect(screen.getByTestId("tags-settings-swatch-tag-1")).toBeInTheDocument();
+    expect(screen.queryByTestId("tags-settings-swatch-tag-2")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Edit Tech" }));
+
+    const renameDialog = await screen.findByRole("dialog", { name: "Edit Tag" });
+    const renameInput = within(renameDialog).getByRole("textbox", { name: "Name" });
+
+    await user.clear(renameInput);
+    await user.type(renameInput, "Tech News");
+    await user.click(within(renameDialog).getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByText("Tech News")).toBeInTheDocument();
+    expect(screen.queryByText("Tech")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Delete Later" }));
+
+    const deleteDialog = await screen.findByRole("dialog", { name: "Delete Tag" });
+    await user.click(within(deleteDialog).getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Later")).not.toBeInTheDocument();
+    });
   });
 
   it("does not fall back to general settings on a cold accounts open while accounts are unresolved", () => {

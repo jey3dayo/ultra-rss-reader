@@ -86,7 +86,6 @@ export function useSidebarController(): SidebarControllerResult {
     handleOpenTagSettings,
     handleOpenAccountSettings,
     handleAddFeed,
-    handleAddTag,
     handleAddFeedDialogOpenChange,
   } = useSidebarControllerActions({
     selectedAccountId,
@@ -167,7 +166,6 @@ export function useSidebarController(): SidebarControllerResult {
     isTagsSectionOpen,
     toggleTagsSection,
     handleOpenAccountSettings,
-    handleAddTag,
     tags,
     tagArticleCounts,
     moveFeedToFolder,

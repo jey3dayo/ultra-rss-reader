@@ -8,12 +8,10 @@ import type { TagListItemViewModel } from "./tag-list-view";
 import { TagSectionContextMenu } from "./tag-section-context-menu";
 
 type UseSidebarContextMenuRenderersParams = {
-  onAddTag: () => void;
   onManageTags: () => void;
 };
 
 export function useSidebarContextMenuRenderers({
-  onAddTag,
   onManageTags,
 }: UseSidebarContextMenuRenderersParams): SidebarContextMenuRenderersResult {
   const renderFolderContextMenu = useCallback(
@@ -56,8 +54,8 @@ export function useSidebarContextMenuRenderers({
   );
 
   const renderTagSectionContextMenu = useCallback(
-    () => <TagSectionContextMenu onAddTag={onAddTag} onManageTags={onManageTags} />,
-    [onAddTag, onManageTags],
+    () => <TagSectionContextMenu onManageTags={onManageTags} />,
+    [onManageTags],
   );
 
   return {

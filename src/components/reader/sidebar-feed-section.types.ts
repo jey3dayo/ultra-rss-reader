@@ -1,4 +1,4 @@
-import type { FeedDto, FolderDto } from "@/api/tauri-commands";
+import type { FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
 import type { SortSubscriptions } from "@/stores/preferences-store";
 import type { FeedTreeViewProps } from "./feed-tree.types";
 import type { SidebarDensity } from "./sidebar-density";
@@ -54,6 +54,7 @@ export type SidebarStartupFolderExpansionParams = {
 export type SidebarVisibilityFallbackParams = {
   firstFeedId: string | null;
   selection: SidebarSelection;
+  tags: TagDto[] | undefined;
   viewMode: SidebarFeedTreeViewMode;
   showSidebarUnread: boolean;
   showSidebarStarred: boolean;
@@ -78,6 +79,7 @@ export type SidebarFeedSectionParams = {
   showSidebarUnread: boolean;
   showSidebarStarred: boolean;
   showSidebarTags: boolean;
+  tags: TagDto[] | undefined;
   setExpandedFolders: (folderIds: Iterable<string>) => void;
   selectFeed: (feedId: string) => void;
   selectFolder: (folderId: string) => void;

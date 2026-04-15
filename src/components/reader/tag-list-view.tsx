@@ -26,16 +26,7 @@ export function TagListView({
           label={tagsLabel}
           isOpen={isOpen}
           onToggle={onToggleOpen}
-          renderWrapper={
-            renderTagSectionContextMenu
-              ? (toggle) => (
-                  <ContextMenu.Root>
-                    <ContextMenu.Trigger render={<div className="contents" />}>{toggle}</ContextMenu.Trigger>
-                    {renderTagSectionContextMenu()}
-                  </ContextMenu.Root>
-                )
-              : undefined
-          }
+          contextMenu={renderTagSectionContextMenu?.()}
         />
       </div>
       {isOpen && tags.length > 0 && (

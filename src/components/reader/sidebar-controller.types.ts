@@ -23,7 +23,6 @@ export type SidebarUiActionsResult = {
   handleOpenTagSettings: () => void;
   handleOpenAccountSettings: () => void;
   handleAddFeed: () => void;
-  handleAddTag: () => void;
   handleAddFeedDialogOpenChange: (open: boolean) => void;
 };
 

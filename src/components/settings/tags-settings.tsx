@@ -17,7 +17,7 @@ const TAG_COLOR_PRESETS = [
   "#8c79b2",
   "#b97a90",
   "#726d66",
-] as const;
+];
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
@@ -32,11 +32,11 @@ function getErrorMessage(error: unknown) {
 export function TagsSettings() {
   const { t } = useTranslation("settings");
   const { t: tr } = useTranslation("reader");
-  const showToast = useUiStore((state) => state.showToast);
   const { data: tags = [] } = useTags();
   const createTag = useCreateTag();
   const renameTag = useRenameTag();
   const deleteTag = useDeleteTag();
+  const showToast = useUiStore((state) => state.showToast);
   const [name, setName] = useState("");
   const [color, setColor] = useState<string | null>(null);
   const [editingTag, setEditingTag] = useState<TagDto | null>(null);
@@ -55,7 +55,7 @@ export function TagsSettings() {
 
   const handleCreate = async () => {
     try {
-      await createTag.mutateAsync({ name: name.trim(), color });
+      await createTag.mutateAsync({ name: name.trim(), color: color ?? undefined });
       setName("");
       setColor(null);
       showToast(t("tags.create_success"));
@@ -133,7 +133,6 @@ export function TagsSettings() {
         onEdit={(tagId) => setEditingTag(tags.find((tag) => tag.id === tagId) ?? null)}
         onDelete={(tagId) => setDeletingTag(tags.find((tag) => tag.id === tagId) ?? null)}
       />
-
       <RenameTagDialogView
         open={editingTag !== null}
         name={renameName}
@@ -142,11 +141,10 @@ export function TagsSettings() {
         onOpenChange={(open) => !open && setEditingTag(null)}
         onNameChange={setRenameName}
         onColorChange={setRenameColor}
-        colorOptions={[...TAG_COLOR_PRESETS]}
+        colorOptions={TAG_COLOR_PRESETS}
         noColorLabel={tr("no_color")}
         onSubmit={() => void handleRename()}
       />
-
       <DeleteTagDialogView
         open={deletingTag !== null}
         tagName={deletingTag?.name ?? ""}

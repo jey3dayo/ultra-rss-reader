@@ -63,7 +63,6 @@ export function useSidebarControllerSections({
   tagArticleCounts,
   moveFeedToFolder,
   moveFeedToUnfoldered,
-  handleAddTag,
 }: SidebarControllerSectionsParams): SidebarSectionPropsResult {
   const visibleSmartViews = useSidebarSmartViews({
     selection,
@@ -77,7 +76,6 @@ export function useSidebarControllerSections({
   });
   const { renderFolderContextMenu, renderFeedContextMenu, renderTagContextMenu, renderTagSectionContextMenu } =
     useSidebarContextMenuRenderers({
-      onAddTag: handleAddTag,
       onManageTags: handleOpenTagSettings,
     });
   const { feedTreeProps } = useSidebarFeedSectionController({
@@ -95,6 +93,7 @@ export function useSidebarControllerSections({
     showSidebarUnread,
     showSidebarStarred,
     showSidebarTags,
+    tags,
     setExpandedFolders,
     selectFeed,
     selectFolder,

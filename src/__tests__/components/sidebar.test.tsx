@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
@@ -1613,6 +1613,58 @@ describe("Sidebar", () => {
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({ kind: "index", cleanupContext: null });
   });
 
+  it("opens the create tag dialog from the tags section add action", async () => {
+    const user = userEvent.setup();
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent.contextMenu(await screen.findByRole("button", { name: "Tags" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Add tag" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Create tag" });
+    expect(within(dialog).getByRole("textbox", { name: "Name" })).toBeInTheDocument();
+  });
+
+  it("keeps the create tag dialog open and preserves input when tag creation fails", async () => {
+    const user = userEvent.setup();
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "create_tag") {
+        throw new Error("boom");
+      }
+      return undefined;
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent.contextMenu(await screen.findByRole("button", { name: "Tags" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Add tag" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Create tag" });
+    const nameInput = within(dialog).getByRole("textbox", { name: "Name" });
+    await user.type(nameInput, "Later");
+    await user.click(within(dialog).getByRole("button", { name: "Create tag" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("dialog", { name: "Create tag" })).toBeInTheDocument();
+      expect(
+        within(screen.getByRole("dialog", { name: "Create tag" })).getByRole("textbox", { name: "Name" }),
+      ).toHaveValue("Later");
+    });
+  });
+
+  it("opens tag settings from the tags section manage action", async () => {
+    const user = userEvent.setup();
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent.contextMenu(await screen.findByRole("button", { name: "Tags" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Manage tags" }));
+
+    expect(useUiStore.getState().settingsOpen).toBe(true);
+    expect(useUiStore.getState().settingsCategory).toBe("tags");
+  });
+
   it("falls back away from hidden sidebar states, including viewMode-only flows", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
@@ -1657,5 +1709,38 @@ describe("Sidebar", () => {
     usePreferencesStore.getState().setPref("show_sidebar_unread", "true");
 
     expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+  });
+
+  it("falls back to unread when the selected tag is no longer available", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "tag", tagId: "tag-missing" },
+      viewMode: "unread",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "unread" });
+      expect(useUiStore.getState().viewMode).toBe("unread");
+    });
   });
 });
