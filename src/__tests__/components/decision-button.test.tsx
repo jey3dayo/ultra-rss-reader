@@ -12,9 +12,9 @@ describe("DecisionButton", () => {
       </>,
     );
 
-    expect(screen.getByRole("button", { name: "Keep" })).toHaveClass("bg-emerald-600/90");
-    expect(screen.getByRole("button", { name: "Later" })).toHaveClass("bg-zinc-800");
-    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("bg-red-950/90");
+    expect(screen.getByRole("button", { name: "Keep" })).toHaveClass("border-emerald-500/25", "bg-emerald-500/12");
+    expect(screen.getByRole("button", { name: "Later" })).toHaveClass("border-border", "bg-surface-2");
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("border-destructive/25", "bg-destructive/12");
   });
 
   it("keeps disabled state on all intents", () => {

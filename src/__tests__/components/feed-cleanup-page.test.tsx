@@ -226,7 +226,7 @@ describe("FeedCleanupPage", () => {
     expect(queueRow).toHaveClass("bg-card/75");
     expect(within(queueRow).getByRole("button", { name: "Defer" })).toBeInTheDocument();
     expect(within(queueRow).getByRole("button", { name: "Delete" })).toBeInTheDocument();
-    expect(within(queueRow).getByRole("button", { name: "Keep" })).toHaveClass("bg-emerald-600/90");
+    expect(within(queueRow).getByRole("button", { name: "Keep" })).toHaveClass("bg-emerald-500/12");
 
     const reviewPanel = screen.getByTestId("feed-cleanup-review-panel");
     expect(within(reviewPanel).getByText("Reason flagged")).toBeInTheDocument();

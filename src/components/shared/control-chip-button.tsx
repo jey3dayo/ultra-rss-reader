@@ -23,12 +23,9 @@ export function ControlChipButton({
       data-pressed={pressed ? "" : undefined}
       className={cn(
         controlChipVariants({ size, interaction: "toggle" }),
-        "rounded-full border border-[rgba(38,37,30,0.1)] bg-[rgba(242,241,237,0.92)] text-[rgba(38,37,30,0.62)]",
-        "shadow-[0_0_0_1px_rgba(38,37,30,0.03)] hover:bg-[rgba(230,229,224,0.96)] hover:text-[rgb(38,37,30)]",
+        "rounded-full border border-border bg-surface-2 text-foreground-soft shadow-elevation-1 hover:bg-surface-3 hover:text-foreground",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-        "data-[pressed]:border-[rgba(38,37,30,0.16)] data-[pressed]:bg-[rgba(225,224,219,0.96)] data-[pressed]:text-[rgb(38,37,30)]",
-        "dark:border-border/70 dark:bg-background/80 dark:text-muted-foreground dark:hover:bg-card/80 dark:hover:text-foreground",
-        "dark:data-[pressed]:border-border/80 dark:data-[pressed]:bg-card/85 dark:data-[pressed]:text-foreground",
+        "data-[pressed]:border-border-strong data-[pressed]:bg-surface-4 data-[pressed]:text-foreground",
         className,
       )}
       {...props}

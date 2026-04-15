@@ -1,3 +1,4 @@
+import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SidebarSectionToggleProps } from "./sidebar-section.types";

@@ -6,9 +6,9 @@ type DecisionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const decisionIntentClassName = {
-  keep: "bg-emerald-600/90 text-emerald-50 hover:bg-emerald-500",
-  defer: "bg-zinc-800 text-zinc-100 hover:bg-zinc-700",
-  delete: "bg-red-950/90 text-red-100 hover:bg-red-900",
+  keep: "border border-emerald-500/25 bg-emerald-500/12 text-emerald-900 hover:bg-emerald-500/18 dark:text-emerald-100",
+  defer: "border border-border bg-surface-2 text-foreground hover:bg-surface-3",
+  delete: "border border-destructive/25 bg-destructive/12 text-destructive hover:bg-destructive/18",
 } as const;
 
 export function DecisionButton({ intent, className, type = "button", ...props }: DecisionButtonProps) {
@@ -16,8 +16,8 @@ export function DecisionButton({ intent, className, type = "button", ...props }:
     <button
       type={type}
       className={cn(
-        "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:shadow-[0_4px_12px_rgba(0,0,0,0.1)]",
+        "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium shadow-elevation-1 transition-[color,background-color,border-color,box-shadow]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
         "disabled:pointer-events-none disabled:opacity-50",
         decisionIntentClassName[intent],
         className,
