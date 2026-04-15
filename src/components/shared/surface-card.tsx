@@ -1,0 +1,85 @@
+import { cva, type VariantProps } from "class-variance-authority";
+import type { HTMLAttributes } from "react";
+
+import { cn } from "@/lib/utils";
+
+const surfaceCardVariants = cva(
+  "border text-card-foreground shadow-elevation-1 transition-[background-color,border-color,box-shadow]",
+  {
+    variants: {
+      variant: {
+        info: "rounded-[var(--radius-surface-info)]",
+        section: "rounded-[var(--radius-surface-section)]",
+      },
+      tone: {
+        default: "",
+        subtle: "",
+        emphasis: "",
+        success: "",
+        danger: "",
+      },
+      padding: {
+        compact: "px-3 py-3",
+        default: "px-4 py-4 sm:px-5 sm:py-5",
+        spacious: "px-7 py-7",
+      },
+    },
+    compoundVariants: [
+      {
+        variant: "info",
+        tone: "default",
+        className: "border-border/70 bg-card/70",
+      },
+      {
+        variant: "info",
+        tone: "subtle",
+        className: "border-border/60 bg-surface-1/85",
+      },
+      {
+        variant: "info",
+        tone: "emphasis",
+        className: "border-border-strong bg-surface-1",
+      },
+      {
+        variant: "section",
+        tone: "default",
+        className: "border-border/60 bg-card/36",
+      },
+      {
+        variant: "section",
+        tone: "subtle",
+        className: "border-border/55 bg-card/24",
+      },
+      {
+        variant: "section",
+        tone: "emphasis",
+        className: "border-border-strong bg-card/52",
+      },
+      {
+        tone: "success",
+        className: "border-emerald-500/20 bg-emerald-500/8",
+      },
+      {
+        tone: "danger",
+        className: "border-destructive/20 bg-destructive/8",
+      },
+    ],
+    defaultVariants: {
+      variant: "info",
+      tone: "default",
+      padding: "default",
+    },
+  },
+);
+
+type SurfaceCardProps = HTMLAttributes<HTMLDivElement> & VariantProps<typeof surfaceCardVariants>;
+
+export function SurfaceCard({ variant, tone, padding, className, ...props }: SurfaceCardProps) {
+  return (
+    <div
+      {...props}
+      data-surface-card={variant ?? "info"}
+      className={cn(surfaceCardVariants({ variant, tone, padding }), className)}
+    />
+  );
+}

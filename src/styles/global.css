@@ -71,6 +71,8 @@
   color-scheme: light;
   font-family: var(--font-sans);
   --desktop-titlebar-offset: 44px;
+  --radius-surface-info: 0.375rem;
+  --radius-surface-section: 0.5rem;
   --background: #f2f1ed;
   --foreground: #26251e;
   --foreground-soft: rgba(38, 37, 30, 0.72);
