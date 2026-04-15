@@ -120,6 +120,7 @@ describe("SettingsModal", () => {
     await user.click(await screen.findByRole("button", { name: "Mute" }));
 
     expect(await screen.findByText("No mute keywords yet.")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Keyword" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Auto mark as read (Coming soon)" })).toHaveAttribute(
       "aria-disabled",

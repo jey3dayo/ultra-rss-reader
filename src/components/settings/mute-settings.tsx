@@ -67,6 +67,11 @@ export function MuteSettings() {
   };
 
   const handleRuleScopeChange = async (ruleId: string, nextScope: "title" | "body" | "title_and_body") => {
+    const currentRule = rules.find((candidate) => candidate.id === ruleId);
+    if (!currentRule || currentRule.scope === nextScope) {
+      return;
+    }
+
     try {
       await updateMuteKeyword.mutateAsync({
         muteKeywordId: ruleId,

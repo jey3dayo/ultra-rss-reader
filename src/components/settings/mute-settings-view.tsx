@@ -105,6 +105,7 @@ export function MuteSettingsView({
             >
               <Input
                 name="mute_keyword"
+                aria-label={keywordLabel}
                 value={keywordValue}
                 onChange={(event) => onKeywordChange(event.target.value)}
                 placeholder={keywordPlaceholder}
