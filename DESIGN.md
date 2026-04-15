@@ -115,7 +115,7 @@ Elevation scale:
 
 - **Buttons**: Primary buttons use a warm surface fill with dark text; secondary and tertiary actions rely on surface tone, border contrast, or transparent warm overlays. Primary radius is 8px. Hover states often shift text toward the tertiary accent (`#cf2d56`) rather than increasing fill saturation.
 - **Chips and Tags**: Secondary and filter chips should read as pill elements. Use full-pill radius, muted warm surfaces, and restrained text contrast. Selected chips deepen through surface tone before introducing stronger chroma.
-- **Cards and Containers**: Use warm cream surfaces, standard 8px radius, and a warm border ring. Elevated cards may use the Level 3 shadow, but the default is border-led separation.
+- **Cards and Containers**: Use warm cream surfaces, a warm border ring, and border-led separation by default. Standard structural cards and section containers default to 8px radius; `Info Cards` are the smaller 6px role for reading, notice, and state surfaces. Elevated cards may use the Level 3 shadow. 20px+ radii belong to separate shell roles rather than standard cards.
 - **Inputs and Forms**: Inputs should stay neutral and legible, with warm borders and a restrained focus treatment. Prefer border emphasis or accent-orange focus hints over cold blue rings.
 - **Lists and Navigation**: Lists should separate items through tone and dividers rather than heavy blocks of accent color. Navigation and tab treatments should feel clean, compact, and editorial rather than dashboard-like.
 - **Media and Preview Surfaces**: Code or browser previews may use darker surfaces, but they should still feel framed by warm borders and integrated into the cream-based system rather than floating as disconnected black panels.
@@ -149,9 +149,17 @@ Elevation scale:
 - Small: 2px
 - Medium: 3px
 - Standard: 4px
+- Info Card: 6px default
 - Comfortable: 8px
 - Featured: 10px
 - Full Pill: 9999px
+
+Surface governance:
+
+- Reusable surfaces should go through shared primitives before feature-local radius rules.
+- `Info Cards` use 6px by default. Stay within a tight 6-8px range only when a shared primitive needs a documented variant.
+- `Section Containers` use 8px by default. Treat 8-10px as the narrow upper range for shared structural variants, not feature-local drift.
+- 20px+ radii are reserved for distinct shell roles, such as modal shells, command palettes, or other app-level outer frames, not standard cards or section containers.
 
 ## Interaction and Motion
 
@@ -202,7 +210,7 @@ Elevation scale:
 - Do keep the entire system warm-toned, using cream, brown, orange, gold, and muted semantic accents as the default language.
 - Do use the existing semantic token layer when a background, border, text, or elevation role already exists.
 - Do introduce new meaning-based color roles in the design system before duplicating literals in multiple components.
-- Do keep corner language consistent: pills for chips and filters, 8px family for cards and buttons, smaller radii only for compact utility details.
+- Do keep corner language consistent: pills for chips and filters, 6px defaults for info cards, 8px defaults for section containers and buttons, and smaller radii only for compact utility details.
 - Do maintain accessible contrast, especially for body text and interactive labels.
 - Don't use pure white or pure black as primary surfaces unless a component explicitly needs a true contrast moment.
 - Don't overuse the primary accent; reserve it for the most important action or highlight on a surface.
