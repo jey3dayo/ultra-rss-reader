@@ -55,6 +55,18 @@
 - `src/components/shared/icon-toolbar-control.tsx`
 - `src/components/reader/sidebar-footer-actions.tsx`
 - `docs/superpowers/specs/2026-04-15-button-commonization-design.md`
+- `DESIGN.md`
+
+### Visual Alignment Rules
+
+- 実装時の見た目調整は `DESIGN.md` を参照する
+- ただし reader サイドバー全体を Cursor 風に寄せるのではなく、今回の対象ボタンだけに適用する
+- 特に以下を採用する
+  - warm な border / surface コントラスト
+  - pill 系 chip の強い丸み
+  - hover と focus-visible の視覚フィードバックを省略しない
+  - destructive / success を冷たくしすぎず、既存テーマ内で暖色寄りに整える
+- 新しいフォント導入や大規模な配色刷新はしない
 
 ### Concurrency Safety
 
@@ -709,6 +721,7 @@ Check:
 - cleanup filters read visually as chips, not full CTA buttons
 - `残す / あとで確認 / 削除` share one action language
 - reader sidebar still looks unchanged
+- 実装したボタンの radius / border / surface tone が `DESIGN.md` の warm minimalism 方針から外れていない
 
 - [ ] **Step 4: Use `atomic-commit` only for touched files if follow-up fixes are needed**
 
