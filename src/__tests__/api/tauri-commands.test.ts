@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   addAccount,
   countAccountUnreadArticles,
+  createMuteKeyword,
   createOrUpdateBrowserWebview,
   getAccountSyncStatus,
   getPlatformInfo,
@@ -11,7 +12,9 @@ import {
   listAccounts,
   listArticles,
   listFeeds,
+  listMuteKeywords,
   markArticleRead,
+  updateMuteKeyword,
 } from "@/api/tauri-commands";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
 import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
@@ -69,6 +72,65 @@ describe("tauri-commands with mockIPC", () => {
     it("returns unread count for a given account", async () => {
       const value = Result.unwrap(await countAccountUnreadArticles("acc-1"));
       expect(value).toBe(1);
+    });
+  });
+
+  describe("mute keyword commands", () => {
+    it("returns saved mute keywords", async () => {
+      setupTauriMocks((cmd) => {
+        if (cmd === "list_mute_keywords") {
+          return [
+            {
+              id: "mute-1",
+              keyword: "Kindle Unlimited",
+              scope: "title_and_body",
+              created_at: "2026-04-15T01:00:00Z",
+              updated_at: "2026-04-15T01:00:00Z",
+            },
+          ];
+        }
+        return undefined;
+      });
+
+      const value = Result.unwrap(await listMuteKeywords());
+      expect(value).toHaveLength(1);
+      expect(value[0].keyword).toBe("Kindle Unlimited");
+    });
+
+    it("creates a mute keyword", async () => {
+      setupTauriMocks((cmd, args) => {
+        if (cmd === "create_mute_keyword") {
+          return {
+            id: "mute-1",
+            keyword: String(args.keyword),
+            scope: String(args.scope),
+            created_at: "2026-04-15T01:00:00Z",
+            updated_at: "2026-04-15T01:00:00Z",
+          };
+        }
+        return undefined;
+      });
+
+      const value = Result.unwrap(await createMuteKeyword("Kindle Unlimited", "title"));
+      expect(value.scope).toBe("title");
+    });
+
+    it("updates a mute keyword scope", async () => {
+      setupTauriMocks((cmd, args) => {
+        if (cmd === "update_mute_keyword") {
+          return {
+            id: String(args.muteKeywordId),
+            keyword: "Kindle Unlimited",
+            scope: String(args.scope),
+            created_at: "2026-04-15T01:00:00Z",
+            updated_at: "2026-04-15T01:10:00Z",
+          };
+        }
+        return undefined;
+      });
+
+      const value = Result.unwrap(await updateMuteKeyword("mute-1", "body"));
+      expect(value.scope).toBe("body");
     });
   });
 

@@ -9,8 +9,8 @@ const meta = {
   args: {
     assignedTags: [{ id: "tag-1", name: "Later", color: null }],
     availableTags: [
-      { id: "tag-2", name: "Important", color: "#ef4444" },
-      { id: "tag-3", name: "Work", color: "#3b82f6" },
+      { id: "tag-2", name: "Important", color: "#cf7868" },
+      { id: "tag-3", name: "Work", color: "#6f8eb8" },
     ],
     newTagName: "",
     isExpanded: true,

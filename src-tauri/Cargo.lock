@@ -5728,6 +5728,7 @@ dependencies = [
  "futures",
  "hex",
  "keyring",
+ "kuchikiki",
  "log",
  "mockito",
  "objc2-web-kit",

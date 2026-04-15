@@ -230,6 +230,15 @@ pub struct TagDto {
 }
 
 #[derive(Debug, Serialize)]
+pub struct MuteKeywordDto {
+    pub id: String,
+    pub keyword: String,
+    pub scope: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Serialize)]
 pub struct DiscoveredFeedDto {
     pub url: String,
     pub title: String,
@@ -250,6 +259,18 @@ impl From<crate::domain::tag::Tag> for TagDto {
             id: t.id.0,
             name: t.name,
             color: t.color,
+        }
+    }
+}
+
+impl From<crate::domain::mute_keyword::MuteKeyword> for MuteKeywordDto {
+    fn from(rule: crate::domain::mute_keyword::MuteKeyword) -> Self {
+        Self {
+            id: rule.id,
+            keyword: rule.keyword,
+            scope: rule.scope.as_str().to_string(),
+            created_at: rule.created_at,
+            updated_at: rule.updated_at,
         }
     }
 }

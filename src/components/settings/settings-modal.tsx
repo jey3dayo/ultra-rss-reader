@@ -9,6 +9,7 @@ import { AppearanceSettings } from "@/components/settings/appearance-settings";
 import { DataSettings } from "@/components/settings/data-settings";
 import { DebugSettings } from "@/components/settings/debug-settings";
 import { GeneralSettings } from "@/components/settings/general-settings";
+import { MuteSettings } from "@/components/settings/mute-settings";
 import { ReadingSettings } from "@/components/settings/reading-settings";
 import type { SettingsContentProps } from "@/components/settings/settings-modal.types";
 import { SettingsModalView } from "@/components/settings/settings-modal-view";
@@ -84,6 +85,8 @@ function SettingsContent({
       return <AppearanceSettings />;
     case "reading":
       return <ReadingSettings />;
+    case "mute":
+      return <MuteSettings />;
     case "shortcuts":
       return <ShortcutsSettings />;
     case "actions":

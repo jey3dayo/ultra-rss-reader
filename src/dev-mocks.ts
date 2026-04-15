@@ -42,6 +42,7 @@ import {
   updateAccountSyncArgs,
   updateFeedDisplaySettingsArgs,
   updateFeedFolderArgs,
+  updateMuteKeywordArgs,
 } from "./api/schemas";
 import type {
   AccountDto,
@@ -307,6 +308,26 @@ export function setupDevMocks() {
           updated_at: now,
         };
         mockMuteKeywords.unshift(rule);
+        return rule;
+      }
+
+      case "update_mute_keyword": {
+        const { muteKeywordId, scope } = updateMuteKeywordArgs.parse(payload);
+        const rule = mockMuteKeywords.find((candidate) => candidate.id === muteKeywordId);
+        if (!rule) {
+          throw { type: "UserVisible", message: "Mute keyword not found" };
+        }
+        const duplicate = mockMuteKeywords.some(
+          (candidate) =>
+            candidate.id !== muteKeywordId &&
+            candidate.keyword.trim().toLowerCase() === rule.keyword.trim().toLowerCase() &&
+            candidate.scope === scope,
+        );
+        if (duplicate) {
+          throw { type: "UserVisible", message: "Mute keyword already exists" };
+        }
+        rule.scope = scope;
+        rule.updated_at = new Date().toISOString();
         return rule;
       }
 

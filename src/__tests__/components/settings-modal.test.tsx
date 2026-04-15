@@ -92,6 +92,52 @@ describe("SettingsModal", () => {
     expect(screen.getByRole("button", { name: /FreshRSS/i })).toBeInTheDocument();
   });
 
+  it("shows the mute settings category in navigation", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_mute_keywords") {
+        return [];
+      }
+      return undefined;
+    });
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("button", { name: "Mute" })).toBeInTheDocument();
+  });
+
+  it("switches to mute settings and shows the empty state", async () => {
+    const user = userEvent.setup();
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_mute_keywords") {
+        return [];
+      }
+      return undefined;
+    });
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Mute" }));
+
+    expect(await screen.findByText("No mute keywords yet.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Auto mark as read (Coming soon)" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+  });
+
+  it("shows saved mute keywords with editable scope select", async () => {
+    const user = userEvent.setup();
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Mute" }));
+
+    expect(screen.getByRole("combobox", { name: "Scope for Kindle Unlimited" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+  });
+
   it("does not fall back to general settings on a cold accounts open while accounts are unresolved", () => {
     setupTauriMocks((cmd) => {
       if (cmd === "list_accounts") {

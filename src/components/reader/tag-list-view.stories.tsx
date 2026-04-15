@@ -11,7 +11,7 @@ const meta = {
     isOpen: true,
     onToggleOpen: fn(),
     tags: [
-      { id: "tag-1", name: "Later", color: "#3b82f6", articleCount: 2, isSelected: true },
+      { id: "tag-1", name: "Later", color: "#6f8eb8", articleCount: 2, isSelected: true },
       { id: "tag-2", name: "Work", color: null, articleCount: 0, isSelected: false },
     ],
     onSelectTag: fn(),

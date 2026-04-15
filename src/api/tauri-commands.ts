@@ -18,6 +18,7 @@ import {
   copyToClipboardArgs,
   countAccountUnreadArticlesArgs,
   createFolderArgs,
+  createMuteKeywordArgs,
   createOrUpdateBrowserWebviewArgs,
   createTagArgs,
   type DatabaseInfoDto,
@@ -28,6 +29,7 @@ import {
   DiscoveredFeedDtoSchema,
   deleteAccountArgs,
   deleteFeedArgs,
+  deleteMuteKeywordArgs,
   deleteTagArgs,
   discoverFeedsArgs,
   exportOpmlArgs,
@@ -45,6 +47,8 @@ import {
   listArticlesByTagArgs,
   listFeedsArgs,
   listFoldersArgs,
+  type MuteKeywordDto,
+  MuteKeywordDtoSchema,
   markArticleReadArgs,
   markArticlesReadArgs,
   markFeedReadArgs,
@@ -73,6 +77,7 @@ import {
   updateAccountSyncArgs,
   updateFeedDisplaySettingsArgs,
   updateFeedFolderArgs,
+  updateMuteKeywordArgs,
 } from "@/api/schemas";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
 
@@ -97,6 +102,7 @@ export type {
   FeedDto,
   FeedIntegrityReportDto,
   FolderDto,
+  MuteKeywordDto,
   PlatformInfo,
   TagDto,
   UpdateInfoDto,
@@ -214,6 +220,25 @@ export const searchArticles = (accountId: string, query: string, offset?: number
     { response: z.array(ArticleDtoSchema), args: searchArticlesArgs },
     { accountId, query, offset, limit },
   );
+
+export const listMuteKeywords = () => safeInvoke("list_mute_keywords", { response: z.array(MuteKeywordDtoSchema) });
+
+export const createMuteKeyword = (keyword: string, scope: "title" | "body" | "title_and_body") =>
+  safeInvoke(
+    "create_mute_keyword",
+    { response: MuteKeywordDtoSchema, args: createMuteKeywordArgs },
+    { keyword, scope },
+  );
+
+export const updateMuteKeyword = (muteKeywordId: string, scope: "title" | "body" | "title_and_body") =>
+  safeInvoke(
+    "update_mute_keyword",
+    { response: MuteKeywordDtoSchema, args: updateMuteKeywordArgs },
+    { muteKeywordId, scope },
+  );
+
+export const deleteMuteKeyword = (muteKeywordId: string) =>
+  safeInvoke("delete_mute_keyword", { response: z.null(), args: deleteMuteKeywordArgs }, { muteKeywordId });
 
 export const addAccount = (kind: string, name: string, serverUrl?: string, username?: string, password?: string) =>
   safeInvoke(

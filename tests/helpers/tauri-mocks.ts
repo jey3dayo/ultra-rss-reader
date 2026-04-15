@@ -157,6 +157,14 @@ const defaultHandler: MockHandler = (cmd, args) => {
         created_at: "2026-04-15T01:00:00Z",
         updated_at: "2026-04-15T01:00:00Z",
       } satisfies MuteKeywordDto;
+    case "update_mute_keyword":
+      return {
+        id: String(args.muteKeywordId),
+        keyword: sampleMuteKeywords[0]?.keyword ?? "Kindle Unlimited",
+        scope: String(args.scope) as "title" | "body" | "title_and_body",
+        created_at: sampleMuteKeywords[0]?.created_at ?? "2026-04-15T01:00:00Z",
+        updated_at: "2026-04-15T01:10:00Z",
+      } satisfies MuteKeywordDto;
     case "delete_mute_keyword":
       return null;
     case "get_tag_article_counts":

@@ -14,6 +14,9 @@ const MIGRATION_V8: &str = include_str!("../../../migrations/V8__feed_reader_pre
 const MIGRATION_V9: &str =
     include_str!("../../../migrations/V9__reader_preview_default_preferences.sql");
 const MIGRATION_V11: &str = include_str!("../../../migrations/V11__account_sync_on_startup.sql");
+const MIGRATION_V12: &str = include_str!("../../../migrations/V12__mute_keywords.sql");
+const MIGRATION_V13: &str = include_str!("../../../migrations/V13__tag_color_palette_refresh.sql");
+const MIGRATION_V14: &str = include_str!("../../../migrations/V14__article_content_text.sql");
 
 /// Result of a migration run.
 pub struct MigrationResult {
@@ -32,7 +35,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 11;
+pub const LATEST_VERSION: i32 = 14;
 
 pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     let tx = conn.transaction()?;
@@ -72,6 +75,15 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 11 {
         tx.execute_batch(MIGRATION_V11)?;
+    }
+    if from_version < 12 {
+        tx.execute_batch(MIGRATION_V12)?;
+    }
+    if from_version < 13 {
+        tx.execute_batch(MIGRATION_V13)?;
+    }
+    if from_version < 14 {
+        tx.execute_batch(MIGRATION_V14)?;
     }
 
     let to_version = get_schema_version(&tx);
@@ -510,5 +522,89 @@ mod tests {
             .unwrap();
         assert_eq!(reader_mode, "on");
         assert_eq!(web_preview_mode, "on");
+    }
+
+    #[test]
+    fn v13_remaps_legacy_tag_palette_to_muted_colors() {
+        let mut conn = open_in_memory();
+        conn.execute_batch(MIGRATION_V1).unwrap();
+        conn.execute_batch(MIGRATION_V2).unwrap();
+        conn.execute_batch(MIGRATION_V3).unwrap();
+        conn.execute_batch(MIGRATION_V4).unwrap();
+        conn.execute_batch(MIGRATION_V5).unwrap();
+        conn.execute_batch(MIGRATION_V6).unwrap();
+        conn.execute_batch(MIGRATION_V7).unwrap();
+        conn.execute_batch(MIGRATION_V8).unwrap();
+        conn.execute_batch(MIGRATION_V9).unwrap();
+        set_schema_version(&conn, 10).unwrap();
+        conn.execute_batch(MIGRATION_V11).unwrap();
+        conn.execute_batch(MIGRATION_V12).unwrap();
+
+        conn.execute(
+            "INSERT INTO tags (id, name, color) VALUES (?1, ?2, ?3)",
+            ("tag-1", "Important", "#ef4444"),
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO tags (id, name, color) VALUES (?1, ?2, ?3)",
+            ("tag-2", "Read later", "#3B82F6"),
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO tags (id, name, color) VALUES (?1, ?2, ?3)",
+            ("tag-3", "Custom", "#123456"),
+        )
+        .unwrap();
+
+        let result = run_migrations(&mut conn).unwrap();
+        assert_eq!(result.from_version, 12);
+        assert_eq!(result.to_version, LATEST_VERSION);
+
+        let colors: Vec<(String, Option<String>)> = conn
+            .prepare("SELECT id, color FROM tags ORDER BY id")
+            .unwrap()
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+
+        assert_eq!(
+            colors[0],
+            ("tag-1".to_string(), Some("#cf7868".to_string()))
+        );
+        assert_eq!(
+            colors[1],
+            ("tag-2".to_string(), Some("#6f8eb8".to_string()))
+        );
+        assert_eq!(
+            colors[2],
+            ("tag-3".to_string(), Some("#123456".to_string()))
+        );
+    }
+
+    #[test]
+    fn v14_adds_article_content_text_column() {
+        let mut conn = open_in_memory();
+        conn.execute_batch(MIGRATION_V1).unwrap();
+        conn.execute_batch(MIGRATION_V2).unwrap();
+        conn.execute_batch(MIGRATION_V3).unwrap();
+        conn.execute_batch(MIGRATION_V4).unwrap();
+        conn.execute_batch(MIGRATION_V5).unwrap();
+        conn.execute_batch(MIGRATION_V6).unwrap();
+        conn.execute_batch(MIGRATION_V7).unwrap();
+        conn.execute_batch(MIGRATION_V8).unwrap();
+        conn.execute_batch(MIGRATION_V9).unwrap();
+        set_schema_version(&conn, 10).unwrap();
+        conn.execute_batch(MIGRATION_V11).unwrap();
+        conn.execute_batch(MIGRATION_V12).unwrap();
+        conn.execute_batch(MIGRATION_V13).unwrap();
+
+        let result = run_migrations(&mut conn).unwrap();
+        assert_eq!(result.from_version, 13);
+        assert_eq!(result.to_version, LATEST_VERSION);
+
+        assert!(conn
+            .prepare("SELECT content_text FROM articles LIMIT 0")
+            .is_ok());
     }
 }

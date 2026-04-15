@@ -12,7 +12,7 @@ const meta = {
     color: null,
     loading: false,
     onColorChange: fn(),
-    colorOptions: ["#ef4444", "#3b82f6", "#22c55e"],
+    colorOptions: ["#cf7868", "#6f8eb8", "#5f9670"],
     noColorLabel: "No color",
     onOpenChange: fn(),
     onNameChange: fn(),

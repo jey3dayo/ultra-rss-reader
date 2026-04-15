@@ -36,12 +36,9 @@ describe("ArticleTagPickerView", () => {
     );
 
     const removeButton = screen.getByRole("button", { name: "Remove tag Later" });
-    expect(removeButton).toHaveClass("size-8");
+    expect(removeButton).toHaveClass("size-4");
     expect(screen.getByText("Tags")).toBeInTheDocument();
-    expect(screen.queryByText("Add and organize article tags")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("h-10");
-    expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("w-10");
-    expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("rounded-lg");
+    expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("size-7");
     expect(screen.getByRole("option", { name: "Important" })).toHaveClass("min-h-11");
     expect(screen.getByRole("textbox", { name: "" })).toHaveClass("h-10");
     expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass("h-10");
@@ -68,6 +65,7 @@ describe("ArticleTagPickerView", () => {
         newTagName=""
         isExpanded={false}
         labels={{
+          sectionHint: "Add and organize article tags",
           addTag: "Add tag",
           availableTags: "Available tags",
           newTagPlaceholder: "Create tag",
@@ -184,6 +182,7 @@ describe("ArticleTagPickerView", () => {
         newTagName=""
         isExpanded={false}
         labels={{
+          sectionHint: "Add and organize article tags",
           addTag: "Add tag",
           availableTags: "Available tags",
           newTagPlaceholder: "Create tag",
@@ -200,6 +199,7 @@ describe("ArticleTagPickerView", () => {
 
     expect(screen.getByText("Tags")).toBeInTheDocument();
     expect(screen.queryByText("Add and organize article tags")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add tag" })).toBeInTheDocument();
   });
 
   it("does not steal focus again when available tags change while open", async () => {

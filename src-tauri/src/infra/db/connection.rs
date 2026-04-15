@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::domain::error::{DomainError, DomainResult};
+use crate::infra::sanitizer;
 
 static IN_MEMORY_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -55,6 +56,7 @@ impl DbManager {
             let mut manager = Self { writer, reader };
             match super::migration::run_migrations(&mut manager.writer) {
                 Ok(_) => {
+                    manager.reconcile_article_content_text()?;
                     manager.reconcile_feed_unread_counts()?;
                     Ok(manager)
                 }
@@ -133,6 +135,7 @@ impl DbManager {
 
         let mut manager = Self { writer, reader };
         let _result = super::migration::run_migrations(&mut manager.writer)?;
+        manager.reconcile_article_content_text()?;
         manager.reconcile_feed_unread_counts()?;
         Ok(manager)
     }
@@ -169,6 +172,43 @@ impl DbManager {
             tracing::info!("Reconciled unread counts for {updated_rows} feed(s) on startup");
         }
 
+        Ok(())
+    }
+
+    fn reconcile_article_content_text(&self) -> DomainResult<()> {
+        let mut stmt = self.writer.prepare(
+            "SELECT id, content_sanitized, summary
+             FROM articles
+             WHERE trim(coalesce(content_text, '')) = ''",
+        )?;
+
+        let pending = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+
+        if pending.is_empty() {
+            return Ok(());
+        }
+
+        let tx = self.writer.unchecked_transaction()?;
+        {
+            let mut update = tx.prepare("UPDATE articles SET content_text = ?1 WHERE id = ?2")?;
+            for (id, content_sanitized, summary) in pending {
+                let content_text = if content_sanitized.trim().is_empty() {
+                    summary.unwrap_or_default()
+                } else {
+                    sanitizer::extract_visible_text(&content_sanitized)
+                };
+                update.execute(rusqlite::params![content_text, id])?;
+            }
+        }
+        tx.commit()?;
         Ok(())
     }
 

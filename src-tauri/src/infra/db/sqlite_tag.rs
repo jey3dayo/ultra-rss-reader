@@ -4,7 +4,11 @@ use crate::domain::article::Article;
 use crate::domain::error::{DomainError, DomainResult};
 use crate::domain::tag::Tag;
 use crate::domain::types::{AccountId, ArticleId, FeedId, TagId};
+use crate::infra::db::sqlite_mute_keyword::{
+    build_mute_keyword_exclusion_clause, SqliteMuteKeywordRepository,
+};
 use crate::repository::article::Pagination;
+use crate::repository::mute_keyword::MuteKeywordRepository;
 use crate::repository::tag::TagRepository;
 
 pub struct SqliteTagRepository<'a> {
@@ -59,7 +63,7 @@ impl TagRepository for SqliteTagRepository<'_> {
     fn find_all(&self) -> DomainResult<Vec<Tag>> {
         let mut stmt = self
             .conn
-            .prepare("SELECT id, name, color FROM tags ORDER BY name")?;
+            .prepare("SELECT id, name, color FROM tags ORDER BY name COLLATE NOCASE")?;
         let tags = stmt
             .query_map([], row_to_tag)?
             .collect::<Result<Vec<_>, _>>()?;
@@ -105,7 +109,7 @@ impl TagRepository for SqliteTagRepository<'_> {
         let mut stmt = self.conn.prepare(
             "SELECT t.id, t.name, t.color FROM tags t \
              JOIN article_tags at ON t.id = at.tag_id \
-             WHERE at.article_id = ?1 ORDER BY t.name",
+             WHERE at.article_id = ?1 ORDER BY t.name COLLATE NOCASE",
         )?;
         let tags = stmt
             .query_map(params![article_id.0], row_to_tag)?
@@ -135,19 +139,68 @@ impl TagRepository for SqliteTagRepository<'_> {
         pagination: &Pagination,
         account_id: Option<&AccountId>,
     ) -> DomainResult<Vec<Article>> {
+        if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            let sql = match account_id {
+                Some(_) => format!(
+                    "SELECT {ARTICLE_SELECT_COLS} FROM articles a \
+                     JOIN article_tags at ON a.id = at.article_id \
+                     JOIN feeds f ON a.feed_id = f.id \
+                     WHERE at.tag_id = ?1 AND f.account_id = ?4 \
+                     ORDER BY a.published_at DESC LIMIT ?2 OFFSET ?3"
+                ),
+                None => format!(
+                    "SELECT {ARTICLE_SELECT_COLS} FROM articles a \
+                     JOIN article_tags at ON a.id = at.article_id \
+                     WHERE at.tag_id = ?1 \
+                     ORDER BY a.published_at DESC LIMIT ?2 OFFSET ?3"
+                ),
+            };
+            let mut stmt = self.conn.prepare(&sql)?;
+            let articles = match account_id {
+                Some(aid) => stmt
+                    .query_map(
+                        params![
+                            tag_id.0,
+                            pagination.limit as i64,
+                            pagination.offset as i64,
+                            aid.0
+                        ],
+                        row_to_article,
+                    )?
+                    .collect::<Result<Vec<_>, _>>()?,
+                None => stmt
+                    .query_map(
+                        params![tag_id.0, pagination.limit as i64, pagination.offset as i64],
+                        row_to_article,
+                    )?
+                    .collect::<Result<Vec<_>, _>>()?,
+            };
+            return Ok(articles);
+        }
+
         let sql = match account_id {
             Some(_) => format!(
                 "SELECT {ARTICLE_SELECT_COLS} FROM articles a \
                  JOIN article_tags at ON a.id = at.article_id \
                  JOIN feeds f ON a.feed_id = f.id \
-                 WHERE at.tag_id = ?1 AND f.account_id = ?4 \
-                 ORDER BY a.published_at DESC LIMIT ?2 OFFSET ?3"
+                 WHERE at.tag_id = ?1 AND f.account_id = ?2 \
+                   AND {} \
+                 ORDER BY a.published_at DESC LIMIT ?3 OFFSET ?4",
+                build_mute_keyword_exclusion_clause(
+                    "a.title",
+                    "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+                )
             ),
             None => format!(
                 "SELECT {ARTICLE_SELECT_COLS} FROM articles a \
                  JOIN article_tags at ON a.id = at.article_id \
                  WHERE at.tag_id = ?1 \
-                 ORDER BY a.published_at DESC LIMIT ?2 OFFSET ?3"
+                   AND {} \
+                 ORDER BY a.published_at DESC LIMIT ?2 OFFSET ?3",
+                build_mute_keyword_exclusion_clause(
+                    "a.title",
+                    "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+                )
             ),
         };
         let mut stmt = self.conn.prepare(&sql)?;
@@ -156,9 +209,9 @@ impl TagRepository for SqliteTagRepository<'_> {
                 .query_map(
                     params![
                         tag_id.0,
+                        aid.0,
                         pagination.limit as i64,
-                        pagination.offset as i64,
-                        aid.0
+                        pagination.offset as i64
                     ],
                     row_to_article,
                 )?
@@ -252,6 +305,16 @@ mod tests {
         (account_id, feed_id, article_id)
     }
 
+    fn insert_mute_keyword(db: &DbManager, keyword: &str, scope: &str) {
+        let now = chrono::Utc::now().to_rfc3339();
+        db.writer()
+            .execute(
+                "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![uuid::Uuid::new_v4().to_string(), keyword, scope, now, now],
+            )
+            .unwrap();
+    }
+
     #[test]
     fn save_and_find_all() {
         let db = test_db();
@@ -268,6 +331,30 @@ mod tests {
         assert_eq!(tags.len(), 1);
         assert_eq!(tags[0].name, "important");
         assert_eq!(tags[0].color, Some("#ff0000".to_string()));
+    }
+
+    #[test]
+    fn find_all_sorts_tags_by_name_case_insensitively() {
+        let db = test_db();
+        let repo = SqliteTagRepository::new(db.writer());
+
+        for name in ["Red", "news", "Fav", "Gray"] {
+            repo.save(&Tag {
+                id: TagId::new(),
+                name: name.to_string(),
+                color: None,
+            })
+            .unwrap();
+        }
+
+        let names = repo
+            .find_all()
+            .unwrap()
+            .into_iter()
+            .map(|tag| tag.name)
+            .collect::<Vec<_>>();
+
+        assert_eq!(names, vec!["Fav", "Gray", "news", "Red"]);
     }
 
     #[test]
@@ -311,6 +398,32 @@ mod tests {
     }
 
     #[test]
+    fn find_tags_for_article_sorts_by_name_case_insensitively() {
+        let db = test_db();
+        let (_, _, article_id) = insert_test_data(&db);
+        let repo = SqliteTagRepository::new(db.writer());
+
+        for name in ["Red", "news", "Fav", "Gray"] {
+            let tag = Tag {
+                id: TagId::new(),
+                name: name.to_string(),
+                color: None,
+            };
+            repo.save(&tag).unwrap();
+            repo.tag_article(&article_id, &tag.id).unwrap();
+        }
+
+        let names = repo
+            .find_tags_for_article(&article_id)
+            .unwrap()
+            .into_iter()
+            .map(|tag| tag.name)
+            .collect::<Vec<_>>();
+
+        assert_eq!(names, vec!["Fav", "Gray", "news", "Red"]);
+    }
+
+    #[test]
     fn find_articles_by_tag() {
         let db = test_db();
         let (_, _, article_id) = insert_test_data(&db);
@@ -333,6 +446,38 @@ mod tests {
             .unwrap();
         assert_eq!(articles.len(), 1);
         assert_eq!(articles[0].title, "Test Article");
+    }
+
+    #[test]
+    fn find_articles_by_tag_filters_muted_articles() {
+        let db = test_db();
+        let (_, _, article_id) = insert_test_data(&db);
+        let repo = SqliteTagRepository::new(db.writer());
+
+        db.writer()
+            .execute(
+                "UPDATE articles SET title = ?1 WHERE id = ?2",
+                params!["Kindle Unlimited digest", article_id.0],
+            )
+            .unwrap();
+
+        let tag = Tag {
+            id: TagId::new(),
+            name: "work".to_string(),
+            color: None,
+        };
+        repo.save(&tag).unwrap();
+        repo.tag_article(&article_id, &tag.id).unwrap();
+        insert_mute_keyword(&db, "kindle unlimited", "title");
+
+        let pagination = Pagination {
+            offset: 0,
+            limit: 50,
+        };
+        let articles = repo
+            .find_articles_by_tag(&tag.id, &pagination, None)
+            .unwrap();
+        assert!(articles.is_empty());
     }
 
     #[test]

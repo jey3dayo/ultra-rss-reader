@@ -11,10 +11,12 @@ export {
   copyToClipboardArgs,
   countAccountUnreadArticlesArgs,
   createFolderArgs,
+  createMuteKeywordArgs,
   createOrUpdateBrowserWebviewArgs,
   createTagArgs,
   deleteAccountArgs,
   deleteFeedArgs,
+  deleteMuteKeywordArgs,
   deleteTagArgs,
   discoverFeedsArgs,
   exportOpmlArgs,
@@ -47,6 +49,7 @@ export {
   updateAccountSyncArgs,
   updateFeedDisplaySettingsArgs,
   updateFeedFolderArgs,
+  updateMuteKeywordArgs,
 } from "./commands";
 export { type DatabaseInfoDto, DatabaseInfoDtoSchema } from "./database-info";
 export { type DiscoveredFeedDto, DiscoveredFeedDtoSchema } from "./discovered-feed";
@@ -54,6 +57,7 @@ export { type AppError, AppErrorSchema } from "./error";
 export { type FeedDto, FeedDtoSchema } from "./feed";
 export { type FeedIntegrityReportDto, FeedIntegrityReportDtoSchema } from "./feed-integrity";
 export { type FolderDto, FolderDtoSchema } from "./folder";
+export { type MuteKeywordDto, MuteKeywordDtoSchema, MuteKeywordScopeSchema } from "./mute-keyword";
 export {
   type DevRuntimeOptions,
   DevRuntimeOptionsSchema,

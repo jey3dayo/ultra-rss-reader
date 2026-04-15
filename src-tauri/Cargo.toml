@@ -40,6 +40,7 @@ keyring = { version = "3", features = ["apple-native", "sync-secret-service"] }
 async-trait = "0.1"
 thiserror = "2"
 quick-xml = "0.36"
+kuchikiki = "0.8.8-speedreader"
 open = "5"
 futures = "0.3.32"
 sys-locale = "0.3"

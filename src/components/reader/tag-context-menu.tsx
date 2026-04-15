@@ -8,20 +8,30 @@ import { RenameTagDialogView } from "./rename-tag-dialog-view";
 import { TagContextMenuView } from "./tag-context-menu-view";
 
 const TAG_COLOR_PRESETS = [
-  "#ef4444",
-  "#f97316",
-  "#eab308",
-  "#22c55e",
-  "#06b6d4",
-  "#3b82f6",
-  "#8b5cf6",
-  "#ec4899",
-  "#6b7280",
+  "#cf7868",
+  "#c88d62",
+  "#b59a64",
+  "#5f9670",
+  "#5f9695",
+  "#6f8eb8",
+  "#8c79b2",
+  "#b97a90",
+  "#726d66",
 ];
 
 export type TagContextMenuContentProps = {
   tag: TagDto;
 };
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "object" && error !== null && "message" in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return "Unknown error";
+}
 
 export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
   const { t } = useTranslation("reader");
@@ -66,8 +76,7 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
           handleRenameOpenChange(false);
         },
         onError: (error: unknown) => {
-          const message = error instanceof Error ? error.message : String(error);
-          showToast(t("failed_to_rename_tag", { message }));
+          showToast(t("failed_to_rename_tag", { message: getErrorMessage(error) }));
         },
       },
     );
@@ -81,8 +90,7 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
           handleDeleteOpenChange(false);
         },
         onError: (error: unknown) => {
-          const message = error instanceof Error ? error.message : String(error);
-          showToast(t("failed_to_delete_tag", { message }));
+          showToast(t("failed_to_delete_tag", { message: getErrorMessage(error) }));
         },
       },
     );

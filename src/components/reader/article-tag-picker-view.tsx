@@ -39,49 +39,44 @@ export function ArticleTagPickerView({
   };
 
   return (
-    <section
-      aria-label={labels.sectionTitle ?? "Tags"}
-      className="rounded-xl border border-border/70 bg-card/32 px-4 py-3"
-    >
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/82">
-            {labels.sectionTitle ?? "Tags"}
-          </h2>
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <ArticleTagChipList assignedTags={assignedTags} labels={labels} onRemoveTag={onRemoveTag} />
-        <div ref={pickerRef} className="relative" data-disable-global-shortcuts="true">
-          <button
-            ref={triggerRef}
-            type="button"
-            onClick={() => onExpandedChange(!isExpanded)}
-            onKeyDown={handleTriggerKeyDown}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border/80 bg-background/40 text-muted-foreground transition-colors hover:border-foreground/40 hover:bg-accent/50 hover:text-foreground"
-            aria-label={labels.addTag}
-            aria-haspopup="listbox"
-            aria-expanded={isExpanded}
-            aria-controls={pickerId}
-          >
-            <Plus className="h-3 w-3" />
-          </button>
-          {isExpanded && (
-            <ArticleTagPickerPopover
-              pickerId={pickerId}
-              labels={labels}
-              availableTags={availableTags}
-              newTagName={newTagName}
-              newTagInputRef={newTagInputRef}
-              tagOptionRefs={tagOptionRefs}
-              onExpandedChange={onExpandedChange}
-              onAssignTag={onAssignTag}
-              onNewTagNameChange={onNewTagNameChange}
-              onCreateTag={handleCreateTag}
-              onClosePicker={closePicker}
-              onListboxKeyDown={handleListboxKeyDown}
-            />
-          )}
+    <section aria-label={labels.sectionTitle ?? "Tags"} className="inline-block max-w-full py-1">
+      <div className="flex max-w-full items-start gap-2.5">
+        <h2 className="shrink-0 pt-1 text-[13px] leading-5 text-muted-foreground/68">
+          {labels.sectionTitle ?? "Tags"}
+        </h2>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <ArticleTagChipList assignedTags={assignedTags} labels={labels} onRemoveTag={onRemoveTag} />
+          <div ref={pickerRef} className="relative" data-disable-global-shortcuts="true">
+            <button
+              ref={triggerRef}
+              type="button"
+              onClick={() => onExpandedChange(!isExpanded)}
+              onKeyDown={handleTriggerKeyDown}
+              className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground/72 transition-colors hover:bg-accent/40 hover:text-foreground focus-visible:bg-accent/40 focus-visible:text-foreground"
+              aria-label={labels.addTag}
+              aria-haspopup="listbox"
+              aria-expanded={isExpanded}
+              aria-controls={pickerId}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+            {isExpanded && (
+              <ArticleTagPickerPopover
+                pickerId={pickerId}
+                labels={labels}
+                availableTags={availableTags}
+                newTagName={newTagName}
+                newTagInputRef={newTagInputRef}
+                tagOptionRefs={tagOptionRefs}
+                onExpandedChange={onExpandedChange}
+                onAssignTag={onAssignTag}
+                onNewTagNameChange={onNewTagNameChange}
+                onCreateTag={handleCreateTag}
+                onClosePicker={closePicker}
+                onListboxKeyDown={handleListboxKeyDown}
+              />
+            )}
+          </div>
         </div>
       </div>
     </section>

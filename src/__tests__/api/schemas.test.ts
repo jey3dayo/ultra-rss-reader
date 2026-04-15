@@ -5,10 +5,13 @@ import {
   ArticleDtoSchema,
   addAccountArgs,
   commandArgsSchemas,
+  createMuteKeywordArgs,
   DiscoveredFeedDtoSchema,
+  deleteMuteKeywordArgs,
   FeedDtoSchema,
   FolderDtoSchema,
   listArticlesArgs,
+  MuteKeywordDtoSchema,
   markArticleReadArgs,
   PlatformInfoSchema,
   TagDtoSchema,
@@ -81,6 +84,16 @@ describe("DTO schemas", () => {
       name: "Important",
       color: null,
     });
+  });
+  it("parses valid MuteKeywordDto", () => {
+    const data = {
+      id: "mute-1",
+      keyword: "Kindle Unlimited",
+      scope: "title_and_body",
+      created_at: "2026-04-15T01:00:00Z",
+      updated_at: "2026-04-15T01:00:00Z",
+    };
+    expect(MuteKeywordDtoSchema.parse(data)).toEqual(data);
   });
   it("parses valid DiscoveredFeedDto", () => {
     expect(DiscoveredFeedDtoSchema.parse({ url: "https://example.com/feed.xml", title: "Blog" })).toEqual({
@@ -156,9 +169,20 @@ describe("command args schemas", () => {
   it("parses addAccountArgs", () => {
     expect(addAccountArgs.parse({ kind: "local", name: "Test" })).toEqual({ kind: "local", name: "Test" });
   });
+  it("parses createMuteKeywordArgs", () => {
+    expect(createMuteKeywordArgs.parse({ keyword: "Kindle Unlimited", scope: "title" })).toEqual({
+      keyword: "Kindle Unlimited",
+      scope: "title",
+    });
+  });
+  it("parses deleteMuteKeywordArgs", () => {
+    expect(deleteMuteKeywordArgs.parse({ muteKeywordId: "mute-1" })).toEqual({ muteKeywordId: "mute-1" });
+  });
   it("commandArgsSchemas maps command names to schemas", () => {
     expect(commandArgsSchemas.list_articles).toBeDefined();
     expect(commandArgsSchemas.mark_article_read).toBeDefined();
+    expect(commandArgsSchemas.create_mute_keyword).toBeDefined();
+    expect(commandArgsSchemas.delete_mute_keyword).toBeDefined();
     expect(commandArgsSchemas.list_accounts).toBeUndefined(); // no args
   });
 });

@@ -20,6 +20,21 @@ pub fn sanitize_html(raw: &str) -> String {
         .to_string()
 }
 
+pub fn extract_visible_text(raw: &str) -> String {
+    if raw.trim().is_empty() {
+        return String::new();
+    }
+
+    use kuchikiki::traits::TendrilSink;
+
+    let document = kuchikiki::parse_html().one(raw).document_node;
+    document
+        .text_contents()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -53,5 +68,19 @@ mod tests {
         let output = sanitize_html(input);
         assert!(output.contains("<pre>"));
         assert!(output.contains("<code>"));
+    }
+
+    #[test]
+    fn extract_visible_text_ignores_attributes() {
+        let input = r#"<p><a href="https://example.com/kindle">Visible</a> text</p>"#;
+        let output = extract_visible_text(input);
+        assert_eq!(output, "Visible text");
+    }
+
+    #[test]
+    fn extract_visible_text_keeps_inline_word_boundaries() {
+        let input = "<p>Kindle <strong>Unlimited</strong></p>";
+        let output = extract_visible_text(input);
+        assert_eq!(output, "Kindle Unlimited");
     }
 }

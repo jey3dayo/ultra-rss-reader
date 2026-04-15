@@ -4,7 +4,11 @@ use rusqlite::{params, Connection};
 use crate::domain::article::Article;
 use crate::domain::error::DomainResult;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
+use crate::infra::db::sqlite_mute_keyword::{
+    build_mute_keyword_exclusion_clause, SqliteMuteKeywordRepository,
+};
 use crate::repository::article::{ArticleRepository, Pagination};
+use crate::repository::mute_keyword::MuteKeywordRepository;
 
 pub struct SqliteArticleRepository<'a> {
     conn: &'a Connection,
@@ -104,14 +108,44 @@ fn row_to_article(row: &rusqlite::Row) -> rusqlite::Result<Article> {
 
 const SELECT_COLS: &str = "id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, thumbnail, published_at, is_read, is_starred, fetched_at";
 
+fn article_body_text(value: &str, summary: Option<&str>) -> String {
+    if value.trim().is_empty() {
+        summary.unwrap_or("").to_string()
+    } else {
+        crate::infra::sanitizer::extract_visible_text(value)
+    }
+}
+
 impl ArticleRepository for SqliteArticleRepository<'_> {
     fn find_by_feed(
         &self,
         feed_id: &FeedId,
         pagination: &Pagination,
     ) -> DomainResult<Vec<Article>> {
+        if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            let sql = format!(
+                "SELECT {SELECT_COLS} FROM articles WHERE feed_id = ?1 ORDER BY published_at DESC LIMIT ?2 OFFSET ?3"
+            );
+            let mut stmt = self.conn.prepare(&sql)?;
+            let articles = stmt
+                .query_map(
+                    params![feed_id.0, pagination.limit as i64, pagination.offset as i64],
+                    row_to_article,
+                )?
+                .collect::<Result<Vec<_>, _>>()?;
+            return Ok(articles);
+        }
+
+        let mute_clause = build_mute_keyword_exclusion_clause(
+            "title",
+            "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
+        );
         let sql = format!(
-            "SELECT {SELECT_COLS} FROM articles WHERE feed_id = ?1 ORDER BY published_at DESC LIMIT ?2 OFFSET ?3"
+            "SELECT {SELECT_COLS} FROM articles
+             WHERE feed_id = ?1
+               AND {mute_clause}
+             ORDER BY published_at DESC
+             LIMIT ?2 OFFSET ?3"
         );
         let mut stmt = self.conn.prepare(&sql)?;
         let articles = stmt
@@ -128,15 +162,47 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         account_id: &AccountId,
         pagination: &Pagination,
     ) -> DomainResult<Vec<Article>> {
+        if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            let select_cols_prefixed = SELECT_COLS
+                .split(", ")
+                .map(|col| format!("a.{col}"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            let sql = format!(
+                "SELECT {select_cols_prefixed} FROM articles a
+                 JOIN feeds f ON a.feed_id = f.id
+                 WHERE f.account_id = ?1
+                 ORDER BY a.published_at DESC
+                 LIMIT ?2 OFFSET ?3"
+            );
+            let mut stmt = self.conn.prepare(&sql)?;
+            let articles = stmt
+                .query_map(
+                    params![
+                        account_id.0,
+                        pagination.limit as i64,
+                        pagination.offset as i64
+                    ],
+                    row_to_article,
+                )?
+                .collect::<Result<Vec<_>, _>>()?;
+            return Ok(articles);
+        }
+
         let select_cols_prefixed = SELECT_COLS
             .split(", ")
             .map(|col| format!("a.{col}"))
             .collect::<Vec<_>>()
             .join(", ");
+        let mute_clause = build_mute_keyword_exclusion_clause(
+            "a.title",
+            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+        );
         let sql = format!(
             "SELECT {select_cols_prefixed} FROM articles a
              JOIN feeds f ON a.feed_id = f.id
              WHERE f.account_id = ?1
+               AND {mute_clause}
              ORDER BY a.published_at DESC
              LIMIT ?2 OFFSET ?3"
         );
@@ -167,12 +233,13 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         let tx = self.conn.unchecked_transaction()?;
         {
             let mut stmt = tx.prepare(
-                "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
+                "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at, content_text)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
                  ON CONFLICT(id) DO UPDATE SET
                    title = excluded.title,
                    content_raw = excluded.content_raw,
                    content_sanitized = excluded.content_sanitized,
+                   content_text = excluded.content_text,
                    sanitizer_version = excluded.sanitizer_version,
                    summary = excluded.summary,
                    url = excluded.url,
@@ -198,6 +265,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
                     article.is_read,
                     article.is_starred,
                     article.fetched_at.to_rfc3339(),
+                    article_body_text(&article.content_sanitized, article.summary.as_deref()),
                 ])?;
             }
         }
@@ -262,8 +330,12 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
 
     fn update_sanitized(&self, id: &ArticleId, sanitized: &str, version: u32) -> DomainResult<()> {
         self.conn.execute(
-            "UPDATE articles SET content_sanitized = ?1, sanitizer_version = ?2 WHERE id = ?3",
-            params![sanitized, version, id.0],
+            "UPDATE articles
+             SET content_sanitized = ?1,
+                 content_text = ?2,
+                 sanitizer_version = ?3
+             WHERE id = ?4",
+            params![sanitized, article_body_text(sanitized, None), version, id.0],
         )?;
         Ok(())
     }
@@ -352,7 +424,13 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
              JOIN articles_fts fts ON a.rowid = fts.rowid
              WHERE f.account_id = ?1
              AND articles_fts MATCH ?2
+             AND {}
              ORDER BY fts.rank"
+            ,
+            build_mute_keyword_exclusion_clause(
+                "a.title",
+                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            )
         );
         let mut stmt = self.conn.prepare(&fts_sql)?;
         let fts_articles: Vec<Article> = stmt
@@ -374,8 +452,22 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
             "SELECT {select_cols_prefixed} FROM articles a
              JOIN feeds f ON a.feed_id = f.id
              WHERE f.account_id = ?1
-             AND (a.title LIKE ?2 ESCAPE '\\' OR a.content_sanitized LIKE ?2 ESCAPE '\\')
+             AND (
+               a.title LIKE ?2 ESCAPE '\\'
+               OR (
+                 CASE
+                   WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '')
+                   ELSE a.content_text
+                 END
+               ) LIKE ?2 ESCAPE '\\'
+             )
+             AND {}
              ORDER BY a.published_at DESC"
+            ,
+            build_mute_keyword_exclusion_clause(
+                "a.title",
+                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            )
         );
         let mut stmt = self.conn.prepare(&like_sql)?;
         let like_articles: Vec<Article> = stmt
@@ -390,7 +482,6 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
                 merged.push(article);
             }
         }
-        // Apply pagination after merging to ensure correct page boundaries
         let start = pagination.offset.min(merged.len());
         let end = (start + pagination.limit).min(merged.len());
         Ok(merged[start..end].to_vec())
@@ -448,6 +539,16 @@ mod tests {
             is_starred: false,
             fetched_at: now,
         }
+    }
+
+    fn insert_mute_keyword(db: &DbManager, keyword: &str, scope: &str) {
+        let now = Utc::now().to_rfc3339();
+        db.writer()
+            .execute(
+                "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![uuid::Uuid::new_v4().to_string(), keyword, scope, now, now],
+            )
+            .unwrap();
     }
 
     #[test]
@@ -544,6 +645,37 @@ mod tests {
     }
 
     #[test]
+    fn find_by_feed_filters_mute_keywords_before_pagination() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut newest_muted = make_article(&feed_id, "Kindle Unlimited campaign");
+        newest_muted.published_at = Utc::now() + chrono::Duration::seconds(3);
+        let mut second_muted = make_article(&feed_id, "kindle unlimited roundup");
+        second_muted.published_at = Utc::now() + chrono::Duration::seconds(2);
+        let mut visible = make_article(&feed_id, "Visible article");
+        visible.published_at = Utc::now() + chrono::Duration::seconds(1);
+        repo.upsert(&[newest_muted, second_muted, visible]).unwrap();
+
+        insert_mute_keyword(&db, "Kindle Unlimited", "title");
+
+        let page = repo
+            .find_by_feed(
+                &feed_id,
+                &Pagination {
+                    offset: 0,
+                    limit: 1,
+                },
+            )
+            .unwrap();
+
+        assert_eq!(page.len(), 1);
+        assert_eq!(page[0].title, "Visible article");
+    }
+
+    #[test]
     fn find_by_account_returns_articles_across_feeds() {
         let db = test_db();
         let account_id = insert_test_account(&db);
@@ -564,6 +696,82 @@ mod tests {
         assert_eq!(found.len(), 2);
         assert_eq!(found[0].title, "Article 2");
         assert_eq!(found[1].title, "Article 1");
+    }
+
+    #[test]
+    fn find_by_account_filters_body_scope_with_summary_fallback() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut muted = make_article(&feed_id, "Article 1");
+        muted.content_sanitized = "".to_string();
+        muted.summary = Some("Contains Kindle Unlimited mention".to_string());
+        muted.published_at = Utc::now() + chrono::Duration::seconds(2);
+
+        let mut visible = make_article(&feed_id, "Article 2");
+        visible.summary = Some("Visible summary".to_string());
+        visible.published_at = Utc::now() + chrono::Duration::seconds(1);
+
+        repo.upsert(&[muted, visible.clone()]).unwrap();
+        insert_mute_keyword(&db, "kindle unlimited", "body");
+
+        let found = repo
+            .find_by_account(&account_id, &Pagination::default())
+            .unwrap();
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].title, visible.title);
+    }
+
+    #[test]
+    fn find_by_account_body_scope_ignores_html_attributes() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut visible = make_article(&feed_id, "Visible article");
+        visible.content_sanitized =
+            r#"<p><a href="https://example.com/kindle">Visible text only</a></p>"#.to_string();
+        visible.published_at = Utc::now() + chrono::Duration::seconds(1);
+
+        repo.upsert(&[visible.clone()]).unwrap();
+        insert_mute_keyword(&db, "kindle", "body");
+
+        let found = repo
+            .find_by_account(&account_id, &Pagination::default())
+            .unwrap();
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].title, visible.title);
+    }
+
+    #[test]
+    fn find_by_account_body_scope_matches_visible_text_across_inline_markup() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut muted = make_article(&feed_id, "Muted article");
+        muted.content_sanitized = "<p>Kindle <strong>Unlimited</strong></p>".to_string();
+        muted.published_at = Utc::now() + chrono::Duration::seconds(2);
+
+        let mut visible = make_article(&feed_id, "Visible article");
+        visible.content_sanitized = "<p>Different body</p>".to_string();
+        visible.published_at = Utc::now() + chrono::Duration::seconds(1);
+
+        repo.upsert(&[muted, visible.clone()]).unwrap();
+        insert_mute_keyword(&db, "kindle unlimited", "body");
+
+        let found = repo
+            .find_by_account(&account_id, &Pagination::default())
+            .unwrap();
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].title, visible.title);
     }
 
     #[test]
@@ -889,6 +1097,24 @@ mod tests {
             .unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "日本語の記事タイトル");
+    }
+
+    #[test]
+    fn search_filters_muted_results_case_insensitively() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let muted = make_article(&feed_id, "Kindle Unlimited sale");
+        repo.upsert(&[muted]).unwrap();
+        insert_mute_keyword(&db, "kindle unlimited", "title_and_body");
+
+        let results = repo
+            .search(&account_id, "Kindle", &Pagination::default())
+            .unwrap();
+
+        assert!(results.is_empty());
     }
 
     #[test]

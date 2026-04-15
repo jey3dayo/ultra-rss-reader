@@ -1,5 +1,5 @@
 import type { TFunction } from "i18next";
-import { BookOpen, Bug, Database, Palette, Settings, Share2 } from "lucide-react";
+import { BellOff, BookOpen, Bug, Database, Palette, Settings, Share2 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
 import { AccountsNavView } from "@/components/settings/accounts-nav-view";
@@ -27,6 +27,7 @@ type UseSettingsModalViewPropsParams = {
 const settingsCategoryByNavId: Record<string, SettingsCategory> = {
   general: "general",
   appearance: "appearance",
+  mute: "mute",
   reading: "reading",
   shortcuts: "shortcuts",
   actions: "actions",
@@ -61,6 +62,12 @@ export function useSettingsModalViewProps({
       label: t("nav.appearance"),
       icon: <Palette className="h-5 w-5" />,
       isActive: settingsCategory === "appearance" && !settingsAccountId && !settingsAddAccount,
+    },
+    {
+      id: "mute",
+      label: t("nav.mute"),
+      icon: <BellOff className="h-5 w-5" />,
+      isActive: settingsCategory === "mute" && !settingsAccountId && !settingsAddAccount,
     },
     {
       id: "reading",
