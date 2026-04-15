@@ -24,6 +24,8 @@ describe("ArticleMetaView", () => {
 
     expect(screen.getByText("Mar 25, 2026")).toBeInTheDocument();
     expect(screen.getByText("Alice")).toBeInTheDocument();
+    expect(screen.getByText("Mar 25, 2026").parentElement).toHaveClass("text-[0.76rem]");
+    expect(screen.getByText("Alice").parentElement).toHaveClass("text-[0.8rem]");
 
     const titleButton = screen.getByRole("button", { name: "First Article" });
     const feedButton = screen.getByRole("button", { name: "Tech Blog" });
@@ -40,7 +42,12 @@ describe("ArticleMetaView", () => {
   it("renders a static title when no title callback is provided", () => {
     render(<ArticleMetaView title="Offline Article" publishedLabel="Mar 25, 2026" />);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Offline Article" })).toBeInTheDocument();
+    const heading = screen.getByRole("heading", { level: 1, name: "Offline Article" });
+
+    expect(heading).toBeInTheDocument();
+    expect(heading).toHaveClass("text-[1.82rem]");
+    expect(heading).toHaveClass("sm:text-[2.18rem]");
+    expect(heading).toHaveClass("leading-[1.14]");
     expect(screen.queryByRole("button", { name: "Offline Article" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Tech Blog" })).not.toBeInTheDocument();
   });

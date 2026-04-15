@@ -39,9 +39,9 @@ export function ArticleTagPickerView({
   };
 
   return (
-    <section aria-label={labels.sectionTitle ?? "Tags"} className="inline-block max-w-full py-1">
+    <section aria-label={labels.sectionTitle ?? "Tags"} className="inline-block max-w-full py-1.5">
       <div className="flex max-w-full items-start gap-2.5">
-        <h2 className="shrink-0 pt-1 text-[13px] leading-5 text-muted-foreground/68">
+        <h2 className="shrink-0 pt-1 text-[0.8rem] font-medium leading-5 tracking-[0.14em] text-muted-foreground/78 uppercase">
           {labels.sectionTitle ?? "Tags"}
         </h2>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -52,7 +52,7 @@ export function ArticleTagPickerView({
               type="button"
               onClick={() => onExpandedChange(!isExpanded)}
               onKeyDown={handleTriggerKeyDown}
-              className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground/72 transition-colors hover:bg-accent/40 hover:text-foreground focus-visible:bg-accent/40 focus-visible:text-foreground"
+              className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground/78 transition-colors hover:bg-accent/40 hover:text-foreground focus-visible:bg-accent/40 focus-visible:text-foreground"
               aria-label={labels.addTag}
               aria-haspopup="listbox"
               aria-expanded={isExpanded}
