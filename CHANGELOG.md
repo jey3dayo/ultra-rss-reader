@@ -4,6 +4,39 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-04-16
+
+### Features
+
+- reader pane の表現を簡素化し、記事ヘッダー・本文・empty state の情報階層を見直して読みやすさを改善した
+- Feed Cleanup に review action を追加し、購読候補の継続/保留判断を進めやすくした
+- tag management settings・sidebar tag actions・mute keyword filtering を追加し、整理系ワークフローを設定画面から扱えるようにした
+- subscriptions index と cleanup surface を分離し、workspace 管理と購読整理の導線を整理した
+- startup sync account preference、sidebar density setting、screen snapshot hook を追加し、起動時同期と表示状態の扱いを強化した
+
+### Bug Fixes
+
+- reader pane の階層・余白・article tag chip・article toolbar frame を調整し、記事表示の窮屈さを減らした
+- settings modal のスクロール、form layout、navigation surface、picker/dialog surface を見直し、設定画面の操作性を安定させた
+- sidebar の選択行、compact row height、leading control を揃え、ナビゲーションの視認性を改善した
+- article/account snapshot 保持、stale unread count 再計算、content text reconciliation を修正し、更新前後の状態不整合を減らした
+- macOS titlebar inset・drag strip・overlay chrome と browser-mode 補助 UI を調整し、デスクトップ実機での表示崩れを抑えた
+- Storybook の i18n fallback crash、favicon 404 noise、fixed wrapper 起因の mobile overflow を解消し、狭幅確認を安定させた
+
+### Documentation
+
+- reader pane simplification、button commonization、mute keyword settings、sqlite-first snapshot などの設計メモを追加した
+- release manual verification、incident runbook、feed content privacy/CSP 方針を docs に整理し、release 前後の確認項目を明文化した
+- plan task/document の見出しと metadata formatting を揃え、ローカル設計ノートの表記を整理した
+
+### Maintenance
+
+- settings / shared / reader helper の contract を整理し、button・nav row・workspace panel 周辺の共通化を進めた
+- browser overlay / reader / cleanup surface の token と theme surface を見直し、画面間の見た目のばらつきを減らした
+- focus debug HUD と browser surface fallback card の構成を整理し、overlay 検証時のノイズを減らした
+- account detail の cache/error toast と reader の feed query cache を small helper へ寄せ、状態更新ロジックの重複を減らした
+- app-shell の modal entry point 遅延読み込み、frontend dependency 更新、jsdom animation compatibility 修正で開発基盤を整えた
+
 ## [0.11.0] - 2026-04-14
 
 ### Features

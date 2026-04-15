@@ -1,6 +1,6 @@
 # Ultra RSS Reader — TODO
 
-次回リリース候補は `minor` を想定しており、2026-04-14 時点の committed な進捗は `CHANGELOG.md` の `[Unreleased]` へ反映済み。
+完了済みの項目は `CHANGELOG.md` を参照し、このファイルには未完了タスクだけを残す。
 
 ## UI/UX 監査の残り
 
@@ -12,10 +12,13 @@
   - warm cream 系の配色、太すぎないタイポグラフィ、境界線と余白のルールを既存 UI に馴染む形で再設計する
   - まずは reader 周辺の主要コンポーネントを対象に、影響の大きいものから優先して見直す
   - 実装時は既存の操作性と可読性を崩さず、単なる見た目変更ではなく情報階層も合わせて調整する
-  - [ ] settings で改善した sidebar 選択行パターンを shared 観点で整理し、 reader 周辺へ段階適用する
-    - 初回適用候補: `src/components/reader/account-switcher-menu.tsx`, `src/components/reader/feed-item.tsx`
-    - 次点候補: `src/components/subscriptions-index/subscriptions-list-pane.tsx`
-    - `SidebarNavButton` / `NavRowButton` のどちらを基準にするかを見直し、 sidebar 系と content-list 系の責務を混ぜない
+    - [ ] settings で改善した sidebar 選択行パターンを shared 観点で整理し、 reader 周辺へ段階適用する
+      - 初回適用候補: `src/components/reader/account-switcher-menu.tsx`, `src/components/reader/feed-item.tsx`
+      - 次点候補: `src/components/subscriptions-index/subscriptions-list-pane.tsx`
+      - `SidebarNavButton` / `NavRowButton` のどちらを基準にするかを見直し、 sidebar 系と content-list 系の責務を混ぜない
+    - [ ] settings の title / rail / content のトーン差を `DESIGN.md` 基準で再整理する
+      - `src/components/settings/settings-content-layout.tsx`, `src/components/settings/settings-modal-view.tsx`, `src/components/settings/settings-nav-view.tsx`, `src/components/settings/accounts-nav-view.tsx`
+      - stacked-left 見出しの serif / sans 混在と、active row の強さ・透過感が section 面より先に目立つ状態をまとめて見直したい
   - 2026-04-15 の browser review で確認した追加論点:
     - [ ] 既定表示の reader / settings / feed cleanup が `DESIGN.md` の warm cream 基調ではなく dark shell に寄っている状態を解消する
       - `agent-browser` で確認した browser-mode の既定表示は `--background: #1c1915`, `--foreground: #f3efe6` で描画され、`DESIGN.md` の「cream canvas + near-black text」が初期体験に反映されていない
@@ -60,12 +63,3 @@
   - 現状のミュートは一覧・タグ一覧・検索結果から非表示にするだけで、既読状態は変更しない
   - 着手時は未読数、バッジ、`すべて既読` との整合もまとめて見直す
   - UI 上は `Settings > ミュート` に工事中として位置だけ確保済み
-
-## Recently Closed
-
-- Storybook の i18n fallback crash、favicon 404 noise、固定幅 wrapper による mobile overflow を解消した
-- browser-mode の account sync status mock、settings modal、reader narrow layout、feed cleanup responsive layout を調整した
-- Feed Cleanup の bulk action / priority cue 追加と、settings / shared / reader の contract refactor batch を完了した
-- release manual verification、incident runbook、feed content privacy/CSP 方針を docs に整理した
-- focus debug HUD の右寄せ・shell 統一・overlay strip 除去、browser surface fallback card の横幅調整、settings の web preview launch action の inline 化を進めた
-- settings page の preference view props input を shared types に寄せ、account detail の cache/error toast と reader の feed query cache を small helper として共通化した
