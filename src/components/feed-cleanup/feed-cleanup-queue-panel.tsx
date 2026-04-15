@@ -43,6 +43,7 @@ export function FeedCleanupQueuePanel({
   reasonLabels,
   priorityToneLabels,
   summaryLabels,
+  queueListClassName = "min-h-0 flex-1 space-y-3 overflow-y-auto pr-1",
 }: FeedCleanupQueuePanelProps) {
   const { t } = useTranslation("cleanup");
   const resolvePriorityClassName = (tone: FeedCleanupTone) => {
@@ -58,7 +59,7 @@ export function FeedCleanupQueuePanel({
   };
 
   return (
-    <section className="min-h-0 px-4 py-4 sm:px-6 sm:py-5 lg:border-r lg:border-border/70">
+    <section className="flex h-full min-h-0 flex-col px-4 py-4 sm:px-6 sm:py-5 lg:border-r lg:border-border/70">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold">{integrityMode ? integrityQueueLabel : queueLabel}</h3>
         {!integrityMode ? (
@@ -91,7 +92,7 @@ export function FeedCleanupQueuePanel({
           </div>
         </div>
       ) : null}
-      <div data-testid="feed-cleanup-queue-list" className="space-y-3 pr-1 lg:h-[calc(100%-2rem)] lg:overflow-y-auto">
+      <div data-testid="feed-cleanup-queue-list" className={queueListClassName}>
         {integrityMode ? (
           integrityIssues.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">

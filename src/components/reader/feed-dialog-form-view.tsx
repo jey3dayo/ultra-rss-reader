@@ -45,10 +45,17 @@ export function FeedDialogFormView({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{labels.title}</DialogTitle>
-          {labels.description && <DialogDescription>{labels.description}</DialogDescription>}
+      <DialogContent
+        showCloseButton={false}
+        className="overflow-hidden rounded-[28px] border border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.98),hsl(var(--background)/0.98))] p-0 shadow-[0_28px_80px_-44px_hsl(var(--foreground)/0.55)] sm:max-w-[640px]"
+      >
+        <DialogHeader className="border-b border-border/70 px-6 py-5">
+          <DialogTitle className="text-[1.6rem] font-semibold tracking-tight">{labels.title}</DialogTitle>
+          {labels.description ? (
+            <DialogDescription className="max-w-[46ch] text-sm leading-6 text-muted-foreground/90">
+              {labels.description}
+            </DialogDescription>
+          ) : null}
         </DialogHeader>
         <form
           onSubmit={(event) => {
@@ -57,7 +64,7 @@ export function FeedDialogFormView({
               onSubmit();
             }
           }}
-          className="space-y-4"
+          className="space-y-5 px-6 py-5"
         >
           {urlSection && <FeedDialogUrlSection {...urlSection} inputId={urlInputId} helperTextId={urlHelperTextId} />}
 
@@ -88,12 +95,16 @@ export function FeedDialogFormView({
             />
           )}
 
-          {folderSelectProps && <FolderSelectView {...folderSelectProps} />}
+          {folderSelectProps ? (
+            <div className="rounded-[22px] border border-border/70 bg-card/55 px-4 py-4">
+              <FolderSelectView {...folderSelectProps} />
+            </div>
+          ) : null}
 
           {successMessage && !error && <p className="mt-2 text-sm text-green-400">{successMessage}</p>}
           {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
         </form>
-        <DialogFooter>
+        <DialogFooter className="border-t border-border/70 bg-background/55 px-6 py-4">
           <FormActionButtons
             cancelLabel={labels.cancel}
             submitLabel={labels.submit}

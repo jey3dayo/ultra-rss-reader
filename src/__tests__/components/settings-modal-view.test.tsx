@@ -125,8 +125,9 @@ describe("SettingsModalView", () => {
     );
 
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("h-[88vh]");
-    expect(screen.getByTestId("settings-modal-surface")).toHaveClass("max-h-[840px]");
-    expect(screen.getByTestId("settings-modal-header")).toHaveClass("min-h-16");
+    expect(screen.getByTestId("settings-modal-surface")).toHaveClass("max-h-[860px]");
+    expect(screen.getByTestId("settings-modal-surface")).toHaveClass("max-w-[980px]");
+    expect(screen.getByTestId("settings-modal-header")).toHaveClass("min-h-[4.5rem]");
     expect(screen.getByTestId("settings-modal-header")).toHaveClass("py-0");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("px-3");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("py-3");
@@ -231,7 +232,7 @@ describe("SettingsModalView", () => {
     expect(surface).toHaveClass("flex-col");
     expect(surface).toHaveClass("sm:flex-row");
     expect(navPane).toHaveClass("w-full");
-    expect(navPane).toHaveClass("sm:w-[260px]");
+    expect(navPane).toHaveClass("sm:w-[292px]");
     expect(navPane).toHaveClass("border-b");
     expect(navPane).toHaveClass("sm:border-r");
   });

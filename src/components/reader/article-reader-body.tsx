@@ -68,43 +68,45 @@ export function ArticleReaderBody({ article, feedName }: ArticleReaderBodyProps)
 
   return (
     <ScrollArea data-testid="article-reader-scroll-area" className="h-full">
-      <article className="mx-auto max-w-3xl px-8 pb-8 pt-10 md:pt-12">
-        <ArticleMetaView
-          title={article.title}
-          author={article.author}
-          feedName={feedName}
-          publishedLabel={formatArticleDate(article.published_at, resolveArticleDateLocale(i18n.language))}
-          onTitleClick={
-            articleUrl
-              ? (e) => {
-                  openArticleUrl(articleUrl, e.metaKey, e.ctrlKey);
-                }
-              : undefined
-          }
-          onTitleAuxClick={
-            articleUrl
-              ? (e) => {
-                  if (e.button === 1) {
-                    e.preventDefault();
-                    void openArticleInExternalBrowser(articleUrl);
+      <article className="mx-auto max-w-[48rem] px-7 pb-16 pt-12 md:px-10 md:pt-16">
+        <section className="rounded-[2rem] border border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.92),hsl(var(--background)/0.98))] px-6 py-6 shadow-[0_24px_70px_-56px_hsl(var(--foreground)/0.55)] sm:px-8 sm:py-8">
+          <ArticleMetaView
+            title={article.title}
+            author={article.author}
+            feedName={feedName}
+            publishedLabel={formatArticleDate(article.published_at, resolveArticleDateLocale(i18n.language))}
+            onTitleClick={
+              articleUrl
+                ? (e) => {
+                    openArticleUrl(articleUrl, e.metaKey, e.ctrlKey);
                   }
-                }
-              : undefined
-          }
-          onFeedClick={
-            feedName
-              ? () => {
-                  selectFeed(article.feed_id);
-                }
-              : undefined
-          }
-        />
+                : undefined
+            }
+            onTitleAuxClick={
+              articleUrl
+                ? (e) => {
+                    if (e.button === 1) {
+                      e.preventDefault();
+                      void openArticleInExternalBrowser(articleUrl);
+                    }
+                  }
+                : undefined
+            }
+            onFeedClick={
+              feedName
+                ? () => {
+                    selectFeed(article.feed_id);
+                  }
+                : undefined
+            }
+          />
 
-        <div className="mb-8">
-          <ArticleTagChips articleId={article.id} />
-        </div>
+          <div className="mt-6 border-t border-border/60 pt-5">
+            <ArticleTagChips articleId={article.id} />
+          </div>
+        </section>
 
-        <div ref={setContentContainerElement}>
+        <div className="mt-10" ref={setContentContainerElement}>
           <ArticleContentView thumbnailUrl={article.thumbnail} contentHtml={articleContentHtml} feedName={feedName} />
         </div>
       </article>

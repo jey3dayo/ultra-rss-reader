@@ -91,7 +91,7 @@ export function SubscriptionsIndexPageView({
       <SubscriptionsOverviewSummary cards={summaryCards} />
       <div
         data-testid="subscriptions-workspace-shell"
-        className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_480px] overflow-hidden"
+        className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] overflow-hidden"
       >
         <SubscriptionsListPane
           heading={inventoryHeading}

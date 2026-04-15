@@ -265,12 +265,14 @@ export function FeedCleanupPageView({
 
   const mainLayoutClassName =
     layoutMode === "wide"
-      ? "grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_480px] gap-6 overflow-hidden px-6 py-5"
+      ? "grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_480px] items-stretch gap-6 overflow-hidden px-6 py-5"
       : layoutMode === "split"
-        ? "grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_480px] gap-5 overflow-hidden px-5 py-5"
+        ? "grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_480px] items-stretch gap-5 overflow-hidden px-5 py-5"
         : "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5";
 
-  const reviewPanelClassName = layoutMode === "stacked" ? "" : "sticky top-0 max-h-full self-start overflow-hidden";
+  const reviewPanelClassName = layoutMode === "stacked" ? "" : "sticky top-0 h-full min-h-0 overflow-hidden";
+  const queueListClassName =
+    layoutMode === "stacked" ? "space-y-3 pr-1" : "min-h-0 flex-1 space-y-3 overflow-y-auto pr-1";
 
   return (
     <div
@@ -376,6 +378,7 @@ export function FeedCleanupPageView({
             reasonLabels={reasonLabels}
             priorityToneLabels={priorityToneLabels}
             summaryLabels={summaryLabels}
+            queueListClassName={queueListClassName}
           />
 
           <FeedCleanupReviewPanel

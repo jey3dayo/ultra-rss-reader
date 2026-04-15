@@ -100,14 +100,14 @@ export function SettingsModalView({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         data-testid="settings-modal-surface"
-        className="flex h-[88vh] max-h-[840px] max-w-[920px] flex-col gap-0 overflow-hidden p-0 sm:flex-row sm:max-w-[920px]"
+        className="flex h-[88vh] max-h-[860px] max-w-[980px] flex-col gap-0 overflow-hidden rounded-[30px] border border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.96),hsl(var(--background)/0.98))] p-0 shadow-[0_32px_90px_-52px_hsl(var(--foreground)/0.6)] sm:flex-row sm:max-w-[980px]"
         showCloseButton={false}
       >
         {isLoading && <IndeterminateProgress className="absolute inset-x-0 top-0 z-10" />}
-        <div className="flex max-h-[42vh] w-full shrink-0 flex-col border-b border-border bg-sidebar sm:max-h-none sm:w-[260px] sm:border-r sm:border-b-0">
+        <div className="flex max-h-[42vh] w-full shrink-0 flex-col border-b border-border/80 bg-[linear-gradient(180deg,hsl(var(--sidebar)/0.98),hsl(var(--sidebar-accent)/0.32))] sm:max-h-none sm:w-[292px] sm:border-r sm:border-b-0">
           <DialogHeader
             data-testid="settings-modal-header"
-            className="flex min-h-16 flex-row items-center gap-3 border-b border-border px-4 py-0"
+            className="flex min-h-[4.5rem] flex-row items-center gap-3 border-b border-border/80 px-5 py-0"
           >
             <Button
               variant="ghost"
@@ -139,7 +139,7 @@ export function SettingsModalView({
               {navigation}
               <div
                 data-testid="settings-mobile-accounts-section"
-                className="border-t border-border/80 bg-sidebar/95 px-3 py-3 sm:hidden"
+                className="mx-3 mb-3 rounded-[22px] border border-border/70 bg-sidebar-accent/35 px-3 py-3 shadow-[inset_0_1px_0_hsl(var(--sidebar-foreground)/0.04)] sm:hidden"
               >
                 {accountsHeading ? (
                   <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/48">
@@ -160,7 +160,7 @@ export function SettingsModalView({
 
           <div
             data-testid="settings-accounts-section"
-            className="hidden border-t border-border/80 bg-sidebar/95 px-3 py-3 sm:block"
+            className="mx-3 mb-3 hidden rounded-[22px] border border-border/70 bg-sidebar-accent/35 px-3 py-3 shadow-[inset_0_1px_0_hsl(var(--sidebar-foreground)/0.04)] sm:block"
           >
             {accountsHeading ? (
               <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/48">
@@ -171,7 +171,7 @@ export function SettingsModalView({
           </div>
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-popover">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[linear-gradient(180deg,hsl(var(--popover)/0.98),hsl(var(--background)/0.98))]">
           <div className="relative min-h-0 flex-1">
             {contentHasOverflow ? (
               <div

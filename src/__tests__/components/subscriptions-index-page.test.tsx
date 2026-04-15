@@ -172,7 +172,7 @@ describe("SubscriptionsIndexPage", () => {
     const shell = await screen.findByTestId("subscriptions-workspace-shell");
     expect(shell).toHaveClass("min-h-0");
     expect(shell).toHaveClass("overflow-hidden");
-    expect(shell).toHaveClass("grid-cols-[minmax(0,1fr)_480px]");
+    expect(shell).toHaveClass("grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)]");
 
     const leftPaneSection = within(shell).getByRole("heading", { name: "全購読" }).closest("section");
     if (!leftPaneSection) {

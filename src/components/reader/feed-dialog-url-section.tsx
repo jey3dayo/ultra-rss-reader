@@ -25,12 +25,12 @@ export function FeedDialogUrlSection({
   helperTone,
 }: FeedDialogUrlSectionViewProps) {
   return (
-    <>
-      <div className="space-y-2">
-        <label htmlFor={inputId} className="block text-sm text-muted-foreground">
+    <div className="rounded-[22px] border border-border/70 bg-card/55 px-4 py-4">
+      <div className="space-y-3">
+        <label htmlFor={inputId} className="block text-sm font-medium text-foreground/90">
           {label}
         </label>
-        <div className="flex gap-2">
+        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
           <Input
             id={inputId}
             ref={inputRef}
@@ -50,7 +50,7 @@ export function FeedDialogUrlSection({
             size="sm"
             onClick={onDiscover}
             disabled={discoverDisabled}
-            className="shrink-0"
+            className="min-w-24 shrink-0"
           >
             {discovering ? discoveringLabel : discoverLabel}
           </Button>
@@ -70,11 +70,15 @@ export function FeedDialogUrlSection({
       {helperText ? (
         <p
           id={helperTextId}
-          className={helperTone === "error" ? "text-sm text-destructive" : "text-sm text-muted-foreground"}
+          className={
+            helperTone === "error"
+              ? "mt-3 rounded-2xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              : "mt-3 text-sm leading-6 text-muted-foreground"
+          }
         >
           {helperText}
         </p>
       ) : null}
-    </>
+    </div>
   );
 }

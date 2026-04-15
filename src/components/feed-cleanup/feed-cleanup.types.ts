@@ -142,6 +142,7 @@ export type FeedCleanupQueuePanelProps = {
   reasonLabels: Record<FeedCleanupReasonKey, string>;
   priorityToneLabels: Record<FeedCleanupTone, string>;
   summaryLabels: Record<FeedCleanupSummaryKey, string>;
+  queueListClassName?: string;
 };
 
 export type FeedCleanupReviewPanelProps = {
