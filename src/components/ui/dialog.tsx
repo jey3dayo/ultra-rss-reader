@@ -43,9 +43,9 @@ function DialogClose({ ...props }: DialogCloseProps) {
 function getDialogOverlayPresetClass(preset: DialogOverlayPreset) {
   switch (preset) {
     case "readable":
-      return "bg-[rgba(18,14,11,0.52)] supports-backdrop-filter:backdrop-blur-none";
+      return "bg-background/60 dark:bg-background/72 supports-backdrop-filter:backdrop-blur-none";
     default:
-      return "bg-[rgba(38,37,30,0.18)] supports-backdrop-filter:backdrop-blur-sm dark:bg-[rgba(12,10,8,0.46)]";
+      return "bg-foreground/18 supports-backdrop-filter:backdrop-blur-sm dark:bg-background/60";
   }
 }
 

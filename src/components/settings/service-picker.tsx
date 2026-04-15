@@ -34,7 +34,7 @@ export function ServicePicker({ onSelect }: ServicePickerProps) {
                       className={cn(
                         "items-center rounded-lg px-3 py-2.5",
                         !service.disabled &&
-                          "hover:border-[rgba(38,37,30,0.12)] hover:bg-[rgba(242,241,237,0.9)] focus-visible:shadow-[0_4px_12px_rgba(0,0,0,0.08)]",
+                          "hover:border-border hover:bg-background/90 focus-visible:shadow-elevation-1",
                       )}
                       leading={
                         <div

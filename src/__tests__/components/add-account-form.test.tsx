@@ -31,6 +31,16 @@ describe("AddAccountForm", () => {
     expect(feverButton).toBeDisabled();
   });
 
+  it("uses semantic hover and focus styles in the service picker", () => {
+    render(<AddAccountForm />, { wrapper: createWrapper() });
+
+    const freshrssButton = screen.getByRole("button", { name: /FreshRSS/ });
+
+    expect(freshrssButton.className).toContain("hover:border-border");
+    expect(freshrssButton.className).toContain("hover:bg-background/90");
+    expect(freshrssButton.className).toContain("focus-visible:shadow-elevation-1");
+  });
+
   it("navigates to config form on service selection and back", async () => {
     const user = userEvent.setup();
     render(<AddAccountForm />, { wrapper: createWrapper() });
