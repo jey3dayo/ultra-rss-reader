@@ -89,4 +89,55 @@ describe("ArticleListItem", () => {
 
     expect(onSelect).toHaveBeenCalledTimes(2);
   });
+
+  it("hides the summary when it exactly duplicates the feed name", () => {
+    render(
+      <ArticleListItem
+        article={{
+          ...sampleArticles[0],
+          title: "Episode 150",
+          summary: "紛争でしたら八田まで",
+          is_read: false,
+          is_starred: false,
+        }}
+        isSelected={false}
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName="紛争でしたら八田まで"
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByText("紛争でしたら八田まで")).toBeInTheDocument();
+    expect(screen.getAllByText("紛争でしたら八田まで")).toHaveLength(1);
+  });
+
+  it("hides duplicated secondary text when the feed name and summary both match the title", () => {
+    render(
+      <ArticleListItem
+        article={{
+          ...sampleArticles[0],
+          title: "Episode 150",
+          summary: "Episode 150",
+          is_read: false,
+          is_starred: false,
+        }}
+        isSelected={false}
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName="Episode 150"
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getAllByText("Episode 150")).toHaveLength(1);
+  });
 });

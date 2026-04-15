@@ -20,6 +20,18 @@ export function ArticleListItem({
   const { t } = useTranslation("reader");
   const isRead = article.is_read || isRecentlyRead;
   const isUnread = !isRead;
+  const normalizedTitle = article.title.trim();
+  const normalizedFeedName = feedName?.trim() ?? "";
+  const summaryText = article.summary ? stripHtmlTags(article.summary) : "";
+  const normalizedSummary = summaryText.trim();
+  const showFeedName = Boolean(normalizedFeedName) && normalizedFeedName !== normalizedTitle;
+  const showSummary =
+    textPreview === "true" &&
+    Boolean(normalizedSummary) &&
+    normalizedSummary !== normalizedTitle &&
+    normalizedSummary !== normalizedFeedName;
+  const showSecondaryRow = showSummary || (imagePreviews !== "off" && article.thumbnail);
+
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.defaultPrevented) {
       return;
@@ -75,36 +87,38 @@ export function ArticleListItem({
         <span className="shrink-0 pt-0.5 text-xs text-muted-foreground">{formatArticleTime(article.published_at)}</span>
       </div>
 
-      {feedName && (
+      {showFeedName && (
         <p className={cn("pl-4 text-xs", isUnread ? "text-muted-foreground" : "text-muted-foreground/70")}>
-          {feedName}
+          {normalizedFeedName}
         </p>
       )}
 
-      <div className="flex items-start gap-2 pl-4">
-        {textPreview === "true" && article.summary && (
-          <p
-            className={cn(
-              "line-clamp-2 flex-1 text-xs leading-relaxed",
-              isUnread ? "text-muted-foreground" : "text-muted-foreground/70",
-            )}
-          >
-            {stripHtmlTags(article.summary)}
-          </p>
-        )}
-        {imagePreviews !== "off" && article.thumbnail && (
-          <div
-            className={cn(
-              "relative shrink-0 overflow-hidden rounded",
-              imagePreviews === "small" && "h-12 w-16",
-              imagePreviews === "medium" && "h-16 w-20",
-              imagePreviews === "large" && "h-20 w-28",
-            )}
-          >
-            <img src={article.thumbnail} alt="" className="h-full w-full object-cover" />
-          </div>
-        )}
-      </div>
+      {showSecondaryRow && (
+        <div className="flex items-start gap-2 pl-4">
+          {showSummary && (
+            <p
+              className={cn(
+                "line-clamp-2 flex-1 text-xs leading-relaxed",
+                isUnread ? "text-muted-foreground" : "text-muted-foreground/70",
+              )}
+            >
+              {normalizedSummary}
+            </p>
+          )}
+          {imagePreviews !== "off" && article.thumbnail && (
+            <div
+              className={cn(
+                "relative shrink-0 overflow-hidden rounded",
+                imagePreviews === "small" && "h-12 w-16",
+                imagePreviews === "medium" && "h-16 w-20",
+                imagePreviews === "large" && "h-20 w-28",
+              )}
+            >
+              <img src={article.thumbnail} alt="" className="h-full w-full object-cover" />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
