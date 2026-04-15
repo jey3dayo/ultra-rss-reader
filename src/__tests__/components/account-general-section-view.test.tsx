@@ -33,6 +33,8 @@ describe("AccountGeneralSectionView", () => {
     expect(nameInput).toHaveValue("Personal FreshRSS");
     expect(nameInput).toHaveAttribute("readonly");
     expect(nameInput).toHaveClass("sm:flex-1");
+    expect(screen.getByText("Type")).toHaveClass("sm:w-24");
+    expect(screen.getByText("Type")).toHaveClass("sm:shrink-0");
     expect(screen.getByText("FreshRSS")).toBeInTheDocument();
     expect(screen.getByText("https://freshrss.example.com")).toBeInTheDocument();
 

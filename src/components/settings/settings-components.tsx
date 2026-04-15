@@ -48,13 +48,13 @@ export function SettingsSelect({ label, prefKey, options }: SettingsSelectProps)
  *  disabled — these values are synced from the backend and not user-editable here.
  *  Use SettingsGradientSwitch/SettingsSelect for interactive preference rows. */
 export type SettingsRowProps =
-  | { label: string; type: "switch"; checked?: boolean }
-  | { label: string; type: "select"; value?: string }
-  | { label: string; type: "text"; value?: string; truncate?: boolean };
+  | { label: string; labelClassName?: string; type: "switch"; checked?: boolean }
+  | { label: string; labelClassName?: string; type: "select"; value?: string }
+  | { label: string; labelClassName?: string; type: "text"; value?: string; truncate?: boolean };
 
 export function SettingsRow(props: SettingsRowProps) {
   return (
-    <LabeledControlRow label={props.label}>
+    <LabeledControlRow label={props.label} labelClassName={props.labelClassName}>
       {props.type === "switch" && <GradientSwitch checked={props.checked} disabled />}
       {props.type === "select" && (
         <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">

@@ -18,6 +18,8 @@ export function AccountGeneralSectionView({
   onCommitName,
   onNameKeyDown,
 }: AccountGeneralSectionViewProps) {
+  const labelColumnClassName = "sm:w-24 sm:shrink-0";
+
   return (
     <SettingsSection heading={heading} className="mb-6">
       <LabeledInputRow
@@ -32,13 +34,20 @@ export function AccountGeneralSectionView({
         onFocus={!isEditingName ? onStartEditingName : undefined}
         onKeyDown={isEditingName ? onNameKeyDown : undefined}
         rowClassName="flex-col items-stretch sm:flex-row sm:items-center sm:justify-start"
-        labelClassName="sm:w-24 sm:shrink-0"
+        labelClassName={labelColumnClassName}
         controlClassName="sm:min-w-0 sm:flex-1"
         inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:flex-1"
         disabled={isSavingName}
       />
       {infoRows.map((row) => (
-        <SettingsRow key={row.label} label={row.label} value={row.value} type="text" truncate={row.truncate} />
+        <SettingsRow
+          key={row.label}
+          label={row.label}
+          labelClassName={labelColumnClassName}
+          value={row.value}
+          type="text"
+          truncate={row.truncate}
+        />
       ))}
     </SettingsSection>
   );
