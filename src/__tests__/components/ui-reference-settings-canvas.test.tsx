@@ -14,6 +14,9 @@ describe("AnnotatedSettingsCanvas story", () => {
     expect(screen.getByRole("textbox", { name: "Feed URL" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Density" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Live Preview" })).toBeInTheDocument();
+    expect(screen.getByText("Validation row")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Server URL" })).toBeInTheDocument();
+    expect(screen.getByText("URL は `https://` から始めてください。")).toBeInTheDocument();
 
     const modeGroup = screen.getByRole("radiogroup", { name: "Reading mode" });
     expect(within(modeGroup).getByRole("radio", { name: "Comfortable" })).toBeInTheDocument();
@@ -51,5 +54,13 @@ describe("AnnotatedSettingsCanvas story", () => {
     expect(screen.getByText("Disabled switch")).toBeInTheDocument();
     expect(screen.getByText("工事中")).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "ミュート時に自動既読" })).toHaveAttribute("aria-disabled", "true");
+
+    expect(screen.getByText("Dialog surface")).toBeInTheDocument();
+    expect(screen.getByText("この購読を削除しますか？")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "削除する" })).toBeInTheDocument();
+
+    expect(screen.getByText("Context menu")).toBeInTheDocument();
+    expect(screen.getByText("Open site")).toBeInTheDocument();
+    expect(screen.getByText("Mark all as read")).toBeInTheDocument();
   });
 });
