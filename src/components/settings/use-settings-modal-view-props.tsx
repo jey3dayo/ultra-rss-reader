@@ -1,5 +1,5 @@
 import type { TFunction } from "i18next";
-import { BellOff, BookOpen, Bug, Database, Palette, Settings, Share2, Tag } from "lucide-react";
+import { BellOff, BookOpen, Bug, Command, Database, Palette, Settings, Share2, Tag } from "lucide-react";
 import type { ReactNode } from "react";
 import type { AccountDto } from "@/api/tauri-commands";
 import { AccountsNavView } from "@/components/settings/accounts-nav-view";
@@ -85,9 +85,7 @@ export function useSettingsModalViewProps({
     {
       id: "shortcuts",
       label: t("nav.shortcuts"),
-      icon: (
-        <span className="flex h-5 w-5 items-center justify-center text-[11px] font-bold leading-none">&#8984;</span>
-      ),
+      icon: <Command className="h-5 w-5" />,
       isActive: settingsCategory === "shortcuts" && !settingsAccountId && !settingsAddAccount,
     },
     {

@@ -118,6 +118,15 @@ describe("SettingsModal", () => {
     expect(await screen.findByRole("button", { name: "Tags" })).toBeInTheDocument();
   });
 
+  it("renders the shortcuts category with an svg icon", async () => {
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    const shortcutsButton = await screen.findByRole("button", { name: /Shortcuts/i });
+
+    expect(shortcutsButton.querySelector("svg")).not.toBeNull();
+    expect(shortcutsButton).not.toHaveTextContent("⌘");
+  });
+
   it("switches to mute settings and shows the empty state", async () => {
     const user = userEvent.setup();
 
