@@ -4,9 +4,9 @@ import type { SettingsNavViewProps } from "./settings-nav.types";
 
 export type { SettingsNavItem, SettingsNavItemId, SettingsNavViewProps } from "./settings-nav.types";
 
-export function SettingsNavView({ items, onSelectCategory }: SettingsNavViewProps) {
+export function SettingsNavView({ ariaLabel, items, onSelectCategory }: SettingsNavViewProps) {
   return (
-    <nav className="space-y-1 p-2 pb-4">
+    <nav aria-label={ariaLabel} className="space-y-1 p-2 pb-4">
       {items.map((item) => (
         <NavRowButton
           key={item.id}

@@ -15,7 +15,7 @@ const meta = {
       value: "Local",
       options: [
         { value: "Local", label: "Local feeds" },
-        { value: "FreshRss", label: "FreshRSS" },
+        { value: "FreshRSS", label: "FreshRSS" },
         { value: "Inoreader", label: "Inoreader" },
       ],
       onChange: fn(),
@@ -51,15 +51,15 @@ type Story = StoryObj<typeof meta>;
 
 export const LocalAccount: Story = {};
 
-export const FreshRssAccount: Story = {
+export const FreshRSSAccount: Story = {
   args: {
     accountType: {
       label: "Type",
       name: "account-type",
-      value: "FreshRss",
+      value: "FreshRSS",
       options: [
         { value: "Local", label: "Local feeds" },
-        { value: "FreshRss", label: "FreshRSS" },
+        { value: "FreshRSS", label: "FreshRSS" },
         { value: "Inoreader", label: "Inoreader" },
       ],
       onChange: fn(),
@@ -69,7 +69,7 @@ export const FreshRssAccount: Story = {
       label: "Name",
       name: "account-name",
       value: "Work RSS",
-      placeholder: "FreshRss",
+      placeholder: "FreshRSS",
       onChange: fn(),
       disabled: false,
     },

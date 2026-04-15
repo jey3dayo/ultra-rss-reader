@@ -20,7 +20,7 @@ const meta = {
   tags: ["autodocs"],
   args: {
     title: "Personal FreshRSS",
-    subtitle: "FreshRss",
+    subtitle: "FreshRSS",
     generalSection: {
       heading: "General",
       nameLabel: "Description",

@@ -25,6 +25,7 @@ export type SettingsNavItem = {
 };
 
 export type SettingsNavViewProps = {
+  ariaLabel?: string;
   items: SettingsNavItem[];
   onSelectCategory: (categoryId: SettingsNavItemId) => void;
 };
