@@ -12,6 +12,20 @@
   - warm cream 系の配色、太すぎないタイポグラフィ、境界線と余白のルールを既存 UI に馴染む形で再設計する
   - まずは reader 周辺の主要コンポーネントを対象に、影響の大きいものから優先して見直す
   - 実装時は既存の操作性と可読性を崩さず、単なる見た目変更ではなく情報階層も合わせて調整する
+  - [ ] settings で改善した sidebar 選択行パターンを shared 観点で整理し、 reader 周辺へ段階適用する
+    - 初回適用候補: `src/components/reader/account-switcher-menu.tsx`, `src/components/reader/feed-item.tsx`
+    - 次点候補: `src/components/subscriptions-index/subscriptions-list-pane.tsx`
+    - `SidebarNavButton` / `NavRowButton` のどちらを基準にするかを見直し、 sidebar 系と content-list 系の責務を混ぜない
+  - 2026-04-15 の browser review で確認した追加論点:
+    - [ ] 既定表示の reader / settings / feed cleanup が `DESIGN.md` の warm cream 基調ではなく dark shell に寄っている状態を解消する
+      - `agent-browser` で確認した browser-mode の既定表示は `--background: #1c1915`, `--foreground: #f3efe6` で描画され、`DESIGN.md` の「cream canvas + near-black text」が初期体験に反映されていない
+      - 対象: `src/styles/global.css`, `src/components/app-shell.tsx`, `src/components/settings/settings-modal.tsx`, `src/components/feed-cleanup/feed-cleanup-page-view.tsx`
+    - [ ] タイポグラフィの token と実表示を `DESIGN.md` の役割分担に寄せる
+      - browser review 時点では本文・見出しとも system-ui 系 sans が中心で、`CursorGothic` / `jjannon` / `berkeleyMono` の役割差が体験に出ていない
+      - 対象: `src/styles/global.css`, `src/components/reader/article-pane-view.tsx`, `src/components/feed-cleanup/feed-cleanup-review-panel.tsx`, `src/components/settings/*`
+    - [ ] settings / feed cleanup の情報階層を tonal separation と primary action の差で再整理する
+      - 現状は近い濃度の面と outline ボタンが連続し、`DESIGN.md` が求める「tone と spacing で読む」構造よりもフラットに見える
+      - 対象: `src/components/settings/settings-modal.tsx`, `src/components/settings/*-settings*.tsx`, `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-review-panel.tsx`
 - [ ] `DESIGN.md` 準拠の色管理レイヤーを維持しつつ、直書き色の整理方針を段階的に適用する
   - 現在の準拠済みレイヤー:
     - `src/styles/global.css` の `:root` / `:root.dark` にあるセマンティックトークン群（`--background`, `--foreground`, `--primary`, `--surface-*`, `--shadow-elevation-*`）
