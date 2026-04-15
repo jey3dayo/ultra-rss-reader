@@ -86,9 +86,8 @@ export function TagsSettingsView({
           actionClassName="h-10 sm:px-4"
         />
         <LabeledControlRow label={colorLabel} labelClassName="sm:w-40 sm:shrink-0">
-          <div className="w-full sm:max-w-[360px]">
+          <div className="w-full sm:max-w-[400px]">
             <TagColorPicker
-              label={colorLabel}
               color={colorValue}
               colorOptions={colorOptions}
               noColorLabel={noColorLabel}

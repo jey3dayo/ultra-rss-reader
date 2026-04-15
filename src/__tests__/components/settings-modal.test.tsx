@@ -177,6 +177,7 @@ describe("SettingsModal", () => {
     await user.click(await screen.findByRole("button", { name: "Tags" }));
 
     expect(await screen.findByText("No tags yet.")).toBeInTheDocument();
+    expect(screen.getAllByText("Color")).toHaveLength(1);
     const nameInput = screen.getByRole("textbox", { name: "Tag name" });
     const createButton = screen.getByRole("button", { name: "Create" });
 
