@@ -1,3 +1,4 @@
+import { ChevronDownIcon } from "lucide-react";
 import type { LabeledSelectOption } from "@/components/shared/form-row.types";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
@@ -55,7 +56,12 @@ export function SettingsRow(props: SettingsRowProps) {
   return (
     <LabeledControlRow label={props.label}>
       {props.type === "switch" && <GradientSwitch checked={props.checked} disabled />}
-      {props.type === "select" && <span className="text-sm text-muted-foreground">{props.value} &#9662;</span>}
+      {props.type === "select" && (
+        <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+          <span>{props.value}</span>
+          <ChevronDownIcon className="h-4 w-4 opacity-50" aria-hidden="true" />
+        </span>
+      )}
       {props.type === "text" && (
         <span
           className={cn(

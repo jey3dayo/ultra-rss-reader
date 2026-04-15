@@ -92,6 +92,39 @@ describe("SettingsModal", () => {
     expect(screen.getByRole("button", { name: /FreshRSS/i })).toBeInTheDocument();
   });
 
+  it("opens account detail when selecting an account from general settings", async () => {
+    const user = userEvent.setup();
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    const accountButtons = await screen.findAllByRole("button", { name: /FreshRSS/i });
+    await user.click(accountButtons[accountButtons.length - 1] ?? accountButtons[0]);
+
+    await waitFor(() => {
+      expect(useUiStore.getState().settingsCategory).toBe("accounts");
+      expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
+    });
+
+    expect(screen.getByTestId("account-detail-layout")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
+  });
+
+  it("opens add account form when selecting add account from general settings", async () => {
+    const user = userEvent.setup();
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    const addAccountButtons = await screen.findAllByRole("button", { name: /Add account/i });
+    await user.click(addAccountButtons[addAccountButtons.length - 1] ?? addAccountButtons[0]);
+
+    await waitFor(() => {
+      expect(useUiStore.getState().settingsCategory).toBe("accounts");
+      expect(useUiStore.getState().settingsAddAccount).toBe(true);
+    });
+
+    expect(screen.getByRole("heading", { level: 2, name: /Add Account/i })).toBeInTheDocument();
+  });
+
   it("shows the mute settings category in navigation", async () => {
     setupTauriMocks((cmd) => {
       if (cmd === "list_mute_keywords") {

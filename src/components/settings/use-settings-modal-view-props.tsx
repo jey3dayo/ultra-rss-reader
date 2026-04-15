@@ -124,6 +124,16 @@ export function useSettingsModalViewProps({
     setSettingsCategory(nextCategory);
   };
 
+  const handleSelectAccount = (accountId: string) => {
+    setSettingsCategory("accounts");
+    setSettingsAccountId(accountId);
+  };
+
+  const handleAddAccount = () => {
+    setSettingsCategory("accounts");
+    setSettingsAddAccount(true);
+  };
+
   return {
     open: settingsOpen,
     title: t("preferences"),
@@ -135,8 +145,8 @@ export function useSettingsModalViewProps({
         accounts={accountItems}
         addAccountLabel={t("add_account_ellipsis")}
         isAddAccountActive={settingsAddAccount}
-        onSelectAccount={setSettingsAccountId}
-        onAddAccount={() => setSettingsAddAccount(true)}
+        onSelectAccount={handleSelectAccount}
+        onAddAccount={handleAddAccount}
       />
     ),
     content,

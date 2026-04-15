@@ -11,4 +11,11 @@ describe("SettingsRow", () => {
     expect(value).toHaveClass("text-left");
     expect(value).toHaveClass("sm:flex-1");
   });
+
+  it("renders read-only select values without a literal triangle glyph", () => {
+    render(<SettingsRow label="Theme" type="select" value="Dark" />);
+
+    expect(screen.getByText(/Dark/)).toBeInTheDocument();
+    expect(screen.queryByText("▼")).not.toBeInTheDocument();
+  });
 });
