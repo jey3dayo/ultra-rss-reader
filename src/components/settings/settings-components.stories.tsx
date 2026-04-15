@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { SettingsSection } from "@/components/settings/settings-section";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { SettingsRow } from "./settings-components";
 
@@ -77,11 +78,12 @@ export const FullSettingsSection: SectionHeadingStory = {
   args: { children: "Account" },
   render: () => (
     <div className="w-full max-w-[24rem]">
-      <SectionHeading>Account</SectionHeading>
-      <SettingsRow label="Server" type="text" value="https://freshrss.example.com" />
-      <SettingsRow label="Username" type="text" value="admin" />
-      <SettingsRow label="Auto-sync" type="switch" checked={true} />
-      <SettingsRow label="Sync interval" type="select" value="15 min" />
+      <SettingsSection heading="Account" note="Keep these details aligned with the current sync setup.">
+        <SettingsRow label="Server" type="text" value="https://freshrss.example.com" />
+        <SettingsRow label="Username" type="text" value="admin" />
+        <SettingsRow label="Auto-sync" type="switch" checked={true} />
+        <SettingsRow label="Sync interval" type="select" value="15 min" />
+      </SettingsSection>
     </div>
   ),
 };

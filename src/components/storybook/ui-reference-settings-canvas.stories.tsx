@@ -20,6 +20,7 @@ import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { SectionHeading } from "@/components/shared/section-heading";
+import { SurfaceCard } from "@/components/shared/surface-card";
 import { TagColorPicker } from "@/components/shared/tag-color-picker";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -354,6 +355,28 @@ function ValidationRowSpecimen() {
   );
 }
 
+function SurfaceRoleSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Surface roles</SectionHeading>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <SurfaceCard variant="info" padding="compact">
+          <SectionHeading className="mb-2">Info surface</SectionHeading>
+          <p className="font-serif text-sm leading-[1.45] text-foreground/72">
+            情報カード用の shared surface。軽い注釈や補足に使う。
+          </p>
+        </SurfaceCard>
+        <SurfaceCard variant="section" padding="compact">
+          <SectionHeading className="mb-2">Section surface</SectionHeading>
+          <p className="font-serif text-sm leading-[1.45] text-foreground/72">
+            SettingsSection と同じ section box 用 surface。構造の区切りとして使う。
+          </p>
+        </SurfaceCard>
+      </div>
+    </SurfaceCard>
+  );
+}
+
 function DialogSpecimen() {
   return (
     <div className="rounded-[24px] border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5">
@@ -446,6 +469,7 @@ export function AnnotatedSettingsCanvas() {
             </div>
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_15rem]">
               <div className="space-y-4">
+                <SurfaceRoleSpecimen />
                 <ValidationRowSpecimen />
                 <SettingsSection
                   heading="Form rows"
