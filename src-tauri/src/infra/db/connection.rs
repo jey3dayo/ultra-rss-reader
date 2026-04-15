@@ -47,6 +47,7 @@ impl DbManager {
                 &backup_file,
                 current_version,
             )?;
+            manager.reconcile_article_content_text()?;
             manager.reconcile_feed_unread_counts()?;
             Ok(manager)
         } else {
@@ -662,5 +663,87 @@ mod tests {
             .unwrap();
 
         assert_eq!(unread_count, 2);
+    }
+
+    #[test]
+    fn new_reconciles_article_content_text_after_backup_migration() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("reconcile-content-text.db");
+
+        {
+            let conn = Connection::open(&db_path).unwrap();
+            conn.execute_batch(include_str!("../../../migrations/V1__initial.sql"))
+                .unwrap();
+            conn.execute_batch(include_str!("../../../migrations/V2__preferences.sql"))
+                .unwrap();
+            conn.execute_batch(include_str!("../../../migrations/V3__fts5.sql"))
+                .unwrap();
+            conn.execute_batch(include_str!("../../../migrations/V4__tags.sql"))
+                .unwrap();
+            conn.execute_batch(include_str!(
+                "../../../migrations/V5__feed_display_mode.sql"
+            ))
+            .unwrap();
+            conn.execute_batch(include_str!(
+                "../../../migrations/V6__sync_state_timestamp_usec.sql"
+            ))
+            .unwrap();
+            conn.execute_batch(include_str!(
+                "../../../migrations/V7__feed_display_mode_inherit.sql"
+            ))
+            .unwrap();
+            conn.execute_batch(include_str!(
+                "../../../migrations/V8__feed_reader_preview_modes.sql"
+            ))
+            .unwrap();
+            conn.execute_batch(include_str!(
+                "../../../migrations/V9__reader_preview_default_preferences.sql"
+            ))
+            .unwrap();
+            conn.execute_batch(include_str!(
+                "../../../migrations/V11__account_sync_on_startup.sql"
+            ))
+            .unwrap();
+            conn.execute_batch(include_str!("../../../migrations/V12__mute_keywords.sql"))
+                .unwrap();
+            conn.execute_batch(include_str!(
+                "../../../migrations/V13__tag_color_palette_refresh.sql"
+            ))
+            .unwrap();
+
+            conn.execute(
+                "INSERT INTO accounts (id, kind, name) VALUES ('a1', 'Local', 'Test')",
+                [],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO feeds (id, account_id, title, url) VALUES ('f1', 'a1', 'Feed', 'https://example.com/feed.xml')",
+                [],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO articles (
+                    id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version,
+                    summary, url, author, thumbnail, published_at, is_read, is_starred, fetched_at
+                 ) VALUES (
+                    'art-1', 'f1', NULL, 'Muted article', '', '<p>Kindle <strong>Unlimited</strong></p>', 1,
+                    NULL, NULL, NULL, NULL, '2026-04-15T00:00:00+00:00', 0, 0, '2026-04-15T00:00:00+00:00'
+                 )",
+                [],
+            )
+            .unwrap();
+        }
+
+        let repaired = DbManager::new(&db_path).unwrap();
+        let content_text: String = repaired
+            .reader()
+            .query_row(
+                "SELECT content_text FROM articles WHERE id = 'art-1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(content_text, "Kindle Unlimited");
     }
 }
