@@ -38,10 +38,18 @@ export function useArticleListViewState({
     }
 
     if (selection.kind === "unread") {
-      return [];
+      return ["unread"];
     }
 
     return ["unread", "all"];
+  }, [selection]);
+
+  const footerDisabledModes = useMemo<ReadonlyArray<"all" | "unread" | "starred">>(() => {
+    if (selection.type === "smart" && selection.kind === "unread") {
+      return ["unread"];
+    }
+
+    return [];
   }, [selection]);
 
   const isPrimarySourceLoading = feedId
@@ -57,6 +65,7 @@ export function useArticleListViewState({
   return {
     contextStripContext,
     footerModes,
+    footerDisabledModes,
     isPrimarySourceLoading,
     isSearchLoading,
     isSearchEmptyState,

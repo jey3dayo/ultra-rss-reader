@@ -18,7 +18,7 @@ describe("ArticleEmptyStateView", () => {
   });
 
   it("left-aligns the message and guidance for easier scanning", () => {
-    const { container } = render(
+    render(
       <ArticleEmptyStateView
         message="Select an article to read"
         hints={["Pick one from the list", "Press / to search"]}
@@ -27,6 +27,32 @@ describe("ArticleEmptyStateView", () => {
 
     expect(screen.getByText("Select an article to read")).toHaveClass("text-left");
     expect(screen.getByText("Pick one from the list").closest("ul")).toHaveClass("text-left");
-    expect(container.querySelector("li")).toHaveClass("justify-start");
+    expect(screen.getByText("Pick one from the list").closest("ul")).toHaveClass("pl-5");
+  });
+
+  it("uses semantic surface tokens for the empty-state container", () => {
+    render(<ArticleEmptyStateView message="Select an article to read" hints={["Pick one from the list"]} />);
+
+    const container = screen.getByText("Select an article to read").closest("div.max-w-md");
+
+    expect(container).toHaveClass("border-border/70");
+    expect(container).toHaveClass("bg-card/70");
+    expect(container).toHaveClass("shadow-elevation-2");
+  });
+
+  it("uses semantic list markers so wrapped hints stay aligned", () => {
+    render(
+      <ArticleEmptyStateView
+        message="Select an article to read"
+        hints={["Open the article list to start reading immediately"]}
+      />,
+    );
+
+    const list = screen.getByRole("list");
+    const [firstHint] = screen.getAllByRole("listitem");
+
+    expect(list).toHaveClass("list-disc");
+    expect(list).toHaveClass("pl-5");
+    expect(firstHint.querySelector('[aria-hidden="true"]')).toBeNull();
   });
 });

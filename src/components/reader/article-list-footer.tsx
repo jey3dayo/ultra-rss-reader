@@ -16,6 +16,7 @@ const VIEW_MODES = [
 export function ArticleListFooter({
   viewMode,
   modes = ["unread", "all", "starred"],
+  disabledModes = [],
   onSetViewMode,
 }: ArticleListFooterProps) {
   const { t } = useTranslation("reader");
@@ -37,11 +38,13 @@ export function ArticleListFooter({
     <div className="flex h-10 items-center justify-center border-t border-border bg-card">
       <ToggleGroup value={[viewMode]} onValueChange={handleChange}>
         {visibleModes.map((mode) => {
+          const isDisabled = disabledModes.includes(mode.value);
           return (
             <Toggle
               key={mode.value}
               value={mode.value}
               aria-label={t(mode.labelKey)}
+              disabled={isDisabled}
               className={controlChipVariants({ size: "compact", interaction: "toggle" })}
             >
               {mode.icon === "star" ? (

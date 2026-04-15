@@ -1123,7 +1123,7 @@ describe("ArticleList", () => {
     });
   });
 
-  it("shows smart unread context and hides the footer controls", async () => {
+  it("shows smart unread context and keeps only a disabled unread footer control", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectSmartView("unread");
 
@@ -1134,7 +1134,8 @@ describe("ArticleList", () => {
     });
 
     expect(screen.getByText("Unread")).toHaveAttribute("data-emphasis", "primary");
-    expect(screen.queryByRole("button", { name: "UNREAD" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "UNREAD" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "UNREAD" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.queryByRole("button", { name: "ALL" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "STARRED" })).not.toBeInTheDocument();
   });
@@ -1154,6 +1155,7 @@ describe("ArticleList", () => {
     });
 
     expect(screen.queryByText(sampleArticles[1].title)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "UNREAD" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "ALL" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "STARRED" })).not.toBeInTheDocument();
   });

@@ -36,6 +36,7 @@ export function useArticleListViewProps({
   selectArticle,
   effectiveViewMode,
   footerModes,
+  footerDisabledModes,
   setViewMode,
 }: UseArticleListViewPropsParams): UseArticleListViewPropsResult {
   const bodyProps = useArticleListBodyProps({
@@ -86,6 +87,7 @@ export function useArticleListViewProps({
     footerProps: {
       viewMode: effectiveViewMode,
       modes: footerModes,
+      disabledModes: footerDisabledModes,
       onSetViewMode: setViewMode,
     },
   };

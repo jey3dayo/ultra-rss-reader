@@ -83,6 +83,7 @@ export type ArticleListBodyProps = {
 export type ArticleListFooterProps = {
   viewMode: ArticleListViewMode;
   modes?: readonly ArticleListViewMode[];
+  disabledModes?: readonly ArticleListViewMode[];
   onSetViewMode: (mode: ArticleListViewMode) => void;
 };
 
@@ -154,6 +155,7 @@ export type UseArticleListViewStateResult = {
     tone: "unread" | "starred" | null;
   };
   footerModes: ReadonlyArray<"all" | "unread" | "starred">;
+  footerDisabledModes: ReadonlyArray<"all" | "unread" | "starred">;
   isPrimarySourceLoading: boolean;
   isSearchLoading: boolean;
   isSearchEmptyState: boolean;
@@ -213,7 +215,10 @@ export type UseArticleListViewPropsParams = {
   | "feedModeControl"
   | "handleSidebarToggle"
 > &
-  Pick<UseArticleListViewStateResult, "contextStripContext" | "footerModes" | "isSearchLoading" | "isSearchEmptyState">;
+  Pick<
+    UseArticleListViewStateResult,
+    "contextStripContext" | "footerModes" | "footerDisabledModes" | "isSearchLoading" | "isSearchEmptyState"
+  >;
 
 export type UseArticleListPresentationParams = {
   t: TFunction<"reader">;
