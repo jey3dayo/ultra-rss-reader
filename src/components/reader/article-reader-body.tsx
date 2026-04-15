@@ -68,46 +68,44 @@ export function ArticleReaderBody({ article, feedName }: ArticleReaderBodyProps)
 
   return (
     <ScrollArea data-testid="article-reader-scroll-area" className="h-full">
-      <article className="mx-auto max-w-[44rem] px-7 pb-20 pt-14 md:px-11 md:pt-20">
-        <div className="space-y-8">
-          <ArticleMetaView
-            title={article.title}
-            author={article.author}
-            feedName={feedName}
-            publishedLabel={formatArticleDate(article.published_at, resolveArticleDateLocale(i18n.language))}
-            onTitleClick={
-              articleUrl
-                ? (e) => {
-                    openArticleUrl(articleUrl, e.metaKey, e.ctrlKey);
+      <article className="mx-auto max-w-[44rem] px-7 pb-20 pt-12 md:px-11 md:pt-16">
+        <ArticleMetaView
+          title={article.title}
+          author={article.author}
+          feedName={feedName}
+          publishedLabel={formatArticleDate(article.published_at, resolveArticleDateLocale(i18n.language))}
+          onTitleClick={
+            articleUrl
+              ? (e) => {
+                  openArticleUrl(articleUrl, e.metaKey, e.ctrlKey);
+                }
+              : undefined
+          }
+          onTitleAuxClick={
+            articleUrl
+              ? (e) => {
+                  if (e.button === 1) {
+                    e.preventDefault();
+                    void openArticleInExternalBrowser(articleUrl);
                   }
-                : undefined
-            }
-            onTitleAuxClick={
-              articleUrl
-                ? (e) => {
-                    if (e.button === 1) {
-                      e.preventDefault();
-                      void openArticleInExternalBrowser(articleUrl);
-                    }
-                  }
-                : undefined
-            }
-            onFeedClick={
-              feedName
-                ? () => {
-                    selectFeed(article.feed_id);
-                  }
-                : undefined
-            }
-          />
+                }
+              : undefined
+          }
+          onFeedClick={
+            feedName
+              ? () => {
+                  selectFeed(article.feed_id);
+                }
+              : undefined
+          }
+        />
 
-          <div className="block border-t border-border/35 pt-5">
-            <ArticleTagChips articleId={article.id} />
-          </div>
+        <div className="mt-6 border-t border-border/28 pt-3.5">
+          <ArticleTagChips articleId={article.id} />
+        </div>
 
-          <div ref={setContentContainerElement}>
-            <ArticleContentView thumbnailUrl={article.thumbnail} contentHtml={articleContentHtml} feedName={feedName} />
-          </div>
+        <div className="mt-8" ref={setContentContainerElement}>
+          <ArticleContentView thumbnailUrl={article.thumbnail} contentHtml={articleContentHtml} feedName={feedName} />
         </div>
       </article>
     </ScrollArea>

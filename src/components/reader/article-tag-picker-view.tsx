@@ -39,12 +39,12 @@ export function ArticleTagPickerView({
   };
 
   return (
-    <section aria-label={labels.sectionTitle ?? "Tags"} className="inline-block max-w-full py-1.5">
-      <div className="flex max-w-full items-start gap-2.5">
-        <h2 className="shrink-0 pt-1 text-[0.8rem] font-medium leading-5 tracking-[0.14em] text-muted-foreground/78 uppercase">
+    <section aria-label={labels.sectionTitle ?? "Tags"} className="inline-block max-w-full py-0.5">
+      <div className="flex max-w-full items-center gap-3">
+        <h2 className="shrink-0 text-[0.8rem] font-medium leading-5 tracking-[0.14em] text-muted-foreground/78 uppercase">
           {labels.sectionTitle ?? "Tags"}
         </h2>
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2.5">
           <ArticleTagChipList assignedTags={assignedTags} labels={labels} onRemoveTag={onRemoveTag} />
           <div ref={pickerRef} className="relative" data-disable-global-shortcuts="true">
             <button
