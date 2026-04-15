@@ -16,7 +16,7 @@ describe("Japanese feed management labels", () => {
 
   it("uses natural keep guidance copy in the review panel", () => {
     expect(jaCleanup.priority_keep).toBe("今は残す");
-    expect(jaCleanup.summary_headline_keep).toBe("今はこのままで大丈夫です");
-    expect(jaCleanup.candidate_summary_healthy_feed).toBe("最近も動きがあり、今すぐ整理する必要はなさそうです。");
+    expect(jaCleanup.summary_headline_keep).toBe("今は残してよさそうです");
+    expect(jaCleanup.candidate_summary_healthy_feed).toBe("最近も動いていて、今すぐ触る必要はなさそうです。");
   });
 });

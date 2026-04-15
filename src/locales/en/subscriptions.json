@@ -10,7 +10,7 @@
   "open_cleanup_broken_references": "Review broken references",
   "inventory_heading": "All subscriptions",
   "detail_heading": "Subscription details",
-  "open_cleanup_for_feed": "Open in cleanup",
+  "open_cleanup_for_feed": "Cleanup",
   "status_normal": "No cleanup needed",
   "status_review": "Review candidate",
   "status_stale_90d": "No updates for 90+ days",
