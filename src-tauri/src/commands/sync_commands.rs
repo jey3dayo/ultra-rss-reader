@@ -31,6 +31,10 @@ use super::feed_commands::lock_db;
 use super::sync_providers::{sync_greader_account, sync_greader_feed, sync_local_feed};
 
 const SCHEDULER_SYNC_STATE_SCOPE: &str = "scheduler";
+pub(crate) const SYNC_COMPLETED_EVENT: &str = "sync-completed";
+pub(crate) const SYNC_SUCCEEDED_EVENT: &str = "sync-succeeded";
+pub(crate) const SYNC_WARNING_EVENT: &str = "sync-warning";
+const SYNC_PROGRESS_EVENT: &str = "sync-progress";
 
 /// RAII guard that resets the `AtomicBool` to `false` on drop, ensuring the
 /// sync flag is always cleared even on early return or panic.
@@ -68,7 +72,7 @@ impl SyncProgressReporter {
         success: Option<bool>,
     ) {
         if let Err(e) = self.app_handle.emit(
-            "sync-progress",
+            SYNC_PROGRESS_EVENT,
             SyncProgressEvent {
                 stage,
                 kind: self.kind,
@@ -118,6 +122,10 @@ impl SyncProgressReporter {
 
 fn is_automatic_sync_enabled(automatic_sync_enabled: &AtomicBool) -> bool {
     automatic_sync_enabled.load(Ordering::SeqCst)
+}
+
+pub(crate) fn should_emit_sync_succeeded(result: &SyncResult) -> bool {
+    result.synced && result.succeeded > 0 && result.failed.is_empty() && result.warnings.is_empty()
 }
 
 fn enable_automatic_sync(
@@ -360,7 +368,10 @@ pub async fn trigger_startup_sync(
             state.automatic_sync_enabled.as_ref(),
             state.automatic_sync_notify.as_ref(),
         );
-        let _ = app_handle.emit("sync-completed", ());
+        let _ = app_handle.emit(SYNC_COMPLETED_EVENT, ());
+        if should_emit_sync_succeeded(&result) {
+            let _ = app_handle.emit(SYNC_SUCCEEDED_EVENT, ());
+        }
     }
     Ok(result)
 }
@@ -482,7 +493,10 @@ pub async fn trigger_sync(
             state.automatic_sync_enabled.as_ref(),
             state.automatic_sync_notify.as_ref(),
         );
-        let _ = app_handle.emit("sync-completed", ());
+        let _ = app_handle.emit(SYNC_COMPLETED_EVENT, ());
+        if should_emit_sync_succeeded(&result) {
+            let _ = app_handle.emit(SYNC_SUCCEEDED_EVENT, ());
+        }
     }
     Ok(result)
 }
@@ -506,9 +520,12 @@ pub async fn trigger_automatic_sync(
     .await?;
     if result.synced {
         if !result.warnings.is_empty() {
-            let _ = app_handle.emit("sync-warning", result.warnings.clone());
+            let _ = app_handle.emit(SYNC_WARNING_EVENT, result.warnings.clone());
         }
-        let _ = app_handle.emit("sync-completed", ());
+        let _ = app_handle.emit(SYNC_COMPLETED_EVENT, ());
+        if should_emit_sync_succeeded(&result) {
+            let _ = app_handle.emit(SYNC_SUCCEEDED_EVENT, ());
+        }
     }
     Ok(result)
 }
@@ -615,7 +632,10 @@ pub async fn trigger_sync_account(
     }
     reporter.emit_finished(result.failed.is_empty());
     if result.succeeded > 0 {
-        let _ = app_handle.emit("sync-completed", ());
+        let _ = app_handle.emit(SYNC_COMPLETED_EVENT, ());
+        if should_emit_sync_succeeded(&result) {
+            let _ = app_handle.emit(SYNC_SUCCEEDED_EVENT, ());
+        }
     }
     Ok(result)
 }
@@ -716,7 +736,10 @@ pub async fn trigger_sync_feed(
 
     reporter.emit_finished(result.failed.is_empty());
     if result.succeeded > 0 {
-        let _ = app_handle.emit("sync-completed", ());
+        let _ = app_handle.emit(SYNC_COMPLETED_EVENT, ());
+        if should_emit_sync_succeeded(&result) {
+            let _ = app_handle.emit(SYNC_SUCCEEDED_EVENT, ());
+        }
     }
     Ok(result)
 }
@@ -771,6 +794,56 @@ mod tests {
         assert_eq!(result.succeeded, 0);
         assert!(result.failed.is_empty());
         assert!(result.warnings.is_empty());
+    }
+
+    #[test]
+    fn should_emit_sync_succeeded_when_sync_finishes_without_failures_or_warnings() {
+        let result = SyncResult {
+            synced: true,
+            total: 1,
+            succeeded: 1,
+            failed: Vec::new(),
+            warnings: Vec::new(),
+        };
+
+        assert!(should_emit_sync_succeeded(&result));
+    }
+
+    #[test]
+    fn should_not_emit_sync_succeeded_when_any_account_failed() {
+        let result = SyncResult {
+            synced: true,
+            total: 2,
+            succeeded: 1,
+            failed: vec![AccountSyncError {
+                account_id: "acc-1".to_string(),
+                account_name: "FreshRSS".to_string(),
+                message: "boom".to_string(),
+            }],
+            warnings: Vec::new(),
+        };
+
+        assert!(!should_emit_sync_succeeded(&result));
+    }
+
+    #[test]
+    fn should_not_emit_sync_succeeded_when_sync_has_warnings() {
+        let result = SyncResult {
+            synced: true,
+            total: 1,
+            succeeded: 1,
+            failed: Vec::new(),
+            warnings: vec![AccountSyncWarning {
+                account_id: "acc-1".to_string(),
+                account_name: "FreshRSS".to_string(),
+                kind: crate::commands::dto::AccountSyncWarningKind::Generic,
+                message: "Skipped entries.".to_string(),
+                retry_at: None,
+                retry_in_seconds: None,
+            }],
+        };
+
+        assert!(!should_emit_sync_succeeded(&result));
     }
 
     #[tokio::test]

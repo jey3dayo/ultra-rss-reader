@@ -8,7 +8,10 @@ use futures::FutureExt;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::commands::dto::{AccountSyncWarning, AccountSyncWarningKind, SyncProgressKind};
-use crate::commands::sync_commands::{purge_old_articles, sync_account, SyncProgressReporter};
+use crate::commands::sync_commands::{
+    purge_old_articles, sync_account, SyncProgressReporter, SYNC_COMPLETED_EVENT,
+    SYNC_SUCCEEDED_EVENT, SYNC_WARNING_EVENT,
+};
 use crate::domain::account::Account;
 use crate::domain::types::AccountId;
 use crate::infra::db::connection::DbManager;
@@ -110,6 +113,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
             }
 
             let mut any_synced = false;
+            let mut all_succeeded = true;
             let mut warnings_to_emit = Vec::new();
             let reporter = SyncProgressReporter::new(
                 app_handle.clone(),
@@ -178,6 +182,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             backoff.as_secs(),
                             backoff_state.error_count
                         );
+                        all_succeeded = false;
                     }
                     Err(_) => {
                         tracing::error!(
@@ -185,6 +190,7 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
                             account.name
                         );
                         reporter.emit_account_finished(account, false);
+                        all_succeeded = false;
                         if let Some(schedule) = schedules.get_mut(&account_id_str) {
                             schedule.next_sync = Instant::now() + account_interval(account);
                         }
@@ -195,14 +201,20 @@ pub fn start_sync_scheduler(_db: &Mutex<DbManager>, app_handle: AppHandle) {
             reporter.emit_finished(any_synced);
 
             if !warnings_to_emit.is_empty() {
-                if let Err(e) = app_handle.emit("sync-warning", warnings_to_emit.clone()) {
+                if let Err(e) = app_handle.emit(SYNC_WARNING_EVENT, warnings_to_emit.clone()) {
                     tracing::warn!("Failed to emit sync-warning event: {e}");
                 }
+                all_succeeded = false;
             }
 
             if any_synced {
-                if let Err(e) = app_handle.emit("sync-completed", ()) {
+                if let Err(e) = app_handle.emit(SYNC_COMPLETED_EVENT, ()) {
                     tracing::warn!("Failed to emit sync-completed event: {e}");
+                }
+                if all_succeeded {
+                    if let Err(e) = app_handle.emit(SYNC_SUCCEEDED_EVENT, ()) {
+                        tracing::warn!("Failed to emit sync-succeeded event: {e}");
+                    }
                 }
                 purge_old_articles(&state.db);
             }

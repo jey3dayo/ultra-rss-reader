@@ -33,6 +33,7 @@ const { sidebarSourceOverrides } = vi.hoisted(() => ({
 }));
 
 let syncCompletedListener: (() => void) | null = null;
+let syncSucceededListener: (() => void) | null = null;
 let syncProgressListener:
   | ((event: {
       stage: string;
@@ -62,10 +63,17 @@ vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn(
     async (
       eventName: string,
-      callback: typeof syncCompletedListener | typeof syncProgressListener | typeof syncWarningListener,
+      callback:
+        | typeof syncCompletedListener
+        | typeof syncSucceededListener
+        | typeof syncProgressListener
+        | typeof syncWarningListener,
     ) => {
       if (eventName === "sync-completed") {
         syncCompletedListener = callback as typeof syncCompletedListener;
+      }
+      if (eventName === "sync-succeeded") {
+        syncSucceededListener = callback as typeof syncSucceededListener;
       }
       if (eventName === "sync-progress") {
         syncProgressListener = callback as typeof syncProgressListener;
@@ -76,6 +84,9 @@ vi.mock("@tauri-apps/api/event", () => ({
       return () => {
         if (eventName === "sync-completed") {
           syncCompletedListener = null;
+        }
+        if (eventName === "sync-succeeded") {
+          syncSucceededListener = null;
         }
         if (eventName === "sync-progress") {
           syncProgressListener = null;
@@ -158,6 +169,7 @@ vi.mock("@/hooks/use-resolved-dev-intent", () => ({
 describe("Sidebar", () => {
   beforeEach(() => {
     syncCompletedListener = null;
+    syncSucceededListener = null;
     syncProgressListener = null;
     syncWarningListener = null;
     renderedFeedContextMenuFeeds.length = 0;
@@ -1140,13 +1152,27 @@ describe("Sidebar", () => {
     expect(screen.queryByText(/Today at /)).not.toBeInTheDocument();
   });
 
-  it("updates last synced time from sync-completed event", async () => {
+  it("does not update last synced time from sync-completed event alone", async () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     expect(screen.getByText("Not synced yet")).toBeInTheDocument();
     expect(syncCompletedListener).not.toBeNull();
 
     syncCompletedListener?.();
+
+    await waitFor(() => {
+      expect(screen.getByText("Not synced yet")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Today at /)).not.toBeInTheDocument();
+  });
+
+  it("updates last synced time from sync-succeeded event", async () => {
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(screen.getByText("Not synced yet")).toBeInTheDocument();
+    expect(syncSucceededListener).not.toBeNull();
+
+    syncSucceededListener?.();
 
     await waitFor(() => {
       expect(screen.getByText(/Today at /)).toBeInTheDocument();

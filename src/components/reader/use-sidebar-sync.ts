@@ -51,6 +51,7 @@ export function useSidebarSync({
   useEffect(() => {
     let cancelled = false;
     let unlistenCompleted: (() => void) | undefined;
+    let unlistenSucceeded: (() => void) | undefined;
     let unlistenProgress: (() => void) | undefined;
     let unlistenWarning: (() => void) | undefined;
 
@@ -69,7 +70,6 @@ export function useSidebarSync({
     });
 
     listen("sync-completed", () => {
-      setLastSyncedAt(new Date());
       clearSyncProgress();
       invalidateAccountSyncStatuses();
     }).then((fn) => {
@@ -77,6 +77,16 @@ export function useSidebarSync({
         fn();
       } else {
         unlistenCompleted = fn;
+      }
+    });
+
+    listen("sync-succeeded", () => {
+      setLastSyncedAt(new Date());
+    }).then((fn) => {
+      if (cancelled) {
+        fn();
+      } else {
+        unlistenSucceeded = fn;
       }
     });
 
@@ -100,6 +110,7 @@ export function useSidebarSync({
     return () => {
       cancelled = true;
       unlistenCompleted?.();
+      unlistenSucceeded?.();
       unlistenProgress?.();
       unlistenWarning?.();
     };
