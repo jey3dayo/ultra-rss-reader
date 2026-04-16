@@ -61,6 +61,8 @@ describe("AddAccountForm", () => {
 
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
     expect(screen.getByLabelText("Server URL")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Back/ })).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("freshrss.org")).toHaveClass("text-foreground-soft");
     expect(screen.getByLabelText("Name")).toHaveClass("w-full");
     expect(screen.getByLabelText("Server URL")).toHaveClass("w-full");
     expect(screen.getByLabelText("Server URL")).toHaveClass("sm:flex-1");

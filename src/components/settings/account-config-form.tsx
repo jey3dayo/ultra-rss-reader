@@ -89,7 +89,7 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
           onClick={onBack}
           disabled={submitting}
           aria-label={t("account.back_to_services")}
-          className="inline-flex items-center gap-0.5 justify-self-start text-sm text-foreground/76 transition-colors hover:text-foreground disabled:opacity-50"
+          className="inline-flex items-center gap-0.5 justify-self-start text-sm text-foreground-soft transition-colors hover:text-foreground disabled:opacity-50"
         >
           <ChevronLeft className="h-4 w-4" />
           {tc("back")}
@@ -110,7 +110,7 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
               <div className="text-sm font-medium text-foreground">
                 {t(serviceDef.nameKey as "account.local_feeds")}
               </div>
-              <div className="font-serif text-xs leading-[1.45] text-foreground/60">
+              <div className="font-serif text-xs leading-[1.45] text-foreground-soft">
                 {t(serviceDef.descKey as "account.local_desc")}
               </div>
             </div>
