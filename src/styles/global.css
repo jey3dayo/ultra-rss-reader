@@ -35,6 +35,9 @@
   --color-state-warning-surface: var(--state-warning-surface);
   --color-state-warning-border: var(--state-warning-border);
   --color-state-warning-foreground: var(--state-warning-foreground);
+  --color-state-success-surface: var(--state-success-surface);
+  --color-state-success-border: var(--state-success-border);
+  --color-state-success-foreground: var(--state-success-foreground);
   --color-dialog-overlay: var(--dialog-overlay);
   --color-dialog-overlay-readable: var(--dialog-overlay-readable);
   --color-surface-1: var(--surface-1);
@@ -119,6 +122,9 @@
   --state-warning-surface: rgba(255, 251, 235, 0.78);
   --state-warning-border: rgba(251, 191, 36, 0.28);
   --state-warning-foreground: rgb(120, 53, 15);
+  --state-success-surface: rgba(16, 185, 129, 0.08);
+  --state-success-border: rgba(16, 185, 129, 0.2);
+  --state-success-foreground: rgb(6, 95, 70);
   --dialog-overlay: rgba(38, 37, 30, 0.18);
   --dialog-overlay-readable: rgba(242, 241, 237, 0.6);
   --surface-1: #f7f7f4;
@@ -205,6 +211,9 @@
   --state-warning-surface: rgba(245, 158, 11, 0.1);
   --state-warning-border: rgba(245, 158, 11, 0.3);
   --state-warning-foreground: rgb(254, 243, 199);
+  --state-success-surface: rgba(16, 185, 129, 0.12);
+  --state-success-border: rgba(16, 185, 129, 0.24);
+  --state-success-foreground: rgb(167, 243, 208);
   --dialog-overlay: rgba(28, 25, 21, 0.6);
   --dialog-overlay-readable: rgba(28, 25, 21, 0.72);
   --surface-1: #221e19;

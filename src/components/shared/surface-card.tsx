@@ -57,7 +57,7 @@ const surfaceCardVariants = cva(
       },
       {
         tone: "success",
-        className: "border-emerald-500/20 bg-emerald-500/8",
+        className: "border-state-success-border bg-state-success-surface text-state-success-foreground",
       },
       {
         tone: "danger",

@@ -12,7 +12,11 @@ describe("DecisionButton", () => {
       </>,
     );
 
-    expect(screen.getByRole("button", { name: "Keep" })).toHaveClass("border-emerald-500/20", "bg-emerald-500/8");
+    expect(screen.getByRole("button", { name: "Keep" })).toHaveClass(
+      "border-state-success-border",
+      "bg-state-success-surface",
+      "text-state-success-foreground",
+    );
     expect(screen.getByRole("button", { name: "Later" })).toHaveClass("border-border-strong", "bg-surface-1/88");
     expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("border-destructive/20", "bg-destructive/8");
   });

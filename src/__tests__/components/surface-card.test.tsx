@@ -55,8 +55,9 @@ describe("SurfaceCard", () => {
     const card = screen.getByTestId("success-card");
 
     expect(card).toHaveAttribute("data-surface-card", "section");
-    expect(card).toHaveClass("border-emerald-500/20");
-    expect(card).toHaveClass("bg-emerald-500/8");
+    expect(card).toHaveClass("border-state-success-border");
+    expect(card).toHaveClass("bg-state-success-surface");
+    expect(card).toHaveClass("text-state-success-foreground");
     expect(card).toHaveClass("px-3");
     expect(card).toHaveClass("py-3");
     expect(card).toHaveClass("max-w-sm");

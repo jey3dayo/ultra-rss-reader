@@ -90,7 +90,7 @@ describe("FeedCleanupQueuePanel", () => {
 
     expect(screen.getByText("1 selected")).toBeInTheDocument();
     expect(screen.getByText("1 selected").closest('[data-surface-card="section"]')).toHaveClass("rounded-md");
-    expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("bg-emerald-500/8");
+    expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("bg-state-success-surface");
     expect(screen.getByRole("button", { name: "Defer selected" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete selected" })).toBeInTheDocument();
   });
