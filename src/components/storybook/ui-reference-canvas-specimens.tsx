@@ -126,7 +126,7 @@ const SHELL_SPECIMEN_INNER_RADIUS_CLASS = "rounded-lg";
 
 export function ReferencePage({ children, maxWidthClassName = "max-w-6xl" }: ReferencePageProps) {
   return (
-    <div className="min-h-screen bg-background px-6 py-8 text-foreground sm:px-8">
+    <div className="h-full overflow-y-auto bg-background px-6 py-8 text-foreground sm:px-8">
       <div className={cn("mx-auto w-full", maxWidthClassName)}>{children}</div>
     </div>
   );
