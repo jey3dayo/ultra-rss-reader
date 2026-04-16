@@ -34,11 +34,13 @@ describe("ArticleEmptyStateView", () => {
     render(<ArticleEmptyStateView message="Select an article to read" hints={["Pick one from the list"]} />);
 
     const container = screen.getByText("Select an article to read").parentElement;
+    const eyebrow = screen.getByText("Reader");
 
     expect(container).toHaveAttribute("data-surface-card", "info");
     expect(container).toHaveClass("rounded-[var(--radius-surface-info)]");
     expect(container).not.toHaveClass("rounded-[2rem]");
     expect(container).toHaveClass("max-w-xl");
+    expect(eyebrow).toHaveClass("text-foreground-soft");
   });
 
   it("uses semantic list markers so wrapped hints stay aligned", () => {

@@ -278,7 +278,10 @@ export function ArticleToolbarView({
 }: ArticleToolbarViewProps) {
   const { labels } = actionStripProps;
   return (
-    <div className="sticky top-0 z-10 flex h-12 items-center border-b border-border/70 bg-background/82 px-4 backdrop-blur-sm">
+    <div
+      className="sticky top-0 z-10 flex h-12 items-center border-b border-border/70 px-4 backdrop-blur-sm"
+      style={{ backgroundColor: "var(--reader-toolbar-surface)" }}
+    >
       <TooltipProvider>
         <div className="flex items-center">
           {showCloseButton && (

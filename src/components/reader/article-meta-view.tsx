@@ -11,7 +11,7 @@ export function ArticleMetaView({
 }: ArticleMetaViewProps) {
   return (
     <div className="space-y-3">
-      <div className="font-sans text-[0.8rem] font-medium uppercase leading-none tracking-[0.14em] text-muted-foreground/80">
+      <div className="font-sans text-[0.8rem] font-medium uppercase leading-none tracking-[0.14em] text-foreground-soft">
         <p>{publishedLabel}</p>
       </div>
       <h1 className="font-sans text-[1.66rem] font-normal leading-[1.07] tracking-[-0.04em] text-foreground sm:text-[2.06rem]">
@@ -29,12 +29,12 @@ export function ArticleMetaView({
         )}
       </h1>
       {(feedName || author) && (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-serif text-[0.95rem] leading-6 text-muted-foreground/82">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-serif text-[0.95rem] leading-6 text-muted-foreground">
           {feedName &&
             (onFeedClick ? (
               <button
                 type="button"
-                className="-mx-1 inline-flex items-center rounded-md px-1 py-0.5 text-[0.95rem] text-muted-foreground/82 transition-colors hover:text-foreground"
+                className="-mx-1 inline-flex items-center rounded-md px-1 py-0.5 text-[0.95rem] text-muted-foreground transition-colors hover:text-foreground"
                 onClick={onFeedClick}
               >
                 {feedName}
@@ -43,7 +43,7 @@ export function ArticleMetaView({
               <span>{feedName}</span>
             ))}
           {feedName && author ? (
-            <span aria-hidden="true" className="text-muted-foreground/40">
+            <span aria-hidden="true" className="text-[var(--reader-context-border)]">
               /
             </span>
           ) : null}

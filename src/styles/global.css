@@ -171,6 +171,7 @@
   --cleanup-card-surface-muted: rgba(242, 241, 237, 0.28);
   --workspace-header-surface: rgba(242, 241, 237, 0.88);
   --workspace-header-action-surface: rgba(247, 247, 244, 0.76);
+  --reader-toolbar-surface: rgba(242, 241, 237, 0.82);
   --state-warning-surface: rgba(255, 251, 235, 0.78);
   --state-warning-border: rgba(251, 191, 36, 0.28);
   --state-warning-foreground: rgb(120, 53, 15);
@@ -322,6 +323,7 @@
   --cleanup-card-surface-muted: rgba(28, 25, 21, 0.28);
   --workspace-header-surface: rgba(28, 25, 21, 0.88);
   --workspace-header-action-surface: rgba(34, 30, 25, 0.76);
+  --reader-toolbar-surface: rgba(28, 25, 21, 0.82);
   --state-warning-surface: rgba(245, 158, 11, 0.1);
   --state-warning-border: rgba(245, 158, 11, 0.3);
   --state-warning-foreground: rgb(254, 243, 199);
