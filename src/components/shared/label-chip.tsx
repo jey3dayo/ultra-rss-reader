@@ -10,7 +10,7 @@ const labelChipVariants = cva(
         neutral: "border-border/70 bg-surface-1/80 text-foreground-soft",
         muted: "border-border/55 bg-background/70 text-muted-foreground",
         success: "border-emerald-500/20 bg-emerald-500/8 text-emerald-800 dark:text-emerald-200",
-        warning: "border-amber-500/24 bg-amber-500/10 text-amber-900 dark:text-amber-200",
+        warning: "border-state-warning-border bg-state-warning-surface text-state-warning-foreground",
         danger: "border-destructive/20 bg-destructive/8 text-destructive",
       },
       size: {

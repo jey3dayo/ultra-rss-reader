@@ -47,7 +47,7 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
         }
       >
         {showWebPreviewUnavailableWarning ? (
-          <div className="border-b border-border bg-amber-500/10 px-4 py-2 text-sm text-amber-900 dark:text-amber-200">
+          <div className="border-b border-border bg-state-warning-surface px-4 py-2 text-sm text-state-warning-foreground">
             {webPreviewUnavailableLabel}
           </div>
         ) : null}

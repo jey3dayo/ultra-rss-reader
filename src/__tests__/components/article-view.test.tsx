@@ -1539,11 +1539,12 @@ describe("ArticleView", () => {
       { wrapper: createWrapper() },
     );
 
-    await screen.findByText("This article does not support web preview");
+    const warning = await screen.findByText("This article does not support web preview");
 
     expect(screen.getByTestId("article-reader-body")).toHaveClass("min-h-0");
     expect(screen.getByTestId("article-reader-body")).toHaveClass("flex-1");
     expect(screen.getByTestId("article-reader-scroll-area")).toHaveClass("h-full");
+    expect(warning).toHaveClass("bg-state-warning-surface", "text-state-warning-foreground");
   });
 
   it("renders the subscriptions index page instead of the reader when the subscriptions workspace is open", async () => {
