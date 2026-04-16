@@ -25,6 +25,7 @@ describe("UI Reference canvases", () => {
     const modeGroup = screen.getByRole("radiogroup", { name: "Reading mode" });
     expect(within(modeGroup).getByRole("radio", { name: "Comfortable" })).toBeInTheDocument();
     expect(within(modeGroup).getByRole("radio", { name: "Compact" })).toBeInTheDocument();
+    expect(modeGroup).toHaveClass("justify-end");
 
     expect(screen.getByText("Disabled switch")).toBeInTheDocument();
     expect(screen.getByText("工事中")).toBeInTheDocument();

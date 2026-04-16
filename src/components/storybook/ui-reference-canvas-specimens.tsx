@@ -238,46 +238,48 @@ export function ReferenceRadioGroup() {
 
   return (
     <LabeledControlRow label="Reading mode" labelId="reference-reading-mode">
-      <div className="w-full sm:max-w-[20rem]">
-        <RadioGroup
-          aria-labelledby="reference-reading-mode"
-          aria-label="Reading mode"
-          value={value}
-          onValueChange={setValue}
-          className="flex flex-wrap gap-2"
-        >
-          {[
-            { value: "compact", label: "Compact" },
-            { value: "comfortable", label: "Comfortable" },
-          ].map((option) => {
-            const checked = value === option.value;
+      <div className="flex w-full justify-end">
+        <div className="w-full sm:max-w-[20rem]">
+          <RadioGroup
+            aria-labelledby="reference-reading-mode"
+            aria-label="Reading mode"
+            value={value}
+            onValueChange={setValue}
+            className="flex flex-wrap justify-end gap-2"
+          >
+            {[
+              { value: "compact", label: "Compact" },
+              { value: "comfortable", label: "Comfortable" },
+            ].map((option) => {
+              const checked = value === option.value;
 
-            return (
-              // biome-ignore lint/a11y/noLabelWithoutControl: Base UI Radio renders its own hidden input
-              <label
-                key={option.value}
-                className={cn(
-                  "inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm shadow-elevation-1 transition-colors",
-                  checked
-                    ? "border-border-strong bg-surface-3 text-foreground"
-                    : "border-border bg-surface-1 text-foreground/72 hover:bg-surface-2",
-                )}
-              >
-                <Radio.Root
-                  value={option.value}
-                  aria-label={option.label}
+              return (
+                // biome-ignore lint/a11y/noLabelWithoutControl: Base UI Radio renders its own hidden input
+                <label
+                  key={option.value}
                   className={cn(
-                    "flex size-4 items-center justify-center rounded-full border transition-colors",
-                    checked ? "border-primary bg-primary/10" : "border-border-strong bg-background",
+                    "inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm shadow-elevation-1 transition-colors",
+                    checked
+                      ? "border-border-strong bg-surface-3 text-foreground"
+                      : "border-border bg-surface-1 text-foreground/72 hover:bg-surface-2",
                   )}
                 >
-                  <Radio.Indicator className="size-2 rounded-full bg-primary" />
-                </Radio.Root>
-                <span aria-hidden="true">{option.label}</span>
-              </label>
-            );
-          })}
-        </RadioGroup>
+                  <Radio.Root
+                    value={option.value}
+                    aria-label={option.label}
+                    className={cn(
+                      "flex size-4 items-center justify-center rounded-full border transition-colors",
+                      checked ? "border-primary bg-primary/10" : "border-border-strong bg-background",
+                    )}
+                  >
+                    <Radio.Indicator className="size-2 rounded-full bg-primary" />
+                  </Radio.Root>
+                  <span aria-hidden="true">{option.label}</span>
+                </label>
+              );
+            })}
+          </RadioGroup>
+        </div>
       </div>
     </LabeledControlRow>
   );
