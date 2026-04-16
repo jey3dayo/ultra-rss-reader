@@ -65,8 +65,8 @@ describe("Design-themed shared components", () => {
     expect(screen.getByTestId("workspace-header-body").parentElement).toHaveStyle({
       backgroundColor: "var(--workspace-header-surface)",
     });
-    expect(screen.getByTestId("workspace-header-body")).toHaveStyle({
-      paddingLeft: "52px",
+    expect(screen.getByTestId("workspace-header-leading")).toHaveStyle({
+      marginLeft: "52px",
     });
 
     Object.defineProperty(window.navigator, "platform", {
@@ -135,8 +135,8 @@ describe("Design-themed shared components", () => {
     expect(backButton).toHaveStyle({
       backgroundColor: "var(--workspace-header-action-surface)",
     });
-    expect(screen.getByTestId("workspace-header-body")).toHaveStyle({
-      paddingLeft: "52px",
+    expect(screen.getByTestId("workspace-header-leading")).toHaveStyle({
+      marginLeft: "52px",
     });
     expect(screen.getByTestId("workspace-header-drag-region")).toHaveAttribute("data-tauri-drag-region");
     expect(screen.getByTestId("workspace-header-drag-region")).toHaveStyle({
@@ -217,8 +217,8 @@ describe("Design-themed shared components", () => {
       />,
     );
 
-    expect(screen.getByTestId("workspace-header-body")).not.toHaveStyle({
-      paddingLeft: "52px",
+    expect(screen.getByTestId("workspace-header-leading")).not.toHaveStyle({
+      marginLeft: "52px",
     });
     expect(screen.queryByTestId("workspace-header-drag-region")).toBeNull();
   });

@@ -80,13 +80,13 @@ export function WorkspaceHeader({
           style={{ width: `${MAC_OVERLAY_DRAG_REGION_WIDTH}px` }}
         />
       ) : null}
-      <div
-        data-testid="workspace-header-body"
-        className="flex flex-col gap-4"
-        style={useDesktopOverlay ? { paddingLeft: `${MAC_OVERLAY_CONTENT_START}px` } : undefined}
-      >
+      <div data-testid="workspace-header-body" className="flex flex-col gap-4">
         <div data-testid="workspace-header-top-row" className="flex items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-2">
+          <div
+            data-testid="workspace-header-leading"
+            className="flex min-w-0 items-center gap-2"
+            style={useDesktopOverlay ? { marginLeft: `${MAC_OVERLAY_CONTENT_START}px` } : undefined}
+          >
             {hasBackAction ? (
               <Button
                 variant="ghost"
