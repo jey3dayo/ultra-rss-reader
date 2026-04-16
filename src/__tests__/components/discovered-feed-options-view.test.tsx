@@ -21,9 +21,12 @@ describe("DiscoveredFeedOptionsView", () => {
       />,
     );
 
-    expect(screen.getByText("Found 2 feeds")).toBeInTheDocument();
+    expect(screen.getByText("Found 2 feeds")).toHaveClass("text-foreground-soft");
+    expect(screen.getByRole("radiogroup")).toHaveClass("rounded-md", "border-border/70", "bg-surface-1/72");
     expect(screen.getByRole("radio", { name: "Tech Blog" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "News Feed" })).toBeInTheDocument();
+    expect(screen.getByText("Tech Blog").closest("label")).toHaveClass("bg-surface-1/72");
+    expect(screen.getByText("News Feed").closest("label")).toHaveClass("hover:bg-surface-1/72");
 
     await user.click(screen.getByText("News Feed"));
 
