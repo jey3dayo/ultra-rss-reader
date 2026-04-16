@@ -51,6 +51,7 @@ describe("AddAccountForm", () => {
     const freshrssButton = screen.getByRole("button", { name: /FreshRSS/ });
 
     expect(freshrssButton).toHaveClass("rounded-lg", "px-3", "py-2.5");
+    expect(freshrssButton.querySelector(".lucide-chevron-right")).toHaveClass("text-foreground-soft");
   });
 
   it("navigates to config form on service selection and back", async () => {
