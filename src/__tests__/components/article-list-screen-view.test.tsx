@@ -81,6 +81,84 @@ describe("ArticleListScreenView", () => {
     expect(screen.getByTestId(`screen-row-${sampleArticles[0].id}`)).toBeInTheDocument();
   });
 
+  it("restores the unread marker when a retained row is no longer recently read", () => {
+    const article = {
+      ...sampleArticles[0],
+      id: "art-retained-unread",
+      title: "Retained unread article",
+      is_read: false,
+      is_starred: true,
+    };
+
+    const { rerender } = render(
+      <ArticleListScreenView
+        listAriaLabel="Article list"
+        listRef={{ current: null }}
+        isLoading={false}
+        emptyMessage="No articles"
+        loadingMessage="Loading articles"
+        groups={[
+          {
+            id: "today",
+            label: "Today",
+            showLabel: true,
+            items: [
+              {
+                article,
+                feedName: "Tech Blog",
+                isSelected: true,
+                isRecentlyRead: true,
+              },
+            ],
+          },
+        ]}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        onSelectArticle={vi.fn()}
+        renderRow={({ articleId, content }) => <div data-testid={`screen-row-${articleId}`}>{content}</div>}
+      />,
+    );
+
+    const rowBefore = screen.getByRole("option", { name: "Retained unread article (starred)" });
+    expect(rowBefore.querySelector(".bg-\\[var\\(--tone-unread\\)\\]")).toBeNull();
+
+    rerender(
+      <ArticleListScreenView
+        listAriaLabel="Article list"
+        listRef={{ current: null }}
+        isLoading={false}
+        emptyMessage="No articles"
+        loadingMessage="Loading articles"
+        groups={[
+          {
+            id: "today",
+            label: "Today",
+            showLabel: true,
+            items: [
+              {
+                article,
+                feedName: "Tech Blog",
+                isSelected: true,
+                isRecentlyRead: false,
+              },
+            ],
+          },
+        ]}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        onSelectArticle={vi.fn()}
+        renderRow={({ articleId, content }) => <div data-testid={`screen-row-${articleId}`}>{content}</div>}
+      />,
+    );
+
+    const rowAfter = screen.getByRole("option", { name: "Retained unread article (unread) (starred)" });
+    expect(rowAfter.querySelector(".bg-\\[var\\(--tone-unread\\)\\]")).not.toBeNull();
+  });
+
   it("renders empty-state actions outside the article listbox", () => {
     render(
       <ArticleListScreenView
