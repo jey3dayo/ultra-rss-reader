@@ -161,10 +161,10 @@ export function FeedDetailPanel({
                 "border-state-warning-border/80 bg-state-warning-surface/80 text-state-warning-foreground",
             )}
           >
-            <p className="font-sans text-[11px] font-medium tracking-[0.08em] text-current/78 uppercase">
+            <p className="font-sans text-[11px] font-medium tracking-[0.08em] text-current/88 uppercase">
               {reasonBox.title}
             </p>
-            <p className="mt-1.5 font-serif text-sm leading-6 text-current/88">{reasonBox.body}</p>
+            <p className="mt-1.5 font-serif text-sm leading-6 text-current/90">{reasonBox.body}</p>
           </SurfaceCard>
         ) : null}
 

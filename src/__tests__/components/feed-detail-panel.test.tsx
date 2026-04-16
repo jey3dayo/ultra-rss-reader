@@ -37,6 +37,8 @@ describe("FeedDetailPanel", () => {
       "bg-state-warning-surface/80",
       "text-state-warning-foreground",
     );
+    expect(screen.getByText("整理の判断材料")).toHaveClass("text-current/88");
+    expect(screen.getByText("未読 0件 / スター 0件")).toHaveClass("text-current/90");
     expect(screen.getByRole("button", { name: "購読の整理" })).not.toHaveClass("rounded-full");
   });
 });

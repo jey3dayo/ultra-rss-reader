@@ -101,7 +101,7 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
           }
         />
 
-        <div className="mt-3.5 border-t border-border/10 pt-1.5">
+        <div className="mt-3.5 border-t border-border/20 pt-1.5">
           <ArticleTagChips articleId={article.id} />
         </div>
 

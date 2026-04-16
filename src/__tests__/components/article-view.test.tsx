@@ -1544,6 +1544,7 @@ describe("ArticleView", () => {
     expect(screen.getByTestId("article-reader-body")).toHaveClass("min-h-0");
     expect(screen.getByTestId("article-reader-body")).toHaveClass("flex-1");
     expect(screen.getByTestId("article-reader-scroll-area")).toHaveClass("h-full");
+    expect(screen.getByTestId("article-reader-body").querySelector(".border-t")).toHaveClass("border-border/20");
     expect(warning).toHaveClass("bg-state-warning-surface", "text-state-warning-foreground");
   });
 
