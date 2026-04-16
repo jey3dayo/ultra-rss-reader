@@ -30,7 +30,7 @@ export function LabeledSelectRow({
         disabled={disabled}
         open={open}
       >
-        <SelectTrigger aria-labelledby={labelId} className={cn("w-full sm:w-auto", triggerClassName)}>
+        <SelectTrigger aria-labelledby={labelId} className={cn("w-full sm:w-[220px]", triggerClassName)}>
           <SelectValue>{(selectedValue: string | null) => getOptionLabel(options, selectedValue)}</SelectValue>
         </SelectTrigger>
         <SelectPopup>

@@ -27,7 +27,7 @@ export function LabeledControlRow({
           {label}
         </span>
       )}
-      {children}
+      <div className="min-w-0 sm:flex sm:items-center sm:justify-end">{children}</div>
     </div>
   );
 }

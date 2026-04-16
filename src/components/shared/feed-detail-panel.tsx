@@ -108,7 +108,7 @@ export function FeedDetailPanel({
   return (
     <FeedCleanupCard className="border-border/65 bg-card/38 shadow-none">
       <div className="space-y-4.5">
-        <div className="flex items-start gap-3">
+        <div className={cn("grid items-start gap-3", leadingVisual ? "grid-cols-[auto_minmax(0,1fr)]" : "grid-cols-1")}>
           {leadingVisual ? (
             <div
               data-testid="feed-detail-leading-visual"
@@ -117,8 +117,8 @@ export function FeedDetailPanel({
               {leadingVisual}
             </div>
           ) : null}
-          <div className="min-w-0 flex-1 space-y-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+          <div data-testid="feed-detail-main-column" className="min-w-0 space-y-3">
+            <div className="min-w-0 space-y-2.5">
               <div className="min-w-0">
                 {titleHref ? (
                   <a
@@ -138,7 +138,7 @@ export function FeedDetailPanel({
                 <LabelChip
                   data-testid="feed-detail-status"
                   tone={resolveBadgeClassName(badgeTone)}
-                  className="rounded-lg px-2.5 py-1 text-[10px] tracking-[0.02em]"
+                  className="self-start rounded-lg px-2.5 py-1 text-[10px] tracking-[0.02em]"
                 >
                   {badgeLabel}
                 </LabelChip>
@@ -149,37 +149,36 @@ export function FeedDetailPanel({
                 <p className="font-serif text-[0.98rem] leading-7 text-foreground-soft">{summaryText}</p>
               </SurfaceCard>
             ) : null}
+            {reasonBox ? (
+              <SurfaceCard
+                data-testid="feed-detail-reason-box"
+                variant="info"
+                tone={resolveReasonBoxClassName(reasonBox.tone)}
+                padding="compact"
+                className={cn(
+                  "shadow-none",
+                  reasonBox.tone === "medium" &&
+                    "border-state-warning-border/80 bg-state-warning-surface/80 text-state-warning-foreground",
+                )}
+              >
+                <p className="font-sans text-[11px] font-medium tracking-[0.08em] text-current/88 uppercase">
+                  {reasonBox.title}
+                </p>
+                <p className="mt-1.5 font-serif text-sm leading-6 text-current/90">{reasonBox.body}</p>
+              </SurfaceCard>
+            ) : null}
+
+            {reasonChips.length > 0 && !reasonBox ? (
+              <div className="flex flex-wrap gap-2">
+                {reasonChips.map((chip) => (
+                  <LabelChip key={chip} tone="muted" size="compact" className="rounded-lg px-2 py-1">
+                    {chip}
+                  </LabelChip>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
-
-        {reasonBox ? (
-          <SurfaceCard
-            data-testid="feed-detail-reason-box"
-            variant="info"
-            tone={resolveReasonBoxClassName(reasonBox.tone)}
-            padding="compact"
-            className={cn(
-              "shadow-none",
-              reasonBox.tone === "medium" &&
-                "border-state-warning-border/80 bg-state-warning-surface/80 text-state-warning-foreground",
-            )}
-          >
-            <p className="font-sans text-[11px] font-medium tracking-[0.08em] text-current/88 uppercase">
-              {reasonBox.title}
-            </p>
-            <p className="mt-1.5 font-serif text-sm leading-6 text-current/90">{reasonBox.body}</p>
-          </SurfaceCard>
-        ) : null}
-
-        {reasonChips.length > 0 && !reasonBox ? (
-          <div className="flex flex-wrap gap-2">
-            {reasonChips.map((chip) => (
-              <LabelChip key={chip} tone="muted" size="compact" className="rounded-lg px-2 py-1">
-                {chip}
-              </LabelChip>
-            ))}
-          </div>
-        ) : null}
 
         <div className="grid gap-4">
           <dl className="grid gap-3.5 border-t border-border/55 pt-3.5 text-sm">

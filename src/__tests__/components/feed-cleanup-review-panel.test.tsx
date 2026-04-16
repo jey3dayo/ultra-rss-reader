@@ -143,7 +143,7 @@ describe("FeedCleanupReviewPanel", () => {
     render(<FeedCleanupReviewPanel {...buildProps()} />);
 
     const actions = screen.getByTestId("feed-cleanup-review-actions");
-    expect(actions).toHaveClass("rounded-[var(--radius-surface-section)]");
+    expect(actions).toHaveClass("rounded-lg");
     expect(within(actions).getByRole("button", { name: "Keep" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
     expect(within(actions).getByRole("button", { name: "Defer" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
     expect(within(actions).getByRole("button", { name: "Delete" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
@@ -179,11 +179,9 @@ describe("FeedCleanupReviewPanel", () => {
 
     expect(screen.getByText("Needs repair")).toBeInTheDocument();
     const panel = screen.getByTestId("feed-cleanup-review-panel");
-    expect(screen.getByText("Needs repair").closest('[data-surface-card="section"]')).toHaveClass(
-      "rounded-[var(--radius-surface-section)]",
-    );
+    expect(screen.getByText("Needs repair").closest('[data-surface-card="section"]')).toHaveClass("rounded-lg");
     expect(screen.getByText("Needs repair").closest('[data-surface-card="info"]')).toHaveClass(
-      "rounded-[var(--radius-surface-info)]",
+      "rounded-lg",
       "border-state-warning-border",
       "bg-state-warning-surface",
       "text-state-warning-foreground",

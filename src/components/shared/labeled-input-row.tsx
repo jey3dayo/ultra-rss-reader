@@ -58,7 +58,7 @@ export function LabeledInputRow({
 
   return (
     <LabeledControlRow label={label} htmlFor={inputId} className={rowClassName} labelClassName={labelClassName}>
-      <div className={cn("flex w-full items-center gap-2", controlClassName)}>
+      <div className={cn("flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end", controlClassName)}>
         <div className={cn("w-full", actionPlacement === "inside" && "relative")}>
           <Input
             id={inputId}

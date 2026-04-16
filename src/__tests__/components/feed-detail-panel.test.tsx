@@ -41,7 +41,11 @@ describe("FeedDetailPanel", () => {
       "border",
       "bg-surface-1/88",
     );
+    expect(screen.getByTestId("feed-detail-main-column").contains(screen.getByTestId("feed-detail-reason-box"))).toBe(
+      true,
+    );
     expect(screen.getByTestId("feed-detail-status")).toHaveClass("rounded-lg");
+    expect(screen.getByTestId("feed-detail-status")).toHaveClass("self-start");
     expect(screen.getByTestId("feed-detail-reason-box").closest('[data-surface-card="section"]')).toHaveClass(
       "bg-card/38",
     );

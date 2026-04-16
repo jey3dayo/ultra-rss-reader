@@ -14,7 +14,7 @@ describe("SettingsSection", () => {
 
     expect(surface).not.toBeNull();
     expect(surface).toHaveAttribute("data-surface-card", "section");
-    expect(surface).toHaveClass("rounded-[var(--radius-surface-section)]");
+    expect(surface).toHaveClass("rounded-lg");
     expect(screen.getByText("Account")).toBeInTheDocument();
     expect(screen.getByText("Body content")).toBeInTheDocument();
     expect(screen.getByText("Keep your account details current.")).toBeInTheDocument();

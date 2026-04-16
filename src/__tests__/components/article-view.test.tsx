@@ -1574,7 +1574,7 @@ describe("ArticleView", () => {
     const shareButton = (await screen.findAllByRole("button", { name: "Share" }))[0];
     expect(shareButton).toBeInTheDocument();
     expect(shareButton).toBeEnabled();
-    expect(shareButton).toHaveClass("size-11", "md:size-8", "rounded-lg", "text-muted-foreground");
+    expect(shareButton).toHaveClass("size-11", "md:size-8", "rounded-md", "text-muted-foreground");
   });
 
   it("disables the share menu button when no article is selected", async () => {
