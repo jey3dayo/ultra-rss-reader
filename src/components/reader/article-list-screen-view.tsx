@@ -46,7 +46,7 @@ export function ArticleListScreenView({
   if (isLoading) {
     return (
       <ScrollArea className="h-full" viewportRef={viewportRef}>
-        <div className="p-6 text-center text-muted-foreground">{loadingMessage}</div>
+        <div className="p-6 text-center text-foreground-soft">{loadingMessage}</div>
       </ScrollArea>
     );
   }
@@ -56,7 +56,7 @@ export function ArticleListScreenView({
       <ScrollArea className="h-full" viewportRef={viewportRef}>
         <div className="flex flex-col items-center gap-3 p-6 text-center">
           <p className="text-sm font-medium text-foreground">{emptyMessage}</p>
-          {emptyDescription ? <p className="max-w-sm text-sm text-muted-foreground">{emptyDescription}</p> : null}
+          {emptyDescription ? <p className="max-w-sm text-sm text-foreground-soft">{emptyDescription}</p> : null}
           {emptyActionLabel && onEmptyAction ? (
             <Button type="button" variant="outline" size="sm" onClick={onEmptyAction}>
               {emptyActionLabel}

@@ -22,7 +22,7 @@ describe("ArticleListScreenView", () => {
       />,
     );
 
-    expect(screen.getByText("Loading articles")).toBeInTheDocument();
+    expect(screen.getByText("Loading articles")).toHaveClass("text-foreground-soft");
   });
 
   it("renders empty and populated article bodies", () => {
@@ -181,6 +181,7 @@ describe("ArticleListScreenView", () => {
     );
 
     expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument();
+    expect(screen.getByText("Try a different keyword or clear the current search.")).toHaveClass("text-foreground-soft");
     expect(screen.queryByRole("listbox", { name: "Article list" })).not.toBeInTheDocument();
   });
 });
