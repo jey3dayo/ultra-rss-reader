@@ -28,7 +28,10 @@ export function SubscriptionsListPane({
 }) {
   const hasRows = groups.some((group) => group.rows.length > 0);
   return (
-    <section className="flex min-h-0 flex-col border-r border-border/70 bg-background/55 px-4 py-4 sm:px-6">
+    <section
+      className="flex min-h-0 flex-col border-r border-border/70 px-4 py-4 sm:px-6"
+      style={{ backgroundColor: "var(--subscriptions-list-surface)" }}
+    >
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold">{heading}</h2>
         {hasRows ? (

@@ -44,7 +44,8 @@ export function SubscriptionDetailPane({
   return (
     <section
       data-testid="subscriptions-detail-pane"
-      className="flex min-h-0 flex-col border-l border-border/70 bg-card/40 px-4 py-4 sm:px-6"
+      className="flex min-h-0 flex-col border-l border-border/70 px-4 py-4 sm:px-6"
+      style={{ backgroundColor: "var(--subscriptions-detail-surface)" }}
     >
       <h2 className="sr-only">{heading}</h2>
       {!row || !metrics ? (

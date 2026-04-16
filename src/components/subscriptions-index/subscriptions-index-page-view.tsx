@@ -78,7 +78,10 @@ export function SubscriptionsIndexPageView({
   onClose: () => void;
 }) {
   return (
-    <div className="flex h-dvh max-h-dvh min-h-0 flex-1 flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.14),transparent_28%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--background)))]">
+    <div
+      className="flex h-dvh max-h-dvh min-h-0 flex-1 flex-col overflow-hidden"
+      style={{ backgroundImage: "var(--subscriptions-shell-bg)" }}
+    >
       <WorkspaceHeader
         eyebrow="Workspace"
         title={title}

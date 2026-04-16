@@ -198,6 +198,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(shell).toHaveClass("min-h-0");
     expect(shell).toHaveClass("overflow-hidden");
     expect(shell).toHaveClass("grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)]");
+    expect(shell.parentElement).toHaveStyle({ backgroundImage: "var(--subscriptions-shell-bg)" });
 
     const leftPaneSection = within(shell).getByRole("heading", { name: "全購読" }).closest("section");
     if (!leftPaneSection) {
@@ -231,7 +232,7 @@ describe("SubscriptionsIndexPage", () => {
     await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
 
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
-    expect(detailPane).toHaveClass("bg-card/40");
+    expect(detailPane).toHaveStyle({ backgroundColor: "var(--subscriptions-detail-surface)" });
     expect(within(detailPane).getByRole("link", { name: "Example Feed" })).toHaveAttribute(
       "href",
       "https://example.com",

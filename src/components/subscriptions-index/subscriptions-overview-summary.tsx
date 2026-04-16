@@ -20,7 +20,10 @@ function resolveCardClassName(tone: SubscriptionSummaryCard["tone"] = "neutral")
 
 export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSummaryCard[] }) {
   return (
-    <section className="border-b border-border/70 bg-gradient-to-b from-card/60 to-background/90 px-4 py-4 sm:px-6">
+    <section
+      className="border-b border-border/70 px-4 py-4 sm:px-6"
+      style={{ backgroundImage: "var(--subscriptions-summary-surface)" }}
+    >
       <div className="grid gap-3 lg:grid-cols-4">
         {cards.map((card) => {
           const numericValue = Number(card.value);
