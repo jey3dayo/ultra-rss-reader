@@ -185,6 +185,9 @@ describe("SubscriptionsIndexPage", () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
     const totalSubscriptionsLabel = await screen.findByText("総購読数");
+    const summarySection = totalSubscriptionsLabel.closest("section");
+    expect(summarySection).not.toBeNull();
+    expect(summarySection).toHaveStyle({ backgroundColor: "var(--subscriptions-summary-surface)" });
     expect(totalSubscriptionsLabel.closest(".rounded-lg")).not.toBeNull();
     expect(screen.queryByRole("button", { name: /総購読数/ })).toBeNull();
     expect(await screen.findByRole("button", { name: /要確認を見る/ })).toHaveClass(
@@ -208,9 +211,6 @@ describe("SubscriptionsIndexPage", () => {
     expect(shell).toHaveClass("rounded-xl");
     expect(shell).toHaveClass("lg:overflow-hidden");
     expect(shell).toHaveClass("lg:grid-cols-[minmax(0,1fr)_480px]");
-    expect(shell.parentElement?.parentElement?.parentElement).toHaveStyle({
-      backgroundImage: "var(--subscriptions-shell-bg)",
-    });
 
     const leftPaneSection = within(shell).getByRole("heading", { name: "全購読" }).closest("section");
     if (!leftPaneSection) {
@@ -248,7 +248,6 @@ describe("SubscriptionsIndexPage", () => {
 
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
     expect(detailPane).toHaveStyle({ backgroundColor: "var(--subscriptions-detail-surface)" });
-    expect(detailPane).toHaveStyle({ backgroundImage: "var(--subscriptions-detail-pane-surface)" });
     expect(within(detailPane).getByRole("heading", { name: "購読の詳細" })).toHaveClass("text-foreground-soft");
     expect(within(detailPane).getByRole("link", { name: "Example Feed" })).toHaveAttribute(
       "href",

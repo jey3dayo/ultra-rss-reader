@@ -47,7 +47,6 @@ export function SubscriptionDetailPane({
       className="flex flex-col px-4 py-5 sm:px-6 sm:py-5 lg:min-h-0"
       style={{
         backgroundColor: "var(--subscriptions-detail-surface)",
-        backgroundImage: "var(--subscriptions-detail-pane-surface)",
       }}
     >
       <div className="mb-5 border-b border-border/50 pb-4">
