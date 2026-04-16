@@ -160,10 +160,16 @@ export function FeedCleanupQueuePanel({
                 className={cn(
                   "rounded-md transition-colors duration-150",
                   isCurrent || isSelected
-                    ? "border-border-strong bg-card/56 shadow-none"
-                    : "border-border/55 bg-background/28 shadow-none",
+                    ? "border-border-strong shadow-none"
+                    : "border-border/55 shadow-none",
                   isFocused && "ring-1 ring-primary/30",
                 )}
+                style={{
+                  backgroundColor:
+                    isCurrent || isSelected
+                      ? "var(--cleanup-card-surface-selected)"
+                      : "var(--cleanup-card-surface-muted)",
+                }}
               >
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <label

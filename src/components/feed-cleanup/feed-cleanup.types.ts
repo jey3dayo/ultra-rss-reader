@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from "react";
+import type { CSSProperties, ReactNode, RefObject } from "react";
 import type { FeedIntegrityIssueDto } from "@/api/schemas/feed-integrity";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import type {
@@ -28,6 +28,7 @@ export type FeedCleanupSummaryCard = {
 export type FeedCleanupCardProps = {
   children: ReactNode;
   className?: string;
+  style?: CSSProperties;
 };
 
 export type FeedCleanupDetailRowProps = {

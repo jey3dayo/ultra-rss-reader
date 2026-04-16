@@ -58,13 +58,17 @@ export function FeedCleanupReviewPanel({
   return (
     <section
       data-testid="feed-cleanup-review-panel"
-      className={cn("flex min-h-0 flex-col bg-background/72 px-4 py-4 sm:px-6", reviewPanelClassName)}
+      className={cn("flex min-h-0 flex-col px-4 py-4 sm:px-6", reviewPanelClassName)}
+      style={{ backgroundColor: "var(--cleanup-review-surface)" }}
     >
       <h3 className="sr-only">{reviewLabel}</h3>
       {integrityMode ? (
         selectedIntegrityIssue ? (
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <FeedCleanupCard className="border-border/65 bg-card/52 shadow-none">
+            <FeedCleanupCard
+              className="border-border/65 shadow-none"
+              style={{ backgroundColor: "var(--cleanup-card-surface)" }}
+            >
               <div className="space-y-4">
                 <SurfaceCard
                   variant="info"

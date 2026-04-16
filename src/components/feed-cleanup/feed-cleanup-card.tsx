@@ -2,9 +2,15 @@ import { SurfaceCard } from "@/components/shared/surface-card";
 import { cn } from "@/lib/utils";
 import type { FeedCleanupCardProps, FeedCleanupDetailRowProps } from "./feed-cleanup.types";
 
-export function FeedCleanupCard({ children, className }: FeedCleanupCardProps) {
+export function FeedCleanupCard({ children, className, style }: FeedCleanupCardProps) {
   return (
-    <SurfaceCard variant="section" tone="default" padding="default" className={cn("shadow-none", className)}>
+    <SurfaceCard
+      variant="section"
+      tone="default"
+      padding="default"
+      className={cn("shadow-none", className)}
+      style={style}
+    >
       {children}
     </SurfaceCard>
   );

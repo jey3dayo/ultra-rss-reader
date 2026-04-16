@@ -144,8 +144,8 @@ describe("FeedCleanupQueuePanel", () => {
     const queueRow = screen.getByTestId("feed-cleanup-queue-row-feed-1");
 
     expect(queueRow).toHaveClass("rounded-md");
-    expect(queueRow).toHaveClass("bg-card/56");
     expect(queueRow).toHaveClass("border-border-strong");
+    expect(queueRow).toHaveStyle({ backgroundColor: "var(--cleanup-card-surface-selected)" });
     expect(within(queueRow).getByRole("button", { name: "Delete" })).toBeInTheDocument();
   });
 
@@ -154,7 +154,7 @@ describe("FeedCleanupQueuePanel", () => {
 
     const queueRow = screen.getByTestId("feed-cleanup-queue-row-feed-1");
 
-    expect(queueRow).toHaveClass("bg-background/28");
+    expect(queueRow).toHaveStyle({ backgroundColor: "var(--cleanup-card-surface-muted)" });
   });
 
   it("uses rounded-md for empty states and integrity queue rows", () => {

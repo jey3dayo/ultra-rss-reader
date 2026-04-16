@@ -122,6 +122,7 @@ describe("FeedCleanupReviewPanel", () => {
     render(<FeedCleanupReviewPanel {...buildProps()} />);
 
     const panel = screen.getByTestId("feed-cleanup-review-panel");
+    expect(panel).toHaveStyle({ backgroundColor: "var(--cleanup-review-surface)" });
     const detailScrollRegion = panel.querySelector("div.overflow-y-auto");
     expect(detailScrollRegion).toBeTruthy();
     expect(detailScrollRegion).toHaveClass("min-h-0");
