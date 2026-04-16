@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `情報カード` と `セクション箱` の角丸・surface 表現を shared primitive に寄せ、`ArticleEmptyStateView` と `SettingsSection` を最初の適用先として Storybook 基準面まで揃える
+Goal: `情報カード` と `セクション箱` の角丸・surface 表現を shared primitive に寄せ、`ArticleEmptyStateView` と `SettingsSection` を最初の適用先として Storybook 基準面まで揃える
 
-**Architecture:** `src/styles/global.css` に surface role 用の radius token を追加し、`src/components/shared/surface-card.tsx` で `variant="info" | "section"` を選ぶ shared primitive を導入する。feature 側は `rounded-[...]` の値を直書きせず、`SurfaceCard` を通して役割を宣言し、Storybook の参照キャンバスと `DESIGN.md` を同じ semantic role で整合させる。
+Architecture: `src/styles/global.css` に surface role 用の radius token を追加し、`src/components/shared/surface-card.tsx` で `variant="info" | "section"` を選ぶ shared primitive を導入する。feature 側は `rounded-[...]` の値を直書きせず、`SurfaceCard` を通して役割を宣言し、Storybook の参照キャンバスと `DESIGN.md` を同じ semantic role で整合させる。
 
-**Tech Stack:** React 19, TypeScript, Vitest, Testing Library, class-variance-authority, Tailwind CSS v4, Storybook, Biome
+Tech Stack: React 19, TypeScript, Vitest, Testing Library, class-variance-authority, Tailwind CSS v4, Storybook, Biome
 
 ---
 
@@ -65,7 +65,7 @@
 
 ## Task 1: Add surface radius tokens and `SurfaceCard`
 
-**Files:**
+### Files:
 
 - Modify: `src/styles/global.css`
 - Create: `src/components/shared/surface-card.tsx`
@@ -256,7 +256,7 @@ git commit -m "test(shared): add surface card coverage"
 
 ## Task 2: Migrate `ArticleEmptyStateView` to `info` surface
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/article-empty-state-view.tsx`
 - Modify: `src/components/reader/article-empty-state-view.stories.tsx`
@@ -350,7 +350,7 @@ git commit -m "refactor(reader): move article empty state to surface card"
 
 ## Task 3: Migrate `SettingsSection` and add Storybook reference specimens
 
-**Files:**
+### Files:
 
 - Modify: `src/components/settings/settings-section.tsx`
 - Create: `src/__tests__/components/settings-section.test.tsx`
@@ -494,7 +494,7 @@ git commit -m "refactor(settings): move section containers to surface card"
 
 ## Task 4: Document the governance rules and run full verification
 
-**Files:**
+### Files:
 
 - Modify: `DESIGN.md`
 - Read: `docs/superpowers/specs/2026-04-16-surface-card-radius-governance-design.md`

@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 設定画面、購読一覧、購読整理のボタン表現を用途別共通コンポーネントへ寄せ、見た目のブレを減らす
+Goal: 設定画面、購読一覧、購読整理のボタン表現を用途別共通コンポーネントへ寄せ、見た目のブレを減らす
 
-**Architecture:** 既存の `src/components/ui/button.tsx` は基底として維持し、その上に `NavRowButton`、`DecisionButton`、chip/button ラッパを追加する。reader 専用の `SidebarNavButton` と `IconToolbar*` は維持し、settings / subscriptions / cleanup の「似ているが別実装」のボタン群だけを段階的に置き換える。
+Architecture: 既存の `src/components/ui/button.tsx` は基底として維持し、その上に `NavRowButton`、`DecisionButton`、chip/button ラッパを追加する。reader 専用の `SidebarNavButton` と `IconToolbar*` は維持し、settings / subscriptions / cleanup の「似ているが別実装」のボタン群だけを段階的に置き換える。
 
-**Tech Stack:** React 19, TypeScript, Vitest, Testing Library, class-variance-authority, Tailwind utility classes
+Tech Stack: React 19, TypeScript, Vitest, Testing Library, class-variance-authority, Tailwind utility classes
 
 ---
 
@@ -85,7 +85,7 @@
 
 ## Task 1: Add `NavRowButton`
 
-**Files:**
+### Files:
 
 - Create: `src/components/shared/nav-row-button.tsx`
 - Test: `src/__tests__/components/nav-row-button.test.tsx`
@@ -235,7 +235,7 @@ EOF
 
 ## Task 2: Add `DecisionButton`
 
-**Files:**
+### Files:
 
 - Create: `src/components/shared/decision-button.tsx`
 - Test: `src/__tests__/components/decision-button.test.tsx`
@@ -331,7 +331,7 @@ EOF
 
 ## Task 3: Reuse `NavRowButton` in settings navigation
 
-**Files:**
+### Files:
 
 - Modify: `src/components/settings/accounts-nav-view.tsx`
 - Modify: `src/components/settings/settings-nav-view.tsx`
@@ -463,7 +463,7 @@ EOF
 
 ## Task 4: Reuse `NavRowButton` in subscriptions list
 
-**Files:**
+### Files:
 
 - Modify: `src/components/subscriptions-index/subscriptions-list-pane.tsx`
 - Test: `src/__tests__/components/subscriptions-index-page.test.tsx`
@@ -544,7 +544,7 @@ EOF
 
 ## Task 5: Add chip/button wrapper on top of `control-chip`
 
-**Files:**
+### Files:
 
 - Modify: `src/components/shared/control-chip.ts`
 - Optionally Create: `src/components/shared/control-chip-button.tsx`
@@ -599,7 +599,7 @@ Expected: either PASS immediately or fail because cleanup still uses old button 
 
 ## Task 6: Reuse `DecisionButton` and chip wrapper in cleanup queue
 
-**Files:**
+### Files:
 
 - Modify: `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx`
 - Modify: `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`
@@ -726,7 +726,7 @@ EOF
 
 ## Task 7: Full verification and browser review
 
-**Files:**
+### Files:
 
 - No code changes required
 - Read: `tmp/screenshots/button-review-home.png`

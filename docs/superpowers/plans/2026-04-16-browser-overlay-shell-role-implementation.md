@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** browser overlay の操作 chrome と stage 境界を `shell role` として共通化し、`section` surface と責務が混ざらない状態へ揃える
+Goal: browser overlay の操作 chrome と stage 境界を `shell role` として共通化し、`section` surface と責務が混ざらない状態へ揃える
 
-**Architecture:** `SurfaceCard` とは別に `OverlayActionSurface` と `OverlayStageSurface` を `src/components/shared` へ追加し、browser overlay の見た目責務だけを shared へ上げる。geometry、absolute positioning、event handling は既存の browser overlay controller / presentation に残し、Storybook では shell 例外を section 見本から明示分離する。
+Architecture: `SurfaceCard` とは別に `OverlayActionSurface` と `OverlayStageSurface` を `src/components/shared` へ追加し、browser overlay の見た目責務だけを shared へ上げる。geometry、absolute positioning、event handling は既存の browser overlay controller / presentation に残し、Storybook では shell 例外を section 見本から明示分離する。
 
-**Tech Stack:** React 19, TypeScript, Vitest, Testing Library, class-variance-authority, Tailwind CSS v4, Storybook, Biome
+Tech Stack: React 19, TypeScript, Vitest, Testing Library, class-variance-authority, Tailwind CSS v4, Storybook, Biome
 
 ---
 
@@ -74,7 +74,7 @@
 
 ## Task 1: Add shell primitives
 
-**Files:**
+### Files:
 
 - Create: `src/components/shared/overlay-action-surface.tsx`
 - Create: `src/components/shared/overlay-stage-surface.tsx`
@@ -267,7 +267,7 @@ git commit -m "test(shared): add browser overlay shell primitives"
 
 ## Task 2: Move overlay presentation to shared shell primitives
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/browser-overlay-presentation.ts`
 - Modify: `src/components/reader/browser-overlay-chrome.tsx`
@@ -422,7 +422,7 @@ git commit -m "refactor(reader): reuse shell primitives in overlay presentation"
 
 ## Task 3: Document shell role and separate shell examples in Storybook
 
-**Files:**
+### Files:
 
 - Modify: `src/components/storybook/ui-reference-settings-canvas.stories.tsx`
 - Modify: `DESIGN.md`

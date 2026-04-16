@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make the article reader pane feel flatter and quieter by removing the top card treatment, reordering the header to `date → title → source/author → image → body`, and preserving existing reader interactions.
+Goal: Make the article reader pane feel flatter and quieter by removing the top card treatment, reordering the header to `date → title → source/author → image → body`, and preserving existing reader interactions.
 
-**Architecture:** Keep the change entirely inside the existing reader presentation components. First lock the new hierarchy in Vitest, then flatten `ArticleReaderBody`, simplify `ArticleMetaView`, and lightly retune `ArticleContentView` so the new header and body read as one column.
+Architecture: Keep the change entirely inside the existing reader presentation components. First lock the new hierarchy in Vitest, then flatten `ArticleReaderBody`, simplify `ArticleMetaView`, and lightly retune `ArticleContentView` so the new header and body read as one column.
 
-**Tech Stack:** React 19, TypeScript, Tailwind utility classes, Vitest, Testing Library, Biome
+Tech Stack: React 19, TypeScript, Tailwind utility classes, Vitest, Testing Library, Biome
 
 ---
 
@@ -34,7 +34,7 @@
 
 ### Task 1: Lock the new header and content surface in tests
 
-**Files:**
+### Files:
 
 - Modify: `src/__tests__/components/article-meta-view.test.tsx:7-52`
 - Modify: `src/__tests__/components/article-content-view.test.tsx:7-53`
@@ -130,7 +130,7 @@ git commit -m "test: lock simplified reader pane hierarchy"
 
 ### Task 2: Flatten `ArticleReaderBody` into a single reading column
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/article-reader-body.tsx:69-111`
 
@@ -210,7 +210,7 @@ git commit -m "refactor: flatten article reader body surface"
 
 ### Task 3: Simplify `ArticleMetaView` and retune `ArticleContentView`
 
-**Files:**
+### Files:
 
 - Modify: `src/components/reader/article-meta-view.tsx:12-49`
 - Modify: `src/components/reader/article-content-view.tsx:8-19`
@@ -305,7 +305,7 @@ git commit -m "feat: simplify reader pane presentation"
 
 ### Task 4: Run integration and repo quality gates
 
-**Files:**
+### Files:
 
 - Verify: `src/__tests__/components/article-view.test.tsx:130-220`
 - Modify only if failures point back to:

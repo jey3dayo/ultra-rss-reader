@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rework the subscriptions index and cleanup workspaces so the left pane feels like the original lightweight feed tree while the right pane stays aligned with the refined shared detail surface.
+Goal: Rework the subscriptions index and cleanup workspaces so the left pane feels like the original lightweight feed tree while the right pane stays aligned with the refined shared detail surface.
 
-**Architecture:** Keep the current shared detail panel family on the right, but replace the left subscriptions list with a tree-style workspace pane built from existing folder/feed tree patterns and drag/drop behavior. Treat subscriptions index and cleanup as one workspace family with consistent shell, spacing, scrolling, and interaction rules.
+Architecture: Keep the current shared detail panel family on the right, but replace the left subscriptions list with a tree-style workspace pane built from existing folder/feed tree patterns and drag/drop behavior. Treat subscriptions index and cleanup as one workspace family with consistent shell, spacing, scrolling, and interaction rules.
 
-**Tech Stack:** React 19, TypeScript, Zustand UI state, existing reader feed-tree primitives, Vitest, Biome
+Tech Stack: React 19, TypeScript, Zustand UI state, existing reader feed-tree primitives, Vitest, Biome
 
 ---
 
@@ -39,7 +39,7 @@
 
 ### Task 1: Restore a lightweight tree-style subscriptions left pane
 
-**Files:**
+### Files:
 
 - Modify: `src/components/subscriptions-index/subscriptions-list-pane.tsx`
 - Test: `src/__tests__/components/subscriptions-index-page.test.tsx`
@@ -104,7 +104,7 @@ git commit -m "style: restore lightweight subscriptions tree rows"
 
 ### Task 2: Reuse folder structure and prepare folder drop targets in subscriptions index
 
-**Files:**
+### Files:
 
 - Modify: `src/components/subscriptions-index/subscriptions-index.types.ts`
 - Modify: `src/lib/subscriptions-index.ts`
@@ -173,7 +173,7 @@ git commit -m "feat: prepare subscriptions tree folder drop targets"
 
 ### Task 3: Keep workspace shell and scrolling aligned with the lighter list
 
-**Files:**
+### Files:
 
 - Modify: `src/components/subscriptions-index/subscriptions-index-page-view.tsx`
 - Modify: `src/components/app-layout.tsx`
@@ -229,7 +229,7 @@ git commit -m "style: align subscriptions workspace shell and scrolling"
 
 ### Task 4: Reconcile cleanup queue rows with the same lighter language
 
-**Files:**
+### Files:
 
 - Modify: `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`
 - Modify: `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx`
@@ -282,7 +282,7 @@ git commit -m "style: align cleanup queue with subscriptions tree tone"
 
 ### Task 5: Preserve the refined shared detail panel while the left panes lighten
 
-**Files:**
+### Files:
 
 - Modify: `src/components/shared/feed-detail-panel.tsx` (only if spacing or visual rhythm still needs alignment)
 - Modify: `src/components/feed-cleanup/feed-cleanup-review-panel.tsx`

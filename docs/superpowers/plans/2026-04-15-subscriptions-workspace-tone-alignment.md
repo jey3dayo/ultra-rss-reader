@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Align the subscriptions index and cleanup workspaces with the article-reading and settings surfaces by restoring a lighter tree-driven left pane, preserving the richer right detail panel, and reusing the existing drag-and-drop behavior for folder assignment.
+Goal: Align the subscriptions index and cleanup workspaces with the article-reading and settings surfaces by restoring a lighter tree-driven left pane, preserving the richer right detail panel, and reusing the existing drag-and-drop behavior for folder assignment.
 
-**Architecture:** Keep the right-side detail surfaces card-based and shared, but replace the left-side subscriptions list with a tree-style pane that reuses the existing folder/feed drag logic and only applies a stronger surface to the currently selected feed. Scope the implementation to the subscriptions index and cleanup workspaces without changing unrelated reader or settings flows.
+Architecture: Keep the right-side detail surfaces card-based and shared, but replace the left-side subscriptions list with a tree-style pane that reuses the existing folder/feed drag logic and only applies a stronger surface to the currently selected feed. Scope the implementation to the subscriptions index and cleanup workspaces without changing unrelated reader or settings flows.
 
-**Tech Stack:** React 19, TypeScript, Zustand UI state, existing reader feed-tree components, Vitest, Biome
+Tech Stack: React 19, TypeScript, Zustand UI state, existing reader feed-tree components, Vitest, Biome
 
 ---
 
@@ -29,7 +29,7 @@
 
 ### Task 1: Replace the subscriptions left pane with a tree-style list
 
-**Files:**
+### Files:
 
 - Modify: `src/components/subscriptions-index/subscriptions-list-pane.tsx`
 - Test: `src/__tests__/components/subscriptions-index-page.test.tsx`
@@ -111,7 +111,7 @@ git commit -m "refactor: restore tree-style subscriptions list"
 
 ### Task 2: Reuse folder drag/drop behavior for subscriptions index rows
 
-**Files:**
+### Files:
 
 - Modify: `src/components/subscriptions-index/subscriptions-list-pane.tsx`
 - Modify: `src/components/subscriptions-index/subscriptions-index-page.tsx`
@@ -181,7 +181,7 @@ git commit -m "feat: prepare subscriptions tree for folder drop targets"
 
 ### Task 3: Keep the workspace layout aligned with the lighter left pane
 
-**Files:**
+### Files:
 
 - Modify: `src/components/subscriptions-index/subscriptions-index-page-view.tsx`
 - Modify: `src/components/app-layout.tsx`
@@ -238,7 +238,7 @@ git commit -m "style: align subscriptions workspace shell"
 
 ### Task 4: Verify the subscriptions workspace still matches the shared detail tone
 
-**Files:**
+### Files:
 
 - Modify: `src/components/shared/feed-detail-panel.tsx` (only if a spacing/token mismatch appears)
 - Test: `src/__tests__/components/subscriptions-index-page.test.tsx`

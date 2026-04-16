@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add global mute keyword rules that can be managed from Settings and immediately filter article lists, tag lists, and search results, while leaving auto-mark-read as a disabled future setting.
+Goal: Add global mute keyword rules that can be managed from Settings and immediately filter article lists, tag lists, and search results, while leaving auto-mark-read as a disabled future setting.
 
-**Architecture:** Persist mute rules in SQLite through a dedicated repository and Tauri commands, then apply filtering before pagination inside article and tag queries. Reuse the existing Settings page shell on the frontend with a small container/view split and React Query invalidation for article-facing queries.
+Architecture: Persist mute rules in SQLite through a dedicated repository and Tauri commands, then apply filtering before pagination inside article and tag queries. Reuse the existing Settings page shell on the frontend with a small container/view split and React Query invalidation for article-facing queries.
 
-**Tech Stack:** Rust, rusqlite, Tauri commands, React 19, TypeScript, TanStack Query, Vitest, Biome
+Tech Stack: Rust, rusqlite, Tauri commands, React 19, TypeScript, TanStack Query, Vitest, Biome
 
 ---
 
@@ -48,7 +48,7 @@
 
 ### Task 1: Add persistence for mute keyword rules
 
-**Files:**
+### Files:
 
 - Create: `src-tauri/migrations/V8__mute_keywords.sql`
 - Create: `src-tauri/src/domain/mute_keyword.rs`
@@ -66,7 +66,7 @@
 
 ### Task 2: Apply mute filtering before pagination
 
-**Files:**
+### Files:
 
 - Modify: `src-tauri/src/infra/db/sqlite_article.rs`
 - Modify: `src-tauri/src/infra/db/sqlite_tag.rs`
@@ -80,7 +80,7 @@
 
 ### Task 3: Expose Tauri commands and TypeScript contracts
 
-**Files:**
+### Files:
 
 - Create: `src-tauri/src/commands/mute_keyword_commands.rs`
 - Modify: `src-tauri/src/commands/mod.rs`
@@ -98,7 +98,7 @@
 
 ### Task 4: Add React Query hooks and settings UI
 
-**Files:**
+### Files:
 
 - Create: `src/hooks/use-mute-keywords.ts`
 - Create: `src/components/settings/mute-settings.tsx`
@@ -121,7 +121,7 @@
 
 ### Task 5: Verify end-to-end quality gates
 
-**Files:**
+### Files:
 
 - Modify only if verification exposes issues in the files above
 
