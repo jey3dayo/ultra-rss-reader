@@ -90,7 +90,12 @@ describe("Design-themed shared components", () => {
     );
 
     expect(screen.getByRole("button", { name: "General settings" })).toHaveClass("hover:bg-surface-2");
-    expect(screen.getByRole("button", { name: "Unread" })).toHaveClass("bg-surface-2", "border-border");
+    expect(screen.getByRole("button", { name: "Unread" })).toHaveClass(
+      "bg-surface-2/88",
+      "border-border/70",
+      "data-[pressed]:bg-surface-4",
+      "data-[pressed]:border-border-strong",
+    );
   });
 
   it("reserves space for mac traffic lights in workspace headers", () => {

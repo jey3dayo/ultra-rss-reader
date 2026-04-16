@@ -99,8 +99,9 @@ describe("FeedCleanupOverviewPanel", () => {
     expect(filterGroup).toBeInTheDocument();
     expect(allCandidatesButton).toHaveTextContent("All");
     expect(allCandidatesButton).toHaveTextContent("2");
-    expect(allCandidatesButton).toHaveClass("rounded-md");
+    expect(allCandidatesButton).toHaveClass("rounded-md", "data-[pressed]:bg-surface-4");
     expect(staleButton).toHaveClass("rounded-md");
+    expect(allCandidatesButton).toHaveClass("data-[pressed]:border-border-strong");
     expect(within(allCandidatesButton).getByText("2")).toHaveClass("rounded-sm");
     expect(within(allCandidatesButton).queryByText("3")).toBeNull();
     expect(screen.getByTestId("feed-cleanup-bulk-actions")).toBeInTheDocument();
