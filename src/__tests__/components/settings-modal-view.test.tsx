@@ -69,6 +69,7 @@ describe("SettingsModalView", () => {
         accountsHeading="Accounts"
         accountsNavigation={<div data-testid="accounts-nav">Accounts navigation</div>}
         content={<div>Settings content</div>}
+        contentResetKey="general::false"
         onClose={onClose}
         onOpenChange={onOpenChange}
       />,
@@ -95,6 +96,7 @@ describe("SettingsModalView", () => {
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
         content={<div>Settings content</div>}
+        contentResetKey="general::false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
       />,
@@ -119,6 +121,7 @@ describe("SettingsModalView", () => {
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
         content={<div>Settings content</div>}
+        contentResetKey="general::false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
       />,
@@ -159,6 +162,7 @@ describe("SettingsModalView", () => {
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
         content={<div>Settings content</div>}
+        contentResetKey="general::false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
       />,
@@ -181,6 +185,7 @@ describe("SettingsModalView", () => {
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
         content={<div>Settings content</div>}
+        contentResetKey="general::false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
       />,
@@ -217,6 +222,7 @@ describe("SettingsModalView", () => {
         accountsNavigation={<div>Accounts navigation</div>}
         content={<div>Settings content</div>}
         contentScrollBehavior="always"
+        contentResetKey="general::false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
       />,
@@ -249,6 +255,7 @@ describe("SettingsModalView", () => {
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
         content={<div>Settings content</div>}
+        contentResetKey="general::false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
       />,
@@ -275,6 +282,7 @@ describe("SettingsModalView", () => {
         accountsHeading="Accounts"
         accountsNavigation={<div>Accounts navigation</div>}
         content={<div>Settings content</div>}
+        contentResetKey="general::false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
       />,
@@ -294,6 +302,7 @@ describe("SettingsModalView", () => {
         accountsNavigation={<div>Accounts navigation</div>}
         content={<div>Settings content</div>}
         isLoading={false}
+        contentResetKey="general::false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
       />,
@@ -311,11 +320,59 @@ describe("SettingsModalView", () => {
         accountsNavigation={<div>Accounts navigation</div>}
         content={<div>Settings content</div>}
         isLoading={true}
+        contentResetKey="general::false"
         onClose={vi.fn()}
         onOpenChange={vi.fn()}
       />,
     );
 
     expect(document.querySelector(".animate-indeterminate")).not.toBeNull();
+  });
+
+  it("resets only the content viewport scroll position when the content key changes", () => {
+    const { rerender } = render(
+      <SettingsModalView
+        open={true}
+        title="Preferences"
+        closeLabel="Close preferences"
+        navigation={<div>Settings navigation</div>}
+        accountsHeading="Accounts"
+        accountsNavigation={<div>Accounts navigation</div>}
+        content={<div style={{ height: 1200 }}>Settings content</div>}
+        contentResetKey="accounts:acc-1:false"
+        onClose={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    const initialContentViewport = screen
+      .getByTestId("settings-content-scroll-area")
+      .querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+    const accountsScrollArea = screen.getByTestId("settings-accounts-scroll-area");
+
+    initialContentViewport.scrollTop = 180;
+    accountsScrollArea.scrollTop = 90;
+
+    rerender(
+      <SettingsModalView
+        open={true}
+        title="Preferences"
+        closeLabel="Close preferences"
+        navigation={<div>Settings navigation</div>}
+        accountsHeading="Accounts"
+        accountsNavigation={<div>Accounts navigation</div>}
+        content={<div style={{ height: 1200 }}>Other settings content</div>}
+        contentResetKey="accounts:acc-2:false"
+        onClose={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    const nextContentViewport = screen
+      .getByTestId("settings-content-scroll-area")
+      .querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+
+    expect(nextContentViewport.scrollTop).toBe(0);
+    expect(accountsScrollArea.scrollTop).toBe(90);
   });
 });

@@ -11,13 +11,8 @@ const meta = {
     dangerHeading: "Danger Zone",
     exportLabel: "Export OPML",
     deleteLabel: "Delete account",
-    cancelLabel: "Cancel",
-    confirmDeleteLabel: "This action cannot be undone.",
-    isConfirmingDelete: false,
     onExport: fn(),
     onRequestDelete: fn(),
-    onConfirmDelete: fn(),
-    onCancelDelete: fn(),
   },
   decorators: [
     (Story) => (
@@ -32,10 +27,3 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
-
-export const ConfirmingDelete: Story = {
-  args: {
-    isConfirmingDelete: true,
-    deleteLabel: "Delete",
-  },
-};

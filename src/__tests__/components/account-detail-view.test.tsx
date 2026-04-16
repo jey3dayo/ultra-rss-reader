@@ -60,13 +60,8 @@ describe("AccountDetailView", () => {
           dangerHeading: "Danger Zone",
           exportLabel: "Export OPML",
           deleteLabel: "Delete account",
-          cancelLabel: "Cancel",
-          confirmDeleteLabel: "This action cannot be undone.",
-          isConfirmingDelete: false,
           onExport: vi.fn(),
           onRequestDelete: vi.fn(),
-          onConfirmDelete: vi.fn(),
-          onCancelDelete: vi.fn(),
         }}
       />,
     );
@@ -134,13 +129,8 @@ describe("AccountDetailView", () => {
           dangerHeading: "Danger Zone",
           exportLabel: "Export OPML",
           deleteLabel: "Delete account",
-          cancelLabel: "Cancel",
-          confirmDeleteLabel: "This action cannot be undone.",
-          isConfirmingDelete: false,
           onExport: vi.fn(),
           onRequestDelete: vi.fn(),
-          onConfirmDelete: vi.fn(),
-          onCancelDelete: vi.fn(),
         }}
       />,
     );

@@ -10,7 +10,6 @@ import { useUiStore } from "@/stores/ui-store";
 
 function AccountDetailContent({ account, isSyncing }: AccountDetailContentProps) {
   const { t, i18n } = useTranslation("settings");
-  const { t: tc } = useTranslation("common");
   const syncStatusQuery = useAccountSyncStatus(account.id);
   const setSettingsAccountId = useUiStore((s) => s.setSettingsAccountId);
   const controller = useAccountDetailController({
@@ -34,7 +33,6 @@ function AccountDetailContent({ account, isSyncing }: AccountDetailContentProps)
     isSyncing,
     syncStatusRows,
     t,
-    tc,
   });
 
   return <AccountDetailView {...viewProps} />;

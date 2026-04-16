@@ -60,6 +60,7 @@ const meta = {
         <p className="mt-2 text-sm text-muted-foreground">Fixture-only story for the isolated modal layout.</p>
       </div>
     ),
+    contentResetKey: "general::false",
     onClose: fn(),
     onOpenChange: fn(),
   },
