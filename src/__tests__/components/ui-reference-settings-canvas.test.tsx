@@ -66,7 +66,7 @@ describe("UI Reference canvases", () => {
   it("renders the foundations canvas with typography and semantic surfaces", () => {
     const { container } = render(<FoundationsCanvas />);
 
-    expect(container.firstElementChild).toHaveClass("h-full");
+    expect(container.firstElementChild).toHaveClass("h-screen");
     expect(container.firstElementChild).toHaveClass("overflow-y-auto");
     expect(screen.getByText("Foundations")).toBeInTheDocument();
     expect(screen.getByText("Typography scale")).toBeInTheDocument();
