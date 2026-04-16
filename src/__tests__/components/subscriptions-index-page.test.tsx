@@ -145,8 +145,8 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.getAllByText("整理不要").length).toBeGreaterThan(0);
 
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
-    expect(within(detailPane).getByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
-    expect(within(detailPane).getByText("90日以上更新なし")).toBeInTheDocument();
+    expect(await within(detailPane).findByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
+    expect(await within(detailPane).findByText("90日以上更新なし")).toBeInTheDocument();
   });
 
   it("renders lightweight feed rows and only highlights the selected feed", async () => {
