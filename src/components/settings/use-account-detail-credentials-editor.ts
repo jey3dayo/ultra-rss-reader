@@ -32,11 +32,11 @@ export function useAccountDetailCredentialsEditor({
     }
 
     const saveTask = (async () => {
-      const serverUrl = credServerUrl ?? account.server_url ?? undefined;
-      const username = credUsername ?? account.username ?? undefined;
+      const serverUrl = (credServerUrl ?? account.server_url ?? "").trim() || undefined;
+      const username = (credUsername ?? account.username ?? "").trim() || undefined;
       const password = credPassword || undefined;
-      const serverUrlChanged = credServerUrl !== null && credServerUrl !== (account.server_url ?? "");
-      const usernameChanged = credUsername !== null && credUsername !== (account.username ?? "");
+      const serverUrlChanged = credServerUrl !== null && serverUrl !== ((account.server_url ?? "").trim() || undefined);
+      const usernameChanged = credUsername !== null && username !== ((account.username ?? "").trim() || undefined);
       const passwordChanged = credPassword !== null && credPassword !== "";
 
       if (!serverUrlChanged && !usernameChanged && !passwordChanged) {
