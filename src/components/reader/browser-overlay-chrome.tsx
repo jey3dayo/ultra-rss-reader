@@ -1,7 +1,8 @@
-import { ExternalLink, X } from "lucide-react";
+import { ChevronLeft, ExternalLink, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { IconToolbarButton } from "@/components/shared/icon-toolbar-control";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import type { BrowserOverlayChromeProps } from "./browser-view.types";
 
 const browserOverlayChromeCloseButtonClassName =
@@ -28,25 +29,38 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
     );
   }
 
-  const { controller, closeOverlayLabel, toolbarActions } = props;
+  const { controller, backToReaderLabel, toolbarActions } = props;
+  const visibleBackLabel = t("back_to_reader_short");
+  const leadingAction = (
+    <Button
+      variant="ghost"
+      size={controller.geometry.compact ? "icon" : "sm"}
+      onClick={controller.handleCloseOverlay}
+      aria-label={backToReaderLabel}
+      className={controller.leadingActionClass}
+    >
+      <ChevronLeft aria-hidden="true" className="size-4" />
+      {!controller.geometry.compact ? <span className="truncate">{visibleBackLabel}</span> : null}
+    </Button>
+  );
 
   return (
     <TooltipProvider>
       <div
-        data-testid="browser-overlay-chrome"
+        data-testid="browser-overlay-leading-action"
         style={{
-          left: `${controller.geometry.chrome.close.left}px`,
-          top: `${controller.geometry.chrome.close.top}px`,
+          left: `${controller.geometry.chrome.leading.left}px`,
+          top: `${controller.geometry.chrome.leading.top}px`,
         }}
         className="pointer-events-none absolute z-[60]"
       >
-        <IconToolbarButton
-          label={closeOverlayLabel}
-          onClick={controller.handleCloseOverlay}
-          className={controller.closeButtonClass}
-        >
-          <X aria-hidden="true" className="size-4" />
-        </IconToolbarButton>
+        <div data-testid="browser-overlay-chrome" className="pointer-events-auto">
+          {controller.geometry.compact ? (
+            <AppTooltip label={backToReaderLabel}>{leadingAction}</AppTooltip>
+          ) : (
+            leadingAction
+          )}
+        </div>
       </div>
       <div
         data-testid="browser-overlay-actions"

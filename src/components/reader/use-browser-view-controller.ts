@@ -141,7 +141,7 @@ export function useBrowserViewController({
     handleCloseOverlay,
     handleRetry,
     handleOpenExternal,
-    closeButtonClass: presentation.closeButtonClass,
+    leadingActionClass: presentation.leadingActionClass,
     actionButtonClass: presentation.actionButtonClass,
     stageClass: presentation.stageClass,
     hostRef,

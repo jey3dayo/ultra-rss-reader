@@ -17,7 +17,7 @@ export type BrowserViewGeometry = BrowserViewerGeometry;
 
 export type BrowserViewPresentation = {
   geometry: BrowserViewGeometry;
-  closeButtonClass: string;
+  leadingActionClass: string;
   actionButtonClass: string;
   stageClass: string;
 };
@@ -33,7 +33,7 @@ export type BrowserViewProps = {
   scope?: BrowserViewScope;
   onCloseOverlay: () => void;
   labels: {
-    closeOverlay: string;
+    backToReader: string;
   };
   toolbarActions?: ReactNode;
 };
@@ -54,7 +54,7 @@ export type BrowserViewController = {
   handleCloseOverlay: () => void;
   handleRetry: () => void;
   handleOpenExternal: () => Promise<void>;
-  closeButtonClass: string;
+  leadingActionClass: string;
   actionButtonClass: string;
   stageClass: string;
   hostRef: React.RefObject<HTMLDivElement | null>;
@@ -64,13 +64,13 @@ export type BrowserViewController = {
 
 export type BrowserOverlayChromeController = Pick<
   BrowserViewController,
-  "geometry" | "handleCloseOverlay" | "handleOpenExternal" | "closeButtonClass" | "actionButtonClass"
+  "geometry" | "handleCloseOverlay" | "handleOpenExternal" | "leadingActionClass" | "actionButtonClass"
 >;
 
 export type BrowserOverlayChromeProps =
   | {
       controller: BrowserOverlayChromeController;
-      closeOverlayLabel: string;
+      backToReaderLabel: string;
       toolbarActions?: ReactNode;
     }
   | {

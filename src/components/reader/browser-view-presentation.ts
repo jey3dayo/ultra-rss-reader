@@ -1,7 +1,7 @@
 import { resolveBrowserViewerGeometry } from "@/lib/browser-viewer-geometry";
 import {
   getBrowserOverlayActionButtonClass,
-  getBrowserOverlayCloseButtonClass,
+  getBrowserOverlayLeadingActionClass,
   getBrowserOverlayStageClass,
 } from "./browser-overlay-presentation";
 import type { BrowserViewPresentation, ResolveBrowserViewPresentationParams } from "./browser-view.types";
@@ -22,7 +22,7 @@ export function resolveBrowserViewPresentation({
 
   return {
     geometry,
-    closeButtonClass: getBrowserOverlayCloseButtonClass(isCompactViewer, overlayTitlebar),
+    leadingActionClass: getBrowserOverlayLeadingActionClass(isCompactViewer),
     actionButtonClass: getBrowserOverlayActionButtonClass(isCompactViewer),
     stageClass: getBrowserOverlayStageClass(scope),
   };

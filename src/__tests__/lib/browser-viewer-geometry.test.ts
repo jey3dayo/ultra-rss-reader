@@ -28,9 +28,10 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.host.bottom).toBe(0);
     expect(geometry.diagnostics.compact).toBe(true);
     expect(geometry.diagnostics.top).toBe(66);
-    expect(geometry.chrome.close.left).toBe(12);
-    expect(geometry.chrome.close.top).toBe(12);
-    expect(geometry.chrome.close.size).toBe(44);
+    expect(geometry.chrome.visualHeaderHeight).toBe(64);
+    expect(geometry.chrome.leadingSafeInset).toBe(12);
+    expect(geometry.chrome.leading.left).toBe(12);
+    expect(geometry.chrome.leading.top).toBe(12);
     expect(geometry.chrome.action.right).toBe(12);
     expect(geometry.chrome.action.top).toBe(12);
     expect(geometry.chrome.action.size).toBe(44);
@@ -81,15 +82,16 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.host.bottom).toBe(0);
     expect(geometry.diagnostics.compact).toBe(false);
     expect(geometry.diagnostics.top).toBe(64);
-    expect(geometry.chrome.close.left).toBe(16);
-    expect(geometry.chrome.close.top).toBe(12);
-    expect(geometry.chrome.close.size).toBe(44);
+    expect(geometry.chrome.visualHeaderHeight).toBe(56);
+    expect(geometry.chrome.leadingSafeInset).toBe(16);
+    expect(geometry.chrome.leading.left).toBe(16);
+    expect(geometry.chrome.leading.top).toBe(12);
     expect(geometry.chrome.action.right).toBe(16);
     expect(geometry.chrome.action.top).toBe(12);
     expect(geometry.chrome.action.size).toBe(44);
   });
 
-  it("reserves extra leading space for macOS overlay titlebars in main-stage mode", () => {
+  it("keeps the desktop visual header height while reserving extra leading space for macOS overlay titlebars", () => {
     const geometry = resolveBrowserViewerGeometry({
       scope: "main-stage",
       viewportWidth: 1280,
@@ -97,18 +99,19 @@ describe("resolveBrowserViewerGeometry", () => {
       overlayTitlebar: true,
     });
 
-    expect(geometry.stage.top).toBe(64);
-    expect(geometry.chromeRail.height).toBe(64);
-    expect(geometry.chrome.close.left).toBe(10);
-    expect(geometry.chrome.close.top).toBe(20);
-    expect(geometry.chrome.close.size).toBe(30);
+    expect(geometry.stage.top).toBe(56);
+    expect(geometry.chromeRail.height).toBe(56);
+    expect(geometry.chrome.visualHeaderHeight).toBe(56);
+    expect(geometry.chrome.leadingSafeInset).toBe(72);
+    expect(geometry.chrome.leading.left).toBe(72);
+    expect(geometry.chrome.leading.top).toBe(12);
     expect(geometry.chrome.action.right).toBe(16);
     expect(geometry.chrome.action.top).toBe(12);
     expect(geometry.chrome.action.size).toBe(44);
-    expect(geometry.diagnostics.top).toBe(72);
+    expect(geometry.diagnostics.top).toBe(64);
   });
 
-  it("keeps the compact macOS overlay contract aligned with the same close button geometry", () => {
+  it("keeps the compact macOS overlay contract aligned with the same visual header height", () => {
     const geometry = resolveBrowserViewerGeometry({
       scope: "main-stage",
       viewportWidth: 620,
@@ -118,9 +121,10 @@ describe("resolveBrowserViewerGeometry", () => {
 
     expect(geometry.stage.top).toBe(64);
     expect(geometry.chromeRail.height).toBe(64);
-    expect(geometry.chrome.close.left).toBe(10);
-    expect(geometry.chrome.close.top).toBe(20);
-    expect(geometry.chrome.close.size).toBe(30);
+    expect(geometry.chrome.visualHeaderHeight).toBe(64);
+    expect(geometry.chrome.leadingSafeInset).toBe(64);
+    expect(geometry.chrome.leading.left).toBe(64);
+    expect(geometry.chrome.leading.top).toBe(12);
     expect(geometry.chrome.action.right).toBe(12);
     expect(geometry.chrome.action.top).toBe(12);
     expect(geometry.chrome.action.size).toBe(44);
@@ -152,9 +156,10 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.host.bottom).toBe(0);
     expect(geometry.diagnostics.compact).toBe(true);
     expect(geometry.diagnostics.top).toBe(66);
-    expect(geometry.chrome.close.left).toBe(12);
-    expect(geometry.chrome.close.top).toBe(12);
-    expect(geometry.chrome.close.size).toBe(44);
+    expect(geometry.chrome.visualHeaderHeight).toBe(64);
+    expect(geometry.chrome.leadingSafeInset).toBe(12);
+    expect(geometry.chrome.leading.left).toBe(12);
+    expect(geometry.chrome.leading.top).toBe(12);
     expect(geometry.chrome.action.right).toBe(12);
     expect(geometry.chrome.action.top).toBe(12);
     expect(geometry.chrome.action.size).toBe(44);

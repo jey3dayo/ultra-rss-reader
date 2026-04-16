@@ -61,6 +61,8 @@
   "browser_embed_fallback": "外部ブラウザで開きました。",
   "close_browser_embed": "アプリ内ブラウザを閉じる",
   "close_browser_overlay": "Webプレビューを閉じる",
+  "back_to_reader": "Reader に戻る",
+  "back_to_reader_short": "Reader",
   "web_preview_mode": "Webプレビュー",
   "browser_embed_blocked": "このページはアプリ内ブラウザで表示できません。",
   "browser_embed_blocked_hint": "外部ブラウザで開いて確認してください。",

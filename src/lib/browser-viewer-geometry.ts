@@ -32,10 +32,11 @@ export type BrowserViewerGeometry = {
     bottom: number;
   };
   chrome: {
-    close: {
+    visualHeaderHeight: number;
+    leadingSafeInset: number;
+    leading: {
       left: number;
       top: number;
-      size: number;
     };
     action: {
       right: number;
@@ -57,17 +58,12 @@ function resolveMainStageGeometry(
   const compact = viewportWidth <= 768;
   const ultraCompact = viewportWidth <= 520;
   const chromeHorizontalInset = compact ? 12 : 16;
-  const closeVerticalInset = overlayTitlebar ? 20 : 12;
+  const visualHeaderHeight = compact ? 64 : 56;
+  const leadingSafeInset = overlayTitlebar ? (compact ? 64 : 72) : chromeHorizontalInset;
+  const leadingVerticalInset = 12;
   const actionVerticalInset = 12;
-  const closeHorizontalInset = overlayTitlebar ? 10 : chromeHorizontalInset;
-  const closeButtonSize = overlayTitlebar ? 30 : 44;
   const actionButtonSize = 44;
-  const hostTopInset = overlayTitlebar
-    ? 64
-    : compact
-      ? Math.max(closeVerticalInset + closeButtonSize, actionVerticalInset + actionButtonSize) + 8
-      : 56;
-  const diagnosticsTop = compact ? hostTopInset + 2 : diagnosticsVisible ? hostTopInset + 8 : 16;
+  const diagnosticsTop = compact ? visualHeaderHeight + 2 : diagnosticsVisible ? visualHeaderHeight + 8 : 16;
 
   return {
     compact,
@@ -77,12 +73,12 @@ function resolveMainStageGeometry(
       left: 0,
       right: 0,
       top: 0,
-      height: hostTopInset,
+      height: visualHeaderHeight,
       radius: 0,
     },
     stage: {
       left: 0,
-      top: hostTopInset,
+      top: visualHeaderHeight,
       right: 0,
       bottom: 0,
       radius: 0,
@@ -94,10 +90,11 @@ function resolveMainStageGeometry(
       bottom: 0,
     },
     chrome: {
-      close: {
-        left: closeHorizontalInset,
-        top: closeVerticalInset,
-        size: closeButtonSize,
+      visualHeaderHeight,
+      leadingSafeInset,
+      leading: {
+        left: leadingSafeInset,
+        top: leadingVerticalInset,
       },
       action: {
         right: chromeHorizontalInset,
@@ -147,10 +144,11 @@ export function resolveBrowserViewerGeometry({
       bottom: 0,
     },
     chrome: {
-      close: {
+      visualHeaderHeight: 46,
+      leadingSafeInset: 16,
+      leading: {
         left: 16,
         top: 16,
-        size: 46,
       },
       action: {
         right: 16,

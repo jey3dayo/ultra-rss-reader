@@ -156,7 +156,7 @@ function BrowserViewHarness({ scope = "main-stage", onCloseOverlay }: BrowserVie
           scope={scope}
           onCloseOverlay={onCloseOverlay ?? (() => useUiStore.getState().closeBrowser())}
           labels={{
-            closeOverlay: "Close Web Preview",
+            backToReader: "Back to Reader",
           }}
         />
       ) : null}
@@ -290,13 +290,14 @@ describe("BrowserView", () => {
     expect(screen.queryByText("Web Preview")).not.toBeInTheDocument();
     const chrome = screen.getByTestId("browser-overlay-chrome");
     expect(chrome).toBeInTheDocument();
-    const closeButton = within(chrome).getByRole("button", { name: "Close Web Preview" });
+    const closeButton = within(chrome).getByRole("button", { name: "Back to Reader" });
     const externalButton = screen.getByRole("button", { name: /open in external browser/i });
 
     expect(closeButton).toBeInTheDocument();
-    expect(closeButton).toHaveClass("size-11", "md:size-8", "rounded-lg");
+    expect(closeButton).toHaveClass("rounded-full");
+    expect(closeButton).toHaveTextContent("Reader");
     expect(externalButton).toBeInTheDocument();
-    expect(externalButton).toHaveClass("size-11", "md:size-8", "rounded-lg");
+    expect(externalButton).toHaveClass("rounded-full");
     expect(screen.queryByTestId("browser-toolbar")).not.toBeInTheDocument();
     expect(screen.queryByText("https://example.com/article")).not.toBeInTheDocument();
   });
@@ -336,7 +337,7 @@ describe("BrowserView", () => {
 
     await userEvent.setup().click(
       within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
-        name: "Close Web Preview",
+        name: "Back to Reader",
       }),
     );
     expect(onCloseOverlay).toHaveBeenCalledTimes(1);
@@ -409,7 +410,7 @@ describe("BrowserView", () => {
     expect(chrome).toBeInTheDocument();
   });
 
-  it("moves the main-stage close button away from macOS traffic lights when overlay titlebar is active", () => {
+  it("keeps the visual header height while moving the leading action away from macOS traffic lights", () => {
     const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
 
     try {
@@ -443,22 +444,24 @@ describe("BrowserView", () => {
       render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
       const stage = screen.getByTestId("browser-overlay-stage");
-      const chrome = screen.getByTestId("browser-overlay-chrome");
+      const leadingAction = screen.getByTestId("browser-overlay-leading-action");
       const topRail = screen.getByTestId("browser-overlay-top-rail");
 
       expectInlineStyles(stage, {
-        top: "64px",
+        top: "56px",
       });
       expectInlineStyles(topRail, {
-        height: "64px",
+        height: "56px",
       });
-      expectInlineStyles(chrome, {
-        left: "10px",
-        top: "20px",
+      expectInlineStyles(leadingAction, {
+        left: "72px",
+        top: "12px",
       });
-      const closeButton = within(chrome).getByRole("button", { name: "Close Web Preview" });
-      expect(closeButton).toHaveClass("size-[30px]");
-      expect(closeButton).not.toHaveClass("size-10");
+      const closeButton = within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
+        name: "Back to Reader",
+      });
+      expect(closeButton).toHaveClass("rounded-full");
+      expect(closeButton).toHaveTextContent("Reader");
     } finally {
       if (originalTauriInternalsDescriptor) {
         Object.defineProperty(window, "__TAURI_INTERNALS__", originalTauriInternalsDescriptor);
@@ -526,7 +529,7 @@ describe("BrowserView", () => {
     const stage = screen.getByTestId("browser-overlay-stage");
     const chrome = screen.getByTestId("browser-overlay-chrome");
     const externalButton = screen.getByRole("button", { name: /open in external browser/i });
-    const closeButton = within(chrome).getByRole("button", { name: "Close Web Preview" });
+    const closeButton = within(chrome).getByRole("button", { name: "Back to Reader" });
 
     expectInlineStyles(stage, {
       left: "0px",
@@ -537,6 +540,7 @@ describe("BrowserView", () => {
     });
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
     expect(closeButton).toBeInTheDocument();
+    expect(closeButton).toHaveClass("size-11");
     expect(externalButton).toBeInTheDocument();
   });
 
@@ -563,6 +567,23 @@ describe("BrowserView", () => {
     });
     expect(stage).toHaveStyle({ top: "64px" });
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
+  });
+
+  it("renders browser overlay tooltips above the chrome layer", async () => {
+    setWindowSize(500, 900);
+    mockRootRect({ left: 0, top: 0, width: 500, height: 900 });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    await userEvent.setup().hover(screen.getByRole("button", { name: "Back to Reader" }));
+
+    expect(await screen.findByText("Back to Reader")).toHaveClass("z-[80]");
   });
 
   it("hides the debug hud when the saved preference is false", async () => {

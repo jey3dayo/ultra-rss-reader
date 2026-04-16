@@ -19,7 +19,7 @@ export function AppTooltip({ label, children }: AppTooltipProps) {
       <Tooltip.Trigger render={children} />
       <Tooltip.Portal>
         <Tooltip.Positioner side="bottom" sideOffset={8}>
-          <Tooltip.Popup className="z-50 rounded-md border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-lg">
+          <Tooltip.Popup className="z-[80] rounded-md border border-border/80 bg-popover/98 px-2.5 py-1.5 text-xs text-popover-foreground shadow-elevation-3 backdrop-blur-sm">
             {label}
           </Tooltip.Popup>
         </Tooltip.Positioner>

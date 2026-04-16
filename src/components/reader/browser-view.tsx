@@ -21,6 +21,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, to
       />
       {controller.geometry.chromeRail.visible ? (
         <div
+          data-tauri-drag-region
           aria-hidden="true"
           data-testid="browser-overlay-top-rail"
           style={{
@@ -30,7 +31,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, to
             height: `${controller.geometry.chromeRail.height}px`,
             borderRadius: `${controller.geometry.chromeRail.radius}px`,
           }}
-          className="pointer-events-none absolute z-[50] border border-border/60 bg-background/35 shadow-elevation-2 backdrop-blur-md"
+          className="pointer-events-none absolute z-[50] border-b border-border/55 bg-gradient-to-b from-background/86 via-background/60 to-background/15 backdrop-blur-md"
         />
       ) : null}
       <div
@@ -41,7 +42,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, to
       />
       <BrowserOverlayChrome
         controller={controller}
-        closeOverlayLabel={labels.closeOverlay}
+        backToReaderLabel={labels.backToReader}
         toolbarActions={toolbarActions}
       />
       <BrowserOverlayStage controller={controller} />

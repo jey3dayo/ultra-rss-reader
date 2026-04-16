@@ -1,21 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
   getBrowserOverlayActionButtonClass,
-  getBrowserOverlayCloseButtonClass,
+  getBrowserOverlayLeadingActionClass,
   getBrowserOverlayStageClass,
 } from "@/components/reader/browser-overlay-presentation";
 
 describe("browser-overlay-presentation", () => {
-  it("returns the compact and desktop close button variants", () => {
-    expect(getBrowserOverlayCloseButtonClass(true)).toContain("bg-background/72");
-    expect(getBrowserOverlayCloseButtonClass(false)).toContain("bg-background/78");
-    expect(getBrowserOverlayCloseButtonClass(false, true)).toContain("size-[30px]");
-    expect(getBrowserOverlayCloseButtonClass(false, true)).not.toContain("size-10");
+  it("returns the compact and desktop leading action variants", () => {
+    expect(getBrowserOverlayLeadingActionClass(true)).toContain("bg-background/78");
+    expect(getBrowserOverlayLeadingActionClass(true)).toContain("size-11");
+    expect(getBrowserOverlayLeadingActionClass(false)).toContain("bg-background/78");
+    expect(getBrowserOverlayLeadingActionClass(false)).toContain("px-3");
+    expect(getBrowserOverlayLeadingActionClass(false)).toContain("rounded-full");
   });
 
   it("returns the compact and desktop action button variants", () => {
-    expect(getBrowserOverlayActionButtonClass(true)).toContain("bg-background/72");
-    expect(getBrowserOverlayActionButtonClass(false)).toContain("bg-background/74");
+    expect(getBrowserOverlayActionButtonClass(true)).toContain("bg-background/78");
+    expect(getBrowserOverlayActionButtonClass(false)).toContain("bg-background/78");
+    expect(getBrowserOverlayActionButtonClass(false)).toContain("rounded-full");
   });
 
   it("returns the stage shell variant for each scope", () => {

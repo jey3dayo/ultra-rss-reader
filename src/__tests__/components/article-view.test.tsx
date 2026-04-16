@@ -282,7 +282,7 @@ describe("ArticleView", () => {
     });
 
     fireEvent.click(
-      await within(screen.getByTestId("browser-overlay-chrome")).findByRole("button", { name: "Close Web Preview" }),
+      await within(screen.getByTestId("browser-overlay-chrome")).findByRole("button", { name: "Back to Reader" }),
     );
 
     await waitFor(() => {
@@ -340,7 +340,7 @@ describe("ArticleView", () => {
     });
 
     fireEvent.click(
-      await within(screen.getByTestId("browser-overlay-chrome")).findByRole("button", { name: "Close Web Preview" }),
+      await within(screen.getByTestId("browser-overlay-chrome")).findByRole("button", { name: "Back to Reader" }),
     );
 
     await waitFor(() => {
@@ -451,7 +451,7 @@ describe("ArticleView", () => {
     });
 
     fireEvent.click(
-      await within(screen.getByTestId("browser-overlay-chrome")).findByRole("button", { name: "Close Web Preview" }),
+      await within(screen.getByTestId("browser-overlay-chrome")).findByRole("button", { name: "Back to Reader" }),
     );
 
     await waitFor(() => {
@@ -512,7 +512,7 @@ describe("ArticleView", () => {
     });
 
     const closeOverlayButton = await within(screen.getByTestId("browser-overlay-chrome")).findByRole("button", {
-      name: "Close Web Preview",
+      name: "Back to Reader",
     });
     closeOverlayButton.focus();
     expect(closeOverlayButton).toHaveFocus();
@@ -1084,7 +1084,7 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    expect(await screen.findByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Back to Reader" })).toBeInTheDocument();
     expect(screen.queryByText("Select an article to read")).not.toBeInTheDocument();
     expect(useUiStore.getState().contentMode).toBe("browser");
     expect(useUiStore.getState().browserUrl).toBe(previewUrl);
@@ -1122,7 +1122,7 @@ describe("ArticleView", () => {
     });
     rerender(<ArticleView />);
 
-    await userEvent.setup().click(await screen.findByRole("button", { name: "Close Web Preview" }));
+    await userEvent.setup().click(await screen.findByRole("button", { name: "Back to Reader" }));
 
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("empty");
