@@ -45,6 +45,25 @@ describe("Design-themed UI primitives", () => {
     expect(screen.getByRole("combobox", { name: "Theme" })).toHaveClass("bg-surface-1", "border-border");
   });
 
+  it("uses semantic danger borders for invalid field states", () => {
+    render(
+      <>
+        <Input aria-label="Broken URL" aria-invalid={true} />
+        <Select value="light" onValueChange={vi.fn()}>
+          <SelectTrigger aria-label="Theme" aria-invalid={true}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectPopup>
+            <SelectItem value="light">Light</SelectItem>
+          </SelectPopup>
+        </Select>
+      </>,
+    );
+
+    expect(screen.getByRole("textbox", { name: "Broken URL" })).toHaveClass("aria-invalid:border-state-danger-border");
+    expect(screen.getByRole("combobox", { name: "Theme" })).toHaveClass("aria-invalid:border-state-danger-border");
+  });
+
   it("uses semantic success tokens for checked checkboxes", () => {
     render(<Checkbox aria-label="Keep selected" checked={true} onCheckedChange={vi.fn()} />);
 

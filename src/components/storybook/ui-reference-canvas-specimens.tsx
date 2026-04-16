@@ -273,9 +273,9 @@ export function ValidationRowSpecimen() {
           value="freshrss.local"
           onChange={() => {}}
           placeholder="https://your-freshrss.example"
-          inputClassName="border-destructive/40 ring-destructive/10"
+          inputClassName="border-state-danger-border ring-destructive/10"
         />
-        <p className="pt-2 pl-[0.02rem] font-serif text-xs leading-[1.45] text-destructive">
+        <p className="pt-2 pl-[0.02rem] font-serif text-xs leading-[1.45] text-state-danger-foreground">
           URL は `https://` から始めてください。
         </p>
       </div>
