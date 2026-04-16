@@ -85,7 +85,7 @@ export function SettingsPageView({ title, sections, sectionSurface = "flat" }: S
           note={section.note}
           surface={sectionSurface}
           className={index === sections.length - 1 ? undefined : "mb-4 sm:mb-5"}
-          headingClassName="mb-3 sm:mb-4"
+          headingClassName="mb-1.5 sm:mb-2"
         >
           {section.controls.map((control) =>
             control.type === "select" ? (

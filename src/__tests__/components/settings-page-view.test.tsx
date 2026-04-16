@@ -43,7 +43,7 @@ describe("SettingsPageView", () => {
       backgroundColor: "var(--settings-shell-content-header)",
     });
     expect(container.querySelector('[data-surface-card="section"]')).toBeNull();
-    expect(screen.getByRole("heading", { name: "Language" })).toHaveClass("mb-3");
+    expect(screen.getByRole("heading", { name: "Language" })).toHaveClass("mb-1.5");
     expect(screen.getByText("Changes apply after restart.")).toHaveClass("mt-1.5");
     expect(screen.getByRole("combobox", { name: "Language" })).toHaveClass("w-full");
   });
