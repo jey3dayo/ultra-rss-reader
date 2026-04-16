@@ -49,7 +49,7 @@ export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSum
                 </span>
                 <span className="mt-2 block text-3xl font-semibold tracking-tight text-foreground">{card.value}</span>
                 {helperText ? (
-                  <LabelChip tone="muted" className="mt-3 text-foreground/84">
+                  <LabelChip tone="muted" className="mt-3 text-foreground-soft">
                     {helperText}
                   </LabelChip>
                 ) : null}
