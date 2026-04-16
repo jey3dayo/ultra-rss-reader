@@ -188,6 +188,15 @@ Surface governance:
 - Shadow transitions: 200ms ease
 - Transform feedback should remain subtle
 
+### Theme Transition
+
+- Theme changes should feel soft and atmospheric rather than flashy or theatrical.
+- Prefer app-wide transitions on color, border, and shadow only when switching between light and dark themes.
+- Keep theme transition duration short, typically in the 150-200ms range.
+- Use smooth easing that feels editorial and restrained rather than playful or bouncy.
+- Avoid large transforms, blurs, zooms, or full-screen wipes for theme switching.
+- Respect `prefers-reduced-motion` by removing or minimizing theme transition animation.
+
 ## Responsive Behavior
 
 ### Breakpoints

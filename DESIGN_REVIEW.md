@@ -108,3 +108,4 @@ If the direction is unclear:
 - Prefer the smallest fix that increases reuse.
 - Keep design specs and review operations separate.
 - If a local exception is intentional, document the reason in review output.
+- If a motion rule affects multiple screens or shell-level behavior, document it in `DESIGN.md` instead of leaving it feature-local.
