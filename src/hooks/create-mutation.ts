@@ -4,13 +4,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function createMutation<TArgs, TData = void>(
   mutationFn: (args: TArgs) => Result.ResultAsync<TData, { message: string }>,
-  invalidate: (qc: QueryClient) => void,
+  invalidate: (qc: QueryClient, args: TArgs, data: TData) => void,
 ) {
   return function useGeneratedMutation() {
     const qc = useQueryClient();
     return useMutation({
       mutationFn: (args: TArgs) => mutationFn(args).then(Result.unwrap()),
-      onSuccess: () => invalidate(qc),
+      onSuccess: (data, args) => invalidate(qc, args, data),
     });
   };
 }

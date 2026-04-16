@@ -62,6 +62,85 @@ function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: b
   qc.setQueriesData({ queryKey: ["search"] }, updateArticleArray);
 }
 
+function isArticleDto(candidate: unknown): candidate is ArticleDto {
+  return (
+    !!candidate &&
+    typeof candidate === "object" &&
+    "id" in candidate &&
+    "is_read" in candidate &&
+    "is_starred" in candidate
+  );
+}
+
+function findCachedArticle(qc: QueryClient, articleId: string): ArticleDto | null {
+  const queryKeys = [["articles"], ["accountArticles"], ["articlesByTag"], ["search"], ["starredArticles"]] as const;
+
+  for (const queryKey of queryKeys) {
+    const matches = qc.getQueriesData<unknown>({ queryKey });
+    for (const [, data] of matches) {
+      if (!Array.isArray(data)) {
+        continue;
+      }
+
+      const article = data.find((candidate) => isArticleDto(candidate) && candidate.id === articleId);
+      if (article && isArticleDto(article)) {
+        return article;
+      }
+    }
+  }
+
+  return null;
+}
+
+function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred: boolean) {
+  const updateArticleArray = (current: unknown) => {
+    if (!Array.isArray(current)) {
+      return current;
+    }
+
+    return current.map((candidate) => {
+      if (isArticleDto(candidate)) {
+        return candidate.id === articleId ? { ...candidate, is_starred: starred } : candidate;
+      }
+
+      return candidate;
+    });
+  };
+
+  qc.setQueriesData({ queryKey: ["articles"] }, updateArticleArray);
+  qc.setQueriesData({ queryKey: ["accountArticles"] }, updateArticleArray);
+  qc.setQueriesData({ queryKey: ["articlesByTag"] }, updateArticleArray);
+  qc.setQueriesData({ queryKey: ["search"] }, updateArticleArray);
+
+  qc.setQueriesData({ queryKey: ["starredArticles"] }, (current: unknown) => {
+    if (!Array.isArray(current)) {
+      return current;
+    }
+
+    const updatedArticle = findCachedArticle(qc, articleId);
+    const starredArticles = current.filter(isArticleDto);
+    const hasArticle = starredArticles.some((article) => article.id === articleId);
+
+    if (!starred) {
+      return starredArticles.filter((article) => article.id !== articleId);
+    }
+
+    if (updatedArticle === null) {
+      return hasArticle
+        ? starredArticles.map((article) => (article.id === articleId ? { ...article, is_starred: true } : article))
+        : starredArticles;
+    }
+
+    const nextArticle = { ...updatedArticle, is_starred: true };
+
+    if (hasArticle) {
+      return starredArticles.map((article) => (article.id === articleId ? nextArticle : article));
+    }
+
+    return [nextArticle, ...starredArticles];
+  });
+}
+
 export const useArticles = createQuery("articles", listArticles);
 
 export const useAccountArticles = createQuery("accountArticles", listAccountArticles);
@@ -114,5 +193,8 @@ export function useSearchArticles(accountId: string | null, query: string) {
 
 export const useToggleStar = createMutation(
   ({ id, starred }: ToggleStarMutationInput) => toggleArticleStar(id, starred),
-  invalidateArticleQueries,
+  (qc, variables) => {
+    patchCachedArticleStarState(qc, variables.id, variables.starred);
+    invalidateArticleQueries(qc);
+  },
 );
