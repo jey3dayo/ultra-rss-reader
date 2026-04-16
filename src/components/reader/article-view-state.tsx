@@ -23,7 +23,7 @@ export function BrowserOverlaySurface({
           scope="main-stage"
           onCloseOverlay={onCloseOverlay}
           labels={{
-            backToReader: t("back_to_reader"),
+            closeWebPreview: t("close_browser_overlay"),
           }}
           toolbarActions={toolbarActions}
         />

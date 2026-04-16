@@ -241,8 +241,8 @@ describe("ArticleToolbarView", () => {
       "Toggle read",
       "Toggle star",
       "Open Web Preview",
-      "Copy link",
       "Open in External Browser",
+      "Copy link",
     ]);
   });
 

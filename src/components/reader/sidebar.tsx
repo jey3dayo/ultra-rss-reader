@@ -15,7 +15,7 @@ export function Sidebar() {
       <SmartViewsView {...smartViewsProps} />
 
       <div className="px-4 py-2">
-        <div className="h-px bg-sidebar-border/35" />
+        <div className="h-px bg-[var(--sidebar-divider-strong)]" />
       </div>
 
       <SidebarContentSections {...contentSectionsProps} />

@@ -2,8 +2,14 @@ import { Menu } from "@base-ui/react/menu";
 import { Copy, Ellipsis, ExternalLink, Eye, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
-import { IconToolbarButton, IconToolbarMenuTrigger, IconToolbarToggle } from "@/components/shared/icon-toolbar-control";
+import {
+  IconToolbarButton,
+  IconToolbarMenuTrigger,
+  IconToolbarToggle,
+  iconToolbarSurfaceControlVariants,
+} from "@/components/shared/icon-toolbar-control";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import type {
   ArticleToolbarActionStripProps,
@@ -11,11 +17,6 @@ import type {
   ArticleToolbarViewProps,
 } from "./article-toolbar.types";
 import { contextMenuStyles } from "./context-menu-styles";
-
-const compactOverlayActionButtonClassName =
-  "flex size-full items-center justify-center rounded-full bg-transparent text-foreground outline-none focus-visible:outline-none";
-const regularOverlayActionButtonClassName =
-  "flex h-full items-center justify-center rounded-full bg-transparent text-foreground outline-none focus-visible:outline-none";
 
 function ArticleToolbarMoreMenu({
   showCopyLinkButton,
@@ -50,16 +51,16 @@ function ArticleToolbarMoreMenu({
       <Menu.Portal>
         <Menu.Positioner sideOffset={4}>
           <Menu.Popup className={contextMenuStyles.popup}>
-            {showCopyLinkButton && canCopyLink ? (
-              <Menu.Item className={contextMenuStyles.item} onClick={onCopyLink}>
-                <Copy className="mr-2 h-4 w-4" />
-                {labels.copyLink}
-              </Menu.Item>
-            ) : null}
             {showOpenInExternalBrowserButton && canOpenInExternalBrowser ? (
               <Menu.Item className={contextMenuStyles.item} onClick={onOpenInExternalBrowser}>
                 <ExternalLink className="mr-2 h-4 w-4" />
                 {labels.openInExternalBrowser}
+              </Menu.Item>
+            ) : null}
+            {showCopyLinkButton && canCopyLink ? (
+              <Menu.Item className={contextMenuStyles.item} onClick={onCopyLink}>
+                <Copy className="mr-2 h-4 w-4" />
+                {labels.copyLink}
               </Menu.Item>
             ) : null}
           </Menu.Popup>
@@ -122,11 +123,6 @@ export function ArticleToolbarActionStrip({
           <Eye className="h-4 w-4" />
         </IconToolbarToggle>
       )}
-      {showCopyLinkButton && !isMobile && (
-        <IconToolbarButton label={labels.copyLink} onClick={onCopyLink} disabled={!canCopyLink}>
-          <Copy className="h-4 w-4" />
-        </IconToolbarButton>
-      )}
       {showOpenInExternalBrowserButton && !hideBrowserOverlayActions && !isMobile && (
         <IconToolbarButton
           label={labels.openInExternalBrowser}
@@ -134,6 +130,11 @@ export function ArticleToolbarActionStrip({
           disabled={!canOpenInExternalBrowser}
         >
           <ExternalLink className="h-4 w-4" />
+        </IconToolbarButton>
+      )}
+      {showCopyLinkButton && !isMobile && (
+        <IconToolbarButton label={labels.copyLink} onClick={onCopyLink} disabled={!canCopyLink}>
+          <Copy className="h-4 w-4" />
         </IconToolbarButton>
       )}
       {isMobile ? (
@@ -157,6 +158,7 @@ function ArticleToolbarOverlayActionButton({
   label,
   disabled = false,
   pressed,
+  pressedTone,
   onClick,
   focusTargetKey,
   children,
@@ -165,13 +167,12 @@ function ArticleToolbarOverlayActionButton({
   label: string;
   disabled?: boolean;
   pressed?: boolean;
+  pressedTone?: "none" | "neutral" | "accent";
   onClick: () => void;
   focusTargetKey?: string;
   children: ReactNode;
 }) {
-  const buttonClassName = overlayActionRenderer.compact
-    ? compactOverlayActionButtonClassName
-    : regularOverlayActionButtonClassName;
+  const buttonClassName = cn(iconToolbarSurfaceControlVariants({ pressedTone }), "size-full");
 
   return overlayActionRenderer.renderAction(
     <button
@@ -236,20 +237,11 @@ export function ArticleToolbarOverlayActions({
           label={isBrowserOpen ? labels.previewToggleOn : labels.previewToggleOff}
           disabled={!canOpenInBrowser}
           pressed={isBrowserOpen}
+          pressedTone="accent"
           onClick={onOpenInBrowser}
           focusTargetKey="open-in-browser"
         >
           <Eye className="h-4 w-4" />
-        </ArticleToolbarOverlayActionButton>
-      ) : null}
-      {showCopyLinkButton ? (
-        <ArticleToolbarOverlayActionButton
-          overlayActionRenderer={overlayActionRenderer}
-          label={labels.copyLink}
-          disabled={!canCopyLink}
-          onClick={onCopyLink}
-        >
-          <Copy className="h-4 w-4" />
         </ArticleToolbarOverlayActionButton>
       ) : null}
       {showOpenInExternalBrowserButton && !hideBrowserOverlayActions ? (
@@ -260,6 +252,16 @@ export function ArticleToolbarOverlayActions({
           onClick={onOpenInExternalBrowser}
         >
           <ExternalLink className="h-4 w-4" />
+        </ArticleToolbarOverlayActionButton>
+      ) : null}
+      {showCopyLinkButton ? (
+        <ArticleToolbarOverlayActionButton
+          overlayActionRenderer={overlayActionRenderer}
+          label={labels.copyLink}
+          disabled={!canCopyLink}
+          onClick={onCopyLink}
+        >
+          <Copy className="h-4 w-4" />
         </ArticleToolbarOverlayActionButton>
       ) : null}
       {shareMenuControl ? overlayActionRenderer.renderAction(shareMenuControl, { key: "share-menu" }) : null}

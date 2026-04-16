@@ -2,19 +2,23 @@ import type { ArticleListContextStripProps } from "./article-list.types";
 
 const TONE_STYLES = {
   unread: {
-    accent: "bg-blue-400/80",
-    primary: "text-blue-300",
-    secondary: "text-blue-200/70",
+    accent: "bg-[var(--tone-unread)]",
+    primary:
+      "text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))] font-semibold",
+    secondary:
+      "text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))] opacity-80",
   },
   starred: {
-    accent: "bg-yellow-400/85",
-    primary: "text-yellow-300",
-    secondary: "text-yellow-200/75",
+    accent: "bg-[var(--tone-starred)]",
+    primary:
+      "text-[color-mix(in_srgb,var(--tone-starred)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
+    secondary:
+      "text-[color-mix(in_srgb,var(--tone-starred)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))] opacity-80",
   },
   neutral: {
-    accent: "bg-border",
-    primary: "text-muted-foreground",
-    secondary: "text-muted-foreground/80",
+    accent: "bg-[var(--sidebar-divider-strong)]",
+    primary: "text-[var(--sidebar-foreground-muted-strong)]",
+    secondary: "text-[var(--sidebar-foreground-soft-strong)]",
   },
 } as const;
 
@@ -30,7 +34,7 @@ export function ArticleListContextStrip({ primaryLabel, secondaryLabel, tone }: 
       data-testid="article-list-context-strip"
       data-style="band"
       data-tone={tone ?? "neutral"}
-      className="relative flex items-center justify-between border-b border-border/80 bg-card/95 px-4 py-1.5"
+      className="relative flex items-center justify-between border-b border-[var(--reader-context-border)] bg-card/95 px-4 py-1.5"
     >
       <span
         aria-hidden="true"
@@ -39,7 +43,7 @@ export function ArticleListContextStrip({ primaryLabel, secondaryLabel, tone }: 
       {primaryLabel ? (
         <span
           data-emphasis="primary"
-          className={`text-[11px] font-medium tracking-[0.14em] uppercase ${toneStyle.primary}`}
+          className={`text-[11px] font-medium tracking-[0.12em] uppercase ${toneStyle.primary}`}
         >
           {primaryLabel}
         </span>
@@ -47,7 +51,7 @@ export function ArticleListContextStrip({ primaryLabel, secondaryLabel, tone }: 
       {secondaryLabel ? (
         <span
           data-emphasis="secondary"
-          className={`text-[10px] font-medium tracking-[0.14em] uppercase ${toneStyle.secondary}`}
+          className={`text-[10px] font-medium tracking-[0.12em] uppercase ${toneStyle.secondary}`}
         >
           {secondaryLabel}
         </span>

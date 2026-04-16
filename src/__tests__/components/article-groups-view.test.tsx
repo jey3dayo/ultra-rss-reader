@@ -41,7 +41,9 @@ describe("ArticleGroupsView", () => {
       />,
     );
 
-    expect(screen.getAllByText("Tech Blog").length).toBeGreaterThan(0);
+    const headings = screen.getAllByText("Tech Blog");
+    expect(headings.length).toBeGreaterThan(0);
+    expect(headings[0]).toHaveClass("text-[11px]", "tracking-[0.12em]", "text-foreground-soft");
     expect(screen.getByRole("option", { name: /Second Article/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByTestId(`row-${sampleArticles[0].id}`)).toBeInTheDocument();
 
