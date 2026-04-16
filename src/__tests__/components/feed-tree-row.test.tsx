@@ -102,4 +102,23 @@ describe("FeedTreeRow", () => {
 
     expect(dragButton).toHaveClass("hover:bg-sidebar-accent/28");
   });
+
+  it("uses a softer armed tone for the drag handle", () => {
+    render(
+      <FeedTreeRow
+        feed={{ ...baseFeed, isSelected: false }}
+        displayFavicons={false}
+        onSelectFeed={vi.fn()}
+        canDragFeeds={true}
+        isDragged={true}
+        onDragStartFeed={vi.fn()}
+        onPointerDownFeed={vi.fn()}
+        consumeSuppressedHandleClick={() => false}
+      />,
+    );
+
+    const dragButton = screen.getByRole("button", { name: "Drag Alpha" });
+
+    expect(dragButton).toHaveClass("bg-sidebar-accent/32");
+  });
 });

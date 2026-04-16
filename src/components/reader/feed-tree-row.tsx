@@ -40,7 +40,7 @@ function DragHandle({
       }}
       className={cn(
         "cursor-grab text-sidebar-foreground/40 hover:bg-sidebar-accent/28 hover:text-foreground active:cursor-grabbing",
-        isArmed && "bg-sidebar-accent/60 text-foreground opacity-100",
+        isArmed && "bg-sidebar-accent/32 text-foreground opacity-100",
       )}
     >
       <GripVertical className="h-3 w-3" aria-hidden="true" />

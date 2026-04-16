@@ -33,7 +33,7 @@ export function FeedTreeFolderSection({
 
   return (
     <div
-      className={cn("relative rounded-md", isActive && "bg-sidebar-accent/20")}
+      className={cn("relative rounded-md", isActive && "bg-sidebar-accent/16")}
       {...(canDragFeeds
         ? {
             [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "folder",
@@ -94,7 +94,7 @@ export function FeedTreeFolderSection({
                   : {})}
                 className={cn(
                   "flex-1 px-0.5 pl-1.5",
-                  isActive && "border-dashed bg-sidebar-accent/60 ring-1 ring-sidebar-border",
+                  isActive && "border-dashed bg-sidebar-accent/32 ring-1 ring-sidebar-border",
                 )}
               />
             }

@@ -34,4 +34,25 @@ describe("FeedTreeFolderSection", () => {
     expect(folderButton).not.toHaveClass("pl-0");
     expect(toggleButton).toHaveClass("hover:bg-sidebar-accent/28");
   });
+
+  it("uses a softer active drop tone for folder targets", () => {
+    render(
+      <FeedTreeFolderSection
+        folder={baseFolder}
+        activeDropTarget={{ kind: "folder", folderId: "folder-1" }}
+        draggedFeedId="feed-2"
+        onToggleFolder={vi.fn()}
+        onSelectFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+        canDragFeeds={true}
+      />,
+    );
+
+    const folderButton = screen.getByRole("button", { name: "Select folder Comic" });
+    const row = folderButton.closest("div.rounded-md");
+
+    expect(row).toHaveClass("bg-sidebar-accent/16");
+    expect(folderButton).toHaveClass("bg-sidebar-accent/32");
+  });
 });
