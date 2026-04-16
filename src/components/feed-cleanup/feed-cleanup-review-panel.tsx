@@ -159,30 +159,15 @@ export function FeedCleanupReviewPanel({
               padding="compact"
               className="grid grid-cols-3 gap-2 shadow-none"
             >
-              <DecisionButton
-                intent="keep"
-                aria-label={keepLabel}
-                onClick={onKeep}
-                className="w-full min-w-0"
-              >
+              <DecisionButton intent="keep" aria-label={keepLabel} onClick={onKeep} className="w-full min-w-0">
                 <Check className="h-4 w-4" />
                 {keepLabel}
               </DecisionButton>
-              <DecisionButton
-                intent="defer"
-                aria-label={laterLabel}
-                onClick={onLater}
-                className="w-full min-w-0"
-              >
+              <DecisionButton intent="defer" aria-label={laterLabel} onClick={onLater} className="w-full min-w-0">
                 <Clock3 className="h-4 w-4" />
                 {laterLabel}
               </DecisionButton>
-              <DecisionButton
-                intent="delete"
-                aria-label={deleteLabel}
-                onClick={onDelete}
-                className="w-full min-w-0"
-              >
+              <DecisionButton intent="delete" aria-label={deleteLabel} onClick={onDelete} className="w-full min-w-0">
                 <Trash2 className="h-4 w-4" />
                 {deleteLabel}
               </DecisionButton>

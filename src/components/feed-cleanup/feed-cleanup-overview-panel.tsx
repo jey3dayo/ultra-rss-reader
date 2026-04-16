@@ -36,10 +36,7 @@ export function FeedCleanupOverviewPanel({
     >
       <h2 className="sr-only">{overviewLabel}</h2>
       <div className="space-y-4">
-        <div
-          data-testid="feed-cleanup-sidebar-summary"
-          className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-4"
-        >
+        <div data-testid="feed-cleanup-sidebar-summary" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-4">
           {summaryCards.map((card) => (
             <SurfaceCard
               key={`${card.label}-${card.caption}`}
