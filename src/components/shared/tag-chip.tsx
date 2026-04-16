@@ -25,7 +25,7 @@ export function TagChip({ label, color, onRemove, removeLabel, className }: TagC
         <button
           type="button"
           onClick={onRemove}
-          className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground/60 opacity-0 transition-[opacity,color,background-color] group-hover/tag-chip:opacity-100 group-focus-within/tag-chip:opacity-100 hover:bg-muted/45 hover:text-foreground focus-visible:opacity-100"
+          className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground/60 opacity-0 transition-[opacity,color,background-color] group-hover/tag-chip:opacity-100 group-focus-within/tag-chip:opacity-100 hover:bg-surface-1/72 hover:text-foreground focus-visible:opacity-100"
           aria-label={removeLabel}
         >
           <X className="h-3 w-3" />

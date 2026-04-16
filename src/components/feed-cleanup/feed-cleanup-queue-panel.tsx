@@ -158,7 +158,7 @@ export function FeedCleanupQueuePanel({
                 tone={isCurrent || isSelected ? "default" : "subtle"}
                 padding="compact"
                 className={cn(
-                  "rounded-md transition-colors duration-150",
+                  "rounded-md transition-colors duration-150 hover:bg-surface-1/72",
                   isCurrent || isSelected ? "border-border-strong shadow-none" : "border-border/55 shadow-none",
                   isFocused && "ring-1 ring-primary/30",
                 )}

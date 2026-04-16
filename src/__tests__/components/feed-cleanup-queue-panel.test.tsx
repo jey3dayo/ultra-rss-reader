@@ -155,6 +155,7 @@ describe("FeedCleanupQueuePanel", () => {
     const queueRow = screen.getByTestId("feed-cleanup-queue-row-feed-1");
 
     expect(queueRow).toHaveStyle({ backgroundColor: "var(--cleanup-card-surface-muted)" });
+    expect(queueRow).toHaveClass("hover:bg-surface-1/72");
   });
 
   it("uses rounded-md for empty states and integrity queue rows", () => {

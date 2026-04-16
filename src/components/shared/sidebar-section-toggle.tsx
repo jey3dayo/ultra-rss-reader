@@ -9,7 +9,7 @@ export function SidebarSectionToggle({ label, isOpen, onToggle, className, conte
       type="button"
       onClick={onToggle}
       className={cn(
-        "flex w-full items-center justify-between rounded-md px-2 py-1 text-sidebar-foreground transition-colors duration-150 hover:bg-sidebar-accent/35",
+        "flex w-full items-center justify-between rounded-md px-2 py-1 text-sidebar-foreground transition-colors duration-150 hover:bg-sidebar-accent/28",
         className,
       )}
     >
