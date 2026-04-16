@@ -16,6 +16,7 @@ Use this document when:
 - deciding whether a problem belongs in `DESIGN.md`
 - deciding whether a fix should live in `shared`
 - deciding whether a fix should stay feature-local
+- reviewing settings-form alignment, control placement, or radius consistency
 
 Do not use this document as a replacement for `DESIGN.md`. If the question is about color, typography, spacing, component appearance, or layout principles, read `DESIGN.md` first.
 After reading `DESIGN.md`, consult the Storybook UI Reference catalog in this order before introducing new UI patterns:
@@ -27,10 +28,12 @@ After reading `DESIGN.md`, consult the Storybook UI Reference catalog in this or
 Routing rules:
 
 - form rows, validation, and disabled states go in `Input Controls Canvas`
+- settings-form row behavior, control rail alignment, and shared radius rules belong in `shared` once they repeat
 - app-level outer frames, dialog shells, and menu shells go in `Shell & Overlay Canvas`
 - feature-local display fragments and density specimens go in `View Specimens Canvas`
 - do not mix shell examples into section or form reference surfaces
 - when adjusting radius in these reference canvases, prefer shared scale utilities such as `rounded-md` through `rounded-2xl` instead of pixel literals
+- feature-local exceptions to shared form-row behavior require explicit review justification
 
 ## Review Flow
 
@@ -57,6 +60,7 @@ Promote a fix into `shared` only when all of these are true:
 - the state model is the same
 - the accessibility behavior is the same
 - the pattern is repeated or clearly reusable
+- the row alignment rule or radius rule should stay consistent across multiple settings surfaces
 
 Do not promote a component into `shared` only because it looks similar.
 
@@ -108,6 +112,17 @@ Prioritize these questions during review:
 4. Is the current component a valid local exception?
 5. Will the result remain reusable for Stitch or agent-driven UI generation?
 
+### Settings Form Checklist
+
+When reviewing settings rows or input-control specimens, check these before suggesting a new pattern:
+
+- label column is stable
+- control column is stable
+- controls resolve against one shared right-column endpoint
+- shared primitives use approved Tailwind radius tokens only
+- compact controls do not invent one-off placement
+- `DESIGN.md` and `UI Reference / Input Controls Canvas` were checked before proposing a feature-local fix
+
 ## Escalation
 
 If the direction is unclear:
@@ -121,3 +136,4 @@ If the direction is unclear:
 - Keep design specs and review operations separate.
 - If a local exception is intentional, document the reason in review output.
 - If a motion rule affects multiple screens or shell-level behavior, document it in `DESIGN.md` instead of leaving it feature-local.
+- If a settings-form issue appears in multiple rows or multiple settings pages, treat it as a `DESIGN.md` plus `shared` concern before considering feature-local overrides.

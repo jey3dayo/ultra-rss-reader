@@ -18,33 +18,33 @@ When no exact token applies, prefer these defaults:
 
 The base palette names in this section are for Stitch-style design system description and are not a 1:1 mapping to the current CSS token names in `src/styles/global.css`.
 
-- **Primary** (`#f54e00`): CTAs, active states, brand-highlight moments, key interactive emphasis
-- **Secondary** (`#c08532`): Supporting highlights, premium accents, secondary emphasis
-- **Tertiary** (`#cf2d56`): Hover emphasis, destructive/error-adjacent accents, expressive interaction feedback
-- **Neutral** (`#26251e`): Text anchor, dark surfaces, border base, tonal reference for the whole system
+- Primary (`#f54e00`): CTAs, active states, brand-highlight moments, key interactive emphasis
+- Secondary (`#c08532`): Supporting highlights, premium accents, secondary emphasis
+- Tertiary (`#cf2d56`): Hover emphasis, destructive/error-adjacent accents, expressive interaction feedback
+- Neutral (`#26251e`): Text anchor, dark surfaces, border base, tonal reference for the whole system
 
 Derived roles used across the product:
 
-- **Canvas** (`#f2f1ed`): Default page background and primary warm cream surface
-- **Surface 100** (`#f7f7f4`): Lightest surface for popovers and subtle controls
-- **Surface 300** (`#ebeae5`): Muted interactive surface, default button background, list emphasis
-- **Surface 400** (`#e6e5e0`): Card background and secondary surface
-- **Surface 500** (`#e1e0db`): Selected surface, tertiary emphasis, deeper muted surface
-- **Text / Foreground** (`#26251e`): Primary text and icon color
-- **Muted Foreground** (`rgba(38, 37, 30, 0.74)`): Secondary text and helper copy
-- **Soft Foreground** (`rgba(38, 37, 30, 0.58)`): Tertiary labels and lighter metadata
-- **Border** (`oklab(0.263084 -0.00230259 0.0124794 / 0.1)`): Default border and divider tone
-- **Border Strong** (`rgba(38, 37, 30, 0.2)`): Focused, active, or emphasized border
-- **Success** (`#1f8a65`): Positive state and successful completion messaging
-- **Unread** (`#9fbbe0`): Fixed semantic accent for unread state, unread markers, and reading-context navigation
-- **Starred** (`#facc15`): Fixed semantic accent for starred state, starred markers, and star-focused navigation
+- Canvas (`#f2f1ed`): Default page background and primary warm cream surface
+- Surface 100 (`#f7f7f4`): Lightest surface for popovers and subtle controls
+- Surface 300 (`#ebeae5`): Muted interactive surface, default button background, list emphasis
+- Surface 400 (`#e6e5e0`): Card background and secondary surface
+- Surface 500 (`#e1e0db`): Selected surface, tertiary emphasis, deeper muted surface
+- Text / Foreground (`#26251e`): Primary text and icon color
+- Muted Foreground (`rgba(38, 37, 30, 0.74)`): Secondary text and helper copy
+- Soft Foreground (`rgba(38, 37, 30, 0.58)`): Tertiary labels and lighter metadata
+- Border (`oklab(0.263084 -0.00230259 0.0124794 / 0.1)`): Default border and divider tone
+- Border Strong (`rgba(38, 37, 30, 0.2)`): Focused, active, or emphasized border
+- Success (`#1f8a65`): Positive state and successful completion messaging
+- Unread (`#9fbbe0`): Fixed semantic accent for unread state, unread markers, and reading-context navigation
+- Starred (`#facc15`): Fixed semantic accent for starred state, starred markers, and star-focused navigation
 
 Feature and timeline accents:
 
-- **Thinking** (`#dfa88f`): AI or background processing state
-- **Grep** (`#9fc9a2`): Search and indexing state
-- **Read / Unread Context** (`#9fbbe0`): Reading-related state, unread indicators, and reading-context navigation accents
-- **Edit** (`#c0a8dd`): Edit and mutation state
+- Thinking (`#dfa88f`): AI or background processing state
+- Grep (`#9fc9a2`): Search and indexing state
+- Read / Unread Context (`#9fbbe0`): Reading-related state, unread indicators, and reading-context navigation accents
+- Edit (`#c0a8dd`): Edit and mutation state
 
 Color governance:
 
@@ -55,10 +55,10 @@ Color governance:
 
 ## Typography
 
-- **Headline Font**: `CursorGothic`, with fallbacks `CursorGothic Fallback, system-ui, Helvetica Neue, Helvetica, Arial`
-- **Body Font**: `jjannon`, with fallbacks `Iowan Old Style, Palatino Linotype, URW Palladio L, P052, ui-serif, Georgia, Cambria, Times New Roman, Times`
-- **Label Font**: `CursorGothic`, with fallbacks matching the headline stack
-- **Code Font**: `berkeleyMono`, with fallbacks `ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New`
+- Headline Font: `CursorGothic`, with fallbacks `CursorGothic Fallback, system-ui, Helvetica Neue, Helvetica, Arial`
+- Body Font: `jjannon`, with fallbacks `Iowan Old Style, Palatino Linotype, URW Palladio L, P052, ui-serif, Georgia, Cambria, Times New Roman, Times`
+- Label Font: `CursorGothic`, with fallbacks matching the headline stack
+- Code Font: `berkeleyMono`, with fallbacks `ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New`
 
 Role guidance:
 
@@ -116,13 +116,14 @@ Elevation scale:
 
 ## Components
 
-- **Buttons**: Primary buttons use a warm surface fill with dark text; secondary and tertiary actions rely on surface tone, border contrast, or transparent warm overlays. Primary radius is 8px. Hover states often shift text toward the tertiary accent (`#cf2d56`) rather than increasing fill saturation.
-- **Chips and Tags**: Secondary and filter chips should read as pill elements by default. Use full-pill radius, muted warm surfaces, and restrained text contrast. Selected chips deepen through surface tone before introducing stronger chroma. In dense workspace toolbars and cleanup-style filter clusters, compact filter chips may step down to `rounded-md`, and their count badges may step down again to `rounded-sm` so the controls feel more editorial and less soft.
-- **Cards and Containers**: Use warm cream surfaces, a warm border ring, and border-led separation by default. Standard structural cards and section containers default to 8px radius; `Info Cards` are the smaller 6px role for reading, notice, and state surfaces. Elevated cards may use the Level 3 shadow. 20px+ radii belong to separate shell roles rather than standard cards.
-- **Inputs and Forms**: Inputs should stay neutral and legible, with warm borders and a restrained focus treatment. Prefer border emphasis or accent-orange focus hints over cold blue rings.
-- **Lists and Navigation**: Lists should separate items through tone and dividers rather than heavy blocks of accent color. Navigation and tab treatments should feel clean, compact, and editorial rather than dashboard-like. Smart views, context strips, filter chips, and article state icons may use the fixed unread/starred semantic colors, but the color should usually appear as icon tint or a light surface wash rather than a solid block.
-- **Media and Preview Surfaces**: Code or browser previews may use darker surfaces, but they should still feel framed by warm borders and integrated into the cream-based system rather than floating as disconnected black panels.
-- **Distinctive Components**: The AI timeline remains a special component. It may use the thinking/grep/read/edit palette directly, with each state tied to a clear semantic label and a vertical connection rhythm.
+- Buttons: Primary buttons use a warm surface fill with dark text; secondary and tertiary actions rely on surface tone, border contrast, or transparent warm overlays. Shared action buttons should default to `rounded-md` so input, select, and button controls read as one family inside forms and settings panels. Hover states often shift text toward the tertiary accent (`#cf2d56`) rather than increasing fill saturation.
+- Chips and Tags: Secondary and filter chips should read as pill elements by default. Use full-pill radius, muted warm surfaces, and restrained text contrast. Selected chips deepen through surface tone before introducing stronger chroma. In dense workspace toolbars and cleanup-style filter clusters, compact filter chips may step down to `rounded-md`, and their count badges may step down again to `rounded-sm` so the controls feel more editorial and less soft.
+- Cards and Containers: Use warm cream surfaces, a warm border ring, and border-led separation by default. Shared section and info containers should default to `rounded-lg` so structural surfaces feel slightly softer than direct-manipulation controls. Elevated cards may use the Level 3 shadow. 20px+ radii belong to separate shell roles rather than standard cards.
+- Inputs and Forms: Inputs should stay neutral and legible, with warm borders and a restrained focus treatment. Prefer border emphasis or accent-orange focus hints over cold blue rings. Shared input-like primitives should use `rounded-md`; switches remain `rounded-full`.
+- Settings Forms: Treat settings pages as desktop-app settings panels, not generic web forms. The canonical row is a stable left label column plus a stable right control column. Controls should resolve against one right-column endpoint so input, select, button, checkbox, switch, and segmented choice groups feel aligned as a system. Long controls may cap their width instead of stretching edge-to-edge, but compact controls must still live on the same control rail rather than floating at arbitrary intermediate positions. The desired rhythm is: section gap first, then heading-to-first-row gap, then a consistent row cadence, with a fixed label-to-control column gap.
+- Lists and Navigation: Lists should separate items through tone and dividers rather than heavy blocks of accent color. Navigation and tab treatments should feel clean, compact, and editorial rather than dashboard-like. Smart views, context strips, filter chips, and article state icons may use the fixed unread/starred semantic colors, but the color should usually appear as icon tint or a light surface wash rather than a solid block.
+- Media and Preview Surfaces: Code or browser previews may use darker surfaces, but they should still feel framed by warm borders and integrated into the cream-based system rather than floating as disconnected black panels.
+- Distinctive Components: The AI timeline remains a special component. It may use the thinking/grep/read/edit palette directly, with each state tied to a clear semantic label and a vertical connection rhythm.
 
 ## Layout Principles
 
@@ -139,6 +140,8 @@ Elevation scale:
 - Hero sections favor centered single-column layouts with generous vertical space
 - Feature sections can expand to 2-3 column grids
 - Sidebar and settings layouts should keep warm section separation without harsh visual breaks
+- Desktop settings forms should use a stable two-column grid: a fixed or semifixed label column on the left and a right control column with a shared endpoint.
+- In settings-style forms, the control column should feel like one rail. Wide controls may stop short with a max width, but compact controls should still align to that same rail.
 
 ### Whitespace Philosophy
 
@@ -160,11 +163,13 @@ Elevation scale:
 Surface governance:
 
 - Reusable surfaces should go through shared primitives before feature-local radius rules.
-- `Info Cards` use 6px by default. Stay within a tight 6-8px range only when a shared primitive needs a documented variant.
-- `Section Containers` use 8px by default. Treat 8-10px as the narrow upper range for shared structural variants, not feature-local drift.
+- Shared section and info containers should use `rounded-lg`.
+- Shared input, select, textarea, button, and checkbox controls should use `rounded-md`.
+- Shared switches should use `rounded-full`.
+- Shared segmented controls, toggle groups, and radio-like choice chips should use `rounded-md` in settings-form contexts unless a pill treatment is intentionally documented for that component family.
 - Dense workspace filter chips may use `rounded-md`. Their inline count badges may use `rounded-sm` when a full pill would feel too soft for the surrounding UI.
 - 20px+ radii are reserved for distinct shell roles, such as modal shells, command palettes, or other app-level outer frames, not standard cards or section containers.
-- Prefer radius scale utilities such as `rounded-md`, `rounded-lg`, `rounded-xl`, and `rounded-2xl` over pixel literals in component code. Use literal pixel radii only when an existing scale utility cannot express the intended role.
+- Prefer radius scale utilities such as `rounded-md`, `rounded-lg`, `rounded-xl`, and `rounded-2xl` over pixel literals in component code. Do not use px radius literals for reusable shared primitives.
 
 ### Shell Roles
 
@@ -226,6 +231,7 @@ Surface governance:
 - Horizontal navigation may collapse to compact controls on mobile
 - Multi-column cards collapse to single column cleanly
 - Timeline or preview layouts can switch from horizontal emphasis to vertical stacking
+- Mobile settings navigation may collapse into more compact controls, but settings content should keep priority over navigation chrome so the first editable rows remain visible without excessive scrolling.
 
 ## Do's and Don'ts
 
