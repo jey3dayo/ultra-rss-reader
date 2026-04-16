@@ -28,7 +28,7 @@ describe("OverlayActionSurface", () => {
 
     expect(compact).toHaveAttribute("data-overlay-shell", "action");
     expect(compact).toHaveClass("rounded-lg");
-    expect(compact).toHaveClass("bg-background/78");
+    expect(compact).toHaveClass("bg-overlay-action-surface");
     expect(compact).toHaveClass("size-11");
     expect(compact.className).toContain("has-[:focus-visible]:ring-2");
     expect(compact.className).toContain("has-[:active]:scale-[0.97]");
@@ -40,5 +40,6 @@ describe("OverlayActionSurface", () => {
     expect(regular).toHaveClass("rounded-lg");
     expect(regular).toHaveClass("h-8");
     expect(regular).toHaveClass("px-3");
+    expect(regular).toHaveClass("bg-overlay-action-surface-subtle");
   });
 });

@@ -133,7 +133,7 @@ describe("IconToolbarControl", () => {
     const surface = button.closest("[data-overlay-shell='action']");
 
     expect(surface).toHaveClass("border-transparent", "bg-transparent", "shadow-none");
-    expect(surface?.className).toContain("hover:bg-background/8");
-    expect(surface?.className).toContain("has-[:active]:bg-background/12");
+    expect(surface?.className).toContain("hover:bg-overlay-action-surface-chrome-hover");
+    expect(surface?.className).toContain("has-[:active]:bg-overlay-action-surface-chrome-active");
   });
 });

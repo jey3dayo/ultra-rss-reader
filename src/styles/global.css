@@ -32,6 +32,12 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-browser-overlay-shell: var(--browser-overlay-shell);
   --color-browser-overlay-rail-border: var(--browser-overlay-rail-border);
+  --color-overlay-action-surface: var(--overlay-action-surface);
+  --color-overlay-action-surface-hover: var(--overlay-action-surface-hover);
+  --color-overlay-action-surface-focus: var(--overlay-action-surface-focus);
+  --color-overlay-action-surface-subtle: var(--overlay-action-surface-subtle);
+  --color-overlay-action-surface-chrome-hover: var(--overlay-action-surface-chrome-hover);
+  --color-overlay-action-surface-chrome-active: var(--overlay-action-surface-chrome-active);
   --color-state-warning-surface: var(--state-warning-surface);
   --color-state-warning-border: var(--state-warning-border);
   --color-state-warning-foreground: var(--state-warning-foreground);
@@ -123,6 +129,12 @@
     rgba(242, 241, 237, 0.15) 100%
   );
   --browser-overlay-rail-border: rgba(38, 37, 30, 0.08);
+  --overlay-action-surface: rgba(242, 241, 237, 0.78);
+  --overlay-action-surface-hover: rgba(230, 229, 224, 0.92);
+  --overlay-action-surface-focus: rgba(230, 229, 224, 0.96);
+  --overlay-action-surface-subtle: rgba(242, 241, 237, 0.72);
+  --overlay-action-surface-chrome-hover: rgba(242, 241, 237, 0.08);
+  --overlay-action-surface-chrome-active: rgba(242, 241, 237, 0.12);
   --settings-shell-rail: rgba(235, 234, 229, 0.72);
   --settings-shell-rail-fade: linear-gradient(
     180deg,
@@ -275,6 +287,12 @@
     rgba(28, 25, 21, 0.18) 100%
   );
   --browser-overlay-rail-border: rgba(243, 239, 230, 0.12);
+  --overlay-action-surface: rgba(28, 25, 21, 0.78);
+  --overlay-action-surface-hover: rgba(38, 34, 29, 0.92);
+  --overlay-action-surface-focus: rgba(38, 34, 29, 0.96);
+  --overlay-action-surface-subtle: rgba(28, 25, 21, 0.72);
+  --overlay-action-surface-chrome-hover: rgba(243, 239, 230, 0.08);
+  --overlay-action-surface-chrome-active: rgba(243, 239, 230, 0.12);
   --settings-shell-rail: rgba(23, 20, 16, 0.72);
   --settings-shell-rail-fade: linear-gradient(
     180deg,
