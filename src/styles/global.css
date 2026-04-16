@@ -38,6 +38,9 @@
   --color-state-success-surface: var(--state-success-surface);
   --color-state-success-border: var(--state-success-border);
   --color-state-success-foreground: var(--state-success-foreground);
+  --color-state-review-surface: var(--state-review-surface);
+  --color-state-review-border: var(--state-review-border);
+  --color-state-review-foreground: var(--state-review-foreground);
   --color-state-danger-surface: var(--state-danger-surface);
   --color-state-danger-border: var(--state-danger-border);
   --color-state-danger-foreground: var(--state-danger-foreground);
@@ -153,6 +156,9 @@
   --state-success-surface: rgba(16, 185, 129, 0.08);
   --state-success-border: rgba(16, 185, 129, 0.2);
   --state-success-foreground: rgb(6, 95, 70);
+  --state-review-surface: rgba(245, 78, 0, 0.08);
+  --state-review-border: rgba(245, 78, 0, 0.18);
+  --state-review-foreground: rgb(154, 52, 18);
   --state-danger-surface: rgba(207, 45, 86, 0.08);
   --state-danger-border: rgba(207, 45, 86, 0.2);
   --state-danger-foreground: rgb(159, 18, 57);
@@ -270,6 +276,9 @@
   --state-success-surface: rgba(16, 185, 129, 0.12);
   --state-success-border: rgba(16, 185, 129, 0.24);
   --state-success-foreground: rgb(167, 243, 208);
+  --state-review-surface: rgba(245, 78, 0, 0.14);
+  --state-review-border: rgba(245, 78, 0, 0.22);
+  --state-review-foreground: rgb(255, 220, 201);
   --state-danger-surface: rgba(255, 125, 154, 0.12);
   --state-danger-border: rgba(255, 125, 154, 0.24);
   --state-danger-foreground: rgb(255, 205, 217);

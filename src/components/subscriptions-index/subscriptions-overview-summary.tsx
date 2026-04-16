@@ -12,7 +12,7 @@ function resolveCardClassName(tone: SubscriptionSummaryCard["tone"] = "neutral")
   }
 
   if (tone === "review") {
-    return "border-primary/18 bg-[linear-gradient(180deg,hsl(var(--card)/0.92),hsl(var(--background)/0.97))]";
+    return "border-state-review-border bg-state-review-surface";
   }
 
   return "border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.9),hsl(var(--background)/0.96))]";

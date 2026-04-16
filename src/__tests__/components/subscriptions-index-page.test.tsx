@@ -174,8 +174,13 @@ describe("SubscriptionsIndexPage", () => {
     const totalSubscriptionsLabel = await screen.findByText("総購読数");
     expect(totalSubscriptionsLabel.closest(".rounded-md")).not.toBeNull();
     expect(screen.queryByRole("button", { name: /総購読数/ })).toBeNull();
-    expect(await screen.findByRole("button", { name: /止まった購読を見る/ })).toHaveClass("rounded-md");
+    expect(await screen.findByRole("button", { name: /要確認を見る/ })).toHaveClass(
+      "rounded-md",
+      "border-state-review-border",
+      "bg-state-review-surface",
+    );
     expect(await screen.findByRole("button", { name: /止まった購読を見る/ })).toHaveClass(
+      "rounded-md",
       "border-state-warning-border",
       "bg-state-warning-surface",
     );
