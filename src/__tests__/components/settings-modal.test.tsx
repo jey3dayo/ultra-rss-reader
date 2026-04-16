@@ -3,6 +3,7 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { ActionsSettings } from "@/components/settings/actions-settings";
 import { ReadingSettings } from "@/components/settings/reading-settings";
 import { SettingsModal } from "@/components/settings/settings-modal";
@@ -359,15 +360,27 @@ describe("SettingsModal", () => {
     useUiStore.setState(useUiStore.getInitialState());
     useUiStore.getState().openSettings("accounts");
 
-    render(<SettingsModal />, {
-      wrapper: createWrapperWithClient((captured) => {
-        queryClient = captured;
-      }),
-    });
+    render(
+      <>
+        <SettingsModal />
+        <AppConfirmDialog />
+      </>,
+      {
+        wrapper: createWrapperWithClient((captured) => {
+          queryClient = captured;
+        }),
+      },
+    );
 
     expect(await screen.findByRole("heading", { level: 2, name: "Local" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Delete Account" }));
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    const confirmDialog = await screen.findByRole("dialog", { name: "Confirm" });
+    expect(within(confirmDialog).getByRole("button", { name: "Delete" })).toHaveClass(
+      "border-state-danger-border",
+      "bg-state-danger-surface",
+      "text-state-danger-foreground",
+    );
+    await user.click(within(confirmDialog).getByRole("button", { name: "Delete" }));
 
     await waitFor(() => {
       expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
@@ -410,11 +423,19 @@ describe("SettingsModal", () => {
     useUiStore.setState(useUiStore.getInitialState());
     useUiStore.getState().openSettings("accounts");
 
-    render(<SettingsModal />, { wrapper: createWrapper() });
+    render(
+      <>
+        <SettingsModal />
+        <AppConfirmDialog />
+      </>,
+      { wrapper: createWrapper() },
+    );
 
     expect(await screen.findByRole("heading", { level: 2, name: "Local" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Delete Account" }));
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(
+      within(await screen.findByRole("dialog", { name: "Confirm" })).getByRole("button", { name: "Delete" }),
+    );
 
     await waitFor(() => {
       expect(useUiStore.getState().settingsAccountId).toBe("acc-2");

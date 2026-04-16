@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
 import { IndeterminateProgress } from "@/components/shared/indeterminate-progress";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,18 @@ const HIDDEN_SCROLLBAR_CLASS = "[&>[data-slot='scroll-area-scrollbar']]:hidden";
 
 function useScrollOverflowState(dependency: unknown) {
   const viewportRef = useRef<HTMLDivElement>(null);
+  const [viewportElement, setViewportElement] = useState<HTMLDivElement | null>(null);
   const [hasOverflow, setHasOverflow] = useState(false);
+
+  const setViewportNode = useCallback((node: HTMLDivElement | null) => {
+    viewportRef.current = node;
+    setViewportElement(node);
+  }, []);
 
   useLayoutEffect(() => {
     void dependency;
 
-    const viewport = viewportRef.current;
+    const viewport = viewportElement;
 
     if (!viewport) {
       return;
@@ -70,11 +76,12 @@ function useScrollOverflowState(dependency: unknown) {
       mutationObserver?.disconnect();
       resizeObserver.disconnect();
     };
-  }, [dependency]);
+  }, [dependency, viewportElement]);
 
   return {
     hasOverflow,
-    viewportRef,
+    viewportElement,
+    viewportRef: setViewportNode,
   };
 }
 
@@ -86,6 +93,7 @@ export function SettingsModalView({
   accountsHeading,
   accountsNavigation,
   content,
+  contentResetKey = "",
   contentScrollBehavior = "auto",
   isLoading,
   onClose,
@@ -197,6 +205,7 @@ export function SettingsModalView({
               />
             ) : null}
             <ScrollArea
+              key={contentResetKey}
               data-testid="settings-content-scroll-area"
               viewportRef={contentOverflow.viewportRef}
               className={cn("h-full min-h-0", !contentHasOverflow && HIDDEN_SCROLLBAR_CLASS)}

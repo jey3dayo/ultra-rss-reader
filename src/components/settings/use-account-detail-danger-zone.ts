@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
-import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { deleteAccount, exportOpml } from "@/api/tauri-commands";
+import { useUiStore } from "@/stores/ui-store";
 import type { UseAccountDetailDangerZoneParams, UseAccountDetailDangerZoneResult } from "./account-detail.types";
 import { createAccountDetailErrorToast } from "./account-detail-toast";
 
@@ -10,7 +11,8 @@ export function useAccountDetailDangerZone({
   t,
   onAccountDeleted,
 }: UseAccountDetailDangerZoneParams): UseAccountDetailDangerZoneResult {
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const { t: tc } = useTranslation("common");
+  const showConfirm = useUiStore((state) => state.showConfirm);
   const showExportError = createAccountDetailErrorToast(t, "account.failed_to_export_opml");
   const showDeleteError = createAccountDetailErrorToast(t, "account.failed_to_delete");
 
@@ -43,10 +45,21 @@ export function useAccountDetailDangerZone({
     );
   };
 
+  const handleRequestDelete = () => {
+    showConfirm(
+      t("account.confirm_delete"),
+      () => {
+        void handleDelete();
+      },
+      {
+        actionLabel: tc("delete"),
+        variant: "destructive",
+      },
+    );
+  };
+
   return {
-    confirmDelete,
-    setConfirmDelete,
     handleExportOpml,
-    handleDelete,
+    handleRequestDelete,
   };
 }

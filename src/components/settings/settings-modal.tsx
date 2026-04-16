@@ -33,7 +33,6 @@ function SnapshotBackedAccountDetail({
   onAccountDeleted: (accountId: string) => void;
 }) {
   const { t, i18n } = useTranslation("settings");
-  const { t: tc } = useTranslation("common");
   const syncProgress = useUiStore((s) => s.syncProgress);
   const syncStatusQuery = useAccountSyncStatus(account.id);
   const controller = useAccountDetailController({
@@ -57,7 +56,6 @@ function SnapshotBackedAccountDetail({
     isSyncing,
     syncStatusRows,
     t,
-    tc,
   });
 
   return <AccountDetailView {...viewProps} />;

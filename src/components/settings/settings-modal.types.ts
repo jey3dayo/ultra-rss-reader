@@ -15,6 +15,7 @@ export type SettingsModalViewProps = {
   accountsHeading?: string;
   accountsNavigation: ReactNode;
   content: ReactNode;
+  contentResetKey?: string;
   contentScrollBehavior?: "auto" | "always" | "never";
   isLoading?: boolean;
   onClose: () => void;

@@ -62,6 +62,9 @@ describe("Design-themed shared components", () => {
       />,
     );
 
+    expect(screen.getByTestId("workspace-header-body").parentElement).toHaveStyle({
+      backgroundColor: "var(--workspace-header-surface)",
+    });
     expect(screen.getByTestId("workspace-header-body")).toHaveClass("pl-20");
 
     Object.defineProperty(window.navigator, "platform", {
@@ -118,6 +121,9 @@ describe("Design-themed shared components", () => {
       />,
     );
 
+    expect(screen.getByRole("button", { name: "戻る" })).toHaveStyle({
+      backgroundColor: "var(--workspace-header-action-surface)",
+    });
     expect(screen.getByTestId("workspace-header-body")).toHaveClass("pl-20");
     expect(screen.getByTestId("workspace-header-drag-region")).toHaveAttribute("data-tauri-drag-region");
     expect(screen.getByRole("button", { name: "戻る" })).not.toHaveClass("rounded-full");

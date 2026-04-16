@@ -7,7 +7,6 @@ export function useAccountDetailViewProps({
   isSyncing,
   syncStatusRows,
   t,
-  tc,
 }: UseAccountDetailViewPropsParams): UseAccountDetailViewPropsResult {
   return {
     title: account.name,
@@ -99,14 +98,9 @@ export function useAccountDetailViewProps({
       dataHeading: t("account.data_section"),
       dangerHeading: t("account.danger_zone"),
       exportLabel: t("account.export_opml"),
-      deleteLabel: !controller.confirmDelete ? t("account.delete_account") : tc("delete"),
-      cancelLabel: tc("cancel"),
-      confirmDeleteLabel: t("account.confirm_delete"),
-      isConfirmingDelete: controller.confirmDelete,
+      deleteLabel: t("account.delete_account"),
       onExport: controller.handleExportOpml,
-      onRequestDelete: () => controller.setConfirmDelete(true),
-      onConfirmDelete: controller.handleDelete,
-      onCancelDelete: () => controller.setConfirmDelete(false),
+      onRequestDelete: controller.handleRequestDelete,
     },
   };
 }

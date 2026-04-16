@@ -17,7 +17,7 @@ type WorkspaceHeaderProps = {
 };
 
 export const workspaceHeaderActionClassName =
-  "h-8 rounded-[min(var(--radius-md),12px)] border border-border/70 bg-surface-1/76 px-3 font-sans text-[0.88rem] font-normal shadow-none hover:bg-surface-2";
+  "h-8 rounded-[min(var(--radius-md),12px)] border border-border/70 px-3 font-sans text-[0.88rem] font-normal shadow-none hover:bg-surface-2";
 
 function looksLikeMacPlatform(): boolean {
   if (typeof navigator === "undefined") {
@@ -63,7 +63,10 @@ export function WorkspaceHeader({
     (hasRuntime && platformKind === "unknown" && looksLikeMacPlatform());
 
   return (
-    <div className="relative border-b border-border/70 bg-background/88 px-5 py-5 backdrop-blur-sm sm:px-6">
+    <div
+      className="relative border-b border-border/70 px-5 py-5 backdrop-blur-sm sm:px-6"
+      style={{ backgroundColor: "var(--workspace-header-surface)" }}
+    >
       {useDesktopOverlay ? (
         <div
           data-testid="workspace-header-drag-region"
@@ -79,7 +82,12 @@ export function WorkspaceHeader({
         <div className="min-w-0">
           {backLabel && onBack ? (
             <div className="mb-4">
-              <Button variant="ghost" className={workspaceHeaderActionClassName} onClick={onBack}>
+              <Button
+                variant="ghost"
+                className={workspaceHeaderActionClassName}
+                style={{ backgroundColor: "var(--workspace-header-action-surface)" }}
+                onClick={onBack}
+              >
                 <ArrowLeft className="h-4 w-4" />
                 {backLabel}
               </Button>
@@ -97,6 +105,7 @@ export function WorkspaceHeader({
             variant="ghost"
             size="icon-sm"
             className={`${workspaceHeaderActionClassName} w-8 justify-center px-0`}
+            style={{ backgroundColor: "var(--workspace-header-action-surface)" }}
             aria-label={closeLabel}
             onClick={onClose}
           >

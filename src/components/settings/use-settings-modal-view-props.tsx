@@ -150,6 +150,7 @@ export function useSettingsModalViewProps({
       />
     ),
     content,
+    contentResetKey: `${settingsCategory}:${settingsAccountId ?? ""}:${settingsAddAccount ? "add" : "browse"}`,
     isLoading: settingsLoading,
     onClose: closeSettings,
     onOpenChange: (open) => (!open ? closeSettings() : openSettings()),

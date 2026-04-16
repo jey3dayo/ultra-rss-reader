@@ -67,13 +67,8 @@ export type AccountDangerZoneViewProps = {
   dangerHeading: string;
   exportLabel: string;
   deleteLabel: string;
-  cancelLabel: string;
-  confirmDeleteLabel: string;
-  isConfirmingDelete: boolean;
   onExport: () => void;
   onRequestDelete: () => void;
-  onConfirmDelete: () => void;
-  onCancelDelete: () => void;
 };
 
 export type AccountDetailViewProps = {
@@ -163,10 +158,8 @@ export type UseAccountDetailDangerZoneParams = {
 };
 
 export type UseAccountDetailDangerZoneResult = {
-  confirmDelete: boolean;
-  setConfirmDelete: (value: boolean) => void;
   handleExportOpml: () => Promise<void>;
-  handleDelete: () => Promise<void>;
+  handleRequestDelete: () => void;
 };
 
 export type AccountDetailSyncStatusTranslator =
@@ -199,7 +192,6 @@ export type UseAccountDetailViewPropsParams = {
   isSyncing: boolean;
   syncStatusRows: AccountSyncStatusRow[];
   t: TFunction<"settings">;
-  tc: TFunction<"common">;
 };
 
 export type UseAccountDetailViewPropsResult = Pick<

@@ -150,11 +150,14 @@
     rgba(247, 247, 244, 0) 100%
   );
   --settings-shell-account-surface: rgba(220, 216, 207, 0.24);
-  --subscriptions-shell-bg: radial-gradient(circle at top left, rgba(245, 78, 0, 0.14), transparent 28%),
+  --subscriptions-shell-bg:
+    radial-gradient(circle at top left, rgba(245, 78, 0, 0.14), transparent 28%),
     linear-gradient(180deg, rgba(242, 241, 237, 1), rgba(242, 241, 237, 1));
   --subscriptions-summary-surface: linear-gradient(180deg, rgba(230, 229, 224, 0.6), rgba(242, 241, 237, 0.9));
   --subscriptions-list-surface: rgba(242, 241, 237, 0.55);
   --subscriptions-detail-surface: rgba(230, 229, 224, 0.4);
+  --workspace-header-surface: rgba(242, 241, 237, 0.88);
+  --workspace-header-action-surface: rgba(247, 247, 244, 0.76);
   --state-warning-surface: rgba(255, 251, 235, 0.78);
   --state-warning-border: rgba(251, 191, 36, 0.28);
   --state-warning-foreground: rgb(120, 53, 15);
@@ -285,11 +288,14 @@
     rgba(34, 30, 25, 0) 100%
   );
   --settings-shell-account-surface: rgba(38, 33, 27, 0.24);
-  --subscriptions-shell-bg: radial-gradient(circle at top left, rgba(245, 78, 0, 0.18), transparent 28%),
+  --subscriptions-shell-bg:
+    radial-gradient(circle at top left, rgba(245, 78, 0, 0.18), transparent 28%),
     linear-gradient(180deg, rgba(28, 25, 21, 1), rgba(28, 25, 21, 1));
   --subscriptions-summary-surface: linear-gradient(180deg, rgba(38, 34, 29, 0.74), rgba(28, 25, 21, 0.92));
   --subscriptions-list-surface: rgba(28, 25, 21, 0.55);
   --subscriptions-detail-surface: rgba(38, 34, 29, 0.4);
+  --workspace-header-surface: rgba(28, 25, 21, 0.88);
+  --workspace-header-action-surface: rgba(34, 30, 25, 0.76);
   --state-warning-surface: rgba(245, 158, 11, 0.1);
   --state-warning-border: rgba(245, 158, 11, 0.3);
   --state-warning-foreground: rgb(254, 243, 199);

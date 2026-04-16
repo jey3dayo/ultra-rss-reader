@@ -1,6 +1,7 @@
 import type { ComponentType, ReactNode } from "react";
 
 export type ConfirmDialogIcon = ComponentType<{ className?: string }> | null;
+export type ConfirmDialogVariant = "default" | "warning" | "destructive";
 
 export type ConfirmDialogViewProps = {
   open: boolean;
@@ -8,6 +9,7 @@ export type ConfirmDialogViewProps = {
   message: string;
   actionLabel: string;
   cancelLabel: string;
+  variant?: ConfirmDialogVariant;
   icon?: ConfirmDialogIcon;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;

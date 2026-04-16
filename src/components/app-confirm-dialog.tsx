@@ -19,6 +19,7 @@ export function AppConfirmDialog() {
       message={confirmDialog.message}
       actionLabel={confirmDialog.actionLabel ?? t("ok")}
       cancelLabel={t("cancel")}
+      variant={confirmDialog.variant}
       icon={confirmDialog.icon}
       onOpenChange={(open) => !open && closeConfirm()}
       onConfirm={handleConfirm}

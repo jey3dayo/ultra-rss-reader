@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import { create } from "zustand";
+import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
@@ -105,6 +106,7 @@ interface UiState {
     open: boolean;
     message: string;
     actionLabel: string | null;
+    variant: ConfirmDialogVariant;
     icon: ComponentType<{ className?: string }> | null;
     onConfirm: (() => void) | null;
   };
@@ -163,7 +165,11 @@ interface UiActions {
   showConfirm: (
     message: string,
     onConfirm: () => void,
-    options?: { actionLabel?: string; icon?: ComponentType<{ className?: string }> },
+    options?: {
+      actionLabel?: string;
+      variant?: ConfirmDialogVariant;
+      icon?: ComponentType<{ className?: string }>;
+    },
   ) => void;
   closeConfirm: () => void;
 }
@@ -204,7 +210,7 @@ const initialState: UiState = {
   toastMessage: null,
   recentlyReadIds: new Set(),
   retainedArticleIds: new Set(),
-  confirmDialog: { open: false, message: "", actionLabel: null, icon: null, onConfirm: null },
+  confirmDialog: { open: false, message: "", actionLabel: null, variant: "default", icon: null, onConfirm: null },
 };
 
 export const useUiStore = create<UiState & UiActions>()((set) => ({
@@ -462,10 +468,13 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
         open: true,
         message,
         actionLabel: options?.actionLabel ?? null,
+        variant: options?.variant ?? "default",
         icon: options?.icon ?? null,
         onConfirm,
       },
     }),
   closeConfirm: () =>
-    set({ confirmDialog: { open: false, message: "", actionLabel: null, icon: null, onConfirm: null } }),
+    set({
+      confirmDialog: { open: false, message: "", actionLabel: null, variant: "default", icon: null, onConfirm: null },
+    }),
 }));
