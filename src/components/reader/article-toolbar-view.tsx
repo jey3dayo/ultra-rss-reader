@@ -71,6 +71,7 @@ function ArticleToolbarMoreMenu({
 }
 
 export function ArticleToolbarActionStrip({
+  hasArticle = true,
   canToggleRead,
   canToggleStar,
   isRead,
@@ -102,7 +103,7 @@ export function ArticleToolbarActionStrip({
         disabled={!canToggleRead}
         className="text-foreground-soft hover:text-foreground"
       >
-        <UnreadIcon unread={!isRead} className="h-3 w-3" />
+        <UnreadIcon unread={hasArticle && !isRead} className="h-3 w-3" />
       </IconToolbarToggle>
       <IconToolbarToggle
         label={labels.toggleStar}
@@ -192,6 +193,7 @@ function ArticleToolbarOverlayActionButton({
 }
 
 export function ArticleToolbarOverlayActions({
+  hasArticle = true,
   overlayActionRenderer,
   canToggleRead,
   canToggleStar,
@@ -222,7 +224,7 @@ export function ArticleToolbarOverlayActions({
         pressed={isRead}
         onClick={() => onToggleRead(!isRead)}
       >
-        <UnreadIcon unread={!isRead} className="h-3 w-3" />
+        <UnreadIcon unread={hasArticle && !isRead} className="h-3 w-3" />
       </ArticleToolbarOverlayActionButton>
       <ArticleToolbarOverlayActionButton
         overlayActionRenderer={overlayActionRenderer}

@@ -60,6 +60,7 @@ export function useArticleToolbarControls({
   );
 
   return {
+    hasArticle: article !== null,
     canToggleRead: article !== null,
     canToggleStar: article !== null,
     isRead: article?.is_read ?? false,

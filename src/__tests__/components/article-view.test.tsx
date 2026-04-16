@@ -1364,6 +1364,20 @@ describe("ArticleView", () => {
     });
   });
 
+  it("renders the empty-state unread toggle without semantic unread tone", () => {
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    const readButton = screen.getByRole("button", { name: "Toggle read" });
+    const readIcon = readButton.querySelector("span");
+
+    expect(screen.getByText("Select an article")).toBeInTheDocument();
+    expect(readButton).toBeDisabled();
+    expect(readButton).toHaveAttribute("aria-pressed", "false");
+    expect(readIcon).not.toBeNull();
+    expect(readIcon).not.toHaveClass("bg-[var(--tone-unread)]");
+    expect(readIcon).not.toHaveClass("text-[var(--tone-unread)]");
+  });
+
   it("keeps intent and article-driven entries on the same minimal viewer shell", async () => {
     const user = userEvent.setup();
 

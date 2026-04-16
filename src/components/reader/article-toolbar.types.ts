@@ -17,6 +17,7 @@ export type ArticleToolbarViewLabels = {
 export type ArticleToolbarViewProps = {
   showCloseButton: boolean;
   hideActionStrip?: boolean;
+  hasArticle?: boolean;
   canToggleRead: boolean;
   canToggleStar: boolean;
   isRead: boolean;

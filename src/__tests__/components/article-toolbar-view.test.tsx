@@ -136,6 +136,7 @@ describe("ArticleToolbarView", () => {
     render(
       <ArticleToolbarView
         showCloseButton={false}
+        hasArticle={false}
         canToggleRead={false}
         canToggleStar={false}
         isRead={false}
@@ -172,6 +173,51 @@ describe("ArticleToolbarView", () => {
     expect(screen.queryByRole("button", { name: "Copy link" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open Web Preview" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open in external browser" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the unread toggle neutral when no article is selected", () => {
+    render(
+      <ArticleToolbarView
+        showCloseButton={false}
+        hasArticle={false}
+        canToggleRead={false}
+        canToggleStar={false}
+        isRead={false}
+        isStarred={false}
+        isBrowserOpen={false}
+        showCopyLinkButton={false}
+        canCopyLink={false}
+        showOpenInBrowserButton={false}
+        canOpenInBrowser={false}
+        showOpenInExternalBrowserButton={false}
+        canOpenInExternalBrowser={false}
+        labels={{
+          closeView: "Close article",
+          toggleRead: "Toggle read",
+          toggleStar: "Toggle star",
+          copyLink: "Copy link",
+          previewToggleOff: "Open Web Preview",
+          previewToggleOn: "Close Web Preview",
+          openInExternalBrowser: "Open in External Browser",
+          moreActions: "More actions",
+        }}
+        onCloseView={vi.fn()}
+        onToggleRead={vi.fn()}
+        onToggleStar={vi.fn()}
+        onCopyLink={vi.fn()}
+        onOpenInBrowser={vi.fn()}
+        onOpenInExternalBrowser={vi.fn()}
+      />,
+    );
+
+    const readButton = screen.getByRole("button", { name: "Toggle read" });
+    const readIcon = readButton.querySelector("span");
+
+    expect(readButton).toBeDisabled();
+    expect(readButton).toHaveAttribute("aria-pressed", "false");
+    expect(readIcon).not.toBeNull();
+    expect(readIcon).not.toHaveClass("bg-[var(--tone-unread)]");
+    expect(readIcon).not.toHaveClass("text-[var(--tone-unread)]");
   });
 
   it("limits the drag region to the center spacer so action buttons stay clickable on overlay title bars", () => {
