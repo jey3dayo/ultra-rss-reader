@@ -30,6 +30,7 @@ export function useBrowserViewRuntime({ onCloseOverlay }: UseBrowserViewRuntimeP
   return {
     showDiagnostics,
     browserUrl,
+    browserState,
     showToast,
     platformKind,
     setBrowserState,

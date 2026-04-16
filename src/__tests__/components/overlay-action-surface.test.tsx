@@ -27,7 +27,7 @@ describe("OverlayActionSurface", () => {
     const regular = screen.getByTestId("regular-action");
 
     expect(compact).toHaveAttribute("data-overlay-shell", "action");
-    expect(compact).toHaveClass("rounded-full");
+    expect(compact).toHaveClass("rounded-lg");
     expect(compact).toHaveClass("bg-background/78");
     expect(compact).toHaveClass("size-11");
     expect(compact.className).toContain("has-[:focus-visible]:ring-2");
@@ -37,7 +37,7 @@ describe("OverlayActionSurface", () => {
     expect(compact.className).not.toContain("button:");
 
     expect(regular).toHaveAttribute("data-overlay-shell", "action");
-    expect(regular).toHaveClass("rounded-full");
+    expect(regular).toHaveClass("rounded-lg");
     expect(regular).toHaveClass("h-8");
     expect(regular).toHaveClass("px-3");
   });

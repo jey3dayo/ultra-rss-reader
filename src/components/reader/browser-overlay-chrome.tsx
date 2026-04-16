@@ -1,14 +1,10 @@
-import { ChevronLeft, ExternalLink, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, RotateCw, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { IconToolbarSurfaceButton } from "@/components/shared/icon-toolbar-control";
 import { OverlayActionSurface } from "@/components/shared/overlay-action-surface";
-import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import type { BrowserOverlayChromeProps } from "./browser-view.types";
-
-const compactOverlayActionButtonClassName =
-  "flex size-full items-center justify-center rounded-full bg-transparent text-foreground outline-none focus-visible:outline-none";
-const regularOverlayActionButtonClassName =
-  "flex h-full items-center justify-center gap-1 rounded-full bg-transparent text-foreground outline-none focus-visible:outline-none";
 
 function isCloseOnlyProps(
   props: BrowserOverlayChromeProps,
@@ -21,29 +17,13 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
 
   if (isCloseOnlyProps(props)) {
     return (
-      <OverlayActionSurface compact tone="subtle">
-        <AppTooltip label={props.closeLabel}>
-          <button
-            type="button"
-            aria-label={props.closeLabel}
-            onClick={props.onClose}
-            className={compactOverlayActionButtonClassName}
-          >
-            <X aria-hidden="true" className="size-4" />
-          </button>
-        </AppTooltip>
-      </OverlayActionSurface>
+      <IconToolbarSurfaceButton label={props.closeLabel} onClick={props.onClose} tone="subtle">
+        <X aria-hidden="true" className="size-4" />
+      </IconToolbarSurfaceButton>
     );
   }
 
-  const { controller, presentation, backToReaderLabel, toolbarActions } = props;
-  const visibleBackLabel = t("back_to_reader_short");
-  const actionButtonClassName = controller.geometry.compact
-    ? compactOverlayActionButtonClassName
-    : regularOverlayActionButtonClassName;
-  const leadingActionButtonClassName = controller.geometry.compact
-    ? compactOverlayActionButtonClassName
-    : regularOverlayActionButtonClassName;
+  const { controller, presentation, closeWebPreviewLabel, toolbarActions } = props;
   const overlayActionRenderer = {
     compact: presentation.actionButtonSurface.compact,
     renderAction: (content: ReactNode, options?: { key?: string }) => (
@@ -52,19 +32,37 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
       </OverlayActionSurface>
     ),
   } as const;
-  const leadingAction = (
-    <OverlayActionSurface {...presentation.leadingActionSurface}>
-      <button
-        type="button"
-        onClick={controller.handleCloseOverlay}
-        aria-label={backToReaderLabel}
-        className={leadingActionButtonClassName}
+
+  function renderIconAction({
+    actionKey,
+    compact,
+    label,
+    onClick,
+    disabled = false,
+    children,
+  }: {
+    actionKey: string;
+    compact: boolean;
+    label: string;
+    onClick: () => void | Promise<void>;
+    disabled?: boolean;
+    children: ReactNode;
+  }) {
+    return (
+      <IconToolbarSurfaceButton
+        key={actionKey}
+        compact={compact}
+        variant="chrome"
+        label={label}
+        onClick={() => {
+          void onClick();
+        }}
+        disabled={disabled}
       >
-        <ChevronLeft aria-hidden="true" className="size-4" />
-        {!controller.geometry.compact ? <span className="truncate">{visibleBackLabel}</span> : null}
-      </button>
-    </OverlayActionSurface>
-  );
+        {children}
+      </IconToolbarSurfaceButton>
+    );
+  }
 
   return (
     <TooltipProvider>
@@ -76,12 +74,30 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
         }}
         className="pointer-events-none absolute z-[60]"
       >
-        <div data-testid="browser-overlay-chrome" className="pointer-events-auto">
-          {controller.geometry.compact ? (
-            <AppTooltip label={backToReaderLabel}>{leadingAction}</AppTooltip>
-          ) : (
-            leadingAction
-          )}
+        <div data-testid="browser-overlay-chrome" className="pointer-events-auto flex items-center gap-2">
+          {renderIconAction({
+            actionKey: "close-web-preview",
+            compact: presentation.leadingActionSurface.compact,
+            label: closeWebPreviewLabel,
+            onClick: controller.handleCloseOverlay,
+            children: <X aria-hidden="true" className="size-4" />,
+          })}
+          {renderIconAction({
+            actionKey: "browser-back",
+            compact: presentation.leadingActionSurface.compact,
+            label: t("web_back"),
+            onClick: controller.handleGoBack,
+            disabled: !controller.browserState?.can_go_back,
+            children: <ChevronLeft aria-hidden="true" className="size-4" />,
+          })}
+          {renderIconAction({
+            actionKey: "browser-forward",
+            compact: presentation.leadingActionSurface.compact,
+            label: t("web_forward"),
+            onClick: controller.handleGoForward,
+            disabled: !controller.browserState?.can_go_forward,
+            children: <ChevronRight aria-hidden="true" className="size-4" />,
+          })}
         </div>
       </div>
       <div
@@ -93,24 +109,23 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
         className="pointer-events-none absolute z-[60]"
       >
         <div className="pointer-events-auto flex items-center gap-2">
-          {toolbarActions ? (
-            toolbarActions(overlayActionRenderer)
-          ) : (
-            <OverlayActionSurface {...presentation.actionButtonSurface}>
-              <AppTooltip label={t("open_in_external_browser")}>
-                <button
-                  type="button"
-                  aria-label={t("open_in_external_browser")}
-                  onClick={() => {
-                    void controller.handleOpenExternal();
-                  }}
-                  className={actionButtonClassName}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </button>
-              </AppTooltip>
-            </OverlayActionSurface>
-          )}
+          {renderIconAction({
+            actionKey: "reload-web-preview",
+            compact: presentation.actionButtonSurface.compact,
+            label: t("reload_page"),
+            onClick: controller.handleReload,
+            disabled: !controller.browserState,
+            children: <RotateCw aria-hidden="true" className="size-4" />,
+          })}
+          {renderIconAction({
+            actionKey: "open-external-browser",
+            compact: presentation.actionButtonSurface.compact,
+            label: t("open_in_external_browser"),
+            onClick: controller.handleOpenExternal,
+            disabled: !controller.browserState,
+            children: <ExternalLink aria-hidden="true" className="size-4" />,
+          })}
+          {toolbarActions ? toolbarActions(overlayActionRenderer) : null}
         </div>
       </div>
     </TooltipProvider>

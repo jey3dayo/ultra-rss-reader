@@ -3,7 +3,15 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Globe } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
-import { IconToolbarButton, IconToolbarMenuTrigger, IconToolbarToggle } from "@/components/shared/icon-toolbar-control";
+import {
+  IconToolbarButton,
+  IconToolbarMenuTrigger,
+  IconToolbarSurfaceButton,
+  IconToolbarToggle,
+  iconToolbarSurfaceButtonClassName,
+  iconToolbarSurfaceControlVariants,
+  iconToolbarSurfaceLabelButtonClassName,
+} from "@/components/shared/icon-toolbar-control";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 describe("IconToolbarControl", () => {
@@ -75,5 +83,57 @@ describe("IconToolbarControl", () => {
     await user.click(menuTrigger);
 
     expect(await screen.findByText("Copy link")).toBeInTheDocument();
+  });
+
+  it("exports overlay-safe toolbar classes that preserve shared sizing and rounded corners", () => {
+    expect(iconToolbarSurfaceButtonClassName).toContain("size-11");
+    expect(iconToolbarSurfaceButtonClassName).toContain("md:size-8");
+    expect(iconToolbarSurfaceButtonClassName).toContain("rounded-lg");
+    expect(iconToolbarSurfaceButtonClassName).toContain("text-inherit");
+    expect(iconToolbarSurfaceButtonClassName).toContain("disabled:opacity-100");
+    expect(iconToolbarSurfaceButtonClassName).toContain("disabled:text-foreground/55");
+    expect(iconToolbarSurfaceControlVariants({ pressedTone: "accent" })).toContain("data-[pressed]:text-primary");
+    expect(iconToolbarSurfaceLabelButtonClassName).toContain("rounded-lg");
+    expect(iconToolbarSurfaceLabelButtonClassName).toContain("text-inherit");
+  });
+
+  it("renders a shared overlay surface button with the same icon treatment used by browser chrome", async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+
+    render(
+      <TooltipProvider>
+        <IconToolbarSurfaceButton label="Close Web Preview" onClick={onClick}>
+          <Globe className="h-4 w-4" />
+        </IconToolbarSurfaceButton>
+      </TooltipProvider>,
+    );
+
+    const button = screen.getByRole("button", { name: "Close Web Preview" });
+    const surface = button.closest("[data-overlay-shell='action']");
+
+    expect(surface).toHaveClass("rounded-lg", "size-11", "md:size-8");
+    expect(button).toHaveClass("rounded-lg");
+
+    await user.click(button);
+
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("supports a chrome variant for borderless browser chrome buttons", () => {
+    render(
+      <TooltipProvider>
+        <IconToolbarSurfaceButton label="Web back" onClick={vi.fn()} variant="chrome">
+          <Globe className="h-4 w-4" />
+        </IconToolbarSurfaceButton>
+      </TooltipProvider>,
+    );
+
+    const button = screen.getByRole("button", { name: "Web back" });
+    const surface = button.closest("[data-overlay-shell='action']");
+
+    expect(surface).toHaveClass("border-transparent", "bg-transparent", "shadow-none");
+    expect(surface?.className).toContain("hover:bg-background/8");
+    expect(surface?.className).toContain("has-[:active]:bg-background/12");
   });
 });

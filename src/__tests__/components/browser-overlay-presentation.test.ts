@@ -12,7 +12,7 @@ describe("browser-overlay-presentation", () => {
       tone: "default",
     });
     expect(getBrowserOverlayLeadingActionPresentation(false)).toEqual({
-      compact: false,
+      compact: true,
       tone: "default",
     });
   });
@@ -23,7 +23,7 @@ describe("browser-overlay-presentation", () => {
       tone: "default",
     });
     expect(getBrowserOverlayActionSurfacePresentation(false)).toEqual({
-      compact: false,
+      compact: true,
       tone: "default",
     });
   });

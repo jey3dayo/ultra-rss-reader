@@ -22,6 +22,7 @@ export function useBrowserViewController({
   const {
     showDiagnostics,
     browserUrl,
+    browserState,
     showToast,
     platformKind,
     setBrowserState,
@@ -107,7 +108,7 @@ export function useBrowserViewController({
 
   useBrowserOverlayShortcuts({ browserUrl, handleCloseOverlay });
 
-  const { handleRetry, handleOpenExternal } = useBrowserViewActions({
+  const { handleGoBack, handleGoForward, handleRetry, handleReload, handleOpenExternal } = useBrowserViewActions({
     browserUrl,
     browserStateRef,
     setBrowserState,
@@ -132,6 +133,7 @@ export function useBrowserViewController({
 
   return {
     browserUrl,
+    browserState,
     showDiagnostics,
     geometry: presentation.geometry,
     presentation,
@@ -140,7 +142,10 @@ export function useBrowserViewController({
     activeSurfaceIssue,
     isLoading,
     handleCloseOverlay,
+    handleGoBack,
+    handleGoForward,
     handleRetry,
+    handleReload,
     handleOpenExternal,
     hostRef,
     overlayRef,

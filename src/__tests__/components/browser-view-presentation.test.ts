@@ -41,7 +41,7 @@ describe("browser-view-presentation", () => {
     expect(overlayTitlebar.geometry.chrome.visualHeaderHeight).toBe(standard.geometry.chrome.visualHeaderHeight);
     expect(overlayTitlebar.geometry.chrome.leadingSafeInset).toBeGreaterThan(standard.geometry.chrome.leadingSafeInset);
     expect(overlayTitlebar.leadingActionSurface).toEqual({
-      compact: false,
+      compact: true,
       tone: "default",
     });
   });
@@ -56,11 +56,11 @@ describe("browser-view-presentation", () => {
     expect(presentation.geometry.compact).toBe(false);
     expect(presentation.geometry.stage.top).toBe(56);
     expect(presentation.leadingActionSurface).toEqual({
-      compact: false,
+      compact: true,
       tone: "default",
     });
     expect(presentation.actionButtonSurface).toEqual({
-      compact: false,
+      compact: true,
       tone: "default",
     });
     expect(presentation.stageSurface).toEqual({

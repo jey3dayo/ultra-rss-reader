@@ -5,19 +5,19 @@ import type {
 } from "./browser-view.types";
 
 export function getBrowserOverlayLeadingActionPresentation(
-  isCompactViewer: boolean,
+  _isCompactViewer: boolean,
 ): BrowserOverlayActionSurfacePresentation {
   return {
-    compact: isCompactViewer,
+    compact: true,
     tone: "default",
   };
 }
 
 export function getBrowserOverlayActionSurfacePresentation(
-  isCompactViewer: boolean,
+  _isCompactViewer: boolean,
 ): BrowserOverlayActionSurfacePresentation {
   return {
-    compact: isCompactViewer,
+    compact: true,
     tone: "default",
   };
 }

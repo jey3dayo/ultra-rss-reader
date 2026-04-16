@@ -56,7 +56,7 @@ export type BrowserViewProps = {
   scope?: BrowserViewScope;
   onCloseOverlay: () => void;
   labels: {
-    backToReader: string;
+    closeWebPreview: string;
   };
   toolbarActions?: BrowserOverlayActionsRenderer;
 };
@@ -68,6 +68,7 @@ export type UseBrowserViewControllerParams = {
 
 export type BrowserViewController = {
   browserUrl: string | null;
+  browserState: BrowserWebviewState | null;
   showDiagnostics: boolean;
   geometry: BrowserViewGeometry;
   presentation: BrowserViewSurfacePresentation;
@@ -76,7 +77,10 @@ export type BrowserViewController = {
   activeSurfaceIssue: BrowserSurfaceIssue | null;
   isLoading: boolean;
   handleCloseOverlay: () => void;
+  handleGoBack: () => Promise<void>;
+  handleGoForward: () => Promise<void>;
   handleRetry: () => void;
+  handleReload: () => Promise<void>;
   handleOpenExternal: () => Promise<void>;
   hostRef: React.RefObject<HTMLDivElement | null>;
   overlayRef: React.RefObject<HTMLDivElement | null>;
@@ -85,14 +89,20 @@ export type BrowserViewController = {
 
 export type BrowserOverlayChromeController = Pick<
   BrowserViewController,
-  "geometry" | "handleCloseOverlay" | "handleOpenExternal"
+  | "browserState"
+  | "geometry"
+  | "handleCloseOverlay"
+  | "handleGoBack"
+  | "handleGoForward"
+  | "handleReload"
+  | "handleOpenExternal"
 >;
 
 export type BrowserOverlayChromeProps =
   | {
       controller: BrowserOverlayChromeController;
       presentation: Pick<BrowserViewSurfacePresentation, "leadingActionSurface" | "actionButtonSurface">;
-      backToReaderLabel: string;
+      closeWebPreviewLabel: string;
       toolbarActions?: BrowserOverlayActionsRenderer;
     }
   | {
@@ -136,6 +146,7 @@ export type UseBrowserViewRuntimeParams = {
 export type UseBrowserViewRuntimeResult = {
   showDiagnostics: boolean;
   browserUrl: string | null;
+  browserState: BrowserWebviewState | null;
   showToast: (message: string | ToastData) => void;
   platformKind: PlatformInfo["kind"];
   setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
