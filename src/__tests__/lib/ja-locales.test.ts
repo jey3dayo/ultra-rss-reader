@@ -9,14 +9,14 @@ describe("Japanese feed management labels", () => {
   });
 
   it("keeps cleanup decision labels consistent", () => {
-    expect(jaCleanup.defer).toBe("あとで確認");
-    expect(jaCleanup.deferred_badge).toBe("あとで確認");
+    expect(jaCleanup.defer).toBe("あとで見直す");
+    expect(jaCleanup.deferred_badge).toBe("あとで見直す");
     expect(jaCleanup.review_status).toBe("未判断");
   });
 
   it("uses natural keep guidance copy in the review panel", () => {
     expect(jaCleanup.priority_keep).toBe("今は残す");
-    expect(jaCleanup.summary_headline_keep).toBe("今は残してよさそうです");
-    expect(jaCleanup.candidate_summary_healthy_feed).toBe("最近も動いていて、今すぐ触る必要はなさそうです。");
+    expect(jaCleanup.summary_headline_keep).toBe("今はそのままでよさそうです");
+    expect(jaCleanup.candidate_summary_healthy_feed).toBe("最近も更新があり、今すぐ触る必要はなさそうです。");
   });
 });

@@ -34,7 +34,7 @@
   "detail_reason_normal": "最近も動きがあります。今はそのままでよさそうです。",
   "detail_reason_stale_and_inactive": "更新が止まっていて、未読もありません。",
   "detail_reason_stale_with_no_stars": "更新が止まっていて、スターも残っていません。",
-  "detail_reason_inactive_without_signals": "未読もスターもなく、今は動きがありません。",
+  "detail_reason_inactive_without_signals": "未読はなく、スターもありません。いったん見直してよさそうです。",
   "detail_reason_stale_but_supported": "更新は止まっています。消す前に一度だけ見ておきたい購読です。",
   "detail_recent_articles": "最近の記事",
   "empty": "一致する購読はありません。",
