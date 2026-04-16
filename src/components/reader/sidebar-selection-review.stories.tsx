@@ -94,8 +94,8 @@ const reviewTags: SidebarTagItem[] = [
 function ReviewCard(props: { title: string; children: ReactNode }) {
   return (
     <section className="space-y-1">
-      <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/55 uppercase">{props.title}</p>
-      <div className="rounded-md border border-sidebar-border/40 bg-sidebar p-2">{props.children}</div>
+      <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/40 uppercase">{props.title}</p>
+      <div className="rounded-md border border-sidebar-border/30 bg-sidebar/80 p-2">{props.children}</div>
     </section>
   );
 }

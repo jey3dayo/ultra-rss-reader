@@ -72,7 +72,7 @@ export function AccountSwitcherMenu({
             aria-checked={account.id === selectedAccountId}
             aria-pressed={account.id === selectedAccountId}
             className={cn(
-              "relative w-full overflow-hidden rounded-md px-3 py-2 text-left text-sm hover:bg-sidebar-accent/58",
+              "relative w-full overflow-hidden rounded-md px-3 py-2 text-left text-sm hover:bg-sidebar-accent/28",
               account.id === selectedAccountId
                 ? "bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:rounded-full before:bg-primary"
                 : "text-sidebar-foreground",
