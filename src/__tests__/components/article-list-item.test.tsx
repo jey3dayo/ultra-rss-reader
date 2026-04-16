@@ -196,4 +196,26 @@ describe("ArticleListItem", () => {
     const option = screen.getByRole("option", { name: "First Article (unread)" });
     expect(option).toHaveClass("border-l-2", "border-primary", "bg-surface-1/72");
   });
+
+  it("uses softened supporting copy for timestamps and secondary text", () => {
+    render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], summary: "A hello world article", is_read: false, is_starred: false }}
+        isSelected={false}
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName="Tech Blog"
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const option = screen.getByRole("option", { name: "First Article (unread)" });
+    expect(option.querySelector(".shrink-0.pt-0\\.5.text-xs")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("Tech Blog")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("A hello world article")).toHaveClass("text-foreground-soft");
+  });
 });

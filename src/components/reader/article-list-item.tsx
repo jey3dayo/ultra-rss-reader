@@ -80,11 +80,11 @@ export function ArticleListItem({
             ) : null}
           </div>
         </div>
-        <span className="shrink-0 pt-0.5 text-xs text-muted-foreground">{formatArticleTime(article.published_at)}</span>
+        <span className="shrink-0 pt-0.5 text-xs text-foreground-soft">{formatArticleTime(article.published_at)}</span>
       </div>
 
       {showFeedName && (
-        <p className={cn("pl-4 text-xs", isUnread ? "text-muted-foreground" : "text-foreground-soft")}>
+        <p className="pl-4 text-xs text-foreground-soft">
           {normalizedFeedName}
         </p>
       )}
@@ -93,10 +93,7 @@ export function ArticleListItem({
         <div className="flex items-start gap-2 pl-4">
           {showSummary && (
             <p
-              className={cn(
-                "line-clamp-2 flex-1 text-xs leading-relaxed",
-                isUnread ? "text-muted-foreground" : "text-foreground-soft",
-              )}
+              className="line-clamp-2 flex-1 text-xs leading-relaxed text-foreground-soft"
             >
               {normalizedSummary}
             </p>
