@@ -599,11 +599,13 @@ describe("BrowserView", () => {
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
     const loadingState = screen.getByTestId("browser-loading-state");
+    const loadingTitle = screen.getByText("Loading");
+    const loadingHint = screen.getByText("If this takes too long, open it in your external browser.");
 
     expect(loadingState.className).not.toMatch(/\bborder\b/);
     expect(loadingState.className).not.toMatch(/\bshadow-/);
-    expect(screen.getByText("Loading")).toBeInTheDocument();
-    expect(screen.getByText("If this takes too long, open it in your external browser.")).toBeInTheDocument();
+    expect(loadingTitle).toHaveClass("text-foreground");
+    expect(loadingHint).toHaveClass("text-foreground-soft");
   });
 
   it("keeps the fullscreen stage unchanged when debug hud is enabled", async () => {

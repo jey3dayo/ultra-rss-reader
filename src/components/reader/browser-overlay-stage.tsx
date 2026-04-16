@@ -39,8 +39,8 @@ export function BrowserOverlayStage({ controller }: BrowserOverlayStageProps) {
                 <LoaderCircle aria-hidden="true" className="relative size-12 animate-spin text-foreground/92" />
               </div>
               <div className="space-y-1.5">
-                <p className="text-sm font-medium tracking-[0.02em] text-foreground/92">{t("browser_loading")}</p>
-                <p className="text-sm text-muted-foreground">{t("browser_loading_hint")}</p>
+                <p className="text-sm font-medium tracking-[0.02em] text-foreground">{t("browser_loading")}</p>
+                <p className="text-sm text-foreground-soft">{t("browser_loading_hint")}</p>
               </div>
             </div>
           </div>
