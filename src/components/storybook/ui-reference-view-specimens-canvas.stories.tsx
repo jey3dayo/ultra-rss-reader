@@ -8,6 +8,7 @@ import {
   ReferencePage,
   SurfaceRoleSpecimen,
   TagPaletteSpecimen,
+  WorkspaceFilterClusterSpecimen,
 } from "@/components/storybook/ui-reference-canvas-specimens";
 
 export function ViewSpecimensCanvas() {
@@ -21,6 +22,7 @@ export function ViewSpecimensCanvas() {
         <SurfaceRoleSpecimen />
         <div className="grid gap-4 xl:grid-cols-2">
           <ReaderFilterStripSpecimen />
+          <WorkspaceFilterClusterSpecimen />
           <AccountCardStackSpecimen />
           <NavigationStackSpecimen />
           <AnnouncementCardsSpecimen />

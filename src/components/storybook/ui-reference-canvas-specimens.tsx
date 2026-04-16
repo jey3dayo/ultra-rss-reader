@@ -11,8 +11,10 @@ import type { AccountNavItem, SettingsNavItem } from "@/components/settings/sett
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
+import { ControlChipButton } from "@/components/shared/control-chip-button";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
+import { LabelChip } from "@/components/shared/label-chip";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
@@ -363,6 +365,48 @@ export function ReaderFilterStripSpecimen() {
       </div>
       <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
         reader 固有の帯。filter chip 群と補助説明の密度を確認する。
+      </p>
+    </SurfaceCard>
+  );
+}
+
+export function WorkspaceFilterClusterSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Workspace filter cluster</SectionHeading>
+      <div
+        data-testid="reference-workspace-filter-cluster-frame"
+        className={cn(
+          STACK_SPECIMEN_FRAME_RADIUS_CLASS,
+          "border border-border/70 bg-surface-1/88 px-3 py-3 shadow-elevation-1",
+        )}
+      >
+        <div className="flex flex-wrap gap-2">
+          {[
+            { label: "すべて", count: 163, pressed: true },
+            { label: "90日以上更新なし", count: 0, pressed: false },
+            { label: "未読なし", count: 163, pressed: false },
+            { label: "スターなし", count: 163, pressed: false },
+          ].map((item) => (
+            <ControlChipButton
+              key={item.label}
+              pressed={item.pressed}
+              size="comfortable"
+              className="gap-2 rounded-md px-3.5"
+            >
+              <span>{item.label}</span>
+              <LabelChip tone="muted" size="compact" className="rounded-sm px-1.5">
+                {item.count}
+              </LabelChip>
+            </ControlChipButton>
+          ))}
+          <ControlChipButton pressed={false} size="comfortable" className="rounded-md px-3.5">
+            あとで確認を表示
+          </ControlChipButton>
+        </div>
+      </div>
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
+        密度の高いワークスペースでは、pill よりも少し角張った filter chip を優先する。件数バッジはさらに一段小さく角を落として、本文ラベルより控えめに扱う。
       </p>
     </SurfaceCard>
   );

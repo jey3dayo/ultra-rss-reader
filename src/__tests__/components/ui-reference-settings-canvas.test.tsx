@@ -66,6 +66,7 @@ describe("UI Reference canvases", () => {
 
     expect(screen.getByText("View specimens")).toBeInTheDocument();
     expect(screen.getByTestId("reference-filter-strip-frame")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("reference-workspace-filter-cluster-frame")).toHaveClass("rounded-md");
     expect(screen.getByTestId("reference-account-card-frame")).toHaveClass("rounded-md");
     expect(screen.getByTestId("reference-announcement-card-pending")).toHaveClass("rounded-md");
     expect(screen.getByTestId("reference-announcement-card-decided")).toHaveClass("rounded-md");
@@ -78,6 +79,8 @@ describe("UI Reference canvases", () => {
     expect(within(filterGroup).getByRole("button", { name: "未読" })).toBeInTheDocument();
     expect(within(filterGroup).getByRole("button", { name: "すべて" })).toBeInTheDocument();
     expect(within(filterGroup).getByRole("button", { name: "スター" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "すべて163" })).toHaveClass("rounded-md");
+    expect(within(screen.getByRole("button", { name: "すべて163" })).getByText("163")).toHaveClass("rounded-sm");
 
     const accountSection = screen.getByText("Account card stack").closest("section") ?? document.body;
     expect(within(accountSection).getByText("Local")).toBeInTheDocument();
