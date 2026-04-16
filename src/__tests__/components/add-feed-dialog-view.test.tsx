@@ -77,6 +77,7 @@ describe("AddFeedDialogView", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
     expect(screen.getByRole("dialog")).toHaveClass("bg-surface-2", "shadow-elevation-3");
+    expect(screen.getByText("Add a feed from a URL or website")).toHaveClass("text-foreground-soft");
     expect(screen.getByLabelText("Feed or Site URL")).toHaveValue("https://example.com");
     expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass("rounded-md", "bg-surface-1/80");
     expect(screen.getByText("Feed or Site URL")).toHaveClass("text-foreground-soft");

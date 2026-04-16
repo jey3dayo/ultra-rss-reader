@@ -53,7 +53,7 @@ export function FeedDialogFormView({
         <DialogHeader className="border-b border-border/70 px-6 py-5">
           <DialogTitle className="text-[1.6rem] font-semibold tracking-tight">{labels.title}</DialogTitle>
           {labels.description ? (
-            <DialogDescription className="max-w-[46ch] text-sm leading-6 text-muted-foreground/90">
+            <DialogDescription className="max-w-[46ch] text-sm leading-6 text-foreground-soft">
               {labels.description}
             </DialogDescription>
           ) : null}
