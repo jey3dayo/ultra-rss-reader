@@ -18,7 +18,11 @@ describe("DecisionButton", () => {
       "text-state-success-foreground",
     );
     expect(screen.getByRole("button", { name: "Later" })).toHaveClass("border-border-strong", "bg-surface-1/88");
-    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("border-destructive/20", "bg-destructive/8");
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass(
+      "border-state-danger-border",
+      "bg-state-danger-surface",
+      "text-state-danger-foreground",
+    );
   });
 
   it("keeps disabled state on all intents", () => {

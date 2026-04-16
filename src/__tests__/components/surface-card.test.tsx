@@ -47,12 +47,18 @@ describe("SurfaceCard", () => {
 
   it("supports tone, padding, and className without changing the semantic role", () => {
     render(
-      <SurfaceCard data-testid="success-card" variant="section" tone="success" padding="compact" className="max-w-sm">
-        Success
-      </SurfaceCard>,
+      <>
+        <SurfaceCard data-testid="success-card" variant="section" tone="success" padding="compact" className="max-w-sm">
+          Success
+        </SurfaceCard>
+        <SurfaceCard data-testid="danger-card" variant="section" tone="danger" padding="compact">
+          Danger
+        </SurfaceCard>
+      </>,
     );
 
     const card = screen.getByTestId("success-card");
+    const dangerCard = screen.getByTestId("danger-card");
 
     expect(card).toHaveAttribute("data-surface-card", "section");
     expect(card).toHaveClass("border-state-success-border");
@@ -61,5 +67,8 @@ describe("SurfaceCard", () => {
     expect(card).toHaveClass("px-3");
     expect(card).toHaveClass("py-3");
     expect(card).toHaveClass("max-w-sm");
+    expect(dangerCard).toHaveClass("border-state-danger-border");
+    expect(dangerCard).toHaveClass("bg-state-danger-surface");
+    expect(dangerCard).toHaveClass("text-state-danger-foreground");
   });
 });

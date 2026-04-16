@@ -61,7 +61,7 @@ const surfaceCardVariants = cva(
       },
       {
         tone: "danger",
-        className: "border-destructive/20 bg-destructive/8",
+        className: "border-state-danger-border bg-state-danger-surface text-state-danger-foreground",
       },
     ],
     defaultVariants: {

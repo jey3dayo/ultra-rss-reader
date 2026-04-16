@@ -15,7 +15,7 @@ export function DeleteButton({
       data-delete-button
       variant={variant}
       className={cn(
-        "border-destructive/30 bg-destructive/10 font-medium text-destructive shadow-none hover:border-destructive/40 hover:bg-destructive/15 hover:text-destructive focus-visible:border-destructive/40 focus-visible:ring-destructive/20",
+        "border-state-danger-border bg-state-danger-surface font-medium text-state-danger-foreground shadow-none hover:border-state-danger-border hover:bg-state-danger-surface hover:text-state-danger-foreground focus-visible:border-state-danger-border focus-visible:ring-destructive/20",
         className,
       )}
       {...props}

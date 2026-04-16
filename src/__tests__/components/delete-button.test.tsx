@@ -9,6 +9,6 @@ describe("DeleteButton", () => {
     const button = screen.getByRole("button", { name: "Delete" });
 
     expect(button).toHaveAttribute("data-delete-button");
-    expect(button).toHaveClass("bg-destructive/10", "border-destructive/30", "text-destructive");
+    expect(button).toHaveClass("bg-state-danger-surface", "border-state-danger-border", "text-state-danger-foreground");
   });
 });

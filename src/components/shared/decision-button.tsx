@@ -12,7 +12,7 @@ const decisionIntentClassName = {
   defer:
     "border-border-strong bg-surface-1/88 text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground",
   delete:
-    "border-destructive/20 bg-destructive/8 text-destructive shadow-none hover:border-destructive/30 hover:bg-destructive/12",
+    "border-state-danger-border bg-state-danger-surface text-state-danger-foreground shadow-none hover:border-state-danger-border hover:bg-state-danger-surface",
 } as const;
 
 export function DecisionButton({
