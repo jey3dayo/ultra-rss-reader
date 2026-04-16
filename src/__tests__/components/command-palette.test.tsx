@@ -196,6 +196,19 @@ describe("CommandPalette", () => {
     });
   });
 
+  it("switches to the dark theme from the command palette and closes it", async () => {
+    const user = userEvent.setup();
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("option", { name: /Theme: Dark/i }));
+
+    await waitFor(() => {
+      expect(usePreferencesStore.getState().prefs.theme).toBe("dark");
+      expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+    });
+  });
+
   it("wraps prefix hints so they stay readable on narrow layouts", async () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 

@@ -289,6 +289,15 @@ describe("executeAction", () => {
 
       expect(setPref).toHaveBeenCalled();
     });
+
+    it("sets theme to dark", async () => {
+      const { usePreferencesStore } = vi.mocked(await import("@/stores/preferences-store"));
+      const { setPref } = usePreferencesStore.getState();
+
+      executeAction("set-theme-dark");
+
+      expect(setPref).toHaveBeenCalledWith("theme", "dark");
+    });
   });
 
   describe("placeholder actions", () => {
@@ -499,6 +508,7 @@ describe("executeAction", () => {
       expect(isAppAction("close-browser")).toBe(true);
       expect(isAppAction("set-filter-unread")).toBe(true);
       expect(isAppAction("open-command-palette")).toBe(true);
+      expect(isAppAction("set-theme-dark")).toBe(true);
       expect(isAppAction("open-subscriptions-index")).toBe(true);
       expect(isAppAction("open-feed-cleanup")).toBe(true);
     });

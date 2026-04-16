@@ -14,6 +14,8 @@ export type AppAction =
   | `set-filter-${ViewMode}`
   | "toggle-sort-unread"
   | "toggle-group-by-feed"
+  | "set-theme-light"
+  | "set-theme-dark"
   | "toggle-fullscreen"
   | "sync-all"
   | "open-settings"
@@ -46,6 +48,8 @@ const appActions = new Set<string>([
   "set-filter-starred",
   "toggle-sort-unread",
   "toggle-group-by-feed",
+  "set-theme-light",
+  "set-theme-dark",
   "toggle-fullscreen",
   "sync-all",
   "open-settings",
@@ -180,6 +184,12 @@ export function executeAction(action: AppAction): void {
       usePreferencesStore.getState().setPref("group_by", current === "date" ? "feed" : "date");
       break;
     }
+    case "set-theme-light":
+      usePreferencesStore.getState().setPref("theme", "light");
+      break;
+    case "set-theme-dark":
+      usePreferencesStore.getState().setPref("theme", "dark");
+      break;
 
     // --- Window ---
     case "toggle-fullscreen":

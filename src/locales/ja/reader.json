@@ -147,6 +147,7 @@
     "no_results": "結果が見つかりません",
     "recent_actions": "最近のアクション",
     "actions": "アクション",
+    "theme_action": "テーマ: {{theme}}",
     "feeds": "フィード",
     "articles": "記事",
     "tags": "タグ",

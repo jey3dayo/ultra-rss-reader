@@ -1,4 +1,4 @@
-import { CircleHelpIcon, NewspaperIcon, RefreshCwIcon, RssIcon, SettingsIcon } from "lucide-react";
+import { CircleHelpIcon, MoonIcon, NewspaperIcon, RefreshCwIcon, RssIcon, SettingsIcon, SunIcon } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { getShortcutDisplay } from "@/lib/keyboard-shortcuts";
@@ -10,6 +10,7 @@ export function useCommandPaletteActions({
 }: UseCommandPaletteActionsParams): UseCommandPaletteActionsResult {
   const { t } = useTranslation("reader");
   const { t: tSidebar } = useTranslation("sidebar");
+  const { t: tSettings } = useTranslation("settings");
 
   return useMemo(
     () => [
@@ -26,6 +27,22 @@ export function useCommandPaletteActions({
         shortcut: "?",
         keywords: ["help", "shortcuts", "keyboard", "?"],
         icon: CircleHelpIcon,
+      },
+      {
+        id: "set-theme-light",
+        label: t("command_palette.theme_action", {
+          theme: tSettings("appearance.light"),
+        }),
+        keywords: ["theme", "appearance", "light", tSettings("appearance.theme"), tSettings("appearance.light")],
+        icon: SunIcon,
+      },
+      {
+        id: "set-theme-dark",
+        label: t("command_palette.theme_action", {
+          theme: tSettings("appearance.dark"),
+        }),
+        keywords: ["theme", "appearance", "dark", tSettings("appearance.theme"), tSettings("appearance.dark")],
+        icon: MoonIcon,
       },
       {
         id: "open-add-feed",
@@ -53,6 +70,6 @@ export function useCommandPaletteActions({
         icon: NewspaperIcon,
       },
     ],
-    [platformKind, shortcutPrefs, t, tSidebar],
+    [platformKind, shortcutPrefs, t, tSettings, tSidebar],
   );
 }
