@@ -28,7 +28,7 @@ export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSum
           const isActionable = hasAction && Number.isFinite(numericValue) && numericValue > 0;
           const helperText = hasAction ? card.actionLabel : undefined;
           const className = cn(
-            "rounded-xl border px-4 py-4 text-left shadow-[0_16px_40px_-34px_hsl(var(--foreground)/0.34)] transition-colors",
+            "rounded-md border px-4 py-4 text-left shadow-[0_16px_40px_-34px_hsl(var(--foreground)/0.34)] transition-colors",
             resolveCardClassName(isActionable ? card.tone : "neutral"),
             !isActionable && card.actionLabel && "text-muted-foreground",
           );

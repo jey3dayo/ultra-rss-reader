@@ -212,7 +212,7 @@ describe("FeedCleanupPage", () => {
     expect(screen.getByText("Decided")).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Old Product Blog" })).toBeInTheDocument();
     expect(screen.getByTestId("feed-cleanup-queue-row-feed-2")).toHaveClass("bg-background/28");
-    expect(screen.getByTestId("feed-cleanup-queue-row-feed-1")).toHaveClass("rounded-[var(--radius-surface-section)]");
+    expect(screen.getByTestId("feed-cleanup-queue-row-feed-1")).toHaveClass("rounded-md");
     expect(screen.getByTestId("feed-cleanup-queue-row-feed-1")).toHaveClass("bg-card/56");
     expect(screen.getByRole("button", { name: "90+ days inactive 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "No unread 1" })).toBeInTheDocument();
@@ -255,11 +255,13 @@ describe("FeedCleanupPage", () => {
     );
 
     const deleteDialog = screen.getByRole("dialog", { name: "Delete feed" });
+    const warningCard = within(deleteDialog).getByText("This action removes the subscription from this account.");
 
     expect(within(deleteDialog).getByText("Old Product Blog")).toBeInTheDocument();
     expect(within(deleteDialog).getByText("Why this feed is here")).toBeInTheDocument();
     expect(within(deleteDialog).getByText("No unread")).toBeInTheDocument();
     expect(within(deleteDialog).getByText("No stars")).toBeInTheDocument();
+    expect(warningCard).toHaveClass("rounded-md");
 
     await user.click(within(deleteDialog).getByRole("button", { name: "Delete" }));
 
@@ -331,7 +333,8 @@ describe("FeedCleanupPage", () => {
     render(<FeedCleanupPage />, { wrapper: createWrapper() });
 
     expect(await screen.findByText("Broken feed references found")).toBeInTheDocument();
-    expect(await screen.findByText("1 article is pointing to a missing feed.")).toBeInTheDocument();
+    expect(await screen.findByText("1 article is pointing to a missing feed.")).toHaveClass("mt-1");
+    expect(screen.getByText("Broken feed references found").closest("div")).toHaveClass("rounded-md");
     expect(screen.getByRole("button", { name: "Show broken references" })).toBeInTheDocument();
   });
 
@@ -401,6 +404,7 @@ describe("FeedCleanupPage", () => {
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("Work");
     expect(screen.getByLabelText("Website URL")).toHaveValue("https://example.com/old");
     expect(screen.getByLabelText("Feed URL")).toHaveValue("https://example.com/old.xml");
+    expect(screen.getByLabelText("Website URL").closest("div.space-y-3")).toHaveClass("rounded-md");
 
     await user.clear(screen.getByLabelText("Title"));
     await user.type(screen.getByLabelText("Title"), "Archived Product Blog");
@@ -641,11 +645,14 @@ describe("FeedCleanupPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Shortcuts" }));
 
-    expect(screen.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
+    const shortcutsDialog = screen.getByRole("dialog", { name: "Keyboard shortcuts" });
+    expect(shortcutsDialog).toBeInTheDocument();
     expect(screen.getByText("Navigation")).toBeInTheDocument();
     expect(screen.getByText("Actions")).toBeInTheDocument();
     expect(screen.getByText("Next feed")).toBeInTheDocument();
     expect(screen.getAllByText("Help").length).toBeGreaterThan(0);
+    expect(within(shortcutsDialog).getByText("Next feed").closest("div")).toHaveClass("rounded-md");
+    expect(within(shortcutsDialog).getByText("Keep").closest("div")).toHaveClass("rounded-md");
 
     await user.keyboard("{Escape}");
 

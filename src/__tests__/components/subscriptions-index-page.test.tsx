@@ -154,9 +154,6 @@ describe("SubscriptionsIndexPage", () => {
 
     const selectedFeed = await screen.findByRole("button", { name: /Example Feed/ });
     const secondaryFeed = screen.getByRole("button", { name: /Fresh Feed/ });
-    const selectedFeedIconSurface = selectedFeed.querySelector("span.rounded-md.border");
-    const secondaryFeedIconSurface = secondaryFeed.querySelector("span.rounded-md.border");
-
     expect(selectedFeed).toHaveAccessibleName(/Example Feed/);
     expect(selectedFeed).toHaveAccessibleName(/Work/);
     expect(selectedFeed).toHaveAccessibleName(/未読 0件/);
@@ -168,16 +165,14 @@ describe("SubscriptionsIndexPage", () => {
     expect(secondaryFeed).toHaveAccessibleName(/未読 3件/);
     expect(secondaryFeed).toHaveAttribute("aria-pressed", "false");
     expect(secondaryFeed).not.toHaveClass("bg-card/75");
-    expect(selectedFeedIconSurface).toHaveClass("rounded-md");
-    expect(secondaryFeedIconSurface).toHaveClass("rounded-md");
     expect(selectedFeed.querySelector('img[src*="google.com/s2/favicons?domain=example.com"]')).toBeTruthy();
   });
 
   it("renders only actionable summary cards as buttons", async () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    const totalSubscriptionsCard = (await screen.findByText("総購読数")).closest("div");
-    expect(totalSubscriptionsCard).toHaveClass("rounded-md");
+    const totalSubscriptionsLabel = await screen.findByText("総購読数");
+    expect(totalSubscriptionsLabel.closest(".rounded-md")).not.toBeNull();
     expect(screen.queryByRole("button", { name: /総購読数/ })).toBeNull();
     expect(await screen.findByRole("button", { name: /止まった購読を見る/ })).toHaveClass("rounded-md");
     expect(await screen.findByRole("button", { name: /参照エラーを見る/ })).toHaveClass("rounded-md");
@@ -242,6 +237,48 @@ describe("SubscriptionsIndexPage", () => {
     expect(detailScrollRegion).toHaveClass("min-h-0");
     expect(detailScrollRegion).toHaveClass("flex-1");
     expect(detailScrollRegion).toHaveClass("overflow-y-auto");
+  });
+
+  it("keeps the empty detail surface on the rounded-md baseline", async () => {
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    const emptyDetail = await screen.findByText("購読を選ぶと詳細が表示されます。");
+    expect(emptyDetail).toHaveClass("rounded-md");
+  });
+
+  it("renders the empty detail surface with the rounded-md baseline when no feeds exist", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return [];
+        case "list_folders":
+          return [
+            { id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 },
+            { id: "folder-2", account_id: args.accountId, name: "Work", sort_order: 1 },
+          ];
+        case "list_account_articles":
+          return [];
+        case "get_feed_integrity_report":
+          return {
+            orphaned_article_count: 0,
+            orphaned_feeds: [],
+          };
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return undefined;
+      }
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    const detailPane = await screen.findByTestId("subscriptions-detail-pane");
+    const emptySurface = within(detailPane).getByText("購読を選ぶと詳細が表示されます。");
+
+    expect(emptySurface).toHaveClass("rounded-md");
+    expect(emptySurface).toHaveClass("border-dashed");
   });
 
   it("opens cleanup with stale context from the summary action", async () => {

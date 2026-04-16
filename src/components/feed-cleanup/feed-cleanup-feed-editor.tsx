@@ -78,7 +78,7 @@ export function FeedCleanupFeedEditor({
         />
 
         <CopyableReadonlyFieldList
-          className="rounded-xl border border-border bg-card px-4 py-4"
+          className="rounded-md border border-border bg-card px-4 py-4"
           fields={[
             {
               key: "website-url",
