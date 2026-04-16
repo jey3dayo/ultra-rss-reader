@@ -200,8 +200,9 @@ describe("SubscriptionsIndexPage", () => {
 
     const shell = await screen.findByTestId("subscriptions-workspace-shell");
     expect(shell).toHaveClass("min-h-0");
-    expect(shell).toHaveClass("overflow-hidden");
+    expect(shell).toHaveClass("overflow-visible");
     expect(shell).toHaveClass("rounded-xl");
+    expect(shell).toHaveClass("lg:overflow-hidden");
     expect(shell).toHaveClass("lg:grid-cols-[minmax(0,1.02fr)_minmax(380px,0.98fr)]");
     expect(shell.parentElement?.parentElement?.parentElement).toHaveStyle({
       backgroundImage: "var(--subscriptions-shell-bg)",
@@ -212,11 +213,11 @@ describe("SubscriptionsIndexPage", () => {
       throw new Error("left pane section not found");
     }
 
-    const leftPaneScrollRegion = leftPaneSection.querySelector("div.overflow-y-auto");
+    const leftPaneScrollRegion = leftPaneSection.querySelector("div.space-y-4");
     expect(leftPaneScrollRegion).toBeTruthy();
-    expect(leftPaneScrollRegion).toHaveClass("min-h-0");
-    expect(leftPaneScrollRegion).toHaveClass("flex-1");
-    expect(leftPaneScrollRegion).toHaveClass("overflow-y-auto");
+    expect(leftPaneScrollRegion).toHaveClass("lg:min-h-0");
+    expect(leftPaneScrollRegion).toHaveClass("lg:flex-1");
+    expect(leftPaneScrollRegion).toHaveClass("lg:overflow-y-auto");
 
     expect(container.querySelector("[data-browser-overlay-root]")).toBeNull();
   });
@@ -258,11 +259,11 @@ describe("SubscriptionsIndexPage", () => {
     expect(articleLink).toHaveClass("cursor-pointer");
     expect(within(detailPane).getByRole("button", { name: "購読の整理" })).toBeInTheDocument();
 
-    const detailScrollRegion = detailPane.querySelector("div.overflow-y-auto");
+    const detailScrollRegion = detailPane.querySelector("div.pr-2");
     expect(detailScrollRegion).toBeTruthy();
-    expect(detailScrollRegion).toHaveClass("min-h-0");
-    expect(detailScrollRegion).toHaveClass("flex-1");
-    expect(detailScrollRegion).toHaveClass("overflow-y-auto");
+    expect(detailScrollRegion).toHaveClass("lg:min-h-0");
+    expect(detailScrollRegion).toHaveClass("lg:flex-1");
+    expect(detailScrollRegion).toHaveClass("lg:overflow-y-auto");
   });
 
   it("keeps the empty detail surface on the rounded-md baseline", async () => {

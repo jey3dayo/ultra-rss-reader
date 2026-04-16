@@ -39,7 +39,7 @@ export function SubscriptionsListPane({
   const hasRows = groups.some((group) => group.rows.length > 0);
   return (
     <section
-      className="flex min-h-0 flex-col px-4 py-4 sm:px-5 lg:border-r lg:border-[color:var(--subscriptions-pane-divider)]"
+      className="flex flex-col px-4 py-4 sm:px-5 lg:min-h-0 lg:border-r lg:border-[color:var(--subscriptions-pane-divider)]"
       style={{
         backgroundColor: "var(--subscriptions-list-surface)",
       }}
@@ -52,7 +52,7 @@ export function SubscriptionsListPane({
           </LabelChip>
         ) : null}
       </div>
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+      <div className="space-y-4 pr-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
         {!hasRows ? (
           <p className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
             {emptyLabel}
