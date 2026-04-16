@@ -76,11 +76,7 @@ export function ArticleListItem({
               {article.title}
             </h3>
             {article.is_starred ? (
-              <StarIcon
-                starred
-                className="mt-0.5 h-3 w-3 shrink-0 text-yellow-400/90"
-                data-testid="article-star-indicator"
-              />
+              <StarIcon starred className="mt-0.5 h-3 w-3 shrink-0" data-testid="article-star-indicator" />
             ) : null}
           </div>
         </div>
