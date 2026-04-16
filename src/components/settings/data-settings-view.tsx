@@ -39,19 +39,19 @@ export function DataSettingsView({
       <section className="mb-5 sm:mb-6">
         <SectionHeading className="mb-2 sm:mb-3">{databaseHeading}</SectionHeading>
         <LabeledControlRow label={databaseSizeLabel}>
-          <span className="text-sm text-muted-foreground">{databaseSizeValue}</span>
+          <span className="text-sm text-foreground-soft">{databaseSizeValue}</span>
         </LabeledControlRow>
       </section>
       <section className="mb-5 sm:mb-6">
         <SectionHeading className="mb-2 sm:mb-3">{optimizationHeading}</SectionHeading>
-        <p className="mb-2.5 text-xs text-muted-foreground sm:mb-3">{vacuumDescription}</p>
+        <p className="mb-2.5 text-xs text-foreground-soft sm:mb-3">{vacuumDescription}</p>
         <Button variant="outline" size="sm" disabled={vacuuming} onClick={onVacuum}>
           {vacuumLabel}
         </Button>
       </section>
       <section>
         <SectionHeading className="mb-2 sm:mb-3">{logsHeading}</SectionHeading>
-        <p className="mb-2.5 text-xs text-muted-foreground sm:mb-3">{openLogDirDescription}</p>
+        <p className="mb-2.5 text-xs text-foreground-soft sm:mb-3">{openLogDirDescription}</p>
         <Button variant="outline" size="sm" onClick={onOpenLogDir}>
           {openLogDirLabel}
         </Button>
