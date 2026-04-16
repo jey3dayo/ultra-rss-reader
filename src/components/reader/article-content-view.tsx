@@ -13,7 +13,7 @@ export function ArticleContentView({ thumbnailUrl, contentHtml, feedName }: Arti
         </div>
       )}
       <div
-        className="prose prose-stone dark:prose-invert max-w-none font-serif text-[1.02rem] leading-8 text-foreground/88 prose-headings:font-sans prose-headings:font-normal prose-headings:tracking-[-0.02em] prose-headings:text-foreground prose-p:font-serif prose-li:font-serif prose-blockquote:font-serif prose-strong:text-foreground"
+        className="prose prose-stone dark:prose-invert max-w-none font-serif text-[1.02rem] leading-8 text-foreground prose-headings:font-sans prose-headings:font-normal prose-headings:tracking-[-0.02em] prose-headings:text-foreground prose-p:font-serif prose-li:font-serif prose-blockquote:font-serif prose-strong:text-foreground"
         // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML is pre-sanitized by Rust backend
         dangerouslySetInnerHTML={{ __html: displayHtml }}
       />

@@ -35,12 +35,15 @@ describe("ArticleEmptyStateView", () => {
 
     const container = screen.getByText("Select an article to read").parentElement;
     const eyebrow = screen.getByText("Reader");
+    const hintsList = screen.getByRole("list");
 
     expect(container).toHaveAttribute("data-surface-card", "info");
     expect(container).toHaveClass("rounded-[var(--radius-surface-info)]");
     expect(container).not.toHaveClass("rounded-[2rem]");
     expect(container).toHaveClass("max-w-xl");
+    expect(container).toHaveClass("text-foreground-soft");
     expect(eyebrow).toHaveClass("text-foreground-soft");
+    expect(hintsList).toHaveClass("marker:text-foreground-soft");
   });
 
   it("uses semantic list markers so wrapped hints stay aligned", () => {

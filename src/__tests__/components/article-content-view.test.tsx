@@ -22,6 +22,7 @@ describe("ArticleContentView", () => {
     expect(prose).not.toBeNull();
     expect(prose).toHaveClass("text-[1.02rem]");
     expect(prose).toHaveClass("leading-8");
+    expect(prose).toHaveClass("text-foreground");
   });
 
   it("omits the thumbnail wrapper when no image is provided", () => {
