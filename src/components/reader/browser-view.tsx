@@ -42,6 +42,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, to
       />
       <BrowserOverlayChrome
         controller={controller}
+        presentation={controller.presentation}
         backToReaderLabel={labels.backToReader}
         toolbarActions={toolbarActions}
       />

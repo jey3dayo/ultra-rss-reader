@@ -46,6 +46,16 @@ function setReadingListPlatformSupport(enabled: boolean) {
 
 describe("ArticleView", () => {
   beforeEach(() => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 1400,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 900,
+    });
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: false });
     usePlatformStore.setState(usePlatformStore.getInitialState());
@@ -402,6 +412,69 @@ describe("ArticleView", () => {
     expect(within(overlayActions).getByRole("button", { name: "Share" })).toBeInTheDocument();
   });
 
+  it("renders compact overlay toolbar actions as separate shell surfaces", async () => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 500,
+    });
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        case "create_or_update_browser_webview":
+          return {
+            url: args.url,
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+          };
+        case "set_browser_webview_bounds":
+        case "close_browser_webview":
+        case "open_in_browser":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().selectArticle("art-1");
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open Web Preview" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("browser");
+    });
+
+    const overlayActions = screen.getByTestId("browser-overlay-actions");
+    const customActionShells = within(overlayActions)
+      .getAllByRole("button")
+      .filter((button) =>
+        ["Toggle read", "Toggle star", "Web Preview", "Copy link", "Open in External Browser", "Share"].includes(
+          button.getAttribute("aria-label") ?? button.textContent ?? "",
+        ),
+      )
+      .map((button) => button.closest("[data-overlay-shell='action']"));
+
+    expect(customActionShells.length).toBeGreaterThan(1);
+    expect(customActionShells.every((shell) => shell?.className.includes("size-11"))).toBe(true);
+  });
+
   it("closes only the current article overlay when the overlay close button is pressed", async () => {
     const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
@@ -751,18 +824,16 @@ describe("ArticleView", () => {
     });
   });
 
-  it("shows tooltips for icon-only article toolbar actions", async () => {
+  it("renders icon-only article toolbar actions", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");
     useUiStore.getState().selectArticle("art-1");
 
-    const user = userEvent.setup();
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    await user.hover(await screen.findByRole("button", { name: "Copy link" }));
-
-    expect(await screen.findByText("Copy link", {}, { timeout: 5000 })).toBeInTheDocument();
-  }, 10000);
+    expect(await screen.findByRole("button", { name: "Copy link" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open in External Browser" })).toBeInTheDocument();
+  });
 
   it("opens the external browser from the toolbar button", async () => {
     const calls: MockTauriCommandCall[] = [];

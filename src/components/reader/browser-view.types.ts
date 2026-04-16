@@ -14,12 +14,30 @@ export type BrowserViewScope = "content-pane" | "main-stage";
 export type BrowserWebviewDiagnosticsPayload = BrowserDebugGeometryNativeDiagnostics;
 export type BrowserViewLayoutDiagnostics = BrowserDebugGeometryLayoutDiagnostics;
 export type BrowserViewGeometry = BrowserViewerGeometry;
+export type BrowserOverlayActionSurfaceTone = "default" | "subtle";
+export type BrowserOverlayActionSurfacePresentation = {
+  compact: boolean;
+  tone: BrowserOverlayActionSurfaceTone;
+};
+export type BrowserOverlayStageSurfacePresentation = {
+  scope: BrowserViewScope;
+};
 
-export type BrowserViewPresentation = {
+export type BrowserViewSurfacePresentation = {
+  leadingActionSurface: BrowserOverlayActionSurfacePresentation;
+  actionButtonSurface: BrowserOverlayActionSurfacePresentation;
+  stageSurface: BrowserOverlayStageSurfacePresentation;
+};
+
+export type BrowserOverlayActionRenderer = {
+  compact: boolean;
+  renderAction: (content: ReactNode, options?: { key?: string }) => ReactNode;
+};
+
+export type BrowserOverlayActionsRenderer = (renderer: BrowserOverlayActionRenderer) => ReactNode;
+
+export type BrowserViewPresentation = BrowserViewSurfacePresentation & {
   geometry: BrowserViewGeometry;
-  leadingActionClass: string;
-  actionButtonClass: string;
-  stageClass: string;
 };
 
 export type ResolveBrowserViewPresentationParams = {
@@ -29,13 +47,18 @@ export type ResolveBrowserViewPresentationParams = {
   overlayTitlebar?: boolean;
 };
 
+export type ResolveBrowserViewSurfacePresentationParams = {
+  scope: BrowserViewScope;
+  compact: boolean;
+};
+
 export type BrowserViewProps = {
   scope?: BrowserViewScope;
   onCloseOverlay: () => void;
   labels: {
     backToReader: string;
   };
-  toolbarActions?: ReactNode;
+  toolbarActions?: BrowserOverlayActionsRenderer;
 };
 
 export type UseBrowserViewControllerParams = {
@@ -47,6 +70,7 @@ export type BrowserViewController = {
   browserUrl: string | null;
   showDiagnostics: boolean;
   geometry: BrowserViewGeometry;
+  presentation: BrowserViewSurfacePresentation;
   layoutDiagnostics: BrowserViewLayoutDiagnostics | null;
   nativeDiagnostics: BrowserWebviewDiagnosticsPayload | null;
   activeSurfaceIssue: BrowserSurfaceIssue | null;
@@ -54,9 +78,6 @@ export type BrowserViewController = {
   handleCloseOverlay: () => void;
   handleRetry: () => void;
   handleOpenExternal: () => Promise<void>;
-  leadingActionClass: string;
-  actionButtonClass: string;
-  stageClass: string;
   hostRef: React.RefObject<HTMLDivElement | null>;
   overlayRef: React.RefObject<HTMLDivElement | null>;
   stageRef: React.RefObject<HTMLDivElement | null>;
@@ -64,14 +85,15 @@ export type BrowserViewController = {
 
 export type BrowserOverlayChromeController = Pick<
   BrowserViewController,
-  "geometry" | "handleCloseOverlay" | "handleOpenExternal" | "leadingActionClass" | "actionButtonClass"
+  "geometry" | "handleCloseOverlay" | "handleOpenExternal"
 >;
 
 export type BrowserOverlayChromeProps =
   | {
       controller: BrowserOverlayChromeController;
+      presentation: Pick<BrowserViewSurfacePresentation, "leadingActionSurface" | "actionButtonSurface">;
       backToReaderLabel: string;
-      toolbarActions?: ReactNode;
+      toolbarActions?: BrowserOverlayActionsRenderer;
     }
   | {
       closeLabel: string;
@@ -82,7 +104,7 @@ export type BrowserOverlayStageController = Pick<
   BrowserViewController,
   | "stageRef"
   | "hostRef"
-  | "stageClass"
+  | "presentation"
   | "geometry"
   | "isLoading"
   | "activeSurfaceIssue"

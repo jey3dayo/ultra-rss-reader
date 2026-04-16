@@ -1,12 +1,14 @@
 import { ChevronLeft, ExternalLink, X } from "lucide-react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { IconToolbarButton } from "@/components/shared/icon-toolbar-control";
-import { Button } from "@/components/ui/button";
+import { OverlayActionSurface } from "@/components/shared/overlay-action-surface";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import type { BrowserOverlayChromeProps } from "./browser-view.types";
 
-const browserOverlayChromeCloseButtonClassName =
-  "size-[46px] rounded-full border border-border/70 bg-background/72 text-foreground shadow-elevation-2 backdrop-blur-md focus-visible:ring-2 focus-visible:ring-ring/70 active:scale-[0.97] active:bg-card active:shadow-elevation-1";
+const compactOverlayActionButtonClassName =
+  "flex size-full items-center justify-center rounded-full bg-transparent text-foreground outline-none focus-visible:outline-none";
+const regularOverlayActionButtonClassName =
+  "flex h-full items-center justify-center gap-1 rounded-full bg-transparent text-foreground outline-none focus-visible:outline-none";
 
 function isCloseOnlyProps(
   props: BrowserOverlayChromeProps,
@@ -19,29 +21,49 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
 
   if (isCloseOnlyProps(props)) {
     return (
-      <IconToolbarButton
-        label={props.closeLabel}
-        onClick={props.onClose}
-        className={browserOverlayChromeCloseButtonClassName}
-      >
-        <X aria-hidden="true" className="size-4" />
-      </IconToolbarButton>
+      <OverlayActionSurface compact tone="subtle">
+        <AppTooltip label={props.closeLabel}>
+          <button
+            type="button"
+            aria-label={props.closeLabel}
+            onClick={props.onClose}
+            className={compactOverlayActionButtonClassName}
+          >
+            <X aria-hidden="true" className="size-4" />
+          </button>
+        </AppTooltip>
+      </OverlayActionSurface>
     );
   }
 
-  const { controller, backToReaderLabel, toolbarActions } = props;
+  const { controller, presentation, backToReaderLabel, toolbarActions } = props;
   const visibleBackLabel = t("back_to_reader_short");
+  const actionButtonClassName = controller.geometry.compact
+    ? compactOverlayActionButtonClassName
+    : regularOverlayActionButtonClassName;
+  const leadingActionButtonClassName = controller.geometry.compact
+    ? compactOverlayActionButtonClassName
+    : regularOverlayActionButtonClassName;
+  const overlayActionRenderer = {
+    compact: presentation.actionButtonSurface.compact,
+    renderAction: (content: ReactNode, options?: { key?: string }) => (
+      <OverlayActionSurface key={options?.key} {...presentation.actionButtonSurface}>
+        {content}
+      </OverlayActionSurface>
+    ),
+  } as const;
   const leadingAction = (
-    <Button
-      variant="ghost"
-      size={controller.geometry.compact ? "icon" : "sm"}
-      onClick={controller.handleCloseOverlay}
-      aria-label={backToReaderLabel}
-      className={controller.leadingActionClass}
-    >
-      <ChevronLeft aria-hidden="true" className="size-4" />
-      {!controller.geometry.compact ? <span className="truncate">{visibleBackLabel}</span> : null}
-    </Button>
+    <OverlayActionSurface {...presentation.leadingActionSurface}>
+      <button
+        type="button"
+        onClick={controller.handleCloseOverlay}
+        aria-label={backToReaderLabel}
+        className={leadingActionButtonClassName}
+      >
+        <ChevronLeft aria-hidden="true" className="size-4" />
+        {!controller.geometry.compact ? <span className="truncate">{visibleBackLabel}</span> : null}
+      </button>
+    </OverlayActionSurface>
   );
 
   return (
@@ -71,16 +93,23 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
         className="pointer-events-none absolute z-[60]"
       >
         <div className="pointer-events-auto flex items-center gap-2">
-          {toolbarActions ?? (
-            <IconToolbarButton
-              label={t("open_in_external_browser")}
-              onClick={() => {
-                void controller.handleOpenExternal();
-              }}
-              className={controller.actionButtonClass}
-            >
-              <ExternalLink className="h-4 w-4" />
-            </IconToolbarButton>
+          {toolbarActions ? (
+            toolbarActions(overlayActionRenderer)
+          ) : (
+            <OverlayActionSurface {...presentation.actionButtonSurface}>
+              <AppTooltip label={t("open_in_external_browser")}>
+                <button
+                  type="button"
+                  aria-label={t("open_in_external_browser")}
+                  onClick={() => {
+                    void controller.handleOpenExternal();
+                  }}
+                  className={actionButtonClassName}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </button>
+              </AppTooltip>
+            </OverlayActionSurface>
           )}
         </div>
       </div>

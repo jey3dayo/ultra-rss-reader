@@ -1,5 +1,5 @@
 import { ArticleReaderBody } from "./article-reader-body";
-import { ArticleToolbarActionStrip, ArticleToolbarView } from "./article-toolbar-view";
+import { ArticleToolbarOverlayActions, ArticleToolbarView } from "./article-toolbar-view";
 import type { ArticlePaneProps, ArticleToolbarProps } from "./article-view.types";
 import { BrowserOverlaySurface } from "./article-view-state";
 import { useArticlePaneController } from "./use-article-pane-controller";
@@ -39,7 +39,12 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
       <ArticleToolbar {...toolbarProps} />
       <BrowserOverlaySurface
         {...browserOverlayProps}
-        toolbarActions={<ArticleToolbarActionStrip {...browserOverlayActionStripProps} />}
+        toolbarActions={(overlayActionRenderer) => (
+          <ArticleToolbarOverlayActions
+            overlayActionRenderer={overlayActionRenderer}
+            {...browserOverlayActionStripProps}
+          />
+        )}
       >
         {showWebPreviewUnavailableWarning ? (
           <div className="border-b border-border bg-amber-500/10 px-4 py-2 text-sm text-amber-900 dark:text-amber-200">

@@ -1,28 +1,39 @@
 import { describe, expect, it } from "vitest";
 import {
-  getBrowserOverlayActionButtonClass,
-  getBrowserOverlayLeadingActionClass,
-  getBrowserOverlayStageClass,
+  getBrowserOverlayActionSurfacePresentation,
+  getBrowserOverlayLeadingActionPresentation,
+  getBrowserOverlayStagePresentation,
 } from "@/components/reader/browser-overlay-presentation";
 
 describe("browser-overlay-presentation", () => {
-  it("returns the compact and desktop leading action variants", () => {
-    expect(getBrowserOverlayLeadingActionClass(true)).toContain("bg-background/78");
-    expect(getBrowserOverlayLeadingActionClass(true)).toContain("size-11");
-    expect(getBrowserOverlayLeadingActionClass(false)).toContain("bg-background/78");
-    expect(getBrowserOverlayLeadingActionClass(false)).toContain("px-3");
-    expect(getBrowserOverlayLeadingActionClass(false)).toContain("rounded-full");
+  it("returns semantic leading action surface props for compact and desktop viewers", () => {
+    expect(getBrowserOverlayLeadingActionPresentation(true)).toEqual({
+      compact: true,
+      tone: "default",
+    });
+    expect(getBrowserOverlayLeadingActionPresentation(false)).toEqual({
+      compact: false,
+      tone: "default",
+    });
   });
 
-  it("returns the compact and desktop action button variants", () => {
-    expect(getBrowserOverlayActionButtonClass(true)).toContain("bg-background/78");
-    expect(getBrowserOverlayActionButtonClass(false)).toContain("bg-background/78");
-    expect(getBrowserOverlayActionButtonClass(false)).toContain("rounded-full");
+  it("returns semantic action surface props for compact and desktop viewers", () => {
+    expect(getBrowserOverlayActionSurfacePresentation(true)).toEqual({
+      compact: true,
+      tone: "default",
+    });
+    expect(getBrowserOverlayActionSurfacePresentation(false)).toEqual({
+      compact: false,
+      tone: "default",
+    });
   });
 
-  it("returns the stage shell variant for each scope", () => {
-    expect(getBrowserOverlayStageClass("main-stage")).toBe("absolute z-10 overflow-hidden bg-background");
-    expect(getBrowserOverlayStageClass("content-pane")).toContain("border-border/60");
-    expect(getBrowserOverlayStageClass("content-pane")).toContain("shadow-elevation-3");
+  it("returns the semantic stage scope for each browser overlay context", () => {
+    expect(getBrowserOverlayStagePresentation("main-stage")).toEqual({
+      scope: "main-stage",
+    });
+    expect(getBrowserOverlayStagePresentation("content-pane")).toEqual({
+      scope: "content-pane",
+    });
   });
 });

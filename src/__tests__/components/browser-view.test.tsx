@@ -112,7 +112,11 @@ function resolveMockRect(element: HTMLElement): MockHostRect {
   const parentRect = parentElement ? resolveMockRect(parentElement) : rootRect;
   const style = element.style;
 
-  if (testId === "browser-overlay-stage" || testId === "browser-webview-host") {
+  if (
+    testId === "browser-overlay-stage-shell" ||
+    testId === "browser-overlay-stage" ||
+    testId === "browser-webview-host"
+  ) {
     const left = parsePixelValue(style.left) ?? 0;
     const top = parsePixelValue(style.top) ?? 0;
     const right = parsePixelValue(style.right) ?? 0;
@@ -285,6 +289,7 @@ describe("BrowserView", () => {
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
     expect(screen.getByTestId("browser-overlay-shell")).toBeInTheDocument();
+    expect(screen.getByTestId("browser-overlay-stage-shell")).toBeInTheDocument();
     expect(screen.getByTestId("browser-overlay-stage")).toBeInTheDocument();
     expect(screen.getByTestId("browser-webview-host")).toBeInTheDocument();
     expect(screen.queryByText("Web Preview")).not.toBeInTheDocument();
@@ -292,14 +297,48 @@ describe("BrowserView", () => {
     expect(chrome).toBeInTheDocument();
     const closeButton = within(chrome).getByRole("button", { name: "Back to Reader" });
     const externalButton = screen.getByRole("button", { name: /open in external browser/i });
+    const closeSurface = closeButton.closest("[data-overlay-shell='action']");
+    const externalSurface = externalButton.closest("[data-overlay-shell='action']");
 
     expect(closeButton).toBeInTheDocument();
-    expect(closeButton).toHaveClass("rounded-full");
+    expect(closeSurface).not.toBeNull();
+    expect(closeSurface).toHaveAttribute("data-overlay-shell", "action");
     expect(closeButton).toHaveTextContent("Reader");
     expect(externalButton).toBeInTheDocument();
-    expect(externalButton).toHaveClass("rounded-full");
+    expect(externalSurface).not.toBeNull();
+    expect(externalSurface).toHaveAttribute("data-overlay-shell", "action");
     expect(screen.queryByTestId("browser-toolbar")).not.toBeInTheDocument();
     expect(screen.queryByText("https://example.com/article")).not.toBeInTheDocument();
+  });
+
+  it("wraps custom toolbar actions in the shared action shell", () => {
+    mockRootRect({ left: 0, top: 0, width: 1400, height: 900 });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(
+      <BrowserView
+        scope="content-pane"
+        onCloseOverlay={() => {}}
+        labels={{ backToReader: "Back to Reader" }}
+        toolbarActions={({ renderAction }) => (
+          <>
+            {renderAction(<button type="button">Toolbar Action A</button>, { key: "a" })}
+            {renderAction(<button type="button">Toolbar Action B</button>, { key: "b" })}
+          </>
+        )}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Toolbar Action A" }).closest("[data-overlay-shell='action']"),
+    ).toHaveAttribute("data-overlay-shell", "action");
+    expect(screen.getByRole("button", { name: "Toolbar Action B" })).toBeInTheDocument();
   });
 
   it("does not close from the scrim in main-stage", async () => {
@@ -354,7 +393,7 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-    const stage = screen.getByTestId("browser-overlay-stage");
+    const stage = screen.getByTestId("browser-overlay-stage-shell");
     expectInlineStyles(stage, {
       left: "0px",
       right: "0px",
@@ -377,11 +416,12 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-    const stage = screen.getByTestId("browser-overlay-stage");
+    const stage = screen.getByTestId("browser-overlay-stage-shell");
     const chrome = screen.getByTestId("browser-overlay-chrome");
     const topRail = screen.getByTestId("browser-overlay-top-rail");
     const host = screen.getByTestId("browser-webview-host");
 
+    expect(stage).toHaveAttribute("data-overlay-shell", "stage");
     expect(stage).toHaveClass("absolute", "z-10", "overflow-hidden", "bg-background");
     expect(stage.className).not.toMatch(/\bborder\b/);
     expect(stage.className).not.toMatch(/\bshadow-/);
@@ -407,6 +447,12 @@ describe("BrowserView", () => {
       top: "0px",
       bottom: "0px",
     });
+    expect(
+      within(chrome).getByRole("button", { name: "Back to Reader" }).closest("[data-overlay-shell='action']"),
+    ).toHaveClass("h-8", "px-3");
+    expect(
+      screen.getByRole("button", { name: /open in external browser/i }).closest("[data-overlay-shell='action']"),
+    ).toHaveClass("h-8", "px-3");
     expect(chrome).toBeInTheDocument();
   });
 
@@ -443,7 +489,7 @@ describe("BrowserView", () => {
 
       render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-      const stage = screen.getByTestId("browser-overlay-stage");
+      const stage = screen.getByTestId("browser-overlay-stage-shell");
       const leadingAction = screen.getByTestId("browser-overlay-leading-action");
       const topRail = screen.getByTestId("browser-overlay-top-rail");
 
@@ -460,7 +506,7 @@ describe("BrowserView", () => {
       const closeButton = within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
         name: "Back to Reader",
       });
-      expect(closeButton).toHaveClass("rounded-full");
+      expect(closeButton.closest("[data-overlay-shell='action']")).toHaveAttribute("data-overlay-shell", "action");
       expect(closeButton).toHaveTextContent("Reader");
     } finally {
       if (originalTauriInternalsDescriptor) {
@@ -505,7 +551,7 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-    const stage = screen.getByTestId("browser-overlay-stage");
+    const stage = screen.getByTestId("browser-overlay-stage-shell");
 
     await waitFor(() => {
       expect(screen.queryByTestId("browser-overlay-diagnostics")).not.toBeInTheDocument();
@@ -526,7 +572,7 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-    const stage = screen.getByTestId("browser-overlay-stage");
+    const stage = screen.getByTestId("browser-overlay-stage-shell");
     const chrome = screen.getByTestId("browser-overlay-chrome");
     const externalButton = screen.getByRole("button", { name: /open in external browser/i });
     const closeButton = within(chrome).getByRole("button", { name: "Back to Reader" });
@@ -540,7 +586,7 @@ describe("BrowserView", () => {
     });
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
     expect(closeButton).toBeInTheDocument();
-    expect(closeButton).toHaveClass("size-11");
+    expect(closeButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
     expect(externalButton).toBeInTheDocument();
   });
 
@@ -560,7 +606,7 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-    const stage = screen.getByTestId("browser-overlay-stage");
+    const stage = screen.getByTestId("browser-overlay-stage-shell");
 
     await waitFor(() => {
       expect(screen.queryByTestId("browser-overlay-diagnostics")).not.toBeInTheDocument();

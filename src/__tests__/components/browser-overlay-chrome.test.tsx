@@ -2,7 +2,10 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { BrowserOverlayChrome } from "@/components/reader/browser-overlay-chrome";
-import type { BrowserOverlayChromeController } from "@/components/reader/browser-view.types";
+import type {
+  BrowserOverlayChromeController,
+  BrowserViewSurfacePresentation,
+} from "@/components/reader/browser-view.types";
 
 function createController(overrides?: Partial<BrowserOverlayChromeController>): BrowserOverlayChromeController {
   return {
@@ -50,9 +53,25 @@ function createController(overrides?: Partial<BrowserOverlayChromeController>): 
     },
     handleCloseOverlay: vi.fn(),
     handleOpenExternal: vi.fn(async () => {}),
-    leadingActionClass:
-      "pointer-events-auto h-8 rounded-full border border-border/75 bg-background/78 px-3 text-[0.8rem]",
-    actionButtonClass: "pointer-events-auto rounded-full border border-border/75 bg-background/78",
+    ...overrides,
+  };
+}
+
+function createSurfacePresentation(
+  overrides?: Partial<BrowserViewSurfacePresentation>,
+): BrowserViewSurfacePresentation {
+  return {
+    leadingActionSurface: {
+      compact: false,
+      tone: "default",
+    },
+    actionButtonSurface: {
+      compact: false,
+      tone: "default",
+    },
+    stageSurface: {
+      scope: "main-stage",
+    },
     ...overrides,
   };
 }
@@ -74,26 +93,37 @@ describe("BrowserOverlayChrome", () => {
     render(<BrowserOverlayChrome closeLabel="Close browser overlay" onClose={() => {}} />);
 
     const closeButton = screen.getByRole("button", { name: "Close browser overlay" });
+    const closeSurface = closeButton.closest("[data-overlay-shell='action']");
 
-    expect(closeButton.className).toContain("size-[46px]");
-    expect(closeButton.className).toContain("focus-visible:ring-2");
-    expect(closeButton.className).toContain("active:scale-[0.97]");
-    expect(closeButton.className).toContain("bg-background/72");
-    expect(closeButton.className).toContain("active:bg-card");
+    expect(closeSurface).not.toBeNull();
+    expect(closeSurface).toHaveAttribute("data-overlay-shell", "action");
+    expect(closeSurface).toHaveClass("rounded-full");
+    expect(closeSurface).toHaveClass("bg-background/72");
+    expect(closeSurface).toHaveClass("border-border/70");
+    expect(closeSurface?.className).toContain("has-[:focus-visible]:ring-2");
+    expect(closeSurface?.className).toContain("has-[:active]:scale-[0.97]");
   });
 
   it("renders the browser overlay leading action as a back-to-reader pill on desktop", async () => {
     const user = userEvent.setup();
     const controller = createController();
+    const presentation = createSurfacePresentation();
 
-    render(<BrowserOverlayChrome controller={controller} backToReaderLabel="Back to Reader" />);
+    render(
+      <BrowserOverlayChrome controller={controller} presentation={presentation} backToReaderLabel="Back to Reader" />,
+    );
 
     const leadingAction = within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
       name: "Back to Reader",
     });
+    const leadingSurface = leadingAction.closest("[data-overlay-shell='action']");
 
     expect(leadingAction).toHaveTextContent("Reader");
-    expect(leadingAction.className).toContain("rounded-full");
+    expect(leadingSurface).not.toBeNull();
+    expect(leadingSurface).toHaveAttribute("data-overlay-shell", "action");
+    expect(leadingSurface).toHaveClass("rounded-full");
+    expect(leadingSurface).toHaveClass("h-8");
+    expect(leadingSurface).toHaveClass("px-3");
     expect(leadingAction.querySelector(".lucide-chevron-left")).not.toBeNull();
     expect(leadingAction.querySelector(".lucide-x")).toBeNull();
 
@@ -116,12 +146,75 @@ describe("BrowserOverlayChrome", () => {
         },
       },
     });
+    const presentation = createSurfacePresentation();
 
-    render(<BrowserOverlayChrome controller={controller} backToReaderLabel="Back to Reader" />);
+    render(
+      <BrowserOverlayChrome controller={controller} presentation={presentation} backToReaderLabel="Back to Reader" />,
+    );
 
     expect(screen.getByTestId("browser-overlay-leading-action")).toHaveStyle({
       left: "72px",
       top: "12px",
     });
+  });
+
+  it("renders compact semantic action surfaces for narrow browser chrome", () => {
+    const controller = createController({
+      geometry: {
+        ...createController().geometry,
+        compact: true,
+      },
+    });
+    const presentation = createSurfacePresentation({
+      leadingActionSurface: {
+        compact: true,
+        tone: "default",
+      },
+      actionButtonSurface: {
+        compact: true,
+        tone: "default",
+      },
+    });
+
+    render(
+      <BrowserOverlayChrome controller={controller} presentation={presentation} backToReaderLabel="Back to Reader" />,
+    );
+
+    const closeButton = within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
+      name: "Back to Reader",
+    });
+    const externalButton = screen.getByRole("button", { name: /open in external browser/i });
+
+    expect(closeButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
+    expect(externalButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
+  });
+
+  it("keeps custom toolbar actions inside the shared overlay action shell", () => {
+    const controller = createController();
+    const presentation = createSurfacePresentation();
+
+    render(
+      <BrowserOverlayChrome
+        controller={controller}
+        presentation={presentation}
+        backToReaderLabel="Back to Reader"
+        toolbarActions={({ renderAction }) => (
+          <>
+            {renderAction(<button type="button">Custom Action A</button>, { key: "a" })}
+            {renderAction(<button type="button">Custom Action B</button>, { key: "b" })}
+          </>
+        )}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Custom Action A" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Custom Action B" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Custom Action/ })).toHaveLength(2);
+    expect(
+      screen.getAllByRole("button", { name: /Custom Action/ })[0].closest("[data-overlay-shell='action']"),
+    ).toHaveAttribute("data-overlay-shell", "action");
+    expect(
+      screen.getAllByRole("button", { name: /Custom Action/ })[1].closest("[data-overlay-shell='action']"),
+    ).toHaveAttribute("data-overlay-shell", "action");
   });
 });
