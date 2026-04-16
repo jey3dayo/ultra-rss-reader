@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { FeedCleanupOverviewPanel } from "@/components/feed-cleanup/feed-cleanup-overview-panel";
@@ -50,11 +50,41 @@ function buildProps() {
 }
 
 describe("FeedCleanupOverviewPanel", () => {
-  it("shows bulk visible actions above the queue section", () => {
+  it("keeps summary cards informational while emphasizing the bulk action zone", () => {
     render(<FeedCleanupOverviewPanel {...buildProps()} />);
 
-    expect(screen.getByRole("button", { name: "Keep all visible" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Defer all visible" })).toBeInTheDocument();
+    const summary = screen.getByTestId("feed-cleanup-sidebar-summary");
+    const bulkActions = screen.getByTestId("feed-cleanup-bulk-actions");
+
+    expect(summary).toHaveTextContent("Pending");
+    expect(summary).toHaveTextContent("Done");
+    expect(within(summary).queryByRole("button")).toBeNull();
+    expect(within(bulkActions).getAllByRole("button")).toHaveLength(2);
+    expect(within(bulkActions).getByRole("button", { name: "Keep all visible" })).toBeInTheDocument();
+    expect(within(bulkActions).getByRole("button", { name: "Defer all visible" })).toBeInTheDocument();
+  });
+
+  it("exposes the filter cluster with a label and keeps the all-candidates count stable", () => {
+    render(
+      <FeedCleanupOverviewPanel
+        {...buildProps()}
+        visibleCandidateCount={2}
+        filterCounts={{
+          stale_90d: 2,
+          no_unread: 1,
+          no_stars: 0,
+        }}
+      />,
+    );
+
+    const filterGroup = screen.getByRole("group", { name: "Filters" });
+    const allCandidatesButton = within(filterGroup).getByRole("button", { name: "All2", pressed: true });
+
+    expect(filterGroup).toBeInTheDocument();
+    expect(allCandidatesButton).toHaveTextContent("All");
+    expect(allCandidatesButton).toHaveTextContent("2");
+    expect(within(allCandidatesButton).queryByText("3")).toBeNull();
+    expect(screen.getByTestId("feed-cleanup-bulk-actions")).toBeInTheDocument();
   });
 
   it("wires the bulk visible actions", async () => {
