@@ -28,11 +28,15 @@ describe("SettingsNavView", () => {
 
     expect(generalButton).toHaveClass("bg-[var(--bg-selected)]");
     expect(generalButton).toHaveClass("rounded-md");
+    expect(generalButton).toHaveClass("shrink-0");
     expect(generalButton).toHaveAttribute("aria-pressed", "true");
     expect(appearanceButton).not.toHaveClass("bg-[var(--bg-selected)]");
     expect(appearanceButton).toHaveClass("rounded-md");
+    expect(appearanceButton).toHaveClass("shrink-0");
     expect(screen.getByText("A").parentElement).toHaveClass("text-sidebar-foreground/64");
     expect(appearanceButton).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("navigation")).toHaveClass("flex");
+    expect(screen.getByRole("navigation")).toHaveClass("overflow-x-auto");
 
     fireEvent.click(appearanceButton);
 

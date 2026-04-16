@@ -30,14 +30,19 @@ describe("AccountsNavView", () => {
     expect(within(freshRssButton).getAllByText("FreshRSS", { exact: true })).toHaveLength(1);
     expect(within(freshRssButton).queryByText("FrEsHrSs", { exact: true })).not.toBeInTheDocument();
     expect(localButton).toHaveClass("rounded-md");
+    expect(localButton).toHaveClass("shrink-0");
     expect(freshRssButton).toHaveClass("rounded-md");
+    expect(freshRssButton).toHaveClass("shrink-0");
     expect(addAccountButton).toHaveClass("rounded-md");
+    expect(addAccountButton).toHaveClass("shrink-0");
     expect(localButton).toHaveAttribute("aria-pressed", "true");
     expect(freshRssButton).toHaveAttribute("aria-pressed", "false");
     expect(addAccountButton).toHaveAttribute("aria-pressed", "false");
     expect(localButton.querySelector("span")?.className).toContain("bg-orange-500");
     expect(freshRssButton.querySelector("span")?.className).toContain("bg-[#0062BE]");
     expect(within(freshRssButton).getByText("FreshRSS")).toHaveClass("text-sidebar-foreground/64");
+    expect(localButton.parentElement).toHaveClass("flex");
+    expect(localButton.parentElement).toHaveClass("overflow-x-auto");
 
     fireEvent.click(freshRssButton);
     fireEvent.click(addAccountButton);
