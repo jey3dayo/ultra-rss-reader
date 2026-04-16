@@ -175,7 +175,15 @@ describe("SubscriptionsIndexPage", () => {
     expect(totalSubscriptionsLabel.closest(".rounded-md")).not.toBeNull();
     expect(screen.queryByRole("button", { name: /総購読数/ })).toBeNull();
     expect(await screen.findByRole("button", { name: /止まった購読を見る/ })).toHaveClass("rounded-md");
-    expect(await screen.findByRole("button", { name: /参照エラーを見る/ })).toHaveClass("rounded-md");
+    expect(await screen.findByRole("button", { name: /止まった購読を見る/ })).toHaveClass(
+      "border-state-warning-border",
+      "bg-state-warning-surface",
+    );
+    expect(await screen.findByRole("button", { name: /参照エラーを見る/ })).toHaveClass(
+      "rounded-md",
+      "border-state-danger-border",
+      "bg-state-danger-surface",
+    );
   });
 
   it("keeps the subscriptions workspace shell aligned with the lighter left pane", async () => {

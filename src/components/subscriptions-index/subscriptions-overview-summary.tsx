@@ -4,11 +4,11 @@ import type { SubscriptionSummaryCard } from "./subscriptions-index.types";
 
 function resolveCardClassName(tone: SubscriptionSummaryCard["tone"] = "neutral") {
   if (tone === "danger") {
-    return "border-rose-500/18 bg-[linear-gradient(180deg,hsl(var(--card)/0.92),hsl(var(--background)/0.97))]";
+    return "border-state-danger-border bg-state-danger-surface";
   }
 
   if (tone === "stale") {
-    return "border-[hsl(33_58%_50%/0.18)] bg-[linear-gradient(180deg,hsl(var(--card)/0.92),hsl(var(--background)/0.97))]";
+    return "border-state-warning-border bg-state-warning-surface";
   }
 
   if (tone === "review") {
