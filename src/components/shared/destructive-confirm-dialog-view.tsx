@@ -18,7 +18,7 @@ export function DestructiveConfirmDialogView({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <div className="text-sm text-muted-foreground">{description}</div>
+        <div className="text-sm text-foreground-soft">{description}</div>
         <DestructiveDialogFooter
           cancelLabel={cancelLabel}
           confirmLabel={confirmLabel}
