@@ -103,6 +103,11 @@ describe("FeedCleanupOverviewPanel", () => {
   it("hides bulk visible actions in integrity mode", () => {
     render(<FeedCleanupOverviewPanel {...buildProps()} integrityMode={true} />);
 
+    expect(screen.getByText("Cleanup filters are hidden while you review broken references.").closest("div")).toHaveClass(
+      "border-state-warning-border",
+      "bg-state-warning-surface",
+      "text-state-warning-foreground",
+    );
     expect(screen.queryByRole("button", { name: "Keep all visible" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Defer all visible" })).toBeNull();
   });

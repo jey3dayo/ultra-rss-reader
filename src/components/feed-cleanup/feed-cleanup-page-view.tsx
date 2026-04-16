@@ -301,8 +301,8 @@ export function FeedCleanupPageView({
       />
 
       {integrityIssue ? (
-        <div className="border-b border-border bg-amber-50/70 px-6 py-3 text-amber-950 dark:bg-amber-500/10 dark:text-amber-100">
-          <div className="rounded-md border border-amber-200/80 bg-background/80 px-4 py-3 dark:border-amber-500/30 dark:bg-background/20">
+        <div className="border-b border-border bg-state-warning-surface px-6 py-3 text-state-warning-foreground">
+          <div className="rounded-md border border-state-warning-border bg-background/80 px-4 py-3 dark:bg-background/20">
             <p className="text-sm font-semibold">{integrityIssue.title}</p>
             <p className="mt-1 text-sm opacity-80">{integrityIssue.body}</p>
             <Button variant="outline" className="mt-3" onClick={onToggleIntegrityMode}>

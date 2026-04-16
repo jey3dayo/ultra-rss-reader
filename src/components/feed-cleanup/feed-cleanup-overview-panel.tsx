@@ -58,7 +58,7 @@ export function FeedCleanupOverviewPanel({
             variant="section"
             tone="default"
             padding="compact"
-            className="border-amber-200/70 bg-amber-50/70 text-sm text-amber-950 shadow-none dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100"
+            className="border-state-warning-border bg-state-warning-surface text-sm text-state-warning-foreground shadow-none"
           >
             {integrityDetailLabels.filter_note}
           </SurfaceCard>

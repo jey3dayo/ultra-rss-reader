@@ -183,6 +183,9 @@ describe("FeedCleanupReviewPanel", () => {
     );
     expect(screen.getByText("Needs repair").closest('[data-surface-card="info"]')).toHaveClass(
       "rounded-[var(--radius-surface-info)]",
+      "border-state-warning-border",
+      "bg-state-warning-surface",
+      "text-state-warning-foreground",
     );
     expect(within(panel).getByText("missing-feed")).toBeInTheDocument();
   });

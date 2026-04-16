@@ -334,7 +334,9 @@ describe("FeedCleanupPage", () => {
 
     expect(await screen.findByText("Broken feed references found")).toBeInTheDocument();
     expect(await screen.findByText("1 article is pointing to a missing feed.")).toHaveClass("mt-1");
-    expect(screen.getByText("Broken feed references found").closest("div")).toHaveClass("rounded-md");
+    const warningCard = screen.getByText("Broken feed references found").closest("div");
+    expect(warningCard).toHaveClass("rounded-md", "border-state-warning-border");
+    expect(warningCard?.parentElement).toHaveClass("bg-state-warning-surface", "text-state-warning-foreground");
     expect(screen.getByRole("button", { name: "Show broken references" })).toBeInTheDocument();
   });
 

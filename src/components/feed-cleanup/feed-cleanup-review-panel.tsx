@@ -70,7 +70,7 @@ export function FeedCleanupReviewPanel({
                   variant="info"
                   tone="default"
                   padding="compact"
-                  className="border-amber-500/30 bg-amber-500/10 text-amber-100 shadow-none"
+                  className="border-state-warning-border bg-state-warning-surface text-state-warning-foreground shadow-none"
                 >
                   <p className="text-sm font-semibold">{integrityDetailLabels.needs_repair}</p>
                   <p className="mt-1 text-sm text-current/85">{integrityDetailLabels.summary}</p>

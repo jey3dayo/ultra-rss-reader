@@ -32,6 +32,9 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-browser-overlay-shell: var(--browser-overlay-shell);
   --color-browser-overlay-rail-border: var(--browser-overlay-rail-border);
+  --color-state-warning-surface: var(--state-warning-surface);
+  --color-state-warning-border: var(--state-warning-border);
+  --color-state-warning-foreground: var(--state-warning-foreground);
   --color-dialog-overlay: var(--dialog-overlay);
   --color-dialog-overlay-readable: var(--dialog-overlay-readable);
   --color-surface-1: var(--surface-1);
@@ -113,6 +116,9 @@
   --settings-shell-content-fade: linear-gradient(180deg, rgba(247, 247, 244, 1) 0%, rgba(247, 247, 244, 0.94) 62%, rgba(247, 247, 244, 0) 100%);
   --settings-shell-content-fade-reverse: linear-gradient(0deg, rgba(247, 247, 244, 1) 0%, rgba(247, 247, 244, 0.95) 62%, rgba(247, 247, 244, 0) 100%);
   --settings-shell-account-surface: rgba(220, 216, 207, 0.24);
+  --state-warning-surface: rgba(255, 251, 235, 0.78);
+  --state-warning-border: rgba(251, 191, 36, 0.28);
+  --state-warning-foreground: rgb(120, 53, 15);
   --dialog-overlay: rgba(38, 37, 30, 0.18);
   --dialog-overlay-readable: rgba(242, 241, 237, 0.6);
   --surface-1: #f7f7f4;
@@ -196,6 +202,9 @@
   --settings-shell-content-fade: linear-gradient(180deg, rgba(34, 30, 25, 1) 0%, rgba(34, 30, 25, 0.94) 62%, rgba(34, 30, 25, 0) 100%);
   --settings-shell-content-fade-reverse: linear-gradient(0deg, rgba(34, 30, 25, 1) 0%, rgba(34, 30, 25, 0.95) 62%, rgba(34, 30, 25, 0) 100%);
   --settings-shell-account-surface: rgba(38, 33, 27, 0.24);
+  --state-warning-surface: rgba(245, 158, 11, 0.1);
+  --state-warning-border: rgba(245, 158, 11, 0.3);
+  --state-warning-foreground: rgb(254, 243, 199);
   --dialog-overlay: rgba(28, 25, 21, 0.6);
   --dialog-overlay-readable: rgba(28, 25, 21, 0.72);
   --surface-1: #221e19;

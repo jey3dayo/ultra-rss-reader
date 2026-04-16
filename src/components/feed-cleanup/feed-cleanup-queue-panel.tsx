@@ -119,7 +119,7 @@ export function FeedCleanupQueuePanel({
                 className={cn(
                   "flex w-full cursor-pointer flex-col gap-2 rounded-md border px-4 py-3 text-left transition-colors",
                   selectedIntegrityIssue?.missing_feed_id === issue.missing_feed_id
-                    ? "border-amber-500/50 bg-amber-500/10"
+                    ? "border-state-warning-border bg-state-warning-surface text-state-warning-foreground"
                     : "border-border bg-card hover:bg-muted/60",
                 )}
               >
