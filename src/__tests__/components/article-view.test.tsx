@@ -1511,7 +1511,7 @@ describe("ArticleView", () => {
 
     render(<ArticleView />, { wrapper: createWrapper() });
 
-    await screen.findByText("Article not found");
+    expect(await screen.findByText("Article not found")).toHaveClass("text-foreground-soft");
     const resolveLoadedArticles = resolveAccountArticles;
     if (!resolveLoadedArticles) {
       throw new Error("account articles resolver was not set");

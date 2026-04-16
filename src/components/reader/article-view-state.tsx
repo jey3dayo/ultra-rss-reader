@@ -52,7 +52,7 @@ export function BrowserOnlyStateView({ onCloseOverlay }: BrowserOnlyStateViewPro
 export function ArticleNotFoundStateView({ message }: ArticleNotFoundStateViewProps) {
   return (
     <div className="flex h-full flex-1 flex-col bg-background">
-      <div className="flex flex-1 items-center justify-center text-muted-foreground">{message}</div>
+      <div className="flex flex-1 items-center justify-center text-foreground-soft">{message}</div>
     </div>
   );
 }
