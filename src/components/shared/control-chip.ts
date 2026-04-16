@@ -6,6 +6,7 @@ export const controlChipVariants = cva(
     variants: {
       size: {
         compact: "px-2.5 py-1 text-xs",
+        filter: "h-7 gap-1.5 rounded-full px-3 text-[13px] leading-none",
         comfortable: "h-7 px-2.5 text-sm",
       },
       interaction: {
@@ -24,6 +25,7 @@ export const controlChipIconVariants = cva("", {
   variants: {
     size: {
       compact: "h-3.5 w-3.5",
+      filter: "h-3.5 w-3.5",
       comfortable: "h-4 w-4",
     },
   },

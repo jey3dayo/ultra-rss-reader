@@ -35,7 +35,7 @@ export function ArticleListFooter({
   }
 
   return (
-    <div className="flex h-10 items-center justify-center border-t border-border bg-card">
+    <div className="border-t border-border bg-card px-4 py-1.5">
       <ToggleGroup value={[viewMode]} onValueChange={handleChange}>
         {visibleModes.map((mode) => {
           const isDisabled = disabledModes.includes(mode.value);
@@ -45,16 +45,16 @@ export function ArticleListFooter({
               value={mode.value}
               aria-label={t(mode.labelKey)}
               disabled={isDisabled}
-              className={controlChipVariants({ size: "compact", interaction: "toggle" })}
+              className={controlChipVariants({ size: "filter", interaction: "toggle" })}
             >
               {mode.icon === "star" ? (
-                <StarIcon starred={viewMode === "starred"} className={controlChipIconVariants({ size: "compact" })} />
+                <StarIcon starred={viewMode === "starred"} className={controlChipIconVariants({ size: "filter" })} />
               ) : mode.icon === "list" ? (
-                <List className={controlChipIconVariants({ size: "compact" })} />
+                <List className={controlChipIconVariants({ size: "filter" })} />
               ) : (
                 <UnreadIcon
                   unread={viewMode === "unread"}
-                  className="h-[9px] w-[9px] shadow-[0_0_0_1px_rgba(96,165,250,0.32)]"
+                  className="h-2.5 w-2.5 shadow-[0_0_0_1px_rgba(96,165,250,0.32)]"
                 />
               )}
               {t(mode.labelKey)}

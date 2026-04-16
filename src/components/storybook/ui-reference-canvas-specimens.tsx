@@ -337,14 +337,14 @@ export function ReaderFilterStripSpecimen() {
               value={item.value}
               aria-label={item.label}
               className={cn(
-                controlChipVariants({ size: "comfortable", interaction: "toggle" }),
-                "rounded-full px-3 text-sidebar-foreground/78 hover:text-sidebar-foreground data-[pressed]:bg-sidebar-accent/85 data-[pressed]:text-sidebar-foreground",
+                controlChipVariants({ size: "filter", interaction: "toggle" }),
+                "text-sidebar-foreground/78 hover:text-sidebar-foreground data-[pressed]:bg-sidebar-accent/85 data-[pressed]:text-sidebar-foreground",
               )}
             >
               {item.icon === "star" ? (
-                <StarIcon starred={mode === "starred"} className={controlChipIconVariants({ size: "comfortable" })} />
+                <StarIcon starred={mode === "starred"} className={controlChipIconVariants({ size: "filter" })} />
               ) : item.icon === "list" ? (
-                <List className={controlChipIconVariants({ size: "comfortable" })} />
+                <List className={controlChipIconVariants({ size: "filter" })} />
               ) : (
                 <UnreadIcon unread={mode === "unread"} className="h-2.5 w-2.5 shadow-[0_0_0_1px_rgba(96,165,250,0.32)]" />
               )}

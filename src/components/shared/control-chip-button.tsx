@@ -5,7 +5,7 @@ import { controlChipVariants } from "./control-chip";
 type ControlChipButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   pressed?: boolean;
   children: ReactNode;
-  size?: "compact" | "comfortable";
+  size?: "compact" | "filter" | "comfortable";
 };
 
 export function ControlChipButton({
