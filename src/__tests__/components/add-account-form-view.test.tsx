@@ -106,6 +106,10 @@ describe("AddAccountFormView", () => {
     expect(screen.getByLabelText("Server URL")).toHaveClass("w-full");
     expect(screen.getByLabelText("Username")).toHaveClass("w-full");
     expect(screen.getByLabelText("Password")).toHaveClass("w-full");
+    expect(screen.getByLabelText("Server URL")).toHaveClass("sm:flex-1");
+    expect(screen.getByLabelText("Username")).toHaveClass("sm:flex-1");
+    expect(screen.getByLabelText("Password")).toHaveClass("sm:flex-1");
+    expect(screen.getByText("Server URL")).toHaveClass("sm:w-28");
     expect(screen.getByLabelText("Username")).toHaveValue("alice");
     expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
   });
@@ -160,6 +164,9 @@ describe("AddAccountFormView", () => {
     expect(onNameChange).toHaveBeenCalledWith("W");
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onCancel).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("Server URL is required")).toHaveClass("text-state-danger-foreground");
+    expect(screen.getByText("Server URL is required").parentElement).toHaveClass(
+      "border-state-danger-border",
+      "bg-state-danger-surface",
+    );
   });
 });
