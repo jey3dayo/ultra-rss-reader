@@ -4,7 +4,7 @@ export function FeedTreeEmptyState(props: FeedTreeEmptyStateProps) {
   const text = props.text ?? props.message ?? props.label;
   return (
     <div
-      className="px-2 py-4 text-center text-sm text-muted-foreground"
+      className="px-2 py-4 text-center text-sm text-foreground-soft"
       aria-live={props.kind === "loading" ? "polite" : undefined}
     >
       {props.kind === "message" ? (

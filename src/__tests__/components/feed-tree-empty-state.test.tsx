@@ -7,6 +7,7 @@ describe("FeedTreeEmptyState", () => {
     const onAction = vi.fn();
     const { rerender } = render(<FeedTreeEmptyState kind="loading" text="Loading feeds…" />);
 
+    expect(screen.getByText("Loading feeds…").closest("div[aria-live='polite']")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("Loading feeds…").previousElementSibling).toHaveClass("bg-foreground-soft/50");
 
     rerender(<FeedTreeEmptyState kind="action" text="Add your first feed" onAction={onAction} />);
