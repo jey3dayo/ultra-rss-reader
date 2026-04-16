@@ -109,8 +109,8 @@ const TAG_COLOR_PRESETS = [
 ] as const;
 
 const STACK_SPECIMEN_FRAME_RADIUS_CLASS = "rounded-md";
-const SHELL_SPECIMEN_OUTER_RADIUS_CLASS = "rounded-2xl";
-const SHELL_SPECIMEN_INNER_RADIUS_CLASS = "rounded-xl";
+const SHELL_SPECIMEN_OUTER_RADIUS_CLASS = "rounded-xl";
+const SHELL_SPECIMEN_INNER_RADIUS_CLASS = "rounded-lg";
 
 export function ReferencePage({ children, maxWidthClassName = "max-w-6xl" }: ReferencePageProps) {
   return (
@@ -346,7 +346,10 @@ export function ReaderFilterStripSpecimen() {
               ) : item.icon === "list" ? (
                 <List className={controlChipIconVariants({ size: "filter" })} />
               ) : (
-                <UnreadIcon unread={mode === "unread"} className="h-2.5 w-2.5 shadow-[0_0_0_1px_rgba(96,165,250,0.32)]" />
+                <UnreadIcon
+                  unread={mode === "unread"}
+                  className="h-2.5 w-2.5 shadow-[0_0_0_1px_rgba(96,165,250,0.32)]"
+                />
               )}
               {item.label}
             </Toggle>

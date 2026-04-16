@@ -36,14 +36,29 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("navigation", { name: "Reference settings sections" })).toBeInTheDocument();
     expect(screen.getByText("Left Band")).toBeInTheDocument();
     expect(screen.getByText("Main content shell")).toBeInTheDocument();
+    expect(screen.getByText("Left Band").closest("aside")).toHaveClass("rounded-xl");
+    expect(screen.getByRole("navigation", { name: "Reference settings sections" }).parentElement).toHaveClass(
+      "rounded-lg",
+    );
+    expect(screen.getByText("Main content shell").closest("div")?.parentElement?.parentElement).toHaveClass(
+      "rounded-xl",
+    );
 
     expect(screen.getByText("Dialog surface")).toBeInTheDocument();
     expect(screen.getByText("この購読を削除しますか？")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "削除する" })).toBeInTheDocument();
+    expect(screen.getByText(/Outer shell only\./).closest("div")).toHaveClass("rounded-xl");
+    expect(screen.getByText("Dialog shell frame").parentElement).toHaveClass("rounded-lg");
 
     expect(screen.getByText("Context menu")).toBeInTheDocument();
     expect(screen.getByText("Open site")).toBeInTheDocument();
     expect(screen.getByText("Mark all as read")).toBeInTheDocument();
+    expect(
+      screen
+        .getByText("This is the workspace frame around the menu body, not the reusable menu body itself.")
+        .closest("div"),
+    ).toHaveClass("rounded-xl");
+    expect(screen.getByText("Context menu shell frame").parentElement).toHaveClass("rounded-lg");
   });
 
   it("renders the view specimens canvas with display fragments", () => {
