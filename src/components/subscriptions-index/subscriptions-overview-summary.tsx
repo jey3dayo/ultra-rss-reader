@@ -1,3 +1,4 @@
+import { ArrowUpRight } from "lucide-react";
 import { LabelChip } from "@/components/shared/label-chip";
 import { cn } from "@/lib/utils";
 import type { SubscriptionSummaryCard } from "./subscriptions-index.types";
@@ -21,23 +22,24 @@ function resolveCardClassName(tone: SubscriptionSummaryCard["tone"] = "neutral")
 export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSummaryCard[] }) {
   return (
     <section
-      className="rounded-lg border border-border/70 px-4 py-4 sm:px-5"
+      className="rounded-lg border border-border/70 px-3 py-3 sm:px-5 sm:py-4"
       style={{
         backgroundImage: "var(--subscriptions-summary-surface)",
         boxShadow: "0 18px 42px -38px rgba(38, 37, 30, 0.28)",
       }}
     >
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-[0.96fr_1.12fr_0.96fr_0.96fr]">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-[0.96fr_1.12fr_0.96fr_0.96fr]">
         {cards.map((card) => {
           const numericValue = Number(card.value);
           const hasAction = Boolean(card.actionLabel && card.onAction);
           const isActionable = hasAction && Number.isFinite(numericValue) && numericValue > 0;
           const isPrimary = isActionable && card.tone === "review";
           const className = cn(
-            "flex min-h-[148px] flex-col justify-between rounded-md border px-4 py-4 text-left transition-[border-color,background-color,color,box-shadow,transform] duration-150",
+            "flex min-h-[128px] flex-col justify-between rounded-md border px-3 py-3 text-left transition-[border-color,background-color,color,box-shadow,transform] duration-150 sm:min-h-[148px] sm:px-4 sm:py-4",
             resolveCardClassName(isActionable ? card.tone : "neutral"),
             isPrimary ? "shadow-[var(--subscriptions-summary-card-shadow)]" : "shadow-none",
             !isActionable && card.actionLabel && "text-muted-foreground opacity-80",
+            isPrimary && "col-span-2 lg:col-span-1",
           );
 
           if (isActionable && card.actionLabel && card.onAction) {
@@ -58,14 +60,16 @@ export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSum
                   <span className="block text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
                     {card.label}
                   </span>
-                  <span className="mt-2 block text-[2.25rem] font-semibold tracking-[-0.04em] text-foreground">
+                  <span className="mt-2 block text-[2rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.25rem]">
                     {card.value}
                   </span>
                   {card.caption ? (
-                    <p className="mt-2 max-w-[26ch] text-sm leading-6 text-muted-foreground">{card.caption}</p>
+                    <p className="mt-1.5 max-w-[24ch] text-[13px] leading-5 text-muted-foreground sm:mt-2 sm:max-w-[26ch] sm:text-sm sm:leading-6">
+                      {card.caption}
+                    </p>
                   ) : null}
                 </div>
-                <div className="mt-4 flex items-center justify-between gap-3">
+                <div className="mt-3 flex items-center justify-between gap-3 sm:mt-4">
                   <LabelChip
                     tone={isPrimary ? "neutral" : "muted"}
                     className={cn(
@@ -75,8 +79,9 @@ export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSum
                   >
                     {card.actionLabel}
                   </LabelChip>
-                  <span className="text-[11px] font-medium tracking-[0.08em] text-foreground-soft transition-colors group-hover:text-foreground uppercase">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium tracking-[0.08em] text-foreground-soft transition-colors group-hover:text-foreground uppercase">
                     整理へ
+                    <ArrowUpRight className="h-3.5 w-3.5" />
                   </span>
                 </div>
               </button>
@@ -89,9 +94,13 @@ export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSum
                 <p className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
                   {card.label}
                 </p>
-                <p className="mt-2 text-[2.25rem] font-semibold tracking-[-0.04em] text-foreground">{card.value}</p>
+                <p className="mt-2 text-[2rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.25rem]">
+                  {card.value}
+                </p>
                 {card.caption ? (
-                  <p className="mt-2 max-w-[26ch] text-sm leading-6 text-foreground-soft">{card.caption}</p>
+                  <p className="mt-1.5 max-w-[24ch] text-[13px] leading-5 text-foreground-soft sm:mt-2 sm:max-w-[26ch] sm:text-sm sm:leading-6">
+                    {card.caption}
+                  </p>
                 ) : null}
               </div>
             </div>

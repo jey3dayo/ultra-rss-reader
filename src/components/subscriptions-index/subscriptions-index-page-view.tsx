@@ -89,12 +89,12 @@ export function SubscriptionsIndexPageView({
         closeLabel={closeLabel}
         onClose={onClose}
       />
-      <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 sm:px-5 sm:pb-5">
+      <div className="flex min-h-0 flex-1 flex-col px-3 pb-3 sm:px-5 sm:pb-5">
         <div className="mx-auto flex min-h-0 w-full max-w-[1500px] flex-1 flex-col">
           <SubscriptionsOverviewSummary cards={summaryCards} />
           <div
             data-testid="subscriptions-workspace-shell"
-            className="mt-4 grid min-h-0 flex-1 overflow-hidden rounded-xl border border-border/70 lg:grid-cols-[minmax(0,1.02fr)_minmax(380px,0.98fr)]"
+            className="mt-3 grid min-h-0 flex-1 overflow-hidden rounded-xl border border-border/70 lg:mt-4 lg:grid-cols-[minmax(0,1.02fr)_minmax(380px,0.98fr)]"
             style={{
               backgroundColor: "var(--subscriptions-workspace-surface)",
               boxShadow: "var(--subscriptions-workspace-shadow)",
