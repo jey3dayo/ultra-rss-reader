@@ -20,8 +20,8 @@ export function CopyableTextField({
   onFocus,
 }: CopyableTextFieldProps) {
   return (
-    <div className="block text-sm text-muted-foreground">
-      <span className="mb-1 block">{label}</span>
+    <div className="block text-sm text-foreground-soft">
+      <span className="mb-1 block text-foreground-soft">{label}</span>
       <div className="relative">
         <Input
           name={name}
@@ -51,7 +51,7 @@ export function CopyableTextField({
               onClick={onCopy}
               disabled={disabled || !value}
               aria-label={copyLabel}
-              className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground transition-colors duration-200 hover:text-foreground active:not-aria-[haspopup]:-translate-y-1/2"
+              className="absolute top-1/2 right-1 -translate-y-1/2 text-foreground-soft transition-colors duration-200 hover:text-foreground active:not-aria-[haspopup]:-translate-y-1/2"
             >
               <Copy className="h-3.5 w-3.5" />
             </Button>

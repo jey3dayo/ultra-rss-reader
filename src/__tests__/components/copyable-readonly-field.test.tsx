@@ -25,7 +25,9 @@ describe("CopyableReadonlyField", () => {
     titleInput.focus();
 
     expect(screen.getByLabelText("Website URL")).toHaveValue("https://example.com");
+    expect(screen.getByText("Website URL")).toHaveClass("text-foreground-soft");
     expect(screen.getByRole("button", { name: "Copy Website URL" })).toHaveClass(
+      "text-foreground-soft",
       "active:not-aria-[haspopup]:-translate-y-1/2",
     );
 
