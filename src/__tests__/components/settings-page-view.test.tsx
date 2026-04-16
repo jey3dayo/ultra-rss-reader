@@ -36,6 +36,9 @@ describe("SettingsPageView", () => {
     expect(screen.getByTestId("settings-page-root")).toHaveClass("pt-0");
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass("sticky");
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass("top-0");
+    expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveStyle({
+      backgroundColor: "var(--settings-shell-content)",
+    });
     expect(screen.getByRole("heading", { name: "Language" })).toHaveClass("mb-2");
     expect(screen.getByText("Changes apply after restart.")).toHaveClass("mt-1.5");
     expect(screen.getByRole("combobox", { name: "Language" })).toHaveClass("w-full");

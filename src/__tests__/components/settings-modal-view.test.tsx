@@ -132,10 +132,18 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("shadow-elevation-3");
     expect(screen.getByTestId("settings-modal-header")).toHaveClass("min-h-[4.5rem]");
     expect(screen.getByTestId("settings-modal-header")).toHaveClass("py-0");
-    expect(screen.getByTestId("settings-modal-header")).toHaveClass("bg-sidebar/72");
+    expect(screen.getByTestId("settings-modal-header")).toHaveStyle({
+      backgroundColor: "var(--settings-shell-rail)",
+    });
+    expect(screen.getByTestId("settings-nav-shell")).toHaveStyle({
+      backgroundColor: "var(--settings-shell-rail)",
+    });
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("px-3");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("py-3");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("rounded-lg");
+    expect(screen.getByTestId("settings-accounts-section")).toHaveStyle({
+      backgroundColor: "var(--settings-shell-account-surface)",
+    });
     expect(screen.getAllByText("Accounts")).toHaveLength(2);
   });
 
@@ -156,6 +164,9 @@ describe("SettingsModalView", () => {
 
     expect(screen.getByTestId("settings-mobile-accounts-section")).toBeInTheDocument();
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("rounded-lg");
+    expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveStyle({
+      backgroundColor: "var(--settings-shell-account-surface)",
+    });
   });
 
   it("hides scrollbars and fades when the panes do not overflow", async () => {
@@ -215,6 +226,15 @@ describe("SettingsModalView", () => {
 
     expect(screen.getByTestId("settings-content-fade-top")).toBeInTheDocument();
     expect(screen.getByTestId("settings-content-fade-bottom")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-content-fade-top")).toHaveStyle({
+      backgroundImage: "var(--settings-shell-content-fade)",
+    });
+    expect(screen.getByTestId("settings-content-fade-bottom")).toHaveStyle({
+      backgroundImage: "var(--settings-shell-content-fade-reverse)",
+    });
+    expect(screen.getByTestId("settings-content-shell")).toHaveStyle({
+      backgroundColor: "var(--settings-shell-content)",
+    });
   });
 
   it("stacks the navigation above the content on narrow screens", () => {

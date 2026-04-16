@@ -57,6 +57,9 @@ describe("Settings surface views", () => {
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass("min-h-[4.5rem]");
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass("flex");
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveClass("items-center");
+    expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveStyle({
+      backgroundColor: "var(--settings-shell-content)",
+    });
     expect(screen.getByTestId("settings-page-root")).toHaveClass("pt-0");
     expect(screen.getByTestId("settings-page-root")).toHaveClass("px-5");
     expect(screen.getByRole("combobox", { name: "Language" })).toHaveTextContent("System default");

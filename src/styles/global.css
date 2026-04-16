@@ -106,6 +106,13 @@
   --browser-overlay-shell-veil: linear-gradient(180deg, rgba(242, 241, 237, 0.96) 0%, rgba(242, 241, 237, 0.82) 100%);
   --browser-overlay-rail: linear-gradient(180deg, rgba(242, 241, 237, 0.86) 0%, rgba(242, 241, 237, 0.6) 66%, rgba(242, 241, 237, 0.15) 100%);
   --browser-overlay-rail-border: rgba(38, 37, 30, 0.08);
+  --settings-shell-rail: rgba(235, 234, 229, 0.72);
+  --settings-shell-rail-fade: linear-gradient(180deg, rgba(235, 234, 229, 1) 0%, rgba(235, 234, 229, 0.92) 62%, rgba(235, 234, 229, 0) 100%);
+  --settings-shell-rail-fade-reverse: linear-gradient(0deg, rgba(235, 234, 229, 1) 0%, rgba(235, 234, 229, 0.94) 62%, rgba(235, 234, 229, 0) 100%);
+  --settings-shell-content: rgba(242, 241, 237, 0.78);
+  --settings-shell-content-fade: linear-gradient(180deg, rgba(247, 247, 244, 1) 0%, rgba(247, 247, 244, 0.94) 62%, rgba(247, 247, 244, 0) 100%);
+  --settings-shell-content-fade-reverse: linear-gradient(0deg, rgba(247, 247, 244, 1) 0%, rgba(247, 247, 244, 0.95) 62%, rgba(247, 247, 244, 0) 100%);
+  --settings-shell-account-surface: rgba(220, 216, 207, 0.24);
   --dialog-overlay: rgba(38, 37, 30, 0.18);
   --dialog-overlay-readable: rgba(242, 241, 237, 0.6);
   --surface-1: #f7f7f4;
@@ -182,6 +189,13 @@
   --browser-overlay-shell-veil: linear-gradient(180deg, rgba(28, 25, 21, 0.96) 0%, rgba(28, 25, 21, 0.82) 100%);
   --browser-overlay-rail: linear-gradient(180deg, rgba(28, 25, 21, 0.88) 0%, rgba(28, 25, 21, 0.64) 66%, rgba(28, 25, 21, 0.18) 100%);
   --browser-overlay-rail-border: rgba(243, 239, 230, 0.12);
+  --settings-shell-rail: rgba(23, 20, 16, 0.72);
+  --settings-shell-rail-fade: linear-gradient(180deg, rgba(23, 20, 16, 1) 0%, rgba(23, 20, 16, 0.92) 62%, rgba(23, 20, 16, 0) 100%);
+  --settings-shell-rail-fade-reverse: linear-gradient(0deg, rgba(23, 20, 16, 1) 0%, rgba(23, 20, 16, 0.94) 62%, rgba(23, 20, 16, 0) 100%);
+  --settings-shell-content: rgba(28, 25, 21, 0.78);
+  --settings-shell-content-fade: linear-gradient(180deg, rgba(34, 30, 25, 1) 0%, rgba(34, 30, 25, 0.94) 62%, rgba(34, 30, 25, 0) 100%);
+  --settings-shell-content-fade-reverse: linear-gradient(0deg, rgba(34, 30, 25, 1) 0%, rgba(34, 30, 25, 0.95) 62%, rgba(34, 30, 25, 0) 100%);
+  --settings-shell-account-surface: rgba(38, 33, 27, 0.24);
   --dialog-overlay: rgba(28, 25, 21, 0.6);
   --dialog-overlay-readable: rgba(28, 25, 21, 0.72);
   --surface-1: #221e19;

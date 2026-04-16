@@ -104,10 +104,15 @@ export function SettingsModalView({
         showCloseButton={false}
       >
         {isLoading && <IndeterminateProgress className="absolute inset-x-0 top-0 z-10" />}
-        <div className="flex max-h-[42vh] w-full shrink-0 flex-col border-b border-border/80 bg-sidebar/72 sm:max-h-none sm:w-[292px] sm:border-r sm:border-b-0">
+        <div
+          data-testid="settings-nav-shell"
+          className="flex max-h-[42vh] w-full shrink-0 flex-col border-b border-border/80 sm:max-h-none sm:w-[292px] sm:border-r sm:border-b-0"
+          style={{ backgroundColor: "var(--settings-shell-rail)" }}
+        >
           <DialogHeader
             data-testid="settings-modal-header"
-            className="flex min-h-[4.5rem] flex-row items-center gap-3 border-b border-border/80 bg-sidebar/72 px-5 py-0 backdrop-blur-sm"
+            className="flex min-h-[4.5rem] flex-row items-center gap-3 border-b border-border/80 px-5 py-0 backdrop-blur-sm"
+            style={{ backgroundColor: "var(--settings-shell-rail)" }}
           >
             <Button
               variant="ghost"
@@ -128,7 +133,8 @@ export function SettingsModalView({
               <div
                 data-testid="settings-nav-fade-top"
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 top-0 z-10 h-4 bg-gradient-to-b from-sidebar via-sidebar/92 to-transparent"
+                className="pointer-events-none absolute inset-x-0 top-0 z-10 h-4"
+                style={{ backgroundImage: "var(--settings-shell-rail-fade)" }}
               />
             ) : null}
             <ScrollArea
@@ -139,7 +145,8 @@ export function SettingsModalView({
               {navigation}
               <div
                 data-testid="settings-mobile-accounts-section"
-                className="mx-3 mb-3 rounded-lg border border-border/70 bg-sidebar-accent/24 px-3 py-3 shadow-elevation-1 sm:hidden"
+                className="mx-3 mb-3 rounded-lg border border-border/70 px-3 py-3 shadow-elevation-1 sm:hidden"
+                style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
               >
                 {accountsHeading ? (
                   <p className="mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/48">
@@ -153,14 +160,16 @@ export function SettingsModalView({
               <div
                 data-testid="settings-nav-fade-bottom"
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6 bg-gradient-to-t from-sidebar via-sidebar/94 to-transparent"
+                className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6"
+                style={{ backgroundImage: "var(--settings-shell-rail-fade-reverse)" }}
               />
             ) : null}
           </div>
 
           <div
             data-testid="settings-accounts-section"
-            className="mx-3 mb-3 hidden rounded-lg border border-border/70 bg-sidebar-accent/24 px-3 py-3 shadow-elevation-1 sm:block"
+            className="mx-3 mb-3 hidden rounded-lg border border-border/70 px-3 py-3 shadow-elevation-1 sm:block"
+            style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
           >
             {accountsHeading ? (
               <p className="mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/48">
@@ -171,13 +180,18 @@ export function SettingsModalView({
           </div>
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background/78">
+        <div
+          data-testid="settings-content-shell"
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+          style={{ backgroundColor: "var(--settings-shell-content)" }}
+        >
           <div className="relative min-h-0 flex-1">
             {contentHasOverflow ? (
               <div
                 data-testid="settings-content-fade-top"
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 top-0 z-10 h-5 bg-gradient-to-b from-popover via-popover/94 to-transparent"
+                className="pointer-events-none absolute inset-x-0 top-0 z-10 h-5"
+                style={{ backgroundImage: "var(--settings-shell-content-fade)" }}
               />
             ) : null}
             <ScrollArea
@@ -191,7 +205,8 @@ export function SettingsModalView({
               <div
                 data-testid="settings-content-fade-bottom"
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8 bg-gradient-to-t from-popover via-popover/95 to-transparent"
+                className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8"
+                style={{ backgroundImage: "var(--settings-shell-content-fade-reverse)" }}
               />
             ) : null}
           </div>
