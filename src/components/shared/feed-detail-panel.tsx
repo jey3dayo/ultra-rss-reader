@@ -106,7 +106,7 @@ export function FeedDetailPanel({
   secondaryAction,
 }: FeedDetailPanelProps) {
   return (
-    <FeedCleanupCard className="border-border/65 bg-card/52 shadow-none">
+    <FeedCleanupCard className="border-border/65 bg-card/44 shadow-none">
       <div className="space-y-5">
         <div className="flex items-start gap-3">
           {leadingVisual ? (
@@ -145,8 +145,8 @@ export function FeedDetailPanel({
               ) : null}
             </div>
             {summaryText ? (
-              <SurfaceCard variant="info" tone="subtle" padding="compact" className="shadow-none">
-                <p className="font-serif text-[0.98rem] leading-7 text-muted-foreground/95">{summaryText}</p>
+              <SurfaceCard variant="info" tone="subtle" padding="compact" className="bg-surface-1/80 shadow-none">
+                <p className="font-serif text-[0.98rem] leading-7 text-muted-foreground">{summaryText}</p>
               </SurfaceCard>
             ) : null}
           </div>
