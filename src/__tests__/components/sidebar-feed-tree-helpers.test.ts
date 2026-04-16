@@ -49,7 +49,6 @@ describe("getVisibleSidebarFeedTreeData", () => {
   it("builds ordered ids from visible folder and unfoldered feeds", () => {
     const result = getVisibleSidebarFeedTreeData({
       sortedFolderList: folders,
-      selectedFolderId: null,
       feedsByFolder,
       unfolderedFeeds: feeds.filter((feed) => feed.folder_id === null),
       getVisibleFeeds: (candidateFeeds) => candidateFeeds.filter((feed) => feed.unread_count > 0),
@@ -61,10 +60,9 @@ describe("getVisibleSidebarFeedTreeData", () => {
     expect(result.orderedFeedIds).toEqual(["feed-a", "feed-c"]);
   });
 
-  it("scopes visibility to the selected folder", () => {
+  it("keeps other folders visible when a folder is selected", () => {
     const result = getVisibleSidebarFeedTreeData({
       sortedFolderList: folders,
-      selectedFolderId: "folder-1",
       feedsByFolder,
       unfolderedFeeds: feeds.filter((feed) => feed.folder_id === null),
       getVisibleFeeds: (candidateFeeds) => candidateFeeds,
@@ -72,7 +70,37 @@ describe("getVisibleSidebarFeedTreeData", () => {
 
     expect(result.visibleFolderFeedsById.get("folder-1")?.map((feed) => feed.id)).toEqual(["feed-a", "feed-b"]);
     expect(result.visibleFolderFeedsById.get("folder-2")).toEqual([]);
-    expect(result.visibleUnfolderedFeeds).toEqual([]);
-    expect(result.orderedFeedIds).toEqual(["feed-a", "feed-b"]);
+    expect(result.visibleUnfolderedFeeds.map((feed) => feed.id)).toEqual(["feed-c"]);
+    expect(result.orderedFeedIds).toEqual(["feed-a", "feed-b", "feed-c"]);
+  });
+
+  it("keeps folders with visible unread feeds visible even when another folder is selected", () => {
+    const result = getVisibleSidebarFeedTreeData({
+      sortedFolderList: folders,
+      feedsByFolder: new Map([
+        ["folder-1", feeds.filter((feed) => feed.folder_id === "folder-1")],
+        [
+          "folder-2",
+          [
+            {
+              ...feeds[1],
+              id: "feed-d",
+              folder_id: "folder-2",
+              title: "Feed D",
+              url: "https://example.com/d.xml",
+              site_url: "https://example.com/d",
+              unread_count: 2,
+            },
+          ],
+        ],
+      ]),
+      unfolderedFeeds: feeds.filter((feed) => feed.folder_id === null),
+      getVisibleFeeds: (candidateFeeds) => candidateFeeds.filter((feed) => feed.unread_count > 0),
+    });
+
+    expect(result.visibleFolderFeedsById.get("folder-1")?.map((feed) => feed.id)).toEqual(["feed-a"]);
+    expect(result.visibleFolderFeedsById.get("folder-2")?.map((feed) => feed.id)).toEqual(["feed-d"]);
+    expect(result.visibleUnfolderedFeeds.map((feed) => feed.id)).toEqual(["feed-c"]);
+    expect(result.orderedFeedIds).toEqual(["feed-a", "feed-d", "feed-c"]);
   });
 });

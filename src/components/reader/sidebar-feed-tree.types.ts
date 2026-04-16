@@ -16,20 +16,17 @@ export type SidebarFeedTreeViewModelOptions = {
 
 export type SidebarFolderFeedVisibilityParams = {
   folderId: string;
-  selectedFolderId: string | null;
   feedsByFolder: Map<string, FeedDto[]>;
   getVisibleFeeds: SidebarSortFeeds;
 };
 
 export type SidebarUnfolderedFeedVisibilityParams = {
-  selectedFolderId: string | null;
   unfolderedFeeds: FeedDto[];
   getVisibleFeeds: SidebarSortFeeds;
 };
 
 export type SidebarVisibleFeedTreeParams = {
   sortedFolderList: FolderDto[];
-  selectedFolderId: string | null;
   feedsByFolder: Map<string, FeedDto[]>;
   unfolderedFeeds: FeedDto[];
   getVisibleFeeds: SidebarSortFeeds;

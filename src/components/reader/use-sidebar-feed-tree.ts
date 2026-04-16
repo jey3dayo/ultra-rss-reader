@@ -55,12 +55,11 @@ export function useSidebarFeedTree({
     () =>
       getVisibleSidebarFeedTreeData({
         sortedFolderList,
-        selectedFolderId,
         feedsByFolder,
         unfolderedFeeds,
         getVisibleFeeds,
       }),
-    [feedsByFolder, getVisibleFeeds, selectedFolderId, sortedFolderList, unfolderedFeeds],
+    [feedsByFolder, getVisibleFeeds, sortedFolderList, unfolderedFeeds],
   );
 
   const hideEmptyFoldersInCurrentView = viewMode === "unread" && draggedFeedId === null;

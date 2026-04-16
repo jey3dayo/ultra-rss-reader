@@ -47,32 +47,21 @@ export function collectFeedIds(feeds: FeedDto[]): string[] {
 
 export function getVisibleSidebarFolderFeeds({
   folderId,
-  selectedFolderId,
   feedsByFolder,
   getVisibleFeeds,
 }: SidebarFolderFeedVisibilityParams): FeedDto[] {
-  if (selectedFolderId !== null && folderId !== selectedFolderId) {
-    return [];
-  }
-
   return getVisibleFeeds(feedsByFolder.get(folderId) ?? []);
 }
 
 export function getVisibleSidebarUnfolderedFeeds({
-  selectedFolderId,
   unfolderedFeeds,
   getVisibleFeeds,
 }: SidebarUnfolderedFeedVisibilityParams): FeedDto[] {
-  if (selectedFolderId !== null) {
-    return [];
-  }
-
   return getVisibleFeeds(unfolderedFeeds);
 }
 
 export function getVisibleSidebarFeedTreeData({
   sortedFolderList,
-  selectedFolderId,
   feedsByFolder,
   unfolderedFeeds,
   getVisibleFeeds,
@@ -82,7 +71,6 @@ export function getVisibleSidebarFeedTreeData({
       folder.id,
       getVisibleSidebarFolderFeeds({
         folderId: folder.id,
-        selectedFolderId,
         feedsByFolder,
         getVisibleFeeds,
       }),
@@ -90,7 +78,6 @@ export function getVisibleSidebarFeedTreeData({
   );
 
   const visibleUnfolderedFeeds = getVisibleSidebarUnfolderedFeeds({
-    selectedFolderId,
     unfolderedFeeds,
     getVisibleFeeds,
   });
