@@ -42,21 +42,21 @@ export function CommandPalette() {
           >
             <div
               data-testid="command-palette-prefix-hint-actions"
-              className="flex items-center gap-1 rounded-md bg-muted/40 px-2 py-1"
+              className="flex items-center gap-1 rounded-md bg-surface-1/72 px-2 py-1"
             >
               <span className="font-mono">&gt;</span>
               <span>{prefixHints.actions}</span>
             </div>
             <div
               data-testid="command-palette-prefix-hint-feeds"
-              className="flex items-center gap-1 rounded-md bg-muted/40 px-2 py-1"
+              className="flex items-center gap-1 rounded-md bg-surface-1/72 px-2 py-1"
             >
               <span className="font-mono">@</span>
               <span>{prefixHints.feeds}</span>
             </div>
             <div
               data-testid="command-palette-prefix-hint-tags"
-              className="flex items-center gap-1 rounded-md bg-muted/40 px-2 py-1"
+              className="flex items-center gap-1 rounded-md bg-surface-1/72 px-2 py-1"
             >
               <span className="font-mono">#</span>
               <span>{prefixHints.tags}</span>

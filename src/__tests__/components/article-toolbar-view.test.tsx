@@ -61,6 +61,8 @@ describe("ArticleToolbarView", () => {
     const readIcon = readButton.querySelector("span");
     const starIcon = starButton.querySelector("svg");
 
+    expect(readButton).toHaveClass("text-foreground-soft");
+    expect(starButton).toHaveClass("text-foreground-soft");
     expect(readButton).toHaveAttribute("aria-pressed", "true");
     expect(starButton).toHaveAttribute("aria-pressed", "false");
     expect(readIcon).not.toBeNull();

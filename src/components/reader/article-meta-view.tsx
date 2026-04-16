@@ -18,7 +18,7 @@ export function ArticleMetaView({
         {onTitleClick ? (
           <button
             type="button"
-            className="-mx-1 -my-1 block w-[calc(100%+0.5rem)] rounded-md px-1 py-1.5 text-left transition-colors hover:bg-foreground/5"
+            className="-mx-1 -my-1 block w-[calc(100%+0.5rem)] rounded-md px-1 py-1.5 text-left transition-colors hover:bg-surface-1/72"
             onClick={onTitleClick}
             onAuxClick={onTitleAuxClick}
           >
@@ -34,7 +34,7 @@ export function ArticleMetaView({
             (onFeedClick ? (
               <button
                 type="button"
-                className="-mx-1 inline-flex items-center rounded-md px-1 py-0.5 text-[0.95rem] text-muted-foreground transition-colors hover:text-foreground"
+                className="-mx-1 inline-flex items-center rounded-md px-1 py-0.5 text-[0.95rem] text-muted-foreground transition-colors hover:bg-surface-1/72 hover:text-foreground"
                 onClick={onFeedClick}
               >
                 {feedName}

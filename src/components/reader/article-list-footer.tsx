@@ -16,10 +16,10 @@ const VIEW_MODES = [
 
 const FILTER_TONE_CLASSNAMES = {
   unread:
-    "text-foreground/90 hover:text-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--foreground))]",
-  all: "text-foreground/90 hover:text-foreground data-[pressed]:bg-muted data-[pressed]:text-foreground",
+    "text-foreground-soft hover:text-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--foreground))]",
+  all: "text-foreground-soft hover:text-foreground data-[pressed]:bg-surface-1/72 data-[pressed]:text-foreground",
   starred:
-    "text-foreground/90 hover:text-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-starred)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--foreground))]",
+    "text-foreground-soft hover:text-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-starred)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--foreground))]",
 } as const;
 
 export function ArticleListFooter({

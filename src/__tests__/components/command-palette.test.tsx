@@ -103,6 +103,10 @@ describe("CommandPalette", () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
+    expect(screen.getByRole("dialog")).toHaveClass("bg-surface-2", "shadow-elevation-3");
+    expect(screen.getByPlaceholderText("Search commands…").closest('[data-slot="command-input-wrapper"]')).toHaveClass(
+      "bg-surface-1/76",
+    );
     expect(await screen.findByText("Recent Actions")).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /Open settings/ })).toHaveClass("rounded-md");
     expect(screen.queryByRole("option", { name: /Tech Blog/ })).not.toBeInTheDocument();
@@ -214,9 +218,9 @@ describe("CommandPalette", () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     expect(await screen.findByTestId("command-palette-prefix-hints")).toHaveClass("flex-wrap");
-    expect(screen.getByTestId("command-palette-prefix-hint-actions")).toHaveClass("rounded-md");
-    expect(screen.getByTestId("command-palette-prefix-hint-feeds")).toHaveClass("rounded-md");
-    expect(screen.getByTestId("command-palette-prefix-hint-tags")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("command-palette-prefix-hint-actions")).toHaveClass("rounded-md", "bg-surface-1/72");
+    expect(screen.getByTestId("command-palette-prefix-hint-feeds")).toHaveClass("rounded-md", "bg-surface-1/72");
+    expect(screen.getByTestId("command-palette-prefix-hint-tags")).toHaveClass("rounded-md", "bg-surface-1/72");
   });
 
   it("keeps the backdrop readable for feed lookup by disabling blur on the overlay", async () => {

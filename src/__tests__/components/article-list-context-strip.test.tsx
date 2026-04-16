@@ -21,6 +21,7 @@ describe("ArticleListContextStrip", () => {
     expect(strip).toHaveAttribute("data-style", "band");
     expect(strip).toHaveAttribute("data-tone", "starred");
     expect(strip).toHaveClass("border-[var(--reader-context-border)]");
+    expect(strip).toHaveClass("bg-surface-1/72");
     expect(screen.queryByRole("button", { name: "Starred" })).not.toBeInTheDocument();
     expect(strip).not.toHaveAttribute("aria-label");
   });

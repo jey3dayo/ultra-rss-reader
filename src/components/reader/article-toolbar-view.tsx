@@ -100,7 +100,7 @@ export function ArticleToolbarActionStrip({
         pressed={isRead}
         onPressedChange={(nextRead) => onToggleRead(nextRead)}
         disabled={!canToggleRead}
-        className="text-foreground/90 hover:text-foreground"
+        className="text-foreground-soft hover:text-foreground"
       >
         <UnreadIcon unread={!isRead} className="h-3 w-3" />
       </IconToolbarToggle>
@@ -109,7 +109,7 @@ export function ArticleToolbarActionStrip({
         pressed={isStarred}
         onPressedChange={(nextStarred) => onToggleStar(nextStarred)}
         disabled={!canToggleStar}
-        className="text-foreground/90 hover:text-foreground"
+        className="text-foreground-soft hover:text-foreground"
       >
         <StarIcon starred={isStarred} className="h-4 w-4" />
       </IconToolbarToggle>

@@ -48,9 +48,9 @@ function CommandInput({ className, ...props }: React.ComponentProps<typeof Comma
   return (
     <div
       data-slot="command-input-wrapper"
-      className="flex h-9 items-center gap-3 border-b border-border/70 bg-[linear-gradient(180deg,hsl(var(--background)/0.96),hsl(var(--card)/0.85))] px-4"
+      className="flex h-9 items-center gap-3 border-b border-border/70 bg-surface-1/76 px-4"
     >
-      <SearchIcon className="size-4 shrink-0 text-muted-foreground/80" />
+      <SearchIcon className="size-4 shrink-0 text-foreground-soft" />
       <CommandPrimitive.Input
         data-slot="command-input"
         className={cn(

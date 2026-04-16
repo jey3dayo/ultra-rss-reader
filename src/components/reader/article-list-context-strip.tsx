@@ -34,7 +34,7 @@ export function ArticleListContextStrip({ primaryLabel, secondaryLabel, tone }: 
       data-testid="article-list-context-strip"
       data-style="band"
       data-tone={tone ?? "neutral"}
-      className="relative flex items-center justify-between border-b border-[var(--reader-context-border)] bg-card/95 px-4 py-1.5"
+      className="relative flex items-center justify-between border-b border-[var(--reader-context-border)] bg-surface-1/72 px-4 py-1.5"
     >
       <span
         aria-hidden="true"

@@ -19,7 +19,11 @@ describe("ArticleListFooter", () => {
     const unreadIcon = unreadButton.querySelector("span");
     const starredButton = screen.getByRole("button", { name: /starred/i });
     const starredIcon = starredButton.querySelector("svg");
+    const allButton = screen.getByRole("button", { name: /all/i });
 
+    expect(unreadButton).toHaveClass("text-foreground-soft");
+    expect(starredButton).toHaveClass("text-foreground-soft");
+    expect(allButton).toHaveClass("data-[pressed]:bg-surface-1/72");
     expect(unreadIcon).not.toBeNull();
     expect(unreadIcon).toHaveClass("bg-[var(--tone-unread)]");
     expect(unreadIcon).toHaveClass("text-[var(--tone-unread)]");
