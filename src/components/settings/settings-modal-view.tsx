@@ -114,7 +114,7 @@ export function SettingsModalView({
         {isLoading && <IndeterminateProgress className="absolute inset-x-0 top-0 z-10" />}
         <div
           data-testid="settings-nav-shell"
-          className="flex max-h-[34vh] w-full shrink-0 flex-col border-b border-border/80 sm:max-h-none sm:w-[292px] sm:border-r sm:border-b-0"
+          className="flex max-h-[15rem] w-full shrink-0 flex-col border-b border-border/80 sm:max-h-none sm:w-[292px] sm:border-r sm:border-b-0"
           style={{ backgroundColor: "var(--settings-shell-rail)" }}
         >
           <DialogHeader
@@ -153,7 +153,7 @@ export function SettingsModalView({
               {navigation}
               <div
                 data-testid="settings-mobile-accounts-section"
-                className="mx-3 mb-3 max-h-[9rem] overflow-y-auto rounded-md border border-border/70 px-3 py-3 shadow-elevation-1 sm:hidden"
+                className="mx-3 mb-3 max-h-[5.5rem] overflow-y-auto rounded-md border border-border/70 px-3 py-2.5 shadow-elevation-1 sm:hidden"
                 style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
               >
                 {accountsHeading ? (

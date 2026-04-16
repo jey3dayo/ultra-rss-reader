@@ -173,7 +173,7 @@ describe("SettingsModalView", () => {
 
     expect(screen.getByTestId("settings-mobile-accounts-section")).toBeInTheDocument();
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("rounded-md");
-    expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("max-h-[9rem]");
+    expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("max-h-[5.5rem]");
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("overflow-y-auto");
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveStyle({
       backgroundColor: "var(--settings-shell-account-surface)",
@@ -268,11 +268,10 @@ describe("SettingsModalView", () => {
 
     const surface = screen.getByTestId("settings-modal-surface");
     const navPane = surface.firstElementChild as HTMLElement;
-
     expect(surface).toHaveClass("flex-col");
     expect(surface).toHaveClass("sm:flex-row");
     expect(navPane).toHaveClass("w-full");
-    expect(navPane).toHaveClass("max-h-[34vh]");
+    expect(navPane).toHaveClass("max-h-[15rem]");
     expect(navPane).toHaveClass("sm:w-[292px]");
     expect(navPane).toHaveClass("border-b");
     expect(navPane).toHaveClass("sm:border-r");
