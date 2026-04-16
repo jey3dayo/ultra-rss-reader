@@ -107,7 +107,7 @@ describe("BrowserOverlayChrome", () => {
     expect(closeSurface).not.toBeNull();
     expect(closeSurface).toHaveAttribute("data-overlay-shell", "action");
     expect(closeSurface).toHaveClass("rounded-lg");
-    expect(closeSurface).toHaveClass("bg-background/72");
+    expect(closeSurface).toHaveClass("bg-overlay-action-surface-subtle");
     expect(closeSurface).toHaveClass("border-border/70");
     expect(closeSurface?.className).toContain("has-[:focus-visible]:ring-2");
     expect(closeSurface?.className).toContain("has-[:active]:scale-[0.97]");
