@@ -1,4 +1,5 @@
 import { CircleAlert, ExternalLink, RotateCcw } from "lucide-react";
+import { SurfaceCard } from "@/components/shared/surface-card";
 import { Button } from "@/components/ui/button";
 import type { BrowserSurfaceStateCardProps } from "./browser-view.types";
 
@@ -10,9 +11,11 @@ export function BrowserSurfaceStateCard({
   labels,
 }: BrowserSurfaceStateCardProps) {
   return (
-    <div
+    <SurfaceCard
+      variant="info"
+      tone="subtle"
       data-testid="browser-surface-state"
-      className="w-full max-w-[min(42rem,calc(100vw-2rem))] rounded-2xl border border-border/70 bg-background/80 px-5 py-4 text-center shadow-elevation-3 backdrop-blur-md"
+      className="w-full max-w-[min(42rem,calc(100vw-2rem))] text-center"
     >
       <div className="flex items-center justify-center gap-2 text-foreground">
         <CircleAlert aria-hidden="true" className="size-4 text-primary" />
@@ -24,7 +27,7 @@ export function BrowserSurfaceStateCard({
           <p className="text-[11px] font-medium tracking-[0.08em] text-foreground-soft uppercase">
             {labels.technicalDetail}
           </p>
-          <p className="rounded-lg border border-border/60 bg-card/60 px-3 py-2 text-xs text-muted-foreground">
+          <p className="rounded-[var(--radius-surface-info)] border border-border/55 bg-surface-1/85 px-3 py-2 text-xs text-muted-foreground">
             {issue.detail}
           </p>
         </div>
@@ -41,6 +44,6 @@ export function BrowserSurfaceStateCard({
           {labels.openInExternalBrowser}
         </Button>
       </div>
-    </div>
+    </SurfaceCard>
   );
 }

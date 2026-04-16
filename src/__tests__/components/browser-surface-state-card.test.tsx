@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { BrowserSurfaceStateCard } from "@/components/reader/browser-surface-state-card";
 
 describe("BrowserSurfaceStateCard", () => {
-  it("uses a wider responsive card width and balanced title wrapping", () => {
+  it("keeps the info surface contract and local sizing", () => {
     render(
       <BrowserSurfaceStateCard
         issue={{
@@ -27,12 +27,15 @@ describe("BrowserSurfaceStateCard", () => {
 
     const card = screen.getByTestId("browser-surface-state");
     const title = screen.getByText("browser mode では埋め込み Webプレビューを表示できません。");
+    const openButton = screen.getByRole("button", { name: "Open in External Browser" });
 
+    expect(card).toHaveAttribute("data-surface-card", "info");
     expect(card).toHaveClass("w-full");
     expect(card).toHaveClass("max-w-[min(42rem,calc(100vw-2rem))]");
-    expect(card).toHaveClass("border-border/70");
-    expect(card).toHaveClass("bg-background/80");
     expect(title).toHaveClass("text-balance");
     expect(title).toHaveClass("leading-tight");
+    expect(screen.queryByText("Technical detail")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry Web Preview" })).not.toBeInTheDocument();
+    expect(openButton).toBeEnabled();
   });
 });
