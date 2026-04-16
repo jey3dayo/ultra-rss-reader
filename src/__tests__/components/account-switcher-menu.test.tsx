@@ -32,6 +32,8 @@ describe("AccountSwitcherMenu", () => {
     expect(localButton).toHaveAttribute("aria-checked", "true");
     expect(freshRssButton).not.toHaveClass("bg-[var(--bg-selected)]");
     expect(freshRssButton).toHaveClass("hover:bg-sidebar-accent/28");
+    expect(screen.getByText("local")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("Local only")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("Local only")).toBeInTheDocument();
 
     await user.click(freshRssButton);

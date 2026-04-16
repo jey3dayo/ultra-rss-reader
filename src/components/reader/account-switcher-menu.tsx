@@ -59,10 +59,10 @@ export function AccountSwitcherMenu({
             title={
               <div className="flex items-center gap-2">
                 <span className="truncate">{account.name}</span>
-                <span className="text-xs text-muted-foreground">{account.kind}</span>
+                <span className="text-xs text-foreground-soft">{account.kind}</span>
               </div>
             }
-            description={statusLabel ? <p className="text-xs text-muted-foreground">{statusLabel}</p> : undefined}
+            description={statusLabel ? <p className="text-xs text-foreground-soft">{statusLabel}</p> : undefined}
             selected={account.id === selectedAccountId}
             onClick={() => {
               onSelectAccount(account.id);
