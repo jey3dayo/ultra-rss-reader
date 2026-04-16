@@ -18,9 +18,9 @@ export function FeedCleanupCard({ children, className, style }: FeedCleanupCardP
 
 export function FeedCleanupDetailRow({ label, value }: FeedCleanupDetailRowProps) {
   return (
-    <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd>{value}</dd>
+    <div className="flex flex-col items-start gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <dt className="font-sans text-[11px] tracking-[0.08em] text-foreground-soft uppercase">{label}</dt>
+      <dd className="text-sm font-medium text-foreground">{value}</dd>
     </div>
   );
 }

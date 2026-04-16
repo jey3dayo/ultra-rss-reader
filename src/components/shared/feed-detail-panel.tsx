@@ -179,7 +179,7 @@ export function FeedDetailPanel({
         ) : null}
 
         <div className="grid gap-4">
-          <dl className="grid gap-3 text-sm">
+          <dl className="grid gap-3.5 border-t border-border/55 pt-3.5 text-sm">
             {metrics.map((metric) => (
               <FeedCleanupDetailRow key={String(metric.label)} label={metric.label} value={metric.value} />
             ))}
@@ -197,7 +197,7 @@ export function FeedDetailPanel({
           ) : null}
 
           {recentArticles.length > 0 ? (
-            <div className="space-y-3 pt-3.5">
+            <div className="space-y-3 border-t border-border/55 pt-4">
               <h4 className="font-sans text-sm font-medium text-foreground">{recentArticlesHeading}</h4>
               <div className="space-y-1.5">
                 {recentArticles.map((article) => (
@@ -230,7 +230,7 @@ export function FeedDetailPanel({
         </div>
 
         {primaryAction || secondaryAction ? (
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 border-t border-border/55 pt-4">
             {primaryAction ? (
               <Button
                 aria-label={primaryAction.ariaLabel ?? primaryAction.label}
