@@ -100,13 +100,13 @@ describe("SettingsModalView", () => {
       />,
     );
 
-    const scrollAreas = screen.getAllByTestId("settings-scroll-area");
+    const navScrollArea = screen.getByTestId("settings-nav-scroll-area");
+    const contentScrollArea = screen.getByTestId("settings-content-scroll-area");
 
-    expect(scrollAreas).toHaveLength(2);
-    for (const scrollArea of scrollAreas) {
-      expect(scrollArea).toHaveClass("min-h-0");
-      expect(scrollArea).toHaveClass("h-full");
-    }
+    expect(navScrollArea).toHaveClass("min-h-0");
+    expect(navScrollArea).toHaveClass("h-full");
+    expect(contentScrollArea).toHaveClass("min-h-0");
+    expect(contentScrollArea).toHaveClass("h-full");
   });
 
   it("adds visual scroll affordances and a taller modal surface", () => {
@@ -128,12 +128,14 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("max-h-[860px]");
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("max-w-[980px]");
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("bg-popover");
+    expect(screen.getByTestId("settings-modal-surface")).toHaveClass("rounded-[30px]");
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("shadow-elevation-3");
     expect(screen.getByTestId("settings-modal-header")).toHaveClass("min-h-[4.5rem]");
     expect(screen.getByTestId("settings-modal-header")).toHaveClass("py-0");
     expect(screen.getByTestId("settings-modal-header")).toHaveClass("bg-sidebar/72");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("px-3");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("py-3");
+    expect(screen.getByTestId("settings-accounts-section")).toHaveClass("rounded-lg");
     expect(screen.getAllByText("Accounts")).toHaveLength(2);
   });
 
@@ -153,6 +155,7 @@ describe("SettingsModalView", () => {
     );
 
     expect(screen.getByTestId("settings-mobile-accounts-section")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("rounded-lg");
   });
 
   it("hides scrollbars and fades when the panes do not overflow", async () => {
@@ -170,8 +173,9 @@ describe("SettingsModalView", () => {
       />,
     );
 
-    const [navScrollArea, contentScrollArea] = screen.getAllByTestId("settings-scroll-area");
     const hiddenScrollbarClass = "[&>[data-slot='scroll-area-scrollbar']]:hidden";
+    const navScrollArea = screen.getByTestId("settings-nav-scroll-area");
+    const contentScrollArea = screen.getByTestId("settings-content-scroll-area");
 
     setScrollMetrics(navScrollArea, 480, 480);
     setScrollMetrics(contentScrollArea, 480, 480);
@@ -179,9 +183,8 @@ describe("SettingsModalView", () => {
     fireEvent(window, new Event("resize"));
 
     await waitFor(() => {
-      const [nextNavScrollArea, nextContentScrollArea] = screen.getAllByTestId("settings-scroll-area");
-      expect(nextNavScrollArea).toHaveClass(hiddenScrollbarClass);
-      expect(nextContentScrollArea).toHaveClass(hiddenScrollbarClass);
+      expect(screen.getByTestId("settings-nav-scroll-area")).toHaveClass(hiddenScrollbarClass);
+      expect(screen.getByTestId("settings-content-scroll-area")).toHaveClass(hiddenScrollbarClass);
     });
 
     expect(screen.queryByTestId("settings-nav-fade-top")).not.toBeInTheDocument();
@@ -206,7 +209,7 @@ describe("SettingsModalView", () => {
       />,
     );
 
-    expect(screen.getAllByTestId("settings-scroll-area")[1]).not.toHaveClass(
+    expect(screen.getByTestId("settings-content-scroll-area")).not.toHaveClass(
       "[&>[data-slot='scroll-area-scrollbar']]:hidden",
     );
 

@@ -132,14 +132,14 @@ export function SettingsModalView({
               />
             ) : null}
             <ScrollArea
-              data-testid="settings-scroll-area"
+              data-testid="settings-nav-scroll-area"
               viewportRef={navigationOverflow.viewportRef}
               className={cn("h-full min-h-0", !navigationOverflow.hasOverflow && HIDDEN_SCROLLBAR_CLASS)}
             >
               {navigation}
               <div
                 data-testid="settings-mobile-accounts-section"
-                className="mx-3 mb-3 rounded-[22px] border border-border/70 bg-sidebar-accent/24 px-3 py-3 shadow-elevation-1 sm:hidden"
+                className="mx-3 mb-3 rounded-lg border border-border/70 bg-sidebar-accent/24 px-3 py-3 shadow-elevation-1 sm:hidden"
               >
                 {accountsHeading ? (
                   <p className="mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/48">
@@ -160,7 +160,7 @@ export function SettingsModalView({
 
           <div
             data-testid="settings-accounts-section"
-            className="mx-3 mb-3 hidden rounded-[22px] border border-border/70 bg-sidebar-accent/24 px-3 py-3 shadow-elevation-1 sm:block"
+            className="mx-3 mb-3 hidden rounded-lg border border-border/70 bg-sidebar-accent/24 px-3 py-3 shadow-elevation-1 sm:block"
           >
             {accountsHeading ? (
               <p className="mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/48">
@@ -181,7 +181,7 @@ export function SettingsModalView({
               />
             ) : null}
             <ScrollArea
-              data-testid="settings-scroll-area"
+              data-testid="settings-content-scroll-area"
               viewportRef={contentOverflow.viewportRef}
               className={cn("h-full min-h-0", !contentHasOverflow && HIDDEN_SCROLLBAR_CLASS)}
             >
