@@ -16,7 +16,7 @@ const buttonVariants = cva(
           "border-border bg-surface-4 text-foreground-soft shadow-none hover:bg-surface-3 hover:text-foreground aria-expanded:bg-surface-3",
         ghost: "text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground aria-expanded:bg-surface-2",
         destructive:
-          "border-destructive/25 bg-destructive/10 text-destructive shadow-none hover:border-destructive/35 hover:bg-destructive/15 focus-visible:border-destructive/40 focus-visible:ring-destructive/20",
+          "border-state-danger-border bg-state-danger-surface text-state-danger-foreground shadow-none hover:border-state-danger-border hover:bg-state-danger-surface focus-visible:border-state-danger-border focus-visible:ring-destructive/20",
         link: "border-transparent p-0 text-primary shadow-none underline-offset-4 hover:text-primary hover:underline",
       },
       size: {

@@ -11,7 +11,7 @@ const labelChipVariants = cva(
         muted: "border-border/55 bg-background/70 text-muted-foreground",
         success: "border-state-success-border bg-state-success-surface text-state-success-foreground",
         warning: "border-state-warning-border bg-state-warning-surface text-state-warning-foreground",
-        danger: "border-destructive/20 bg-destructive/8 text-destructive",
+        danger: "border-state-danger-border bg-state-danger-surface text-state-danger-foreground",
       },
       size: {
         compact: "px-2 py-0.5 text-[10px]",

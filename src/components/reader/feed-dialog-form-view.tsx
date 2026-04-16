@@ -101,8 +101,8 @@ export function FeedDialogFormView({
             </div>
           ) : null}
 
-          {successMessage && !error && <p className="mt-2 text-sm text-green-400">{successMessage}</p>}
-          {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+          {successMessage && !error && <p className="mt-2 text-sm text-state-success-foreground">{successMessage}</p>}
+          {error && <p className="mt-2 text-sm text-state-danger-foreground">{error}</p>}
         </form>
         <DialogFooter className="border-t border-border/70 bg-background/55 px-6 py-4">
           <FormActionButtons
