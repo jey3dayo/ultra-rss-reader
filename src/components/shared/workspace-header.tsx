@@ -93,11 +93,11 @@ export function WorkspaceHeader({
               </Button>
             </div>
           ) : null}
-          <p className="font-sans text-[11px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
+          <p className="font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase">
             {eyebrow}
           </p>
           <h1 className="mt-2 font-sans text-2xl font-normal tracking-[-0.03em] text-foreground">{title}</h1>
-          <p className="mt-1 font-serif text-sm text-muted-foreground">{subtitle}</p>
+          <p className="mt-1 font-serif text-sm text-foreground-soft">{subtitle}</p>
         </div>
         <div className="flex items-center gap-2">
           {actions}

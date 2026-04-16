@@ -19,7 +19,7 @@ export function TagColorPicker({
 }: TagColorPickerProps) {
   return (
     <div className="space-y-3">
-      {label ? <span className="block text-sm font-medium text-foreground/84">{label}</span> : null}
+      {label ? <span className="block text-sm font-medium text-foreground-soft">{label}</span> : null}
       <div className="flex flex-wrap items-center gap-1.5">
         <button
           type="button"
@@ -30,7 +30,7 @@ export function TagColorPicker({
             "flex size-8 items-center justify-center rounded-full border bg-background text-[11px] text-muted-foreground transition-[border-color,box-shadow,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
             color === null
               ? "border-foreground/25 ring-2 ring-foreground/15"
-              : "border-border hover:border-foreground/20 hover:text-foreground/72",
+              : "border-border hover:border-foreground/20 hover:text-foreground-soft",
           )}
           onClick={() => onChange(null)}
         >
