@@ -3,6 +3,14 @@ import { FreshRssLogoIcon, InoreaderLogoIcon } from "@/components/icons/provider
 import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import type { ServiceCategory, ServiceDefinition } from "./add-account-services.types";
 
+export const PROVIDER_ICON_BG_CLASS = {
+  Local: "bg-orange-500",
+  FreshRss: "bg-[#0062BE]",
+  Fever: "bg-gray-500",
+  Feedly: "bg-[#2BB24C]",
+  Inoreader: "bg-[#1875F3]",
+} as const satisfies Record<ServiceDefinition["kind"], string>;
+
 export const SERVICE_CATEGORIES: ServiceCategory[] = [
   {
     labelKey: "account.category_local",
@@ -10,7 +18,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
       {
         kind: "Local",
         icon: Monitor,
-        iconBg: "bg-orange-500",
+        iconBg: PROVIDER_ICON_BG_CLASS.Local,
         nameKey: "account.local_feeds",
         descKey: "account.local_desc",
       },
@@ -22,14 +30,14 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
       {
         kind: "FreshRss",
         icon: FreshRssLogoIcon,
-        iconBg: "bg-[#0062BE]",
+        iconBg: PROVIDER_ICON_BG_CLASS.FreshRss,
         nameKey: "account.freshrss",
         descKey: "account.freshrss_desc",
       },
       {
         kind: "Fever",
         icon: Thermometer,
-        iconBg: "bg-gray-500",
+        iconBg: PROVIDER_ICON_BG_CLASS.Fever,
         nameKey: "account.fever",
         descKey: "account.fever_desc",
         disabled: true,
@@ -42,7 +50,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
       {
         kind: "Feedly",
         icon: Rss,
-        iconBg: "bg-[#2BB24C]",
+        iconBg: PROVIDER_ICON_BG_CLASS.Feedly,
         nameKey: "account.feedly",
         descKey: "account.coming_soon",
         disabled: true,
@@ -50,7 +58,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
       {
         kind: "Inoreader",
         icon: InoreaderLogoIcon,
-        iconBg: "bg-[#1875F3]",
+        iconBg: PROVIDER_ICON_BG_CLASS.Inoreader,
         nameKey: "account.inoreader",
         descKey: "account.coming_soon",
         disabled: true,
