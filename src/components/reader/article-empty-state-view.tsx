@@ -9,7 +9,8 @@ export function ArticleEmptyStateView({ message, hints = EMPTY_HINTS }: ArticleE
       <SurfaceCard
         variant="info"
         padding="spacious"
-        className="max-w-xl border-transparent text-left text-foreground-soft shadow-none"
+        className="max-w-xl border-transparent bg-transparent text-left text-foreground-soft shadow-none"
+        style={{ borderColor: "transparent", backgroundColor: "transparent", boxShadow: "none" }}
       >
         <p className="mb-3 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-foreground-soft">Reader</p>
         <p className="text-left text-[1.35rem] font-semibold leading-[1.2] tracking-[-0.02em] text-foreground">

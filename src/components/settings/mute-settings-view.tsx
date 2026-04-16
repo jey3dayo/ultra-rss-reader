@@ -135,7 +135,7 @@ export function MuteSettingsView({
         <SettingsSection heading={autoMarkReadHeading} note={autoMarkReadHint} surface="flat" className="mb-6 sm:mb-7">
           <LabeledControlRow label={autoMarkReadLabel}>
             <div className="flex items-center gap-3">
-              <span className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground">
+              <span className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-foreground-soft">
                 {comingSoonLabel}
               </span>
               <GradientSwitch checked={false} disabled aria-label={`${autoMarkReadLabel} (${comingSoonLabel})`} />
@@ -145,7 +145,7 @@ export function MuteSettingsView({
 
         <SettingsSection heading={savedHeading} surface="flat">
           {rules.length === 0 ? (
-            <p className="border-b border-border py-3 text-sm text-muted-foreground">{emptyState}</p>
+            <p className="border-b border-border py-3 text-sm text-foreground-soft">{emptyState}</p>
           ) : (
             rules.map((rule) => (
               <LabeledControlRow

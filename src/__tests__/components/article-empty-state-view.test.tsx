@@ -42,7 +42,11 @@ describe("ArticleEmptyStateView", () => {
     expect(container).not.toHaveClass("rounded-[2rem]");
     expect(container).toHaveClass("max-w-xl");
     expect(container).toHaveClass("border-transparent");
+    expect(container).toHaveClass("bg-transparent");
     expect(container).toHaveClass("shadow-none");
+    expect(container?.getAttribute("style")).toContain("border-color: transparent");
+    expect(container?.getAttribute("style")).toContain("background-color: transparent");
+    expect(container?.getAttribute("style")).toContain("box-shadow: none");
     expect(container).toHaveClass("text-foreground-soft");
     expect(eyebrow).toHaveClass("text-foreground-soft");
     expect(hintsList).toHaveClass("marker:text-foreground-soft");
