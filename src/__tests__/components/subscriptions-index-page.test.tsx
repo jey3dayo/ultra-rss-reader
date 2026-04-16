@@ -203,7 +203,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(shell).toHaveClass("overflow-visible");
     expect(shell).toHaveClass("rounded-xl");
     expect(shell).toHaveClass("lg:overflow-hidden");
-    expect(shell).toHaveClass("lg:grid-cols-[minmax(0,1.02fr)_minmax(380px,0.98fr)]");
+    expect(shell).toHaveClass("lg:grid-cols-[minmax(0,1fr)_480px]");
     expect(shell.parentElement?.parentElement?.parentElement).toHaveStyle({
       backgroundImage: "var(--subscriptions-shell-bg)",
     });

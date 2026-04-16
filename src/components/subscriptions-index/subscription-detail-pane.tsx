@@ -61,7 +61,7 @@ export function SubscriptionDetailPane({
         </div>
       ) : (
         <div className="pr-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-          <div className="mx-auto flex w-full max-w-[520px] flex-col pb-6 pt-1 lg:min-h-full">
+          <div className="flex w-full flex-col pb-6 pt-1 lg:min-h-full">
             <FeedDetailPanel
               title={row.feed.title}
               titleHref={row.feed.site_url}
