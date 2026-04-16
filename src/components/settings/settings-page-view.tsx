@@ -23,7 +23,7 @@ function SettingsPageSelectRow({ control }: SettingsPageSelectRowProps) {
       onChange={control.onChange}
       disabled={control.disabled}
       open={control.open}
-      triggerClassName="min-w-[140px]"
+      triggerClassName="sm:w-[192px]"
     />
   );
 }
@@ -84,7 +84,7 @@ export function SettingsPageView({ title, sections, sectionSurface = "flat" }: S
           heading={section.heading}
           note={section.note}
           surface={sectionSurface}
-          className={index === sections.length - 1 ? undefined : "mb-4 sm:mb-5"}
+          className={index === sections.length - 1 ? undefined : "mb-6 sm:mb-7"}
           headingClassName="mb-1.5 sm:mb-2"
         >
           {section.controls.map((control) =>

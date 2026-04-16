@@ -39,7 +39,7 @@ export function SettingsSelect({ label, prefKey, options }: SettingsSelectProps)
       value={value}
       options={options}
       onChange={(nextValue) => setPref(prefKey, nextValue)}
-      triggerClassName="min-w-[140px]"
+      triggerClassName="sm:w-[192px]"
     />
   );
 }

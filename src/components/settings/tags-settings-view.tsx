@@ -68,7 +68,7 @@ export function TagsSettingsView({
 }: TagsSettingsViewProps) {
   return (
     <SettingsContentLayout title={title} outerTestId="tags-settings-root">
-      <SettingsSection heading={addHeading} note={intro} surface="flat" className="mb-5 sm:mb-6">
+      <SettingsSection heading={addHeading} note={intro} surface="flat" className="mb-6 sm:mb-7">
         <LabeledInputRow
           label={nameLabel}
           name="tag_name"
@@ -81,7 +81,7 @@ export function TagsSettingsView({
           actionDisabled={createDisabled}
           rowClassName="items-start sm:items-center"
           labelClassName="sm:w-40 sm:shrink-0"
-          controlClassName="sm:justify-end"
+          controlClassName="sm:justify-start"
           inputClassName="h-10"
           actionClassName="h-10 sm:px-4"
         />
@@ -104,7 +104,7 @@ export function TagsSettingsView({
         ) : (
           tags.map((tag) => (
             <LabeledControlRow key={tag.id} label={tag.name} labelClassName="sm:max-w-[280px] sm:shrink-0 sm:truncate">
-              <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+              <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-start">
                 {tag.color ? (
                   <span
                     aria-hidden="true"

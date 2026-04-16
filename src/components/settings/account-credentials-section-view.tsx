@@ -53,7 +53,7 @@ export function AccountCredentialsSectionView({
   isTestingConnection,
 }: AccountCredentialsSectionViewProps) {
   return (
-    <SettingsSection heading={heading} surface="flat" className="mb-5 sm:mb-6">
+    <SettingsSection heading={heading} surface="flat" className="mb-6 sm:mb-7">
       {serverUrlLabel && onServerUrlChange && (
         <LabeledInputRow
           label={serverUrlLabel}

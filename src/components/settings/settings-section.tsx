@@ -26,7 +26,7 @@ export function SettingsSection({
     return (
       <section className={className}>
         <SectionHeading className={cn("mb-1.5 sm:mb-2", headingClassName)}>{heading}</SectionHeading>
-        <div className={contentClassName}>{children}</div>
+        <div className={cn("[&>*:first-child]:pt-0", contentClassName)}>{children}</div>
         {note ? <p className="mt-1.5 font-serif text-xs leading-[1.45] text-foreground-soft sm:mt-2">{note}</p> : null}
       </section>
     );

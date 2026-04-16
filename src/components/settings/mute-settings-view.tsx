@@ -93,7 +93,7 @@ export function MuteSettingsView({
   return (
     <>
       <SettingsContentLayout title={title} outerTestId="mute-settings-root">
-        <SettingsSection heading={addHeading} note={intro} surface="flat" className="mb-5 sm:mb-6">
+        <SettingsSection heading={addHeading} note={intro} surface="flat" className="mb-6 sm:mb-7">
           <LabeledControlRow
             label={keywordLabel}
             className="items-start sm:items-center"
@@ -101,7 +101,7 @@ export function MuteSettingsView({
           >
             <div
               data-testid="mute-settings-add-row"
-              className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end"
+              className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-start"
             >
               <Input
                 name="mute_keyword"
@@ -132,7 +132,7 @@ export function MuteSettingsView({
           </LabeledControlRow>
         </SettingsSection>
 
-        <SettingsSection heading={autoMarkReadHeading} note={autoMarkReadHint} surface="flat" className="mb-5 sm:mb-6">
+        <SettingsSection heading={autoMarkReadHeading} note={autoMarkReadHint} surface="flat" className="mb-6 sm:mb-7">
           <LabeledControlRow label={autoMarkReadLabel}>
             <div className="flex items-center gap-3">
               <span className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground">
@@ -153,7 +153,7 @@ export function MuteSettingsView({
                 label={rule.keyword}
                 labelClassName="sm:max-w-[280px] sm:shrink-0 sm:truncate"
               >
-                <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-start">
                   <Select
                     value={rule.scope}
                     onValueChange={(value) => value && onRuleScopeChange(rule.id, value as typeof rule.scope)}

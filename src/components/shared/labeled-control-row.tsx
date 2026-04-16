@@ -14,7 +14,7 @@ export function LabeledControlRow({
   return (
     <div
       className={cn(
-        "flex min-h-[44px] flex-col items-stretch justify-between gap-2.5 border-b border-border/70 py-2.5 last:border-b-0 sm:flex-row sm:items-center sm:gap-3",
+        "grid min-h-[44px] grid-cols-1 items-start gap-y-2.5 border-b border-border/70 py-2.5 last:border-b-0 sm:grid-cols-[minmax(180px,220px)_minmax(0,1fr)] sm:items-center sm:gap-x-7 sm:gap-y-3",
         className,
       )}
     >
