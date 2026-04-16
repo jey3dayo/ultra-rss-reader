@@ -42,4 +42,10 @@ describe("SidebarNavButton", () => {
     expect(button).not.toHaveClass("before:bg-primary/85");
     expect(button).not.toHaveClass("group-hover/feed-row:before:opacity-0");
   });
+
+  it("uses the softened hover surface for unselected rows", () => {
+    render(<SidebarNavButton>Feed row</SidebarNavButton>);
+
+    expect(screen.getByRole("button", { name: "Feed row" })).toHaveClass("hover:bg-sidebar-accent/28");
+  });
 });

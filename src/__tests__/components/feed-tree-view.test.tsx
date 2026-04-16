@@ -711,7 +711,7 @@ describe("FeedTreeView", () => {
       />,
     );
 
-    expect(screen.getByTestId("unfoldered-drop-zone")).toHaveClass("bg-sidebar-accent/60");
+    expect(screen.getByTestId("unfoldered-drop-zone")).toHaveClass("bg-sidebar-accent/32");
   });
 
   it("does not show the unfoldered drop zone until a drag is active", () => {
@@ -895,7 +895,7 @@ describe("FeedTreeView", () => {
 
       expect(onDragEnterFolder).toHaveBeenCalledWith("folder-target");
       expect(onDragEnterUnfoldered).toHaveBeenCalledTimes(1);
-      expect(screen.getByTestId("unfoldered-drop-zone")).toHaveClass("bg-sidebar-accent/60");
+      expect(screen.getByTestId("unfoldered-drop-zone")).toHaveClass("bg-sidebar-accent/32");
     } finally {
       Object.defineProperty(document, "elementFromPoint", {
         configurable: true,
