@@ -69,7 +69,7 @@ export function SubscriptionsListPane({
                       "items-center rounded-md border border-transparent bg-transparent px-2.5 py-2 shadow-none",
                       selectedFeedId === row.feed.id
                         ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)]"
-                        : "hover:border-transparent hover:bg-[color:var(--subscriptions-list-row-hover)]",
+                        : "!border-transparent hover:!border-transparent hover:bg-[color:var(--subscriptions-list-row-hover)]",
                     )}
                     leading={
                       <span
@@ -91,9 +91,6 @@ export function SubscriptionsListPane({
                     title={
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-foreground">{row.feed.title}</span>
-                        {group.folderId === null ? (
-                          <span className="text-[11px] text-foreground-soft">{formatFolderLabel(row.folderName)}</span>
-                        ) : null}
                       </div>
                     }
                     description={
