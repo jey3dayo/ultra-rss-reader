@@ -57,7 +57,7 @@ const meta = {
     content: (
       <div className="p-6">
         <h2 className="text-lg font-semibold">General settings</h2>
-        <p className="mt-2 text-sm text-muted-foreground">Fixture-only story for the isolated modal layout.</p>
+        <p className="mt-2 text-sm text-foreground-soft">Fixture-only story for the isolated modal layout.</p>
       </div>
     ),
     contentResetKey: "general::false",
