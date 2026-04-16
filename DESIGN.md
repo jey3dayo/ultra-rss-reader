@@ -239,6 +239,15 @@ Surface governance:
 - Don't mix warm editorial surfaces with arbitrary cool gray or utility palette colors unless they are an approved semantic or exception palette.
 - Don't treat tag colors or provider brand colors as theme colors; manage them as exception palettes.
 
+## UI Reference Mapping
+
+- `Typography` -> `UI Reference/Foundations Canvas`
+- `Colors`, semantic surfaces, and feature accents -> `UI Reference/Foundations Canvas`
+- `Inputs and Forms` -> `UI Reference/Input Controls Canvas`
+- `Cards and Containers`, `Shell Roles` -> `UI Reference/Shell & Overlay Canvas`
+- `Lists and Navigation` -> `UI Reference/Navigation & Collections Canvas`
+- Dense workspace filters, action clusters, detail panels, and two-pane composition -> `UI Reference/Workspace Patterns Canvas`
+
 ## Appendix
 
 ### Exception Palettes

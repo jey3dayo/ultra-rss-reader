@@ -2,30 +2,24 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
   AccountCardStackSpecimen,
   AnnotatedNote,
-  AnnouncementCardsSpecimen,
   NavigationStackSpecimen,
   ReaderFilterStripSpecimen,
   ReferencePage,
-  SurfaceRoleSpecimen,
   TagPaletteSpecimen,
-  WorkspaceFilterClusterSpecimen,
 } from "@/components/storybook/ui-reference-canvas-specimens";
 
-export function ViewSpecimensCanvas() {
+export function NavigationCollectionsCanvas() {
   return (
     <ReferencePage maxWidthClassName="max-w-5xl">
       <div className="space-y-4">
         <AnnotatedNote
-          title="View specimens"
-          body="Feature-local presentation examples live here. Use this canvas for density, stacking, and representative display fragments after checking shared controls and shell framing."
+          title="Navigation & collections"
+          body="Reader filters, account stacks, nav rows, folder stacks, and tag palette patterns live here."
         />
-        <SurfaceRoleSpecimen />
         <div className="grid gap-4 xl:grid-cols-2">
           <ReaderFilterStripSpecimen />
-          <WorkspaceFilterClusterSpecimen />
           <AccountCardStackSpecimen />
           <NavigationStackSpecimen />
-          <AnnouncementCardsSpecimen />
           <TagPaletteSpecimen />
         </div>
       </div>
@@ -34,12 +28,12 @@ export function ViewSpecimensCanvas() {
 }
 
 const meta = {
-  title: "UI Reference/View Specimens Canvas",
-  component: ViewSpecimensCanvas,
+  title: "UI Reference/Navigation & Collections Canvas",
+  component: NavigationCollectionsCanvas,
   parameters: {
     layout: "fullscreen",
   },
-} satisfies Meta<typeof ViewSpecimensCanvas>;
+} satisfies Meta<typeof NavigationCollectionsCanvas>;
 
 export default meta;
 

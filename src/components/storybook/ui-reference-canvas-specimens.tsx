@@ -2,7 +2,7 @@ import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
-import { AlertTriangle, BookOpen, List, Palette, Settings2 } from "lucide-react";
+import { AlertTriangle, BookOpen, Check, Clock3, List, Palette, Settings2, Trash2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { FolderSectionView } from "@/components/reader/folder-section";
@@ -13,6 +13,8 @@ import { SettingsSection } from "@/components/settings/settings-section";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
 import { ControlChipButton } from "@/components/shared/control-chip-button";
+import { DecisionButton, denseDecisionButtonClassName } from "@/components/shared/decision-button";
+import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { LabelChip } from "@/components/shared/label-chip";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
@@ -139,6 +141,54 @@ export function AnnotatedNote({ title, body }: AnnotatedNoteProps) {
       <SectionHeading className="mb-2">{title}</SectionHeading>
       <p className="font-serif text-sm leading-[1.45] text-foreground/72">{body}</p>
     </div>
+  );
+}
+
+function ReferenceTypeScaleBlock({
+  label,
+  hint,
+  sampleClassName,
+  sampleText,
+}: {
+  label: string;
+  hint: string;
+  sampleClassName: string;
+  sampleText: string;
+}) {
+  return (
+    <div className="rounded-md border border-border/70 bg-surface-1/88 px-4 py-4 shadow-none">
+      <div className="mb-3">
+        <p className="font-sans text-[11px] font-medium tracking-[0.16em] text-foreground-soft uppercase">{label}</p>
+        <p className="mt-1 font-serif text-xs leading-[1.45] text-foreground/58">{hint}</p>
+      </div>
+      <div className={sampleClassName}>{sampleText}</div>
+    </div>
+  );
+}
+
+function ReferenceSemanticStateCard({
+  title,
+  description,
+  chipLabel,
+  chipTone,
+  className,
+}: {
+  title: string;
+  description: string;
+  chipLabel: string;
+  chipTone: "neutral" | "muted" | "success" | "warning" | "danger";
+  className?: string;
+}) {
+  return (
+    <SurfaceCard variant="info" tone="subtle" padding="compact" className={cn("shadow-none", className)}>
+      <div className="space-y-3">
+        <LabelChip tone={chipTone}>{chipLabel}</LabelChip>
+        <div>
+          <p className="font-sans text-sm text-foreground">{title}</p>
+          <p className="mt-1 font-serif text-sm leading-[1.45] text-foreground/68">{description}</p>
+        </div>
+      </div>
+    </SurfaceCard>
   );
 }
 
@@ -317,6 +367,123 @@ export function DisabledSwitchSpecimen() {
   );
 }
 
+export function TypographyScaleSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Typography scale</SectionHeading>
+      <div className="grid gap-3 lg:grid-cols-2">
+        <ReferenceTypeScaleBlock
+          label="Display Hero"
+          hint="Hero and oversized editorial statements."
+          sampleClassName="font-sans text-[3rem] leading-[1.05] tracking-[-0.06em] text-foreground"
+          sampleText="Display Hero"
+        />
+        <ReferenceTypeScaleBlock
+          label="Section Heading"
+          hint="Top-level section heading with compressed tracking."
+          sampleClassName="font-sans text-[2rem] leading-[1.15] tracking-[-0.04em] text-foreground"
+          sampleText="Section Heading"
+        />
+        <ReferenceTypeScaleBlock
+          label="Sub-heading"
+          hint="Card and sub-section title language."
+          sampleClassName="font-sans text-[1.45rem] leading-[1.2] tracking-[-0.03em] text-foreground"
+          sampleText="Sub-heading"
+        />
+        <ReferenceTypeScaleBlock
+          label="Body Serif"
+          hint="Warm reading copy for explanatory text."
+          sampleClassName="font-serif text-[1.08rem] leading-[1.55] text-foreground/84"
+          sampleText="Body Serif"
+        />
+        <ReferenceTypeScaleBlock
+          label="Body Sans"
+          hint="Neutral UI body text used in controls and status descriptions."
+          sampleClassName="font-sans text-base leading-[1.5] text-foreground/78"
+          sampleText="Body Sans"
+        />
+        <ReferenceTypeScaleBlock
+          label="Caption"
+          hint="Micro labels and metadata."
+          sampleClassName="font-sans text-[11px] leading-[1.45] tracking-[0.08em] text-foreground/58 uppercase"
+          sampleText="Caption"
+        />
+        <ReferenceTypeScaleBlock
+          label="Mono Small"
+          hint="Inline technical text and compact identifiers."
+          sampleClassName="font-mono text-[11px] leading-[1.35] tracking-[-0.02em] text-foreground/72"
+          sampleText="Mono Small"
+        />
+      </div>
+    </SurfaceCard>
+  );
+}
+
+export function SemanticStateSurfaceSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Semantic state surfaces</SectionHeading>
+      <div data-testid="reference-semantic-state-grid" className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+        <ReferenceSemanticStateCard
+          title="Neutral surface"
+          description="Default informational surface with quiet emphasis."
+          chipLabel="Neutral"
+          chipTone="neutral"
+        />
+        <ReferenceSemanticStateCard
+          title="Success surface"
+          description="Positive feedback and keep/safe actions."
+          chipLabel="Success"
+          chipTone="success"
+          className="border-state-success-border bg-state-success-surface text-state-success-foreground"
+        />
+        <ReferenceSemanticStateCard
+          title="Warning surface"
+          description="Needs review without implying destructive urgency."
+          chipLabel="Warning"
+          chipTone="warning"
+          className="border-state-warning-border bg-state-warning-surface text-state-warning-foreground"
+        />
+        <ReferenceSemanticStateCard
+          title="Danger surface"
+          description="Destructive decisions and broken integrity states."
+          chipLabel="Danger"
+          chipTone="danger"
+          className="border-state-danger-border bg-state-danger-surface text-state-danger-foreground"
+        />
+        <ReferenceSemanticStateCard
+          title="Review accent"
+          description="Soft editorial emphasis for flagged-but-not-dangerous states."
+          chipLabel="Review"
+          chipTone="warning"
+          className="border-state-review-border bg-state-review-surface text-state-review-foreground"
+        />
+        <ReferenceSemanticStateCard
+          title="Unread accent"
+          description="Reading-context state. Usually tint or light wash, not a solid block."
+          chipLabel="Unread"
+          chipTone="muted"
+          className="border-border/60 bg-[color-mix(in_srgb,var(--tone-unread)_18%,transparent)]"
+        />
+        <ReferenceSemanticStateCard
+          title="Starred accent"
+          description="Saved/favorited context. Use as a supporting signal."
+          chipLabel="Starred"
+          chipTone="muted"
+          className="border-border/60 bg-[color-mix(in_srgb,var(--tone-starred)_18%,transparent)]"
+        />
+        <ReferenceSemanticStateCard
+          title="Thinking accent"
+          description="AI or background-processing state in special components."
+          chipLabel="Thinking accent"
+          chipTone="muted"
+          className="border-border/60 bg-[color-mix(in_srgb,#dfa88f_18%,transparent)]"
+        />
+      </div>
+    </SurfaceCard>
+  );
+}
+
 export function ReaderFilterStripSpecimen() {
   const [mode, setMode] = useState<ReaderFilterMode>("unread");
 
@@ -409,6 +576,155 @@ export function WorkspaceFilterClusterSpecimen() {
         密度の高いワークスペースでは、pill よりも少し角張った filter chip
         を優先する。件数バッジはさらに一段小さく角を落として、本文ラベルより控えめに扱う。
       </p>
+    </SurfaceCard>
+  );
+}
+
+export function WorkspaceActionClusterSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Workspace action cluster</SectionHeading>
+      <div
+        data-testid="reference-workspace-action-cluster"
+        className={cn(
+          STACK_SPECIMEN_FRAME_RADIUS_CLASS,
+          "border border-border/70 bg-surface-1/88 px-3 py-3 shadow-elevation-1",
+        )}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <DecisionButton intent="keep" className={denseDecisionButtonClassName} aria-label="Keep selected">
+            <Check className="h-4 w-4" />
+            Keep selected
+          </DecisionButton>
+          <DecisionButton intent="defer" className={denseDecisionButtonClassName} aria-label="Defer selected">
+            <Clock3 className="h-4 w-4" />
+            Defer selected
+          </DecisionButton>
+          <DecisionButton intent="delete" className={denseDecisionButtonClassName} aria-label="Delete selected">
+            <Trash2 className="h-4 w-4" />
+            Delete selected
+          </DecisionButton>
+        </div>
+      </div>
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
+        dense toolbar では action width を揃え、keep / defer / delete の順で置く。destructive
+        は最後に寄せ、視線の終点に置く。
+      </p>
+    </SurfaceCard>
+  );
+}
+
+export function DetailPanelSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Detail panel</SectionHeading>
+      <div data-testid="reference-detail-panel-frame" className="max-w-[34rem]">
+        <FeedDetailPanel
+          title="AUTOMATON"
+          titleHref="https://automaton-media.com"
+          badgeLabel="Review"
+          badgeTone="medium"
+          reasonBox={{
+            title: "整理候補になった理由",
+            body: "未読 0件 / スター 0件",
+            tone: "medium",
+          }}
+          metrics={[
+            { label: "フォルダ", value: "Gaming" },
+            { label: "最終記事", value: "2026/04/16" },
+            { label: "未読", value: 0 },
+            { label: "スター", value: 0 },
+          ]}
+          links={[]}
+          recentArticlesHeading="最近の記事"
+          recentArticles={[
+            {
+              id: "ref-1",
+              title: "SIE新作高難度3D弾幕ローグライトシューター『SAROS』開発者インタビュー。",
+              publishedAt: "2026/04/16",
+              url: "https://example.com/article",
+            },
+          ]}
+          primaryAction={{ label: "フィードを編集", onClick: () => {}, ariaLabel: "フィードを編集" }}
+          reasonChips={["一度見ておきたい購読"]}
+        />
+      </div>
+    </SurfaceCard>
+  );
+}
+
+export function WorkspaceTwoPaneSpecimen() {
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Workspace two-pane</SectionHeading>
+      <div
+        data-testid="reference-workspace-two-pane-frame"
+        className="grid gap-4 rounded-lg border border-border/70 bg-card/30 p-3 shadow-none lg:grid-cols-[minmax(0,1fr)_480px]"
+      >
+        <div className="space-y-3">
+          <div className="rounded-md border border-border/70 bg-surface-1/88 px-3 py-3 shadow-none">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-md border border-border/70 bg-background/90 px-3 py-3">
+                <p className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">要確認</p>
+                <p className="mt-2 text-[2rem] font-semibold tracking-[-0.04em] text-foreground">6</p>
+              </div>
+              <div className="rounded-md border border-border/70 bg-background/90 px-3 py-3">
+                <p className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">参照エラー</p>
+                <p className="mt-2 text-[2rem] font-semibold tracking-[-0.04em] text-foreground">1</p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-md border border-border/70 bg-surface-1/84 px-3 py-3 shadow-none">
+            <div className="mb-3 flex items-center justify-between">
+              <h4 className="font-sans text-sm font-medium text-foreground">Queue</h4>
+              <LabelChip tone="neutral" size="compact">
+                3
+              </LabelChip>
+            </div>
+            <div className="space-y-2">
+              {["AUTOMATON", "Publickey", "NHKニュース"].map((title) => (
+                <div key={title} className="rounded-md border border-border/70 bg-background/86 px-3 py-3">
+                  <p className="font-sans text-sm text-foreground">{title}</p>
+                  <p className="mt-1 font-serif text-xs leading-[1.45] text-foreground/58">
+                    選択中の feed に応じて detail pane を更新する二段構成。
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="rounded-md border border-border/70 bg-surface-1/84 px-3 py-3 shadow-none">
+          <FeedDetailPanel
+            title="AUTOMATON"
+            titleHref="https://automaton-media.com"
+            badgeLabel="Review"
+            badgeTone="medium"
+            reasonBox={{
+              title: "整理候補になった理由",
+              body: "未読 0件 / スター 0件",
+              tone: "medium",
+            }}
+            metrics={[
+              { label: "フォルダ", value: "Gaming" },
+              { label: "最終記事", value: "2026/04/16" },
+              { label: "未読", value: 0 },
+              { label: "スター", value: 0 },
+            ]}
+            links={[]}
+            recentArticlesHeading="最近の記事"
+            recentArticles={[
+              {
+                id: "ref-2",
+                title: "SIE新作高難度3D弾幕ローグライトシューター『SAROS』開発者インタビュー。",
+                publishedAt: "2026/04/16",
+                url: "https://example.com/article",
+              },
+            ]}
+            primaryAction={{ label: "フィードを編集", onClick: () => {}, ariaLabel: "フィードを編集" }}
+            reasonChips={["一度見ておきたい購読"]}
+          />
+        </div>
+      </div>
     </SurfaceCard>
   );
 }

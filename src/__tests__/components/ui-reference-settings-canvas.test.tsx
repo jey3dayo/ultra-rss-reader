@@ -1,8 +1,10 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { FoundationsCanvas } from "@/components/storybook/ui-reference-foundations-canvas.stories";
+import { NavigationCollectionsCanvas } from "@/components/storybook/ui-reference-navigation-collections-canvas.stories";
 import { InputControlsCanvas } from "@/components/storybook/ui-reference-settings-canvas.stories";
 import { ShellOverlayCanvas } from "@/components/storybook/ui-reference-shell-overlay-canvas.stories";
-import { ViewSpecimensCanvas } from "@/components/storybook/ui-reference-view-specimens-canvas.stories";
+import { WorkspacePatternsCanvas } from "@/components/storybook/ui-reference-workspace-patterns-canvas.stories";
 
 describe("UI Reference canvases", () => {
   it("renders the input controls canvas with form specimens", () => {
@@ -61,26 +63,32 @@ describe("UI Reference canvases", () => {
     expect(screen.getByText("Context menu shell frame").parentElement).toHaveClass("rounded-lg");
   });
 
-  it("renders the view specimens canvas with display fragments", () => {
-    render(<ViewSpecimensCanvas />);
+  it("renders the foundations canvas with typography and semantic surfaces", () => {
+    render(<FoundationsCanvas />);
 
-    expect(screen.getByText("View specimens")).toBeInTheDocument();
+    expect(screen.getByText("Foundations")).toBeInTheDocument();
+    expect(screen.getByText("Typography scale")).toBeInTheDocument();
+    expect(screen.getAllByText("Display Hero").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Body Serif").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Mono Small").length).toBeGreaterThan(0);
+    expect(screen.getByTestId("reference-semantic-state-grid")).toHaveClass("grid");
+    expect(screen.getByText("Review accent")).toBeInTheDocument();
+    expect(screen.getAllByText("Thinking accent").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Surface roles").length).toBeGreaterThan(0);
+  });
+
+  it("renders the navigation and collections canvas with list/navigation fragments", () => {
+    render(<NavigationCollectionsCanvas />);
+
+    expect(screen.getByText("Navigation & collections")).toBeInTheDocument();
     expect(screen.getByTestId("reference-filter-strip-frame")).toHaveClass("rounded-md");
-    expect(screen.getByTestId("reference-workspace-filter-cluster-frame")).toHaveClass("rounded-md");
     expect(screen.getByTestId("reference-account-card-frame")).toHaveClass("rounded-md");
-    expect(screen.getByTestId("reference-announcement-card-pending")).toHaveClass("rounded-md");
-    expect(screen.getByTestId("reference-announcement-card-decided")).toHaveClass("rounded-md");
     expect(screen.getByTestId("reference-folder-stack-frame")).toHaveClass("rounded-md");
-    expect(screen.getByText("Surface roles")).toBeInTheDocument();
-    expect(screen.getByText("Info surface")).toBeInTheDocument();
-    expect(screen.getByText("Section surface")).toBeInTheDocument();
 
     const filterGroup = screen.getByRole("group", { name: "記事フィルター" });
     expect(within(filterGroup).getByRole("button", { name: "未読" })).toBeInTheDocument();
     expect(within(filterGroup).getByRole("button", { name: "すべて" })).toBeInTheDocument();
     expect(within(filterGroup).getByRole("button", { name: "スター" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "すべて163" })).toHaveClass("rounded-md");
-    expect(within(screen.getByRole("button", { name: "すべて163" })).getByText("163")).toHaveClass("rounded-sm");
 
     const accountSection = screen.getByText("Account card stack").closest("section") ?? document.body;
     expect(within(accountSection).getByText("Local")).toBeInTheDocument();
@@ -92,13 +100,27 @@ describe("UI Reference canvases", () => {
     expect(screen.getByText("Interior")).toBeInTheDocument();
     expect(screen.getByText("99% DIY -DIYブログ-")).toBeInTheDocument();
     expect(screen.getByText("CAFICT")).toBeInTheDocument();
-
-    expect(screen.getByText("Announcement cards")).toBeInTheDocument();
-    expect(screen.getByText("確認待ち")).toBeInTheDocument();
-    expect(screen.getByText("判断済み")).toBeInTheDocument();
-
     expect(screen.getByText("Tag palette")).toBeInTheDocument();
     expect(screen.getByText("カラー")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "色なし" })).toBeInTheDocument();
+  });
+
+  it("renders the workspace patterns canvas with composition specimens", () => {
+    render(<WorkspacePatternsCanvas />);
+
+    expect(screen.getByText("Workspace patterns")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-workspace-filter-cluster-frame")).toHaveClass("rounded-md");
+    expect(screen.getByRole("button", { name: "すべて163" })).toHaveClass("rounded-md");
+    expect(within(screen.getByRole("button", { name: "すべて163" })).getByText("163")).toHaveClass("rounded-sm");
+    expect(screen.getByTestId("reference-workspace-action-cluster")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
+    expect(screen.getByRole("button", { name: "Defer selected" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
+    expect(screen.getByRole("button", { name: "Delete selected" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
+    expect(screen.getByTestId("reference-detail-panel-frame")).toBeInTheDocument();
+    expect(screen.getAllByText("AUTOMATON").length).toBeGreaterThan(0);
+    expect(screen.getByTestId("reference-workspace-two-pane-frame")).toBeInTheDocument();
+    expect(screen.getByText("Announcement cards")).toBeInTheDocument();
+    expect(screen.getByText("確認待ち")).toBeInTheDocument();
+    expect(screen.getByText("判断済み")).toBeInTheDocument();
   });
 });

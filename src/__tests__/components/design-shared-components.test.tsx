@@ -76,7 +76,9 @@ describe("Design-themed shared components", () => {
   it("applies warm editorial styling to section headings", () => {
     render(<SectionHeading>Appearance</SectionHeading>);
 
-    expect(screen.getByRole("heading", { level: 3, name: "Appearance" })).toHaveClass("text-foreground-soft");
+    expect(screen.getByRole("heading", { level: 3, name: "Appearance" })).toHaveClass(
+      "text-[color:var(--section-heading-color)]",
+    );
   });
 
   it("uses layered surfaces for navigation rows and chips", () => {
