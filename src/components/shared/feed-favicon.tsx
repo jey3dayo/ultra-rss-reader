@@ -37,7 +37,7 @@ export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm
     return (
       <span
         className={cn(
-          "flex shrink-0 items-center justify-center rounded bg-muted font-bold text-muted-foreground",
+          "flex shrink-0 items-center justify-center rounded bg-surface-1/72 font-bold text-foreground-soft",
           sizeClassName.fallback,
         )}
       >
