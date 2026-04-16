@@ -7,7 +7,9 @@ export function UnreadIcon({ unread, className }: UnreadIconProps) {
     <span
       className={cn(
         "inline-block shrink-0 rounded-full",
-        unread ? "bg-[var(--tone-unread)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--tone-unread)_45%,transparent)]" : "border-2 border-current/85",
+        unread
+          ? "bg-[var(--tone-unread)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--tone-unread)_45%,transparent)]"
+          : "border-2 border-current/85",
         className,
       )}
       aria-hidden="true"

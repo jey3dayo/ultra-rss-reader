@@ -7,8 +7,7 @@ type DecisionButtonProps = ComponentProps<typeof Button> & {
 };
 
 const decisionIntentClassName = {
-  keep:
-    "border-state-success-border bg-state-success-surface text-state-success-foreground shadow-none hover:border-state-success-border hover:bg-state-success-surface",
+  keep: "border-state-success-border bg-state-success-surface text-state-success-foreground shadow-none hover:border-state-success-border hover:bg-state-success-surface",
   defer:
     "border-border-strong bg-surface-1/88 text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground",
   delete:

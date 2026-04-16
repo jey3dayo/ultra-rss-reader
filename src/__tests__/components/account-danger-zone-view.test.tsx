@@ -30,7 +30,9 @@ describe("AccountDangerZoneView", () => {
 
     expect(screen.getByRole("heading", { level: 3, name: "Data" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 3, name: "Danger Zone" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 3, name: "Danger Zone" })).toHaveClass("text-state-danger-foreground/72");
+    expect(screen.getByRole("heading", { level: 3, name: "Danger Zone" })).toHaveClass(
+      "text-state-danger-foreground/72",
+    );
     expect(screen.getByRole("button", { name: "Export OPML" })).toHaveClass("w-full");
     expect(screen.getByRole("button", { name: "Delete account" })).toHaveAttribute("data-delete-button");
     expect(screen.getByRole("button", { name: "Delete account" })).toHaveClass("w-full");

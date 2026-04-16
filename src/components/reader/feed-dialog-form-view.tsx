@@ -96,7 +96,10 @@ export function FeedDialogFormView({
           )}
 
           {folderSelectProps ? (
-            <div data-testid="feed-dialog-folder-section" className="rounded-md border border-border/70 bg-card/55 px-4 py-4">
+            <div
+              data-testid="feed-dialog-folder-section"
+              className="rounded-md border border-border/70 bg-card/55 px-4 py-4"
+            >
               <FolderSelectView {...folderSelectProps} />
             </div>
           ) : null}
