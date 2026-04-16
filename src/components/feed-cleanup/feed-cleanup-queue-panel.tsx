@@ -159,9 +159,7 @@ export function FeedCleanupQueuePanel({
                 padding="compact"
                 className={cn(
                   "rounded-md transition-colors duration-150",
-                  isCurrent || isSelected
-                    ? "border-border-strong shadow-none"
-                    : "border-border/55 shadow-none",
+                  isCurrent || isSelected ? "border-border-strong shadow-none" : "border-border/55 shadow-none",
                   isFocused && "ring-1 ring-primary/30",
                 )}
                 style={{

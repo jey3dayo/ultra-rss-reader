@@ -181,10 +181,10 @@ describe("SubscriptionsIndexPage", () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
     const totalSubscriptionsLabel = await screen.findByText("総購読数");
-    expect(totalSubscriptionsLabel.closest(".rounded-xl")).not.toBeNull();
+    expect(totalSubscriptionsLabel.closest(".rounded-md")).not.toBeNull();
     expect(screen.queryByRole("button", { name: /総購読数/ })).toBeNull();
     expect(await screen.findByRole("button", { name: /要確認を見る/ })).toHaveClass(
-      "rounded-xl",
+      "rounded-md",
       "border-state-review-border",
       "bg-state-review-surface",
     );
