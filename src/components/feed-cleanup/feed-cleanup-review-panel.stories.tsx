@@ -146,7 +146,7 @@ export const EditingState: Story = {
     ...CandidateReview.args,
     editing: true,
     editor: (
-      <div className="rounded-xl border border-border bg-card px-4 py-6 text-sm text-muted-foreground">
+      <div className="rounded-md border border-border bg-card px-4 py-6 text-sm text-muted-foreground">
         Inline editor placeholder
       </div>
     ),
