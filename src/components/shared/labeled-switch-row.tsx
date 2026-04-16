@@ -5,7 +5,12 @@ import type { LabeledSwitchRowProps } from "./form-row.types";
 export function LabeledSwitchRow({ label, checked, onChange, disabled, rowClassName }: LabeledSwitchRowProps) {
   return (
     <LabeledControlRow label={label} className={rowClassName}>
-      <GradientSwitch checked={checked} onCheckedChange={onChange} disabled={disabled} aria-label={label} />
+      <GradientSwitch
+        checked={checked}
+        onCheckedChange={(nextChecked) => onChange(nextChecked)}
+        disabled={disabled}
+        aria-label={label}
+      />
     </LabeledControlRow>
   );
 }

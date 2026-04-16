@@ -6,6 +6,7 @@ import { LabeledControlRow } from "./labeled-control-row";
 const meta = {
   title: "Shared/LabeledControlRow",
   component: LabeledControlRow,
+  tags: ["autodocs"],
   parameters: {
     layout: "padded",
   },
@@ -48,6 +49,19 @@ export const WithSelect: Story = {
             <SelectItem value="freshrss">FreshRSS</SelectItem>
           </SelectPopup>
         </Select>
+      </LabeledControlRow>
+    </div>
+  ),
+};
+
+export const WithLongLabel: Story = {
+  args: {
+    label: "Open links in the background when using the article actions toolbar",
+  },
+  render: (args) => (
+    <div className="max-w-xl">
+      <LabeledControlRow {...args}>
+        <Input value="Enabled" readOnly className="h-auto w-auto border-border bg-background px-2 py-1 text-sm" />
       </LabeledControlRow>
     </div>
   ),
