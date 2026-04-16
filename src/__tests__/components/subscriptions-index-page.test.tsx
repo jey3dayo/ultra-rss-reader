@@ -201,7 +201,7 @@ describe("SubscriptionsIndexPage", () => {
     const shell = await screen.findByTestId("subscriptions-workspace-shell");
     expect(shell).toHaveClass("min-h-0");
     expect(shell).toHaveClass("overflow-visible");
-    expect(shell).toHaveClass("rounded-xl");
+    expect(shell).toHaveClass("rounded-lg");
     expect(shell).toHaveClass("lg:overflow-hidden");
     expect(shell).toHaveClass("lg:grid-cols-[minmax(0,1fr)_480px]");
     expect(shell.parentElement?.parentElement?.parentElement).toHaveStyle({

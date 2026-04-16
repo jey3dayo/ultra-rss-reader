@@ -95,7 +95,7 @@ export function SubscriptionsIndexPageView({
           <SubscriptionsOverviewSummary cards={summaryCards} />
           <div
             data-testid="subscriptions-workspace-shell"
-            className={`mt-3 grid min-h-0 overflow-visible rounded-xl border border-border/70 lg:mt-4 lg:flex-1 lg:overflow-hidden ${WORKSPACE_DETAIL_PANE_GRID_CLASS}`}
+            className={`mt-3 grid min-h-0 overflow-visible rounded-lg border border-border/70 lg:mt-4 lg:flex-1 lg:overflow-hidden ${WORKSPACE_DETAIL_PANE_GRID_CLASS}`}
             style={{
               backgroundColor: "var(--subscriptions-workspace-surface)",
               boxShadow: "var(--subscriptions-workspace-shadow)",
