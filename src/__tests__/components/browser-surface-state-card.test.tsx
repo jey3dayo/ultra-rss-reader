@@ -34,6 +34,9 @@ describe("BrowserSurfaceStateCard", () => {
     expect(card).toHaveClass("max-w-[min(42rem,calc(100vw-2rem))]");
     expect(title).toHaveClass("text-balance");
     expect(title).toHaveClass("leading-tight");
+    expect(
+      screen.getByText("ネイティブの埋め込み表示はデスクトップアプリで確認し、ここでは外部ブラウザ導線を使ってください。"),
+    ).toHaveClass("text-foreground-soft");
     expect(screen.queryByText("Technical detail")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Retry Web Preview" })).not.toBeInTheDocument();
     expect(openButton).toBeEnabled();

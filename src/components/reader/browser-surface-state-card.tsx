@@ -21,13 +21,13 @@ export function BrowserSurfaceStateCard({
         <CircleAlert aria-hidden="true" className="size-4 text-primary" />
         <p className="text-balance text-sm font-semibold leading-tight">{issue.title}</p>
       </div>
-      <p className="mt-2 text-pretty text-sm leading-6 text-muted-foreground">{issue.description}</p>
+      <p className="mt-2 text-pretty text-sm leading-6 text-foreground-soft">{issue.description}</p>
       {showTechnicalDetail && issue.detail ? (
         <div className="mt-3 space-y-1.5 text-left">
           <p className="text-[11px] font-medium tracking-[0.08em] text-foreground-soft uppercase">
             {labels.technicalDetail}
           </p>
-          <p className="rounded-[var(--radius-surface-info)] border border-border/55 bg-surface-1/85 px-3 py-2 text-xs text-muted-foreground">
+          <p className="rounded-[var(--radius-surface-info)] border border-border/55 bg-surface-1/85 px-3 py-2 text-xs text-foreground-soft">
             {issue.detail}
           </p>
         </div>
