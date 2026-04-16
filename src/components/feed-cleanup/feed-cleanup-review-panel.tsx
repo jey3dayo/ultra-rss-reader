@@ -77,7 +77,7 @@ export function FeedCleanupReviewPanel({
                   className="border-state-warning-border bg-state-warning-surface text-state-warning-foreground shadow-none"
                 >
                   <p className="text-sm font-semibold">{integrityDetailLabels.needs_repair}</p>
-                  <p className="mt-1 text-sm text-current/85">{integrityDetailLabels.summary}</p>
+                  <p className="mt-1 text-sm text-current/88">{integrityDetailLabels.summary}</p>
                 </SurfaceCard>
                 <dl className="grid gap-2 text-sm">
                   <FeedCleanupDetailRow

@@ -303,7 +303,7 @@ export function FeedCleanupPageView({
 
       {integrityIssue ? (
         <div className="border-b border-border bg-state-warning-surface px-6 py-3 text-state-warning-foreground">
-          <div className="rounded-md border border-state-warning-border bg-background/80 px-4 py-3 dark:bg-background/20">
+          <div className="rounded-md border border-state-warning-border bg-surface-1/78 px-4 py-3">
             <p className="text-sm font-semibold">{integrityIssue.title}</p>
             <p className="mt-1 text-sm opacity-80">{integrityIssue.body}</p>
             <Button variant="outline" className="mt-3" onClick={onToggleIntegrityMode}>
@@ -443,9 +443,9 @@ export function FeedCleanupPageView({
                   .map((item) => (
                     <div
                       key={`${item.category}-${item.key}-${item.label}`}
-                      className="flex items-center gap-3 rounded-md bg-card/70 px-3 py-2"
+                      className="flex items-center gap-3 rounded-md bg-surface-1/72 px-3 py-2"
                     >
-                      <kbd className="rounded-md border border-border/80 bg-background/80 px-2 py-1 text-xs font-semibold text-foreground">
+                      <kbd className="rounded-md border border-border/80 bg-surface-1/80 px-2 py-1 text-xs font-semibold text-foreground">
                         {item.key}
                       </kbd>
                       <span className="text-sm text-foreground">{item.label}</span>
@@ -461,9 +461,9 @@ export function FeedCleanupPageView({
                   .map((item) => (
                     <div
                       key={`${item.category}-${item.key}-${item.label}`}
-                      className="flex items-center gap-3 rounded-md bg-card/70 px-3 py-2"
+                      className="flex items-center gap-3 rounded-md bg-surface-1/72 px-3 py-2"
                     >
-                      <kbd className="rounded-md border border-border/80 bg-background/80 px-2 py-1 text-xs font-semibold text-foreground">
+                      <kbd className="rounded-md border border-border/80 bg-surface-1/80 px-2 py-1 text-xs font-semibold text-foreground">
                         {item.key}
                       </kbd>
                       <span className="text-sm text-foreground">{item.label}</span>

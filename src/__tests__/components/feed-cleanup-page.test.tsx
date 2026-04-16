@@ -271,6 +271,36 @@ describe("FeedCleanupPage", () => {
     });
   });
 
+  it("uses softened support surfaces for integrity banners and shortcut cards", async () => {
+    const user = userEvent.setup();
+
+    integrityReport = {
+      orphaned_article_count: 1,
+      orphaned_feeds: [
+        {
+          missing_feed_id: "missing-feed",
+          article_count: 1,
+          latest_article_title: "Broken article",
+          latest_article_published_at: "2026-04-01T10:00:00Z",
+        },
+      ],
+    };
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    const integritySummary = await screen.findByText((content) => /missing feed|存在しないフィード/.test(content));
+    expect(integritySummary.closest("div.rounded-md")).toHaveClass("bg-surface-1/78");
+
+    await user.click(screen.getByRole("button", { name: "Shortcuts" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Keyboard shortcuts" });
+    const shortcutRow = within(dialog).getByText("Next feed").closest("div.rounded-md");
+    const shortcutKey = within(dialog).getByText("J");
+
+    expect(shortcutRow).toHaveClass("bg-surface-1/72");
+    expect(shortcutKey).toHaveClass("bg-surface-1/80");
+  });
+
   it("shows a back action to the subscriptions index when opened from there", async () => {
     const user = userEvent.setup();
 
