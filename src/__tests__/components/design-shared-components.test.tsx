@@ -140,6 +140,23 @@ describe("Design-themed shared components", () => {
   });
 
   it("separates the top action row from the heading section", () => {
+    window.__TAURI_INTERNALS__ = {} as typeof window.__TAURI_INTERNALS__;
+    usePlatformStore.setState({
+      platform: {
+        kind: "macos",
+        capabilities: {
+          supports_reading_list: false,
+          supports_background_browser_open: false,
+          supports_runtime_window_icon_replacement: true,
+          supports_native_browser_navigation: true,
+          uses_dev_file_credentials: false,
+        },
+      },
+      loaded: true,
+      loadError: false,
+      inFlightLoad: null,
+    });
+
     render(
       <WorkspaceHeader
         eyebrow="Workspace"
@@ -159,6 +176,7 @@ describe("Design-themed shared components", () => {
     expect(within(actionsRow).getByRole("button", { name: "閉じる" })).toBeInTheDocument();
     expect(within(topRow).getByRole("button", { name: "戻る" })).toBeInTheDocument();
     expect(within(titleGroup).getByText("Workspace")).toBeInTheDocument();
+    expect(within(topRow).queryByText("Workspace")).toBeNull();
     expect(within(titleGroup).getByRole("heading", { name: "購読一覧" })).toBeInTheDocument();
   });
 
@@ -194,5 +212,26 @@ describe("Design-themed shared components", () => {
 
     expect(screen.getByTestId("workspace-header-body")).not.toHaveClass("pl-20");
     expect(screen.queryByTestId("workspace-header-drag-region")).toBeNull();
+  });
+
+  it("shows the eyebrow inline with the back action in browser preview mode", () => {
+    render(
+      <WorkspaceHeader
+        eyebrow="Workspace"
+        title="購読一覧"
+        subtitle="subtitle"
+        backLabel="戻る"
+        onBack={() => {}}
+        closeLabel="閉じる"
+        onClose={() => {}}
+      />,
+    );
+
+    const topRow = screen.getByTestId("workspace-header-top-row");
+    const titleGroup = screen.getByTestId("workspace-header-title-group");
+
+    expect(within(topRow).getByRole("button", { name: "戻る" })).toBeInTheDocument();
+    expect(within(topRow).getByText("Workspace")).toBeInTheDocument();
+    expect(within(titleGroup).queryByText("Workspace")).toBeNull();
   });
 });
