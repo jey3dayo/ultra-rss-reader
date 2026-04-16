@@ -67,7 +67,7 @@ export function ConfirmDialogView({
             >
               {actionLabel}
             </Button>
-            <Button variant="ghost" onClick={onCancel} className="min-h-11 w-full text-muted-foreground">
+            <Button variant="ghost" onClick={onCancel} className="min-h-11 w-full text-foreground-soft">
               {cancelLabel}
             </Button>
           </div>
