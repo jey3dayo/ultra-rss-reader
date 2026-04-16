@@ -176,7 +176,7 @@ export function SettingsModalView({
                 {accountsHeading}
               </p>
             ) : null}
-            <div data-testid="settings-accounts-scroll-area" className="min-h-0 max-h-[22rem] overflow-y-auto">
+            <div data-testid="settings-accounts-scroll-area" className="min-h-0 max-h-[15rem] overflow-y-auto">
               {accountsNavigation}
             </div>
           </div>
