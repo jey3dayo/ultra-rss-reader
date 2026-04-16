@@ -1,6 +1,6 @@
 import { Check, Clock3, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { DecisionButton } from "@/components/shared/decision-button";
+import { DecisionButton, denseDecisionButtonClassName } from "@/components/shared/decision-button";
 import { LabelChip } from "@/components/shared/label-chip";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,8 +20,6 @@ function resolvePriorityTone(tone: FeedCleanupTone) {
 
   return "success";
 }
-
-const decisionButtonWidthClassName = "min-w-[7.5rem] justify-center px-3 sm:min-w-[8.5rem] sm:px-3.5";
 
 export function FeedCleanupQueuePanel({
   integrityMode,
@@ -100,7 +98,7 @@ export function FeedCleanupQueuePanel({
               intent="keep"
               aria-label={bulkKeepActionLabel}
               onClick={onKeepSelection}
-              className={decisionButtonWidthClassName}
+              className={denseDecisionButtonClassName}
             >
               <Check className="h-4 w-4" />
               {keepLabel}
@@ -109,7 +107,7 @@ export function FeedCleanupQueuePanel({
               intent="defer"
               aria-label={bulkDeferActionLabel}
               onClick={onDeferSelection}
-              className={decisionButtonWidthClassName}
+              className={denseDecisionButtonClassName}
             >
               <Clock3 className="h-4 w-4" />
               {deferredLabel}
@@ -118,7 +116,7 @@ export function FeedCleanupQueuePanel({
               intent="delete"
               aria-label={bulkDeleteActionLabel}
               onClick={onDeleteSelection}
-              className={decisionButtonWidthClassName}
+              className={denseDecisionButtonClassName}
             >
               <Trash2 className="h-4 w-4" />
               {deleteLabel}
@@ -292,7 +290,7 @@ export function FeedCleanupQueuePanel({
                     <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0">
                       <DecisionButton
                         intent="keep"
-                        className={decisionButtonWidthClassName}
+                        className={denseDecisionButtonClassName}
                         onClick={(event) => {
                           event.stopPropagation();
                           onKeepCandidate(candidate.feedId);
@@ -303,7 +301,7 @@ export function FeedCleanupQueuePanel({
                       </DecisionButton>
                       <DecisionButton
                         intent="defer"
-                        className={decisionButtonWidthClassName}
+                        className={denseDecisionButtonClassName}
                         onClick={(event) => {
                           event.stopPropagation();
                           onDeferCandidate(candidate.feedId);
@@ -314,7 +312,7 @@ export function FeedCleanupQueuePanel({
                       </DecisionButton>
                       <DecisionButton
                         intent="delete"
-                        className={decisionButtonWidthClassName}
+                        className={denseDecisionButtonClassName}
                         onClick={(event) => {
                           event.stopPropagation();
                           onDeleteCandidate(candidate.feedId);

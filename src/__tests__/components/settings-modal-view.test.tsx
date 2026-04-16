@@ -145,7 +145,7 @@ describe("SettingsModalView", () => {
     });
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("px-3");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("py-3");
-    expect(screen.getByTestId("settings-accounts-section")).toHaveClass("rounded-lg");
+    expect(screen.getByTestId("settings-accounts-section")).toHaveClass("rounded-md");
     expect(screen.getByTestId("settings-accounts-section")).toHaveStyle({
       backgroundColor: "var(--settings-shell-account-surface)",
     });
@@ -172,7 +172,7 @@ describe("SettingsModalView", () => {
     );
 
     expect(screen.getByTestId("settings-mobile-accounts-section")).toBeInTheDocument();
-    expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("rounded-lg");
+    expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("rounded-md");
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveStyle({
       backgroundColor: "var(--settings-shell-account-surface)",
     });

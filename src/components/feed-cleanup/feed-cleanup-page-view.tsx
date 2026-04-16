@@ -1,7 +1,7 @@
 import { Keyboard, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { WorkspaceHeader, workspaceHeaderActionClassName } from "@/components/shared/workspace-header";
-import { WORKSPACE_DETAIL_PANE_GRID_CLASS_COMPACT } from "@/components/shared/workspace-pane-layout";
+import { workspaceSplitGridClassName } from "@/components/shared/workspace-pane-layout";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { FeedCleanupPageViewProps } from "./feed-cleanup.types";
@@ -266,9 +266,9 @@ export function FeedCleanupPageView({
 
   const mainLayoutClassName =
     layoutMode === "wide"
-      ? `grid min-h-0 flex-1 ${WORKSPACE_DETAIL_PANE_GRID_CLASS_COMPACT} items-stretch gap-6 overflow-hidden px-6 py-5`
+      ? workspaceSplitGridClassName("gap-6 px-6 py-5")
       : layoutMode === "split"
-        ? `grid min-h-0 flex-1 ${WORKSPACE_DETAIL_PANE_GRID_CLASS_COMPACT} items-stretch gap-5 overflow-hidden px-5 py-5`
+        ? workspaceSplitGridClassName("gap-5 px-5 py-5")
         : "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5";
 
   const reviewPanelClassName = layoutMode === "stacked" ? "" : "sticky top-0 h-full min-h-0 overflow-hidden";

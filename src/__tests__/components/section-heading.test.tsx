@@ -9,7 +9,7 @@ describe("SectionHeading", () => {
     expect(screen.getByRole("heading", { level: 3, name: "Appearance" })).toHaveClass(
       "uppercase",
       "tracking-[0.18em]",
-      "text-foreground-soft",
+      "text-[color:var(--section-heading-color)]",
     );
   });
 });

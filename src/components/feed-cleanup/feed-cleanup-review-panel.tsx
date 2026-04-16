@@ -1,6 +1,6 @@
 import { Check, Clock3, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { DecisionButton } from "@/components/shared/decision-button";
+import { DecisionButton, denseDecisionButtonClassName } from "@/components/shared/decision-button";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { buildCleanupReasonFacts } from "@/lib/feed-cleanup";
@@ -159,15 +159,30 @@ export function FeedCleanupReviewPanel({
               padding="compact"
               className="flex flex-wrap items-center gap-2 shadow-none"
             >
-              <DecisionButton intent="keep" aria-label={keepLabel} onClick={onKeep}>
+              <DecisionButton
+                intent="keep"
+                aria-label={keepLabel}
+                onClick={onKeep}
+                className={denseDecisionButtonClassName}
+              >
                 <Check className="h-4 w-4" />
                 {keepLabel}
               </DecisionButton>
-              <DecisionButton intent="defer" aria-label={laterLabel} onClick={onLater}>
+              <DecisionButton
+                intent="defer"
+                aria-label={laterLabel}
+                onClick={onLater}
+                className={denseDecisionButtonClassName}
+              >
                 <Clock3 className="h-4 w-4" />
                 {laterLabel}
               </DecisionButton>
-              <DecisionButton intent="delete" aria-label={deleteLabel} onClick={onDelete}>
+              <DecisionButton
+                intent="delete"
+                aria-label={deleteLabel}
+                onClick={onDelete}
+                className={denseDecisionButtonClassName}
+              >
                 <Trash2 className="h-4 w-4" />
                 {deleteLabel}
               </DecisionButton>

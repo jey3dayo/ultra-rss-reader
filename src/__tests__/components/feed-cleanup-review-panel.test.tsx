@@ -144,9 +144,9 @@ describe("FeedCleanupReviewPanel", () => {
 
     const actions = screen.getByTestId("feed-cleanup-review-actions");
     expect(actions).toHaveClass("rounded-[var(--radius-surface-section)]");
-    expect(within(actions).getByRole("button", { name: "Keep" })).toBeInTheDocument();
-    expect(within(actions).getByRole("button", { name: "Defer" })).toBeInTheDocument();
-    expect(within(actions).getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "Keep" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
+    expect(within(actions).getByRole("button", { name: "Defer" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
+    expect(within(actions).getByRole("button", { name: "Delete" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
   });
 
   it("shows the no-selection message when nothing is selected", () => {

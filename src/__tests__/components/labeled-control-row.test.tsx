@@ -10,7 +10,7 @@ describe("LabeledControlRow", () => {
       </LabeledControlRow>,
     );
 
-    expect(screen.getByText("Open links")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("Open links")).toHaveClass("text-[color:var(--form-row-label)]");
     expect(screen.getByText("Open links").closest("div")).toHaveClass("border-b", "border-border/70");
   });
 });

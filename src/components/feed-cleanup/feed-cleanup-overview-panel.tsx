@@ -1,7 +1,7 @@
 import { Check, Clock3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ControlChipButton } from "@/components/shared/control-chip-button";
-import { DecisionButton } from "@/components/shared/decision-button";
+import { DecisionButton, denseDecisionButtonClassName } from "@/components/shared/decision-button";
 import { LabelChip } from "@/components/shared/label-chip";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import type { FeedCleanupOverviewPanelProps } from "./feed-cleanup.types";
@@ -80,11 +80,21 @@ export function FeedCleanupOverviewPanel({
                   <p className="font-serif text-sm text-foreground-soft">{bulkVisibleCountLabel}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <DecisionButton intent="keep" aria-label={bulkKeepVisibleLabel} onClick={onKeepVisible}>
+                  <DecisionButton
+                    intent="keep"
+                    aria-label={bulkKeepVisibleLabel}
+                    onClick={onKeepVisible}
+                    className={denseDecisionButtonClassName}
+                  >
                     <Check className="h-4 w-4" />
                     {bulkKeepVisibleLabel}
                   </DecisionButton>
-                  <DecisionButton intent="defer" aria-label={bulkDeferVisibleLabel} onClick={onDeferVisible}>
+                  <DecisionButton
+                    intent="defer"
+                    aria-label={bulkDeferVisibleLabel}
+                    onClick={onDeferVisible}
+                    className={denseDecisionButtonClassName}
+                  >
                     <Clock3 className="h-4 w-4" />
                     {bulkDeferVisibleLabel}
                   </DecisionButton>

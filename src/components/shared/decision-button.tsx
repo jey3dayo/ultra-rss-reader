@@ -14,6 +14,8 @@ const decisionIntentClassName = {
     "border-state-danger-border bg-state-danger-surface text-state-danger-foreground shadow-none hover:border-state-danger-border hover:bg-state-danger-surface",
 } as const;
 
+export const denseDecisionButtonClassName = "rounded-md min-w-[7.5rem] justify-center px-3 sm:min-w-[8.5rem] sm:px-3.5";
+
 export function DecisionButton({
   intent,
   className,

@@ -153,7 +153,7 @@ export function SettingsModalView({
               {navigation}
               <div
                 data-testid="settings-mobile-accounts-section"
-                className="mx-3 mb-3 rounded-lg border border-border/70 px-3 py-3 shadow-elevation-1 sm:hidden"
+                className="mx-3 mb-3 rounded-md border border-border/70 px-3 py-3 shadow-elevation-1 sm:hidden"
                 style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
               >
                 {accountsHeading ? (
@@ -176,7 +176,7 @@ export function SettingsModalView({
 
           <div
             data-testid="settings-accounts-section"
-            className="mx-3 mb-3 hidden rounded-lg border border-border/70 px-3 py-3 shadow-elevation-1 sm:block"
+            className="mx-3 mb-3 hidden rounded-md border border-border/70 px-3 py-3 shadow-elevation-1 sm:block"
             style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
           >
             {accountsHeading ? (

@@ -149,11 +149,12 @@
     rgba(235, 234, 229, 0) 100%
   );
   --settings-shell-content: rgba(242, 241, 237, 0.78);
+  --settings-shell-content-header: rgba(235, 234, 229, 0.94);
   --settings-shell-content-fade: linear-gradient(
     180deg,
-    rgba(247, 247, 244, 1) 0%,
-    rgba(247, 247, 244, 0.94) 62%,
-    rgba(247, 247, 244, 0) 100%
+    rgba(235, 234, 229, 0.98) 0%,
+    rgba(242, 241, 237, 0.94) 58%,
+    rgba(242, 241, 237, 0) 100%
   );
   --settings-shell-content-fade-reverse: linear-gradient(
     0deg,
@@ -162,6 +163,9 @@
     rgba(247, 247, 244, 0) 100%
   );
   --settings-shell-account-surface: rgba(220, 216, 207, 0.24);
+  --settings-shell-content-title: rgba(38, 37, 30, 0.92);
+  --settings-shell-section-label: rgba(128, 92, 57, 0.82);
+  --settings-shell-field-label: rgba(38, 37, 30, 0.76);
   --subscriptions-shell-bg:
     radial-gradient(circle at top left, rgba(245, 78, 0, 0.14), transparent 28%),
     linear-gradient(180deg, rgba(242, 241, 237, 1), rgba(242, 241, 237, 1));
@@ -317,10 +321,11 @@
     rgba(23, 20, 16, 0) 100%
   );
   --settings-shell-content: rgba(28, 25, 21, 0.78);
+  --settings-shell-content-header: rgba(38, 34, 29, 0.96);
   --settings-shell-content-fade: linear-gradient(
     180deg,
-    rgba(34, 30, 25, 1) 0%,
-    rgba(34, 30, 25, 0.94) 62%,
+    rgba(38, 34, 29, 0.98) 0%,
+    rgba(34, 30, 25, 0.94) 58%,
     rgba(34, 30, 25, 0) 100%
   );
   --settings-shell-content-fade-reverse: linear-gradient(
@@ -330,6 +335,9 @@
     rgba(34, 30, 25, 0) 100%
   );
   --settings-shell-account-surface: rgba(38, 33, 27, 0.24);
+  --settings-shell-content-title: rgba(243, 239, 230, 0.96);
+  --settings-shell-section-label: rgba(213, 184, 145, 0.74);
+  --settings-shell-field-label: rgba(243, 239, 230, 0.76);
   --subscriptions-shell-bg:
     radial-gradient(circle at top left, rgba(245, 78, 0, 0.18), transparent 28%),
     linear-gradient(180deg, rgba(28, 25, 21, 1), rgba(28, 25, 21, 1));
