@@ -129,7 +129,7 @@ pub struct GReaderProvider {
 }
 
 fn freshrss_api_base(server_url: &str) -> String {
-    let base = server_url.trim_end_matches('/');
+    let base = server_url.trim().trim_end_matches('/');
     if base.ends_with("/api/greader.php") {
         base.to_string()
     } else {
@@ -730,6 +730,21 @@ mod tests {
     fn for_freshrss_accepts_full_greader_endpoint_without_duplication() {
         let provider =
             GReaderProvider::for_freshrss("https://freshrss.example.com/api/greader.php");
+
+        assert_eq!(
+            provider.api_base,
+            "https://freshrss.example.com/api/greader.php"
+        );
+        assert_eq!(
+            provider.auth_base,
+            "https://freshrss.example.com/api/greader.php"
+        );
+    }
+
+    #[test]
+    fn for_freshrss_trims_surrounding_whitespace() {
+        let provider =
+            GReaderProvider::for_freshrss("  https://freshrss.example.com/api/greader.php  ");
 
         assert_eq!(
             provider.api_base,
