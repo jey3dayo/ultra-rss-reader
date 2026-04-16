@@ -117,7 +117,7 @@ Elevation scale:
 ## Components
 
 - **Buttons**: Primary buttons use a warm surface fill with dark text; secondary and tertiary actions rely on surface tone, border contrast, or transparent warm overlays. Primary radius is 8px. Hover states often shift text toward the tertiary accent (`#cf2d56`) rather than increasing fill saturation.
-- **Chips and Tags**: Secondary and filter chips should read as pill elements. Use full-pill radius, muted warm surfaces, and restrained text contrast. Selected chips deepen through surface tone before introducing stronger chroma.
+- **Chips and Tags**: Secondary and filter chips should read as pill elements by default. Use full-pill radius, muted warm surfaces, and restrained text contrast. Selected chips deepen through surface tone before introducing stronger chroma. In dense workspace toolbars and cleanup-style filter clusters, compact filter chips may step down to `rounded-md`, and their count badges may step down again to `rounded-sm` so the controls feel more editorial and less soft.
 - **Cards and Containers**: Use warm cream surfaces, a warm border ring, and border-led separation by default. Standard structural cards and section containers default to 8px radius; `Info Cards` are the smaller 6px role for reading, notice, and state surfaces. Elevated cards may use the Level 3 shadow. 20px+ radii belong to separate shell roles rather than standard cards.
 - **Inputs and Forms**: Inputs should stay neutral and legible, with warm borders and a restrained focus treatment. Prefer border emphasis or accent-orange focus hints over cold blue rings.
 - **Lists and Navigation**: Lists should separate items through tone and dividers rather than heavy blocks of accent color. Navigation and tab treatments should feel clean, compact, and editorial rather than dashboard-like. Smart views, context strips, filter chips, and article state icons may use the fixed unread/starred semantic colors, but the color should usually appear as icon tint or a light surface wash rather than a solid block.
@@ -162,6 +162,7 @@ Surface governance:
 - Reusable surfaces should go through shared primitives before feature-local radius rules.
 - `Info Cards` use 6px by default. Stay within a tight 6-8px range only when a shared primitive needs a documented variant.
 - `Section Containers` use 8px by default. Treat 8-10px as the narrow upper range for shared structural variants, not feature-local drift.
+- Dense workspace filter chips may use `rounded-md`. Their inline count badges may use `rounded-sm` when a full pill would feel too soft for the surrounding UI.
 - 20px+ radii are reserved for distinct shell roles, such as modal shells, command palettes, or other app-level outer frames, not standard cards or section containers.
 - Prefer radius scale utilities such as `rounded-md`, `rounded-lg`, `rounded-xl`, and `rounded-2xl` over pixel literals in component code. Use literal pixel radii only when an existing scale utility cannot express the intended role.
 
