@@ -112,9 +112,12 @@ const meta = {
   tags: ["autodocs"],
   decorators: [
     (Story) => (
-      <div className="min-h-[220px] bg-[#1f1b17] p-6 text-foreground">
-        <div className="relative h-[160px] overflow-hidden rounded-xl border border-border/35 bg-[#23201d]">
-          <div className="absolute inset-x-0 top-0 h-14 border-b border-border/25 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),rgba(255,255,255,0))]" />
+      <div className="min-h-[220px] bg-background p-6 text-foreground dark:bg-[var(--browser-overlay-shell)]">
+        <div className="relative h-[160px] overflow-hidden rounded-xl border border-border/35 bg-surface-1 dark:bg-surface-2">
+          <div
+            className="absolute inset-x-0 top-0 h-14 border-b border-border/25"
+            style={{ backgroundImage: "var(--browser-overlay-rail)" }}
+          />
           <Story />
         </div>
       </div>

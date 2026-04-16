@@ -27,8 +27,8 @@ const meta = {
   tags: ["autodocs"],
   decorators: [
     (Story) => (
-      <div className="min-h-[180px] bg-[#1f1b17] p-6 text-foreground">
-        <div className="rounded-md border border-border/35 bg-[#23201d] p-4">
+      <div className="min-h-[180px] bg-background p-6 text-foreground dark:bg-[var(--browser-overlay-shell)]">
+        <div className="rounded-md border border-border/35 bg-surface-1 p-4 dark:bg-surface-2">
           <Story />
         </div>
       </div>
