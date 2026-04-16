@@ -29,23 +29,23 @@ export function SubscriptionsListPane({
   const hasRows = groups.some((group) => group.rows.length > 0);
   return (
     <section
-      className="flex min-h-0 flex-col border-r border-border/70 px-4 py-4 sm:px-6"
+      className="flex min-h-0 flex-col border-r border-border/70 px-4 py-4 sm:px-5"
       style={{ backgroundColor: "var(--subscriptions-list-surface)" }}
     >
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold">{heading}</h2>
         {hasRows ? (
           <LabelChip tone="muted">{groups.reduce((count, group) => count + group.rows.length, 0)}</LabelChip>
         ) : null}
       </div>
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
         {!hasRows ? (
           <p className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
             {emptyLabel}
           </p>
         ) : (
           groups.map((group) => (
-            <div key={group.key} className="space-y-2">
+            <div key={group.key} className="space-y-1.5">
               <div
                 data-testid={`subscriptions-folder-row-${group.folderId ?? "ungrouped"}`}
                 data-folder-drop-target={group.folderId ? "true" : "false"}
@@ -58,7 +58,7 @@ export function SubscriptionsListPane({
                 </div>
                 <span className="text-[11px] text-muted-foreground">{group.rows.length}</span>
               </div>
-              <div className="space-y-1 pl-4">
+              <div className="space-y-0.5 pl-3">
                 {group.rows.map((row) => (
                   <NavRowButton
                     key={row.feed.id}
@@ -66,16 +66,16 @@ export function SubscriptionsListPane({
                     aria-pressed={selectedFeedId === row.feed.id}
                     onClick={() => onSelectFeed(row.feed.id)}
                     className={cn(
-                      "items-center rounded-md border-border/65 px-3 py-2.5",
-                      selectedFeedId !== row.feed.id && "border-border/60",
+                      "items-center rounded-md border border-transparent bg-transparent px-2.5 py-2 shadow-none",
+                      selectedFeedId === row.feed.id
+                        ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)]"
+                        : "hover:border-transparent hover:bg-[color:var(--subscriptions-list-row-hover)]",
                     )}
                     leading={
                       <span
                         className={cn(
-                          "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-colors",
-                          selectedFeedId === row.feed.id
-                            ? "bg-surface-1 text-foreground shadow-elevation-1"
-                            : "bg-surface-2/88 text-foreground",
+                          "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border transition-colors",
+                          selectedFeedId === row.feed.id ? "bg-surface-1 text-foreground" : "bg-surface-2/88 text-foreground",
                         )}
                         style={{
                           borderColor: "var(--subscriptions-list-divider)",
@@ -89,9 +89,11 @@ export function SubscriptionsListPane({
                       </span>
                     }
                     title={
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-2">
                         <span className="text-sm text-foreground">{row.feed.title}</span>
-                        <span className="text-[11px] text-foreground-soft">{formatFolderLabel(row.folderName)}</span>
+                        {group.folderId === null ? (
+                          <span className="text-[11px] text-foreground-soft">{formatFolderLabel(row.folderName)}</span>
+                        ) : null}
                       </div>
                     }
                     description={

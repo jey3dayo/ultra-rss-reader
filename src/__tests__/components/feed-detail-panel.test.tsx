@@ -28,11 +28,11 @@ describe("FeedDetailPanel", () => {
 
     expect(screen.getByTestId("detail-leading-visual")).toBeInTheDocument();
     expect(screen.getByTestId("feed-detail-status")).toHaveClass("rounded-lg");
-    expect(screen.getByTestId("feed-detail-reason-box").closest('[data-surface-card="section"]')).toHaveClass("bg-card/44");
-    expect(screen.getByText("静かな購読です。").closest('[data-surface-card="info"]')).toHaveClass("bg-surface-1/80");
+    expect(screen.getByTestId("feed-detail-reason-box").closest('[data-surface-card="section"]')).toHaveClass("bg-card/38");
+    expect(screen.getByText("静かな購読です。").closest('[data-surface-card="info"]')).toHaveClass("bg-surface-1/76");
     expect(screen.getByTestId("feed-detail-reason-box")).toHaveClass(
-      "border-state-warning-border",
-      "bg-state-warning-surface",
+      "border-state-warning-border/80",
+      "bg-state-warning-surface/80",
       "text-state-warning-foreground",
     );
     expect(screen.getByRole("button", { name: "購読の整理" })).not.toHaveClass("rounded-full");

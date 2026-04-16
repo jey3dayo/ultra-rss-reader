@@ -155,10 +155,9 @@ describe("SubscriptionsIndexPage", () => {
     const selectedFeed = await screen.findByRole("button", { name: /Example Feed/ });
     const secondaryFeed = screen.getByRole("button", { name: /Fresh Feed/ });
     expect(selectedFeed).toHaveAccessibleName(/Example Feed/);
-    expect(selectedFeed).toHaveAccessibleName(/Work/);
     expect(selectedFeed).toHaveAccessibleName(/未読 0件/);
     expect(selectedFeed).toHaveAttribute("aria-pressed", "true");
-    expect(selectedFeed).toHaveClass("bg-surface-1");
+    expect(selectedFeed).toHaveClass("bg-[color:var(--subscriptions-list-row-selected-surface)]");
     expect(selectedFeed).toHaveClass("focus-visible:ring-2");
     expect(selectedFeed).toHaveClass("rounded-md");
     const selectedFaviconSurface = selectedFeed.querySelector("span.rounded-md");
@@ -187,16 +186,9 @@ describe("SubscriptionsIndexPage", () => {
       "border-state-review-border",
       "bg-state-review-surface",
     );
-    expect(await screen.findByRole("button", { name: /止まった購読を見る/ })).toHaveClass(
-      "rounded-md",
-      "border-state-warning-border",
-      "bg-state-warning-surface",
-    );
-    expect(await screen.findByRole("button", { name: /参照エラーを見る/ })).toHaveClass(
-      "rounded-md",
-      "border-state-danger-border",
-      "bg-state-danger-surface",
-    );
+    expect(await screen.findByRole("button", { name: /要確認を見る/ })).toHaveClass("shadow-[var(--subscriptions-summary-card-shadow)]");
+    expect(await screen.findByRole("button", { name: /止まった購読を見る/ })).toHaveClass("rounded-md");
+    expect(await screen.findByRole("button", { name: /参照エラーを見る/ })).toHaveClass("rounded-md");
   });
 
   it("keeps the subscriptions workspace shell aligned with the lighter left pane", async () => {

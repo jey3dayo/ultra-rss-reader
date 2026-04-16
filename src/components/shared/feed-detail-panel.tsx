@@ -106,18 +106,18 @@ export function FeedDetailPanel({
   secondaryAction,
 }: FeedDetailPanelProps) {
   return (
-    <FeedCleanupCard className="border-border/65 bg-card/44 shadow-none">
-      <div className="space-y-5">
+    <FeedCleanupCard className="border-border/65 bg-card/38 shadow-none">
+      <div className="space-y-4.5">
         <div className="flex items-start gap-3">
           {leadingVisual ? (
             <div
               data-testid="feed-detail-leading-visual"
-              className="flex h-10 w-10 shrink-0 items-center justify-center"
+              className="flex h-9 w-9 shrink-0 items-center justify-center"
             >
               {leadingVisual}
             </div>
           ) : null}
-          <div className="min-w-0 flex-1 space-y-4">
+          <div className="min-w-0 flex-1 space-y-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 {titleHref ? (
@@ -127,25 +127,25 @@ export function FeedDetailPanel({
                     rel="noreferrer"
                     className={cn(detailLinkClassName, "inline-flex max-w-full items-start gap-2 no-underline")}
                   >
-                    <h3 className="font-sans text-[1.75rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
+                    <h3 className="font-sans text-[1.6rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
                     <ExternalLink aria-hidden="true" className="mt-1 h-4 w-4 shrink-0" />
                   </a>
                 ) : (
-                  <h3 className="font-sans text-[1.75rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
+                  <h3 className="font-sans text-[1.6rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
                 )}
               </div>
               {badgeLabel ? (
                 <LabelChip
                   data-testid="feed-detail-status"
                   tone={resolveBadgeClassName(badgeTone)}
-                  className="rounded-lg px-2.5 py-1 text-[11px]"
+                  className="rounded-lg px-2.5 py-1 text-[10px] tracking-[0.02em]"
                 >
                   {badgeLabel}
                 </LabelChip>
               ) : null}
             </div>
             {summaryText ? (
-              <SurfaceCard variant="info" tone="subtle" padding="compact" className="bg-surface-1/80 shadow-none">
+              <SurfaceCard variant="info" tone="subtle" padding="compact" className="bg-surface-1/76 shadow-none">
                 <p className="font-serif text-[0.98rem] leading-7 text-muted-foreground">{summaryText}</p>
               </SurfaceCard>
             ) : null}
@@ -161,11 +161,13 @@ export function FeedDetailPanel({
             className={cn(
               "shadow-none",
               reasonBox.tone === "medium" &&
-                "border-state-warning-border bg-state-warning-surface text-state-warning-foreground",
+                "border-state-warning-border/80 bg-state-warning-surface/80 text-state-warning-foreground",
             )}
           >
-            <p className="font-sans text-sm font-medium text-current">{reasonBox.title}</p>
-            <p className="mt-1 font-serif text-sm leading-6 text-current/85">{reasonBox.body}</p>
+            <p className="font-sans text-[11px] font-medium tracking-[0.08em] text-current/78 uppercase">
+              {reasonBox.title}
+            </p>
+            <p className="mt-1.5 font-serif text-sm leading-6 text-current/88">{reasonBox.body}</p>
           </SurfaceCard>
         ) : null}
 
@@ -179,7 +181,7 @@ export function FeedDetailPanel({
           </div>
         ) : null}
 
-        <div className="grid gap-5">
+        <div className="grid gap-4">
           <dl className="grid gap-3 text-sm">
             {metrics.map((metric) => (
               <FeedCleanupDetailRow key={String(metric.label)} label={metric.label} value={metric.value} />
@@ -198,7 +200,7 @@ export function FeedDetailPanel({
           ) : null}
 
           {recentArticles.length > 0 ? (
-            <div className="space-y-3.5 pt-4">
+            <div className="space-y-3 pt-3.5">
               <h4 className="font-sans text-sm font-medium text-foreground">{recentArticlesHeading}</h4>
               <div className="space-y-1.5">
                 {recentArticles.map((article) => (
@@ -237,7 +239,7 @@ export function FeedDetailPanel({
                 aria-label={primaryAction.ariaLabel ?? primaryAction.label}
                 variant="outline"
                 size="sm"
-                className="w-full justify-center border-border/70 bg-surface-1/70 px-4 shadow-none hover:bg-surface-2"
+                className="w-full justify-center border-border/65 bg-transparent px-4 text-foreground-soft shadow-none hover:bg-surface-1/72 hover:text-foreground"
                 onClick={primaryAction.onClick}
               >
                 <List className="h-4 w-4" />
