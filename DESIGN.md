@@ -161,6 +161,14 @@ Surface governance:
 - `Section Containers` use 8px by default. Treat 8-10px as the narrow upper range for shared structural variants, not feature-local drift.
 - 20px+ radii are reserved for distinct shell roles, such as modal shells, command palettes, or other app-level outer frames, not standard cards or section containers.
 
+### Shell Roles
+
+- Shell roles are the app-level outer frames that contain the inner section containers.
+- Use them for left rail shells, main content shells, dialog shells, context menus, command palettes, and other workspace-level surfaces that frame a screen.
+- Shell roles may use 20px+ radii and slightly stronger ambient separation than section containers, but they should keep the same warm surface language.
+- Section containers remain the inner structural units. Keep their 8px default radius and do not reuse shell-level framing language on them.
+- In Storybook shell examples, treat the outer frame as the reusable shell pattern; the inner dialog or menu body may still use a smaller radius and should not be copied as the shell.
+
 ## Interaction and Motion
 
 ### Hover States

@@ -377,53 +377,67 @@ function SurfaceRoleSpecimen() {
   );
 }
 
-function DialogSpecimen() {
+function ShellExamplesSpecimen() {
   return (
-    <div className="rounded-[24px] border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5">
-      <SectionHeading className="mb-2">Dialog surface</SectionHeading>
-      <div className="rounded-[26px] border border-border/70 bg-background/70 p-4">
-        <div className="mx-auto grid w-full max-w-[300px] gap-4 rounded-xl border border-border bg-surface-2 p-5 text-sm text-popover-foreground shadow-elevation-3">
-          <div className="flex flex-col items-center gap-4 py-2 text-center">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15">
-              <AlertTriangle className="h-5 w-5 text-primary" />
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Shell examples</SectionHeading>
+      <div className="grid gap-3 xl:grid-cols-2">
+        <div className="rounded-[24px] border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5">
+          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/58">Dialog surface</div>
+          <p className="mb-3 font-serif text-xs leading-[1.45] text-foreground/58">
+            Outer shell only. Keep the inner dialog component surface separate and smaller-radius.
+          </p>
+          <div className="rounded-[26px] border border-border/70 bg-background/70 p-4">
+            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/58">Dialog shell frame</div>
+            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/58">
+              Inner dialog component surface
             </div>
-            <p className="text-sm text-foreground">この購読を削除しますか？</p>
-            <div className="flex w-full flex-col gap-2">
-              <Button className="min-h-11 w-full">削除する</Button>
-              <Button variant="ghost" className="min-h-11 w-full text-muted-foreground">
-                キャンセル
-              </Button>
+            <div className="mx-auto grid w-full max-w-[300px] gap-4 rounded-xl border border-border bg-surface-2 p-5 text-sm text-popover-foreground shadow-elevation-3">
+              <div className="flex flex-col items-center gap-4 py-2 text-center">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15">
+                  <AlertTriangle className="h-5 w-5 text-primary" />
+                </div>
+                <p className="text-sm text-foreground">この購読を削除しますか？</p>
+                <div className="flex w-full flex-col gap-2">
+                  <Button className="min-h-11 w-full">削除する</Button>
+                  <Button variant="ghost" className="min-h-11 w-full text-muted-foreground">
+                    キャンセル
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-[24px] border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5">
+          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/58">Context menu</div>
+          <p className="mb-3 font-serif text-xs leading-[1.45] text-foreground/58">
+            This is the workspace frame around the menu body, not the reusable menu body itself.
+          </p>
+          <div className="rounded-[22px] border border-border/70 bg-background/70 p-4">
+            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/58">
+              Context menu shell frame
+            </div>
+            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/58">Inner menu body</div>
+            <div className="inline-flex rounded-md border border-border px-3 py-2 text-sm text-foreground">Feed</div>
+            <div className="mt-3 min-w-[200px] rounded-lg border border-border bg-popover p-1 text-sm text-popover-foreground shadow-lg outline-none">
+              <div className="flex w-full items-center rounded-md px-3 py-1.5">Edit…</div>
+              <div className="flex w-full items-center rounded-md px-3 py-1.5">Open site</div>
+              <div className="flex w-full items-center rounded-md px-3 py-1.5">Mark all as read</div>
+              <div className="my-1 h-px bg-border" />
+              <div className="px-3 py-1 text-xs font-medium text-muted-foreground">Display mode</div>
+              <div className="flex w-full items-center rounded-md px-3 py-1.5">Default</div>
+              <div className="flex w-full items-center rounded-md px-3 py-1.5">Standard</div>
+              <div className="flex w-full items-center rounded-md px-3 py-1.5">
+                <span className="mr-2 inline-flex w-4 justify-center">✓</span>
+                Preview
+              </div>
+              <div className="my-1 h-px bg-border" />
+              <div className="flex w-full items-center rounded-md px-3 py-1.5">Unsubscribe…</div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function MenuSpecimen() {
-  return (
-    <div className="rounded-[24px] border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5">
-      <SectionHeading className="mb-2">Context menu</SectionHeading>
-      <div className="rounded-[22px] border border-border/70 bg-background/70 p-4">
-        <div className="inline-flex rounded-md border border-border px-3 py-2 text-sm text-foreground">Feed</div>
-        <div className="mt-3 min-w-[200px] rounded-lg border border-border bg-popover p-1 text-sm text-popover-foreground shadow-lg outline-none">
-          <div className="flex w-full items-center rounded-md px-3 py-1.5">Edit…</div>
-          <div className="flex w-full items-center rounded-md px-3 py-1.5">Open site</div>
-          <div className="flex w-full items-center rounded-md px-3 py-1.5">Mark all as read</div>
-          <div className="my-1 h-px bg-border" />
-          <div className="px-3 py-1 text-xs font-medium text-muted-foreground">Display mode</div>
-          <div className="flex w-full items-center rounded-md px-3 py-1.5">Default</div>
-          <div className="flex w-full items-center rounded-md px-3 py-1.5">Standard</div>
-          <div className="flex w-full items-center rounded-md px-3 py-1.5">
-            <span className="mr-2 inline-flex w-4 justify-center">✓</span>
-            Preview
-          </div>
-          <div className="my-1 h-px bg-border" />
-          <div className="flex w-full items-center rounded-md px-3 py-1.5">Unsubscribe…</div>
-        </div>
-      </div>
-    </div>
+    </SurfaceCard>
   );
 }
 
@@ -441,7 +455,7 @@ export function AnnotatedSettingsCanvas() {
         <aside className="order-2 rounded-[28px] border border-border/60 bg-card/40 p-3 shadow-elevation-1 lg:order-1">
           <AnnotatedNote
             title="Left Band"
-            body="Use the existing settings rail as the skeleton. Let spacing and tonal shifts do the work before adding stronger accents."
+            body="Use the existing settings rail as the shell outer frame. Let spacing and tonal shifts do the work before adding stronger accents."
           />
           <div className="mt-3 rounded-[24px] border border-border/60 bg-sidebar/90">
             <SettingsNavView ariaLabel="Reference settings sections" items={navItems} onSelectCategory={() => {}} />
@@ -463,12 +477,19 @@ export function AnnotatedSettingsCanvas() {
           >
             <div className="mb-4 max-w-3xl">
               <AnnotatedNote
+                title="Main content shell"
+                body="Keep the main panel as the app-level outer frame. Section containers, form rows, and helper notes should sit inside it."
+              />
+            </div>
+            <div className="mb-4 max-w-3xl">
+              <AnnotatedNote
                 title="Instructions"
                 body="Use this reference canvas as the default starting point when implementing new screens. Prefer composing from these existing specimens and shared components before introducing new visual patterns."
               />
             </div>
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_15rem]">
               <div className="space-y-4">
+                <ShellExamplesSpecimen />
                 <SurfaceRoleSpecimen />
                 <ValidationRowSpecimen />
                 <SettingsSection
@@ -513,8 +534,6 @@ export function AnnotatedSettingsCanvas() {
               <div className="space-y-3">
                 <AnnouncementCardsSpecimen />
                 <TagPaletteSpecimen />
-                <DialogSpecimen />
-                <MenuSpecimen />
                 <AnnotatedNote
                   title="Reader density"
                   body="Radio chips are a specimen for compact mode choices. They do not introduce a new design language outside the existing warm token set."
