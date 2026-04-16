@@ -143,7 +143,7 @@ export function FeedDetailPanel({
             </div>
             {summaryText ? (
               <SurfaceCard variant="info" tone="subtle" padding="compact" className="bg-surface-1/76 shadow-none">
-                <p className="font-serif text-[0.98rem] leading-7 text-muted-foreground">{summaryText}</p>
+                <p className="font-serif text-[0.98rem] leading-7 text-foreground-soft">{summaryText}</p>
               </SurfaceCard>
             ) : null}
           </div>
@@ -220,7 +220,7 @@ export function FeedDetailPanel({
                           {article.title}
                         </span>
                       )}
-                      <span className="shrink-0 text-xs text-muted-foreground">{article.publishedAt}</span>
+                      <span className="shrink-0 text-xs text-foreground-soft">{article.publishedAt}</span>
                     </div>
                   </SurfaceCard>
                 ))}
