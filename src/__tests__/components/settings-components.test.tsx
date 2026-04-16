@@ -10,12 +10,14 @@ describe("SettingsRow", () => {
     expect(value).toHaveClass("w-full");
     expect(value).toHaveClass("text-left");
     expect(value).toHaveClass("sm:flex-1");
+    expect(value).toHaveClass("text-foreground-soft");
   });
 
   it("renders read-only select values without a literal triangle glyph", () => {
     render(<SettingsRow label="Theme" type="select" value="Dark" />);
 
     expect(screen.getByText(/Dark/)).toBeInTheDocument();
+    expect(screen.getByText("Dark").parentElement).toHaveClass("text-foreground-soft");
     expect(screen.queryByText("▼")).not.toBeInTheDocument();
   });
 });

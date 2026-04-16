@@ -64,7 +64,7 @@ export function SettingsRow(props: SettingsRowProps) {
     <LabeledControlRow label={props.label} labelClassName={props.labelClassName}>
       {props.type === "switch" && <GradientSwitch checked={props.checked} disabled />}
       {props.type === "select" && (
-        <span className={cn("inline-flex items-center gap-2 text-sm text-muted-foreground", props.valueClassName)}>
+        <span className={cn("inline-flex items-center gap-2 text-sm text-foreground-soft", props.valueClassName)}>
           <span>{props.value}</span>
           <ChevronDownIcon className="h-4 w-4 opacity-50" aria-hidden="true" />
         </span>
@@ -72,7 +72,7 @@ export function SettingsRow(props: SettingsRowProps) {
       {props.type === "text" && (
         <span
           className={cn(
-            "w-full text-left text-sm text-muted-foreground sm:min-w-0 sm:flex-1",
+            "w-full text-left text-sm text-foreground-soft sm:min-w-0 sm:flex-1",
             props.valueClassName,
             props.truncate && "truncate",
           )}
