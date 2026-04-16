@@ -145,6 +145,7 @@ describe("FeedCleanupReviewPanel", () => {
     const actions = screen.getByTestId("feed-cleanup-review-actions");
     expect(actions).toHaveClass("rounded-lg");
     expect(actions).toHaveClass("grid", "grid-cols-3");
+    expect(actions).toHaveClass("px-4", "sm:px-5");
     expect(within(actions).getByRole("button", { name: "Keep" })).toHaveClass(
       "rounded-md",
       "w-full",

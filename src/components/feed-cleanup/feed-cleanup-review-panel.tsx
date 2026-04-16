@@ -157,7 +157,7 @@ export function FeedCleanupReviewPanel({
               variant="section"
               tone="subtle"
               padding="compact"
-              className="grid grid-cols-3 gap-2 shadow-none"
+              className="grid grid-cols-3 gap-2 px-4 shadow-none sm:px-5"
             >
               <DecisionButton intent="keep" aria-label={keepLabel} onClick={onKeep} className="w-full min-w-0">
                 <Check className="h-4 w-4" />
