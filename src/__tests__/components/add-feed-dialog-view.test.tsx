@@ -75,8 +75,11 @@ describe("AddFeedDialogView", () => {
     );
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
     expect(screen.getByLabelText("Feed or Site URL")).toHaveValue("https://example.com");
+    expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass("rounded-md");
     expect(screen.getByRole("radio", { name: "Tech Blog" })).toBeInTheDocument();
+    expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("rounded-md");
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("New folder");
     expect(screen.getByLabelText("Folder name")).toHaveValue("Reading");
     expect(screen.getByText("Feed detected")).toBeInTheDocument();
@@ -154,6 +157,9 @@ describe("AddFeedDialogView", () => {
     const helperText = screen.getByText("Use a full URL like https://example.com");
 
     expect(helperText.id).not.toBe("");
+    expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
+    expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass("rounded-md");
+    expect(helperText).toHaveClass("rounded-md");
     expect(urlInput).toHaveAttribute("aria-describedby", helperText.id);
     expect(urlInput).toHaveAttribute("aria-invalid", "true");
     expect(onSubmit).not.toHaveBeenCalled();

@@ -102,8 +102,9 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
+    expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
     expect(await screen.findByText("Recent Actions")).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /Open settings/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Open settings/ })).toHaveClass("rounded-md");
     expect(screen.queryByRole("option", { name: /Tech Blog/ })).not.toBeInTheDocument();
   });
 
