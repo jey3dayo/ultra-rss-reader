@@ -421,7 +421,7 @@ export function FeedCleanupPageView({
       <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
         <DialogContent
           showCloseButton={false}
-          className="overflow-hidden rounded-2xl border border-border/70 bg-background/95 p-0 sm:max-w-[480px]"
+          className="overflow-hidden rounded-xl border border-border/70 bg-background/95 p-0 sm:max-w-[480px]"
           overlayPreset="readable"
         >
           <div className="flex items-start justify-between border-b border-border/70 px-6 py-5">

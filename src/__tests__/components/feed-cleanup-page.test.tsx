@@ -647,6 +647,7 @@ describe("FeedCleanupPage", () => {
 
     const shortcutsDialog = screen.getByRole("dialog", { name: "Keyboard shortcuts" });
     expect(shortcutsDialog).toBeInTheDocument();
+    expect(shortcutsDialog).toHaveClass("rounded-xl");
     expect(screen.getByText("Navigation")).toBeInTheDocument();
     expect(screen.getByText("Actions")).toBeInTheDocument();
     expect(screen.getByText("Next feed")).toBeInTheDocument();
