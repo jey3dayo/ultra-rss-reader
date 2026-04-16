@@ -15,7 +15,8 @@ type WorkspaceHeaderProps = {
   actions?: ReactNode;
 };
 
-const MAC_OVERLAY_LEADING_SAFE_INSET = 72;
+const MAC_OVERLAY_DRAG_REGION_WIDTH = 72;
+const MAC_OVERLAY_CONTENT_START = 52;
 
 export const workspaceHeaderActionClassName =
   "h-7 rounded-[min(var(--radius-md),12px)] border border-border/60 font-sans text-[0.8rem] font-normal text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground";
@@ -76,13 +77,13 @@ export function WorkspaceHeader({
           data-tauri-drag-region
           aria-hidden="true"
           className="absolute inset-y-0 left-0"
-          style={{ width: `${MAC_OVERLAY_LEADING_SAFE_INSET}px` }}
+          style={{ width: `${MAC_OVERLAY_DRAG_REGION_WIDTH}px` }}
         />
       ) : null}
       <div
         data-testid="workspace-header-body"
         className="flex flex-col gap-4"
-        style={useDesktopOverlay ? { paddingLeft: `${MAC_OVERLAY_LEADING_SAFE_INSET}px` } : undefined}
+        style={useDesktopOverlay ? { paddingLeft: `${MAC_OVERLAY_CONTENT_START}px` } : undefined}
       >
         <div data-testid="workspace-header-top-row" className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-2">
