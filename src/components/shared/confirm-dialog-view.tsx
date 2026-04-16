@@ -22,7 +22,7 @@ export function ConfirmDialogView({
         <DialogTitle className="sr-only">{title}</DialogTitle>
         <DialogDescription className="sr-only">{message}</DialogDescription>
         <div className="flex flex-col items-center gap-4 py-2 text-center">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15">
+          <div className="flex h-11 w-11 items-center justify-center rounded-md bg-primary/15">
             <Icon className="h-5 w-5 text-primary" />
           </div>
           <p className="text-sm text-foreground" aria-hidden="true">
