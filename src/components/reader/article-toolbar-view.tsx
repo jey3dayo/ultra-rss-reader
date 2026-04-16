@@ -101,7 +101,7 @@ export function ArticleToolbarActionStrip({
         onPressedChange={(nextRead) => onToggleRead(nextRead)}
         disabled={!canToggleRead}
       >
-        <UnreadIcon unread={!isRead} className="h-3 w-3" />
+        <UnreadIcon unread={!isRead} forceTone className="h-3 w-3" />
       </IconToolbarToggle>
       <IconToolbarToggle
         label={labels.toggleStar}
@@ -109,7 +109,7 @@ export function ArticleToolbarActionStrip({
         onPressedChange={(nextStarred) => onToggleStar(nextStarred)}
         disabled={!canToggleStar}
       >
-        <StarIcon starred={isStarred} className="h-4 w-4" />
+        <StarIcon starred={isStarred} forceTone className="h-4 w-4" />
       </IconToolbarToggle>
       {showOpenInBrowserButton && !hideBrowserOverlayActions && (
         <IconToolbarToggle
@@ -220,7 +220,7 @@ export function ArticleToolbarOverlayActions({
         pressed={isRead}
         onClick={() => onToggleRead(!isRead)}
       >
-        <UnreadIcon unread={!isRead} className="h-3 w-3" />
+        <UnreadIcon unread={!isRead} forceTone className="h-3 w-3" />
       </ArticleToolbarOverlayActionButton>
       <ArticleToolbarOverlayActionButton
         overlayActionRenderer={overlayActionRenderer}
@@ -229,7 +229,7 @@ export function ArticleToolbarOverlayActions({
         pressed={isStarred}
         onClick={() => onToggleStar(!isStarred)}
       >
-        <StarIcon starred={isStarred} className="h-4 w-4" />
+        <StarIcon starred={isStarred} forceTone className="h-4 w-4" />
       </ArticleToolbarOverlayActionButton>
       {showOpenInBrowserButton && !hideBrowserOverlayActions ? (
         <ArticleToolbarOverlayActionButton

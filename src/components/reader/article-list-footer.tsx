@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
+import { cn } from "@/lib/utils";
 import type { ArticleListFooterProps, ArticleListViewMode } from "./article-list.types";
 
 const VIEW_MODES = [
@@ -12,6 +13,14 @@ const VIEW_MODES = [
   { value: "all", icon: "list", labelKey: "filter_all" },
   { value: "starred", icon: "star", labelKey: "filter_starred" },
 ] as const;
+
+const FILTER_TONE_CLASSNAMES = {
+  unread:
+    "text-[color-mix(in_srgb,var(--tone-unread)_68%,var(--foreground-soft))] hover:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--foreground))] data-[pressed]:bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--foreground))]",
+  all: "text-muted-foreground hover:text-foreground data-[pressed]:bg-muted data-[pressed]:text-foreground",
+  starred:
+    "text-[color-mix(in_srgb,var(--tone-starred)_72%,var(--foreground-soft))] hover:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--foreground))] data-[pressed]:bg-[color-mix(in_srgb,var(--tone-starred)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--foreground))]",
+} as const;
 
 export function ArticleListFooter({
   viewMode,
@@ -45,16 +54,24 @@ export function ArticleListFooter({
               value={mode.value}
               aria-label={t(mode.labelKey)}
               disabled={isDisabled}
-              className={controlChipVariants({ size: "filter", interaction: "toggle" })}
+              className={cn(
+                controlChipVariants({ size: "filter", interaction: "toggle" }),
+                FILTER_TONE_CLASSNAMES[mode.value],
+              )}
             >
               {mode.icon === "star" ? (
-                <StarIcon starred={viewMode === "starred"} className={controlChipIconVariants({ size: "filter" })} />
+                <StarIcon
+                  starred={viewMode === "starred"}
+                  forceTone
+                  className={controlChipIconVariants({ size: "filter" })}
+                />
               ) : mode.icon === "list" ? (
                 <List className={controlChipIconVariants({ size: "filter" })} />
               ) : (
                 <UnreadIcon
                   unread={viewMode === "unread"}
-                  className="h-2.5 w-2.5 shadow-[0_0_0_1px_color-mix(in_srgb,var(--tone-unread)_32%,transparent)]"
+                  forceTone
+                  className="h-2.5 w-2.5"
                 />
               )}
               {t(mode.labelKey)}
