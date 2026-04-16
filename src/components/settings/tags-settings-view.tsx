@@ -100,7 +100,7 @@ export function TagsSettingsView({
 
       <SettingsSection heading={savedHeading} surface="flat">
         {tags.length === 0 ? (
-          <p className="border-b border-border py-3 text-sm text-muted-foreground">{emptyState}</p>
+          <p className="border-b border-border py-3 text-sm text-foreground-soft">{emptyState}</p>
         ) : (
           tags.map((tag) => (
             <LabeledControlRow key={tag.id} label={tag.name} labelClassName="sm:max-w-[280px] sm:shrink-0 sm:truncate">
