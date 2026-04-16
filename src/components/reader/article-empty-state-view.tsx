@@ -6,7 +6,11 @@ const EMPTY_HINTS: string[] = [];
 export function ArticleEmptyStateView({ message, hints = EMPTY_HINTS }: ArticleEmptyStateViewProps) {
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-10 text-center">
-      <SurfaceCard variant="info" padding="spacious" className="max-w-xl text-left text-foreground-soft">
+      <SurfaceCard
+        variant="info"
+        padding="spacious"
+        className="max-w-xl border-transparent text-left text-foreground-soft shadow-none"
+      >
         <p className="mb-3 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-foreground-soft">Reader</p>
         <p className="text-left text-[1.35rem] font-semibold leading-[1.2] tracking-[-0.02em] text-foreground">
           {message}

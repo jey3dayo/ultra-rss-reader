@@ -41,6 +41,8 @@ describe("ArticleEmptyStateView", () => {
     expect(container).toHaveClass("rounded-[var(--radius-surface-info)]");
     expect(container).not.toHaveClass("rounded-[2rem]");
     expect(container).toHaveClass("max-w-xl");
+    expect(container).toHaveClass("border-transparent");
+    expect(container).toHaveClass("shadow-none");
     expect(container).toHaveClass("text-foreground-soft");
     expect(eyebrow).toHaveClass("text-foreground-soft");
     expect(hintsList).toHaveClass("marker:text-foreground-soft");
