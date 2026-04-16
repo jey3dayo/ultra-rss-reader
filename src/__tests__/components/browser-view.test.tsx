@@ -601,9 +601,11 @@ describe("BrowserView", () => {
     const loadingState = screen.getByTestId("browser-loading-state");
     const loadingTitle = screen.getByText("Loading");
     const loadingHint = screen.getByText("If this takes too long, open it in your external browser.");
+    const loadingHalo = loadingState.querySelector(".blur-2xl");
 
     expect(loadingState.className).not.toMatch(/\bborder\b/);
     expect(loadingState.className).not.toMatch(/\bshadow-/);
+    expect(loadingHalo).toHaveClass("bg-surface-1/72");
     expect(loadingTitle).toHaveClass("text-foreground");
     expect(loadingHint).toHaveClass("text-foreground-soft");
   });
