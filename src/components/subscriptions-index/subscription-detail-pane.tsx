@@ -49,7 +49,7 @@ export function SubscriptionDetailPane({
       <h2 className="sr-only">{heading}</h2>
       {!row || !metrics ? (
         <div className="flex min-h-0 flex-1 items-center">
-          <p className="w-full rounded-2xl border border-dashed border-border bg-background/65 px-5 py-6 text-sm text-muted-foreground">
+          <p className="w-full rounded-xl border border-dashed border-border bg-background/65 px-5 py-6 text-sm text-muted-foreground">
             {emptyLabel}
           </p>
         </div>

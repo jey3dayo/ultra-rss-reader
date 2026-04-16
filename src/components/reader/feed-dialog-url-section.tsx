@@ -25,7 +25,7 @@ export function FeedDialogUrlSection({
   helperTone,
 }: FeedDialogUrlSectionViewProps) {
   return (
-    <div className="rounded-[22px] border border-border/70 bg-card/55 px-4 py-4">
+    <div className="rounded-xl border border-border/70 bg-card/55 px-4 py-4">
       <div className="space-y-3">
         <label htmlFor={inputId} className="block text-sm font-medium text-foreground/90">
           {label}
@@ -72,7 +72,7 @@ export function FeedDialogUrlSection({
           id={helperTextId}
           className={
             helperTone === "error"
-              ? "mt-3 rounded-2xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              ? "mt-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
               : "mt-3 text-sm leading-6 text-muted-foreground"
           }
         >

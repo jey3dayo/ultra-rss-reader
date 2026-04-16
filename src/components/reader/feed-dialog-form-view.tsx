@@ -47,7 +47,7 @@ export function FeedDialogFormView({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="overflow-hidden rounded-[28px] border border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.98),hsl(var(--background)/0.98))] p-0 shadow-[0_28px_80px_-44px_hsl(var(--foreground)/0.55)] sm:max-w-[640px]"
+        className="overflow-hidden rounded-2xl border border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.98),hsl(var(--background)/0.98))] p-0 shadow-[0_28px_80px_-44px_hsl(var(--foreground)/0.55)] sm:max-w-[640px]"
       >
         <DialogHeader className="border-b border-border/70 px-6 py-5">
           <DialogTitle className="text-[1.6rem] font-semibold tracking-tight">{labels.title}</DialogTitle>
@@ -96,7 +96,7 @@ export function FeedDialogFormView({
           )}
 
           {folderSelectProps ? (
-            <div className="rounded-[22px] border border-border/70 bg-card/55 px-4 py-4">
+            <div className="rounded-xl border border-border/70 bg-card/55 px-4 py-4">
               <FolderSelectView {...folderSelectProps} />
             </div>
           ) : null}
