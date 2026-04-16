@@ -55,6 +55,7 @@ export function WorkspaceHeader({
 }: WorkspaceHeaderProps) {
   const platformKind = usePlatformStore((state) => state.platform.kind);
   const hasRuntime = hasTauriRuntime();
+  const isBrowserPreview = !hasRuntime;
   const useDesktopOverlay =
     shouldUseDesktopOverlayTitlebar({
       platformKind,
@@ -91,6 +92,11 @@ export function WorkspaceHeader({
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             ) : null}
+            {isBrowserPreview ? (
+              <p className="font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase">
+                {eyebrow}
+              </p>
+            ) : null}
           </div>
           <div data-testid="workspace-header-actions" className="flex shrink-0 items-center gap-2">
             {actions}
@@ -106,15 +112,14 @@ export function WorkspaceHeader({
             </Button>
           </div>
         </div>
-        <div
-          data-testid="workspace-header-title-group"
-          className={cn("min-w-0 space-y-2 pb-1", hasBackAction && "pl-3.5 sm:pl-4")}
-        >
-          <div data-testid="workspace-header-context-row" className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-            <p className="font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase">
-              {eyebrow}
-            </p>
-          </div>
+        <div data-testid="workspace-header-title-group" className="min-w-0 space-y-2 pb-1">
+          {!isBrowserPreview ? (
+            <div data-testid="workspace-header-context-row" className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+              <p className="font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase">
+                {eyebrow}
+              </p>
+            </div>
+          ) : null}
           <h1 className="font-sans text-[1.65rem] leading-none font-normal tracking-[-0.04em] text-foreground">
             {title}
           </h1>
