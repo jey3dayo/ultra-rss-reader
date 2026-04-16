@@ -30,7 +30,10 @@ export function FeedCleanupOverviewPanel({
   const { t } = useTranslation("cleanup");
 
   return (
-    <section className="border-b border-border/70 bg-background/95 px-4 py-4 sm:px-6">
+    <section
+      className="border-b border-border/70 px-4 py-4 sm:px-6"
+      style={{ backgroundColor: "var(--cleanup-summary-surface)" }}
+    >
       <h2 className="sr-only">{overviewLabel}</h2>
       <div className="space-y-4">
         <div data-testid="feed-cleanup-sidebar-summary" className="flex flex-wrap items-center gap-4">

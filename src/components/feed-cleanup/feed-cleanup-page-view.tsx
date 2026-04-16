@@ -277,7 +277,8 @@ export function FeedCleanupPageView({
   return (
     <div
       data-testid="feed-cleanup-page"
-      className="flex h-dvh max-h-dvh min-h-0 flex-1 flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.16),transparent_24%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--background)))]"
+      className="flex h-dvh max-h-dvh min-h-0 flex-1 flex-col overflow-hidden"
+      style={{ backgroundImage: "var(--cleanup-shell-bg)" }}
     >
       <WorkspaceHeader
         eyebrow="Triage"
@@ -421,7 +422,8 @@ export function FeedCleanupPageView({
       <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
         <DialogContent
           showCloseButton={false}
-          className="overflow-hidden rounded-xl border border-border/70 bg-background/95 p-0 sm:max-w-[480px]"
+          className="overflow-hidden rounded-xl border border-border/70 p-0 sm:max-w-[480px]"
+          style={{ backgroundColor: "var(--cleanup-dialog-surface)" }}
           overlayPreset="readable"
         >
           <div className="flex items-start justify-between border-b border-border/70 px-6 py-5">

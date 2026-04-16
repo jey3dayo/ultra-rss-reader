@@ -208,6 +208,7 @@ describe("FeedCleanupPage", () => {
     expect(screen.getByRole("heading", { name: "Review" })).toBeInTheDocument();
     expect(screen.getByTestId("feed-cleanup-sidebar-summary")).toBeInTheDocument();
     expect(screen.getByTestId("feed-cleanup-page")).toHaveClass("h-dvh");
+    expect(screen.getByTestId("feed-cleanup-page")).toHaveStyle({ backgroundImage: "var(--cleanup-shell-bg)" });
     expect(screen.getByText("Pending")).toBeInTheDocument();
     expect(screen.getByText("Decided")).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Old Product Blog" })).toBeInTheDocument();
@@ -650,6 +651,7 @@ describe("FeedCleanupPage", () => {
     const shortcutsDialog = screen.getByRole("dialog", { name: "Keyboard shortcuts" });
     expect(shortcutsDialog).toBeInTheDocument();
     expect(shortcutsDialog).toHaveClass("rounded-xl");
+    expect(shortcutsDialog).toHaveStyle({ backgroundColor: "var(--cleanup-dialog-surface)" });
     expect(screen.getByText("Navigation")).toBeInTheDocument();
     expect(screen.getByText("Actions")).toBeInTheDocument();
     expect(screen.getByText("Next feed")).toBeInTheDocument();
