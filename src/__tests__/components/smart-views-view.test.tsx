@@ -20,14 +20,36 @@ describe("SmartViewsView", () => {
     );
 
     expect(screen.getByText("Smart views")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Unread/ })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: /Starred/ })).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getByRole("button", { name: /Unread/ })).toHaveClass("w-full");
-    expect(screen.getByRole("button", { name: /Starred/ })).toHaveClass("w-full");
+    expect(screen.getByText("Smart views")).toHaveClass("text-[var(--sidebar-foreground-soft-strong)]");
+
+    const unreadButton = screen.getByRole("button", { name: /Unread/ });
+    const starredButton = screen.getByRole("button", { name: /Starred/ });
+
+    expect(unreadButton).toHaveAttribute("aria-pressed", "true");
+    expect(starredButton).toHaveAttribute("aria-pressed", "false");
+    expect(unreadButton).toHaveClass("w-full");
+    expect(starredButton).toHaveClass("w-full");
+    expect(unreadButton).toHaveClass(
+      "bg-[color-mix(in_srgb,var(--smart-tone)_var(--tone-surface-strength),transparent)]",
+    );
+    expect(unreadButton).toHaveClass(
+      "text-[color-mix(in_srgb,var(--smart-tone)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
+    );
+    expect(unreadButton).toHaveClass("before:bg-primary/85");
+    expect(unreadButton).toHaveStyle("--smart-tone: var(--tone-unread)");
+    expect(starredButton).toHaveClass(
+      "hover:text-[color-mix(in_srgb,var(--smart-tone)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
+    );
+    expect(starredButton).toHaveStyle("--smart-tone: var(--tone-starred)");
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("12")).toHaveClass(
+      "text-[color-mix(in_srgb,var(--smart-tone)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
+      "opacity-80",
+    );
+    expect(screen.getByText("3")).toHaveClass("text-[var(--sidebar-foreground-muted-strong)]");
 
-    await user.click(screen.getByRole("button", { name: /Starred/ }));
+    await user.click(starredButton);
     expect(onSelectSmartView).toHaveBeenCalledWith("starred");
   });
 });

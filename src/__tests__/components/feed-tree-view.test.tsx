@@ -207,6 +207,39 @@ describe("FeedTreeView", () => {
     expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
   });
 
+  it("renders selected folder indicator aligned from the row edge and hides the button marker", () => {
+    const { container } = render(
+      <FeedTreeView
+        isOpen={true}
+        folders={[
+          {
+            id: "folder-1",
+            name: "Work",
+            accountId: "acc-1",
+            sortOrder: 0,
+            unreadCount: 2,
+            isExpanded: false,
+            isSelected: true,
+            feeds: [],
+          },
+        ]}
+        unfolderedFeeds={[]}
+        onToggleFolder={vi.fn()}
+        onSelectFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+        emptyState={{ kind: "message", message: "No feeds yet" }}
+      />,
+    );
+
+    const folderButton = screen.getByRole("button", { name: "Select folder Work" });
+    const selectedIndicator = container.querySelector<HTMLElement>("[data-folder-row-selected-indicator='folder-1']");
+
+    expect(selectedIndicator).not.toBeNull();
+    expect(selectedIndicator).toHaveClass("left-0");
+    expect(folderButton).not.toHaveClass("before:bg-primary/85");
+  });
+
   it("renders the empty action when there are no feeds", async () => {
     const user = userEvent.setup();
     const onAction = vi.fn();
@@ -283,8 +316,9 @@ describe("FeedTreeView", () => {
     const feedButton = document.querySelector('[data-feed-id="feed-2"]');
     expect(handle).toHaveClass("h-7");
     expect(handle).toHaveClass("w-7");
+    expect(handle).toHaveClass("group-hover/feed-row:opacity-100");
     expect(feedButton).not.toBeNull();
-    expect(feedButton).toHaveClass("pl-7");
+    expect(feedButton).not.toHaveClass("pl-7");
     const folderTarget = screen.getByRole("button", { name: "Move to Empty" });
     fireEvent.click(handle);
     fireEvent.click(folderTarget);
@@ -343,7 +377,8 @@ describe("FeedTreeView", () => {
 
     expect(screen.getByRole("button", { name: "Drag Beta" })).toHaveClass("h-8");
     expect(screen.getByRole("button", { name: "Drag Beta" })).toHaveClass("w-8");
-    expect(document.querySelector('[data-feed-id="feed-2"]')).toHaveClass("pl-8");
+    expect(document.querySelector('[data-feed-id="feed-2"]')).not.toHaveClass("pl-8");
+    expect(document.querySelector('[data-feed-id="feed-2"]')).toHaveClass("px-1.5");
     expect(screen.getByRole("button", { name: "Toggle folder Empty" })).toHaveClass("h-8");
   });
 

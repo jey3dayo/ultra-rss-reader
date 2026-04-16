@@ -5,7 +5,7 @@ export type SidebarDensityTokens = {
   navButtonPaddingX: string;
   navButtonContentGap: string;
   leadingControl: string;
-  dragPadding: string;
+  treeRailOffset: string;
   treeGap: string;
   childGap: string;
   unfolderedGap: string;
@@ -20,7 +20,7 @@ const densityMap: Record<SidebarDensity, SidebarDensityTokens> = {
     navButtonPaddingX: "px-1.5",
     navButtonContentGap: "gap-1.5",
     leadingControl: "h-8 w-8",
-    dragPadding: "pl-8",
+    treeRailOffset: "-0.5rem",
     treeGap: "space-y-0",
     childGap: "space-y-0",
     unfolderedGap: "space-y-1",
@@ -33,7 +33,7 @@ const densityMap: Record<SidebarDensity, SidebarDensityTokens> = {
     navButtonPaddingX: "px-1.5",
     navButtonContentGap: "gap-1.5",
     leadingControl: "h-7 w-7",
-    dragPadding: "pl-7",
+    treeRailOffset: "-0.5rem",
     treeGap: "space-y-0.5",
     childGap: "space-y-0.5",
     unfolderedGap: "space-y-1.5",
@@ -46,7 +46,7 @@ const densityMap: Record<SidebarDensity, SidebarDensityTokens> = {
     navButtonPaddingX: "px-2",
     navButtonContentGap: "gap-2",
     leadingControl: "h-8 w-8",
-    dragPadding: "pl-8",
+    treeRailOffset: "-0.75rem",
     treeGap: "space-y-1",
     childGap: "space-y-1",
     unfolderedGap: "space-y-2",

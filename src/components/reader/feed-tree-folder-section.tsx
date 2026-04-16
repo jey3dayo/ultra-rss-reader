@@ -55,7 +55,14 @@ export function FeedTreeFolderSection({
           }}
         />
       ) : null}
-      <div className="flex items-center gap-0.5">
+      <div className="relative flex items-center gap-0.5">
+        {folder.isSelected ? (
+          <span
+            aria-hidden="true"
+            data-folder-row-selected-indicator={folder.id}
+            className="pointer-events-none absolute inset-y-1.5 left-0 z-0 w-0.5 rounded-full bg-primary/85"
+          />
+        ) : null}
         <SidebarLeadingControlButton
           aria-label={t("toggle_folder", { name: folder.name })}
           aria-expanded={folder.isExpanded}
@@ -72,9 +79,12 @@ export function FeedTreeFolderSection({
                 density={sidebarDensity}
                 aria-label={t("select_folder", { name: folder.name })}
                 selected={folder.isSelected}
+                selectedIndicatorMode="hidden"
                 trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
                 trailingClassName={
-                  folder.isSelected ? "text-sidebar-accent-foreground/72" : "text-sidebar-foreground/52"
+                  folder.isSelected
+                    ? "text-[var(--sidebar-selection-muted)]"
+                    : "text-[var(--sidebar-foreground-muted-strong)]"
                 }
                 {...(canDragFeeds
                   ? {

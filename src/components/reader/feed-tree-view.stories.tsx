@@ -1,6 +1,77 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
+import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 import { FeedTreeView } from "./feed-tree-view";
+
+const baseFolders: FeedTreeFolderViewModel[] = [
+  {
+    id: "folder-1",
+    name: "Work",
+    accountId: "acc-1",
+    sortOrder: 0,
+    unreadCount: 4,
+    isExpanded: true,
+    isSelected: false,
+    feeds: [
+      {
+        id: "feed-1",
+        accountId: "acc-1",
+        folderId: "folder-1",
+        title: "Alpha",
+        url: "https://example.com/alpha.xml",
+        siteUrl: "https://example.com/alpha",
+        unreadCount: 4,
+        readerMode: "on",
+        webPreviewMode: "off",
+        isSelected: true,
+        grayscaleFavicon: false,
+      },
+      {
+        id: "feed-3",
+        accountId: "acc-1",
+        folderId: "folder-1",
+        title: "Gamma",
+        url: "https://example.com/gamma.xml",
+        siteUrl: "https://example.com/gamma",
+        unreadCount: 2,
+        readerMode: "on",
+        webPreviewMode: "off",
+        isSelected: false,
+        grayscaleFavicon: false,
+      },
+    ],
+  },
+];
+
+const baseUnfolderedFeeds: FeedTreeFeedViewModel[] = [
+  {
+    id: "feed-2",
+    accountId: "acc-1",
+    folderId: null,
+    title: "Beta",
+    url: "https://example.com/beta.xml",
+    siteUrl: "https://example.com/beta",
+    unreadCount: 1,
+    readerMode: "on",
+    webPreviewMode: "off",
+    isSelected: false,
+    grayscaleFavicon: false,
+  },
+];
+
+function buildFolderSelectedArgs() {
+  return {
+    folders: baseFolders.map((folder) => ({
+      ...folder,
+      isSelected: true,
+      feeds: folder.feeds.map((feed) => ({
+        ...feed,
+        isSelected: false,
+      })),
+    })),
+    unfolderedFeeds: baseUnfolderedFeeds,
+  };
+}
 
 const meta = {
   title: "Reader/FeedTreeView",
@@ -8,50 +79,11 @@ const meta = {
   tags: ["autodocs"],
   args: {
     isOpen: true,
-    folders: [
-      {
-        id: "folder-1",
-        name: "Work",
-        accountId: "acc-1",
-        sortOrder: 0,
-        unreadCount: 4,
-        isExpanded: true,
-        isSelected: false,
-        feeds: [
-          {
-            id: "feed-1",
-            accountId: "acc-1",
-            folderId: "folder-1",
-            title: "Alpha",
-            url: "https://example.com/alpha.xml",
-            siteUrl: "https://example.com/alpha",
-            unreadCount: 4,
-            readerMode: "on",
-            webPreviewMode: "off",
-            isSelected: true,
-            grayscaleFavicon: false,
-          },
-        ],
-      },
-    ],
-    unfolderedFeeds: [
-      {
-        id: "feed-2",
-        accountId: "acc-1",
-        folderId: null,
-        title: "Beta",
-        url: "https://example.com/beta.xml",
-        siteUrl: "https://example.com/beta",
-        unreadCount: 1,
-        readerMode: "on",
-        webPreviewMode: "off",
-        isSelected: false,
-        grayscaleFavicon: false,
-      },
-    ],
+    folders: baseFolders,
+    unfolderedFeeds: baseUnfolderedFeeds,
     onToggleFolder: fn(),
     onSelectFeed: fn(),
-    displayFavicons: false,
+    displayFavicons: true,
     emptyState: { kind: "message", message: "No feeds yet" },
     renderFolderContextMenu: fn(),
     renderFeedContextMenu: fn(),
@@ -69,6 +101,68 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+
+export const SelectionPriorityReview: Story = {
+  render: (args) => (
+    <div className="space-y-4">
+      <style>{`
+        [data-story-preview="selected-hover"] [data-feed-row-id="feed-1"] [data-feed-row-selected-indicator] {
+          opacity: 0 !important;
+        }
+        [data-story-preview="selected-hover"] [data-feed-row-id="feed-1"] .opacity-0 {
+          opacity: 1 !important;
+        }
+        [data-story-preview="unselected-hover"] [data-feed-row-id="feed-3"] .opacity-0 {
+          opacity: 1 !important;
+        }
+      `}</style>
+      <div className="space-y-1">
+        <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/55 uppercase">Selected idle</p>
+        <div className="rounded-md border border-sidebar-border/40 bg-sidebar p-2">
+          <FeedTreeView {...args} />
+        </div>
+      </div>
+      <div className="space-y-1">
+        <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/55 uppercase">
+          Selected hover priority
+        </p>
+        <div className="rounded-md border border-sidebar-border/40 bg-sidebar p-2" data-story-preview="selected-hover">
+          <FeedTreeView {...args} canDragFeeds={true} />
+        </div>
+      </div>
+      <div className="space-y-1">
+        <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/55 uppercase">
+          Unselected hover
+        </p>
+        <div
+          className="rounded-md border border-sidebar-border/40 bg-sidebar p-2"
+          data-story-preview="unselected-hover"
+        >
+          <FeedTreeView {...args} canDragFeeds={true} />
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+export const FolderSelectionReview: Story = {
+  render: (args) => {
+    const folderSelectedArgs = buildFolderSelectedArgs();
+
+    return (
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/55 uppercase">
+            Folder selected
+          </p>
+          <div className="rounded-md border border-sidebar-border/40 bg-sidebar p-2">
+            <FeedTreeView {...args} {...folderSelectedArgs} />
+          </div>
+        </div>
+      </div>
+    );
+  },
+};
 
 export const DragEnabled: Story = {
   args: {

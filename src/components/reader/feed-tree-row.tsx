@@ -1,5 +1,6 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { GripVertical } from "lucide-react";
+import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { cn } from "@/lib/utils";
@@ -60,10 +61,30 @@ export function FeedTreeRow({
   consumeSuppressedHandleClick,
 }: FeedTreeRowProps) {
   const tokens = getSidebarDensityTokens(sidebarDensity);
+  const rowStyle = {
+    "--feed-tree-rail-offset": tokens.treeRailOffset,
+  } as CSSProperties;
 
   return (
-    <div className={cn("group/feed-row relative", isDragged && "opacity-70")}>
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center">
+    <div
+      className={cn("group/feed-row relative", isDragged && "opacity-70")}
+      data-feed-row-id={feed.id}
+      style={rowStyle}
+    >
+      {feed.isSelected ? (
+        <span
+          aria-hidden="true"
+          data-feed-row-selected-indicator={feed.id}
+          className={cn(
+            "pointer-events-none absolute inset-y-1.5 left-[var(--feed-tree-rail-offset)] z-0 w-0.5 rounded-full bg-primary/85 transition-opacity duration-150",
+            canDragFeeds && "group-hover/feed-row:opacity-0 group-focus-within/feed-row:opacity-0",
+          )}
+        />
+      ) : null}
+      <div
+        className="pointer-events-none absolute inset-y-0 left-[var(--feed-tree-rail-offset)] z-10 flex -translate-x-1/2 items-center"
+        data-feed-row-handle-anchor={feed.id}
+      >
         <div className="pointer-events-auto">
           <DragHandle
             feedTitle={feed.title}
@@ -82,10 +103,14 @@ export function FeedTreeRow({
             <SidebarNavButton
               density={sidebarDensity}
               selected={feed.isSelected}
+              selectedIndicatorMode={canDragFeeds ? "hidden" : "always"}
               trailing={feed.unreadCount > 0 ? feed.unreadCount.toLocaleString() : undefined}
-              trailingClassName={feed.isSelected ? "text-sidebar-accent-foreground/68" : "text-sidebar-foreground/38"}
+              trailingClassName={
+                feed.isSelected
+                  ? "text-[var(--sidebar-selection-muted)]"
+                  : "text-[var(--sidebar-foreground-muted-strong)]"
+              }
               data-feed-id={feed.id}
-              className={cn(canDragFeeds && tokens.dragPadding)}
             />
           }
           onClick={() => onSelectFeed(feed.id)}

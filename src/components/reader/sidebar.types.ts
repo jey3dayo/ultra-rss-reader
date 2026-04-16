@@ -24,6 +24,7 @@ export type SidebarNavButtonProps = ComponentPropsWithoutRef<"button"> & {
   children?: ReactNode;
   trailing?: ReactNode;
   selected?: boolean;
+  selectedIndicatorMode?: "always" | "hide-on-row-hover" | "hidden";
   size?: "default" | "compact";
   density?: SidebarDensity;
   contentClassName?: string;
