@@ -87,6 +87,55 @@
       - 対象: `src/components/settings/add-account-services.ts`
       - `#0062BE`, `#1875F3` などは theme token へ吸収せず、ブランド例外色として切り出す
 
+## 次の並列バッチ候補
+
+- [ ] Lane 1: overlay color layer を `DESIGN.md` 準拠の token に寄せる
+  - [ ] 棚卸し
+    - 対象: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-overlay-presentation.ts`, `src/components/reader/browser-overlay-chrome.tsx`, `src/components/reader/browser-overlay-stage.tsx`, `src/components/reader/browser-surface-state-card.tsx`, `src/components/reader/article-empty-state-view.tsx`
+    - 白黒アルファ直書き、shadow の arbitrary 値、shell role と section role の混在を洗う
+  - [ ] 設計反映
+    - 必要なら `DESIGN.md` と `src/styles/global.css` に overlay / shell 用の意味トークンを追加する
+    - 既存 token で表現できるものは新規 token を増やさない
+  - [ ] 実装
+    - overlay 系の白黒アルファ直書きを sematic token / shared primitive ベースへ寄せる
+    - `shell role` として残す例外は明示する
+  - 最小実装候補:
+    - [ ] `src/components/reader/browser-surface-state-card.tsx` を shell-grade blur/shadow から section / info token ベースへ落とす
+    - [ ] `src/components/reader/browser-view.tsx` と `src/styles/global.css` で overlay shell veil / top rail を token 化するか、shell exception として固定するかを決める
+    - [ ] `src/components/reader/browser-overlay-stage.tsx` の loading halo を reusable ambient token にするか one-off shell effect のままにするか決める
+
+- [ ] Lane 2: dialog / picker 系の arbitrary rgba を token layer に寄せる
+  - [ ] 棚卸し
+    - 対象: `src/components/ui/dialog.tsx`, `src/components/settings/service-picker.tsx`
+    - overlay、focus、hover、scrim、surface の rgba 直書きを洗う
+  - [ ] 設計反映
+    - dialog / picker で使う scrim、border、focus、surface の意味名を `DESIGN.md` / token layer へ寄せる
+    - shell role と section role のどちらに属するかを明記する
+  - [ ] 実装
+    - arbitrary rgba を token 経由へ置き換える
+    - 既存の可読性と focus visibility を落とさない
+  - 最小実装候補:
+    - [ ] `src/styles/global.css` と `DESIGN.md` に dialog 用 scrim / overlay role を追加する
+    - [ ] `src/components/ui/dialog.tsx` の backdrop opacity literal を scrim token へ置き換える
+    - [ ] `src/components/settings/service-picker.tsx` の `hover:bg-background/90` を既存 surface token か named hover surface へ寄せる
+
+- [ ] Lane 3: settings / cleanup の情報階層を tonal separation と primary action の差で再整理する
+  - [ ] 棚卸し
+    - 対象: `src/components/settings/settings-modal.tsx`, `src/components/settings/*-settings*.tsx`, `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-review-panel.tsx`
+    - 近い濃度の面、outline button の連続、section 面より強く見える active row を洗う
+  - [ ] 設計反映
+    - `DESIGN.md` 上の tonal separation / primary action の適用方針を必要最小限で補う
+    - `section container` と action emphasis の強弱ルールを固定する
+  - [ ] 実装
+    - settings / cleanup の hierarchy を再整理する
+    - 見た目変更だけでなく、読む順序が改善するかを確認する
+  - 最小実装候補:
+    - [ ] `src/components/settings/settings-nav-view.tsx` と `src/components/settings/accounts-nav-view.tsx` で selected row を primary stripe ではなく tonal depth / border で強調する
+    - [ ] `src/components/settings/settings-modal-view.tsx` と `src/components/settings/settings-content-layout.tsx` で shell / rail / content の tonal separation を整理する
+    - [ ] `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx` で summary cards と bulk actions の優先度を分離する
+    - [ ] `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx` で row selection と inline actions の強さを整理する
+    - [ ] `src/components/feed-cleanup/feed-cleanup-review-panel.tsx` と必要なら `src/components/shared/feed-detail-panel.tsx` で review 面の primary action を主ボタンとして見えるようにする
+
 ## Deferred Follow-ups
 
 - [ ] Feedly / Inoreader のアカウント登録対応を予定
