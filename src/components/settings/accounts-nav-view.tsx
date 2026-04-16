@@ -36,7 +36,7 @@ export function AccountsNavView({
   onAddAccount,
 }: AccountsNavViewProps) {
   return (
-    <div className="space-y-1">
+    <div className="flex gap-2 overflow-x-auto sm:block sm:space-y-1 sm:overflow-visible">
       {accounts.map((account) => {
         const kindKey = account.kind.toLowerCase();
         const kindDescription = getAccountKindDescription(account.name, account.kind);
@@ -49,7 +49,7 @@ export function AccountsNavView({
             aria-pressed={account.isActive}
             onClick={() => onSelectAccount(account.id)}
             className={cn(
-              "relative items-center overflow-hidden rounded-md px-3 py-2 text-sm",
+              "relative shrink-0 items-center overflow-hidden rounded-md px-3 py-2 text-sm sm:w-full",
               account.isActive &&
                 "border border-border-strong bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong",
             )}
@@ -66,7 +66,7 @@ export function AccountsNavView({
             title={account.name}
             description={
               kindDescription ? (
-                <div className={account.isActive ? "text-sidebar-accent-foreground/74" : "text-sidebar-foreground/66"}>
+                <div className={account.isActive ? "text-sidebar-accent-foreground/72" : "text-sidebar-foreground/64"}>
                   {kindDescription}
                 </div>
               ) : undefined
@@ -80,7 +80,7 @@ export function AccountsNavView({
         aria-pressed={isAddAccountActive}
         onClick={onAddAccount}
         className={cn(
-          "relative items-center overflow-hidden rounded-md px-3 py-2 text-sm",
+          "relative shrink-0 items-center overflow-hidden rounded-md px-3 py-2 text-sm sm:w-full",
           isAddAccountActive &&
             "border border-border-strong bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong",
         )}

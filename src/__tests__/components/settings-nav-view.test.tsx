@@ -31,6 +31,7 @@ describe("SettingsNavView", () => {
     expect(generalButton).toHaveAttribute("aria-pressed", "true");
     expect(appearanceButton).not.toHaveClass("bg-[var(--bg-selected)]");
     expect(appearanceButton).toHaveClass("rounded-md");
+    expect(screen.getByText("A").parentElement).toHaveClass("text-sidebar-foreground/64");
     expect(appearanceButton).toHaveAttribute("aria-pressed", "false");
 
     fireEvent.click(appearanceButton);
