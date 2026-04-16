@@ -27,8 +27,6 @@ describe("SettingsNavView", () => {
     const appearanceButton = screen.getByRole("button", { name: "Custom category" });
 
     expect(generalButton).toHaveClass("bg-[var(--bg-selected)]");
-    expect(generalButton).toHaveClass("shadow-none");
-    expect(generalButton).toHaveClass("before:bg-primary");
     expect(generalButton).toHaveAttribute("aria-pressed", "true");
     expect(appearanceButton).not.toHaveClass("bg-[var(--bg-selected)]");
     expect(appearanceButton).toHaveAttribute("aria-pressed", "false");

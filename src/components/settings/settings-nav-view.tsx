@@ -17,7 +17,7 @@ export function SettingsNavView({ ariaLabel, items, onSelectCategory }: Settings
           className={cn(
             "relative items-center overflow-hidden rounded-lg px-3 py-2 text-[14px] font-medium leading-[1.3] hover:bg-sidebar-accent/58",
             item.isActive &&
-              "bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:rounded-full before:bg-primary",
+              "border border-border-strong bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong",
           )}
           leading={
             <span
