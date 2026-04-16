@@ -61,6 +61,7 @@ export function WorkspaceHeader({
       hasTauriRuntime: hasRuntime,
     }) ||
     (hasRuntime && platformKind === "unknown" && looksLikeMacPlatform());
+  const hasBackAction = Boolean(backLabel && onBack);
 
   return (
     <div
@@ -78,7 +79,7 @@ export function WorkspaceHeader({
       <div data-testid="workspace-header-body" className={cn("flex flex-col gap-4", useDesktopOverlay && "pl-20")}>
         <div data-testid="workspace-header-top-row" className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-2">
-            {backLabel && onBack ? (
+            {hasBackAction ? (
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -105,7 +106,10 @@ export function WorkspaceHeader({
             </Button>
           </div>
         </div>
-        <div data-testid="workspace-header-title-group" className="min-w-0 space-y-2 pb-1">
+        <div
+          data-testid="workspace-header-title-group"
+          className={cn("min-w-0 space-y-2 pb-1", hasBackAction && "pl-3.5 sm:pl-4")}
+        >
           <div data-testid="workspace-header-context-row" className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
             <p className="font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase">
               {eyebrow}
