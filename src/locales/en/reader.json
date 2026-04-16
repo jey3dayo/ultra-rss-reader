@@ -147,6 +147,7 @@
     "no_results": "No results found",
     "recent_actions": "Recent Actions",
     "actions": "Actions",
+    "restart_app": "Restart app",
     "theme_action": "Theme: {{theme}}",
     "feeds": "Feeds",
     "articles": "Articles",

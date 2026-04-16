@@ -1,7 +1,16 @@
-import { CircleHelpIcon, MoonIcon, NewspaperIcon, RefreshCwIcon, RssIcon, SettingsIcon, SunIcon } from "lucide-react";
+import {
+  CircleHelpIcon,
+  MoonIcon,
+  NewspaperIcon,
+  RefreshCwIcon,
+  RotateCcwIcon,
+  RssIcon,
+  SettingsIcon,
+  SunIcon,
+} from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { getShortcutDisplay } from "@/lib/keyboard-shortcuts";
+import { DEV_RESTART_SHORTCUT, formatKeyForDisplay, getShortcutDisplay } from "@/lib/keyboard-shortcuts";
 import type { UseCommandPaletteActionsParams, UseCommandPaletteActionsResult } from "./command-palette.types";
 
 export function useCommandPaletteActions({
@@ -12,8 +21,8 @@ export function useCommandPaletteActions({
   const { t: tSidebar } = useTranslation("sidebar");
   const { t: tSettings } = useTranslation("settings");
 
-  return useMemo(
-    () => [
+  return useMemo(() => {
+    const actions: UseCommandPaletteActionsResult = [
       {
         id: "open-settings",
         label: t("shortcuts.open_settings"),
@@ -69,7 +78,18 @@ export function useCommandPaletteActions({
         keywords: ["read", "articles"],
         icon: NewspaperIcon,
       },
-    ],
-    [platformKind, shortcutPrefs, t, tSettings, tSidebar],
-  );
+    ];
+
+    if (import.meta.env.DEV) {
+      actions.push({
+        id: "restart-app",
+        label: t("command_palette.restart_app"),
+        shortcut: formatKeyForDisplay(DEV_RESTART_SHORTCUT, platformKind),
+        keywords: ["restart", "relaunch", "reload", "dev"],
+        icon: RotateCcwIcon,
+      });
+    }
+
+    return actions;
+  }, [platformKind, shortcutPrefs, t, tSettings, tSidebar]);
 }

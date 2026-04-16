@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { reloadBrowserWebview, triggerSync } from "@/api/tauri-commands";
+import { reloadBrowserWebview, restartApp, triggerSync } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import { runManualUpdateCheck } from "@/hooks/use-updater";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
@@ -25,6 +25,7 @@ export type AppAction =
   | "open-subscriptions-index"
   | "open-feed-cleanup"
   | "open-command-palette"
+  | "restart-app"
   | "prev-article"
   | "next-article"
   | "prev-feed"
@@ -59,6 +60,7 @@ const appActions = new Set<string>([
   "open-subscriptions-index",
   "open-feed-cleanup",
   "open-command-palette",
+  "restart-app",
   "prev-article",
   "next-article",
   "prev-feed",
@@ -246,6 +248,20 @@ export function executeAction(action: AppAction): void {
       break;
     case "open-command-palette":
       store.toggleCommandPalette();
+      break;
+    case "restart-app":
+      if (!import.meta.env.DEV) {
+        break;
+      }
+      void restartApp().then((result) => {
+        Result.pipe(
+          result,
+          Result.inspectError((error) => {
+            console.error("App restart failed:", error);
+            store.showToast("再起動に失敗しました");
+          }),
+        );
+      });
       break;
 
     // --- Article navigation ---

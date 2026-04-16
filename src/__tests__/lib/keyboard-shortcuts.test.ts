@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildKeyToActionMap,
   formatKeyForDisplay,
@@ -8,6 +8,10 @@ import {
 } from "@/lib/keyboard-shortcuts";
 
 describe("keyboard shortcut resolver", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("opens settings on command comma even when an input is focused", () => {
     const result = resolveKeyboardAction({
       key: ",",
@@ -36,6 +40,40 @@ describe("keyboard shortcut resolver", () => {
     });
 
     expect(Result.unwrap(result)).toEqual({ type: "open-command-palette" });
+  });
+
+  it("resolves Cmd+Shift+R to restart-app only in dev", () => {
+    vi.stubEnv("DEV", true);
+
+    const result = resolveKeyboardAction({
+      key: "R",
+      metaKey: true,
+      ctrlKey: false,
+      shiftKey: true,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "reader",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrap(result)).toEqual({ type: "restart-app" });
+  });
+
+  it("ignores Cmd+Shift+R outside dev builds", () => {
+    vi.stubEnv("DEV", false);
+
+    const result = resolveKeyboardAction({
+      key: "R",
+      metaKey: true,
+      ctrlKey: false,
+      shiftKey: true,
+      targetTag: "DIV",
+      selectedArticleId: null,
+      contentMode: "reader",
+      viewMode: "all",
+    });
+
+    expect(Result.unwrapError(result)).toBe("no_action");
   });
 
   it("resolves Cmd+Backslash to toggle the sidebar", () => {

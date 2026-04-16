@@ -224,7 +224,7 @@ describe("CommandPalette", () => {
     await screen.findByPlaceholderText("Search commands…");
 
     const overlay = document.querySelector('[data-slot="dialog-overlay"]');
-    expect(overlay).toHaveClass("bg-background/60");
+    expect(overlay).toHaveClass("bg-dialog-overlay-readable");
     expect(overlay).toHaveClass("supports-backdrop-filter:backdrop-blur-none");
   });
 
@@ -263,6 +263,24 @@ describe("CommandPalette", () => {
 
     expect(await screen.findByRole("option", { name: /Open add feed dialog/ })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: /Open feed cleanup broken references/ })).not.toBeInTheDocument();
+  });
+
+  it("shows a dev-only restart action and executes it", async () => {
+    const user = userEvent.setup();
+    const executeAction = vi.spyOn(actions, "executeAction").mockImplementation(() => {});
+    vi.stubEnv("DEV", true);
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const restartOption = await screen.findByRole("option", { name: /Restart app/ });
+    expect(restartOption).toHaveTextContent("⌘ Shift + R");
+
+    await user.click(restartOption);
+
+    await waitFor(() => {
+      expect(executeAction).toHaveBeenCalledWith("restart-app");
+      expect(useUiStore.getState().commandPaletteOpen).toBe(false);
+    });
   });
 
   it("runs a dev scenario without writing to recent history and closes the palette", async () => {

@@ -147,6 +147,7 @@
     "no_results": "結果が見つかりません",
     "recent_actions": "最近のアクション",
     "actions": "アクション",
+    "restart_app": "アプリを再起動",
     "theme_action": "テーマ: {{theme}}",
     "feeds": "フィード",
     "articles": "記事",

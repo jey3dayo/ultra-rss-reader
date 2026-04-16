@@ -54,6 +54,9 @@ export function useKeyboard() {
         case "open-shortcuts-help":
           useUiStore.getState().openShortcutsHelp();
           break;
+        case "restart-app":
+          executeAction("restart-app");
+          break;
         case "emit":
           emitKeyboardEvent(resolvedAction.eventName);
           break;

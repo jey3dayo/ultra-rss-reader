@@ -20,6 +20,7 @@ const { triggerSyncMock, i18nTMock } = vi.hoisted(() => ({
 }));
 
 const runManualUpdateCheckMock = vi.fn();
+const restartAppMock = vi.fn();
 const performUpdateCheckMock = vi.fn();
 const showUpdateAvailableToastMock = vi.fn();
 const reloadBrowserWebviewMock = vi.fn(async () =>
@@ -33,6 +34,7 @@ const reloadBrowserWebviewMock = vi.fn(async () =>
 
 vi.mock("@/api/tauri-commands", () => ({
   reloadBrowserWebview: reloadBrowserWebviewMock,
+  restartApp: restartAppMock,
   triggerSync: triggerSyncMock,
   listAccounts: vi.fn(async () => Result.succeed([])),
 }));
@@ -70,6 +72,8 @@ let flushPendingBrowserCloseAction: () => void;
 beforeEach(async () => {
   useUiStore.setState(useUiStore.getInitialState());
   runManualUpdateCheckMock.mockReset();
+  restartAppMock.mockReset();
+  restartAppMock.mockResolvedValue(Result.succeed(null));
   performUpdateCheckMock.mockReset();
   showUpdateAvailableToastMock.mockReset();
   i18nTMock.mockClear();
@@ -165,6 +169,28 @@ describe("executeAction", () => {
       executeAction("open-command-palette");
 
       expect(useUiStore.getState().commandPaletteOpen).toBe(true);
+    });
+  });
+
+  describe("development actions", () => {
+    it("restarts the app in dev builds", async () => {
+      vi.stubEnv("DEV", true);
+
+      executeAction("restart-app");
+
+      await waitFor(() => {
+        expect(restartAppMock).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it("does not restart the app outside dev builds", async () => {
+      vi.stubEnv("DEV", false);
+
+      executeAction("restart-app");
+
+      await waitFor(() => {
+        expect(restartAppMock).not.toHaveBeenCalled();
+      });
     });
   });
 
@@ -508,6 +534,7 @@ describe("executeAction", () => {
       expect(isAppAction("close-browser")).toBe(true);
       expect(isAppAction("set-filter-unread")).toBe(true);
       expect(isAppAction("open-command-palette")).toBe(true);
+      expect(isAppAction("restart-app")).toBe(true);
       expect(isAppAction("set-theme-dark")).toBe(true);
       expect(isAppAction("open-subscriptions-index")).toBe(true);
       expect(isAppAction("open-feed-cleanup")).toBe(true);

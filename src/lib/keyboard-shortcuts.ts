@@ -21,6 +21,7 @@ export type KeyboardAction =
   | { type: "open-settings" }
   | { type: "open-command-palette" }
   | { type: "open-shortcuts-help" }
+  | { type: "restart-app" }
   | { type: "emit"; eventName: (typeof keyboardEvents)[keyof typeof keyboardEvents] }
   | { type: "set-view-mode"; mode: ViewMode }
   | { type: "toggle-sidebar" }
@@ -206,6 +207,7 @@ export const shortcutPrefKey = (id: ShortcutActionId): string => `shortcut_${id}
 
 export type KeyboardShortcutPrefs = Record<string, string>;
 export type KeyToActionMap = Map<string, ShortcutActionId>;
+export const DEV_RESTART_SHORTCUT = "\u2318+Shift+R";
 
 export function getShortcutKey(id: ShortcutActionId, prefs: KeyboardShortcutPrefs): string {
   const definition = shortcutDefinitions.find((item) => item.id === id);
@@ -363,6 +365,10 @@ export function resolveKeyboardAction(
 
   if (key === "?") {
     return Result.succeed({ type: "open-shortcuts-help" });
+  }
+
+  if (import.meta.env.DEV && normalized === DEV_RESTART_SHORTCUT) {
+    return Result.succeed({ type: "restart-app" });
   }
 
   // Modifier shortcuts should not fall back to plain single-key bindings.
