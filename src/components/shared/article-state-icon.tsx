@@ -13,7 +13,7 @@ export function UnreadIcon({ unread, forceTone = false, tone = "state", classNam
         unread
           ? showSemanticTone
             ? "bg-[var(--tone-unread)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--tone-unread)_45%,transparent)]"
-            : "bg-current"
+            : "border-2 border-current/85"
           : forceTone
             ? tone === "state"
               ? "border-2"

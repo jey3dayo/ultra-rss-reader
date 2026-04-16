@@ -27,7 +27,9 @@ describe("UnreadIcon", () => {
 
     const icon = container.firstElementChild;
     expect(icon).not.toBeNull();
-    expect(icon).toHaveClass("bg-current");
+    expect(icon).toHaveClass("border-2");
+    expect(icon).toHaveClass("border-current/85");
+    expect(icon).not.toHaveClass("bg-[var(--tone-unread)]");
     expect(icon).not.toHaveClass("text-[var(--tone-unread)]");
     expect(icon).not.toHaveClass("border-[color-mix(in_srgb,var(--tone-unread)_88%,transparent)]");
   });

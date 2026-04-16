@@ -121,7 +121,8 @@ describe("ArticleToolbarView", () => {
     const starIcon = screen.getByRole("button", { name: "Toggle star" }).querySelector("svg");
 
     expect(readIcon).not.toBeNull();
-    expect(readIcon).toHaveClass("bg-current");
+    expect(readIcon).toHaveClass("border-2");
+    expect(readIcon).toHaveClass("border-current/85");
     expect(readIcon).not.toHaveClass("text-[var(--tone-unread)]");
 
     expect(starIcon).not.toBeNull();
