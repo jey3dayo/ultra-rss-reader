@@ -35,6 +35,9 @@ describe("AccountSwitcherView", () => {
     expect(screen.getByRole("button", { name: /Local/ })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("menu", { name: "Accounts" })).toBeInTheDocument();
     expect(screen.getAllByRole("menuitemradio")).toHaveLength(2);
+    expect(screen.getByRole("heading", { name: "Local" }).querySelector(".lucide-chevron-down")).toHaveClass(
+      "text-foreground-soft",
+    );
     expect(screen.getByText("Retrying at 12:15")).toBeInTheDocument();
 
     await user.click(screen.getByRole("menuitemradio", { name: /FreshRSS/ }));
@@ -74,7 +77,7 @@ describe("AccountSwitcherView", () => {
     const secondItem = screen.getByRole("menuitemradio", { name: /FreshRSS/ });
 
     expect(screen.getByRole("button", { name: /Local/ })).toBeInTheDocument();
-    expect(screen.getByText("Not synced yet")).toBeInTheDocument();
+    expect(screen.getByText("Not synced yet")).toHaveClass("text-foreground-soft");
     firstItem.focus();
     fireEvent.keyDown(menu, { key: "ArrowDown" });
     expect(secondItem).toHaveFocus();

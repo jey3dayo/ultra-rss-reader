@@ -55,9 +55,9 @@ export function AccountSwitcherView({
       >
         <h1 className="flex items-center gap-1 text-2xl font-bold text-sidebar-foreground">
           {selectedAccount?.name ?? title}
-          {hasMultipleAccounts && <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          {hasMultipleAccounts && <ChevronDown className="h-4 w-4 text-foreground-soft" />}
         </h1>
-        <p className="text-xs text-muted-foreground">{lastSyncedLabel}</p>
+        <p className="text-xs text-foreground-soft">{lastSyncedLabel}</p>
       </button>
 
       {isExpanded && accounts.length > 0 ? (
