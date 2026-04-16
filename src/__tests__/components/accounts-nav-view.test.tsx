@@ -29,6 +29,9 @@ describe("AccountsNavView", () => {
     expect(within(localButton).getAllByText("Local", { exact: true })).toHaveLength(1);
     expect(within(freshRssButton).getAllByText("FreshRSS", { exact: true })).toHaveLength(1);
     expect(within(freshRssButton).queryByText("FrEsHrSs", { exact: true })).not.toBeInTheDocument();
+    expect(localButton).toHaveClass("rounded-md");
+    expect(freshRssButton).toHaveClass("rounded-md");
+    expect(addAccountButton).toHaveClass("rounded-md");
     expect(localButton).toHaveAttribute("aria-pressed", "true");
     expect(freshRssButton).toHaveAttribute("aria-pressed", "false");
     expect(addAccountButton).toHaveAttribute("aria-pressed", "false");

@@ -27,10 +27,10 @@ export function TagColorPicker({
           aria-label={noColorLabel}
           title={noColorLabel}
           className={cn(
-            "flex size-8 items-center justify-center rounded-full border bg-background text-[11px] text-muted-foreground transition-[border-color,box-shadow,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+            "flex size-8 items-center justify-center rounded-full border bg-surface-1 text-[11px] text-foreground-soft transition-[background-color,border-color,box-shadow,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
             color === null
-              ? "border-foreground/25 ring-2 ring-foreground/15"
-              : "border-border hover:border-foreground/20 hover:text-foreground-soft",
+              ? "border-border-strong bg-surface-2 text-foreground ring-2 ring-ring/35"
+              : "border-border/70 hover:border-border-strong hover:bg-surface-2 hover:text-foreground",
           )}
           onClick={() => onChange(null)}
         >
@@ -46,8 +46,8 @@ export function TagColorPicker({
             className={cn(
               "size-8 rounded-full border-2 transition-[border-color,box-shadow,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
               color === option
-                ? "border-foreground/30 ring-2 ring-foreground/15"
-                : "border-border/70 hover:border-foreground/20",
+                ? "border-border-strong ring-2 ring-ring/35"
+                : "border-border/60 hover:border-border-strong",
             )}
             style={{ backgroundColor: option }}
             onClick={() => onChange(option)}

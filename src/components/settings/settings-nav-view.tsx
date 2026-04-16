@@ -15,7 +15,7 @@ export function SettingsNavView({ ariaLabel, items, onSelectCategory }: Settings
           aria-pressed={item.isActive}
           onClick={() => onSelectCategory(item.id)}
           className={cn(
-            "relative items-center overflow-hidden rounded-lg px-3 py-2 text-[14px] font-medium leading-[1.3] hover:bg-sidebar-accent/58",
+            "relative items-center overflow-hidden rounded-md px-3 py-2 text-[14px] font-medium leading-[1.3]",
             item.isActive &&
               "border border-border-strong bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong",
           )}
@@ -25,7 +25,7 @@ export function SettingsNavView({ ariaLabel, items, onSelectCategory }: Settings
                 "flex h-6 w-6 items-center justify-center transition-colors",
                 item.isActive
                   ? "text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/62 group-hover:text-sidebar-foreground/80",
+                  : "text-sidebar-foreground/68 group-hover:text-sidebar-foreground/82",
               )}
             >
               {item.icon}

@@ -64,6 +64,7 @@ describe("ShortcutsSettingsView", () => {
     );
     expect(screen.getByRole("button", { name: "Reset to defaults" })).toHaveClass("w-full");
     expect(screen.getByRole("button", { name: "J" })).toHaveClass("w-full");
+    expect(screen.getByText("⌘ ,")).toHaveClass("bg-surface-1", "text-foreground-soft");
 
     await user.click(screen.getByRole("button", { name: "J" }));
 
@@ -137,6 +138,7 @@ describe("ShortcutsSettingsView", () => {
 
     const recordingButton = screen.getByRole("button", { name: "Press a key" });
     expect(recordingButton).toHaveClass("w-full");
+    expect(recordingButton).toHaveClass("bg-ring/14");
 
     await waitFor(() => {
       expect(recordingButton).toHaveFocus();

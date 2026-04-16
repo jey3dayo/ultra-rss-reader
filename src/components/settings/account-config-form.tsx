@@ -85,7 +85,7 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
           onClick={onBack}
           disabled={submitting}
           aria-label={t("account.back_to_services")}
-          className="flex items-center gap-0.5 text-sm text-primary hover:text-primary/80 disabled:opacity-50"
+          className="flex items-center gap-0.5 text-sm text-foreground-soft transition-colors hover:text-foreground disabled:opacity-50"
         >
           <ChevronLeft className="h-4 w-4" />
           {tc("back")}
@@ -97,8 +97,8 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
 
       {/* Service info banner */}
       {serviceDef && (
-        <div className="mb-6 flex items-center gap-3 rounded-lg bg-muted/50 p-3">
-          <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", serviceDef.iconBg)}>
+        <div className="mb-6 flex items-center gap-3 rounded-md border border-border/60 bg-surface-1/80 p-3">
+          <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", serviceDef.iconBg)}>
             <serviceDef.icon className="h-5 w-5 text-white" />
           </div>
           <div>

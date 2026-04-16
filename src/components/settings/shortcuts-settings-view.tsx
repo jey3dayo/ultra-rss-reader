@@ -60,10 +60,10 @@ function ShortcutKeyBadge({ item, pressAKeyLabel }: ShortcutKeyBadgeProps) {
         onClick={item.onStartRecording}
         className={`w-full rounded-md border px-2.5 py-1 text-center font-mono text-[13px] font-medium leading-none tracking-[0.02em] transition-colors sm:w-auto ${
           item.isRecording
-            ? "animate-pulse border-ring bg-ring/20 text-foreground"
+            ? "animate-pulse border-ring bg-ring/14 text-foreground"
             : item.conflictLabel
               ? "border-state-danger-border bg-state-danger-surface text-state-danger-foreground"
-              : "cursor-pointer border-border bg-muted/80 text-foreground/78 hover:border-ring hover:bg-ring/10 hover:text-foreground/88"
+              : "cursor-pointer border-border/70 bg-surface-1 text-foreground-soft hover:border-border-strong hover:bg-surface-2 hover:text-foreground"
         }`}
       >
         {item.isRecording ? pressAKeyLabel : item.displayKey}
@@ -116,7 +116,7 @@ export function ShortcutsSettingsView({
               className="flex-col items-stretch sm:flex-row sm:items-center"
             >
               {item.isLocked ? (
-                <kbd className="w-full rounded-md border border-border bg-muted/80 px-2.5 py-1 text-center font-mono text-[13px] font-medium leading-none tracking-[0.02em] text-foreground/72 sm:w-auto">
+                <kbd className="w-full rounded-md border border-border/70 bg-surface-1 px-2.5 py-1 text-center font-mono text-[13px] font-medium leading-none tracking-[0.02em] text-foreground-soft sm:w-auto">
                   {item.displayKey}
                 </kbd>
               ) : (
