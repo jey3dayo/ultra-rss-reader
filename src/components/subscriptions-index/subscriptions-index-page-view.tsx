@@ -1,5 +1,9 @@
 import { WorkspaceHeader } from "@/components/shared/workspace-header";
-import { WORKSPACE_DETAIL_PANE_GRID_CLASS } from "@/components/shared/workspace-pane-layout";
+import {
+  WORKSPACE_CANVAS_CLASS,
+  WORKSPACE_CHROME_SPACING_CLASS,
+  workspaceSplitShellClassName,
+} from "@/components/shared/workspace-pane-layout";
 import { SubscriptionDetailPane } from "./subscription-detail-pane";
 import type {
   SubscriptionDetailCandidate,
@@ -90,12 +94,12 @@ export function SubscriptionsIndexPageView({
         closeLabel={closeLabel}
         onClose={onClose}
       />
-      <div className="flex min-h-0 flex-1 flex-col px-3 pb-3 sm:px-5 sm:pb-5">
-        <div className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col">
+      <div className={WORKSPACE_CHROME_SPACING_CLASS}>
+        <div className={WORKSPACE_CANVAS_CLASS}>
           <SubscriptionsOverviewSummary cards={summaryCards} />
           <div
             data-testid="subscriptions-workspace-shell"
-            className={`mt-3 grid min-h-0 overflow-visible rounded-lg border border-border/70 lg:mt-4 lg:flex-1 lg:overflow-hidden ${WORKSPACE_DETAIL_PANE_GRID_CLASS}`}
+            className={workspaceSplitShellClassName()}
             style={{
               backgroundColor: "var(--subscriptions-workspace-surface)",
               boxShadow: "var(--subscriptions-workspace-shadow)",
