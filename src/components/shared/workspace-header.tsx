@@ -1,7 +1,6 @@
 import { ChevronLeft, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 
@@ -15,6 +14,8 @@ type WorkspaceHeaderProps = {
   onClose: () => void;
   actions?: ReactNode;
 };
+
+const MAC_OVERLAY_LEADING_SAFE_INSET = 72;
 
 export const workspaceHeaderActionClassName =
   "h-7 rounded-[min(var(--radius-md),12px)] border border-border/60 font-sans text-[0.8rem] font-normal text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground";
@@ -74,10 +75,15 @@ export function WorkspaceHeader({
           data-testid="workspace-header-drag-region"
           data-tauri-drag-region
           aria-hidden="true"
-          className="absolute inset-y-0 left-0 w-20"
+          className="absolute inset-y-0 left-0"
+          style={{ width: `${MAC_OVERLAY_LEADING_SAFE_INSET}px` }}
         />
       ) : null}
-      <div data-testid="workspace-header-body" className={cn("flex flex-col gap-4", useDesktopOverlay && "pl-20")}>
+      <div
+        data-testid="workspace-header-body"
+        className="flex flex-col gap-4"
+        style={useDesktopOverlay ? { paddingLeft: `${MAC_OVERLAY_LEADING_SAFE_INSET}px` } : undefined}
+      >
         <div data-testid="workspace-header-top-row" className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-2">
             {hasBackAction ? (
