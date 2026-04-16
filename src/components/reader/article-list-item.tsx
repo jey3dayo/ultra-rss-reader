@@ -84,7 +84,7 @@ export function ArticleListItem({
       </div>
 
       {showFeedName && (
-        <p className={cn("pl-4 text-xs", isUnread ? "text-muted-foreground" : "text-muted-foreground/70")}>
+        <p className={cn("pl-4 text-xs", isUnread ? "text-muted-foreground" : "text-foreground-soft")}>
           {normalizedFeedName}
         </p>
       )}
@@ -95,7 +95,7 @@ export function ArticleListItem({
             <p
               className={cn(
                 "line-clamp-2 flex-1 text-xs leading-relaxed",
-                isUnread ? "text-muted-foreground" : "text-muted-foreground/70",
+                isUnread ? "text-muted-foreground" : "text-foreground-soft",
               )}
             >
               {normalizedSummary}
