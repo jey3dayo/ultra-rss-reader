@@ -413,10 +413,10 @@ export function AnnouncementCardsSpecimen() {
           data-testid="reference-announcement-card-decided"
           className={cn(
             STACK_SPECIMEN_FRAME_RADIUS_CLASS,
-            "flex items-center gap-4 border border-emerald-500/20 bg-emerald-500/8 px-4 py-3 shadow-elevation-1",
+            "flex items-center gap-4 border border-state-success-border bg-state-success-surface px-4 py-3 shadow-elevation-1",
           )}
         >
-          <span className="inline-flex min-w-12 justify-center rounded-md border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 font-sans text-2xl font-medium text-emerald-700 dark:text-emerald-300">
+          <span className="inline-flex min-w-12 justify-center rounded-md border border-state-success-border bg-state-success-surface px-3 py-2 font-sans text-2xl font-medium text-state-success-foreground">
             0
           </span>
           <div>

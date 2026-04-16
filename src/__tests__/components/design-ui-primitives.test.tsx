@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -42,6 +43,16 @@ describe("Design-themed UI primitives", () => {
 
     expect(screen.getByRole("textbox", { name: "Feed URL" })).toHaveClass("bg-surface-1", "border-border");
     expect(screen.getByRole("combobox", { name: "Theme" })).toHaveClass("bg-surface-1", "border-border");
+  });
+
+  it("uses semantic success tokens for checked checkboxes", () => {
+    render(<Checkbox aria-label="Keep selected" checked={true} onCheckedChange={vi.fn()} />);
+
+    expect(screen.getByRole("checkbox", { name: "Keep selected" })).toHaveClass(
+      "data-[checked]:border-state-success-border",
+      "data-[checked]:bg-state-success-surface",
+      "data-[checked]:text-state-success-foreground",
+    );
   });
 
   it("renders dialogs with warm overlay and elevated surface styling", () => {
