@@ -79,7 +79,7 @@ export function FeedCleanupQueuePanel({
           variant="section"
           tone="subtle"
           padding="compact"
-          className="mb-4 flex flex-wrap items-center justify-between gap-3 shadow-none"
+          className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md shadow-none"
         >
           <div className="flex items-center gap-3 text-sm font-medium text-foreground">
             <span className="inline-flex h-5 w-5 items-center justify-center rounded-[var(--radius-md)] border border-border/70 bg-surface-1/80">
@@ -106,7 +106,7 @@ export function FeedCleanupQueuePanel({
       <div data-testid="feed-cleanup-queue-list" className={queueListClassName}>
         {integrityMode ? (
           integrityIssues.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+            <p className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
               {integrityEmptyLabel}
             </p>
           ) : (
@@ -117,7 +117,7 @@ export function FeedCleanupQueuePanel({
                 aria-label={`${integrityDetailLabels.queue_item_title}: ${issue.missing_feed_id}`}
                 onClick={() => onSelectIntegrityIssue(issue.missing_feed_id)}
                 className={cn(
-                  "flex w-full cursor-pointer flex-col gap-2 rounded-[var(--radius-lg)] border px-4 py-3 text-left transition-colors",
+                  "flex w-full cursor-pointer flex-col gap-2 rounded-md border px-4 py-3 text-left transition-colors",
                   selectedIntegrityIssue?.missing_feed_id === issue.missing_feed_id
                     ? "border-amber-500/50 bg-amber-500/10"
                     : "border-border bg-card hover:bg-muted/60",
@@ -136,7 +136,7 @@ export function FeedCleanupQueuePanel({
             ))
           )
         ) : queue.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+          <p className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
             {emptyLabel}
           </p>
         ) : (
@@ -158,7 +158,7 @@ export function FeedCleanupQueuePanel({
                 tone={isCurrent || isSelected ? "default" : "subtle"}
                 padding="compact"
                 className={cn(
-                  "transition-colors duration-150",
+                  "rounded-md transition-colors duration-150",
                   isCurrent || isSelected
                     ? "border-border-strong bg-card/56 shadow-none"
                     : "border-border/55 bg-background/28 shadow-none",

@@ -89,6 +89,7 @@ describe("FeedCleanupQueuePanel", () => {
     );
 
     expect(screen.getByText("1 selected")).toBeInTheDocument();
+    expect(screen.getByText("1 selected").closest('[data-surface-card="section"]')).toHaveClass("rounded-md");
     expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("bg-emerald-500/8");
     expect(screen.getByRole("button", { name: "Defer selected" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete selected" })).toBeInTheDocument();
@@ -128,6 +129,7 @@ describe("FeedCleanupQueuePanel", () => {
 
     expect(screen.getByTestId("feed-cleanup-selection-hit-area-feed-1")).toHaveClass("p-2");
     expect(screen.getByTestId("feed-cleanup-selection-hit-area-feed-1")).toHaveClass("min-h-11");
+    expect(screen.getByTestId("feed-cleanup-selection-hit-area-feed-1")).toHaveClass("rounded-[var(--radius-lg)]");
   });
 
   it("uses subdued surface cards for selected rows while keeping row actions available", () => {
@@ -141,6 +143,7 @@ describe("FeedCleanupQueuePanel", () => {
 
     const queueRow = screen.getByTestId("feed-cleanup-queue-row-feed-1");
 
+    expect(queueRow).toHaveClass("rounded-md");
     expect(queueRow).toHaveClass("bg-card/56");
     expect(queueRow).toHaveClass("border-border-strong");
     expect(within(queueRow).getByRole("button", { name: "Delete" })).toBeInTheDocument();
@@ -152,5 +155,28 @@ describe("FeedCleanupQueuePanel", () => {
     const queueRow = screen.getByTestId("feed-cleanup-queue-row-feed-1");
 
     expect(queueRow).toHaveClass("bg-background/28");
+  });
+
+  it("uses rounded-md for empty states and integrity queue rows", () => {
+    const { rerender } = render(<FeedCleanupQueuePanel {...buildProps()} queue={[]} />);
+
+    expect(screen.getByText("No cleanup candidates right now.")).toHaveClass("rounded-md");
+
+    rerender(
+      <FeedCleanupQueuePanel
+        {...buildProps()}
+        integrityMode={true}
+        integrityIssues={[
+          {
+            missing_feed_id: "missing-feed",
+            article_count: 2,
+            latest_article_title: "Broken article",
+            latest_article_published_at: "2026-03-31T10:00:00Z",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Missing feed: missing-feed" })).toHaveClass("rounded-md");
   });
 });
