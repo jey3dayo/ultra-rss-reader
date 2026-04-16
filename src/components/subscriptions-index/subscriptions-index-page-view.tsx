@@ -77,7 +77,7 @@ export function SubscriptionsIndexPageView({
 }) {
   return (
     <div
-      className="flex h-dvh max-h-dvh min-h-0 flex-1 flex-col overflow-hidden"
+      className="flex h-dvh max-h-dvh min-h-0 flex-1 flex-col overflow-y-auto lg:overflow-hidden"
       style={{ backgroundImage: "var(--subscriptions-shell-bg)" }}
     >
       <WorkspaceHeader
@@ -94,7 +94,7 @@ export function SubscriptionsIndexPageView({
           <SubscriptionsOverviewSummary cards={summaryCards} />
           <div
             data-testid="subscriptions-workspace-shell"
-            className="mt-3 grid min-h-0 flex-1 overflow-hidden rounded-xl border border-border/70 lg:mt-4 lg:grid-cols-[minmax(0,1.02fr)_minmax(380px,0.98fr)]"
+            className="mt-3 grid min-h-0 overflow-visible rounded-xl border border-border/70 lg:mt-4 lg:flex-1 lg:overflow-hidden lg:grid-cols-[minmax(0,1.02fr)_minmax(380px,0.98fr)]"
             style={{
               backgroundColor: "var(--subscriptions-workspace-surface)",
               boxShadow: "var(--subscriptions-workspace-shadow)",
