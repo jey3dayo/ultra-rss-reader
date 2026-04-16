@@ -35,7 +35,7 @@ export function ArticleListFooter({
   }
 
   return (
-    <div className="border-t border-border bg-card px-4 py-1.5">
+    <div className="flex h-10 items-center border-t border-border bg-card px-4">
       <ToggleGroup value={[viewMode]} onValueChange={handleChange}>
         {visibleModes.map((mode) => {
           const isDisabled = disabledModes.includes(mode.value);
@@ -54,7 +54,7 @@ export function ArticleListFooter({
               ) : (
                 <UnreadIcon
                   unread={viewMode === "unread"}
-                  className="h-2.5 w-2.5 shadow-[0_0_0_1px_rgba(96,165,250,0.32)]"
+                  className="h-2.5 w-2.5 shadow-[0_0_0_1px_color-mix(in_srgb,var(--tone-unread)_32%,transparent)]"
                 />
               )}
               {t(mode.labelKey)}
