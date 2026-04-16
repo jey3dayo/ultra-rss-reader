@@ -19,6 +19,7 @@ export type UseArticleStatusActionsParams = {
   isRead: boolean;
   isStarred: boolean;
   viewMode: ArticleStatusViewMode;
+  retainOnUnstar: boolean;
   showToast: ArticleStatusToast;
   addRecentlyRead: (articleId: string) => void;
   retainArticle: (articleId: string) => void;
@@ -38,6 +39,7 @@ export type UseArticleStatusActionsResult = {
 export type UseArticleActionsParams = {
   article: ArticleDto | null;
   viewMode: ArticleStatusViewMode;
+  retainOnUnstar: boolean;
   supportsReadingList: boolean;
   showToast: ArticleStatusToast;
   addRecentlyRead: (articleId: string) => void;

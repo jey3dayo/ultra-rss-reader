@@ -17,10 +17,17 @@ describe("ArticleListFooter", () => {
 
     const unreadButton = screen.getByRole("button", { name: /unread/i });
     const unreadIcon = unreadButton.querySelector("span");
+    const starredButton = screen.getByRole("button", { name: /starred/i });
+    const starredIcon = starredButton.querySelector("svg");
 
     expect(unreadIcon).not.toBeNull();
     expect(unreadIcon).toHaveClass("bg-[var(--tone-unread)]");
-    expect(unreadIcon).toHaveClass("shadow-[0_0_0_1px_color-mix(in_srgb,var(--tone-unread)_32%,transparent)]");
+    expect(unreadIcon).toHaveClass("text-[var(--tone-unread)]");
+    expect(unreadIcon).toHaveClass("border-[color-mix(in_srgb,var(--tone-unread)_88%,transparent)]");
+
+    expect(starredIcon).not.toBeNull();
+    expect(starredIcon).toHaveClass("text-[var(--tone-starred)]");
+    expect(starredIcon).not.toHaveClass("fill-[var(--tone-starred)]");
 
     await user.click(screen.getByRole("button", { name: /starred/i }));
 

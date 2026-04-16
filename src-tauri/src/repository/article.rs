@@ -26,7 +26,13 @@ pub trait ArticleRepository {
         account_id: &AccountId,
         pagination: &Pagination,
     ) -> DomainResult<Vec<Article>>;
+    fn find_starred_by_account(
+        &self,
+        account_id: &AccountId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>>;
     fn count_unread_by_account(&self, account_id: &AccountId) -> DomainResult<i32>;
+    fn count_starred_by_account(&self, account_id: &AccountId) -> DomainResult<i32>;
     fn upsert(&self, articles: &[Article]) -> DomainResult<()>;
     fn mark_as_read(&self, id: &ArticleId, read: bool) -> DomainResult<()>;
     fn mark_many_as_read(&self, ids: &[ArticleId]) -> DomainResult<()>;

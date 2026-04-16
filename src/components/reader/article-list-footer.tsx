@@ -68,11 +68,7 @@ export function ArticleListFooter({
               ) : mode.icon === "list" ? (
                 <List className={controlChipIconVariants({ size: "filter" })} />
               ) : (
-                <UnreadIcon
-                  unread={viewMode === "unread"}
-                  forceTone
-                  className="h-2.5 w-2.5"
-                />
+                <UnreadIcon unread={viewMode === "unread"} forceTone className="h-2.5 w-2.5" />
               )}
               {t(mode.labelKey)}
             </Toggle>

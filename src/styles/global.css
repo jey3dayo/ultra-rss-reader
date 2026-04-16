@@ -156,6 +156,10 @@
   --state-success-surface: rgba(16, 185, 129, 0.08);
   --state-success-border: rgba(16, 185, 129, 0.2);
   --state-success-foreground: rgb(6, 95, 70);
+  --tone-unread: #9fbbe0;
+  --tone-starred: #facc15;
+  --tone-foreground-strength: 72%;
+  --tone-surface-strength: 18%;
   --state-review-surface: rgba(245, 78, 0, 0.08);
   --state-review-border: rgba(245, 78, 0, 0.18);
   --state-review-foreground: rgb(154, 52, 18);
@@ -172,6 +176,12 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 1px 2px rgba(38, 37, 30, 0.06), 0 10px 24px rgba(38, 37, 30, 0.08);
   --shadow-elevation-2: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 16px 36px rgba(38, 37, 30, 0.12);
   --shadow-elevation-3: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 28px 70px rgba(38, 37, 30, 0.16);
+  --sidebar-selection-background: color-mix(in srgb, var(--surface-4) 76%, var(--background));
+  --sidebar-selection-foreground: var(--foreground);
+  --sidebar-selection-border: color-mix(in srgb, var(--foreground) 14%, transparent);
+  --sidebar-selection-muted: color-mix(in srgb, var(--foreground) 72%, transparent);
+  --sidebar-divider-strong: color-mix(in srgb, var(--foreground) 18%, transparent);
+  --reader-context-border: color-mix(in srgb, var(--foreground) 14%, transparent);
   --bg-sidebar: #ebeae5;
   --bg-list: #f7f7f4;
   --bg-content: #f2f1ed;
@@ -276,6 +286,10 @@
   --state-success-surface: rgba(16, 185, 129, 0.12);
   --state-success-border: rgba(16, 185, 129, 0.24);
   --state-success-foreground: rgb(167, 243, 208);
+  --tone-unread: #9fbbe0;
+  --tone-starred: #facc15;
+  --tone-foreground-strength: 78%;
+  --tone-surface-strength: 22%;
   --state-review-surface: rgba(245, 78, 0, 0.14);
   --state-review-border: rgba(245, 78, 0, 0.22);
   --state-review-foreground: rgb(255, 220, 201);
@@ -292,6 +306,12 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 1px 2px rgba(0, 0, 0, 0.2), 0 10px 24px rgba(0, 0, 0, 0.24);
   --shadow-elevation-2: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 16px 36px rgba(0, 0, 0, 0.3);
   --shadow-elevation-3: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 28px 70px rgba(0, 0, 0, 0.42);
+  --sidebar-selection-background: color-mix(in srgb, var(--surface-4) 84%, var(--background));
+  --sidebar-selection-foreground: var(--foreground);
+  --sidebar-selection-border: color-mix(in srgb, var(--foreground) 16%, transparent);
+  --sidebar-selection-muted: color-mix(in srgb, var(--foreground) 72%, transparent);
+  --sidebar-divider-strong: color-mix(in srgb, var(--foreground) 18%, transparent);
+  --reader-context-border: color-mix(in srgb, var(--foreground) 16%, transparent);
   --bg-sidebar: #171410;
   --bg-list: #221e19;
   --bg-content: #1c1915;

@@ -5,12 +5,14 @@ import {
   ArticleDtoSchema,
   addAccountArgs,
   commandArgsSchemas,
+  countAccountStarredArticlesArgs,
   createMuteKeywordArgs,
   DiscoveredFeedDtoSchema,
   deleteMuteKeywordArgs,
   FeedDtoSchema,
   FolderDtoSchema,
   listArticlesArgs,
+  listStarredArticlesArgs,
   MuteKeywordDtoSchema,
   markArticleReadArgs,
   PlatformInfoSchema,
@@ -159,6 +161,16 @@ describe("command args schemas", () => {
   });
   it("parses markArticleReadArgs with optional read", () => {
     expect(markArticleReadArgs.parse({ articleId: "a-1" })).toEqual({ articleId: "a-1" });
+  });
+  it("parses listStarredArticlesArgs", () => {
+    expect(listStarredArticlesArgs.parse({ accountId: "acc-1", offset: 0, limit: 20 })).toEqual({
+      accountId: "acc-1",
+      offset: 0,
+      limit: 20,
+    });
+  });
+  it("parses countAccountStarredArticlesArgs", () => {
+    expect(countAccountStarredArticlesArgs.parse({ accountId: "acc-1" })).toEqual({ accountId: "acc-1" });
   });
   it("parses toggleArticleStarArgs", () => {
     expect(toggleArticleStarArgs.parse({ articleId: "a-1", starred: true })).toEqual({

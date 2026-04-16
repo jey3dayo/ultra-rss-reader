@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
+import * as articleHooks from "@/hooks/use-articles";
 import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -24,6 +25,8 @@ const { sidebarSourceOverrides } = vi.hoisted(() => ({
     foldersData: undefined as FolderDto[] | undefined,
     accountArticlesEnabled: false,
     accountArticlesData: undefined as ArticleDto[] | undefined,
+    starredCountEnabled: false,
+    starredCountData: undefined as number | undefined,
     tagArticleCountsEnabled: false,
     tagArticleCountsData: undefined as Record<string, number> | undefined,
   },
@@ -117,6 +120,11 @@ vi.mock("@/hooks/use-articles", async () => {
         ? { ...result, data: sidebarSourceOverrides.accountArticlesData }
         : result;
     },
+    useAccountStarredCount: (_accountId: string | null) => {
+      return sidebarSourceOverrides.starredCountEnabled
+        ? ({ data: sidebarSourceOverrides.starredCountData } as ReturnType<typeof actual.useAccountStarredCount>)
+        : ({ data: 0 } as ReturnType<typeof actual.useAccountStarredCount>);
+    },
   };
 });
 
@@ -160,6 +168,8 @@ describe("Sidebar", () => {
     sidebarSourceOverrides.foldersData = undefined;
     sidebarSourceOverrides.accountArticlesEnabled = false;
     sidebarSourceOverrides.accountArticlesData = undefined;
+    sidebarSourceOverrides.starredCountEnabled = false;
+    sidebarSourceOverrides.starredCountData = undefined;
     sidebarSourceOverrides.tagArticleCountsEnabled = false;
     sidebarSourceOverrides.tagArticleCountsData = undefined;
     useUiStore.setState(useUiStore.getInitialState());
@@ -351,24 +361,51 @@ describe("Sidebar", () => {
   });
 
   it("keeps the starred smart-view count during refetch", async () => {
-    sidebarSourceOverrides.accountArticlesEnabled = true;
-    sidebarSourceOverrides.accountArticlesData = [
-      {
-        id: "article-1",
-        feed_id: "feed-1",
-        title: "Starred",
-        content_sanitized: "<p>starred</p>",
-        summary: null,
-        url: "https://example.com/starred",
-        author: null,
-        published_at: "2026-04-14T00:00:00Z",
-        thumbnail: null,
-        is_read: false,
-        is_starred: true,
-      },
-    ];
+    sidebarSourceOverrides.starredCountEnabled = true;
+    sidebarSourceOverrides.starredCountData = 1;
     sidebarSourceOverrides.tagArticleCountsEnabled = true;
     sidebarSourceOverrides.tagArticleCountsData = {};
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_folders":
+          return [];
+        case "list_tags":
+          return [];
+        case "list_account_articles":
+          return [];
+        case "count_account_starred_articles":
+          return 0;
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    const { rerender } = render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("button", { name: /Starred/ })).toHaveTextContent("1");
+
+    sidebarSourceOverrides.starredCountData = undefined;
+    rerender(<Sidebar />);
+
+    expect(await screen.findByRole("button", { name: /Starred/ })).toHaveTextContent("1");
+  });
+
+  it("shows the starred smart-view count from the dedicated starred source", async () => {
+    sidebarSourceOverrides.starredCountEnabled = true;
+    sidebarSourceOverrides.starredCountData = 1;
+    const starredCountSpy = vi.spyOn(articleHooks, "useAccountStarredCount");
+
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
         case "list_accounts":
@@ -392,13 +429,13 @@ describe("Sidebar", () => {
       ...useUiStore.getInitialState(),
       selectedAccountId: "acc-1",
     });
+    usePreferencesStore.setState({
+      prefs: { show_starred_count: "true" },
+      loaded: true,
+    });
+    starredCountSpy.mockReturnValue({ data: 1 } as ReturnType<typeof articleHooks.useAccountStarredCount>);
 
-    const { rerender } = render(<Sidebar />, { wrapper: createWrapper() });
-
-    expect(await screen.findByRole("button", { name: /Starred/ })).toHaveTextContent("1");
-
-    sidebarSourceOverrides.accountArticlesData = undefined;
-    rerender(<Sidebar />);
+    render(<Sidebar />, { wrapper: createWrapper() });
 
     expect(await screen.findByRole("button", { name: /Starred/ })).toHaveTextContent("1");
   });

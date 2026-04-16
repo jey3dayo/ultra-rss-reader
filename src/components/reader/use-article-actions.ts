@@ -8,6 +8,7 @@ import { useArticleStatusActions } from "./use-article-status-actions";
 export function useArticleActions({
   article,
   viewMode,
+  retainOnUnstar,
   supportsReadingList,
   showToast,
   addRecentlyRead,
@@ -27,6 +28,7 @@ export function useArticleActions({
     isRead,
     isStarred,
     viewMode,
+    retainOnUnstar,
     showToast,
     addRecentlyRead,
     retainArticle,

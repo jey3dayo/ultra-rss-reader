@@ -44,12 +44,12 @@ export function SubscriptionDetailPane({
   return (
     <section
       data-testid="subscriptions-detail-pane"
-      className="flex min-h-0 flex-col border-l border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.58),hsl(var(--background)/0.92))] px-4 py-4 sm:px-6"
+      className="flex min-h-0 flex-col border-l border-border/70 bg-card/40 px-4 py-4 sm:px-6"
     >
       <h2 className="sr-only">{heading}</h2>
       {!row || !metrics ? (
         <div className="flex min-h-0 flex-1 items-center">
-          <p className="w-full rounded-md border border-dashed border-border bg-background/65 px-5 py-6 text-sm text-muted-foreground">
+          <p className="w-full rounded-md border border-dashed border-border bg-surface-1/80 px-5 py-6 text-sm text-muted-foreground">
             {emptyLabel}
           </p>
         </div>

@@ -6,6 +6,7 @@ export function useArticleStatusActions({
   isRead,
   isStarred,
   viewMode,
+  retainOnUnstar,
   showToast,
   addRecentlyRead,
   retainArticle,
@@ -58,7 +59,7 @@ export function useArticleStatusActions({
         { id: articleId, starred: pressed },
         {
           onSuccess: () => {
-            if (!pressed && viewMode === "starred") {
+            if (!pressed && retainOnUnstar) {
               retainArticle(articleId);
             }
             if (options?.showStatusToast) {
@@ -68,7 +69,7 @@ export function useArticleStatusActions({
         },
       );
     },
-    [articleId, retainArticle, showToast, starredMessage, toggleStar, unstarredMessage, viewMode],
+    [articleId, retainArticle, retainOnUnstar, showToast, starredMessage, toggleStar, unstarredMessage],
   );
 
   const handleToggleRead = useCallback(() => {

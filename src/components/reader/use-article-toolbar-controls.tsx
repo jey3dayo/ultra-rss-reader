@@ -20,12 +20,15 @@ export function useArticleToolbarControls({
   const showToast = useUiStore((s) => s.showToast);
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
   const retainArticle = useUiStore((s) => s.retainArticle);
+  const selection = useUiStore((s) => s.selection);
   const viewMode = useUiStore((s) => s.viewMode);
+  const retainOnUnstar = viewMode === "starred" || (selection.type === "smart" && selection.kind === "starred");
   const actionCopyLink = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "action_copy_link"));
   const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
   const { setReadStatus, setStarStatus, handleOpenExternalBrowser, handleCopyLink } = useArticleActions({
     article,
     viewMode,
+    retainOnUnstar,
     supportsReadingList,
     showToast,
     addRecentlyRead,

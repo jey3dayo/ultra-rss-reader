@@ -129,6 +129,25 @@ pub fn list_account_articles(
 }
 
 #[tauri::command]
+pub fn list_starred_articles(
+    state: State<'_, AppState>,
+    account_id: String,
+    offset: Option<usize>,
+    limit: Option<usize>,
+) -> Result<Vec<ArticleDto>, AppError> {
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let repo = SqliteArticleRepository::new(db.reader());
+    let pagination = Pagination {
+        offset: offset.unwrap_or(0),
+        limit: limit.unwrap_or(50),
+    };
+    let articles = repo.find_starred_by_account(&AccountId(account_id), &pagination)?;
+    Ok(articles.into_iter().map(ArticleDto::from).collect())
+}
+
+#[tauri::command]
 pub fn count_account_unread_articles(
     state: State<'_, AppState>,
     account_id: String,
@@ -139,6 +158,19 @@ pub fn count_account_unread_articles(
     let repo = SqliteArticleRepository::new(db.reader());
     let unread_count = repo.count_unread_by_account(&AccountId(account_id))?;
     Ok(unread_count)
+}
+
+#[tauri::command]
+pub fn count_account_starred_articles(
+    state: State<'_, AppState>,
+    account_id: String,
+) -> Result<i32, AppError> {
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let repo = SqliteArticleRepository::new(db.reader());
+    let starred_count = repo.count_starred_by_account(&AccountId(account_id))?;
+    Ok(starred_count)
 }
 
 #[tauri::command]

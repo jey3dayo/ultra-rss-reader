@@ -18,8 +18,18 @@ export const listAccountArticlesArgs = z.object({
   limit: z.number().optional(),
 });
 
+// --- listStarredArticles ---
+export const listStarredArticlesArgs = z.object({
+  accountId: z.string(),
+  offset: z.number().optional(),
+  limit: z.number().optional(),
+});
+
 // --- countAccountUnreadArticles ---
 export const countAccountUnreadArticlesArgs = z.object({ accountId: z.string() });
+
+// --- countAccountStarredArticles ---
+export const countAccountStarredArticlesArgs = z.object({ accountId: z.string() });
 
 // --- searchArticles ---
 export const searchArticlesArgs = z.object({
@@ -237,7 +247,9 @@ export const commandArgsSchemas: Record<string, z.ZodType> = {
   list_feeds: listFeedsArgs,
   list_articles: listArticlesArgs,
   list_account_articles: listAccountArticlesArgs,
+  list_starred_articles: listStarredArticlesArgs,
   count_account_unread_articles: countAccountUnreadArticlesArgs,
+  count_account_starred_articles: countAccountStarredArticlesArgs,
   search_articles: searchArticlesArgs,
   mark_article_read: markArticleReadArgs,
   mark_articles_read: markArticlesReadArgs,

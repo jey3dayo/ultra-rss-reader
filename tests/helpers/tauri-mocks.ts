@@ -145,9 +145,17 @@ function createDefaultHandler(): MockHandler {
         return sampleArticles.filter((a) =>
           sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId),
         );
+      case "list_starred_articles":
+        return sampleArticles.filter(
+          (a) => a.is_starred && sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId),
+        );
       case "count_account_unread_articles":
         return sampleArticles.filter((a) =>
           sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId && !a.is_read),
+        ).length;
+      case "count_account_starred_articles":
+        return sampleArticles.filter((a) =>
+          sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId && a.is_starred),
         ).length;
       case "get_feed_integrity_report":
         return { orphaned_article_count: 0, orphaned_feeds: [] };

@@ -44,6 +44,7 @@ export function useArticleListRuntime() {
     selection: uiState.selection,
     selectionContext,
     selectedAccountId: uiState.selectedAccountId,
+    selectedArticleId: uiState.selectedArticleId,
   });
   const search = useArticleListSearch({ selectedAccountId: uiState.selectedAccountId });
 

@@ -14,11 +14,14 @@ export function ArticleContextMenu({ article, children }: ArticleContextMenuProp
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
   const retainArticle = useUiStore((s) => s.retainArticle);
   const viewMode = useUiStore((s) => s.viewMode);
+  const selection = useUiStore((s) => s.selection);
   const showToast = useUiStore((s) => s.showToast);
   const supportsReadingList = usePlatformStore((s) => s.platform.capabilities.supports_reading_list);
+  const retainOnUnstar = viewMode === "starred" || (selection.type === "smart" && selection.kind === "starred");
   const { handleToggleRead, handleToggleStar, handleOpenExternalBrowser } = useArticleActions({
     article,
     viewMode,
+    retainOnUnstar,
     supportsReadingList,
     showToast,
     addRecentlyRead,

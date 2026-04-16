@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useAccounts } from "@/hooks/use-accounts";
-import { useAccountArticles } from "@/hooks/use-articles";
+import { useAccountArticles, useAccountStarredCount } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { useScreenSnapshot } from "@/hooks/use-screen-snapshot";
@@ -15,6 +15,7 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
   const { data: tags } = useTags();
   const { data: tagArticleCounts } = useTagArticleCounts(selectedAccountId);
   const { data: accountArticles } = useAccountArticles(selectedAccountId);
+  const { data: accountStarredCount } = useAccountStarredCount(selectedAccountId);
 
   const accountStatusLabels = useSidebarAccountStatusLabels(accounts);
   const selectedAccount = useMemo(
@@ -34,20 +35,16 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
   const feedList = adoptedSnapshot?.feeds ?? feeds ?? [];
   const folderList = adoptedSnapshot?.folders ?? folders ?? [];
   const totalUnread = useMemo(() => feedList.reduce((sum, feed) => sum + feed.unread_count, 0), [feedList]);
-  const liveStarredCount = useMemo(
-    () => accountArticles?.filter((article) => article.is_starred).length ?? 0,
-    [accountArticles],
-  );
   const sidebarCountsSnapshotCandidate = useMemo(
     () =>
-      selectedAccountId !== null && tagArticleCounts !== undefined && accountArticles !== undefined
+      selectedAccountId !== null && tagArticleCounts !== undefined && accountStarredCount !== undefined
         ? {
             accountId: selectedAccountId,
             tagArticleCounts,
-            starredCount: liveStarredCount,
+            starredCount: accountStarredCount,
           }
         : null,
-    [accountArticles, liveStarredCount, selectedAccountId, tagArticleCounts],
+    [accountStarredCount, selectedAccountId, tagArticleCounts],
   );
   const { snapshot: sidebarCountsSnapshot } = useScreenSnapshot(
     sidebarCountsSnapshotCandidate,
@@ -55,7 +52,7 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
   );
   const adoptedCountsSnapshot = sidebarCountsSnapshot?.accountId === selectedAccountId ? sidebarCountsSnapshot : null;
   const resolvedTagArticleCounts = adoptedCountsSnapshot?.tagArticleCounts ?? tagArticleCounts;
-  const starredCount = adoptedCountsSnapshot?.starredCount ?? liveStarredCount;
+  const starredCount = adoptedCountsSnapshot?.starredCount ?? accountStarredCount ?? 0;
 
   return {
     accounts,

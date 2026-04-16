@@ -57,9 +57,17 @@ describe("ArticleToolbarView", () => {
 
     const readButton = screen.getByRole("button", { name: "Toggle read" });
     const starButton = screen.getByRole("button", { name: "Toggle star" });
+    const readIcon = readButton.querySelector("span");
+    const starIcon = starButton.querySelector("svg");
 
     expect(readButton).toHaveAttribute("aria-pressed", "true");
     expect(starButton).toHaveAttribute("aria-pressed", "false");
+    expect(readIcon).not.toBeNull();
+    expect(readIcon).toHaveClass("border-[color-mix(in_srgb,var(--tone-unread)_88%,transparent)]");
+    expect(readIcon).toHaveClass("text-[var(--tone-unread)]");
+    expect(starIcon).not.toBeNull();
+    expect(starIcon).toHaveClass("text-[var(--tone-starred)]");
+    expect(starIcon).not.toHaveClass("fill-[var(--tone-starred)]");
 
     await user.click(screen.getByRole("button", { name: "Close article" }));
     await user.click(readButton);

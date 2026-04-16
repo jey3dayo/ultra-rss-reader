@@ -362,6 +362,7 @@ export type UseArticleListSourcesParams = {
   selection: UiSelection;
   selectionContext: ArticleListPrimarySourceContext;
   selectedAccountId: string | null;
+  selectedArticleId: string | null;
 };
 
 export type ArticleListPrimarySourceKind = "feed" | "account" | "tag";

@@ -16,6 +16,7 @@ import {
   addToReadingListArgs,
   checkBrowserEmbedSupportArgs,
   copyToClipboardArgs,
+  countAccountStarredArticlesArgs,
   countAccountUnreadArticlesArgs,
   createFolderArgs,
   createMuteKeywordArgs,
@@ -47,6 +48,7 @@ import {
   listArticlesByTagArgs,
   listFeedsArgs,
   listFoldersArgs,
+  listStarredArticlesArgs,
   type MuteKeywordDto,
   MuteKeywordDtoSchema,
   markArticleReadArgs,
@@ -189,10 +191,24 @@ export const listAccountArticles = (accountId: string, offset?: number, limit?: 
     { accountId, offset, limit },
   );
 
+export const listStarredArticles = (accountId: string, offset?: number, limit?: number) =>
+  safeInvoke(
+    "list_starred_articles",
+    { response: z.array(ArticleDtoSchema), args: listStarredArticlesArgs },
+    { accountId, offset, limit },
+  );
+
 export const countAccountUnreadArticles = (accountId: string) =>
   safeInvoke(
     "count_account_unread_articles",
     { response: z.number().int(), args: countAccountUnreadArticlesArgs },
+    { accountId },
+  );
+
+export const countAccountStarredArticles = (accountId: string) =>
+  safeInvoke(
+    "count_account_starred_articles",
+    { response: z.number().int(), args: countAccountStarredArticlesArgs },
     { accountId },
   );
 

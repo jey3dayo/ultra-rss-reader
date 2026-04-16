@@ -93,7 +93,7 @@ export function FeedTreeFolderSection({
                     }
                   : {})}
                 className={cn(
-                  "flex-1 px-0.5 pl-0",
+                  "flex-1 px-0.5 pl-1.5",
                   isActive && "border-dashed bg-sidebar-accent/60 ring-1 ring-sidebar-border",
                 )}
               />

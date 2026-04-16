@@ -7,7 +7,8 @@ export function UnreadIcon({ unread, forceTone = false, className }: UnreadIconP
     <span
       className={cn(
         "inline-block shrink-0 rounded-full",
-        (unread || forceTone) && "text-[var(--tone-unread)] border-[color-mix(in_srgb,var(--tone-unread)_88%,transparent)]",
+        (unread || forceTone) &&
+          "text-[var(--tone-unread)] border-[color-mix(in_srgb,var(--tone-unread)_88%,transparent)]",
         unread
           ? "bg-[var(--tone-unread)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--tone-unread)_45%,transparent)]"
           : forceTone

@@ -36,18 +36,21 @@ Derived roles used across the product:
 - **Border** (`oklab(0.263084 -0.00230259 0.0124794 / 0.1)`): Default border and divider tone
 - **Border Strong** (`rgba(38, 37, 30, 0.2)`): Focused, active, or emphasized border
 - **Success** (`#1f8a65`): Positive state and successful completion messaging
+- **Unread** (`#9fbbe0`): Fixed semantic accent for unread state, unread markers, and reading-context navigation
+- **Starred** (`#facc15`): Fixed semantic accent for starred state, starred markers, and star-focused navigation
 
 Feature and timeline accents:
 
 - **Thinking** (`#dfa88f`): AI or background processing state
 - **Grep** (`#9fc9a2`): Search and indexing state
-- **Read** (`#9fbbe0`): Reading, inspection, or passive information state
+- **Read / Unread Context** (`#9fbbe0`): Reading-related state, unread indicators, and reading-context navigation accents
 - **Edit** (`#c0a8dd`): Edit and mutation state
 
 Color governance:
 
 - If an existing semantic token can express a color, use the token instead of a literal value in code.
 - If a repeated UI meaning needs a new color role, add it here and to the token layer before spreading literals in code.
+- Unread and starred UI are fixed semantic roles. Define them in `DESIGN.md` and the shared token layer before using them in multiple components.
 - Tag palettes and provider brand colors are exceptions and should be managed as central palettes, not mixed into the base theme colors.
 
 ## Typography
@@ -117,7 +120,7 @@ Elevation scale:
 - **Chips and Tags**: Secondary and filter chips should read as pill elements. Use full-pill radius, muted warm surfaces, and restrained text contrast. Selected chips deepen through surface tone before introducing stronger chroma.
 - **Cards and Containers**: Use warm cream surfaces, a warm border ring, and border-led separation by default. Standard structural cards and section containers default to 8px radius; `Info Cards` are the smaller 6px role for reading, notice, and state surfaces. Elevated cards may use the Level 3 shadow. 20px+ radii belong to separate shell roles rather than standard cards.
 - **Inputs and Forms**: Inputs should stay neutral and legible, with warm borders and a restrained focus treatment. Prefer border emphasis or accent-orange focus hints over cold blue rings.
-- **Lists and Navigation**: Lists should separate items through tone and dividers rather than heavy blocks of accent color. Navigation and tab treatments should feel clean, compact, and editorial rather than dashboard-like.
+- **Lists and Navigation**: Lists should separate items through tone and dividers rather than heavy blocks of accent color. Navigation and tab treatments should feel clean, compact, and editorial rather than dashboard-like. Smart views, context strips, filter chips, and article state icons may use the fixed unread/starred semantic colors, but the color should usually appear as icon tint or a light surface wash rather than a solid block.
 - **Media and Preview Surfaces**: Code or browser previews may use darker surfaces, but they should still feel framed by warm borders and integrated into the cream-based system rather than floating as disconnected black panels.
 - **Distinctive Components**: The AI timeline remains a special component. It may use the thinking/grep/read/edit palette directly, with each state tied to a clear semantic label and a vertical connection rhythm.
 
@@ -277,6 +280,8 @@ These colors should be centralized as provider brand tokens or a dedicated excep
 - Brand accent: `#f54e00`
 - Hover / expressive accent: `#cf2d56`
 - Success: `#1f8a65`
+- Unread semantic accent: `#9fbbe0`
+- Starred semantic accent: `#facc15`
 - Default border: `oklab(0.263084 -0.00230259 0.0124794 / 0.1)` with warm rgba fallback
 
 #### Example Prompt Framing

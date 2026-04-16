@@ -220,12 +220,100 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         Ok(articles)
     }
 
+    fn find_starred_by_account(
+        &self,
+        account_id: &AccountId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>> {
+        let select_cols_prefixed = SELECT_COLS
+            .split(", ")
+            .map(|col| format!("a.{col}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            let sql = format!(
+                "SELECT {select_cols_prefixed} FROM articles a
+                 JOIN feeds f ON a.feed_id = f.id
+                 WHERE f.account_id = ?1
+                   AND a.is_starred = 1
+                 ORDER BY a.published_at DESC
+                 LIMIT ?2 OFFSET ?3"
+            );
+            let mut stmt = self.conn.prepare(&sql)?;
+            let articles = stmt
+                .query_map(
+                    params![
+                        account_id.0,
+                        pagination.limit as i64,
+                        pagination.offset as i64
+                    ],
+                    row_to_article,
+                )?
+                .collect::<Result<Vec<_>, _>>()?;
+            return Ok(articles);
+        }
+
+        let mute_clause = build_mute_keyword_exclusion_clause(
+            "a.title",
+            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+        );
+        let sql = format!(
+            "SELECT {select_cols_prefixed} FROM articles a
+             JOIN feeds f ON a.feed_id = f.id
+             WHERE f.account_id = ?1
+               AND a.is_starred = 1
+               AND {mute_clause}
+             ORDER BY a.published_at DESC
+             LIMIT ?2 OFFSET ?3"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let articles = stmt
+            .query_map(
+                params![
+                    account_id.0,
+                    pagination.limit as i64,
+                    pagination.offset as i64
+                ],
+                row_to_article,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(articles)
+    }
+
     fn count_unread_by_account(&self, account_id: &AccountId) -> DomainResult<i32> {
         let count = self.conn.query_row(
             "SELECT COUNT(*) FROM articles a JOIN feeds f ON a.feed_id = f.id WHERE f.account_id = ?1 AND a.is_read = 0",
             params![account_id.0],
             |row| row.get(0),
         )?;
+        Ok(count)
+    }
+
+    fn count_starred_by_account(&self, account_id: &AccountId) -> DomainResult<i32> {
+        if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            let count = self.conn.query_row(
+                "SELECT COUNT(*) FROM articles a JOIN feeds f ON a.feed_id = f.id WHERE f.account_id = ?1 AND a.is_starred = 1",
+                params![account_id.0],
+                |row| row.get(0),
+            )?;
+            return Ok(count);
+        }
+
+        let mute_clause = build_mute_keyword_exclusion_clause(
+            "a.title",
+            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+        );
+        let sql = format!(
+            "SELECT COUNT(*) FROM articles a
+             JOIN feeds f ON a.feed_id = f.id
+             WHERE f.account_id = ?1
+               AND a.is_starred = 1
+               AND {mute_clause}"
+        );
+        let count = self
+            .conn
+            .query_row(&sql, params![account_id.0], |row| row.get(0))?;
         Ok(count)
     }
 
@@ -797,6 +885,51 @@ mod tests {
             .unwrap();
 
         assert_eq!(repo.count_unread_by_account(&account_a).unwrap(), 2);
+    }
+
+    #[test]
+    fn find_and_count_starred_by_account_ignore_unstarred_and_other_accounts() {
+        let db = test_db();
+        let account_a = insert_test_account(&db);
+        let account_b = insert_test_account(&db);
+        let feed_a1 = insert_test_feed(&db, &account_a);
+        let feed_a2 = insert_test_feed(&db, &account_a);
+        let feed_b = insert_test_feed(&db, &account_b);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut newest_starred = make_article(&feed_a1, "Newest starred");
+        newest_starred.is_starred = true;
+        newest_starred.published_at = Utc::now() + chrono::Duration::seconds(2);
+
+        let mut older_starred = make_article(&feed_a2, "Older starred");
+        older_starred.is_starred = true;
+        older_starred.published_at = Utc::now() + chrono::Duration::seconds(1);
+
+        let unstarred = make_article(&feed_a1, "Unstarred");
+
+        let mut other_account_starred = make_article(&feed_b, "Other account starred");
+        other_account_starred.is_starred = true;
+
+        repo.upsert(&[
+            newest_starred.clone(),
+            older_starred.clone(),
+            unstarred,
+            other_account_starred,
+        ])
+        .unwrap();
+
+        let found = repo
+            .find_starred_by_account(&account_a, &Pagination::default())
+            .unwrap();
+
+        assert_eq!(
+            found
+                .iter()
+                .map(|article| article.title.as_str())
+                .collect::<Vec<_>>(),
+            ["Newest starred", "Older starred"]
+        );
+        assert_eq!(repo.count_starred_by_account(&account_a).unwrap(), 2);
     }
 
     #[test]

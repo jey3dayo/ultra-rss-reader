@@ -52,6 +52,14 @@ const FILTER_ITEMS = [
   { value: "starred", label: "スター", icon: "star" },
 ] as const;
 
+const REFERENCE_FILTER_TONE_CLASSNAMES = {
+  unread:
+    "text-[color-mix(in_srgb,var(--tone-unread)_68%,var(--sidebar-foreground))] hover:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--sidebar-selection-foreground))] data-[pressed]:bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--sidebar-selection-foreground))]",
+  all: "text-sidebar-foreground/78 hover:text-sidebar-foreground data-[pressed]:bg-sidebar-accent/85 data-[pressed]:text-sidebar-foreground",
+  starred:
+    "text-[color-mix(in_srgb,var(--tone-starred)_72%,var(--sidebar-foreground))] hover:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--sidebar-selection-foreground))] data-[pressed]:bg-[color-mix(in_srgb,var(--tone-starred)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--sidebar-selection-foreground))]",
+} as const;
+
 const REFERENCE_NAV_ITEMS: SettingsNavItem[] = [
   { id: "general", label: "General", icon: <Settings2 className="h-4 w-4" />, isActive: true },
   { id: "appearance", label: "Appearance", icon: <Palette className="h-4 w-4" />, isActive: false },
@@ -338,18 +346,19 @@ export function ReaderFilterStripSpecimen() {
               aria-label={item.label}
               className={cn(
                 controlChipVariants({ size: "filter", interaction: "toggle" }),
-                "text-sidebar-foreground/78 hover:text-sidebar-foreground data-[pressed]:bg-sidebar-accent/85 data-[pressed]:text-sidebar-foreground",
+                REFERENCE_FILTER_TONE_CLASSNAMES[item.value],
               )}
             >
               {item.icon === "star" ? (
-                <StarIcon starred={mode === "starred"} className={controlChipIconVariants({ size: "filter" })} />
+                <StarIcon
+                  starred={mode === "starred"}
+                  forceTone
+                  className={controlChipIconVariants({ size: "filter" })}
+                />
               ) : item.icon === "list" ? (
                 <List className={controlChipIconVariants({ size: "filter" })} />
               ) : (
-                <UnreadIcon
-                  unread={mode === "unread"}
-                  className="h-2.5 w-2.5 shadow-[0_0_0_1px_rgba(96,165,250,0.32)]"
-                />
+                <UnreadIcon unread={mode === "unread"} forceTone className="h-2.5 w-2.5" />
               )}
               {item.label}
             </Toggle>

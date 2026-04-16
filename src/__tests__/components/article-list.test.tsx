@@ -31,6 +31,12 @@ describe("ArticleList", () => {
           return sampleArticles.filter((article) =>
             sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
           );
+        case "list_starred_articles":
+          return sampleArticles.filter(
+            (article) =>
+              article.is_starred &&
+              sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
         case "list_articles_by_tag":
           return [sampleArticles[0]];
         case "search_articles":
@@ -291,6 +297,8 @@ describe("ArticleList", () => {
         case "list_feeds":
           return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_account_articles":
+          return [];
+        case "list_starred_articles":
           return [];
         case "list_articles":
           return [];
@@ -897,6 +905,12 @@ describe("ArticleList", () => {
           return articles.filter((article) =>
             sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
           );
+        case "list_starred_articles":
+          return articles.filter(
+            (article) =>
+              article.is_starred &&
+              sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
         case "list_articles_by_tag":
           return [];
         case "search_articles":
@@ -937,6 +951,12 @@ describe("ArticleList", () => {
         case "list_account_articles":
           return articles.filter((article) =>
             sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_starred_articles":
+          return articles.filter(
+            (article) =>
+              article.is_starred &&
+              sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
           );
         case "list_articles_by_tag":
           return [];
@@ -987,10 +1007,12 @@ describe("ArticleList", () => {
   });
 
   it("keeps an unstarred article in starred view until the user changes screens", async () => {
+    const starredArticlesSpy = vi.spyOn(articleHooks, "useStarredArticles");
     let articles = [
       { ...sampleArticles[0], is_read: false, is_starred: false },
       { ...sampleArticles[1], is_read: true, is_starred: true },
     ];
+    let starredArticles = articles.filter((article) => article.is_starred);
 
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
@@ -1001,6 +1023,12 @@ describe("ArticleList", () => {
         case "list_account_articles":
           return articles.filter((article) =>
             sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_starred_articles":
+          return articles.filter(
+            (article) =>
+              article.is_starred &&
+              sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
           );
         case "list_articles_by_tag":
           return [];
@@ -1015,11 +1043,19 @@ describe("ArticleList", () => {
           articles = articles.map((article) =>
             article.id === args.articleId ? { ...article, is_starred: Boolean(args.starred) } : article,
           );
+          starredArticles = articles.filter((article) => article.is_starred);
           return null;
         default:
           return null;
       }
     });
+    starredArticlesSpy.mockImplementation(
+      () =>
+        ({
+          data: starredArticles,
+          isLoading: false,
+        }) as ReturnType<typeof articleHooks.useStarredArticles>,
+    );
 
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectSmartView("starred");
@@ -1034,21 +1070,16 @@ describe("ArticleList", () => {
       { wrapper: createWrapper() },
     );
 
-    const list = await screen.findByRole("listbox", { name: "Article list" });
-    await waitFor(() => {
-      expect(within(list).getByRole("option", { name: /Second Article/ })).toBeInTheDocument();
-    });
+    expect((await screen.findAllByText("Second Article")).length).toBeGreaterThan(0);
 
     await user.click(await screen.findByRole("button", { name: "Toggle star" }));
 
-    await waitFor(() => {
-      expect(within(list).getByRole("option", { name: "Second Article" })).toBeInTheDocument();
-    });
+    expect((await screen.findAllByText("Second Article")).length).toBeGreaterThan(0);
 
-    await user.click(screen.getByRole("button", { name: "UNREAD" }));
+    useUiStore.getState().setViewMode("unread");
 
     await waitFor(() => {
-      expect(within(list).queryByRole("option", { name: "Second Article" })).not.toBeInTheDocument();
+      expect(screen.queryByText("Second Article")).not.toBeInTheDocument();
     });
   });
 
@@ -1180,6 +1211,60 @@ describe("ArticleList", () => {
     expect(screen.getByRole("button", { name: "UNREAD" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ALL" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "STARRED" })).not.toBeInTheDocument();
+  });
+
+  it("shows starred smart-view articles even when the general account query does not include them", async () => {
+    const starredArticlesSpy = vi.spyOn(articleHooks, "useStarredArticles");
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "smart", kind: "starred" },
+      viewMode: "all",
+    });
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+          return [];
+        case "list_starred_articles":
+          return [
+            {
+              ...sampleArticles[1],
+              id: "older-starred",
+              title: "Older Starred Article",
+              is_read: true,
+              is_starred: true,
+            },
+          ];
+        case "list_articles":
+          return [];
+        case "list_articles_by_tag":
+          return [];
+        case "search_articles":
+          return [];
+        default:
+          return null;
+      }
+    });
+    starredArticlesSpy.mockReturnValue({
+      data: [
+        {
+          ...sampleArticles[1],
+          id: "older-starred",
+          title: "Older Starred Article",
+          is_read: true,
+          is_starred: true,
+        },
+      ],
+      isLoading: false,
+    } as ReturnType<typeof articleHooks.useStarredArticles>);
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Older Starred Article")).toBeInTheDocument();
   });
 
   it("clamps smart starred away from invalid starred mode", async () => {

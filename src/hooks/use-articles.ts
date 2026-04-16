@@ -2,9 +2,11 @@ import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import {
+  countAccountStarredArticles,
   getFeedIntegrityReport,
   listAccountArticles,
   listArticles,
+  listStarredArticles,
   markArticleRead,
   markArticlesRead,
   markFeedRead,
@@ -28,7 +30,9 @@ export type ToggleStarMutationInput = {
 function invalidateArticleQueries(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: ["articles"] });
   qc.invalidateQueries({ queryKey: ["accountArticles"] });
+  qc.invalidateQueries({ queryKey: ["starredArticles"] });
   qc.invalidateQueries({ queryKey: ["accountUnreadCount"] });
+  qc.invalidateQueries({ queryKey: ["accountStarredCount"] });
   qc.invalidateQueries({ queryKey: ["feeds"] });
   qc.invalidateQueries({ queryKey: ["articlesByTag"] });
   qc.invalidateQueries({ queryKey: ["search"] });
@@ -38,10 +42,20 @@ export const useArticles = createQuery("articles", listArticles);
 
 export const useAccountArticles = createQuery("accountArticles", listAccountArticles);
 
+export const useStarredArticles = createQuery("starredArticles", listStarredArticles);
+
 export function useFeedIntegrityReport() {
   return useQuery({
     queryKey: ["feedIntegrityReport"],
     queryFn: () => getFeedIntegrityReport().then(Result.unwrap()),
+  });
+}
+
+export function useAccountStarredCount(accountId: string | null) {
+  return useQuery({
+    queryKey: ["accountStarredCount", accountId],
+    queryFn: () => countAccountStarredArticles(accountId as string).then(Result.unwrap()),
+    enabled: !!accountId,
   });
 }
 
