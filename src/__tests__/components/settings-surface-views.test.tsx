@@ -190,7 +190,8 @@ describe("Settings surface views", () => {
 
     expect(screen.getByRole("heading", { level: 2, name: "Actions" })).toBeInTheDocument();
     expect(screen.getByText("Copy link")).toBeInTheDocument();
-    expect(screen.getByText("Show in toolbar")).toBeInTheDocument();
+    expect(screen.getByText("Show in toolbar")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("Copy link").previousElementSibling).toHaveClass("bg-surface-1/72", "text-foreground-soft");
 
     await user.click(screen.getByRole("switch", { name: "Show in toolbar" }));
 
