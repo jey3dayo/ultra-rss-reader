@@ -212,9 +212,9 @@ describe("FeedCleanupPage", () => {
     expect(screen.getByText("Pending")).toBeInTheDocument();
     expect(screen.getByText("Decided")).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Old Product Blog" })).toBeInTheDocument();
-    expect(screen.getByTestId("feed-cleanup-queue-row-feed-2")).toHaveClass("bg-background/28");
+    expect(screen.getByTestId("feed-cleanup-queue-row-feed-2")).toHaveClass("bg-card/24");
     expect(screen.getByTestId("feed-cleanup-queue-row-feed-1")).toHaveClass("rounded-md");
-    expect(screen.getByTestId("feed-cleanup-queue-row-feed-1")).toHaveClass("bg-card/56");
+    expect(screen.getByTestId("feed-cleanup-queue-row-feed-1")).toHaveClass("bg-card/36");
     expect(screen.getByRole("button", { name: "90+ days inactive 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "No unread 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "No stars 1" })).toBeInTheDocument();
@@ -224,7 +224,7 @@ describe("FeedCleanupPage", () => {
     await user.click(screen.getByRole("button", { name: "Old Product Blog" }));
 
     const queueRow = screen.getByTestId("feed-cleanup-queue-row-feed-1");
-    expect(queueRow).toHaveClass("bg-card/56");
+    expect(queueRow).toHaveClass("bg-card/36");
     expect(within(queueRow).getByRole("button", { name: "Defer" })).toBeInTheDocument();
     expect(within(queueRow).getByRole("button", { name: "Delete" })).toBeInTheDocument();
     expect(within(queueRow).getByRole("button", { name: "Keep" })).toHaveClass("bg-state-success-surface");

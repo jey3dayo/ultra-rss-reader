@@ -140,4 +140,60 @@ describe("ArticleListItem", () => {
 
     expect(screen.getAllByText("Episode 150")).toHaveLength(1);
   });
+
+  it("uses softer surface selection for modern rows and softer hover for unselected rows", () => {
+    const { rerender } = render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
+        isSelected
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const selectedOption = screen.getByRole("option", { name: "First Article (unread)" });
+    expect(selectedOption).toHaveClass("bg-surface-1/72");
+
+    rerender(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
+        isSelected={false}
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("option", { name: "First Article (unread)" })).toHaveClass("hover:bg-surface-1/72");
+  });
+
+  it("keeps classic selection highlighted without using a loud primary wash", () => {
+    render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
+        isSelected
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="classic"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const option = screen.getByRole("option", { name: "First Article (unread)" });
+    expect(option).toHaveClass("border-l-2", "border-primary", "bg-surface-1/72");
+  });
 });
