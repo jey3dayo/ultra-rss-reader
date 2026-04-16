@@ -16,16 +16,16 @@ function resolveCardClassName(tone: SubscriptionSummaryCard["tone"] = "neutral")
     return "border-state-review-border bg-state-review-surface";
   }
 
-  return "border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.9),hsl(var(--background)/0.96))]";
+  return "border-border/70 bg-surface-1/72";
 }
 
 export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSummaryCard[] }) {
   return (
     <section
-      className="rounded-xl border border-border/60 px-4 py-4 backdrop-blur-sm sm:px-6 sm:py-5"
+      className="rounded-xl border border-border/60 bg-background px-4 py-4 sm:px-6 sm:py-5"
       style={{
-        backgroundImage: "var(--subscriptions-summary-surface)",
-        boxShadow: "0 14px 34px -30px rgba(38, 37, 30, 0.18)",
+        backgroundColor: "var(--subscriptions-summary-surface)",
+        boxShadow: "0 12px 28px -28px rgba(38, 37, 30, 0.12)",
       }}
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[0.96fr_1.12fr_0.96fr_0.96fr] lg:gap-4">
