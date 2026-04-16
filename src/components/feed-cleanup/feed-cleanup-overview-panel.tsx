@@ -98,7 +98,7 @@ export function FeedCleanupOverviewPanel({
                 <ControlChipButton
                   pressed={activeFilterKeys.size === 0}
                   size="comfortable"
-                  className="gap-2 px-3.5"
+                  className="gap-2 rounded-md px-3.5"
                   onClick={() => {
                     filterOptions.forEach((filter) => {
                       if (activeFilterKeys.has(filter.key)) {
@@ -108,7 +108,7 @@ export function FeedCleanupOverviewPanel({
                   }}
                 >
                   <span>{t("all_candidates")}</span>
-                  <LabelChip tone="muted" size="compact">
+                  <LabelChip tone="muted" size="compact" className="rounded-sm px-1.5">
                     {visibleCandidateCount}
                   </LabelChip>
                 </ControlChipButton>
@@ -117,12 +117,12 @@ export function FeedCleanupOverviewPanel({
                     key={filter.key}
                     pressed={activeFilterKeys.has(filter.key)}
                     size="comfortable"
-                    className="gap-2 px-3.5"
+                    className="gap-2 rounded-md px-3.5"
                     aria-label={`${filter.label} ${filterCounts[filter.key]}`}
                     onClick={() => onToggleFilter(filter.key)}
                   >
                     <span>{filter.label}</span>
-                    <LabelChip tone="muted" size="compact">
+                    <LabelChip tone="muted" size="compact" className="rounded-sm px-1.5">
                       {filterCounts[filter.key]}
                     </LabelChip>
                   </ControlChipButton>
@@ -130,7 +130,7 @@ export function FeedCleanupOverviewPanel({
                 <ControlChipButton
                   pressed={showDeferred}
                   size="comfortable"
-                  className="px-3.5"
+                  className="rounded-md px-3.5"
                   onClick={onToggleShowDeferred}
                 >
                   {showDeferredLabel}

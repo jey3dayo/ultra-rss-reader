@@ -21,6 +21,9 @@ function resolvePriorityTone(tone: FeedCleanupTone) {
   return "success";
 }
 
+const decisionButtonWidthClassName =
+  "min-w-[7.5rem] justify-center px-3 sm:min-w-[8.5rem] sm:px-3.5";
+
 export function FeedCleanupQueuePanel({
   integrityMode,
   queueLabel,
@@ -63,13 +66,19 @@ export function FeedCleanupQueuePanel({
   const { t } = useTranslation("cleanup");
 
   return (
-    <section className="flex h-full min-h-0 flex-col px-4 py-4 sm:px-6 sm:py-5 lg:border-r lg:border-border/70">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="font-sans text-sm font-medium tracking-[0.02em]">
+    <section className="relative flex h-full min-h-0 flex-col px-4 pb-4 pt-3 sm:px-6 sm:pb-5 sm:pt-3 lg:border-r lg:border-border/70">
+      <div className="pointer-events-none absolute inset-x-4 top-0 z-10 flex -translate-y-1/2 items-center justify-between gap-3 sm:inset-x-6">
+        <h3
+          className="px-1.5 font-sans text-sm font-medium tracking-[0.02em]"
+          style={{ backgroundColor: "var(--cleanup-pane-header-surface)" }}
+        >
           {integrityMode ? integrityQueueLabel : queueLabel}
         </h3>
         {!integrityMode ? (
-          <span className="font-sans text-[11px] font-medium tracking-[0.12em] text-muted-foreground uppercase">
+          <span
+            className="px-1.5 font-sans text-[11px] font-medium tracking-[0.12em] text-muted-foreground uppercase"
+            style={{ backgroundColor: "var(--cleanup-pane-header-surface)" }}
+          >
             {queue.length}
           </span>
         ) : null}
@@ -88,15 +97,30 @@ export function FeedCleanupQueuePanel({
             <span>{selectedCountLabel}</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <DecisionButton intent="keep" aria-label={bulkKeepActionLabel} onClick={onKeepSelection}>
+            <DecisionButton
+              intent="keep"
+              aria-label={bulkKeepActionLabel}
+              onClick={onKeepSelection}
+              className={decisionButtonWidthClassName}
+            >
               <Check className="h-4 w-4" />
               {keepLabel}
             </DecisionButton>
-            <DecisionButton intent="defer" aria-label={bulkDeferActionLabel} onClick={onDeferSelection}>
+            <DecisionButton
+              intent="defer"
+              aria-label={bulkDeferActionLabel}
+              onClick={onDeferSelection}
+              className={decisionButtonWidthClassName}
+            >
               <Clock3 className="h-4 w-4" />
               {deferredLabel}
             </DecisionButton>
-            <DecisionButton intent="delete" aria-label={bulkDeleteActionLabel} onClick={onDeleteSelection}>
+            <DecisionButton
+              intent="delete"
+              aria-label={bulkDeleteActionLabel}
+              onClick={onDeleteSelection}
+              className={decisionButtonWidthClassName}
+            >
               <Trash2 className="h-4 w-4" />
               {deleteLabel}
             </DecisionButton>
@@ -269,6 +293,7 @@ export function FeedCleanupQueuePanel({
                     <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0">
                       <DecisionButton
                         intent="keep"
+                        className={decisionButtonWidthClassName}
                         onClick={(event) => {
                           event.stopPropagation();
                           onKeepCandidate(candidate.feedId);
@@ -279,6 +304,7 @@ export function FeedCleanupQueuePanel({
                       </DecisionButton>
                       <DecisionButton
                         intent="defer"
+                        className={decisionButtonWidthClassName}
                         onClick={(event) => {
                           event.stopPropagation();
                           onDeferCandidate(candidate.feedId);
@@ -289,6 +315,7 @@ export function FeedCleanupQueuePanel({
                       </DecisionButton>
                       <DecisionButton
                         intent="delete"
+                        className={decisionButtonWidthClassName}
                         onClick={(event) => {
                           event.stopPropagation();
                           onDeleteCandidate(candidate.feedId);

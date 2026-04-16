@@ -82,10 +82,14 @@ describe("FeedCleanupOverviewPanel", () => {
 
     const filterGroup = screen.getByRole("group", { name: "Filters" });
     const allCandidatesButton = within(filterGroup).getByRole("button", { name: "All2", pressed: true });
+    const staleButton = within(filterGroup).getByRole("button", { name: "90+ days stale 2" });
 
     expect(filterGroup).toBeInTheDocument();
     expect(allCandidatesButton).toHaveTextContent("All");
     expect(allCandidatesButton).toHaveTextContent("2");
+    expect(allCandidatesButton).toHaveClass("rounded-md");
+    expect(staleButton).toHaveClass("rounded-md");
+    expect(within(allCandidatesButton).getByText("2")).toHaveClass("rounded-sm");
     expect(within(allCandidatesButton).queryByText("3")).toBeNull();
     expect(screen.getByTestId("feed-cleanup-bulk-actions")).toBeInTheDocument();
     expect(screen.getByText("3 visible")).toHaveClass("text-foreground-soft");

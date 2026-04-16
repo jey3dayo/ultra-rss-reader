@@ -91,6 +91,9 @@ describe("FeedCleanupQueuePanel", () => {
     expect(screen.getByText("1 selected")).toBeInTheDocument();
     expect(screen.getByText("1 selected").closest('[data-surface-card="section"]')).toHaveClass("rounded-md");
     expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("bg-state-success-surface");
+    expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("min-w-[7.5rem]");
+    expect(screen.getByRole("button", { name: "Defer selected" })).toHaveClass("min-w-[7.5rem]");
+    expect(screen.getByRole("button", { name: "Delete selected" })).toHaveClass("min-w-[7.5rem]");
     expect(screen.getByRole("button", { name: "Defer selected" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete selected" })).toBeInTheDocument();
   });
@@ -147,6 +150,9 @@ describe("FeedCleanupQueuePanel", () => {
     expect(queueRow).toHaveClass("border-border-strong");
     expect(queueRow).toHaveStyle({ backgroundColor: "var(--cleanup-card-surface-selected)" });
     expect(within(queueRow).getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    expect(within(queueRow).getByRole("button", { name: "Keep" })).toHaveClass("min-w-[7.5rem]");
+    expect(within(queueRow).getByRole("button", { name: "Later" })).toHaveClass("min-w-[7.5rem]");
+    expect(within(queueRow).getByRole("button", { name: "Delete" })).toHaveClass("min-w-[7.5rem]");
   });
 
   it("keeps unselected rows on a muted surface", () => {
