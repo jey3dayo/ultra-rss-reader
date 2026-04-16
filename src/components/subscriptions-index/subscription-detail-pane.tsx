@@ -65,7 +65,9 @@ export function SubscriptionDetailPane({
             <FeedDetailPanel
               title={row.feed.title}
               titleHref={row.feed.site_url}
-              leadingVisual={<FeedFavicon title={row.feed.title} url={row.feed.url} siteUrl={row.feed.site_url} />}
+              leadingVisual={
+                <FeedFavicon title={row.feed.title} url={row.feed.url} siteUrl={row.feed.site_url} size="lg" />
+              }
               badgeLabel={detailCandidate?.statusLabel}
               badgeTone={detailCandidate?.tone ?? "neutral"}
               summaryText={detailCandidate?.reasonBoxBody ? undefined : (detailCandidate?.summary ?? reasonHint)}

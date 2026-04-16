@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ControlChipButton } from "@/components/shared/control-chip-button";
 import { NavRowButton } from "@/components/shared/nav-row-button";
@@ -129,5 +129,27 @@ describe("Design-themed shared components", () => {
     expect(screen.getByTestId("workspace-header-body")).toHaveClass("pl-20");
     expect(screen.getByTestId("workspace-header-drag-region")).toHaveAttribute("data-tauri-drag-region");
     expect(screen.getByRole("button", { name: "戻る" })).not.toHaveClass("rounded-full");
+  });
+
+  it("groups the back action with the workspace context instead of isolating it above the title", () => {
+    render(
+      <WorkspaceHeader
+        eyebrow="Workspace"
+        title="購読一覧"
+        subtitle="subtitle"
+        backLabel="戻る"
+        onBack={() => {}}
+        closeLabel="閉じる"
+        onClose={() => {}}
+      />,
+    );
+
+    const contextRow = screen.getByTestId("workspace-header-context-row");
+
+    expect(within(contextRow).getByRole("button", { name: "戻る" })).toBeInTheDocument();
+    expect(within(contextRow).getByText("Workspace")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("workspace-header-title-group")).getByRole("heading", { name: "購読一覧" }),
+    ).toBeInTheDocument();
   });
 });

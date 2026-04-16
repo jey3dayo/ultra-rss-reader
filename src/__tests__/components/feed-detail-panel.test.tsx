@@ -34,6 +34,13 @@ describe("FeedDetailPanel", () => {
     );
 
     expect(screen.getByTestId("detail-leading-visual")).toBeInTheDocument();
+    expect(screen.getByTestId("feed-detail-leading-visual")).toHaveClass(
+      "h-10",
+      "w-10",
+      "rounded-lg",
+      "border",
+      "bg-surface-1/88",
+    );
     expect(screen.getByTestId("feed-detail-status")).toHaveClass("rounded-lg");
     expect(screen.getByTestId("feed-detail-reason-box").closest('[data-surface-card="section"]')).toHaveClass(
       "bg-card/38",

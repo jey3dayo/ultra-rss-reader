@@ -106,7 +106,7 @@ export function SubscriptionsListPane({
                               : "var(--subscriptions-list-favicon-surface-muted)",
                         }}
                       >
-                        <FeedFavicon title={row.feed.title} url={row.feed.url} siteUrl={row.feed.site_url} />
+                        <FeedFavicon title={row.feed.title} url={row.feed.url} siteUrl={row.feed.site_url} size="md" />
                       </span>
                     }
                     title={
