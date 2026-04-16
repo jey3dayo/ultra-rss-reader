@@ -72,6 +72,7 @@ export type SettingsPageSection = {
 export type SettingsPageViewProps = {
   title: string;
   sections: SettingsPageSection[];
+  sectionSurface?: "card" | "flat";
 };
 
 export type SettingsPageSelectRowProps = {

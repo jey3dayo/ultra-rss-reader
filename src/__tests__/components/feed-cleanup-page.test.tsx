@@ -218,7 +218,7 @@ describe("FeedCleanupPage", () => {
     expect(screen.getByRole("button", { name: "90+ days inactive 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "No unread 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "No stars 1" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "No unread 1" })).toHaveClass("rounded-full");
+    expect(screen.getByRole("button", { name: "No unread 1" })).toHaveClass("rounded-md");
 
     await user.click(screen.getByRole("button", { name: "No unread 1" }));
     await user.click(screen.getByRole("button", { name: "Old Product Blog" }));

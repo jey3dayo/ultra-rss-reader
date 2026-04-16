@@ -93,7 +93,7 @@ export function MuteSettingsView({
   return (
     <>
       <SettingsContentLayout title={title} outerTestId="mute-settings-root">
-        <SettingsSection heading={addHeading} note={intro} className="mb-6">
+        <SettingsSection heading={addHeading} note={intro} surface="flat" className="mb-5 sm:mb-6">
           <LabeledControlRow
             label={keywordLabel}
             className="items-start sm:items-center"
@@ -132,7 +132,7 @@ export function MuteSettingsView({
           </LabeledControlRow>
         </SettingsSection>
 
-        <SettingsSection heading={autoMarkReadHeading} note={autoMarkReadHint} className="mb-6">
+        <SettingsSection heading={autoMarkReadHeading} note={autoMarkReadHint} surface="flat" className="mb-5 sm:mb-6">
           <LabeledControlRow label={autoMarkReadLabel}>
             <div className="flex items-center gap-3">
               <span className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground">
@@ -143,7 +143,7 @@ export function MuteSettingsView({
           </LabeledControlRow>
         </SettingsSection>
 
-        <SettingsSection heading={savedHeading}>
+        <SettingsSection heading={savedHeading} surface="flat">
           {rules.length === 0 ? (
             <p className="border-b border-border py-3 text-sm text-muted-foreground">{emptyState}</p>
           ) : (

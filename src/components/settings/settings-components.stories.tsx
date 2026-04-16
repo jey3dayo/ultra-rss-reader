@@ -78,7 +78,7 @@ export const FullSettingsSection: SectionHeadingStory = {
   args: { children: "Account" },
   render: () => (
     <div className="w-full max-w-[24rem]">
-      <SettingsSection heading="Account" note="Keep these details aligned with the current sync setup.">
+      <SettingsSection heading="Account" note="Keep these details aligned with the current sync setup." surface="flat">
         <SettingsRow label="Server" type="text" value="https://freshrss.example.com" />
         <SettingsRow label="Username" type="text" value="admin" />
         <SettingsRow label="Auto-sync" type="switch" checked={true} />

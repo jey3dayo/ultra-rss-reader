@@ -17,7 +17,7 @@ export function AccountSyncSectionView({
   isSyncing,
 }: AccountSyncSectionViewProps) {
   return (
-    <SettingsSection heading={heading} className="mb-6">
+    <SettingsSection heading={heading} surface="flat" className="mb-5 sm:mb-6">
       <AccountSelectRow control={syncInterval} />
       <LabeledSwitchRow label={syncOnStartup.label} checked={syncOnStartup.checked} onChange={syncOnStartup.onChange} />
       <LabeledSwitchRow label={syncOnWake.label} checked={syncOnWake.checked} onChange={syncOnWake.onChange} />

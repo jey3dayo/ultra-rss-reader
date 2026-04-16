@@ -8,7 +8,7 @@ describe("AccountGeneralSectionView", () => {
     const user = userEvent.setup();
     const onStartEditingName = vi.fn();
 
-    render(
+    const { container } = render(
       <AccountGeneralSectionView
         heading="General"
         nameLabel="Description"
@@ -37,6 +37,7 @@ describe("AccountGeneralSectionView", () => {
     expect(screen.getByText("Type")).toHaveClass("sm:shrink-0");
     expect(screen.getByText("FreshRSS")).toHaveClass("sm:pl-2");
     expect(screen.getByText("https://freshrss.example.com")).toBeInTheDocument();
+    expect(container.querySelector('[data-surface-card="section"]')).toBeNull();
 
     await user.click(nameInput);
 

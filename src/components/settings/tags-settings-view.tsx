@@ -68,7 +68,7 @@ export function TagsSettingsView({
 }: TagsSettingsViewProps) {
   return (
     <SettingsContentLayout title={title} outerTestId="tags-settings-root">
-      <SettingsSection heading={addHeading} note={intro} className="mb-6">
+      <SettingsSection heading={addHeading} note={intro} surface="flat" className="mb-5 sm:mb-6">
         <LabeledInputRow
           label={nameLabel}
           name="tag_name"
@@ -98,7 +98,7 @@ export function TagsSettingsView({
         </LabeledControlRow>
       </SettingsSection>
 
-      <SettingsSection heading={savedHeading}>
+      <SettingsSection heading={savedHeading} surface="flat">
         {tags.length === 0 ? (
           <p className="border-b border-border py-3 text-sm text-muted-foreground">{emptyState}</p>
         ) : (

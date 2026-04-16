@@ -22,7 +22,7 @@ export function AccountGeneralSectionView({
   const valueColumnClassName = "sm:pl-2";
 
   return (
-    <SettingsSection heading={heading} className="mb-6">
+    <SettingsSection heading={heading} surface="flat" className="mb-5 sm:mb-6">
       <LabeledInputRow
         label={nameLabel}
         type="text"

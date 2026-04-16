@@ -5,7 +5,7 @@ import { AddAccountFormView } from "@/components/settings/add-account-form-view"
 
 describe("AddAccountFormView", () => {
   it("renders credential fields only when a credentials section is provided", () => {
-    const { rerender } = render(
+    const { container, rerender } = render(
       <AddAccountFormView
         title="Add Account"
         accountHeading="Account"
@@ -40,6 +40,7 @@ describe("AddAccountFormView", () => {
     expect(screen.queryByLabelText("Server URL")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Username")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
+    expect(container.querySelectorAll('[data-surface-card="section"]')).toHaveLength(1);
 
     rerender(
       <AddAccountFormView
@@ -112,6 +113,7 @@ describe("AddAccountFormView", () => {
     expect(screen.getByText("Server URL")).toHaveClass("sm:w-28");
     expect(screen.getByLabelText("Username")).toHaveValue("alice");
     expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
+    expect(container.querySelectorAll('[data-surface-card="section"]')).toHaveLength(2);
   });
 
   it("delegates field changes and form actions", async () => {

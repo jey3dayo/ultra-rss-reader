@@ -11,8 +11,8 @@ import type { AccountNavItem, SettingsNavItem } from "@/components/settings/sett
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
-import { ControlChipButton } from "@/components/shared/control-chip-button";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
+import { ControlChipButton } from "@/components/shared/control-chip-button";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { LabelChip } from "@/components/shared/label-chip";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
@@ -406,7 +406,8 @@ export function WorkspaceFilterClusterSpecimen() {
         </div>
       </div>
       <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
-        密度の高いワークスペースでは、pill よりも少し角張った filter chip を優先する。件数バッジはさらに一段小さく角を落として、本文ラベルより控えめに扱う。
+        密度の高いワークスペースでは、pill よりも少し角張った filter chip
+        を優先する。件数バッジはさらに一段小さく角を落として、本文ラベルより控えめに扱う。
       </p>
     </SurfaceCard>
   );

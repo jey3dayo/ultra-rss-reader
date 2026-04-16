@@ -9,7 +9,7 @@ describe("AccountDangerZoneView", () => {
     const onExport = vi.fn();
     const onRequestDelete = vi.fn();
 
-    render(
+    const { container } = render(
       <AccountDangerZoneView
         dataHeading="Data"
         dangerHeading="Danger Zone"
@@ -33,6 +33,7 @@ describe("AccountDangerZoneView", () => {
     expect(screen.getByRole("button", { name: "Delete account" })).toHaveClass("w-full");
     expect(screen.getByRole("button", { name: "Export OPML" }).parentElement).toHaveClass("pl-2");
     expect(screen.getByRole("button", { name: "Delete account" }).parentElement).toHaveClass("pl-2");
+    expect(container.querySelectorAll('[data-surface-card="section"]')).toHaveLength(2);
     expect(onExport).toHaveBeenCalledTimes(1);
     expect(onRequestDelete).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("This action cannot be undone.")).not.toBeInTheDocument();

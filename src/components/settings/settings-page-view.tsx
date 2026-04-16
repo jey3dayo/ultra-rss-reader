@@ -75,7 +75,7 @@ function SettingsPageActionRow({ control }: SettingsPageActionRowProps) {
   );
 }
 
-export function SettingsPageView({ title, sections }: SettingsPageViewProps) {
+export function SettingsPageView({ title, sections, sectionSurface = "flat" }: SettingsPageViewProps) {
   return (
     <SettingsContentLayout title={title} outerTestId="settings-page-root">
       {sections.map((section, index) => (
@@ -83,7 +83,8 @@ export function SettingsPageView({ title, sections }: SettingsPageViewProps) {
           key={section.id}
           heading={section.heading}
           note={section.note}
-          className={index === sections.length - 1 ? undefined : "mb-4 sm:mb-5"}
+          surface={sectionSurface}
+          className={index === sections.length - 1 ? undefined : "mb-3 sm:mb-4"}
           headingClassName="mb-2 sm:mb-3"
         >
           {section.controls.map((control) =>

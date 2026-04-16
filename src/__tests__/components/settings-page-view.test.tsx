@@ -4,7 +4,7 @@ import { SettingsPageView } from "@/components/settings/settings-page-view";
 
 describe("SettingsPageView", () => {
   it("keeps the title sticky and tightens low-height page spacing", () => {
-    render(
+    const { container } = render(
       <SettingsPageView
         title="General"
         sections={[
@@ -39,8 +39,37 @@ describe("SettingsPageView", () => {
     expect(screen.getByRole("heading", { level: 2, name: "General" })).toHaveStyle({
       backgroundColor: "var(--settings-shell-content)",
     });
+    expect(container.querySelector('[data-surface-card="section"]')).toBeNull();
     expect(screen.getByRole("heading", { name: "Language" })).toHaveClass("mb-2");
-    expect(screen.getByText("Changes apply after restart.")).toHaveClass("mt-1.5");
+    expect(screen.getByText("Changes apply after restart.")).toHaveClass("mt-1");
     expect(screen.getByRole("combobox", { name: "Language" })).toHaveClass("w-full");
+  });
+
+  it("keeps the card surface when explicitly requested", () => {
+    const { container } = render(
+      <SettingsPageView
+        title="General"
+        sectionSurface="card"
+        sections={[
+          {
+            id: "general",
+            heading: "Language",
+            controls: [
+              {
+                id: "language",
+                type: "select",
+                name: "language",
+                label: "Language",
+                value: "system",
+                options: [{ value: "system", label: "Follow system" }],
+                onChange: vi.fn(),
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(container.querySelector('[data-surface-card="section"]')).not.toBeNull();
   });
 });
