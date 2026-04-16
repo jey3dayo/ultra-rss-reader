@@ -30,6 +30,8 @@
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
+  --color-browser-overlay-shell: var(--browser-overlay-shell);
+  --color-browser-overlay-rail-border: var(--browser-overlay-rail-border);
   --color-dialog-overlay: var(--dialog-overlay);
   --color-dialog-overlay-readable: var(--dialog-overlay-readable);
   --color-surface-1: var(--surface-1);
@@ -100,6 +102,10 @@
   --sidebar-accent: #dcd8cf;
   --sidebar-accent-foreground: #26251e;
   --sidebar-border: rgba(38, 37, 30, 0.12);
+  --browser-overlay-shell: rgba(242, 241, 237, 0.88);
+  --browser-overlay-shell-veil: linear-gradient(180deg, rgba(242, 241, 237, 0.96) 0%, rgba(242, 241, 237, 0.82) 100%);
+  --browser-overlay-rail: linear-gradient(180deg, rgba(242, 241, 237, 0.86) 0%, rgba(242, 241, 237, 0.6) 66%, rgba(242, 241, 237, 0.15) 100%);
+  --browser-overlay-rail-border: rgba(38, 37, 30, 0.08);
   --dialog-overlay: rgba(38, 37, 30, 0.18);
   --dialog-overlay-readable: rgba(242, 241, 237, 0.6);
   --surface-1: #f7f7f4;
@@ -172,6 +178,10 @@
   --sidebar-accent: #26211b;
   --sidebar-accent-foreground: #f3efe6;
   --sidebar-border: rgba(243, 239, 230, 0.12);
+  --browser-overlay-shell: rgba(28, 25, 21, 0.88);
+  --browser-overlay-shell-veil: linear-gradient(180deg, rgba(28, 25, 21, 0.96) 0%, rgba(28, 25, 21, 0.82) 100%);
+  --browser-overlay-rail: linear-gradient(180deg, rgba(28, 25, 21, 0.88) 0%, rgba(28, 25, 21, 0.64) 66%, rgba(28, 25, 21, 0.18) 100%);
+  --browser-overlay-rail-border: rgba(243, 239, 230, 0.12);
   --dialog-overlay: rgba(28, 25, 21, 0.6);
   --dialog-overlay-readable: rgba(28, 25, 21, 0.72);
   --surface-1: #221e19;

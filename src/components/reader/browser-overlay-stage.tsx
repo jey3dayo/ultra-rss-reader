@@ -35,7 +35,10 @@ export function BrowserOverlayStage({ controller }: BrowserOverlayStageProps) {
           <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6">
             <div data-testid="browser-loading-state" className="flex max-w-sm flex-col items-center gap-4 text-center">
               <div className="relative flex items-center justify-center">
-                <div aria-hidden="true" className="absolute size-24 rounded-full bg-primary/10 blur-3xl" />
+                <div
+                  aria-hidden="true"
+                  className="absolute h-12 w-20 rounded-lg bg-primary/12 blur-2xl"
+                />
                 <LoaderCircle aria-hidden="true" className="relative size-12 animate-spin text-foreground/92" />
               </div>
               <div className="space-y-1.5">

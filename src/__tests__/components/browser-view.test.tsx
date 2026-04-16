@@ -160,7 +160,7 @@ function BrowserViewHarness({ scope = "main-stage", onCloseOverlay }: BrowserVie
           scope={scope}
           onCloseOverlay={onCloseOverlay ?? (() => useUiStore.getState().closeBrowser())}
           labels={{
-            backToReader: "Back to Reader",
+            closeWebPreview: "Close Web Preview",
           }}
         />
       ) : null}
@@ -239,6 +239,62 @@ describe("BrowserView", () => {
     });
   });
 
+  it("wires browser navigation controls to the embedded webview commands", async () => {
+    const user = userEvent.setup();
+
+    setupTauriMocks((cmd, args) => {
+      commands.push({ cmd, args });
+      if (cmd === "create_or_update_browser_webview") {
+        return {
+          url: args.url,
+          can_go_back: true,
+          can_go_forward: false,
+          is_loading: false,
+        };
+      }
+      if (cmd === "go_back_browser_webview") {
+        return {
+          url: "https://example.com/home",
+          can_go_back: false,
+          can_go_forward: true,
+          is_loading: false,
+        };
+      }
+      if (cmd === "reload_browser_webview") {
+        return {
+          url: "https://example.com/home",
+          can_go_back: false,
+          can_go_forward: true,
+          is_loading: true,
+        };
+      }
+      if (cmd === "set_browser_webview_bounds" || cmd === "close_browser_webview") {
+        return null;
+      }
+      return null;
+    });
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+
+    render(<BrowserViewHarness />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(
+        within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", { name: "Web back" }),
+      ).toBeEnabled();
+    });
+
+    await user.click(within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", { name: "Web back" }));
+    await user.click(screen.getByRole("button", { name: "Reload page" }));
+
+    expect(commands.some((call) => call.cmd === "go_back_browser_webview")).toBe(true);
+    expect(commands.some((call) => call.cmd === "reload_browser_webview")).toBe(true);
+  });
+
   it("uses physical bounds for Windows child webviews", async () => {
     Object.defineProperty(window, "devicePixelRatio", {
       configurable: true,
@@ -288,14 +344,26 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-    expect(screen.getByTestId("browser-overlay-shell")).toBeInTheDocument();
+    const shell = screen.getByTestId("browser-overlay-shell");
+    const veil = screen.getByTestId("browser-overlay-veil");
+
+    expect(shell).toBeInTheDocument();
+    expect(shell).toHaveClass("bg-browser-overlay-shell", "backdrop-blur-sm");
+    expect(veil).toHaveStyle({ backgroundImage: "var(--browser-overlay-shell-veil)" });
     expect(screen.getByTestId("browser-overlay-stage-shell")).toBeInTheDocument();
     expect(screen.getByTestId("browser-overlay-stage")).toBeInTheDocument();
     expect(screen.getByTestId("browser-webview-host")).toBeInTheDocument();
     expect(screen.queryByText("Web Preview")).not.toBeInTheDocument();
     const chrome = screen.getByTestId("browser-overlay-chrome");
+    const topRail = screen.getByTestId("browser-overlay-top-rail");
     expect(chrome).toBeInTheDocument();
-    const closeButton = within(chrome).getByRole("button", { name: "Back to Reader" });
+    expect(topRail).toHaveClass("border-b", "backdrop-blur-md");
+    expect(topRail.style.backgroundImage).toBe("var(--browser-overlay-rail)");
+    expect(topRail.style.borderColor).toBe("var(--color-browser-overlay-rail-border)");
+    const closeButton = within(chrome).getByRole("button", { name: "Close Web Preview" });
+    const backButton = within(chrome).getByRole("button", { name: "Web back" });
+    const forwardButton = within(chrome).getByRole("button", { name: "Web forward" });
+    const reloadButton = screen.getByRole("button", { name: /reload page/i });
     const externalButton = screen.getByRole("button", { name: /open in external browser/i });
     const closeSurface = closeButton.closest("[data-overlay-shell='action']");
     const externalSurface = externalButton.closest("[data-overlay-shell='action']");
@@ -303,7 +371,9 @@ describe("BrowserView", () => {
     expect(closeButton).toBeInTheDocument();
     expect(closeSurface).not.toBeNull();
     expect(closeSurface).toHaveAttribute("data-overlay-shell", "action");
-    expect(closeButton).toHaveTextContent("Reader");
+    expect(backButton).toBeDisabled();
+    expect(forwardButton).toBeDisabled();
+    expect(reloadButton).toBeInTheDocument();
     expect(externalButton).toBeInTheDocument();
     expect(externalSurface).not.toBeNull();
     expect(externalSurface).toHaveAttribute("data-overlay-shell", "action");
@@ -324,7 +394,7 @@ describe("BrowserView", () => {
       <BrowserView
         scope="content-pane"
         onCloseOverlay={() => {}}
-        labels={{ backToReader: "Back to Reader" }}
+        labels={{ closeWebPreview: "Close Web Preview" }}
         toolbarActions={({ renderAction }) => (
           <>
             {renderAction(<button type="button">Toolbar Action A</button>, { key: "a" })}
@@ -376,7 +446,7 @@ describe("BrowserView", () => {
 
     await userEvent.setup().click(
       within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
-        name: "Back to Reader",
+        name: "Close Web Preview",
       }),
     );
     expect(onCloseOverlay).toHaveBeenCalledTimes(1);
@@ -448,11 +518,11 @@ describe("BrowserView", () => {
       bottom: "0px",
     });
     expect(
-      within(chrome).getByRole("button", { name: "Back to Reader" }).closest("[data-overlay-shell='action']"),
-    ).toHaveClass("h-8", "px-3");
+      within(chrome).getByRole("button", { name: "Close Web Preview" }).closest("[data-overlay-shell='action']"),
+    ).toHaveClass("size-11", "md:size-8");
     expect(
       screen.getByRole("button", { name: /open in external browser/i }).closest("[data-overlay-shell='action']"),
-    ).toHaveClass("h-8", "px-3");
+    ).toHaveClass("size-11", "md:size-8");
     expect(chrome).toBeInTheDocument();
   });
 
@@ -504,10 +574,10 @@ describe("BrowserView", () => {
         top: "12px",
       });
       const closeButton = within(screen.getByTestId("browser-overlay-chrome")).getByRole("button", {
-        name: "Back to Reader",
+        name: "Close Web Preview",
       });
       expect(closeButton.closest("[data-overlay-shell='action']")).toHaveAttribute("data-overlay-shell", "action");
-      expect(closeButton).toHaveTextContent("Reader");
+      expect(closeButton.querySelector(".lucide-x")).not.toBeNull();
     } finally {
       if (originalTauriInternalsDescriptor) {
         Object.defineProperty(window, "__TAURI_INTERNALS__", originalTauriInternalsDescriptor);
@@ -575,7 +645,7 @@ describe("BrowserView", () => {
     const stage = screen.getByTestId("browser-overlay-stage-shell");
     const chrome = screen.getByTestId("browser-overlay-chrome");
     const externalButton = screen.getByRole("button", { name: /open in external browser/i });
-    const closeButton = within(chrome).getByRole("button", { name: "Back to Reader" });
+    const closeButton = within(chrome).getByRole("button", { name: "Close Web Preview" });
 
     expectInlineStyles(stage, {
       left: "0px",
@@ -627,9 +697,9 @@ describe("BrowserView", () => {
 
     render(<BrowserViewHarness />, { wrapper: createWrapper() });
 
-    await userEvent.setup().hover(screen.getByRole("button", { name: "Back to Reader" }));
+    await userEvent.setup().hover(screen.getByRole("button", { name: "Close Web Preview" }));
 
-    expect(await screen.findByText("Back to Reader")).toHaveClass("z-[80]");
+    expect(await screen.findByText("Close Web Preview")).toHaveClass("z-[80]");
   });
 
   it("hides the debug hud when the saved preference is false", async () => {

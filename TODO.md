@@ -37,6 +37,42 @@
     - [ ] `ui-reference-settings-canvas` に残る shell 例外を明示し、section 見本と混ざらないよう整理する
       - left rail 外枠、main content 外枠、dialog surface、context menu は shell 見本としてラベル分離する
     - [ ] 実アプリ表示の review 結果を見て、必要ならこの配下へ追加する
+- [ ] `rounded-md` を card / section の標準として catalog と実装を揃える
+  - 方針:
+    - `card / section` は `rounded-md` を標準
+    - `rounded-lg` は必要時のみ
+    - `20px+` は shell だけ
+  - [ ] Storybook catalog で card 扱いなのに `20px+` を使っている見本を棚卸しする
+    - 対象: `src/components/storybook/ui-reference-settings-canvas.stories.tsx`
+    - `shell example` と `card / section example` を分けて数える
+  - [ ] shared `SurfaceCard` の `section` 半径を `md` 基準に寄せるか判断する
+    - 対象: `src/components/shared/surface-card.tsx`, `src/__tests__/components/surface-card.test.tsx`
+    - 既存 `--radius-surface-section` が実質 8px なので、 token 名と実態のズレも確認する
+  - [ ] catalog の card 風サンプルを `rounded-md` / `rounded-lg` に落とす
+    - 対象: `src/components/storybook/ui-reference-settings-canvas.stories.tsx`, `src/__tests__/components/ui-reference-settings-canvas.test.tsx`
+    - `rounded-[20px]`, `rounded-[22px]`, `rounded-[24px]` のうち section/card 側だけを整理する
+  - [ ] feed cleanup / subscriptions / settings の card 系を `rounded-md` 基準に寄せる
+    - 対象候補:
+      - `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx`
+      - `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`
+      - `src/components/feed-cleanup/feed-cleanup-review-panel.tsx`
+      - `src/components/subscriptions-index/subscription-detail-pane.tsx`
+      - `src/components/subscriptions-index/subscriptions-list-pane.tsx`
+    - shell ではない `rounded-xl` / `rounded-2xl` を順に落とす
+  - [ ] reader dialog / popover / media の non-shell 面を `rounded-md` / `rounded-lg` に寄せる
+    - 対象候補:
+      - `src/components/reader/feed-dialog-form-view.tsx`
+      - `src/components/reader/feed-dialog-url-section.tsx`
+      - `src/components/reader/article-tag-picker-popover.tsx`
+      - `src/components/reader/article-content-view.tsx`
+    - `DialogContent` 自体の shell 半径は維持しつつ、内側の card / picker / media frame だけを整理する
+  - shell の次段整理:
+    - [ ] settings modal outer shell を `rounded-xl` 基準に落とす
+      - 対象: `src/components/settings/settings-modal-view.tsx`, `src/__tests__/components/settings-modal-view.test.tsx`
+    - [ ] feed cleanup shortcuts dialog の outer shell を `rounded-xl` 基準に落とす
+      - 対象: `src/components/feed-cleanup/feed-cleanup-page-view.tsx`, `src/__tests__/components/feed-cleanup-page.test.tsx`
+    - [ ] Storybook shell catalog を `rounded-xl` 基準に揃える
+      - 対象: `src/components/storybook/ui-reference-canvas-specimens.tsx`, `src/__tests__/components/ui-reference-settings-canvas.test.tsx`
 - [ ] モバイル向け UI を正式対応する段階で、アイコンのみ導線の見直しを再開する
   - 現時点では mobile を主要提供面にしないため必須対応から外すが、狭い幅での discoverability 課題として保留する
   - 対応する場合は tooltip 前提の主要操作を、ラベル表示かメニュー集約で補う
@@ -118,6 +154,7 @@
     - [ ] `src/styles/global.css` と `DESIGN.md` に dialog 用 scrim / overlay role を追加する
     - [ ] `src/components/ui/dialog.tsx` の backdrop opacity literal を scrim token へ置き換える
     - [ ] `src/components/settings/service-picker.tsx` の `hover:bg-background/90` を既存 surface token か named hover surface へ寄せる
+    - [ ] `src/components/settings/settings-modal-view.tsx` の content / sidebar fade と shell 背景が新しい scrim / overlay role と矛盾しないか確認する
 
 - [ ] Lane 3: settings / cleanup の情報階層を tonal separation と primary action の差で再整理する
   - [ ] 棚卸し
@@ -132,6 +169,7 @@
   - 最小実装候補:
     - [ ] `src/components/settings/settings-nav-view.tsx` と `src/components/settings/accounts-nav-view.tsx` で selected row を primary stripe ではなく tonal depth / border で強調する
     - [ ] `src/components/settings/settings-modal-view.tsx` と `src/components/settings/settings-content-layout.tsx` で shell / rail / content の tonal separation を整理する
+    - [ ] `src/components/settings/settings-modal-view.tsx` の outer shell と account section の rounded 値を shell / section の役割に沿って整理する
     - [ ] `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx` で summary cards と bulk actions の優先度を分離する
     - [ ] `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx` で row selection と inline actions の強さを整理する
     - [ ] `src/components/feed-cleanup/feed-cleanup-review-panel.tsx` と必要なら `src/components/shared/feed-detail-panel.tsx` で review 面の primary action を主ボタンとして見えるようにする

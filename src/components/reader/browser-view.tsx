@@ -13,11 +13,13 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, to
     <div
       ref={controller.overlayRef}
       data-testid="browser-overlay-shell"
-      className="pointer-events-auto absolute inset-0 z-20 isolate overflow-hidden bg-background/88 backdrop-blur-sm"
+      className="pointer-events-auto absolute inset-0 z-20 isolate overflow-hidden bg-browser-overlay-shell backdrop-blur-sm"
     >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/96 to-background/82"
+        data-testid="browser-overlay-veil"
+        className="pointer-events-none absolute inset-0"
+        style={{ backgroundImage: "var(--browser-overlay-shell-veil)" }}
       />
       {controller.geometry.chromeRail.visible ? (
         <div
@@ -30,8 +32,10 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, to
             top: `${controller.geometry.chromeRail.top}px`,
             height: `${controller.geometry.chromeRail.height}px`,
             borderRadius: `${controller.geometry.chromeRail.radius}px`,
+            backgroundImage: "var(--browser-overlay-rail)",
+            borderColor: "var(--color-browser-overlay-rail-border)",
           }}
-          className="pointer-events-none absolute z-[50] border-b border-border/55 bg-gradient-to-b from-background/86 via-background/60 to-background/15 backdrop-blur-md"
+          className="pointer-events-none absolute z-[50] border-b backdrop-blur-md"
         />
       ) : null}
       <div
@@ -43,7 +47,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, to
       <BrowserOverlayChrome
         controller={controller}
         presentation={controller.presentation}
-        backToReaderLabel={labels.backToReader}
+        closeWebPreviewLabel={labels.closeWebPreview}
         toolbarActions={toolbarActions}
       />
       <BrowserOverlayStage controller={controller} />
