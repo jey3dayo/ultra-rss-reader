@@ -52,7 +52,10 @@ export function ArticleListFooter({
               ) : mode.icon === "list" ? (
                 <List className={controlChipIconVariants({ size: "compact" })} />
               ) : (
-                <UnreadIcon unread={viewMode === "unread"} className="h-3 w-3" />
+                <UnreadIcon
+                  unread={viewMode === "unread"}
+                  className="h-[9px] w-[9px] shadow-[0_0_0_1px_rgba(96,165,250,0.32)]"
+                />
               )}
               {t(mode.labelKey)}
             </Toggle>

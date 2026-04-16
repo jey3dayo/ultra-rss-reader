@@ -346,7 +346,7 @@ export function ReaderFilterStripSpecimen() {
               ) : item.icon === "list" ? (
                 <List className={controlChipIconVariants({ size: "comfortable" })} />
               ) : (
-                <UnreadIcon unread={mode === "unread"} className="h-3.5 w-3.5" />
+                <UnreadIcon unread={mode === "unread"} className="h-2.5 w-2.5 shadow-[0_0_0_1px_rgba(96,165,250,0.32)]" />
               )}
               {item.label}
             </Toggle>
