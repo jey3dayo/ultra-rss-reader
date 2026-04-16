@@ -110,10 +110,7 @@ export function FeedDetailPanel({
       <div className="space-y-4.5">
         <div className="flex items-start gap-3">
           {leadingVisual ? (
-            <div
-              data-testid="feed-detail-leading-visual"
-              className="flex h-9 w-9 shrink-0 items-center justify-center"
-            >
+            <div data-testid="feed-detail-leading-visual" className="flex h-9 w-9 shrink-0 items-center justify-center">
               {leadingVisual}
             </div>
           ) : null}

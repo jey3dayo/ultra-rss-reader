@@ -24,7 +24,6 @@ export function SubscriptionsIndexPageView({
   emptyLabel,
   detailEmptyLabel,
   statusLabels,
-  formatFolderLabel,
   formatUnreadCountLabel,
   formatLatestArticleLabel,
   folderLabel,
@@ -57,7 +56,6 @@ export function SubscriptionsIndexPageView({
   emptyLabel: string;
   detailEmptyLabel: string;
   statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
-  formatFolderLabel: (folderName: string | null) => string;
   formatUnreadCountLabel: (count: number) => string;
   formatLatestArticleLabel: (value: string | null) => string;
   folderLabel: string;
@@ -102,7 +100,6 @@ export function SubscriptionsIndexPageView({
           selectedFeedId={selectedFeedId}
           emptyLabel={emptyLabel}
           statusLabels={statusLabels}
-          formatFolderLabel={formatFolderLabel}
           formatUnreadCountLabel={formatUnreadCountLabel}
           formatLatestArticleLabel={formatLatestArticleLabel}
           onSelectFeed={onSelectFeed}

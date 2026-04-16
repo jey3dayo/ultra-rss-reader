@@ -206,7 +206,6 @@ export function SubscriptionsIndexPage() {
         no_unread: t("status_no_unread"),
         no_stars: t("status_no_stars"),
       }}
-      formatFolderLabel={(folderName) => (folderName ? t("meta_folder", { value: folderName }) : t("meta_folder_none"))}
       formatUnreadCountLabel={(count) => t("meta_unread_count", { count })}
       formatLatestArticleLabel={(value) =>
         value ? t("meta_latest_article", { date: new Date(value).toLocaleDateString() }) : t("meta_latest_article_none")

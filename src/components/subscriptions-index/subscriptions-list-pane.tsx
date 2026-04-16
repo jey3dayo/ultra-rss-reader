@@ -11,7 +11,6 @@ export function SubscriptionsListPane({
   selectedFeedId,
   emptyLabel,
   statusLabels,
-  formatFolderLabel,
   formatUnreadCountLabel,
   formatLatestArticleLabel,
   onSelectFeed,
@@ -21,7 +20,6 @@ export function SubscriptionsListPane({
   selectedFeedId: string | null;
   emptyLabel: string;
   statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
-  formatFolderLabel: (folderName: string | null) => string;
   formatUnreadCountLabel: (count: number) => string;
   formatLatestArticleLabel: (value: string | null) => string;
   onSelectFeed: (feedId: string) => void;
@@ -75,7 +73,9 @@ export function SubscriptionsListPane({
                       <span
                         className={cn(
                           "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border transition-colors",
-                          selectedFeedId === row.feed.id ? "bg-surface-1 text-foreground" : "bg-surface-2/88 text-foreground",
+                          selectedFeedId === row.feed.id
+                            ? "bg-surface-1 text-foreground"
+                            : "bg-surface-2/88 text-foreground",
                         )}
                         style={{
                           borderColor: "var(--subscriptions-list-divider)",

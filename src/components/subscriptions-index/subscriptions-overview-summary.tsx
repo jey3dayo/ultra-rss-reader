@@ -52,7 +52,9 @@ export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSum
                 <span className="block text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
                   {card.label}
                 </span>
-                <span className="mt-2 block text-[2rem] font-semibold tracking-tight text-foreground">{card.value}</span>
+                <span className="mt-2 block text-[2rem] font-semibold tracking-tight text-foreground">
+                  {card.value}
+                </span>
                 {card.caption ? <p className="mt-1.5 text-sm text-muted-foreground">{card.caption}</p> : null}
                 <div className="mt-3 flex items-center justify-between gap-3">
                   <LabelChip

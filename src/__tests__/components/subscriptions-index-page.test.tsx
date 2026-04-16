@@ -161,7 +161,9 @@ describe("SubscriptionsIndexPage", () => {
     expect(selectedFeed).toHaveClass("focus-visible:ring-2");
     expect(selectedFeed).toHaveClass("rounded-md");
     const selectedFaviconSurface = selectedFeed.querySelector("span.rounded-md");
-    expect((selectedFaviconSurface as HTMLElement).style.backgroundColor).toBe("var(--subscriptions-list-favicon-surface)");
+    expect((selectedFaviconSurface as HTMLElement).style.backgroundColor).toBe(
+      "var(--subscriptions-list-favicon-surface)",
+    );
     expect((selectedFaviconSurface as HTMLElement).style.borderColor).toBe("var(--subscriptions-list-divider)");
     expect(secondaryFeed).toHaveAccessibleName(/Fresh Feed/);
     expect(secondaryFeed).toHaveAccessibleName(/未読 3件/);
@@ -186,7 +188,9 @@ describe("SubscriptionsIndexPage", () => {
       "border-state-review-border",
       "bg-state-review-surface",
     );
-    expect(await screen.findByRole("button", { name: /要確認を見る/ })).toHaveClass("shadow-[var(--subscriptions-summary-card-shadow)]");
+    expect(await screen.findByRole("button", { name: /要確認を見る/ })).toHaveClass(
+      "shadow-[var(--subscriptions-summary-card-shadow)]",
+    );
     expect(await screen.findByRole("button", { name: /止まった購読を見る/ })).toHaveClass("rounded-md");
     expect(await screen.findByRole("button", { name: /参照エラーを見る/ })).toHaveClass("rounded-md");
   });
