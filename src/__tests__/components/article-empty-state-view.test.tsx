@@ -34,7 +34,6 @@ describe("ArticleEmptyStateView", () => {
     render(<ArticleEmptyStateView message="Select an article to read" hints={["Pick one from the list"]} />);
 
     const container = screen.getByText("Select an article to read").parentElement;
-    const eyebrow = screen.getByText("Reader");
     const hintsList = screen.getByRole("list");
 
     expect(container).toHaveAttribute("data-surface-card", "info");
@@ -48,7 +47,7 @@ describe("ArticleEmptyStateView", () => {
     expect(container?.getAttribute("style")).toContain("background-color: transparent");
     expect(container?.getAttribute("style")).toContain("box-shadow: none");
     expect(container).toHaveClass("text-foreground-soft");
-    expect(eyebrow).toHaveClass("text-foreground-soft");
+    expect(screen.queryByText("Reader")).not.toBeInTheDocument();
     expect(hintsList).toHaveClass("marker:text-foreground-soft");
   });
 
