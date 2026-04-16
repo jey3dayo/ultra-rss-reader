@@ -41,11 +41,14 @@ describe("FeedDetailPanel", () => {
       "border",
       "bg-surface-1/88",
     );
-    expect(screen.getByTestId("feed-detail-main-column").contains(screen.getByTestId("feed-detail-reason-box"))).toBe(
+    expect(screen.getByTestId("feed-detail-secondary-column").contains(screen.getByTestId("feed-detail-status"))).toBe(
       true,
     );
-    expect(screen.getByTestId("feed-detail-status")).toHaveClass("rounded-lg");
-    expect(screen.getByTestId("feed-detail-status")).toHaveClass("self-start");
+    expect(
+      screen.getByTestId("feed-detail-secondary-column").contains(screen.getByTestId("feed-detail-reason-box")),
+    ).toBe(true);
+    expect(screen.getByTestId("feed-detail-secondary-column")).not.toHaveClass("grid-cols-[auto_minmax(0,1fr)]");
+    expect(screen.getByTestId("feed-detail-status")).toHaveClass("rounded-lg", "self-start");
     expect(screen.getByTestId("feed-detail-reason-box").closest('[data-surface-card="section"]')).toHaveClass(
       "bg-card/38",
     );

@@ -117,67 +117,70 @@ export function FeedDetailPanel({
               {leadingVisual}
             </div>
           ) : null}
-          <div data-testid="feed-detail-main-column" className="min-w-0 space-y-3">
-            <div className="min-w-0 space-y-2.5">
-              <div className="min-w-0">
-                {titleHref ? (
-                  <a
-                    href={titleHref}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={cn(detailLinkClassName, "inline-flex max-w-full items-start gap-2 no-underline")}
-                  >
-                    <h3 className="font-sans text-[1.6rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
-                    <ExternalLink aria-hidden="true" className="mt-1 h-4 w-4 shrink-0" />
-                  </a>
-                ) : (
-                  <h3 className="font-sans text-[1.6rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
-                )}
-              </div>
-              {badgeLabel ? (
-                <LabelChip
-                  data-testid="feed-detail-status"
-                  tone={resolveBadgeClassName(badgeTone)}
-                  className="self-start rounded-lg px-2.5 py-1 text-[10px] tracking-[0.02em]"
+          <div data-testid="feed-detail-main-column" className="min-w-0">
+            <div className="min-w-0">
+              {titleHref ? (
+                <a
+                  href={titleHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={cn(detailLinkClassName, "inline-flex max-w-full items-start gap-2 no-underline")}
                 >
-                  {badgeLabel}
-                </LabelChip>
-              ) : null}
+                  <h3 className="font-sans text-[1.6rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
+                  <ExternalLink aria-hidden="true" className="mt-1 h-4 w-4 shrink-0" />
+                </a>
+              ) : (
+                <h3 className="font-sans text-[1.6rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
+              )}
             </div>
-            {summaryText ? (
-              <SurfaceCard variant="info" tone="subtle" padding="compact" className="bg-surface-1/76 shadow-none">
-                <p className="font-serif text-[0.98rem] leading-7 text-foreground-soft">{summaryText}</p>
-              </SurfaceCard>
-            ) : null}
-            {reasonBox ? (
-              <SurfaceCard
-                data-testid="feed-detail-reason-box"
-                variant="info"
-                tone={resolveReasonBoxClassName(reasonBox.tone)}
-                padding="compact"
-                className={cn(
-                  "shadow-none",
-                  reasonBox.tone === "medium" &&
-                    "border-state-warning-border/80 bg-state-warning-surface/80 text-state-warning-foreground",
-                )}
-              >
-                <p className="font-sans text-[11px] font-medium tracking-[0.08em] text-current/88 uppercase">
-                  {reasonBox.title}
-                </p>
-                <p className="mt-1.5 font-serif text-sm leading-6 text-current/90">{reasonBox.body}</p>
-              </SurfaceCard>
-            ) : null}
-
-            {reasonChips.length > 0 && !reasonBox ? (
-              <div className="flex flex-wrap gap-2">
-                {reasonChips.map((chip) => (
-                  <LabelChip key={chip} tone="muted" size="compact" className="rounded-lg px-2 py-1">
-                    {chip}
-                  </LabelChip>
-                ))}
-              </div>
-            ) : null}
           </div>
+        </div>
+
+        <div data-testid="feed-detail-secondary-column" className="space-y-3">
+          {badgeLabel ? (
+            <LabelChip
+              data-testid="feed-detail-status"
+              tone={resolveBadgeClassName(badgeTone)}
+              className="self-start rounded-lg px-2.5 py-1 text-[10px] tracking-[0.02em]"
+            >
+              {badgeLabel}
+            </LabelChip>
+          ) : null}
+
+          {summaryText ? (
+            <SurfaceCard variant="info" tone="subtle" padding="compact" className="bg-surface-1/76 shadow-none">
+              <p className="font-serif text-[0.98rem] leading-7 text-foreground-soft">{summaryText}</p>
+            </SurfaceCard>
+          ) : null}
+
+          {reasonBox ? (
+            <SurfaceCard
+              data-testid="feed-detail-reason-box"
+              variant="info"
+              tone={resolveReasonBoxClassName(reasonBox.tone)}
+              padding="compact"
+              className={cn(
+                "shadow-none",
+                reasonBox.tone === "medium" &&
+                  "border-state-warning-border/80 bg-state-warning-surface/80 text-state-warning-foreground",
+              )}
+            >
+              <p className="font-sans text-[11px] font-medium tracking-[0.08em] text-current/88 uppercase">
+                {reasonBox.title}
+              </p>
+              <p className="mt-1.5 font-serif text-sm leading-6 text-current/90">{reasonBox.body}</p>
+            </SurfaceCard>
+          ) : null}
+
+          {reasonChips.length > 0 && !reasonBox ? (
+            <div className="flex flex-wrap gap-2">
+              {reasonChips.map((chip) => (
+                <LabelChip key={chip} tone="muted" size="compact" className="rounded-lg px-2 py-1">
+                  {chip}
+                </LabelChip>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="grid gap-4">
