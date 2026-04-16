@@ -5,6 +5,18 @@ import { NavRowButton } from "@/components/shared/nav-row-button";
 import { cn } from "@/lib/utils";
 import type { SubscriptionListGroup, SubscriptionListRow } from "./subscriptions-index.types";
 
+function resolveStatusTone(labelKey: SubscriptionListRow["status"]["labelKey"]) {
+  if (labelKey === "review") {
+    return "warning";
+  }
+
+  if (labelKey === "stale_90d") {
+    return "danger";
+  }
+
+  return "muted";
+}
+
 export function SubscriptionsListPane({
   heading,
   groups,
@@ -27,13 +39,17 @@ export function SubscriptionsListPane({
   const hasRows = groups.some((group) => group.rows.length > 0);
   return (
     <section
-      className="flex min-h-0 flex-col border-r border-border/70 px-4 py-4 sm:px-5"
-      style={{ backgroundColor: "var(--subscriptions-list-surface)" }}
+      className="flex min-h-0 flex-col px-4 py-4 sm:px-5 lg:border-r lg:border-[color:var(--subscriptions-pane-divider)]"
+      style={{
+        backgroundColor: "var(--subscriptions-list-surface)",
+      }}
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">{heading}</h2>
+      <div className="mb-4 flex items-center justify-between gap-3 border-b border-border/60 pb-3">
+        <h2 className="font-sans text-[1.02rem] font-normal tracking-[-0.02em] text-foreground">{heading}</h2>
         {hasRows ? (
-          <LabelChip tone="muted">{groups.reduce((count, group) => count + group.rows.length, 0)}</LabelChip>
+          <LabelChip tone="neutral" className="px-2.5 py-1 text-[10px]">
+            {groups.reduce((count, group) => count + group.rows.length, 0)}
+          </LabelChip>
         ) : null}
       </div>
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
@@ -43,20 +59,25 @@ export function SubscriptionsListPane({
           </p>
         ) : (
           groups.map((group) => (
-            <div key={group.key} className="space-y-1.5">
+            <div key={group.key} className="space-y-2">
               <div
                 data-testid={`subscriptions-folder-row-${group.folderId ?? "ungrouped"}`}
                 data-folder-drop-target={group.folderId ? "true" : "false"}
-                className="rounded-md flex items-center justify-between border-b px-1 py-1.5"
-                style={{ borderColor: "var(--subscriptions-list-divider)" }}
+                className="flex items-center justify-between rounded-md border px-2.5 py-2"
+                style={{
+                  borderColor: "var(--subscriptions-list-divider)",
+                  backgroundColor: "var(--subscriptions-list-group-surface)",
+                }}
               >
                 <div className="flex items-center gap-1.5">
                   <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                  <h3 className="text-sm font-medium text-foreground">{group.label}</h3>
+                  <h3 className="text-sm font-medium tracking-[-0.01em] text-foreground">{group.label}</h3>
                 </div>
-                <span className="text-[11px] text-muted-foreground">{group.rows.length}</span>
+                <LabelChip tone="muted" size="compact">
+                  {group.rows.length}
+                </LabelChip>
               </div>
-              <div className="space-y-0.5 pl-3">
+              <div className="space-y-1 pl-1">
                 {group.rows.map((row) => (
                   <NavRowButton
                     key={row.feed.id}
@@ -64,15 +85,15 @@ export function SubscriptionsListPane({
                     aria-pressed={selectedFeedId === row.feed.id}
                     onClick={() => onSelectFeed(row.feed.id)}
                     className={cn(
-                      "items-center rounded-md border border-transparent bg-transparent px-2.5 py-2 shadow-none",
+                      "items-center rounded-md border border-transparent px-3 py-3 shadow-none",
                       selectedFeedId === row.feed.id
-                        ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)]"
-                        : "!border-transparent hover:!border-transparent hover:bg-[color:var(--subscriptions-list-row-hover)]",
+                        ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[0_10px_26px_-24px_rgba(38,37,30,0.4)]"
+                        : "bg-background/15 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",
                     )}
                     leading={
                       <span
                         className={cn(
-                          "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border transition-colors",
+                          "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-colors",
                           selectedFeedId === row.feed.id
                             ? "bg-surface-1 text-foreground"
                             : "bg-surface-2/88 text-foreground",
@@ -90,12 +111,14 @@ export function SubscriptionsListPane({
                     }
                     title={
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-foreground">{row.feed.title}</span>
+                        <span className="text-[0.95rem] font-medium tracking-[-0.02em] text-foreground">
+                          {row.feed.title}
+                        </span>
                       </div>
                     }
                     description={
-                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-foreground-soft">
-                        <LabelChip tone="muted" size="compact">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-foreground-soft">
+                        <LabelChip tone={resolveStatusTone(row.status.labelKey)} size="compact">
                           {statusLabels[row.status.labelKey]}
                         </LabelChip>
                         <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>

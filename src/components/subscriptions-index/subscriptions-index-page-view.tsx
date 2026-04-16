@@ -89,39 +89,47 @@ export function SubscriptionsIndexPageView({
         closeLabel={closeLabel}
         onClose={onClose}
       />
-      <SubscriptionsOverviewSummary cards={summaryCards} />
-      <div
-        data-testid="subscriptions-workspace-shell"
-        className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] overflow-hidden"
-      >
-        <SubscriptionsListPane
-          heading={inventoryHeading}
-          groups={groups}
-          selectedFeedId={selectedFeedId}
-          emptyLabel={emptyLabel}
-          statusLabels={statusLabels}
-          formatUnreadCountLabel={formatUnreadCountLabel}
-          formatLatestArticleLabel={formatLatestArticleLabel}
-          onSelectFeed={onSelectFeed}
-        />
-        <SubscriptionDetailPane
-          heading={detailHeading}
-          emptyLabel={detailEmptyLabel}
-          row={selectedRow}
-          metrics={selectedMetrics}
-          detailCandidate={selectedDetailCandidate}
-          folderLabel={folderLabel}
-          latestArticleLabel={latestArticleLabel}
-          unreadCountLabel={unreadCountLabel}
-          starredCountLabel={starredCountLabel}
-          reasonHeading={reasonHeading}
-          reasonHint={reasonHint}
-          recentArticlesHeading={recentArticlesHeading}
-          displayModeLabel={displayModeLabel}
-          displayModeValue={displayModeValue}
-          openCleanupLabel={openCleanupLabel}
-          onOpenCleanup={onOpenCleanup}
-        />
+      <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 sm:px-5 sm:pb-5">
+        <div className="mx-auto flex min-h-0 w-full max-w-[1500px] flex-1 flex-col">
+          <SubscriptionsOverviewSummary cards={summaryCards} />
+          <div
+            data-testid="subscriptions-workspace-shell"
+            className="mt-4 grid min-h-0 flex-1 overflow-hidden rounded-xl border border-border/70 lg:grid-cols-[minmax(0,1.02fr)_minmax(380px,0.98fr)]"
+            style={{
+              backgroundColor: "var(--subscriptions-workspace-surface)",
+              boxShadow: "var(--subscriptions-workspace-shadow)",
+            }}
+          >
+            <SubscriptionsListPane
+              heading={inventoryHeading}
+              groups={groups}
+              selectedFeedId={selectedFeedId}
+              emptyLabel={emptyLabel}
+              statusLabels={statusLabels}
+              formatUnreadCountLabel={formatUnreadCountLabel}
+              formatLatestArticleLabel={formatLatestArticleLabel}
+              onSelectFeed={onSelectFeed}
+            />
+            <SubscriptionDetailPane
+              heading={detailHeading}
+              emptyLabel={detailEmptyLabel}
+              row={selectedRow}
+              metrics={selectedMetrics}
+              detailCandidate={selectedDetailCandidate}
+              folderLabel={folderLabel}
+              latestArticleLabel={latestArticleLabel}
+              unreadCountLabel={unreadCountLabel}
+              starredCountLabel={starredCountLabel}
+              reasonHeading={reasonHeading}
+              reasonHint={reasonHint}
+              recentArticlesHeading={recentArticlesHeading}
+              displayModeLabel={displayModeLabel}
+              displayModeValue={displayModeValue}
+              openCleanupLabel={openCleanupLabel}
+              onOpenCleanup={onOpenCleanup}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

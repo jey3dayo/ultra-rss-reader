@@ -176,6 +176,11 @@
   --subscriptions-list-row-selected-surface: rgba(230, 229, 224, 0.72);
   --subscriptions-list-row-selected-border: rgba(38, 37, 30, 0.16);
   --subscriptions-summary-card-shadow: 0 18px 44px -36px rgba(38, 37, 30, 0.28);
+  --subscriptions-workspace-surface: rgba(247, 247, 244, 0.7);
+  --subscriptions-workspace-shadow: 0 28px 72px -52px rgba(38, 37, 30, 0.34);
+  --subscriptions-pane-divider: rgba(38, 37, 30, 0.08);
+  --subscriptions-list-group-surface: rgba(247, 247, 244, 0.82);
+  --subscriptions-detail-pane-surface: linear-gradient(180deg, rgba(247, 247, 244, 0.34), rgba(230, 229, 224, 0.7));
   --cleanup-shell-bg:
     radial-gradient(circle at top left, rgba(245, 78, 0, 0.16), transparent 24%),
     linear-gradient(180deg, rgba(242, 241, 237, 1), rgba(242, 241, 237, 1));
@@ -338,6 +343,11 @@
   --subscriptions-list-row-selected-surface: rgba(45, 40, 34, 0.86);
   --subscriptions-list-row-selected-border: rgba(243, 239, 230, 0.16);
   --subscriptions-summary-card-shadow: 0 22px 54px -40px rgba(0, 0, 0, 0.42);
+  --subscriptions-workspace-surface: rgba(34, 30, 25, 0.72);
+  --subscriptions-workspace-shadow: 0 30px 76px -54px rgba(0, 0, 0, 0.52);
+  --subscriptions-pane-divider: rgba(243, 239, 230, 0.08);
+  --subscriptions-list-group-surface: rgba(34, 30, 25, 0.86);
+  --subscriptions-detail-pane-surface: linear-gradient(180deg, rgba(34, 30, 25, 0.34), rgba(45, 40, 34, 0.72));
   --cleanup-shell-bg:
     radial-gradient(circle at top left, rgba(245, 78, 0, 0.18), transparent 24%),
     linear-gradient(180deg, rgba(28, 25, 21, 1), rgba(28, 25, 21, 1));

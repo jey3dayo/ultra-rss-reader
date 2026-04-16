@@ -44,10 +44,15 @@ export function SubscriptionDetailPane({
   return (
     <section
       data-testid="subscriptions-detail-pane"
-      className="flex min-h-0 flex-col border-l border-border/70 px-4 py-4 sm:px-6"
-      style={{ backgroundColor: "var(--subscriptions-detail-surface)" }}
+      className="flex min-h-0 flex-col px-4 py-4 sm:px-6"
+      style={{
+        backgroundColor: "var(--subscriptions-detail-surface)",
+        backgroundImage: "var(--subscriptions-detail-pane-surface)",
+      }}
     >
-      <h2 className="sr-only">{heading}</h2>
+      <div className="mb-4 border-b border-border/60 pb-3">
+        <h2 className="font-sans text-[1.02rem] font-normal tracking-[-0.02em] text-foreground">{heading}</h2>
+      </div>
       {!row || !metrics ? (
         <div className="flex min-h-0 flex-1 items-center">
           <p className="w-full rounded-md border border-dashed border-border/70 bg-surface-1/78 px-5 py-6 text-sm text-muted-foreground">
@@ -56,7 +61,7 @@ export function SubscriptionDetailPane({
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto pr-2">
-          <div className="mx-auto flex min-h-full w-full max-w-[440px] flex-col pb-6 pt-1">
+          <div className="mx-auto flex min-h-full w-full max-w-[520px] flex-col pb-6 pt-1">
             <FeedDetailPanel
               title={row.feed.title}
               titleHref={row.feed.site_url}

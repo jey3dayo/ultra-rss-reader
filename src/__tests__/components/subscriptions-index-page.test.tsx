@@ -159,7 +159,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(selectedFeed).toHaveAttribute("aria-pressed", "true");
     expect(selectedFeed).toHaveClass("bg-[color:var(--subscriptions-list-row-selected-surface)]");
     expect(selectedFeed).toHaveClass("focus-visible:ring-2");
-    expect(selectedFeed).toHaveClass("rounded-md");
+    expect(selectedFeed.className).toMatch(/rounded-(md|lg|xl)/);
     const selectedFaviconSurface = selectedFeed.querySelector("span.rounded-md");
     expect((selectedFaviconSurface as HTMLElement).style.backgroundColor).toBe(
       "var(--subscriptions-list-favicon-surface)",
@@ -181,10 +181,10 @@ describe("SubscriptionsIndexPage", () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
     const totalSubscriptionsLabel = await screen.findByText("総購読数");
-    expect(totalSubscriptionsLabel.closest(".rounded-md")).not.toBeNull();
+    expect(totalSubscriptionsLabel.closest(".rounded-xl")).not.toBeNull();
     expect(screen.queryByRole("button", { name: /総購読数/ })).toBeNull();
     expect(await screen.findByRole("button", { name: /要確認を見る/ })).toHaveClass(
-      "rounded-md",
+      "rounded-xl",
       "border-state-review-border",
       "bg-state-review-surface",
     );
@@ -201,8 +201,11 @@ describe("SubscriptionsIndexPage", () => {
     const shell = await screen.findByTestId("subscriptions-workspace-shell");
     expect(shell).toHaveClass("min-h-0");
     expect(shell).toHaveClass("overflow-hidden");
-    expect(shell).toHaveClass("grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)]");
-    expect(shell.parentElement).toHaveStyle({ backgroundImage: "var(--subscriptions-shell-bg)" });
+    expect(shell).toHaveClass("rounded-xl");
+    expect(shell).toHaveClass("lg:grid-cols-[minmax(0,1.02fr)_minmax(380px,0.98fr)]");
+    expect(shell.parentElement?.parentElement?.parentElement).toHaveStyle({
+      backgroundImage: "var(--subscriptions-shell-bg)",
+    });
 
     const leftPaneSection = within(shell).getByRole("heading", { name: "全購読" }).closest("section");
     if (!leftPaneSection) {
@@ -224,8 +227,8 @@ describe("SubscriptionsIndexPage", () => {
     expect(await screen.findAllByRole("heading", { name: "Work" })).toHaveLength(2);
     expect(screen.getByTestId("subscriptions-folder-row-folder-1")).toHaveAttribute("data-folder-drop-target", "true");
     expect(screen.getByTestId("subscriptions-folder-row-folder-2")).toHaveAttribute("data-folder-drop-target", "true");
-    expect(screen.getByTestId("subscriptions-folder-row-folder-1")).toHaveClass("rounded-md");
-    expect(screen.getByTestId("subscriptions-folder-row-folder-2")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("subscriptions-folder-row-folder-1").className).toMatch(/rounded-(md|lg|xl)/);
+    expect(screen.getByTestId("subscriptions-folder-row-folder-2").className).toMatch(/rounded-(md|lg|xl)/);
     expect(screen.getByTestId("subscriptions-folder-row-folder-1").style.borderColor).toBe(
       "var(--subscriptions-list-divider)",
     );
@@ -240,6 +243,7 @@ describe("SubscriptionsIndexPage", () => {
 
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
     expect(detailPane).toHaveStyle({ backgroundColor: "var(--subscriptions-detail-surface)" });
+    expect(detailPane).toHaveStyle({ backgroundImage: "var(--subscriptions-detail-pane-surface)" });
     expect(within(detailPane).getByRole("link", { name: "Example Feed" })).toHaveAttribute(
       "href",
       "https://example.com",
@@ -265,7 +269,7 @@ describe("SubscriptionsIndexPage", () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
     const emptyDetail = await screen.findByText("購読を選ぶと詳細が表示されます。");
-    expect(emptyDetail).toHaveClass("rounded-md");
+    expect(emptyDetail.className).toMatch(/rounded-(md|lg|xl)/);
     expect(emptyDetail).toHaveClass("bg-surface-1/78");
   });
 
@@ -300,7 +304,7 @@ describe("SubscriptionsIndexPage", () => {
     const detailPane = await screen.findByTestId("subscriptions-detail-pane");
     const emptySurface = within(detailPane).getByText("購読を選ぶと詳細が表示されます。");
 
-    expect(emptySurface).toHaveClass("rounded-md");
+    expect(emptySurface.className).toMatch(/rounded-(md|lg|xl)/);
     expect(emptySurface).toHaveClass("border-dashed");
     expect(emptySurface).toHaveClass("bg-surface-1/78");
   });

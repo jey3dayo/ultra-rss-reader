@@ -21,17 +21,20 @@ function resolveCardClassName(tone: SubscriptionSummaryCard["tone"] = "neutral")
 export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSummaryCard[] }) {
   return (
     <section
-      className="border-b border-border/70 px-4 py-4 sm:px-5"
-      style={{ backgroundImage: "var(--subscriptions-summary-surface)" }}
+      className="rounded-lg border border-border/70 px-4 py-4 sm:px-5"
+      style={{
+        backgroundImage: "var(--subscriptions-summary-surface)",
+        boxShadow: "0 18px 42px -38px rgba(38, 37, 30, 0.28)",
+      }}
     >
-      <div className="grid gap-3 lg:grid-cols-[0.95fr_1.18fr_0.94fr_0.94fr]">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-[0.96fr_1.12fr_0.96fr_0.96fr]">
         {cards.map((card) => {
           const numericValue = Number(card.value);
           const hasAction = Boolean(card.actionLabel && card.onAction);
           const isActionable = hasAction && Number.isFinite(numericValue) && numericValue > 0;
           const isPrimary = isActionable && card.tone === "review";
           const className = cn(
-            "rounded-md border px-4 py-4 text-left transition-[border-color,background-color,color,box-shadow] duration-150",
+            "flex min-h-[148px] flex-col justify-between rounded-md border px-4 py-4 text-left transition-[border-color,background-color,color,box-shadow,transform] duration-150",
             resolveCardClassName(isActionable ? card.tone : "neutral"),
             isPrimary ? "shadow-[var(--subscriptions-summary-card-shadow)]" : "shadow-none",
             !isActionable && card.actionLabel && "text-muted-foreground opacity-80",
@@ -45,29 +48,35 @@ export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSum
                 className={cn(
                   className,
                   "group cursor-pointer",
-                  isPrimary ? "hover:border-border-strong hover:shadow-elevation-1" : "hover:border-border-strong/90",
+                  isPrimary
+                    ? "hover:-translate-y-0.5 hover:border-border-strong hover:shadow-elevation-1"
+                    : "hover:-translate-y-0.5 hover:border-border-strong/90",
                 )}
                 onClick={card.onAction}
               >
-                <span className="block text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                  {card.label}
-                </span>
-                <span className="mt-2 block text-[2rem] font-semibold tracking-tight text-foreground">
-                  {card.value}
-                </span>
-                {card.caption ? <p className="mt-1.5 text-sm text-muted-foreground">{card.caption}</p> : null}
-                <div className="mt-3 flex items-center justify-between gap-3">
+                <div>
+                  <span className="block text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+                    {card.label}
+                  </span>
+                  <span className="mt-2 block text-[2.25rem] font-semibold tracking-[-0.04em] text-foreground">
+                    {card.value}
+                  </span>
+                  {card.caption ? (
+                    <p className="mt-2 max-w-[26ch] text-sm leading-6 text-muted-foreground">{card.caption}</p>
+                  ) : null}
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-3">
                   <LabelChip
                     tone={isPrimary ? "neutral" : "muted"}
                     className={cn(
-                      "text-foreground-soft transition-colors group-hover:text-foreground",
+                      "px-2.5 py-1 text-[10px] text-foreground-soft transition-colors group-hover:text-foreground",
                       isPrimary && "bg-surface-1/88",
                     )}
                   >
                     {card.actionLabel}
                   </LabelChip>
-                  <span className="text-[11px] text-foreground-soft transition-colors group-hover:text-foreground">
-                    開く
+                  <span className="text-[11px] font-medium tracking-[0.08em] text-foreground-soft transition-colors group-hover:text-foreground uppercase">
+                    整理へ
                   </span>
                 </div>
               </button>
@@ -76,9 +85,15 @@ export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSum
 
           return (
             <div key={card.label} className={className}>
-              <p className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">{card.label}</p>
-              <p className="mt-2 text-[2rem] font-semibold tracking-tight text-foreground">{card.value}</p>
-              {card.caption ? <p className="mt-1.5 text-sm text-foreground-soft">{card.caption}</p> : null}
+              <div>
+                <p className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+                  {card.label}
+                </p>
+                <p className="mt-2 text-[2.25rem] font-semibold tracking-[-0.04em] text-foreground">{card.value}</p>
+                {card.caption ? (
+                  <p className="mt-2 max-w-[26ch] text-sm leading-6 text-foreground-soft">{card.caption}</p>
+                ) : null}
+              </div>
             </div>
           );
         })}
