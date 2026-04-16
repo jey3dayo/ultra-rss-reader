@@ -91,7 +91,7 @@ export function FeedCleanupQueuePanel({
           className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md shadow-none"
         >
           <div className="flex items-center gap-3 text-sm font-medium text-foreground">
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-[var(--radius-md)] border border-border/70 bg-surface-1/80">
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-md border border-border/70 bg-surface-1/80">
               <Check className="h-3.5 w-3.5" />
             </span>
             <span>{selectedCountLabel}</span>
@@ -197,7 +197,7 @@ export function FeedCleanupQueuePanel({
                   <label
                     data-testid={`feed-cleanup-selection-hit-area-${candidate.feedId}`}
                     htmlFor={checkboxId}
-                    className="-m-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-lg)] p-2"
+                    className="-m-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-md p-2"
                   >
                     <Checkbox
                       id={checkboxId}

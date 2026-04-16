@@ -132,7 +132,7 @@ describe("FeedCleanupQueuePanel", () => {
 
     expect(screen.getByTestId("feed-cleanup-selection-hit-area-feed-1")).toHaveClass("p-2");
     expect(screen.getByTestId("feed-cleanup-selection-hit-area-feed-1")).toHaveClass("min-h-11");
-    expect(screen.getByTestId("feed-cleanup-selection-hit-area-feed-1")).toHaveClass("rounded-[var(--radius-lg)]");
+    expect(screen.getByTestId("feed-cleanup-selection-hit-area-feed-1")).toHaveClass("rounded-md");
   });
 
   it("uses subdued surface cards for selected rows while keeping row actions available", () => {
