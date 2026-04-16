@@ -7,6 +7,9 @@ const meta = {
   title: "Shared/ConfirmDialogView",
   component: ConfirmDialogView,
   tags: ["autodocs"],
+  parameters: {
+    layout: "centered",
+  },
   args: {
     open: true,
     title: "Confirm",
@@ -37,5 +40,14 @@ export const WarningTone: Story = {
     message: "This action cannot be undone.",
     actionLabel: "Continue",
     icon: AlertTriangle,
+  },
+};
+
+export const LongCopy: Story = {
+  args: {
+    title: "Apply bulk update",
+    message:
+      "Apply this change to every selected article? Existing article state is kept, but the update cannot be reversed in a single step.",
+    actionLabel: "Apply update",
   },
 };
