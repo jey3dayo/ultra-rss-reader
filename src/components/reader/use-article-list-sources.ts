@@ -35,6 +35,17 @@ export function useArticleListSources({
   const adoptedFeedsSnapshot = feedsSnapshot?.accountId === selectedAccountId ? feedsSnapshot : null;
   const resolvedFeeds = adoptedFeedsSnapshot?.feeds ?? feeds;
   const accountSelectionArticles = smartViewKind === "starred" ? starredArticles : accountArticles;
+  const selectedAccountSource = useMemo(
+    () =>
+      selectedArticleId === null
+        ? null
+        : smartViewKind === "starred"
+          ? (starredArticles?.find((article) => article.id === selectedArticleId) ??
+            accountArticles?.find((article) => article.id === selectedArticleId) ??
+            null)
+          : (accountArticles?.find((article) => article.id === selectedArticleId) ?? null),
+    [accountArticles, selectedArticleId, smartViewKind, starredArticles],
+  );
   const primarySourceArticles =
     selectionContext.kind === "feed"
       ? articles
@@ -91,25 +102,31 @@ export function useArticleListSources({
     selectedStarredArticleSnapshotCandidate !== null,
   );
   const resolvedAccountArticles = useMemo(() => {
-    if (
-      smartViewKind !== "starred" ||
-      selectedArticleId === null ||
-      resolvedPrimarySourceArticles === undefined ||
-      resolvedPrimarySourceArticles.some((article) => article.id === selectedArticleId)
-    ) {
+    if (smartViewKind !== "starred" || selectedArticleId === null || resolvedPrimarySourceArticles === undefined) {
       return resolvedPrimarySourceArticles;
     }
 
-    if (
-      selectedStarredArticleSnapshot?.contextKey !== selectionContext.key ||
-      selectedStarredArticleSnapshot.articleId !== selectedArticleId
-    ) {
+    const latestSelectedArticle =
+      selectedAccountSource ??
+      (selectedStarredArticleSnapshot?.contextKey === selectionContext.key &&
+      selectedStarredArticleSnapshot.articleId === selectedArticleId
+        ? selectedStarredArticleSnapshot.article
+        : null);
+
+    if (latestSelectedArticle === null) {
       return resolvedPrimarySourceArticles;
     }
 
-    return [selectedStarredArticleSnapshot.article, ...resolvedPrimarySourceArticles];
+    if (resolvedPrimarySourceArticles.some((article) => article.id === selectedArticleId)) {
+      return resolvedPrimarySourceArticles.map((article) =>
+        article.id === selectedArticleId ? latestSelectedArticle : article,
+      );
+    }
+
+    return [latestSelectedArticle, ...resolvedPrimarySourceArticles];
   }, [
     resolvedPrimarySourceArticles,
+    selectedAccountSource,
     selectedArticleId,
     selectedStarredArticleSnapshot,
     selectionContext.key,

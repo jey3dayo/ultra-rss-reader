@@ -83,7 +83,7 @@ describe("ArticleToolbarView", () => {
     expect(onOpenInExternalBrowser).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps article state shapes but removes semantic tones from toolbar toggles", () => {
+  it("applies semantic tones only to active article states in toolbar toggles", () => {
     render(
       <ArticleToolbarView
         showCloseButton
@@ -121,13 +121,12 @@ describe("ArticleToolbarView", () => {
     const starIcon = screen.getByRole("button", { name: "Toggle star" }).querySelector("svg");
 
     expect(readIcon).not.toBeNull();
-    expect(readIcon).toHaveClass("border-2");
-    expect(readIcon).toHaveClass("border-current/85");
-    expect(readIcon).not.toHaveClass("text-[var(--tone-unread)]");
+    expect(readIcon).toHaveClass("bg-[var(--tone-unread)]");
+    expect(readIcon).toHaveClass("text-[var(--tone-unread)]");
 
     expect(starIcon).not.toBeNull();
-    expect(starIcon).not.toHaveClass("text-[var(--tone-starred)]");
-    expect(starIcon).not.toHaveClass("fill-[var(--tone-starred)]");
+    expect(starIcon).toHaveClass("text-[var(--tone-starred)]");
+    expect(starIcon).toHaveClass("fill-[var(--tone-starred)]");
   });
 
   it("hides optional actions and disables unavailable ones", () => {

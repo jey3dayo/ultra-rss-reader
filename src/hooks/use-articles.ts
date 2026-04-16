@@ -1,7 +1,8 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  type ArticleDto,
   countAccountStarredArticles,
   getFeedIntegrityReport,
   listAccountArticles,
@@ -38,6 +39,29 @@ function invalidateArticleQueries(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: ["search"] });
 }
 
+function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: boolean) {
+  const updateArticleArray = (current: unknown) => {
+    if (!Array.isArray(current)) {
+      return current;
+    }
+
+    return current.map((candidate) => {
+      if (candidate && typeof candidate === "object" && "id" in candidate && "is_read" in candidate) {
+        const article = candidate as ArticleDto;
+        return article.id === articleId ? { ...article, is_read: read } : article;
+      }
+
+      return candidate;
+    });
+  };
+
+  qc.setQueriesData({ queryKey: ["articles"] }, updateArticleArray);
+  qc.setQueriesData({ queryKey: ["accountArticles"] }, updateArticleArray);
+  qc.setQueriesData({ queryKey: ["starredArticles"] }, updateArticleArray);
+  qc.setQueriesData({ queryKey: ["articlesByTag"] }, updateArticleArray);
+  qc.setQueriesData({ queryKey: ["search"] }, updateArticleArray);
+}
+
 export const useArticles = createQuery("articles", listArticles);
 
 export const useAccountArticles = createQuery("accountArticles", listAccountArticles);
@@ -59,10 +83,17 @@ export function useAccountStarredCount(accountId: string | null) {
   });
 }
 
-export const useSetRead = createMutation(
-  ({ id, read }: SetReadMutationInput) => markArticleRead(id, read),
-  invalidateArticleQueries,
-);
+export function useSetRead() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, read }: SetReadMutationInput) => markArticleRead(id, read).then(Result.unwrap()),
+    onSuccess: (_data, variables) => {
+      patchCachedArticleReadState(qc, variables.id, variables.read);
+      invalidateArticleQueries(qc);
+    },
+  });
+}
 
 export const useMarkAllRead = createMutation(
   (articleIds: string[]) => markArticlesRead(articleIds),
