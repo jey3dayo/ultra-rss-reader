@@ -76,13 +76,19 @@ describe("AddFeedDialogView", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
+    expect(screen.getByRole("dialog")).toHaveClass("bg-surface-2", "shadow-elevation-3");
     expect(screen.getByLabelText("Feed or Site URL")).toHaveValue("https://example.com");
     expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("bg-surface-1/80");
     expect(screen.getByRole("radio", { name: "Tech Blog" })).toBeInTheDocument();
     expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("rounded-md");
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("New folder");
     expect(screen.getByLabelText("Folder name")).toHaveValue("Reading");
-    expect(screen.getByText("Feed detected")).toHaveClass("text-state-success-foreground");
+    expect(screen.getByText("Feed detected").closest('[data-surface-card="info"]')).toHaveClass(
+      "border-state-success-border",
+      "bg-state-success-surface",
+      "text-state-success-foreground",
+    );
     expect(screen.getByRole("button", { name: "Add" })).toHaveClass("min-h-11");
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
 
@@ -158,6 +164,7 @@ describe("AddFeedDialogView", () => {
 
     expect(helperText.id).not.toBe("");
     expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
+    expect(screen.getByRole("dialog")).toHaveClass("bg-surface-2", "shadow-elevation-3");
     expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass("rounded-md");
     expect(helperText).toHaveClass("rounded-md");
     expect(helperText).toHaveClass(
@@ -165,9 +172,12 @@ describe("AddFeedDialogView", () => {
       "bg-state-danger-surface",
       "text-state-danger-foreground",
     );
+    expect(screen.getByText("Invalid URL").closest('[data-surface-card="info"]')).toHaveClass(
+      "border-state-danger-border",
+      "bg-state-danger-surface",
+    );
     expect(urlInput).toHaveAttribute("aria-describedby", helperText.id);
     expect(urlInput).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByText("Invalid URL")).toHaveClass("text-state-danger-foreground");
     expect(onSubmit).not.toHaveBeenCalled();
   });
 });

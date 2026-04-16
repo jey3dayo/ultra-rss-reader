@@ -41,10 +41,16 @@ describe("ArticleTagPickerView", () => {
     expect(screen.queryByText("Tags")).not.toBeInTheDocument();
     expect(addTagButton).toHaveClass("size-7");
     expect(addTagButton).toHaveClass("text-foreground-soft");
-    expect(screen.getByRole("listbox", { name: "Available tags" })).toHaveClass("rounded-lg");
+    expect(screen.getByRole("listbox", { name: "Available tags" })).toHaveClass(
+      "rounded-lg",
+      "bg-surface-2",
+      "shadow-elevation-3",
+    );
     expect(screen.getByRole("option", { name: "Important" })).toHaveClass("min-h-11", "rounded-md");
+    expect(screen.getByRole("option", { name: "Important" })).toHaveClass("hover:bg-surface-1");
     expect(screen.getByRole("textbox", { name: "" })).toHaveClass("h-10");
     expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass("h-10", "w-10", "rounded-md");
+    expect(screen.getByRole("button", { name: "Create tag" })).toHaveClass("hover:bg-surface-1");
 
     await user.click(removeButton);
     await user.click(screen.getByRole("option", { name: "Important" }));

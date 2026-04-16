@@ -1,6 +1,7 @@
 import { useId } from "react";
 import { CopyableReadonlyFieldList } from "@/components/shared/copyable-readonly-field-list";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
+import { SurfaceCard } from "@/components/shared/surface-card";
 import { StackedInputField } from "@/components/shared/stacked-input-field";
 import { StackedSelectField } from "@/components/shared/stacked-select-field";
 import {
@@ -47,7 +48,7 @@ export function FeedDialogFormView({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="overflow-hidden rounded-xl border border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.98),hsl(var(--background)/0.98))] p-0 shadow-[0_28px_80px_-44px_hsl(var(--foreground)/0.55)] sm:max-w-[640px]"
+        className="overflow-hidden rounded-xl border border-border/70 bg-surface-2 p-0 shadow-elevation-3 sm:max-w-[640px]"
       >
         <DialogHeader className="border-b border-border/70 px-6 py-5">
           <DialogTitle className="text-[1.6rem] font-semibold tracking-tight">{labels.title}</DialogTitle>
@@ -98,16 +99,24 @@ export function FeedDialogFormView({
           {folderSelectProps ? (
             <div
               data-testid="feed-dialog-folder-section"
-              className="rounded-md border border-border/70 bg-card/55 px-4 py-4"
+              className="rounded-md border border-border/70 bg-surface-1/80 px-4 py-4"
             >
               <FolderSelectView {...folderSelectProps} />
             </div>
           ) : null}
 
-          {successMessage && !error && <p className="mt-2 text-sm text-state-success-foreground">{successMessage}</p>}
-          {error && <p className="mt-2 text-sm text-state-danger-foreground">{error}</p>}
+          {successMessage && !error ? (
+            <SurfaceCard variant="info" tone="success" padding="compact">
+              <p className="text-sm">{successMessage}</p>
+            </SurfaceCard>
+          ) : null}
+          {error ? (
+            <SurfaceCard variant="info" tone="danger" padding="compact">
+              <p className="text-sm">{error}</p>
+            </SurfaceCard>
+          ) : null}
         </form>
-        <DialogFooter className="border-t border-border/70 bg-background/55 px-6 py-4">
+        <DialogFooter className="border-t border-border/70 bg-surface-1/72 px-6 py-4">
           <FormActionButtons
             cancelLabel={labels.cancel}
             submitLabel={labels.submit}

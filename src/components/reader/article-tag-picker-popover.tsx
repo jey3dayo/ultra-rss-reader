@@ -22,7 +22,7 @@ export function ArticleTagPickerPopover({
       id={pickerId}
       role="listbox"
       aria-label={labels.availableTags}
-      className="absolute top-full left-0 z-50 mt-2 min-w-[220px] rounded-lg border border-border/80 bg-popover/98 p-1.5 shadow-lg"
+      className="absolute top-full left-0 z-50 mt-2 min-w-[220px] rounded-lg border border-border/70 bg-surface-2 p-1.5 shadow-elevation-3"
       onKeyDown={onListboxKeyDown}
     >
       {availableTags.map((tag, index) => (
@@ -38,7 +38,7 @@ export function ArticleTagPickerPopover({
             onAssignTag(tag.id);
             onExpandedChange(false);
           }}
-          className="flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm text-popover-foreground hover:bg-accent/80"
+          className="flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm text-foreground hover:bg-surface-1"
         >
           {tag.color && (
             <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: tag.color }} />
@@ -46,7 +46,7 @@ export function ArticleTagPickerPopover({
           {tag.name}
         </button>
       ))}
-      <div className="mt-1 flex items-center gap-1.5 border-t border-border/80 px-2 pt-2">
+      <div className="mt-1 flex items-center gap-1.5 border-t border-border/70 px-2 pt-2">
         <Input
           ref={newTagInputRef}
           name="new-tag"
@@ -71,7 +71,7 @@ export function ArticleTagPickerPopover({
           size="icon-sm"
           onClick={onCreateTag}
           disabled={!newTagName.trim()}
-          className="h-10 w-10 rounded-md text-muted-foreground hover:bg-accent/80"
+          className="h-10 w-10 rounded-md text-muted-foreground hover:bg-surface-1"
           aria-label={labels.createTag}
         >
           <Plus className="h-3 w-3" />
