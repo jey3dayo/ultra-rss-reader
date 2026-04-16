@@ -83,6 +83,52 @@ describe("ArticleToolbarView", () => {
     expect(onOpenInExternalBrowser).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps article state shapes but removes semantic tones from toolbar toggles", () => {
+    render(
+      <ArticleToolbarView
+        showCloseButton
+        canToggleRead
+        canToggleStar
+        isRead={false}
+        isStarred
+        isBrowserOpen={false}
+        showCopyLinkButton={false}
+        canCopyLink={false}
+        showOpenInBrowserButton
+        canOpenInBrowser
+        showOpenInExternalBrowserButton={false}
+        canOpenInExternalBrowser={false}
+        labels={{
+          closeView: "Close article",
+          toggleRead: "Toggle read",
+          toggleStar: "Toggle star",
+          copyLink: "Copy link",
+          previewToggleOff: "Open Web Preview",
+          previewToggleOn: "Close Web Preview",
+          openInExternalBrowser: "Open in External Browser",
+          moreActions: "More actions",
+        }}
+        onCloseView={vi.fn()}
+        onToggleRead={vi.fn()}
+        onToggleStar={vi.fn()}
+        onCopyLink={vi.fn()}
+        onOpenInBrowser={vi.fn()}
+        onOpenInExternalBrowser={vi.fn()}
+      />,
+    );
+
+    const readIcon = screen.getByRole("button", { name: "Toggle read" }).querySelector("span");
+    const starIcon = screen.getByRole("button", { name: "Toggle star" }).querySelector("svg");
+
+    expect(readIcon).not.toBeNull();
+    expect(readIcon).toHaveClass("bg-current");
+    expect(readIcon).not.toHaveClass("text-[var(--tone-unread)]");
+
+    expect(starIcon).not.toBeNull();
+    expect(starIcon).not.toHaveClass("text-[var(--tone-starred)]");
+    expect(starIcon).not.toHaveClass("fill-[var(--tone-starred)]");
+  });
+
   it("hides optional actions and disables unavailable ones", () => {
     render(
       <ArticleToolbarView

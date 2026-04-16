@@ -54,10 +54,10 @@ const FILTER_ITEMS = [
 
 const REFERENCE_FILTER_TONE_CLASSNAMES = {
   unread:
-    "text-[color-mix(in_srgb,var(--tone-unread)_68%,var(--sidebar-foreground))] hover:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--sidebar-selection-foreground))] data-[pressed]:bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--sidebar-selection-foreground))]",
-  all: "text-sidebar-foreground/78 hover:text-sidebar-foreground data-[pressed]:bg-sidebar-accent/85 data-[pressed]:text-sidebar-foreground",
+    "text-sidebar-foreground/90 hover:text-sidebar-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--sidebar-selection-foreground))]",
+  all: "text-sidebar-foreground/90 hover:text-sidebar-foreground data-[pressed]:bg-sidebar-accent/85 data-[pressed]:text-sidebar-foreground",
   starred:
-    "text-[color-mix(in_srgb,var(--tone-starred)_72%,var(--sidebar-foreground))] hover:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--sidebar-selection-foreground))] data-[pressed]:bg-[color-mix(in_srgb,var(--tone-starred)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--sidebar-selection-foreground))]",
+    "text-sidebar-foreground/90 hover:text-sidebar-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-starred)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--sidebar-selection-foreground))]",
 } as const;
 
 const REFERENCE_NAV_ITEMS: SettingsNavItem[] = [
@@ -350,15 +350,11 @@ export function ReaderFilterStripSpecimen() {
               )}
             >
               {item.icon === "star" ? (
-                <StarIcon
-                  starred={mode === "starred"}
-                  forceTone
-                  className={controlChipIconVariants({ size: "filter" })}
-                />
+                <StarIcon starred={mode === "starred"} className={controlChipIconVariants({ size: "filter" })} />
               ) : item.icon === "list" ? (
                 <List className={controlChipIconVariants({ size: "filter" })} />
               ) : (
-                <UnreadIcon unread={mode === "unread"} forceTone className="h-2.5 w-2.5" />
+                <UnreadIcon unread={mode === "unread"} className="h-2.5 w-2.5" />
               )}
               {item.label}
             </Toggle>

@@ -16,10 +16,10 @@ const VIEW_MODES = [
 
 const FILTER_TONE_CLASSNAMES = {
   unread:
-    "text-[color-mix(in_srgb,var(--tone-unread)_68%,var(--foreground-soft))] hover:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--foreground))] data-[pressed]:bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--foreground))]",
-  all: "text-muted-foreground hover:text-foreground data-[pressed]:bg-muted data-[pressed]:text-foreground",
+    "text-foreground/90 hover:text-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--foreground))]",
+  all: "text-foreground/90 hover:text-foreground data-[pressed]:bg-muted data-[pressed]:text-foreground",
   starred:
-    "text-[color-mix(in_srgb,var(--tone-starred)_72%,var(--foreground-soft))] hover:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--foreground))] data-[pressed]:bg-[color-mix(in_srgb,var(--tone-starred)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--foreground))]",
+    "text-foreground/90 hover:text-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-starred)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--foreground))]",
 } as const;
 
 export function ArticleListFooter({
@@ -60,15 +60,11 @@ export function ArticleListFooter({
               )}
             >
               {mode.icon === "star" ? (
-                <StarIcon
-                  starred={viewMode === "starred"}
-                  forceTone
-                  className={controlChipIconVariants({ size: "filter" })}
-                />
+                <StarIcon starred={viewMode === "starred"} className={controlChipIconVariants({ size: "filter" })} />
               ) : mode.icon === "list" ? (
                 <List className={controlChipIconVariants({ size: "filter" })} />
               ) : (
-                <UnreadIcon unread={viewMode === "unread"} forceTone className="h-2.5 w-2.5" />
+                <UnreadIcon unread={viewMode === "unread"} className="h-2.5 w-2.5" />
               )}
               {t(mode.labelKey)}
             </Toggle>
