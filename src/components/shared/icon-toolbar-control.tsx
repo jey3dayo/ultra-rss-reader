@@ -27,7 +27,7 @@ export const iconToolbarControlVariants = cva(iconToolbarButtonClassName, {
 
 export const iconToolbarSurfaceButtonClassName = cn(
   buttonVariants({ variant: "ghost", size: "icon" }),
-  "rounded-lg border-transparent bg-transparent text-inherit shadow-none hover:bg-transparent hover:text-inherit aria-expanded:bg-transparent focus-visible:border-transparent focus-visible:ring-0 active:translate-y-0 disabled:opacity-100 disabled:text-foreground/55",
+  "rounded-lg border-transparent bg-transparent text-inherit shadow-none hover:bg-transparent hover:text-inherit aria-expanded:bg-transparent focus-visible:border-transparent focus-visible:ring-0 active:translate-y-0 disabled:opacity-100 disabled:text-foreground-soft",
 );
 
 export const iconToolbarSurfaceControlVariants = cva(iconToolbarSurfaceButtonClassName, {
@@ -44,7 +44,7 @@ export const iconToolbarSurfaceControlVariants = cva(iconToolbarSurfaceButtonCla
 });
 
 export const iconToolbarSurfaceLabelButtonClassName = cn(
-  "inline-flex h-full w-full items-center justify-center gap-1 rounded-lg border border-transparent bg-transparent px-0 text-inherit outline-none transition-[color,background-color,border-color,opacity,box-shadow,transform] focus-visible:border-transparent focus-visible:ring-0 active:translate-y-0 disabled:pointer-events-none disabled:opacity-100 disabled:text-foreground/55",
+  "inline-flex h-full w-full items-center justify-center gap-1 rounded-lg border border-transparent bg-transparent px-0 text-inherit outline-none transition-[color,background-color,border-color,opacity,box-shadow,transform] focus-visible:border-transparent focus-visible:ring-0 active:translate-y-0 disabled:pointer-events-none disabled:opacity-100 disabled:text-foreground-soft",
 );
 
 type IconToolbarSurfaceButtonProps = IconToolbarButtonProps & {

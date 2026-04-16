@@ -9,7 +9,7 @@ export function LabeledControlRow({
   className,
   labelClassName,
 }: LabeledControlRowProps) {
-  const labelClasses = cn("font-sans text-[14px] leading-[1.35] text-foreground/92", labelClassName);
+  const labelClasses = cn("font-sans text-[14px] leading-[1.35] text-foreground-soft", labelClassName);
 
   return (
     <div

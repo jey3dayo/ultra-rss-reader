@@ -91,10 +91,11 @@ describe("IconToolbarControl", () => {
     expect(iconToolbarSurfaceButtonClassName).toContain("rounded-lg");
     expect(iconToolbarSurfaceButtonClassName).toContain("text-inherit");
     expect(iconToolbarSurfaceButtonClassName).toContain("disabled:opacity-100");
-    expect(iconToolbarSurfaceButtonClassName).toContain("disabled:text-foreground/55");
+    expect(iconToolbarSurfaceButtonClassName).toContain("disabled:text-foreground-soft");
     expect(iconToolbarSurfaceControlVariants({ pressedTone: "accent" })).toContain("data-[pressed]:text-primary");
     expect(iconToolbarSurfaceLabelButtonClassName).toContain("rounded-lg");
     expect(iconToolbarSurfaceLabelButtonClassName).toContain("text-inherit");
+    expect(iconToolbarSurfaceLabelButtonClassName).toContain("disabled:text-foreground-soft");
   });
 
   it("renders a shared overlay surface button with the same icon treatment used by browser chrome", async () => {
