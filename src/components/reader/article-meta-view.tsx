@@ -29,12 +29,12 @@ export function ArticleMetaView({
         )}
       </h1>
       {(feedName || author) && (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-serif text-[0.95rem] leading-6 text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-serif text-[0.95rem] leading-6 text-foreground-soft">
           {feedName &&
             (onFeedClick ? (
               <button
                 type="button"
-                className="-mx-1 inline-flex items-center rounded-md px-1 py-0.5 text-[0.95rem] text-muted-foreground transition-colors hover:bg-surface-1/72 hover:text-foreground"
+                className="-mx-1 inline-flex items-center rounded-md px-1 py-0.5 text-[0.95rem] text-foreground-soft transition-colors hover:bg-surface-1/72 hover:text-foreground"
                 onClick={onFeedClick}
               >
                 {feedName}
