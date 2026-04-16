@@ -60,6 +60,7 @@ describe("FeedCleanupOverviewPanel", () => {
     expect(summary).toHaveTextContent("Pending");
     expect(summary).toHaveTextContent("Done");
     expect(pendingCount.closest("span")).toHaveClass("rounded-md");
+    expect(within(summary).getByText("Needs review")).toHaveClass("text-foreground-soft");
     expect(within(summary).queryByRole("button")).toBeNull();
     expect(within(bulkActions).getAllByRole("button")).toHaveLength(2);
     expect(within(bulkActions).getByRole("button", { name: "Keep all visible" })).toBeInTheDocument();
@@ -87,6 +88,7 @@ describe("FeedCleanupOverviewPanel", () => {
     expect(allCandidatesButton).toHaveTextContent("2");
     expect(within(allCandidatesButton).queryByText("3")).toBeNull();
     expect(screen.getByTestId("feed-cleanup-bulk-actions")).toBeInTheDocument();
+    expect(screen.getByText("3 visible")).toHaveClass("text-foreground-soft");
   });
 
   it("wires the bulk visible actions", async () => {

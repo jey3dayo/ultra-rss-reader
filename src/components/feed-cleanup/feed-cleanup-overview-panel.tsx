@@ -50,7 +50,7 @@ export function FeedCleanupOverviewPanel({
               </span>
               <div>
                 <p className="font-sans text-base text-foreground">{card.label}</p>
-                <p className="font-serif text-sm text-muted-foreground">{card.caption}</p>
+                <p className="font-serif text-sm text-foreground-soft">{card.caption}</p>
               </div>
             </SurfaceCard>
           ))}
@@ -77,7 +77,7 @@ export function FeedCleanupOverviewPanel({
               >
                 <div className="min-w-0">
                   <p className="font-sans text-sm font-medium text-foreground">{bulkActionsLabel}</p>
-                  <p className="font-serif text-sm text-muted-foreground">{bulkVisibleCountLabel}</p>
+                  <p className="font-serif text-sm text-foreground-soft">{bulkVisibleCountLabel}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <DecisionButton intent="keep" aria-label={bulkKeepVisibleLabel} onClick={onKeepVisible}>
