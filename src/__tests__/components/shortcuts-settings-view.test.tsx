@@ -50,9 +50,18 @@ describe("ShortcutsSettingsView", () => {
     );
 
     expect(screen.getByRole("heading", { level: 2, name: "Shortcuts" })).toBeInTheDocument();
-    expect(screen.getByText("Shortcut j is already used by Next article")).toBeInTheDocument();
-    expect(screen.getByText("Already used")).toBeInTheDocument();
+    expect(screen.getByText("Shortcut j is already used by Next article")).toHaveClass(
+      "border-state-danger-border",
+      "bg-state-danger-surface",
+      "text-state-danger-foreground",
+    );
+    expect(screen.getByText("Already used")).toHaveClass("text-state-danger-foreground");
     expect(screen.getByText("⌘ ,")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "J" })).toHaveClass(
+      "border-state-danger-border",
+      "bg-state-danger-surface",
+      "text-state-danger-foreground",
+    );
     expect(screen.getByRole("button", { name: "Reset to defaults" })).toHaveClass("w-full");
     expect(screen.getByRole("button", { name: "J" })).toHaveClass("w-full");
 

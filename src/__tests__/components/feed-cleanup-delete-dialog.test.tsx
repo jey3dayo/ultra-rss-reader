@@ -55,9 +55,11 @@ describe("FeedCleanupDeleteDialog", () => {
 
     const dialog = screen.getByRole("dialog", { name: "Delete feeds" });
     expect(within(dialog).getByText("You are deleting 2 subscriptions.")).toBeInTheDocument();
-    expect(
-      within(dialog).getByText("This action removes the selected subscriptions from this account."),
-    ).toBeInTheDocument();
+    expect(within(dialog).getByText("This action removes the selected subscriptions from this account.")).toHaveClass(
+      "border-state-danger-border",
+      "bg-state-danger-surface",
+      "text-state-danger-foreground",
+    );
     expect(within(dialog).getByText("Old Product Blog")).toBeInTheDocument();
     expect(within(dialog).getByText("Dormant Changelog")).toBeInTheDocument();
   });

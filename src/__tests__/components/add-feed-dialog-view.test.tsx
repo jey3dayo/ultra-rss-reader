@@ -160,6 +160,7 @@ describe("AddFeedDialogView", () => {
     expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
     expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass("rounded-md");
     expect(helperText).toHaveClass("rounded-md");
+    expect(helperText).toHaveClass("border-state-danger-border", "bg-state-danger-surface", "text-state-danger-foreground");
     expect(urlInput).toHaveAttribute("aria-describedby", helperText.id);
     expect(urlInput).toHaveAttribute("aria-invalid", "true");
     expect(onSubmit).not.toHaveBeenCalled();

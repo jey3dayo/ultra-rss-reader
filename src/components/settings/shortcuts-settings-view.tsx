@@ -62,14 +62,14 @@ function ShortcutKeyBadge({ item, pressAKeyLabel }: ShortcutKeyBadgeProps) {
           item.isRecording
             ? "animate-pulse border-ring bg-ring/20 text-foreground"
             : item.conflictLabel
-              ? "border-destructive bg-destructive/10 text-destructive"
+              ? "border-state-danger-border bg-state-danger-surface text-state-danger-foreground"
               : "cursor-pointer border-border bg-muted/80 text-foreground/78 hover:border-ring hover:bg-ring/10 hover:text-foreground/88"
         }`}
       >
         {item.isRecording ? pressAKeyLabel : item.displayKey}
       </button>
       {item.conflictLabel && !item.isRecording && (
-        <span className="text-[10px] text-destructive">{item.conflictLabel}</span>
+        <span className="text-[10px] text-state-danger-foreground">{item.conflictLabel}</span>
       )}
     </div>
   );
@@ -101,7 +101,7 @@ export function ShortcutsSettingsView({
       </div>
 
       {conflictMessage && (
-        <div className="mb-4 rounded-md border border-destructive bg-destructive/10 px-4 py-2 text-sm text-destructive">
+        <div className="mb-4 rounded-md border border-state-danger-border bg-state-danger-surface px-4 py-2 text-sm text-state-danger-foreground">
           {conflictMessage}
         </div>
       )}
