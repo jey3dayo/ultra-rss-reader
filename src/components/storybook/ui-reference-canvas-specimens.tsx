@@ -108,7 +108,7 @@ const TAG_COLOR_PRESETS = [
   "#726d66",
 ] as const;
 
-const STACK_SPECIMEN_FRAME_RADIUS_CLASS = "rounded-xl";
+const STACK_SPECIMEN_FRAME_RADIUS_CLASS = "rounded-md";
 const SHELL_SPECIMEN_OUTER_RADIUS_CLASS = "rounded-2xl";
 const SHELL_SPECIMEN_INNER_RADIUS_CLASS = "rounded-xl";
 
@@ -122,7 +122,10 @@ export function ReferencePage({ children, maxWidthClassName = "max-w-6xl" }: Ref
 
 export function AnnotatedNote({ title, body }: AnnotatedNoteProps) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-surface-1/85 px-3 py-3 shadow-elevation-1">
+    <div
+      data-testid="reference-annotated-note"
+      className="rounded-md border border-border/70 bg-surface-1/85 px-3 py-3 shadow-elevation-1"
+    >
       <SectionHeading className="mb-2">{title}</SectionHeading>
       <p className="font-serif text-sm leading-[1.45] text-foreground/72">{body}</p>
     </div>
@@ -260,7 +263,10 @@ export function ValidationRowSpecimen() {
   return (
     <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Validation row</SectionHeading>
-      <div className="rounded-2xl border border-border/70 bg-surface-1/90 px-3 py-3">
+      <div
+        data-testid="reference-validation-frame"
+        className="rounded-md border border-border/70 bg-surface-1/90 px-3 py-3"
+      >
         <LabeledInputRow
           label="Server URL"
           name="invalid_server_url"
@@ -281,7 +287,10 @@ export function DisabledSwitchSpecimen() {
   return (
     <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Disabled switch</SectionHeading>
-      <div className="rounded-2xl border border-border/70 bg-surface-1/90 px-3 py-2">
+      <div
+        data-testid="reference-disabled-switch-frame"
+        className="rounded-md border border-border/70 bg-surface-1/90 px-3 py-2"
+      >
         <LabeledControlRow label="ミュート時に自動既読">
           <div className="flex items-center gap-3">
             <span className="rounded-full border border-dashed border-border/70 px-2.5 py-1 text-[11px] text-foreground/58">
@@ -305,6 +314,7 @@ export function ReaderFilterStripSpecimen() {
     <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Reader filter strip</SectionHeading>
       <div
+        data-testid="reference-filter-strip-frame"
         className={cn(
           STACK_SPECIMEN_FRAME_RADIUS_CLASS,
           "border border-sidebar-border/70 bg-sidebar px-3 py-2 text-sidebar-foreground shadow-elevation-1",
@@ -355,6 +365,7 @@ export function AccountCardStackSpecimen() {
     <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Account card stack</SectionHeading>
       <div
+        data-testid="reference-account-card-frame"
         className={cn(
           STACK_SPECIMEN_FRAME_RADIUS_CLASS,
           "max-w-[18rem] border border-sidebar-border/70 bg-sidebar px-2 py-2 text-sidebar-foreground shadow-elevation-1",
@@ -381,6 +392,7 @@ export function AnnouncementCardsSpecimen() {
       <SectionHeading className="mb-2">Announcement cards</SectionHeading>
       <div className="flex flex-wrap items-center gap-4">
         <div
+          data-testid="reference-announcement-card-pending"
           className={cn(
             STACK_SPECIMEN_FRAME_RADIUS_CLASS,
             "flex items-center gap-4 border border-border/60 bg-card/52 px-4 py-3 shadow-elevation-1",
@@ -395,6 +407,7 @@ export function AnnouncementCardsSpecimen() {
           </div>
         </div>
         <div
+          data-testid="reference-announcement-card-decided"
           className={cn(
             STACK_SPECIMEN_FRAME_RADIUS_CLASS,
             "flex items-center gap-4 border border-emerald-500/20 bg-emerald-500/8 px-4 py-3 shadow-elevation-1",
@@ -418,6 +431,7 @@ export function NavigationStackSpecimen() {
     <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Folder stack</SectionHeading>
       <div
+        data-testid="reference-folder-stack-frame"
         className={cn(
           STACK_SPECIMEN_FRAME_RADIUS_CLASS,
           "max-w-[18rem] border border-sidebar-border/70 bg-sidebar px-2 py-2 text-sidebar-foreground shadow-elevation-1",

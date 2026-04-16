@@ -9,6 +9,9 @@ describe("UI Reference canvases", () => {
     render(<InputControlsCanvas />);
 
     expect(screen.getByText("Input controls")).toBeInTheDocument();
+    expect(screen.getAllByTestId("reference-annotated-note")[0]).toHaveClass("rounded-md");
+    expect(screen.getByTestId("reference-validation-frame")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("reference-disabled-switch-frame")).toHaveClass("rounded-md");
     expect(screen.getByRole("textbox", { name: "Feed URL" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Density" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Live Preview" })).toBeInTheDocument();
@@ -47,6 +50,11 @@ describe("UI Reference canvases", () => {
     render(<ViewSpecimensCanvas />);
 
     expect(screen.getByText("View specimens")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-filter-strip-frame")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("reference-account-card-frame")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("reference-announcement-card-pending")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("reference-announcement-card-decided")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("reference-folder-stack-frame")).toHaveClass("rounded-md");
     expect(screen.getByText("Surface roles")).toBeInTheDocument();
     expect(screen.getByText("Info surface")).toBeInTheDocument();
     expect(screen.getByText("Section surface")).toBeInTheDocument();
