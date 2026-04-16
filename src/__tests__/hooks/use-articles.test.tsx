@@ -69,4 +69,28 @@ describe("useToggleStar", () => {
       expect(queryClient.getQueryData(["starredArticles", "acc-1"])).toEqual([]);
     });
   });
+
+  it("injects the updated article into account caches when unstarring a starred-only selection", async () => {
+    vi.spyOn(tauriCommands, "toggleArticleStar").mockResolvedValue(Result.succeed(null));
+
+    queryClient.setQueryData(
+      ["accountArticles", "acc-1"],
+      sampleArticles.filter((article) => article.id !== "art-2"),
+    );
+    queryClient.setQueryData(
+      ["starredArticles", "acc-1"],
+      sampleArticles.filter((article) => article.id === "art-2"),
+    );
+
+    const { result } = renderHook(() => useToggleStar(), { wrapper: createWrapper() });
+
+    await result.current.mutateAsync({ id: "art-2", starred: false });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(["accountArticles", "acc-1"])).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: "art-2", is_starred: false })]),
+      );
+      expect(queryClient.getQueryData(["starredArticles", "acc-1"])).toEqual([]);
+    });
+  });
 });

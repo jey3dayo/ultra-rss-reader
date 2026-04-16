@@ -92,46 +92,58 @@ function findCachedArticle(qc: QueryClient, articleId: string): ArticleDto | nul
   return null;
 }
 
-function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred: boolean) {
-  const updateArticleArray = (current: unknown) => {
-    if (!Array.isArray(current)) {
-      return current;
+function updateCachedArticleArray(
+  current: unknown,
+  nextArticle: ArticleDto,
+  options?: { insertIfMissing?: boolean },
+) {
+  if (!Array.isArray(current)) {
+    return current;
+  }
+
+  let found = false;
+  const nextArray = current.map((candidate) => {
+    if (isArticleDto(candidate) && candidate.id === nextArticle.id) {
+      found = true;
+      return nextArticle;
     }
 
-    return current.map((candidate) => {
-      if (isArticleDto(candidate)) {
-        return candidate.id === articleId ? { ...candidate, is_starred: starred } : candidate;
-      }
+    return candidate;
+  });
 
-      return candidate;
-    });
-  };
+  if (!found && options?.insertIfMissing) {
+    return [nextArticle, ...nextArray];
+  }
 
-  qc.setQueriesData({ queryKey: ["articles"] }, updateArticleArray);
-  qc.setQueriesData({ queryKey: ["accountArticles"] }, updateArticleArray);
-  qc.setQueriesData({ queryKey: ["articlesByTag"] }, updateArticleArray);
-  qc.setQueriesData({ queryKey: ["search"] }, updateArticleArray);
+  return nextArray;
+}
+
+function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred: boolean) {
+  const cachedArticle = findCachedArticle(qc, articleId);
+  if (cachedArticle === null) {
+    return;
+  }
+
+  const nextArticle = { ...cachedArticle, is_starred: starred };
+
+  qc.setQueriesData({ queryKey: ["articles"] }, (current) => updateCachedArticleArray(current, nextArticle));
+  qc.setQueriesData({ queryKey: ["accountArticles"] }, (current) =>
+    updateCachedArticleArray(current, nextArticle, { insertIfMissing: true }),
+  );
+  qc.setQueriesData({ queryKey: ["articlesByTag"] }, (current) => updateCachedArticleArray(current, nextArticle));
+  qc.setQueriesData({ queryKey: ["search"] }, (current) => updateCachedArticleArray(current, nextArticle));
 
   qc.setQueriesData({ queryKey: ["starredArticles"] }, (current: unknown) => {
     if (!Array.isArray(current)) {
       return current;
     }
 
-    const updatedArticle = findCachedArticle(qc, articleId);
     const starredArticles = current.filter(isArticleDto);
     const hasArticle = starredArticles.some((article) => article.id === articleId);
 
     if (!starred) {
       return starredArticles.filter((article) => article.id !== articleId);
     }
-
-    if (updatedArticle === null) {
-      return hasArticle
-        ? starredArticles.map((article) => (article.id === articleId ? { ...article, is_starred: true } : article))
-        : starredArticles;
-    }
-
-    const nextArticle = { ...updatedArticle, is_starred: true };
 
     if (hasArticle) {
       return starredArticles.map((article) => (article.id === articleId ? nextArticle : article));
