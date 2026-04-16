@@ -87,12 +87,12 @@ shared primitive は仮に `SurfaceCard` とする。
 
 ## Storybook and Mock Integration
 
-モックの基準面は `UI Reference / Annotated Settings Canvas` に寄せる。
+モックの基準面は `UI Reference / View Specimens Canvas` に寄せる。
 単体 story だけではなく、参照キャンバスに role 見本を置くことで、review 時に「この箱は info か section か」を比較できるようにする。
 
 - `ArticleEmptyStateView` story は `info` surface の代表として扱う
 - `SettingsSection` は `section` surface の代表として扱う
-- `UI Reference / Annotated Settings Canvas` に `info` と `section` の基準見本を追加する
+- `UI Reference / View Specimens Canvas` に `info` と `section` の基準見本を置く
 - 将来の画面追加時は、まずこの参照キャンバスで role を確認し、必要なら `DESIGN.md` / shared primitive を更新する
 
 これにより、モック、review、実装が同じ基準面を共有できる。
@@ -141,6 +141,6 @@ radius の上書きを運用上禁止し、必要なら別 role か feature-loca
 - shared primitive から `info` と `section` を選べる
 - `ArticleEmptyStateView` の過剰な丸みが shared role の標準値に置き換わっている
 - `SettingsSection` が shared role を使い、独自の大きな radius 直書きから離れている
-- `UI Reference / Annotated Settings Canvas` に role 見本が追加されている
+- `UI Reference / View Specimens Canvas` に role 見本が置かれている
 - 新規 UI review で `DESIGN.md` → `shared` → `feature-local` の判断がしやすくなっている
 - 最終的に `mise run check` を通す

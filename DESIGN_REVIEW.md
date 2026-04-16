@@ -18,7 +18,19 @@ Use this document when:
 - deciding whether a fix should stay feature-local
 
 Do not use this document as a replacement for `DESIGN.md`. If the question is about color, typography, spacing, component appearance, or layout principles, read `DESIGN.md` first.
-After reading `DESIGN.md`, consult the Storybook reference canvas (`UI Reference / Annotated Settings Canvas`) before introducing new UI patterns.
+After reading `DESIGN.md`, consult the Storybook UI Reference catalog in this order before introducing new UI patterns:
+
+1. `UI Reference / Input Controls Canvas`
+2. `UI Reference / Shell & Overlay Canvas`
+3. `UI Reference / View Specimens Canvas`
+
+Routing rules:
+
+- form rows, validation, and disabled states go in `Input Controls Canvas`
+- app-level outer frames, dialog shells, and menu shells go in `Shell & Overlay Canvas`
+- feature-local display fragments and density specimens go in `View Specimens Canvas`
+- do not mix shell examples into section or form reference surfaces
+- when adjusting radius in these reference canvases, prefer shared scale utilities such as `rounded-md` through `rounded-2xl` instead of pixel literals
 
 ## Review Flow
 

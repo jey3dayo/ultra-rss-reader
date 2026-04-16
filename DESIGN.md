@@ -160,6 +160,7 @@ Surface governance:
 - `Info Cards` use 6px by default. Stay within a tight 6-8px range only when a shared primitive needs a documented variant.
 - `Section Containers` use 8px by default. Treat 8-10px as the narrow upper range for shared structural variants, not feature-local drift.
 - 20px+ radii are reserved for distinct shell roles, such as modal shells, command palettes, or other app-level outer frames, not standard cards or section containers.
+- Prefer radius scale utilities such as `rounded-md`, `rounded-lg`, `rounded-xl`, and `rounded-2xl` over pixel literals in component code. Use literal pixel radii only when an existing scale utility cannot express the intended role.
 
 ### Shell Roles
 
