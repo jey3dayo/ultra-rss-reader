@@ -25,12 +25,12 @@ export function ActionsSettingsView({ title, heading, toggleLabel, services }: A
         <SectionHeading>{heading}</SectionHeading>
         {services.map((service) => (
           <div key={service.id} className="flex min-h-[56px] items-center gap-3 border-b border-border py-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
+            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-1/72 text-foreground-soft">
               {service.icon}
             </span>
             <span className="flex-1 text-sm text-foreground">{service.label}</span>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">{toggleLabel}</span>
+              <span className="text-xs text-foreground-soft">{toggleLabel}</span>
               <GradientSwitch
                 checked={service.checked}
                 onCheckedChange={(checked) => service.onCheckedChange(checked)}
