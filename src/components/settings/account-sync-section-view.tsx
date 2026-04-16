@@ -23,10 +23,10 @@ export function AccountSyncSectionView({
       <LabeledSwitchRow label={syncOnWake.label} checked={syncOnWake.checked} onChange={syncOnWake.onChange} />
       <AccountSelectRow control={keepReadItems} />
       {statusRows && statusRows.length > 0 ? (
-        <div className="mt-3 space-y-2 rounded-md border border-border/60 bg-muted/30 p-3 text-sm">
+        <div className="mt-3 space-y-2 rounded-md border border-border/60 bg-surface-1/72 p-3 text-sm">
           {statusRows.map((row) => (
             <div key={row.label} className="space-y-1">
-              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{row.label}</div>
+              <div className="text-xs font-medium uppercase tracking-wide text-foreground-soft">{row.label}</div>
               <div className="break-words text-foreground">{row.value}</div>
             </div>
           ))}

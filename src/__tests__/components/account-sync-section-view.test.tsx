@@ -148,4 +148,45 @@ describe("AccountSyncSectionView", () => {
     expect(button).toHaveClass("sm:w-auto");
     expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
   });
+
+  it("uses softened support surfaces for scheduler status rows", () => {
+    render(
+      <AccountSyncSectionView
+        heading="Syncing"
+        syncInterval={{
+          name: "sync-interval",
+          label: "Sync",
+          value: "3600",
+          options: [{ value: "3600", label: "Every hour" }],
+          onChange: () => {},
+        }}
+        syncOnWake={{
+          label: "Sync on wake",
+          checked: true,
+          onChange: () => {},
+        }}
+        syncOnStartup={{
+          label: "Sync on startup",
+          checked: true,
+          onChange: () => {},
+        }}
+        keepReadItems={{
+          name: "keep-read-items",
+          label: "Keep read items",
+          value: "30",
+          options: [{ value: "30", label: "One month" }],
+          onChange: () => {},
+        }}
+        statusRows={[
+          { label: "Next sync", value: "Today at 10:30" },
+          { label: "Retry", value: "in 15 minutes" },
+        ]}
+      />,
+    );
+
+    const statusSurface = screen.getByText("Today at 10:30").closest("div.rounded-md");
+
+    expect(statusSurface).toHaveClass("bg-surface-1/72");
+    expect(screen.getByText("Next sync")).toHaveClass("text-foreground-soft");
+  });
 });
