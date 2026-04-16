@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -5,6 +7,8 @@ import { AddAccountForm } from "@/components/settings/add-account-form";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+
+const servicePickerSource = readFileSync(join(process.cwd(), "src/components/settings/service-picker.tsx"), "utf8");
 
 async function selectService(user: ReturnType<typeof userEvent.setup>, serviceName: string) {
   await user.click(screen.getByRole("button", { name: new RegExp(serviceName) }));
@@ -38,14 +42,15 @@ describe("AddAccountForm", () => {
     expect(screen.getAllByText("工事中")).toHaveLength(2);
   });
 
-  it("uses semantic hover and focus styles in the service picker", () => {
+  it("delegates hover styling to the shared nav row button", () => {
+    expect(servicePickerSource).not.toContain("hover:border-border");
+    expect(servicePickerSource).not.toContain("hover:bg-surface-2");
+
     render(<AddAccountForm />, { wrapper: createWrapper() });
 
     const freshrssButton = screen.getByRole("button", { name: /FreshRSS/ });
 
-    expect(freshrssButton.className).toContain("hover:border-border");
-    expect(freshrssButton.className).toContain("hover:bg-background/90");
-    expect(freshrssButton.className).toContain("focus-visible:shadow-elevation-1");
+    expect(freshrssButton).toHaveClass("rounded-lg", "px-3", "py-2.5");
   });
 
   it("navigates to config form on service selection and back", async () => {

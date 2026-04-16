@@ -31,11 +31,7 @@ export function ServicePicker({ onSelect }: ServicePickerProps) {
                           onSelect(service.kind as AddAccountProviderKind);
                         }
                       }}
-                      className={cn(
-                        "items-center rounded-lg px-3 py-2.5",
-                        !service.disabled &&
-                          "hover:border-border hover:bg-background/90 focus-visible:shadow-elevation-1",
-                      )}
+                      className={cn("items-center rounded-lg px-3 py-2.5")}
                       leading={
                         <div
                           className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", service.iconBg)}
