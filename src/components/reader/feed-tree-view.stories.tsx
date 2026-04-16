@@ -117,25 +117,25 @@ export const SelectionPriorityReview: Story = {
         }
       `}</style>
       <div className="space-y-1">
-        <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/55 uppercase">Selected idle</p>
-        <div className="rounded-md border border-sidebar-border/40 bg-sidebar p-2">
+        <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/40 uppercase">Selected idle</p>
+        <div className="rounded-md border border-sidebar-border/30 bg-sidebar/80 p-2">
           <FeedTreeView {...args} />
         </div>
       </div>
       <div className="space-y-1">
-        <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/55 uppercase">
+        <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/40 uppercase">
           Selected hover priority
         </p>
-        <div className="rounded-md border border-sidebar-border/40 bg-sidebar p-2" data-story-preview="selected-hover">
+        <div className="rounded-md border border-sidebar-border/30 bg-sidebar/80 p-2" data-story-preview="selected-hover">
           <FeedTreeView {...args} canDragFeeds={true} />
         </div>
       </div>
       <div className="space-y-1">
-        <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/55 uppercase">
+        <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/40 uppercase">
           Unselected hover
         </p>
         <div
-          className="rounded-md border border-sidebar-border/40 bg-sidebar p-2"
+          className="rounded-md border border-sidebar-border/30 bg-sidebar/80 p-2"
           data-story-preview="unselected-hover"
         >
           <FeedTreeView {...args} canDragFeeds={true} />
@@ -152,10 +152,10 @@ export const FolderSelectionReview: Story = {
     return (
       <div className="space-y-4">
         <div className="space-y-1">
-          <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/55 uppercase">
+          <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/40 uppercase">
             Folder selected
           </p>
-          <div className="rounded-md border border-sidebar-border/40 bg-sidebar p-2">
+          <div className="rounded-md border border-sidebar-border/30 bg-sidebar/80 p-2">
             <FeedTreeView {...args} {...folderSelectedArgs} />
           </div>
         </div>
