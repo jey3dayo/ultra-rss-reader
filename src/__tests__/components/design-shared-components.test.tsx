@@ -123,15 +123,18 @@ describe("Design-themed shared components", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "戻る" })).toHaveStyle({
+    const backButton = screen.getByRole("button", { name: "戻る" });
+
+    expect(backButton).toHaveStyle({
       backgroundColor: "var(--workspace-header-action-surface)",
     });
     expect(screen.getByTestId("workspace-header-body")).toHaveClass("pl-20");
     expect(screen.getByTestId("workspace-header-drag-region")).toHaveAttribute("data-tauri-drag-region");
-    expect(screen.getByRole("button", { name: "戻る" })).not.toHaveClass("rounded-full");
+    expect(backButton).not.toHaveClass("rounded-full");
+    expect(backButton).toHaveAttribute("aria-label", "戻る");
   });
 
-  it("groups the back action with the workspace context instead of isolating it above the title", () => {
+  it("separates the top action row from the heading section", () => {
     render(
       <WorkspaceHeader
         eyebrow="Workspace"
@@ -144,12 +147,47 @@ describe("Design-themed shared components", () => {
       />,
     );
 
-    const contextRow = screen.getByTestId("workspace-header-context-row");
+    const titleGroup = screen.getByTestId("workspace-header-title-group");
+    const actionsRow = screen.getByTestId("workspace-header-actions");
+    const topRow = screen.getByTestId("workspace-header-top-row");
 
-    expect(within(contextRow).getByRole("button", { name: "戻る" })).toBeInTheDocument();
-    expect(within(contextRow).getByText("Workspace")).toBeInTheDocument();
-    expect(
-      within(screen.getByTestId("workspace-header-title-group")).getByRole("heading", { name: "購読一覧" }),
-    ).toBeInTheDocument();
+    expect(within(actionsRow).getByRole("button", { name: "閉じる" })).toBeInTheDocument();
+    expect(within(topRow).getByRole("button", { name: "戻る" })).toBeInTheDocument();
+    expect(within(titleGroup).getByText("Workspace")).toBeInTheDocument();
+    expect(within(titleGroup).getByRole("heading", { name: "購読一覧" })).toBeInTheDocument();
+  });
+
+  it("keeps the standard horizontal padding on windows without a mac titlebar offset", () => {
+    window.__TAURI_INTERNALS__ = {} as typeof window.__TAURI_INTERNALS__;
+    usePlatformStore.setState({
+      platform: {
+        kind: "windows",
+        capabilities: {
+          supports_reading_list: false,
+          supports_background_browser_open: false,
+          supports_runtime_window_icon_replacement: true,
+          supports_native_browser_navigation: true,
+          uses_dev_file_credentials: false,
+        },
+      },
+      loaded: true,
+      loadError: false,
+      inFlightLoad: null,
+    });
+
+    render(
+      <WorkspaceHeader
+        eyebrow="Workspace"
+        title="購読一覧"
+        subtitle="subtitle"
+        backLabel="戻る"
+        onBack={() => {}}
+        closeLabel="閉じる"
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByTestId("workspace-header-body")).not.toHaveClass("pl-20");
+    expect(screen.queryByTestId("workspace-header-drag-region")).toBeNull();
   });
 });

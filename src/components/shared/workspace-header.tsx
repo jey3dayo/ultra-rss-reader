@@ -1,4 +1,4 @@
-import { ArrowLeft, X } from "lucide-react";
+import { ChevronLeft, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,7 @@ type WorkspaceHeaderProps = {
 };
 
 export const workspaceHeaderActionClassName =
-  "h-7 rounded-[min(var(--radius-md),12px)] border border-border/60 px-2.5 font-sans text-[0.8rem] font-normal text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground";
+  "h-7 rounded-[min(var(--radius-md),12px)] border border-border/60 font-sans text-[0.8rem] font-normal text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground";
 
 function looksLikeMacPlatform(): boolean {
   if (typeof navigator === "undefined") {
@@ -75,46 +75,46 @@ export function WorkspaceHeader({
           className="absolute inset-y-0 left-0 w-20"
         />
       ) : null}
-      <div
-        data-testid="workspace-header-body"
-        className={cn("flex items-start justify-between gap-4", useDesktopOverlay && "pl-20")}
-      >
-        <div className="min-w-0 flex-1">
-          <div data-testid="workspace-header-context-row" className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+      <div data-testid="workspace-header-body" className={cn("flex flex-col gap-4", useDesktopOverlay && "pl-20")}>
+        <div data-testid="workspace-header-top-row" className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-2">
             {backLabel && onBack ? (
               <Button
                 variant="ghost"
-                className={workspaceHeaderActionClassName}
+                size="icon-sm"
+                className={`${workspaceHeaderActionClassName} w-7 justify-center px-0`}
                 style={{ backgroundColor: "var(--workspace-header-action-surface)" }}
+                aria-label={backLabel}
                 onClick={onBack}
               >
-                <ArrowLeft className="h-4 w-4" />
-                {backLabel}
+                <ChevronLeft className="h-4 w-4" />
               </Button>
             ) : null}
+          </div>
+          <div data-testid="workspace-header-actions" className="flex shrink-0 items-center gap-2">
+            {actions}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className={`${workspaceHeaderActionClassName} w-7 justify-center px-0`}
+              style={{ backgroundColor: "var(--workspace-header-action-surface)" }}
+              aria-label={closeLabel}
+              onClick={onClose}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        <div data-testid="workspace-header-title-group" className="min-w-0 space-y-2 pb-1">
+          <div data-testid="workspace-header-context-row" className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
             <p className="font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase">
               {eyebrow}
             </p>
           </div>
-          <div data-testid="workspace-header-title-group" className="mt-2 space-y-1">
-            <h1 className="font-sans text-[1.65rem] leading-none font-normal tracking-[-0.04em] text-foreground">
-              {title}
-            </h1>
-            <p className="max-w-2xl font-serif text-[0.95rem] leading-6 text-foreground-soft">{subtitle}</p>
-          </div>
-        </div>
-        <div data-testid="workspace-header-actions" className="flex shrink-0 items-center gap-2 self-start pt-0.5">
-          {actions}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className={`${workspaceHeaderActionClassName} w-7 justify-center px-0`}
-            style={{ backgroundColor: "var(--workspace-header-action-surface)" }}
-            aria-label={closeLabel}
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <h1 className="font-sans text-[1.65rem] leading-none font-normal tracking-[-0.04em] text-foreground">
+            {title}
+          </h1>
+          <p className="max-w-2xl font-serif text-[0.95rem] leading-6 text-foreground-soft">{subtitle}</p>
         </div>
       </div>
     </div>
