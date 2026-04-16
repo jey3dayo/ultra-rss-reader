@@ -2,6 +2,7 @@ import { Check, Clock3, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { DecisionButton } from "@/components/shared/decision-button";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
+import { SurfaceCard } from "@/components/shared/surface-card";
 import { buildCleanupReasonFacts } from "@/lib/feed-cleanup";
 import { cn } from "@/lib/utils";
 import type { FeedCleanupReviewPanelProps } from "./feed-cleanup.types";
@@ -63,12 +64,17 @@ export function FeedCleanupReviewPanel({
       {integrityMode ? (
         selectedIntegrityIssue ? (
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <FeedCleanupCard className="rounded-3xl border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.9),hsl(var(--background)/0.97))]">
+            <FeedCleanupCard className="border-border/65 bg-card/52 shadow-none">
               <div className="space-y-4">
-                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-4 text-amber-100">
+                <SurfaceCard
+                  variant="info"
+                  tone="default"
+                  padding="compact"
+                  className="border-amber-500/30 bg-amber-500/10 text-amber-100 shadow-none"
+                >
                   <p className="text-sm font-semibold">{integrityDetailLabels.needs_repair}</p>
                   <p className="mt-1 text-sm text-current/85">{integrityDetailLabels.summary}</p>
-                </div>
+                </SurfaceCard>
                 <dl className="grid gap-2 text-sm">
                   <FeedCleanupDetailRow
                     label={integrityDetailLabels.missing_feed_id}
@@ -142,9 +148,12 @@ export function FeedCleanupReviewPanel({
               }}
               reasonChips={selectedCandidate.reasonKeys.map((reasonKey) => reasonLabels[reasonKey])}
             />
-            <div
+            <SurfaceCard
               data-testid="feed-cleanup-review-actions"
-              className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/70 bg-card/70 px-4 py-3"
+              variant="section"
+              tone="subtle"
+              padding="compact"
+              className="flex flex-wrap items-center gap-2 shadow-none"
             >
               <DecisionButton intent="keep" aria-label={keepLabel} onClick={onKeep}>
                 <Check className="h-4 w-4" />
@@ -158,7 +167,7 @@ export function FeedCleanupReviewPanel({
                 <Trash2 className="h-4 w-4" />
                 {deleteLabel}
               </DecisionButton>
-            </div>
+            </SurfaceCard>
           </div>
         </div>
       ) : (

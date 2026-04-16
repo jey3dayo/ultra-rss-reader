@@ -1,6 +1,8 @@
 import { ExternalLink, List } from "lucide-react";
 import type { ReactNode } from "react";
 import { FeedCleanupCard, FeedCleanupDetailRow } from "@/components/feed-cleanup/feed-cleanup-card";
+import { LabelChip } from "@/components/shared/label-chip";
+import { SurfaceCard } from "@/components/shared/surface-card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -18,11 +20,15 @@ type FeedDetailArticle = {
   url: string | null;
 };
 
+const EMPTY_REASON_CHIPS: string[] = [];
+const EMPTY_LINKS: FeedDetailLink[] = [];
+
 type FeedDetailPanelProps = {
   title: string;
   titleHref?: string | null;
   badgeLabel?: string;
   badgeTone?: FeedDetailTone;
+  leadingVisual?: ReactNode;
   summaryText?: string;
   reasonBox?: {
     title: string;
@@ -53,34 +59,34 @@ const detailLinkClassName =
 
 function resolveBadgeClassName(tone: FeedDetailTone) {
   if (tone === "high") {
-    return "border-rose-500/25 bg-rose-500/10 text-rose-900 dark:border-rose-500/30 dark:bg-rose-500/12 dark:text-rose-100";
+    return "danger";
   }
 
   if (tone === "medium") {
-    return "border-amber-500/25 bg-amber-500/10 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/12 dark:text-amber-100";
+    return "warning";
   }
 
   if (tone === "low") {
-    return "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/12 dark:text-emerald-100";
+    return "success";
   }
 
-  return "border-border/70 bg-background/80 text-muted-foreground";
+  return "neutral";
 }
 
 function resolveReasonBoxClassName(tone: FeedDetailTone) {
   if (tone === "high") {
-    return "border-rose-500/25 bg-rose-500/10 text-rose-950 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100";
+    return "danger";
   }
 
   if (tone === "medium") {
-    return "border-amber-500/25 bg-amber-500/10 text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100";
+    return "default";
   }
 
   if (tone === "low") {
-    return "border-emerald-500/25 bg-emerald-500/10 text-emerald-950 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100";
+    return "success";
   }
 
-  return "border-border/70 bg-card/70 text-foreground";
+  return "subtle";
 }
 
 export function FeedDetailPanel({
@@ -88,63 +94,87 @@ export function FeedDetailPanel({
   titleHref = null,
   badgeLabel,
   badgeTone = "neutral",
+  leadingVisual,
   summaryText,
   reasonBox = null,
-  reasonChips = [],
+  reasonChips = EMPTY_REASON_CHIPS,
   metrics,
-  links = [],
+  links = EMPTY_LINKS,
   recentArticlesHeading,
   recentArticles,
   primaryAction,
   secondaryAction,
 }: FeedDetailPanelProps) {
   return (
-    <FeedCleanupCard className="rounded-3xl border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.9),hsl(var(--background)/0.97))]">
+    <FeedCleanupCard className="border-border/65 bg-card/52 shadow-none">
       <div className="space-y-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            {titleHref ? (
-              <a
-                href={titleHref}
-                target="_blank"
-                rel="noreferrer"
-                className={cn(detailLinkClassName, "inline-flex items-center gap-2 no-underline")}
-              >
-                <h3 className="font-sans text-[1.75rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
-                <ExternalLink aria-hidden="true" className="mt-1 h-4 w-4 shrink-0" />
-              </a>
-            ) : (
-              <h3 className="font-sans text-[1.75rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
-            )}
-            {summaryText ? (
-              <div className="mt-4 rounded-[20px] border border-border/55 bg-[linear-gradient(180deg,hsl(var(--background)/0.92),hsl(var(--card)/0.78))] px-5 py-3.5 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.035),0_10px_30px_-26px_hsl(var(--foreground)/0.35)]">
-                <p className="font-serif text-[0.98rem] leading-7 text-muted-foreground/95">{summaryText}</p>
+        <div className="flex items-start gap-3">
+          {leadingVisual ? (
+            <div
+              data-testid="feed-detail-leading-visual"
+              className="flex h-10 w-10 shrink-0 items-center justify-center"
+            >
+              {leadingVisual}
+            </div>
+          ) : null}
+          <div className="min-w-0 flex-1 space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                {titleHref ? (
+                  <a
+                    href={titleHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={cn(detailLinkClassName, "inline-flex max-w-full items-start gap-2 no-underline")}
+                  >
+                    <h3 className="font-sans text-[1.75rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
+                    <ExternalLink aria-hidden="true" className="mt-1 h-4 w-4 shrink-0" />
+                  </a>
+                ) : (
+                  <h3 className="font-sans text-[1.75rem] font-normal tracking-[-0.03em] text-foreground">{title}</h3>
+                )}
               </div>
+              {badgeLabel ? (
+                <LabelChip
+                  data-testid="feed-detail-status"
+                  tone={resolveBadgeClassName(badgeTone)}
+                  className="rounded-lg px-2.5 py-1 text-[11px]"
+                >
+                  {badgeLabel}
+                </LabelChip>
+              ) : null}
+            </div>
+            {summaryText ? (
+              <SurfaceCard variant="info" tone="subtle" padding="compact" className="shadow-none">
+                <p className="font-serif text-[0.98rem] leading-7 text-muted-foreground/95">{summaryText}</p>
+              </SurfaceCard>
             ) : null}
           </div>
-          {badgeLabel ? (
-            <span className={cn("rounded-full border px-3 py-1 text-xs font-medium", resolveBadgeClassName(badgeTone))}>
-              {badgeLabel}
-            </span>
-          ) : null}
         </div>
 
         {reasonBox ? (
-          <div className={cn("rounded-2xl border px-4 py-4", resolveReasonBoxClassName(reasonBox.tone))}>
+          <SurfaceCard
+            data-testid="feed-detail-reason-box"
+            variant="info"
+            tone={resolveReasonBoxClassName(reasonBox.tone)}
+            padding="compact"
+            className={cn(
+              "shadow-none",
+              reasonBox.tone === "medium" &&
+                "border-[hsl(33_58%_50%/0.18)] bg-[linear-gradient(180deg,hsl(38_68%_86%/0.22),hsl(var(--surface-1)/0.92))]",
+            )}
+          >
             <p className="font-sans text-sm font-medium text-current">{reasonBox.title}</p>
             <p className="mt-1 font-serif text-sm leading-6 text-current/85">{reasonBox.body}</p>
-          </div>
+          </SurfaceCard>
         ) : null}
 
         {reasonChips.length > 0 && !reasonBox ? (
           <div className="flex flex-wrap gap-2">
             {reasonChips.map((chip) => (
-              <span
-                key={chip}
-                className="rounded-full border border-border/65 bg-background/75 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-              >
+              <LabelChip key={chip} tone="muted" size="compact" className="rounded-lg px-2 py-1">
                 {chip}
-              </span>
+              </LabelChip>
             ))}
           </div>
         ) : null}
@@ -172,7 +202,7 @@ export function FeedDetailPanel({
               <h4 className="font-sans text-sm font-medium text-foreground">{recentArticlesHeading}</h4>
               <div className="space-y-1.5">
                 {recentArticles.map((article) => (
-                  <div key={article.id} className="rounded-2xl bg-card/80 px-4 py-2.5">
+                  <SurfaceCard key={article.id} variant="info" tone="subtle" padding="compact" className="shadow-none">
                     <div className="flex items-center justify-between gap-3">
                       {article.url ? (
                         <a
@@ -193,7 +223,7 @@ export function FeedDetailPanel({
                       )}
                       <span className="shrink-0 text-xs text-muted-foreground">{article.publishedAt}</span>
                     </div>
-                  </div>
+                  </SurfaceCard>
                 ))}
               </div>
             </div>
@@ -206,7 +236,8 @@ export function FeedDetailPanel({
               <Button
                 aria-label={primaryAction.ariaLabel ?? primaryAction.label}
                 variant="outline"
-                className="w-full justify-center rounded-lg border-border/70 bg-background/70 px-4 py-2.5 text-sm font-medium shadow-none hover:bg-card/80"
+                size="sm"
+                className="w-full justify-center border-border/70 bg-surface-1/70 px-4 shadow-none hover:bg-surface-2"
                 onClick={primaryAction.onClick}
               >
                 <List className="h-4 w-4" />
@@ -214,7 +245,7 @@ export function FeedDetailPanel({
               </Button>
             ) : null}
             {secondaryAction ? (
-              <Button variant="ghost" className="rounded-2xl px-4" onClick={secondaryAction.onClick}>
+              <Button variant="ghost" size="sm" className="px-4" onClick={secondaryAction.onClick}>
                 {secondaryAction.label}
               </Button>
             ) : null}

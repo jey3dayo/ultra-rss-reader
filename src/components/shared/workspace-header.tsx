@@ -1,6 +1,9 @@
 import { ArrowLeft, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
+import { usePlatformStore } from "@/stores/platform-store";
 
 type WorkspaceHeaderProps = {
   eyebrow: string;
@@ -14,7 +17,31 @@ type WorkspaceHeaderProps = {
 };
 
 export const workspaceHeaderActionClassName =
-  "h-10 rounded-full border border-border/70 bg-background/70 px-3 font-sans text-[0.88rem] font-normal hover:bg-card/80";
+  "h-8 rounded-[min(var(--radius-md),12px)] border border-border/70 bg-surface-1/76 px-3 font-sans text-[0.88rem] font-normal shadow-none hover:bg-surface-2";
+
+function looksLikeMacPlatform(): boolean {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+
+  const userAgentDataPlatform =
+    "userAgentData" in navigator
+      ? (() => {
+          const userAgentData = (
+            navigator as Navigator & {
+              userAgentData?: {
+                platform?: string;
+              };
+            }
+          ).userAgentData;
+
+          return typeof userAgentData?.platform === "string" ? userAgentData.platform : null;
+        })()
+      : null;
+  const platform = userAgentDataPlatform ?? navigator.platform ?? "";
+
+  return /mac/i.test(platform);
+}
 
 export function WorkspaceHeader({
   eyebrow,
@@ -26,9 +53,29 @@ export function WorkspaceHeader({
   onClose,
   actions = null,
 }: WorkspaceHeaderProps) {
+  const platformKind = usePlatformStore((state) => state.platform.kind);
+  const hasRuntime = hasTauriRuntime();
+  const useDesktopOverlay =
+    shouldUseDesktopOverlayTitlebar({
+      platformKind,
+      hasTauriRuntime: hasRuntime,
+    }) ||
+    (hasRuntime && platformKind === "unknown" && looksLikeMacPlatform());
+
   return (
-    <div className="border-b border-border/70 bg-background/88 px-6 py-5 backdrop-blur-sm">
-      <div className="flex items-start justify-between gap-4">
+    <div className="relative border-b border-border/70 bg-background/88 px-5 py-5 backdrop-blur-sm sm:px-6">
+      {useDesktopOverlay ? (
+        <div
+          data-testid="workspace-header-drag-region"
+          data-tauri-drag-region
+          aria-hidden="true"
+          className="absolute inset-y-0 left-0 w-20"
+        />
+      ) : null}
+      <div
+        data-testid="workspace-header-body"
+        className={cn("flex items-start justify-between gap-4", useDesktopOverlay && "pl-20")}
+      >
         <div className="min-w-0">
           {backLabel && onBack ? (
             <div className="mb-4">
@@ -48,7 +95,8 @@ export function WorkspaceHeader({
           {actions}
           <Button
             variant="ghost"
-            className={`${workspaceHeaderActionClassName} w-10 justify-center px-0`}
+            size="icon-sm"
+            className={`${workspaceHeaderActionClassName} w-8 justify-center px-0`}
             aria-label={closeLabel}
             onClick={onClose}
           >

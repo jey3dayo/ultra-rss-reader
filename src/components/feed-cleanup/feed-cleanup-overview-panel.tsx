@@ -2,6 +2,8 @@ import { Check, Clock3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ControlChipButton } from "@/components/shared/control-chip-button";
 import { DecisionButton } from "@/components/shared/decision-button";
+import { LabelChip } from "@/components/shared/label-chip";
+import { SurfaceCard } from "@/components/shared/surface-card";
 import type { FeedCleanupOverviewPanelProps } from "./feed-cleanup.types";
 
 export function FeedCleanupOverviewPanel({
@@ -34,37 +36,57 @@ export function FeedCleanupOverviewPanel({
       <div className="space-y-4">
         <div data-testid="feed-cleanup-sidebar-summary" className="flex flex-wrap items-center gap-6">
           {pendingCard ? (
-            <div className="flex items-center gap-4 rounded-[24px] border border-border/60 bg-card/52 px-4 py-3 shadow-elevation-1">
-              <span className="inline-flex min-w-12 justify-center rounded-lg border border-border/70 bg-background px-3 py-2 font-sans text-2xl font-medium text-foreground">
+            <SurfaceCard
+              variant="section"
+              tone="default"
+              padding="compact"
+              className="flex items-center gap-4 shadow-none"
+            >
+              <span className="inline-flex min-w-12 justify-center rounded-[var(--radius-lg)] border border-border/70 bg-surface-1 px-3 py-2 font-sans text-2xl font-medium text-foreground">
                 {pendingCard.value}
               </span>
               <div>
                 <p className="font-sans text-base text-foreground">{pendingCard.label}</p>
                 <p className="font-serif text-sm text-muted-foreground">{pendingCard.caption}</p>
               </div>
-            </div>
+            </SurfaceCard>
           ) : null}
           {decidedCard ? (
-            <div className="flex items-center gap-4 rounded-[24px] border border-emerald-500/20 bg-emerald-500/8 px-4 py-3 shadow-elevation-1">
-              <span className="inline-flex min-w-12 justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 font-sans text-2xl font-medium text-emerald-700 dark:text-emerald-300">
+            <SurfaceCard
+              variant="section"
+              tone="success"
+              padding="compact"
+              className="flex items-center gap-4 shadow-none"
+            >
+              <span className="inline-flex min-w-12 justify-center rounded-[var(--radius-lg)] border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 font-sans text-2xl font-medium text-emerald-700 dark:text-emerald-300">
                 {decidedCard.value}
               </span>
               <div>
                 <p className="font-sans text-base text-foreground">{decidedCard.label}</p>
                 <p className="font-serif text-sm text-muted-foreground">{decidedCard.caption}</p>
               </div>
-            </div>
+            </SurfaceCard>
           ) : null}
         </div>
 
         {integrityMode ? (
-          <div className="rounded-2xl border border-amber-200/70 bg-amber-50/70 px-4 py-3 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+          <SurfaceCard
+            variant="section"
+            tone="default"
+            padding="compact"
+            className="border-amber-200/70 bg-amber-50/70 text-sm text-amber-950 shadow-none dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100"
+          >
             {integrityDetailLabels.filter_note}
-          </div>
+          </SurfaceCard>
         ) : (
           <div className="space-y-3">
             {visibleCandidateCount > 0 ? (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/65 bg-card/55 px-3.5 py-3 shadow-elevation-1">
+              <SurfaceCard
+                variant="section"
+                tone="subtle"
+                padding="compact"
+                className="flex flex-wrap items-center justify-between gap-3 shadow-none"
+              >
                 <div className="min-w-0">
                   <p className="font-sans text-sm font-medium text-foreground">{bulkActionsLabel}</p>
                   <p className="font-serif text-sm text-muted-foreground">{bulkVisibleCountLabel}</p>
@@ -79,7 +101,7 @@ export function FeedCleanupOverviewPanel({
                     {bulkDeferVisibleLabel}
                   </DecisionButton>
                 </div>
-              </div>
+              </SurfaceCard>
             ) : null}
 
             <div className="flex flex-wrap gap-2">
@@ -96,9 +118,9 @@ export function FeedCleanupOverviewPanel({
                 }}
               >
                 <span>{t("all_candidates")}</span>
-                <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground dark:bg-background/70">
+                <LabelChip tone="muted" size="compact">
                   {pendingCard?.value ?? "0"}
-                </span>
+                </LabelChip>
               </ControlChipButton>
               {filterOptions.map((filter) => (
                 <ControlChipButton
@@ -110,9 +132,9 @@ export function FeedCleanupOverviewPanel({
                   onClick={() => onToggleFilter(filter.key)}
                 >
                   <span>{filter.label}</span>
-                  <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground dark:bg-background/70">
+                  <LabelChip tone="muted" size="compact">
                     {filterCounts[filter.key]}
-                  </span>
+                  </LabelChip>
                 </ControlChipButton>
               ))}
               <ControlChipButton

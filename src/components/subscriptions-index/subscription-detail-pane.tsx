@@ -1,4 +1,5 @@
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
+import { FeedFavicon } from "@/components/shared/feed-favicon";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
@@ -58,6 +59,7 @@ export function SubscriptionDetailPane({
             <FeedDetailPanel
               title={row.feed.title}
               titleHref={row.feed.site_url}
+              leadingVisual={<FeedFavicon title={row.feed.title} url={row.feed.url} siteUrl={row.feed.site_url} />}
               badgeLabel={detailCandidate?.statusLabel}
               badgeTone={detailCandidate?.tone ?? "neutral"}
               summaryText={detailCandidate?.reasonBoxBody ? undefined : (detailCandidate?.summary ?? reasonHint)}

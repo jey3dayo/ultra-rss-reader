@@ -1,10 +1,25 @@
 import { Check, Clock3, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { DecisionButton } from "@/components/shared/decision-button";
+import { LabelChip } from "@/components/shared/label-chip";
+import { SurfaceCard } from "@/components/shared/surface-card";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { FeedCleanupTone } from "@/lib/feed-cleanup";
 import { buildCleanupReasonFacts, summarizeCleanupCandidate } from "@/lib/feed-cleanup";
 import { cn } from "@/lib/utils";
 import type { FeedCleanupQueuePanelProps } from "./feed-cleanup.types";
+
+function resolvePriorityTone(tone: FeedCleanupTone) {
+  if (tone === "high") {
+    return "danger";
+  }
+
+  if (tone === "medium") {
+    return "warning";
+  }
+
+  return "success";
+}
 
 export function FeedCleanupQueuePanel({
   integrityMode,
@@ -46,17 +61,6 @@ export function FeedCleanupQueuePanel({
   queueListClassName = "min-h-0 flex-1 space-y-3 overflow-y-auto pr-1",
 }: FeedCleanupQueuePanelProps) {
   const { t } = useTranslation("cleanup");
-  const resolvePriorityClassName = (tone: FeedCleanupTone) => {
-    if (tone === "high") {
-      return "bg-rose-100 text-rose-900 dark:bg-rose-500/15 dark:text-rose-100";
-    }
-
-    if (tone === "medium") {
-      return "bg-amber-100 text-amber-900 dark:bg-amber-500/15 dark:text-amber-100";
-    }
-
-    return "bg-emerald-100 text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-100";
-  };
 
   return (
     <section className="flex h-full min-h-0 flex-col px-4 py-4 sm:px-6 sm:py-5 lg:border-r lg:border-border/70">
@@ -71,9 +75,14 @@ export function FeedCleanupQueuePanel({
         ) : null}
       </div>
       {!integrityMode && bulkBarVisible ? (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card/80 px-4 py-3">
+        <SurfaceCard
+          variant="section"
+          tone="subtle"
+          padding="compact"
+          className="mb-4 flex flex-wrap items-center justify-between gap-3 shadow-none"
+        >
           <div className="flex items-center gap-3 text-sm font-medium text-foreground">
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-md border border-border/70 bg-background/80">
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-[var(--radius-md)] border border-border/70 bg-surface-1/80">
               <Check className="h-3.5 w-3.5" />
             </span>
             <span>{selectedCountLabel}</span>
@@ -92,7 +101,7 @@ export function FeedCleanupQueuePanel({
               {deleteLabel}
             </DecisionButton>
           </div>
-        </div>
+        </SurfaceCard>
       ) : null}
       <div data-testid="feed-cleanup-queue-list" className={queueListClassName}>
         {integrityMode ? (
@@ -108,7 +117,7 @@ export function FeedCleanupQueuePanel({
                 aria-label={`${integrityDetailLabels.queue_item_title}: ${issue.missing_feed_id}`}
                 onClick={() => onSelectIntegrityIssue(issue.missing_feed_id)}
                 className={cn(
-                  "flex w-full cursor-pointer flex-col gap-2 rounded-2xl border px-4 py-3 text-left transition-colors",
+                  "flex w-full cursor-pointer flex-col gap-2 rounded-[var(--radius-lg)] border px-4 py-3 text-left transition-colors",
                   selectedIntegrityIssue?.missing_feed_id === issue.missing_feed_id
                     ? "border-amber-500/50 bg-amber-500/10"
                     : "border-border bg-card hover:bg-muted/60",
@@ -137,48 +146,43 @@ export function FeedCleanupQueuePanel({
             const isSelected = selectedFeedIds.has(candidate.feedId);
             const isFocused = focusedFeedId === candidate.feedId;
             const isCurrent = selectedCandidate?.feedId === candidate.feedId;
+            const checkboxId = `feed-cleanup-checkbox-${candidate.feedId}`;
+
             return (
-              <div
+              <SurfaceCard
                 key={candidate.feedId}
                 data-testid={`feed-cleanup-queue-row-${candidate.feedId}`}
                 data-selected={isSelected}
                 data-focused={isFocused}
+                variant="section"
+                tone={isCurrent || isSelected ? "default" : "subtle"}
+                padding="compact"
                 className={cn(
-                  "rounded-xl border px-3 py-3 transition-colors duration-150",
+                  "transition-colors duration-150",
                   isCurrent || isSelected
-                    ? "border-border/70 bg-card/75 shadow-elevation-1"
-                    : "border-border/60 bg-transparent",
+                    ? "border-border-strong bg-card/56 shadow-none"
+                    : "border-border/55 bg-background/28 shadow-none",
                   isFocused && "ring-1 ring-primary/30",
                 )}
               >
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <label
                     data-testid={`feed-cleanup-selection-hit-area-${candidate.feedId}`}
-                    className="-m-2 inline-flex rounded-full p-2"
+                    htmlFor={checkboxId}
+                    className="-m-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-lg)] p-2"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
+                      id={checkboxId}
                       aria-label={`${selectCandidateLabel} ${candidate.title}`}
-                      aria-checked={isSelected}
                       checked={isSelected}
-                      onChange={() => onToggleCandidateSelection(candidate.feedId)}
-                      className="peer sr-only"
-                    />
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        "h-6 w-6 rounded-full border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30",
-                        isSelected
-                          ? "border-primary bg-primary shadow-[inset_0_0_0_4px_hsl(var(--primary-foreground))]"
-                          : "border-border bg-background",
-                      )}
+                      onCheckedChange={() => onToggleCandidateSelection(candidate.feedId)}
                     />
                   </label>
                   <div className="flex flex-wrap items-center justify-end gap-2 text-[11px] text-muted-foreground">
                     {candidate.deferred ? (
-                      <span className="rounded-full border border-border bg-background px-2 py-0.5">
+                      <LabelChip tone="muted" size="compact">
                         {deferredLabel}
-                      </span>
+                      </LabelChip>
                     ) : null}
                   </div>
                 </div>
@@ -197,69 +201,58 @@ export function FeedCleanupQueuePanel({
                         <div className="min-w-0">
                           <span className="line-clamp-1 font-sans font-medium text-foreground">{candidate.title}</span>
                           <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                            <span className="rounded-full border border-border/70 bg-background/70 px-2 py-0.5">
+                            <LabelChip tone="muted" size="compact">
                               {candidate.folderName ?? "—"}
-                            </span>
-                            <span className="rounded-full border border-border/70 bg-background/70 px-2 py-0.5">
+                            </LabelChip>
+                            <LabelChip tone="muted" size="compact">
                               {candidate.unreadCount} {unreadCountLabel}
-                            </span>
-                            <span className="rounded-full border border-border/70 bg-background/70 px-2 py-0.5">
+                            </LabelChip>
+                            <LabelChip tone="muted" size="compact">
                               {candidate.starredCount} {starredCountLabel}
-                            </span>
+                            </LabelChip>
                           </div>
                         </div>
                         <div
                           data-testid={`feed-cleanup-queue-card-status-${candidate.feedId}`}
                           className="flex flex-wrap items-start gap-1.5 sm:shrink-0 sm:flex-col sm:items-end sm:gap-1"
                         >
-                          <span
-                            className={cn(
-                              "rounded-full px-2.5 py-1 text-[11px] font-medium",
-                              resolvePriorityClassName(queueSummary.tone),
-                            )}
-                          >
+                          <LabelChip tone={resolvePriorityTone(queueSummary.tone)}>
                             {priorityToneLabels[queueSummary.tone]}
-                          </span>
+                          </LabelChip>
                           {candidate.deferred ? (
-                            <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+                            <LabelChip tone="muted" size="compact">
                               {deferredBadgeLabel}
-                            </span>
+                            </LabelChip>
                           ) : null}
                         </div>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {candidate.reasonKeys.map((reasonKey) => (
-                        <span
-                          key={reasonKey}
-                          className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-foreground"
-                        >
+                        <LabelChip key={reasonKey} tone="warning" size="compact">
                           {reasonLabels[reasonKey]}
-                        </span>
+                        </LabelChip>
                       ))}
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {reasonFacts.slice(0, 2).map((fact) => (
-                        <span
-                          key={fact.key}
-                          className="rounded-full border border-border/80 bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground"
-                        >
+                        <LabelChip key={fact.key} tone="muted" size="compact">
                           {fact.key === "stale_days"
                             ? t("fact_stale_days", { count: fact.value })
                             : fact.key === "unread_count"
                               ? t("fact_unread_count", { count: fact.value })
                               : t("fact_starred_count", { count: fact.value })}
-                        </span>
+                        </LabelChip>
                       ))}
                       {reasonFacts.length > 2 ? (
-                        <span className="rounded-full border border-border/80 bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground">
+                        <LabelChip tone="muted" size="compact">
                           +{reasonFacts.length - 2}
-                        </span>
+                        </LabelChip>
                       ) : null}
                       {reasonFacts.length === 0 && selectedCandidate?.feedId !== candidate.feedId ? (
-                        <span className="rounded-full border border-border/80 bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground">
+                        <LabelChip tone="muted" size="compact">
                           {summaryLabels.healthy_feed}
-                        </span>
+                        </LabelChip>
                       ) : null}
                     </div>
                     {selectedCandidate?.feedId === candidate.feedId ? (
@@ -303,7 +296,7 @@ export function FeedCleanupQueuePanel({
                     </div>
                   ) : null}
                 </div>
-              </div>
+              </SurfaceCard>
             );
           })
         )}

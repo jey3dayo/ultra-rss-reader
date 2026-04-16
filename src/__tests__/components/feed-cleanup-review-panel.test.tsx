@@ -128,15 +128,11 @@ describe("FeedCleanupReviewPanel", () => {
     expect(detailScrollRegion).toHaveClass("flex-1");
     expect(detailScrollRegion).toHaveClass("overflow-y-auto");
 
-    const detailCard = panel.querySelector("div.rounded-3xl");
-    expect(detailCard).toHaveClass("border-border/70");
-    expect(detailCard).toHaveClass("bg-[linear-gradient(180deg,hsl(var(--card)/0.9),hsl(var(--background)/0.97))]");
-    expect(detailCard).toHaveClass("shadow-elevation-1");
-
     expect(screen.getByRole("link", { name: "Old Product Blog" })).toHaveAttribute("href", "https://example.com");
     expect(screen.getByRole("link", { name: "Old Product Blog" }).querySelector("h3")).toHaveClass("font-sans");
+    expect(screen.getByTestId("feed-detail-status")).toBeInTheDocument();
+    expect(screen.getByTestId("feed-detail-reason-box")).toBeInTheDocument();
     expect(screen.getByText("Why this feed is here")).toBeInTheDocument();
-    expect(screen.getByText("Updated 120 days ago / Unread 0 / Starred 0")).toHaveClass("font-serif");
     expect(screen.getByText("Updated 120 days ago / Unread 0 / Starred 0")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Open website" })).toBeNull();
     expect(screen.getByRole("button", { name: "Edit Feed" })).toBeInTheDocument();

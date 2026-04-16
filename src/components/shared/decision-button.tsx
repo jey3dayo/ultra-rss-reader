@@ -1,27 +1,33 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ComponentProps } from "react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type DecisionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+type DecisionButtonProps = ComponentProps<typeof Button> & {
   intent: "keep" | "defer" | "delete";
 };
 
 const decisionIntentClassName = {
-  keep: "border border-emerald-500/25 bg-emerald-500/12 text-emerald-900 hover:bg-emerald-500/18 dark:text-emerald-100",
-  defer: "border border-border bg-surface-2 text-foreground hover:bg-surface-3",
-  delete: "border border-destructive/25 bg-destructive/12 text-destructive hover:bg-destructive/18",
+  keep: "border-emerald-500/20 bg-emerald-500/8 text-emerald-800 shadow-none hover:border-emerald-500/30 hover:bg-emerald-500/12 dark:text-emerald-200",
+  defer:
+    "border-border-strong bg-surface-1/88 text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground",
+  delete:
+    "border-destructive/20 bg-destructive/8 text-destructive shadow-none hover:border-destructive/30 hover:bg-destructive/12",
 } as const;
 
-export function DecisionButton({ intent, className, type = "button", ...props }: DecisionButtonProps) {
+export function DecisionButton({
+  intent,
+  className,
+  type = "button",
+  size = "sm",
+  variant = "outline",
+  ...props
+}: DecisionButtonProps) {
   return (
-    <button
+    <Button
       type={type}
-      className={cn(
-        "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium shadow-elevation-1 transition-[color,background-color,border-color,box-shadow]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-        "disabled:pointer-events-none disabled:opacity-50",
-        decisionIntentClassName[intent],
-        className,
-      )}
+      size={size}
+      variant={variant}
+      className={cn("font-medium [&_svg]:size-3.5", decisionIntentClassName[intent], className)}
       {...props}
     />
   );

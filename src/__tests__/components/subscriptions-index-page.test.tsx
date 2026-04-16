@@ -137,8 +137,9 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.getByText("90日停止")).toBeInTheDocument();
     expect(screen.getByText("参照エラー")).toBeInTheDocument();
     expect(await screen.findAllByRole("heading", { name: "Work" })).toHaveLength(2);
-    expect(screen.getByText("E")).toBeInTheDocument();
-    expect(screen.getByText("F")).toBeInTheDocument();
+    expect(document.querySelectorAll('img[src*="google.com/s2/favicons?domain=example.com"]').length).toBeGreaterThan(
+      0,
+    );
     expect(screen.getByText("未読 0件")).toBeInTheDocument();
     expect(screen.getByText("最終更新 2024/1/1")).toBeInTheDocument();
     expect(screen.getAllByText("整理不要").length).toBeGreaterThan(0);
@@ -164,6 +165,16 @@ describe("SubscriptionsIndexPage", () => {
     expect(secondaryFeed).toHaveAccessibleName(/未読 3件/);
     expect(secondaryFeed).toHaveAttribute("aria-pressed", "false");
     expect(secondaryFeed).not.toHaveClass("bg-card/75");
+    expect(selectedFeed.querySelector('img[src*="google.com/s2/favicons?domain=example.com"]')).toBeTruthy();
+  });
+
+  it("renders only actionable summary cards as buttons", async () => {
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("総購読数")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /総購読数/ })).toBeNull();
+    expect(await screen.findByRole("button", { name: /止まった購読を見る/ })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /参照エラーを見る/ })).toBeInTheDocument();
   });
 
   it("keeps the subscriptions workspace shell aligned with the lighter left pane", async () => {
@@ -212,6 +223,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(detailPane).queryByRole("link", { name: "フィードのURL" })).toBeNull();
     expect(within(detailPane).getByText("記事の表示")).toBeInTheDocument();
     expect(within(detailPane).getByText("既定の表示")).toBeInTheDocument();
+    expect(detailPane.querySelector('img[src*="google.com/s2/favicons?domain=example.com"]')).toBeTruthy();
     const articleLink = within(detailPane).getByRole("link", { name: "Old article" });
     expect(articleLink).toHaveAttribute("href", "https://example.com/old/1");
     expect(articleLink).toHaveClass("cursor-pointer");

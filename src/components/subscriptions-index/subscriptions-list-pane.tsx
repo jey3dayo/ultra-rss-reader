@@ -1,13 +1,9 @@
 import { ChevronDown } from "lucide-react";
+import { FeedFavicon } from "@/components/shared/feed-favicon";
+import { LabelChip } from "@/components/shared/label-chip";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { cn } from "@/lib/utils";
 import type { SubscriptionListGroup, SubscriptionListRow } from "./subscriptions-index.types";
-
-function buildFeedAvatar(title: string) {
-  const trimmed = title.trim();
-  const match = trimmed.match(/[A-Za-z0-9\u3040-\u30ff\u4e00-\u9faf]/u);
-  return match?.[0]?.toUpperCase() ?? "?";
-}
 
 export function SubscriptionsListPane({
   heading,
@@ -36,9 +32,7 @@ export function SubscriptionsListPane({
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold">{heading}</h2>
         {hasRows ? (
-          <span className="rounded-full border border-border/70 bg-background/80 px-2.5 py-1 text-[11px] text-muted-foreground">
-            {groups.reduce((count, group) => count + group.rows.length, 0)}
-          </span>
+          <LabelChip tone="muted">{groups.reduce((count, group) => count + group.rows.length, 0)}</LabelChip>
         ) : null}
       </div>
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
@@ -68,36 +62,40 @@ export function SubscriptionsListPane({
                     aria-pressed={selectedFeedId === row.feed.id}
                     onClick={() => onSelectFeed(row.feed.id)}
                     className={cn(
-                      "items-center rounded-xl px-3 py-2.5",
+                      "items-center rounded-xl border-border/65 px-3 py-2.5",
                       selectedFeedId !== row.feed.id && "border-border/60",
                     )}
                     leading={
                       <span
                         className={cn(
-                          "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-medium transition-colors",
+                          "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/55 transition-colors",
                           selectedFeedId === row.feed.id
-                            ? "bg-card text-foreground"
-                            : "bg-background/90 text-foreground",
+                            ? "bg-surface-1 text-foreground shadow-elevation-1"
+                            : "bg-surface-2/88 text-foreground",
                         )}
                       >
-                        {buildFeedAvatar(row.feed.title)}
+                        <FeedFavicon title={row.feed.title} url={row.feed.url} siteUrl={row.feed.site_url} />
                       </span>
                     }
-                    title={<span className="text-sm">{row.feed.title}</span>}
+                    title={
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm text-foreground">{row.feed.title}</span>
+                        <span className="text-[11px] text-foreground-soft">{formatFolderLabel(row.folderName)}</span>
+                      </div>
+                    }
                     description={
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                        <span className="rounded-full border border-border/60 bg-background/60 px-2.5 py-1">
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-foreground-soft">
+                        <LabelChip tone="muted" size="compact">
                           {statusLabels[row.status.labelKey]}
+                        </LabelChip>
+                        <span aria-hidden="true" className="text-foreground/25">
+                          •
                         </span>
-                        <span className="rounded-full border border-border/50 bg-background/60 px-2.5 py-1">
-                          {formatFolderLabel(row.folderName)}
+                        <span>{formatUnreadCountLabel(row.feed.unread_count)}</span>
+                        <span aria-hidden="true" className="text-foreground/25">
+                          •
                         </span>
-                        <span className="rounded-full border border-border/50 bg-background/60 px-2.5 py-1">
-                          {formatUnreadCountLabel(row.feed.unread_count)}
-                        </span>
-                        <span className="rounded-full border border-border/50 bg-background/60 px-2.5 py-1">
-                          {formatLatestArticleLabel(row.latestArticleAt)}
-                        </span>
+                        <span>{formatLatestArticleLabel(row.latestArticleAt)}</span>
                       </div>
                     }
                   />

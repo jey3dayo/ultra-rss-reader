@@ -89,7 +89,7 @@ describe("FeedCleanupQueuePanel", () => {
     );
 
     expect(screen.getByText("1 selected")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("bg-emerald-500/12");
+    expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("bg-emerald-500/8");
     expect(screen.getByRole("button", { name: "Defer selected" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete selected" })).toBeInTheDocument();
   });
@@ -127,9 +127,10 @@ describe("FeedCleanupQueuePanel", () => {
     render(<FeedCleanupQueuePanel {...buildProps()} />);
 
     expect(screen.getByTestId("feed-cleanup-selection-hit-area-feed-1")).toHaveClass("p-2");
+    expect(screen.getByTestId("feed-cleanup-selection-hit-area-feed-1")).toHaveClass("min-h-11");
   });
 
-  it("uses transparent unselected rows and card-backed selected rows while keeping row actions available", () => {
+  it("uses subdued surface cards for selected rows while keeping row actions available", () => {
     render(
       <FeedCleanupQueuePanel
         {...buildProps()}
@@ -140,15 +141,16 @@ describe("FeedCleanupQueuePanel", () => {
 
     const queueRow = screen.getByTestId("feed-cleanup-queue-row-feed-1");
 
-    expect(queueRow).toHaveClass("bg-card/75");
+    expect(queueRow).toHaveClass("bg-card/56");
+    expect(queueRow).toHaveClass("border-border-strong");
     expect(within(queueRow).getByRole("button", { name: "Delete" })).toBeInTheDocument();
   });
 
-  it("keeps unselected rows visually transparent", () => {
+  it("keeps unselected rows on a muted surface", () => {
     render(<FeedCleanupQueuePanel {...buildProps()} />);
 
     const queueRow = screen.getByTestId("feed-cleanup-queue-row-feed-1");
 
-    expect(queueRow).toHaveClass("bg-transparent");
+    expect(queueRow).toHaveClass("bg-background/28");
   });
 });

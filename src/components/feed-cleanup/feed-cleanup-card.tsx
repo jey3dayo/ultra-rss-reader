@@ -1,11 +1,12 @@
+import { SurfaceCard } from "@/components/shared/surface-card";
 import { cn } from "@/lib/utils";
 import type { FeedCleanupCardProps, FeedCleanupDetailRowProps } from "./feed-cleanup.types";
 
 export function FeedCleanupCard({ children, className }: FeedCleanupCardProps) {
   return (
-    <div className={cn("rounded-xl border border-border bg-card px-4 py-4 shadow-elevation-1", className)}>
+    <SurfaceCard variant="section" tone="default" padding="default" className={cn("shadow-none", className)}>
       {children}
-    </div>
+    </SurfaceCard>
   );
 }
 
