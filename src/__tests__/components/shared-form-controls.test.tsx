@@ -67,6 +67,9 @@ describe("shared form controls", () => {
     );
 
     expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveValue("https://example.com/rss");
+    expect(
+      screen.getByRole("textbox", { name: "Server URL" }).closest("div.flex.w-full.items-center.gap-2"),
+    ).toHaveClass("sm:max-w-[30rem]", "sm:justify-end");
 
     await user.click(screen.getByRole("button", { name: "Reset: Server URL" }));
 
@@ -96,11 +99,14 @@ describe("shared form controls", () => {
     );
 
     const combobox = screen.getByRole("combobox", { name: "Account type" });
+    const switchControl = screen.getByRole("switch", { name: "Open links in background" });
     expect(combobox).toHaveTextContent("FreshRSS");
+    expect(combobox).toHaveClass("sm:w-[220px]");
+    expect(switchControl.parentElement).toHaveClass("sm:justify-end");
 
     await user.click(combobox);
     await user.click(await screen.findByRole("option", { name: "Feedbin" }));
-    await user.click(screen.getByRole("switch", { name: "Open links in background" }));
+    await user.click(switchControl);
 
     expect(onSelectChange).toHaveBeenCalledWith("feedbin");
     expect(onSwitchChange).toHaveBeenCalledWith(true);

@@ -7,11 +7,11 @@ import { describe, expect, it } from "vitest";
 import { SurfaceCard } from "@/components/shared/surface-card";
 
 describe("SurfaceCard", () => {
-  it("keeps the shared card radii aligned to the rounded-md baseline", () => {
+  it("keeps the shared card radii aligned to the rounded-lg baseline", () => {
     const globalCss = readFileSync(resolve(process.cwd(), "src/styles/global.css"), "utf8");
 
-    expect(globalCss).toMatch(/--radius-surface-info:\s*0\.5rem;/);
-    expect(globalCss).toMatch(/--radius-surface-section:\s*0\.5rem;/);
+    expect(globalCss).toMatch(/--radius-surface-info:\s*0\.75rem;/);
+    expect(globalCss).toMatch(/--radius-surface-section:\s*0\.75rem;/);
   });
 
   it("requires an explicit variant in the component API", () => {
@@ -37,11 +37,11 @@ describe("SurfaceCard", () => {
     const sectionCard = screen.getByTestId("section-card");
 
     expect(infoCard).toHaveAttribute("data-surface-card", "info");
-    expect(infoCard).toHaveClass("rounded-[var(--radius-surface-info)]");
+    expect(infoCard).toHaveClass("rounded-lg");
     expect(infoCard).toHaveClass("border-border/70");
 
     expect(sectionCard).toHaveAttribute("data-surface-card", "section");
-    expect(sectionCard).toHaveClass("rounded-[var(--radius-surface-section)]");
+    expect(sectionCard).toHaveClass("rounded-lg");
     expect(sectionCard).toHaveClass("border-border/60");
   });
 
