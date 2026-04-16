@@ -4,6 +4,39 @@
 
 ## UI/UX 監査の残り
 
+- [ ] surface governance の残り範囲を先に棚卸ししてから実装する
+  - まず `info card` / `section container` / `shell role` のどれに属するかを対象ごとに分類し、分類が固まったものだけ着手する
+  - 初回の棚卸し対象:
+    - `src/components/storybook/ui-reference-settings-canvas.stories.tsx`
+    - `src/components/reader/browser-overlay-chrome.tsx`
+    - `src/components/reader/browser-overlay-presentation.ts`
+    - `src/components/reader/browser-view.tsx`
+    - `src/components/ui/tooltip.tsx`
+  - 新しく見つけた論点はこの親タスク配下へ追加し、分類前に実装へ入らない
+  - 初回棚卸しで見つかった分類メモ:
+    - [ ] browser overlay の leading / action controls は `section` ではなく `shell role` として扱う
+      - 対象: `src/components/reader/browser-overlay-chrome.tsx`, `src/components/reader/browser-overlay-presentation.ts`
+      - `rounded-full` と高めの elevation を使っているため、標準 card へ寄せるのではなく shell token 化の要否を見極める
+    - [ ] browser overlay の stage / rail / top gradient bar を `shell role` の一部としてまとめて扱うかを確定する
+      - 対象: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-overlay-presentation.ts`
+      - `content-pane` 側の stage は section 風にも見えるので、境界を決めてから触る
+    - [ ] `ui-reference-settings-canvas` の outer frame 28px / 32px 系は `section` ではなく shell example として扱う
+      - 対象: `src/components/storybook/ui-reference-settings-canvas.stories.tsx`
+      - left rail 外枠、main content 外枠、dialog / context menu 見本を section 見本と混ぜない
+    - [ ] tooltip は compact utility detail として扱い、surface governance の主戦場からは分離する
+      - 対象: `src/components/ui/tooltip.tsx`
+      - まずは shell / section の整理を優先し、 tooltip は必要が出たら別タスク化する
+- [ ] 実装済み surface governance を 95 点基準で review し、足りないものだけを段階適用する
+  - review 運用ルールは `.claude/rules/ui-design-review-loop.md` に追加済みなので、以後の UI 作業はこの基準をそのまま適用する
+  - review 観点:
+    - 角丸の役割が `DESIGN.md` と矛盾していないか
+    - shared primitive を通すべき面が feature-local へ逃げていないか
+    - Storybook の参照面が実装より甘い例外を残していないか
+  - 初回の残タスク:
+    - [ ] browser overlay / preview 系を `section` と `shell` のどちらで扱うか確定する
+    - [ ] `ui-reference-settings-canvas` に残る shell 例外を明示し、section 見本と混ざらないよう整理する
+      - left rail 外枠、main content 外枠、dialog surface、context menu は shell 見本としてラベル分離する
+    - [ ] 実アプリ表示の review 結果を見て、必要ならこの配下へ追加する
 - [ ] モバイル向け UI を正式対応する段階で、アイコンのみ導線の見直しを再開する
   - 現時点では mobile を主要提供面にしないため必須対応から外すが、狭い幅での discoverability 課題として保留する
   - 対応する場合は tooltip 前提の主要操作を、ラベル表示かメニュー集約で補う

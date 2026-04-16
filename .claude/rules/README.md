@@ -6,6 +6,7 @@
 ## UI / Design
 
 - [ui-browser-prep.md](./ui-browser-prep.md): UI 調整前後にブラウザ実画面で確認する手順
+- [ui-design-review-loop.md](./ui-design-review-loop.md): UI 実装後に 95 点以上を目標としてデザインレビューと修正を反復するルール
 - [color-pattern.md](./color-pattern.md): インタラクティブ要素の ON / OFF 状態に使う色パターン
 - [shadcn-ui.md](./shadcn-ui.md): `src/components/ui/` の扱いと shadcn/ui 利用ルール
 
