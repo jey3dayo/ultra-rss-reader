@@ -40,6 +40,10 @@ describe("FeedContextMenuView", () => {
     );
     expect(screen.getByRole("menuitem", { name: "Open site" })).toHaveClass("data-highlighted:bg-surface-1/72");
     expect(screen.getByText("Display mode")).toHaveClass("text-foreground-soft");
+    expect(screen.getByRole("menuitem", { name: "Unsubscribe…" })).toHaveClass(
+      "text-state-danger-foreground",
+      "data-highlighted:bg-state-danger-surface",
+    );
 
     fireEvent.click(screen.getByRole("menuitem", { name: "Open site" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Mark all as read" }));

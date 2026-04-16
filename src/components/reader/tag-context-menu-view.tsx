@@ -18,7 +18,7 @@ export function TagContextMenuView({ onRename, onDelete }: TagContextMenuViewPro
             {t("edit_ellipsis")}
           </ContextMenu.Item>
           <ContextMenu.Separator className={contextMenuStyles.separator} />
-          <ContextMenu.Item className={contextMenuStyles.item} onClick={onDelete}>
+          <ContextMenu.Item className={contextMenuStyles.destructiveItem} onClick={onDelete}>
             {t("delete_ellipsis")}
           </ContextMenu.Item>
         </ContextMenu.Popup>

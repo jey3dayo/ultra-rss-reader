@@ -16,6 +16,11 @@ describe("TagContextMenuView", () => {
       </ContextMenu.Root>,
     );
 
+    expect(screen.getByRole("menuitem", { name: "Delete…" })).toHaveClass(
+      "text-state-danger-foreground",
+      "data-highlighted:bg-state-danger-surface",
+    );
+
     await user.click(screen.getByRole("menuitem", { name: "Edit…" }));
     await user.click(screen.getByRole("menuitem", { name: "Delete…" }));
 

@@ -58,7 +58,7 @@ export function FeedContextMenuView({
             </ContextMenu.Item>
           ))}
           <ContextMenu.Separator className={contextMenuStyles.separator} />
-          <ContextMenu.Item className={contextMenuStyles.item} onClick={onUnsubscribe}>
+          <ContextMenu.Item className={contextMenuStyles.destructiveItem} onClick={onUnsubscribe}>
             {unsubscribeLabel}
           </ContextMenu.Item>
         </ContextMenu.Popup>
