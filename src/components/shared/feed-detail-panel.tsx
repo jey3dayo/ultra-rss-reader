@@ -160,8 +160,7 @@ export function FeedDetailPanel({
             padding="compact"
             className={cn(
               "shadow-none",
-              reasonBox.tone === "medium" &&
-                "border-[hsl(33_58%_50%/0.18)] bg-[linear-gradient(180deg,hsl(38_68%_86%/0.22),hsl(var(--surface-1)/0.92))]",
+              reasonBox.tone === "medium" && "border-state-warning-border bg-state-warning-surface text-state-warning-foreground",
             )}
           >
             <p className="font-sans text-sm font-medium text-current">{reasonBox.title}</p>

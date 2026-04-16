@@ -16,6 +16,7 @@ const surfaceCardVariants = cva(
         subtle: "",
         emphasis: "",
         success: "",
+        warning: "",
         danger: "",
       },
       padding: {
@@ -58,6 +59,10 @@ const surfaceCardVariants = cva(
       {
         tone: "success",
         className: "border-state-success-border bg-state-success-surface text-state-success-foreground",
+      },
+      {
+        tone: "warning",
+        className: "border-state-warning-border bg-state-warning-surface text-state-warning-foreground",
       },
       {
         tone: "danger",

@@ -27,7 +27,11 @@ describe("FeedDetailPanel", () => {
 
     expect(screen.getByTestId("detail-leading-visual")).toBeInTheDocument();
     expect(screen.getByTestId("feed-detail-status")).toHaveClass("rounded-lg");
-    expect(screen.getByTestId("feed-detail-reason-box")).not.toHaveClass("bg-amber-500/10");
+    expect(screen.getByTestId("feed-detail-reason-box")).toHaveClass(
+      "border-state-warning-border",
+      "bg-state-warning-surface",
+      "text-state-warning-foreground",
+    );
     expect(screen.getByRole("button", { name: "購読の整理" })).not.toHaveClass("rounded-full");
   });
 });
