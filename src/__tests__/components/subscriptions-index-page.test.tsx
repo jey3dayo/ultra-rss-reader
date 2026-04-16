@@ -161,10 +161,18 @@ describe("SubscriptionsIndexPage", () => {
     expect(selectedFeed).toHaveClass("bg-surface-1");
     expect(selectedFeed).toHaveClass("focus-visible:ring-2");
     expect(selectedFeed).toHaveClass("rounded-md");
+    const selectedFaviconSurface = selectedFeed.querySelector("span.rounded-md");
+    expect((selectedFaviconSurface as HTMLElement).style.backgroundColor).toBe("var(--subscriptions-list-favicon-surface)");
+    expect((selectedFaviconSurface as HTMLElement).style.borderColor).toBe("var(--subscriptions-list-divider)");
     expect(secondaryFeed).toHaveAccessibleName(/Fresh Feed/);
     expect(secondaryFeed).toHaveAccessibleName(/未読 3件/);
     expect(secondaryFeed).toHaveAttribute("aria-pressed", "false");
     expect(secondaryFeed).not.toHaveClass("bg-card/75");
+    const secondaryFaviconSurface = secondaryFeed.querySelector("span.rounded-md");
+    expect((secondaryFaviconSurface as HTMLElement).style.backgroundColor).toBe(
+      "var(--subscriptions-list-favicon-surface-muted)",
+    );
+    expect((secondaryFaviconSurface as HTMLElement).style.borderColor).toBe("var(--subscriptions-list-divider)");
     expect(selectedFeed.querySelector('img[src*="google.com/s2/favicons?domain=example.com"]')).toBeTruthy();
   });
 
@@ -222,6 +230,9 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.getByTestId("subscriptions-folder-row-folder-2")).toHaveAttribute("data-folder-drop-target", "true");
     expect(screen.getByTestId("subscriptions-folder-row-folder-1")).toHaveClass("rounded-md");
     expect(screen.getByTestId("subscriptions-folder-row-folder-2")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("subscriptions-folder-row-folder-1").style.borderColor).toBe(
+      "var(--subscriptions-list-divider)",
+    );
   });
 
   it("shows selected feed details and a cleanup hand-off action", async () => {

@@ -49,7 +49,8 @@ export function SubscriptionsListPane({
               <div
                 data-testid={`subscriptions-folder-row-${group.folderId ?? "ungrouped"}`}
                 data-folder-drop-target={group.folderId ? "true" : "false"}
-                className="rounded-md flex items-center justify-between border-b border-border/40 px-1 py-1.5"
+                className="rounded-md flex items-center justify-between border-b px-1 py-1.5"
+                style={{ borderColor: "var(--subscriptions-list-divider)" }}
               >
                 <div className="flex items-center gap-1.5">
                   <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
@@ -71,11 +72,18 @@ export function SubscriptionsListPane({
                     leading={
                       <span
                         className={cn(
-                          "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border/55 transition-colors",
+                          "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-colors",
                           selectedFeedId === row.feed.id
                             ? "bg-surface-1 text-foreground shadow-elevation-1"
                             : "bg-surface-2/88 text-foreground",
                         )}
+                        style={{
+                          borderColor: "var(--subscriptions-list-divider)",
+                          backgroundColor:
+                            selectedFeedId === row.feed.id
+                              ? "var(--subscriptions-list-favicon-surface)"
+                              : "var(--subscriptions-list-favicon-surface-muted)",
+                        }}
                       >
                         <FeedFavicon title={row.feed.title} url={row.feed.url} siteUrl={row.feed.site_url} />
                       </span>
@@ -91,11 +99,11 @@ export function SubscriptionsListPane({
                         <LabelChip tone="muted" size="compact">
                           {statusLabels[row.status.labelKey]}
                         </LabelChip>
-                        <span aria-hidden="true" className="text-foreground/25">
+                        <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
                           •
                         </span>
                         <span>{formatUnreadCountLabel(row.feed.unread_count)}</span>
-                        <span aria-hidden="true" className="text-foreground/25">
+                        <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
                           •
                         </span>
                         <span>{formatLatestArticleLabel(row.latestArticleAt)}</span>
