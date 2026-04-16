@@ -12,6 +12,7 @@ export function ArticleContextMenu({ article, children }: ArticleContextMenuProp
   const setRead = useSetRead();
   const toggleStar = useToggleStar();
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
+  const removeRecentlyRead = useUiStore((s) => s.removeRecentlyRead);
   const retainArticle = useUiStore((s) => s.retainArticle);
   const viewMode = useUiStore((s) => s.viewMode);
   const selection = useUiStore((s) => s.selection);
@@ -25,6 +26,7 @@ export function ArticleContextMenu({ article, children }: ArticleContextMenuProp
     supportsReadingList,
     showToast,
     addRecentlyRead,
+    removeRecentlyRead,
     retainArticle,
     setRead,
     toggleStar,

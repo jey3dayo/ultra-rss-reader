@@ -22,6 +22,7 @@ export type UseArticleStatusActionsParams = {
   retainOnUnstar: boolean;
   showToast: ArticleStatusToast;
   addRecentlyRead: (articleId: string) => void;
+  removeRecentlyRead: (articleId: string) => void;
   retainArticle: (articleId: string) => void;
   setRead: SetReadMutation;
   toggleStar: ToggleStarMutation;
@@ -43,6 +44,7 @@ export type UseArticleActionsParams = {
   supportsReadingList: boolean;
   showToast: ArticleStatusToast;
   addRecentlyRead: (articleId: string) => void;
+  removeRecentlyRead: (articleId: string) => void;
   retainArticle: (articleId: string) => void;
   setRead: SetReadMutation;
   toggleStar: ToggleStarMutation;
@@ -76,6 +78,7 @@ export type UseArticleAutoMarkParams = {
   viewMode: ArticleStatusViewMode;
   retainArticle: (articleId: string) => void;
   addRecentlyRead: (articleId: string) => void;
+  removeRecentlyRead?: (articleId: string) => void;
   setRead: SetReadMutation;
   showToast: ArticleStatusToast;
 };

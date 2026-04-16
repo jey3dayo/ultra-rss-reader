@@ -159,6 +159,7 @@ interface UiActions {
   showToast: (message: string | ToastData) => void;
   clearToast: () => void;
   addRecentlyRead: (id: string) => void;
+  removeRecentlyRead: (id: string) => void;
   clearRecentlyRead: () => void;
   retainArticle: (id: string) => void;
   clearRetainedArticles: () => void;
@@ -452,6 +453,16 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     set((s) => {
       const next = new Set(s.recentlyReadIds);
       next.add(id);
+      return { recentlyReadIds: next };
+    }),
+  removeRecentlyRead: (id) =>
+    set((s) => {
+      if (!s.recentlyReadIds.has(id)) {
+        return s;
+      }
+
+      const next = new Set(s.recentlyReadIds);
+      next.delete(id);
       return { recentlyReadIds: next };
     }),
   clearRecentlyRead: () => set({ recentlyReadIds: new Set() }),

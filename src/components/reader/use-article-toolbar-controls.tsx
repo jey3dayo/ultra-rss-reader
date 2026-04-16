@@ -19,6 +19,7 @@ export function useArticleToolbarControls({
   const toggleStar = useToggleStar();
   const showToast = useUiStore((s) => s.showToast);
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
+  const removeRecentlyRead = useUiStore((s) => s.removeRecentlyRead);
   const retainArticle = useUiStore((s) => s.retainArticle);
   const selection = useUiStore((s) => s.selection);
   const viewMode = useUiStore((s) => s.viewMode);
@@ -32,6 +33,7 @@ export function useArticleToolbarControls({
     supportsReadingList,
     showToast,
     addRecentlyRead,
+    removeRecentlyRead,
     retainArticle,
     setRead,
     toggleStar,

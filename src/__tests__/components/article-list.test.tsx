@@ -982,13 +982,13 @@ describe("ArticleList", () => {
     useUiStore.getState().selectArticle("art-1");
 
     const user = userEvent.setup();
-    render(
+    const view = (
       <>
         <ArticleList />
         <ArticleView />
-      </>,
-      { wrapper: createWrapper() },
+      </>
     );
+    render(view, { wrapper: createWrapper() });
 
     const list = await screen.findByRole("listbox", { name: "Article list" });
     await waitFor(() => {
@@ -1062,13 +1062,13 @@ describe("ArticleList", () => {
     useUiStore.getState().selectArticle("art-2");
 
     const user = userEvent.setup();
-    render(
+    const view = (
       <>
         <ArticleList />
         <ArticleView />
-      </>,
-      { wrapper: createWrapper() },
+      </>
     );
+    render(view, { wrapper: createWrapper() });
 
     expect((await screen.findAllByText("Second Article")).length).toBeGreaterThan(0);
 

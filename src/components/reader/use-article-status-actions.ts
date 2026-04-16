@@ -9,6 +9,7 @@ export function useArticleStatusActions({
   retainOnUnstar,
   showToast,
   addRecentlyRead,
+  removeRecentlyRead,
   retainArticle,
   setRead,
   toggleStar,
@@ -41,12 +42,14 @@ export function useArticleStatusActions({
           onSuccess: () => {
             if (pressed) {
               addRecentlyRead(articleId);
+            } else {
+              removeRecentlyRead(articleId);
             }
           },
         },
       );
     },
-    [addRecentlyRead, articleId, retainIfNeeded, setRead],
+    [addRecentlyRead, articleId, removeRecentlyRead, retainIfNeeded, setRead],
   );
 
   const setStarStatus = useCallback(
