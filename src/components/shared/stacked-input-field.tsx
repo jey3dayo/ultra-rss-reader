@@ -19,7 +19,7 @@ export function StackedInputField({
   const inputId = useId();
 
   return (
-    <label htmlFor={inputId} className={cn("block text-sm text-muted-foreground", className)}>
+    <label htmlFor={inputId} className={cn("block text-sm text-foreground-soft", className)}>
       <span className={labelClassName}>{label}</span>
       <Input
         id={inputId}

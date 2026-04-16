@@ -23,7 +23,7 @@ export function StackedSelectField({
   const resolvedLabelId = labelId ?? generatedLabelId;
 
   return (
-    <div className={cn("block text-sm text-muted-foreground", className)}>
+    <div className={cn("block text-sm text-foreground-soft", className)}>
       <span id={resolvedLabelId} className={cn("mb-1 block", labelClassName)}>
         {label}
       </span>
