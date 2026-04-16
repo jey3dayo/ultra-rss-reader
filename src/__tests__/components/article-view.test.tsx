@@ -1302,7 +1302,7 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     expect(await screen.findByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
-    expect(screen.queryByText("Pick an article to start reading")).not.toBeInTheDocument();
+    expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
     expect(useUiStore.getState().contentMode).toBe("browser");
     expect(useUiStore.getState().browserUrl).toBe(previewUrl);
   });
@@ -1344,7 +1344,7 @@ describe("ArticleView", () => {
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("empty");
       expect(useUiStore.getState().browserUrl).toBeNull();
-      expect(screen.getByText("Pick an article to start reading")).toBeInTheDocument();
+      expect(screen.getByText("Select an article")).toBeInTheDocument();
     });
 
     useUiStore.setState({
@@ -1360,7 +1360,7 @@ describe("ArticleView", () => {
     await waitFor(() => {
       expect(useUiStore.getState().contentMode).toBe("empty");
       expect(useUiStore.getState().browserUrl).toBeNull();
-      expect(screen.getByText("Pick an article to start reading")).toBeInTheDocument();
+      expect(screen.getByText("Select an article")).toBeInTheDocument();
     });
   });
 
