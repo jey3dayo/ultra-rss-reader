@@ -27,7 +27,7 @@ export function FeedTreeUnfolderedSection({
       {unfolderedLabel ? (
         <div
           className={cn(
-            "text-[0.68rem] font-medium tracking-[0.08em] text-sidebar-foreground/32 uppercase",
+            "text-[0.68rem] font-medium tracking-[0.08em] text-sidebar-foreground/40 uppercase",
             tokens.sectionLabelInset,
           )}
         >
