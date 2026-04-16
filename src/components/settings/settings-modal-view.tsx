@@ -127,7 +127,7 @@ export function SettingsModalView({
               size="icon-sm"
               onClick={onClose}
               aria-label={closeLabel}
-              className="text-sidebar-foreground/72 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              className="text-sidebar-foreground/40 hover:bg-sidebar-accent/28 hover:text-sidebar-foreground"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -157,7 +157,7 @@ export function SettingsModalView({
                 style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
               >
                 {accountsHeading ? (
-                  <p className="mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/48">
+                  <p className="mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/40">
                     {accountsHeading}
                   </p>
                 ) : null}
@@ -180,7 +180,7 @@ export function SettingsModalView({
             style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
           >
             {accountsHeading ? (
-              <p className="mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/48">
+              <p className="mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/40">
                 {accountsHeading}
               </p>
             ) : null}

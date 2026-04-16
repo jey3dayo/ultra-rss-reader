@@ -138,6 +138,8 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-modal-header")).toHaveStyle({
       backgroundColor: "var(--settings-shell-rail)",
     });
+    expect(screen.getByRole("button", { name: "Close preferences" })).toHaveClass("text-sidebar-foreground/40");
+    expect(screen.getByRole("button", { name: "Close preferences" })).toHaveClass("hover:bg-sidebar-accent/28");
     expect(screen.getByTestId("settings-nav-shell")).toHaveStyle({
       backgroundColor: "var(--settings-shell-rail)",
     });
@@ -150,6 +152,7 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-accounts-scroll-area")).toHaveClass("max-h-[15rem]");
     expect(screen.getByTestId("settings-accounts-scroll-area")).toHaveClass("min-h-0");
     expect(screen.getAllByText("Accounts")).toHaveLength(2);
+    expect(screen.getAllByText("Accounts")[0]).toHaveClass("text-sidebar-foreground/40");
   });
 
   it("renders a narrow-screen accounts section inside the navigation flow", () => {
