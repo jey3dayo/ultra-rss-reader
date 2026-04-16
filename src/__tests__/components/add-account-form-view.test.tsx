@@ -160,6 +160,6 @@ describe("AddAccountFormView", () => {
     expect(onNameChange).toHaveBeenCalledWith("W");
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onCancel).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("Server URL is required")).toBeInTheDocument();
+    expect(screen.getByText("Server URL is required")).toHaveClass("text-state-danger-foreground");
   });
 });

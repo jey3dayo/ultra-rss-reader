@@ -75,7 +75,7 @@ export function AddAccountFormView({
           </section>
         )}
 
-        {errorMessage && <p className="mb-4 text-sm text-destructive">{errorMessage}</p>}
+        {errorMessage && <p className="mb-4 text-sm text-state-danger-foreground">{errorMessage}</p>}
 
         <div className="flex gap-3">
           <FormActionButtons
