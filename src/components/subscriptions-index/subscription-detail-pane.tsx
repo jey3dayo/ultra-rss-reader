@@ -51,11 +51,11 @@ export function SubscriptionDetailPane({
       }}
     >
       <div className="mb-4 border-b border-border/60 pb-3">
-        <h2 className="font-sans text-[1.02rem] font-normal tracking-[-0.02em] text-foreground">{heading}</h2>
+        <h2 className="font-sans text-[1.02rem] font-normal tracking-[-0.02em] text-foreground-soft">{heading}</h2>
       </div>
       {!row || !metrics ? (
         <div className="flex items-center lg:min-h-0 lg:flex-1">
-          <p className="w-full rounded-md border border-dashed border-border/70 bg-surface-1/78 px-5 py-6 text-sm text-muted-foreground">
+          <p className="w-full rounded-md border border-dashed border-border/70 bg-surface-1/78 px-5 py-6 text-sm text-foreground-soft">
             {emptyLabel}
           </p>
         </div>

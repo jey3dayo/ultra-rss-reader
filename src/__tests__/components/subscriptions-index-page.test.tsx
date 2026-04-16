@@ -245,6 +245,7 @@ describe("SubscriptionsIndexPage", () => {
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
     expect(detailPane).toHaveStyle({ backgroundColor: "var(--subscriptions-detail-surface)" });
     expect(detailPane).toHaveStyle({ backgroundImage: "var(--subscriptions-detail-pane-surface)" });
+    expect(within(detailPane).getByRole("heading", { name: "購読の詳細" })).toHaveClass("text-foreground-soft");
     expect(within(detailPane).getByRole("link", { name: "Example Feed" })).toHaveAttribute(
       "href",
       "https://example.com",
@@ -272,6 +273,7 @@ describe("SubscriptionsIndexPage", () => {
     const emptyDetail = await screen.findByText("購読を選ぶと詳細が表示されます。");
     expect(emptyDetail.className).toMatch(/rounded-(md|lg|xl)/);
     expect(emptyDetail).toHaveClass("bg-surface-1/78");
+    expect(emptyDetail).toHaveClass("text-foreground-soft");
   });
 
   it("renders the empty detail surface with the rounded-md baseline when no feeds exist", async () => {
@@ -308,6 +310,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(emptySurface.className).toMatch(/rounded-(md|lg|xl)/);
     expect(emptySurface).toHaveClass("border-dashed");
     expect(emptySurface).toHaveClass("bg-surface-1/78");
+    expect(emptySurface).toHaveClass("text-foreground-soft");
   });
 
   it("opens cleanup with stale context from the summary action", async () => {
