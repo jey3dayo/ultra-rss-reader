@@ -39,6 +39,7 @@ describe("FeedContextMenuView", () => {
       "shadow-elevation-3",
     );
     expect(screen.getByRole("menuitem", { name: "Open site" })).toHaveClass("data-highlighted:bg-surface-1/72");
+    expect(screen.getByText("Display mode")).toHaveClass("text-foreground-soft");
 
     fireEvent.click(screen.getByRole("menuitem", { name: "Open site" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Mark all as read" }));

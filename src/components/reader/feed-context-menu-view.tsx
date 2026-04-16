@@ -44,7 +44,7 @@ export function FeedContextMenuView({
             {markAllReadLabel}
           </ContextMenu.Item>
           <ContextMenu.Separator className={contextMenuStyles.separator} />
-          <div className="px-3 py-1 text-xs font-medium text-muted-foreground">{displayModeLabel}</div>
+          <div className="px-3 py-1 text-xs font-medium text-foreground-soft">{displayModeLabel}</div>
           {displayPresetOptions.map((option) => (
             <ContextMenu.Item
               key={option.value}
