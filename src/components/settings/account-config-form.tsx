@@ -4,9 +4,10 @@ import { ChevronLeft } from "lucide-react";
 import { useMemo, useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { addAccount } from "@/api/tauri-commands";
+import { SettingsSection } from "@/components/settings/settings-section";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
-import { SectionHeading } from "@/components/shared/section-heading";
+import { SurfaceCard } from "@/components/shared/surface-card";
 import {
   addAccountFormInitialState,
   addAccountFormReducer,
@@ -31,6 +32,10 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
   const formConfig = useMemo(() => getAddAccountFormConfig(form.kind), [form.kind]);
 
   const serviceDef = findServiceDefinition(kind);
+  const labelColumnClassName = "sm:w-28 sm:shrink-0";
+  const inputRowClassName = "flex-col items-stretch sm:flex-row sm:items-center sm:justify-start";
+  const inputControlClassName = "sm:min-w-0 sm:flex-1";
+  const inputClassName = "h-auto w-full border-border bg-background px-3 py-2 text-sm sm:flex-1";
 
   const handleSubmit = async () => {
     setErrorMessage(null);
@@ -78,34 +83,39 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
 
   return (
     <div className="p-6">
-      {/* Header with back button */}
-      <div className="relative mb-6 flex items-center">
+      <div className="mb-5 grid grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-border/60 pb-4">
         <button
           type="button"
           onClick={onBack}
           disabled={submitting}
           aria-label={t("account.back_to_services")}
-          className="flex items-center gap-0.5 text-sm text-foreground-soft transition-colors hover:text-foreground disabled:opacity-50"
+          className="inline-flex items-center gap-0.5 justify-self-start text-sm text-foreground/76 transition-colors hover:text-foreground disabled:opacity-50"
         >
           <ChevronLeft className="h-4 w-4" />
           {tc("back")}
         </button>
-        <h2 className="absolute inset-x-0 text-center text-lg font-semibold">
+        <h2 className="text-center font-sans text-[19px] font-medium tracking-[-0.02em] text-foreground">
           {t(`account.${kind.toLowerCase()}` as "account.local")}
         </h2>
+        <div aria-hidden="true" className="h-8 w-8 justify-self-end" />
       </div>
 
-      {/* Service info banner */}
       {serviceDef && (
-        <div className="mb-6 flex items-center gap-3 rounded-md border border-border/60 bg-surface-1/80 p-3">
-          <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", serviceDef.iconBg)}>
-            <serviceDef.icon className="h-5 w-5 text-white" />
+        <SurfaceCard variant="info" tone="subtle" padding="compact" className="mb-4">
+          <div className="flex items-center gap-3">
+            <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", serviceDef.iconBg)}>
+              <serviceDef.icon className="h-5 w-5 text-white" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-foreground">
+                {t(serviceDef.nameKey as "account.local_feeds")}
+              </div>
+              <div className="font-serif text-xs leading-[1.45] text-foreground/60">
+                {t(serviceDef.descKey as "account.local_desc")}
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="text-sm font-medium">{t(serviceDef.nameKey as "account.local_feeds")}</div>
-            <div className="text-xs text-muted-foreground">{t(serviceDef.descKey as "account.local_desc")}</div>
-          </div>
-        </div>
+        </SurfaceCard>
       )}
 
       <form
@@ -113,24 +123,25 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
           e.preventDefault();
           void handleSubmit();
         }}
+        className="space-y-4"
       >
-        <section className="mb-6">
-          <SectionHeading>{t("account.account")}</SectionHeading>
+        <SettingsSection heading={t("account.account")}>
           <LabeledInputRow
             label={t("account.name")}
             name="account-name"
             value={form.name}
             onChange={(value) => dispatch({ type: "setField", field: "name", value })}
             placeholder={form.kind}
-            rowClassName="flex-col items-stretch sm:flex-row sm:items-center"
-            inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:w-auto"
+            rowClassName={inputRowClassName}
+            labelClassName={labelColumnClassName}
+            controlClassName={inputControlClassName}
+            inputClassName={inputClassName}
             disabled={submitting}
           />
-        </section>
+        </SettingsSection>
 
         {formConfig.requiresCredentials && (
-          <section className="mb-6">
-            <SectionHeading>{formConfig.sectionHeading}</SectionHeading>
+          <SettingsSection heading={formConfig.sectionHeading}>
             {formConfig.showServerUrl && (
               <LabeledInputRow
                 label={t("account.server_url")}
@@ -138,8 +149,10 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
                 value={form.serverUrl}
                 onChange={(value) => dispatch({ type: "setField", field: "serverUrl", value })}
                 placeholder={t("account.server_url_placeholder")}
-                rowClassName="flex-col items-stretch sm:flex-row sm:items-center"
-                inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:w-auto"
+                rowClassName={inputRowClassName}
+                labelClassName={labelColumnClassName}
+                controlClassName={inputControlClassName}
+                inputClassName={inputClassName}
                 disabled={submitting}
               />
             )}
@@ -148,8 +161,10 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
               name={formConfig.credentialName ?? undefined}
               value={form.username}
               onChange={(value) => dispatch({ type: "setField", field: "username", value })}
-              rowClassName="flex-col items-stretch sm:flex-row sm:items-center"
-              inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:w-auto"
+              rowClassName={inputRowClassName}
+              labelClassName={labelColumnClassName}
+              controlClassName={inputControlClassName}
+              inputClassName={inputClassName}
               disabled={submitting}
             />
             <LabeledInputRow
@@ -158,16 +173,22 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
               type="password"
               value={form.password}
               onChange={(value) => dispatch({ type: "setField", field: "password", value })}
-              rowClassName="flex-col items-stretch sm:flex-row sm:items-center"
-              inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:w-auto"
+              rowClassName={inputRowClassName}
+              labelClassName={labelColumnClassName}
+              controlClassName={inputControlClassName}
+              inputClassName={inputClassName}
               disabled={submitting}
             />
-          </section>
+          </SettingsSection>
         )}
 
-        {errorMessage && <p className="mb-4 text-sm text-state-danger-foreground">{errorMessage}</p>}
+        {errorMessage ? (
+          <SurfaceCard variant="info" tone="danger" padding="compact">
+            <p className="font-serif text-sm leading-[1.5]">{errorMessage}</p>
+          </SurfaceCard>
+        ) : null}
 
-        <div className="flex gap-3">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
           <FormActionButtons
             cancelLabel={tc("cancel")}
             submitLabel={tc("add")}

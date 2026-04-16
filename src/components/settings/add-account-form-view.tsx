@@ -3,10 +3,16 @@ import type {
   AddAccountFormSelectRowProps,
   AddAccountFormViewProps,
 } from "@/components/settings/add-account-form.types";
+import { SettingsSection } from "@/components/settings/settings-section";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
-import { SectionHeading } from "@/components/shared/section-heading";
+import { SurfaceCard } from "@/components/shared/surface-card";
+
+const LABEL_COLUMN_CLASS_NAME = "sm:w-28 sm:shrink-0";
+const INPUT_ROW_CLASS_NAME = "flex-col items-stretch sm:flex-row sm:items-center sm:justify-start";
+const INPUT_CONTROL_CLASS_NAME = "sm:min-w-0 sm:flex-1";
+const INPUT_CLASS_NAME = "h-auto w-full border-border bg-background px-3 py-2 text-sm sm:flex-1";
 
 function AddAccountSelectRow({ control }: AddAccountFormSelectRowProps) {
   return (
@@ -30,8 +36,10 @@ function AddAccountInputRow({ control }: AddAccountFormInputRowProps) {
       value={control.value}
       onChange={control.onChange}
       placeholder={control.placeholder}
-      rowClassName="flex-col items-stretch sm:flex-row sm:items-center"
-      inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:w-auto"
+      rowClassName={INPUT_ROW_CLASS_NAME}
+      labelClassName={LABEL_COLUMN_CLASS_NAME}
+      controlClassName={INPUT_CONTROL_CLASS_NAME}
+      inputClassName={INPUT_CLASS_NAME}
       disabled={control.disabled}
     />
   );
@@ -53,31 +61,36 @@ export function AddAccountFormView({
 }: AddAccountFormViewProps) {
   return (
     <div className="p-6">
-      <h2 className="mb-6 text-center text-lg font-semibold">{title}</h2>
+      <h2 className="mb-5 border-b border-border/60 pb-4 text-center font-sans text-[19px] font-medium tracking-[-0.02em] text-foreground">
+        {title}
+      </h2>
       <form
         onSubmit={(event) => {
           event.preventDefault();
           onSubmit();
         }}
+        className="space-y-4"
       >
-        <section className="mb-6">
-          <SectionHeading>{accountHeading}</SectionHeading>
+        <SettingsSection heading={accountHeading}>
           <AddAccountSelectRow control={accountType} />
           <AddAccountInputRow control={accountName} />
-        </section>
+        </SettingsSection>
 
         {credentialsSection && (
-          <section className="mb-6">
-            <SectionHeading>{credentialsSection.heading}</SectionHeading>
+          <SettingsSection heading={credentialsSection.heading}>
             {credentialsSection.serverUrl && <AddAccountInputRow control={credentialsSection.serverUrl} />}
             <AddAccountInputRow control={credentialsSection.credential} />
             <AddAccountInputRow control={credentialsSection.password} />
-          </section>
+          </SettingsSection>
         )}
 
-        {errorMessage && <p className="mb-4 text-sm text-state-danger-foreground">{errorMessage}</p>}
+        {errorMessage ? (
+          <SurfaceCard variant="info" tone="danger" padding="compact">
+            <p className="font-serif text-sm leading-[1.5]">{errorMessage}</p>
+          </SurfaceCard>
+        ) : null}
 
-        <div className="flex gap-3">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
           <FormActionButtons
             cancelLabel={cancelLabel}
             submitLabel={submitLabel}
