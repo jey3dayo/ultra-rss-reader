@@ -137,6 +137,9 @@ interface PreferencesActions {
   groupBy: () => string;
 }
 
+const THEME_TRANSITION_CLASS = "theme-transitioning";
+const THEME_TRANSITION_DURATION_MS = 180;
+
 function isKnownPreferenceKey(key: string): key is KnownPreferenceKey {
   return objectHasOwnProperty.call(preferenceSchemas, key);
 }
@@ -173,6 +176,26 @@ export function resolvePreferenceValue(prefs: Record<string, string>, key: strin
 }
 
 let systemThemeCleanup: (() => void) | null = null;
+let themeTransitionCleanupTimeout: number | null = null;
+
+function scheduleThemeTransition(root: HTMLElement): void {
+  const prefersReducedMotion =
+    typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (prefersReducedMotion) {
+    root.classList.remove(THEME_TRANSITION_CLASS);
+    return;
+  }
+
+  root.classList.add(THEME_TRANSITION_CLASS);
+  if (themeTransitionCleanupTimeout !== null) {
+    window.clearTimeout(themeTransitionCleanupTimeout);
+  }
+  themeTransitionCleanupTimeout = window.setTimeout(() => {
+    root.classList.remove(THEME_TRANSITION_CLASS);
+    themeTransitionCleanupTimeout = null;
+  }, THEME_TRANSITION_DURATION_MS);
+}
 
 function applyTheme(theme: Theme): void {
   // Clean up previous system theme listener
@@ -180,10 +203,14 @@ function applyTheme(theme: Theme): void {
   systemThemeCleanup = null;
 
   const root = document.documentElement;
+  scheduleThemeTransition(root);
   if (theme === "system") {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     root.classList.toggle("dark", mq.matches);
-    const handler = (e: MediaQueryListEvent) => root.classList.toggle("dark", e.matches);
+    const handler = (e: MediaQueryListEvent) => {
+      scheduleThemeTransition(root);
+      root.classList.toggle("dark", e.matches);
+    };
     mq.addEventListener("change", handler);
     systemThemeCleanup = () => mq.removeEventListener("change", handler);
   } else {

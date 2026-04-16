@@ -1,9 +1,23 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { Result } from "@praha/byethrow";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/api/tauri-commands", () => ({
+  getPreferences: vi.fn(),
+  setPreference: vi.fn(async () => Result.succeed(null)),
+}));
+
 import { preferenceDefaults, resolvePreferenceValue, usePreferencesStore } from "../../stores/preferences-store";
 
 describe("usePreferencesStore preferences", () => {
   beforeEach(() => {
+    vi.useRealTimers();
     usePreferencesStore.setState({ prefs: {}, loaded: false });
+    document.documentElement.classList.remove("dark", "theme-transitioning");
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    document.documentElement.classList.remove("dark", "theme-transitioning");
   });
 
   it("falls back to the default theme when the persisted value is invalid", () => {
@@ -11,6 +25,19 @@ describe("usePreferencesStore preferences", () => {
 
     expect(resolvePreferenceValue(usePreferencesStore.getState().prefs, "theme")).toBe("light");
     expect(usePreferencesStore.getState().theme()).toBe("light");
+  });
+
+  it("adds a temporary transition class when switching themes", () => {
+    vi.useFakeTimers();
+
+    usePreferencesStore.getState().setPref("theme", "dark");
+
+    expect(document.documentElement).toHaveClass("dark");
+    expect(document.documentElement).toHaveClass("theme-transitioning");
+
+    vi.advanceTimersByTime(180);
+
+    expect(document.documentElement).not.toHaveClass("theme-transitioning");
   });
 
   it("defaults reader and web preview preferences independently", () => {
