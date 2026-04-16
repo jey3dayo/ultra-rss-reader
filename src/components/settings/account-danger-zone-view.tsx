@@ -31,7 +31,7 @@ export function AccountDangerZoneView({
       <SettingsSection
         heading={dangerHeading}
         className="mt-2 border-t border-border pt-6"
-        headingClassName="text-destructive/72"
+        headingClassName="text-state-danger-foreground/72"
         contentClassName="pl-2 sm:pl-3"
       >
         {!isConfirmingDelete ? (
@@ -40,7 +40,7 @@ export function AccountDangerZoneView({
           </DeleteButton>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <span className="text-sm text-destructive sm:flex-1">{confirmDeleteLabel}</span>
+            <span className="text-sm text-state-danger-foreground sm:flex-1">{confirmDeleteLabel}</span>
             <DeleteButton size="sm" className="w-full justify-center sm:w-auto" onClick={onConfirmDelete}>
               {deleteLabel}
             </DeleteButton>

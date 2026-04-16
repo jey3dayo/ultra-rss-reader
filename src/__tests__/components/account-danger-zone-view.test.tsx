@@ -30,6 +30,7 @@ describe("AccountDangerZoneView", () => {
 
     expect(screen.getByRole("heading", { level: 3, name: "Data" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 3, name: "Danger Zone" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "Danger Zone" })).toHaveClass("text-state-danger-foreground/72");
     expect(screen.getByRole("button", { name: "Export OPML" })).toHaveClass("w-full");
     expect(screen.getByRole("button", { name: "Delete account" })).toHaveAttribute("data-delete-button");
     expect(screen.getByRole("button", { name: "Delete account" })).toHaveClass("w-full");
@@ -62,6 +63,7 @@ describe("AccountDangerZoneView", () => {
     );
 
     expect(screen.getByText("This action cannot be undone.")).toBeInTheDocument();
+    expect(screen.getByText("This action cannot be undone.")).toHaveClass("text-state-danger-foreground");
     expect(screen.getByRole("button", { name: "Delete" })).toHaveAttribute("data-delete-button");
     expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("w-full");
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("w-full");
