@@ -24,7 +24,7 @@ export function UnsubscribeFeedDialogView({
     <DestructiveConfirmDialogView
       open={open}
       title={title}
-      description={<p className="text-sm text-muted-foreground">{description}</p>}
+      description={<p className="text-sm">{description}</p>}
       cancelLabel={cancelLabel}
       confirmLabel={confirmLabel}
       onOpenChange={onOpenChange}
