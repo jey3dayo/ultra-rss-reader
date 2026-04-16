@@ -4,7 +4,7 @@ import {
   findSelectedArticle,
   formatArticleDate,
   resolveArticleDateLocale,
-  shouldOpenExternalBrowser,
+  shouldOpenArticleTitleInExternalBrowser,
 } from "@/lib/article-view";
 import { sampleArticles } from "../../../tests/helpers/tauri-mocks";
 
@@ -61,26 +61,34 @@ describe("article-view utils", () => {
     expect(Result.unwrapError(result)).toBe("article_not_found");
   });
 
-  it("uses the external browser when the preference requires it", () => {
+  it("uses the external browser for article titles when the preference requires it", () => {
     expect(
-      shouldOpenExternalBrowser({
+      shouldOpenArticleTitleInExternalBrowser({
         openLinks: "default_browser",
-        cmdClickBrowser: "false",
         metaKey: false,
         ctrlKey: false,
       }),
     ).toBe(true);
   });
 
-  it("uses the external browser for modifier-click when enabled", () => {
+  it("uses the external browser for article titles on modifier-click", () => {
     expect(
-      shouldOpenExternalBrowser({
+      shouldOpenArticleTitleInExternalBrowser({
         openLinks: "in_app",
-        cmdClickBrowser: "true",
         metaKey: true,
         ctrlKey: false,
       }),
     ).toBe(true);
+  });
+
+  it("keeps article titles in the web preview on a regular click when configured", () => {
+    expect(
+      shouldOpenArticleTitleInExternalBrowser({
+        openLinks: "in_app",
+        metaKey: false,
+        ctrlKey: false,
+      }),
+    ).toBe(false);
   });
 });
 

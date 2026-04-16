@@ -108,9 +108,38 @@ describe("GeneralSettings", () => {
 
     render(<GeneralSettings />, { wrapper: createWrapper() });
 
-    expect(screen.getByRole("switch", { name: "Open links in background" })).toBeEnabled();
+    expect(screen.getByRole("combobox", { name: "Open original article" })).toHaveTextContent("Web Preview");
+    expect(screen.getByRole("switch", { name: "Open links in background" })).toHaveAttribute("aria-disabled", "true");
     expect(
       screen.getByText("Please note that some third-party browsers do not support opening links in the background."),
     ).toBeInTheDocument();
+  });
+
+  it("enables background browser opening only when opening the original article in the default browser", async () => {
+    const user = userEvent.setup();
+
+    usePlatformStore.setState({
+      ...usePlatformStore.getInitialState(),
+      platform: {
+        kind: "macos",
+        capabilities: {
+          supports_reading_list: true,
+          supports_background_browser_open: true,
+          supports_runtime_window_icon_replacement: false,
+          supports_native_browser_navigation: true,
+          uses_dev_file_credentials: false,
+        },
+      },
+      loaded: true,
+      loadError: false,
+    });
+
+    render(<GeneralSettings />, { wrapper: createWrapper() });
+
+    await user.click(screen.getByRole("combobox", { name: "Open original article" }));
+    await user.click(await screen.findByRole("option", { name: "Default browser" }));
+
+    expect(usePreferencesStore.getState().prefs.open_links).toBe("default_browser");
+    expect(screen.getByRole("switch", { name: "Open links in background" })).not.toHaveAttribute("aria-disabled");
   });
 });

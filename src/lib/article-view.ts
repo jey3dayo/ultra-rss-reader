@@ -12,7 +12,6 @@ export type FindSelectedArticleParams = {
 
 export type LinkNavigationParams = {
   openLinks: string;
-  cmdClickBrowser: string;
   metaKey: boolean;
   ctrlKey: boolean;
 };
@@ -30,9 +29,9 @@ export function findSelectedArticle(params: FindSelectedArticleParams): Result.R
   return article ? Result.succeed(article) : Result.fail("article_not_found");
 }
 
-export function shouldOpenExternalBrowser(params: LinkNavigationParams): boolean {
-  const { openLinks, cmdClickBrowser, metaKey, ctrlKey } = params;
-  return (cmdClickBrowser === "true" && (metaKey || ctrlKey)) || openLinks === "default_browser";
+export function shouldOpenArticleTitleInExternalBrowser(params: LinkNavigationParams): boolean {
+  const { openLinks, metaKey, ctrlKey } = params;
+  return metaKey || ctrlKey || openLinks === "default_browser";
 }
 
 export function resolveArticleDateLocale(locale: string | undefined): string {

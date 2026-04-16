@@ -21,6 +21,7 @@ export type ArticleToolbarProps = {
 export type ArticleReaderBodyProps = {
   article: ArticleDto;
   feedName?: string;
+  onOpenArticleTitleInWebPreview?: () => void;
 };
 
 export type ArticleContentViewProps = {
@@ -54,6 +55,7 @@ export type ArticlePaneControllerResult = {
   webPreviewUnavailableLabel: string;
   showReaderBody: boolean;
   readerBodyProps: {
+    onOpenArticleTitleInWebPreview: () => void;
     "aria-hidden": boolean;
     inert?: true;
   };
@@ -88,6 +90,7 @@ export type UseArticleBrowserOverlayParams = {
 export type UseArticleBrowserOverlayResult = {
   isBrowserOpen: boolean;
   resolvedDisplay: ResolvedArticleDisplay;
+  handleOpenBrowserOverlay: () => void;
   handleCloseBrowserOverlay: () => void;
   handleToggleBrowserOverlay: () => void;
 };

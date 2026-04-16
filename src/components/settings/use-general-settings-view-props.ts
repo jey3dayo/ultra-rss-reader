@@ -16,6 +16,8 @@ export function useGeneralSettingsViewProps({
   supportsBackgroundBrowserOpen,
 }: UseGeneralSettingsViewPropsParams): GeneralSettingsViewProps {
   const browserShortcutModifier = SHORTCUT_MODIFIER_BY_PLATFORM[platformKind];
+  const openLinksPreference = resolvePreferenceValue(prefs, "open_links");
+  const opensInDefaultBrowser = openLinksPreference === "default_browser";
 
   return {
     title: t("general.heading"),
@@ -108,7 +110,7 @@ export function useGeneralSettingsViewProps({
             type: "select",
             name: "open_links",
             label: t("general.open_links"),
-            value: resolvePreferenceValue(prefs, "open_links"),
+            value: openLinksPreference,
             options: [
               { value: "in_app", label: t("general.in_app_browser") },
               { value: "default_browser", label: t("general.default_browser") },
@@ -123,6 +125,7 @@ export function useGeneralSettingsViewProps({
                   label: t("general.open_links_in_background"),
                   checked: resolvePreferenceValue(prefs, "open_links_background") === "true",
                   onChange: (checked: boolean) => setPref("open_links_background", String(checked)),
+                  disabled: !opensInDefaultBrowser,
                 },
               ]
             : []),

@@ -87,6 +87,7 @@ export function useArticleBrowserOverlay({
   return {
     isBrowserOpen,
     resolvedDisplay,
+    handleOpenBrowserOverlay,
     handleCloseBrowserOverlay,
     handleToggleBrowserOverlay,
   };

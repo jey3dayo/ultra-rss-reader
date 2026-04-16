@@ -21,14 +21,19 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
     setFocusedPane,
     afterReading,
   } = useArticleViewUiState();
-  const { isBrowserOpen, resolvedDisplay, handleCloseBrowserOverlay, handleToggleBrowserOverlay } =
-    useArticleBrowserOverlay({
-      articleId: article.id,
-      articleUrl: article.url,
-      browserUrl,
-      contentMode,
-      feed,
-    });
+  const {
+    isBrowserOpen,
+    resolvedDisplay,
+    handleOpenBrowserOverlay,
+    handleCloseBrowserOverlay,
+    handleToggleBrowserOverlay,
+  } = useArticleBrowserOverlay({
+    articleId: article.id,
+    articleUrl: article.url,
+    browserUrl,
+    contentMode,
+    feed,
+  });
   const actionStripProps = useArticleToolbarControls({
     article,
     isBrowserOpen,
@@ -80,6 +85,7 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
     webPreviewUnavailableLabel: t("web_preview_unavailable"),
     showReaderBody: resolvedDisplay.readerMode,
     readerBodyProps: {
+      onOpenArticleTitleInWebPreview: handleOpenBrowserOverlay,
       "aria-hidden": isBrowserOpen,
       ...(isBrowserOpen ? { inert: true } : {}),
     },

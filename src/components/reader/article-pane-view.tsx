@@ -1,5 +1,5 @@
 import { ArticleReaderBody } from "./article-reader-body";
-import { ArticleToolbarOverlayActions, ArticleToolbarView } from "./article-toolbar-view";
+import { ArticleToolbarView } from "./article-toolbar-view";
 import type { ArticlePaneProps, ArticleToolbarProps } from "./article-view.types";
 import { BrowserOverlaySurface } from "./article-view-state";
 import { useArticlePaneController } from "./use-article-pane-controller";
@@ -33,18 +33,18 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
     showReaderBody,
     readerBodyProps,
   } = useArticlePaneController({ article, feed, feedName });
+  const { onOpenArticleTitleInWebPreview, ...readerBodyStateProps } = readerBodyProps;
 
   return (
     <div data-testid="article-pane" className="flex h-full flex-1 flex-col bg-background">
       <ArticleToolbar {...toolbarProps} />
       <BrowserOverlaySurface
         {...browserOverlayProps}
-        toolbarActions={(overlayActionRenderer) => (
-          <ArticleToolbarOverlayActions
-            overlayActionRenderer={overlayActionRenderer}
-            {...browserOverlayActionStripProps}
-          />
-        )}
+        toolbarActions={(overlayActionRenderer) =>
+          browserOverlayActionStripProps.shareMenuControl
+            ? overlayActionRenderer.renderAction(browserOverlayActionStripProps.shareMenuControl, { key: "share-menu" })
+            : null
+        }
       >
         {showWebPreviewUnavailableWarning ? (
           <div className="border-b border-border bg-amber-500/10 px-4 py-2 text-sm text-amber-900 dark:text-amber-200">
@@ -52,8 +52,12 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
           </div>
         ) : null}
         {showReaderBody ? (
-          <div {...readerBodyProps} className="min-h-0 flex-1" data-testid="article-reader-body">
-            <ArticleReaderBody article={article} feedName={feedName} />
+          <div {...readerBodyStateProps} className="min-h-0 flex-1" data-testid="article-reader-body">
+            <ArticleReaderBody
+              article={article}
+              feedName={feedName}
+              onOpenArticleTitleInWebPreview={onOpenArticleTitleInWebPreview}
+            />
           </div>
         ) : (
           <div className="h-full bg-background" />
