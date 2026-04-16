@@ -36,9 +36,9 @@ export function ArticleListHeaderActions({
               aria-label={sidebarButtonLabel}
               aria-pressed={isSidebarVisible}
               className={cn(
-                "text-muted-foreground transition-colors duration-200 hover:text-foreground",
+                "text-foreground-soft transition-colors duration-200 hover:text-foreground",
                 sidebarButtonText && "gap-2 px-3 text-sm font-medium",
-                isSidebarVisible && "bg-muted text-foreground",
+                isSidebarVisible && "bg-surface-1/72 text-foreground",
               )}
             >
               <PanelLeft className="h-4 w-4" />
@@ -57,7 +57,7 @@ export function ArticleListHeaderActions({
             size={isMobile ? "sm" : "icon"}
             aria-label={markAllReadLabel}
             onClick={onMarkAllRead}
-            className={cn("text-muted-foreground", isMobile && "h-11 gap-2 px-3.5 text-sm font-medium")}
+            className={cn("text-foreground-soft", isMobile && "h-11 gap-2 px-3.5 text-sm font-medium")}
           >
             <CheckCheck className="h-4 w-4" />
             {isMobile ? <span>{markAllReadButtonText}</span> : null}
@@ -70,7 +70,7 @@ export function ArticleListHeaderActions({
             onClick={onToggleSearch}
             aria-label={searchArticlesLabel}
             className={cn(
-              "text-muted-foreground",
+              "text-foreground-soft",
               isMobile && "h-11 gap-2 px-3.5 text-sm font-medium",
               showSearch && "text-foreground",
             )}
@@ -86,7 +86,7 @@ export function ArticleListHeaderActions({
               size="icon"
               onClick={onCloseSearch}
               aria-label={closeSearchLabel}
-              className="text-muted-foreground"
+              className="text-foreground-soft"
             >
               <X className="h-4 w-4" />
             </Button>

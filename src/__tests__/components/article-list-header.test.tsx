@@ -76,6 +76,7 @@ describe("ArticleListHeader", () => {
 
     const button = screen.getByRole("button", { name: "Hide sidebar" });
     expect(button).toHaveAttribute("aria-pressed", "true");
+    expect(button).toHaveClass("bg-surface-1/72", "text-foreground");
 
     await user.click(button);
 
@@ -122,7 +123,10 @@ describe("ArticleListHeader", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(screen.getByRole("button", { name: "Show sidebar" })).toHaveTextContent("Subscriptions");
+    const button = screen.getByRole("button", { name: "Show sidebar" });
+
+    expect(button).toHaveTextContent("Subscriptions");
+    expect(button).toHaveClass("text-foreground-soft");
   });
 
   it("shows short action labels in mobile layout", () => {
@@ -147,8 +151,10 @@ describe("ArticleListHeader", () => {
     expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveTextContent("Read");
     expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveClass("h-11");
     expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveClass("text-sm");
+    expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveClass("text-foreground-soft");
     expect(screen.getByRole("button", { name: "Search articles" })).toHaveTextContent("Search");
     expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass("h-11");
     expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass("text-sm");
+    expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass("text-foreground-soft");
   });
 });
