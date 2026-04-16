@@ -34,7 +34,7 @@ describe("FeedContextMenuView", () => {
       </ContextMenu.Root>,
     );
 
-    expect(screen.getByRole("menuitem", { name: "Edit…" }).closest('[data-side]')).toHaveClass(
+    expect(screen.getByRole("menuitem", { name: "Edit…" }).closest("[data-side]")).toHaveClass(
       "bg-surface-2",
       "shadow-elevation-3",
     );

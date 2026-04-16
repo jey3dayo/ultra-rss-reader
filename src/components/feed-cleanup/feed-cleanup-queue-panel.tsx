@@ -21,8 +21,7 @@ function resolvePriorityTone(tone: FeedCleanupTone) {
   return "success";
 }
 
-const decisionButtonWidthClassName =
-  "min-w-[7.5rem] justify-center px-3 sm:min-w-[8.5rem] sm:px-3.5";
+const decisionButtonWidthClassName = "min-w-[7.5rem] justify-center px-3 sm:min-w-[8.5rem] sm:px-3.5";
 
 export function FeedCleanupQueuePanel({
   integrityMode,
