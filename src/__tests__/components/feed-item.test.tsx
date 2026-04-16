@@ -55,4 +55,10 @@ describe("FeedItemView", () => {
     expect(screen.queryByText("0")).not.toBeInTheDocument();
     expect(screen.getByText("A")).toBeInTheDocument();
   });
+
+  it("uses the softened sidebar hover tone for unselected rows", () => {
+    render(<FeedItemView feed={baseFeed} isSelected={false} onSelect={vi.fn()} displayFavicons={false} />);
+
+    expect(screen.getByRole("button", { name: /AUTOMATON/i })).toHaveClass("hover:bg-sidebar-accent/28");
+  });
 });

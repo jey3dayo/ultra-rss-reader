@@ -21,7 +21,7 @@ export type FeedItemContentProps = {
 
 function getFeedItemClassName(isSelected: boolean) {
   return cn(
-    "relative min-h-9 items-center overflow-hidden rounded-md px-2 py-1 text-sm hover:bg-sidebar-accent/58",
+    "relative min-h-9 items-center overflow-hidden rounded-md px-2 py-1 text-sm hover:bg-sidebar-accent/28",
     isSelected
       ? "bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:rounded-full before:bg-primary"
       : "text-sidebar-foreground",

@@ -84,4 +84,22 @@ describe("FeedTreeRow", () => {
     expect(dragButton).toHaveClass("group-focus-within/feed-row:opacity-100");
     expect(container.firstChild).toHaveClass("group/feed-row");
   });
+
+  it("uses the softened sidebar hover tone for the drag handle", () => {
+    render(
+      <FeedTreeRow
+        feed={{ ...baseFeed, isSelected: false }}
+        displayFavicons={false}
+        onSelectFeed={vi.fn()}
+        canDragFeeds={true}
+        onDragStartFeed={vi.fn()}
+        onPointerDownFeed={vi.fn()}
+        consumeSuppressedHandleClick={() => false}
+      />,
+    );
+
+    const dragButton = screen.getByRole("button", { name: "Drag Alpha" });
+
+    expect(dragButton).toHaveClass("hover:bg-sidebar-accent/28");
+  });
 });
