@@ -144,6 +144,8 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-accounts-section")).toHaveStyle({
       backgroundColor: "var(--settings-shell-account-surface)",
     });
+    expect(screen.getByTestId("settings-accounts-scroll-area")).toHaveClass("max-h-[22rem]");
+    expect(screen.getByTestId("settings-accounts-scroll-area")).toHaveClass("min-h-0");
     expect(screen.getAllByText("Accounts")).toHaveLength(2);
   });
 
