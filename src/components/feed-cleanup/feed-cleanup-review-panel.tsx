@@ -97,7 +97,7 @@ export function FeedCleanupReviewPanel({
             </FeedCleanupCard>
           </div>
         ) : (
-          <p className="rounded-xl border border-dashed border-border px-4 py-6 font-serif text-sm text-muted-foreground">
+          <p className="rounded-md border border-dashed border-border px-4 py-6 font-serif text-sm text-muted-foreground">
             {integrityEmptyLabel}
           </p>
         )
@@ -171,7 +171,7 @@ export function FeedCleanupReviewPanel({
           </div>
         </div>
       ) : (
-        <p className="rounded-xl border border-dashed border-border px-4 py-6 font-serif text-sm text-muted-foreground">
+        <p className="rounded-md border border-dashed border-border px-4 py-6 font-serif text-sm text-muted-foreground">
           {noSelectionLabel}
         </p>
       )}

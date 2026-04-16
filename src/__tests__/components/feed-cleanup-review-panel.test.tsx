@@ -142,6 +142,7 @@ describe("FeedCleanupReviewPanel", () => {
     render(<FeedCleanupReviewPanel {...buildProps()} />);
 
     const actions = screen.getByTestId("feed-cleanup-review-actions");
+    expect(actions).toHaveClass("rounded-[var(--radius-surface-section)]");
     expect(within(actions).getByRole("button", { name: "Keep" })).toBeInTheDocument();
     expect(within(actions).getByRole("button", { name: "Defer" })).toBeInTheDocument();
     expect(within(actions).getByRole("button", { name: "Delete" })).toBeInTheDocument();
@@ -158,7 +159,7 @@ describe("FeedCleanupReviewPanel", () => {
       />,
     );
 
-    expect(screen.getByText("Select a feed to review.")).toBeInTheDocument();
+    expect(screen.getByText("Select a feed to review.")).toHaveClass("rounded-md");
   });
 
   it("renders integrity details in integrity mode", () => {
@@ -177,6 +178,12 @@ describe("FeedCleanupReviewPanel", () => {
 
     expect(screen.getByText("Needs repair")).toBeInTheDocument();
     const panel = screen.getByTestId("feed-cleanup-review-panel");
+    expect(screen.getByText("Needs repair").closest('[data-surface-card="section"]')).toHaveClass(
+      "rounded-[var(--radius-surface-section)]",
+    );
+    expect(screen.getByText("Needs repair").closest('[data-surface-card="info"]')).toHaveClass(
+      "rounded-[var(--radius-surface-info)]",
+    );
     expect(within(panel).getByText("missing-feed")).toBeInTheDocument();
   });
 });

@@ -154,6 +154,8 @@ describe("SubscriptionsIndexPage", () => {
 
     const selectedFeed = await screen.findByRole("button", { name: /Example Feed/ });
     const secondaryFeed = screen.getByRole("button", { name: /Fresh Feed/ });
+    const selectedFeedIconSurface = selectedFeed.querySelector("span.rounded-md.border");
+    const secondaryFeedIconSurface = secondaryFeed.querySelector("span.rounded-md.border");
 
     expect(selectedFeed).toHaveAccessibleName(/Example Feed/);
     expect(selectedFeed).toHaveAccessibleName(/Work/);
@@ -161,20 +163,24 @@ describe("SubscriptionsIndexPage", () => {
     expect(selectedFeed).toHaveAttribute("aria-pressed", "true");
     expect(selectedFeed).toHaveClass("bg-surface-1");
     expect(selectedFeed).toHaveClass("focus-visible:ring-2");
+    expect(selectedFeed).toHaveClass("rounded-md");
     expect(secondaryFeed).toHaveAccessibleName(/Fresh Feed/);
     expect(secondaryFeed).toHaveAccessibleName(/未読 3件/);
     expect(secondaryFeed).toHaveAttribute("aria-pressed", "false");
     expect(secondaryFeed).not.toHaveClass("bg-card/75");
+    expect(selectedFeedIconSurface).toHaveClass("rounded-md");
+    expect(secondaryFeedIconSurface).toHaveClass("rounded-md");
     expect(selectedFeed.querySelector('img[src*="google.com/s2/favicons?domain=example.com"]')).toBeTruthy();
   });
 
   it("renders only actionable summary cards as buttons", async () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    expect(await screen.findByText("総購読数")).toBeInTheDocument();
+    const totalSubscriptionsCard = (await screen.findByText("総購読数")).closest("div");
+    expect(totalSubscriptionsCard).toHaveClass("rounded-md");
     expect(screen.queryByRole("button", { name: /総購読数/ })).toBeNull();
-    expect(await screen.findByRole("button", { name: /止まった購読を見る/ })).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: /参照エラーを見る/ })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /止まった購読を見る/ })).toHaveClass("rounded-md");
+    expect(await screen.findByRole("button", { name: /参照エラーを見る/ })).toHaveClass("rounded-md");
   });
 
   it("keeps the subscriptions workspace shell aligned with the lighter left pane", async () => {
@@ -205,6 +211,8 @@ describe("SubscriptionsIndexPage", () => {
     expect(await screen.findAllByRole("heading", { name: "Work" })).toHaveLength(2);
     expect(screen.getByTestId("subscriptions-folder-row-folder-1")).toHaveAttribute("data-folder-drop-target", "true");
     expect(screen.getByTestId("subscriptions-folder-row-folder-2")).toHaveAttribute("data-folder-drop-target", "true");
+    expect(screen.getByTestId("subscriptions-folder-row-folder-1")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("subscriptions-folder-row-folder-2")).toHaveClass("rounded-md");
   });
 
   it("shows selected feed details and a cleanup hand-off action", async () => {
