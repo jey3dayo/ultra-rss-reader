@@ -126,7 +126,10 @@ export const SelectionPriorityReview: Story = {
         <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/40 uppercase">
           Selected hover priority
         </p>
-        <div className="rounded-md border border-sidebar-border/30 bg-sidebar/80 p-2" data-story-preview="selected-hover">
+        <div
+          className="rounded-md border border-sidebar-border/30 bg-sidebar/80 p-2"
+          data-story-preview="selected-hover"
+        >
           <FeedTreeView {...args} canDragFeeds={true} />
         </div>
       </div>
