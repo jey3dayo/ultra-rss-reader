@@ -25,9 +25,9 @@ export function FeedDialogUrlSection({
   helperTone,
 }: FeedDialogUrlSectionViewProps) {
   return (
-    <div data-testid="feed-dialog-url-section" className="rounded-md border border-border/70 bg-card/55 px-4 py-4">
+    <div data-testid="feed-dialog-url-section" className="rounded-md border border-border/70 bg-surface-1/80 px-4 py-4">
       <div className="space-y-3">
-        <label htmlFor={inputId} className="block text-sm font-medium text-foreground/90">
+        <label htmlFor={inputId} className="block text-sm font-medium text-foreground-soft">
           {label}
         </label>
         <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">

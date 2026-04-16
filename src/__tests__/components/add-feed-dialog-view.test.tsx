@@ -78,7 +78,8 @@ describe("AddFeedDialogView", () => {
     expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
     expect(screen.getByRole("dialog")).toHaveClass("bg-surface-2", "shadow-elevation-3");
     expect(screen.getByLabelText("Feed or Site URL")).toHaveValue("https://example.com");
-    expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass("rounded-md", "bg-surface-1/80");
+    expect(screen.getByText("Feed or Site URL")).toHaveClass("text-foreground-soft");
     expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("bg-surface-1/80");
     expect(screen.getByRole("radio", { name: "Tech Blog" })).toBeInTheDocument();
     expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("rounded-md");
@@ -165,7 +166,7 @@ describe("AddFeedDialogView", () => {
     expect(helperText.id).not.toBe("");
     expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
     expect(screen.getByRole("dialog")).toHaveClass("bg-surface-2", "shadow-elevation-3");
-    expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass("rounded-md", "bg-surface-1/80");
     expect(helperText).toHaveClass("rounded-md");
     expect(helperText).toHaveClass(
       "border-state-danger-border",

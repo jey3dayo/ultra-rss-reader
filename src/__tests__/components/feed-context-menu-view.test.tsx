@@ -34,6 +34,12 @@ describe("FeedContextMenuView", () => {
       </ContextMenu.Root>,
     );
 
+    expect(screen.getByRole("menuitem", { name: "Edit…" }).closest('[data-side]')).toHaveClass(
+      "bg-surface-2",
+      "shadow-elevation-3",
+    );
+    expect(screen.getByRole("menuitem", { name: "Open site" })).toHaveClass("data-highlighted:bg-surface-1/72");
+
     fireEvent.click(screen.getByRole("menuitem", { name: "Open site" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Mark all as read" }));
     expect(screen.getByText("Display mode")).toBeInTheDocument();
