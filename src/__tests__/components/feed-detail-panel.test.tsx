@@ -66,6 +66,13 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByText("Work").closest("dd")).toHaveClass("text-foreground");
     expect(screen.getByText("最近の記事").parentElement).toHaveClass("border-t", "pt-4");
     expect(screen.getByRole("button", { name: "購読の整理" }).parentElement).toHaveClass("border-t", "pt-4");
+    expect(screen.getByRole("button", { name: "購読の整理" })).toHaveClass(
+      "h-7",
+      "px-3",
+      "sm:px-3.5",
+      "border-border-strong",
+      "bg-surface-1/88",
+    );
     expect(screen.getByRole("button", { name: "購読の整理" })).not.toHaveClass("rounded-full");
   });
 });

@@ -185,18 +185,18 @@ describe("SubscriptionsIndexPage", () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
     const totalSubscriptionsLabel = await screen.findByText("総購読数");
-    expect(totalSubscriptionsLabel.closest(".rounded-md")).not.toBeNull();
+    expect(totalSubscriptionsLabel.closest(".rounded-lg")).not.toBeNull();
     expect(screen.queryByRole("button", { name: /総購読数/ })).toBeNull();
     expect(await screen.findByRole("button", { name: /要確認を見る/ })).toHaveClass(
-      "rounded-md",
+      "rounded-lg",
       "border-state-review-border",
       "bg-state-review-surface",
     );
     expect(await screen.findByRole("button", { name: /要確認を見る/ })).toHaveClass(
       "shadow-[var(--subscriptions-summary-card-shadow)]",
     );
-    expect(await screen.findByRole("button", { name: /止まった購読を見る/ })).toHaveClass("rounded-md");
-    expect(await screen.findByRole("button", { name: /参照エラーを見る/ })).toHaveClass("rounded-md");
+    expect(await screen.findByRole("button", { name: /止まった購読を見る/ })).toHaveClass("rounded-lg");
+    expect(await screen.findByRole("button", { name: /参照エラーを見る/ })).toHaveClass("rounded-lg");
   });
 
   it("keeps the subscriptions workspace shell aligned with the lighter left pane", async () => {
@@ -205,7 +205,7 @@ describe("SubscriptionsIndexPage", () => {
     const shell = await screen.findByTestId("subscriptions-workspace-shell");
     expect(shell).toHaveClass("min-h-0");
     expect(shell).toHaveClass("overflow-visible");
-    expect(shell).toHaveClass("rounded-lg");
+    expect(shell).toHaveClass("rounded-xl");
     expect(shell).toHaveClass("lg:overflow-hidden");
     expect(shell).toHaveClass("lg:grid-cols-[minmax(0,1fr)_480px]");
     expect(shell.parentElement?.parentElement?.parentElement).toHaveStyle({
@@ -217,7 +217,7 @@ describe("SubscriptionsIndexPage", () => {
       throw new Error("left pane section not found");
     }
 
-    const leftPaneScrollRegion = leftPaneSection.querySelector("div.space-y-4");
+    const leftPaneScrollRegion = leftPaneSection.querySelector("div.space-y-5");
     expect(leftPaneScrollRegion).toBeTruthy();
     expect(leftPaneScrollRegion).toHaveClass("lg:min-h-0");
     expect(leftPaneScrollRegion).toHaveClass("lg:flex-1");

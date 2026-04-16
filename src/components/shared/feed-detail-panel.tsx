@@ -1,6 +1,7 @@
 import { ExternalLink, List } from "lucide-react";
 import type { ReactNode } from "react";
 import { FeedCleanupCard, FeedCleanupDetailRow } from "@/components/feed-cleanup/feed-cleanup-card";
+import { workspaceCompactActionButtonClassName } from "@/components/shared/decision-button";
 import { LabelChip } from "@/components/shared/label-chip";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { Button } from "@/components/ui/button";
@@ -241,7 +242,10 @@ export function FeedDetailPanel({
                 aria-label={primaryAction.ariaLabel ?? primaryAction.label}
                 variant="outline"
                 size="sm"
-                className="w-full justify-center border-border/65 bg-transparent px-4 text-foreground-soft shadow-none hover:bg-surface-1/72 hover:text-foreground"
+                className={cn(
+                  workspaceCompactActionButtonClassName,
+                  "w-full border-border-strong bg-surface-1/88 text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground",
+                )}
                 onClick={primaryAction.onClick}
               >
                 <List className="h-4 w-4" />

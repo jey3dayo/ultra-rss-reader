@@ -16,12 +16,24 @@ describe("DecisionButton", () => {
       "border-state-success-border",
       "bg-state-success-surface",
       "text-state-success-foreground",
+      "h-7",
+      "px-3",
+      "sm:px-3.5",
     );
-    expect(screen.getByRole("button", { name: "Later" })).toHaveClass("border-border-strong", "bg-surface-1/88");
+    expect(screen.getByRole("button", { name: "Later" })).toHaveClass(
+      "border-border-strong",
+      "bg-surface-1/88",
+      "h-7",
+      "px-3",
+      "sm:px-3.5",
+    );
     expect(screen.getByRole("button", { name: "Delete" })).toHaveClass(
       "border-state-danger-border",
       "bg-state-danger-surface",
       "text-state-danger-foreground",
+      "h-7",
+      "px-3",
+      "sm:px-3.5",
     );
   });
 

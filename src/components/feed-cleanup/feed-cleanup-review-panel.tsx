@@ -1,6 +1,6 @@
 import { Check, Clock3, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { DecisionButton, denseDecisionButtonClassName } from "@/components/shared/decision-button";
+import { DecisionButton } from "@/components/shared/decision-button";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { buildCleanupReasonFacts } from "@/lib/feed-cleanup";
@@ -157,13 +157,13 @@ export function FeedCleanupReviewPanel({
               variant="section"
               tone="subtle"
               padding="compact"
-              className="flex flex-wrap items-center gap-2 shadow-none"
+              className="grid grid-cols-3 gap-2 shadow-none"
             >
               <DecisionButton
                 intent="keep"
                 aria-label={keepLabel}
                 onClick={onKeep}
-                className={denseDecisionButtonClassName}
+                className="w-full min-w-0"
               >
                 <Check className="h-4 w-4" />
                 {keepLabel}
@@ -172,7 +172,7 @@ export function FeedCleanupReviewPanel({
                 intent="defer"
                 aria-label={laterLabel}
                 onClick={onLater}
-                className={denseDecisionButtonClassName}
+                className="w-full min-w-0"
               >
                 <Clock3 className="h-4 w-4" />
                 {laterLabel}
@@ -181,7 +181,7 @@ export function FeedCleanupReviewPanel({
                 intent="delete"
                 aria-label={deleteLabel}
                 onClick={onDelete}
-                className={denseDecisionButtonClassName}
+                className="w-full min-w-0"
               >
                 <Trash2 className="h-4 w-4" />
                 {deleteLabel}

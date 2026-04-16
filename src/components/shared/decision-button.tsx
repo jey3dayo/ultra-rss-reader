@@ -14,7 +14,10 @@ const decisionIntentClassName = {
     "border-state-danger-border bg-state-danger-surface text-state-danger-foreground shadow-none hover:border-state-danger-border hover:bg-state-danger-surface",
 } as const;
 
-export const denseDecisionButtonClassName = "rounded-md min-w-[7.5rem] justify-center px-3 sm:min-w-[8.5rem] sm:px-3.5";
+export const workspaceCompactActionButtonClassName =
+  "justify-center rounded-md px-3 font-medium sm:px-3.5 [&_svg]:size-3.5";
+
+export const denseDecisionButtonClassName = "min-w-[7.5rem] sm:min-w-[8.5rem]";
 
 export function DecisionButton({
   intent,
@@ -29,7 +32,7 @@ export function DecisionButton({
       type={type}
       size={size}
       variant={variant}
-      className={cn("font-medium [&_svg]:size-3.5", decisionIntentClassName[intent], className)}
+      className={cn(workspaceCompactActionButtonClassName, decisionIntentClassName[intent], className)}
       {...props}
     />
   );

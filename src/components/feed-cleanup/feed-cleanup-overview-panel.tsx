@@ -31,25 +31,28 @@ export function FeedCleanupOverviewPanel({
 
   return (
     <section
-      className="border-b border-border/70 px-4 py-4 sm:px-6"
+      className="border-b border-border/55 px-4 py-5 sm:px-6 sm:py-5"
       style={{ backgroundColor: "var(--cleanup-summary-surface)" }}
     >
       <h2 className="sr-only">{overviewLabel}</h2>
       <div className="space-y-4">
-        <div data-testid="feed-cleanup-sidebar-summary" className="flex flex-wrap items-center gap-4">
+        <div
+          data-testid="feed-cleanup-sidebar-summary"
+          className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-4"
+        >
           {summaryCards.map((card) => (
             <SurfaceCard
               key={`${card.label}-${card.caption}`}
               variant="section"
               tone="default"
               padding="compact"
-              className="flex items-center gap-4 border-border/70 bg-surface-1 shadow-none"
+              className="flex items-center gap-3 border-border/55 bg-surface-1/72 shadow-none"
             >
-              <span className="inline-flex min-w-12 justify-center rounded-md border border-border/70 bg-surface-1/72 px-3 py-2 font-sans text-2xl font-medium text-foreground">
+              <span className="inline-flex min-w-10 justify-center rounded-md border border-border/60 bg-surface-1/68 px-2.5 py-2 font-sans text-[1.75rem] font-medium text-foreground">
                 {card.value}
               </span>
               <div>
-                <p className="font-sans text-base text-foreground">{card.label}</p>
+                <p className="font-sans text-[0.95rem] text-foreground">{card.label}</p>
                 <p className="font-serif text-sm text-foreground-soft">{card.caption}</p>
               </div>
             </SurfaceCard>
@@ -73,7 +76,7 @@ export function FeedCleanupOverviewPanel({
                 variant="section"
                 tone="emphasis"
                 padding="default"
-                className="flex flex-wrap items-center justify-between gap-3 shadow-none"
+                className="flex flex-wrap items-center justify-between gap-3 border-border/55 bg-surface-1/58 shadow-none"
               >
                 <div className="min-w-0">
                   <p className="font-sans text-sm font-medium text-foreground">{bulkActionsLabel}</p>

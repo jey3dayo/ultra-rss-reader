@@ -22,20 +22,20 @@ function resolveCardClassName(tone: SubscriptionSummaryCard["tone"] = "neutral")
 export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSummaryCard[] }) {
   return (
     <section
-      className="rounded-lg border border-border/70 px-3 py-3 sm:px-5 sm:py-4"
+      className="rounded-xl border border-border/60 px-4 py-4 backdrop-blur-sm sm:px-6 sm:py-5"
       style={{
         backgroundImage: "var(--subscriptions-summary-surface)",
-        boxShadow: "0 18px 42px -38px rgba(38, 37, 30, 0.28)",
+        boxShadow: "0 14px 34px -30px rgba(38, 37, 30, 0.18)",
       }}
     >
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-[0.96fr_1.12fr_0.96fr_0.96fr]">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[0.96fr_1.12fr_0.96fr_0.96fr] lg:gap-4">
         {cards.map((card) => {
           const numericValue = Number(card.value);
           const hasAction = Boolean(card.actionLabel && card.onAction);
           const isActionable = hasAction && Number.isFinite(numericValue) && numericValue > 0;
           const isPrimary = isActionable && card.tone === "review";
           const className = cn(
-            "flex min-h-[128px] flex-col justify-between rounded-md border px-3 py-3 text-left transition-[border-color,background-color,color,box-shadow,transform] duration-150 sm:min-h-[148px] sm:px-4 sm:py-4",
+            "flex min-h-[116px] flex-col justify-between rounded-lg border px-3.5 py-3.5 text-left transition-[border-color,background-color,color,box-shadow,transform] duration-150 sm:min-h-[132px] sm:px-5 sm:py-5",
             resolveCardClassName(isActionable ? card.tone : "neutral"),
             isPrimary ? "shadow-[var(--subscriptions-summary-card-shadow)]" : "shadow-none",
             !isActionable && card.actionLabel && "text-muted-foreground opacity-80",
@@ -60,11 +60,11 @@ export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSum
                   <span className="block text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
                     {card.label}
                   </span>
-                  <span className="mt-2 block text-[2rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.25rem]">
+                  <span className="mt-2 block text-[1.85rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.1rem]">
                     {card.value}
                   </span>
                   {card.caption ? (
-                    <p className="mt-1.5 max-w-[24ch] text-[13px] leading-5 text-muted-foreground sm:mt-2 sm:max-w-[26ch] sm:text-sm sm:leading-6">
+                    <p className="mt-1.5 max-w-[24ch] text-[13px] leading-5 text-muted-foreground sm:mt-2 sm:max-w-[26ch] sm:text-sm sm:leading-[1.55]">
                       {card.caption}
                     </p>
                   ) : null}
@@ -94,11 +94,11 @@ export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSum
                 <p className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
                   {card.label}
                 </p>
-                <p className="mt-2 text-[2rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.25rem]">
+                <p className="mt-2 text-[1.85rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.1rem]">
                   {card.value}
                 </p>
                 {card.caption ? (
-                  <p className="mt-1.5 max-w-[24ch] text-[13px] leading-5 text-foreground-soft sm:mt-2 sm:max-w-[26ch] sm:text-sm sm:leading-6">
+                  <p className="mt-1.5 max-w-[24ch] text-[13px] leading-5 text-foreground-soft sm:mt-2 sm:max-w-[26ch] sm:text-sm sm:leading-[1.55]">
                     {card.caption}
                   </p>
                 ) : null}

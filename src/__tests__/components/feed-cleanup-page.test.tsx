@@ -236,7 +236,7 @@ describe("FeedCleanupPage", () => {
     expect(within(reviewPanel).getByText("Folder")).toBeInTheDocument();
     expect(within(reviewPanel).getByText("Latest article")).toBeInTheDocument();
     expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("grid-cols-[minmax(0,1fr)_480px]");
-    expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("gap-5");
+    expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("gap-6");
     expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("overflow-hidden");
     expect(screen.getByTestId("feed-cleanup-review-panel")).toHaveClass("sticky");
     expect(screen.getByTestId("feed-cleanup-review-panel")).toHaveClass("top-0");

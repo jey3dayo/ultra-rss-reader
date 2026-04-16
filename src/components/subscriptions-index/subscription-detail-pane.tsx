@@ -44,13 +44,13 @@ export function SubscriptionDetailPane({
   return (
     <section
       data-testid="subscriptions-detail-pane"
-      className="flex flex-col px-4 py-4 sm:px-6 lg:min-h-0"
+      className="flex flex-col px-4 py-5 sm:px-6 sm:py-5 lg:min-h-0"
       style={{
         backgroundColor: "var(--subscriptions-detail-surface)",
         backgroundImage: "var(--subscriptions-detail-pane-surface)",
       }}
     >
-      <div className="mb-4 border-b border-border/60 pb-3">
+      <div className="mb-5 border-b border-border/50 pb-4">
         <h2 className="font-sans text-[1.02rem] font-normal tracking-[-0.02em] text-foreground-soft">{heading}</h2>
       </div>
       {!row || !metrics ? (
@@ -61,7 +61,7 @@ export function SubscriptionDetailPane({
         </div>
       ) : (
         <div className="pr-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-          <div className="flex w-full flex-col pb-6 pt-1 lg:min-h-full">
+          <div className="flex w-full flex-col pb-7 pt-1 lg:min-h-full">
             <FeedDetailPanel
               title={row.feed.title}
               titleHref={row.feed.site_url}

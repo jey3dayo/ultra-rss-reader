@@ -94,12 +94,12 @@ export function SubscriptionsIndexPageView({
         closeLabel={closeLabel}
         onClose={onClose}
       />
-      <div className={WORKSPACE_CHROME_SPACING_CLASS}>
-        <div className={WORKSPACE_CANVAS_CLASS}>
+      <div className={`${WORKSPACE_CHROME_SPACING_CLASS} pt-3 sm:pt-4`}>
+        <div className={`${WORKSPACE_CANVAS_CLASS} gap-4 sm:gap-5`}>
           <SubscriptionsOverviewSummary cards={summaryCards} />
           <div
             data-testid="subscriptions-workspace-shell"
-            className={workspaceSplitShellClassName()}
+            className={workspaceSplitShellClassName("mt-0 rounded-xl border-border/55")}
             style={{
               backgroundColor: "var(--subscriptions-workspace-surface)",
               boxShadow: "var(--subscriptions-workspace-shadow)",

@@ -66,10 +66,16 @@ describe("FeedCleanupOverviewPanel", () => {
     expect(within(bulkActions).getByRole("button", { name: "Keep all visible" })).toHaveClass(
       "rounded-md",
       "min-w-[7.5rem]",
+      "h-7",
+      "px-3",
+      "sm:px-3.5",
     );
     expect(within(bulkActions).getByRole("button", { name: "Defer all visible" })).toHaveClass(
       "rounded-md",
       "min-w-[7.5rem]",
+      "h-7",
+      "px-3",
+      "sm:px-3.5",
     );
   });
 

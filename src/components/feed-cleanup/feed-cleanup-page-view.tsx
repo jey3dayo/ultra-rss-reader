@@ -266,10 +266,10 @@ export function FeedCleanupPageView({
 
   const mainLayoutClassName =
     layoutMode === "wide"
-      ? workspaceSplitGridClassName("gap-6 px-6 py-5")
+      ? workspaceSplitGridClassName("gap-7 px-6 py-6")
       : layoutMode === "split"
-        ? workspaceSplitGridClassName("gap-5 px-5 py-5")
-        : "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5";
+        ? workspaceSplitGridClassName("gap-6 px-5 py-5")
+        : "flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-5 sm:px-6 sm:py-5";
 
   const reviewPanelClassName = layoutMode === "stacked" ? "" : "sticky top-0 h-full min-h-0 overflow-hidden";
   const queueListClassName =

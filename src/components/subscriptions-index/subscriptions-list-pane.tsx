@@ -39,12 +39,12 @@ export function SubscriptionsListPane({
   const hasRows = groups.some((group) => group.rows.length > 0);
   return (
     <section
-      className="flex flex-col px-4 py-4 sm:px-5 lg:min-h-0 lg:border-r lg:border-[color:var(--subscriptions-pane-divider)]"
+      className="flex flex-col px-4 py-5 sm:px-5 sm:py-5 lg:min-h-0 lg:border-r lg:border-[color:var(--subscriptions-pane-divider)]"
       style={{
         backgroundColor: "var(--subscriptions-list-surface)",
       }}
     >
-      <div className="mb-4 flex items-center justify-between gap-3 border-b border-border/60 pb-3">
+      <div className="mb-5 flex items-center justify-between gap-3 border-b border-border/50 pb-4">
         <h2 className="font-sans text-[1.02rem] font-normal tracking-[-0.02em] text-foreground">{heading}</h2>
         {hasRows ? (
           <LabelChip tone="neutral" className="px-2.5 py-1 text-[10px]">
@@ -52,18 +52,18 @@ export function SubscriptionsListPane({
           </LabelChip>
         ) : null}
       </div>
-      <div className="space-y-4 pr-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+      <div className="space-y-5 pr-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
         {!hasRows ? (
           <p className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
             {emptyLabel}
           </p>
         ) : (
           groups.map((group) => (
-            <div key={group.key} className="space-y-2">
+            <div key={group.key} className="space-y-2.5">
               <div
                 data-testid={`subscriptions-folder-row-${group.folderId ?? "ungrouped"}`}
                 data-folder-drop-target={group.folderId ? "true" : "false"}
-                className="flex items-center justify-between rounded-md border px-2.5 py-2"
+                className="flex items-center justify-between rounded-lg border px-3 py-2.5"
                 style={{
                   borderColor: "var(--subscriptions-list-divider)",
                   backgroundColor: "var(--subscriptions-list-group-surface)",
@@ -77,7 +77,7 @@ export function SubscriptionsListPane({
                   {group.rows.length}
                 </LabelChip>
               </div>
-              <div className="space-y-1 pl-1">
+              <div className="space-y-1.5 pl-1">
                 {group.rows.map((row) => (
                   <NavRowButton
                     key={row.feed.id}
@@ -85,9 +85,9 @@ export function SubscriptionsListPane({
                     aria-pressed={selectedFeedId === row.feed.id}
                     onClick={() => onSelectFeed(row.feed.id)}
                     className={cn(
-                      "items-center rounded-md border border-transparent px-3 py-3 shadow-none",
+                      "items-center rounded-lg border border-transparent px-3.5 py-3.5 shadow-none",
                       selectedFeedId === row.feed.id
-                        ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[0_10px_26px_-24px_rgba(38,37,30,0.4)]"
+                        ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[0_8px_20px_-18px_rgba(38,37,30,0.28)]"
                         : "bg-background/15 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",
                     )}
                     leading={
