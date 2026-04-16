@@ -28,8 +28,10 @@ describe("FeedTreeFolderSection", () => {
     );
 
     const folderButton = screen.getByRole("button", { name: "Select folder Comic" });
+    const toggleButton = screen.getByRole("button", { name: "Toggle folder Comic" });
 
     expect(folderButton).toHaveClass("pl-1.5");
     expect(folderButton).not.toHaveClass("pl-0");
+    expect(toggleButton).toHaveClass("hover:bg-sidebar-accent/28");
   });
 });

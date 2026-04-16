@@ -67,7 +67,7 @@ export function FeedTreeFolderSection({
           aria-label={t("toggle_folder", { name: folder.name })}
           aria-expanded={folder.isExpanded}
           density={sidebarDensity}
-          className={cn("-mr-1 text-sidebar-foreground/70 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground")}
+          className={cn("-mr-1 text-sidebar-foreground/70 hover:bg-sidebar-accent/28 hover:text-sidebar-foreground")}
           onClick={() => onToggleFolder(folder.id)}
         >
           {folder.isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
