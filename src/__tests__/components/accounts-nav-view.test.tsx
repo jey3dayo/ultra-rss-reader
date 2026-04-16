@@ -40,7 +40,7 @@ describe("AccountsNavView", () => {
     expect(addAccountButton).toHaveAttribute("aria-pressed", "false");
     expect(localButton.querySelector("span")?.className).toContain("bg-orange-500");
     expect(freshRssButton.querySelector("span")?.className).toContain("bg-[#0062BE]");
-    expect(within(freshRssButton).getByText("FreshRSS")).toHaveClass("text-sidebar-foreground/64");
+    expect(within(freshRssButton).getByText("FreshRSS")).toHaveClass("text-sidebar-foreground/40");
     expect(localButton.parentElement).toHaveClass("flex");
     expect(localButton.parentElement).toHaveClass("overflow-x-auto");
 

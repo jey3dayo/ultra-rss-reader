@@ -66,7 +66,7 @@ export function AccountsNavView({
             title={account.name}
             description={
               kindDescription ? (
-                <div className={account.isActive ? "text-sidebar-accent-foreground/72" : "text-sidebar-foreground/64"}>
+                <div className={account.isActive ? "text-sidebar-accent-foreground/64" : "text-sidebar-foreground/40"}>
                   {kindDescription}
                 </div>
               ) : undefined
