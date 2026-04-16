@@ -100,7 +100,7 @@ export function SettingsModalView({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         data-testid="settings-modal-surface"
-        className="flex h-[88vh] max-h-[860px] max-w-[980px] flex-col gap-0 overflow-hidden rounded-2xl border border-border/70 bg-popover p-0 shadow-elevation-3 sm:flex-row sm:max-w-[980px]"
+        className="flex h-[88vh] max-h-[860px] max-w-[980px] flex-col gap-0 overflow-hidden rounded-xl border border-border/70 bg-popover p-0 shadow-elevation-3 sm:flex-row sm:max-w-[980px]"
         showCloseButton={false}
       >
         {isLoading && <IndeterminateProgress className="absolute inset-x-0 top-0 z-10" />}
