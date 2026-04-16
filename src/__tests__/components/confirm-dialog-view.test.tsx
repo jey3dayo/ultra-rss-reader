@@ -26,6 +26,7 @@ describe("ConfirmDialogView", () => {
     expect(screen.getByRole("dialog", { name: "Mark all as read" })).toHaveAccessibleDescription(
       "Mark all selected articles as read?",
     );
+    expect(screen.getByTestId("confirm-dialog-icon")).toHaveClass("bg-surface-1/72");
     expect(screen.getByRole("button", { name: "Mark all read" })).toHaveClass("min-h-11");
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
 

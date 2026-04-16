@@ -45,7 +45,7 @@ export function FeedCleanupOverviewPanel({
               padding="compact"
               className="flex items-center gap-4 border-border/70 bg-surface-1 shadow-none"
             >
-              <span className="inline-flex min-w-12 justify-center rounded-[var(--radius-lg)] border border-border/70 bg-surface-1 px-3 py-2 font-sans text-2xl font-medium text-foreground">
+              <span className="inline-flex min-w-12 justify-center rounded-md border border-border/70 bg-surface-1/72 px-3 py-2 font-sans text-2xl font-medium text-foreground">
                 {card.value}
               </span>
               <div>

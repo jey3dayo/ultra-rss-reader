@@ -55,9 +55,11 @@ describe("FeedCleanupOverviewPanel", () => {
 
     const summary = screen.getByTestId("feed-cleanup-sidebar-summary");
     const bulkActions = screen.getByTestId("feed-cleanup-bulk-actions");
+    const pendingCount = within(summary).getByText("3");
 
     expect(summary).toHaveTextContent("Pending");
     expect(summary).toHaveTextContent("Done");
+    expect(pendingCount.closest("span")).toHaveClass("rounded-md");
     expect(within(summary).queryByRole("button")).toBeNull();
     expect(within(bulkActions).getAllByRole("button")).toHaveLength(2);
     expect(within(bulkActions).getByRole("button", { name: "Keep all visible" })).toBeInTheDocument();

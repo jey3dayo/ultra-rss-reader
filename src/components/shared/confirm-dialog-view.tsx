@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 const confirmDialogVariantStyles = {
   default: {
-    iconContainerClassName: "bg-primary/15",
+    iconContainerClassName: "bg-surface-1/72",
     iconClassName: "text-primary",
     actionButtonVariant: "default" as const,
     actionButtonClassName: "",
