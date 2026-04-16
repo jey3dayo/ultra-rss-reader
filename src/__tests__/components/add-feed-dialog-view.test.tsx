@@ -54,7 +54,7 @@ describe("AddFeedDialogView", () => {
         }}
         error={null}
         successMessage="Feed detected"
-        urlHint={null}
+        urlHint="Paste a feed or site URL."
         urlHintTone="muted"
         isDiscoverDisabled={false}
         isSubmitDisabled={false}
@@ -81,6 +81,7 @@ describe("AddFeedDialogView", () => {
     expect(screen.getByLabelText("Feed or Site URL")).toHaveValue("https://example.com");
     expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass("rounded-md", "bg-surface-1/80");
     expect(screen.getByText("Feed or Site URL")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("Paste a feed or site URL.")).toHaveClass("text-foreground-soft");
     expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("bg-surface-1/80");
     expect(screen.getByRole("radio", { name: "Tech Blog" })).toBeInTheDocument();
     expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("rounded-md");

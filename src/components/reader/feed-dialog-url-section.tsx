@@ -73,7 +73,7 @@ export function FeedDialogUrlSection({
           className={
             helperTone === "error"
               ? "mt-3 rounded-md border border-state-danger-border bg-state-danger-surface px-3 py-2 text-sm text-state-danger-foreground"
-              : "mt-3 text-sm leading-6 text-muted-foreground"
+              : "mt-3 text-sm leading-6 text-foreground-soft"
           }
         >
           {helperText}
