@@ -163,7 +163,7 @@ export function SubscriptionsOverviewSummary({
                     >
                       <span
                         className={cn(
-                          "inline-flex h-6 items-center rounded-full border border-border-strong/70 bg-surface-1 px-2.5 text-[10px] font-medium tracking-[0.12em] text-foreground uppercase shadow-[0_1px_0_rgba(255,255,255,0.06)_inset]",
+                          "inline-flex h-6 items-center rounded-full border border-border-strong/70 bg-surface-1 px-2.5 text-[10px] font-medium tracking-[0.12em] text-foreground uppercase shadow-[var(--subscriptions-summary-badge-shadow)]",
                           card.isActive && resolveActiveBadgeClassName(card.tone),
                           !card.isActive && "invisible",
                         )}

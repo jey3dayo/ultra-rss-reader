@@ -98,6 +98,10 @@ describe("SubscriptionsOverviewSummary", () => {
       "border-state-review-border/75",
       "bg-state-review-surface/92",
       "text-state-review-foreground",
+      "shadow-[var(--subscriptions-summary-badge-shadow)]",
+    );
+    expect(within(activeCard).getByText("フィルタ中").closest("[data-label-chip]")).toHaveClass(
+      "shadow-[var(--subscriptions-summary-active-chip-shadow)]",
     );
     expect(activeCard).toHaveClass("shadow-[var(--subscriptions-summary-active-shadow-review)]");
     expect(activeCard).toHaveClass("ring-[color:var(--subscriptions-summary-active-ring-review)]");

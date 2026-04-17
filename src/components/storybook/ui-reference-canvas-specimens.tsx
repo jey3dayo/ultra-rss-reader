@@ -911,7 +911,7 @@ export function ShellExamplesSpecimen() {
             </div>
             <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/58">Inner menu body</div>
             <div className="inline-flex rounded-md border border-border px-3 py-2 text-sm text-foreground">Feed</div>
-            <div className="mt-3 min-w-[200px] rounded-lg border border-border bg-popover p-1 text-sm text-popover-foreground shadow-lg outline-none">
+            <div className="mt-3 min-w-[200px] rounded-lg border border-border bg-popover p-1 text-sm text-popover-foreground shadow-elevation-2 outline-none">
               <div className="flex w-full items-center rounded-md px-3 py-1.5">Edit…</div>
               <div className="flex w-full items-center rounded-md px-3 py-1.5">Open site</div>
               <div className="flex w-full items-center rounded-md px-3 py-1.5">Mark all as read</div>
