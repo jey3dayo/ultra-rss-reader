@@ -11,6 +11,36 @@ import { queryClient } from "./lib/query-client";
 import { attachTauriListeners } from "./lib/tauri-event-listeners";
 import { resolvePreferenceValue, usePreferencesStore } from "./stores/preferences-store";
 
+const STARTUP_SYNC_THROTTLE_MS = 90_000;
+const STARTUP_SYNC_LAST_TRIGGERED_AT_KEY = "startup-sync-last-triggered-at";
+
+function getLastStartupSyncTriggeredAt(): number | null {
+  try {
+    const rawValue = window.localStorage.getItem(STARTUP_SYNC_LAST_TRIGGERED_AT_KEY);
+    if (!rawValue) {
+      return null;
+    }
+
+    const timestamp = Number(rawValue);
+    return Number.isFinite(timestamp) ? timestamp : null;
+  } catch {
+    return null;
+  }
+}
+
+function shouldThrottleStartupSync(): boolean {
+  const lastTriggeredAt = getLastStartupSyncTriggeredAt();
+  return lastTriggeredAt != null && Date.now() - lastTriggeredAt < STARTUP_SYNC_THROTTLE_MS;
+}
+
+function markStartupSyncTriggered(): void {
+  try {
+    window.localStorage.setItem(STARTUP_SYNC_LAST_TRIGGERED_AT_KEY, String(Date.now()));
+  } catch {
+    // Ignore storage failures and fall back to process-local guarding only.
+  }
+}
+
 function AppInner() {
   const loadPreferences = usePreferencesStore((s) => s.loadPreferences);
   const prefs = usePreferencesStore((s) => s.prefs);
@@ -36,7 +66,12 @@ function AppInner() {
       return;
     }
 
+    if (shouldThrottleStartupSync()) {
+      return;
+    }
+
     startupSyncRequested.current = true;
+    markStartupSyncTriggered();
     triggerStartupSync().then((result) =>
       Result.pipe(
         result,

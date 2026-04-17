@@ -60,6 +60,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 
 describe("App", () => {
   beforeEach(() => {
+    localStorage.clear();
     loadPreferencesMock.mockClear();
     triggerStartupSyncMock.mockClear();
     syncAccountMock.mockClear();
@@ -104,5 +105,34 @@ describe("App", () => {
       expect(loadPreferencesMock).toHaveBeenCalledTimes(1);
     });
     expect(triggerStartupSyncMock).not.toHaveBeenCalled();
+  });
+
+  it("does not trigger startup sync when a startup sync ran within the last 90 seconds", async () => {
+    const now = new Date("2026-04-18T03:00:00+09:00").getTime();
+    const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+    preferencesState.prefs = { sync_on_startup: "true" };
+    localStorage.setItem("startup-sync-last-triggered-at", String(now - 89_000));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(loadPreferencesMock).toHaveBeenCalledTimes(1);
+    });
+    expect(triggerStartupSyncMock).not.toHaveBeenCalled();
+    dateNowSpy.mockRestore();
+  });
+
+  it("triggers startup sync again once the 90-second cooldown has passed", async () => {
+    const now = new Date("2026-04-18T03:00:00+09:00").getTime();
+    const dateNowSpy = vi.spyOn(Date, "now").mockReturnValue(now);
+    preferencesState.prefs = { sync_on_startup: "true" };
+    localStorage.setItem("startup-sync-last-triggered-at", String(now - 90_001));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(triggerStartupSyncMock).toHaveBeenCalledTimes(1);
+    });
+    dateNowSpy.mockRestore();
   });
 });
