@@ -38,7 +38,7 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByTestId("feed-detail-leading-visual")).toHaveClass(
       "h-10",
       "w-10",
-      "rounded-lg",
+      "rounded-md",
       "border",
       "bg-surface-1/88",
     );
@@ -49,7 +49,7 @@ describe("FeedDetailPanel", () => {
       screen.getByTestId("feed-detail-secondary-column").contains(screen.getByTestId("feed-detail-reason-box")),
     ).toBe(true);
     expect(screen.getByTestId("feed-detail-secondary-column")).not.toHaveClass("grid-cols-[auto_minmax(0,1fr)]");
-    expect(screen.getByTestId("feed-detail-status")).toHaveClass("rounded-lg", "self-start");
+    expect(screen.getByTestId("feed-detail-status")).toHaveClass("rounded-md", "self-start");
     expect(screen.getByTestId("feed-detail-reason-box").closest('[data-surface-card="section"]')).toHaveClass(
       "bg-card/38",
     );
@@ -92,6 +92,7 @@ describe("FeedDetailPanel", () => {
 
     expect(screen.getByText("整理候補").closest("span")).toHaveAttribute("data-label-chip", "neutral");
     expect(screen.getByText("整理候補").closest("span")).toHaveClass("bg-surface-1/80");
+    expect(screen.getByText("整理候補").closest("span")).toHaveClass("rounded-md");
     expect(screen.getByText("未読 0件").closest("span")).toHaveAttribute("data-label-chip", "neutral");
   });
 });

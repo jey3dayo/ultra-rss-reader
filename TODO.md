@@ -116,9 +116,11 @@
     - [ ] `subscriptions-overview-summary` の outer shell と inner summary cards の radius 境界を明記する
       - 対象: `src/components/subscriptions-index/subscriptions-overview-summary.tsx`, `src/__tests__/components/subscriptions-index-page.test.tsx`, `src/__tests__/components/subscriptions-overview-summary.test.tsx`
       - outer `rounded-xl` shell と inner `rounded-lg` cards を shell/catalog のどちらに数えるか曖昧なので整理したい
+      - 状況: outer wrapper は `section/container` として `rounded-lg` / lighter border に整理済み
     - [ ] `feed-detail-panel` の leading visual / status chip / reason chips の `rounded-lg` を utility detail か info-shell かで分類する
       - 対象: `src/components/shared/feed-detail-panel.tsx`, `src/__tests__/components/feed-detail-panel.test.tsx`
       - panel 本体の section/card と chip・visual の radius 言語が混ざっているので、 reusable primitive の責務を見直したい
+      - 状況: leading visual / status chip / reason chips は `rounded-md` 基準へ整理済み
     - [ ] `service-picker` と account icon surfaces の `rounded-lg` を shell ではなく control family として固定するか確認する
       - 対象: `src/components/settings/service-picker.tsx`, `src/components/settings/account-config-form.tsx`, `src/__tests__/components/add-account-form.test.tsx`
       - picker shell と icon badge の radius を同じ階層に見せないよう、 control family の例外として明示したい
@@ -127,9 +129,11 @@
     - [ ] `subscriptions-overview-summary` の outer `rounded-xl` は `section/container`、inner summary cards は `card lane` として固定する
       - 対象: `src/components/subscriptions-index/subscriptions-overview-summary.tsx`, `src/__tests__/components/subscriptions-index-page.test.tsx`, `src/__tests__/components/subscriptions-overview-summary.test.tsx`
       - shell ではなく summary section の外枠として扱う
+      - 状況: outer wrapper は `rounded-lg` / no custom shadow に整理済み
     - [ ] `feed-detail-panel` の root / info surfaces / chip群を `section-card` と `control-family exception` に分解する
       - 対象: `src/components/shared/feed-detail-panel.tsx`, `src/__tests__/components/feed-detail-panel.test.tsx`
       - leading visual / status chip / reason chips は `rounded-lg` でも shell ではなく detail/control 扱いにする
+      - 状況: leading visual / status chip / reason chips は `rounded-md` 側へ整理済み
     - [ ] `service-picker` wrapper は settings container、row 自体は nav/control、icon badge は control-family exception として固定する
       - 対象: `src/components/settings/service-picker.tsx`, `src/components/settings/account-config-form.tsx`, `src/__tests__/components/add-account-form.test.tsx`
       - `rounded-lg` を全部 shell に数えないための分類を明示する
@@ -294,6 +298,7 @@
     - 方針:
       - outer dialog shell と inner hint pills の役割を分ける
       - helper copy は popup shell の supporting detail として、utility detail と混ぜない
+      - 状況: outer shell は `rounded-2xl` / `surface-2/96` / `shadow-elevation-3` に整理済み
   - [x] Lane A: shared primitive の muted 契約を `foreground-soft` / semantic surface へ寄せる
     - 対象候補:
       - `src/components/shared/control-chip.ts`
