@@ -58,7 +58,7 @@ describe("FolderSectionView", () => {
 
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(trigger).toHaveClass("min-h-9");
-    expect(trigger).toHaveClass("hover:bg-sidebar-accent/28");
+    expect(trigger).toHaveClass("hover:bg-[var(--sidebar-hover-surface)]");
     expect(screen.getByText("12")).toHaveClass("text-foreground-soft");
     expect(feedButton).toHaveClass("bg-[var(--bg-selected)]");
     expect(feedButton).toHaveClass("before:bg-border-strong");

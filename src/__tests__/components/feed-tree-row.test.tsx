@@ -100,7 +100,7 @@ describe("FeedTreeRow", () => {
 
     const dragButton = screen.getByRole("button", { name: "Drag Alpha" });
 
-    expect(dragButton).toHaveClass("hover:bg-sidebar-accent/28");
+    expect(dragButton).toHaveClass("hover:bg-[var(--sidebar-hover-surface)]");
   });
 
   it("uses a softer armed tone for the drag handle", () => {

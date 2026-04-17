@@ -141,7 +141,9 @@ describe("SettingsModalView", () => {
       backgroundColor: "var(--settings-shell-rail)",
     });
     expect(screen.getByRole("button", { name: "Close preferences" })).toHaveClass("text-sidebar-foreground/40");
-    expect(screen.getByRole("button", { name: "Close preferences" })).toHaveClass("hover:bg-sidebar-accent/28");
+    expect(screen.getByRole("button", { name: "Close preferences" })).toHaveClass(
+      "hover:bg-[var(--sidebar-hover-surface)]",
+    );
     expect(screen.getByTestId("settings-nav-shell")).toHaveStyle({
       backgroundColor: "var(--settings-shell-rail)",
     });

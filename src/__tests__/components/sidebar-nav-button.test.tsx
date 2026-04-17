@@ -47,6 +47,6 @@ describe("SidebarNavButton", () => {
   it("uses the softened hover surface for unselected rows", () => {
     render(<SidebarNavButton>Feed row</SidebarNavButton>);
 
-    expect(screen.getByRole("button", { name: "Feed row" })).toHaveClass("hover:bg-sidebar-accent/28");
+    expect(screen.getByRole("button", { name: "Feed row" })).toHaveClass("hover:bg-[var(--sidebar-hover-surface)]");
   });
 });

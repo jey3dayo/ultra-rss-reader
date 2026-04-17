@@ -27,7 +27,10 @@ describe("NavRowButton", () => {
   it("keeps sidebar rows borderless", () => {
     render(<NavRowButton tone="sidebar" title="Sidebar row" />);
 
-    expect(screen.getByRole("button", { name: "Sidebar row" })).not.toHaveClass("border");
+    const button = screen.getByRole("button", { name: "Sidebar row" });
+
+    expect(button).not.toHaveClass("border");
+    expect(button).toHaveClass("hover:bg-[var(--sidebar-hover-surface)]");
   });
 
   it("forwards click and disabled state", () => {
