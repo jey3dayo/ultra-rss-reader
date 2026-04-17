@@ -3,6 +3,7 @@ import i18n from "i18next";
 import { z } from "zod";
 import { create } from "zustand";
 import { getPreferences, setPreference } from "@/api/tauri-commands";
+import { STORAGE_KEYS } from "@/constants/storage";
 import { shortcutDefaults } from "@/lib/keyboard-shortcuts";
 import { resolveUiLanguage } from "@/lib/ui-language";
 import { useUiStore } from "@/stores/ui-store";
@@ -184,6 +185,18 @@ export function resolvePreferenceValue(prefs: Record<string, string>, key: strin
 let systemThemeCleanup: (() => void) | null = null;
 let themeTransitionCleanupTimeout: number | null = null;
 
+function getSystemPrefersDark(): boolean {
+  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+function mirrorThemePreference(theme: Theme): void {
+  try {
+    window.localStorage.setItem(STORAGE_KEYS.theme, theme);
+  } catch {
+    // Ignore storage failures; DB remains the source of truth.
+  }
+}
+
 function scheduleThemeTransition(root: HTMLElement): void {
   const prefersReducedMotion =
     typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -203,24 +216,37 @@ function scheduleThemeTransition(root: HTMLElement): void {
   }, THEME_TRANSITION_DURATION_MS);
 }
 
-function applyTheme(theme: Theme): void {
+function applyResolvedTheme(root: HTMLElement, resolvedTheme: "light" | "dark", withTransition: boolean): void {
+  if (withTransition) {
+    scheduleThemeTransition(root);
+  } else {
+    root.classList.remove(THEME_TRANSITION_CLASS);
+  }
+  root.classList.toggle("dark", resolvedTheme === "dark");
+  root.style.colorScheme = resolvedTheme;
+}
+
+function applyTheme(theme: Theme, options?: { withTransition?: boolean }): void {
   // Clean up previous system theme listener
   systemThemeCleanup?.();
   systemThemeCleanup = null;
 
   const root = document.documentElement;
-  scheduleThemeTransition(root);
+  const withTransition = options?.withTransition ?? true;
   if (theme === "system") {
+    applyResolvedTheme(root, getSystemPrefersDark() ? "dark" : "light", withTransition);
+    if (typeof window.matchMedia !== "function") {
+      return;
+    }
+
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    root.classList.toggle("dark", mq.matches);
     const handler = (e: MediaQueryListEvent) => {
-      scheduleThemeTransition(root);
-      root.classList.toggle("dark", e.matches);
+      applyResolvedTheme(root, e.matches ? "dark" : "light", true);
     };
     mq.addEventListener("change", handler);
     systemThemeCleanup = () => mq.removeEventListener("change", handler);
   } else {
-    root.classList.toggle("dark", theme === "dark");
+    applyResolvedTheme(root, theme === "dark" ? "dark" : "light", withTransition);
   }
 }
 
@@ -269,7 +295,8 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
       Result.inspect((data) => {
         set({ prefs: data, loaded: true });
         const theme = resolvePreferenceValue(data, "theme");
-        applyTheme(theme);
+        applyTheme(theme, { withTransition: false });
+        mirrorThemePreference(theme);
         applyLanguage(resolvePreferenceValue(data, "language"));
         applyFontStyle(resolvePreferenceValue(data, "font_style"));
         applyFontSize(resolvePreferenceValue(data, "font_size"));
@@ -277,7 +304,6 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
       Result.inspectError((e) => {
         console.error("Failed to load preferences:", e);
         set({ loaded: true });
-        applyTheme(resolvePreferenceValue({}, "theme"));
         applyLanguage(resolvePreferenceValue({}, "language"));
       }),
     );
@@ -290,7 +316,9 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
     }));
 
     if (key === "theme") {
-      applyTheme(resolvePreferenceValue({ theme: normalizedValue }, "theme"));
+      const theme = resolvePreferenceValue({ theme: normalizedValue }, "theme");
+      applyTheme(theme, { withTransition: true });
+      mirrorThemePreference(theme);
     }
     if (key === "language") {
       applyLanguage(normalizedValue);

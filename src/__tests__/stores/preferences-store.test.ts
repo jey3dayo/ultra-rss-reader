@@ -1,5 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getPreferences, setPreference } from "@/api/tauri-commands";
+import { STORAGE_KEYS } from "@/constants/storage";
 
 vi.mock("@/api/tauri-commands", () => ({
   getPreferences: vi.fn(),
@@ -11,13 +13,18 @@ import { preferenceDefaults, resolvePreferenceValue, usePreferencesStore } from 
 describe("usePreferencesStore preferences", () => {
   beforeEach(() => {
     vi.useRealTimers();
+    vi.clearAllMocks();
     usePreferencesStore.setState({ prefs: {}, loaded: false });
     document.documentElement.classList.remove("dark", "theme-transitioning");
+    document.documentElement.style.colorScheme = "";
+    window.localStorage.clear();
   });
 
   afterEach(() => {
     vi.useRealTimers();
     document.documentElement.classList.remove("dark", "theme-transitioning");
+    document.documentElement.style.colorScheme = "";
+    window.localStorage.clear();
   });
 
   it("falls back to the default theme when the persisted value is invalid", () => {
@@ -38,6 +45,42 @@ describe("usePreferencesStore preferences", () => {
     vi.advanceTimersByTime(180);
 
     expect(document.documentElement).not.toHaveClass("theme-transitioning");
+  });
+
+  it("does not add a transition class when applying the persisted theme during startup", async () => {
+    vi.mocked(getPreferences).mockResolvedValue(Result.succeed({ theme: "dark" }));
+
+    await usePreferencesStore.getState().loadPreferences();
+
+    expect(document.documentElement).toHaveClass("dark");
+    expect(document.documentElement).not.toHaveClass("theme-transitioning");
+    expect(document.documentElement.style.colorScheme).toBe("dark");
+  });
+
+  it("mirrors the persisted theme into localStorage on load and manual updates", async () => {
+    vi.mocked(getPreferences).mockResolvedValue(Result.succeed({ theme: "system" }));
+
+    await usePreferencesStore.getState().loadPreferences();
+
+    expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("system");
+
+    usePreferencesStore.getState().setPref("theme", "dark");
+
+    expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("dark");
+    expect(vi.mocked(setPreference)).toHaveBeenCalledWith("theme", "dark");
+  });
+
+  it("keeps the bootstrapped theme and mirrored cache when loading preferences fails", async () => {
+    vi.mocked(getPreferences).mockResolvedValue(Result.fail({ type: "UserVisible", message: "boom" }));
+    document.documentElement.classList.add("dark");
+    document.documentElement.style.colorScheme = "dark";
+    window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+
+    await usePreferencesStore.getState().loadPreferences();
+
+    expect(document.documentElement).toHaveClass("dark");
+    expect(document.documentElement.style.colorScheme).toBe("dark");
+    expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("dark");
   });
 
   it("defaults reader and web preview preferences independently", () => {

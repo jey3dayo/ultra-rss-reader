@@ -2,8 +2,33 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="color-scheme" content="light dark" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (() => {
+        const themeStorageKey = "ultra-rss:theme";
+        const root = document.documentElement;
+        const readStoredTheme = () => {
+          try {
+            const value = window.localStorage.getItem(themeStorageKey);
+            return value === "light" || value === "dark" || value === "system" ? value : "light";
+          } catch {
+            return "light";
+          }
+        };
+
+        const storedTheme = readStoredTheme();
+        const prefersDark =
+          storedTheme === "system" &&
+          typeof window.matchMedia === "function" &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const resolvedTheme = storedTheme === "dark" || prefersDark ? "dark" : "light";
+
+        root.classList.toggle("dark", resolvedTheme === "dark");
+        root.style.colorScheme = resolvedTheme;
+      })();
+    </script>
     <title>Ultra RSS Reader</title>
   </head>
   <body>
