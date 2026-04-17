@@ -274,7 +274,7 @@
     - 方針:
       - account switcher / context menu は popup shell、tooltip は compact utility detail として整理する
       - popup outer shell と inner item radius の役割を混ぜない
-  - [ ] Lane K: subscriptions overview summary の shell/card 境界を固定する
+  - [x] Lane K: subscriptions overview summary の shell/card 境界を固定する
     - 対象候補:
       - `src/components/subscriptions-index/subscriptions-overview-summary.tsx`
       - `src/__tests__/components/subscriptions-overview-summary.test.tsx`
@@ -283,7 +283,7 @@
       - outer summary wrapper は `section/container`
       - inner summary cards は `card lane`
       - primary review card だけを強調し、shell と card の radius 言語を混ぜない
-  - [ ] Lane L: feed detail panel を section-card と control-family exception に分ける
+  - [x] Lane L: feed detail panel を section-card と control-family exception に分ける
     - 対象候補:
       - `src/components/shared/feed-detail-panel.tsx`
       - `src/__tests__/components/feed-detail-panel.test.tsx`
@@ -291,7 +291,7 @@
       - root / summary / recent articles は section-card
       - status chip / reason chips / leading visual は control-family exception or utility detail
       - `rounded-lg` を shell に見せない
-  - [ ] Lane M: command palette の popup shell を残り整理する
+  - [x] Lane M: command palette の popup shell を残り整理する
     - 対象候補:
       - `src/components/reader/command-palette.tsx`
       - `src/__tests__/components/command-palette.test.tsx`
@@ -299,6 +299,51 @@
       - outer dialog shell と inner hint pills の役割を分ける
       - helper copy は popup shell の supporting detail として、utility detail と混ぜない
       - 状況: outer shell は `rounded-2xl` / `surface-2/96` / `shadow-elevation-3` に整理済み
+  - [x] Lane N: settings modal の outer shell / account section の hierarchy を詰める
+    - 対象候補:
+      - `src/components/settings/settings-modal-view.tsx`
+      - `src/components/settings/settings-modal.tsx`
+      - `src/__tests__/components/settings-modal-view.test.tsx`
+      - `src/__tests__/components/settings-modal.test.tsx`
+    - 方針:
+      - modal outer shell と rail/account section の radius/tone の役割を明確にする
+      - rail 内 section が shell より先に目立たないよう、階層差を固定する
+  - [x] Lane O: feed-cleanup の hierarchy を overview / queue / review で揃える
+    - 対象候補:
+      - `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx`
+      - `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`
+      - `src/components/feed-cleanup/feed-cleanup-review-panel.tsx`
+      - 関連 test 群
+    - 方針:
+      - summary cards / selection rail / review actions の優先度を見直し、primary action を読む順で明確にする
+      - 近い濃度の面が連続しすぎないよう section depth を整理する
+  - [x] Lane P: workspace overlay padding を page shell 側にも揃える
+    - 対象候補:
+      - `src/components/feed-cleanup/feed-cleanup-page-view.tsx`
+      - `src/components/subscriptions-index/subscriptions-index-page-view.tsx`
+      - 関連 test 群
+    - 方針:
+      - desktop overlay titlebar を使う page shell だけに `pl-6 sm:pl-6` を追随させる
+      - browser preview / non-overlay では余計な inset を入れない
+  - [x] Lane Q: browser overlay / shell example の surface governance review を実装に落とす
+    - 対象候補:
+      - `src/components/reader/browser-overlay-chrome.tsx`
+      - `src/components/reader/browser-view.tsx`
+      - `src/components/reader/browser-overlay-stage.tsx`
+      - `src/components/storybook/ui-reference-settings-canvas.stories.tsx`
+      - 関連 test 群
+    - 方針:
+      - browser overlay の shell role と feature-local exception を分ける
+      - Storybook の shell example と section example を混ぜない
+  - [x] Lane R: rounded-md catalog の残りを storybook / surface-card に反映する
+    - 対象候補:
+      - `src/components/shared/surface-card.tsx`
+      - `src/components/storybook/ui-reference-settings-canvas.stories.tsx`
+      - `src/__tests__/components/ui-reference-settings-canvas.test.tsx`
+      - 関連 test 群
+    - 方針:
+      - `card / section` は `rounded-md`、`shell example` だけ大きい radius を許可する
+      - catalog 表示と shared primitive の radius language を揃える
   - [x] Lane A: shared primitive の muted 契約を `foreground-soft` / semantic surface へ寄せる
     - 対象候補:
       - `src/components/shared/control-chip.ts`
