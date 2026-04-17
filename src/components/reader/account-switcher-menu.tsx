@@ -2,15 +2,14 @@ import type { RefObject } from "react";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { cn } from "@/lib/utils";
 import type { AccountSwitcherMenuProps } from "./account-switcher.types";
+import { focusRovingButton } from "./roving-focus";
 
 export function focusAccountItem(
   itemRefs: RefObject<Array<HTMLButtonElement | null>>,
   accountsLength: number,
   index: number,
 ) {
-  if (accountsLength === 0) return;
-  const normalizedIndex = (index + accountsLength) % accountsLength;
-  itemRefs.current[normalizedIndex]?.focus();
+  focusRovingButton(itemRefs, accountsLength, index);
 }
 
 export function AccountSwitcherMenu({

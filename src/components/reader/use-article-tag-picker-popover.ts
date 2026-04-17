@@ -1,5 +1,6 @@
 import { type KeyboardEvent, useCallback, useEffect, useRef } from "react";
 import type { UseArticleTagPickerPopoverParams } from "./article-tag-picker.types";
+import { focusRovingButton } from "./roving-focus";
 
 export function useArticleTagPickerPopover({
   isExpanded,
@@ -110,15 +111,13 @@ export function useArticleTagPickerPopover({
       if (event.key === "ArrowDown" && availableTagCount > 0) {
         event.preventDefault();
         event.stopPropagation();
-        const nextIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
-        tagOptionRefs.current[nextIndex % availableTagCount]?.focus();
+        focusRovingButton(tagOptionRefs, availableTagCount, currentIndex >= 0 ? currentIndex + 1 : 0);
       }
 
       if (event.key === "ArrowUp" && availableTagCount > 0) {
         event.preventDefault();
         event.stopPropagation();
-        const nextIndex = currentIndex >= 0 ? currentIndex - 1 : availableTagCount - 1;
-        tagOptionRefs.current[(nextIndex + availableTagCount) % availableTagCount]?.focus();
+        focusRovingButton(tagOptionRefs, availableTagCount, currentIndex >= 0 ? currentIndex - 1 : availableTagCount - 1);
       }
     },
     [availableTagCount, closePicker],
