@@ -121,7 +121,7 @@ describe("Form fields", () => {
 
     expect(screen.getByRole("button", { name: /Local Feeds/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /FreshRSS/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Inoreader/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Feedly/ })).toBeInTheDocument();
   });
 
   it("add feed dialog input exposes a name attribute", () => {

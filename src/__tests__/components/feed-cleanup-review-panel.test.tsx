@@ -208,7 +208,7 @@ describe("FeedCleanupReviewPanel", () => {
     const panel = screen.getByTestId("feed-cleanup-review-panel");
     expect(screen.getByText("Needs repair").closest('[data-surface-card="section"]')).toHaveClass("rounded-md");
     expect(screen.getByText("Needs repair").closest('[data-surface-card="info"]')).toHaveClass(
-      "rounded-lg",
+      "rounded-md",
       "border-state-warning-border",
       "bg-state-warning-surface",
       "text-state-warning-foreground",

@@ -37,7 +37,7 @@ describe("ArticleEmptyStateView", () => {
     const hintsList = screen.getByRole("list");
 
     expect(container).toHaveAttribute("data-surface-card", "info");
-    expect(container).toHaveClass("rounded-lg");
+    expect(container).toHaveClass("rounded-md");
     expect(container).toHaveClass("max-w-xl");
     expect(container).toHaveClass("border-border/0");
     expect(container).toHaveClass("bg-surface-1/0");

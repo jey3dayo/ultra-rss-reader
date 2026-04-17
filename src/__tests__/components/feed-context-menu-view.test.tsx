@@ -35,7 +35,7 @@ describe("FeedContextMenuView", () => {
     );
 
     expect(screen.getByRole("menuitem", { name: "Edit…" }).closest("[data-side]")).toHaveClass(
-      "bg-surface-2",
+      "bg-surface-2/96",
       "shadow-elevation-3",
     );
     expect(screen.getByRole("menuitem", { name: "Open site" })).toHaveClass("data-highlighted:bg-surface-1/72");
