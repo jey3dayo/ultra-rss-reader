@@ -126,7 +126,7 @@
 ## 次の並列バッチ候補
 
 - [ ] 2026-04-17 時点の残レーンを `write scope` 単位で棚卸しし、以後はこのまとまりで並列実行する
-  - [ ] Lane A: shared primitive の muted 契約を `foreground-soft` / semantic surface へ寄せる
+  - [x] Lane A: shared primitive の muted 契約を `foreground-soft` / semantic surface へ寄せる
     - 対象候補:
       - `src/components/shared/control-chip.ts`
       - `src/components/shared/control-chip-button.tsx`
@@ -141,7 +141,7 @@
     - 方針:
       - `text-muted-foreground` を漫然と残さず、supporting copy / helper action / muted chip のどの役割かを決めて token に寄せる
       - `bg-muted` 直書きは既存 surface token で表現できるか先に確認する
-  - [ ] Lane B: reader chrome / list support copy の残りを段階整理する
+  - [x] Lane B: reader chrome / list support copy の残りを段階整理する
     - 対象候補:
       - `src/components/reader/command-palette.tsx`
       - `src/components/reader/sidebar-header-view.tsx`
@@ -155,14 +155,14 @@
     - 方針:
       - hover / helper / shortcut hint を `foreground-soft` と `surface-1/72` 系へ寄せる
       - `command-palette` は shell と inner helper copy を混ぜずに扱う
-  - [ ] Lane C: article list row の既読/未読補助トーンを最終整理する
+  - [x] Lane C: article list row の既読/未読補助トーンを最終整理する
     - 対象候補:
       - `src/components/reader/article-list-item.tsx`
       - 必要なら `src/components/reader/article-list-context-strip.tsx`
     - 方針:
       - 主タイトルと supporting copy の差だけを残し、既読/未読で helper 色が暴れないようにする
       - unread/starred semantic marker の色役割とは分離する
-  - [ ] Lane D: settings / sidebar の小物 tone を整理する
+  - [x] Lane D: settings / sidebar の小物 tone を整理する
     - 対象候補:
       - `src/components/settings/accounts-nav-view.tsx`
       - `src/components/settings/settings-nav-view.tsx`
@@ -170,7 +170,7 @@
     - 方針:
       - `bg-muted` の account icon fallback や `sidebar-foreground/*` の helper alpha を整理する
       - shell role の rail / section label と nav item helper の役割を混ぜない
-  - [ ] Lane E: `workspace-header` browser preview レーンを独立管理する
+  - [x] Lane E: `workspace-header` browser preview レーンを独立管理する
     - 対象:
       - `src/components/shared/workspace-header.tsx`
       - `src/__tests__/components/design-shared-components.test.tsx`
@@ -202,9 +202,9 @@
     - overlay 系の白黒アルファ直書きを sematic token / shared primitive ベースへ寄せる
     - `shell role` として残す例外は明示する
   - 最小実装候補:
-    - [ ] `src/components/reader/browser-surface-state-card.tsx` を shell-grade blur/shadow から section / info token ベースへ落とす
-    - [ ] `src/components/reader/browser-view.tsx` と `src/styles/global.css` で overlay shell veil / top rail を token 化するか、shell exception として固定するかを決める
-    - [ ] `src/components/reader/browser-overlay-stage.tsx` の loading halo を reusable ambient token にするか one-off shell effect のままにするか決める
+    - [x] `src/components/reader/browser-surface-state-card.tsx` を shell-grade blur/shadow から section / info token ベースへ落とす
+    - [x] `src/components/reader/browser-view.tsx` と `src/styles/global.css` で overlay shell veil / top rail を token 化するか、shell exception として固定するかを決める
+    - [x] `src/components/reader/browser-overlay-stage.tsx` の loading halo を reusable ambient token にするか one-off shell effect のままにするか決める
 
 - [ ] Lane 2: dialog / picker 系の arbitrary rgba を token layer に寄せる
   - [ ] 棚卸し
@@ -218,8 +218,8 @@
     - 既存の可読性と focus visibility を落とさない
   - 最小実装候補:
     - [ ] `src/styles/global.css` と `DESIGN.md` に dialog 用 scrim / overlay role を追加する
-    - [ ] `src/components/ui/dialog.tsx` の backdrop opacity literal を scrim token へ置き換える
-    - [ ] `src/components/settings/service-picker.tsx` の `hover:bg-background/90` を既存 surface token か named hover surface へ寄せる
+    - [x] `src/components/ui/dialog.tsx` の backdrop opacity literal を scrim token へ置き換える
+    - [x] `src/components/settings/service-picker.tsx` の `hover:bg-background/90` を既存 surface token か named hover surface へ寄せる
     - [ ] `src/components/settings/settings-modal-view.tsx` の content / sidebar fade と shell 背景が新しい scrim / overlay role と矛盾しないか確認する
 
 - [ ] Lane 3: settings / cleanup の情報階層を tonal separation と primary action の差で再整理する
@@ -233,12 +233,12 @@
     - settings / cleanup の hierarchy を再整理する
     - 見た目変更だけでなく、読む順序が改善するかを確認する
   - 最小実装候補:
-    - [ ] `src/components/settings/settings-nav-view.tsx` と `src/components/settings/accounts-nav-view.tsx` で selected row を primary stripe ではなく tonal depth / border で強調する
-    - [ ] `src/components/settings/settings-modal-view.tsx` と `src/components/settings/settings-content-layout.tsx` で shell / rail / content の tonal separation を整理する
+    - [x] `src/components/settings/settings-nav-view.tsx` と `src/components/settings/accounts-nav-view.tsx` で selected row を primary stripe ではなく tonal depth / border で強調する
+    - [x] `src/components/settings/settings-modal-view.tsx` と `src/components/settings/settings-content-layout.tsx` で shell / rail / content の tonal separation を整理する
     - [ ] `src/components/settings/settings-modal-view.tsx` の outer shell と account section の rounded 値を shell / section の役割に沿って整理する
-    - [ ] `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx` で summary cards と bulk actions の優先度を分離する
-    - [ ] `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx` で row selection と inline actions の強さを整理する
-    - [ ] `src/components/feed-cleanup/feed-cleanup-review-panel.tsx` と必要なら `src/components/shared/feed-detail-panel.tsx` で review 面の primary action を主ボタンとして見えるようにする
+    - [x] `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx` で summary cards と bulk actions の優先度を分離する
+    - [x] `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx` で row selection と inline actions の強さを整理する
+    - [x] `src/components/feed-cleanup/feed-cleanup-review-panel.tsx` と必要なら `src/components/shared/feed-detail-panel.tsx` で review 面の primary action を主ボタンとして見えるようにする
 
 ## Deferred Follow-ups
 
