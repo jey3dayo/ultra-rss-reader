@@ -16,7 +16,6 @@ type WorkspaceHeaderProps = {
 };
 
 const MAC_OVERLAY_DRAG_REGION_WIDTH = 72;
-const MAC_OVERLAY_CONTENT_START = 52;
 
 export const workspaceHeaderActionClassName =
   "h-7 rounded-[min(var(--radius-md),12px)] border border-border/60 font-sans text-[0.8rem] font-normal text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground";
@@ -65,6 +64,7 @@ export function WorkspaceHeader({
     }) ||
     (hasRuntime && platformKind === "unknown" && looksLikeMacPlatform());
   const hasBackAction = Boolean(backLabel && onBack);
+  const isDesktopApp = hasRuntime;
 
   return (
     <div
@@ -81,23 +81,21 @@ export function WorkspaceHeader({
         />
       ) : null}
       <div data-testid="workspace-header-body" className="flex flex-col gap-4">
-        <div data-testid="workspace-header-top-row" className="flex items-center justify-between gap-4">
-          <div
-            data-testid="workspace-header-leading"
-            className="flex min-w-0 items-center gap-2"
-            style={useDesktopOverlay ? { marginLeft: `${MAC_OVERLAY_CONTENT_START}px` } : undefined}
-          >
+        <div data-testid="workspace-header-top-row" className="flex min-h-7 items-center justify-between gap-4">
+          <div data-testid="workspace-header-leading" className="flex min-w-0 items-center gap-2">
             {hasBackAction ? (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className={`${workspaceHeaderActionClassName} w-7 justify-center px-0`}
-                style={{ backgroundColor: "var(--workspace-header-action-surface)" }}
-                aria-label={backLabel}
-                onClick={onBack}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
+              isBrowserPreview ? (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className={`${workspaceHeaderActionClassName} w-7 justify-center px-0`}
+                  style={{ backgroundColor: "var(--workspace-header-action-surface)" }}
+                  aria-label={backLabel}
+                  onClick={onBack}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              ) : null
             ) : null}
             {isBrowserPreview ? (
               <p className="font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase">
@@ -120,16 +118,36 @@ export function WorkspaceHeader({
           </div>
         </div>
         <div data-testid="workspace-header-title-group" className="min-w-0 space-y-2 pb-1">
-          {!isBrowserPreview ? (
+          {isDesktopApp ? (
             <div data-testid="workspace-header-context-row" className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
               <p className="font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase">
                 {eyebrow}
               </p>
             </div>
           ) : null}
-          <h1 className="font-sans text-[1.65rem] leading-none font-normal tracking-[-0.04em] text-foreground">
-            {title}
-          </h1>
+          {isDesktopApp ? (
+            <div data-testid="workspace-header-navigation-row" className="flex min-w-0 items-center gap-2.5">
+              {hasBackAction ? (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className={`${workspaceHeaderActionClassName} w-7 justify-center px-0`}
+                  style={{ backgroundColor: "var(--workspace-header-action-surface)" }}
+                  aria-label={backLabel}
+                  onClick={onBack}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              ) : null}
+              <h1 className="font-sans text-[1.65rem] leading-none font-normal tracking-[-0.04em] text-foreground">
+                {title}
+              </h1>
+            </div>
+          ) : (
+            <h1 className="font-sans text-[1.65rem] leading-none font-normal tracking-[-0.04em] text-foreground">
+              {title}
+            </h1>
+          )}
           <p className="max-w-2xl font-serif text-[0.95rem] leading-6 text-foreground-soft">{subtitle}</p>
         </div>
       </div>

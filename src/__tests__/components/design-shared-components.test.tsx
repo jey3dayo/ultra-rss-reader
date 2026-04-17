@@ -65,9 +65,7 @@ describe("Design-themed shared components", () => {
     expect(screen.getByTestId("workspace-header-body").parentElement).toHaveStyle({
       backgroundColor: "var(--workspace-header-surface)",
     });
-    expect(screen.getByTestId("workspace-header-leading")).toHaveStyle({
-      marginLeft: "52px",
-    });
+    expect(screen.getByTestId("workspace-header-drag-region")).toHaveAttribute("data-tauri-drag-region");
 
     Object.defineProperty(window.navigator, "platform", {
       configurable: true,
@@ -131,12 +129,10 @@ describe("Design-themed shared components", () => {
     );
 
     const backButton = screen.getByRole("button", { name: "戻る" });
+    const titleGroup = screen.getByTestId("workspace-header-title-group");
 
     expect(backButton).toHaveStyle({
       backgroundColor: "var(--workspace-header-action-surface)",
-    });
-    expect(screen.getByTestId("workspace-header-leading")).toHaveStyle({
-      marginLeft: "52px",
     });
     expect(screen.getByTestId("workspace-header-drag-region")).toHaveAttribute("data-tauri-drag-region");
     expect(screen.getByTestId("workspace-header-drag-region")).toHaveStyle({
@@ -144,9 +140,10 @@ describe("Design-themed shared components", () => {
     });
     expect(backButton).not.toHaveClass("rounded-full");
     expect(backButton).toHaveAttribute("aria-label", "戻る");
+    expect(within(titleGroup).getByRole("button", { name: "戻る" })).toBeInTheDocument();
   });
 
-  it("separates the top action row from the heading section", () => {
+  it("moves desktop back navigation into the title row", () => {
     window.__TAURI_INTERNALS__ = {} as typeof window.__TAURI_INTERNALS__;
     usePlatformStore.setState({
       platform: {
@@ -179,11 +176,12 @@ describe("Design-themed shared components", () => {
     const titleGroup = screen.getByTestId("workspace-header-title-group");
     const actionsRow = screen.getByTestId("workspace-header-actions");
     const topRow = screen.getByTestId("workspace-header-top-row");
+    const navigationRow = screen.getByTestId("workspace-header-navigation-row");
 
     expect(within(actionsRow).getByRole("button", { name: "閉じる" })).toBeInTheDocument();
-    expect(within(topRow).getByRole("button", { name: "戻る" })).toBeInTheDocument();
     expect(within(titleGroup).getByText("Workspace")).toBeInTheDocument();
-    expect(within(topRow).queryByText("Workspace")).toBeNull();
+    expect(within(topRow).queryByRole("button", { name: "戻る" })).toBeNull();
+    expect(within(navigationRow).getByRole("button", { name: "戻る" })).toBeInTheDocument();
     expect(within(titleGroup).getByRole("heading", { name: "購読一覧" })).toBeInTheDocument();
   });
 
@@ -217,10 +215,8 @@ describe("Design-themed shared components", () => {
       />,
     );
 
-    expect(screen.getByTestId("workspace-header-leading")).not.toHaveStyle({
-      marginLeft: "52px",
-    });
     expect(screen.queryByTestId("workspace-header-drag-region")).toBeNull();
+    expect(screen.getByTestId("workspace-header-navigation-row")).toBeInTheDocument();
   });
 
   it("shows the eyebrow inline with the back action in browser preview mode", () => {
@@ -242,5 +238,6 @@ describe("Design-themed shared components", () => {
     expect(within(topRow).getByRole("button", { name: "戻る" })).toBeInTheDocument();
     expect(within(topRow).getByText("Workspace")).toBeInTheDocument();
     expect(within(titleGroup).queryByText("Workspace")).toBeNull();
+    expect(screen.queryByTestId("workspace-header-navigation-row")).toBeNull();
   });
 });
