@@ -69,4 +69,12 @@ describe("DebugSettings", () => {
     expect(useUiStore.getState().contentMode).toBe("browser");
     expect(useUiStore.getState().settingsOpen).toBe(false);
   });
+
+  it("keeps long debug action labels on one line", () => {
+    render(<DebugSettings />, { wrapper: createWrapper() });
+
+    expect(screen.getByText("Open web preview geometry check")).toHaveClass("whitespace-nowrap");
+    expect(screen.getByText("Open feed cleanup broken references")).toHaveClass("whitespace-nowrap");
+    expect(screen.getByText("Open reading display mode settings")).toHaveClass("whitespace-nowrap");
+  });
 });

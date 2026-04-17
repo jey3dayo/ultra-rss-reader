@@ -54,6 +54,8 @@ export type SettingsPageActionControl = {
   actionLabel: string;
   onAction: () => void;
   disabled?: boolean;
+  rowClassName?: string;
+  labelClassName?: string;
 };
 
 export type SettingsPageControl =

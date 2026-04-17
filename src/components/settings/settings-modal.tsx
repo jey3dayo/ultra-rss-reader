@@ -62,11 +62,13 @@ function SnapshotBackedAccountDetail({
 }
 
 function SettingsContent({
+  devBuild,
   settingsAddAccount,
   settingsCategory,
   selectedAccount,
   onAccountDeleted,
 }: Omit<SettingsContentProps, "settingsAccountId"> & {
+  devBuild: boolean;
   selectedAccount?: AccountDto;
   onAccountDeleted: (accountId: string) => void;
 }) {
@@ -95,7 +97,7 @@ function SettingsContent({
     case "data":
       return <DataSettings />;
     case "debug":
-      return <DebugSettings />;
+      return devBuild ? <DebugSettings /> : <GeneralSettings />;
     default:
       return <GeneralSettings />;
   }
@@ -103,6 +105,7 @@ function SettingsContent({
 
 export function SettingsModal() {
   const { t } = useTranslation("settings");
+  const devBuild = import.meta.env.DEV;
   const settingsOpen = useUiStore((s) => s.settingsOpen);
   const settingsCategory = useUiStore((s) => s.settingsCategory);
   const settingsAccountId = useUiStore((s) => s.settingsAccountId);
@@ -147,6 +150,14 @@ export function SettingsModal() {
       return next.length === current.length ? current : next;
     });
   }, [accounts, deletedAccountIds]);
+
+  useEffect(() => {
+    if (import.meta.env.DEV || settingsCategory !== "debug") {
+      return;
+    }
+
+    setSettingsCategory("general");
+  }, [setSettingsCategory, settingsCategory]);
 
   useEffect(() => {
     if (settingsCategory !== "accounts" || !visibleAccounts) {
@@ -209,12 +220,14 @@ export function SettingsModal() {
     accounts: visibleAccounts,
     content: (
       <SettingsContent
+        devBuild={devBuild}
         settingsAddAccount={settingsAddAccount}
         settingsCategory={settingsCategory}
         selectedAccount={selectedVisibleAccount}
         onAccountDeleted={handleAccountDeleted}
       />
     ),
+    devBuild,
     closeSettings,
     openSettings,
     setSettingsCategory,

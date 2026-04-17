@@ -61,7 +61,11 @@ function SettingsPageTextRow({ control }: SettingsPageTextRowProps) {
 
 function SettingsPageActionRow({ control }: SettingsPageActionRowProps) {
   return (
-    <LabeledControlRow label={control.label} className="gap-4">
+    <LabeledControlRow
+      label={control.label}
+      className={control.rowClassName ?? "gap-4"}
+      labelClassName={control.labelClassName}
+    >
       <Button
         type="button"
         variant="outline"

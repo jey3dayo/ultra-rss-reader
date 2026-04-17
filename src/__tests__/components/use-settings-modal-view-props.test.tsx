@@ -26,6 +26,7 @@ describe("useSettingsModalViewProps", () => {
   it("orders settings categories by expected usage frequency", () => {
     const viewProps = useSettingsModalViewProps({
       t,
+      devBuild: true,
       settingsOpen: true,
       settingsCategory: "general",
       settingsAccountId: null,
@@ -52,6 +53,38 @@ describe("useSettingsModalViewProps", () => {
       "Actions & Sharing",
       "Data Management",
       "Debug",
+    ]);
+  });
+
+  it("omits the debug category outside development builds", () => {
+    const viewProps = useSettingsModalViewProps({
+      t,
+      devBuild: false,
+      settingsOpen: true,
+      settingsCategory: "general",
+      settingsAccountId: null,
+      settingsAddAccount: false,
+      settingsLoading: false,
+      accounts: [],
+      content: <div>Settings content</div>,
+      closeSettings: vi.fn(),
+      openSettings: vi.fn(),
+      setSettingsCategory: vi.fn(),
+      setSettingsAccountId: vi.fn(),
+      setSettingsAddAccount: vi.fn(),
+    });
+
+    render(viewProps.navigation);
+
+    expect(screen.getAllByRole("button").map((button) => button.textContent?.trim())).toEqual([
+      "General",
+      "Reading",
+      "Appearance",
+      "Mute",
+      "Tags",
+      "Shortcuts",
+      "Actions & Sharing",
+      "Data Management",
     ]);
   });
 });

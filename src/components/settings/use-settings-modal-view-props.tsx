@@ -10,6 +10,7 @@ import type { SettingsCategory } from "@/stores/ui-store";
 
 type UseSettingsModalViewPropsParams = {
   t: TFunction<"settings">;
+  devBuild: boolean;
   settingsOpen: boolean;
   settingsCategory: SettingsCategory;
   settingsAccountId: string | null;
@@ -38,6 +39,7 @@ const settingsCategoryByNavId: Record<string, SettingsCategory> = {
 
 export function useSettingsModalViewProps({
   t,
+  devBuild,
   settingsOpen,
   settingsCategory,
   settingsAccountId,
@@ -100,13 +102,16 @@ export function useSettingsModalViewProps({
       icon: <Database className="h-5 w-5" />,
       isActive: settingsCategory === "data" && !settingsAccountId && !settingsAddAccount,
     },
-    {
+  ];
+
+  if (devBuild) {
+    navItems.push({
       id: "debug",
       label: t("nav.debug"),
       icon: <Bug className="h-5 w-5" />,
       isActive: settingsCategory === "debug" && !settingsAccountId && !settingsAddAccount,
-    },
-  ];
+    });
+  }
 
   const accountItems: AccountNavItem[] = (accounts ?? []).map((account) => ({
     id: account.id,

@@ -495,6 +495,7 @@ describe("SettingsModal", () => {
 
   it("shows the debug category in navigation", async () => {
     const user = userEvent.setup();
+    vi.stubEnv("DEV", true);
 
     render(<SettingsModal />, { wrapper: createWrapper() });
 
@@ -502,6 +503,31 @@ describe("SettingsModal", () => {
 
     expect(screen.getByRole("button", { name: "Debug" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Show layout HUD" })).toBeInTheDocument();
+  });
+
+  it("hides the debug category in navigation outside development builds", () => {
+    vi.stubEnv("DEV", false);
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    expect(screen.queryByRole("button", { name: "Debug" })).not.toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Show Unread" })).toBeInTheDocument();
+  });
+
+  it("falls back to general settings when debug is selected outside development builds", async () => {
+    vi.stubEnv("DEV", false);
+    useUiStore.setState(useUiStore.getInitialState());
+    useUiStore.getState().openSettings("debug");
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().settingsCategory).toBe("general");
+    });
+
+    expect(screen.queryByRole("button", { name: "Debug" })).not.toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Show Unread" })).toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "Show layout HUD" })).not.toBeInTheDocument();
   });
 
   it("shows default enabled states in actions settings when preferences are unset", () => {
