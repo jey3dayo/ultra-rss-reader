@@ -101,11 +101,11 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
           }
         />
 
-        <div className="mt-3.5 border-t border-border/20 pt-1.5">
+        <div className="mt-4 border-t border-border/20 pt-3">
           <ArticleTagChips articleId={article.id} />
         </div>
 
-        <div className="mt-5.5" ref={setContentContainerElement}>
+        <div className="mt-7" ref={setContentContainerElement}>
           <ArticleContentView thumbnailUrl={article.thumbnail} contentHtml={articleContentHtml} feedName={feedName} />
         </div>
       </article>

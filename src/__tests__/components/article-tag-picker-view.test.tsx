@@ -39,7 +39,9 @@ describe("ArticleTagPickerView", () => {
     const addTagButton = screen.getByRole("button", { name: "Add tag" });
     expect(removeButton).toHaveClass("size-4");
     expect(screen.queryByText("Tags")).not.toBeInTheDocument();
-    expect(addTagButton).toHaveClass("size-7");
+    expect(addTagButton).toHaveClass("size-8");
+    expect(addTagButton).toHaveClass("border");
+    expect(addTagButton).toHaveClass("bg-surface-1/55");
     expect(addTagButton).toHaveClass("text-foreground-soft");
     expect(screen.getByRole("listbox", { name: "Available tags" })).toHaveClass(
       "rounded-lg",
