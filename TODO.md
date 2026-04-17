@@ -494,8 +494,9 @@
   - backend 側の provider kind、認証、同期分岐、GReader provider、UI 公開、AppId / AppKey の設定導線は実装済み
   - 残タスクは実在アカウントでの接続テスト、同期、設定保存、資格情報保持の確認
   - リリース前チェックでは [docs/release-manual-verification.md](/Users/t00114/src/github.com/jey3dayo/ultra-rss-reader/docs/release-manual-verification.md) に沿って扱う
-- [ ] Feedly のアカウント登録対応を別 provider 実装として見積もる
+- [ ] Feedly のアカウント登録対応は issue #24 を参照する
   - 現行の Local / GReader 前提の実装にそのままは乗らず、認証と同期を別 provider として増やす前提で扱う
+  - 調査・スコープ・非対象は issue #24 に集約し、着手時はそこから再開する
 - [ ] DB migration recovery の追加 hardening は migration 変更時に issue #23 を参照する
   - 常設 TODO ではなく、次に migration を触るタイミングでまとめて扱う
   - 失敗系テストや復旧手順の補強は issue #23 に集約する
