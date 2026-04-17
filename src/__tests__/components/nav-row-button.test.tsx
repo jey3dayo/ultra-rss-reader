@@ -18,6 +18,7 @@ describe("NavRowButton", () => {
     const button = screen.getByRole("button", { name: /Primary row/i });
 
     expect(button).toHaveClass("bg-sidebar-accent");
+    expect(button).toHaveClass("shadow-[var(--sidebar-selection-inset-shadow)]");
     expect(screen.getByText("Secondary text")).toBeInTheDocument();
     expect(screen.getByText("L")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
