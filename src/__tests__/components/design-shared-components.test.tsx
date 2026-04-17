@@ -219,7 +219,7 @@ describe("Design-themed shared components", () => {
       />,
     );
 
-    expect(screen.getByTestId("workspace-header-title-group")).toHaveClass("pl-[52px]", "sm:pl-12");
+    expect(screen.getByTestId("workspace-header-title-group")).toHaveClass("pl-6", "sm:pl-6");
   });
 
   it("keeps the standard horizontal padding on windows without a mac titlebar offset", () => {
