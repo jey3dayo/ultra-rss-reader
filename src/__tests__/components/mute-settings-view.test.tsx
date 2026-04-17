@@ -104,6 +104,7 @@ describe("MuteSettingsView", () => {
     expect(screen.getByTestId("mute-settings-add-row")).toHaveClass("sm:min-w-[30rem]", "sm:justify-end");
     expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveClass("sm:w-[220px]");
     expect(screen.getByRole("combobox", { name: "Mute scope" })).toHaveClass("sm:w-[192px]");
-    expect(screen.getByRole("combobox", { name: "Saved scope" })).toHaveClass("sm:w-[192px]");
+    expect(screen.getByRole("combobox", { name: "Saved scope" })).toHaveClass("h-10", "sm:flex-1");
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("h-10", "px-4");
   });
 });

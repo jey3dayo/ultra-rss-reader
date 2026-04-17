@@ -37,7 +37,7 @@
     - [ ] debug HUD / destructive dialog footer story の外枠を shell example として扱うか確認する
       - 対象: `src/__tests__/components/debug-hud-frame.test.tsx`, `src/components/shared/destructive-dialog-footer.stories.tsx`
       - `rounded-2xl` を使っているが、 distinct shell role として残すか、 catalog 上の例外として切り分けるかを決める
-      - 状況: `destructive-dialog-footer.stories.tsx` は shell example と明示済み。残りは debug HUD 側の扱い確認
+      - 状況: `destructive-dialog-footer.stories.tsx` と `debug-hud-frame.stories.tsx` は shell example と明示済み
   - 2026-04-17 分類メモ:
     - [ ] `browser-overlay-shell` / `browser-overlay-top-rail` は `shell role`、`browser-overlay-scrim` は `feature-local exception` として固定する
       - 対象: `src/components/reader/browser-view.tsx`

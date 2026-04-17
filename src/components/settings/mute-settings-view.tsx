@@ -157,14 +157,14 @@ export function MuteSettingsView({
                 label={rule.keyword}
                 labelClassName="sm:max-w-[280px] sm:shrink-0 sm:truncate"
               >
-                <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[18rem] sm:flex-row sm:items-center sm:justify-end">
+                <div className="flex w-full flex-col gap-2 sm:max-w-[30rem] sm:flex-row sm:items-center sm:justify-end">
                   <Select
                     value={rule.scope}
                     onValueChange={(value) => value && onRuleScopeChange(rule.id, value as typeof rule.scope)}
                   >
                     <SelectTrigger
                       aria-label={savedScopeAriaLabel(rule.keyword)}
-                      className="h-7 w-full text-[0.8rem] sm:w-[192px]"
+                      className="h-10 w-full sm:flex-1"
                     >
                       <SelectValue>
                         {(selectedValue: string | null) => getScopeLabel(scopeOptions, selectedValue ?? rule.scope)}
@@ -181,8 +181,7 @@ export function MuteSettingsView({
                   <Button
                     type="button"
                     variant="outline"
-                    size="sm"
-                    className="sm:flex-none"
+                    className="h-10 px-4 sm:flex-none"
                     onClick={() => onRequestDelete(rule.id)}
                   >
                     {deleteLabel}
