@@ -201,6 +201,7 @@
   --subscriptions-summary-active-ring-stale: color-mix(in srgb, var(--color-state-warning-border) 45%, transparent);
   --subscriptions-summary-active-ring-danger: color-mix(in srgb, var(--color-state-danger-border) 50%, transparent);
   --subscriptions-summary-active-chip-shadow: 0 0 0 1px rgba(38, 37, 30, 0.08);
+  --subscriptions-summary-badge-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
   --control-chip-pressed-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 60%, transparent);
   --subscriptions-workspace-surface: rgba(247, 247, 244, 0.58);
   --subscriptions-workspace-shadow: 0 14px 34px -30px rgba(38, 37, 30, 0.14);
@@ -216,6 +217,12 @@
   --workspace-header-surface: rgba(242, 241, 237, 0.88);
   --workspace-header-action-surface: rgba(247, 247, 244, 0.76);
   --reader-toolbar-surface: rgba(242, 241, 237, 0.82);
+  --feed-tree-active-folder-surface: color-mix(in srgb, var(--color-sidebar-accent) 32%, transparent);
+  --feed-tree-drop-target-surface: color-mix(in srgb, var(--color-sidebar-accent) 52%, transparent);
+  --feed-tree-review-frame-surface: color-mix(in srgb, var(--color-sidebar) 80%, transparent);
+  --feed-tree-review-frame-border: color-mix(in srgb, var(--color-sidebar-border) 30%, transparent);
+  --feed-tree-unfoldered-rail-surface: color-mix(in srgb, var(--color-sidebar-border) 30%, transparent);
+  --feed-tree-drag-overlay-shadow: var(--shadow-elevation-2);
   --state-warning-surface: rgba(255, 251, 235, 0.78);
   --state-warning-border: rgba(251, 191, 36, 0.28);
   --state-warning-foreground: rgb(120, 53, 15);
@@ -229,6 +236,12 @@
   --tone-starred: #facc15;
   --tag-color-selected-shadow: 0 0 0 1px rgba(242, 241, 237, 0.88), 0 0 0 3px rgba(245, 78, 0, 0.16);
   --tag-color-check-shadow: 0 1px 2px rgba(38, 37, 30, 0.45);
+  --gradient-switch-track-on: var(--color-ring);
+  --gradient-switch-track-off: var(--color-gray-600);
+  --gradient-switch-track-shadow: inset 0 1.5px 2px rgba(0, 0, 0, 0.75);
+  --gradient-switch-track-outline: rgba(255, 255, 255, 0.15);
+  --gradient-switch-thumb-shadow:
+    0 0 1px 1px rgba(0, 0, 0, 0.25), 0 1px 1px rgba(0, 0, 0, 0.25), 1px 2px 4px -1px rgba(0, 0, 0, 0.25);
   --tone-foreground-strength: 72%;
   --tone-surface-strength: 18%;
   --state-review-surface: rgba(245, 78, 0, 0.08);
@@ -391,6 +404,7 @@
   --subscriptions-summary-active-ring-stale: color-mix(in srgb, var(--color-state-warning-border) 45%, transparent);
   --subscriptions-summary-active-ring-danger: color-mix(in srgb, var(--color-state-danger-border) 50%, transparent);
   --subscriptions-summary-active-chip-shadow: 0 0 0 1px rgba(243, 239, 230, 0.08);
+  --subscriptions-summary-badge-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
   --control-chip-pressed-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 60%, transparent);
   --subscriptions-workspace-surface: rgba(34, 30, 25, 0.5);
   --subscriptions-workspace-shadow: 0 16px 38px -34px rgba(0, 0, 0, 0.24);
@@ -406,6 +420,12 @@
   --workspace-header-surface: rgba(28, 25, 21, 0.88);
   --workspace-header-action-surface: rgba(34, 30, 25, 0.76);
   --reader-toolbar-surface: rgba(28, 25, 21, 0.82);
+  --feed-tree-active-folder-surface: color-mix(in srgb, var(--color-sidebar-accent) 28%, transparent);
+  --feed-tree-drop-target-surface: color-mix(in srgb, var(--color-sidebar-accent) 46%, transparent);
+  --feed-tree-review-frame-surface: color-mix(in srgb, var(--color-sidebar) 80%, transparent);
+  --feed-tree-review-frame-border: color-mix(in srgb, var(--color-sidebar-border) 30%, transparent);
+  --feed-tree-unfoldered-rail-surface: color-mix(in srgb, var(--color-sidebar-border) 30%, transparent);
+  --feed-tree-drag-overlay-shadow: var(--shadow-elevation-2);
   --state-warning-surface: rgba(245, 158, 11, 0.1);
   --state-warning-border: rgba(245, 158, 11, 0.3);
   --state-warning-foreground: rgb(254, 243, 199);
@@ -419,6 +439,12 @@
   --tone-starred: #facc15;
   --tag-color-selected-shadow: 0 0 0 1px rgba(34, 30, 25, 0.92), 0 0 0 3px rgba(245, 78, 0, 0.22);
   --tag-color-check-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --gradient-switch-track-on: var(--color-ring);
+  --gradient-switch-track-off: var(--color-gray-600);
+  --gradient-switch-track-shadow: inset 0 1.5px 2px rgba(0, 0, 0, 0.75);
+  --gradient-switch-track-outline: rgba(255, 255, 255, 0.15);
+  --gradient-switch-thumb-shadow:
+    0 0 1px 1px rgba(0, 0, 0, 0.25), 0 1px 1px rgba(0, 0, 0, 0.25), 1px 2px 4px -1px rgba(0, 0, 0, 0.25);
   --tone-foreground-strength: 78%;
   --tone-surface-strength: 22%;
   --state-review-surface: rgba(245, 78, 0, 0.14);

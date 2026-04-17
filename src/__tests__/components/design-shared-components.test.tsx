@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ControlChipButton } from "@/components/shared/control-chip-button";
+import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { LabelChip } from "@/components/shared/label-chip";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { SectionHeading } from "@/components/shared/section-heading";
@@ -87,6 +88,7 @@ describe("Design-themed shared components", () => {
       <>
         <NavRowButton title="General settings" />
         <ControlChipButton pressed>Unread</ControlChipButton>
+        <GradientSwitch checked={true} aria-label="Live preview" />
         <LabelChip tone="muted">Muted chip</LabelChip>
       </>,
     );
@@ -102,6 +104,12 @@ describe("Design-themed shared components", () => {
       "data-[pressed]:bg-surface-4",
       "data-[pressed]:border-border-strong",
       "data-[pressed]:shadow-[var(--control-chip-pressed-shadow)]",
+    );
+    expect(screen.getByRole("switch", { name: "Live preview" })).toHaveClass(
+      "bg-[linear-gradient(to_right,var(--gradient-switch-track-on)_35%,var(--gradient-switch-track-off)_65%)]",
+    );
+    expect(screen.getByRole("switch", { name: "Live preview" })).toHaveClass(
+      "shadow-[var(--gradient-switch-track-shadow)]",
     );
     expect(screen.getByText("Muted chip")).toHaveAttribute("data-label-chip", "muted");
     expect(screen.getByText("Muted chip")).toHaveClass("text-foreground-soft");
