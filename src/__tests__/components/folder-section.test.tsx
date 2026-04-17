@@ -61,7 +61,7 @@ describe("FolderSectionView", () => {
     expect(trigger).toHaveClass("hover:bg-sidebar-accent/28");
     expect(screen.getByText("12")).toHaveClass("text-foreground-soft");
     expect(feedButton).toHaveClass("bg-[var(--bg-selected)]");
-    expect(feedButton).toHaveClass("before:bg-primary");
+    expect(feedButton).toHaveClass("before:bg-border-strong");
     expect(feedButton).toHaveClass("min-h-9");
     expect(feedButton).not.toHaveAttribute("aria-haspopup");
     expect(container.querySelector('[data-slot="collapsible-content"]')).not.toBeNull();
