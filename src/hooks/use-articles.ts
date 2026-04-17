@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import type { QueryClient } from "@tanstack/react-query";
+import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type ArticleDto,
@@ -92,9 +92,23 @@ function findCachedArticle(qc: QueryClient, articleId: string): ArticleDto | nul
   return null;
 }
 
+function resolveAccountQueryKeysForArticle(qc: QueryClient, feedId: string): QueryKey[] {
+  return qc.getQueriesData<unknown>({ queryKey: ["feeds"] }).flatMap(([queryKey, data]) => {
+    if (!Array.isArray(data)) {
+      return [];
+    }
+
+    const belongsToQuery = data.some(
+      (candidate) => candidate && typeof candidate === "object" && "id" in candidate && candidate.id === feedId,
+    );
+
+    return belongsToQuery ? [queryKey] : [];
+  });
+}
+
 function updateCachedArticleArray(current: unknown, nextArticle: ArticleDto, options?: { insertIfMissing?: boolean }) {
   if (!Array.isArray(current)) {
-    return current;
+    return options?.insertIfMissing ? [nextArticle] : current;
   }
 
   let found = false;
@@ -121,17 +135,47 @@ function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred
   }
 
   const nextArticle = { ...cachedArticle, is_starred: starred };
+  const accountQueryKeys = resolveAccountQueryKeysForArticle(qc, cachedArticle.feed_id);
 
   qc.setQueriesData({ queryKey: ["articles"] }, (current) => updateCachedArticleArray(current, nextArticle));
-  qc.setQueriesData({ queryKey: ["accountArticles"] }, (current) =>
-    updateCachedArticleArray(current, nextArticle, { insertIfMissing: true }),
-  );
   qc.setQueriesData({ queryKey: ["articlesByTag"] }, (current) => updateCachedArticleArray(current, nextArticle));
   qc.setQueriesData({ queryKey: ["search"] }, (current) => updateCachedArticleArray(current, nextArticle));
 
+  if (accountQueryKeys.length > 0) {
+    for (const queryKey of accountQueryKeys) {
+      const [, accountId] = queryKey;
+      qc.setQueryData(["accountArticles", accountId], (current: unknown) =>
+        updateCachedArticleArray(current, nextArticle, { insertIfMissing: true }),
+      );
+      qc.setQueryData(["starredArticles", accountId], (current: unknown) => {
+        if (!Array.isArray(current)) {
+          return starred ? [nextArticle] : [];
+        }
+
+        const starredArticles = current.filter(isArticleDto);
+        const hasArticle = starredArticles.some((article) => article.id === articleId);
+
+        if (!starred) {
+          return starredArticles.filter((article) => article.id !== articleId);
+        }
+
+        if (hasArticle) {
+          return starredArticles.map((article) => (article.id === articleId ? nextArticle : article));
+        }
+
+        return [nextArticle, ...starredArticles];
+      });
+    }
+    return;
+  }
+
+  qc.setQueriesData({ queryKey: ["accountArticles"] }, (current) =>
+    updateCachedArticleArray(current, nextArticle, { insertIfMissing: true }),
+  );
+
   qc.setQueriesData({ queryKey: ["starredArticles"] }, (current: unknown) => {
     if (!Array.isArray(current)) {
-      return current;
+      return starred ? [nextArticle] : [];
     }
 
     const starredArticles = current.filter(isArticleDto);
