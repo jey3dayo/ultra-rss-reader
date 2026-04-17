@@ -43,23 +43,21 @@ function DialogClose({ ...props }: DialogCloseProps) {
 function getDialogOverlayPresetClass(preset: DialogOverlayPreset) {
   switch (preset) {
     case "readable":
-      return "bg-dialog-overlay-readable supports-backdrop-filter:backdrop-blur-none";
+      return "bg-dialog-overlay-readable bg-dialog-scrim-readable supports-backdrop-filter:backdrop-blur-none";
     default:
-      return "bg-dialog-overlay supports-backdrop-filter:backdrop-blur-sm";
+      return "bg-dialog-overlay bg-dialog-scrim supports-backdrop-filter:backdrop-blur-sm";
   }
 }
 
 function DialogOverlay({ className, ...props }: DialogOverlayProps) {
-  return (
-    <DialogPrimitive.Backdrop
-      data-slot="dialog-overlay"
-      className={cn(
-        "fixed inset-0 isolate z-50 duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
-        className,
-      )}
-      {...props}
-    />
-  );
+  const overlayClassName = [
+    "fixed inset-0 isolate z-50 duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return <DialogPrimitive.Backdrop data-slot="dialog-overlay" className={overlayClassName} {...props} />;
 }
 
 function DialogContent({
@@ -70,9 +68,13 @@ function DialogContent({
   overlayClassName,
   ...props
 }: DialogContentProps) {
+  const resolvedOverlayClassName = [getDialogOverlayPresetClass(overlayPreset), overlayClassName]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <DialogPortal>
-      <DialogOverlay className={cn(getDialogOverlayPresetClass(overlayPreset), overlayClassName)} />
+      <DialogOverlay className={resolvedOverlayClassName} />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(

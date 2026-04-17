@@ -250,6 +250,10 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-content-shell")).toHaveStyle({
       backgroundColor: "var(--settings-shell-content)",
     });
+    expect(document.querySelector('[data-slot="dialog-overlay"]')).toHaveClass(
+      "bg-dialog-overlay-readable",
+      "bg-dialog-scrim-readable",
+    );
   });
 
   it("stacks the navigation above the content on narrow screens", () => {

@@ -98,7 +98,7 @@ describe("Design-themed UI primitives", () => {
 
     const overlay = document.querySelector('[data-slot="dialog-overlay"]');
 
-    expect(overlay).toHaveClass("bg-dialog-overlay", "supports-backdrop-filter:backdrop-blur-sm");
+    expect(overlay).toHaveClass("bg-dialog-overlay", "bg-dialog-scrim", "supports-backdrop-filter:backdrop-blur-sm");
     expect(globalCss).toContain("--color-dialog-overlay: var(--dialog-overlay);");
     expect(globalCss).toContain("--dialog-overlay: rgba(38, 37, 30, 0.18);");
     expect(globalCss).toContain(":root.dark {");
@@ -130,7 +130,11 @@ describe("Design-themed UI primitives", () => {
 
     const overlay = document.querySelector('[data-slot="dialog-overlay"]');
 
-    expect(overlay).toHaveClass("bg-dialog-overlay-readable", "supports-backdrop-filter:backdrop-blur-none");
+    expect(overlay).toHaveClass(
+      "bg-dialog-overlay-readable",
+      "bg-dialog-scrim-readable",
+      "supports-backdrop-filter:backdrop-blur-none",
+    );
     expect(globalCss).toContain("--color-dialog-overlay-readable: var(--dialog-overlay-readable);");
     expect(globalCss).toContain("--dialog-overlay-readable: rgba(242, 241, 237, 0.6);");
     expect(globalCss).toContain("--dialog-overlay-readable: rgba(28, 25, 21, 0.72);");

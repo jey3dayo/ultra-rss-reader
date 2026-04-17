@@ -52,6 +52,8 @@
   --color-state-danger-foreground: var(--state-danger-foreground);
   --color-dialog-overlay: var(--dialog-overlay);
   --color-dialog-overlay-readable: var(--dialog-overlay-readable);
+  --color-dialog-scrim: var(--dialog-overlay);
+  --color-dialog-scrim-readable: var(--dialog-overlay-readable);
   --color-surface-1: var(--surface-1);
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
@@ -213,6 +215,8 @@
   --state-danger-foreground: rgb(159, 18, 57);
   --dialog-overlay: rgba(38, 37, 30, 0.18);
   --dialog-overlay-readable: rgba(242, 241, 237, 0.6);
+  --dialog-scrim: var(--dialog-overlay);
+  --dialog-scrim-readable: var(--dialog-overlay-readable);
   --surface-1: #f7f7f4;
   --surface-2: #f2f1ed;
   --surface-3: #ebeae5;
@@ -382,6 +386,8 @@
   --state-danger-foreground: rgb(255, 205, 217);
   --dialog-overlay: rgba(28, 25, 21, 0.6);
   --dialog-overlay-readable: rgba(28, 25, 21, 0.72);
+  --dialog-scrim: var(--dialog-overlay);
+  --dialog-scrim-readable: var(--dialog-overlay-readable);
   --surface-1: #221e19;
   --surface-2: #27231d;
   --surface-3: #2d2822;
