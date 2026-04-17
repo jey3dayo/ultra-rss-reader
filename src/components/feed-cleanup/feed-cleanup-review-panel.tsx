@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { DecisionButton } from "@/components/shared/decision-button";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { SurfaceCard } from "@/components/shared/surface-card";
-import { Button } from "@/components/ui/button";
 import { buildCleanupReasonFacts } from "@/lib/feed-cleanup";
 import { cn } from "@/lib/utils";
 import type { FeedCleanupReviewPanelProps } from "./feed-cleanup.types";
@@ -160,21 +159,33 @@ export function FeedCleanupReviewPanel({
               padding="compact"
               className="grid grid-cols-3 gap-2 rounded-lg bg-card/52 px-4 shadow-none sm:px-5"
             >
-              <Button
-                variant="default"
-                size="sm"
+              <DecisionButton
+                intent="keep"
+                size="lg"
                 aria-label={keepLabel}
                 onClick={onKeep}
-                className="w-full min-w-0 border-state-success-border bg-state-success-surface text-state-success-foreground shadow-elevation-1 hover:bg-state-success-surface hover:text-state-success-foreground"
+                className="w-full min-w-0"
               >
                 <Check className="h-4 w-4" />
                 {keepLabel}
-              </Button>
-              <DecisionButton intent="defer" aria-label={laterLabel} onClick={onLater} className="w-full min-w-0">
+              </DecisionButton>
+              <DecisionButton
+                intent="defer"
+                size="lg"
+                aria-label={laterLabel}
+                onClick={onLater}
+                className="w-full min-w-0"
+              >
                 <Clock3 className="h-4 w-4" />
                 {laterLabel}
               </DecisionButton>
-              <DecisionButton intent="delete" aria-label={deleteLabel} onClick={onDelete} className="w-full min-w-0">
+              <DecisionButton
+                intent="delete"
+                size="lg"
+                aria-label={deleteLabel}
+                onClick={onDelete}
+                className="w-full min-w-0"
+              >
                 <Trash2 className="h-4 w-4" />
                 {deleteLabel}
               </DecisionButton>

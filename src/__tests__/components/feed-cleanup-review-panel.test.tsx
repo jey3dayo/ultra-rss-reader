@@ -151,17 +151,18 @@ describe("FeedCleanupReviewPanel", () => {
       "rounded-md",
       "w-full",
       "min-w-0",
-      "h-7",
-      "px-2.5",
+      "h-9",
+      "px-3",
+      "sm:px-3.5",
       "border-state-success-border",
       "bg-state-success-surface",
-      "shadow-elevation-1",
+      "shadow-none",
     );
     expect(within(actions).getByRole("button", { name: "Defer" })).toHaveClass(
       "rounded-md",
       "w-full",
       "min-w-0",
-      "h-7",
+      "h-9",
       "px-3",
       "sm:px-3.5",
     );
@@ -169,7 +170,7 @@ describe("FeedCleanupReviewPanel", () => {
       "rounded-md",
       "w-full",
       "min-w-0",
-      "h-7",
+      "h-9",
       "px-3",
       "sm:px-3.5",
     );

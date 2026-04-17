@@ -139,6 +139,7 @@ export function FeedCleanupQueuePanel({
                   <DecisionButton
                     intent="keep"
                     aria-label={bulkKeepActionLabel}
+                    size="lg"
                     onClick={onKeepSelection}
                     disabled={!selectionRailActive}
                     className={denseDecisionButtonClassName}
@@ -149,6 +150,7 @@ export function FeedCleanupQueuePanel({
                   <DecisionButton
                     intent="defer"
                     aria-label={bulkDeferActionLabel}
+                    size="lg"
                     onClick={onDeferSelection}
                     disabled={!selectionRailActive}
                     className={denseDecisionButtonClassName}
@@ -159,6 +161,7 @@ export function FeedCleanupQueuePanel({
                   <DecisionButton
                     intent="delete"
                     aria-label={bulkDeleteActionLabel}
+                    size="lg"
                     onClick={onDeleteSelection}
                     disabled={!selectionRailActive}
                     className={denseDecisionButtonClassName}
@@ -297,6 +300,7 @@ export function FeedCleanupQueuePanel({
                       <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0">
                         <DecisionButton
                           intent="keep"
+                          size="lg"
                           className={denseDecisionButtonClassName}
                           onClick={(event) => {
                             event.stopPropagation();
@@ -308,6 +312,7 @@ export function FeedCleanupQueuePanel({
                         </DecisionButton>
                         <DecisionButton
                           intent="defer"
+                          size="lg"
                           className={denseDecisionButtonClassName}
                           onClick={(event) => {
                             event.stopPropagation();
@@ -319,6 +324,7 @@ export function FeedCleanupQueuePanel({
                         </DecisionButton>
                         <DecisionButton
                           intent="delete"
+                          size="lg"
                           className={denseDecisionButtonClassName}
                           onClick={(event) => {
                             event.stopPropagation();

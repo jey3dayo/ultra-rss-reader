@@ -105,8 +105,11 @@ describe("FeedCleanupQueuePanel", () => {
     expect(screen.getByTestId("feed-cleanup-selection-rail")).toHaveClass("rounded-md", "bg-card/52");
     expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("bg-state-success-surface");
     expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("min-w-[7.5rem]");
+    expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("h-9");
     expect(screen.getByRole("button", { name: "Defer selected" })).toHaveClass("min-w-[7.5rem]");
+    expect(screen.getByRole("button", { name: "Defer selected" })).toHaveClass("h-9");
     expect(screen.getByRole("button", { name: "Delete selected" })).toHaveClass("min-w-[7.5rem]");
+    expect(screen.getByRole("button", { name: "Delete selected" })).toHaveClass("h-9");
     expect(screen.getByRole("button", { name: "Defer selected" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete selected" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Keep selected" })).toBeEnabled();
@@ -165,8 +168,11 @@ describe("FeedCleanupQueuePanel", () => {
     expect(queueRow).toHaveClass("bg-card/52");
     expect(within(queueRow).getByRole("button", { name: "Delete" })).toBeInTheDocument();
     expect(within(queueRow).getByRole("button", { name: "Keep" })).toHaveClass("min-w-[7.5rem]");
+    expect(within(queueRow).getByRole("button", { name: "Keep" })).toHaveClass("h-9");
     expect(within(queueRow).getByRole("button", { name: "Later" })).toHaveClass("min-w-[7.5rem]");
+    expect(within(queueRow).getByRole("button", { name: "Later" })).toHaveClass("h-9");
     expect(within(queueRow).getByRole("button", { name: "Delete" })).toHaveClass("min-w-[7.5rem]");
+    expect(within(queueRow).getByRole("button", { name: "Delete" })).toHaveClass("h-9");
   });
 
   it("keeps unselected rows on a muted surface", () => {

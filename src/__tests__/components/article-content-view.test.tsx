@@ -15,7 +15,7 @@ describe("ArticleContentView", () => {
     const thumbnail = screen.getByAltText("");
     expect(thumbnail).toHaveAttribute("src", "https://example.com/thumbnail.png");
     expect(thumbnail.parentElement).toHaveClass("mb-10");
-    expect(thumbnail.parentElement).toHaveClass("rounded-md", "bg-surface-1/70");
+    expect(thumbnail.parentElement).toHaveClass("rounded-lg", "bg-surface-1/70");
     expect(screen.getByText("Hello", { exact: false })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "link" })).toHaveAttribute("href", "https://example.com");
     const prose = container.querySelector(".prose");

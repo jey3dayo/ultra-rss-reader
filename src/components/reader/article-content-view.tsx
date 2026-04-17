@@ -8,7 +8,7 @@ export function ArticleContentView({ thumbnailUrl, contentHtml, feedName }: Arti
   return (
     <>
       {thumbnailUrl && (
-        <div className="relative mb-10 aspect-[16/9] w-full overflow-hidden rounded-md bg-surface-1/70">
+        <div className="relative mb-10 aspect-[16/9] w-full overflow-hidden rounded-lg bg-surface-1/70">
           <img src={thumbnailUrl} alt="" className="h-full w-full object-cover" />
         </div>
       )}

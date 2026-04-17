@@ -69,7 +69,7 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByText("最近の記事").parentElement).toHaveClass("border-t", "pt-4");
     expect(screen.getByRole("button", { name: "購読の整理" }).parentElement).toHaveClass("border-t", "pt-4");
     expect(screen.getByRole("button", { name: "購読の整理" })).toHaveClass(
-      "h-7",
+      "h-9",
       "px-3",
       "sm:px-3.5",
       "border-border-strong",

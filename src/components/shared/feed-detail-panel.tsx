@@ -241,7 +241,7 @@ export function FeedDetailPanel({
               <Button
                 aria-label={primaryAction.ariaLabel ?? primaryAction.label}
                 variant="outline"
-                size="sm"
+                size="lg"
                 className={cn(
                   workspaceCompactActionButtonClassName,
                   "w-full border-border-strong bg-surface-1/88 text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground",
