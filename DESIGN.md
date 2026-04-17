@@ -149,6 +149,15 @@ Elevation scale:
 - Dense typography should be balanced by generous surrounding margins
 - Section separation should usually come from tone and space rather than hard dividers
 
+### Layout Stability
+
+- Important workspace layouts should keep their geometry stable as state changes. Selection, filtering, loading, and bulk-action states should usually swap content within an existing rail instead of inserting a new structural row that pushes the main list or detail view.
+- When a screen needs contextual controls such as bulk actions, filter summaries, or status messaging, prefer a persistent control rail with quieter empty or disabled states over a panel that appears and disappears. The user should feel that the interface is changing emphasis, not reflowing underneath them.
+- Distinguish the content edge from the scroll edge. The right edge of cards, list rows, headers, and control rails should align to one shared content endpoint, while scrollbar gutter and overflow clearance should be handled as a separate lane rather than by ad hoc padding nudges.
+- Border and divider responsibility should live in one place. Avoid combining a section border, an inner scroll lane, and last-mile padding adjustments in a way that creates double lines or drifting endpoints.
+- Numeric badges, counters, and rapidly changing labels should avoid jitter. Reserve enough width, use tabular figures when repeated values update in place, and keep local state changes from changing surrounding alignment.
+- Motion and feedback should reinforce continuity. Prefer opacity, tone, border, and transform changes over height or position changes that cause reflow, especially in dense workspace panels and two-pane review layouts.
+
 ### Border Radius Scale
 
 - Micro: 1.5px
