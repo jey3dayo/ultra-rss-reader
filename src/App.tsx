@@ -4,19 +4,17 @@ import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef } from "react";
 import { listAccounts, syncAccount, triggerStartupSync } from "./api/tauri-commands";
 import { AppShell } from "./components/app-shell";
-import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS } from "./constants/ui-runtime";
+import { STORAGE_KEYS } from "./constants/storage";
+import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS, STARTUP_SYNC_THROTTLE_MS } from "./constants/ui-runtime";
 import { useDevIntent } from "./hooks/use-dev-intent";
 import { useResolvedDevIntent } from "./hooks/use-resolved-dev-intent";
 import { queryClient } from "./lib/query-client";
 import { attachTauriListeners } from "./lib/tauri-event-listeners";
 import { resolvePreferenceValue, usePreferencesStore } from "./stores/preferences-store";
 
-const STARTUP_SYNC_THROTTLE_MS = 90_000;
-const STARTUP_SYNC_LAST_TRIGGERED_AT_KEY = "startup-sync-last-triggered-at";
-
 function getLastStartupSyncTriggeredAt(): number | null {
   try {
-    const rawValue = window.localStorage.getItem(STARTUP_SYNC_LAST_TRIGGERED_AT_KEY);
+    const rawValue = window.localStorage.getItem(STORAGE_KEYS.startupSyncLastTriggeredAt);
     if (!rawValue) {
       return null;
     }
@@ -35,7 +33,7 @@ function shouldThrottleStartupSync(): boolean {
 
 function markStartupSyncTriggered(): void {
   try {
-    window.localStorage.setItem(STARTUP_SYNC_LAST_TRIGGERED_AT_KEY, String(Date.now()));
+    window.localStorage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, String(Date.now()));
   } catch {
     // Ignore storage failures and fall back to process-local guarding only.
   }
