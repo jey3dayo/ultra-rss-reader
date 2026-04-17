@@ -28,6 +28,7 @@ describe("useAccountDetailSyncStatusRows", () => {
 
   it("builds retry, failure count, and last error rows in order", () => {
     const syncStatus: AccountSyncStatusDto = {
+      last_success_at: null,
       next_retry_at: "2026-04-13T10:00:00Z",
       error_count: 3,
       last_error: "Connection failed",

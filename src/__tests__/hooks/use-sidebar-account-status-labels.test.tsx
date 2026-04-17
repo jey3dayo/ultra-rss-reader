@@ -17,6 +17,7 @@ describe("useSidebarAccountStatusLabels", () => {
     setupTauriMocks((cmd, args) => {
       if (cmd === "get_account_sync_status" && args.accountId === "acc-2") {
         return {
+          last_success_at: null,
           last_error: "Network timeout",
           error_count: 2,
           next_retry_at: retryAt,
@@ -43,6 +44,7 @@ describe("useSidebarAccountStatusLabels", () => {
     setupTauriMocks((cmd, args) => {
       if (cmd === "get_account_sync_status" && args.accountId === "acc-2") {
         return {
+          last_success_at: null,
           last_error: "Network timeout",
           error_count: 2,
           next_retry_at: null,

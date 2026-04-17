@@ -1,10 +1,11 @@
 import { Result } from "@praha/byethrow";
-import { reloadBrowserWebview, restartApp, triggerSync } from "@/api/tauri-commands";
+import { reloadBrowserWebview, restartApp } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import { runManualUpdateCheck } from "@/hooks/use-updater";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import i18n from "@/lib/i18n";
 import { keyboardEvents, type ViewMode } from "@/lib/keyboard-shortcuts";
+import { triggerManualSyncWithCooldown } from "@/lib/manual-sync";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync-result-feedback";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -200,28 +201,31 @@ export function executeAction(action: AppAction): void {
 
     // --- Sync ---
     case "sync-all": {
-      store.setAppLoading(true);
-      triggerSync().then((result) => {
-        store.setAppLoading(false);
-        Result.pipe(
-          result,
-          Result.inspect((syncResult) => {
-            store.showToast(
-              resolveSyncFeedbackMessage(summarizeSyncResult(syncResult), {
-                alreadyInProgress: i18n.t("sidebar:sync_already_in_progress"),
-                partialFailure: (accounts) => i18n.t("sidebar:sync_partial_failure", { accounts }),
-                retryScheduled: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
-                retryPending: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
-                warnings: (accounts) => i18n.t("sidebar:sync_completed_with_warnings", { accounts }),
-                success: i18n.t("sidebar:sync_completed"),
-              }),
-            );
-          }),
-          Result.inspectError((e) => {
-            console.error("Menu sync failed:", e);
-            store.showToast(i18n.t("sidebar:sync_failed_with_message", { message: e.message }));
-          }),
-        );
+      void triggerManualSyncWithCooldown({
+        onRequestStart: () => {
+          store.setAppLoading(true);
+        },
+        onCooldown: () => {
+          store.showToast(i18n.t("sidebar:sync_cooldown_active"));
+        },
+        onSuccess: (syncResult) => {
+          store.setAppLoading(false);
+          store.showToast(
+            resolveSyncFeedbackMessage(summarizeSyncResult(syncResult), {
+              alreadyInProgress: i18n.t("sidebar:sync_already_in_progress"),
+              partialFailure: (accounts) => i18n.t("sidebar:sync_partial_failure", { accounts }),
+              retryScheduled: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
+              retryPending: (accounts) => i18n.t("sidebar:sync_completed_with_retry_pending", { accounts }),
+              warnings: (accounts) => i18n.t("sidebar:sync_completed_with_warnings", { accounts }),
+              success: i18n.t("sidebar:sync_completed"),
+            }),
+          );
+        },
+        onError: (e) => {
+          store.setAppLoading(false);
+          console.error("Menu sync failed:", e);
+          store.showToast(i18n.t("sidebar:sync_failed_with_message", { message: e.message }));
+        },
       });
       break;
     }

@@ -252,6 +252,7 @@ function createDefaultHandler(): MockHandler {
         return null;
       case "get_account_sync_status":
         return {
+          last_success_at: null,
           last_error: null,
           error_count: 0,
           next_retry_at: null,

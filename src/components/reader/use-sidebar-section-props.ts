@@ -8,6 +8,7 @@ export function useSidebarSectionProps({
   t,
   syncProgress,
   handleSync,
+  isSyncDisabled,
   handleAddFeed,
   selectedAccountName,
   lastSyncedLabel,
@@ -50,6 +51,7 @@ export function useSidebarSectionProps({
     t,
     syncProgress,
     handleSync,
+    isSyncDisabled,
     handleAddFeed,
   });
   const accountSectionProps = useSidebarAccountSectionProps({

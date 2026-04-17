@@ -4,6 +4,7 @@ export function useSidebarHeaderProps({
   t,
   syncProgress,
   handleSync,
+  isSyncDisabled,
   handleAddFeed,
 }: SidebarHeaderPropsParams): SidebarHeaderProps {
   return {
@@ -14,5 +15,6 @@ export function useSidebarHeaderProps({
     syncButtonText: t("sync_short"),
     addFeedButtonLabel: t("add_feed"),
     addFeedButtonText: t("add_short"),
+    isSyncDisabled,
   };
 }

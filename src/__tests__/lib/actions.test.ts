@@ -87,6 +87,8 @@ beforeEach(async () => {
       warnings: [],
     }),
   );
+  const { resetManualSyncCooldownForTests } = await import("@/lib/manual-sync");
+  resetManualSyncCooldownForTests();
   const mod = await import("@/lib/actions");
   executeAction = mod.executeAction;
   isAppAction = mod.isAppAction;
@@ -407,6 +409,25 @@ describe("executeAction", () => {
       });
 
       expect(i18nTMock).toHaveBeenCalledWith("sidebar:sync_already_in_progress");
+    });
+
+    it("uses the translated cooldown toast and skips the second sync during cooldown", async () => {
+      executeAction("sync-all");
+
+      await waitFor(() => {
+        expect(triggerSyncMock).toHaveBeenCalledTimes(1);
+      });
+
+      executeAction("sync-all");
+
+      await waitFor(() => {
+        expect(useUiStore.getState().toastMessage).toEqual({
+          message: "translated:sidebar:sync_cooldown_active",
+        });
+      });
+
+      expect(triggerSyncMock).toHaveBeenCalledTimes(1);
+      expect(i18nTMock).toHaveBeenCalledWith("sidebar:sync_cooldown_active");
     });
 
     it("uses the translated partial-failure toast with account names", async () => {

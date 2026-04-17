@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
 import * as articleHooks from "@/hooks/use-articles";
 import { formatAccountSyncRetryTime } from "@/lib/account-sync-status-format";
+import { resetManualSyncCooldownForTests } from "@/lib/manual-sync";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
@@ -33,7 +34,6 @@ const { sidebarSourceOverrides } = vi.hoisted(() => ({
 }));
 
 let syncCompletedListener: (() => void) | null = null;
-let syncSucceededListener: (() => void) | null = null;
 let syncProgressListener:
   | ((event: {
       stage: string;
@@ -63,17 +63,10 @@ vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn(
     async (
       eventName: string,
-      callback:
-        | typeof syncCompletedListener
-        | typeof syncSucceededListener
-        | typeof syncProgressListener
-        | typeof syncWarningListener,
+      callback: typeof syncCompletedListener | typeof syncProgressListener | typeof syncWarningListener,
     ) => {
       if (eventName === "sync-completed") {
         syncCompletedListener = callback as typeof syncCompletedListener;
-      }
-      if (eventName === "sync-succeeded") {
-        syncSucceededListener = callback as typeof syncSucceededListener;
       }
       if (eventName === "sync-progress") {
         syncProgressListener = callback as typeof syncProgressListener;
@@ -84,9 +77,6 @@ vi.mock("@tauri-apps/api/event", () => ({
       return () => {
         if (eventName === "sync-completed") {
           syncCompletedListener = null;
-        }
-        if (eventName === "sync-succeeded") {
-          syncSucceededListener = null;
         }
         if (eventName === "sync-progress") {
           syncProgressListener = null;
@@ -169,7 +159,6 @@ vi.mock("@/hooks/use-resolved-dev-intent", () => ({
 describe("Sidebar", () => {
   beforeEach(() => {
     syncCompletedListener = null;
-    syncSucceededListener = null;
     syncProgressListener = null;
     syncWarningListener = null;
     renderedFeedContextMenuFeeds.length = 0;
@@ -186,7 +175,12 @@ describe("Sidebar", () => {
     sidebarSourceOverrides.tagArticleCountsData = undefined;
     useUiStore.setState(useUiStore.getInitialState());
     usePreferencesStore.setState({ prefs: {}, loaded: true });
+    resetManualSyncCooldownForTests();
     setupTauriMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("keeps the sidebar in loading state and hides the add-feed CTA while the selected account feeds are unresolved", async () => {
@@ -1137,47 +1131,158 @@ describe("Sidebar", () => {
     });
   });
 
-  it("does not update last synced time when sync is skipped", async () => {
+  it("shows the previous successful sync time from account sync status on startup", async () => {
+    const lastSuccessAt = new Date().toISOString();
+
     setupTauriMocks((cmd) => {
-      if (cmd === "trigger_sync") return { synced: false, total: 0, succeeded: 0, failed: [], warnings: [] };
-      return null;
+      if (cmd === "get_account_sync_status") {
+        return {
+          last_success_at: lastSuccessAt,
+          last_error: null,
+          error_count: 0,
+          next_retry_at: null,
+        };
+      }
+      return undefined;
     });
 
     render(<Sidebar />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Today at /)).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Not synced yet")).not.toBeInTheDocument();
+  });
+
+  it("shows sync-history loading text while account sync status is unresolved", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "get_account_sync_status") {
+        return new Promise(() => {});
+      }
+      return undefined;
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    expect(screen.getByText("Checking sync history…")).toBeInTheDocument();
+    expect(screen.queryByText("Not synced yet")).not.toBeInTheDocument();
+  });
+
+  it("keeps showing the previous successful sync time when sync is skipped", async () => {
+    const lastSuccessAt = new Date().toISOString();
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "get_account_sync_status") {
+        return {
+          last_success_at: lastSuccessAt,
+          last_error: null,
+          error_count: 0,
+          next_retry_at: null,
+        };
+      }
+      if (cmd === "trigger_sync") return { synced: false, total: 0, succeeded: 0, failed: [], warnings: [] };
+      return undefined;
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await screen.findByText(/Today at /);
 
     fireEvent.click(screen.getByLabelText("Sync feeds"));
 
     await waitFor(() => {
-      expect(screen.getByText("Not synced yet")).toBeInTheDocument();
+      expect(screen.getByText(/Today at /)).toBeInTheDocument();
     });
-    expect(screen.queryByText(/Today at /)).not.toBeInTheDocument();
   });
 
-  it("does not update last synced time from sync-completed event alone", async () => {
+  it("does not replace the previous successful sync time from sync-completed event alone", async () => {
+    const lastSuccessAt = new Date().toISOString();
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "get_account_sync_status") {
+        return {
+          last_success_at: lastSuccessAt,
+          last_error: null,
+          error_count: 0,
+          next_retry_at: null,
+        };
+      }
+      return undefined;
+    });
+
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    expect(screen.getByText("Not synced yet")).toBeInTheDocument();
+    await screen.findByText(/Today at /);
     expect(syncCompletedListener).not.toBeNull();
 
     syncCompletedListener?.();
 
     await waitFor(() => {
-      expect(screen.getByText("Not synced yet")).toBeInTheDocument();
+      expect(screen.getByText(/Today at /)).toBeInTheDocument();
     });
-    expect(screen.queryByText(/Today at /)).not.toBeInTheDocument();
   });
 
-  it("updates last synced time from sync-succeeded event", async () => {
+  it("keeps showing the previous successful sync time when manual sync fails", async () => {
+    const lastSuccessAt = new Date().toISOString();
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "get_account_sync_status") {
+        return {
+          last_success_at: lastSuccessAt,
+          last_error: null,
+          error_count: 0,
+          next_retry_at: null,
+        };
+      }
+      if (cmd === "trigger_sync") {
+        throw { type: "UserVisible", message: "boom" };
+      }
+      return undefined;
+    });
+
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    expect(screen.getByText("Not synced yet")).toBeInTheDocument();
-    expect(syncSucceededListener).not.toBeNull();
+    await screen.findByText(/Today at /);
 
-    syncSucceededListener?.();
+    fireEvent.click(screen.getByLabelText("Sync feeds"));
 
     await waitFor(() => {
       expect(screen.getByText(/Today at /)).toBeInTheDocument();
     });
+  });
+
+  it("disables the sync button during the manual sync cooldown", async () => {
+    vi.useFakeTimers();
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "trigger_sync") {
+        return {
+          synced: true,
+          total: 1,
+          succeeded: 1,
+          failed: [],
+          warnings: [],
+        };
+      }
+      return undefined;
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const syncButton = screen.getByLabelText("Sync feeds");
+    expect(syncButton).not.toBeDisabled();
+
+    fireEvent.click(syncButton);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(syncButton).toBeDisabled();
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(syncButton).not.toBeDisabled();
   });
 
   it("shows a warning toast when sync completes with anomalies", async () => {
@@ -1312,6 +1417,7 @@ describe("Sidebar", () => {
     setupTauriMocks((cmd, args) => {
       if (cmd === "get_account_sync_status" && args.accountId === "acc-2") {
         return {
+          last_success_at: null,
           last_error: freshRssRetryScheduled ? "Network timeout" : null,
           error_count: freshRssRetryScheduled ? 2 : 0,
           next_retry_at: freshRssRetryScheduled ? retryAt : null,

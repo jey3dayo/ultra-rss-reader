@@ -5,6 +5,7 @@ export type SidebarSyncProgressPayload = SyncProgressEvent;
 export type SidebarSyncWarningPayload = AccountSyncWarning[];
 
 export type SidebarSyncParams = {
+  selectedAccountId: string | null;
   syncProgress: SyncProgressState;
   applySyncProgress: (event: SyncProgressEvent) => void;
   clearSyncProgress: () => void;
@@ -14,4 +15,5 @@ export type SidebarSyncParams = {
 export type SidebarSyncResult = {
   handleSync: () => Promise<void>;
   lastSyncedLabel: string;
+  isSyncDisabled: boolean;
 };

@@ -1,10 +1,14 @@
-import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
-import { triggerSync } from "@/api/tauri-commands";
+import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import i18n from "@/lib/i18n";
+import {
+  getManualSyncCooldownUntil,
+  subscribeManualSyncCooldown,
+  triggerManualSyncWithCooldown,
+} from "@/lib/manual-sync";
 import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync-result-feedback";
 import type {
   SidebarSyncParams,
@@ -15,6 +19,7 @@ import type {
 import { resolveSidebarSyncFeedbackMessage } from "./sidebar-sync-feedback";
 
 export function useSidebarSync({
+  selectedAccountId,
   syncProgress,
   applySyncProgress,
   clearSyncProgress,
@@ -22,36 +27,51 @@ export function useSidebarSync({
 }: SidebarSyncParams): SidebarSyncResult {
   const { t } = useTranslation("sidebar");
   const queryClient = useQueryClient();
-  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const syncStatusQuery = useAccountSyncStatus(selectedAccountId);
+  const manualSyncCooldownUntil = useSyncExternalStore(
+    subscribeManualSyncCooldown,
+    getManualSyncCooldownUntil,
+    getManualSyncCooldownUntil,
+  );
   const invalidateAccountSyncStatuses = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ["account-sync-status"] });
   }, [queryClient]);
 
   const lastSyncedLabel = useMemo(() => {
-    if (!lastSyncedAt) {
+    const lastSuccessAt = syncStatusQuery.data?.last_success_at;
+    if (lastSuccessAt) {
+      const date = new Date(lastSuccessAt);
+      if (!Number.isNaN(date.getTime())) {
+        const hours = date.getHours().toString().padStart(2, "0");
+        const minutes = date.getMinutes().toString().padStart(2, "0");
+        const now = new Date();
+        const isToday =
+          date.getFullYear() === now.getFullYear() &&
+          date.getMonth() === now.getMonth() &&
+          date.getDate() === now.getDate();
+
+        if (isToday) {
+          return t("today_at", { time: `${hours}:${minutes}` });
+        }
+
+        const dateLabel = date.toLocaleDateString(i18n.language, { month: "short", day: "numeric" });
+        return t("date_at", { date: dateLabel, time: `${hours}:${minutes}` });
+      }
+    }
+
+    if (selectedAccountId && syncStatusQuery.isPending && syncStatusQuery.data === undefined) {
+      return t("checking_sync_status");
+    }
+
+    if (!selectedAccountId) {
       return t("not_synced_yet");
     }
-
-    const hours = lastSyncedAt.getHours().toString().padStart(2, "0");
-    const minutes = lastSyncedAt.getMinutes().toString().padStart(2, "0");
-    const now = new Date();
-    const isToday =
-      lastSyncedAt.getFullYear() === now.getFullYear() &&
-      lastSyncedAt.getMonth() === now.getMonth() &&
-      lastSyncedAt.getDate() === now.getDate();
-
-    if (isToday) {
-      return t("today_at", { time: `${hours}:${minutes}` });
-    }
-
-    const dateLabel = lastSyncedAt.toLocaleDateString(i18n.language, { month: "short", day: "numeric" });
-    return t("date_at", { date: dateLabel, time: `${hours}:${minutes}` });
-  }, [lastSyncedAt, t]);
+    return t("not_synced_yet");
+  }, [selectedAccountId, syncStatusQuery.data, syncStatusQuery.isPending, t]);
 
   useEffect(() => {
     let cancelled = false;
     let unlistenCompleted: (() => void) | undefined;
-    let unlistenSucceeded: (() => void) | undefined;
     let unlistenProgress: (() => void) | undefined;
     let unlistenWarning: (() => void) | undefined;
 
@@ -80,16 +100,6 @@ export function useSidebarSync({
       }
     });
 
-    listen("sync-succeeded", () => {
-      setLastSyncedAt(new Date());
-    }).then((fn) => {
-      if (cancelled) {
-        fn();
-      } else {
-        unlistenSucceeded = fn;
-      }
-    });
-
     listen("sync-warning", (event) => {
       const payload =
         typeof event === "object" && event !== null && "payload" in event
@@ -110,7 +120,6 @@ export function useSidebarSync({
     return () => {
       cancelled = true;
       unlistenCompleted?.();
-      unlistenSucceeded?.();
       unlistenProgress?.();
       unlistenWarning?.();
     };
@@ -121,22 +130,24 @@ export function useSidebarSync({
       return;
     }
 
-    const result = await triggerSync();
-    Result.pipe(
-      result,
-      Result.inspect((syncResult) => {
+    await triggerManualSyncWithCooldown({
+      onCooldown: () => {
+        showToast(t("sync_cooldown_active"));
+      },
+      onSuccess: (syncResult) => {
         invalidateAccountSyncStatuses();
         showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncResult(syncResult)));
-      }),
-      Result.inspectError((error) => {
+      },
+      onError: (error) => {
         console.error("Sync failed:", error);
         showToast(t("sync_failed"));
-      }),
-    );
+      },
+    });
   }, [invalidateAccountSyncStatuses, showToast, syncProgress.active, t]);
 
   return {
     handleSync,
     lastSyncedLabel,
+    isSyncDisabled: manualSyncCooldownUntil > Date.now(),
   };
 }

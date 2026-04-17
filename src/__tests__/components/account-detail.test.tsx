@@ -274,6 +274,7 @@ describe("AccountDetail", () => {
       }
       if (cmd === "get_account_sync_status") {
         return {
+          last_success_at: "2026-04-13T03:00:00Z",
           last_error: "Network timeout",
           error_count: 2,
           next_retry_at: "2026-04-13T03:15:00Z",
@@ -318,11 +319,13 @@ describe("AccountDetail", () => {
           statusCallCount += 1;
           return statusCallCount === 1
             ? {
+                last_success_at: "2026-04-13T03:00:00Z",
                 last_error: "Network timeout",
                 error_count: 2,
                 next_retry_at: "2026-04-13T03:15:00Z",
               }
             : {
+                last_success_at: "2026-04-13T03:20:00Z",
                 last_error: null,
                 error_count: 0,
                 next_retry_at: null,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AccountDtoSchema,
+  AccountSyncStatusSchema,
   AppErrorSchema,
   ArticleDtoSchema,
   addAccountArgs,
@@ -36,6 +37,15 @@ describe("DTO schemas", () => {
       keep_read_items_days: 30,
     };
     expect(AccountDtoSchema.parse(data)).toEqual(data);
+  });
+  it("parses valid AccountSyncStatusDto", () => {
+    const data = {
+      last_success_at: "2026-04-15T01:00:00Z",
+      last_error: null,
+      error_count: 0,
+      next_retry_at: null,
+    };
+    expect(AccountSyncStatusSchema.parse(data)).toEqual(data);
   });
   it("rejects AccountDto with missing fields", () => {
     expect(() => AccountDtoSchema.parse({ id: "acc-1" })).toThrow();

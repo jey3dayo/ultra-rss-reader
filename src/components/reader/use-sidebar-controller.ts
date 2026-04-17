@@ -73,6 +73,7 @@ export function useSidebarController(): SidebarControllerResult {
     activeDevIntent,
     handleSync,
     lastSyncedLabel,
+    isSyncDisabled,
   } = useSidebarRuntime();
   const updateFeedFolderMutation = useUpdateFeedFolder();
 
@@ -154,6 +155,7 @@ export function useSidebarController(): SidebarControllerResult {
     closeAccountList,
     syncProgress,
     handleSync,
+    isSyncDisabled,
     handleAddFeed,
     toggleFeedsSection,
     lastSyncedLabel,

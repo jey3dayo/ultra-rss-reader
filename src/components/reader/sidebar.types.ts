@@ -139,6 +139,7 @@ export type SidebarControllerSectionsParams = {
   closeAccountList: () => void;
   syncProgress: SidebarHeaderPropsParams["syncProgress"];
   handleSync: SidebarHeaderPropsParams["handleSync"];
+  isSyncDisabled: SidebarHeaderPropsParams["isSyncDisabled"];
   handleAddFeed: SidebarHeaderPropsParams["handleAddFeed"];
   toggleFeedsSection: () => void;
   lastSyncedLabel: string;
@@ -169,6 +170,7 @@ export type SidebarHeaderPropsParams = {
     kind: string | null;
   };
   handleSync: () => void | Promise<void>;
+  isSyncDisabled: boolean;
   handleAddFeed: () => void;
 };
 
@@ -238,6 +240,7 @@ export type SidebarSectionPropsParams = {
   t: TFunction<"sidebar">;
   syncProgress: SidebarHeaderPropsParams["syncProgress"];
   handleSync: SidebarHeaderPropsParams["handleSync"];
+  isSyncDisabled: SidebarHeaderPropsParams["isSyncDisabled"];
   handleAddFeed: SidebarHeaderPropsParams["handleAddFeed"];
   selectedAccountName?: string;
   lastSyncedLabel: string;

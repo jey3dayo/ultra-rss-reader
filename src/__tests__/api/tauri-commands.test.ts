@@ -213,6 +213,7 @@ describe("tauri-commands with mockIPC", () => {
     it("returns account sync status from getAccountSyncStatus", async () => {
       const value = Result.unwrap(await getAccountSyncStatus("acc-1"));
       expect(value).toEqual({
+        last_success_at: null,
         last_error: null,
         error_count: 0,
         next_retry_at: null,

@@ -80,6 +80,7 @@ describe("setupDevMocks", () => {
     const status = Result.unwrap(result);
 
     expect(status).toEqual({
+      last_success_at: null,
       last_error: null,
       error_count: 0,
       next_retry_at: null,

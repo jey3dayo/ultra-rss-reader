@@ -152,6 +152,23 @@ pub(crate) fn should_emit_sync_succeeded(result: &SyncResult) -> bool {
     result.synced && result.succeeded > 0 && result.failed.is_empty() && result.warnings.is_empty()
 }
 
+fn map_account_sync_status(sync_state: Option<SyncState>) -> AccountSyncStatus {
+    match sync_state {
+        Some(sync_state) => AccountSyncStatus {
+            last_success_at: sync_state.last_success_at,
+            last_error: sync_state.last_error,
+            error_count: sync_state.error_count,
+            next_retry_at: sync_state.next_retry_at,
+        },
+        None => AccountSyncStatus {
+            last_success_at: None,
+            last_error: None,
+            error_count: 0,
+            next_retry_at: None,
+        },
+    }
+}
+
 fn enable_automatic_sync(
     automatic_sync_enabled: &AtomicBool,
     automatic_sync_notify: &tokio::sync::Notify,
@@ -556,18 +573,7 @@ pub fn get_account_sync_status(
     let db_guard = lock_db(&state.db)?;
     let repo = SqliteSyncStateRepository::new(db_guard.reader());
     let state = repo.get(&AccountId(account_id), SCHEDULER_SYNC_STATE_SCOPE)?;
-    Ok(match state {
-        Some(sync_state) => AccountSyncStatus {
-            last_error: sync_state.last_error,
-            error_count: sync_state.error_count,
-            next_retry_at: sync_state.next_retry_at,
-        },
-        None => AccountSyncStatus {
-            last_error: None,
-            error_count: 0,
-            next_retry_at: None,
-        },
-    })
+    Ok(map_account_sync_status(state))
 }
 
 #[tauri::command]
@@ -862,6 +868,34 @@ mod tests {
         };
 
         assert!(!should_emit_sync_succeeded(&result));
+    }
+
+    #[test]
+    fn map_account_sync_status_includes_last_success_at() {
+        let account_id = AccountId::new();
+        let status = map_account_sync_status(Some(SyncState {
+            account_id,
+            scope_key: SCHEDULER_SYNC_STATE_SCOPE.to_string(),
+            timestamp_usec: None,
+            continuation: None,
+            etag: None,
+            last_modified: None,
+            last_success_at: Some("2026-04-16T12:34:00Z".to_string()),
+            last_error: Some("old error".to_string()),
+            error_count: 2,
+            next_retry_at: Some("2026-04-16T12:40:00Z".to_string()),
+        }));
+
+        assert_eq!(
+            status.last_success_at.as_deref(),
+            Some("2026-04-16T12:34:00Z")
+        );
+        assert_eq!(status.last_error.as_deref(), Some("old error"));
+        assert_eq!(status.error_count, 2);
+        assert_eq!(
+            status.next_retry_at.as_deref(),
+            Some("2026-04-16T12:40:00Z")
+        );
     }
 
     #[tokio::test]
