@@ -4,7 +4,7 @@ import { fn } from "storybook/test";
 import { LabeledInputRow } from "./labeled-input-row";
 
 const meta = {
-  title: "Shared/LabeledInputRow",
+  title: "Shared/Rows/LabeledInputRow",
   component: LabeledInputRow,
   tags: ["autodocs"],
   parameters: {

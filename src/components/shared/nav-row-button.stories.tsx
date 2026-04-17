@@ -4,7 +4,7 @@ import { fn } from "storybook/test";
 import { NavRowButton } from "./nav-row-button";
 
 const meta = {
-  title: "Shared/NavRowButton",
+  title: "Shared/Navigation/NavRowButton",
   component: NavRowButton,
   tags: ["autodocs"],
   parameters: {

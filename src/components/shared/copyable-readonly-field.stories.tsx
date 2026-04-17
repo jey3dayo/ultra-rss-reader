@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { CopyableReadonlyField } from "./copyable-readonly-field";
 
 const meta = {
-  title: "Shared/CopyableReadonlyField",
+  title: "Shared/Fields/CopyableReadonlyField",
   component: CopyableReadonlyField,
   tags: ["autodocs"],
   parameters: {

@@ -4,7 +4,7 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/c
 import { LabeledControlRow } from "./labeled-control-row";
 
 const meta = {
-  title: "Shared/LabeledControlRow",
+  title: "Shared/Rows/LabeledControlRow",
   component: LabeledControlRow,
   tags: ["autodocs"],
   parameters: {

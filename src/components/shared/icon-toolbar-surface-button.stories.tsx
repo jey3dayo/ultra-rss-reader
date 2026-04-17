@@ -22,7 +22,7 @@ function IconToolbarSurfaceButtonStory({
 }
 
 const meta = {
-  title: "Shared/IconToolbarSurfaceButton",
+  title: "Shared/Controls/IconToolbarSurfaceButton",
   component: IconToolbarSurfaceButtonStory,
   tags: ["autodocs"],
   decorators: [

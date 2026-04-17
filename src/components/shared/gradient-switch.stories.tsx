@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { GradientSwitch } from "./gradient-switch";
 
 const meta = {
-  title: "Shared/GradientSwitch",
+  title: "Shared/Controls/GradientSwitch",
   component: GradientSwitch,
   tags: ["autodocs"],
   decorators: [

@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { DestructiveConfirmDialogView } from "./destructive-confirm-dialog-view";
 
 const meta = {
-  title: "Shared/DestructiveConfirmDialogView",
+  title: "Shared/Dialogs/DestructiveConfirmDialogView",
   component: DestructiveConfirmDialogView,
   tags: ["autodocs"],
   args: {

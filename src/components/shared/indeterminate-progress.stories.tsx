@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { IndeterminateProgress } from "./indeterminate-progress";
 
 const meta = {
-  title: "Shared/IndeterminateProgress",
+  title: "Shared/Feedback/IndeterminateProgress",
   component: IndeterminateProgress,
   tags: ["autodocs"],
   parameters: {

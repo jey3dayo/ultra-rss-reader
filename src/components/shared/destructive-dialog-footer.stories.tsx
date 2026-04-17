@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { DestructiveDialogFooter } from "./destructive-dialog-footer";
 
 const meta = {
-  title: "Shared/DestructiveDialogFooter",
+  title: "Shared/Dialogs/DestructiveDialogFooter",
   component: DestructiveDialogFooter,
   tags: ["autodocs"],
   parameters: {

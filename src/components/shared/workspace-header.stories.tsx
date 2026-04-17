@@ -88,7 +88,7 @@ function WorkspaceHeaderStory({
 }
 
 const meta = {
-  title: "Shared/WorkspaceHeader",
+  title: "Shared/Layout/WorkspaceHeader",
   component: WorkspaceHeaderStory,
   tags: ["autodocs"],
   parameters: {

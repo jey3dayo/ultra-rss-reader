@@ -4,7 +4,7 @@ import { fn } from "storybook/test";
 import { ConfirmDialogView } from "./confirm-dialog-view";
 
 const meta = {
-  title: "Shared/ConfirmDialogView",
+  title: "Shared/Dialogs/ConfirmDialogView",
   component: ConfirmDialogView,
   tags: ["autodocs"],
   parameters: {

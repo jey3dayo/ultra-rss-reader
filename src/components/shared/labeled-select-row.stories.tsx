@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { LabeledSelectRow } from "./labeled-select-row";
 
 const meta = {
-  title: "Shared/LabeledSelectRow",
+  title: "Shared/Rows/LabeledSelectRow",
   component: LabeledSelectRow,
   tags: ["autodocs"],
   parameters: {

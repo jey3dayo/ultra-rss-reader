@@ -24,6 +24,7 @@ const preview: Preview = {
             "View Specimens Canvas",
           ],
           "Shared",
+          ["Layout", "Fields", "Rows", "Controls", "Dialogs", "Navigation", "Feedback"],
           "Primitives",
           "Settings",
           ["Page", "Section", "Nav"],

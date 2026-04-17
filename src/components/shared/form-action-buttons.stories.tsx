@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { FormActionButtons } from "./form-action-buttons";
 
 const meta = {
-  title: "Shared/FormActionButtons",
+  title: "Shared/Controls/FormActionButtons",
   component: FormActionButtons,
   tags: ["autodocs"],
   decorators: [

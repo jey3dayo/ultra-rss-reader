@@ -1,18 +1,50 @@
 import { describe, expect, it } from "vitest";
-import focusDebugHudMeta from "@/components/debug/focus-debug-hud-view.stories";
-import articleGroupsMeta from "@/components/reader/article-groups-view.stories";
-import articleListScreenMeta from "@/components/reader/article-list-screen-view.stories";
-import feedItemMeta from "@/components/reader/feed-item.stories";
-import feedTreeMeta from "@/components/reader/feed-tree-view.stories";
-import folderSectionMeta from "@/components/reader/folder-section.stories";
-import sidebarSelectionReviewMeta from "@/components/reader/sidebar-selection-review.stories";
-import accountDetailMeta from "@/components/settings/account-detail-view.stories";
-import settingsComponentsMeta from "@/components/settings/settings-components.stories";
-import settingsNavMeta from "@/components/settings/settings-nav-view.stories";
-import inputControlsMeta from "@/components/storybook/ui-reference-settings-canvas.stories";
-import viewSpecimensMeta from "@/components/storybook/ui-reference-workspace-patterns-canvas.stories";
-import buttonMeta from "@/components/ui/button.stories";
 import preview from "../../../.storybook/preview";
+
+type StoryMetaModule = {
+  default?: {
+    title?: string;
+  };
+};
+
+const storyModules = import.meta.glob("../../components/**/*.stories.tsx", {
+  eager: true,
+}) as Record<string, StoryMetaModule>;
+
+const storyMetas = Object.entries(storyModules)
+  .map(([path, module]) => ({
+    path,
+    title: module.default?.title,
+  }))
+  .filter((entry): entry is { path: string; title: string } => typeof entry.title === "string");
+
+const titles = storyMetas.map((entry) => entry.title);
+
+const uiReferenceTitles = [
+  "UI Reference/Foundations Canvas",
+  "UI Reference/Input Controls Canvas",
+  "UI Reference/Shell & Overlay Canvas",
+  "UI Reference/Navigation & Collections Canvas",
+  "UI Reference/View Specimens Canvas",
+] as const;
+
+const sharedGroups = ["Layout", "Fields", "Rows", "Controls", "Dialogs", "Navigation", "Feedback"] as const;
+const settingsGroups = ["Page", "Section", "Nav"] as const;
+const readerGroups = ["Article", "Sidebar", "Dialog", "Menu", "Browser"] as const;
+const internalGroups = ["Debug", "Review"] as const;
+const topLevelGroups = [
+  "UI Reference",
+  "Shared",
+  "Primitives",
+  "Settings",
+  "Reader",
+  "Feed Cleanup",
+  "Internal",
+] as const;
+
+function titlesUnder(group: string) {
+  return titles.filter((title) => title.startsWith(`${group}/`));
+}
 
 describe("Storybook Explorer organization", () => {
   it("defines an explicit Storybook Explorer order", () => {
@@ -27,6 +59,7 @@ describe("Storybook Explorer organization", () => {
           "View Specimens Canvas",
         ],
         "Shared",
+        ["Layout", "Fields", "Rows", "Controls", "Dialogs", "Navigation", "Feedback"],
         "Primitives",
         "Settings",
         ["Page", "Section", "Nav"],
@@ -39,31 +72,54 @@ describe("Storybook Explorer organization", () => {
     });
   });
 
+  it("keeps all story titles inside the approved top-level Explorer groups", () => {
+    const actualGroups = [...new Set(titles.map((title) => title.split("/")[0]))].sort();
+    expect(actualGroups).toEqual([...topLevelGroups].sort());
+  });
+
   it("uses document-aligned UI Reference story names", () => {
-    expect(inputControlsMeta.title).toBe("UI Reference/Input Controls Canvas");
-    expect(viewSpecimensMeta.title).toBe("UI Reference/View Specimens Canvas");
+    expect([...titlesUnder("UI Reference")].sort()).toEqual([...uiReferenceTitles].sort());
   });
 
-  it("moves primitives into the dedicated group", () => {
-    expect(buttonMeta.title).toBe("Primitives/Button");
+  it("moves shared stories into dedicated role groups", () => {
+    const sharedTitles = titlesUnder("Shared");
+    const actualGroups = [...new Set(sharedTitles.map((title) => title.split("/")[1]))].sort();
+
+    expect(actualGroups).toEqual([...sharedGroups].sort());
+    expect(sharedTitles.every((title) => title.split("/").length === 3)).toBe(true);
   });
 
-  it("nests reader stories by role", () => {
-    expect(articleGroupsMeta.title).toBe("Reader/Article/ArticleGroupsView");
-    expect(articleListScreenMeta.title).toBe("Reader/Article/ArticleListScreenView");
-    expect(feedTreeMeta.title).toBe("Reader/Sidebar/FeedTreeView");
-    expect(feedItemMeta.title).toBe("Reader/Sidebar/FeedItemView");
-    expect(folderSectionMeta.title).toBe("Reader/Sidebar/FolderSectionView");
+  it("keeps primitives in the dedicated group", () => {
+    expect(titlesUnder("Primitives")).toEqual(["Primitives/Button"]);
   });
 
   it("nests settings stories by role", () => {
-    expect(accountDetailMeta.title).toBe("Settings/Page/AccountDetailView");
-    expect(settingsComponentsMeta.title).toBe("Settings/Section/SectionHeading");
-    expect(settingsNavMeta.title).toBe("Settings/Nav/SettingsNavView");
+    const settingsTitles = titlesUnder("Settings");
+    const actualGroups = [...new Set(settingsTitles.map((title) => title.split("/")[1]))].sort();
+
+    expect(actualGroups).toEqual([...settingsGroups].sort());
+    expect(settingsTitles.every((title) => title.split("/").length === 3)).toBe(true);
   });
 
-  it("isolates internal debug and review stories from normal Explorer groups", () => {
-    expect(focusDebugHudMeta.title).toBe("Internal/Debug/FocusDebugHudView");
-    expect(sidebarSelectionReviewMeta.title).toBe("Internal/Review/SidebarSelectionReview");
+  it("nests reader stories by role", () => {
+    const readerTitles = titlesUnder("Reader");
+    const actualGroups = [...new Set(readerTitles.map((title) => title.split("/")[1]))].sort();
+
+    expect(actualGroups).toEqual([...readerGroups].sort());
+    expect(readerTitles.every((title) => title.split("/").length === 3)).toBe(true);
+  });
+
+  it("keeps feed cleanup stories compact and panel-oriented", () => {
+    expect([...titlesUnder("Feed Cleanup")].sort()).toEqual(
+      ["Feed Cleanup/OverviewPanel", "Feed Cleanup/QueuePanel", "Feed Cleanup/ReviewPanel"].sort(),
+    );
+  });
+
+  it("isolates internal stories under debug or review only", () => {
+    const internalTitles = titlesUnder("Internal");
+    const actualGroups = [...new Set(internalTitles.map((title) => title.split("/")[1]))].sort();
+
+    expect(actualGroups).toEqual([...internalGroups].sort());
+    expect(internalTitles.every((title) => title.split("/").length === 3)).toBe(true);
   });
 });

@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { LabeledSwitchRow } from "./labeled-switch-row";
 
 const meta = {
-  title: "Shared/LabeledSwitchRow",
+  title: "Shared/Rows/LabeledSwitchRow",
   component: LabeledSwitchRow,
   tags: ["autodocs"],
   parameters: {
