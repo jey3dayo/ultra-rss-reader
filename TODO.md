@@ -169,6 +169,21 @@
       - `src/components/settings/settings-content-layout.tsx`, `src/components/settings/settings-modal-view.tsx`, `src/components/settings/settings-nav-view.tsx`, `src/components/settings/accounts-nav-view.tsx`
       - stacked-left 見出しの serif / sans 混在と、active row の強さ・透過感が section 面より先に目立つ状態をまとめて見直したい
       - 状況: `settings-content-layout` / `settings-nav-view` / `accounts-nav-view` は整理済み。残りは modal 全体と feed cleanup 側の階層差
+    - [x] settings form の shared right rail から外れている account / utility pages を `DESIGN.md` 基準へ戻す
+      - `src/components/settings/account-general-section-view.tsx`, `src/components/settings/account-credentials-section-view.tsx`, `src/components/settings/add-account-form-view.tsx`, `src/components/settings/account-config-form.tsx`
+      - `sm:justify-start` + `sm:flex-1` の入力列、`sm:w-24/28` のラベル列、`h-auto` の input を使っており、 settings form の shared endpoint より左に control が浮いて見える
+      - account detail / add account 系も他 settings と同じ stable two-column grid と 右端 control rail で揃えたい
+      - 状況: `account-general-section-view` / `account-credentials-section-view` / `add-account-form-view` は `h-10` 入力と `sm:w-40` ラベル列で右端 rail へ整理済み。残りは `account-config-form` の controller/flow 由来の余白確認
+    - [x] custom settings pages を `SettingsPageView` と同じ shell / rail / control sizing language に寄せる
+      - `src/components/settings/actions-settings-view.tsx`, `src/components/settings/data-settings-view.tsx`, `src/components/settings/shortcuts-settings-view.tsx`
+      - 独自 header (`p-6` + centered title) と `size=\"sm\"` action、 free-floating control 群が残っていて、 general / appearance / reading と別系統の settings page に見える
+      - title spacing、section heading cadence、button size、right-side control rail を共通パターンへ寄せたい
+      - 状況: `SettingsContentLayout` ベースの shell / section cadence に整理済み。残りは細部の tone review のみ
+    - [x] account sync section の status card / sync CTA を settings rail と action emphasis の両面で整理する
+      - `src/components/settings/account-sync-section-view.tsx`
+      - status summary が row の外で浮き、 `Sync now` が `size=\"sm\"` + free-floating CTA のままなので、 settings row cadence と primary action の強弱が崩れている
+      - status block を row/section hierarchy に収め、 CTA も current settings action size へ揃えたい
+      - 状況: status card は `max-w-[30rem]` の right rail へ、`Sync now` は `h-10 px-4` の CTA へ整理済み
   - 2026-04-15 の browser review で確認した追加論点:
     - [x] 既定表示の reader / settings / feed cleanup が `DESIGN.md` の warm cream 基調ではなく dark shell に寄っている状態を解消する
       - `agent-browser` で確認した browser-mode の既定表示は `--background: #1c1915`, `--foreground: #f3efe6` で描画され、`DESIGN.md` の「cream canvas + near-black text」が初期体験に反映されていない

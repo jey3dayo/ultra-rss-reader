@@ -1,5 +1,6 @@
 import { GradientSwitch } from "@/components/shared/gradient-switch";
-import { SectionHeading } from "@/components/shared/section-heading";
+import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
+import { SettingsSection } from "@/components/settings/settings-section";
 
 export type ActionsSettingsService = {
   id: string;
@@ -18,11 +19,8 @@ export type ActionsSettingsViewProps = {
 
 export function ActionsSettingsView({ title, heading, toggleLabel, services }: ActionsSettingsViewProps) {
   return (
-    <div className="p-6">
-      <h2 className="mb-6 text-center text-lg font-semibold">{title}</h2>
-
-      <section>
-        <SectionHeading>{heading}</SectionHeading>
+    <SettingsContentLayout title={title} outerTestId="actions-settings-root">
+      <SettingsSection heading={heading} surface="flat">
         {services.map((service) => (
           <div key={service.id} className="flex min-h-[56px] items-center gap-3 border-b border-border py-3">
             <span className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-1/72 text-foreground-soft">
@@ -39,7 +37,7 @@ export function ActionsSettingsView({ title, heading, toggleLabel, services }: A
             </div>
           </div>
         ))}
-      </section>
-    </div>
+      </SettingsSection>
+    </SettingsContentLayout>
   );
 }

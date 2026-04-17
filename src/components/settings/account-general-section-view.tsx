@@ -18,8 +18,7 @@ export function AccountGeneralSectionView({
   onCommitName,
   onNameKeyDown,
 }: AccountGeneralSectionViewProps) {
-  const labelColumnClassName = "sm:w-24 sm:shrink-0";
-  const valueColumnClassName = "sm:pl-2";
+  const labelColumnClassName = "sm:w-40 sm:shrink-0";
 
   return (
     <SettingsSection heading={heading} surface="flat" className="mb-6 sm:mb-7">
@@ -34,10 +33,8 @@ export function AccountGeneralSectionView({
         onBlur={isEditingName ? onCommitName : undefined}
         onFocus={!isEditingName ? onStartEditingName : undefined}
         onKeyDown={isEditingName ? onNameKeyDown : undefined}
-        rowClassName="flex-col items-stretch sm:flex-row sm:items-center sm:justify-start"
         labelClassName={labelColumnClassName}
-        controlClassName="sm:min-w-0 sm:flex-1"
-        inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:flex-1"
+        inputClassName="h-10"
         disabled={isSavingName}
       />
       {infoRows.map((row) => (
@@ -45,7 +42,6 @@ export function AccountGeneralSectionView({
           key={row.label}
           label={row.label}
           labelClassName={labelColumnClassName}
-          valueClassName={valueColumnClassName}
           value={row.value}
           type="text"
           truncate={row.truncate}

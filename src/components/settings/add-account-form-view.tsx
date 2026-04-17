@@ -9,10 +9,8 @@ import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { SurfaceCard } from "@/components/shared/surface-card";
 
-const LABEL_COLUMN_CLASS_NAME = "sm:w-28 sm:shrink-0";
-const INPUT_ROW_CLASS_NAME = "flex-col items-stretch sm:flex-row sm:items-center sm:justify-start";
-const INPUT_CONTROL_CLASS_NAME = "sm:min-w-0 sm:flex-1";
-const INPUT_CLASS_NAME = "h-auto w-full border-border bg-background px-3 py-2 text-sm sm:flex-1";
+const LABEL_COLUMN_CLASS_NAME = "sm:w-40 sm:shrink-0";
+const INPUT_CLASS_NAME = "h-10";
 
 function AddAccountSelectRow({ control }: AddAccountFormSelectRowProps) {
   return (
@@ -36,9 +34,7 @@ function AddAccountInputRow({ control }: AddAccountFormInputRowProps) {
       value={control.value}
       onChange={control.onChange}
       placeholder={control.placeholder}
-      rowClassName={INPUT_ROW_CLASS_NAME}
       labelClassName={LABEL_COLUMN_CLASS_NAME}
-      controlClassName={INPUT_CONTROL_CLASS_NAME}
       inputClassName={INPUT_CLASS_NAME}
       disabled={control.disabled}
     />

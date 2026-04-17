@@ -23,7 +23,7 @@ export function AccountSyncSectionView({
       <LabeledSwitchRow label={syncOnWake.label} checked={syncOnWake.checked} onChange={syncOnWake.onChange} />
       <AccountSelectRow control={keepReadItems} />
       {statusRows && statusRows.length > 0 ? (
-        <div className="mt-3 space-y-2 rounded-md border border-border/60 bg-surface-1/72 p-3 text-sm">
+        <div className="mt-3 ml-auto w-full max-w-[30rem] space-y-2 rounded-md border border-border/60 bg-surface-1/72 p-3 text-sm">
           {statusRows.map((row) => (
             <div key={row.label} className="space-y-1">
               <div className="text-xs font-medium uppercase tracking-wide text-foreground-soft">{row.label}</div>
@@ -33,10 +33,9 @@ export function AccountSyncSectionView({
         </div>
       ) : null}
       {onSyncNow && (
-        <div className="pt-3">
+        <div className="flex justify-end pt-3">
           <LoadingButton
-            size="sm"
-            className="w-full justify-center sm:w-auto"
+            className="h-10 w-full justify-center px-4 sm:w-auto"
             onClick={onSyncNow}
             loading={isSyncing}
             loadingLabel={syncingLabel}

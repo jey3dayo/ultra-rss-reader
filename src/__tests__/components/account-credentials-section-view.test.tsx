@@ -70,15 +70,18 @@ describe("AccountCredentialsSectionView", () => {
     );
 
     expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass("w-full");
-    expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass("sm:flex-1");
+    expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass("h-10");
     expect(screen.getByRole("textbox", { name: "Username" })).toHaveClass("w-full");
+    expect(screen.getByRole("textbox", { name: "Username" })).toHaveClass("h-10");
     expect(screen.getByPlaceholderText("Enter password")).toHaveClass("w-full");
+    expect(screen.getByPlaceholderText("Enter password")).toHaveClass("h-10");
     expect(screen.getByRole("button", { name: "Copy Server URL" })).toBeInTheDocument();
     const button = screen.getByRole("button", { name: "Testing..." });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("aria-busy", "true");
     expect(button).toHaveClass("w-full");
     expect(button).toHaveClass("sm:w-auto");
+    expect(button).toHaveClass("h-10", "px-4");
     expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
   });
 
@@ -105,12 +108,12 @@ describe("AccountCredentialsSectionView", () => {
       />,
     );
 
-    expect(screen.getByText("Server URL")).toHaveClass("sm:w-24");
-    expect(screen.getByText("Username")).toHaveClass("sm:w-24");
+    expect(screen.getByText("Server URL")).toHaveClass("sm:w-40");
+    expect(screen.getByText("Username")).toHaveClass("sm:w-40");
     expect(screen.getByText("Username")).toHaveClass("sm:shrink-0");
-    expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass("sm:flex-1");
-    expect(screen.getByRole("textbox", { name: "Username" })).toHaveClass("sm:flex-1");
-    expect(screen.getByPlaceholderText("Enter password")).toHaveClass("sm:flex-1");
+    expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveClass("h-10");
+    expect(screen.getByRole("textbox", { name: "Username" })).toHaveClass("h-10");
+    expect(screen.getByPlaceholderText("Enter password")).toHaveClass("h-10");
   });
 
   it("renders extra rows and a note for shared app credentials", () => {

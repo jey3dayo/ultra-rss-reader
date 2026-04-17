@@ -57,6 +57,8 @@ export function AccountCredentialsSectionView({
   isTestingConnection,
   extraRows = [],
 }: AccountCredentialsSectionViewProps) {
+  const labelColumnClassName = "sm:w-40 sm:shrink-0";
+
   return (
     <SettingsSection heading={heading} note={note} surface="flat" className="mb-6 sm:mb-7">
       {serverUrlLabel && onServerUrlChange && (
@@ -68,10 +70,8 @@ export function AccountCredentialsSectionView({
           placeholder={serverUrlPlaceholder}
           onChange={onServerUrlChange}
           onBlur={onServerUrlBlur}
-          rowClassName="flex-col items-stretch sm:flex-row sm:items-center sm:justify-start"
-          labelClassName="sm:w-24 sm:shrink-0"
-          controlClassName="sm:min-w-0 sm:flex-1"
-          inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:flex-1"
+          labelClassName={labelColumnClassName}
+          inputClassName="h-10"
           actionLabel={serverUrlCopyLabel}
           actionAriaLabel={serverUrlCopyLabel}
           actionTooltipLabel={serverUrlCopyLabel}
@@ -79,7 +79,6 @@ export function AccountCredentialsSectionView({
           actionPlacement="inside"
           actionVariant="ghost"
           actionSize="icon-sm"
-          actionClassName="right-0"
           onAction={onServerUrlCopy}
           actionDisabled={!serverUrlValue}
         />
@@ -94,10 +93,8 @@ export function AccountCredentialsSectionView({
           onFocus={row.onFocus}
           onBlur={row.onBlur}
           placeholder={row.placeholder}
-          rowClassName="flex-col items-stretch sm:flex-row sm:items-center sm:justify-start"
-          labelClassName="sm:w-24 sm:shrink-0"
-          controlClassName="sm:min-w-0 sm:flex-1"
-          inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:flex-1"
+          labelClassName={labelColumnClassName}
+          inputClassName="h-10"
         />
       ))}
       <LabeledInputRow
@@ -105,10 +102,8 @@ export function AccountCredentialsSectionView({
         value={usernameValue}
         onChange={onUsernameChange}
         onBlur={onUsernameBlur}
-        rowClassName="flex-col items-stretch sm:flex-row sm:items-center sm:justify-start"
-        labelClassName="sm:w-24 sm:shrink-0"
-        controlClassName="sm:min-w-0 sm:flex-1"
-        inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:flex-1"
+        labelClassName={labelColumnClassName}
+        inputClassName="h-10"
       />
       <LabeledInputRow
         label={passwordLabel}
@@ -118,16 +113,13 @@ export function AccountCredentialsSectionView({
         onFocus={onPasswordFocus}
         onBlur={onPasswordBlur}
         placeholder={passwordPlaceholder}
-        rowClassName="flex-col items-stretch sm:flex-row sm:items-center sm:justify-start"
-        labelClassName="sm:w-24 sm:shrink-0"
-        controlClassName="sm:min-w-0 sm:flex-1"
-        inputClassName="h-auto w-full border-border bg-background px-2 py-1 text-sm sm:flex-1"
+        labelClassName={labelColumnClassName}
+        inputClassName="h-10"
       />
       {onTestConnection && (
-        <div className="pt-3">
+        <div className="flex justify-end pt-3">
           <LoadingButton
-            size="sm"
-            className="w-full justify-center sm:w-auto"
+            className="h-10 w-full justify-center px-4 sm:w-auto"
             onClick={onTestConnection}
             loading={isTestingConnection}
             loadingLabel={testingConnectionLabel}

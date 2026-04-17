@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
+import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
+import { SettingsSection } from "@/components/settings/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { SectionHeading } from "@/components/shared/section-heading";
 import { Button } from "@/components/ui/button";
 
 export type ShortcutsSettingsItem = {
@@ -85,21 +86,12 @@ export function ShortcutsSettingsView({
   onResetAll,
 }: ShortcutsSettingsViewProps) {
   return (
-    <div className="p-5 sm:p-6">
-      <div className="mb-5 flex flex-col gap-3 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-        <div className="hidden sm:block" />
-        <h2 className="text-center text-[19px] font-semibold tracking-[0.01em]">{title}</h2>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onResetAll}
-          disabled={resetDisabled}
-          className="w-full sm:justify-self-end sm:w-auto"
-        >
+    <SettingsContentLayout title={title} outerTestId="shortcuts-settings-root">
+      <div className="mb-5 flex justify-end sm:mb-6">
+        <Button variant="outline" onClick={onResetAll} disabled={resetDisabled} className="h-10 w-full px-4 sm:w-auto">
           {resetLabel}
         </Button>
       </div>
-
       {conflictMessage && (
         <div className="mb-4 rounded-md border border-state-danger-border bg-state-danger-surface px-4 py-2 text-sm text-state-danger-foreground">
           {conflictMessage}
@@ -107,8 +99,7 @@ export function ShortcutsSettingsView({
       )}
 
       {categories.map((category) => (
-        <section key={category.id} className="mb-5">
-          <SectionHeading>{category.heading}</SectionHeading>
+        <SettingsSection key={category.id} heading={category.heading} surface="flat" className="mb-5">
           {category.items.map((item) => (
             <LabeledControlRow
               key={item.id}
@@ -124,8 +115,8 @@ export function ShortcutsSettingsView({
               )}
             </LabeledControlRow>
           ))}
-        </section>
+        </SettingsSection>
       ))}
-    </div>
+    </SettingsContentLayout>
   );
 }

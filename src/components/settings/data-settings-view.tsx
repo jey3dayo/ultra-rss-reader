@@ -1,5 +1,6 @@
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { SectionHeading } from "@/components/shared/section-heading";
+import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
+import { SettingsSection } from "@/components/settings/settings-section";
 import { Button } from "@/components/ui/button";
 
 export type DataSettingsViewProps = {
@@ -34,28 +35,28 @@ export function DataSettingsView({
   onOpenLogDir,
 }: DataSettingsViewProps) {
   return (
-    <div className="p-6">
-      <h2 className="mb-6 text-center text-lg font-semibold">{title}</h2>
-      <section className="mb-6 sm:mb-7">
-        <SectionHeading className="mb-2 sm:mb-3">{databaseHeading}</SectionHeading>
+    <SettingsContentLayout title={title} outerTestId="data-settings-root">
+      <SettingsSection heading={databaseHeading} surface="flat" className="mb-6 sm:mb-7">
         <LabeledControlRow label={databaseSizeLabel}>
           <span className="text-sm text-foreground-soft">{databaseSizeValue}</span>
         </LabeledControlRow>
-      </section>
-      <section className="mb-6 sm:mb-7">
-        <SectionHeading className="mb-2 sm:mb-3">{optimizationHeading}</SectionHeading>
+      </SettingsSection>
+      <SettingsSection heading={optimizationHeading} surface="flat" className="mb-6 sm:mb-7">
         <p className="mb-2.5 text-xs text-foreground-soft sm:mb-3">{vacuumDescription}</p>
-        <Button variant="outline" size="sm" disabled={vacuuming} onClick={onVacuum}>
-          {vacuumLabel}
-        </Button>
-      </section>
-      <section>
-        <SectionHeading className="mb-2 sm:mb-3">{logsHeading}</SectionHeading>
+        <div className="flex justify-end">
+          <Button variant="outline" className="h-10 w-full px-4 sm:w-auto" disabled={vacuuming} onClick={onVacuum}>
+            {vacuumLabel}
+          </Button>
+        </div>
+      </SettingsSection>
+      <SettingsSection heading={logsHeading} surface="flat">
         <p className="mb-2.5 text-xs text-foreground-soft sm:mb-3">{openLogDirDescription}</p>
-        <Button variant="outline" size="sm" onClick={onOpenLogDir}>
-          {openLogDirLabel}
-        </Button>
-      </section>
-    </div>
+        <div className="flex justify-end">
+          <Button variant="outline" className="h-10 w-full px-4 sm:w-auto" onClick={onOpenLogDir}>
+            {openLogDirLabel}
+          </Button>
+        </div>
+      </SettingsSection>
+    </SettingsContentLayout>
   );
 }
