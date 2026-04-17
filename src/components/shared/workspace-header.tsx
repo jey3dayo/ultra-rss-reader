@@ -82,7 +82,11 @@ export function WorkspaceHeader({
       ) : null}
       <div data-testid="workspace-header-body" className="flex flex-col gap-1.5">
         <div data-testid="workspace-header-top-row" className="flex min-h-5 items-center justify-between gap-4">
-          <div data-testid="workspace-header-leading" className="flex min-w-0 items-center gap-2">
+          <div
+            data-testid="workspace-header-top-drag-region"
+            data-tauri-drag-region={useDesktopOverlay ? true : undefined}
+            className={cn("flex min-w-0 items-center gap-2", isDesktopApp && "flex-1")}
+          >
             {hasBackAction ? (
               isBrowserPreview ? (
                 <Button
@@ -128,6 +132,7 @@ export function WorkspaceHeader({
             <div
               data-testid="workspace-header-context-drag-region"
               data-tauri-drag-region={useDesktopOverlay ? true : undefined}
+              className="w-full"
             >
               <div data-testid="workspace-header-context-row" className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                 <p
@@ -174,14 +179,18 @@ export function WorkspaceHeader({
               {title}
             </h1>
           )}
-          <p
+          <div
             data-testid="workspace-header-subtitle-drag-region"
             data-tauri-drag-region={useDesktopOverlay ? true : undefined}
-            data-motion-phase={contentMotionPhase}
-            className="motion-content-swap max-w-2xl font-serif text-[0.95rem] leading-[1.42] text-foreground-soft"
+            className="w-full"
           >
-            {subtitle}
-          </p>
+            <p
+              data-motion-phase={contentMotionPhase}
+              className="motion-content-swap max-w-2xl font-serif text-[0.95rem] leading-[1.42] text-foreground-soft"
+            >
+              {subtitle}
+            </p>
+          </div>
         </div>
       </div>
     </div>

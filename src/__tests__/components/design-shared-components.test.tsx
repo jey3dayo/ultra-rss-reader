@@ -150,7 +150,9 @@ describe("Design-themed shared components", () => {
     );
 
     const backButton = screen.getByRole("button", { name: "戻る" });
+    const closeButton = screen.getByRole("button", { name: "閉じる" });
     const titleGroup = screen.getByTestId("workspace-header-title-group");
+    const topDragRegion = screen.getByTestId("workspace-header-top-drag-region");
     const contextDragRegion = screen.getByTestId("workspace-header-context-drag-region");
     const titleDragRegion = screen.getByTestId("workspace-header-title-drag-region");
     const subtitleDragRegion = screen.getByTestId("workspace-header-subtitle-drag-region");
@@ -165,9 +167,11 @@ describe("Design-themed shared components", () => {
     expect(backButton).not.toHaveClass("rounded-full");
     expect(backButton).toHaveAttribute("aria-label", "戻る");
     expect(within(titleGroup).getByRole("button", { name: "戻る" })).toBeInTheDocument();
+    expect(topDragRegion).toHaveAttribute("data-tauri-drag-region");
     expect(contextDragRegion).toHaveAttribute("data-tauri-drag-region");
     expect(titleDragRegion).toHaveAttribute("data-tauri-drag-region");
     expect(subtitleDragRegion).toHaveAttribute("data-tauri-drag-region");
+    expect(topDragRegion).not.toContainElement(closeButton);
     expect(titleDragRegion).not.toContainElement(backButton);
   });
 
