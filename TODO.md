@@ -33,6 +33,7 @@
     - [ ] command palette / account switcher / context menu の popover shell を shell catalog に含めるか確定する
       - 対象: `src/components/reader/command-palette.tsx`, `src/components/reader/account-switcher-menu.tsx`, `src/components/reader/context-menu-styles.ts`
       - `rounded-lg` / `rounded-xl` の overlay shell が混在しており、 reusable shell と feature-local popup の境界を整理したい
+      - 状況: `account-switcher-menu` / `context-menu-styles` は popup shell、`tooltip` は compact utility detail として整理済み。残りは `command-palette`
     - [ ] debug HUD / destructive dialog footer story の外枠を shell example として扱うか確認する
       - 対象: `src/__tests__/components/debug-hud-frame.test.tsx`, `src/components/shared/destructive-dialog-footer.stories.tsx`
       - `rounded-2xl` を使っているが、 distinct shell role として残すか、 catalog 上の例外として切り分けるかを決める
@@ -52,6 +53,7 @@
     - [ ] tooltip は `compact utility detail` として shell/catalog から分離する
       - 対象: `src/components/ui/tooltip.tsx`
       - provider は plumbing、popup だけ utility detail として扱う
+      - 状況: tooltip popup は `surface-1` / `elevation-1` の compact utility detail として整理済み
     - [ ] popup shell の近接ファイルも同じ lane で review する
       - 対象候補:
         - `src/components/reader/command-palette.tsx`
@@ -108,7 +110,7 @@
       - 対象: `src/components/settings/settings-modal-view.tsx`, `src/__tests__/components/settings-modal-view.test.tsx`
     - [x] feed cleanup shortcuts dialog の outer shell を `rounded-xl` 基準に落とす
       - 対象: `src/components/feed-cleanup/feed-cleanup-page-view.tsx`, `src/__tests__/components/feed-cleanup-page.test.tsx`
-    - [ ] Storybook shell catalog を `rounded-xl` 基準に揃える
+    - [x] Storybook shell catalog を `rounded-xl` 基準に揃える
       - 対象: `src/components/storybook/ui-reference-canvas-specimens.tsx`, `src/__tests__/components/ui-reference-settings-canvas.test.tsx`
   - 2026-04-17 追加棚卸し候補:
     - [ ] `subscriptions-overview-summary` の outer shell と inner summary cards の radius 境界を明記する
@@ -120,6 +122,7 @@
     - [ ] `service-picker` と account icon surfaces の `rounded-lg` を shell ではなく control family として固定するか確認する
       - 対象: `src/components/settings/service-picker.tsx`, `src/components/settings/account-config-form.tsx`, `src/__tests__/components/add-account-form.test.tsx`
       - picker shell と icon badge の radius を同じ階層に見せないよう、 control family の例外として明示したい
+      - 状況: wrapper は `rounded-lg` 維持、row と icon badge は `rounded-md` 基準へ整理済み
   - 2026-04-17 分類メモ:
     - [ ] `subscriptions-overview-summary` の outer `rounded-xl` は `section/container`、inner summary cards は `card lane` として固定する
       - 対象: `src/components/subscriptions-index/subscriptions-overview-summary.tsx`, `src/__tests__/components/subscriptions-index-page.test.tsx`, `src/__tests__/components/subscriptions-overview-summary.test.tsx`
@@ -130,6 +133,7 @@
     - [ ] `service-picker` wrapper は settings container、row 自体は nav/control、icon badge は control-family exception として固定する
       - 対象: `src/components/settings/service-picker.tsx`, `src/components/settings/account-config-form.tsx`, `src/__tests__/components/add-account-form.test.tsx`
       - `rounded-lg` を全部 shell に数えないための分類を明示する
+      - 状況: wrapper は settings container、row / icon badge は control-family exception として整理済み
     - [ ] 同じ radius language を使う近接ファイルも一緒に棚卸しする
       - 対象候補:
         - `src/components/shared/surface-card.tsx`
@@ -159,6 +163,7 @@
     - [ ] settings の title / rail / content のトーン差を `DESIGN.md` 基準で再整理する
       - `src/components/settings/settings-content-layout.tsx`, `src/components/settings/settings-modal-view.tsx`, `src/components/settings/settings-nav-view.tsx`, `src/components/settings/accounts-nav-view.tsx`
       - stacked-left 見出しの serif / sans 混在と、active row の強さ・透過感が section 面より先に目立つ状態をまとめて見直したい
+      - 状況: `settings-content-layout` / `settings-nav-view` / `accounts-nav-view` は整理済み。残りは modal 全体と feed cleanup 側の階層差
   - 2026-04-15 の browser review で確認した追加論点:
     - [x] 既定表示の reader / settings / feed cleanup が `DESIGN.md` の warm cream 基調ではなく dark shell に寄っている状態を解消する
       - `agent-browser` で確認した browser-mode の既定表示は `--background: #1c1915`, `--foreground: #f3efe6` で描画され、`DESIGN.md` の「cream canvas + near-black text」が初期体験に反映されていない
@@ -204,7 +209,7 @@
       - `shared chip contract`
         - 対象: `src/components/shared/control-chip.ts`, `src/components/shared/label-chip.tsx`
         - primitive 契約として leave-as-is か再定義するかを決める
-        - 状況: `control-chip` の default / pressed tone を `foreground-soft` / semantic surface 基準へ寄せ始めている。`label-chip muted` も `foreground-soft` 側へ一段整理済み
+        - 状況: `control-chip` の default / pressed tone を `foreground-soft` / semantic surface 基準へ寄せ、`label-chip muted` も `foreground-soft` 側へ整理済み
       - `compact helper actions`
         - 対象: `src/components/shared/labeled-input-row.tsx`, `src/components/shared/icon-toolbar-control.tsx`, `src/components/shared/tag-chip.tsx`
         - inline helper action と compact utility detail をまとめて整理する
@@ -224,7 +229,7 @@
     - [ ] smart view / list footer の semantic tone formula を token 化するか確認する
       - 対象: `src/components/reader/smart-views-view.tsx`, `src/components/reader/article-list-footer.tsx`
       - `color-mix(...)` を直接書いている semantic tone formula を shared token / utility に上げるか、 feature-local のままにするか判断したい
-      - 状況: `smart-views-view` は tone formula を shared map へ寄せる方向で整理済み。`article-list-footer` は同じ方針で合わせる残タスク
+      - 状況: `smart-views-view` と `article-list-footer` を同じ semantic formula language に整理済み
   - 例外パレットとして中央管理する項目:
     - [x] タグ色パレットを UI ごとの重複定義から共通定数へ寄せる
       - 対象: `src/components/settings/tags-settings.tsx`, `src/components/reader/tag-context-menu.tsx`, `src-tauri/migrations/V13__tag_color_palette_refresh.sql`
@@ -236,6 +241,35 @@
 ## 次の並列バッチ候補
 
 - [ ] 2026-04-17 時点の残レーンを `write scope` 単位で棚卸しし、以後はこのまとまりで並列実行する
+  - [x] Lane H: settings title / rail / content の tonal separation を詰める
+    - 対象候補:
+      - `src/components/settings/settings-content-layout.tsx`
+      - `src/components/settings/settings-nav-view.tsx`
+      - `src/components/settings/accounts-nav-view.tsx`
+      - `src/__tests__/components/settings-content-layout.test.tsx`
+      - `src/__tests__/components/settings-nav-view.test.tsx`
+      - `src/__tests__/components/accounts-nav-view.test.tsx`
+    - 方針:
+      - stacked-left heading の serif/sans と supporting copy の階層差を明示する
+      - rail row は section 面より先に目立ちすぎないよう、active stripe と muted copy の強さを整理する
+  - [x] Lane I: smart view / list footer の semantic tone formula を揃える
+    - 対象候補:
+      - `src/components/reader/smart-views-view.tsx`
+      - `src/components/reader/article-list-footer.tsx`
+      - `src/__tests__/components/smart-views-view.test.tsx`
+      - `src/__tests__/components/article-list-footer.test.tsx`
+    - 方針:
+      - `color-mix(...)` の tone formula を shared map に寄せ、smart view と footer で同じ semantic language を使う
+      - all/unread/starred の selected/hover/trailing の責務を分ける
+  - [x] Lane J: popup shell と compact utility detail の境界を詰める
+    - 対象候補:
+      - `src/components/reader/account-switcher-menu.tsx`
+      - `src/components/reader/context-menu-styles.ts`
+      - `src/components/ui/tooltip.tsx`
+      - 関連 test 群
+    - 方針:
+      - account switcher / context menu は popup shell、tooltip は compact utility detail として整理する
+      - popup outer shell と inner item radius の役割を混ぜない
   - [x] Lane A: shared primitive の muted 契約を `foreground-soft` / semantic surface へ寄せる
     - 対象候補:
       - `src/components/shared/control-chip.ts`
@@ -300,6 +334,19 @@
     - 方針:
       - `starredArticles` / `accountArticles` の cache patch 漏れだけを扱う
       - UI tone 調整レーンとは完全に分離する
+  - [x] Lane G: sidebar collapse animation / panel persistence を整理する
+    - 対象候補:
+      - `src/components/shared/sidebar-section-shell.tsx`
+      - `src/components/shared/sidebar-section-toggle.tsx`
+      - `src/components/shared/sidebar-section.types.ts`
+      - `src/components/reader/feed-tree-folder-section.tsx`
+      - `src/components/reader/tag-list-view.tsx`
+      - `src/__tests__/components/feed-tree-folder-section.test.tsx`
+      - `src/__tests__/components/tag-list-view.test.tsx`
+      - `src/__tests__/components/sidebar-section-toggle.test.tsx`
+    - 方針:
+      - 開閉対象は DOM から外さず、`aria-hidden` と grid row / opacity / translate の遷移で collapse を表現する
+      - `SidebarSectionShell` と feed-tree / tag-list の挙動を揃え、 section header と panel body の責務を分ける
 
 - [ ] Lane 1: overlay color layer を `DESIGN.md` 準拠の token に寄せる
   - [ ] 棚卸し
@@ -330,7 +377,7 @@
     - [ ] `src/styles/global.css` と `DESIGN.md` に dialog 用 scrim / overlay role を追加する
     - [x] `src/components/ui/dialog.tsx` の backdrop opacity literal を scrim token へ置き換える
     - [x] `src/components/settings/service-picker.tsx` の `hover:bg-background/90` を既存 surface token か named hover surface へ寄せる
-    - [ ] `src/components/settings/settings-modal-view.tsx` の content / sidebar fade と shell 背景が新しい scrim / overlay role と矛盾しないか確認する
+    - [x] `src/components/settings/settings-modal-view.tsx` の content / sidebar fade と shell 背景が新しい scrim / overlay role と矛盾しないか確認する
 
 - [ ] Lane 3: settings / cleanup の情報階層を tonal separation と primary action の差で再整理する
   - [ ] 棚卸し
