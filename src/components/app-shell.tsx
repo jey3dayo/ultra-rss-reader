@@ -96,13 +96,13 @@ function Toast() {
           type="button"
           onClick={clearToast}
           aria-label={t("close")}
-          className="ml-2 shrink-0 text-muted-foreground hover:text-foreground"
+          className="ml-2 shrink-0 rounded-md px-1.5 text-foreground-soft transition-colors hover:bg-surface-1/72 hover:text-foreground"
         >
           &times;
         </button>
       </div>
       {progress !== undefined && (
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-1/72">
           {progress != null ? (
             <div
               className="h-full rounded-full bg-primary transition-[width] duration-200"
@@ -120,7 +120,7 @@ function Toast() {
               key={action.label}
               type="button"
               onClick={action.onClick}
-              className="rounded-md px-2.5 py-1 text-xs font-medium text-primary hover:bg-muted"
+              className="rounded-md px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-surface-1/72"
             >
               {action.label}
             </button>

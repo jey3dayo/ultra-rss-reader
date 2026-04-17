@@ -9,12 +9,12 @@ export function SidebarSectionToggle({ label, isOpen, onToggle, className, conte
       type="button"
       onClick={onToggle}
       className={cn(
-        "flex w-full items-center justify-between rounded-md px-2 py-1 text-sidebar-foreground transition-colors duration-150 hover:bg-sidebar-accent/28",
+        "flex w-full items-center justify-between rounded-md px-2 py-1 text-sidebar-foreground transition-colors duration-150 hover:bg-surface-1/72",
         className,
       )}
     >
       <span className="text-sm font-medium text-sidebar-foreground">{label}</span>
-      <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", !isOpen && "-rotate-90")} />
+      <ChevronDown className={cn("h-4 w-4 text-foreground-soft transition-transform", !isOpen && "-rotate-90")} />
     </button>
   );
 

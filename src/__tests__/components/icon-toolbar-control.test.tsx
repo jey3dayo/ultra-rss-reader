@@ -78,7 +78,8 @@ describe("IconToolbarControl", () => {
     );
 
     const menuTrigger = screen.getByRole("button", { name: "Share" });
-    expect(menuTrigger).toHaveClass("size-11", "md:size-8", "rounded-md", "text-muted-foreground");
+    expect(menuTrigger).toHaveClass("size-11", "md:size-8", "rounded-md", "text-foreground-soft");
+    expect(menuTrigger).not.toHaveClass("text-muted-foreground");
 
     await user.click(menuTrigger);
 

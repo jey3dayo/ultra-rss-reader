@@ -211,6 +211,8 @@ describe("AppShell", () => {
       throw new Error("Expected copy toast message to be set");
     }
     expect(screen.getAllByText(toastMessage).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("text-foreground-soft");
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("hover:bg-surface-1/72");
   });
 
   it("copies the debug HUD contents when activated from the keyboard", async () => {

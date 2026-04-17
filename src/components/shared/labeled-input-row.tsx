@@ -47,7 +47,7 @@ export function LabeledInputRow({
         aria-label={actionAriaLabel ?? `${actionLabel}: ${label}`}
         className={cn(
           actionPlacement === "inside" &&
-            "absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground transition-colors duration-200 hover:text-foreground active:not-aria-[haspopup]:-translate-y-1/2",
+            "absolute top-1/2 right-1 -translate-y-1/2 text-foreground-soft transition-colors duration-200 hover:text-foreground active:not-aria-[haspopup]:-translate-y-1/2",
           actionClassName,
         )}
       >

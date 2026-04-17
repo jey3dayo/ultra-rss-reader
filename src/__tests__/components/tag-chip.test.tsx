@@ -18,7 +18,8 @@ describe("TagChip", () => {
     render(<TagChip label="personal" onRemove={onRemove} removeLabel="Remove personal" />);
 
     const removeButton = screen.getByRole("button", { name: "Remove personal" });
-    expect(removeButton).toHaveClass("hover:bg-surface-1/72", "hover:text-foreground");
+    expect(removeButton).toHaveClass("text-foreground-soft", "hover:bg-surface-1/72", "hover:text-foreground");
+    expect(removeButton).not.toHaveClass("text-muted-foreground/60");
 
     await user.click(screen.getByRole("button", { name: "Remove personal" }));
 

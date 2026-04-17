@@ -106,7 +106,7 @@ describe("CommandPalette", () => {
     expect(screen.getByRole("dialog")).toHaveClass("bg-surface-2", "shadow-elevation-3");
     expect(screen.getByPlaceholderText("Search commands…")).toHaveClass("placeholder:text-foreground-soft");
     expect(screen.getByPlaceholderText("Search commands…").closest('[data-slot="command-input-wrapper"]')).toHaveClass(
-      "bg-surface-1/76",
+      "bg-surface-1/72",
     );
     expect(await screen.findByText("Recent Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
     expect(screen.getByRole("dialog").querySelector('[data-slot="command"]')).toHaveClass(
@@ -123,6 +123,17 @@ describe("CommandPalette", () => {
     expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /Open settings/ })).toBeInTheDocument();
     expect(screen.queryByText("Recent Actions")).not.toBeInTheDocument();
+  });
+
+  it("renders the no-results helper in foreground-soft tone", async () => {
+    const user = userEvent.setup();
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    const input = await screen.findByPlaceholderText("Search commands…");
+    await user.type(input, "zzzzzz");
+
+    expect(await screen.findByText("No results found")).toHaveClass("text-foreground-soft");
   });
 
   it("selecting a feed lands on the first visible article and closes the palette", async () => {

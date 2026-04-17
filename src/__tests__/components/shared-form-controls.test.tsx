@@ -62,16 +62,48 @@ describe("shared form controls", () => {
         value="https://example.com/rss"
         onChange={onChange}
         actionLabel="Reset"
+        actionVariant="ghost"
         onAction={onAction}
       />,
     );
 
     expect(screen.getByRole("textbox", { name: "Server URL" })).toHaveValue("https://example.com/rss");
+    expect(screen.getByRole("button", { name: "Reset: Server URL" })).toHaveClass("text-foreground-soft");
     expect(
       screen.getByRole("textbox", { name: "Server URL" }).closest("div.flex.w-full.items-center.gap-2"),
     ).toHaveClass("sm:max-w-[30rem]", "sm:justify-end");
 
     await user.click(screen.getByRole("button", { name: "Reset: Server URL" }));
+
+    expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders inside helper actions with foreground-soft utility treatment", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const onAction = vi.fn();
+
+    render(
+      <LabeledInputRow
+        label="Server URL"
+        name="server-url"
+        value="https://example.com/rss"
+        onChange={onChange}
+        actionLabel="Copy"
+        actionTooltipLabel="Copy server URL"
+        actionIcon={<span aria-hidden="true">⧉</span>}
+        actionPlacement="inside"
+        actionVariant="ghost"
+        actionSize="icon-sm"
+        onAction={onAction}
+      />,
+    );
+
+    const actionButton = screen.getByRole("button", { name: "Copy: Server URL" });
+    expect(actionButton).toHaveClass("text-foreground-soft");
+    expect(actionButton).not.toHaveClass("text-muted-foreground");
+
+    await user.click(actionButton);
 
     expect(onAction).toHaveBeenCalledTimes(1);
   });

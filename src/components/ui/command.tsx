@@ -48,7 +48,7 @@ function CommandInput({ className, ...props }: React.ComponentProps<typeof Comma
   return (
     <div
       data-slot="command-input-wrapper"
-      className="flex h-9 items-center gap-3 border-b border-border/70 bg-surface-1/76 px-4"
+      className="flex h-9 items-center gap-3 border-b border-border/70 bg-surface-1/72 px-4"
     >
       <SearchIcon className="size-4 shrink-0 text-foreground-soft" />
       <CommandPrimitive.Input
@@ -74,7 +74,13 @@ function CommandList({ className, ...props }: React.ComponentProps<typeof Comman
 }
 
 function CommandEmpty({ ...props }: React.ComponentProps<typeof CommandPrimitive.Empty>) {
-  return <CommandPrimitive.Empty data-slot="command-empty" className="py-6 text-center text-sm" {...props} />;
+  return (
+    <CommandPrimitive.Empty
+      data-slot="command-empty"
+      className="py-6 text-center text-sm text-foreground-soft"
+      {...props}
+    />
+  );
 }
 
 function CommandGroup({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Group>) {

@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useLayoutEffect } from "react";
 import { fn } from "storybook/test";
 import { WorkspaceHeader } from "./workspace-header";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -62,33 +61,9 @@ function WorkspaceHeaderStory({
   backLabel,
   closeLabel,
 }: WorkspaceHeaderStoryProps) {
-  useLayoutEffect(() => {
-    const previousPlatformState = usePlatformStore.getState();
-    const previousTauriInternals = window.__TAURI_INTERNALS__;
-    const previousDevBrowserMocks = window.__DEV_BROWSER_MOCKS__;
-    const previousUltraBrowserMocks = window.__ULTRA_RSS_BROWSER_MOCKS__;
-
-    applyRuntimeMode(runtimeMode);
-
-    return () => {
-      if (previousTauriInternals == null) {
-        delete window.__TAURI_INTERNALS__;
-      } else {
-        window.__TAURI_INTERNALS__ = previousTauriInternals;
-      }
-      if (previousDevBrowserMocks == null) {
-        delete window.__DEV_BROWSER_MOCKS__;
-      } else {
-        window.__DEV_BROWSER_MOCKS__ = previousDevBrowserMocks;
-      }
-      if (previousUltraBrowserMocks == null) {
-        delete window.__ULTRA_RSS_BROWSER_MOCKS__;
-      } else {
-        window.__ULTRA_RSS_BROWSER_MOCKS__ = previousUltraBrowserMocks;
-      }
-      usePlatformStore.setState(previousPlatformState);
-    };
-  }, [runtimeMode]);
+  // Storybook docs/controls can render once before effects run. Apply the
+  // runtime mode synchronously so the first frame matches the selected mode.
+  applyRuntimeMode(runtimeMode);
 
   return (
     <WorkspaceHeader
@@ -150,16 +125,31 @@ export const BrowserPreview: Story = {
   args: {
     runtimeMode: "browser",
   },
+  parameters: {
+    docs: {
+      disable: true,
+    },
+  },
 };
 
 export const MacDesktop: Story = {
   args: {
     runtimeMode: "mac",
   },
+  parameters: {
+    docs: {
+      disable: true,
+    },
+  },
 };
 
 export const WindowsDesktop: Story = {
   args: {
     runtimeMode: "windows",
+  },
+  parameters: {
+    docs: {
+      disable: true,
+    },
   },
 };

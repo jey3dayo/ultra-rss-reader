@@ -9,7 +9,7 @@ import { OverlayActionSurface } from "./overlay-action-surface";
 
 export const iconToolbarButtonClassName = cn(
   buttonVariants({ variant: "ghost", size: "icon" }),
-  "text-muted-foreground",
+  "text-foreground-soft",
 );
 
 export const iconToolbarControlVariants = cva(iconToolbarButtonClassName, {
