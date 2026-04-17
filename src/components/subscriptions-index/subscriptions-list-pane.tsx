@@ -51,9 +51,7 @@ export function SubscriptionsListPane({
       <div className="mb-5 flex items-center justify-between gap-3 border-b border-border/50 pb-4">
         <h2 className="font-sans text-[1.02rem] font-normal tracking-[-0.02em] text-foreground">{heading}</h2>
         {hasRows ? (
-          <LabelChip tone="neutral" className="px-2.5 py-1 text-[10px]">
-            {groups.reduce((count, group) => count + group.rows.length, 0)}
-          </LabelChip>
+          <LabelChip tone="neutral">{groups.reduce((count, group) => count + group.rows.length, 0)}</LabelChip>
         ) : null}
       </div>
       <div className="space-y-5 pr-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">

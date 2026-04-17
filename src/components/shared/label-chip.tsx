@@ -3,7 +3,7 @@ import type { HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 const labelChipVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-full border font-sans font-medium leading-none whitespace-nowrap transition-[color,background-color,border-color]",
+  "inline-flex items-center gap-1.5 rounded-full border font-sans font-medium leading-none whitespace-nowrap tabular-nums transition-[color,background-color,border-color]",
   {
     variants: {
       tone: {
@@ -14,7 +14,7 @@ const labelChipVariants = cva(
         danger: "border-state-danger-border bg-state-danger-surface text-state-danger-foreground",
       },
       size: {
-        compact: "px-2 py-0.5 text-[10px]",
+        compact: "px-2 py-0.5 text-[11px]",
         default: "px-2.5 py-1 text-[11px]",
       },
     },
