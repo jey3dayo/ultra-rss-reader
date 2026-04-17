@@ -1,4 +1,3 @@
-import { useUiStore } from "@/stores/ui-store";
 import type { UseBrowserWebviewBoundsSyncParams } from "./browser-view.types";
 import { bindWindowEvents, useBrowserUrlLayoutEffect } from "./use-browser-url-effect";
 
@@ -10,7 +9,7 @@ export function useBrowserWebviewBoundsSync({
 }: UseBrowserWebviewBoundsSyncParams) {
   useBrowserUrlLayoutEffect(
     browserUrl,
-    (activeBrowserUrl) => {
+    ({ browserUrl: activeBrowserUrl, isCurrent }) => {
       if (!hostRef.current) {
         return undefined;
       }
@@ -19,7 +18,7 @@ export function useBrowserWebviewBoundsSync({
 
       const syncBounds = (mode: "create" | "resize") => {
         void waitForBrowserWebviewListeners().then(() => {
-          if (cancelled || useUiStore.getState().browserUrl !== activeBrowserUrl) {
+          if (cancelled || !isCurrent()) {
             return;
           }
 

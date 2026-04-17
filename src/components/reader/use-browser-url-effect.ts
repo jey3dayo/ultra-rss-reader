@@ -1,7 +1,12 @@
 import { useEffect, useEffectEvent, useLayoutEffect } from "react";
+import { useUiStore } from "@/stores/ui-store";
 
 type BrowserUrlCleanup = ReturnType<typeof useEffect>;
-type BrowserUrlEffect = (browserUrl: string) => BrowserUrlCleanup;
+type BrowserUrlScope = {
+  browserUrl: string;
+  isCurrent: () => boolean;
+};
+type BrowserUrlEffect = (scope: BrowserUrlScope) => BrowserUrlCleanup;
 type KnownWindowEventBinding<K extends keyof WindowEventMap = keyof WindowEventMap> = {
   type: K;
   listener: (event: WindowEventMap[K]) => void;
@@ -28,6 +33,10 @@ export function bindWindowEvents(bindings: readonly WindowEventBinding[]) {
   };
 }
 
+export function isCurrentBrowserUrl(browserUrl: string) {
+  return useUiStore.getState().browserUrl === browserUrl;
+}
+
 export function useBrowserUrlEffect(
   browserUrl: string | null,
   effect: BrowserUrlEffect,
@@ -40,7 +49,10 @@ export function useBrowserUrlEffect(
       return undefined;
     }
 
-    return runEffect(browserUrl);
+    return runEffect({
+      browserUrl,
+      isCurrent: () => isCurrentBrowserUrl(browserUrl),
+    });
   }, [browserUrl, ...dependencies]);
 }
 
@@ -56,6 +68,9 @@ export function useBrowserUrlLayoutEffect(
       return undefined;
     }
 
-    return runEffect(browserUrl);
+    return runEffect({
+      browserUrl,
+      isCurrent: () => isCurrentBrowserUrl(browserUrl),
+    });
   }, [browserUrl, ...dependencies]);
 }

@@ -1,5 +1,4 @@
 import { BROWSER_WINDOW_LOAD_TIMEOUT_MS } from "@/constants/browser";
-import { useUiStore } from "@/stores/ui-store";
 import type { UseBrowserWebviewLoadTimeoutParams } from "./browser-view.types";
 import { useBrowserUrlEffect } from "./use-browser-url-effect";
 
@@ -11,14 +10,13 @@ export function useBrowserWebviewLoadTimeout({
 }: UseBrowserWebviewLoadTimeoutParams) {
   useBrowserUrlEffect(
     browserUrl,
-    (activeBrowserUrl) => {
+    ({ browserUrl: activeBrowserUrl, isCurrent }) => {
       if (!isLoading) {
         return undefined;
       }
 
       const timeoutId = window.setTimeout(() => {
-        const activeUrl = useUiStore.getState().browserUrl;
-        if (activeUrl !== activeBrowserUrl || !isStillLoading()) {
+        if (!isCurrent() || !isStillLoading()) {
           return;
         }
 
