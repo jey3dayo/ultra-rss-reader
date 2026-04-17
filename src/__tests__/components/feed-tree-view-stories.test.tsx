@@ -10,8 +10,8 @@ describe("FeedTreeView stories", () => {
     expect(screen.getByText("Selected hover priority")).toHaveClass("text-sidebar-foreground/40");
     expect(screen.getByText("Unselected hover")).toHaveClass("text-sidebar-foreground/40");
     expect(screen.getByText("Selected idle").nextElementSibling).toHaveClass(
-      "border-sidebar-border/30",
-      "bg-sidebar/80",
+      "border-[var(--feed-tree-review-frame-border)]",
+      "bg-[var(--feed-tree-review-frame-surface)]",
     );
   });
 });

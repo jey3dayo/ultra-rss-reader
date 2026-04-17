@@ -19,8 +19,8 @@ export function FeedTreeUnfolderedDropZone({ enabled, active, onDropToUnfoldered
       className={cn(
         "w-full rounded-md text-left transition-all",
         active
-          ? "min-h-8 border border-dashed border-sidebar-border bg-sidebar-accent/32 px-2 py-1 text-xs text-sidebar-accent-foreground"
-          : "h-2 border border-transparent bg-sidebar-border/30",
+          ? "min-h-8 border border-dashed border-sidebar-border bg-[var(--feed-tree-drop-target-surface)] px-2 py-1 text-xs text-sidebar-accent-foreground"
+          : "h-2 border border-transparent bg-[var(--feed-tree-unfoldered-rail-surface)]",
       )}
       onClick={() => {
         if (!enabled) {

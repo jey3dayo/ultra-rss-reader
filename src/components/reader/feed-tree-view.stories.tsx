@@ -118,7 +118,7 @@ export const SelectionPriorityReview: Story = {
       `}</style>
       <div className="space-y-1">
         <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/40 uppercase">Selected idle</p>
-        <div className="rounded-md border border-sidebar-border/30 bg-sidebar/80 p-2">
+        <div className="rounded-md border border-[var(--feed-tree-review-frame-border)] bg-[var(--feed-tree-review-frame-surface)] p-2">
           <FeedTreeView {...args} />
         </div>
       </div>
@@ -127,7 +127,7 @@ export const SelectionPriorityReview: Story = {
           Selected hover priority
         </p>
         <div
-          className="rounded-md border border-sidebar-border/30 bg-sidebar/80 p-2"
+          className="rounded-md border border-[var(--feed-tree-review-frame-border)] bg-[var(--feed-tree-review-frame-surface)] p-2"
           data-story-preview="selected-hover"
         >
           <FeedTreeView {...args} canDragFeeds={true} />
@@ -138,7 +138,7 @@ export const SelectionPriorityReview: Story = {
           Unselected hover
         </p>
         <div
-          className="rounded-md border border-sidebar-border/30 bg-sidebar/80 p-2"
+          className="rounded-md border border-[var(--feed-tree-review-frame-border)] bg-[var(--feed-tree-review-frame-surface)] p-2"
           data-story-preview="unselected-hover"
         >
           <FeedTreeView {...args} canDragFeeds={true} />
@@ -158,7 +158,7 @@ export const FolderSelectionReview: Story = {
           <p className="text-[11px] font-medium tracking-[0.08em] text-sidebar-foreground/40 uppercase">
             Folder selected
           </p>
-          <div className="rounded-md border border-sidebar-border/30 bg-sidebar/80 p-2">
+          <div className="rounded-md border border-[var(--feed-tree-review-frame-border)] bg-[var(--feed-tree-review-frame-surface)] p-2">
             <FeedTreeView {...args} {...folderSelectedArgs} />
           </div>
         </div>

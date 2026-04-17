@@ -119,6 +119,6 @@ describe("FeedTreeRow", () => {
 
     const dragButton = screen.getByRole("button", { name: "Drag Alpha" });
 
-    expect(dragButton).toHaveClass("bg-sidebar-accent/32");
+    expect(dragButton).toHaveClass("bg-[var(--feed-tree-drop-target-surface)]");
   });
 });

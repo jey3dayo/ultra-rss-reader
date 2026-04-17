@@ -13,8 +13,8 @@ describe("SidebarSelectionReviewCanvas", () => {
     expect(screen.getByText("Feed Selected / Hover Priority")).toBeInTheDocument();
     expect(screen.getByText("Tag Selected")).toBeInTheDocument();
     expect(screen.getByText("Smart View / Unread Selected").nextElementSibling).toHaveClass(
-      "border-sidebar-border/30",
-      "bg-sidebar/80",
+      "border-[var(--feed-tree-review-frame-border)]",
+      "bg-[var(--feed-tree-review-frame-surface)]",
     );
 
     expect(

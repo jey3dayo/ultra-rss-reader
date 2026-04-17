@@ -53,8 +53,8 @@ describe("FeedTreeFolderSection", () => {
     const folderButton = screen.getByRole("button", { name: "Select folder Comic" });
     const row = folderButton.closest("div.rounded-md");
 
-    expect(row).toHaveClass("bg-sidebar-accent/16");
-    expect(folderButton).toHaveClass("bg-sidebar-accent/32");
+    expect(row).toHaveClass("bg-[var(--feed-tree-active-folder-surface)]");
+    expect(folderButton).toHaveClass("bg-[var(--feed-tree-drop-target-surface)]");
   });
 
   it("keeps the folder feed panel mounted with animated collapse state", () => {
