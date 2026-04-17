@@ -76,7 +76,7 @@ export function FeedCleanupQueuePanel({
         </h3>
         {!integrityMode ? (
           <span
-            className="px-1.5 font-sans text-[11px] font-medium tracking-[0.12em] text-muted-foreground uppercase"
+            className="px-1.5 font-sans text-[11px] font-medium tracking-[0.12em] text-foreground-soft uppercase"
             style={{ backgroundColor: "var(--cleanup-pane-header-surface)" }}
           >
             {queue.length}
@@ -86,7 +86,7 @@ export function FeedCleanupQueuePanel({
       <div data-testid="feed-cleanup-queue-list" className={queueListClassName}>
         {integrityMode ? (
           integrityIssues.length === 0 ? (
-            <p className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+            <p className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground-soft">
               {integrityEmptyLabel}
             </p>
           ) : (
@@ -100,13 +100,13 @@ export function FeedCleanupQueuePanel({
                   "flex w-full cursor-pointer flex-col gap-2 rounded-md border px-4 py-3 text-left transition-colors",
                   selectedIntegrityIssue?.missing_feed_id === issue.missing_feed_id
                     ? "border-state-warning-border bg-state-warning-surface text-state-warning-foreground"
-                    : "border-border bg-card hover:bg-muted/60",
+                    : "border-border bg-card hover:bg-surface-2",
                 )}
               >
                 <span className="line-clamp-1 font-medium text-foreground">
                   {`${integrityDetailLabels.queue_item_title}: ${issue.missing_feed_id}`}
                 </span>
-                <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-foreground-soft">
                   <span>{issue.article_count}</span>
                   <span>{integrityDetailLabels.queue_item_articles_label}</span>
                   <span>·</span>
@@ -116,7 +116,7 @@ export function FeedCleanupQueuePanel({
             ))
           )
         ) : queue.length === 0 ? (
-          <p className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+          <p className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground-soft">
             {emptyLabel}
           </p>
         ) : (
@@ -188,7 +188,9 @@ export function FeedCleanupQueuePanel({
                   padding="compact"
                   className={cn(
                     "rounded-md transition-colors duration-150 hover:bg-surface-1/72",
-                    isCurrent || isSelected ? "border-border-strong bg-card/52 shadow-none" : "border-border/55 shadow-none",
+                    isCurrent || isSelected
+                      ? "border-border-strong bg-card/52 shadow-none"
+                      : "border-border/55 shadow-none",
                     isFocused && "ring-1 ring-primary/30",
                   )}
                   style={isCurrent || isSelected ? undefined : { backgroundColor: "var(--cleanup-card-surface-muted)" }}
@@ -206,9 +208,9 @@ export function FeedCleanupQueuePanel({
                         onCheckedChange={() => onToggleCandidateSelection(candidate.feedId)}
                       />
                     </label>
-                    <div className="flex flex-wrap items-center justify-end gap-2 text-[11px] text-muted-foreground">
+                    <div className="flex flex-wrap items-center justify-end gap-2 text-[11px] text-foreground-soft">
                       {candidate.deferred ? (
-                        <LabelChip tone="muted" size="compact">
+                        <LabelChip tone="neutral" size="compact">
                           {deferredLabel}
                         </LabelChip>
                       ) : null}
@@ -230,14 +232,14 @@ export function FeedCleanupQueuePanel({
                             <span className="line-clamp-1 font-sans font-medium text-foreground">
                               {candidate.title}
                             </span>
-                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                              <LabelChip tone="muted" size="compact">
+                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-foreground-soft">
+                              <LabelChip tone="neutral" size="compact">
                                 {candidate.folderName ?? "—"}
                               </LabelChip>
-                              <LabelChip tone="muted" size="compact">
+                              <LabelChip tone="neutral" size="compact">
                                 {candidate.unreadCount} {unreadCountLabel}
                               </LabelChip>
-                              <LabelChip tone="muted" size="compact">
+                              <LabelChip tone="neutral" size="compact">
                                 {candidate.starredCount} {starredCountLabel}
                               </LabelChip>
                             </div>
@@ -250,7 +252,7 @@ export function FeedCleanupQueuePanel({
                               {priorityToneLabels[queueSummary.tone]}
                             </LabelChip>
                             {candidate.deferred ? (
-                              <LabelChip tone="muted" size="compact">
+                              <LabelChip tone="neutral" size="compact">
                                 {deferredBadgeLabel}
                               </LabelChip>
                             ) : null}
@@ -266,7 +268,7 @@ export function FeedCleanupQueuePanel({
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         {reasonFacts.slice(0, 2).map((fact) => (
-                          <LabelChip key={fact.key} tone="muted" size="compact">
+                          <LabelChip key={fact.key} tone="neutral" size="compact">
                             {fact.key === "stale_days"
                               ? t("fact_stale_days", { count: fact.value })
                               : fact.key === "unread_count"
@@ -275,18 +277,18 @@ export function FeedCleanupQueuePanel({
                           </LabelChip>
                         ))}
                         {reasonFacts.length > 2 ? (
-                          <LabelChip tone="muted" size="compact">
+                          <LabelChip tone="neutral" size="compact">
                             +{reasonFacts.length - 2}
                           </LabelChip>
                         ) : null}
                         {reasonFacts.length === 0 && selectedCandidate?.feedId !== candidate.feedId ? (
-                          <LabelChip tone="muted" size="compact">
+                          <LabelChip tone="neutral" size="compact">
                             {summaryLabels.healthy_feed}
                           </LabelChip>
                         ) : null}
                       </div>
                       {selectedCandidate?.feedId === candidate.feedId ? (
-                        <p className="font-serif text-sm leading-6 text-muted-foreground">
+                        <p className="font-serif text-sm leading-6 text-foreground-soft">
                           {summaryLabels[queueSummary.summaryKey]}
                         </p>
                       ) : null}

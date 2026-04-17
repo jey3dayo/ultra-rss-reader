@@ -56,12 +56,14 @@ describe("FeedCleanupOverviewPanel", () => {
     const summary = screen.getByTestId("feed-cleanup-sidebar-summary");
     const bulkActions = screen.getByTestId("feed-cleanup-bulk-actions");
     const summaryCard = within(summary).getByText("Pending").closest('[data-surface-card="section"]');
-    const pendingCount = within(summary).getByText("3");
+    const visibleCountChip = bulkActions.querySelector('[data-label-chip="neutral"]');
 
     expect(summary).toHaveTextContent("Pending");
     expect(summary).toHaveTextContent("Done");
     expect(summaryCard).toHaveClass("bg-card/24");
-    expect(pendingCount.closest("span")).toHaveClass("rounded-md");
+    expect(visibleCountChip).not.toBeNull();
+    expect(visibleCountChip).toHaveClass("rounded-sm");
+    expect(visibleCountChip).toHaveAttribute("data-label-chip", "neutral");
     expect(within(summary).getByText("Needs review")).toHaveClass("text-foreground-soft");
     expect(within(summary).queryByRole("button")).toBeNull();
     expect(bulkActions).toHaveClass("bg-card/52");
@@ -105,8 +107,11 @@ describe("FeedCleanupOverviewPanel", () => {
     expect(staleButton).toHaveClass("rounded-md");
     expect(allCandidatesButton).toHaveClass("data-[pressed]:border-border-strong");
     expect(within(allCandidatesButton).getByText("2")).toHaveClass("rounded-sm");
+    expect(within(allCandidatesButton).getByText("2").closest("span")).toHaveAttribute("data-label-chip", "neutral");
     expect(within(allCandidatesButton).queryByText("3")).toBeNull();
     expect(screen.getByTestId("feed-cleanup-bulk-actions")).toBeInTheDocument();
+    expect(screen.getByTestId("feed-cleanup-all-filter")).toBeInTheDocument();
+    expect(screen.getByTestId("feed-cleanup-secondary-filters")).toBeInTheDocument();
     expect(screen.getByText("3 visible")).toHaveClass("text-foreground-soft");
   });
 

@@ -308,7 +308,7 @@ export function FeedCleanupPageView({
         <div className="border-b border-border bg-state-warning-surface px-6 py-3 text-state-warning-foreground">
           <div className="rounded-md border border-state-warning-border bg-surface-1/78 px-4 py-3">
             <p className="text-sm font-semibold">{integrityIssue.title}</p>
-            <p className="mt-1 text-sm opacity-80">{integrityIssue.body}</p>
+            <p className="mt-1 text-sm text-state-warning-foreground/80">{integrityIssue.body}</p>
             <Button variant="outline" className="mt-3" onClick={onToggleIntegrityMode}>
               {integrityIssue.actionLabel}
             </Button>
@@ -425,7 +425,7 @@ export function FeedCleanupPageView({
       <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
         <DialogContent
           showCloseButton={false}
-          className="overflow-hidden rounded-xl border border-border/70 p-0 sm:max-w-[480px]"
+          className="gap-0 overflow-hidden rounded-xl border border-border/70 p-0 sm:max-w-[480px]"
           style={{ backgroundColor: "var(--cleanup-dialog-surface)" }}
           overlayPreset="readable"
         >
@@ -439,7 +439,7 @@ export function FeedCleanupPageView({
           </div>
           <div className="grid gap-6 px-6 py-5">
             <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground">{shortcutsNavigationLabel}</h3>
+              <h3 className="text-sm font-medium text-foreground-soft">{shortcutsNavigationLabel}</h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 {shortcutItems
                   .filter((item) => item.category === "navigation")
@@ -457,7 +457,7 @@ export function FeedCleanupPageView({
               </div>
             </div>
             <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground">{shortcutsActionsLabel}</h3>
+              <h3 className="text-sm font-medium text-foreground-soft">{shortcutsActionsLabel}</h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 {shortcutItems
                   .filter((item) => item.category === "actions")
@@ -474,7 +474,7 @@ export function FeedCleanupPageView({
                   ))}
               </div>
             </div>
-            <p className="text-sm text-muted-foreground">{shortcutsHelpLabel}</p>
+            <p className="text-sm text-foreground-soft">{shortcutsHelpLabel}</p>
           </div>
         </DialogContent>
       </Dialog>

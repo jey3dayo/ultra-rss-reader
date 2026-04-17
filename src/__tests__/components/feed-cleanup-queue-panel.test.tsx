@@ -87,6 +87,7 @@ describe("FeedCleanupQueuePanel", () => {
     expect(screen.getByText("No new article for 90+ days")).toBeInTheDocument();
     expect(screen.getByText("No unread")).toBeInTheDocument();
     expect(screen.getByText("No stars")).toBeInTheDocument();
+    expect(screen.getByText("Work").closest("span")).toHaveAttribute("data-label-chip", "neutral");
     expect(screen.getByText("Updated 120 days ago")).toBeInTheDocument();
   });
 
@@ -180,7 +181,7 @@ describe("FeedCleanupQueuePanel", () => {
   it("uses rounded-md for empty states and integrity queue rows", () => {
     const { rerender } = render(<FeedCleanupQueuePanel {...buildProps()} queue={[]} />);
 
-    expect(screen.getByText("No cleanup candidates right now.")).toHaveClass("rounded-md");
+    expect(screen.getByText("No cleanup candidates right now.")).toHaveClass("rounded-md", "text-foreground-soft");
 
     rerender(
       <FeedCleanupQueuePanel
@@ -197,6 +198,9 @@ describe("FeedCleanupQueuePanel", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Missing feed: missing-feed" })).toHaveClass("rounded-md");
+    expect(screen.getByRole("button", { name: "Missing feed: missing-feed" })).toHaveClass(
+      "rounded-md",
+      "hover:bg-surface-2",
+    );
   });
 });

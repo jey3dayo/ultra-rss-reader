@@ -176,7 +176,7 @@ export function FeedDetailPanel({
           {reasonChips.length > 0 && !reasonBox ? (
             <div className="flex flex-wrap gap-2">
               {reasonChips.map((chip) => (
-                <LabelChip key={chip} tone="muted" size="compact" className="rounded-lg px-2 py-1">
+                <LabelChip key={chip} tone="neutral" size="compact" className="rounded-lg px-2 py-1">
                   {chip}
                 </LabelChip>
               ))}

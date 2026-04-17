@@ -364,7 +364,10 @@ describe("FeedCleanupPage", () => {
     render(<FeedCleanupPage />, { wrapper: createWrapper() });
 
     expect(await screen.findByText("Broken feed references found")).toBeInTheDocument();
-    expect(await screen.findByText("1 article is pointing to a missing feed.")).toHaveClass("mt-1");
+    expect(await screen.findByText("1 article is pointing to a missing feed.")).toHaveClass(
+      "mt-1",
+      "text-state-warning-foreground/80",
+    );
     const warningCard = screen.getByText("Broken feed references found").closest("div");
     expect(warningCard).toHaveClass("rounded-md", "border-state-warning-border");
     expect(warningCard?.parentElement).toHaveClass("bg-state-warning-surface", "text-state-warning-foreground");
@@ -682,6 +685,7 @@ describe("FeedCleanupPage", () => {
     const shortcutsDialog = screen.getByRole("dialog", { name: "Keyboard shortcuts" });
     expect(shortcutsDialog).toBeInTheDocument();
     expect(shortcutsDialog).toHaveClass("rounded-xl");
+    expect(shortcutsDialog).toHaveClass("gap-0");
     expect(shortcutsDialog).toHaveStyle({ backgroundColor: "var(--cleanup-dialog-surface)" });
     expect(screen.getByText("Navigation")).toBeInTheDocument();
     expect(screen.getByText("Actions")).toBeInTheDocument();

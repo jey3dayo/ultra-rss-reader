@@ -77,4 +77,21 @@ describe("FeedDetailPanel", () => {
     );
     expect(screen.getByRole("button", { name: "購読の整理" })).not.toHaveClass("rounded-full");
   });
+
+  it("renders neutral reason chips instead of muted chips", () => {
+    render(
+      <FeedDetailPanel
+        title="Example Feed"
+        summaryText="静かな購読です。"
+        metrics={[{ label: "フォルダ", value: "Work" }]}
+        recentArticlesHeading="最近の記事"
+        recentArticles={[]}
+        reasonChips={["整理候補", "未読 0件"]}
+      />,
+    );
+
+    expect(screen.getByText("整理候補").closest("span")).toHaveAttribute("data-label-chip", "neutral");
+    expect(screen.getByText("整理候補").closest("span")).toHaveClass("bg-surface-1/80");
+    expect(screen.getByText("未読 0件").closest("span")).toHaveAttribute("data-label-chip", "neutral");
+  });
 });

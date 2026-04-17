@@ -38,7 +38,7 @@ export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSum
             "flex min-h-[116px] flex-col justify-between rounded-lg border px-3.5 py-3.5 text-left transition-[border-color,background-color,color,box-shadow,transform] duration-150 sm:min-h-[132px] sm:px-5 sm:py-5",
             resolveCardClassName(isActionable ? card.tone : "neutral"),
             isPrimary ? "shadow-[var(--subscriptions-summary-card-shadow)]" : "shadow-none",
-            !isActionable && card.actionLabel && "text-muted-foreground opacity-80",
+            !isActionable && card.actionLabel && "text-foreground-soft/80",
             isPrimary && "col-span-2 lg:col-span-1",
           );
 
@@ -57,21 +57,21 @@ export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSum
                 onClick={card.onAction}
               >
                 <div>
-                  <span className="block text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+                  <span className="block text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
                     {card.label}
                   </span>
                   <span className="mt-2 block text-[1.85rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.1rem]">
                     {card.value}
                   </span>
                   {card.caption ? (
-                    <p className="mt-1.5 max-w-[24ch] text-[13px] leading-5 text-muted-foreground sm:mt-2 sm:max-w-[26ch] sm:text-sm sm:leading-[1.55]">
+                    <p className="mt-1.5 max-w-[24ch] text-[13px] leading-5 text-foreground-soft sm:mt-2 sm:max-w-[26ch] sm:text-sm sm:leading-[1.55]">
                       {card.caption}
                     </p>
                   ) : null}
                 </div>
                 <div className="mt-3 flex items-center justify-between gap-3 sm:mt-4">
                   <LabelChip
-                    tone={isPrimary ? "neutral" : "muted"}
+                    tone="neutral"
                     className={cn(
                       "px-2.5 py-1 text-[10px] text-foreground-soft transition-colors group-hover:text-foreground",
                       isPrimary && "bg-surface-1/88",
@@ -91,9 +91,7 @@ export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSum
           return (
             <div key={card.label} className={className}>
               <div>
-                <p className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                  {card.label}
-                </p>
+                <p className="text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">{card.label}</p>
                 <p className="mt-2 text-[1.85rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.1rem]">
                   {card.value}
                 </p>

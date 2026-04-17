@@ -82,47 +82,55 @@ export function FeedCleanupOverviewPanel({
                 </div>
                 <fieldset className="m-0 min-w-0 border-0 p-0">
                   <legend className="sr-only">{filtersLabel}</legend>
-                  <div className="flex flex-wrap gap-2">
-                    <ControlChipButton
-                      pressed={activeFilterKeys.size === 0}
-                      size="comfortable"
-                      className="gap-2 rounded-md px-3.5"
-                      onClick={() => {
-                        filterOptions.forEach((filter) => {
-                          if (activeFilterKeys.has(filter.key)) {
-                            onToggleFilter(filter.key);
-                          }
-                        });
-                      }}
-                    >
-                      <span>{t("all_candidates")}</span>
-                      <LabelChip tone="muted" size="compact" className="rounded-sm px-1.5">
-                        {visibleCandidateCount}
-                      </LabelChip>
-                    </ControlChipButton>
-                    {filterOptions.map((filter) => (
+                  <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-0">
+                    <div data-testid="feed-cleanup-all-filter" className="shrink-0">
                       <ControlChipButton
-                        key={filter.key}
-                        pressed={activeFilterKeys.has(filter.key)}
+                        pressed={activeFilterKeys.size === 0}
                         size="comfortable"
                         className="gap-2 rounded-md px-3.5"
-                        aria-label={`${filter.label} ${filterCounts[filter.key]}`}
-                        onClick={() => onToggleFilter(filter.key)}
+                        onClick={() => {
+                          filterOptions.forEach((filter) => {
+                            if (activeFilterKeys.has(filter.key)) {
+                              onToggleFilter(filter.key);
+                            }
+                          });
+                        }}
                       >
-                        <span>{filter.label}</span>
-                        <LabelChip tone="muted" size="compact" className="rounded-sm px-1.5">
-                          {filterCounts[filter.key]}
+                        <span>{t("all_candidates")}</span>
+                        <LabelChip tone="neutral" size="compact" className="rounded-sm px-1.5">
+                          {visibleCandidateCount}
                         </LabelChip>
                       </ControlChipButton>
-                    ))}
-                    <ControlChipButton
-                      pressed={showDeferred}
-                      size="comfortable"
-                      className="rounded-md px-3.5"
-                      onClick={onToggleShowDeferred}
+                    </div>
+                    <div aria-hidden="true" className="hidden h-7 w-px shrink-0 bg-border/65 sm:mx-3.5 sm:block" />
+                    <div
+                      data-testid="feed-cleanup-secondary-filters"
+                      className="flex min-w-0 flex-wrap gap-2 sm:flex-1 sm:items-center"
                     >
-                      {showDeferredLabel}
-                    </ControlChipButton>
+                      {filterOptions.map((filter) => (
+                        <ControlChipButton
+                          key={filter.key}
+                          pressed={activeFilterKeys.has(filter.key)}
+                          size="comfortable"
+                          className="gap-2 rounded-md px-3.5"
+                          aria-label={`${filter.label} ${filterCounts[filter.key]}`}
+                          onClick={() => onToggleFilter(filter.key)}
+                        >
+                          <span>{filter.label}</span>
+                          <LabelChip tone="neutral" size="compact" className="rounded-sm px-1.5">
+                            {filterCounts[filter.key]}
+                          </LabelChip>
+                        </ControlChipButton>
+                      ))}
+                      <ControlChipButton
+                        pressed={showDeferred}
+                        size="comfortable"
+                        className="rounded-md px-3.5"
+                        onClick={onToggleShowDeferred}
+                      >
+                        {showDeferredLabel}
+                      </ControlChipButton>
+                    </div>
                   </div>
                 </fieldset>
               </div>

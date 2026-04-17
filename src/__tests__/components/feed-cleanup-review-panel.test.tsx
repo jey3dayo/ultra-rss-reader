@@ -122,6 +122,7 @@ describe("FeedCleanupReviewPanel", () => {
     render(<FeedCleanupReviewPanel {...buildProps()} />);
 
     const panel = screen.getByTestId("feed-cleanup-review-panel");
+    expect(panel).toHaveClass("typography-lane-cleanup-review");
     expect(panel).toHaveStyle({ backgroundColor: "var(--cleanup-review-surface)" });
     const detailScrollRegion = panel.querySelector("div.overflow-y-auto");
     expect(detailScrollRegion).toBeTruthy();
@@ -185,7 +186,7 @@ describe("FeedCleanupReviewPanel", () => {
       />,
     );
 
-    expect(screen.getByText("Select a feed to review.")).toHaveClass("rounded-md");
+    expect(screen.getByText("Select a feed to review.")).toHaveClass("rounded-md", "text-foreground-soft");
   });
 
   it("renders integrity details in integrity mode", () => {
@@ -212,5 +213,11 @@ describe("FeedCleanupReviewPanel", () => {
       "text-state-warning-foreground",
     );
     expect(within(panel).getByText("missing-feed")).toBeInTheDocument();
+  });
+
+  it("uses the shared soft foreground for empty integrity state", () => {
+    render(<FeedCleanupReviewPanel {...buildProps()} selectedIntegrityIssue={null} integrityMode={true} />);
+
+    expect(screen.getByText("No integrity issues selected.")).toHaveClass("text-foreground-soft");
   });
 });
