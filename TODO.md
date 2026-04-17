@@ -13,6 +13,13 @@
   - 実処理開始とクールダウン・無効時のフィードバックは誤認しないよう、回転時間や強さを整理する
   - 候補箇所: `src/components/reader/browser-overlay-chrome.tsx`, `src/components/reader/sidebar-header-view.tsx`
 
+## 将来の同期改善候補
+
+- [ ] 起動時同期を「選択中アカウント優先 + 残りは後続」に再設計する
+  - 起動直後は現在見えているアカウントの鮮度を優先し、残りの `sync_on_startup` アカウントは後続で順次処理する案を検討する
+  - `sync_on_startup` 設定の意味、選択中アカウントの決め方、失敗時の扱いを先に整理してから着手する
+  - 候補箇所: `src/App.tsx`, `src-tauri/src/commands/sync_commands.rs`
+
 ## 次の並列バッチ候補
 
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
