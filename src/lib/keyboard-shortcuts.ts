@@ -268,6 +268,7 @@ type KeyboardContext = {
   selectedArticleId: string | null;
   contentMode: ContentMode;
   viewMode: ViewMode;
+  subscriptionsWorkspaceOpen?: boolean;
   keyToAction?: KeyToActionMap;
 };
 
@@ -283,7 +284,12 @@ function isTextInputTarget(targetTag?: string | null): boolean {
 
 function resolveActionForId(
   actionId: ShortcutActionId,
-  context: { selectedArticleId: string | null; contentMode: ContentMode; viewMode: ViewMode },
+  context: {
+    selectedArticleId: string | null;
+    contentMode: ContentMode;
+    viewMode: ViewMode;
+    subscriptionsWorkspaceOpen?: boolean;
+  },
 ): Result.Result<KeyboardAction, KeyboardActionSkipReason> {
   switch (actionId) {
     case "open_settings":
@@ -319,6 +325,9 @@ function resolveActionForId(
     case "search":
       return Result.succeed({ type: "emit", eventName: keyboardEvents.focusSearch });
     case "close_or_clear":
+      if (context.subscriptionsWorkspaceOpen) {
+        return Result.fail("no_action");
+      }
       if (context.contentMode === "browser") return Result.succeed({ type: "close-browser" });
       if (context.selectedArticleId) return Result.succeed({ type: "clear-article" });
       return Result.fail("no_action");
@@ -342,7 +351,18 @@ function resolveActionForId(
 export function resolveKeyboardAction(
   context: KeyboardContext,
 ): Result.Result<KeyboardAction, KeyboardActionSkipReason> {
-  const { key, metaKey, ctrlKey, shiftKey, targetTag, selectedArticleId, contentMode, viewMode, keyToAction } = context;
+  const {
+    key,
+    metaKey,
+    ctrlKey,
+    shiftKey,
+    targetTag,
+    selectedArticleId,
+    contentMode,
+    viewMode,
+    subscriptionsWorkspaceOpen,
+    keyToAction,
+  } = context;
 
   const normalized = normalizeKeyFromEvent({ key, metaKey, ctrlKey, shiftKey });
 
@@ -374,7 +394,7 @@ export function resolveKeyboardAction(
   // Modifier shortcuts should not fall back to plain single-key bindings.
   const actionId = metaKey || ctrlKey ? map.get(normalized) : (map.get(normalized) ?? map.get(key));
   if (actionId && actionId !== "open_settings") {
-    return resolveActionForId(actionId, { selectedArticleId, contentMode, viewMode });
+    return resolveActionForId(actionId, { selectedArticleId, contentMode, viewMode, subscriptionsWorkspaceOpen });
   }
 
   return Result.fail("no_action");

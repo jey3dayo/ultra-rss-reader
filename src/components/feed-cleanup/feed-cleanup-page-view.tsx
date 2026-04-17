@@ -129,6 +129,7 @@ export function FeedCleanupPageView({
     editing,
     focusedFeedId,
     integrityMode,
+    onClose,
     onDeferDecision,
     onDeleteDecision,
     onKeepDecision,
@@ -148,6 +149,7 @@ export function FeedCleanupPageView({
       editing,
       focusedFeedId,
       integrityMode,
+      onClose,
       onDeferDecision,
       onDeleteDecision,
       onKeepDecision,
@@ -163,6 +165,7 @@ export function FeedCleanupPageView({
     editing,
     focusedFeedId,
     integrityMode,
+    onClose,
     onDeferDecision,
     onDeleteDecision,
     onKeepDecision,
@@ -204,6 +207,7 @@ export function FeedCleanupPageView({
       const state = keyboardStateRef.current;
       const target = event.target;
       if (
+        event.defaultPrevented ||
         target instanceof HTMLInputElement ||
         target instanceof HTMLTextAreaElement ||
         target instanceof HTMLSelectElement ||
@@ -213,6 +217,13 @@ export function FeedCleanupPageView({
       }
 
       if (state.shortcutsOpen) {
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        state.onClose();
         return;
       }
 

@@ -241,6 +241,23 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrap(result)).toEqual({ type: "clear-article" });
   });
 
+  it("ignores escape when a subscriptions workspace is open", () => {
+    const result = resolveKeyboardAction({
+      key: "Escape",
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      targetTag: "DIV",
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+      viewMode: "all",
+      subscriptionsWorkspaceOpen: true,
+    });
+
+    expect(Result.isFailure(result)).toBe(true);
+    expect(Result.unwrapError(result)).toBe("no_action");
+  });
+
   it("formats modifier shortcuts for macOS display", () => {
     expect(formatKeyForDisplay("⌘+k", "macos")).toBe("⌘ k");
     expect(formatKeyForDisplay("⌘,", "macos")).toBe("⌘ ,");

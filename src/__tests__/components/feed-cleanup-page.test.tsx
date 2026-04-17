@@ -711,4 +711,24 @@ describe("FeedCleanupPage", () => {
 
     expect(screen.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
   });
+
+  it("closes the cleanup workspace with Escape and returns focus to the reader pane", async () => {
+    const user = userEvent.setup();
+
+    useUiStore.setState({
+      ...useUiStore.getState(),
+      selectedArticleId: "art-2",
+      contentMode: "reader",
+      focusedPane: "content",
+    });
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    await screen.findByTestId("feed-cleanup-page");
+    await user.keyboard("{Escape}");
+
+    expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
+    expect(useUiStore.getState().contentMode).toBe("reader");
+    expect(useUiStore.getState().focusedPane).toBe("content");
+  });
 });

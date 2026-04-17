@@ -32,6 +32,7 @@ export function useKeyboard() {
         selectedArticleId: store.selectedArticleId,
         contentMode: store.contentMode,
         viewMode: store.viewMode,
+        subscriptionsWorkspaceOpen: store.subscriptionsWorkspace !== null,
         keyToAction,
       });
 

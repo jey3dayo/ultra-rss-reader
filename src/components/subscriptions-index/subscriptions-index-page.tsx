@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccountArticles, useFeedIntegrityReport } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
@@ -152,6 +152,30 @@ export function SubscriptionsIndexPage() {
   );
 
   const summary = buildSubscriptionsIndexSummary({ feeds, candidates, integrityReport });
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        event.defaultPrevented ||
+        event.key !== "Escape" ||
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      closeSubscriptionsWorkspace();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [closeSubscriptionsWorkspace]);
+
   const summaryCards = [
     {
       label: t("summary_total"),

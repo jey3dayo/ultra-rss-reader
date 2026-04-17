@@ -105,6 +105,27 @@ describe("useKeyboard", () => {
     });
   });
 
+  it("pressing Escape closes the subscriptions workspace instead of clearing the selected article", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    renderAppShell(calls);
+
+    useUiStore.setState({
+      ...useUiStore.getState(),
+      subscriptionsWorkspace: { kind: "index", cleanupContext: null },
+      focusedPane: "content",
+    });
+
+    await screen.findByRole("heading", { name: "Subscriptions" });
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
+    });
+    expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+    expect(useUiStore.getState().contentMode).toBe("reader");
+  });
+
   it("pressing m toggles the selected article back to unread", async () => {
     const calls: MockTauriCommandCall[] = [];
     setupTauriMocks((cmd, args) => {
