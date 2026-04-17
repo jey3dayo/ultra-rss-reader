@@ -11,6 +11,7 @@ export function FeedCleanupOverviewPanel({
   filtersLabel,
   bulkActionsLabel,
   bulkVisibleCountLabel,
+  allCandidateCount,
   bulkKeepVisibleLabel,
   bulkDeferVisibleLabel,
   summaryCards,
@@ -98,7 +99,7 @@ export function FeedCleanupOverviewPanel({
                       >
                         <span>{t("all_candidates")}</span>
                         <LabelChip tone="neutral" size="compact" className="rounded-sm px-1.5">
-                          {visibleCandidateCount}
+                          {allCandidateCount}
                         </LabelChip>
                       </ControlChipButton>
                     </div>

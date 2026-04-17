@@ -84,6 +84,7 @@ export type FeedCleanupOverviewPanelProps = {
   filtersLabel: string;
   bulkActionsLabel: string;
   bulkVisibleCountLabel: string;
+  allCandidateCount: number;
   bulkKeepVisibleLabel: string;
   bulkDeferVisibleLabel: string;
   summaryCards: ReadonlyArray<FeedCleanupSummaryCard>;
@@ -195,6 +196,7 @@ export type FeedCleanupPageViewProps = {
   filtersLabel: string;
   bulkActionsLabel: string;
   bulkVisibleCountLabel: string;
+  allCandidateCount: number;
   bulkKeepVisibleLabel: string;
   bulkDeferVisibleLabel: string;
   queueLabel: string;

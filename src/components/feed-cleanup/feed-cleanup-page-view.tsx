@@ -34,6 +34,7 @@ export function FeedCleanupPageView({
   filtersLabel,
   bulkActionsLabel,
   bulkVisibleCountLabel,
+  allCandidateCount,
   bulkKeepVisibleLabel,
   bulkDeferVisibleLabel,
   queueLabel,
@@ -322,6 +323,7 @@ export function FeedCleanupPageView({
           filtersLabel={filtersLabel}
           bulkActionsLabel={bulkActionsLabel}
           bulkVisibleCountLabel={bulkVisibleCountLabel}
+          allCandidateCount={allCandidateCount}
           bulkKeepVisibleLabel={bulkKeepVisibleLabel}
           bulkDeferVisibleLabel={bulkDeferVisibleLabel}
           summaryCards={summaryCards}

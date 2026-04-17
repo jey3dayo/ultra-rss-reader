@@ -120,6 +120,7 @@ export function FeedCleanupPage() {
         filtersLabel={t("filters")}
         bulkActionsLabel={t("bulk_actions")}
         bulkVisibleCountLabel={t("bulk_visible_count", { count: cleanupState.visibleCandidates.length })}
+        allCandidateCount={cleanupState.allCandidateCount}
         bulkKeepVisibleLabel={t("bulk_keep_visible")}
         bulkDeferVisibleLabel={t("bulk_defer_visible")}
         queueLabel={t("queue")}

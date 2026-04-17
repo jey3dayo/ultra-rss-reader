@@ -26,6 +26,7 @@ const baseArgs = {
   filtersLabel: "Filters",
   bulkActionsLabel: "Bulk actions",
   bulkVisibleCountLabel: "2 visible now",
+  allCandidateCount: 3,
   bulkKeepVisibleLabel: "Keep all visible",
   bulkDeferVisibleLabel: "Defer all visible",
   summaryCards: [

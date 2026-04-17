@@ -9,6 +9,7 @@ function buildProps() {
     filtersLabel: "Filters",
     bulkActionsLabel: "Bulk actions",
     bulkVisibleCountLabel: "3 visible",
+    allCandidateCount: 3,
     bulkKeepVisibleLabel: "Keep all visible",
     bulkDeferVisibleLabel: "Defer all visible",
     summaryCards: [
@@ -88,6 +89,7 @@ describe("FeedCleanupOverviewPanel", () => {
       <FeedCleanupOverviewPanel
         {...buildProps()}
         visibleCandidateCount={2}
+        allCandidateCount={3}
         filterCounts={{
           stale_90d: 2,
           no_unread: 1,
@@ -97,18 +99,17 @@ describe("FeedCleanupOverviewPanel", () => {
     );
 
     const filterGroup = screen.getByRole("group", { name: "Filters" });
-    const allCandidatesButton = within(filterGroup).getByRole("button", { name: "All2", pressed: true });
+    const allCandidatesButton = within(filterGroup).getByRole("button", { name: "All3", pressed: true });
     const staleButton = within(filterGroup).getByRole("button", { name: "90+ days stale 2" });
 
     expect(filterGroup).toBeInTheDocument();
     expect(allCandidatesButton).toHaveTextContent("All");
-    expect(allCandidatesButton).toHaveTextContent("2");
+    expect(allCandidatesButton).toHaveTextContent("3");
     expect(allCandidatesButton).toHaveClass("rounded-md", "data-[pressed]:bg-surface-4");
     expect(staleButton).toHaveClass("rounded-md");
     expect(allCandidatesButton).toHaveClass("data-[pressed]:border-border-strong");
-    expect(within(allCandidatesButton).getByText("2")).toHaveClass("rounded-sm");
-    expect(within(allCandidatesButton).getByText("2").closest("span")).toHaveAttribute("data-label-chip", "neutral");
-    expect(within(allCandidatesButton).queryByText("3")).toBeNull();
+    expect(within(allCandidatesButton).getByText("3")).toHaveClass("rounded-sm");
+    expect(within(allCandidatesButton).getByText("3").closest("span")).toHaveAttribute("data-label-chip", "neutral");
     expect(screen.getByTestId("feed-cleanup-bulk-actions")).toBeInTheDocument();
     expect(screen.getByTestId("feed-cleanup-all-filter")).toBeInTheDocument();
     expect(screen.getByTestId("feed-cleanup-secondary-filters")).toBeInTheDocument();

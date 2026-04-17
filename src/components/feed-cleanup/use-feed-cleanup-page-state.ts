@@ -406,6 +406,7 @@ export function useFeedCleanupPageState({
   return {
     activeFilters: state.activeFilters,
     filterCounts,
+    allCandidateCount: allCandidates.length,
     showDeferred: state.showDeferred,
     visibleCandidates,
     selectedCandidate,
