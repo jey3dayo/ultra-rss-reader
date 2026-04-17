@@ -213,6 +213,17 @@ Surface governance:
 - Shadow transitions: 200ms ease
 - Transform feedback should remain subtle
 
+### Compact Action Feedback
+
+- Small icon-only actions should acknowledge accepted clicks with a short, restrained motion cue instead of feeling silent.
+- Prefer a compact single-turn icon spin for accepted refresh-like actions where text feedback would otherwise be easy to miss.
+- Differentiate intent by duration:
+  - Accepted action: approximately 0.8-1.0s
+  - Cooldown or temporarily unavailable retry: shorter acknowledgement, approximately 0.35-0.5s
+  - In-progress state: continuous spin only while work is actually active
+- These cues should feel mechanical and calm, not celebratory. They are confirmation, not decoration.
+- Use this pattern for compact refresh and navigation controls such as sidebar sync and in-app-browser reload, back, and forward actions.
+
 ### Expandable Sections
 
 - Section and sidebar disclosure patterns should feel calm and mechanical, not springy or theatrical.
