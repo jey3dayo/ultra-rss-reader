@@ -39,10 +39,8 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
   const formConfig = useMemo(() => getAddAccountFormConfig(form.kind), [form.kind]);
 
   const serviceDef = findServiceDefinition(kind);
-  const labelColumnClassName = "sm:w-28 sm:shrink-0";
-  const inputRowClassName = "flex-col items-stretch sm:flex-row sm:items-center sm:justify-start";
-  const inputControlClassName = "sm:min-w-0 sm:flex-1";
-  const inputClassName = "h-auto w-full border-border bg-background px-3 py-2 text-sm sm:flex-1";
+  const labelColumnClassName = "sm:w-40 sm:shrink-0";
+  const inputClassName = "h-10";
 
   const persistInoreaderPreferences = async (appId: string, appKey: string) => {
     const saveAppId = await setPreference("inoreader_app_id", appId);
@@ -176,9 +174,7 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
             value={form.name}
             onChange={(value) => dispatch({ type: "setField", field: "name", value })}
             placeholder={form.kind}
-            rowClassName={inputRowClassName}
             labelClassName={labelColumnClassName}
-            controlClassName={inputControlClassName}
             inputClassName={inputClassName}
             disabled={submitting}
           />
@@ -193,9 +189,7 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
                 value={form.serverUrl}
                 onChange={(value) => dispatch({ type: "setField", field: "serverUrl", value })}
                 placeholder={t("account.server_url_placeholder")}
-                rowClassName={inputRowClassName}
                 labelClassName={labelColumnClassName}
-                controlClassName={inputControlClassName}
                 inputClassName={inputClassName}
                 disabled={submitting}
               />
@@ -207,9 +201,7 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
                   name="app-id"
                   value={form.appId}
                   onChange={(value) => dispatch({ type: "setField", field: "appId", value })}
-                  rowClassName={inputRowClassName}
                   labelClassName={labelColumnClassName}
-                  controlClassName={inputControlClassName}
                   inputClassName={inputClassName}
                   disabled={submitting}
                 />
@@ -219,9 +211,7 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
                   type="password"
                   value={form.appKey}
                   onChange={(value) => dispatch({ type: "setField", field: "appKey", value })}
-                  rowClassName={inputRowClassName}
                   labelClassName={labelColumnClassName}
-                  controlClassName={inputControlClassName}
                   inputClassName={inputClassName}
                   disabled={submitting}
                 />
@@ -232,9 +222,7 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
               name={formConfig.credentialName ?? undefined}
               value={form.username}
               onChange={(value) => dispatch({ type: "setField", field: "username", value })}
-              rowClassName={inputRowClassName}
               labelClassName={labelColumnClassName}
-              controlClassName={inputControlClassName}
               inputClassName={inputClassName}
               disabled={submitting}
             />
@@ -244,9 +232,7 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
               type="password"
               value={form.password}
               onChange={(value) => dispatch({ type: "setField", field: "password", value })}
-              rowClassName={inputRowClassName}
               labelClassName={labelColumnClassName}
-              controlClassName={inputControlClassName}
               inputClassName={inputClassName}
               disabled={submitting}
             />

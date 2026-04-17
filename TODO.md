@@ -173,7 +173,7 @@
       - `src/components/settings/account-general-section-view.tsx`, `src/components/settings/account-credentials-section-view.tsx`, `src/components/settings/add-account-form-view.tsx`, `src/components/settings/account-config-form.tsx`
       - `sm:justify-start` + `sm:flex-1` の入力列、`sm:w-24/28` のラベル列、`h-auto` の input を使っており、 settings form の shared endpoint より左に control が浮いて見える
       - account detail / add account 系も他 settings と同じ stable two-column grid と 右端 control rail で揃えたい
-      - 状況: `account-general-section-view` / `account-credentials-section-view` / `add-account-form-view` は `h-10` 入力と `sm:w-40` ラベル列で右端 rail へ整理済み。残りは `account-config-form` の controller/flow 由来の余白確認
+      - 状況: `account-general-section-view` / `account-credentials-section-view` / `add-account-form-view` / `account-config-form` は `h-10` 入力と `sm:w-40` ラベル列で right rail へ整理済み
     - [x] custom settings pages を `SettingsPageView` と同じ shell / rail / control sizing language に寄せる
       - `src/components/settings/actions-settings-view.tsx`, `src/components/settings/data-settings-view.tsx`, `src/components/settings/shortcuts-settings-view.tsx`
       - 独自 header (`p-6` + centered title) と `size=\"sm\"` action、 free-floating control 群が残っていて、 general / appearance / reading と別系統の settings page に見える
