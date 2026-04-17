@@ -30,7 +30,7 @@ const meta = {
             type: "select",
             name: "after_reading",
             label: "When opening an article",
-            value: "immediately",
+            value: "after_1s",
             options: [
               { value: "never", label: "Do nothing" },
               { value: "immediately", label: "Mark immediately" },

@@ -116,7 +116,7 @@ const corePreferenceDefaults = {
   reader_mode_default: "true",
   web_preview_mode_default: "false",
   reading_sort: "newest_first",
-  after_reading: "immediately",
+  after_reading: "after_1s",
   scroll_to_top_on_change: "true",
   // Account-level reading preferences
   sort_subscriptions: "folders_first",

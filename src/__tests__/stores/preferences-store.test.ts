@@ -86,7 +86,7 @@ describe("usePreferencesStore preferences", () => {
   it("defaults reader and web preview preferences independently", () => {
     expect(resolvePreferenceValue({}, "reader_mode_default")).toBe("true");
     expect(resolvePreferenceValue({}, "web_preview_mode_default")).toBe("false");
-    expect(resolvePreferenceValue({}, "after_reading")).toBe("immediately");
+    expect(resolvePreferenceValue({}, "after_reading")).toBe("after_1s");
     expect(resolvePreferenceValue({}, "debug_browser_hud")).toBe("false");
     expect(resolvePreferenceValue({}, "debug_web_preview_url")).toBe("");
     expect(resolvePreferenceValue({}, "mute_auto_mark_read")).toBe("false");
