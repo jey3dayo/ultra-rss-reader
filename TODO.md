@@ -204,14 +204,15 @@
       - `shared chip contract`
         - 対象: `src/components/shared/control-chip.ts`, `src/components/shared/label-chip.tsx`
         - primitive 契約として leave-as-is か再定義するかを決める
+        - 状況: `control-chip` の default / pressed tone を `foreground-soft` / semantic surface 基準へ寄せ始めている。`label-chip muted` も `foreground-soft` 側へ一段整理済み
       - `compact helper actions`
         - 対象: `src/components/shared/labeled-input-row.tsx`, `src/components/shared/icon-toolbar-control.tsx`, `src/components/shared/tag-chip.tsx`
         - inline helper action と compact utility detail をまとめて整理する
-        - 状況: `foreground-soft` 基準へ一段整理済み。残りは primitive 契約と callsite の境界確認
+        - 状況: `foreground-soft` 基準へ整理済み。残りは primitive 契約と callsite の境界確認
       - `sidebar / command chrome`
         - 対象: `src/components/shared/sidebar-section-toggle.tsx`, `src/components/ui/command.tsx`
         - sidebar chrome と command palette の helper copy / heading / shortcut tone を同じ lane で扱う
-        - 状況: `foreground-soft` / `surface-1/72` 基準へ一段整理済み
+        - 状況: `foreground-soft` / `surface-1/72` 基準へ整理済み
       - `subscription list + cleanup copy`
         - 対象: `src/components/subscriptions-index/subscriptions-list-pane.tsx`, `src/components/feed-cleanup/feed-cleanup-delete-dialog.tsx`, `src/components/feed-cleanup/feed-cleanup-feed-editor.tsx`
         - empty state / supporting copy / compact status detail をまとめて寄せる
@@ -223,6 +224,7 @@
     - [ ] smart view / list footer の semantic tone formula を token 化するか確認する
       - 対象: `src/components/reader/smart-views-view.tsx`, `src/components/reader/article-list-footer.tsx`
       - `color-mix(...)` を直接書いている semantic tone formula を shared token / utility に上げるか、 feature-local のままにするか判断したい
+      - 状況: `smart-views-view` は tone formula を shared map へ寄せる方向で整理済み。`article-list-footer` は同じ方針で合わせる残タスク
   - 例外パレットとして中央管理する項目:
     - [x] タグ色パレットを UI ごとの重複定義から共通定数へ寄せる
       - 対象: `src/components/settings/tags-settings.tsx`, `src/components/reader/tag-context-menu.tsx`, `src-tauri/migrations/V13__tag_color_palette_refresh.sql`
