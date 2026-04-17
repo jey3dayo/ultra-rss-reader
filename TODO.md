@@ -200,18 +200,22 @@
       - `shell chrome`
         - 対象: `src/components/app-shell.tsx`
         - toast close button / progress track / toast action の muted 契約をまとめて扱う
+        - 状況: `foreground-soft` / `surface-1/72` 基準へ移行済み
       - `shared chip contract`
         - 対象: `src/components/shared/control-chip.ts`, `src/components/shared/label-chip.tsx`
         - primitive 契約として leave-as-is か再定義するかを決める
       - `compact helper actions`
         - 対象: `src/components/shared/labeled-input-row.tsx`, `src/components/shared/icon-toolbar-control.tsx`, `src/components/shared/tag-chip.tsx`
         - inline helper action と compact utility detail をまとめて整理する
+        - 状況: `foreground-soft` 基準へ一段整理済み。残りは primitive 契約と callsite の境界確認
       - `sidebar / command chrome`
         - 対象: `src/components/shared/sidebar-section-toggle.tsx`, `src/components/ui/command.tsx`
         - sidebar chrome と command palette の helper copy / heading / shortcut tone を同じ lane で扱う
+        - 状況: `foreground-soft` / `surface-1/72` 基準へ一段整理済み
       - `subscription list + cleanup copy`
         - 対象: `src/components/subscriptions-index/subscriptions-list-pane.tsx`, `src/components/feed-cleanup/feed-cleanup-delete-dialog.tsx`, `src/components/feed-cleanup/feed-cleanup-feed-editor.tsx`
         - empty state / supporting copy / compact status detail をまとめて寄せる
+        - 状況: supporting copy / compact detail を `foreground-soft` / `neutral` 基準へ整理済み
   - `DESIGN.md` 追記とトークン追加で吸収する項目:
     - [x] warning / info / state 表現で残っている Tailwind の青・黄・アンバー直書きを、意味ベースの state token に置き換える
       - 対象: `src/components/shared/article-state-icon.tsx`, `src/components/reader/article-list-context-strip.tsx`, `src/components/reader/article-list-item.tsx`, `src/components/reader/article-pane-view.tsx`, `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-review-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-page-view.tsx`, `src/components/shared/feed-detail-panel.tsx`, `src/components/subscriptions-index/subscriptions-overview-summary.tsx`
