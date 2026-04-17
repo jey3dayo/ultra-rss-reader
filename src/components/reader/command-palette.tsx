@@ -25,7 +25,7 @@ export function CommandPalette() {
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
       <DialogContent
-        className="overflow-hidden rounded-xl border border-border/70 bg-[linear-gradient(180deg,hsl(var(--card)/0.98),hsl(var(--background)/0.98))] p-0 shadow-[0_28px_90px_-54px_hsl(var(--foreground)/0.55)]"
+        className="overflow-hidden rounded-2xl border border-border/70 bg-surface-2/96 p-0 shadow-elevation-3"
         overlayPreset="readable"
         showCloseButton={false}
       >
