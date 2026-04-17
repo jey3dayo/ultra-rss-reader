@@ -325,7 +325,7 @@ export function FeedCleanupPageView({
 
       <div
         ref={layoutRef}
-        className={`min-h-0 flex flex-1 flex-col overflow-hidden pt-1.5 sm:pt-2 ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}
+        className={`min-h-0 flex flex-1 flex-col overflow-hidden pt-1.5 sm:pt-2 ${useDesktopOverlay ? "pl-5 sm:pl-5" : ""}`}
       >
         <FeedCleanupOverviewPanel
           overviewLabel={overviewLabel}
