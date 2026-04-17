@@ -26,10 +26,10 @@ type UseSettingsModalViewPropsParams = {
 
 const settingsCategoryByNavId: Record<string, SettingsCategory> = {
   general: "general",
-  appearance: "appearance",
-  tags: "tags",
-  mute: "mute",
   reading: "reading",
+  appearance: "appearance",
+  mute: "mute",
+  tags: "tags",
   shortcuts: "shortcuts",
   actions: "actions",
   data: "data",
@@ -59,16 +59,16 @@ export function useSettingsModalViewProps({
       isActive: settingsCategory === "general" && !settingsAccountId && !settingsAddAccount,
     },
     {
+      id: "reading",
+      label: t("nav.reading"),
+      icon: <BookOpen className="h-5 w-5" />,
+      isActive: settingsCategory === "reading" && !settingsAccountId && !settingsAddAccount,
+    },
+    {
       id: "appearance",
       label: t("nav.appearance"),
       icon: <Palette className="h-5 w-5" />,
       isActive: settingsCategory === "appearance" && !settingsAccountId && !settingsAddAccount,
-    },
-    {
-      id: "tags",
-      label: t("nav.tags"),
-      icon: <Tag className="h-5 w-5" />,
-      isActive: settingsCategory === "tags" && !settingsAccountId && !settingsAddAccount,
     },
     {
       id: "mute",
@@ -77,10 +77,10 @@ export function useSettingsModalViewProps({
       isActive: settingsCategory === "mute" && !settingsAccountId && !settingsAddAccount,
     },
     {
-      id: "reading",
-      label: t("nav.reading"),
-      icon: <BookOpen className="h-5 w-5" />,
-      isActive: settingsCategory === "reading" && !settingsAccountId && !settingsAddAccount,
+      id: "tags",
+      label: t("nav.tags"),
+      icon: <Tag className="h-5 w-5" />,
+      isActive: settingsCategory === "tags" && !settingsAccountId && !settingsAddAccount,
     },
     {
       id: "shortcuts",
