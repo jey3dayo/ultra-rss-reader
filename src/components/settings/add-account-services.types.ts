@@ -9,6 +9,7 @@ export type ServiceDefinition = {
   iconBg: string;
   nameKey: string;
   descKey: string;
+  beta?: boolean;
   disabled?: boolean;
 };
 

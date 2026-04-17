@@ -270,6 +270,8 @@
     "feedly_hold_desc": "On hold due to enterprise-only API access",
     "coming_soon": "工事中",
     "inoreader_desc": "inoreader.com",
+    "beta_badge": "Beta",
+    "inoreader_beta_note": "Beta: requires Inoreader App ID / App Key. Real-world verification is still in progress.",
     "back_to_services": "Back to service selection"
   },
   "data": {

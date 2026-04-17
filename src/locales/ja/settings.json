@@ -270,6 +270,8 @@
     "feedly_hold_desc": "法人向けAPIのため保留",
     "coming_soon": "工事中",
     "inoreader_desc": "inoreader.com",
+    "beta_badge": "Beta",
+    "inoreader_beta_note": "Beta: Inoreader の App ID / App Key が必要です。実機での確認は継続中です。",
     "back_to_services": "サービス選択に戻る"
   },
   "data": {

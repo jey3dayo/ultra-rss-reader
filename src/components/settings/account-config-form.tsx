@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { addAccount, setPreference } from "@/api/tauri-commands";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
+import { LabelChip } from "@/components/shared/label-chip";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import {
@@ -149,12 +150,22 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
               <serviceDef.icon className="h-5 w-5 text-white" />
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-medium text-foreground">
-                {t(serviceDef.nameKey as "account.local_feeds")}
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <span>{t(serviceDef.nameKey as "account.local_feeds")}</span>
+                {serviceDef.beta ? (
+                  <LabelChip tone="warning" size="compact" className="rounded-md px-1.5 py-0.5">
+                    {t("account.beta_badge")}
+                  </LabelChip>
+                ) : null}
               </div>
               <div className="font-serif text-xs leading-[1.45] text-foreground-soft">
                 {t(serviceDef.descKey as "account.local_desc")}
               </div>
+              {serviceDef.beta ? (
+                <p className="mt-1 font-serif text-xs leading-[1.45] text-foreground-soft">
+                  {t("account.inoreader_beta_note")}
+                </p>
+              ) : null}
             </div>
           </div>
         </SurfaceCard>

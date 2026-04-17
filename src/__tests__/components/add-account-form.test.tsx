@@ -31,6 +31,7 @@ describe("AddAccountForm", () => {
     expect(screen.getByText("Local Feeds")).toBeInTheDocument();
     expect(screen.getByText("FreshRSS")).toBeInTheDocument();
     expect(screen.getByText("Inoreader")).toBeInTheDocument();
+    expect(screen.getAllByText("Beta")).not.toHaveLength(0);
     expect(screen.getByText("Feedly")).toBeInTheDocument();
     expect(screen.getByText("Fever")).toBeInTheDocument();
   });
@@ -128,6 +129,10 @@ describe("AddAccountForm", () => {
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
     expect(screen.queryByLabelText("Server URL")).not.toBeInTheDocument();
     expect(screen.getByText("inoreader.com")).toHaveClass("text-foreground-soft");
+    expect(screen.getAllByText("Beta")).not.toHaveLength(0);
+    expect(
+      screen.getByText("Beta: requires Inoreader App ID / App Key. Real-world verification is still in progress."),
+    ).toHaveClass("text-foreground-soft");
   });
 
   it("does not navigate to the config form when a planned service is clicked", async () => {

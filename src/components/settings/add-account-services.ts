@@ -46,6 +46,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
         iconBg: PROVIDER_ICON_BG_CLASS.Inoreader,
         nameKey: "account.inoreader",
         descKey: "account.inoreader_desc",
+        beta: true,
       },
       {
         kind: "Feedly",
