@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { createElement } from "react";
 import type { ElementType, ReactElement } from "react";
+import { createElement } from "react";
 import { describe, expect, it } from "vitest";
 import formActionButtonsMeta, {
   Loading as FormActionButtonsLoading,
@@ -18,7 +18,9 @@ import labeledInputRowMeta, {
 } from "@/components/shared/labeled-input-row.stories";
 import labeledSelectRowMeta, { Open as LabeledSelectRowOpen } from "@/components/shared/labeled-select-row.stories";
 import labeledSwitchRowMeta, { On as LabeledSwitchRowOn } from "@/components/shared/labeled-switch-row.stories";
-import stackedInputFieldMeta, { Disabled as StackedInputFieldDisabled } from "@/components/shared/stacked-input-field.stories";
+import stackedInputFieldMeta, {
+  Disabled as StackedInputFieldDisabled,
+} from "@/components/shared/stacked-input-field.stories";
 import stackedSelectFieldMeta from "@/components/shared/stacked-select-field.stories";
 import workspaceHeaderMeta, {
   BrowserPreview as WorkspaceHeaderBrowserPreview,

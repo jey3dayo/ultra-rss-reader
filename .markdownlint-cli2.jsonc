@@ -16,6 +16,7 @@
     "node_modules",
     "dist",
     "tmp",
+    "test-results",
     "target",
     "src-tauri/target",
     ".worktrees",

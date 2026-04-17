@@ -1,15 +1,12 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { createElement } from "react";
 import type { ElementType, ReactElement } from "react";
+import { createElement } from "react";
 import { describe, expect, it } from "vitest";
 import overviewMeta, {
   CleanupMode as OverviewCleanupMode,
   IntegrityMode as OverviewIntegrityMode,
 } from "@/components/feed-cleanup/feed-cleanup-overview-panel.stories";
-import queueMeta, {
-  CleanupQueue,
-  IntegrityQueue,
-} from "@/components/feed-cleanup/feed-cleanup-queue-panel.stories";
+import queueMeta, { CleanupQueue, IntegrityQueue } from "@/components/feed-cleanup/feed-cleanup-queue-panel.stories";
 import reviewMeta, {
   CandidateReview,
   EditingState,

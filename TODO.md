@@ -10,7 +10,7 @@
   - 対象: `src/components/shared/workspace-header.tsx`, `src/components/shared/workspace-header.stories.tsx`
   - `rounded-[min(var(--radius-md),12px)]` は `rounded-md` へ統一済み
   - 対象: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-overlay-stage.tsx`, `src/components/reader/browser-overlay-stage.stories.tsx`
-  - browser overlay geometry 由来の `borderRadius: \`${radius}px\`` は削除し、`rounded-none` / `rounded-lg` の class 適用へ移行済み
+  - browser overlay geometry 由来の `borderRadius` style は削除し、`rounded-none` / `rounded-lg` の class 適用へ移行済み
 
 - [x] surface governance の残り範囲を先に棚卸ししてから実装する
   - まず `info card` / `section container` / `shell role` のどれに属するかを対象ごとに分類し、分類が固まったものだけ着手する

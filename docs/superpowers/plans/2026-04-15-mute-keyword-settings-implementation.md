@@ -48,7 +48,7 @@ Tech Stack: Rust, rusqlite, Tauri commands, React 19, TypeScript, TanStack Query
 
 ### Task 1: Add persistence for mute keyword rules
 
-### Files
+#### Files
 
 - Create: `src-tauri/migrations/V8__mute_keywords.sql`
 - Create: `src-tauri/src/domain/mute_keyword.rs`
@@ -66,7 +66,7 @@ Tech Stack: Rust, rusqlite, Tauri commands, React 19, TypeScript, TanStack Query
 
 ### Task 2: Apply mute filtering before pagination
 
-### Files
+#### Files
 
 - Modify: `src-tauri/src/infra/db/sqlite_article.rs`
 - Modify: `src-tauri/src/infra/db/sqlite_tag.rs`
@@ -80,7 +80,7 @@ Tech Stack: Rust, rusqlite, Tauri commands, React 19, TypeScript, TanStack Query
 
 ### Task 3: Expose Tauri commands and TypeScript contracts
 
-### Files
+#### Files
 
 - Create: `src-tauri/src/commands/mute_keyword_commands.rs`
 - Modify: `src-tauri/src/commands/mod.rs`
@@ -98,7 +98,7 @@ Tech Stack: Rust, rusqlite, Tauri commands, React 19, TypeScript, TanStack Query
 
 ### Task 4: Add React Query hooks and settings UI
 
-### Files
+#### Files
 
 - Create: `src/hooks/use-mute-keywords.ts`
 - Create: `src/components/settings/mute-settings.tsx`
@@ -121,7 +121,7 @@ Tech Stack: Rust, rusqlite, Tauri commands, React 19, TypeScript, TanStack Query
 
 ### Task 5: Verify end-to-end quality gates
 
-### Files
+#### Files
 
 - Modify only if verification exposes issues in the files above
 
