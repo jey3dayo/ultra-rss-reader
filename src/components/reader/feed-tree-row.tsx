@@ -39,7 +39,7 @@ function DragHandle({
         onArm?.();
       }}
       className={cn(
-        "cursor-grab text-sidebar-foreground/40 hover:bg-sidebar-accent/28 hover:text-foreground active:cursor-grabbing",
+        "cursor-grab text-sidebar-foreground/40 hover:bg-[var(--sidebar-hover-surface)] hover:text-foreground active:cursor-grabbing",
         isArmed && "bg-[var(--feed-tree-drop-target-surface)] text-foreground opacity-100",
       )}
     >

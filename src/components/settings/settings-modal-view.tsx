@@ -130,7 +130,7 @@ export function SettingsModalView({
               size="icon-sm"
               onClick={onClose}
               aria-label={closeLabel}
-              className="text-sidebar-foreground/40 hover:bg-sidebar-accent/28 hover:text-sidebar-foreground"
+              className="text-sidebar-foreground/40 hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground"
             >
               <X className="h-4 w-4" />
             </Button>

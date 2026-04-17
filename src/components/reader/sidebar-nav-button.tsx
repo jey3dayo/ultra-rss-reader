@@ -38,7 +38,7 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
                 selectedIndicatorMode === "hide-on-row-hover" &&
                   "group-hover/feed-row:before:opacity-0 group-focus-within/feed-row:before:opacity-0",
               )
-            : "text-[var(--sidebar-foreground-strong)] hover:bg-sidebar-accent/28 hover:text-[var(--sidebar-selection-foreground)]",
+            : "text-[var(--sidebar-foreground-strong)] hover:bg-[var(--sidebar-hover-surface)] hover:text-[var(--sidebar-selection-foreground)]",
           className,
         )}
         {...props}

@@ -27,7 +27,7 @@ export type FolderSectionTriggerContentProps = {
 };
 
 function getFolderTriggerClassName() {
-  return "flex min-h-9 w-full items-center justify-between rounded-md px-2 py-1 text-sm hover:bg-sidebar-accent/28";
+  return "flex min-h-9 w-full items-center justify-between rounded-md px-2 py-1 text-sm hover:bg-[var(--sidebar-hover-surface)]";
 }
 
 function FolderSectionTriggerContent({ folderName, folderUnread, isExpanded }: FolderSectionTriggerContentProps) {

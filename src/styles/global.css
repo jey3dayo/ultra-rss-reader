@@ -269,6 +269,11 @@
   --sidebar-selection-border: color-mix(in srgb, var(--foreground) 14%, transparent);
   --sidebar-selection-shadow: inset 0 0 0 1px var(--sidebar-selection-border);
   --sidebar-selection-muted: color-mix(in srgb, var(--foreground) 72%, transparent);
+  --sidebar-hover-surface: color-mix(in srgb, var(--color-sidebar-accent) 28%, transparent);
+  --sidebar-pressed-surface: color-mix(in srgb, var(--color-sidebar-accent) 85%, transparent);
+  --sidebar-frame-surface: color-mix(in srgb, var(--color-sidebar) 90%, transparent);
+  --sidebar-frame-solid-surface: var(--color-sidebar);
+  --sidebar-frame-border: color-mix(in srgb, var(--color-sidebar-border) 70%, transparent);
   --sidebar-divider-strong: color-mix(in srgb, var(--foreground) 18%, transparent);
   --reader-context-border: color-mix(in srgb, var(--foreground) 14%, transparent);
   --sidebar-selection-inset-shadow: inset 0 0 0 1px var(--color-sidebar-border);
@@ -474,6 +479,11 @@
   --sidebar-selection-border: color-mix(in srgb, var(--foreground) 16%, transparent);
   --sidebar-selection-shadow: inset 0 0 0 1px var(--sidebar-selection-border);
   --sidebar-selection-muted: color-mix(in srgb, var(--foreground) 72%, transparent);
+  --sidebar-hover-surface: color-mix(in srgb, var(--color-sidebar-accent) 28%, transparent);
+  --sidebar-pressed-surface: color-mix(in srgb, var(--color-sidebar-accent) 85%, transparent);
+  --sidebar-frame-surface: color-mix(in srgb, var(--color-sidebar) 90%, transparent);
+  --sidebar-frame-solid-surface: var(--color-sidebar);
+  --sidebar-frame-border: color-mix(in srgb, var(--color-sidebar-border) 70%, transparent);
   --sidebar-divider-strong: color-mix(in srgb, var(--foreground) 18%, transparent);
   --reader-context-border: color-mix(in srgb, var(--foreground) 16%, transparent);
   --sidebar-selection-inset-shadow: inset 0 0 0 1px var(--color-sidebar-border);

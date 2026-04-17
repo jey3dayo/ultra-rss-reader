@@ -60,7 +60,7 @@ const FILTER_ITEMS = [
 const REFERENCE_FILTER_TONE_CLASSNAMES = {
   unread:
     "text-sidebar-foreground/90 hover:text-sidebar-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--sidebar-selection-foreground))]",
-  all: "text-sidebar-foreground/90 hover:text-sidebar-foreground data-[pressed]:bg-sidebar-accent/85 data-[pressed]:text-sidebar-foreground",
+  all: "text-sidebar-foreground/90 hover:text-sidebar-foreground data-[pressed]:bg-[var(--sidebar-pressed-surface)] data-[pressed]:text-sidebar-foreground",
   starred:
     "text-sidebar-foreground/90 hover:text-sidebar-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-starred)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--sidebar-selection-foreground))]",
 } as const;
@@ -190,7 +190,12 @@ export function LeftBandShellSpecimen() {
         title="Left Band"
         body="Use the existing settings rail as the shell outer frame. Let spacing and tonal shifts do the work before adding stronger accents."
       />
-      <div className={cn("mt-3 border border-border/60 bg-sidebar/90", SHELL_SPECIMEN_INNER_RADIUS_CLASS)}>
+      <div
+        className={cn(
+          "mt-3 border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-surface)]",
+          SHELL_SPECIMEN_INNER_RADIUS_CLASS,
+        )}
+      >
         <SettingsNavView
           ariaLabel="Reference settings sections"
           items={REFERENCE_NAV_ITEMS}
@@ -487,7 +492,7 @@ export function ReaderFilterStripSpecimen() {
         data-testid="reference-filter-strip-frame"
         className={cn(
           STACK_SPECIMEN_FRAME_RADIUS_CLASS,
-          "border border-sidebar-border/70 bg-sidebar px-3 py-2 text-sidebar-foreground shadow-elevation-1",
+          "border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] px-3 py-2 text-sidebar-foreground shadow-elevation-1",
         )}
       >
         <ToggleGroup
@@ -730,7 +735,7 @@ export function AccountCardStackSpecimen() {
         data-testid="reference-account-card-frame"
         className={cn(
           STACK_SPECIMEN_FRAME_RADIUS_CLASS,
-          "max-w-[18rem] border border-sidebar-border/70 bg-sidebar px-2 py-2 text-sidebar-foreground shadow-elevation-1",
+          "max-w-[18rem] border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] px-2 py-2 text-sidebar-foreground shadow-elevation-1",
         )}
       >
         <AccountsNavView
@@ -796,7 +801,7 @@ export function NavigationStackSpecimen() {
         data-testid="reference-folder-stack-frame"
         className={cn(
           STACK_SPECIMEN_FRAME_RADIUS_CLASS,
-          "max-w-[18rem] border border-sidebar-border/70 bg-sidebar px-2 py-2 text-sidebar-foreground shadow-elevation-1",
+          "max-w-[18rem] border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] px-2 py-2 text-sidebar-foreground shadow-elevation-1",
         )}
       >
         <FolderSectionView

@@ -70,7 +70,7 @@ export function FeedTreeFolderSection({
           aria-controls={panelId}
           density={sidebarDensity}
           className={cn(
-            "motion-disclosure-trigger -mr-1 text-foreground-soft hover:bg-sidebar-accent/28 hover:text-sidebar-foreground",
+            "motion-disclosure-trigger -mr-1 text-foreground-soft hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground",
           )}
           onClick={() => onToggleFolder(folder.id)}
         >

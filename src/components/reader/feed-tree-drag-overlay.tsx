@@ -19,7 +19,7 @@ export type FeedTreeDragOverlayCardProps = {
 
 function FeedTreeDragOverlayCard({ feed, displayFavicons }: FeedTreeDragOverlayCardProps) {
   return (
-    <div className="pointer-events-none min-w-48 rounded-md border border-sidebar-border bg-sidebar px-2 py-1.5 text-sm text-sidebar-foreground shadow-[var(--feed-tree-drag-overlay-shadow)]">
+    <div className="pointer-events-none min-w-48 rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] px-2 py-1.5 text-sm text-sidebar-foreground shadow-[var(--feed-tree-drag-overlay-shadow)]">
       <div className="flex items-center gap-2">
         {displayFavicons ? (
           <span className="flex h-5 w-5 shrink-0 items-center justify-center">

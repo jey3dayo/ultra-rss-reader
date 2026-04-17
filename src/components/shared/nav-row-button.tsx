@@ -28,7 +28,7 @@ export const NavRowButton = forwardRef<HTMLButtonElement, NavRowButtonProps>(
           tone === "sidebar"
             ? selected
               ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[var(--sidebar-selection-inset-shadow)]"
-              : "text-sidebar-foreground/88 hover:bg-sidebar-accent/72 hover:text-sidebar-foreground"
+              : "text-sidebar-foreground/88 hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground"
             : selected
               ? "border-border-strong bg-surface-1 text-foreground shadow-elevation-1"
               : "border-transparent bg-transparent text-foreground hover:border-border hover:bg-surface-2",
