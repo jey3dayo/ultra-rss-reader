@@ -9,12 +9,12 @@ export function getLoopedFocusIndex(itemCount: number, index: number) {
 }
 
 export function focusRovingButton(
-  itemRefs: RefObject<Array<HTMLButtonElement | null>>,
+  itemRefs: RefObject<Array<HTMLButtonElement | null> | null>,
   itemCount: number,
   index: number,
 ) {
   const normalizedIndex = getLoopedFocusIndex(itemCount, index);
-  if (normalizedIndex === null) {
+  if (normalizedIndex === null || !itemRefs.current) {
     return;
   }
 

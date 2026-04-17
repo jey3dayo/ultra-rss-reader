@@ -24,7 +24,7 @@ export function SidebarHeaderView({
 }: SidebarHeaderProps) {
   const isMobile = useUiStore((state) => state.layoutMode === "mobile");
   const [isFeedbackSpinning, setIsFeedbackSpinning] = useState(false);
-  const feedbackSpinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const feedbackSpinTimerRef = useRef<number | null>(null);
   const headerActionButtonClassName =
     "h-11 gap-1.5 px-3 text-foreground-soft hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground md:size-7 md:px-0";
 
@@ -68,11 +68,7 @@ export function SidebarHeaderView({
               onClick={handleSyncClick}
               disabled={isSyncing || isSyncDisabled}
               aria-disabled={isSyncCoolingDown || undefined}
-              className={cn(
-                headerActionButtonClassName,
-                isSyncCoolingDown && "opacity-70",
-                !isMobile && "w-11",
-              )}
+              className={cn(headerActionButtonClassName, isSyncCoolingDown && "opacity-70", !isMobile && "w-11")}
               aria-label={syncButtonLabel}
             >
               <RefreshCw className={cn("h-4 w-4", (isSyncing || isFeedbackSpinning) && "animate-spin")} />
@@ -84,10 +80,7 @@ export function SidebarHeaderView({
               variant="ghost"
               onClick={onAddFeed}
               disabled={isAddFeedDisabled}
-              className={cn(
-                headerActionButtonClassName,
-                !isMobile && "w-11",
-              )}
+              className={cn(headerActionButtonClassName, !isMobile && "w-11")}
               aria-label={addFeedButtonLabel}
             >
               <Plus className="h-4 w-4" />

@@ -16,7 +16,9 @@ export function createCommandPaletteHistoryValue(entry: CommandPaletteHistoryEnt
 }
 
 export function parseCommandPaletteHistoryEntry(value: string): CommandPaletteHistoryEntry | null {
-  for (const [kind, prefix] of Object.entries(COMMAND_PALETTE_HISTORY_PREFIX)) {
+  for (const [kind, prefix] of Object.entries(COMMAND_PALETTE_HISTORY_PREFIX) as Array<
+    [keyof typeof COMMAND_PALETTE_HISTORY_PREFIX, string]
+  >) {
     if (!value.startsWith(prefix)) {
       continue;
     }

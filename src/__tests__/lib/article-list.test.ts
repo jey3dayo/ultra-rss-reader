@@ -4,8 +4,8 @@ import type { ArticleDto } from "@/api/tauri-commands";
 import {
   calculateArticleNavigationScrollTop,
   countUnreadArticles,
-  getAdjacentItemId,
   getAdjacentArticleId,
+  getAdjacentItemId,
   getUnreadArticleIds,
   groupArticles,
   selectVisibleArticles,

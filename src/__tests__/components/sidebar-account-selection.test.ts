@@ -1,11 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { DEV_SCENARIO_ID } from "@/lib/dev-scenario-ids";
+import type { AccountDto } from "@/api/tauri-commands";
 import { resolveSidebarAccountSelectionAction } from "@/components/reader/use-sidebar-account-selection";
+import { DEV_SCENARIO_ID } from "@/lib/dev-scenario-ids";
 
-const accounts = [
-  { id: "acc-1" },
-  { id: "acc-2" },
-] as const;
+const accounts: AccountDto[] = [
+  {
+    id: "acc-1",
+    kind: "fresh_rss",
+    name: "Account 1",
+    server_url: null,
+    username: null,
+    sync_interval_secs: 3600,
+    sync_on_startup: true,
+    sync_on_wake: true,
+    keep_read_items_days: 30,
+  },
+  {
+    id: "acc-2",
+    kind: "fresh_rss",
+    name: "Account 2",
+    server_url: null,
+    username: null,
+    sync_interval_secs: 3600,
+    sync_on_startup: true,
+    sync_on_wake: true,
+    keep_read_items_days: 30,
+  },
+];
 
 describe("resolveSidebarAccountSelectionAction", () => {
   it("clears selection and saved preference when no accounts remain", () => {

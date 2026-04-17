@@ -173,11 +173,7 @@ export function groupArticles(params: GroupArticlesParams): Record<string, Artic
   return groups;
 }
 
-export function getAdjacentItemId(
-  ids: readonly string[],
-  selectedId: string | null,
-  direction: 1 | -1,
-): string | null {
+export function getAdjacentItemId(ids: readonly string[], selectedId: string | null, direction: 1 | -1): string | null {
   if (ids.length === 0) {
     return null;
   }

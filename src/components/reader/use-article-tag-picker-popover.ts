@@ -117,7 +117,11 @@ export function useArticleTagPickerPopover({
       if (event.key === "ArrowUp" && availableTagCount > 0) {
         event.preventDefault();
         event.stopPropagation();
-        focusRovingButton(tagOptionRefs, availableTagCount, currentIndex >= 0 ? currentIndex - 1 : availableTagCount - 1);
+        focusRovingButton(
+          tagOptionRefs,
+          availableTagCount,
+          currentIndex >= 0 ? currentIndex - 1 : availableTagCount - 1,
+        );
       }
     },
     [availableTagCount, closePicker],

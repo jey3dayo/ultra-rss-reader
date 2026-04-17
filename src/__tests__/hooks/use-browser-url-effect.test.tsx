@@ -20,7 +20,13 @@ describe("useBrowserUrlEffect", () => {
       useBrowserUrlEffect("https://example.com/article", effect, []);
     });
 
-    expect(effect).toHaveBeenCalledWith("https://example.com/article");
+    expect(effect).toHaveBeenCalledTimes(1);
+    expect(effect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        browserUrl: "https://example.com/article",
+        isCurrent: expect.any(Function),
+      }),
+    );
   });
 });
 
@@ -32,6 +38,12 @@ describe("useBrowserUrlLayoutEffect", () => {
       useBrowserUrlLayoutEffect("https://example.com/article", effect, []);
     });
 
-    expect(effect).toHaveBeenCalledWith("https://example.com/article");
+    expect(effect).toHaveBeenCalledTimes(1);
+    expect(effect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        browserUrl: "https://example.com/article",
+        isCurrent: expect.any(Function),
+      }),
+    );
   });
 });

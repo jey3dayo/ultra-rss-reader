@@ -239,7 +239,7 @@ export type UseBrowserWebviewLoadTimeoutParams = {
 export type UseBrowserWebviewStateChangedParams = {
   browserStateRef: MutableRefObject<BrowserWebviewState | null>;
   fallbackInFlightRef: MutableRefObject<boolean>;
-  setBrowserState: (state: BrowserWebviewState) => void;
+  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
   setSurfaceIssue: (issue: null) => void;
   getRequestedUrl: () => string;
 };
@@ -292,7 +292,7 @@ export type UseBrowserOverlayFocusReturnParams = {
 export type UseBrowserViewActionsParams = {
   browserUrl: string | null;
   browserStateRef: MutableRefObject<BrowserWebviewState | null>;
-  setBrowserState: (state: BrowserWebviewState | null) => void;
+  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>;
   resetBrowserWebviewSyncState: () => void;
   setSurfaceIssue: (issue: null) => void;
   showToast: (message: string) => void;

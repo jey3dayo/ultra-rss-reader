@@ -17,6 +17,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 - subscriptions / cleanup を filtered review state と grouped feed collapse を軸に再整理し、レビュー主導の購読整理フローを強化した
 - reader の記事タイトルを Web Preview で開けるようにし、starred article 専用 source と browser overlay navigation controls を追加した
 - command palette に theme command を追加し、テーマ遷移もアニメーション付きで扱えるようにした
+- dev scenario に subscriptions index の導線を追加し、購読整理レイアウトの確認をしやすくした
 
 ### Bug Fixes
 
@@ -30,6 +31,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 - subscriptions workspace を Escape と狭幅レイアウトで安定させ、pane close と scroll の破綻を防いだ
 - unsupported account services の非表示、credential edit の整理、greader network failure の分類で provider 設定の不整合を減らした
 - starred / account cache の optimistic patch と backfill を補強し、star/unstar 後の一覧状態を崩れにくくした
+- workspace header / overlay chrome の drag region・text selection・header inset を調整し、macOS で掴みやすさと視認性を両立させた
+- sidebar の sync button feedback、tooltip label、cooldown 表示を整理し、手動 sync の状態が分かりやすくなった
+- sidebar sync status の永続化と manual sync throttle を入れ、起動直後や連打時の不安定な再同期を抑えた
+- article list footer filter と auto mark timing 設定を詰め、reader の既読化タイミングと footer 操作感を安定させた
+- data settings の action rail と settings navigation を揃え、debug settings は dev build に閉じるよう修正した
 
 ### Documentation
 
@@ -38,6 +44,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 - plan task/document の見出しと metadata formatting を揃え、ローカル設計ノートの表記を整理した
 - surface role governance、browser overlay shell role、layout stability、settings form rules を DESIGN/TODO/plan docs に反映した
 - Feedly/provider follow-up と issue-managed backlog を TODO から切り出し、未完了タスクを追いやすくした
+- compact action feedback の指針と、起動時 sync 優先度の将来タスクを TODO / DESIGN に追記した
 
 ### Maintenance
 
@@ -51,6 +58,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 - subscriptions / cleanup / storybook の shell・backdrop・detail surface を横断的に見直し、lighter workspace baseline へ寄せた
 - Storybook explorer のカテゴリ整理、loading/browser overlay/workspace header preview の追加、shared panel coverage 拡充で UI 参照面を強化した
 - issue templates と release check gate の整備で、開発とリリースの運用を安定させた
+- roving focus / adjacent item navigation / browser URL effect / Tauri listener cleanup を共通 helper 化し、reader 周辺の state 処理を整理した
+- startup sync throttle 定数、menu / runtime constants、React の eager initializer 回避を進め、アプリ起動時の挙動と保守性を整えた
 
 ## [0.11.0] - 2026-04-14
 
