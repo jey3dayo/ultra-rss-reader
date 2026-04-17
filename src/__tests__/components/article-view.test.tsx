@@ -9,6 +9,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import {
   type MockTauriCommandCall,
+  sampleAccounts,
   sampleArticles,
   sampleFeeds,
   setupTauriMocks,
@@ -1377,6 +1378,64 @@ describe("ArticleView", () => {
     expect(readIcon).not.toBeNull();
     expect(readIcon).not.toHaveClass("bg-[var(--tone-unread)]");
     expect(readIcon).not.toHaveClass("text-[var(--tone-unread)]");
+  });
+
+  it("renders account setup guidance when no accounts are available", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Add your first account")).toBeInTheDocument();
+    expect(screen.getByText('Use "Add an account to get started" in the sidebar.')).toBeInTheDocument();
+    expect(screen.getByText("Open Add Account in Settings to get started right away.")).toBeInTheDocument();
+    expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
+  });
+
+  it("renders feed setup guidance when the selected account has no feeds", async () => {
+    setupTauriMocks((cmd, _args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_feeds":
+          return [];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        case "count_account_unread_articles":
+        case "count_account_starred_articles":
+          return 0;
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "all" },
+      contentMode: "empty",
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Add your first feed")).toBeInTheDocument();
+    expect(screen.getByText("Use the + button in the top-left to add a feed.")).toBeInTheDocument();
+    expect(screen.getByText("Paste a site URL or feed URL to discover feeds automatically.")).toBeInTheDocument();
+    expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
   it("keeps intent and article-driven entries on the same minimal viewer shell", async () => {

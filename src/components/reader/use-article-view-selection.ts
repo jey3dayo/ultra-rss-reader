@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useMemo } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import { useAccounts } from "@/hooks/use-accounts";
 import { useAccountArticles, useArticles, useStarredArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useScreenSnapshot } from "@/hooks/use-screen-snapshot";
@@ -12,7 +13,7 @@ export type ArticleViewSelectionState =
   | { kind: "subscriptions-index" }
   | { kind: "feed-cleanup" }
   | { kind: "browser-only"; browserUrl: string }
-  | { kind: "empty" }
+  | { kind: "empty"; emptyReason: "default" | "no-accounts" | "no-feeds" }
   | { kind: "not-found" }
   | { kind: "article"; article: ArticleDto; feed?: FeedDto };
 
@@ -23,6 +24,7 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selection = useUiStore((s) => s.selection);
+  const { data: accounts } = useAccounts();
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
   const smartViewKind = selection.type === "smart" ? selection.kind : null;
@@ -95,7 +97,15 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   }
 
   if (contentMode === "empty" || !selectedArticleId) {
-    return { kind: "empty" };
+    if (accounts?.length === 0) {
+      return { kind: "empty", emptyReason: "no-accounts" };
+    }
+
+    if (selectedAccountId !== null && feeds !== undefined && feeds.length === 0) {
+      return { kind: "empty", emptyReason: "no-feeds" };
+    }
+
+    return { kind: "empty", emptyReason: "default" };
   }
 
   const articleResult = findSelectedArticle({

@@ -18,19 +18,30 @@ const LazySubscriptionsIndexPage = lazy(async () => {
 
 export { ArticlePane, ArticleToolbar } from "./article-pane-view";
 
-function EmptyState() {
+function EmptyState({ emptyReason }: { emptyReason: "default" | "no-accounts" | "no-feeds" }) {
   const { t } = useTranslation("reader");
+  const content =
+    emptyReason === "no-accounts"
+      ? {
+          message: t("empty_state_no_accounts_title"),
+          hints: [t("empty_state_no_accounts_sidebar_hint"), t("empty_state_no_accounts_settings_hint")],
+        }
+      : emptyReason === "no-feeds"
+        ? {
+            message: t("empty_state_no_feeds_title"),
+            hints: [t("empty_state_no_feeds_add_hint"), t("empty_state_no_feeds_discovery_hint")],
+          }
+        : {
+            message: t("select_article_to_read"),
+            hints: [t("empty_state_search_hint"), t("empty_state_web_preview_hint")],
+          };
+
   return (
     <ArticleEmptyStateShell
       toolbar={
         <ArticleToolbar article={null} isBrowserOpen={false} onCloseView={() => {}} onToggleBrowserOverlay={() => {}} />
       }
-      body={
-        <ArticleEmptyStateView
-          message={t("select_article_to_read")}
-          hints={[t("empty_state_search_hint"), t("empty_state_web_preview_hint")]}
-        />
-      }
+      body={<ArticleEmptyStateView message={content.message} hints={content.hints} />}
     />
   );
 }
@@ -66,7 +77,7 @@ export function ArticleView() {
   }
 
   if (selectionState.kind === "empty") {
-    return <EmptyState />;
+    return <EmptyState emptyReason={selectionState.emptyReason} />;
   }
 
   if (selectionState.kind === "not-found") {
