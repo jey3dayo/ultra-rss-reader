@@ -133,6 +133,8 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("bg-popover");
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("rounded-xl");
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("shadow-elevation-3");
+    expect(screen.getByTestId("settings-nav-shell")).not.toHaveClass("rounded-xl");
+    expect(screen.getByTestId("settings-content-shell")).not.toHaveClass("rounded-xl");
     expect(screen.getByTestId("settings-modal-header")).toHaveClass("min-h-[4.5rem]");
     expect(screen.getByTestId("settings-modal-header")).toHaveClass("py-0");
     expect(screen.getByTestId("settings-modal-header")).toHaveStyle({
