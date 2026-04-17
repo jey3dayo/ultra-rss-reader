@@ -31,7 +31,6 @@ describe("AddAccountForm", () => {
     expect(screen.getByText("Local Feeds")).toBeInTheDocument();
     expect(screen.getByText("FreshRSS")).toBeInTheDocument();
     expect(screen.getByText("Feedly")).toBeInTheDocument();
-    expect(screen.getByText("Inoreader")).toBeInTheDocument();
     expect(screen.getByText("Fever")).toBeInTheDocument();
   });
 
@@ -43,7 +42,8 @@ describe("AddAccountForm", () => {
 
     expect(feverButton).toBeDisabled();
     expect(feedlyButton).toBeDisabled();
-    expect(screen.getAllByText("工事中")).toHaveLength(1);
+    expect(screen.getByText("Deprecated. Not recommended.")).toBeInTheDocument();
+    expect(screen.getByText("On hold due to enterprise-only API access")).toBeInTheDocument();
   });
 
   it("delegates hover styling to the shared nav row button", () => {
@@ -104,19 +104,6 @@ describe("AddAccountForm", () => {
     });
   });
 
-  it("navigates to the Inoreader config form with app credential fields", async () => {
-    const user = userEvent.setup();
-    render(<AddAccountForm />, { wrapper: createWrapper() });
-
-    await selectService(user, "Inoreader");
-
-    expect(screen.getByLabelText("App ID")).toBeInTheDocument();
-    expect(screen.getByLabelText("App Key")).toBeInTheDocument();
-    expect(screen.getByLabelText("Email")).toBeInTheDocument();
-    expect(screen.getByLabelText("Password")).toBeInTheDocument();
-    expect(screen.getByText("inoreader.com")).toBeInTheDocument();
-  });
-
   it("does not navigate to the config form when a planned service is clicked", async () => {
     const user = userEvent.setup();
     render(<AddAccountForm />, { wrapper: createWrapper() });
@@ -125,23 +112,6 @@ describe("AddAccountForm", () => {
 
     expect(screen.getByText("Local Feeds")).toBeInTheDocument();
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
-  });
-
-  it("prefills Inoreader app credentials from saved preferences", async () => {
-    const user = userEvent.setup();
-    usePreferencesStore.setState({
-      prefs: {
-        inoreader_app_id: "saved-app-id",
-        inoreader_app_key: "saved-app-key",
-      },
-      loaded: true,
-    });
-
-    render(<AddAccountForm />, { wrapper: createWrapper() });
-    await selectService(user, "Inoreader");
-
-    expect(screen.getByLabelText("App ID")).toHaveValue("saved-app-id");
-    expect(screen.getByLabelText("App Key")).toHaveValue("saved-app-key");
   });
 
   it("shows a toast and skips the IPC call when FreshRSS fields are missing", async () => {
@@ -163,78 +133,6 @@ describe("AddAccountForm", () => {
       expect(useUiStore.getState().toastMessage).toEqual({ message: "Server URL is required" });
     });
     expect(addAccountCalls).toBe(0);
-  });
-
-  it("shows a toast and skips the IPC calls when Inoreader app credentials are missing", async () => {
-    const calls: string[] = [];
-    setupTauriMocks((cmd) => {
-      calls.push(cmd);
-      return null;
-    });
-
-    const user = userEvent.setup();
-    render(<AddAccountForm />, { wrapper: createWrapper() });
-
-    await selectService(user, "Inoreader");
-    await user.type(screen.getByLabelText("Email"), "alice@example.com");
-    await user.type(screen.getByLabelText("Password"), "secret");
-    await user.click(screen.getByRole("button", { name: "Add" }));
-
-    await waitFor(() => {
-      expect(useUiStore.getState().toastMessage).toEqual({ message: "App ID is required" });
-    });
-    expect(calls).not.toContain("set_preference");
-    expect(calls).not.toContain("add_account");
-  });
-
-  it("persists Inoreader app credentials before adding the account", async () => {
-    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
-      if (cmd === "add_account") {
-        return {
-          id: "acc-inoreader",
-          kind: "Inoreader",
-          name: "Inoreader",
-          username: "alice@example.com",
-          server_url: null,
-          sync_interval_secs: 3600,
-          sync_on_startup: true,
-          sync_on_wake: false,
-          keep_read_items_days: 30,
-        };
-      }
-      return null;
-    });
-
-    const user = userEvent.setup();
-    render(<AddAccountForm />, { wrapper: createWrapper() });
-
-    await selectService(user, "Inoreader");
-    await user.type(screen.getByLabelText("App ID"), "app-id");
-    await user.type(screen.getByLabelText("App Key"), "app-key");
-    await user.type(screen.getByLabelText("Email"), "alice@example.com");
-    await user.type(screen.getByLabelText("Password"), "secret");
-    await user.click(screen.getByRole("button", { name: "Add" }));
-
-    await waitFor(() => {
-      expect(calls.filter((call) => call.cmd === "add_account")).toHaveLength(1);
-    });
-
-    expect(calls.slice(0, 3)).toEqual([
-      { cmd: "set_preference", args: { key: "inoreader_app_id", value: "app-id" } },
-      { cmd: "set_preference", args: { key: "inoreader_app_key", value: "app-key" } },
-      {
-        cmd: "add_account",
-        args: {
-          kind: "Inoreader",
-          name: "Inoreader",
-          serverUrl: undefined,
-          username: "alice@example.com",
-          password: "secret",
-        },
-      },
-    ]);
   });
 
   it("shows network error toast when connection to FreshRSS server fails", async () => {

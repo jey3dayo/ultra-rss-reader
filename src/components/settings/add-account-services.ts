@@ -1,5 +1,5 @@
 import { Monitor, Rss, Thermometer } from "lucide-react";
-import { FreshRssLogoIcon, InoreaderLogoIcon } from "@/components/icons/provider-icons";
+import { FreshRssLogoIcon } from "@/components/icons/provider-icons";
 import { PROVIDER_ICON_BG_CLASS } from "@/components/shared/exception-palettes";
 import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import type { ServiceCategory, ServiceDefinition } from "./add-account-services.types";
@@ -45,15 +45,8 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
         icon: Rss,
         iconBg: PROVIDER_ICON_BG_CLASS.Feedly,
         nameKey: "account.feedly",
-        descKey: "account.coming_soon",
+        descKey: "account.feedly_hold_desc",
         disabled: true,
-      },
-      {
-        kind: "Inoreader",
-        icon: InoreaderLogoIcon,
-        iconBg: PROVIDER_ICON_BG_CLASS.Inoreader,
-        nameKey: "account.inoreader",
-        descKey: "account.inoreader_desc",
       },
     ],
   },

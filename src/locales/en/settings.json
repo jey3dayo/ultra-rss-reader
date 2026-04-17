@@ -267,6 +267,7 @@
     "freshrss_desc": "freshrss.org",
     "fever": "Fever",
     "fever_desc": "Deprecated. Not recommended.",
+    "feedly_hold_desc": "On hold due to enterprise-only API access",
     "coming_soon": "工事中",
     "inoreader_desc": "inoreader.com",
     "back_to_services": "Back to service selection"
