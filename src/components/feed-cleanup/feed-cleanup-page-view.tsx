@@ -4,6 +4,8 @@ import { WorkspaceHeader, workspaceHeaderActionClassName } from "@/components/sh
 import { workspaceSplitGridClassName } from "@/components/shared/workspace-pane-layout";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
+import { usePlatformStore } from "@/stores/platform-store";
 import type { FeedCleanupPageViewProps } from "./feed-cleanup.types";
 import { FeedCleanupOverviewPanel } from "./feed-cleanup-overview-panel";
 import { FeedCleanupQueuePanel } from "./feed-cleanup-queue-panel";
@@ -117,6 +119,11 @@ export function FeedCleanupPageView({
   shortcutsHelpLabel,
   shortcutItems,
 }: FeedCleanupPageViewProps) {
+  const platformKind = usePlatformStore((state) => state.platform.kind);
+  const useDesktopOverlay = shouldUseDesktopOverlayTitlebar({
+    platformKind,
+    hasTauriRuntime: hasTauriRuntime(),
+  });
   const layoutRef = useRef<HTMLDivElement | null>(null);
   const keyboardStateRef = useRef({
     editing,
@@ -281,8 +288,7 @@ export function FeedCleanupPageView({
   return (
     <div
       data-testid="feed-cleanup-page"
-      className="flex h-dvh max-h-dvh min-h-0 flex-1 flex-col overflow-hidden"
-      style={{ backgroundImage: "var(--cleanup-shell-bg)" }}
+      className="flex h-dvh max-h-dvh min-h-0 flex-1 flex-col overflow-hidden bg-background"
     >
       <WorkspaceHeader
         eyebrow="Triage"
@@ -317,7 +323,10 @@ export function FeedCleanupPageView({
         </div>
       ) : null}
 
-      <div ref={layoutRef} className="min-h-0 flex flex-1 flex-col overflow-hidden">
+      <div
+        ref={layoutRef}
+        className={`min-h-0 flex flex-1 flex-col overflow-hidden ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}
+      >
         <FeedCleanupOverviewPanel
           overviewLabel={overviewLabel}
           filtersLabel={filtersLabel}

@@ -4,6 +4,8 @@ import {
   WORKSPACE_CHROME_SPACING_CLASS,
   workspaceSplitShellClassName,
 } from "@/components/shared/workspace-pane-layout";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
+import { usePlatformStore } from "@/stores/platform-store";
 import { SubscriptionDetailPane } from "./subscription-detail-pane";
 import type {
   SubscriptionDetailCandidate,
@@ -84,6 +86,12 @@ export function SubscriptionsIndexPageView({
   onBack: () => void;
   onClose: () => void;
 }) {
+  const platformKind = usePlatformStore((state) => state.platform.kind);
+  const useDesktopOverlay = shouldUseDesktopOverlayTitlebar({
+    platformKind,
+    hasTauriRuntime: hasTauriRuntime(),
+  });
+
   return (
     <div className="flex h-dvh max-h-dvh min-h-0 flex-1 flex-col overflow-y-auto bg-background lg:overflow-hidden">
       <WorkspaceHeader
@@ -96,7 +104,7 @@ export function SubscriptionsIndexPageView({
         onClose={onClose}
       />
       <div className={`${WORKSPACE_CHROME_SPACING_CLASS} pt-3 sm:pt-4`}>
-        <div className={`${WORKSPACE_CANVAS_CLASS} gap-4 sm:gap-5`}>
+        <div className={`${WORKSPACE_CANVAS_CLASS} gap-4 sm:gap-5 ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}>
           <SubscriptionsOverviewSummary cards={summaryCards} />
           <div
             data-testid="subscriptions-workspace-shell"

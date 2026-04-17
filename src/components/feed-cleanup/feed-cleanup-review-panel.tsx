@@ -155,9 +155,9 @@ export function FeedCleanupReviewPanel({
             <SurfaceCard
               data-testid="feed-cleanup-review-actions"
               variant="section"
-              tone="subtle"
+              tone="default"
               padding="compact"
-              className="grid grid-cols-3 gap-2 rounded-lg bg-card/52 px-4 shadow-none sm:px-5"
+              className="grid grid-cols-3 gap-2 rounded-lg px-4 shadow-none sm:px-5"
             >
               <DecisionButton
                 intent="keep"

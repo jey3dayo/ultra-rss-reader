@@ -208,7 +208,7 @@ describe("FeedCleanupPage", () => {
     expect(screen.getByRole("heading", { name: "Review" })).toBeInTheDocument();
     expect(screen.getByTestId("feed-cleanup-sidebar-summary")).toBeInTheDocument();
     expect(screen.getByTestId("feed-cleanup-page")).toHaveClass("h-dvh");
-    expect(screen.getByTestId("feed-cleanup-page")).toHaveStyle({ backgroundImage: "var(--cleanup-shell-bg)" });
+    expect(screen.getByTestId("feed-cleanup-page")).toHaveClass("bg-background");
     expect(screen.getByText("Pending")).toBeInTheDocument();
     expect(screen.getByText("Decided")).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Old Product Blog" })).toBeInTheDocument();

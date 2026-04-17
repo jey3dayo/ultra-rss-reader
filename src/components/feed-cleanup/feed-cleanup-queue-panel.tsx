@@ -124,9 +124,9 @@ export function FeedCleanupQueuePanel({
             <SurfaceCard
               data-testid="feed-cleanup-selection-rail"
               variant="section"
-              tone={selectionRailActive ? "subtle" : "default"}
+              tone={selectionRailActive ? "emphasis" : "default"}
               padding="compact"
-              className="min-h-[4.75rem] rounded-md bg-card/52 shadow-none"
+              className="min-h-[4.75rem] rounded-md shadow-none"
             >
               <div className="flex min-h-[3.25rem] flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center gap-3 text-sm font-medium text-foreground">

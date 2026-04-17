@@ -61,13 +61,13 @@ describe("FeedCleanupOverviewPanel", () => {
 
     expect(summary).toHaveTextContent("Pending");
     expect(summary).toHaveTextContent("Done");
-    expect(summaryCard).toHaveClass("bg-card/24");
+    expect(summaryCard).toHaveClass("bg-card/52");
     expect(visibleCountChip).not.toBeNull();
     expect(visibleCountChip).toHaveClass("rounded-sm");
     expect(visibleCountChip).toHaveAttribute("data-label-chip", "neutral");
     expect(within(summary).getByText("Needs review")).toHaveClass("text-foreground-soft");
     expect(within(summary).queryByRole("button")).toBeNull();
-    expect(bulkActions).toHaveClass("bg-card/52");
+    expect(bulkActions).toHaveClass("bg-card/36");
     expect(within(bulkActions).getByRole("button", { name: "Keep all visible" })).toHaveClass(
       "rounded-md",
       "min-w-[7.5rem]",

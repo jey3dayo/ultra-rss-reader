@@ -43,7 +43,7 @@ export function FeedCleanupOverviewPanel({
             <SurfaceCard
               key={`${card.label}-${card.caption}`}
               variant="section"
-              tone="subtle"
+              tone="emphasis"
               padding="compact"
               className="flex items-center gap-3 border-border/50 shadow-none"
             >
@@ -71,9 +71,9 @@ export function FeedCleanupOverviewPanel({
           <SurfaceCard
             data-testid="feed-cleanup-bulk-actions"
             variant="section"
-            tone="emphasis"
+            tone="default"
             padding="default"
-            className="border-border/55 bg-card/52 shadow-none"
+            className="border-border/55 shadow-none"
           >
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0 flex-1 space-y-2.5">
