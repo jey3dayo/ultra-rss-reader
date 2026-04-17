@@ -105,10 +105,10 @@
     "sort": "並び順",
     "newest_first": "新しい順",
     "oldest_first": "古い順",
-    "after_reading": "閲覧後",
-    "mark_as_read": "既読にする",
+    "after_reading": "記事を開いたとき",
     "do_nothing": "何もしない",
-    "archive": "アーカイブ",
+    "mark_immediately": "すぐ既読にする",
+    "mark_after_1s": "1秒たったら既読にする",
     "scroll": "スクロール",
     "scroll_to_top_on_feed_change": "フィード切替時にトップへスクロール"
   },

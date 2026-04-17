@@ -105,10 +105,10 @@
     "sort": "Sort",
     "newest_first": "Newest first",
     "oldest_first": "Oldest first",
-    "after_reading": "After reading",
-    "mark_as_read": "Mark as read",
+    "after_reading": "When opening an article",
     "do_nothing": "Do nothing",
-    "archive": "Archive",
+    "mark_immediately": "Mark immediately",
+    "mark_after_1s": "Mark after 1 second",
     "scroll": "Scroll",
     "scroll_to_top_on_feed_change": "Scroll to top on feed change"
   },

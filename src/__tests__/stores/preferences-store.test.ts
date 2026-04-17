@@ -86,6 +86,7 @@ describe("usePreferencesStore preferences", () => {
   it("defaults reader and web preview preferences independently", () => {
     expect(resolvePreferenceValue({}, "reader_mode_default")).toBe("true");
     expect(resolvePreferenceValue({}, "web_preview_mode_default")).toBe("false");
+    expect(resolvePreferenceValue({}, "after_reading")).toBe("immediately");
     expect(resolvePreferenceValue({}, "debug_browser_hud")).toBe("false");
     expect(resolvePreferenceValue({}, "debug_web_preview_url")).toBe("");
     expect(resolvePreferenceValue({}, "mute_auto_mark_read")).toBe("false");
@@ -96,6 +97,18 @@ describe("usePreferencesStore preferences", () => {
     expect(resolvePreferenceValue({ web_preview_mode_default: "sometimes" }, "web_preview_mode_default")).toBe("false");
     expect(resolvePreferenceValue({ debug_browser_hud: "sometimes" }, "debug_browser_hud")).toBe("false");
     expect(resolvePreferenceValue({ mute_auto_mark_read: "sometimes" }, "mute_auto_mark_read")).toBe("false");
+  });
+
+  it("maps legacy auto-mark values to the current reading preference values", () => {
+    expect(resolvePreferenceValue({ after_reading: "mark_as_read" }, "after_reading")).toBe("immediately");
+    expect(resolvePreferenceValue({ after_reading: "do_nothing" }, "after_reading")).toBe("never");
+    expect(resolvePreferenceValue({ after_reading: "archive" }, "after_reading")).toBe("never");
+  });
+
+  it("preserves the current auto-mark values", () => {
+    expect(resolvePreferenceValue({ after_reading: "never" }, "after_reading")).toBe("never");
+    expect(resolvePreferenceValue({ after_reading: "immediately" }, "after_reading")).toBe("immediately");
+    expect(resolvePreferenceValue({ after_reading: "after_1s" }, "after_reading")).toBe("after_1s");
   });
 
   it("defaults sidebar section visibility preferences to true", () => {

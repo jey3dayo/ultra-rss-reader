@@ -1,4 +1,4 @@
-import { usePreferencesStore } from "@/stores/preferences-store";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 export function useArticleViewUiState() {
@@ -12,7 +12,7 @@ export function useArticleViewUiState() {
   const retainArticle = useUiStore((s) => s.retainArticle);
   const viewMode = useUiStore((s) => s.viewMode);
   const setFocusedPane = useUiStore((s) => s.setFocusedPane);
-  const afterReading = usePreferencesStore((s) => s.prefs.after_reading ?? "mark_as_read");
+  const afterReading = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "after_reading"));
 
   return {
     closeBrowser,

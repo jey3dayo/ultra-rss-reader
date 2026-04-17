@@ -21,7 +21,7 @@ const layoutSchema = z.enum(["automatic", "wide", "compact"]);
 const fontStyleSchema = z.enum(["sans_serif", "serif", "monospace"]);
 const fontSizeSchema = z.enum(["small", "medium", "large"]);
 const imagePreviewsSchema = z.enum(["off", "small", "medium", "large"]);
-const afterReadingSchema = z.enum(["mark_as_read", "do_nothing", "archive"]);
+const afterReadingSchema = z.enum(["never", "immediately", "after_1s"]);
 const sortSubscriptionsSchema = z.enum(["folders_first", "alphabetical", "newest_first", "oldest_first"]);
 const startupFolderExpansionSchema = z.enum(["all_collapsed", "unread_folders", "restore_previous"]);
 const persistedBooleanPreferenceSchema = z.enum(["true", "false"]);
@@ -29,6 +29,7 @@ const freeformStringSchema = z.string();
 
 export type Theme = z.infer<typeof themeSchema>;
 export type SortSubscriptions = z.infer<typeof sortSubscriptionsSchema>;
+export type AfterReadingPreference = z.infer<typeof afterReadingSchema>;
 
 const preferenceSchemas = {
   language: languageSchema,
@@ -76,6 +77,11 @@ const preferenceSchemas = {
 type KnownPreferenceKey = keyof typeof preferenceSchemas;
 type PreferenceValue<K extends KnownPreferenceKey> = z.output<(typeof preferenceSchemas)[K]>;
 const objectHasOwnProperty = Object.prototype.hasOwnProperty;
+const legacyAfterReadingValueMap = {
+  mark_as_read: "immediately",
+  do_nothing: "never",
+  archive: "never",
+} as const satisfies Record<string, AfterReadingPreference>;
 
 const corePreferenceDefaults = {
   // General
@@ -110,7 +116,7 @@ const corePreferenceDefaults = {
   reader_mode_default: "true",
   web_preview_mode_default: "false",
   reading_sort: "newest_first",
-  after_reading: "mark_as_read",
+  after_reading: "immediately",
   scroll_to_top_on_change: "true",
   // Account-level reading preferences
   sort_subscriptions: "folders_first",
@@ -164,7 +170,12 @@ function normalizePreferenceValue(key: string, value: string): string {
     return value;
   }
 
-  const parsedValue = parsePreferenceValue(key, value);
+  const resolvedValue =
+    key === "after_reading" && objectHasOwnProperty.call(legacyAfterReadingValueMap, value)
+      ? legacyAfterReadingValueMap[value as keyof typeof legacyAfterReadingValueMap]
+      : value;
+
+  const parsedValue = parsePreferenceValue(key, resolvedValue);
   if (parsedValue !== null) {
     return parsedValue;
   }

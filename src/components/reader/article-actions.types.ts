@@ -1,5 +1,6 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { ArticleDto } from "@/api/tauri-commands";
+import type { AfterReadingPreference } from "@/stores/preferences-store";
 
 export type ArticleStatusViewMode = "all" | "unread" | "starred";
 
@@ -74,7 +75,7 @@ export type UseArticleActionShortcutsParams = {
 export type UseArticleAutoMarkParams = {
   articleId: string;
   isRead: boolean;
-  afterReading: string;
+  afterReading: AfterReadingPreference;
   viewMode: ArticleStatusViewMode;
   retainArticle: (articleId: string) => void;
   addRecentlyRead: (articleId: string) => void;

@@ -60,9 +60,9 @@ export function useReadingSettingsViewProps({
             label: t("reading.after_reading"),
             value: resolvePreferenceValue(prefs, "after_reading"),
             options: [
-              { value: "mark_as_read", label: t("reading.mark_as_read") },
-              { value: "do_nothing", label: t("reading.do_nothing") },
-              { value: "archive", label: t("reading.archive") },
+              { value: "never", label: t("reading.do_nothing") },
+              { value: "immediately", label: t("reading.mark_immediately") },
+              { value: "after_1s", label: t("reading.mark_after_1s") },
             ],
             onChange: (value) => setPref("after_reading", value),
           },
