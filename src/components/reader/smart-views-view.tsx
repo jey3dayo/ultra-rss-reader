@@ -1,35 +1,27 @@
-import type { CSSProperties } from "react";
+import { cn } from "@/lib/utils";
 import type { SidebarSmartViewsProps } from "./sidebar.types";
 import { SidebarNavButton } from "./sidebar-nav-button";
 
+const SMART_VIEW_TONE_CLASSNAMES = {
+  unread: {
+    selected:
+      "bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
+    hover:
+      "hover:text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
+    trailing:
+      "text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))] opacity-80",
+  },
+  starred: {
+    selected:
+      "bg-[color-mix(in_srgb,var(--tone-starred)_var(--tone-surface-strength),transparent)] text-[color-mix(in_srgb,var(--tone-starred)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
+    hover:
+      "hover:text-[color-mix(in_srgb,var(--tone-starred)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
+    trailing:
+      "text-[color-mix(in_srgb,var(--tone-starred)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))] opacity-80",
+  },
+} as const;
+
 export function SmartViewsView({ title, views, onSelectSmartView }: SidebarSmartViewsProps) {
-  const getToneStyle = (kind: "unread" | "starred") =>
-    kind === "unread"
-      ? ({
-          "--smart-tone": "var(--tone-unread)",
-        } as const)
-      : ({
-          "--smart-tone": "var(--tone-starred)",
-        } as const);
-
-  const toneForegroundClassName =
-    "text-[color-mix(in_srgb,var(--smart-tone)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]";
-  const toneForegroundHoverClassName =
-    "hover:text-[color-mix(in_srgb,var(--smart-tone)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]";
-
-  const getToneClassName = (isSelected: boolean) =>
-    isSelected
-      ? `bg-[color-mix(in_srgb,var(--smart-tone)_var(--tone-surface-strength),transparent)] ${toneForegroundClassName} ${toneForegroundHoverClassName}`
-      : toneForegroundHoverClassName;
-
-  const getTrailingToneClass = (isSelected: boolean) => {
-    if (!isSelected) {
-      return "text-[var(--sidebar-foreground-muted-strong)]";
-    }
-
-    return `${toneForegroundClassName} opacity-80`;
-  };
-
   return (
     <div className="space-y-2 px-2 py-1.5">
       {title ? (
@@ -46,9 +38,11 @@ export function SmartViewsView({ title, views, onSelectSmartView }: SidebarSmart
           selectedIndicatorMode="always"
           size="default"
           trailing={view.showCount ? view.count.toLocaleString() : undefined}
-          style={getToneStyle(view.kind) as CSSProperties}
-          className={getToneClassName(view.isSelected)}
-          trailingClassName={getTrailingToneClass(view.isSelected)}
+          className={cn(
+            SMART_VIEW_TONE_CLASSNAMES[view.kind].hover,
+            view.isSelected && SMART_VIEW_TONE_CLASSNAMES[view.kind].selected,
+          )}
+          trailingClassName={view.isSelected ? SMART_VIEW_TONE_CLASSNAMES[view.kind].trailing : undefined}
         >
           <span className="font-medium">{view.label}</span>
         </SidebarNavButton>

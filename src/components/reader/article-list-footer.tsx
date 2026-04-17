@@ -14,12 +14,18 @@ const VIEW_MODES = [
   { value: "starred", icon: "star", labelKey: "filter_starred" },
 ] as const;
 
-const FILTER_TONE_CLASSNAMES = {
-  unread:
-    "text-foreground-soft hover:text-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--foreground))]",
-  all: "text-foreground-soft hover:text-foreground data-[pressed]:bg-surface-1/72 data-[pressed]:text-foreground",
-  starred:
-    "text-foreground-soft hover:text-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-starred)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--foreground))]",
+const FILTER_TONE_STYLES = {
+  unread: {
+    button:
+      "text-foreground-soft hover:text-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--foreground))]",
+  },
+  all: {
+    button: "text-foreground-soft hover:text-foreground data-[pressed]:bg-surface-1/72 data-[pressed]:text-foreground",
+  },
+  starred: {
+    button:
+      "text-foreground-soft hover:text-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-starred)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--foreground))]",
+  },
 } as const;
 
 export function ArticleListFooter({
@@ -56,7 +62,7 @@ export function ArticleListFooter({
               disabled={isDisabled}
               className={cn(
                 controlChipVariants({ size: "filter", interaction: "toggle" }),
-                FILTER_TONE_CLASSNAMES[mode.value],
+                FILTER_TONE_STYLES[mode.value].button,
               )}
             >
               {mode.icon === "star" ? (
