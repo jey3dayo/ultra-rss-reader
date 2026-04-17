@@ -103,7 +103,7 @@ export function SubscriptionsIndexPageView({
         closeLabel={closeLabel}
         onClose={onClose}
       />
-      <div className={`${WORKSPACE_CHROME_SPACING_CLASS} pt-3 sm:pt-4`}>
+      <div className={`${WORKSPACE_CHROME_SPACING_CLASS} pt-1 sm:pt-2`}>
         <div className={`${WORKSPACE_CANVAS_CLASS} gap-4 sm:gap-5 ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}>
           <SubscriptionsOverviewSummary cards={summaryCards} />
           <div

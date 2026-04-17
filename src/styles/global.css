@@ -184,9 +184,6 @@
   --subscriptions-workspace-shadow: 0 14px 34px -30px rgba(38, 37, 30, 0.14);
   --subscriptions-pane-divider: rgba(38, 37, 30, 0.08);
   --subscriptions-list-group-surface: rgba(247, 247, 244, 0.74);
-  --cleanup-shell-bg:
-    radial-gradient(circle at top left, rgba(245, 78, 0, 0.16), transparent 24%),
-    linear-gradient(180deg, rgba(242, 241, 237, 1), rgba(242, 241, 237, 1));
   --cleanup-summary-surface: rgba(242, 241, 237, 0.88);
   --cleanup-dialog-surface: rgba(242, 241, 237, 0.95);
   --cleanup-review-surface: rgba(242, 241, 237, 0.64);
@@ -204,6 +201,7 @@
   --state-success-border: rgba(16, 185, 129, 0.2);
   --state-success-foreground: rgb(6, 95, 70);
   --tone-unread: #9fbbe0;
+  --tone-loading: #9fbbe0;
   --tone-starred: #facc15;
   --tone-foreground-strength: 72%;
   --tone-surface-strength: 18%;
@@ -355,9 +353,6 @@
   --subscriptions-workspace-shadow: 0 16px 38px -34px rgba(0, 0, 0, 0.24);
   --subscriptions-pane-divider: rgba(243, 239, 230, 0.08);
   --subscriptions-list-group-surface: rgba(34, 30, 25, 0.62);
-  --cleanup-shell-bg:
-    radial-gradient(circle at top left, rgba(245, 78, 0, 0.18), transparent 24%),
-    linear-gradient(180deg, rgba(28, 25, 21, 1), rgba(28, 25, 21, 1));
   --cleanup-summary-surface: rgba(28, 25, 21, 0.84);
   --cleanup-dialog-surface: rgba(28, 25, 21, 0.95);
   --cleanup-review-surface: rgba(28, 25, 21, 0.58);
@@ -375,6 +370,7 @@
   --state-success-border: rgba(16, 185, 129, 0.24);
   --state-success-foreground: rgb(167, 243, 208);
   --tone-unread: #9fbbe0;
+  --tone-loading: #9fbbe0;
   --tone-starred: #facc15;
   --tone-foreground-strength: 78%;
   --tone-surface-strength: 22%;

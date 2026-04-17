@@ -43,7 +43,7 @@ export function WorkspaceHeader({
 
   return (
     <div
-      className="relative border-b border-border/70 px-5 py-4 backdrop-blur-sm sm:px-6"
+      className="relative border-b border-border/70 px-5 py-2.5 backdrop-blur-sm sm:px-6"
       style={{ backgroundColor: "var(--workspace-header-surface)" }}
     >
       {useDesktopOverlay ? (
@@ -55,8 +55,8 @@ export function WorkspaceHeader({
           style={{ width: `${MAC_OVERLAY_DRAG_REGION_WIDTH}px` }}
         />
       ) : null}
-      <div data-testid="workspace-header-body" className="flex flex-col gap-4">
-        <div data-testid="workspace-header-top-row" className="flex min-h-7 items-center justify-between gap-4">
+      <div data-testid="workspace-header-body" className="flex flex-col gap-2">
+        <div data-testid="workspace-header-top-row" className="flex min-h-5 items-center justify-between gap-4">
           <div data-testid="workspace-header-leading" className="flex min-w-0 items-center gap-2">
             {hasBackAction ? (
               isBrowserPreview ? (
@@ -94,10 +94,10 @@ export function WorkspaceHeader({
         </div>
         <div
           data-testid="workspace-header-title-group"
-          className={`min-w-0 space-y-2 pb-1 ${useDesktopOverlay ? MAC_OVERLAY_TITLE_OFFSET_CLASS_NAME : ""}`}
+          className={`min-w-0 space-y-1 pb-0 ${useDesktopOverlay ? MAC_OVERLAY_TITLE_OFFSET_CLASS_NAME : ""}`}
         >
           {isDesktopApp ? (
-            <div data-testid="workspace-header-context-row" className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+            <div data-testid="workspace-header-context-row" className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <p className="font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase">
                 {eyebrow}
               </p>
@@ -126,7 +126,7 @@ export function WorkspaceHeader({
               {title}
             </h1>
           )}
-          <p className="max-w-2xl font-serif text-[0.95rem] leading-6 text-foreground-soft">{subtitle}</p>
+          <p className="max-w-2xl font-serif text-[0.95rem] leading-[1.5] text-foreground-soft">{subtitle}</p>
         </div>
       </div>
     </div>
