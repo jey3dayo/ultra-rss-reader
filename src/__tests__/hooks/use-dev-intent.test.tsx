@@ -64,6 +64,19 @@ describe("useDevIntent", () => {
     expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-feed-cleanup");
   });
 
+  it("runs the subscriptions-index startup scenario when requested", async () => {
+    vi.stubEnv("VITE_DEV_INTENT", "open-subscriptions-index");
+
+    renderHook(() => useDevIntent(), {
+      wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+    });
+
+    await vi.runAllTimersAsync();
+
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledTimes(1);
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-subscriptions-index");
+  });
+
   it("runs the startup scenario only once under StrictMode", async () => {
     vi.stubEnv("VITE_DEV_INTENT", "open-feed-cleanup");
 

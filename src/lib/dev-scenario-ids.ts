@@ -1,4 +1,5 @@
 export const DEV_SCENARIO_ID = {
+  openSubscriptionsIndex: "open-subscriptions-index",
   openWebPreviewUrl: "open-web-preview-url",
   openFeedFirstArticle: "open-feed-first-article",
   openTagView: "open-tag-view",
@@ -13,6 +14,7 @@ export const DEV_SCENARIO_ID = {
 export type DevScenarioId = (typeof DEV_SCENARIO_ID)[keyof typeof DEV_SCENARIO_ID];
 
 export const DEV_SCENARIO_IDS = [
+  DEV_SCENARIO_ID.openSubscriptionsIndex,
   DEV_SCENARIO_ID.openWebPreviewUrl,
   DEV_SCENARIO_ID.openFeedFirstArticle,
   DEV_SCENARIO_ID.openTagView,

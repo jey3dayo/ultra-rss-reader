@@ -148,6 +148,11 @@ description = "Run native app in dev mode"
 env = { DEV_CREDENTIALS = "1" }
 run = "pnpm exec tauri dev -c src-tauri/tauri.dev.conf.json"
 
+[tasks."app:dev:subscriptions-index"]
+description = "Run native app in dev mode and jump into the subscriptions index workspace"
+env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-subscriptions-index" }
+run = "pnpm exec tauri dev -c src-tauri/tauri.dev.conf.json"
+
 [tasks."app:dev:web-preview"]
 description = "Run native app in dev mode and open VITE_DEV_WEB_URL directly in Web Preview (optionally sized by VITE_DEV_WINDOW_WIDTH/HEIGHT)"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-web-preview-url" }

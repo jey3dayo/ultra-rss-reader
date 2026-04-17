@@ -10,6 +10,7 @@ describe("dev-intent helpers", () => {
     expect(parseDevIntent("open-add-feed-dialog")).toBe("open-add-feed-dialog");
     expect(parseDevIntent("open-feed-cleanup")).toBe("open-feed-cleanup");
     expect(parseDevIntent("open-feed-cleanup-broken-references")).toBe("open-feed-cleanup-broken-references");
+    expect(parseDevIntent("open-subscriptions-index")).toBe("open-subscriptions-index");
     expect(parseDevIntent("open-web-preview-url")).toBe("open-web-preview-url");
     expect(parseDevIntent("open-settings-reading")).toBe("open-settings-reading");
     expect(parseDevIntent("open-settings-reading-display-mode")).toBe("open-settings-reading-display-mode");

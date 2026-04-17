@@ -558,6 +558,19 @@ describe("runDevScenario", () => {
     expect(context.ui.showToast).not.toHaveBeenCalled();
   });
 
+  it("runs the subscriptions-index scenario through the app action dispatcher", async () => {
+    const context = createContext({
+      actions: createActions({
+        executeAction: vi.fn(),
+      }),
+    });
+
+    await runDevScenario("open-subscriptions-index", { context });
+
+    expect(context.actions.executeAction).toHaveBeenCalledWith("open-subscriptions-index");
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+  });
+
   it("runs the feed-cleanup scenario through the app action dispatcher", async () => {
     const context = createContext({
       actions: createActions({

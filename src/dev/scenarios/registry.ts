@@ -20,6 +20,11 @@ function createUiBackedDevScenarioRunner(run: (ui: DevScenarioContext["ui"]) => 
 }
 
 const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
+  [DEV_SCENARIO_ID.openSubscriptionsIndex]: {
+    title: "Open subscriptions index",
+    keywords: ["subscriptions", "index", "workspace", "review"],
+    run: createActionBackedDevScenarioRunner("open-subscriptions-index"),
+  },
   [DEV_SCENARIO_ID.openWebPreviewUrl]: {
     title: "Open web preview URL",
     keywords: ["web", "preview", "url", "browser"],
