@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from "react";
 import { APP_EVENTS } from "@/constants/events";
+import { getAdjacentItemId } from "@/lib/article-list";
 import type { SidebarFeedNavigationParams } from "./sidebar-feed-section.types";
 
 export function useSidebarFeedNavigation({
@@ -12,22 +13,7 @@ export function useSidebarFeedNavigation({
 }: SidebarFeedNavigationParams) {
   const navigateFeed = useCallback(
     (direction: 1 | -1) => {
-      if (orderedFeedIds.length === 0) {
-        return;
-      }
-
-      const currentIndex = selectedFeedId ? orderedFeedIds.indexOf(selectedFeedId) : -1;
-      let nextIndex: number;
-      if (currentIndex === -1) {
-        nextIndex = direction === 1 ? 0 : orderedFeedIds.length - 1;
-      } else {
-        nextIndex = currentIndex + direction;
-        if (nextIndex < 0 || nextIndex >= orderedFeedIds.length) {
-          return;
-        }
-      }
-
-      const nextFeedId = orderedFeedIds[nextIndex];
+      const nextFeedId = getAdjacentItemId(orderedFeedIds, selectedFeedId, direction);
       if (!nextFeedId) {
         return;
       }

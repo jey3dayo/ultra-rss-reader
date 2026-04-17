@@ -173,19 +173,36 @@ export function groupArticles(params: GroupArticlesParams): Record<string, Artic
   return groups;
 }
 
+export function getAdjacentItemId(
+  ids: readonly string[],
+  selectedId: string | null,
+  direction: 1 | -1,
+): string | null {
+  if (ids.length === 0) {
+    return null;
+  }
+
+  const currentIndex = ids.indexOf(selectedId ?? "");
+  const nextIndex = currentIndex === -1 ? 0 : Math.max(0, Math.min(ids.length - 1, currentIndex + direction));
+  return ids[nextIndex] ?? null;
+}
+
 export function getAdjacentArticleId(
   articles: ArticleDto[],
   selectedArticleId: string | null,
   direction: 1 | -1,
 ): Result.Result<string, "no_articles"> {
-  if (articles.length === 0) {
+  const nextArticleId = getAdjacentItemId(
+    articles.map((article) => article.id),
+    selectedArticleId,
+    direction,
+  );
+
+  if (!nextArticleId) {
     return Result.fail("no_articles");
   }
 
-  const currentIndex = articles.findIndex((article) => article.id === selectedArticleId);
-  const nextIndex = currentIndex === -1 ? 0 : Math.max(0, Math.min(articles.length - 1, currentIndex + direction));
-
-  return Result.succeed(articles[nextIndex].id);
+  return Result.succeed(nextArticleId);
 }
 
 export function calculateArticleNavigationScrollTop(params: CalculateArticleNavigationScrollTopParams): number | null {

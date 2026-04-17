@@ -4,6 +4,7 @@ import type { ArticleDto } from "@/api/tauri-commands";
 import {
   calculateArticleNavigationScrollTop,
   countUnreadArticles,
+  getAdjacentItemId,
   getAdjacentArticleId,
   getUnreadArticleIds,
   groupArticles,
@@ -217,6 +218,13 @@ describe("article-list utils", () => {
     const result = getAdjacentArticleId(sampleArticles, "art-1", 1);
 
     expect(Result.unwrap(result)).toBe("art-2");
+  });
+
+  it("returns the adjacent id from an ordered id list", () => {
+    expect(getAdjacentItemId(["a", "b", "c"], "b", 1)).toBe("c");
+    expect(getAdjacentItemId(["a", "b", "c"], "b", -1)).toBe("a");
+    expect(getAdjacentItemId(["a", "b", "c"], null, 1)).toBe("a");
+    expect(getAdjacentItemId([], null, 1)).toBeNull();
   });
 
   it("returns an error when no articles are available", () => {
