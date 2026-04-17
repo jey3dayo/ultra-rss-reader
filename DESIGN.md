@@ -280,7 +280,7 @@ Surface governance:
 - `Inputs and Forms` -> `UI Reference/Input Controls Canvas`
 - `Cards and Containers`, `Shell Roles` -> `UI Reference/Shell & Overlay Canvas`
 - `Lists and Navigation` -> `UI Reference/Navigation & Collections Canvas`
-- Dense workspace filters, action clusters, detail panels, and two-pane composition -> `UI Reference/Workspace Patterns Canvas`
+- Dense workspace filters, action clusters, detail panels, and two-pane composition -> `UI Reference/View Specimens Canvas`
 
 ## Appendix
 

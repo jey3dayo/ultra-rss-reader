@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { DiscoveredFeedOptionsView } from "./discovered-feed-options-view";
 
 const meta = {
-  title: "Reader/DiscoveredFeedOptionsView",
+  title: "Reader/Dialog/DiscoveredFeedOptionsView",
   component: DiscoveredFeedOptionsView,
   tags: ["autodocs"],
   args: {

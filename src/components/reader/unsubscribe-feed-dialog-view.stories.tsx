@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { UnsubscribeFeedDialogView } from "./unsubscribe-feed-dialog-view";
 
 const meta = {
-  title: "Reader/UnsubscribeFeedDialogView",
+  title: "Reader/Dialog/UnsubscribeFeedDialogView",
   component: UnsubscribeFeedDialogView,
   tags: ["autodocs"],
   args: {

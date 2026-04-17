@@ -16,7 +16,7 @@ const baseFeed: FeedDto = {
 };
 
 const meta = {
-  title: "Reader/FeedItemView",
+  title: "Reader/Sidebar/FeedItemView",
   component: FeedItemView,
   tags: ["autodocs"],
   args: {

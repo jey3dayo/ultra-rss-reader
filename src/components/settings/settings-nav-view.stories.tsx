@@ -4,7 +4,7 @@ import { fn } from "storybook/test";
 import { SettingsNavView } from "./settings-nav-view";
 
 const meta = {
-  title: "Settings/SettingsNavView",
+  title: "Settings/Nav/SettingsNavView",
   component: SettingsNavView,
   tags: ["autodocs"],
   args: {

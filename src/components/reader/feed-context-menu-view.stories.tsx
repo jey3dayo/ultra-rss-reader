@@ -4,7 +4,7 @@ import { fn } from "storybook/test";
 import { FeedContextMenuView } from "./feed-context-menu-view";
 
 const meta = {
-  title: "Reader/FeedContextMenuView",
+  title: "Reader/Menu/FeedContextMenuView",
   component: FeedContextMenuView,
   tags: ["autodocs"],
   args: {

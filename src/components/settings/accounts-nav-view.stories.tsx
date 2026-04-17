@@ -8,7 +8,7 @@ const accounts = [
 ];
 
 const meta = {
-  title: "Settings/AccountsNavView",
+  title: "Settings/Nav/AccountsNavView",
   component: AccountsNavView,
   tags: ["autodocs"],
   args: {

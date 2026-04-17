@@ -145,7 +145,7 @@ function BrowserOverlayStageStory({
 }
 
 const meta = {
-  title: "Reader/BrowserOverlayStage",
+  title: "Reader/Browser/BrowserOverlayStage",
   component: BrowserOverlayStageStory,
   tags: ["autodocs"],
   parameters: {

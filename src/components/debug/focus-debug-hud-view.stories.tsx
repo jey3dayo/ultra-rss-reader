@@ -26,7 +26,7 @@ const sampleGeometryRows: BrowserDebugGeometryRow[] = [
 ];
 
 const meta = {
-  title: "Debug/FocusDebugHudView",
+  title: "Internal/Debug/FocusDebugHudView",
   component: FocusDebugHudView,
   tags: ["autodocs"],
   args: {

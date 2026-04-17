@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { AppearanceSettingsView } from "./appearance-settings-view";
 
 const meta = {
-  title: "Settings/AppearanceSettingsView",
+  title: "Settings/Page/AppearanceSettingsView",
   component: AppearanceSettingsView,
   tags: ["autodocs"],
   args: {

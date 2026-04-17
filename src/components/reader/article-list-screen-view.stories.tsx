@@ -17,7 +17,7 @@ const articleFixture = {
 };
 
 const meta = {
-  title: "Reader/ArticleListScreenView",
+  title: "Reader/Article/ArticleListScreenView",
   component: ArticleListScreenView,
   tags: ["autodocs"],
   args: {

@@ -9,13 +9,13 @@ import {
   WorkspaceTwoPaneSpecimen,
 } from "@/components/storybook/ui-reference-canvas-specimens";
 
-export function WorkspacePatternsCanvas() {
+export function ViewSpecimensCanvas() {
   return (
     <ReferencePage maxWidthClassName="max-w-6xl">
       <div className="space-y-4">
         <AnnotatedNote
-          title="Workspace patterns"
-          body="Dense workspace filters, action clusters, detail panels, and two-pane compositions live here."
+          title="View specimens"
+          body="Feature-local display fragments, dense workspace patterns, and two-pane specimens live here."
         />
         <div className="grid gap-4 xl:grid-cols-2">
           <WorkspaceFilterClusterSpecimen />
@@ -30,12 +30,12 @@ export function WorkspacePatternsCanvas() {
 }
 
 const meta = {
-  title: "UI Reference/Workspace Patterns Canvas",
-  component: WorkspacePatternsCanvas,
+  title: "UI Reference/View Specimens Canvas",
+  component: ViewSpecimensCanvas,
   parameters: {
     layout: "fullscreen",
   },
-} satisfies Meta<typeof WorkspacePatternsCanvas>;
+} satisfies Meta<typeof ViewSpecimensCanvas>;
 
 export default meta;
 

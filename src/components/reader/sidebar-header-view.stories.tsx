@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { SidebarHeaderView } from "./sidebar-header-view";
 
 const meta = {
-  title: "Reader/SidebarHeaderView",
+  title: "Reader/Sidebar/SidebarHeaderView",
   component: SidebarHeaderView,
   tags: ["autodocs"],
   args: {

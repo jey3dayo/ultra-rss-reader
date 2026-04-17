@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { TagListView } from "./tag-list-view";
 
 const meta = {
-  title: "Reader/TagListView",
+  title: "Reader/Sidebar/TagListView",
   component: TagListView,
   tags: ["autodocs"],
   args: {

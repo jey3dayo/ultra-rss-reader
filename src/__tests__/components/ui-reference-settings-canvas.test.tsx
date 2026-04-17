@@ -3,15 +3,15 @@ import { describe, expect, it } from "vitest";
 import { ShellExamplesSpecimen, SurfaceRoleSpecimen } from "@/components/storybook/ui-reference-canvas-specimens";
 import { FoundationsCanvas } from "@/components/storybook/ui-reference-foundations-canvas.stories";
 import { NavigationCollectionsCanvas } from "@/components/storybook/ui-reference-navigation-collections-canvas.stories";
-import { SettingsSectionsCanvas } from "@/components/storybook/ui-reference-settings-canvas.stories";
+import { InputControlsCanvas } from "@/components/storybook/ui-reference-settings-canvas.stories";
 import { ShellOverlayCanvas } from "@/components/storybook/ui-reference-shell-overlay-canvas.stories";
-import { WorkspacePatternsCanvas } from "@/components/storybook/ui-reference-workspace-patterns-canvas.stories";
+import { ViewSpecimensCanvas } from "@/components/storybook/ui-reference-workspace-patterns-canvas.stories";
 
 describe("UI Reference canvases", () => {
   it("renders the settings sections canvas with form specimens", () => {
-    render(<SettingsSectionsCanvas />);
+    render(<InputControlsCanvas />);
 
-    expect(screen.getByText("Settings sections")).toBeInTheDocument();
+    expect(screen.getByText("Input controls")).toBeInTheDocument();
     expect(screen.getAllByTestId("reference-annotated-note")[0]).toHaveClass("rounded-md");
     expect(screen.getByTestId("reference-validation-frame")).toHaveClass("rounded-md");
     expect(screen.getByTestId("reference-disabled-switch-frame")).toHaveClass("rounded-md");
@@ -144,9 +144,9 @@ describe("UI Reference canvases", () => {
   });
 
   it("renders the workspace patterns canvas with composition specimens", () => {
-    render(<WorkspacePatternsCanvas />);
+    render(<ViewSpecimensCanvas />);
 
-    expect(screen.getByText("Workspace patterns")).toBeInTheDocument();
+    expect(screen.getByText("View specimens")).toBeInTheDocument();
     expect(screen.getByTestId("reference-workspace-filter-cluster-frame")).toHaveClass("rounded-md");
     expect(screen.getByRole("button", { name: "すべて163" })).toHaveClass("rounded-md");
     expect(within(screen.getByRole("button", { name: "すべて163" })).getByText("163")).toHaveClass("rounded-sm");

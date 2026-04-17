@@ -187,7 +187,7 @@ export function SidebarSelectionReviewCanvas() {
 }
 
 const meta = {
-  title: "Reader/SidebarSelectionReview",
+  title: "Internal/Review/SidebarSelectionReview",
   component: SidebarSelectionReviewCanvas,
   tags: ["autodocs"],
   decorators: [

@@ -105,7 +105,7 @@ function BrowserOverlayChromeStory({
 }
 
 const meta = {
-  title: "Reader/BrowserOverlayChrome",
+  title: "Reader/Browser/BrowserOverlayChrome",
   component: BrowserOverlayChromeStory,
   tags: ["autodocs"],
   decorators: [

@@ -48,7 +48,7 @@ function ArticleReadingRhythmCanvas() {
 }
 
 const meta = {
-  title: "Reader/ArticleReadingRhythm",
+  title: "Reader/Article/ArticleReadingRhythm",
   component: ArticleReadingRhythmCanvas,
   tags: ["autodocs"],
 } satisfies Meta<typeof ArticleReadingRhythmCanvas>;

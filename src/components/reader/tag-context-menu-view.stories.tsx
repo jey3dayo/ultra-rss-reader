@@ -4,7 +4,7 @@ import { fn } from "storybook/test";
 import { TagContextMenuView } from "./tag-context-menu-view";
 
 const meta = {
-  title: "Reader/TagContextMenuView",
+  title: "Reader/Menu/TagContextMenuView",
   component: TagContextMenuView,
   tags: ["autodocs"],
   args: {

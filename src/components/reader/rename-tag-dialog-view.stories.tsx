@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { RenameTagDialogView } from "./rename-tag-dialog-view";
 
 const meta = {
-  title: "Reader/RenameTagDialogView",
+  title: "Reader/Dialog/RenameTagDialogView",
   component: RenameTagDialogView,
   tags: ["autodocs"],
   args: {

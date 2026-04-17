@@ -3,7 +3,7 @@ import { ChevronRight, Mail, Plus } from "lucide-react";
 import { Button } from "./button";
 
 const meta = {
-  title: "UI/Button",
+  title: "Primitives/Button",
   component: Button,
   tags: ["autodocs"],
   argTypes: {

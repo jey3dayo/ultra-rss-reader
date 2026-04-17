@@ -15,7 +15,7 @@ const keepReadItemsOptions = [
 ];
 
 const meta = {
-  title: "Settings/AccountSyncSectionView",
+  title: "Settings/Section/AccountSyncSectionView",
   component: AccountSyncSectionView,
   tags: ["autodocs"],
   args: {

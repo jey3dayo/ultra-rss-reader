@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { AccountGeneralSectionView } from "./account-general-section-view";
 
 const meta = {
-  title: "Settings/AccountGeneralSectionView",
+  title: "Settings/Section/AccountGeneralSectionView",
   component: AccountGeneralSectionView,
   tags: ["autodocs"],
   args: {

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 
 const meta = {
-  title: "Reader/ArticleEmptyStateView",
+  title: "Reader/Article/ArticleEmptyStateView",
   component: ArticleEmptyStateView,
   tags: ["autodocs"],
   args: {

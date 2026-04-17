@@ -30,7 +30,7 @@ const sampleAccounts: AccountDto[] = [
 ];
 
 const meta = {
-  title: "Reader/AccountSwitcherView",
+  title: "Reader/Sidebar/AccountSwitcherView",
   component: AccountSwitcherView,
   tags: ["autodocs"],
   args: {

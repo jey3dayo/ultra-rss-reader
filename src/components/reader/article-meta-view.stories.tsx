@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { ArticleMetaView } from "./article-meta-view";
 
 const meta = {
-  title: "Reader/ArticleMetaView",
+  title: "Reader/Article/ArticleMetaView",
   component: ArticleMetaView,
   tags: ["autodocs"],
   args: {

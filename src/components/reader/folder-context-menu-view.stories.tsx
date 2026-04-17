@@ -4,7 +4,7 @@ import { fn } from "storybook/test";
 import { FolderContextMenuView } from "./folder-context-menu-view";
 
 const meta = {
-  title: "Reader/FolderContextMenuView",
+  title: "Reader/Menu/FolderContextMenuView",
   component: FolderContextMenuView,
   tags: ["autodocs"],
   args: {

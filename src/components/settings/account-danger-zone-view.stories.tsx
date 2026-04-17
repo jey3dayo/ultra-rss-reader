@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { AccountDangerZoneView } from "./account-danger-zone-view";
 
 const meta = {
-  title: "Settings/AccountDangerZoneView",
+  title: "Settings/Section/AccountDangerZoneView",
   component: AccountDangerZoneView,
   tags: ["autodocs"],
   args: {

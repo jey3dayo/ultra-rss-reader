@@ -47,7 +47,7 @@ const baseFeeds: FeedDto[] = [
 ];
 
 const meta = {
-  title: "Reader/FolderSectionView",
+  title: "Reader/Sidebar/FolderSectionView",
   component: FolderSectionView,
   tags: ["autodocs"],
   args: {

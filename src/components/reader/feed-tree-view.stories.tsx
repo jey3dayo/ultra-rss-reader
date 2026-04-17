@@ -74,7 +74,7 @@ function buildFolderSelectedArgs() {
 }
 
 const meta = {
-  title: "Reader/FeedTreeView",
+  title: "Reader/Sidebar/FeedTreeView",
   component: FeedTreeView,
   tags: ["autodocs"],
   args: {

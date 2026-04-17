@@ -4,7 +4,7 @@ import { SectionHeading } from "@/components/shared/section-heading";
 import { SettingsRow } from "./settings-components";
 
 const sectionHeadingMeta = {
-  title: "Settings/SectionHeading",
+  title: "Settings/Section/SectionHeading",
   component: SectionHeading,
   tags: ["autodocs"],
   decorators: [

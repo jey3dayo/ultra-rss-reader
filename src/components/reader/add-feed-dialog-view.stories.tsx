@@ -4,7 +4,7 @@ import { fn } from "storybook/test";
 import { AddFeedDialogView } from "./add-feed-dialog-view";
 
 const meta = {
-  title: "Reader/AddFeedDialogView",
+  title: "Reader/Dialog/AddFeedDialogView",
   component: AddFeedDialogView,
   tags: ["autodocs"],
   args: {

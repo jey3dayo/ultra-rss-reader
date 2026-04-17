@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { AddAccountFormView } from "./add-account-form-view";
 
 const meta = {
-  title: "Settings/AddAccountFormView",
+  title: "Settings/Page/AddAccountFormView",
   component: AddAccountFormView,
   tags: ["autodocs"],
   args: {

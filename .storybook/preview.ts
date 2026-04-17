@@ -11,6 +11,30 @@ const preview: Preview = {
         { name: "light", value: "#ffffff" },
       ],
     },
+    options: {
+      storySort: {
+        method: "alphabetical",
+        order: [
+          "UI Reference",
+          [
+            "Foundations Canvas",
+            "Input Controls Canvas",
+            "Shell & Overlay Canvas",
+            "Navigation & Collections Canvas",
+            "View Specimens Canvas",
+          ],
+          "Shared",
+          "Primitives",
+          "Settings",
+          ["Page", "Section", "Nav"],
+          "Reader",
+          ["Article", "Sidebar", "Dialog", "Menu", "Browser"],
+          "Feed Cleanup",
+          "Internal",
+          ["Debug", "Review"],
+        ],
+      },
+    },
   },
 };
 

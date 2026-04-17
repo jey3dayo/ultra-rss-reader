@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ArticleContentView } from "./article-content-view";
 
 const meta = {
-  title: "Reader/ArticleContentView",
+  title: "Reader/Article/ArticleContentView",
   component: ArticleContentView,
   tags: ["autodocs"],
   args: {

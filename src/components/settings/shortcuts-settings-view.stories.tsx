@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { ShortcutsSettingsView } from "./shortcuts-settings-view";
 
 const meta = {
-  title: "Settings/ShortcutsSettingsView",
+  title: "Settings/Page/ShortcutsSettingsView",
   component: ShortcutsSettingsView,
   tags: ["autodocs"],
   args: {

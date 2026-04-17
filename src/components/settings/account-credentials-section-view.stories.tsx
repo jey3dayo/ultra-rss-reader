@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { AccountCredentialsSectionView } from "./account-credentials-section-view";
 
 const meta = {
-  title: "Settings/AccountCredentialsSectionView",
+  title: "Settings/Section/AccountCredentialsSectionView",
   component: AccountCredentialsSectionView,
   tags: ["autodocs"],
   args: {

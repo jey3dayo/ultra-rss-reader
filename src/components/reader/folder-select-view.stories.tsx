@@ -4,7 +4,7 @@ import { fn } from "storybook/test";
 import { FolderSelectView } from "./folder-select-view";
 
 const meta = {
-  title: "Reader/FolderSelectView",
+  title: "Reader/Dialog/FolderSelectView",
   component: FolderSelectView,
   tags: ["autodocs"],
   args: {

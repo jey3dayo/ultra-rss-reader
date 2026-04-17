@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 import { SmartViewsView } from "./smart-views-view";
 
 const meta = {
-  title: "Reader/SmartViewsView",
+  title: "Reader/Sidebar/SmartViewsView",
   component: SmartViewsView,
   tags: ["autodocs"],
   args: {

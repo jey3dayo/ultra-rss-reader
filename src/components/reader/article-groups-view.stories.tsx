@@ -32,7 +32,7 @@ const articleFixtures = [
 ];
 
 const meta = {
-  title: "Reader/ArticleGroupsView",
+  title: "Reader/Article/ArticleGroupsView",
   component: ArticleGroupsView,
   tags: ["autodocs"],
   args: {
