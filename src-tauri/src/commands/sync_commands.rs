@@ -36,6 +36,30 @@ pub(crate) const SYNC_SUCCEEDED_EVENT: &str = "sync-succeeded";
 pub(crate) const SYNC_WARNING_EVENT: &str = "sync-warning";
 const SYNC_PROGRESS_EVENT: &str = "sync-progress";
 
+fn load_inoreader_app_credentials(
+    pref_repo: &SqlitePreferenceRepository<'_>,
+) -> Result<(Option<String>, Option<String>), AppError> {
+    let app_id = pref_repo.get("inoreader_app_id").unwrap_or(None);
+    let app_key = pref_repo.get("inoreader_app_key").unwrap_or(None);
+
+    let has_app_id = app_id
+        .as_deref()
+        .map(|value| !value.trim().is_empty())
+        .unwrap_or(false);
+    let has_app_key = app_key
+        .as_deref()
+        .map(|value| !value.trim().is_empty())
+        .unwrap_or(false);
+
+    if !has_app_id || !has_app_key {
+        return Err(AppError::UserVisible {
+            message: "Inoreader App ID and App Key are not configured".into(),
+        });
+    }
+
+    Ok((app_id, app_key))
+}
+
 /// RAII guard that resets the `AtomicBool` to `false` on drop, ensuring the
 /// sync flag is always cleared even on early return or panic.
 struct SyncGuard<'a>(&'a AtomicBool);
@@ -164,10 +188,7 @@ pub(crate) async fn sync_account(
             let (app_id, app_key) = {
                 let db_guard = lock_db(db)?;
                 let pref_repo = SqlitePreferenceRepository::new(db_guard.reader());
-                (
-                    pref_repo.get("inoreader_app_id").unwrap_or(None),
-                    pref_repo.get("inoreader_app_key").unwrap_or(None),
-                )
+                load_inoreader_app_credentials(&pref_repo)?
             };
             let provider = GReaderProvider::for_inoreader(app_id, app_key);
             sync_greader_account(db, account, provider).await
@@ -195,10 +216,7 @@ pub(crate) async fn sync_feed(
             let (app_id, app_key) = {
                 let db_guard = lock_db(db)?;
                 let pref_repo = SqlitePreferenceRepository::new(db_guard.reader());
-                (
-                    pref_repo.get("inoreader_app_id").unwrap_or(None),
-                    pref_repo.get("inoreader_app_key").unwrap_or(None),
-                )
+                load_inoreader_app_credentials(&pref_repo)?
             };
             let provider = GReaderProvider::for_inoreader(app_id, app_key);
             sync_greader_feed(db, account, feed, provider).await

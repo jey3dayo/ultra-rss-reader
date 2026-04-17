@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountDetail } from "@/components/settings/account-detail";
 import i18n from "@/lib/i18n";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
@@ -93,6 +94,7 @@ describe("AccountDetail", () => {
     accountDetailViewSpy.mockClear();
     await i18n.changeLanguage("en");
     useUiStore.setState(useUiStore.getInitialState());
+    usePreferencesStore.setState({ prefs: {}, loaded: true });
     useUiStore.setState({ settingsAccountId: "acc-1" });
   });
 
@@ -463,6 +465,129 @@ describe("AccountDetail", () => {
     await waitFor(() => {
       expect(calls.filter((call) => call.cmd === "test_account_connection")).toHaveLength(1);
     });
+  });
+
+  it("shows Inoreader app credential fields and the shared note", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        return [
+          {
+            id: "acc-1",
+            kind: "Inoreader",
+            name: "Inoreader",
+            username: "alice@example.com",
+            server_url: null,
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+          },
+        ];
+      }
+      return null;
+    });
+
+    usePreferencesStore.setState({
+      prefs: {
+        inoreader_app_id: "saved-app-id",
+        inoreader_app_key: "saved-app-key",
+      },
+      loaded: true,
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    expect(await screen.findByDisplayValue("saved-app-id")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("••••••••")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Email" })).toHaveValue("alice@example.com");
+    expect(screen.getByText("App ID and App Key apply to all Inoreader accounts.")).toBeInTheDocument();
+  });
+
+  it("saves Inoreader app credentials before the account credentials and connection test", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "Inoreader",
+              name: "Inoreader",
+              username: "alice@example.com",
+              server_url: null,
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "set_preference":
+          return null;
+        case "update_account_credentials":
+          return {
+            id: "acc-1",
+            kind: "Inoreader",
+            name: "Inoreader",
+            username: "new@example.com",
+            server_url: null,
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+          };
+        case "test_account_connection":
+          return true;
+        default:
+          return null;
+      }
+    });
+
+    usePreferencesStore.setState({
+      prefs: {
+        inoreader_app_id: "saved-app-id",
+        inoreader_app_key: "saved-app-key",
+      },
+      loaded: true,
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    const appIdInput = (await screen.findByDisplayValue("saved-app-id")) as HTMLInputElement;
+    const appKeyInput = screen.getAllByDisplayValue("••••••••")[0] as HTMLInputElement;
+    const emailInput = screen.getByRole("textbox", { name: "Email" }) as HTMLInputElement;
+
+    await user.clear(appIdInput);
+    await user.type(appIdInput, "fresh-app-id");
+    appIdInput.blur();
+
+    await user.click(appKeyInput);
+    await waitFor(() => {
+      expect(appKeyInput).toHaveValue("");
+    });
+    await user.type(appKeyInput, "fresh-app-key");
+    appKeyInput.blur();
+
+    await user.clear(emailInput);
+    await user.type(emailInput, "new@example.com");
+    emailInput.blur();
+
+    await user.click(screen.getByRole("button", { name: "Test Connection" }));
+
+    await waitFor(() => {
+      expect(calls.filter((call) => call.cmd === "test_account_connection")).toHaveLength(1);
+    });
+
+    expect(calls.filter((call) => call.cmd !== "get_account_sync_status").map((call) => call.cmd)).toEqual([
+      "list_accounts",
+      "set_preference",
+      "set_preference",
+      "update_account_credentials",
+      "test_account_connection",
+    ]);
   });
 
   it("shows a masked password after credential changes are saved", async () => {

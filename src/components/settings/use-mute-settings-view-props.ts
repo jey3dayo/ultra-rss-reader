@@ -8,10 +8,13 @@ type UseMuteSettingsViewPropsParams = {
   scope: "title" | "body" | "title_and_body";
   rules: MuteKeywordDto[];
   addDisabled: boolean;
+  autoMarkReadChecked: boolean;
+  autoMarkReadDisabled: boolean;
   confirmRule: MuteKeywordDto | null;
   onKeywordChange: (value: string) => void;
   onScopeChange: (value: "title" | "body" | "title_and_body") => void;
   onRuleScopeChange: (ruleId: string, value: "title" | "body" | "title_and_body") => void;
+  onAutoMarkReadChange: (checked: boolean) => void;
   onAdd: () => void;
   onRequestDelete: (ruleId: string) => void;
   onConfirmDelete: () => void;
@@ -24,10 +27,13 @@ export function useMuteSettingsViewProps({
   scope,
   rules,
   addDisabled,
+  autoMarkReadChecked,
+  autoMarkReadDisabled,
   confirmRule,
   onKeywordChange,
   onScopeChange,
   onRuleScopeChange,
+  onAutoMarkReadChange,
   onAdd,
   onRequestDelete,
   onConfirmDelete,
@@ -48,7 +54,7 @@ export function useMuteSettingsViewProps({
   return {
     title: t("mute.heading"),
     addHeading: t("mute.add_heading"),
-    intro: t("mute.note"),
+    intro: `${t("mute.note")} ${t("mute.keyword_too_short_note")}`,
     keywordLabel: t("mute.keyword"),
     keywordValue: keyword,
     keywordPlaceholder: t("mute.keyword_placeholder"),
@@ -73,8 +79,10 @@ export function useMuteSettingsViewProps({
     onRequestDelete,
     autoMarkReadHeading: t("mute.behavior"),
     autoMarkReadLabel: t("mute.auto_mark_read"),
-    comingSoonLabel: t("mute.coming_soon"),
+    autoMarkReadChecked,
+    autoMarkReadDisabled,
     autoMarkReadHint: t("mute.auto_mark_read_note"),
+    onAutoMarkReadChange,
     confirmOpen: confirmRule !== null,
     confirmMessage: confirmRule
       ? t("mute.confirm_delete_message", {

@@ -65,6 +65,8 @@ export const addAccountArgs = z.object({
   kind: z.string(),
   name: z.string(),
   serverUrl: z.string().optional(),
+  appId: z.string().optional(),
+  appKey: z.string().optional(),
   username: z.string().optional(),
   password: z.string().optional(),
 });
@@ -241,6 +243,10 @@ export const updateMuteKeywordArgs = z.object({
   scope: z.enum(["title", "body", "title_and_body"]),
 });
 
+export const setMuteAutoMarkReadArgs = z.object({
+  enabled: z.boolean(),
+});
+
 // Registry: command names (snake_case) -> schema (only commands with args)
 export const commandArgsSchemas: Record<string, z.ZodType> = {
   list_folders: listFoldersArgs,
@@ -291,4 +297,5 @@ export const commandArgsSchemas: Record<string, z.ZodType> = {
   create_mute_keyword: createMuteKeywordArgs,
   update_mute_keyword: updateMuteKeywordArgs,
   delete_mute_keyword: deleteMuteKeywordArgs,
+  set_mute_auto_mark_read: setMuteAutoMarkReadArgs,
 };

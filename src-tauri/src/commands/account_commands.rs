@@ -14,6 +14,30 @@ use crate::infra::provider::traits::{Credentials, FeedProvider};
 use crate::repository::account::AccountRepository;
 use crate::repository::preference::PreferenceRepository;
 
+fn load_inoreader_app_credentials(
+    pref_repo: &SqlitePreferenceRepository<'_>,
+) -> Result<(Option<String>, Option<String>), AppError> {
+    let app_id = pref_repo.get("inoreader_app_id").unwrap_or(None);
+    let app_key = pref_repo.get("inoreader_app_key").unwrap_or(None);
+
+    let has_app_id = app_id
+        .as_deref()
+        .map(|value| !value.trim().is_empty())
+        .unwrap_or(false);
+    let has_app_key = app_key
+        .as_deref()
+        .map(|value| !value.trim().is_empty())
+        .unwrap_or(false);
+
+    if !has_app_id || !has_app_key {
+        return Err(AppError::UserVisible {
+            message: "Inoreader App ID and App Key are not configured".into(),
+        });
+    }
+
+    Ok((app_id, app_key))
+}
+
 #[tauri::command]
 pub fn list_accounts(state: State<'_, AppState>) -> Result<Vec<AccountDto>, AppError> {
     let db = state.db.lock().map_err(|e| AppError::UserVisible {
@@ -71,10 +95,7 @@ pub async fn add_account(
                         message: format!("Lock error: {e}"),
                     })?;
                     let pref_repo = SqlitePreferenceRepository::new(db_guard.reader());
-                    (
-                        pref_repo.get("inoreader_app_id").unwrap_or(None),
-                        pref_repo.get("inoreader_app_key").unwrap_or(None),
-                    )
+                    load_inoreader_app_credentials(&pref_repo)?
                 }; // DB lock dropped here before .await
                 GReaderProvider::for_inoreader(app_id, app_key)
             }
@@ -216,10 +237,7 @@ pub async fn test_account_connection(
         })?;
         let creds = if account.kind == ProviderKind::Inoreader {
             let pref_repo = SqlitePreferenceRepository::new(db.reader());
-            (
-                pref_repo.get("inoreader_app_id").unwrap_or(None),
-                pref_repo.get("inoreader_app_key").unwrap_or(None),
-            )
+            load_inoreader_app_credentials(&pref_repo)?
         } else {
             (None, None)
         };
@@ -260,6 +278,38 @@ pub async fn test_account_connection(
         .await?;
 
     Ok(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infra::db::connection::DbManager;
+
+    #[test]
+    fn inoreader_app_credentials_require_both_values() {
+        let db = DbManager::new_in_memory().unwrap();
+        let repo = SqlitePreferenceRepository::new(db.writer());
+        repo.set("inoreader_app_id", "app-id").unwrap();
+
+        let error = load_inoreader_app_credentials(&repo).unwrap_err();
+        match error {
+            AppError::UserVisible { message } => {
+                assert!(message.contains("Inoreader App ID and App Key"));
+            }
+            AppError::Retryable { message } => panic!("unexpected retryable error: {message}"),
+        }
+    }
+
+    #[test]
+    fn inoreader_app_credentials_return_values_when_present() {
+        let db = DbManager::new_in_memory().unwrap();
+        let repo = SqlitePreferenceRepository::new(db.writer());
+        repo.set("inoreader_app_id", "app-id").unwrap();
+        repo.set("inoreader_app_key", "app-key").unwrap();
+
+        let creds = load_inoreader_app_credentials(&repo).unwrap();
+        assert_eq!(creds, (Some("app-id".into()), Some("app-key".into())));
+    }
 }
 
 #[tauri::command]

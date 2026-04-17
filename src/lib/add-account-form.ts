@@ -8,26 +8,37 @@ export type AddAccountPayload = {
   serverUrl?: string;
   username?: string;
   password?: string;
+  appId?: string;
+  appKey?: string;
 };
 
-export type AddAccountValidationError = "missing_server_url" | "missing_username" | "missing_password";
+export type AddAccountValidationError =
+  | "missing_server_url"
+  | "missing_username"
+  | "missing_password"
+  | "missing_app_id"
+  | "missing_app_key";
 
 export type AddAccountFormState = {
   kind: AddAccountProviderKind;
   name: string;
   serverUrl: string;
+  appId: string;
+  appKey: string;
   username: string;
   password: string;
 };
 
 export type AddAccountFormAction =
   | { type: "setKind"; value: AddAccountProviderKind }
-  | { type: "setField"; field: "name" | "serverUrl" | "username" | "password"; value: string };
+  | { type: "setField"; field: "name" | "serverUrl" | "appId" | "appKey" | "username" | "password"; value: string };
 
 export const addAccountFormInitialState: AddAccountFormState = {
   kind: "Local",
   name: "",
   serverUrl: "",
+  appId: "",
+  appKey: "",
   username: "",
   password: "",
 };
@@ -46,6 +57,7 @@ type AddAccountFormInput = AddAccountFormState;
 type AddAccountFormConfig = {
   sectionHeading: "Account" | "Server" | "Credentials";
   showServerUrl: boolean;
+  showAppCredentials: boolean;
   credentialLabel: "Username" | "Email" | null;
   credentialName: "username" | "email" | null;
   requiresCredentials: boolean;
@@ -57,6 +69,7 @@ export function getAddAccountFormConfig(kind: AddAccountProviderKind): AddAccoun
       return {
         sectionHeading: "Server",
         showServerUrl: true,
+        showAppCredentials: false,
         credentialLabel: "Username",
         credentialName: "username",
         requiresCredentials: true,
@@ -65,6 +78,7 @@ export function getAddAccountFormConfig(kind: AddAccountProviderKind): AddAccoun
       return {
         sectionHeading: "Credentials",
         showServerUrl: false,
+        showAppCredentials: true,
         credentialLabel: "Email",
         credentialName: "email",
         requiresCredentials: true,
@@ -73,6 +87,7 @@ export function getAddAccountFormConfig(kind: AddAccountProviderKind): AddAccoun
       return {
         sectionHeading: "Account",
         showServerUrl: false,
+        showAppCredentials: false,
         credentialLabel: null,
         credentialName: null,
         requiresCredentials: false,
@@ -91,6 +106,10 @@ export function formatAddAccountValidationError(
       return kind === "Inoreader" ? "Email is required" : "Username is required";
     case "missing_password":
       return "Password is required";
+    case "missing_app_id":
+      return "App ID is required";
+    case "missing_app_key":
+      return "App Key is required";
   }
 }
 
@@ -115,6 +134,17 @@ export function buildAddAccountPayload(
 ): Result.Result<AddAccountPayload, AddAccountValidationError> {
   const config = getAddAccountFormConfig(input.kind);
   const name = input.name.trim() || input.kind;
+  const appId = input.appId?.trim() ?? "";
+  const appKey = input.appKey?.trim() ?? "";
+
+  if (config.showAppCredentials) {
+    if (!appId) {
+      return Result.fail("missing_app_id");
+    }
+    if (!appKey) {
+      return Result.fail("missing_app_key");
+    }
+  }
 
   if (config.showServerUrl) {
     const serverUrl = input.serverUrl.trim();
@@ -124,14 +154,27 @@ export function buildAddAccountPayload(
 
     return Result.pipe(
       validateCredentials(input),
-      Result.map((creds) => ({ kind: input.kind, name, serverUrl, ...creds })),
+      Result.map((creds) => ({
+        kind: input.kind,
+        name,
+        serverUrl,
+        appId: appId || undefined,
+        appKey: appKey || undefined,
+        ...creds,
+      })),
     );
   }
 
   if (config.requiresCredentials) {
     return Result.pipe(
       validateCredentials(input),
-      Result.map((creds) => ({ kind: input.kind, name, ...creds })),
+      Result.map((creds) => ({
+        kind: input.kind,
+        name,
+        appId: appId || undefined,
+        appKey: appKey || undefined,
+        ...creds,
+      })),
     );
   }
 

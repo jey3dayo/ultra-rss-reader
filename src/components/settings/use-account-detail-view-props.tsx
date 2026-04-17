@@ -39,6 +39,7 @@ export function useAccountDetailViewProps({
       account.kind === "FreshRss" || account.kind === "Inoreader" ? (
         <AccountCredentialsSectionView
           heading={account.kind === "FreshRss" ? t("account.server") : t("account.credentials")}
+          note={account.kind === "Inoreader" ? t("account.inoreader_app_credentials_note") : undefined}
           serverUrlLabel={account.kind === "FreshRss" ? t("account.server_url") : undefined}
           serverUrlValue={controller.credServerUrl ?? account.server_url ?? ""}
           serverUrlPlaceholder={t("account.server_url_placeholder")}
@@ -46,7 +47,27 @@ export function useAccountDetailViewProps({
           onServerUrlChange={account.kind === "FreshRss" ? controller.setCredServerUrl : undefined}
           onServerUrlBlur={controller.commitCredentials}
           onServerUrlCopy={account.kind === "FreshRss" ? () => void controller.handleCopyServerUrl() : undefined}
-          usernameLabel={t("account.username")}
+          extraRows={
+            account.kind === "Inoreader"
+              ? [
+                  {
+                    label: t("account.app_id"),
+                    value: controller.appIdValue,
+                    onChange: controller.setAppId,
+                    onBlur: () => void controller.commitAppCredentials(),
+                  },
+                  {
+                    label: t("account.app_key"),
+                    value: controller.appKeyValue,
+                    type: "password",
+                    onChange: controller.setAppKey,
+                    onFocus: controller.onAppKeyFocus,
+                    onBlur: () => void controller.commitAppCredentials(),
+                  },
+                ]
+              : undefined
+          }
+          usernameLabel={account.kind === "Inoreader" ? t("account.email") : t("account.username")}
           usernameValue={controller.credUsername ?? account.username ?? ""}
           onUsernameChange={controller.setCredUsername}
           onUsernameBlur={controller.commitCredentials}

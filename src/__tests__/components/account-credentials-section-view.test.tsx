@@ -112,4 +112,42 @@ describe("AccountCredentialsSectionView", () => {
     expect(screen.getByRole("textbox", { name: "Username" })).toHaveClass("sm:flex-1");
     expect(screen.getByPlaceholderText("Enter password")).toHaveClass("sm:flex-1");
   });
+
+  it("renders extra rows and a note for shared app credentials", () => {
+    render(
+      <AccountCredentialsSectionView
+        heading="Credentials"
+        note="Applies to all Inoreader accounts."
+        extraRows={[
+          {
+            label: "App ID",
+            value: "shared-id",
+            onChange: () => {},
+            onBlur: () => {},
+          },
+          {
+            label: "App Key",
+            value: "shared-key",
+            type: "password",
+            onChange: () => {},
+            onBlur: () => {},
+          },
+        ]}
+        usernameLabel="Email"
+        usernameValue="debug@example.com"
+        onUsernameChange={() => {}}
+        onUsernameBlur={() => {}}
+        passwordLabel="Password"
+        passwordValue=""
+        passwordPlaceholder="Enter password"
+        onPasswordChange={() => {}}
+        onPasswordBlur={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("Applies to all Inoreader accounts.")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("shared-id")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("shared-key")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Email" })).toBeInTheDocument();
+  });
 });
