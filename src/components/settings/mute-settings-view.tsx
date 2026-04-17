@@ -162,10 +162,7 @@ export function MuteSettingsView({
                     value={rule.scope}
                     onValueChange={(value) => value && onRuleScopeChange(rule.id, value as typeof rule.scope)}
                   >
-                    <SelectTrigger
-                      aria-label={savedScopeAriaLabel(rule.keyword)}
-                      className="h-10 w-full sm:flex-1"
-                    >
+                    <SelectTrigger aria-label={savedScopeAriaLabel(rule.keyword)} className="h-10 w-full sm:flex-1">
                       <SelectValue>
                         {(selectedValue: string | null) => getScopeLabel(scopeOptions, selectedValue ?? rule.scope)}
                       </SelectValue>

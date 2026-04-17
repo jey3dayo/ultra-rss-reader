@@ -246,8 +246,12 @@ describe("CommandPalette", () => {
     await screen.findByPlaceholderText("Search commands…");
 
     const overlay = document.querySelector('[data-slot="dialog-overlay"]');
+    const dialog = screen.getByRole("dialog");
+
     expect(overlay).toHaveClass("bg-dialog-overlay-readable");
     expect(overlay).toHaveClass("supports-backdrop-filter:backdrop-blur-none");
+    expect(overlay).toHaveClass("motion-popup-overlay");
+    expect(dialog).toHaveClass("motion-popup-dialog");
   });
 
   it("shows dev scenarios only in dev builds", async () => {

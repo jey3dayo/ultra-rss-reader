@@ -53,6 +53,13 @@ describe("Design-themed UI primitives", () => {
 
     expect(screen.getByRole("textbox", { name: "Feed URL" })).toHaveClass("bg-surface-1", "border-border");
     expect(screen.getByRole("combobox", { name: "Theme" })).toHaveClass("bg-surface-1", "border-border");
+    expect(globalCss).toContain("--motion-duration-disclosure: 200ms;");
+    expect(globalCss).toContain("--motion-duration-popup: 160ms;");
+    expect(globalCss).toContain("--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);");
+    expect(globalCss).toContain(".motion-disclosure-panel");
+    expect(globalCss).toContain(".motion-popup-surface");
+    expect(globalCss).toContain(".motion-disclosure-trigger:hover");
+    expect(globalCss).toContain("transform: translateY(-1px);");
   });
 
   it("uses semantic danger borders for invalid field states", () => {
@@ -99,6 +106,7 @@ describe("Design-themed UI primitives", () => {
     const overlay = document.querySelector('[data-slot="dialog-overlay"]');
 
     expect(overlay).toHaveClass("bg-dialog-overlay", "bg-dialog-scrim", "supports-backdrop-filter:backdrop-blur-sm");
+    expect(overlay).toHaveClass("motion-popup-overlay");
     expect(globalCss).toContain("--color-dialog-overlay: var(--dialog-overlay);");
     expect(globalCss).toContain("--dialog-overlay: rgba(38, 37, 30, 0.18);");
     expect(globalCss).toContain(":root.dark {");
@@ -109,6 +117,7 @@ describe("Design-themed UI primitives", () => {
       "border-border",
       "shadow-elevation-3",
     );
+    expect(screen.getByRole("dialog", { name: "Confirm" })).toHaveClass("motion-popup-dialog");
     expect(screen.getByRole("dialog", { name: "Confirm" })).toHaveClass(
       "focus-visible:border-border-strong",
       "focus-visible:ring-3",

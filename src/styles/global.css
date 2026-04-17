@@ -95,6 +95,13 @@
   color-scheme: light;
   font-family: var(--font-sans);
   --desktop-titlebar-offset: 44px;
+  --motion-duration-disclosure: 200ms;
+  --motion-duration-popup: 160ms;
+  --motion-duration-theme: 180ms;
+  --motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-disclosure-offset: 8px;
+  --motion-popup-offset: 4px;
+  --motion-popup-scale-closed: 0.96;
   --radius-surface-info: 0.75rem;
   --radius-surface-section: 0.5rem;
   --background: #f2f1ed;
@@ -442,8 +449,8 @@ body {
 :root.theme-transitioning body *::after {
   transition-property:
     background-color, border-color, color, fill, stroke, box-shadow, text-decoration-color, outline-color;
-  transition-duration: 180ms;
-  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  transition-duration: var(--motion-duration-theme);
+  transition-timing-function: var(--motion-ease-standard);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -452,6 +459,138 @@ body {
   :root.theme-transitioning body *::before,
   :root.theme-transitioning body *::after {
     transition-duration: 0ms;
+  }
+}
+
+.motion-disclosure-panel {
+  display: grid;
+  overflow: hidden;
+  transition-property: grid-template-rows, opacity, transform;
+  transition-duration: var(--motion-duration-disclosure);
+  transition-timing-function: var(--motion-ease-standard);
+}
+
+.motion-disclosure-panel[data-state="open"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.motion-disclosure-panel[data-state="closed"] {
+  pointer-events: none;
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.motion-disclosure-body {
+  min-height: 0;
+  overflow: hidden;
+  transition: transform var(--motion-duration-disclosure) var(--motion-ease-standard);
+}
+
+.motion-disclosure-panel[data-state="open"] > .motion-disclosure-body {
+  transform: translateY(0);
+}
+
+.motion-disclosure-panel[data-state="closed"] > .motion-disclosure-body {
+  transform: translateY(calc(var(--motion-disclosure-offset) * -1));
+}
+
+.motion-disclosure-trigger {
+  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-duration: var(--motion-duration-disclosure);
+  transition-timing-function: var(--motion-ease-standard);
+}
+
+.motion-disclosure-trigger:hover {
+  transform: translateY(-1px);
+}
+
+.motion-disclosure-trigger:active {
+  transform: translateY(0);
+}
+
+.motion-disclosure-icon {
+  transition: transform var(--motion-duration-disclosure) var(--motion-ease-standard);
+}
+
+.motion-popup-overlay {
+  transition: opacity var(--motion-duration-popup) var(--motion-ease-standard);
+}
+
+.motion-popup-overlay[data-open] {
+  opacity: 1;
+}
+
+.motion-popup-overlay[data-closed] {
+  opacity: 0;
+}
+
+.motion-popup-dialog {
+  transform: translate(-50%, -50%) scale(1);
+  transform-origin: center;
+  transition:
+    opacity var(--motion-duration-popup) var(--motion-ease-standard),
+    transform var(--motion-duration-popup) var(--motion-ease-standard);
+}
+
+.motion-popup-dialog[data-open] {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.motion-popup-dialog[data-closed] {
+  opacity: 0;
+  transform: translate(-50%, calc(-50% - var(--motion-popup-offset))) scale(var(--motion-popup-scale-closed));
+}
+
+.motion-popup-surface {
+  transform: translateY(0) scale(1);
+  transform-origin: top center;
+  transition:
+    opacity var(--motion-duration-popup) var(--motion-ease-standard),
+    transform var(--motion-duration-popup) var(--motion-ease-standard);
+}
+
+.motion-popup-surface[data-open] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.motion-popup-surface[data-closed] {
+  opacity: 0;
+  transform: translateY(calc(var(--motion-popup-offset) * -1)) scale(var(--motion-popup-scale-closed));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-disclosure-panel,
+  .motion-disclosure-body,
+  .motion-disclosure-trigger,
+  .motion-disclosure-icon,
+  .motion-popup-overlay,
+  .motion-popup-dialog,
+  .motion-popup-surface {
+    transition-duration: 0ms;
+  }
+
+  .motion-disclosure-panel[data-state="open"] > .motion-disclosure-body,
+  .motion-disclosure-panel[data-state="closed"] > .motion-disclosure-body {
+    transform: translateY(0);
+  }
+
+  .motion-disclosure-trigger:hover,
+  .motion-disclosure-trigger:active,
+  .motion-disclosure-trigger:focus-visible {
+    transform: none;
+  }
+
+  .motion-popup-dialog[data-open],
+  .motion-popup-dialog[data-closed] {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .motion-popup-surface[data-open],
+  .motion-popup-surface[data-closed] {
+    transform: translateY(0) scale(1);
   }
 }
 

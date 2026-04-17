@@ -98,4 +98,27 @@ describe("TagListView", () => {
     await user.click(screen.getByRole("button", { name: /Work/ }));
     expect(onSelectTag).toHaveBeenCalledWith("tag-2");
   });
+
+  it("marks the tags panel hidden when there are no visible tags even if the section is open", () => {
+    render(
+      <TagListView
+        tagsLabel="Tags"
+        tags={[]}
+        isOpen={true}
+        onToggleOpen={vi.fn()}
+        onSelectTag={vi.fn()}
+        renderTagSectionContextMenu={() => undefined}
+        renderContextMenu={() => <div />}
+      />,
+    );
+
+    const toggle = screen.getByRole("button", { name: "Tags" });
+    const panel = document.getElementById("sidebar-tag-section-panel");
+
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle.querySelector("svg")).toHaveClass("-rotate-90");
+    expect(panel).toHaveAttribute("aria-hidden", "true");
+    expect(panel).toHaveClass("motion-disclosure-panel");
+    expect(panel).toHaveAttribute("data-state", "closed");
+  });
 });

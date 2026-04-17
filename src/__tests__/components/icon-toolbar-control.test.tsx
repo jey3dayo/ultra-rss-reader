@@ -32,6 +32,22 @@ describe("IconToolbarControl", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  it("renders tooltips with the shared popup motion surface", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <TooltipProvider>
+        <IconToolbarButton label="Copy link" onClick={vi.fn()}>
+          <Globe className="h-4 w-4" />
+        </IconToolbarButton>
+      </TooltipProvider>,
+    );
+
+    await user.hover(screen.getByRole("button", { name: "Copy link" }));
+
+    expect(await screen.findByText("Copy link")).toHaveClass("motion-popup-surface");
+  });
+
   it("renders a shared icon toggle with accent pressed styling", () => {
     render(
       <TooltipProvider>

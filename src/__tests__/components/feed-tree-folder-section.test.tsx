@@ -90,8 +90,9 @@ describe("FeedTreeFolderSection", () => {
     const toggleButton = screen.getByRole("button", { name: "Toggle folder Comic" });
     const folderPanel = document.getElementById("feed-tree-folder-panel-folder-1");
 
-    expect(toggleButton.querySelector("svg")).toHaveClass("transition-transform", "duration-200");
+    expect(toggleButton).toHaveClass("motion-disclosure-trigger");
+    expect(toggleButton.querySelector("svg")).toHaveClass("motion-disclosure-icon");
     expect(folderPanel).toHaveAttribute("aria-hidden", "true");
-    expect(folderPanel).toHaveClass("transition-[grid-template-rows,opacity,transform]");
+    expect(folderPanel).toHaveClass("motion-disclosure-panel");
   });
 });

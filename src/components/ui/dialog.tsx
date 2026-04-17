@@ -50,12 +50,7 @@ function getDialogOverlayPresetClass(preset: DialogOverlayPreset) {
 }
 
 function DialogOverlay({ className, ...props }: DialogOverlayProps) {
-  const overlayClassName = [
-    "fixed inset-0 isolate z-50 duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
-    className,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const overlayClassName = ["motion-popup-overlay fixed inset-0 isolate z-50", className].filter(Boolean).join(" ");
 
   return <DialogPrimitive.Backdrop data-slot="dialog-overlay" className={overlayClassName} {...props} />;
 }
@@ -78,7 +73,7 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border border-border bg-surface-2 p-5 text-sm text-popover-foreground shadow-elevation-3 duration-100 outline-none focus-visible:border-border-strong focus-visible:ring-3 focus-visible:ring-ring/50 sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "motion-popup-dialog fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-xl border border-border bg-surface-2 p-5 text-sm text-popover-foreground shadow-elevation-3 outline-none focus-visible:border-border-strong focus-visible:ring-3 focus-visible:ring-ring/50 sm:max-w-sm",
           className,
         )}
         {...props}

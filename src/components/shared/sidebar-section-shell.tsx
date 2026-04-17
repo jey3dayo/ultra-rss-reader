@@ -30,18 +30,11 @@ export function SidebarSectionShell({
       {hasBody ? (
         <div
           id={resolvedPanelId}
+          data-state={isOpen ? "open" : "closed"}
           aria-hidden={isOpen ? "false" : "true"}
-          className={cn(
-            "grid overflow-hidden transition-[grid-template-rows,opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-            isOpen ? "grid-rows-[1fr] opacity-100" : "pointer-events-none grid-rows-[0fr] opacity-0",
-          )}
+          className="motion-disclosure-panel"
         >
-          <div
-            className={cn(
-              "min-h-0 overflow-hidden transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-              isOpen ? "translate-y-0" : "-translate-y-2",
-            )}
-          >
+          <div className="motion-disclosure-body">
             <div className={cn("space-y-1 px-2", bodyClassName)}>{children}</div>
           </div>
         </div>

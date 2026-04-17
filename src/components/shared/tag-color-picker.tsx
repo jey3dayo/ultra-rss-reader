@@ -53,7 +53,9 @@ export function TagColorPicker({
             style={{ backgroundColor: option }}
             onClick={() => onChange(option)}
           >
-            {color === option ? <Check className="size-4 text-white drop-shadow-[0_1px_2px_rgba(38,37,30,0.45)]" /> : null}
+            {color === option ? (
+              <Check className="size-4 text-white drop-shadow-[0_1px_2px_rgba(38,37,30,0.45)]" />
+            ) : null}
           </button>
         ))}
       </div>

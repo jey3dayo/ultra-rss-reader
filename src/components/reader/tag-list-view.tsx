@@ -19,13 +19,14 @@ export function TagListView({
 }: SidebarTagListProps) {
   const tokens = getSidebarDensityTokens(sidebarDensity);
   const panelId = "sidebar-tag-section-panel";
+  const hasVisibleTags = isOpen && tags.length > 0;
 
   return (
     <div>
       <div className="px-2 py-2">
         <SidebarSectionToggle
           label={tagsLabel}
-          isOpen={isOpen}
+          isOpen={hasVisibleTags}
           onToggle={onToggleOpen}
           panelId={panelId}
           contextMenu={renderTagSectionContextMenu?.()}
@@ -33,18 +34,11 @@ export function TagListView({
       </div>
       <div
         id={panelId}
-        aria-hidden={isOpen ? "false" : "true"}
-        className={cn(
-          "grid overflow-hidden transition-[grid-template-rows,opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-          isOpen && tags.length > 0 ? "grid-rows-[1fr] opacity-100" : "pointer-events-none grid-rows-[0fr] opacity-0",
-        )}
+        data-state={hasVisibleTags ? "open" : "closed"}
+        aria-hidden={hasVisibleTags ? "false" : "true"}
+        className="motion-disclosure-panel"
       >
-        <div
-          className={cn(
-            "min-h-0 overflow-hidden transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-            isOpen && tags.length > 0 ? "translate-y-0" : "-translate-y-2",
-          )}
-        >
+        <div className="motion-disclosure-body">
           <div className={cn("px-2", tokens.tagListGap)}>
             {tags.map((tag) => (
               <ContextMenu.Root key={tag.id}>
