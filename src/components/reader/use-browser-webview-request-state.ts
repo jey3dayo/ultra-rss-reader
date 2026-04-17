@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import type { UseBrowserWebviewRequestStateParams } from "./browser-view.types";
-import { resolveBrowserStateForRequestedUrl } from "./browser-webview-state";
+import { resolveBrowserStateForRequestedUrl, updateBrowserStateWithRef } from "./browser-webview-state";
 
 export function useBrowserWebviewRequestState({
   browserUrl,
@@ -18,11 +18,9 @@ export function useBrowserWebviewRequestState({
       return;
     }
 
-    setBrowserState((state) => {
-      const nextState = resolveBrowserStateForRequestedUrl(state, browserUrl);
-      browserStateRef.current = nextState;
-      return nextState;
-    });
+    updateBrowserStateWithRef(browserStateRef, setBrowserState, (state) =>
+      resolveBrowserStateForRequestedUrl(state, browserUrl),
+    );
     setSurfaceIssue(null);
   }, [
     browserStateRef,

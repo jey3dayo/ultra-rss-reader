@@ -7,7 +7,11 @@ import {
   resolveRuntimeUnavailableSurfaceIssue,
 } from "./browser-surface-issue";
 import type { UseBrowserViewSurfaceStateParams, UseBrowserViewSurfaceStateResult } from "./browser-view.types";
-import type { BrowserWebviewFallbackPayload } from "./browser-webview-state";
+import {
+  type BrowserWebviewFallbackPayload,
+  setBrowserStateWithRef,
+  updateBrowserStateWithRef,
+} from "./browser-webview-state";
 
 export function useBrowserViewSurfaceState({
   browserStateRef,
@@ -29,8 +33,7 @@ export function useBrowserViewSurfaceState({
     (error: AppError) => {
       console.warn("Embedded browser webview disappeared while overlay was open:", error.message);
       fallbackInFlightRef.current = false;
-      browserStateRef.current = null;
-      setBrowserState(null);
+      setBrowserStateWithRef(browserStateRef, setBrowserState, null);
       setSurfaceIssue(null);
       onCloseOverlay();
     },
@@ -50,13 +53,11 @@ export function useBrowserViewSurfaceState({
           failedHint,
         }),
       );
-      setBrowserState((currentState) => {
+      updateBrowserStateWithRef(browserStateRef, setBrowserState, (currentState) => {
         if (!currentState) {
           return currentState;
         }
-        const nextState = { ...currentState, is_loading: false };
-        browserStateRef.current = nextState;
-        return nextState;
+        return { ...currentState, is_loading: false };
       });
     },
     [browserStateRef, failed, failedHint, fallbackInFlightRef, setBrowserState],
@@ -72,13 +73,11 @@ export function useBrowserViewSurfaceState({
           blockedHint,
         }),
       );
-      setBrowserState((currentState) => {
+      updateBrowserStateWithRef(browserStateRef, setBrowserState, (currentState) => {
         if (!currentState) {
           return currentState;
         }
-        const nextState = { ...currentState, is_loading: false };
-        browserStateRef.current = nextState;
-        return nextState;
+        return { ...currentState, is_loading: false };
       });
     },
     [blocked, blockedHint, browserStateRef, failed, failedHint, setBrowserState],

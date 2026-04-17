@@ -4,7 +4,7 @@ import { createOrUpdateBrowserWebview, setBrowserWebviewBounds } from "@/api/tau
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
 import { useUiStore } from "@/stores/ui-store";
 import type { UseBrowserWebviewSyncParams } from "./browser-view.types";
-import { isMissingEmbeddedBrowserWebviewError } from "./browser-webview-state";
+import { isMissingEmbeddedBrowserWebviewError, setBrowserStateWithRef } from "./browser-webview-state";
 import { resolveBrowserWebviewBounds, shouldApplySyncedBrowserState } from "./browser-webview-sync-helpers";
 
 export function useBrowserWebviewSync({
@@ -105,8 +105,7 @@ export function useBrowserWebviewSync({
       const state = Result.unwrap(result);
       const previousState = browserStateRef.current;
       if (shouldApplySyncedBrowserState(previousState, requestedUrl, state)) {
-        browserStateRef.current = state;
-        setBrowserState(state);
+        setBrowserStateWithRef(browserStateRef, setBrowserState, state);
       }
 
       await flushPendingBounds(requestedUrl);

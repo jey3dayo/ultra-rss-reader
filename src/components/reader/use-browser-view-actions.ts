@@ -8,7 +8,7 @@ import {
 } from "@/api/tauri-commands";
 import { openUrlInExternalBrowser } from "./article-browser-actions";
 import type { UseBrowserViewActionsParams } from "./browser-view.types";
-import { isMissingEmbeddedBrowserWebviewError } from "./browser-webview-state";
+import { isMissingEmbeddedBrowserWebviewError, setBrowserStateWithRef } from "./browser-webview-state";
 
 export function useBrowserViewActions({
   browserUrl,
@@ -23,8 +23,7 @@ export function useBrowserViewActions({
 }: UseBrowserViewActionsParams) {
   const applyBrowserState = useCallback(
     (nextState: BrowserWebviewState) => {
-      browserStateRef.current = nextState;
-      setBrowserState(nextState);
+      setBrowserStateWithRef(browserStateRef, setBrowserState, nextState);
       setSurfaceIssue(null);
       fallbackInFlightRef.current = false;
     },
@@ -41,8 +40,7 @@ export function useBrowserViewActions({
     resetBrowserWebviewSyncState();
     setSurfaceIssue(null);
     const nextState = initialBrowserState(requestedUrl);
-    browserStateRef.current = nextState;
-    setBrowserState(nextState);
+    setBrowserStateWithRef(browserStateRef, setBrowserState, nextState);
     await syncBrowserWebview(requestedUrl, "create");
     return true;
   }, [
@@ -99,8 +97,7 @@ export function useBrowserViewActions({
     resetBrowserWebviewSyncState();
     setSurfaceIssue(null);
     const nextState = initialBrowserState(browserUrl ?? "");
-    browserStateRef.current = nextState;
-    setBrowserState(nextState);
+    setBrowserStateWithRef(browserStateRef, setBrowserState, nextState);
     void syncBrowserWebview(browserUrl ?? "", "create");
   }, [
     browserStateRef,

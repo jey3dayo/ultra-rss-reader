@@ -1,3 +1,4 @@
+import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { AppError, BrowserWebviewState } from "@/api/tauri-commands";
 
 export type BrowserWebviewFallbackPayload = {
@@ -59,4 +60,25 @@ export function mergeBrowserState(
   }
 
   return nextState;
+}
+
+export function setBrowserStateWithRef(
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>,
+  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>,
+  nextState: BrowserWebviewState | null,
+) {
+  browserStateRef.current = nextState;
+  setBrowserState(nextState);
+}
+
+export function updateBrowserStateWithRef(
+  browserStateRef: MutableRefObject<BrowserWebviewState | null>,
+  setBrowserState: Dispatch<SetStateAction<BrowserWebviewState | null>>,
+  update: (currentState: BrowserWebviewState | null) => BrowserWebviewState | null,
+) {
+  setBrowserState((currentState) => {
+    const nextState = update(currentState);
+    browserStateRef.current = nextState;
+    return nextState;
+  });
 }

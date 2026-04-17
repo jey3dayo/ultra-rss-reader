@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import type { UseBrowserWebviewStateChangedParams } from "./browser-view.types";
-import { mergeBrowserState } from "./browser-webview-state";
+import { mergeBrowserState, setBrowserStateWithRef } from "./browser-webview-state";
 
 export function useBrowserWebviewStateChanged({
   browserStateRef,
@@ -13,8 +13,7 @@ export function useBrowserWebviewStateChanged({
   return useCallback(
     (payload: BrowserWebviewState) => {
       const nextState = mergeBrowserState(browserStateRef.current, payload, getRequestedUrl());
-      browserStateRef.current = nextState;
-      setBrowserState(nextState);
+      setBrowserStateWithRef(browserStateRef, setBrowserState, nextState);
       setSurfaceIssue(null);
       fallbackInFlightRef.current = false;
     },
