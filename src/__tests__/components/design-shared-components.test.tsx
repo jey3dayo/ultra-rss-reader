@@ -152,10 +152,8 @@ describe("Design-themed shared components", () => {
     const backButton = screen.getByRole("button", { name: "戻る" });
     const closeButton = screen.getByRole("button", { name: "閉じる" });
     const titleGroup = screen.getByTestId("workspace-header-title-group");
-    const topDragRegion = screen.getByTestId("workspace-header-top-drag-region");
-    const contextDragRegion = screen.getByTestId("workspace-header-context-drag-region");
-    const titleDragRegion = screen.getByTestId("workspace-header-title-drag-region");
-    const subtitleDragRegion = screen.getByTestId("workspace-header-subtitle-drag-region");
+    const topDragRegion = screen.getByTestId("workspace-header-top-row-drag-region");
+    const titleGroupDragRegion = screen.getByTestId("workspace-header-title-group-drag-region");
 
     expect(backButton).toHaveStyle({
       backgroundColor: "var(--workspace-header-action-surface)",
@@ -168,11 +166,9 @@ describe("Design-themed shared components", () => {
     expect(backButton).toHaveAttribute("aria-label", "戻る");
     expect(within(titleGroup).getByRole("button", { name: "戻る" })).toBeInTheDocument();
     expect(topDragRegion).toHaveAttribute("data-tauri-drag-region");
-    expect(contextDragRegion).toHaveAttribute("data-tauri-drag-region");
-    expect(titleDragRegion).toHaveAttribute("data-tauri-drag-region");
-    expect(subtitleDragRegion).toHaveAttribute("data-tauri-drag-region");
+    expect(titleGroupDragRegion).toHaveAttribute("data-tauri-drag-region");
     expect(topDragRegion).not.toContainElement(closeButton);
-    expect(titleDragRegion).not.toContainElement(backButton);
+    expect(titleGroupDragRegion).not.toContainElement(backButton);
   });
 
   it("moves desktop back navigation into the title row", () => {

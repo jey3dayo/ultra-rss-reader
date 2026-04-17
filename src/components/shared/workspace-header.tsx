@@ -41,6 +41,10 @@ export function WorkspaceHeader({
   });
   const hasBackAction = Boolean(backLabel && onBack);
   const isDesktopApp = hasRuntime;
+  // During local drag debugging, tint the exact Tauri drag surfaces so we can
+  // verify what is actually draggable without affecting production builds.
+  const debugDragRegionClassName =
+    useDesktopOverlay && import.meta.env.DEV ? "bg-lime-400/20 outline outline-1 outline-lime-300/80" : undefined;
   const contentKey = `${eyebrow}::${title}::${subtitle}`;
   const previousContentKeyRef = useRef(contentKey);
   const [contentMotionPhase, setContentMotionPhase] = useState<"steady" | "entering">("steady");
@@ -76,16 +80,28 @@ export function WorkspaceHeader({
           data-testid="workspace-header-drag-region"
           data-tauri-drag-region
           aria-hidden="true"
-          className="absolute top-0 left-0 h-10"
+          className={cn("absolute top-0 left-0 h-10", debugDragRegionClassName)}
           style={{ width: `${MAC_OVERLAY_DRAG_REGION_WIDTH}px` }}
         />
       ) : null}
       <div data-testid="workspace-header-body" className="flex flex-col gap-1.5">
-        <div data-testid="workspace-header-top-row" className="flex min-h-5 items-center justify-between gap-4">
+        <div
+          data-testid="workspace-header-top-row"
+          className="relative flex min-h-5 items-center justify-between gap-4"
+        >
+          {useDesktopOverlay ? (
+            <div
+              // Keep one large drag surface across the visible top row and layer
+              // interactive controls above it so the empty header area stays draggable.
+              data-testid="workspace-header-top-row-drag-region"
+              data-tauri-drag-region
+              aria-hidden="true"
+              className={cn("absolute inset-0 z-10", debugDragRegionClassName)}
+            />
+          ) : null}
           <div
-            data-testid="workspace-header-top-drag-region"
-            data-tauri-drag-region={useDesktopOverlay ? true : undefined}
-            className={cn("flex min-w-0 items-center gap-2", isDesktopApp && "flex-1")}
+            data-testid="workspace-header-leading"
+            className={cn("relative z-20 flex min-w-0 items-center gap-2", isDesktopApp && "flex-1")}
           >
             {hasBackAction ? (
               isBrowserPreview ? (
@@ -110,7 +126,7 @@ export function WorkspaceHeader({
               </p>
             ) : null}
           </div>
-          <div data-testid="workspace-header-actions" className="flex shrink-0 items-center gap-2">
+          <div data-testid="workspace-header-actions" className="relative z-30 flex shrink-0 items-center gap-2">
             {actions}
             <Button
               variant="ghost"
@@ -126,15 +142,30 @@ export function WorkspaceHeader({
         </div>
         <div
           data-testid="workspace-header-title-group"
-          className={`min-w-0 space-y-0.5 pb-0.5 ${useDesktopOverlay ? MAC_OVERLAY_TITLE_OFFSET_CLASS_NAME : ""}`}
+          className={cn(
+            "relative min-w-0 space-y-0.5 pb-0.5",
+            useDesktopOverlay && MAC_OVERLAY_TITLE_OFFSET_CLASS_NAME,
+          )}
         >
-          {isDesktopApp ? (
+          {useDesktopOverlay ? (
             <div
-              data-testid="workspace-header-context-drag-region"
-              data-tauri-drag-region={useDesktopOverlay ? true : undefined}
-              className="w-full"
-            >
-              <div data-testid="workspace-header-context-row" className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              // Keep one large drag surface across the title block and lift the
+              // back button above it so the whole passive header band can be grabbed.
+              data-testid="workspace-header-title-group-drag-region"
+              data-tauri-drag-region
+              aria-hidden="true"
+              className={cn("absolute inset-0 z-10", debugDragRegionClassName)}
+            />
+          ) : null}
+          {isDesktopApp ? (
+            <div className="relative z-20">
+              <div
+                data-testid="workspace-header-context-row"
+                className={cn(
+                  "flex flex-wrap items-center gap-x-2 gap-y-0.5",
+                  useDesktopOverlay && "pointer-events-none",
+                )}
+              >
                 <p
                   data-motion-phase={contentMotionPhase}
                   className="motion-content-swap font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase"
@@ -145,12 +176,15 @@ export function WorkspaceHeader({
             </div>
           ) : null}
           {isDesktopApp ? (
-            <div data-testid="workspace-header-navigation-row" className="flex min-w-0 items-center gap-2.5">
+            <div
+              data-testid="workspace-header-navigation-row"
+              className="relative z-20 flex min-w-0 items-center gap-2.5"
+            >
               {hasBackAction ? (
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className={`${workspaceHeaderActionClassName} w-7 justify-center px-0`}
+                  className={cn(`${workspaceHeaderActionClassName} w-7 justify-center px-0`, "relative z-30")}
                   style={{ backgroundColor: "var(--workspace-header-action-surface)" }}
                   aria-label={backLabel}
                   onClick={onBack}
@@ -159,9 +193,8 @@ export function WorkspaceHeader({
                 </Button>
               ) : null}
               <div
-                data-testid="workspace-header-title-drag-region"
-                data-tauri-drag-region={useDesktopOverlay ? true : undefined}
-                className={cn("min-w-0 flex-1")}
+                data-testid="workspace-header-title-drag-content"
+                className={cn("min-w-0 flex-1", useDesktopOverlay && "pointer-events-none")}
               >
                 <h1
                   data-motion-phase={contentMotionPhase}
@@ -179,14 +212,14 @@ export function WorkspaceHeader({
               {title}
             </h1>
           )}
-          <div
-            data-testid="workspace-header-subtitle-drag-region"
-            data-tauri-drag-region={useDesktopOverlay ? true : undefined}
-            className="w-full"
-          >
+          <div className="relative z-20">
             <p
+              data-testid="workspace-header-subtitle-content"
               data-motion-phase={contentMotionPhase}
-              className="motion-content-swap max-w-2xl font-serif text-[0.95rem] leading-[1.42] text-foreground-soft"
+              className={cn(
+                "motion-content-swap max-w-2xl font-serif text-[0.95rem] leading-[1.42] text-foreground-soft",
+                useDesktopOverlay && "pointer-events-none",
+              )}
             >
               {subtitle}
             </p>
