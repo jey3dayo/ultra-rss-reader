@@ -36,6 +36,33 @@
     - [ ] debug HUD / destructive dialog footer story の外枠を shell example として扱うか確認する
       - 対象: `src/__tests__/components/debug-hud-frame.test.tsx`, `src/components/shared/destructive-dialog-footer.stories.tsx`
       - `rounded-2xl` を使っているが、 distinct shell role として残すか、 catalog 上の例外として切り分けるかを決める
+  - 2026-04-17 分類メモ:
+    - [ ] `browser-overlay-shell` / `browser-overlay-top-rail` は `shell role`、`browser-overlay-scrim` は `feature-local exception` として固定する
+      - 対象: `src/components/reader/browser-view.tsx`
+      - shell framingと close interaction 用 scrim を同じ lane に混ぜない
+    - [ ] browser overlay の `leading/action` は `shell role`、内部の action surfaces は `compact utility detail` として固定する
+      - 対象: `src/components/reader/browser-overlay-chrome.tsx`, `src/components/reader/browser-overlay-presentation.ts`, `src/components/shared/overlay-action-surface.tsx`, `src/components/shared/icon-toolbar-control.tsx`
+      - chrome container と button surface の責務を分離して catalog 化する
+    - [ ] `browser-overlay-stage` は `main-stage` では `shell role`、`content-pane` では `section container` として扱う
+      - 対象: `src/components/reader/browser-overlay-stage.tsx`, `src/components/shared/overlay-stage-surface.tsx`
+      - stage surface の役割が scope 依存なので、同じ token 名で曖昧に扱わない
+    - [ ] `ReferencePage` は `shell role`、`AnnotatedNote` と `browser-surface-state-card` は `info card` として固定する
+      - 対象: `src/components/storybook/ui-reference-settings-canvas.stories.tsx`, `src/components/storybook/ui-reference-canvas-specimens.tsx`, `src/components/reader/browser-surface-state-card.tsx`
+      - Storybook の shell と info note を section 見本に混ぜない
+    - [ ] tooltip は `compact utility detail` として shell/catalog から分離する
+      - 対象: `src/components/ui/tooltip.tsx`
+      - provider は plumbing、popup だけ utility detail として扱う
+    - [ ] popup shell の近接ファイルも同じ lane で review する
+      - 対象候補:
+        - `src/components/reader/command-palette.tsx`
+        - `src/components/reader/account-switcher-menu.tsx`
+        - `src/components/reader/context-menu-styles.ts`
+        - `src/components/ui/dialog.tsx`
+        - `src/components/app-shell.tsx`
+        - `src/components/reader/browser-view-presentation.ts`
+        - `src/components/reader/browser-view.types.ts`
+        - `src/components/reader/browser-overlay-chrome.stories.tsx`
+      - popup shell / chrome shell / info card の境界が同じ文脈で見えるので、分けずに review したい
 - [ ] 実装済み surface governance を 95 点基準で review し、足りないものだけを段階適用する
   - review 運用ルールは `.claude/rules/ui-design-review-loop.md` に追加済みなので、以後の UI 作業はこの基準をそのまま適用する
   - review 観点:
@@ -93,6 +120,30 @@
     - [ ] `service-picker` と account icon surfaces の `rounded-lg` を shell ではなく control family として固定するか確認する
       - 対象: `src/components/settings/service-picker.tsx`, `src/components/settings/account-config-form.tsx`, `src/__tests__/components/add-account-form.test.tsx`
       - picker shell と icon badge の radius を同じ階層に見せないよう、 control family の例外として明示したい
+  - 2026-04-17 分類メモ:
+    - [ ] `subscriptions-overview-summary` の outer `rounded-xl` は `section/container`、inner summary cards は `card lane` として固定する
+      - 対象: `src/components/subscriptions-index/subscriptions-overview-summary.tsx`, `src/__tests__/components/subscriptions-index-page.test.tsx`, `src/__tests__/components/subscriptions-overview-summary.test.tsx`
+      - shell ではなく summary section の外枠として扱う
+    - [ ] `feed-detail-panel` の root / info surfaces / chip群を `section-card` と `control-family exception` に分解する
+      - 対象: `src/components/shared/feed-detail-panel.tsx`, `src/__tests__/components/feed-detail-panel.test.tsx`
+      - leading visual / status chip / reason chips は `rounded-lg` でも shell ではなく detail/control 扱いにする
+    - [ ] `service-picker` wrapper は settings container、row 自体は nav/control、icon badge は control-family exception として固定する
+      - 対象: `src/components/settings/service-picker.tsx`, `src/components/settings/account-config-form.tsx`, `src/__tests__/components/add-account-form.test.tsx`
+      - `rounded-lg` を全部 shell に数えないための分類を明示する
+    - [ ] 同じ radius language を使う近接ファイルも一緒に棚卸しする
+      - 対象候補:
+        - `src/components/shared/surface-card.tsx`
+        - `src/components/settings/settings-section.tsx`
+        - `src/components/shared/nav-row-button.tsx`
+        - `src/components/ui/dialog.tsx`
+        - `src/components/settings/settings-modal-view.tsx`
+        - `src/components/shared/workspace-pane-layout.ts`
+        - `src/components/subscriptions-index/subscriptions-list-pane.tsx`
+        - `src/components/subscriptions-index/subscription-detail-pane.tsx`
+        - `src/components/feed-cleanup/feed-cleanup-card.tsx`
+        - `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx`
+        - `src/components/feed-cleanup/feed-cleanup-review-panel.tsx`
+      - card / shell / control の境界がこの周辺で共通なので、 catalog lane を分断しない
 - [ ] モバイル向け UI を正式対応する段階で、アイコンのみ導線の見直しを再開する
   - 現時点では mobile を主要提供面にしないため必須対応から外すが、狭い幅での discoverability 課題として保留する
   - 対応する場合は tooltip 前提の主要操作を、ラベル表示かメニュー集約で補う
@@ -145,6 +196,22 @@
         - `src/components/feed-cleanup/feed-cleanup-delete-dialog.tsx`
         - `src/components/feed-cleanup/feed-cleanup-feed-editor.tsx`
       - `text-muted-foreground` / `bg-muted` / generic muted hover を残している箇所が散っているので、役割別に棚卸ししてからまとめて寄せたい
+    - [ ] generic muted contract を実装レーン単位で 5 本に分割する
+      - `shell chrome`
+        - 対象: `src/components/app-shell.tsx`
+        - toast close button / progress track / toast action の muted 契約をまとめて扱う
+      - `shared chip contract`
+        - 対象: `src/components/shared/control-chip.ts`, `src/components/shared/label-chip.tsx`
+        - primitive 契約として leave-as-is か再定義するかを決める
+      - `compact helper actions`
+        - 対象: `src/components/shared/labeled-input-row.tsx`, `src/components/shared/icon-toolbar-control.tsx`, `src/components/shared/tag-chip.tsx`
+        - inline helper action と compact utility detail をまとめて整理する
+      - `sidebar / command chrome`
+        - 対象: `src/components/shared/sidebar-section-toggle.tsx`, `src/components/ui/command.tsx`
+        - sidebar chrome と command palette の helper copy / heading / shortcut tone を同じ lane で扱う
+      - `subscription list + cleanup copy`
+        - 対象: `src/components/subscriptions-index/subscriptions-list-pane.tsx`, `src/components/feed-cleanup/feed-cleanup-delete-dialog.tsx`, `src/components/feed-cleanup/feed-cleanup-feed-editor.tsx`
+        - empty state / supporting copy / compact status detail をまとめて寄せる
   - `DESIGN.md` 追記とトークン追加で吸収する項目:
     - [x] warning / info / state 表現で残っている Tailwind の青・黄・アンバー直書きを、意味ベースの state token に置き換える
       - 対象: `src/components/shared/article-state-icon.tsx`, `src/components/reader/article-list-context-strip.tsx`, `src/components/reader/article-list-item.tsx`, `src/components/reader/article-pane-view.tsx`, `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-review-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-page-view.tsx`, `src/components/shared/feed-detail-panel.tsx`, `src/components/subscriptions-index/subscriptions-overview-summary.tsx`
