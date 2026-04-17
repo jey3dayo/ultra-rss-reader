@@ -4,20 +4,14 @@ import { SidebarNavButton } from "./sidebar-nav-button";
 
 const SMART_VIEW_TONE_CLASSNAMES = {
   unread: {
-    selected:
-      "bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
-    hover:
-      "hover:text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
-    trailing:
-      "text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))] opacity-80",
+    selected: "bg-[var(--semantic-tone-unread-surface)] text-[var(--semantic-tone-unread-sidebar-foreground)]",
+    hover: "hover:text-[var(--semantic-tone-unread-sidebar-foreground)]",
+    trailing: "text-[var(--semantic-tone-unread-sidebar-foreground)] opacity-80",
   },
   starred: {
-    selected:
-      "bg-[color-mix(in_srgb,var(--tone-starred)_var(--tone-surface-strength),transparent)] text-[color-mix(in_srgb,var(--tone-starred)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
-    hover:
-      "hover:text-[color-mix(in_srgb,var(--tone-starred)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
-    trailing:
-      "text-[color-mix(in_srgb,var(--tone-starred)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))] opacity-80",
+    selected: "bg-[var(--semantic-tone-starred-surface)] text-[var(--semantic-tone-starred-sidebar-foreground)]",
+    hover: "hover:text-[var(--semantic-tone-starred-sidebar-foreground)]",
+    trailing: "text-[var(--semantic-tone-starred-sidebar-foreground)] opacity-80",
   },
 } as const;
 

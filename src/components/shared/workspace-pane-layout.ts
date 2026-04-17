@@ -10,7 +10,7 @@ export const WORKSPACE_CHROME_SPACING_CLASS = "flex min-h-0 flex-1 flex-col px-3
 
 export function workspaceSplitShellClassName(extraClassName?: string) {
   return cn(
-    "mt-3 grid min-h-0 overflow-visible rounded-lg border border-border/70 lg:mt-4 lg:flex-1 lg:overflow-hidden",
+    "mt-3 grid min-h-0 overflow-visible rounded-md border border-border/70 lg:mt-4 lg:flex-1 lg:overflow-hidden",
     WORKSPACE_DETAIL_PANE_GRID_CLASS,
     extraClassName,
   );

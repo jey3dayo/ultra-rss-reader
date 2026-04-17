@@ -69,7 +69,7 @@ describe("BrowserSurfaceStateCard", () => {
     const detail = screen.getByText("The embedded browser could not be created for this feed.");
 
     expect(detail).toHaveClass("rounded-md");
-    expect(detail).toHaveClass("border-border/55");
-    expect(detail).toHaveClass("bg-surface-1/85");
+    expect(detail).toHaveClass("border-browser-overlay-state-detail-border");
+    expect(detail).toHaveClass("bg-browser-overlay-state-detail-surface");
   });
 });

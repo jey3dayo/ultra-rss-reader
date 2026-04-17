@@ -606,7 +606,7 @@ describe("BrowserView", () => {
 
     expect(loadingState.className).not.toMatch(/\bborder\b/);
     expect(loadingState.className).not.toMatch(/\bshadow-/);
-    expect(loadingHalo).toHaveClass("bg-surface-1/80");
+    expect(loadingHalo).toHaveClass("bg-browser-overlay-loading-halo");
     expect(loadingSpinner).toHaveClass("text-foreground");
     expect(loadingTitle).toHaveClass("text-foreground");
     expect(loadingHint).toHaveClass("text-foreground-soft");

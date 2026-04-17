@@ -147,6 +147,7 @@ describe("SubscriptionsIndexPage", () => {
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
     expect(await within(detailPane).findByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
     expect(await within(detailPane).findByText("90日以上更新なし")).toBeInTheDocument();
+    expect(await within(detailPane).findByTestId("subscriptions-detail-decision-bar")).toHaveClass("rounded-md");
   });
 
   it("renders lightweight feed rows and only highlights the selected feed", async () => {
@@ -215,7 +216,7 @@ describe("SubscriptionsIndexPage", () => {
     const shell = await screen.findByTestId("subscriptions-workspace-shell");
     expect(shell).toHaveClass("min-h-0");
     expect(shell).toHaveClass("overflow-visible");
-    expect(shell).toHaveClass("rounded-xl");
+    expect(shell).toHaveClass("rounded-md");
     expect(shell).toHaveClass("lg:overflow-hidden");
     expect(shell).toHaveClass("lg:grid-cols-[minmax(0,1fr)_480px]");
 
@@ -408,7 +409,7 @@ describe("SubscriptionsIndexPage", () => {
           expandedGroups: {
             "folder-1": false,
             "folder-2": true,
-            "__ungrouped__": true,
+            __ungrouped__: true,
           },
           listScrollTop: 18,
           keptFeedIds: [],
@@ -445,7 +446,7 @@ describe("SubscriptionsIndexPage", () => {
           expandedGroups: {
             "folder-1": true,
             "folder-2": true,
-            "__ungrouped__": true,
+            __ungrouped__: true,
           },
           listScrollTop: 0,
           keptFeedIds: ["feed-1"],

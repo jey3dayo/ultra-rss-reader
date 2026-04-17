@@ -4,7 +4,7 @@
 
 ## UI/UX 監査の残り
 
-- [ ] surface governance の残り範囲を先に棚卸ししてから実装する
+- [x] surface governance の残り範囲を先に棚卸ししてから実装する
   - まず `info card` / `section container` / `shell role` のどれに属するかを対象ごとに分類し、分類が固まったものだけ着手する
   - 初回の棚卸し対象:
     - `src/components/storybook/ui-reference-settings-canvas.stories.tsx`
@@ -14,48 +14,48 @@
     - `src/components/ui/tooltip.tsx`
   - 新しく見つけた論点はこの親タスク配下へ追加し、分類前に実装へ入らない
   - 初回棚卸しで見つかった分類メモ:
-    - [ ] browser overlay の leading / action controls は `section` ではなく `shell role` として扱う
+    - [x] browser overlay の leading / action controls は `section` ではなく `shell role` として扱う
       - 対象: `src/components/reader/browser-overlay-chrome.tsx`, `src/components/reader/browser-overlay-presentation.ts`
       - `rounded-full` と高めの elevation を使っているため、標準 card へ寄せるのではなく shell token 化の要否を見極める
-    - [ ] browser overlay の stage / rail / top gradient bar を `shell role` の一部としてまとめて扱うかを確定する
+    - [x] browser overlay の stage / rail / top gradient bar を `shell role` の一部としてまとめて扱うかを確定する
       - 対象: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-overlay-presentation.ts`
       - `content-pane` 側の stage は section 風にも見えるので、境界を決めてから触る
-    - [ ] `ui-reference-settings-canvas` の outer frame 28px / 32px 系は `section` ではなく shell example として扱う
+    - [x] `ui-reference-settings-canvas` の outer frame 28px / 32px 系は `section` ではなく shell example として扱う
       - 対象: `src/components/storybook/ui-reference-settings-canvas.stories.tsx`
       - left rail 外枠、main content 外枠、dialog / context menu 見本を section 見本と混ぜない
-    - [ ] tooltip は compact utility detail として扱い、surface governance の主戦場からは分離する
+    - [x] tooltip は compact utility detail として扱い、surface governance の主戦場からは分離する
       - 対象: `src/components/ui/tooltip.tsx`
       - まずは shell / section の整理を優先し、 tooltip は必要が出たら別タスク化する
   - 2026-04-17 追加スキャン候補:
-    - [ ] overlay action surface と icon toolbar control を shell chrome の一部として扱うか確定する
+    - [x] overlay action surface と icon toolbar control を shell chrome の一部として扱うか確定する
       - 対象: `src/components/shared/overlay-action-surface.tsx`, `src/components/shared/icon-toolbar-control.tsx`
       - `rounded-lg` と `size-11/md:size-8`、chrome hover/focus の組み合わせが shell action lane に近く、通常 control family と分けて扱うべきか確認したい
-    - [ ] command palette / account switcher / context menu の popover shell を shell catalog に含めるか確定する
+    - [x] command palette / account switcher / context menu の popover shell を shell catalog に含めるか確定する
       - 対象: `src/components/reader/command-palette.tsx`, `src/components/reader/account-switcher-menu.tsx`, `src/components/reader/context-menu-styles.ts`
       - `rounded-lg` / `rounded-xl` の overlay shell が混在しており、 reusable shell と feature-local popup の境界を整理したい
-      - 状況: `account-switcher-menu` / `context-menu-styles` は popup shell、`tooltip` は compact utility detail として整理済み。残りは `command-palette`
-    - [ ] debug HUD / destructive dialog footer story の外枠を shell example として扱うか確認する
+      - 状況: `command-palette` / `account-switcher-menu` / `context-menu-styles` は popup shell として整理済み。`tooltip` は compact utility detail として分離済み
+    - [x] debug HUD / destructive dialog footer story の外枠を shell example として扱うか確認する
       - 対象: `src/__tests__/components/debug-hud-frame.test.tsx`, `src/components/shared/destructive-dialog-footer.stories.tsx`
       - `rounded-2xl` を使っているが、 distinct shell role として残すか、 catalog 上の例外として切り分けるかを決める
       - 状況: `destructive-dialog-footer.stories.tsx` と `debug-hud-frame.stories.tsx` は shell example と明示済み
   - 2026-04-17 分類メモ:
-    - [ ] `browser-overlay-shell` / `browser-overlay-top-rail` は `shell role`、`browser-overlay-scrim` は `feature-local exception` として固定する
+    - [x] `browser-overlay-shell` / `browser-overlay-top-rail` は `shell role`、`browser-overlay-scrim` は `feature-local exception` として固定する
       - 対象: `src/components/reader/browser-view.tsx`
       - shell framingと close interaction 用 scrim を同じ lane に混ぜない
-    - [ ] browser overlay の `leading/action` は `shell role`、内部の action surfaces は `compact utility detail` として固定する
+    - [x] browser overlay の `leading/action` は `shell role`、内部の action surfaces は `compact utility detail` として固定する
       - 対象: `src/components/reader/browser-overlay-chrome.tsx`, `src/components/reader/browser-overlay-presentation.ts`, `src/components/shared/overlay-action-surface.tsx`, `src/components/shared/icon-toolbar-control.tsx`
       - chrome container と button surface の責務を分離して catalog 化する
-    - [ ] `browser-overlay-stage` は `main-stage` では `shell role`、`content-pane` では `section container` として扱う
+    - [x] `browser-overlay-stage` は `main-stage` では `shell role`、`content-pane` では `section container` として扱う
       - 対象: `src/components/reader/browser-overlay-stage.tsx`, `src/components/shared/overlay-stage-surface.tsx`
       - stage surface の役割が scope 依存なので、同じ token 名で曖昧に扱わない
-    - [ ] `ReferencePage` は `shell role`、`AnnotatedNote` と `browser-surface-state-card` は `info card` として固定する
+    - [x] `ReferencePage` は `shell role`、`AnnotatedNote` と `browser-surface-state-card` は `info card` として固定する
       - 対象: `src/components/storybook/ui-reference-settings-canvas.stories.tsx`, `src/components/storybook/ui-reference-canvas-specimens.tsx`, `src/components/reader/browser-surface-state-card.tsx`
       - Storybook の shell と info note を section 見本に混ぜない
-    - [ ] tooltip は `compact utility detail` として shell/catalog から分離する
+    - [x] tooltip は `compact utility detail` として shell/catalog から分離する
       - 対象: `src/components/ui/tooltip.tsx`
       - provider は plumbing、popup だけ utility detail として扱う
       - 状況: tooltip popup は `surface-1` / `elevation-1` の compact utility detail として整理済み
-    - [ ] popup shell の近接ファイルも同じ lane で review する
+    - [x] popup shell の近接ファイルも同じ lane で review する
       - 対象候補:
         - `src/components/reader/command-palette.tsx`
         - `src/components/reader/account-switcher-menu.tsx`
@@ -73,22 +73,22 @@
     - shared primitive を通すべき面が feature-local へ逃げていないか
     - Storybook の参照面が実装より甘い例外を残していないか
   - 初回の残タスク:
-    - [ ] browser overlay / preview 系を `section` と `shell` のどちらで扱うか確定する
-    - [ ] `ui-reference-settings-canvas` に残る shell 例外を明示し、section 見本と混ざらないよう整理する
+    - [x] browser overlay / preview 系を `section` と `shell` のどちらで扱うか確定する
+    - [x] `ui-reference-settings-canvas` に残る shell 例外を明示し、section 見本と混ざらないよう整理する
       - left rail 外枠、main content 外枠、dialog surface、context menu は shell 見本としてラベル分離する
     - [ ] 実アプリ表示の review 結果を見て、必要ならこの配下へ追加する
-- [ ] `rounded-md` を card / section の標準として catalog と実装を揃える
+- [x] `rounded-md` を card / section の標準として catalog と実装を揃える
   - 方針:
     - `card / section` は `rounded-md` を標準
     - `rounded-lg` は必要時のみ
     - `20px+` は shell だけ
-  - [ ] Storybook catalog で card 扱いなのに `20px+` を使っている見本を棚卸しする
+  - [x] Storybook catalog で card 扱いなのに `20px+` を使っている見本を棚卸しする
     - 対象: `src/components/storybook/ui-reference-settings-canvas.stories.tsx`
     - `shell example` と `card / section example` を分けて数える
-  - [ ] shared `SurfaceCard` の `section` 半径を `md` 基準に寄せるか判断する
+  - [x] shared `SurfaceCard` の `section` 半径を `md` 基準に寄せるか判断する
     - 対象: `src/components/shared/surface-card.tsx`, `src/__tests__/components/surface-card.test.tsx`
     - 既存 `--radius-surface-section` が実質 8px なので、 token 名と実態のズレも確認する
-  - [ ] catalog の card 風サンプルを `rounded-md` / `rounded-lg` に落とす
+  - [x] catalog の card 風サンプルを `rounded-md` / `rounded-lg` に落とす
     - 対象: `src/components/storybook/ui-reference-settings-canvas.stories.tsx`, `src/__tests__/components/ui-reference-settings-canvas.test.tsx`
     - `rounded-[20px]`, `rounded-[22px]`, `rounded-[24px]` のうち section/card 側だけを整理する
   - [x] feed cleanup / subscriptions / settings の card 系を `rounded-md` 基準に寄せる
@@ -114,32 +114,32 @@
     - [x] Storybook shell catalog を `rounded-xl` 基準に揃える
       - 対象: `src/components/storybook/ui-reference-canvas-specimens.tsx`, `src/__tests__/components/ui-reference-settings-canvas.test.tsx`
   - 2026-04-17 追加棚卸し候補:
-    - [ ] `subscriptions-overview-summary` の outer shell と inner summary cards の radius 境界を明記する
+    - [x] `subscriptions-overview-summary` の outer shell と inner summary cards の radius 境界を明記する
       - 対象: `src/components/subscriptions-index/subscriptions-overview-summary.tsx`, `src/__tests__/components/subscriptions-index-page.test.tsx`, `src/__tests__/components/subscriptions-overview-summary.test.tsx`
       - outer `rounded-xl` shell と inner `rounded-lg` cards を shell/catalog のどちらに数えるか曖昧なので整理したい
       - 状況: outer wrapper は `section/container` として `rounded-lg` / lighter border に整理済み
-    - [ ] `feed-detail-panel` の leading visual / status chip / reason chips の `rounded-lg` を utility detail か info-shell かで分類する
+    - [x] `feed-detail-panel` の leading visual / status chip / reason chips の `rounded-lg` を utility detail か info-shell かで分類する
       - 対象: `src/components/shared/feed-detail-panel.tsx`, `src/__tests__/components/feed-detail-panel.test.tsx`
       - panel 本体の section/card と chip・visual の radius 言語が混ざっているので、 reusable primitive の責務を見直したい
       - 状況: leading visual / status chip / reason chips は `rounded-md` 基準へ整理済み
-    - [ ] `service-picker` と account icon surfaces の `rounded-lg` を shell ではなく control family として固定するか確認する
+    - [x] `service-picker` と account icon surfaces の `rounded-lg` を shell ではなく control family として固定するか確認する
       - 対象: `src/components/settings/service-picker.tsx`, `src/components/settings/account-config-form.tsx`, `src/__tests__/components/add-account-form.test.tsx`
       - picker shell と icon badge の radius を同じ階層に見せないよう、 control family の例外として明示したい
       - 状況: wrapper は `rounded-lg` 維持、row と icon badge は `rounded-md` 基準へ整理済み
   - 2026-04-17 分類メモ:
-    - [ ] `subscriptions-overview-summary` の outer `rounded-xl` は `section/container`、inner summary cards は `card lane` として固定する
+    - [x] `subscriptions-overview-summary` の outer `rounded-xl` は `section/container`、inner summary cards は `card lane` として固定する
       - 対象: `src/components/subscriptions-index/subscriptions-overview-summary.tsx`, `src/__tests__/components/subscriptions-index-page.test.tsx`, `src/__tests__/components/subscriptions-overview-summary.test.tsx`
       - shell ではなく summary section の外枠として扱う
       - 状況: outer wrapper は `rounded-lg` / no custom shadow に整理済み
-    - [ ] `feed-detail-panel` の root / info surfaces / chip群を `section-card` と `control-family exception` に分解する
+    - [x] `feed-detail-panel` の root / info surfaces / chip群を `section-card` と `control-family exception` に分解する
       - 対象: `src/components/shared/feed-detail-panel.tsx`, `src/__tests__/components/feed-detail-panel.test.tsx`
       - leading visual / status chip / reason chips は `rounded-lg` でも shell ではなく detail/control 扱いにする
       - 状況: leading visual / status chip / reason chips は `rounded-md` 側へ整理済み
-    - [ ] `service-picker` wrapper は settings container、row 自体は nav/control、icon badge は control-family exception として固定する
+    - [x] `service-picker` wrapper は settings container、row 自体は nav/control、icon badge は control-family exception として固定する
       - 対象: `src/components/settings/service-picker.tsx`, `src/components/settings/account-config-form.tsx`, `src/__tests__/components/add-account-form.test.tsx`
       - `rounded-lg` を全部 shell に数えないための分類を明示する
       - 状況: wrapper は settings container、row / icon badge は control-family exception として整理済み
-    - [ ] 同じ radius language を使う近接ファイルも一緒に棚卸しする
+    - [x] 同じ radius language を使う近接ファイルも一緒に棚卸しする
       - 対象候補:
         - `src/components/shared/surface-card.tsx`
         - `src/components/settings/settings-section.tsx`
@@ -157,7 +157,7 @@
   - 現時点では mobile を主要提供面にしないため必須対応から外すが、狭い幅での discoverability 課題として保留する
   - 対応する場合は tooltip 前提の主要操作を、ラベル表示かメニュー集約で補う
   - 候補箇所: `src/components/reader/sidebar-header-view.tsx`, `src/components/reader/article-list-header.tsx`, `src/components/reader/article-toolbar-view.tsx`
-- [ ] `DESIGN.md` を参照し、主要コンポーネントのリデザイン方針を整理して段階的に適用する
+- [x] `DESIGN.md` を参照し、主要コンポーネントのリデザイン方針を整理して段階的に適用する
   - warm cream 系の配色、太すぎないタイポグラフィ、境界線と余白のルールを既存 UI に馴染む形で再設計する
   - まずは reader 周辺の主要コンポーネントを対象に、影響の大きいものから優先して見直す
   - 実装時は既存の操作性と可読性を崩さず、単なる見た目変更ではなく情報階層も合わせて調整する
@@ -165,10 +165,10 @@
       - 初回適用候補: `src/components/reader/account-switcher-menu.tsx`, `src/components/reader/feed-item.tsx`
       - 次点候補: `src/components/subscriptions-index/subscriptions-list-pane.tsx`
       - `SidebarNavButton` / `NavRowButton` のどちらを基準にするかを見直し、 sidebar 系と content-list 系の責務を混ぜない
-    - [ ] settings の title / rail / content のトーン差を `DESIGN.md` 基準で再整理する
+    - [x] settings の title / rail / content のトーン差を `DESIGN.md` 基準で再整理する
       - `src/components/settings/settings-content-layout.tsx`, `src/components/settings/settings-modal-view.tsx`, `src/components/settings/settings-nav-view.tsx`, `src/components/settings/accounts-nav-view.tsx`
       - stacked-left 見出しの serif / sans 混在と、active row の強さ・透過感が section 面より先に目立つ状態をまとめて見直したい
-      - 状況: `settings-content-layout` / `settings-nav-view` / `accounts-nav-view` は整理済み。残りは modal 全体と feed cleanup 側の階層差
+      - 状況: `settings-content-layout` / `settings-nav-view` / `accounts-nav-view` / `settings-modal-view` を含めて tonal separation を整理済み
     - [x] settings form の shared right rail から外れている account / utility pages を `DESIGN.md` 基準へ戻す
       - `src/components/settings/account-general-section-view.tsx`, `src/components/settings/account-credentials-section-view.tsx`, `src/components/settings/add-account-form-view.tsx`, `src/components/settings/account-config-form.tsx`
       - `sm:justify-start` + `sm:flex-1` の入力列、`sm:w-24/28` のラベル列、`h-auto` の input を使っており、 settings form の shared endpoint より左に control が浮いて見える
@@ -191,23 +191,23 @@
     - [x] タイポグラフィの token と実表示を `DESIGN.md` の役割分担に寄せる
       - browser review 時点では本文・見出しとも system-ui 系 sans が中心で、`CursorGothic` / `jjannon` / `berkeleyMono` の役割差が体験に出ていない
       - 対象: `src/styles/global.css`, `src/components/reader/article-pane-view.tsx`, `src/components/feed-cleanup/feed-cleanup-review-panel.tsx`, `src/components/settings/*`
-    - [ ] settings / feed cleanup の情報階層を tonal separation と primary action の差で再整理する
+    - [x] settings / feed cleanup の情報階層を tonal separation と primary action の差で再整理する
       - 現状は近い濃度の面と outline ボタンが連続し、`DESIGN.md` が求める「tone と spacing で読む」構造よりもフラットに見える
       - 対象: `src/components/settings/settings-modal.tsx`, `src/components/settings/*-settings*.tsx`, `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-review-panel.tsx`
-- [ ] `DESIGN.md` 準拠の色管理レイヤーを維持しつつ、直書き色の整理方針を段階的に適用する
+- [x] `DESIGN.md` 準拠の色管理レイヤーを維持しつつ、直書き色の整理方針を段階的に適用する
   - 現在の準拠済みレイヤー:
     - `src/styles/global.css` の `:root` / `:root.dark` にあるセマンティックトークン群（`--background`, `--foreground`, `--primary`, `--surface-*`, `--shadow-elevation-*`）
     - 同ファイル先頭の `@theme inline` による Tailwind セマンティッククラスへのマッピング（`bg-background`, `text-foreground`, `border-border`, `bg-surface-*`, `shadow-elevation-*`）
     - 既存 UI で広く使っている `bg-background`, `bg-card`, `text-muted-foreground`, `border-border`, `bg-sidebar` などのトークン参照クラス
     - 旧 UI 向けの `--bg-*`, `--text-*`, `--border-*` も中央定義ではあるので、当面はこの層に寄せて一元管理を維持する
   - コード修正で準拠させる項目:
-    - [ ] browser overlay 系の白黒アルファ直書きをセマンティックトークンへ寄せる
+    - [x] browser overlay 系の白黒アルファ直書きをセマンティックトークンへ寄せる
       - 対象: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-overlay-presentation.ts`, `src/components/reader/browser-overlay-chrome.tsx`, `src/components/reader/browser-overlay-stage.tsx`, `src/components/reader/browser-surface-state-card.tsx`, `src/components/reader/article-empty-state-view.tsx`
       - `border-white/*`, `bg-black/*`, `bg-white/*`, `text-white/*`, `shadow-[rgba(...)]` が多く、`DESIGN.md` の warm cream / warm border 系と分離している
-    - [ ] dialog / picker 系の arbitrary rgba をトークンへ寄せる
+    - [x] dialog / picker 系の arbitrary rgba をトークンへ寄せる
       - 対象: `src/components/ui/dialog.tsx`, `src/components/settings/service-picker.tsx`
       - overlay や hover/focus の `bg-[rgba(...)]`, `hover:border-[rgba(...)]`, `focus-visible:shadow-[rgba(...)]` を `DESIGN.md` 準拠の scrim / border / elevation に揃えたい
-    - [ ] generic muted contract の残りを supporting copy / helper action / compact utility detail に再分類する
+    - [x] generic muted contract の残りを supporting copy / helper action / compact utility detail に再分類する
       - 対象候補:
         - `src/components/app-shell.tsx`
         - `src/components/shared/control-chip.ts`
@@ -221,7 +221,7 @@
         - `src/components/feed-cleanup/feed-cleanup-delete-dialog.tsx`
         - `src/components/feed-cleanup/feed-cleanup-feed-editor.tsx`
       - `text-muted-foreground` / `bg-muted` / generic muted hover を残している箇所が散っているので、役割別に棚卸ししてからまとめて寄せたい
-    - [ ] generic muted contract を実装レーン単位で 5 本に分割する
+    - [x] generic muted contract を実装レーン単位で 5 本に分割する
       - `shell chrome`
         - 対象: `src/components/app-shell.tsx`
         - toast close button / progress track / toast action の muted 契約をまとめて扱う
@@ -246,7 +246,7 @@
     - [x] warning / info / state 表現で残っている Tailwind の青・黄・アンバー直書きを、意味ベースの state token に置き換える
       - 対象: `src/components/shared/article-state-icon.tsx`, `src/components/reader/article-list-context-strip.tsx`, `src/components/reader/article-list-item.tsx`, `src/components/reader/article-pane-view.tsx`, `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-review-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-page-view.tsx`, `src/components/shared/feed-detail-panel.tsx`, `src/components/subscriptions-index/subscriptions-overview-summary.tsx`
       - `warning`, `info`, `favorite`, `unread` などの用途別トークンを `DESIGN.md` と token layer に追加してから置き換える
-    - [ ] smart view / list footer の semantic tone formula を token 化するか確認する
+    - [x] smart view / list footer の semantic tone formula を token 化するか確認する
       - 対象: `src/components/reader/smart-views-view.tsx`, `src/components/reader/article-list-footer.tsx`
       - `color-mix(...)` を直接書いている semantic tone formula を shared token / utility に上げるか、 feature-local のままにするか判断したい
       - 状況: `smart-views-view` と `article-list-footer` を同じ semantic formula language に整理済み
@@ -260,7 +260,7 @@
 
 ## 次の並列バッチ候補
 
-- [ ] 2026-04-17 時点の残レーンを `write scope` 単位で棚卸しし、以後はこのまとまりで並列実行する
+- [x] 2026-04-17 時点の残レーンを `write scope` 単位で棚卸しし、以後はこのまとまりで並列実行する
   - [x] Lane H: settings title / rail / content の tonal separation を詰める
     - 対象候補:
       - `src/components/settings/settings-content-layout.tsx`
@@ -439,14 +439,14 @@
       - 開閉対象は DOM から外さず、`aria-hidden` と grid row / opacity / translate の遷移で collapse を表現する
       - `SidebarSectionShell` と feed-tree / tag-list の挙動を揃え、 section header と panel body の責務を分ける
 
-- [ ] Lane 1: overlay color layer を `DESIGN.md` 準拠の token に寄せる
-  - [ ] 棚卸し
+- [x] Lane 1: overlay color layer を `DESIGN.md` 準拠の token に寄せる
+  - [x] 棚卸し
     - 対象: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-overlay-presentation.ts`, `src/components/reader/browser-overlay-chrome.tsx`, `src/components/reader/browser-overlay-stage.tsx`, `src/components/reader/browser-surface-state-card.tsx`, `src/components/reader/article-empty-state-view.tsx`
     - 白黒アルファ直書き、shadow の arbitrary 値、shell role と section role の混在を洗う
-  - [ ] 設計反映
+  - [x] 設計反映
     - 必要なら `DESIGN.md` と `src/styles/global.css` に overlay / shell 用の意味トークンを追加する
     - 既存 token で表現できるものは新規 token を増やさない
-  - [ ] 実装
+  - [x] 実装
     - overlay 系の白黒アルファ直書きを sematic token / shared primitive ベースへ寄せる
     - `shell role` として残す例外は明示する
   - 最小実装候補:
@@ -454,36 +454,36 @@
     - [x] `src/components/reader/browser-view.tsx` と `src/styles/global.css` で overlay shell veil / top rail を token 化するか、shell exception として固定するかを決める
     - [x] `src/components/reader/browser-overlay-stage.tsx` の loading halo を reusable ambient token にするか one-off shell effect のままにするか決める
 
-- [ ] Lane 2: dialog / picker 系の arbitrary rgba を token layer に寄せる
-  - [ ] 棚卸し
+- [x] Lane 2: dialog / picker 系の arbitrary rgba を token layer に寄せる
+  - [x] 棚卸し
     - 対象: `src/components/ui/dialog.tsx`, `src/components/settings/service-picker.tsx`
     - overlay、focus、hover、scrim、surface の rgba 直書きを洗う
-  - [ ] 設計反映
+  - [x] 設計反映
     - dialog / picker で使う scrim、border、focus、surface の意味名を `DESIGN.md` / token layer へ寄せる
     - shell role と section role のどちらに属するかを明記する
-  - [ ] 実装
+  - [x] 実装
     - arbitrary rgba を token 経由へ置き換える
     - 既存の可読性と focus visibility を落とさない
   - 最小実装候補:
-    - [ ] `src/styles/global.css` と `DESIGN.md` に dialog 用 scrim / overlay role を追加する
+    - [x] `src/styles/global.css` と `DESIGN.md` に dialog 用 scrim / overlay role を追加する
     - [x] `src/components/ui/dialog.tsx` の backdrop opacity literal を scrim token へ置き換える
     - [x] `src/components/settings/service-picker.tsx` の `hover:bg-background/90` を既存 surface token か named hover surface へ寄せる
     - [x] `src/components/settings/settings-modal-view.tsx` の content / sidebar fade と shell 背景が新しい scrim / overlay role と矛盾しないか確認する
 
-- [ ] Lane 3: settings / cleanup の情報階層を tonal separation と primary action の差で再整理する
-  - [ ] 棚卸し
+- [x] Lane 3: settings / cleanup の情報階層を tonal separation と primary action の差で再整理する
+  - [x] 棚卸し
     - 対象: `src/components/settings/settings-modal.tsx`, `src/components/settings/*-settings*.tsx`, `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`, `src/components/feed-cleanup/feed-cleanup-review-panel.tsx`
     - 近い濃度の面、outline button の連続、section 面より強く見える active row を洗う
-  - [ ] 設計反映
+  - [x] 設計反映
     - `DESIGN.md` 上の tonal separation / primary action の適用方針を必要最小限で補う
     - `section container` と action emphasis の強弱ルールを固定する
-  - [ ] 実装
+  - [x] 実装
     - settings / cleanup の hierarchy を再整理する
     - 見た目変更だけでなく、読む順序が改善するかを確認する
   - 最小実装候補:
     - [x] `src/components/settings/settings-nav-view.tsx` と `src/components/settings/accounts-nav-view.tsx` で selected row を primary stripe ではなく tonal depth / border で強調する
     - [x] `src/components/settings/settings-modal-view.tsx` と `src/components/settings/settings-content-layout.tsx` で shell / rail / content の tonal separation を整理する
-    - [ ] `src/components/settings/settings-modal-view.tsx` の outer shell と account section の rounded 値を shell / section の役割に沿って整理する
+    - [x] `src/components/settings/settings-modal-view.tsx` の outer shell と account section の rounded 値を shell / section の役割に沿って整理する
     - [x] `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx` で summary cards と bulk actions の優先度を分離する
     - [x] `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx` で row selection と inline actions の強さを整理する
     - [x] `src/components/feed-cleanup/feed-cleanup-review-panel.tsx` と必要なら `src/components/shared/feed-detail-panel.tsx` で review 面の primary action を主ボタンとして見えるようにする
@@ -497,7 +497,3 @@
 - [ ] DB migration recovery の追加 hardening は migration 変更時に issue #23 を参照する
   - 常設 TODO ではなく、次に migration を触るタイミングでまとめて扱う
   - 失敗系テストや復旧手順の補強は issue #23 に集約する
-- [ ] ミュート時に自動既読にする設定を、他の実装が落ち着いた後に再開する
-  - 現状のミュートは一覧・タグ一覧・検索結果から非表示にするだけで、既読状態は変更しない
-  - 着手時は未読数、バッジ、`すべて既読` との整合もまとめて見直す
-  - UI 上は `Settings > ミュート` に工事中として位置だけ確保済み

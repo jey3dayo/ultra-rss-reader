@@ -31,7 +31,10 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-browser-overlay-shell: var(--browser-overlay-shell);
+  --color-browser-overlay-loading-halo: var(--browser-overlay-loading-halo);
   --color-browser-overlay-rail-border: var(--browser-overlay-rail-border);
+  --color-browser-overlay-state-detail-surface: var(--browser-overlay-state-detail-surface);
+  --color-browser-overlay-state-detail-border: var(--browser-overlay-state-detail-border);
   --color-overlay-action-surface: var(--overlay-action-surface);
   --color-overlay-action-surface-hover: var(--overlay-action-surface-hover);
   --color-overlay-action-surface-focus: var(--overlay-action-surface-focus);
@@ -98,11 +101,14 @@
   --motion-duration-disclosure: 200ms;
   --motion-duration-popup: 160ms;
   --motion-duration-theme: 180ms;
+  --motion-duration-contextual: 180ms;
+  --motion-duration-content-swap: 180ms;
   --motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
   --motion-disclosure-offset: 8px;
   --motion-popup-offset: 4px;
   --motion-popup-scale-closed: 0.96;
-  --radius-surface-info: 0.75rem;
+  --motion-content-swap-offset: 4px;
+  --radius-surface-info: 0.5rem;
   --radius-surface-section: 0.5rem;
   --background: #f2f1ed;
   --foreground: #26251e;
@@ -130,6 +136,7 @@
   --sidebar-accent-foreground: #26251e;
   --sidebar-border: rgba(38, 37, 30, 0.12);
   --browser-overlay-shell: rgba(242, 241, 237, 0.88);
+  --browser-overlay-loading-halo: rgba(247, 247, 244, 0.8);
   --browser-overlay-shell-veil: linear-gradient(180deg, rgba(242, 241, 237, 0.96) 0%, rgba(242, 241, 237, 0.82) 100%);
   --browser-overlay-rail: linear-gradient(
     180deg,
@@ -138,6 +145,8 @@
     rgba(242, 241, 237, 0.15) 100%
   );
   --browser-overlay-rail-border: rgba(38, 37, 30, 0.08);
+  --browser-overlay-state-detail-surface: rgba(247, 247, 244, 0.85);
+  --browser-overlay-state-detail-border: rgba(38, 37, 30, 0.14);
   --overlay-action-surface: rgba(242, 241, 237, 0.78);
   --overlay-action-surface-hover: rgba(230, 229, 224, 0.92);
   --overlay-action-surface-focus: rgba(230, 229, 224, 0.96);
@@ -246,6 +255,28 @@
     0 0 1px 1px rgba(0, 0, 0, 0.25), 0 1px 1px rgba(0, 0, 0, 0.25), 1px 2px 4px -1px rgba(0, 0, 0, 0.25);
   --tone-foreground-strength: 72%;
   --tone-surface-strength: 18%;
+  --semantic-tone-unread-surface: color-mix(in srgb, var(--tone-unread) var(--tone-surface-strength), transparent);
+  --semantic-tone-unread-sidebar-foreground: color-mix(
+    in srgb,
+    var(--tone-unread) var(--tone-foreground-strength),
+    var(--sidebar-selection-foreground)
+  );
+  --semantic-tone-unread-content-foreground: color-mix(
+    in srgb,
+    var(--tone-unread) var(--tone-foreground-strength),
+    var(--foreground)
+  );
+  --semantic-tone-starred-surface: color-mix(in srgb, var(--tone-starred) var(--tone-surface-strength), transparent);
+  --semantic-tone-starred-sidebar-foreground: color-mix(
+    in srgb,
+    var(--tone-starred) var(--tone-foreground-strength),
+    var(--sidebar-selection-foreground)
+  );
+  --semantic-tone-starred-content-foreground: color-mix(
+    in srgb,
+    var(--tone-starred) var(--tone-foreground-strength),
+    var(--foreground)
+  );
   --state-review-surface: rgba(245, 78, 0, 0.08);
   --state-review-border: rgba(245, 78, 0, 0.18);
   --state-review-foreground: rgb(154, 52, 18);
@@ -340,6 +371,7 @@
   --sidebar-accent-foreground: #f3efe6;
   --sidebar-border: rgba(243, 239, 230, 0.12);
   --browser-overlay-shell: rgba(28, 25, 21, 0.88);
+  --browser-overlay-loading-halo: rgba(38, 34, 29, 0.84);
   --browser-overlay-shell-veil: linear-gradient(180deg, rgba(28, 25, 21, 0.96) 0%, rgba(28, 25, 21, 0.82) 100%);
   --browser-overlay-rail: linear-gradient(
     180deg,
@@ -348,6 +380,8 @@
     rgba(28, 25, 21, 0.18) 100%
   );
   --browser-overlay-rail-border: rgba(243, 239, 230, 0.12);
+  --browser-overlay-state-detail-surface: rgba(38, 34, 29, 0.88);
+  --browser-overlay-state-detail-border: rgba(243, 239, 230, 0.16);
   --overlay-action-surface: rgba(28, 25, 21, 0.78);
   --overlay-action-surface-hover: rgba(38, 34, 29, 0.92);
   --overlay-action-surface-focus: rgba(38, 34, 29, 0.96);
@@ -456,6 +490,28 @@
     0 0 1px 1px rgba(0, 0, 0, 0.25), 0 1px 1px rgba(0, 0, 0, 0.25), 1px 2px 4px -1px rgba(0, 0, 0, 0.25);
   --tone-foreground-strength: 78%;
   --tone-surface-strength: 22%;
+  --semantic-tone-unread-surface: color-mix(in srgb, var(--tone-unread) var(--tone-surface-strength), transparent);
+  --semantic-tone-unread-sidebar-foreground: color-mix(
+    in srgb,
+    var(--tone-unread) var(--tone-foreground-strength),
+    var(--sidebar-selection-foreground)
+  );
+  --semantic-tone-unread-content-foreground: color-mix(
+    in srgb,
+    var(--tone-unread) var(--tone-foreground-strength),
+    var(--foreground)
+  );
+  --semantic-tone-starred-surface: color-mix(in srgb, var(--tone-starred) var(--tone-surface-strength), transparent);
+  --semantic-tone-starred-sidebar-foreground: color-mix(
+    in srgb,
+    var(--tone-starred) var(--tone-foreground-strength),
+    var(--sidebar-selection-foreground)
+  );
+  --semantic-tone-starred-content-foreground: color-mix(
+    in srgb,
+    var(--tone-starred) var(--tone-foreground-strength),
+    var(--foreground)
+  );
   --state-review-surface: rgba(245, 78, 0, 0.14);
   --state-review-border: rgba(245, 78, 0, 0.22);
   --state-review-foreground: rgb(255, 220, 201);
@@ -629,6 +685,45 @@ body {
   transform: translateY(1px);
 }
 
+.motion-contextual-surface {
+  transition-property: background-color, border-color, color, box-shadow, opacity, transform;
+  transition-duration: var(--motion-duration-contextual);
+  transition-timing-function: var(--motion-ease-standard);
+}
+
+.motion-contextual-surface:hover,
+.motion-contextual-surface:focus-within {
+  transform: translateY(-1px);
+}
+
+.motion-contextual-surface:active {
+  transform: translateY(0);
+}
+
+@keyframes motion-content-swap-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-content-swap-offset));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.motion-content-swap {
+  transform: translateY(0);
+  transform-origin: center;
+  transition:
+    opacity var(--motion-duration-content-swap) var(--motion-ease-standard),
+    transform var(--motion-duration-content-swap) var(--motion-ease-standard);
+}
+
+.motion-content-swap[data-motion-phase="entering"] {
+  animation: motion-content-swap-enter var(--motion-duration-content-swap) var(--motion-ease-standard);
+}
+
 .motion-popup-overlay {
   transition: opacity var(--motion-duration-popup) var(--motion-ease-standard);
 }
@@ -685,6 +780,8 @@ body {
   .motion-interactive-surface,
   .motion-pressable-surface,
   .motion-button-surface,
+  .motion-contextual-surface,
+  .motion-content-swap,
   .motion-popup-overlay,
   .motion-popup-dialog,
   .motion-popup-surface {
@@ -701,10 +798,19 @@ body {
   .motion-interactive-surface:hover,
   .motion-interactive-surface:active,
   .motion-interactive-surface:focus-visible,
+  .motion-contextual-surface:hover,
+  .motion-contextual-surface:active,
+  .motion-contextual-surface:focus-within,
   .motion-pressable-surface:active,
   .motion-button-surface:active:not([aria-haspopup]),
   .motion-disclosure-trigger:focus-visible {
     transform: none;
+  }
+
+  .motion-content-swap[data-motion-phase="entering"] {
+    animation: none;
+    opacity: 1;
+    transform: translateY(0);
   }
 
   .motion-popup-dialog[data-open],

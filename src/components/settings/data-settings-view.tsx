@@ -1,6 +1,6 @@
-import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import { SettingsSection } from "@/components/settings/settings-section";
+import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Button } from "@/components/ui/button";
 
 export type DataSettingsViewProps = {

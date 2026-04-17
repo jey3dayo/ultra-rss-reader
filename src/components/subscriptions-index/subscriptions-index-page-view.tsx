@@ -131,7 +131,7 @@ export function SubscriptionsIndexPageView({
           />
           <div
             data-testid="subscriptions-workspace-shell"
-            className={workspaceSplitShellClassName("mt-0 rounded-xl border-border/55")}
+            className={workspaceSplitShellClassName("mt-0 border-border/55")}
             style={{
               backgroundColor: "var(--subscriptions-workspace-surface)",
               boxShadow: "var(--subscriptions-workspace-shadow)",

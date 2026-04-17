@@ -1,6 +1,6 @@
-import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import { SettingsSection } from "@/components/settings/settings-section";
+import { GradientSwitch } from "@/components/shared/gradient-switch";
 
 export type ActionsSettingsService = {
   id: string;

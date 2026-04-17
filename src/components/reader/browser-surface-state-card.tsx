@@ -27,7 +27,7 @@ export function BrowserSurfaceStateCard({
           <p className="text-[11px] font-medium tracking-[0.08em] text-foreground-soft uppercase">
             {labels.technicalDetail}
           </p>
-          <p className="rounded-md border border-border/55 bg-surface-1/85 px-3 py-2 text-xs text-foreground-soft">
+          <p className="rounded-md border border-browser-overlay-state-detail-border bg-browser-overlay-state-detail-surface px-3 py-2 text-xs text-foreground-soft">
             {issue.detail}
           </p>
         </div>

@@ -29,24 +29,15 @@ describe("SmartViewsView", () => {
     expect(starredButton).toHaveAttribute("aria-pressed", "false");
     expect(unreadButton).toHaveClass("w-full");
     expect(starredButton).toHaveClass("w-full");
-    expect(unreadButton).toHaveClass(
-      "bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)]",
-    );
-    expect(unreadButton).toHaveClass(
-      "text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
-    );
+    expect(unreadButton).toHaveClass("bg-[var(--semantic-tone-unread-surface)]");
+    expect(unreadButton).toHaveClass("text-[var(--semantic-tone-unread-sidebar-foreground)]");
     expect(unreadButton).toHaveClass("before:bg-primary/85");
     expect(unreadButton).not.toHaveAttribute("style");
-    expect(starredButton).toHaveClass(
-      "hover:text-[color-mix(in_srgb,var(--tone-starred)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
-    );
+    expect(starredButton).toHaveClass("hover:text-[var(--semantic-tone-starred-sidebar-foreground)]");
     expect(starredButton).not.toHaveAttribute("style");
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
-    expect(screen.getByText("12")).toHaveClass(
-      "text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
-      "opacity-80",
-    );
+    expect(screen.getByText("12")).toHaveClass("text-[var(--semantic-tone-unread-sidebar-foreground)]", "opacity-80");
     expect(screen.getByText("3")).toHaveClass("text-[var(--sidebar-foreground-muted-strong)]");
 
     await user.click(starredButton);

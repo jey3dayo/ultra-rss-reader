@@ -114,7 +114,7 @@ export function SubscriptionDetailPane({
                 variant="section"
                 tone="default"
                 padding="compact"
-                className="grid grid-cols-3 gap-2 rounded-lg px-4 shadow-none sm:px-5"
+                className="grid grid-cols-3 gap-2 rounded-md px-4 shadow-none sm:px-5"
               >
                 <DecisionButton
                   intent="keep"

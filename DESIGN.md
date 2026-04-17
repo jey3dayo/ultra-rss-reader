@@ -35,6 +35,8 @@ Derived roles used across the product:
 - Soft Foreground (`rgba(38, 37, 30, 0.58)`): Tertiary labels and lighter metadata
 - Border (`oklab(0.263084 -0.00230259 0.0124794 / 0.1)`): Default border and divider tone
 - Border Strong (`rgba(38, 37, 30, 0.2)`): Focused, active, or emphasized border
+- Browser Overlay Loading Halo: Ambient glow behind embedded-browser loading feedback
+- Browser Overlay Detail Surface: Inset support surface for technical detail inside browser overlay issue cards
 - Success (`#1f8a65`): Positive state and successful completion messaging
 - Unread (`#9fbbe0`): Fixed semantic accent for unread state, unread markers, and reading-context navigation
 - Loading (`#9fbbe0`): Fixed semantic accent for indeterminate loading, startup progress, settings loading, and sync-progress bars
@@ -121,11 +123,13 @@ Elevation scale:
 
 - Buttons: Primary buttons use a warm surface fill with dark text; secondary and tertiary actions rely on surface tone, border contrast, or transparent warm overlays. Shared action buttons should default to `rounded-md` so input, select, and button controls read as one family inside forms and settings panels. Hover states often shift text toward the tertiary accent (`#cf2d56`) rather than increasing fill saturation.
 - Chips and Tags: Secondary and filter chips should read as pill elements by default. Use full-pill radius, muted warm surfaces, and restrained text contrast. Selected chips deepen through surface tone before introducing stronger chroma. In dense workspace toolbars and cleanup-style filter clusters, compact filter chips may step down to `rounded-md`, and their count badges may step down again to `rounded-sm` so the controls feel more editorial and less soft.
-- Cards and Containers: Use warm cream surfaces, a warm border ring, and border-led separation by default. Shared section and info containers should default to `rounded-lg` so structural surfaces feel slightly softer than direct-manipulation controls. Elevated cards may use the Level 3 shadow. 20px+ radii belong to separate shell roles rather than standard cards.
+- Cards and Containers: Use warm cream surfaces, a warm border ring, and border-led separation by default. Shared section and info containers should default to `rounded-md` so structural surfaces stay on the same baseline as settings-form controls unless a shell role explicitly needs a larger frame. Elevated cards may use the Level 3 shadow. 20px+ radii belong to separate shell roles rather than standard cards.
 - Inputs and Forms: Inputs should stay neutral and legible, with warm borders and a restrained focus treatment. Prefer border emphasis or accent-orange focus hints over cold blue rings. Shared input-like primitives should use `rounded-md`; switches remain `rounded-full`. Loading bars are the exception: they may use the dedicated loading blue when the warm ring is not legible enough.
 - Settings Forms: Treat settings pages as desktop-app settings panels, not generic web forms. The canonical row is a stable left label column plus a stable right control column. Controls should resolve against one right-column endpoint so input, select, button, checkbox, switch, and segmented choice groups feel aligned as a system. Long controls may cap their width instead of stretching edge-to-edge, but compact controls must still live on the same control rail rather than floating at arbitrary intermediate positions. The desired rhythm is: section gap first, then heading-to-first-row gap, then a consistent row cadence, with a fixed label-to-control column gap.
+- Settings and Review Hierarchy: In settings and feed-cleanup style workspaces, the outer shell should read as framing, account/status subsections should sit one tonal step quieter than the active editing surface, and only the primary next action should get the strongest emphasis. Avoid letting navigation rows, passive summary cards, or repeated outline buttons compete with the main review action.
 - Lists and Navigation: Lists should separate items through tone and dividers rather than heavy blocks of accent color. Navigation and tab treatments should feel clean, compact, and editorial rather than dashboard-like. Smart views, context strips, filter chips, and article state icons may use the fixed unread/starred semantic colors, but the color should usually appear as icon tint or a light surface wash rather than a solid block.
 - Media and Preview Surfaces: Code or browser previews may use darker surfaces, but they should still feel framed by warm borders and integrated into the cream-based system rather than floating as disconnected black panels.
+- Dialog and Popup Shells: Dialogs, command palettes, and other popup shells should use named scrim roles from the token layer instead of ad hoc alpha literals. Use the standard dialog scrim for modal separation and the readable scrim only when the content behind the popup needs to stay legible as a softened surface instead of falling into darkness.
 - Distinctive Components: The AI timeline remains a special component. It may use the thinking/grep/read/edit palette directly, with each state tied to a clear semantic label and a vertical connection rhythm.
 
 ## Layout Principles
@@ -167,7 +171,6 @@ Elevation scale:
 - Small: 2px
 - Medium: 3px
 - Standard: 4px
-- Info Card: 6px default
 - Comfortable: 8px
 - Featured: 10px
 - Full Pill: 9999px
@@ -175,7 +178,7 @@ Elevation scale:
 Surface governance:
 
 - Reusable surfaces should go through shared primitives before feature-local radius rules.
-- Shared section and info containers should use `rounded-lg`.
+- Shared section and info containers should use `rounded-md`.
 - Shared input, select, textarea, button, and checkbox controls should use `rounded-md`.
 - Shared switches should use `rounded-full`.
 - Shared segmented controls, toggle groups, and radio-like choice chips should use `rounded-md` in settings-form contexts unless a pill treatment is intentionally documented for that component family.
@@ -188,7 +191,7 @@ Surface governance:
 - Shell roles are the app-level outer frames that contain the inner section containers.
 - Use them for left rail shells, main content shells, dialog shells, context menus, command palettes, and other workspace-level surfaces that frame a screen.
 - Shell roles may use 20px+ radii and slightly stronger ambient separation than section containers, but they should keep the same warm surface language.
-- Section containers remain the inner structural units. Keep their 8px default radius and do not reuse shell-level framing language on them.
+- Section containers remain the inner structural units. Keep their `rounded-md` baseline and do not reuse shell-level framing language on them.
 - In Storybook shell examples, treat the outer frame as the reusable shell pattern; the inner dialog or menu body may still use a smaller radius and should not be copied as the shell.
 
 ## Interaction and Motion
@@ -263,7 +266,7 @@ Surface governance:
 - Do keep the entire system warm-toned, using cream, brown, orange, gold, and muted semantic accents as the default language.
 - Do use the existing semantic token layer when a background, border, text, or elevation role already exists.
 - Do introduce new meaning-based color roles in the design system before duplicating literals in multiple components.
-- Do keep corner language consistent: pills for chips and filters, 6px defaults for info cards, 8px defaults for section containers and buttons, and smaller radii only for compact utility details.
+- Do keep corner language consistent: pills for chips and filters, `rounded-md` defaults for shared info cards, section containers, and buttons, and smaller radii only for compact utility details.
 - Do maintain accessible contrast, especially for body text and interactive labels.
 - Don't use pure white or pure black as primary surfaces unless a component explicitly needs a true contrast moment.
 - Don't overuse the primary accent; reserve it for the most important action or highlight on a surface.
