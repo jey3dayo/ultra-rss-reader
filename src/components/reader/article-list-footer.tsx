@@ -52,7 +52,7 @@ export function ArticleListFooter({
 
   return (
     <div className="flex h-10 items-center border-t border-border bg-card px-4">
-      <ToggleGroup value={[viewMode]} onValueChange={handleChange}>
+      <ToggleGroup value={[viewMode]} onValueChange={handleChange} className="flex items-center gap-1">
         {visibleModes.map((mode) => {
           const isDisabled = disabledModes.includes(mode.value);
           return (
