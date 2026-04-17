@@ -81,7 +81,6 @@ export function TagsSettingsView({
           actionDisabled={createDisabled}
           rowClassName="items-start sm:items-center"
           labelClassName="sm:w-40 sm:shrink-0"
-          controlClassName="sm:justify-start"
           inputClassName="h-10"
           actionClassName="h-10 sm:px-4"
         />
@@ -104,7 +103,7 @@ export function TagsSettingsView({
         ) : (
           tags.map((tag) => (
             <LabeledControlRow key={tag.id} label={tag.name} labelClassName="sm:max-w-[280px] sm:shrink-0 sm:truncate">
-              <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-start">
+              <div className="flex w-full flex-col gap-2 sm:max-w-[30rem] sm:flex-row sm:items-center sm:justify-end">
                 {tag.color ? (
                   <span
                     aria-hidden="true"
@@ -116,7 +115,7 @@ export function TagsSettingsView({
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
+                  className="h-10 px-4 sm:flex-none"
                   aria-label={editAriaLabel(tag.name)}
                   onClick={() => onEdit(tag.id)}
                 >
@@ -125,7 +124,7 @@ export function TagsSettingsView({
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
+                  className="h-10 px-4 sm:flex-none"
                   aria-label={deleteAriaLabel(tag.name)}
                   onClick={() => onDelete(tag.id)}
                 >
