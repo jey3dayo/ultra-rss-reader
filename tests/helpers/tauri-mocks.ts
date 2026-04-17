@@ -228,6 +228,8 @@ function createDefaultHandler(): MockHandler {
         } satisfies MuteKeywordDto;
       case "delete_mute_keyword":
         return null;
+      case "set_mute_auto_mark_read":
+        return null;
       case "get_tag_article_counts":
         return {};
       case "add_local_feed":

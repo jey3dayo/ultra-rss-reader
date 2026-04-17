@@ -7,8 +7,10 @@ import {
   useCreateMuteKeyword,
   useDeleteMuteKeyword,
   useMuteKeywords,
+  useSetMuteAutoMarkRead,
   useUpdateMuteKeyword,
 } from "@/hooks/use-mute-keywords";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
 function getErrorMessage(error: unknown) {
@@ -24,13 +26,17 @@ function getErrorMessage(error: unknown) {
 export function MuteSettings() {
   const { t } = useTranslation("settings");
   const showToast = useUiStore((state) => state.showToast);
+  const prefs = usePreferencesStore((state) => state.prefs);
   const { data: rules = [] } = useMuteKeywords();
   const createMuteKeyword = useCreateMuteKeyword();
   const deleteMuteKeyword = useDeleteMuteKeyword();
+  const setMuteAutoMarkRead = useSetMuteAutoMarkRead();
   const updateMuteKeyword = useUpdateMuteKeyword();
   const [keyword, setKeyword] = useState("");
   const [scope, setScope] = useState<"title" | "body" | "title_and_body">("title_and_body");
   const [confirmRule, setConfirmRule] = useState<MuteKeywordDto | null>(null);
+  const autoMarkReadEnabled = resolvePreferenceValue(prefs, "mute_auto_mark_read") === "true";
+  const keywordLength = Array.from(keyword.trim()).length;
 
   const handleAdd = async () => {
     try {
@@ -83,16 +89,35 @@ export function MuteSettings() {
     }
   };
 
+  const handleAutoMarkReadChange = async (checked: boolean) => {
+    const previousValue = autoMarkReadEnabled;
+    usePreferencesStore.setState((state) => ({
+      prefs: { ...state.prefs, mute_auto_mark_read: String(checked) },
+    }));
+
+    try {
+      await setMuteAutoMarkRead.mutateAsync({ enabled: checked });
+    } catch (error) {
+      usePreferencesStore.setState((state) => ({
+        prefs: { ...state.prefs, mute_auto_mark_read: String(previousValue) },
+      }));
+      showToast(t("mute.auto_mark_read_failed", { message: getErrorMessage(error) }));
+    }
+  };
+
   const viewProps = useMuteSettingsViewProps({
     t,
     keyword,
     scope,
     rules,
-    addDisabled: createMuteKeyword.isPending || keyword.trim().length === 0,
+    addDisabled: createMuteKeyword.isPending || keywordLength < 3,
+    autoMarkReadChecked: autoMarkReadEnabled,
+    autoMarkReadDisabled: setMuteAutoMarkRead.isPending,
     confirmRule,
     onKeywordChange: setKeyword,
     onScopeChange: setScope,
     onRuleScopeChange: (ruleId, nextScope) => void handleRuleScopeChange(ruleId, nextScope),
+    onAutoMarkReadChange: (checked) => void handleAutoMarkReadChange(checked),
     onAdd: () => void handleAdd(),
     onRequestDelete: handleRequestDelete,
     onConfirmDelete: () => void handleConfirmDelete(),

@@ -40,6 +40,7 @@ export {
   renameTagArgs,
   searchArticlesArgs,
   setBrowserWebviewBoundsArgs,
+  setMuteAutoMarkReadArgs,
   setPreferenceArgs,
   syncAccountArgs,
   syncFeedArgs,

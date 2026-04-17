@@ -35,4 +35,14 @@ describe("preference contract", () => {
 
     expect(missingInBackend).toEqual([]);
   });
+
+  it("includes Inoreader app credential keys in both layers", () => {
+    const frontendKeys = extractFrontendPreferenceKeys(frontendSource);
+    const backendAllowedKeys = extractBackendAllowedKeys(backendSource);
+
+    expect(frontendKeys).toContain("inoreader_app_id");
+    expect(frontendKeys).toContain("inoreader_app_key");
+    expect(backendAllowedKeys).toContain("inoreader_app_id");
+    expect(backendAllowedKeys).toContain("inoreader_app_key");
+  });
 });

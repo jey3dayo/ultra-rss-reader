@@ -36,6 +36,11 @@ pub trait ArticleRepository {
     fn upsert(&self, articles: &[Article]) -> DomainResult<()>;
     fn mark_as_read(&self, id: &ArticleId, read: bool) -> DomainResult<()>;
     fn mark_many_as_read(&self, ids: &[ArticleId]) -> DomainResult<()>;
+    fn mark_muted_unread_as_read(
+        &self,
+        account_id: &AccountId,
+        candidate_ids: Option<&[ArticleId]>,
+    ) -> DomainResult<usize>;
     fn mark_feed_as_read(&self, feed_id: &FeedId) -> DomainResult<u64>;
     fn mark_folder_as_read(&self, folder_id: &FolderId) -> DomainResult<u64>;
     fn mark_as_starred(&self, id: &ArticleId, starred: bool) -> DomainResult<()>;

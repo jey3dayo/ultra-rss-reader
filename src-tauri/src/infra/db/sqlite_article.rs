@@ -1,14 +1,16 @@
 use chrono::{DateTime, Utc};
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::domain::article::Article;
 use crate::domain::error::DomainResult;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::sqlite_mute_keyword::{
-    build_mute_keyword_exclusion_clause, SqliteMuteKeywordRepository,
+    build_mute_keyword_exclusion_clause, build_mute_keyword_match_clause,
+    SqliteMuteKeywordRepository,
 };
 use crate::repository::article::{ArticleRepository, Pagination};
 use crate::repository::mute_keyword::MuteKeywordRepository;
+use crate::repository::pending_mutation::PendingMutation;
 
 pub struct SqliteArticleRepository<'a> {
     conn: &'a Connection,
@@ -384,6 +386,163 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         Ok(())
     }
 
+    fn mark_muted_unread_as_read(
+        &self,
+        account_id: &AccountId,
+        candidate_ids: Option<&[ArticleId]>,
+    ) -> DomainResult<usize> {
+        let auto_mark_read_enabled = self
+            .conn
+            .query_row(
+                "SELECT value FROM preferences WHERE key = 'mute_auto_mark_read'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?
+            .is_some_and(|value| value == "true");
+
+        if !auto_mark_read_enabled || !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            return Ok(0);
+        }
+
+        if candidate_ids.is_some_and(|ids| ids.is_empty()) {
+            return Ok(0);
+        }
+
+        let match_clause = build_mute_keyword_match_clause(
+            "a.title",
+            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+        );
+
+        let (sql, params): (String, Vec<&dyn rusqlite::ToSql>) = if let Some(ids) = candidate_ids {
+            let placeholders = ids
+                .iter()
+                .enumerate()
+                .map(|(index, _)| format!("?{}", index + 2))
+                .collect::<Vec<_>>()
+                .join(", ");
+            let sql = format!(
+                "SELECT a.id, a.feed_id, a.remote_id, acc.kind, f.account_id, f.remote_id
+                 FROM articles a
+                 JOIN feeds f ON a.feed_id = f.id
+                 JOIN accounts acc ON f.account_id = acc.id
+                 WHERE f.account_id = ?1
+                   AND a.is_read = 0
+                   AND a.id IN ({placeholders})
+                   AND {match_clause}"
+            );
+            let mut params: Vec<&dyn rusqlite::ToSql> = vec![&account_id.0];
+            for id in ids {
+                params.push(&id.0);
+            }
+            (sql, params)
+        } else {
+            (
+                format!(
+                    "SELECT a.id, a.feed_id, a.remote_id, acc.kind, f.account_id, f.remote_id
+                     FROM articles a
+                     JOIN feeds f ON a.feed_id = f.id
+                     JOIN accounts acc ON f.account_id = acc.id
+                     WHERE f.account_id = ?1
+                       AND a.is_read = 0
+                       AND {match_clause}"
+                ),
+                vec![&account_id.0],
+            )
+        };
+
+        let tx = self.conn.unchecked_transaction()?;
+        let mut stmt = tx.prepare(&sql)?;
+        let rows = stmt
+            .query_map(params.as_slice(), |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, String>(4)?,
+                    row.get::<_, Option<String>>(5)?,
+                ))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        drop(stmt);
+
+        if rows.is_empty() {
+            tx.commit()?;
+            return Ok(0);
+        }
+
+        {
+            let mut update_stmt = tx.prepare("UPDATE articles SET is_read = 1 WHERE id = ?1")?;
+            for (article_id, _, _, _, _, _) in &rows {
+                update_stmt.execute(params![article_id])?;
+            }
+        }
+
+        {
+            let mut delete_pending_stmt = tx.prepare(
+                "DELETE FROM pending_mutations WHERE account_id = ?1 AND remote_entry_id = ?2",
+            )?;
+            let mut insert_pending_stmt = tx.prepare(
+                "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+                 VALUES (?1, ?2, ?3, ?4)",
+            )?;
+            let now = Utc::now().to_rfc3339();
+
+            for (_, _, remote_entry_id, account_kind, row_account_id, feed_remote_id) in &rows {
+                if let Some(remote_entry_id) = remote_entry_id {
+                    let supports_remote_mutations =
+                        matches!(account_kind.as_str(), "FreshRss" | "Inoreader")
+                            && feed_remote_id
+                                .as_deref()
+                                .is_some_and(|remote_id| remote_id.starts_with("feed/"));
+
+                    if supports_remote_mutations {
+                        let mutation = PendingMutation {
+                            id: None,
+                            account_id: AccountId(row_account_id.clone()),
+                            mutation_type: "mark_read".to_string(),
+                            remote_entry_id: remote_entry_id.clone(),
+                            created_at: now.clone(),
+                        };
+                        delete_pending_stmt
+                            .execute(params![mutation.account_id.0, mutation.remote_entry_id])?;
+                        insert_pending_stmt.execute(params![
+                            mutation.account_id.0,
+                            mutation.mutation_type,
+                            mutation.remote_entry_id,
+                            mutation.created_at,
+                        ])?;
+                    }
+                }
+            }
+        }
+
+        {
+            let mut feed_ids = rows
+                .iter()
+                .map(|(_, feed_id, _, _, _, _)| feed_id.clone())
+                .collect::<Vec<_>>();
+            feed_ids.sort();
+            feed_ids.dedup();
+            let mut recalc_stmt = tx.prepare(
+                "UPDATE feeds
+                 SET unread_count = (
+                    SELECT COUNT(*)
+                    FROM articles
+                    WHERE feed_id = ?1 AND is_read = 0
+                 )
+                 WHERE id = ?1",
+            )?;
+            for feed_id in &feed_ids {
+                recalc_stmt.execute(params![feed_id])?;
+            }
+        }
+
+        tx.commit()?;
+        Ok(rows.len())
+    }
+
     fn mark_feed_as_read(&self, feed_id: &FeedId) -> DomainResult<u64> {
         let updated = self.conn.execute(
             "UPDATE articles SET is_read = 1 WHERE feed_id = ?1 AND is_read = 0",
@@ -580,6 +739,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
 mod tests {
     use super::*;
     use crate::infra::db::connection::DbManager;
+    use crate::repository::feed::FeedRepository;
 
     fn test_db() -> DbManager {
         DbManager::new_in_memory().unwrap()
@@ -885,6 +1045,95 @@ mod tests {
             .unwrap();
 
         assert_eq!(repo.count_unread_by_account(&account_a).unwrap(), 2);
+    }
+
+    #[test]
+    fn mark_muted_unread_as_read_marks_existing_matches_and_updates_unread_count() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        db.writer()
+            .execute(
+                "INSERT INTO preferences (key, value) VALUES ('mute_auto_mark_read', 'true')",
+                [],
+            )
+            .unwrap();
+        insert_mute_keyword(&db, "kindle unlimited", "title");
+
+        let repo = SqliteArticleRepository::new(db.writer());
+        let feed_repo = crate::infra::db::sqlite_feed::SqliteFeedRepository::new(db.writer());
+
+        let muted = make_article(&feed_id, "Kindle Unlimited offer");
+        let visible = make_article(&feed_id, "Visible article");
+        repo.upsert(&[muted.clone(), visible.clone()]).unwrap();
+        feed_repo.recalculate_unread_count(&feed_id).unwrap();
+
+        let changed = repo.mark_muted_unread_as_read(&account_id, None).unwrap();
+
+        assert_eq!(changed, 1);
+        let muted_is_read: bool = db
+            .reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE id = ?1",
+                params![muted.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let visible_is_read: bool = db
+            .reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE id = ?1",
+                params![visible.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(muted_is_read);
+        assert!(!visible_is_read);
+        assert_eq!(feed_repo.recalculate_unread_count(&feed_id).unwrap(), 1);
+    }
+
+    #[test]
+    fn mark_muted_unread_as_read_limits_changes_to_candidate_ids() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        db.writer()
+            .execute(
+                "INSERT INTO preferences (key, value) VALUES ('mute_auto_mark_read', 'true')",
+                [],
+            )
+            .unwrap();
+        insert_mute_keyword(&db, "kindle unlimited", "title");
+
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let first = make_article(&feed_id, "Kindle Unlimited one");
+        let second = make_article(&feed_id, "Kindle Unlimited two");
+        repo.upsert(&[first.clone(), second.clone()]).unwrap();
+
+        let changed = repo
+            .mark_muted_unread_as_read(&account_id, Some(std::slice::from_ref(&first.id)))
+            .unwrap();
+
+        assert_eq!(changed, 1);
+        let first_is_read: bool = db
+            .reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE id = ?1",
+                params![first.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let second_is_read: bool = db
+            .reader()
+            .query_row(
+                "SELECT is_read FROM articles WHERE id = ?1",
+                params![second.id.0],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(first_is_read);
+        assert!(!second_is_read);
     }
 
     #[test]

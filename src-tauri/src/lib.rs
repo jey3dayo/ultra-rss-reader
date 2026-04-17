@@ -268,6 +268,7 @@ pub fn run() {
             commands::mute_keyword_commands::create_mute_keyword,
             commands::mute_keyword_commands::update_mute_keyword,
             commands::mute_keyword_commands::delete_mute_keyword,
+            commands::mute_keyword_commands::set_mute_auto_mark_read,
             commands::preference_commands::get_preferences,
             commands::preference_commands::set_preference,
             commands::tag_commands::list_tags,

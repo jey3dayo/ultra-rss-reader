@@ -14,6 +14,7 @@ import {
   listFeeds,
   listMuteKeywords,
   markArticleRead,
+  setMuteAutoMarkRead,
   updateMuteKeyword,
 } from "@/api/tauri-commands";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
@@ -131,6 +132,17 @@ describe("tauri-commands with mockIPC", () => {
 
       const value = Result.unwrap(await updateMuteKeyword("mute-1", "body"));
       expect(value.scope).toBe("body");
+    });
+
+    it("toggles mute auto mark as read", async () => {
+      setupTauriMocks((cmd) => {
+        if (cmd === "set_mute_auto_mark_read") {
+          return null;
+        }
+        return undefined;
+      });
+
+      Result.unwrap(await setMuteAutoMarkRead(true));
     });
   });
 

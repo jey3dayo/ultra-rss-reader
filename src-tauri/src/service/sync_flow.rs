@@ -152,6 +152,11 @@ pub async fn sync_account(
 
         if !articles.is_empty() {
             article_repo.upsert(&articles)?;
+            let candidate_ids = articles
+                .iter()
+                .map(|article| article.id.clone())
+                .collect::<Vec<_>>();
+            article_repo.mark_muted_unread_as_read(account_id, Some(&candidate_ids))?;
             updated_feeds.push(feed.id.clone());
         }
     }

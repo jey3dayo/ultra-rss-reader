@@ -8,7 +8,7 @@ describe("MuteSettingsView", () => {
       <MuteSettingsView
         title="Mute"
         addHeading="Add muted keyword"
-        intro="Hide articles that match these rules."
+        intro="Hide articles that match these rules. Turning this on will also mark existing matches as read."
         keywordLabel="Keyword"
         keywordValue=""
         keywordPlaceholder="spoiler"
@@ -33,8 +33,10 @@ describe("MuteSettingsView", () => {
         onRequestDelete={vi.fn()}
         autoMarkReadHeading="Auto mark as read"
         autoMarkReadLabel="Mark muted items as read"
-        comingSoonLabel="Coming soon"
-        autoMarkReadHint="This behavior will be added later."
+        autoMarkReadChecked={false}
+        autoMarkReadDisabled={false}
+        autoMarkReadHint="Existing matches are marked read immediately. Turning this off does not restore unread state."
+        onAutoMarkReadChange={vi.fn()}
         confirmOpen={false}
         confirmMessage="Delete muted keyword?"
         confirmActionLabel="Delete"
@@ -44,9 +46,15 @@ describe("MuteSettingsView", () => {
       />,
     );
 
-    expect(screen.getByText("Hide articles that match these rules.")).toHaveClass("text-foreground-soft");
-    expect(screen.getByText("This behavior will be added later.")).toHaveClass("text-foreground-soft");
+    expect(
+      screen.getByText(
+        "Hide articles that match these rules. Turning this on will also mark existing matches as read.",
+      ),
+    ).toHaveClass("text-foreground-soft");
+    expect(
+      screen.getByText("Existing matches are marked read immediately. Turning this off does not restore unread state."),
+    ).toHaveClass("text-foreground-soft");
     expect(screen.getByText("No mute keywords yet.")).toHaveClass("text-foreground-soft");
-    expect(screen.getByText("Coming soon")).toHaveClass("text-foreground-soft");
+    expect(screen.getByRole("switch", { name: "Mark muted items as read" })).not.toHaveAttribute("aria-disabled");
   });
 });

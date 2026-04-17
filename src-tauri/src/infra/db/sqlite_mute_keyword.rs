@@ -67,9 +67,9 @@ fn matches_mute_keyword(article: &Article, rule: &MuteKeyword) -> bool {
     }
 }
 
-pub fn build_mute_keyword_exclusion_clause(title_expr: &str, body_expr: &str) -> String {
+pub fn build_mute_keyword_match_clause(title_expr: &str, body_expr: &str) -> String {
     format!(
-        "NOT EXISTS (
+        "EXISTS (
             SELECT 1
             FROM mute_keywords mk
             WHERE
@@ -85,6 +85,13 @@ pub fn build_mute_keyword_exclusion_clause(title_expr: &str, body_expr: &str) ->
                 )
               )
           )"
+    )
+}
+
+pub fn build_mute_keyword_exclusion_clause(title_expr: &str, body_expr: &str) -> String {
+    format!(
+        "NOT {}",
+        build_mute_keyword_match_clause(title_expr, body_expr)
     )
 }
 
@@ -128,6 +135,11 @@ impl MuteKeywordRepository for SqliteMuteKeywordRepository<'_> {
         if keyword.is_empty() {
             return Err(DomainError::Validation(
                 "Mute keyword cannot be empty".to_string(),
+            ));
+        }
+        if keyword.chars().count() < 3 {
+            return Err(DomainError::Validation(
+                "Mute keyword must be at least 3 characters".to_string(),
             ));
         }
 
@@ -252,6 +264,18 @@ mod tests {
             .create("kindle unlimited", MuteKeywordScope::Title)
             .unwrap_err();
 
+        assert!(matches!(error, DomainError::Validation(_)));
+    }
+
+    #[test]
+    fn create_rejects_keywords_shorter_than_three_characters() {
+        let db = test_db();
+        let repo = SqliteMuteKeywordRepository::new(db.writer());
+
+        let error = repo.create("あ", MuteKeywordScope::Title).unwrap_err();
+        assert!(matches!(error, DomainError::Validation(_)));
+
+        let error = repo.create("AI", MuteKeywordScope::Title).unwrap_err();
         assert!(matches!(error, DomainError::Validation(_)));
     }
 

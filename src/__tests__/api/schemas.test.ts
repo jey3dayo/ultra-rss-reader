@@ -16,6 +16,7 @@ import {
   MuteKeywordDtoSchema,
   markArticleReadArgs,
   PlatformInfoSchema,
+  setMuteAutoMarkReadArgs,
   TagDtoSchema,
   toggleArticleStarArgs,
   UpdateInfoDtoSchema,
@@ -190,11 +191,15 @@ describe("command args schemas", () => {
   it("parses deleteMuteKeywordArgs", () => {
     expect(deleteMuteKeywordArgs.parse({ muteKeywordId: "mute-1" })).toEqual({ muteKeywordId: "mute-1" });
   });
+  it("parses setMuteAutoMarkReadArgs", () => {
+    expect(setMuteAutoMarkReadArgs.parse({ enabled: true })).toEqual({ enabled: true });
+  });
   it("commandArgsSchemas maps command names to schemas", () => {
     expect(commandArgsSchemas.list_articles).toBeDefined();
     expect(commandArgsSchemas.mark_article_read).toBeDefined();
     expect(commandArgsSchemas.create_mute_keyword).toBeDefined();
     expect(commandArgsSchemas.delete_mute_keyword).toBeDefined();
+    expect(commandArgsSchemas.set_mute_auto_mark_read).toBeDefined();
     expect(commandArgsSchemas.list_accounts).toBeUndefined(); // no args
   });
 });

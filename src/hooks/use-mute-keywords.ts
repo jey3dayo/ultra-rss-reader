@@ -1,7 +1,13 @@
 import { Result } from "@praha/byethrow";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
-import { createMuteKeyword, deleteMuteKeyword, listMuteKeywords, updateMuteKeyword } from "@/api/tauri-commands";
+import {
+  createMuteKeyword,
+  deleteMuteKeyword,
+  listMuteKeywords,
+  setMuteAutoMarkRead,
+  updateMuteKeyword,
+} from "@/api/tauri-commands";
 import { createMutation } from "@/hooks/create-mutation";
 
 export type CreateMuteKeywordMutationInput = {
@@ -18,10 +24,17 @@ export type UpdateMuteKeywordMutationInput = {
   scope: "title" | "body" | "title_and_body";
 };
 
+export type SetMuteAutoMarkReadMutationInput = {
+  enabled: boolean;
+};
+
 function invalidateMuteKeywordQueries(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: ["muteKeywords"] });
   qc.invalidateQueries({ queryKey: ["articles"] });
   qc.invalidateQueries({ queryKey: ["accountArticles"] });
+  qc.invalidateQueries({ queryKey: ["starredArticles"] });
+  qc.invalidateQueries({ queryKey: ["accountUnreadCount"] });
+  qc.invalidateQueries({ queryKey: ["feeds"] });
   qc.invalidateQueries({ queryKey: ["articlesByTag"] });
   qc.invalidateQueries({ queryKey: ["search"] });
   qc.invalidateQueries({ queryKey: ["tagArticleCounts"] });
@@ -46,5 +59,10 @@ export const useDeleteMuteKeyword = createMutation(
 
 export const useUpdateMuteKeyword = createMutation(
   ({ muteKeywordId, scope }: UpdateMuteKeywordMutationInput) => updateMuteKeyword(muteKeywordId, scope),
+  invalidateMuteKeywordQueries,
+);
+
+export const useSetMuteAutoMarkRead = createMutation(
+  ({ enabled }: SetMuteAutoMarkReadMutationInput) => setMuteAutoMarkRead(enabled),
   invalidateMuteKeywordQueries,
 );

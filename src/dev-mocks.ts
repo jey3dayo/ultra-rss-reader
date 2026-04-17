@@ -35,6 +35,7 @@ import {
   renameTagArgs,
   searchArticlesArgs,
   setBrowserWebviewBoundsArgs,
+  setMuteAutoMarkReadArgs,
   setPreferenceArgs,
   tagArticleArgs,
   toggleArticleStarArgs,
@@ -396,6 +397,12 @@ export function setupDevMocks() {
       case "set_preference": {
         const { key, value } = setPreferenceArgs.parse(payload);
         mockPreferences.set(key, value);
+        return null;
+      }
+
+      case "set_mute_auto_mark_read": {
+        const { enabled } = setMuteAutoMarkReadArgs.parse(payload);
+        mockPreferences.set("mute_auto_mark_read", String(enabled));
         return null;
       }
 

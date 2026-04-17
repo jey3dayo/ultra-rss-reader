@@ -43,8 +43,10 @@ export type MuteSettingsViewProps = {
   onRequestDelete: (ruleId: string) => void;
   autoMarkReadHeading: string;
   autoMarkReadLabel: string;
-  comingSoonLabel: string;
+  autoMarkReadChecked: boolean;
+  autoMarkReadDisabled: boolean;
   autoMarkReadHint: string;
+  onAutoMarkReadChange: (checked: boolean) => void;
   confirmOpen: boolean;
   confirmMessage: string;
   confirmActionLabel: string;
@@ -81,8 +83,10 @@ export function MuteSettingsView({
   onRequestDelete,
   autoMarkReadHeading,
   autoMarkReadLabel,
-  comingSoonLabel,
+  autoMarkReadChecked,
+  autoMarkReadDisabled,
   autoMarkReadHint,
+  onAutoMarkReadChange,
   confirmOpen,
   confirmMessage,
   confirmActionLabel,
@@ -134,12 +138,12 @@ export function MuteSettingsView({
 
         <SettingsSection heading={autoMarkReadHeading} note={autoMarkReadHint} surface="flat" className="mb-6 sm:mb-7">
           <LabeledControlRow label={autoMarkReadLabel}>
-            <div className="flex items-center gap-3">
-              <span className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-foreground-soft">
-                {comingSoonLabel}
-              </span>
-              <GradientSwitch checked={false} disabled aria-label={`${autoMarkReadLabel} (${comingSoonLabel})`} />
-            </div>
+            <GradientSwitch
+              checked={autoMarkReadChecked}
+              disabled={autoMarkReadDisabled}
+              aria-label={autoMarkReadLabel}
+              onCheckedChange={onAutoMarkReadChange}
+            />
           </LabeledControlRow>
         </SettingsSection>
 

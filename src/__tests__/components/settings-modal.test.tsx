@@ -178,10 +178,33 @@ describe("SettingsModal", () => {
     expect(await screen.findByText("No mute keywords yet.")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Keyword" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Auto mark as read (Coming soon)" })).toHaveAttribute(
-      "aria-disabled",
-      "true",
-    );
+    expect(screen.getByRole("switch", { name: /Auto mark as read/ })).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("toggles mute auto mark as read with the dedicated command", async () => {
+    const user = userEvent.setup();
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      if (cmd === "list_mute_keywords") {
+        return [];
+      }
+      if (cmd === "set_mute_auto_mark_read") {
+        return null;
+      }
+      return undefined;
+    });
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Mute" }));
+    await user.click(screen.getByRole("switch", { name: /Auto mark as read/ }));
+
+    expect(calls).toContainEqual({
+      cmd: "set_mute_auto_mark_read",
+      args: { enabled: true },
+    });
   });
 
   it("shows saved mute keywords with editable scope select", async () => {

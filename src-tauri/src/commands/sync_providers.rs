@@ -117,6 +117,11 @@ pub(super) async fn sync_local_feed(
             let article_repo = SqliteArticleRepository::new(db_guard.writer());
             let feed_repo_w = SqliteFeedRepository::new(db_guard.writer());
             article_repo.upsert(&articles)?;
+            let candidate_ids = articles
+                .iter()
+                .map(|article| article.id.clone())
+                .collect::<Vec<_>>();
+            let _ = article_repo.mark_muted_unread_as_read(account_id, Some(&candidate_ids));
             let _ = feed_repo_w.recalculate_unread_count(&feed.id);
         }
     }
@@ -650,6 +655,11 @@ async fn sync_greader_feed_entries(
             let db_guard = lock_db(db)?;
             let article_repo = SqliteArticleRepository::new(db_guard.writer());
             article_repo.upsert(&articles)?;
+            let candidate_ids = articles
+                .iter()
+                .map(|article| article.id.clone())
+                .collect::<Vec<_>>();
+            let _ = article_repo.mark_muted_unread_as_read(&account.id, Some(&candidate_ids));
         }
 
         if !result.has_more {

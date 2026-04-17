@@ -65,8 +65,11 @@ const preferenceSchemas = {
   sync_on_startup: persistedBooleanPreferenceSchema,
   action_copy_link: booleanStringSchema,
   action_open_browser: booleanStringSchema,
+  inoreader_app_id: freeformStringSchema,
+  inoreader_app_key: freeformStringSchema,
   debug_browser_hud: booleanStringSchema,
   debug_web_preview_url: freeformStringSchema,
+  mute_auto_mark_read: booleanStringSchema,
 } as const;
 
 type KnownPreferenceKey = keyof typeof preferenceSchemas;
@@ -114,9 +117,12 @@ const corePreferenceDefaults = {
   // Actions
   action_copy_link: "true",
   action_open_browser: "true",
+  inoreader_app_id: "",
+  inoreader_app_key: "",
   // Debug
   debug_browser_hud: "false",
   debug_web_preview_url: "",
+  mute_auto_mark_read: "false",
 } satisfies { [K in KnownPreferenceKey]: z.input<(typeof preferenceSchemas)[K]> };
 
 export const preferenceDefaults: Record<string, string> = {

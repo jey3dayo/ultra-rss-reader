@@ -64,6 +64,7 @@ import {
   SyncResultSchema,
   searchArticlesArgs,
   setBrowserWebviewBoundsArgs,
+  setMuteAutoMarkReadArgs,
   setPreferenceArgs,
   syncAccountArgs,
   syncFeedArgs,
@@ -255,6 +256,9 @@ export const updateMuteKeyword = (muteKeywordId: string, scope: "title" | "body"
 
 export const deleteMuteKeyword = (muteKeywordId: string) =>
   safeInvoke("delete_mute_keyword", { response: z.null(), args: deleteMuteKeywordArgs }, { muteKeywordId });
+
+export const setMuteAutoMarkRead = (enabled: boolean) =>
+  safeInvoke("set_mute_auto_mark_read", { response: z.null(), args: setMuteAutoMarkReadArgs }, { enabled });
 
 export const addAccount = (kind: string, name: string, serverUrl?: string, username?: string, password?: string) =>
   safeInvoke(
