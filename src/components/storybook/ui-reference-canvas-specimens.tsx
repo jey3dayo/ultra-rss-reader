@@ -879,7 +879,7 @@ export function ShellExamplesSpecimen() {
             "border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5",
           )}
         >
-          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/58">Dialog surface</div>
+          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/58">Dialog shell</div>
           <p className="mb-3 font-serif text-xs leading-[1.45] text-foreground/58">
             Outer shell only. Keep the inner dialog component surface separate and smaller-radius.
           </p>
@@ -910,7 +910,7 @@ export function ShellExamplesSpecimen() {
             "border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5",
           )}
         >
-          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/58">Context menu</div>
+          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/58">Context menu shell</div>
           <p className="mb-3 font-serif text-xs leading-[1.45] text-foreground/58">
             This is the workspace frame around the menu body, not the reusable menu body itself.
           </p>

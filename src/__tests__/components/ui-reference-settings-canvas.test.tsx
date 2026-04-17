@@ -1,11 +1,11 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { ShellExamplesSpecimen, SurfaceRoleSpecimen } from "@/components/storybook/ui-reference-canvas-specimens";
 import { FoundationsCanvas } from "@/components/storybook/ui-reference-foundations-canvas.stories";
 import { NavigationCollectionsCanvas } from "@/components/storybook/ui-reference-navigation-collections-canvas.stories";
 import { InputControlsCanvas } from "@/components/storybook/ui-reference-settings-canvas.stories";
 import { ShellOverlayCanvas } from "@/components/storybook/ui-reference-shell-overlay-canvas.stories";
 import { WorkspacePatternsCanvas } from "@/components/storybook/ui-reference-workspace-patterns-canvas.stories";
-import { ShellExamplesSpecimen, SurfaceRoleSpecimen } from "@/components/storybook/ui-reference-canvas-specimens";
 
 describe("UI Reference canvases", () => {
   it("renders the input controls canvas with form specimens", () => {

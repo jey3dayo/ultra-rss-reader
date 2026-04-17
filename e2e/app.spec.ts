@@ -1,9 +1,9 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const starredSmartViewButtonName = /^(starred|スター)(\s+\d+)?$/i;
 const unreadSmartViewButtonName = /^(unread|未読)(\s+\d+)?$/i;
 
-async function openFeedCleanup(page: Parameters<(typeof test)["beforeEach"]>[0]["page"]) {
+async function openFeedCleanup(page: Page) {
   const showSidebarButton = page.getByRole("button", { name: /Show sidebar|サイドバーを表示/i });
   if (await showSidebarButton.isVisible().catch(() => false)) {
     await showSidebarButton.click();

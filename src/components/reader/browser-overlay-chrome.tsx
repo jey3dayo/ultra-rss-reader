@@ -17,7 +17,7 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
 
   if (isCloseOnlyProps(props)) {
     return (
-      <IconToolbarSurfaceButton label={props.closeLabel} onClick={props.onClose} tone="subtle">
+      <IconToolbarSurfaceButton label={props.closeLabel} onClick={props.onClose} variant="chrome">
         <X aria-hidden="true" className="size-4" />
       </IconToolbarSurfaceButton>
     );
@@ -27,7 +27,7 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
   const overlayActionRenderer = {
     compact: presentation.actionButtonSurface.compact,
     renderAction: (content: ReactNode, options?: { key?: string }) => (
-      <OverlayActionSurface key={options?.key} {...presentation.actionButtonSurface}>
+      <OverlayActionSurface key={options?.key} variant="chrome" {...presentation.actionButtonSurface}>
         {content}
       </OverlayActionSurface>
     ),

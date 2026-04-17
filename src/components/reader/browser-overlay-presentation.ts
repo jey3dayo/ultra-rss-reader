@@ -4,22 +4,21 @@ import type {
   BrowserViewScope,
 } from "./browser-view.types";
 
+const chromeShellActionSurfacePresentation: BrowserOverlayActionSurfacePresentation = {
+  compact: true,
+  tone: "default",
+};
+
 export function getBrowserOverlayLeadingActionPresentation(
   _isCompactViewer: boolean,
 ): BrowserOverlayActionSurfacePresentation {
-  return {
-    compact: true,
-    tone: "default",
-  };
+  return chromeShellActionSurfacePresentation;
 }
 
 export function getBrowserOverlayActionSurfacePresentation(
   _isCompactViewer: boolean,
 ): BrowserOverlayActionSurfacePresentation {
-  return {
-    compact: true,
-    tone: "default",
-  };
+  return chromeShellActionSurfacePresentation;
 }
 
 export function getBrowserOverlayStagePresentation(scope: BrowserViewScope): BrowserOverlayStageSurfacePresentation {
