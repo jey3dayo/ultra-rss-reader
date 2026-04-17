@@ -28,7 +28,7 @@ export function AccountSwitcherMenu({
       id={menuId}
       role="menu"
       aria-label={menuLabel}
-      className="absolute top-full left-0 z-50 min-w-[180px] rounded-lg border border-border bg-sidebar p-1 shadow-lg"
+      className="absolute top-full left-0 z-50 min-w-[200px] rounded-2xl border border-border/70 bg-surface-2/96 p-1.5 shadow-elevation-3"
       onKeyDown={(e) => {
         if (!accounts.length) return;
 
@@ -52,7 +52,7 @@ export function AccountSwitcherMenu({
         return (
           <NavRowButton
             key={account.id}
-            tone="sidebar"
+            tone="default"
             ref={(element) => {
               itemRefs.current[index] = element;
             }}
@@ -72,10 +72,10 @@ export function AccountSwitcherMenu({
             aria-checked={account.id === selectedAccountId}
             aria-pressed={account.id === selectedAccountId}
             className={cn(
-              "relative w-full overflow-hidden rounded-md px-3 py-2 text-left text-sm hover:bg-sidebar-accent/28",
+              "relative w-full overflow-hidden rounded-md px-3 py-2 text-left text-sm",
               account.id === selectedAccountId
-                ? "border border-border-strong bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:rounded-full before:bg-border-strong"
-                : "text-sidebar-foreground",
+                ? "before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:rounded-full before:bg-border-strong"
+                : "text-foreground hover:bg-surface-1/72",
             )}
           />
         );

@@ -24,15 +24,19 @@ describe("AccountSwitcherMenu", () => {
       />,
     );
 
+    const menu = screen.getByRole("menu", { name: "Accounts" });
     const localButton = screen.getByRole("menuitemradio", { name: /Local/i });
     const freshRssButton = screen.getByRole("menuitemradio", { name: /FreshRSS/i });
 
-    expect(localButton).toHaveClass("bg-[var(--bg-selected)]");
+    expect(menu).toHaveClass("rounded-2xl");
+    expect(menu).toHaveClass("bg-surface-2/96");
+    expect(menu).toHaveClass("shadow-elevation-3");
+    expect(localButton).toHaveClass("bg-surface-1");
     expect(localButton).toHaveClass("border-border-strong");
     expect(localButton).toHaveClass("before:bg-border-strong");
     expect(localButton).toHaveAttribute("aria-checked", "true");
-    expect(freshRssButton).not.toHaveClass("bg-[var(--bg-selected)]");
-    expect(freshRssButton).toHaveClass("hover:bg-sidebar-accent/28");
+    expect(freshRssButton).not.toHaveClass("bg-surface-1");
+    expect(freshRssButton).toHaveClass("hover:bg-surface-1/72");
     expect(screen.getByText("local")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("Local only")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("Local only")).toBeInTheDocument();
