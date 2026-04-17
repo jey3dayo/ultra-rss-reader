@@ -24,6 +24,12 @@ describe("SubscriptionsOverviewSummary", () => {
       />,
     );
 
+    const summarySection = screen.getByRole("button", { name: /Needs review/ }).closest("section");
+    expect(summarySection).not.toBeNull();
+    expect(summarySection).toHaveClass("rounded-lg", "border-border/55");
+    expect(summarySection).toHaveStyle({ backgroundColor: "var(--subscriptions-summary-surface)" });
+    expect(summarySection?.querySelector(".grid")).toHaveClass("grid-cols-1", "gap-3");
+
     const actionableCard = screen.getByRole("button", { name: /Needs review/ });
     expect(within(actionableCard).getByText("Needs review")).toHaveClass("text-foreground-soft");
     expect(within(actionableCard).getByText("Check these feeds")).toHaveClass("text-foreground-soft");

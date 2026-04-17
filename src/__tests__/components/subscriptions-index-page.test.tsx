@@ -192,8 +192,10 @@ describe("SubscriptionsIndexPage", () => {
     const totalSubscriptionsLabel = await screen.findByText("総購読数");
     const summarySection = totalSubscriptionsLabel.closest("section");
     expect(summarySection).not.toBeNull();
+    expect(summarySection).toHaveClass("rounded-lg", "border-border/55");
     expect(summarySection).toHaveStyle({ backgroundColor: "var(--subscriptions-summary-surface)" });
-    expect(totalSubscriptionsLabel.closest(".rounded-lg")).not.toBeNull();
+    expect(summarySection?.querySelector(".grid")).toHaveClass("grid-cols-1", "gap-3");
+    expect(summarySection?.querySelector(".grid")).toHaveClass("lg:grid-cols-[0.96fr_1.12fr_0.96fr_0.96fr]");
     expect(screen.queryByRole("button", { name: /総購読数/ })).toBeNull();
     expect(await screen.findByRole("button", { name: /要確認を見る/ })).toHaveClass(
       "rounded-lg",

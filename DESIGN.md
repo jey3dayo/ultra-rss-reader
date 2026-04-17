@@ -207,6 +207,19 @@ Surface governance:
 - Shadow transitions: 200ms ease
 - Transform feedback should remain subtle
 
+### Expandable Sections
+
+- Section and sidebar disclosure patterns should feel calm and mechanical, not springy or theatrical.
+- Use one shared easing family for disclosure UI: `cubic-bezier(0.22, 1, 0.36, 1)`.
+- Chevron rotation, section header emphasis, and body reveal should usually complete in about 200ms.
+- Expandable content should prefer layout-safe reveal patterns such as `grid-template-rows`, opacity, and a small vertical translate instead of abrupt mount/unmount swaps when the component family benefits from continuity.
+- Chevron icons should rotate to communicate state, but the motion should stay compact. A quarter-turn is preferred for collapsed side-rail toggles and folder rows.
+- Revealed content should move only slightly. A small upward offset while collapsing is preferred over large slide distances.
+- Hover lift on expandable headers or rows may use a 1px translate at most. Disclosure UI should suggest responsiveness, not float dramatically.
+- Keep disclosure surfaces interactive only when visible. Collapsed content should disable pointer interaction and expose a hidden state to accessibility APIs, for example through `aria-hidden` when appropriate.
+- Preserve semantic state while animating. Header buttons should continue to own `aria-expanded`, and the controlled region should be addressable via `aria-controls`.
+- Respect `prefers-reduced-motion`: keep state changes functional, but remove or minimize transform and timing-based flourish.
+
 ### Theme Transition
 
 - Theme changes should feel soft and atmospheric rather than flashy or theatrical.

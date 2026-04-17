@@ -113,7 +113,7 @@ export function FeedDetailPanel({
           {leadingVisual ? (
             <div
               data-testid="feed-detail-leading-visual"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/65 bg-surface-1/88 text-foreground shadow-none"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border/65 bg-surface-1/88 text-foreground shadow-none"
             >
               {leadingVisual}
             </div>
@@ -142,7 +142,7 @@ export function FeedDetailPanel({
             <LabelChip
               data-testid="feed-detail-status"
               tone={resolveBadgeClassName(badgeTone)}
-              className="self-start rounded-lg px-2.5 py-1 text-[10px] tracking-[0.02em]"
+              className="self-start rounded-md px-2.5 py-1 text-[10px] tracking-[0.02em]"
             >
               {badgeLabel}
             </LabelChip>
@@ -176,7 +176,7 @@ export function FeedDetailPanel({
           {reasonChips.length > 0 && !reasonBox ? (
             <div className="flex flex-wrap gap-2">
               {reasonChips.map((chip) => (
-                <LabelChip key={chip} tone="neutral" size="compact" className="rounded-lg px-2 py-1">
+                <LabelChip key={chip} tone="neutral" size="compact" className="rounded-md px-2 py-1">
                   {chip}
                 </LabelChip>
               ))}

@@ -270,6 +270,30 @@
     - 方針:
       - account switcher / context menu は popup shell、tooltip は compact utility detail として整理する
       - popup outer shell と inner item radius の役割を混ぜない
+  - [ ] Lane K: subscriptions overview summary の shell/card 境界を固定する
+    - 対象候補:
+      - `src/components/subscriptions-index/subscriptions-overview-summary.tsx`
+      - `src/__tests__/components/subscriptions-overview-summary.test.tsx`
+      - `src/__tests__/components/subscriptions-index-page.test.tsx`
+    - 方針:
+      - outer summary wrapper は `section/container`
+      - inner summary cards は `card lane`
+      - primary review card だけを強調し、shell と card の radius 言語を混ぜない
+  - [ ] Lane L: feed detail panel を section-card と control-family exception に分ける
+    - 対象候補:
+      - `src/components/shared/feed-detail-panel.tsx`
+      - `src/__tests__/components/feed-detail-panel.test.tsx`
+    - 方針:
+      - root / summary / recent articles は section-card
+      - status chip / reason chips / leading visual は control-family exception or utility detail
+      - `rounded-lg` を shell に見せない
+  - [ ] Lane M: command palette の popup shell を残り整理する
+    - 対象候補:
+      - `src/components/reader/command-palette.tsx`
+      - `src/__tests__/components/command-palette.test.tsx`
+    - 方針:
+      - outer dialog shell と inner hint pills の役割を分ける
+      - helper copy は popup shell の supporting detail として、utility detail と混ぜない
   - [x] Lane A: shared primitive の muted 契約を `foreground-soft` / semantic surface へ寄せる
     - 対象候補:
       - `src/components/shared/control-chip.ts`
