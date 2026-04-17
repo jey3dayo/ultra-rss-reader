@@ -24,14 +24,19 @@ export function useSubscriptionsIndexState(
   options?: {
     initialSummaryFilter?: SubscriptionSummaryFilterKey;
     initialSelectedFeedId?: string | null;
+    initialExpandedGroups?: Record<string, boolean>;
+    initialKeptFeedIds?: string[];
+    initialDeferredFeedIds?: string[];
   },
 ) {
   const [selectedFeedId, setSelectedFeedId] = useState<string | null>(options?.initialSelectedFeedId ?? null);
-  const [keptFeedIds, setKeptFeedIds] = useState<Set<string>>(new Set());
-  const [deferredFeedIds, setDeferredFeedIds] = useState<Set<string>>(new Set());
+  const [keptFeedIds, setKeptFeedIds] = useState<Set<string>>(() => new Set(options?.initialKeptFeedIds ?? []));
+  const [deferredFeedIds, setDeferredFeedIds] = useState<Set<string>>(
+    () => new Set(options?.initialDeferredFeedIds ?? []),
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [sortKey, setSortKey] = useState<"title" | "updated_at" | "unread_count">("title");
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(options?.initialExpandedGroups ?? {});
   const [activeSummaryFilter, setActiveSummaryFilter] = useState<SubscriptionSummaryFilterKey>(
     options?.initialSummaryFilter ?? "all",
   );
@@ -85,6 +90,7 @@ export function useSubscriptionsIndexState(
   return {
     activeSummaryFilter,
     deferredFeedIds,
+    expandedGroups,
     keptFeedIds,
     searchQuery,
     selectedFeedId,

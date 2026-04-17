@@ -87,6 +87,7 @@ export type FeedCleanupOverviewPanelProps = {
   allCandidateCount: number;
   bulkKeepVisibleLabel: string;
   bulkDeferVisibleLabel: string;
+  bulkDeleteVisibleLabel: string;
   summaryCards: ReadonlyArray<FeedCleanupSummaryCard>;
   integrityMode: boolean;
   integrityDetailLabels: FeedCleanupIntegrityDetailLabels;
@@ -100,6 +101,7 @@ export type FeedCleanupOverviewPanelProps = {
   onToggleShowDeferred: () => void;
   onKeepVisible: () => void;
   onDeferVisible: () => void;
+  onDeleteVisible: () => void;
 };
 
 export type FeedCleanupQueuePanelProps = {
@@ -130,9 +132,6 @@ export type FeedCleanupQueuePanelProps = {
   onKeepSelection?: () => void;
   onDeferSelection?: () => void;
   onDeleteSelection?: () => void;
-  onKeepCandidate?: (candidateId: string) => void;
-  onDeferCandidate?: (candidateId: string) => void;
-  onDeleteCandidate?: (candidateId: string) => void;
   bulkSelectionScopeLabel?: string;
   bulkKeepActionLabel?: string;
   bulkDeferActionLabel?: string;
@@ -176,13 +175,7 @@ export type FeedCleanupReviewPanelProps = {
   editor: ReactNode;
   reviewPanelClassName: string;
   editLabel: string;
-  keepLabel?: string;
-  laterLabel?: string;
-  deleteLabel?: string;
   onEdit: () => void;
-  onKeep?: () => void;
-  onLater?: () => void;
-  onDelete?: () => void;
   keyboardHints?: FeedCleanupKeyboardHints;
 };
 
@@ -199,6 +192,7 @@ export type FeedCleanupPageViewProps = {
   allCandidateCount: number;
   bulkKeepVisibleLabel: string;
   bulkDeferVisibleLabel: string;
+  bulkDeleteVisibleLabel: string;
   queueLabel: string;
   bulkSelectionScopeLabel: string;
   bulkKeepActionLabel: string;
@@ -260,6 +254,7 @@ export type FeedCleanupPageViewProps = {
   onToggleShowDeferred: () => void;
   onKeepVisible: () => void;
   onDeferVisible: () => void;
+  onDeleteVisible: () => void;
   onSelectCandidate: (candidateId: string) => void;
   onToggleCandidateSelection: (candidateId: string) => void;
   onSelectIntegrityIssue: (missingFeedId: string) => void;
@@ -268,9 +263,6 @@ export type FeedCleanupPageViewProps = {
   onKeepDecision: () => void;
   onDeferDecision: () => void;
   onDeleteDecision: () => void;
-  onKeepCandidate: (candidateId: string) => void;
-  onDeferCandidate: (candidateId: string) => void;
-  onDeleteCandidate: (candidateId: string) => void;
   onSyncReviewToFocus: () => void;
   onEdit: () => void;
   selectedFeedIds: ReadonlySet<string>;

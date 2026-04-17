@@ -10,6 +10,10 @@ export type SubscriptionRowStatus =
   | { tone: "neutral"; labelKey: "normal" }
   | { tone: "medium"; labelKey: "review" | "stale_90d" | "no_unread" | "no_stars" };
 
+export function isSubscriptionRowFlagged(status: SubscriptionRowStatus): boolean {
+  return status.labelKey !== "normal";
+}
+
 export function buildSubscriptionsIndexSummary({
   feeds,
   candidates,

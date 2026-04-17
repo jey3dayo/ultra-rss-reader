@@ -72,16 +72,10 @@ const baseLabels = {
   },
   reviewPanelClassName: "w-full max-w-[380px]",
   editLabel: "Edit Feed",
-  keepLabel: "Keep",
-  laterLabel: "Defer",
   currentStatusLabel: "Current status",
   currentStatusValue: "Review",
   deferLabel: "Defer",
-  deleteLabel: "Delete",
   onEdit: () => {},
-  onKeep: () => {},
-  onLater: () => {},
-  onDelete: () => {},
 } as const;
 
 export const CandidateReview: Story = {

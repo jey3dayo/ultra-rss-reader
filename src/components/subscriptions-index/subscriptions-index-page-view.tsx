@@ -33,6 +33,7 @@ export function SubscriptionsIndexPageView({
   statusLabels,
   formatUnreadCountLabel,
   formatLatestArticleLabel,
+  listScrollTop,
   folderLabel,
   latestArticleLabel,
   unreadCountLabel,
@@ -50,6 +51,7 @@ export function SubscriptionsIndexPageView({
   isGroupExpanded,
   onSelectSummaryFilter,
   onSelectFeed,
+  onListScrollTopChange,
   onToggleGroup,
   onOpenCleanup,
   onBack,
@@ -70,6 +72,7 @@ export function SubscriptionsIndexPageView({
   statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
   formatUnreadCountLabel: (count: number) => string;
   formatLatestArticleLabel: (value: string | null) => string;
+  listScrollTop: number;
   folderLabel: string;
   latestArticleLabel: string;
   unreadCountLabel: string;
@@ -94,6 +97,7 @@ export function SubscriptionsIndexPageView({
   isGroupExpanded: (groupKey: string) => boolean;
   onSelectSummaryFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
   onSelectFeed: (feedId: string) => void;
+  onListScrollTopChange: (scrollTop: number) => void;
   onToggleGroup: (groupKey: string) => void;
   onOpenCleanup: () => void;
   onBack: () => void;
@@ -142,7 +146,9 @@ export function SubscriptionsIndexPageView({
               formatUnreadCountLabel={formatUnreadCountLabel}
               formatLatestArticleLabel={formatLatestArticleLabel}
               isGroupExpanded={isGroupExpanded}
+              initialScrollTop={listScrollTop}
               onSelectFeed={onSelectFeed}
+              onListScrollTopChange={onListScrollTopChange}
               onToggleGroup={onToggleGroup}
             />
             <SubscriptionDetailPane

@@ -115,22 +115,18 @@ describe("FeedCleanupQueuePanel", () => {
     expect(screen.getByRole("button", { name: "Keep selected" })).toBeEnabled();
   });
 
-  it("shows inline row actions for the active row", async () => {
-    const user = userEvent.setup();
-    const onKeepCandidate = vi.fn();
-
+  it("does not render inline row actions for the active row", () => {
     render(
       <FeedCleanupQueuePanel
         {...buildProps()}
         selectedCandidate={buildProps().queue[0]}
         selectedFeedIds={new Set(["feed-1"])}
-        onKeepCandidate={onKeepCandidate}
       />,
     );
 
-    await user.click(screen.getAllByRole("button", { name: "Keep" })[0]);
-
-    expect(onKeepCandidate).toHaveBeenCalledWith("feed-1");
+    expect(screen.queryByRole("button", { name: "Keep" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Later" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
   });
 
   it("selects a candidate when the row is clicked", async () => {
@@ -152,7 +148,7 @@ describe("FeedCleanupQueuePanel", () => {
     expect(screen.getByTestId("feed-cleanup-selection-hit-area-feed-1")).toHaveClass("rounded-md");
   });
 
-  it("uses subdued surface cards for selected rows while keeping row actions available", () => {
+  it("uses subdued surface cards for selected rows without row-level decision buttons", () => {
     render(
       <FeedCleanupQueuePanel
         {...buildProps()}
@@ -166,13 +162,9 @@ describe("FeedCleanupQueuePanel", () => {
     expect(queueRow).toHaveClass("rounded-md");
     expect(queueRow).toHaveClass("border-border-strong");
     expect(queueRow).toHaveClass("bg-card/52");
-    expect(within(queueRow).getByRole("button", { name: "Delete" })).toBeInTheDocument();
-    expect(within(queueRow).getByRole("button", { name: "Keep" })).toHaveClass("min-w-0");
-    expect(within(queueRow).getByRole("button", { name: "Keep" })).toHaveClass("h-9");
-    expect(within(queueRow).getByRole("button", { name: "Later" })).toHaveClass("min-w-0");
-    expect(within(queueRow).getByRole("button", { name: "Later" })).toHaveClass("h-9");
-    expect(within(queueRow).getByRole("button", { name: "Delete" })).toHaveClass("min-w-0");
-    expect(within(queueRow).getByRole("button", { name: "Delete" })).toHaveClass("h-9");
+    expect(within(queueRow).queryByRole("button", { name: "Delete" })).toBeNull();
+    expect(within(queueRow).queryByRole("button", { name: "Keep" })).toBeNull();
+    expect(within(queueRow).queryByRole("button", { name: "Later" })).toBeNull();
   });
 
   it("keeps unselected rows on a muted surface", () => {

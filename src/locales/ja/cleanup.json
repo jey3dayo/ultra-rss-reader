@@ -7,6 +7,7 @@
   "bulk_visible_count": "現在表示中: {{count}} 件",
   "bulk_keep_visible": "表示中をまとめて今は残す",
   "bulk_defer_visible": "表示中をまとめてあとで見直す",
+  "bulk_delete_visible": "表示中を削除",
   "bulk_selection_scope": "選択中の対象",
   "bulk_keep_selected": "選択中を今は残す",
   "bulk_defer_selected": "選択中をあとで見直す",

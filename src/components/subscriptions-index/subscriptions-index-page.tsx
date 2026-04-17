@@ -12,6 +12,7 @@ import {
   buildSubscriptionDetailMetrics,
   buildSubscriptionListGroups,
   buildSubscriptionsIndexSummary,
+  isSubscriptionRowFlagged,
   resolveSubscriptionRowStatus,
 } from "@/lib/subscriptions-index";
 import type { FeedCleanupContextReason } from "@/stores/ui-store";
@@ -51,6 +52,9 @@ export function SubscriptionsIndexPage() {
   const { data: integrityReport } = useFeedIntegrityReport();
   const deleteFeedMutation = useDeleteFeed();
   const [deleteTargetFeed, setDeleteTargetFeed] = useState<SubscriptionListRow["feed"] | null>(null);
+  const [listScrollTop, setListScrollTop] = useState(
+    subscriptionsWorkspace?.kind === "index" ? (subscriptionsWorkspace.returnState?.listScrollTop ?? 0) : 0,
+  );
 
   const candidates = useMemo(
     () =>
@@ -86,6 +90,12 @@ export function SubscriptionsIndexPage() {
       subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState?.activeSummaryFilter : undefined,
     initialSelectedFeedId:
       subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState?.selectedFeedId : undefined,
+    initialExpandedGroups:
+      subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState?.expandedGroups : undefined,
+    initialKeptFeedIds:
+      subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState?.keptFeedIds : undefined,
+    initialDeferredFeedIds:
+      subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState?.deferredFeedIds : undefined,
   });
   const selectedMetrics = state.selectedRow
     ? buildSubscriptionDetailMetrics({
@@ -200,7 +210,7 @@ export function SubscriptionsIndexPage() {
   ] satisfies SubscriptionSummaryCard[];
 
   const decisionActions =
-    state.selectedRow && state.selectedRow.status.labelKey !== "normal"
+    state.selectedRow && isSubscriptionRowFlagged(state.selectedRow.status)
       ? {
           keepLabel: t("decision_keep"),
           deferLabel: t("decision_defer"),
@@ -224,6 +234,15 @@ export function SubscriptionsIndexPage() {
           },
         }
       : null;
+
+  const returnState = {
+    activeSummaryFilter: state.activeSummaryFilter,
+    selectedFeedId: state.selectedFeedId,
+    expandedGroups: state.expandedGroups,
+    listScrollTop,
+    keptFeedIds: [...state.keptFeedIds],
+    deferredFeedIds: [...state.deferredFeedIds],
+  };
 
   const batchReviewLabel =
     (state.activeSummaryFilter === "review" ||
@@ -285,6 +304,7 @@ export function SubscriptionsIndexPage() {
             : t("meta_latest_article_none")
         }
         folderLabel={tCleanup("folder")}
+        listScrollTop={listScrollTop}
         latestArticleLabel={tCleanup("latest_article")}
         unreadCountLabel={tCleanup("unread_count")}
         starredCountLabel={tCleanup("starred_count")}
@@ -307,16 +327,14 @@ export function SubscriptionsIndexPage() {
         isGroupExpanded={state.isGroupExpanded}
         onSelectSummaryFilter={state.setActiveSummaryFilter}
         onSelectFeed={state.setSelectedFeedId}
+        onListScrollTopChange={setListScrollTop}
         onToggleGroup={state.toggleGroup}
         onOpenCleanup={() => {
           openFeedCleanup({
             reason: resolveBatchCleanupReason(state.activeSummaryFilter),
             feedIds: state.visibleRows.map((row) => row.feed.id),
             returnTo: "index",
-            returnState: {
-              activeSummaryFilter: state.activeSummaryFilter,
-              selectedFeedId: state.selectedFeedId,
-            },
+            returnState,
           });
         }}
         onBack={() => closeSubscriptionsWorkspace()}

@@ -1,6 +1,4 @@
-import { Check, Clock3, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { DecisionButton } from "@/components/shared/decision-button";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { buildCleanupReasonFacts } from "@/lib/feed-cleanup";
@@ -44,13 +42,7 @@ export function FeedCleanupReviewPanel({
   editor,
   reviewPanelClassName,
   editLabel,
-  keepLabel = "Keep",
-  laterLabel = "Defer",
-  deleteLabel = "Delete",
   onEdit,
-  onKeep,
-  onLater,
-  onDelete,
 }: FeedCleanupReviewPanelProps) {
   const { t } = useTranslation("cleanup");
   const reasonFacts = selectedCandidate ? buildCleanupReasonFacts(selectedCandidate) : [];
@@ -152,44 +144,6 @@ export function FeedCleanupReviewPanel({
               }}
               reasonChips={selectedCandidate.reasonKeys.map((reasonKey) => reasonLabels[reasonKey])}
             />
-            <SurfaceCard
-              data-testid="feed-cleanup-review-actions"
-              variant="section"
-              tone="default"
-              padding="compact"
-              className="grid grid-cols-3 gap-2 rounded-lg px-4 shadow-none sm:px-5"
-            >
-              <DecisionButton
-                intent="keep"
-                size="lg"
-                aria-label={keepLabel}
-                onClick={onKeep}
-                className="w-full min-w-0"
-              >
-                <Check className="h-4 w-4" />
-                {keepLabel}
-              </DecisionButton>
-              <DecisionButton
-                intent="defer"
-                size="lg"
-                aria-label={laterLabel}
-                onClick={onLater}
-                className="w-full min-w-0"
-              >
-                <Clock3 className="h-4 w-4" />
-                {laterLabel}
-              </DecisionButton>
-              <DecisionButton
-                intent="delete"
-                size="lg"
-                aria-label={deleteLabel}
-                onClick={onDelete}
-                className="w-full min-w-0"
-              >
-                <Trash2 className="h-4 w-4" />
-                {deleteLabel}
-              </DecisionButton>
-            </SurfaceCard>
           </div>
         </div>
       ) : (

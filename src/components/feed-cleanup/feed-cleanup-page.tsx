@@ -72,9 +72,16 @@ export function FeedCleanupPage() {
     cleanupState.visibleCandidates.length === 0 ||
     cleanupState.isEditingSelectedFeed ||
     cleanupState.deleteTargets.length > 0;
+  const nextIndexReturnState = {
+    activeSummaryFilter: subscriptionsWorkspace?.cleanupContext?.returnState?.activeSummaryFilter ?? "all",
+    selectedFeedId: subscriptionsWorkspace?.cleanupContext?.returnState?.selectedFeedId ?? null,
+    expandedGroups: subscriptionsWorkspace?.cleanupContext?.returnState?.expandedGroups ?? {},
+    listScrollTop: subscriptionsWorkspace?.cleanupContext?.returnState?.listScrollTop ?? 0,
+    keptFeedIds: [...cleanupState.keptFeedIds],
+    deferredFeedIds: [...cleanupState.deferredFeedIds],
+  };
 
-  const showDecisionToast = (decision: "keep" | "defer") => {
-    const targetIds = cleanupState.decisionTargetIds;
+  const showDecisionToast = (decision: "keep" | "defer", targetIds: string[]) => {
     if (targetIds.length === 0) {
       return;
     }
@@ -123,6 +130,7 @@ export function FeedCleanupPage() {
         allCandidateCount={cleanupState.allCandidateCount}
         bulkKeepVisibleLabel={t("bulk_keep_visible")}
         bulkDeferVisibleLabel={t("bulk_defer_visible")}
+        bulkDeleteVisibleLabel={t("bulk_delete_visible")}
         queueLabel={t("queue")}
         bulkSelectionScopeLabel={t("bulk_selection_scope")}
         bulkKeepActionLabel={t("bulk_keep_selected")}
@@ -211,13 +219,22 @@ export function FeedCleanupPage() {
           stale_but_supported: t("candidate_summary_stale_but_supported"),
           healthy_feed: t("candidate_summary_healthy_feed"),
         }}
-        onBackToIndex={() => openSubscriptionsIndex(subscriptionsWorkspace?.cleanupContext?.returnState)}
+        onBackToIndex={() => openSubscriptionsIndex(nextIndexReturnState)}
         onClose={() => closeFeedCleanup()}
         onToggleIntegrityMode={cleanupState.toggleIntegrityMode}
         onToggleFilter={cleanupState.toggleFilter}
         onToggleShowDeferred={cleanupState.toggleShowDeferred}
-        onKeepVisible={cleanupState.markVisibleCandidatesKept}
-        onDeferVisible={cleanupState.markVisibleCandidatesDeferred}
+        onKeepVisible={() => {
+          const targetIds = cleanupState.visibleCandidates.map((candidate) => candidate.feedId);
+          cleanupState.markVisibleCandidatesKept();
+          showDecisionToast("keep", targetIds);
+        }}
+        onDeferVisible={() => {
+          const targetIds = cleanupState.visibleCandidates.map((candidate) => candidate.feedId);
+          cleanupState.markVisibleCandidatesDeferred();
+          showDecisionToast("defer", targetIds);
+        }}
+        onDeleteVisible={cleanupState.requestDeleteForVisibleCandidates}
         onSelectCandidate={cleanupState.selectCandidate}
         onToggleCandidateSelection={cleanupState.toggleCandidateSelection}
         onSelectIntegrityIssue={cleanupState.selectIntegrityIssue}
@@ -225,22 +242,13 @@ export function FeedCleanupPage() {
         onMoveFocusPrevious={cleanupState.moveFocusPrevious}
         onKeepDecision={() => {
           cleanupState.markSelectedCandidateKept();
-          showDecisionToast("keep");
+          showDecisionToast("keep", cleanupState.decisionTargetIds);
         }}
         onDeferDecision={() => {
           cleanupState.markSelectedCandidateDeferred();
-          showDecisionToast("defer");
+          showDecisionToast("defer", cleanupState.decisionTargetIds);
         }}
         onDeleteDecision={cleanupState.requestDeleteForDecisionTargets}
-        onKeepCandidate={(feedId) => {
-          cleanupState.markCandidateKept(feedId);
-          showDecisionToast("keep");
-        }}
-        onDeferCandidate={(feedId) => {
-          cleanupState.markCandidateDeferred(feedId);
-          showDecisionToast("defer");
-        }}
-        onDeleteCandidate={cleanupState.requestDeleteForCandidate}
         onSyncReviewToFocus={cleanupState.syncReviewToFocusedCandidate}
         editing={cleanupState.isEditingSelectedFeed}
         editor={

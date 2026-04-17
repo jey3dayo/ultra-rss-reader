@@ -46,9 +46,6 @@ export function FeedCleanupQueuePanel({
   onKeepSelection = () => {},
   onDeferSelection = () => {},
   onDeleteSelection = () => {},
-  onKeepCandidate = onSelectCandidate,
-  onDeferCandidate = onSelectCandidate,
-  onDeleteCandidate = onSelectCandidate,
   bulkSelectionScopeLabel = "Selected set",
   bulkKeepActionLabel = "Keep selected",
   bulkDeferActionLabel = "Defer selected",
@@ -296,46 +293,6 @@ export function FeedCleanupQueuePanel({
                         </p>
                       ) : null}
                     </button>
-                    {isSelected || selectedCandidate?.feedId === candidate.feedId ? (
-                      <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0">
-                        <DecisionButton
-                          intent="keep"
-                          size="lg"
-                          className="min-w-0"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onKeepCandidate(candidate.feedId);
-                          }}
-                        >
-                          <Check className="h-4 w-4" />
-                          {keepLabel}
-                        </DecisionButton>
-                        <DecisionButton
-                          intent="defer"
-                          size="lg"
-                          className="min-w-0"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onDeferCandidate(candidate.feedId);
-                          }}
-                        >
-                          <Clock3 className="h-4 w-4" />
-                          {deferredLabel}
-                        </DecisionButton>
-                        <DecisionButton
-                          intent="delete"
-                          size="lg"
-                          className="min-w-0"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onDeleteCandidate(candidate.feedId);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          {deleteLabel}
-                        </DecisionButton>
-                      </div>
-                    ) : null}
                   </div>
                 </SurfaceCard>
               );

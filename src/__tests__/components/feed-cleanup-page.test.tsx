@@ -179,8 +179,8 @@ describe("FeedCleanupPage", () => {
     await user.click(await screen.findByRole("button", { name: "Old Product Blog" }));
 
     expect(screen.getByText("2025年11月1日")).toBeInTheDocument();
-
-    await user.click(within(screen.getByTestId("feed-cleanup-review-actions")).getByRole("button", { name: "削除" }));
+    await user.click(screen.getByRole("checkbox", { name: "候補を選択 Old Product Blog" }));
+    await user.click(screen.getByRole("button", { name: "選択中を削除" }));
 
     const deleteDialog = await screen.findByRole("dialog", { name: "フィードを削除" });
 
@@ -225,9 +225,9 @@ describe("FeedCleanupPage", () => {
 
     const queueRow = screen.getByTestId("feed-cleanup-queue-row-feed-1");
     expect(queueRow).toHaveClass("bg-card/52");
-    expect(within(queueRow).getByRole("button", { name: "Defer" })).toBeInTheDocument();
-    expect(within(queueRow).getByRole("button", { name: "Delete" })).toBeInTheDocument();
-    expect(within(queueRow).getByRole("button", { name: "Keep" })).toHaveClass("bg-state-success-surface");
+    expect(within(queueRow).queryByRole("button", { name: "Defer" })).toBeNull();
+    expect(within(queueRow).queryByRole("button", { name: "Delete" })).toBeNull();
+    expect(within(queueRow).queryByRole("button", { name: "Keep" })).toBeNull();
 
     const reviewPanel = screen.getByTestId("feed-cleanup-review-panel");
     expect(within(reviewPanel).getByText("Why this feed is here")).toBeInTheDocument();
@@ -235,13 +235,14 @@ describe("FeedCleanupPage", () => {
     expect(within(reviewPanel).getByRole("button", { name: "Edit Feed" })).toBeInTheDocument();
     expect(within(reviewPanel).getByText("Folder")).toBeInTheDocument();
     expect(within(reviewPanel).getByText("Latest article")).toBeInTheDocument();
+    expect(within(reviewPanel).queryByTestId("feed-cleanup-review-actions")).toBeNull();
     expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("grid-cols-[minmax(0,1fr)_480px]");
     expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("gap-6");
     expect(screen.getByTestId("feed-cleanup-layout")).toHaveClass("overflow-hidden");
     expect(screen.getByTestId("feed-cleanup-review-panel")).toHaveClass("sticky");
     expect(screen.getByTestId("feed-cleanup-review-panel")).toHaveClass("top-0");
 
-    await user.click(within(queueRow).getByRole("button", { name: "Defer" }));
+    await user.click(screen.getByRole("button", { name: "Defer all visible" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Old Product Blog" })).not.toBeInTheDocument();
@@ -251,9 +252,8 @@ describe("FeedCleanupPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Show deferred" }));
     await user.click(screen.getByRole("button", { name: "Old Product Blog" }));
-    await user.click(
-      within(screen.getByTestId("feed-cleanup-queue-row-feed-1")).getByRole("button", { name: "Delete" }),
-    );
+    await user.click(screen.getByRole("checkbox", { name: "Select candidate Old Product Blog" }));
+    await user.click(screen.getByRole("button", { name: "Delete selected" }));
 
     const deleteDialog = screen.getByRole("dialog", { name: "Delete feed" });
     const warningCard = within(deleteDialog).getByText("This action removes the subscription from this account.");
@@ -311,17 +311,41 @@ describe("FeedCleanupPage", () => {
       ...useUiStore.getState(),
       subscriptionsWorkspace: {
         kind: "cleanup",
-        cleanupContext: { reason: "stale_90d", returnTo: "index" },
+        cleanupContext: {
+          reason: "review",
+          returnTo: "index",
+          returnState: {
+            activeSummaryFilter: "review",
+            selectedFeedId: "feed-1",
+            expandedGroups: { "folder-1": false, __ungrouped__: true },
+            listScrollTop: 24,
+            keptFeedIds: [],
+            deferredFeedIds: [],
+          },
+        },
       },
     });
 
     render(<FeedCleanupPage />, { wrapper: createWrapper() });
 
+    await user.click(await screen.findByRole("button", { name: "Old Product Blog" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select candidate Old Product Blog" }));
+    await user.click(screen.getByRole("button", { name: "Keep selected" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select candidate Fresh Feed" }));
+    await user.click(screen.getByRole("button", { name: "Defer selected" }));
     await user.click(await screen.findByRole("button", { name: "Back to subscriptions" }));
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
       cleanupContext: null,
+      returnState: {
+        activeSummaryFilter: "review",
+        selectedFeedId: "feed-1",
+        expandedGroups: { "folder-1": false, __ungrouped__: true },
+        listScrollTop: 24,
+        keptFeedIds: ["feed-1"],
+        deferredFeedIds: ["feed-2"],
+      },
     });
     expect("feedCleanupOpen" in useUiStore.getState()).toBe(false);
   });
@@ -335,9 +359,8 @@ describe("FeedCleanupPage", () => {
     await user.click(screen.getByRole("button", { name: "Old Product Blog" }));
 
     deleteShouldFail = true;
-    await user.click(
-      within(screen.getByTestId("feed-cleanup-queue-row-feed-1")).getByRole("button", { name: "Delete" }),
-    );
+    await user.click(screen.getByRole("checkbox", { name: "Select candidate Old Product Blog" }));
+    await user.click(screen.getByRole("button", { name: "Delete selected" }));
     const deleteDialog = await screen.findByRole("dialog", { name: "Delete feed" });
     await user.click(within(deleteDialog).getByRole("button", { name: "Delete" }));
 
@@ -558,6 +581,20 @@ describe("FeedCleanupPage", () => {
     expect(screen.getByRole("button", { name: "Fresh Feed" })).toBeInTheDocument();
   });
 
+  it("deletes the current filtered subset from the overview bulk actions", async () => {
+    const user = userEvent.setup();
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    await screen.findByRole("button", { name: "Old Product Blog" });
+    await user.click(screen.getByRole("button", { name: "90+ days inactive 1" }));
+    await user.click(screen.getByRole("button", { name: "Delete visible" }));
+
+    const deleteDialog = await screen.findByRole("dialog", { name: "Delete feed" });
+    expect(within(deleteDialog).getByText("Old Product Blog")).toBeInTheDocument();
+    expect(within(deleteDialog).queryByText("Fresh Feed")).toBeNull();
+  });
+
   it("hides selection bulk actions while reviewing broken references", async () => {
     const user = userEvent.setup();
     integrityReport = {
@@ -644,6 +681,24 @@ describe("FeedCleanupPage", () => {
     expect(screen.queryByText("1 selected")).not.toBeInTheDocument();
     expect(screen.getByText("Old Product Blog deferred")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+  });
+
+  it("does not apply keep/defer/delete keyboard actions when no set is selected", async () => {
+    const user = userEvent.setup();
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    await screen.findByRole("button", { name: "Old Product Blog" });
+
+    await user.keyboard("K");
+    await user.keyboard("l");
+    await user.keyboard("d");
+
+    expect(screen.getByRole("button", { name: "Old Product Blog" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Fresh Feed" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Delete feed" })).toBeNull();
+    expect(screen.queryByText("Old Product Blog kept")).toBeNull();
+    expect(screen.queryByText("Old Product Blog deferred")).toBeNull();
   });
 
   it("suspends cleanup keyboard actions while the delete dialog is open", async () => {

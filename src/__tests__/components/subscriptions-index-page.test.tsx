@@ -198,8 +198,8 @@ describe("SubscriptionsIndexPage", () => {
     expect(summarySection?.querySelector(".grid")).toHaveClass("lg:grid-cols-[0.96fr_1.12fr_0.96fr_0.96fr]");
     expect(await screen.findByRole("button", { name: /要確認/ })).toHaveClass(
       "rounded-lg",
-      "border-state-review-border",
-      "bg-state-review-surface",
+      "border-state-review-border/80",
+      "bg-state-review-surface/86",
     );
     expect(await screen.findByRole("button", { name: /要確認/ })).toHaveClass(
       "shadow-[var(--subscriptions-summary-card-shadow)]",
@@ -251,7 +251,7 @@ describe("SubscriptionsIndexPage", () => {
       "data-label-chip",
       "neutral",
     );
-    expect(firstGroupButton).toHaveClass("transition-[background-color,border-color,color,box-shadow,transform]");
+    expect(firstGroupButton).toHaveClass("motion-disclosure-trigger");
     expect(firstGroupButton.className).toMatch(/rounded-(md|lg|xl)/);
     expect(secondGroupButton.className).toMatch(/rounded-(md|lg|xl)/);
     expect(firstGroupButton.style.borderColor).toBe("var(--subscriptions-list-divider)");
@@ -271,7 +271,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.getByRole("button", { name: /Loose Feed/ })).toBeInTheDocument();
     expect(within(detailPane).getByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
     expect(firstGroupPanel).toHaveAttribute("aria-hidden", "false");
-    expect(firstGroupPanel).toHaveClass("transition-[grid-template-rows,opacity,transform]");
+    expect(firstGroupPanel).toHaveClass("motion-disclosure-panel");
 
     await user.click(firstGroupButton);
 
@@ -383,6 +383,10 @@ describe("SubscriptionsIndexPage", () => {
         returnState: {
           activeSummaryFilter: "review",
           selectedFeedId: "feed-1",
+          expandedGroups: {},
+          listScrollTop: 0,
+          keptFeedIds: [],
+          deferredFeedIds: [],
         },
       },
     });

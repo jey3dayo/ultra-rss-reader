@@ -29,6 +29,7 @@ const baseArgs = {
   allCandidateCount: 3,
   bulkKeepVisibleLabel: "Keep all visible",
   bulkDeferVisibleLabel: "Defer all visible",
+  bulkDeleteVisibleLabel: "Delete visible",
   summaryCards: [
     { label: "Candidates", value: "2", caption: "feeds" },
     { label: "Review now", value: "1", caption: "high priority" },
@@ -91,6 +92,7 @@ function InteractiveOverviewPanel({ initialIntegrityMode }: { initialIntegrityMo
         }}
         onKeepVisible={() => {}}
         onDeferVisible={() => {}}
+        onDeleteVisible={() => {}}
       />
     </div>
   );
@@ -106,6 +108,7 @@ export const CleanupMode: Story = {
     onToggleShowDeferred: () => {},
     onKeepVisible: () => {},
     onDeferVisible: () => {},
+    onDeleteVisible: () => {},
   },
   render: (args) => <InteractiveOverviewPanel initialIntegrityMode={args.integrityMode} />,
 };
@@ -120,6 +123,7 @@ export const IntegrityMode: Story = {
     onToggleShowDeferred: () => {},
     onKeepVisible: () => {},
     onDeferVisible: () => {},
+    onDeleteVisible: () => {},
   },
   render: (args) => <InteractiveOverviewPanel initialIntegrityMode={args.integrityMode} />,
 };

@@ -1,4 +1,4 @@
-import { Check, Clock3 } from "lucide-react";
+import { Check, Clock3, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ControlChipButton } from "@/components/shared/control-chip-button";
 import { DecisionButton, denseDecisionButtonClassName } from "@/components/shared/decision-button";
@@ -14,6 +14,7 @@ export function FeedCleanupOverviewPanel({
   allCandidateCount,
   bulkKeepVisibleLabel,
   bulkDeferVisibleLabel,
+  bulkDeleteVisibleLabel,
   summaryCards,
   integrityMode,
   integrityDetailLabels,
@@ -27,6 +28,7 @@ export function FeedCleanupOverviewPanel({
   onToggleShowDeferred,
   onKeepVisible,
   onDeferVisible,
+  onDeleteVisible,
 }: FeedCleanupOverviewPanelProps) {
   const { t } = useTranslation("cleanup");
   const bulkActionsDisabled = visibleCandidateCount === 0;
@@ -157,6 +159,16 @@ export function FeedCleanupOverviewPanel({
                   >
                     <Clock3 className="h-4 w-4" />
                     {bulkDeferVisibleLabel}
+                  </DecisionButton>
+                  <DecisionButton
+                    intent="delete"
+                    aria-label={bulkDeleteVisibleLabel}
+                    onClick={onDeleteVisible}
+                    disabled={bulkActionsDisabled}
+                    className={denseDecisionButtonClassName}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {bulkDeleteVisibleLabel}
                   </DecisionButton>
                 </div>
               </div>

@@ -1,4 +1,5 @@
 import { ChevronDown } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { LabelChip } from "@/components/shared/label-chip";
 import { NavRowButton } from "@/components/shared/nav-row-button";
@@ -26,7 +27,9 @@ export function SubscriptionsListPane({
   formatUnreadCountLabel,
   formatLatestArticleLabel,
   isGroupExpanded,
+  initialScrollTop = 0,
   onSelectFeed,
+  onListScrollTopChange,
   onToggleGroup,
 }: {
   heading: string;
@@ -37,10 +40,28 @@ export function SubscriptionsListPane({
   formatUnreadCountLabel: (count: number) => string;
   formatLatestArticleLabel: (value: string | null) => string;
   isGroupExpanded: (groupKey: string) => boolean;
+  initialScrollTop?: number;
   onSelectFeed: (feedId: string) => void;
+  onListScrollTopChange?: (scrollTop: number) => void;
   onToggleGroup: (groupKey: string) => void;
 }) {
+  const scrollRegionRef = useRef<HTMLDivElement | null>(null);
+  const restoredScrollTopRef = useRef<number | null>(null);
   const hasRows = groups.some((group) => group.rows.length > 0);
+
+  useEffect(() => {
+    const scrollRegion = scrollRegionRef.current;
+    if (!scrollRegion) {
+      return;
+    }
+    if (restoredScrollTopRef.current === initialScrollTop) {
+      return;
+    }
+
+    scrollRegion.scrollTop = initialScrollTop;
+    restoredScrollTopRef.current = initialScrollTop;
+  }, [initialScrollTop]);
+
   return (
     <section
       className="flex flex-col rounded-md px-4 py-5 sm:px-5 sm:py-5 lg:min-h-0 lg:border-r lg:border-[color:var(--subscriptions-pane-divider)]"
@@ -54,7 +75,11 @@ export function SubscriptionsListPane({
           <LabelChip tone="neutral">{groups.reduce((count, group) => count + group.rows.length, 0)}</LabelChip>
         ) : null}
       </div>
-      <div className="space-y-5 pr-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+      <div
+        ref={scrollRegionRef}
+        className="space-y-5 pr-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
+        onScroll={(event) => onListScrollTopChange?.(event.currentTarget.scrollTop)}
+      >
         {!hasRows ? (
           <p className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground-soft">
             {emptyLabel}
@@ -74,7 +99,7 @@ export function SubscriptionsListPane({
                   aria-controls={groupBodyId}
                   onClick={() => onToggleGroup(group.key)}
                   className={cn(
-                    "flex w-full items-center justify-between rounded-md border px-3 py-2.5 text-left transition-[background-color,border-color,color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-px hover:bg-[color:var(--subscriptions-list-row-hover)] motion-reduce:transition-none",
+                    "motion-disclosure-trigger flex w-full items-center justify-between rounded-md border px-3 py-2.5 text-left hover:-translate-y-px hover:bg-[color:var(--subscriptions-list-row-hover)]",
                     expanded ? "shadow-none" : "shadow-[0_10px_28px_-24px_rgba(38,37,30,0.42)]",
                   )}
                   style={{
@@ -85,7 +110,7 @@ export function SubscriptionsListPane({
                   <span className="flex items-center gap-1.5">
                     <ChevronDown
                       className={cn(
-                        "h-3.5 w-3.5 text-foreground-soft transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                        "motion-disclosure-icon h-3.5 w-3.5 text-foreground-soft",
                         expanded ? "rotate-0" : "-rotate-90",
                       )}
                     />
@@ -97,18 +122,11 @@ export function SubscriptionsListPane({
                 </button>
                 <div
                   id={groupBodyId}
+                  data-state={expanded ? "open" : "closed"}
                   aria-hidden={expanded ? "false" : "true"}
-                  className={cn(
-                    "grid overflow-hidden transition-[grid-template-rows,opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-                    expanded ? "grid-rows-[1fr] opacity-100" : "pointer-events-none grid-rows-[0fr] opacity-0",
-                  )}
+                  className="motion-disclosure-panel"
                 >
-                  <div
-                    className={cn(
-                      "min-h-0 overflow-hidden transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-                      expanded ? "translate-y-0" : "-translate-y-2",
-                    )}
-                  >
+                  <div className="motion-disclosure-body">
                     <div className="space-y-1.5 pl-1 pt-2.5">
                       {group.rows.map((row) => (
                         <NavRowButton

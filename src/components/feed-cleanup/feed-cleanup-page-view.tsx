@@ -39,6 +39,7 @@ export function FeedCleanupPageView({
   allCandidateCount,
   bulkKeepVisibleLabel,
   bulkDeferVisibleLabel,
+  bulkDeleteVisibleLabel,
   queueLabel,
   bulkSelectionScopeLabel,
   bulkKeepActionLabel,
@@ -95,6 +96,7 @@ export function FeedCleanupPageView({
   onToggleShowDeferred,
   onKeepVisible,
   onDeferVisible,
+  onDeleteVisible,
   onSelectCandidate,
   onToggleCandidateSelection,
   onSelectIntegrityIssue,
@@ -103,9 +105,6 @@ export function FeedCleanupPageView({
   onKeepDecision,
   onDeferDecision,
   onDeleteDecision,
-  onKeepCandidate,
-  onDeferCandidate,
-  onDeleteCandidate,
   onSyncReviewToFocus,
   onEdit,
   selectedFeedIds,
@@ -346,6 +345,7 @@ export function FeedCleanupPageView({
           allCandidateCount={allCandidateCount}
           bulkKeepVisibleLabel={bulkKeepVisibleLabel}
           bulkDeferVisibleLabel={bulkDeferVisibleLabel}
+          bulkDeleteVisibleLabel={bulkDeleteVisibleLabel}
           summaryCards={summaryCards}
           integrityMode={integrityMode}
           integrityDetailLabels={integrityDetailLabels}
@@ -359,6 +359,7 @@ export function FeedCleanupPageView({
           onToggleShowDeferred={onToggleShowDeferred}
           onKeepVisible={onKeepVisible}
           onDeferVisible={onDeferVisible}
+          onDeleteVisible={onDeleteVisible}
         />
 
         <div data-testid="feed-cleanup-layout" className={mainLayoutClassName}>
@@ -395,9 +396,6 @@ export function FeedCleanupPageView({
             onKeepSelection={onKeepDecision}
             onDeferSelection={onDeferDecision}
             onDeleteSelection={onDeleteDecision}
-            onKeepCandidate={onKeepCandidate}
-            onDeferCandidate={onDeferCandidate}
-            onDeleteCandidate={onDeleteCandidate}
             unreadCountLabel={unreadCountLabel}
             starredCountLabel={starredCountLabel}
             deferredBadgeLabel={deferredBadgeLabel}
@@ -433,13 +431,7 @@ export function FeedCleanupPageView({
             editor={editor}
             reviewPanelClassName={reviewPanelClassName}
             editLabel={editLabel}
-            keepLabel={keepLabel}
-            laterLabel={laterLabel}
-            deleteLabel={deleteLabel}
             onEdit={onEdit}
-            onKeep={onKeepDecision}
-            onLater={onDeferDecision}
-            onDelete={onDeleteDecision}
             keyboardHints={keyboardHints}
           />
         </div>

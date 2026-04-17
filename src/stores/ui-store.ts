@@ -54,6 +54,10 @@ export type SubscriptionSummaryFilterState = "all" | "review" | "stale" | "broke
 export type SubscriptionsWorkspaceReturnState = {
   activeSummaryFilter: SubscriptionSummaryFilterState;
   selectedFeedId: string | null;
+  expandedGroups: Record<string, boolean>;
+  listScrollTop: number;
+  keptFeedIds: string[];
+  deferredFeedIds: string[];
 };
 export type FeedCleanupContext = {
   reason: FeedCleanupContextReason;

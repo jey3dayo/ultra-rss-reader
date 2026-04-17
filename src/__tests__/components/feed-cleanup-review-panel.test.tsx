@@ -107,13 +107,7 @@ function buildProps() {
     editor: null,
     reviewPanelClassName: "w-full",
     editLabel: "Edit Feed",
-    keepLabel: "Keep",
-    laterLabel: "Defer",
-    deleteLabel: "Delete",
     onEdit: () => {},
-    onKeep: () => {},
-    onLater: () => {},
-    onDelete: () => {},
   };
 }
 
@@ -140,40 +134,11 @@ describe("FeedCleanupReviewPanel", () => {
     expect(screen.getByRole("button", { name: "Edit Feed" })).toBeInTheDocument();
   });
 
-  it("shows review actions for the selected candidate", () => {
+  it("keeps the selected candidate panel focused on detail review and editing only", () => {
     render(<FeedCleanupReviewPanel {...buildProps()} />);
 
-    const actions = screen.getByTestId("feed-cleanup-review-actions");
-    expect(actions).toHaveClass("rounded-lg", "bg-card/36");
-    expect(actions).toHaveClass("grid", "grid-cols-3");
-    expect(actions).toHaveClass("px-4", "sm:px-5");
-    expect(within(actions).getByRole("button", { name: "Keep" })).toHaveClass(
-      "rounded-md",
-      "w-full",
-      "min-w-0",
-      "h-9",
-      "px-3",
-      "sm:px-3.5",
-      "border-state-success-border",
-      "bg-state-success-surface",
-      "shadow-none",
-    );
-    expect(within(actions).getByRole("button", { name: "Defer" })).toHaveClass(
-      "rounded-md",
-      "w-full",
-      "min-w-0",
-      "h-9",
-      "px-3",
-      "sm:px-3.5",
-    );
-    expect(within(actions).getByRole("button", { name: "Delete" })).toHaveClass(
-      "rounded-md",
-      "w-full",
-      "min-w-0",
-      "h-9",
-      "px-3",
-      "sm:px-3.5",
-    );
+    expect(screen.queryByTestId("feed-cleanup-review-actions")).toBeNull();
+    expect(screen.getByRole("button", { name: "Edit Feed" })).toBeInTheDocument();
   });
 
   it("shows the no-selection message when nothing is selected", () => {

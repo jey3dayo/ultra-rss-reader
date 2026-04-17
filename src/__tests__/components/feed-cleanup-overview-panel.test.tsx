@@ -12,6 +12,7 @@ function buildProps() {
     allCandidateCount: 3,
     bulkKeepVisibleLabel: "Keep all visible",
     bulkDeferVisibleLabel: "Defer all visible",
+    bulkDeleteVisibleLabel: "Delete visible",
     summaryCards: [
       { label: "Pending", value: "3", caption: "Needs review" },
       { label: "Done", value: "1", caption: "Already decided" },
@@ -47,6 +48,7 @@ function buildProps() {
     onToggleShowDeferred: vi.fn(),
     onKeepVisible: vi.fn(),
     onDeferVisible: vi.fn(),
+    onDeleteVisible: vi.fn(),
   };
 }
 
@@ -76,6 +78,13 @@ describe("FeedCleanupOverviewPanel", () => {
       "sm:px-3.5",
     );
     expect(within(bulkActions).getByRole("button", { name: "Defer all visible" })).toHaveClass(
+      "rounded-md",
+      "min-w-[7.5rem]",
+      "h-7",
+      "px-3",
+      "sm:px-3.5",
+    );
+    expect(within(bulkActions).getByRole("button", { name: "Delete visible" })).toHaveClass(
       "rounded-md",
       "min-w-[7.5rem]",
       "h-7",
@@ -124,9 +133,11 @@ describe("FeedCleanupOverviewPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "Keep all visible" }));
     await user.click(screen.getByRole("button", { name: "Defer all visible" }));
+    await user.click(screen.getByRole("button", { name: "Delete visible" }));
 
     expect(props.onKeepVisible).toHaveBeenCalledTimes(1);
     expect(props.onDeferVisible).toHaveBeenCalledTimes(1);
+    expect(props.onDeleteVisible).toHaveBeenCalledTimes(1);
   });
 
   it("hides bulk visible actions in integrity mode", () => {
@@ -137,6 +148,7 @@ describe("FeedCleanupOverviewPanel", () => {
     ).toHaveClass("border-state-warning-border", "bg-state-warning-surface", "text-state-warning-foreground");
     expect(screen.queryByRole("button", { name: "Keep all visible" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Defer all visible" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Delete visible" })).toBeNull();
   });
 
   it("keeps bulk visible actions mounted but disabled when no candidates are visible", () => {
@@ -146,5 +158,6 @@ describe("FeedCleanupOverviewPanel", () => {
     expect(screen.getByText("0 visible")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Keep all visible" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Defer all visible" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Delete visible" })).toBeDisabled();
   });
 });

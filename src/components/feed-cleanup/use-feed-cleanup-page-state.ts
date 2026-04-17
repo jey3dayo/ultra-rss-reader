@@ -10,11 +10,13 @@ import type {
   FeedCleanupPageState,
 } from "./feed-cleanup.types";
 
-function createInitialState(): FeedCleanupPageState {
+function createInitialState(workspace?: FeedCleanupPageInput["subscriptionsWorkspace"]): FeedCleanupPageState {
+  const returnState = workspace?.kind === "cleanup" ? workspace.cleanupContext?.returnState : undefined;
+
   return {
     activeFilters: new Set(),
-    keptFeedIds: new Set(),
-    deferredFeedIds: new Set(),
+    keptFeedIds: new Set(returnState?.keptFeedIds ?? []),
+    deferredFeedIds: new Set(returnState?.deferredFeedIds ?? []),
     showDeferred: false,
     selectedFeedId: null,
     focusedFeedId: null,
@@ -183,22 +185,8 @@ function candidateMatchesFilters(candidate: FeedCleanupCandidate, activeFilters:
   return [...activeFilters].every((filter) => candidate.reasonKeys.includes(filter));
 }
 
-function resolveDecisionTargetIds(
-  state: Pick<FeedCleanupPageState, "focusedFeedId" | "selectedFeedId" | "selectedFeedIds">,
-) {
-  if (state.selectedFeedIds.size > 0) {
-    return [...state.selectedFeedIds];
-  }
-
-  if (state.focusedFeedId) {
-    return [state.focusedFeedId];
-  }
-
-  if (state.selectedFeedId) {
-    return [state.selectedFeedId];
-  }
-
-  return [];
+function resolveDecisionTargetIds(state: Pick<FeedCleanupPageState, "selectedFeedIds">) {
+  return [...state.selectedFeedIds];
 }
 
 export function useFeedCleanupPageState({
@@ -209,7 +197,7 @@ export function useFeedCleanupPageState({
   accountArticles,
   integrityReport,
 }: FeedCleanupPageInput) {
-  const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
+  const [state, dispatch] = useReducer(reducer, subscriptionsWorkspace, createInitialState);
   const cleanupWorkspaceOpen = subscriptionsWorkspace?.kind === "cleanup";
   const scopedFeedIds = useMemo(() => {
     if (subscriptionsWorkspace?.kind !== "cleanup") {
@@ -417,6 +405,8 @@ export function useFeedCleanupPageState({
     activeFilters: state.activeFilters,
     filterCounts,
     allCandidateCount: allCandidates.length,
+    keptFeedIds: state.keptFeedIds,
+    deferredFeedIds: state.deferredFeedIds,
     showDeferred: state.showDeferred,
     visibleCandidates,
     selectedCandidate,
@@ -473,6 +463,12 @@ export function useFeedCleanupPageState({
     },
     requestDeleteForDecisionTargets: () => {
       dispatch({ type: "set-delete-target-ids", feedIds: decisionTargetIds });
+    },
+    requestDeleteForVisibleCandidates: () => {
+      dispatch({
+        type: "set-delete-target-ids",
+        feedIds: visibleCandidates.map((candidate) => candidate.feedId),
+      });
     },
     requestDeleteForCandidate: (feedId: string) => {
       dispatch({ type: "set-focused-feed-id", feedId });
