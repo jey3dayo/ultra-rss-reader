@@ -29,6 +29,16 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
+export const ClickToSpin: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: "Click the sync button to preview the one-second accepted-spin feedback.",
+      },
+    },
+  },
+};
+
 export const Syncing: Story = {
   args: {
     isSyncing: true,
@@ -36,6 +46,13 @@ export const Syncing: Story = {
 };
 
 export const CooldownTooltip: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: "Cooldown preview only. The button stays hoverable for tooltip feedback, but it does not spin.",
+      },
+    },
+  },
   args: {
     syncTooltipLabel: "Sync available in 15s",
     isSyncCoolingDown: true,
