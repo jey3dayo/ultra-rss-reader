@@ -158,7 +158,7 @@ export function WorkspaceHeader({
             />
           ) : null}
           {isDesktopApp ? (
-            <div className="relative z-20">
+            <div className={cn("relative z-20", useDesktopOverlay && "pointer-events-none")}>
               <div
                 data-testid="workspace-header-context-row"
                 className={cn(
@@ -178,13 +178,20 @@ export function WorkspaceHeader({
           {isDesktopApp ? (
             <div
               data-testid="workspace-header-navigation-row"
-              className="relative z-20 flex min-w-0 items-center gap-2.5"
+              className={cn(
+                "relative z-20 flex min-w-0 items-center gap-2.5",
+                useDesktopOverlay && "pointer-events-none",
+              )}
             >
               {hasBackAction ? (
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className={cn(`${workspaceHeaderActionClassName} w-7 justify-center px-0`, "relative z-30")}
+                  className={cn(
+                    `${workspaceHeaderActionClassName} w-7 justify-center px-0`,
+                    "relative z-30",
+                    useDesktopOverlay && "pointer-events-auto",
+                  )}
                   style={{ backgroundColor: "var(--workspace-header-action-surface)" }}
                   aria-label={backLabel}
                   onClick={onBack}
@@ -212,7 +219,7 @@ export function WorkspaceHeader({
               {title}
             </h1>
           )}
-          <div className="relative z-20">
+          <div className={cn("relative z-20", useDesktopOverlay && "pointer-events-none")}>
             <p
               data-testid="workspace-header-subtitle-content"
               data-motion-phase={contentMotionPhase}
