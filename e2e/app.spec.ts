@@ -3,6 +3,26 @@ import { expect, test } from "@playwright/test";
 const starredSmartViewButtonName = /^(starred|スター)(\s+\d+)?$/i;
 const unreadSmartViewButtonName = /^(unread|未読)(\s+\d+)?$/i;
 
+async function openFeedCleanup(page: Parameters<(typeof test)["beforeEach"]>[0]["page"]) {
+  const showSidebarButton = page.getByRole("button", { name: /Show sidebar|サイドバーを表示/i });
+  if (await showSidebarButton.isVisible().catch(() => false)) {
+    await showSidebarButton.click();
+  }
+
+  const manageSubscriptionsButton = page.getByRole("button", { name: /Manage Subscriptions|購読を管理/i });
+  await manageSubscriptionsButton.waitFor({ state: "visible" });
+  await manageSubscriptionsButton.click();
+
+  await expect(
+    page.getByTestId("workspace-header-navigation-row").getByRole("heading", { name: /Subscriptions|購読一覧/i }),
+  ).toBeVisible();
+
+  const reviewFlaggedButton = page.getByRole("button", { name: /Review flagged subscriptions|整理へ|要確認を見る/i });
+  await reviewFlaggedButton.first().click();
+
+  await expect(page.getByRole("heading", { name: /Review Subscriptions|購読の整理/i })).toBeVisible();
+}
+
 test.describe("Ultra RSS Reader - basic rendering", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
@@ -102,7 +122,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await page.setViewportSize({ width: 1024, height: 900 });
     await page.goto("/");
 
-    await page.getByRole("button", { name: /Review Subscriptions|購読の整理/i }).click();
+    await openFeedCleanup(page);
 
     await expect(page.getByRole("heading", { name: /Review Subscriptions|購読の整理/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /Overview|概要/i })).toBeVisible();
@@ -127,11 +147,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await page.setViewportSize({ width: 639, height: 900 });
     await page.goto("/");
 
-    await page.getByRole("button", { name: /Show sidebar|サイドバーを表示/i }).click();
-
-    const feedCleanupButton = page.getByRole("button", { name: /Review Subscriptions|購読の整理/i });
-    await feedCleanupButton.scrollIntoViewIfNeeded();
-    await feedCleanupButton.click();
+    await openFeedCleanup(page);
 
     const keepAllVisibleButton = page.getByRole("button", { name: /Keep all visible|表示中をまとめて継続/i });
     const queueHeading = page.getByRole("heading", { name: /Cleanup Queue|整理キュー/i });
@@ -156,7 +172,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await page.setViewportSize({ width: 1024, height: 900 });
     await page.goto("/");
 
-    await page.getByRole("button", { name: /Review Subscriptions|購読の整理/i }).click();
+    await openFeedCleanup(page);
     await expect(page.getByRole("heading", { name: /Cleanup Queue|整理キュー/i })).toBeVisible();
 
     const firstRow = page.locator('[data-testid^="feed-cleanup-queue-row-"]').first();
@@ -180,11 +196,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await page.setViewportSize({ width: 639, height: 900 });
     await page.goto("/");
 
-    await page.getByRole("button", { name: /Show sidebar|サイドバーを表示/i }).click();
-
-    const feedCleanupButton = page.getByRole("button", { name: /Review Subscriptions|購読の整理/i });
-    await feedCleanupButton.scrollIntoViewIfNeeded();
-    await feedCleanupButton.click();
+    await openFeedCleanup(page);
 
     const firstRow = page.locator('[data-testid^="feed-cleanup-queue-row-"]').first();
     const firstCheckbox = page.getByRole("checkbox").first();
@@ -207,7 +219,7 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await page.setViewportSize({ width: 1024, height: 900 });
     await page.goto("/");
 
-    await page.getByRole("button", { name: /Review Subscriptions|購読の整理/i }).click();
+    await openFeedCleanup(page);
     await expect(page.getByRole("heading", { name: /Cleanup Queue|整理キュー/i })).toBeVisible();
 
     const selectionRail = page.getByTestId("feed-cleanup-selection-rail");
