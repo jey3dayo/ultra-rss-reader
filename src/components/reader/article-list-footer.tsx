@@ -20,7 +20,8 @@ const FILTER_TONE_STYLES = {
       "text-foreground-soft hover:text-[var(--semantic-tone-unread-content-foreground)] data-[pressed]:bg-[var(--semantic-tone-unread-surface)] data-[pressed]:text-[var(--semantic-tone-unread-content-foreground)]",
   },
   all: {
-    button: "text-foreground-soft hover:text-foreground data-[pressed]:bg-surface-1/72 data-[pressed]:text-foreground",
+    button:
+      "text-foreground-soft hover:text-foreground data-[pressed]:bg-surface-4 data-[pressed]:text-foreground data-[pressed]:shadow-[var(--control-chip-pressed-shadow)]",
   },
   starred: {
     button:
