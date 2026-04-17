@@ -131,7 +131,7 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("max-h-[860px]");
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("max-w-[980px]");
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("bg-popover");
-    expect(screen.getByTestId("settings-modal-surface")).toHaveClass("rounded-xl");
+    expect(screen.getByTestId("settings-modal-surface")).toHaveClass("rounded-2xl");
     expect(screen.getByTestId("settings-modal-surface")).toHaveClass("shadow-elevation-3");
     expect(screen.getByTestId("settings-nav-shell")).not.toHaveClass("rounded-xl");
     expect(screen.getByTestId("settings-content-shell")).not.toHaveClass("rounded-xl");
@@ -148,6 +148,8 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("px-3");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("py-3");
     expect(screen.getByTestId("settings-accounts-section")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("settings-accounts-section")).toHaveClass("border-border/60");
+    expect(screen.getByTestId("settings-accounts-section")).toHaveClass("shadow-none");
     expect(screen.getByTestId("settings-accounts-section")).toHaveStyle({
       backgroundColor: "var(--settings-shell-account-surface)",
     });
@@ -177,6 +179,8 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("rounded-md");
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("max-h-[5.5rem]");
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("overflow-y-auto");
+    expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("border-border/60");
+    expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("shadow-none");
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveStyle({
       backgroundColor: "var(--settings-shell-account-surface)",
     });

@@ -110,7 +110,7 @@ export function SettingsModalView({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         data-testid="settings-modal-surface"
-        className="flex h-[88vh] max-h-[860px] max-w-[980px] flex-col gap-0 overflow-hidden rounded-xl border border-border/70 bg-popover p-0 shadow-elevation-3 sm:flex-row sm:max-w-[980px]"
+        className="flex h-[88vh] max-h-[860px] max-w-[980px] flex-col gap-0 overflow-hidden rounded-2xl border border-border/70 bg-popover p-0 shadow-elevation-3 sm:flex-row sm:max-w-[980px]"
         overlayPreset="readable"
         showCloseButton={false}
       >
@@ -156,7 +156,7 @@ export function SettingsModalView({
               {navigation}
               <div
                 data-testid="settings-mobile-accounts-section"
-                className="mx-3 mb-3 max-h-[5.5rem] overflow-y-auto rounded-md border border-border/70 px-3 py-2.5 shadow-elevation-1 sm:hidden"
+                className="mx-3 mb-3 max-h-[5.5rem] overflow-y-auto rounded-md border border-border/60 px-3 py-2.5 shadow-none sm:hidden"
                 style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
               >
                 {accountsHeading ? <p className={SHELL_SECTION_LABEL_CLASS}>{accountsHeading}</p> : null}
@@ -175,7 +175,7 @@ export function SettingsModalView({
 
           <div
             data-testid="settings-accounts-section"
-            className="mx-3 mb-3 hidden rounded-md border border-border/70 px-3 py-3 shadow-elevation-1 sm:block"
+            className="mx-3 mb-3 hidden rounded-md border border-border/60 px-3 py-3 shadow-none sm:block"
             style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
           >
             {accountsHeading ? <p className={SHELL_SECTION_LABEL_CLASS}>{accountsHeading}</p> : null}
