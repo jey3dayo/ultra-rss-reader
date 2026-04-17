@@ -135,14 +135,14 @@ export function FeedCleanupQueuePanel({
                   </span>
                   <span>{selectionRailActive ? selectedCountLabel : bulkSelectionScopeLabel}</span>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                <div className="flex flex-wrap items-center gap-2 sm:grid sm:w-full sm:grid-cols-3 lg:w-auto lg:min-w-[24rem]">
                   <DecisionButton
                     intent="keep"
                     aria-label={bulkKeepActionLabel}
                     size="lg"
                     onClick={onKeepSelection}
                     disabled={!selectionRailActive}
-                    className={denseDecisionButtonClassName}
+                    className="min-w-0"
                   >
                     <Check className="h-4 w-4" />
                     {keepLabel}
@@ -153,7 +153,7 @@ export function FeedCleanupQueuePanel({
                     size="lg"
                     onClick={onDeferSelection}
                     disabled={!selectionRailActive}
-                    className={denseDecisionButtonClassName}
+                    className="min-w-0"
                   >
                     <Clock3 className="h-4 w-4" />
                     {deferredLabel}
@@ -164,7 +164,7 @@ export function FeedCleanupQueuePanel({
                     size="lg"
                     onClick={onDeleteSelection}
                     disabled={!selectionRailActive}
-                    className={denseDecisionButtonClassName}
+                    className="min-w-0"
                   >
                     <Trash2 className="h-4 w-4" />
                     {deleteLabel}
