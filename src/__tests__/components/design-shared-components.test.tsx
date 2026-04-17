@@ -91,12 +91,17 @@ describe("Design-themed shared components", () => {
       </>,
     );
 
-    expect(screen.getByRole("button", { name: "General settings" })).toHaveClass("hover:bg-surface-2");
+    expect(screen.getByRole("button", { name: "General settings" })).toHaveClass(
+      "motion-interactive-surface",
+      "hover:bg-surface-2",
+    );
     expect(screen.getByRole("button", { name: "Unread" })).toHaveClass(
+      "motion-interactive-surface",
       "bg-surface-2/88",
       "border-border/70",
       "data-[pressed]:bg-surface-4",
       "data-[pressed]:border-border-strong",
+      "data-[pressed]:shadow-[var(--control-chip-pressed-shadow)]",
     );
     expect(screen.getByText("Muted chip")).toHaveAttribute("data-label-chip", "muted");
     expect(screen.getByText("Muted chip")).toHaveClass("text-foreground-soft");

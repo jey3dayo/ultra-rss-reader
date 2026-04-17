@@ -94,7 +94,13 @@ describe("IconToolbarControl", () => {
     );
 
     const menuTrigger = screen.getByRole("button", { name: "Share" });
-    expect(menuTrigger).toHaveClass("size-11", "md:size-8", "rounded-md", "text-foreground-soft");
+    expect(menuTrigger).toHaveClass(
+      "motion-interactive-surface",
+      "size-11",
+      "md:size-8",
+      "rounded-md",
+      "text-foreground-soft",
+    );
     expect(menuTrigger).not.toHaveClass("text-muted-foreground");
 
     await user.click(menuTrigger);
@@ -105,12 +111,14 @@ describe("IconToolbarControl", () => {
   it("exports overlay-safe toolbar classes that preserve shared sizing and rounded corners", () => {
     expect(iconToolbarSurfaceButtonClassName).toContain("size-11");
     expect(iconToolbarSurfaceButtonClassName).toContain("md:size-8");
+    expect(iconToolbarSurfaceButtonClassName).toContain("motion-interactive-surface");
     expect(iconToolbarSurfaceButtonClassName).toContain("rounded-lg");
     expect(iconToolbarSurfaceButtonClassName).toContain("text-inherit");
     expect(iconToolbarSurfaceButtonClassName).toContain("disabled:opacity-100");
     expect(iconToolbarSurfaceButtonClassName).toContain("disabled:text-foreground-soft");
     expect(iconToolbarSurfaceControlVariants({ pressedTone: "accent" })).toContain("data-[pressed]:text-primary");
     expect(iconToolbarSurfaceLabelButtonClassName).toContain("rounded-lg");
+    expect(iconToolbarSurfaceLabelButtonClassName).toContain("motion-interactive-surface");
     expect(iconToolbarSurfaceLabelButtonClassName).toContain("text-inherit");
     expect(iconToolbarSurfaceLabelButtonClassName).toContain("disabled:text-foreground-soft");
   });
@@ -130,7 +138,7 @@ describe("IconToolbarControl", () => {
     const button = screen.getByRole("button", { name: "Close Web Preview" });
     const surface = button.closest("[data-overlay-shell='action']");
 
-    expect(surface).toHaveClass("rounded-lg", "size-11", "md:size-8");
+    expect(surface).toHaveClass("motion-pressable-surface", "rounded-lg", "size-11", "md:size-8");
     expect(button).toHaveClass("rounded-lg");
 
     await user.click(button);

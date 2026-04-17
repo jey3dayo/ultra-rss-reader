@@ -22,6 +22,7 @@ describe("Design-themed UI primitives", () => {
     );
 
     expect(screen.getByRole("button", { name: "Primary" })).toHaveClass("bg-surface-3", "shadow-elevation-1");
+    expect(screen.getByRole("button", { name: "Primary" })).toHaveClass("motion-button-surface");
     expect(screen.getByRole("button", { name: "Primary" })).toHaveClass("rounded-md");
     expect(screen.getByRole("button", { name: "Outline" })).toHaveClass("bg-surface-1", "border-border-strong");
     expect(screen.getByRole("button", { name: "Outline" })).toHaveClass("rounded-md");

@@ -201,6 +201,7 @@
   --subscriptions-summary-active-ring-stale: color-mix(in srgb, var(--color-state-warning-border) 45%, transparent);
   --subscriptions-summary-active-ring-danger: color-mix(in srgb, var(--color-state-danger-border) 50%, transparent);
   --subscriptions-summary-active-chip-shadow: 0 0 0 1px rgba(38, 37, 30, 0.08);
+  --control-chip-pressed-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 60%, transparent);
   --subscriptions-workspace-surface: rgba(247, 247, 244, 0.58);
   --subscriptions-workspace-shadow: 0 14px 34px -30px rgba(38, 37, 30, 0.14);
   --subscriptions-pane-divider: rgba(38, 37, 30, 0.08);
@@ -222,8 +223,12 @@
   --state-success-border: rgba(16, 185, 129, 0.2);
   --state-success-foreground: rgb(6, 95, 70);
   --tone-unread: #9fbbe0;
+  --tone-unread-border: color-mix(in srgb, var(--tone-unread) 88%, transparent);
+  --tone-unread-shadow: 0 0 0 1px color-mix(in srgb, var(--tone-unread) 45%, transparent);
   --tone-loading: #9fbbe0;
   --tone-starred: #facc15;
+  --tag-color-selected-shadow: 0 0 0 1px rgba(242, 241, 237, 0.88), 0 0 0 3px rgba(245, 78, 0, 0.16);
+  --tag-color-check-shadow: 0 1px 2px rgba(38, 37, 30, 0.45);
   --tone-foreground-strength: 72%;
   --tone-surface-strength: 18%;
   --state-review-surface: rgba(245, 78, 0, 0.08);
@@ -247,9 +252,11 @@
   --sidebar-selection-background: color-mix(in srgb, var(--surface-4) 76%, var(--background));
   --sidebar-selection-foreground: var(--foreground);
   --sidebar-selection-border: color-mix(in srgb, var(--foreground) 14%, transparent);
+  --sidebar-selection-shadow: inset 0 0 0 1px var(--sidebar-selection-border);
   --sidebar-selection-muted: color-mix(in srgb, var(--foreground) 72%, transparent);
   --sidebar-divider-strong: color-mix(in srgb, var(--foreground) 18%, transparent);
   --reader-context-border: color-mix(in srgb, var(--foreground) 14%, transparent);
+  --sidebar-selection-inset-shadow: inset 0 0 0 1px var(--color-sidebar-border);
   --bg-sidebar: #ebeae5;
   --bg-list: #f7f7f4;
   --bg-content: #f2f1ed;
@@ -369,12 +376,9 @@
   --subscriptions-list-row-hover: rgba(45, 40, 34, 0.5);
   --subscriptions-list-row-selected-surface: rgba(42, 37, 31, 0.72);
   --subscriptions-list-row-selected-border: rgba(243, 239, 230, 0.12);
-  --subscriptions-summary-card-shadow: 0 14px 34px -28px rgba(0, 0, 0, 0.28);
-  --subscriptions-workspace-surface: rgba(34, 30, 25, 0.5);
-  --subscriptions-workspace-shadow: 0 16px 38px -34px rgba(0, 0, 0, 0.24);
   --subscriptions-list-row-selected-shadow: 0 8px 20px -18px rgba(0, 0, 0, 0.34);
   --subscriptions-list-group-collapsed-shadow: 0 10px 28px -24px rgba(0, 0, 0, 0.48);
-  --subscriptions-pane-divider: rgba(243, 239, 230, 0.08);
+  --subscriptions-summary-card-shadow: 0 14px 34px -28px rgba(0, 0, 0, 0.28);
   --subscriptions-summary-active-shadow-neutral:
     0 0 0 1px rgba(243, 239, 230, 0.14), 0 18px 38px -24px rgba(0, 0, 0, 0.4);
   --subscriptions-summary-active-shadow-review: 0 0 0 1px rgba(245, 78, 0, 0.22), 0 20px 42px -24px rgba(0, 0, 0, 0.48);
@@ -387,6 +391,10 @@
   --subscriptions-summary-active-ring-stale: color-mix(in srgb, var(--color-state-warning-border) 45%, transparent);
   --subscriptions-summary-active-ring-danger: color-mix(in srgb, var(--color-state-danger-border) 50%, transparent);
   --subscriptions-summary-active-chip-shadow: 0 0 0 1px rgba(243, 239, 230, 0.08);
+  --control-chip-pressed-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 60%, transparent);
+  --subscriptions-workspace-surface: rgba(34, 30, 25, 0.5);
+  --subscriptions-workspace-shadow: 0 16px 38px -34px rgba(0, 0, 0, 0.24);
+  --subscriptions-pane-divider: rgba(243, 239, 230, 0.08);
   --subscriptions-list-group-surface: rgba(34, 30, 25, 0.62);
   --cleanup-summary-surface: rgba(28, 25, 21, 0.84);
   --cleanup-dialog-surface: rgba(28, 25, 21, 0.95);
@@ -405,8 +413,12 @@
   --state-success-border: rgba(16, 185, 129, 0.24);
   --state-success-foreground: rgb(167, 243, 208);
   --tone-unread: #9fbbe0;
+  --tone-unread-border: color-mix(in srgb, var(--tone-unread) 88%, transparent);
+  --tone-unread-shadow: 0 0 0 1px color-mix(in srgb, var(--tone-unread) 45%, transparent);
   --tone-loading: #9fbbe0;
   --tone-starred: #facc15;
+  --tag-color-selected-shadow: 0 0 0 1px rgba(34, 30, 25, 0.92), 0 0 0 3px rgba(245, 78, 0, 0.22);
+  --tag-color-check-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
   --tone-foreground-strength: 78%;
   --tone-surface-strength: 22%;
   --state-review-surface: rgba(245, 78, 0, 0.14);
@@ -430,9 +442,11 @@
   --sidebar-selection-background: color-mix(in srgb, var(--surface-4) 84%, var(--background));
   --sidebar-selection-foreground: var(--foreground);
   --sidebar-selection-border: color-mix(in srgb, var(--foreground) 16%, transparent);
+  --sidebar-selection-shadow: inset 0 0 0 1px var(--sidebar-selection-border);
   --sidebar-selection-muted: color-mix(in srgb, var(--foreground) 72%, transparent);
   --sidebar-divider-strong: color-mix(in srgb, var(--foreground) 18%, transparent);
   --reader-context-border: color-mix(in srgb, var(--foreground) 16%, transparent);
+  --sidebar-selection-inset-shadow: inset 0 0 0 1px var(--color-sidebar-border);
   --bg-sidebar: #171410;
   --bg-list: #221e19;
   --bg-content: #1c1915;
@@ -541,6 +555,40 @@ body {
   transition: transform var(--motion-duration-disclosure) var(--motion-ease-standard);
 }
 
+.motion-interactive-surface {
+  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-duration: var(--motion-duration-disclosure);
+  transition-timing-function: var(--motion-ease-standard);
+}
+
+.motion-interactive-surface:hover {
+  transform: translateY(-1px);
+}
+
+.motion-interactive-surface:active {
+  transform: translateY(0);
+}
+
+.motion-pressable-surface {
+  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-duration: var(--motion-duration-popup);
+  transition-timing-function: var(--motion-ease-standard);
+}
+
+.motion-pressable-surface:active {
+  transform: scale(0.97);
+}
+
+.motion-button-surface {
+  transition-property: color, background-color, border-color, opacity, box-shadow, transform;
+  transition-duration: var(--motion-duration-disclosure);
+  transition-timing-function: var(--motion-ease-standard);
+}
+
+.motion-button-surface:active:not([aria-haspopup]) {
+  transform: translateY(1px);
+}
+
 .motion-popup-overlay {
   transition: opacity var(--motion-duration-popup) var(--motion-ease-standard);
 }
@@ -594,6 +642,9 @@ body {
   .motion-disclosure-body,
   .motion-disclosure-trigger,
   .motion-disclosure-icon,
+  .motion-interactive-surface,
+  .motion-pressable-surface,
+  .motion-button-surface,
   .motion-popup-overlay,
   .motion-popup-dialog,
   .motion-popup-surface {
@@ -607,6 +658,11 @@ body {
 
   .motion-disclosure-trigger:hover,
   .motion-disclosure-trigger:active,
+  .motion-interactive-surface:hover,
+  .motion-interactive-surface:active,
+  .motion-interactive-surface:focus-visible,
+  .motion-pressable-surface:active,
+  .motion-button-surface:active:not([aria-haspopup]),
   .motion-disclosure-trigger:focus-visible {
     transform: none;
   }

@@ -107,8 +107,8 @@ export function FeedDetailPanel({
   secondaryAction,
 }: FeedDetailPanelProps) {
   return (
-    <FeedCleanupCard className="border-border/65 bg-card/38 shadow-none">
-      <div className="space-y-4.5">
+    <FeedCleanupCard data-feed-detail-panel="" className="border-border/65 bg-card/38 shadow-none">
+      <div className="space-y-5">
         <div className={cn("grid items-start gap-3", leadingVisual ? "grid-cols-[auto_minmax(0,1fr)]" : "grid-cols-1")}>
           {leadingVisual ? (
             <div
@@ -137,7 +137,7 @@ export function FeedDetailPanel({
           </div>
         </div>
 
-        <div data-testid="feed-detail-secondary-column" className="space-y-3">
+        <div data-testid="feed-detail-secondary-column" className="space-y-3.5">
           {badgeLabel ? (
             <LabelChip
               data-testid="feed-detail-status"

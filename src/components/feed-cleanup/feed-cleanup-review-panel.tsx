@@ -50,7 +50,7 @@ export function FeedCleanupReviewPanel({
   return (
     <section
       data-testid="feed-cleanup-review-panel"
-      className={cn("typography-lane-cleanup-review flex min-h-0 flex-col px-4 py-4 sm:px-6", reviewPanelClassName)}
+      className={cn("typography-lane-cleanup-review flex min-h-0 flex-col px-4 py-3.5 sm:px-6", reviewPanelClassName)}
       style={{ backgroundColor: "var(--cleanup-review-surface)" }}
     >
       <h3 className="sr-only">{reviewLabel}</h3>

@@ -33,7 +33,7 @@ describe("ArticleListFooter", () => {
     expect(unreadIcon).not.toBeNull();
     expect(unreadIcon).toHaveClass("bg-[var(--tone-unread)]");
     expect(unreadIcon).toHaveClass("text-[var(--tone-unread)]");
-    expect(unreadIcon).toHaveClass("border-[color-mix(in_srgb,var(--tone-unread)_88%,transparent)]");
+    expect(unreadIcon).toHaveClass("border-[var(--tone-unread-border)]");
 
     expect(starredIcon).not.toBeNull();
     expect(starredIcon).not.toHaveClass("text-[var(--tone-starred)]");

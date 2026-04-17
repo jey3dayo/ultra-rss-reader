@@ -35,6 +35,9 @@ describe("FeedDetailPanel", () => {
     );
 
     expect(screen.getByTestId("detail-leading-visual")).toBeInTheDocument();
+    const panelBody = screen.getByTestId("feed-detail-leading-visual").closest('[data-surface-card="section"]')?.firstElementChild;
+    expect(panelBody).not.toBeNull();
+    expect(panelBody).toHaveClass("space-y-5");
     expect(screen.getByTestId("feed-detail-leading-visual")).toHaveClass(
       "h-10",
       "w-10",

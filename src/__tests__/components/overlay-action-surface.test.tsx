@@ -30,8 +30,9 @@ describe("OverlayActionSurface", () => {
     expect(compact).toHaveClass("rounded-lg");
     expect(compact).toHaveClass("bg-overlay-action-surface");
     expect(compact).toHaveClass("size-11");
+    expect(compact).toHaveClass("motion-pressable-surface");
     expect(compact.className).toContain("has-[:focus-visible]:ring-2");
-    expect(compact.className).toContain("has-[:active]:scale-[0.97]");
+    expect(compact.className).not.toContain("has-[:active]:scale-[0.97]");
     expect(compact.className).not.toContain("focus-visible:ring-2");
     expect(compact.className).not.toContain("active:scale-[0.97]");
     expect(compact.className).not.toContain("button:");

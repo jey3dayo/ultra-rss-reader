@@ -9,10 +9,10 @@ export function UnreadIcon({ unread, forceTone = false, tone = "state", classNam
     <span
       className={cn(
         "inline-block shrink-0 rounded-full",
-        showSemanticTone && "text-[var(--tone-unread)] border-[color-mix(in_srgb,var(--tone-unread)_88%,transparent)]",
+        showSemanticTone && "text-[var(--tone-unread)] border-[var(--tone-unread-border)]",
         unread
           ? showSemanticTone
-            ? "bg-[var(--tone-unread)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--tone-unread)_45%,transparent)]"
+            ? "bg-[var(--tone-unread)] shadow-[var(--tone-unread-shadow)]"
             : "border-2 border-current/85"
           : forceTone
             ? tone === "state"

@@ -4,7 +4,7 @@ import type { HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 const overlayActionSurfaceVariants = cva(
-  "pointer-events-auto rounded-lg text-foreground backdrop-blur-md transition-[background-color,border-color,color,box-shadow,transform] duration-150",
+  "motion-pressable-surface pointer-events-auto rounded-lg text-foreground backdrop-blur-md",
   {
     variants: {
       compact: {
@@ -13,9 +13,9 @@ const overlayActionSurfaceVariants = cva(
       },
       variant: {
         default:
-          "border border-border/75 bg-overlay-action-surface shadow-elevation-2 hover:border-border-strong hover:bg-overlay-action-surface-hover hover:text-foreground has-[:focus-visible]:border-border-strong has-[:focus-visible]:bg-overlay-action-surface-focus has-[:focus-visible]:text-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/70 has-[:focus-visible]:ring-offset-0 has-[:active]:scale-[0.97] has-[:active]:border-border-strong has-[:active]:bg-overlay-action-surface-hover has-[:active]:shadow-elevation-1",
+          "border border-border/75 bg-overlay-action-surface shadow-elevation-2 hover:border-border-strong hover:bg-overlay-action-surface-hover hover:text-foreground has-[:focus-visible]:border-border-strong has-[:focus-visible]:bg-overlay-action-surface-focus has-[:focus-visible]:text-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/70 has-[:focus-visible]:ring-offset-0 has-[:active]:border-border-strong has-[:active]:bg-overlay-action-surface-hover has-[:active]:shadow-elevation-1",
         chrome:
-          "border border-transparent bg-transparent shadow-none hover:border-transparent hover:bg-overlay-action-surface-chrome-hover hover:text-foreground has-[:focus-visible]:border-transparent has-[:focus-visible]:bg-overlay-action-surface-chrome-hover has-[:focus-visible]:text-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/60 has-[:focus-visible]:ring-offset-0 has-[:active]:scale-[0.97] has-[:active]:border-transparent has-[:active]:bg-overlay-action-surface-chrome-active has-[:active]:shadow-none",
+          "border border-transparent bg-transparent shadow-none hover:border-transparent hover:bg-overlay-action-surface-chrome-hover hover:text-foreground has-[:focus-visible]:border-transparent has-[:focus-visible]:bg-overlay-action-surface-chrome-hover has-[:focus-visible]:text-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/60 has-[:focus-visible]:ring-offset-0 has-[:active]:border-transparent has-[:active]:bg-overlay-action-surface-chrome-active has-[:active]:shadow-none",
       },
       tone: {
         default: "",

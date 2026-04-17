@@ -56,11 +56,13 @@ describe("FeedCleanupOverviewPanel", () => {
   it("keeps summary cards informational while emphasizing the bulk action zone", () => {
     render(<FeedCleanupOverviewPanel {...buildProps()} />);
 
+    const sectionBody = screen.getByTestId("feed-cleanup-sidebar-summary").parentElement;
     const summary = screen.getByTestId("feed-cleanup-sidebar-summary");
     const bulkActions = screen.getByTestId("feed-cleanup-bulk-actions");
     const summaryCard = within(summary).getByText("Pending").closest('[data-surface-card="section"]');
     const visibleCountChip = bulkActions.querySelector('[data-label-chip="neutral"]');
 
+    expect(sectionBody).toHaveClass("space-y-3.5");
     expect(summary).toHaveTextContent("Pending");
     expect(summary).toHaveTextContent("Done");
     expect(summaryCard).toHaveClass("bg-card/52");

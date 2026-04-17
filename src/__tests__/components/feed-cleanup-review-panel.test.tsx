@@ -117,6 +117,7 @@ describe("FeedCleanupReviewPanel", () => {
 
     const panel = screen.getByTestId("feed-cleanup-review-panel");
     expect(panel).toHaveClass("typography-lane-cleanup-review");
+    expect(panel).toHaveClass("py-3.5");
     expect(panel).toHaveStyle({ backgroundColor: "var(--cleanup-review-surface)" });
     const detailScrollRegion = panel.querySelector("div.overflow-y-auto");
     expect(detailScrollRegion).toBeTruthy();
@@ -128,6 +129,7 @@ describe("FeedCleanupReviewPanel", () => {
     expect(screen.getByRole("link", { name: "Old Product Blog" }).querySelector("h3")).toHaveClass("font-sans");
     expect(screen.getByTestId("feed-detail-status")).toBeInTheDocument();
     expect(screen.getByTestId("feed-detail-reason-box")).toBeInTheDocument();
+    expect(screen.getByTestId("feed-detail-secondary-column")).toHaveClass("space-y-3.5");
     expect(screen.getByText("Why this feed is here")).toBeInTheDocument();
     expect(screen.getByText("Updated 120 days ago / Unread 0 / Starred 0")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Open website" })).toBeNull();

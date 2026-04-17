@@ -215,7 +215,8 @@ describe("FeedCleanupPage", () => {
 
     render(<FeedCleanupPage />, { wrapper: createWrapper() });
 
-    const layoutHost = await screen.findByTestId("feed-cleanup-layout").parentElement;
+    const layout = await screen.findByTestId("feed-cleanup-layout");
+    const layoutHost = layout.parentElement;
     expect(layoutHost).not.toBeNull();
     expect(layoutHost).toHaveClass("pl-2", "sm:pl-2");
   });

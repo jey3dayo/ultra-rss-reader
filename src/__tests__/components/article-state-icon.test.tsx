@@ -9,7 +9,7 @@ describe("UnreadIcon", () => {
     const icon = container.firstElementChild;
     expect(icon).not.toBeNull();
     expect(icon).toHaveClass("bg-[var(--tone-unread)]");
-    expect(icon).toHaveClass("shadow-[0_0_0_1px_color-mix(in_srgb,var(--tone-unread)_45%,transparent)]");
+    expect(icon).toHaveClass("shadow-[var(--tone-unread-shadow)]");
   });
 
   it("can keep the unread tone visible even when the item is not unread", () => {
@@ -18,7 +18,7 @@ describe("UnreadIcon", () => {
     const icon = container.firstElementChild;
     expect(icon).not.toBeNull();
     expect(icon).toHaveClass("border-2");
-    expect(icon).toHaveClass("border-[color-mix(in_srgb,var(--tone-unread)_88%,transparent)]");
+    expect(icon).toHaveClass("border-[var(--tone-unread-border)]");
     expect(icon).toHaveClass("text-[var(--tone-unread)]");
   });
 
@@ -31,7 +31,7 @@ describe("UnreadIcon", () => {
     expect(icon).toHaveClass("border-current/85");
     expect(icon).not.toHaveClass("bg-[var(--tone-unread)]");
     expect(icon).not.toHaveClass("text-[var(--tone-unread)]");
-    expect(icon).not.toHaveClass("border-[color-mix(in_srgb,var(--tone-unread)_88%,transparent)]");
+    expect(icon).not.toHaveClass("border-[var(--tone-unread-border)]");
   });
 
   it("uses the shared starred tone instead of a hardcoded yellow", () => {
