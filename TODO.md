@@ -66,7 +66,7 @@
         - `src/components/reader/browser-view.types.ts`
         - `src/components/reader/browser-overlay-chrome.stories.tsx`
       - popup shell / chrome shell / info card の境界が同じ文脈で見えるので、分けずに review したい
-- [ ] 実装済み surface governance を 95 点基準で review し、足りないものだけを段階適用する
+- [x] 実装済み surface governance を 95 点基準で review し、足りないものだけを段階適用する
   - review 運用ルールは `.claude/rules/ui-design-review-loop.md` に追加済みなので、以後の UI 作業はこの基準をそのまま適用する
   - review 観点:
     - 角丸の役割が `DESIGN.md` と矛盾していないか
@@ -76,7 +76,8 @@
     - [x] browser overlay / preview 系を `section` と `shell` のどちらで扱うか確定する
     - [x] `ui-reference-settings-canvas` に残る shell 例外を明示し、section 見本と混ざらないよう整理する
       - left rail 外枠、main content 外枠、dialog surface、context menu は shell 見本としてラベル分離する
-    - [ ] 実アプリ表示の review 結果を見て、必要ならこの配下へ追加する
+    - browser overlay / command palette / account switcher / Storybook shell まわりの回帰テストを通し、追加コード修正は不要と判断した
+    - browser-mode の実画面確認は `lightningcss` の署名不整合でこの環境では未実施。必要なら release/manual verification レーンで再確認する
 - [x] `rounded-md` を card / section の標準として catalog と実装を揃える
   - 方針:
     - `card / section` は `rounded-md` を標準
