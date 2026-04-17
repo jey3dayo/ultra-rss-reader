@@ -6,6 +6,7 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[]) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showCandidatesOnly, setShowCandidatesOnly] = useState(false);
   const [sortKey, setSortKey] = useState<"title" | "updated_at" | "unread_count">("title");
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   const visibleRows = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -59,9 +60,15 @@ export function useSubscriptionsIndexState(rows: SubscriptionListRow[]) {
     showCandidatesOnly,
     sortKey,
     visibleRows,
+    isGroupExpanded: (groupKey: string) => expandedGroups[groupKey] ?? true,
     setSearchQuery,
     setSelectedFeedId,
     setShowCandidatesOnly,
     setSortKey,
+    toggleGroup: (groupKey: string) =>
+      setExpandedGroups((current) => ({
+        ...current,
+        [groupKey]: !(current[groupKey] ?? true),
+      })),
   };
 }

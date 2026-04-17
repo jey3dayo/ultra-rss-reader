@@ -222,7 +222,9 @@ export function SubscriptionsIndexPage() {
       openCleanupLabel={t("open_cleanup_for_feed")}
       backLabel={tc("back")}
       closeLabel={tc("close")}
+      isGroupExpanded={state.isGroupExpanded}
       onSelectFeed={state.setSelectedFeedId}
+      onToggleGroup={state.toggleGroup}
       onOpenCleanup={() => {
         if (!state.selectedRow) {
           return;

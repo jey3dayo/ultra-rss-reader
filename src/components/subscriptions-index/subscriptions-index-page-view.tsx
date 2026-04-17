@@ -43,7 +43,9 @@ export function SubscriptionsIndexPageView({
   openCleanupLabel,
   backLabel,
   closeLabel,
+  isGroupExpanded,
   onSelectFeed,
+  onToggleGroup,
   onOpenCleanup,
   onBack,
   onClose,
@@ -75,7 +77,9 @@ export function SubscriptionsIndexPageView({
   openCleanupLabel: string;
   backLabel: string;
   closeLabel: string;
+  isGroupExpanded: (groupKey: string) => boolean;
   onSelectFeed: (feedId: string) => void;
+  onToggleGroup: (groupKey: string) => void;
   onOpenCleanup: () => void;
   onBack: () => void;
   onClose: () => void;
@@ -110,7 +114,9 @@ export function SubscriptionsIndexPageView({
               statusLabels={statusLabels}
               formatUnreadCountLabel={formatUnreadCountLabel}
               formatLatestArticleLabel={formatLatestArticleLabel}
+              isGroupExpanded={isGroupExpanded}
               onSelectFeed={onSelectFeed}
+              onToggleGroup={onToggleGroup}
             />
             <SubscriptionDetailPane
               heading={detailHeading}

@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { LabelChip } from "@/components/shared/label-chip";
 import { NavRowButton } from "@/components/shared/nav-row-button";
@@ -25,7 +25,9 @@ export function SubscriptionsListPane({
   statusLabels,
   formatUnreadCountLabel,
   formatLatestArticleLabel,
+  isGroupExpanded,
   onSelectFeed,
+  onToggleGroup,
 }: {
   heading: string;
   groups: SubscriptionListGroup[];
@@ -34,7 +36,9 @@ export function SubscriptionsListPane({
   statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
   formatUnreadCountLabel: (count: number) => string;
   formatLatestArticleLabel: (value: string | null) => string;
+  isGroupExpanded: (groupKey: string) => boolean;
   onSelectFeed: (feedId: string) => void;
+  onToggleGroup: (groupKey: string) => void;
 }) {
   const hasRows = groups.some((group) => group.rows.length > 0);
   return (
@@ -58,84 +62,104 @@ export function SubscriptionsListPane({
             {emptyLabel}
           </p>
         ) : (
-          groups.map((group) => (
-            <div key={group.key} className="space-y-2.5">
-              <div
-                data-testid={`subscriptions-folder-row-${group.folderId ?? "ungrouped"}`}
-                data-folder-drop-target={group.folderId ? "true" : "false"}
-                className="flex items-center justify-between rounded-md border px-3 py-2.5"
-                style={{
-                  borderColor: "var(--subscriptions-list-divider)",
-                  backgroundColor: "var(--subscriptions-list-group-surface)",
-                }}
-              >
-                <div className="flex items-center gap-1.5">
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                  <h3 className="text-sm font-medium tracking-[-0.01em] text-foreground">{group.label}</h3>
-                </div>
-                <LabelChip tone="muted" size="compact">
-                  {group.rows.length}
-                </LabelChip>
-              </div>
-              <div className="space-y-1.5 pl-1">
-                {group.rows.map((row) => (
-                  <NavRowButton
-                    key={row.feed.id}
-                    selected={selectedFeedId === row.feed.id}
-                    aria-pressed={selectedFeedId === row.feed.id}
-                    onClick={() => onSelectFeed(row.feed.id)}
-                    className={cn(
-                      "items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none",
-                      selectedFeedId === row.feed.id
-                        ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[0_8px_20px_-18px_rgba(38,37,30,0.28)]"
-                        : "bg-background/15 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",
+          groups.map((group) => {
+            const expanded = isGroupExpanded(group.key);
+            const groupBodyId = `subscriptions-group-panel-${group.key}`;
+
+            return (
+              <div key={group.key} className="space-y-2.5">
+                <button
+                  type="button"
+                  data-testid={`subscriptions-folder-row-${group.folderId ?? "ungrouped"}`}
+                  data-folder-drop-target={group.folderId ? "true" : "false"}
+                  aria-expanded={expanded}
+                  aria-controls={groupBodyId}
+                  onClick={() => onToggleGroup(group.key)}
+                  className="flex w-full items-center justify-between rounded-md border px-3 py-2.5 text-left transition-[background-color,border-color,color] duration-150 hover:bg-[color:var(--subscriptions-list-row-hover)]"
+                  style={{
+                    borderColor: "var(--subscriptions-list-divider)",
+                    backgroundColor: "var(--subscriptions-list-group-surface)",
+                  }}
+                >
+                  <span className="flex items-center gap-1.5">
+                    {expanded ? (
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                     )}
-                    leading={
-                      <span
+                    <h3 className="text-sm font-medium tracking-[-0.01em] text-foreground">{group.label}</h3>
+                  </span>
+                  <LabelChip tone="muted" size="compact">
+                    {group.rows.length}
+                  </LabelChip>
+                </button>
+                {expanded ? (
+                  <div id={groupBodyId} className="space-y-1.5 pl-1">
+                    {group.rows.map((row) => (
+                      <NavRowButton
+                        key={row.feed.id}
+                        selected={selectedFeedId === row.feed.id}
+                        aria-pressed={selectedFeedId === row.feed.id}
+                        onClick={() => onSelectFeed(row.feed.id)}
                         className={cn(
-                          "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-colors",
+                          "items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none",
                           selectedFeedId === row.feed.id
-                            ? "bg-surface-1 text-foreground"
-                            : "bg-surface-2/88 text-foreground",
+                            ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[0_8px_20px_-18px_rgba(38,37,30,0.28)]"
+                            : "bg-background/15 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",
                         )}
-                        style={{
-                          borderColor: "var(--subscriptions-list-divider)",
-                          backgroundColor:
-                            selectedFeedId === row.feed.id
-                              ? "var(--subscriptions-list-favicon-surface)"
-                              : "var(--subscriptions-list-favicon-surface-muted)",
-                        }}
-                      >
-                        <FeedFavicon title={row.feed.title} url={row.feed.url} siteUrl={row.feed.site_url} size="md" />
-                      </span>
-                    }
-                    title={
-                      <div className="flex items-center gap-2">
-                        <span className="text-[0.95rem] font-medium tracking-[-0.02em] text-foreground">
-                          {row.feed.title}
-                        </span>
-                      </div>
-                    }
-                    description={
-                      <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-foreground-soft">
-                        <LabelChip tone={resolveStatusTone(row.status.labelKey)} size="compact">
-                          {statusLabels[row.status.labelKey]}
-                        </LabelChip>
-                        <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
-                          •
-                        </span>
-                        <span>{formatUnreadCountLabel(row.feed.unread_count)}</span>
-                        <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
-                          •
-                        </span>
-                        <span>{formatLatestArticleLabel(row.latestArticleAt)}</span>
-                      </div>
-                    }
-                  />
-                ))}
+                        leading={
+                          <span
+                            className={cn(
+                              "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-colors",
+                              selectedFeedId === row.feed.id
+                                ? "bg-surface-1 text-foreground"
+                                : "bg-surface-2/88 text-foreground",
+                            )}
+                            style={{
+                              borderColor: "var(--subscriptions-list-divider)",
+                              backgroundColor:
+                                selectedFeedId === row.feed.id
+                                  ? "var(--subscriptions-list-favicon-surface)"
+                                  : "var(--subscriptions-list-favicon-surface-muted)",
+                            }}
+                          >
+                            <FeedFavicon
+                              title={row.feed.title}
+                              url={row.feed.url}
+                              siteUrl={row.feed.site_url}
+                              size="md"
+                            />
+                          </span>
+                        }
+                        title={
+                          <div className="flex items-center gap-2">
+                            <span className="text-[0.95rem] font-medium tracking-[-0.02em] text-foreground">
+                              {row.feed.title}
+                            </span>
+                          </div>
+                        }
+                        description={
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-foreground-soft">
+                            <LabelChip tone={resolveStatusTone(row.status.labelKey)} size="compact">
+                              {statusLabels[row.status.labelKey]}
+                            </LabelChip>
+                            <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
+                              •
+                            </span>
+                            <span>{formatUnreadCountLabel(row.feed.unread_count)}</span>
+                            <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
+                              •
+                            </span>
+                            <span>{formatLatestArticleLabel(row.latestArticleAt)}</span>
+                          </div>
+                        }
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </section>

@@ -232,14 +232,46 @@ describe("SubscriptionsIndexPage", () => {
   it("exposes folder rows as drop targets in the subscriptions tree", async () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    expect(await screen.findAllByRole("heading", { name: "Work" })).toHaveLength(2);
-    expect(screen.getByTestId("subscriptions-folder-row-folder-1")).toHaveAttribute("data-folder-drop-target", "true");
-    expect(screen.getByTestId("subscriptions-folder-row-folder-2")).toHaveAttribute("data-folder-drop-target", "true");
-    expect(screen.getByTestId("subscriptions-folder-row-folder-1").className).toMatch(/rounded-(md|lg|xl)/);
-    expect(screen.getByTestId("subscriptions-folder-row-folder-2").className).toMatch(/rounded-(md|lg|xl)/);
-    expect(screen.getByTestId("subscriptions-folder-row-folder-1").style.borderColor).toBe(
-      "var(--subscriptions-list-divider)",
-    );
+    const firstGroupButton = await screen.findByTestId("subscriptions-folder-row-folder-1");
+    const secondGroupButton = screen.getByTestId("subscriptions-folder-row-folder-2");
+
+    expect(firstGroupButton).toHaveAttribute("data-folder-drop-target", "true");
+    expect(secondGroupButton).toHaveAttribute("data-folder-drop-target", "true");
+    expect(firstGroupButton).toHaveAccessibleName(/Work/);
+    expect(secondGroupButton).toHaveAccessibleName(/Work/);
+    expect(firstGroupButton).toHaveAttribute("aria-expanded", "true");
+    expect(secondGroupButton).toHaveAttribute("aria-expanded", "true");
+    expect(firstGroupButton.className).toMatch(/rounded-(md|lg|xl)/);
+    expect(secondGroupButton.className).toMatch(/rounded-(md|lg|xl)/);
+    expect(firstGroupButton.style.borderColor).toBe("var(--subscriptions-list-divider)");
+  });
+
+  it("collapses and re-expands a single group while keeping the current detail selection", async () => {
+    const user = userEvent.setup();
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    const firstGroupButton = await screen.findByTestId("subscriptions-folder-row-folder-1");
+    const detailPane = screen.getByTestId("subscriptions-detail-pane");
+
+    expect(screen.getByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Fresh Feed/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Loose Feed/ })).toBeInTheDocument();
+    expect(within(detailPane).getByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
+
+    await user.click(firstGroupButton);
+
+    expect(firstGroupButton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: /Example Feed/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Fresh Feed/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Loose Feed/ })).toBeInTheDocument();
+    expect(within(detailPane).getByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
+    expect(within(firstGroupButton).getByText("1")).toBeInTheDocument();
+
+    await user.click(firstGroupButton);
+
+    expect(firstGroupButton).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
   });
 
   it("shows selected feed details and a cleanup hand-off action", async () => {
