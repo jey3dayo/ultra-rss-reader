@@ -28,7 +28,7 @@ export function AccountSwitcherMenu({
       id={menuId}
       role="menu"
       aria-label={menuLabel}
-      className="absolute top-full left-0 z-50 min-w-[200px] rounded-2xl border border-border/70 bg-surface-2/96 p-1.5 shadow-elevation-3"
+      className="absolute top-full left-0 z-50 min-w-[200px] rounded-2xl border border-border/45 bg-surface-2/96 p-1.5 shadow-elevation-3"
       onKeyDown={(e) => {
         if (!accounts.length) return;
 
@@ -72,10 +72,10 @@ export function AccountSwitcherMenu({
             aria-checked={account.id === selectedAccountId}
             aria-pressed={account.id === selectedAccountId}
             className={cn(
-              "relative w-full overflow-hidden rounded-md px-3 py-2 text-left text-sm",
+              "relative w-full overflow-hidden rounded-md px-3 py-2 text-left text-sm shadow-none",
               account.id === selectedAccountId
-                ? "before:absolute before:inset-y-1.5 before:left-0 before:w-1.5 before:rounded-full before:bg-border-strong"
-                : "text-foreground hover:bg-surface-1/72",
+                ? "border-transparent bg-surface-1/84 before:absolute before:inset-y-2 before:left-1.5 before:w-0.5 before:rounded-full before:bg-primary/55 hover:bg-surface-1/88"
+                : "border-transparent text-foreground hover:bg-surface-1/64",
             )}
           />
         );

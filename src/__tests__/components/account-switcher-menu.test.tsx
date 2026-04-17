@@ -31,12 +31,13 @@ describe("AccountSwitcherMenu", () => {
     expect(menu).toHaveClass("rounded-2xl");
     expect(menu).toHaveClass("bg-surface-2/96");
     expect(menu).toHaveClass("shadow-elevation-3");
-    expect(localButton).toHaveClass("bg-surface-1");
-    expect(localButton).toHaveClass("border-border-strong");
-    expect(localButton).toHaveClass("before:bg-border-strong");
+    expect(localButton).toHaveClass("bg-surface-1/84");
+    expect(localButton).toHaveClass("border-transparent");
+    expect(localButton).toHaveClass("shadow-none");
+    expect(localButton).toHaveClass("before:bg-primary/55");
     expect(localButton).toHaveAttribute("aria-checked", "true");
-    expect(freshRssButton).not.toHaveClass("bg-surface-1");
-    expect(freshRssButton).toHaveClass("hover:bg-surface-1/72");
+    expect(freshRssButton).not.toHaveClass("bg-surface-1/84");
+    expect(freshRssButton).toHaveClass("hover:bg-surface-1/64");
     expect(screen.getByText("local")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("Local only")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("Local only")).toBeInTheDocument();
