@@ -44,14 +44,23 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("navigation", { name: "Reference settings sections" }).parentElement).toHaveClass(
       "rounded-lg",
     );
-    expect(screen.getByText("Main content shell").closest("div")?.parentElement?.parentElement).toHaveClass(
-      "rounded-xl",
-    );
+    expect(
+      screen.getByText("Main content shell").closest('[data-testid="reference-annotated-note"]')?.parentElement,
+    ).toHaveClass("rounded-lg");
+    expect(
+      screen.getByText("Main content shell").closest('[data-testid="reference-annotated-note"]')?.parentElement
+        ?.parentElement?.parentElement,
+    ).toHaveClass("rounded-xl");
+    expect(
+      screen.getByText("Section containers stay inside").closest('[data-testid="reference-annotated-note"]')
+        ?.parentElement?.parentElement,
+    ).toHaveClass("rounded-lg");
     expect(screen.getByText("Dialog shell")).toBeInTheDocument();
     expect(screen.getByText("この購読を削除しますか？")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "削除する" })).toBeInTheDocument();
     expect(screen.getByText(/Outer shell only\./).closest("div")).toHaveClass("rounded-xl");
     expect(screen.getByText("Dialog shell frame").parentElement).toHaveClass("rounded-lg");
+    expect(screen.getByText("この購読を削除しますか？").parentElement?.parentElement).toHaveClass("rounded-lg");
 
     expect(screen.getByText("Context menu shell")).toBeInTheDocument();
     expect(screen.getByText("Open site")).toBeInTheDocument();

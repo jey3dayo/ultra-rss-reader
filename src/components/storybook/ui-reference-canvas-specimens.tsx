@@ -215,8 +215,10 @@ export function MainContentShellSpecimen({
   return (
     <div className={cn(SHELL_SPECIMEN_OUTER_RADIUS_CLASS, "border border-border/60 bg-card/34 shadow-elevation-2")}>
       <div className="p-4 sm:p-6">
-        <AnnotatedNote title={title} body={subtitle} />
-        {children ? <div className="mt-4">{children}</div> : null}
+        <div className={cn(SHELL_SPECIMEN_INNER_RADIUS_CLASS, "border border-border/70 bg-background/70 p-4 sm:p-5")}>
+          <AnnotatedNote title={title} body={subtitle} />
+          {children ? <div className="mt-4">{children}</div> : null}
+        </div>
       </div>
     </div>
   );
@@ -877,7 +879,7 @@ export function ShellExamplesSpecimen() {
             <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/58">
               Inner dialog component surface
             </div>
-            <div className="mx-auto grid w-full max-w-[300px] gap-4 rounded-xl border border-border bg-surface-2 p-5 text-sm text-popover-foreground shadow-elevation-3">
+            <div className="mx-auto grid w-full max-w-[300px] gap-4 rounded-lg border border-border bg-surface-2 p-5 text-sm text-popover-foreground shadow-elevation-3">
               <div className="flex flex-col items-center gap-4 py-2 text-center">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15">
                   <AlertTriangle className="h-5 w-5 text-primary" />

@@ -1,7 +1,8 @@
+import { Controls, Primary, Subtitle, Title } from "@storybook/addon-docs/blocks";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
-import { WorkspaceHeader } from "./workspace-header";
 import { usePlatformStore } from "@/stores/platform-store";
+import { WorkspaceHeader } from "./workspace-header";
 
 type RuntimeMode = "browser" | "mac" | "windows";
 
@@ -92,6 +93,16 @@ const meta = {
   tags: ["autodocs"],
   parameters: {
     layout: "fullscreen",
+    docs: {
+      page: () => (
+        <>
+          <Title />
+          <Subtitle>runtimeMode を切り替えて browser / mac / windows のヘッダー差分を確認します。</Subtitle>
+          <Primary />
+          <Controls />
+        </>
+      ),
+    },
   },
   decorators: [
     (Story) => (
@@ -125,31 +136,16 @@ export const BrowserPreview: Story = {
   args: {
     runtimeMode: "browser",
   },
-  parameters: {
-    docs: {
-      disable: true,
-    },
-  },
 };
 
 export const MacDesktop: Story = {
   args: {
     runtimeMode: "mac",
   },
-  parameters: {
-    docs: {
-      disable: true,
-    },
-  },
 };
 
 export const WindowsDesktop: Story = {
   args: {
     runtimeMode: "windows",
-  },
-  parameters: {
-    docs: {
-      disable: true,
-    },
   },
 };
