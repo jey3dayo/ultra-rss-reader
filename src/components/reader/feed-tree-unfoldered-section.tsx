@@ -34,7 +34,7 @@ export function FeedTreeUnfolderedSection({
           {unfolderedLabel}
         </div>
       ) : null}
-      <div className={cn("border-l border-sidebar-border/25", tokens.treeInset, tokens.childGap)}>
+      <div className={cn("border-l border-[var(--feed-tree-rail-border-soft)]", tokens.treeInset, tokens.childGap)}>
         {unfolderedFeeds.map((feed) => (
           <FeedTreeRow
             key={feed.id}

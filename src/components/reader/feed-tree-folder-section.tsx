@@ -114,7 +114,9 @@ export function FeedTreeFolderSection({
         className="motion-disclosure-panel"
       >
         <div className="motion-disclosure-body">
-          <div className={cn("mt-0.5 border-l border-sidebar-border/30", tokens.treeInset, tokens.childGap)}>
+          <div
+            className={cn("mt-0.5 border-l border-[var(--feed-tree-rail-border)]", tokens.treeInset, tokens.childGap)}
+          >
             {folder.feeds.map((feed) => (
               <FeedTreeRow
                 key={feed.id}

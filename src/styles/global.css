@@ -221,6 +221,8 @@
   --feed-tree-drop-target-surface: color-mix(in srgb, var(--color-sidebar-accent) 52%, transparent);
   --feed-tree-review-frame-surface: color-mix(in srgb, var(--color-sidebar) 80%, transparent);
   --feed-tree-review-frame-border: color-mix(in srgb, var(--color-sidebar-border) 30%, transparent);
+  --feed-tree-rail-border: color-mix(in srgb, var(--color-sidebar-border) 30%, transparent);
+  --feed-tree-rail-border-soft: color-mix(in srgb, var(--color-sidebar-border) 25%, transparent);
   --feed-tree-unfoldered-rail-surface: color-mix(in srgb, var(--color-sidebar-border) 30%, transparent);
   --feed-tree-drag-overlay-shadow: var(--shadow-elevation-2);
   --state-warning-surface: rgba(255, 251, 235, 0.78);
@@ -424,6 +426,8 @@
   --feed-tree-drop-target-surface: color-mix(in srgb, var(--color-sidebar-accent) 46%, transparent);
   --feed-tree-review-frame-surface: color-mix(in srgb, var(--color-sidebar) 80%, transparent);
   --feed-tree-review-frame-border: color-mix(in srgb, var(--color-sidebar-border) 30%, transparent);
+  --feed-tree-rail-border: color-mix(in srgb, var(--color-sidebar-border) 30%, transparent);
+  --feed-tree-rail-border-soft: color-mix(in srgb, var(--color-sidebar-border) 25%, transparent);
   --feed-tree-unfoldered-rail-surface: color-mix(in srgb, var(--color-sidebar-border) 30%, transparent);
   --feed-tree-drag-overlay-shadow: var(--shadow-elevation-2);
   --state-warning-surface: rgba(245, 158, 11, 0.1);
