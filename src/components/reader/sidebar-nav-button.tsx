@@ -27,12 +27,12 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
         ref={ref}
         type={type}
         className={cn(
-          "relative flex w-full items-center justify-between overflow-hidden rounded-md text-sm transition-[background-color,color,box-shadow] duration-150 focus:outline-none focus-visible:bg-[var(--sidebar-selection-background)] focus-visible:text-[var(--sidebar-selection-foreground)] focus-visible:shadow-[inset_0_0_0_1px_var(--sidebar-selection-border)]",
+          "relative flex w-full items-center justify-between overflow-hidden rounded-md text-sm transition-[background-color,color,box-shadow] duration-150 focus:outline-none focus-visible:bg-[var(--sidebar-selection-background)] focus-visible:text-[var(--sidebar-selection-foreground)] focus-visible:shadow-[var(--sidebar-selection-shadow)]",
           tokens.navButtonPaddingX,
           size === "default" ? "min-h-10 py-2" : tokens.navButton,
           selected
             ? cn(
-                "bg-[var(--sidebar-selection-background)] text-[var(--sidebar-selection-foreground)] shadow-[inset_0_0_0_1px_var(--sidebar-selection-border)]",
+                "bg-[var(--sidebar-selection-background)] text-[var(--sidebar-selection-foreground)] shadow-[var(--sidebar-selection-shadow)]",
                 selectedIndicatorMode !== "hidden" &&
                   "before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-primary/85 before:transition-opacity before:duration-150",
                 selectedIndicatorMode === "hide-on-row-hover" &&

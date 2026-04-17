@@ -10,6 +10,7 @@ describe("SidebarNavButton", () => {
     const content = container.querySelector("button > span");
 
     expect(button).toHaveClass("before:bg-primary/85");
+    expect(button).toHaveClass("shadow-[var(--sidebar-selection-shadow)]");
     expect(button).not.toHaveClass("group-hover/feed-row:before:opacity-0");
     expect(button).not.toHaveClass("group-focus-within/feed-row:before:opacity-0");
     expect(content).toHaveClass("flex-1");
