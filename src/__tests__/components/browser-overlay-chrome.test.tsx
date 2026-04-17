@@ -98,7 +98,7 @@ describe("BrowserOverlayChrome", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the close control as a ghost affordance with keyboard-visible focus and tactile active feedback", () => {
+  it("keeps the close control as a chrome shell affordance with keyboard-visible focus and tactile active feedback", () => {
     render(<BrowserOverlayChrome closeLabel="Close browser overlay" onClose={() => {}} />);
 
     const closeButton = screen.getByRole("button", { name: "Close browser overlay" });
@@ -107,10 +107,11 @@ describe("BrowserOverlayChrome", () => {
     expect(closeSurface).not.toBeNull();
     expect(closeSurface).toHaveAttribute("data-overlay-shell", "action");
     expect(closeSurface).toHaveClass("rounded-lg");
-    expect(closeSurface).toHaveClass("bg-overlay-action-surface-subtle");
-    expect(closeSurface).toHaveClass("border-border/70");
-    expect(closeSurface?.className).toContain("has-[:focus-visible]:ring-2");
-    expect(closeSurface?.className).toContain("has-[:active]:scale-[0.97]");
+    expect(closeSurface).toHaveClass("bg-transparent");
+    expect(closeSurface).toHaveClass("shadow-none");
+    expect(closeSurface).toHaveClass("hover:bg-overlay-action-surface-chrome-hover");
+    expect(closeSurface).toHaveClass("has-[:focus-visible]:bg-overlay-action-surface-chrome-hover");
+    expect(closeSurface).toHaveClass("has-[:active]:bg-overlay-action-surface-chrome-active");
   });
 
   it("renders close, back, and forward controls on the leading side", async () => {
@@ -218,7 +219,7 @@ describe("BrowserOverlayChrome", () => {
     expect(externalButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");
   });
 
-  it("keeps custom toolbar actions inside the shared overlay action shell", () => {
+  it("keeps custom toolbar actions inside the shared chrome shell action lane", () => {
     const controller = createController();
     const presentation = createSurfacePresentation();
 
@@ -239,12 +240,19 @@ describe("BrowserOverlayChrome", () => {
     expect(screen.getByRole("button", { name: "Custom Action A" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Custom Action B" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /Custom Action/ })).toHaveLength(2);
-    expect(
-      screen.getAllByRole("button", { name: /Custom Action/ })[0].closest("[data-overlay-shell='action']"),
-    ).toHaveAttribute("data-overlay-shell", "action");
-    expect(
-      screen.getAllByRole("button", { name: /Custom Action/ })[1].closest("[data-overlay-shell='action']"),
-    ).toHaveAttribute("data-overlay-shell", "action");
+    const firstSurface = screen
+      .getAllByRole("button", { name: /Custom Action/ })[0]
+      .closest("[data-overlay-shell='action']");
+    const secondSurface = screen
+      .getAllByRole("button", { name: /Custom Action/ })[1]
+      .closest("[data-overlay-shell='action']");
+
+    expect(firstSurface).toHaveAttribute("data-overlay-shell", "action");
+    expect(firstSurface).toHaveClass("bg-transparent");
+    expect(firstSurface).toHaveClass("shadow-none");
+    expect(secondSurface).toHaveAttribute("data-overlay-shell", "action");
+    expect(secondSurface).toHaveClass("bg-transparent");
+    expect(secondSurface).toHaveClass("shadow-none");
   });
 
   it("renders browser actions before custom trailing actions on the right side", () => {

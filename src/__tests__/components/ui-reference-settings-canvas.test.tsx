@@ -47,13 +47,13 @@ describe("UI Reference canvases", () => {
     expect(screen.getByText("Main content shell").closest("div")?.parentElement?.parentElement).toHaveClass(
       "rounded-xl",
     );
-    expect(screen.getByText("Dialog surface")).toBeInTheDocument();
+    expect(screen.getByText("Dialog shell")).toBeInTheDocument();
     expect(screen.getByText("この購読を削除しますか？")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "削除する" })).toBeInTheDocument();
     expect(screen.getByText(/Outer shell only\./).closest("div")).toHaveClass("rounded-xl");
     expect(screen.getByText("Dialog shell frame").parentElement).toHaveClass("rounded-lg");
 
-    expect(screen.getByText("Context menu")).toBeInTheDocument();
+    expect(screen.getByText("Context menu shell")).toBeInTheDocument();
     expect(screen.getByText("Open site")).toBeInTheDocument();
     expect(screen.getByText("Mark all as read")).toBeInTheDocument();
     expect(

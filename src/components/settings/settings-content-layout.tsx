@@ -44,8 +44,12 @@ export function SettingsContentLayout({
           </h2>
         ) : (
           <header className="mb-5 sm:mb-6">
-            <h2 className="font-sans text-xl font-medium tracking-[-0.02em] text-foreground">{title}</h2>
-            {subtitle ? <p className="mt-1 font-serif text-sm text-foreground-soft">{subtitle}</p> : null}
+            <h2 className="font-sans text-xl font-medium tracking-[-0.02em] text-[color:var(--settings-shell-content-title)]">
+              {title}
+            </h2>
+            {subtitle ? (
+              <p className="mt-1 font-serif text-sm text-[color:var(--settings-shell-field-label)]">{subtitle}</p>
+            ) : null}
           </header>
         )}
         {children}
