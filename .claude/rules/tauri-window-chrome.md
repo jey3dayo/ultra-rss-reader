@@ -38,6 +38,8 @@ Tauri の header / titlebar は OS ごとに挙動が違う。特に macOS は o
 - header の見た目だけを直すために、`padding-top` や `top` を場当たり的に足して帳尻を合わせない
 - `data-tauri-drag-region` を interactive 要素まで広げない。button / input / link / menu trigger / search field / toggle は drag region に含めない
 - Windows / Linux 向け変更で macOS overlay 専用クラスを常時有効にしない
+- desktop overlay 時に header 上段の action row を通常フローに残さない。右上ボタンや補助 drag row は absolute に逃がし、title block の基準線を押し下げない
+- 大きい drag surface を敷く場合、text wrapper や row wrapper がその上で hit test を奪わないようにする。passive content 側の wrapper には `pointer-events-none` を検討し、interactive 要素だけ `pointer-events-auto` で戻す
 
 ## drag 方針
 
@@ -49,6 +51,7 @@ Tauri の header / titlebar は OS ごとに挙動が違う。特に macOS は o
 - 「header 全体を drag にする」か「中央 spacer のみ」に固定するのではなく、`操作要素を除いた visible surface` を drag にするのがデフォルト方針
 - browser overlay のように上端 rail 自体がほぼ passive surface の場合は、その rail 全体を drag region にしてよい
 - 逆に toolbar が操作要素だけで埋まっていて passive surface がほぼ無い場合のみ、狭い spacer 方式を許容する
+- drag surface の可視化は有効だが、「色が付いている = 掴める」ではない。実際の hit testing は積層順と pointer-events に左右される
 
 ## 変更時の確認ポイント
 
@@ -59,6 +62,8 @@ Tauri の header / titlebar は OS ごとに挙動が違う。特に macOS は o
 - sidebar / list / content の top border が 1px ずれず横一直線に見えること
 - Windows で overlay 前提の余白や drag strip が混入しないこと
 - `TitleBarStyle`、`shouldUseDesktopOverlayTitlebar()`、shell 側 helper class の 3 点が矛盾していないこと
+- overlay 用に追加した top row や action row が title / subtitle block を押し下げていないこと。実機スクリーンショットで横ライン位置まで確認する
+- title 文字の真上、eyebrow の真上、説明文の真上、右上ボタンの左側の空き面の 4 点で実際に drag を試すこと
 
 ## テスト方針
 
@@ -66,6 +71,7 @@ Tauri の header / titlebar は OS ごとに挙動が違う。特に macOS は o
 - shell の titlebar 補助要素を変えたら `src/__tests__/components/app-shell.test.tsx` を更新する
 - header / toolbar の drag region 範囲や top border を変えたら `article-list-header` / `sidebar-header-view` / `article-toolbar-view` / `workspace-header` のテストを更新する
 - drag テストは「spacer がある」ことより、「interactive 要素が drag region に含まれないこと」と「passive surface 側に drag region が置かれていること」を確認する
+- drag 修正の完了判定は DOM テストだけで終えない。`tauri-dev-screenshot` などで実機ウィンドウを取り、layout 崩れと drag surface の位置を必ず目視確認する
 
 ## 避けること
 
@@ -75,6 +81,8 @@ Tauri の header / titlebar は OS ごとに挙動が違う。特に macOS は o
 - header 内の interactive 要素を drag region で覆う
 - 掴める面が十分ある header なのに、40px x 72px のような狭い strip や中央 spacer のみに drag を閉じ込める
 - ancestor selector で `app-region: drag` を当てないと動かない前提の CSS に依存する
+- drag surface を広げるために上段 wrapper を増やし、その wrapper 自体が title block を押し下げる
+- drag 可視化の色だけ見て「掴めるはず」と判断し、実機の hit testing を確認しない
 - ネイティブ側は `Visible` のまま、フロントだけ overlay 前提の offset を入れる
 - 逆にネイティブ側だけ `Overlay` にして、フロント側の offset / helper root を追加しない
 

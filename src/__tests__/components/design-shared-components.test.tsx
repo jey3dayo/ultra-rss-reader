@@ -154,6 +154,7 @@ describe("Design-themed shared components", () => {
     const titleGroup = screen.getByTestId("workspace-header-title-group");
     const topDragRegion = screen.getByTestId("workspace-header-top-row-drag-region");
     const titleGroupDragRegion = screen.getByTestId("workspace-header-title-group-drag-region");
+    const topRow = screen.getByTestId("workspace-header-top-row");
 
     expect(backButton).toHaveStyle({
       backgroundColor: "var(--workspace-header-action-surface)",
@@ -165,6 +166,7 @@ describe("Design-themed shared components", () => {
     expect(backButton).not.toHaveClass("rounded-full");
     expect(backButton).toHaveAttribute("aria-label", "戻る");
     expect(within(titleGroup).getByRole("button", { name: "戻る" })).toBeInTheDocument();
+    expect(topRow).not.toHaveClass("absolute");
     expect(topDragRegion).toHaveAttribute("data-tauri-drag-region");
     expect(titleGroupDragRegion).toHaveAttribute("data-tauri-drag-region");
     expect(topDragRegion).not.toContainElement(closeButton);
@@ -243,7 +245,9 @@ describe("Design-themed shared components", () => {
       />,
     );
 
-    expect(screen.getByTestId("workspace-header-title-group")).toHaveClass("pl-6", "sm:pl-6");
+    expect(screen.getByTestId("workspace-header-title-group")).toHaveStyle({
+      paddingLeft: "20px",
+    });
   });
 
   it("keeps the standard horizontal padding on windows without a mac titlebar offset", () => {

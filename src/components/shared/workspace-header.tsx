@@ -17,7 +17,7 @@ type WorkspaceHeaderProps = {
 };
 
 const MAC_OVERLAY_DRAG_REGION_WIDTH = 72;
-const MAC_OVERLAY_TITLE_OFFSET_CLASS_NAME = "pl-6 sm:pl-6";
+const MAC_OVERLAY_TITLE_OFFSET_PX = 20;
 
 export const workspaceHeaderActionClassName =
   "h-7 rounded-md border border-border/60 font-sans text-[0.8rem] font-normal text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground";
@@ -76,7 +76,7 @@ export function WorkspaceHeader({
           data-testid="workspace-header-drag-region"
           data-tauri-drag-region
           aria-hidden="true"
-          className="absolute top-0 left-0 h-10"
+          className="absolute inset-y-0 left-0"
           style={{ width: `${MAC_OVERLAY_DRAG_REGION_WIDTH}px` }}
         />
       ) : null}
@@ -97,7 +97,11 @@ export function WorkspaceHeader({
           ) : null}
           <div
             data-testid="workspace-header-leading"
-            className={cn("relative z-20 flex min-w-0 items-center gap-2", isDesktopApp && "flex-1")}
+            className={cn(
+              "relative z-20 flex min-w-0 items-center gap-2",
+              isDesktopApp && "flex-1",
+              useDesktopOverlay && "pointer-events-none",
+            )}
           >
             {hasBackAction ? (
               isBrowserPreview ? (
@@ -138,10 +142,8 @@ export function WorkspaceHeader({
         </div>
         <div
           data-testid="workspace-header-title-group"
-          className={cn(
-            "relative min-w-0 space-y-0.5 pb-0.5",
-            useDesktopOverlay && MAC_OVERLAY_TITLE_OFFSET_CLASS_NAME,
-          )}
+          className="relative min-w-0 space-y-0.5 pb-0.5"
+          style={useDesktopOverlay ? { paddingLeft: `${MAC_OVERLAY_TITLE_OFFSET_PX}px` } : undefined}
         >
           {useDesktopOverlay ? (
             <div
