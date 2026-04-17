@@ -17,14 +17,14 @@ const VIEW_MODES = [
 const FILTER_TONE_STYLES = {
   unread: {
     button:
-      "text-foreground-soft hover:text-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-unread)_88%,var(--foreground))]",
+      "text-foreground-soft hover:text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--foreground))] data-[pressed]:bg-[color-mix(in_srgb,var(--tone-unread)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--foreground))]",
   },
   all: {
     button: "text-foreground-soft hover:text-foreground data-[pressed]:bg-surface-1/72 data-[pressed]:text-foreground",
   },
   starred: {
     button:
-      "text-foreground-soft hover:text-foreground data-[pressed]:bg-[color-mix(in_srgb,var(--tone-starred)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-starred)_92%,var(--foreground))]",
+      "text-foreground-soft hover:text-[color-mix(in_srgb,var(--tone-starred)_var(--tone-foreground-strength),var(--foreground))] data-[pressed]:bg-[color-mix(in_srgb,var(--tone-starred)_var(--tone-surface-strength),transparent)] data-[pressed]:text-[color-mix(in_srgb,var(--tone-starred)_var(--tone-foreground-strength),var(--foreground))]",
   },
 } as const;
 

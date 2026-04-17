@@ -22,7 +22,13 @@ describe("ArticleListFooter", () => {
     const allButton = screen.getByRole("button", { name: /all/i });
 
     expect(unreadButton).toHaveClass("text-foreground-soft");
+    expect(unreadButton).toHaveClass(
+      "hover:text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--foreground))]",
+    );
     expect(starredButton).toHaveClass("text-foreground-soft");
+    expect(starredButton).toHaveClass(
+      "hover:text-[color-mix(in_srgb,var(--tone-starred)_var(--tone-foreground-strength),var(--foreground))]",
+    );
     expect(allButton).toHaveClass("data-[pressed]:bg-surface-1/72");
     expect(unreadIcon).not.toBeNull();
     expect(unreadIcon).toHaveClass("bg-[var(--tone-unread)]");
