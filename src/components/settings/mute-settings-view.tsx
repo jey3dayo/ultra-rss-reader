@@ -105,7 +105,7 @@ export function MuteSettingsView({
           >
             <div
               data-testid="mute-settings-add-row"
-              className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-start"
+              className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[30rem] sm:max-w-[30rem] sm:flex-row sm:items-center sm:justify-end"
             >
               <Input
                 name="mute_keyword"
@@ -113,10 +113,10 @@ export function MuteSettingsView({
                 value={keywordValue}
                 onChange={(event) => onKeywordChange(event.target.value)}
                 placeholder={keywordPlaceholder}
-                className="h-10 flex-1"
+                className="h-10 w-full sm:w-[220px] sm:flex-none"
               />
               <Select value={scopeValue} onValueChange={(value) => value && onScopeChange(value as typeof scopeValue)}>
-                <SelectTrigger aria-label={scopeAriaLabel} className="h-10 w-full sm:w-[180px]">
+                <SelectTrigger aria-label={scopeAriaLabel} className="h-10 w-full sm:w-[192px]">
                   <SelectValue>
                     {(selectedValue: string | null) => getScopeLabel(scopeOptions, selectedValue ?? scopeValue)}
                   </SelectValue>
@@ -129,7 +129,7 @@ export function MuteSettingsView({
                   ))}
                 </SelectPopup>
               </Select>
-              <Button type="button" className="h-10 sm:px-4" onClick={onAdd} disabled={addDisabled}>
+              <Button type="button" className="h-10 sm:px-4 sm:flex-none" onClick={onAdd} disabled={addDisabled}>
                 {addLabel}
               </Button>
             </div>
@@ -157,14 +157,14 @@ export function MuteSettingsView({
                 label={rule.keyword}
                 labelClassName="sm:max-w-[280px] sm:shrink-0 sm:truncate"
               >
-                <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-start">
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[18rem] sm:flex-row sm:items-center sm:justify-end">
                   <Select
                     value={rule.scope}
                     onValueChange={(value) => value && onRuleScopeChange(rule.id, value as typeof rule.scope)}
                   >
                     <SelectTrigger
                       aria-label={savedScopeAriaLabel(rule.keyword)}
-                      className="h-7 w-full text-[0.8rem] sm:w-[180px]"
+                      className="h-7 w-full text-[0.8rem] sm:w-[192px]"
                     >
                       <SelectValue>
                         {(selectedValue: string | null) => getScopeLabel(scopeOptions, selectedValue ?? rule.scope)}
@@ -178,7 +178,13 @@ export function MuteSettingsView({
                       ))}
                     </SelectPopup>
                   </Select>
-                  <Button type="button" variant="outline" size="sm" onClick={() => onRequestDelete(rule.id)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="sm:flex-none"
+                    onClick={() => onRequestDelete(rule.id)}
+                  >
                     {deleteLabel}
                   </Button>
                 </div>

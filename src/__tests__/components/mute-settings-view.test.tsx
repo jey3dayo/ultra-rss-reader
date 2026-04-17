@@ -57,4 +57,53 @@ describe("MuteSettingsView", () => {
     expect(screen.getByText("No mute keywords yet.")).toHaveClass("text-foreground-soft");
     expect(screen.getByRole("switch", { name: "Mark muted items as read" })).not.toHaveAttribute("aria-disabled");
   });
+
+  it("keeps mute controls on the shared right-side settings rail", () => {
+    render(
+      <MuteSettingsView
+        title="Mute"
+        addHeading="Add muted keyword"
+        intro="Hide articles that match these rules."
+        keywordLabel="Keyword"
+        keywordValue=""
+        keywordPlaceholder="spoiler"
+        scopeAriaLabel="Mute scope"
+        scopeValue="title"
+        scopeOptions={[
+          { value: "title", label: "Title" },
+          { value: "body", label: "Body" },
+          { value: "title_and_body", label: "Title and body" },
+        ]}
+        addLabel="Add"
+        onKeywordChange={vi.fn()}
+        onScopeChange={vi.fn()}
+        onAdd={vi.fn()}
+        addDisabled={false}
+        savedHeading="Saved rules"
+        emptyState="No mute keywords yet."
+        rules={[{ id: "rule-1", keyword: "Supreme", scope: "title_and_body" }]}
+        savedScopeAriaLabel={() => "Saved scope"}
+        onRuleScopeChange={vi.fn()}
+        deleteLabel="Delete"
+        onRequestDelete={vi.fn()}
+        autoMarkReadHeading="Auto mark as read"
+        autoMarkReadLabel="Mark muted items as read"
+        autoMarkReadChecked={false}
+        autoMarkReadDisabled={false}
+        autoMarkReadHint="Existing matches are marked read immediately."
+        onAutoMarkReadChange={vi.fn()}
+        confirmOpen={false}
+        confirmMessage="Delete muted keyword?"
+        confirmActionLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirmDelete={vi.fn()}
+        onCancelDelete={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("mute-settings-add-row")).toHaveClass("sm:min-w-[30rem]", "sm:justify-end");
+    expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveClass("sm:w-[220px]");
+    expect(screen.getByRole("combobox", { name: "Mute scope" })).toHaveClass("sm:w-[192px]");
+    expect(screen.getByRole("combobox", { name: "Saved scope" })).toHaveClass("sm:w-[192px]");
+  });
 });
