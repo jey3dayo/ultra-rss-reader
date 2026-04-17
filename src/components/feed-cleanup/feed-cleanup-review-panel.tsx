@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { DecisionButton } from "@/components/shared/decision-button";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { SurfaceCard } from "@/components/shared/surface-card";
+import { Button } from "@/components/ui/button";
 import { buildCleanupReasonFacts } from "@/lib/feed-cleanup";
 import { cn } from "@/lib/utils";
 import type { FeedCleanupReviewPanelProps } from "./feed-cleanup.types";
@@ -157,12 +158,18 @@ export function FeedCleanupReviewPanel({
               variant="section"
               tone="subtle"
               padding="compact"
-              className="grid grid-cols-3 gap-2 px-4 shadow-none sm:px-5"
+              className="grid grid-cols-3 gap-2 rounded-lg bg-card/52 px-4 shadow-none sm:px-5"
             >
-              <DecisionButton intent="keep" aria-label={keepLabel} onClick={onKeep} className="w-full min-w-0">
+              <Button
+                variant="default"
+                size="sm"
+                aria-label={keepLabel}
+                onClick={onKeep}
+                className="w-full min-w-0 border-state-success-border bg-state-success-surface text-state-success-foreground shadow-elevation-1 hover:bg-state-success-surface hover:text-state-success-foreground"
+              >
                 <Check className="h-4 w-4" />
                 {keepLabel}
-              </DecisionButton>
+              </Button>
               <DecisionButton intent="defer" aria-label={laterLabel} onClick={onLater} className="w-full min-w-0">
                 <Clock3 className="h-4 w-4" />
                 {laterLabel}
