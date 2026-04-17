@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 const starredSmartViewButtonName = /^(starred|スター)(\s+\d+)?$/i;
 const unreadSmartViewButtonName = /^(unread|未読)(\s+\d+)?$/i;
@@ -41,13 +41,11 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
     await expect(page.getByText("Select an article to read")).toBeVisible();
   });
 
-  test("uses dark theme (body background is dark)", async ({ page }) => {
+  test("uses the light theme baseline by default", async ({ page }) => {
     const bgColor = await page.evaluate(() => {
       return window.getComputedStyle(document.body).backgroundColor;
     });
-    // Dark theme should have a dark background (low RGB values)
-    // Accept any dark-ish color or CSS variable fallback
-    expect(bgColor).toBeTruthy();
+    expect(bgColor).not.toBe("rgb(28, 25, 21)");
   });
 
   test("keeps an auto-read article visible in unread view until the user changes screens", async ({ page }) => {

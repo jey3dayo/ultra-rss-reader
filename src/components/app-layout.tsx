@@ -16,7 +16,7 @@ function SlidingPaneLayout({
 }) {
   if (subscriptionsWorkspaceOpen) {
     return (
-      <div className="h-full overflow-hidden">
+      <div className="h-full overflow-hidden bg-background text-foreground">
         <ArticleView />
       </div>
     );
@@ -26,7 +26,7 @@ function SlidingPaneLayout({
   const translateX = computeTranslateX(layoutMode, focusedPane);
 
   return (
-    <div className="h-full overflow-hidden">
+    <div className="h-full overflow-hidden bg-background text-foreground">
       <div
         data-testid="sliding-pane-tray"
         className={cn(
@@ -72,7 +72,7 @@ export function AppLayout() {
   return (
     // Keep layout flush to the top edge. macOS titlebar spacing lives in AppShell,
     // otherwise the visible header and the draggable titlebar band diverge again.
-    <div className="relative h-full overflow-hidden">
+    <div className="relative h-full overflow-hidden bg-background text-foreground">
       {layoutMode === "wide" ? (
         <WideLayout
           focusedPane={focusedPane}
@@ -106,7 +106,7 @@ function WideLayout({
   const shouldShowSidebar = !subscriptionsWorkspaceOpen && sidebarOpen;
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden bg-background text-foreground">
       {panes.includes("sidebar") && (
         <div
           data-testid="wide-sidebar-shell"

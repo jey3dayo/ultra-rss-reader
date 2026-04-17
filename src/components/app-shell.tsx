@@ -339,7 +339,7 @@ export function AppShell() {
   }, [loadPlatformInfo]);
 
   return (
-    <div className="relative flex h-full flex-col">
+    <div className="relative flex h-full flex-col bg-background text-foreground">
       <div
         data-browser-overlay-root=""
         className={cn(

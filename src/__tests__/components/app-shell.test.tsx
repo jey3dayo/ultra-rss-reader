@@ -59,9 +59,10 @@ describe("AppShell", () => {
   it("keeps the main layout mounted when the store opens feed cleanup", () => {
     useUiStore.setState({ subscriptionsWorkspace: { kind: "cleanup", cleanupContext: null } });
 
-    render(<AppShell />, { wrapper: createWrapper() });
+    const { container } = render(<AppShell />, { wrapper: createWrapper() });
 
     expect(screen.getByText("App Layout")).toBeInTheDocument();
+    expect(container.firstElementChild).toHaveClass("bg-background", "text-foreground");
   });
 
   it("does not mount the settings modal until it is opened", () => {
