@@ -1,6 +1,6 @@
 import { Check, Clock3, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { DecisionButton, denseDecisionButtonClassName } from "@/components/shared/decision-button";
+import { DecisionButton } from "@/components/shared/decision-button";
 import { LabelChip } from "@/components/shared/label-chip";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -135,7 +135,7 @@ export function FeedCleanupQueuePanel({
                   </span>
                   <span>{selectionRailActive ? selectedCountLabel : bulkSelectionScopeLabel}</span>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 sm:grid sm:w-full sm:grid-cols-3 lg:w-auto lg:min-w-[24rem]">
+                <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                   <DecisionButton
                     intent="keep"
                     aria-label={bulkKeepActionLabel}
@@ -301,7 +301,7 @@ export function FeedCleanupQueuePanel({
                         <DecisionButton
                           intent="keep"
                           size="lg"
-                          className={denseDecisionButtonClassName}
+                          className="min-w-0"
                           onClick={(event) => {
                             event.stopPropagation();
                             onKeepCandidate(candidate.feedId);
@@ -313,7 +313,7 @@ export function FeedCleanupQueuePanel({
                         <DecisionButton
                           intent="defer"
                           size="lg"
-                          className={denseDecisionButtonClassName}
+                          className="min-w-0"
                           onClick={(event) => {
                             event.stopPropagation();
                             onDeferCandidate(candidate.feedId);
@@ -325,7 +325,7 @@ export function FeedCleanupQueuePanel({
                         <DecisionButton
                           intent="delete"
                           size="lg"
-                          className={denseDecisionButtonClassName}
+                          className="min-w-0"
                           onClick={(event) => {
                             event.stopPropagation();
                             onDeleteCandidate(candidate.feedId);

@@ -167,11 +167,11 @@ describe("FeedCleanupQueuePanel", () => {
     expect(queueRow).toHaveClass("border-border-strong");
     expect(queueRow).toHaveClass("bg-card/52");
     expect(within(queueRow).getByRole("button", { name: "Delete" })).toBeInTheDocument();
-    expect(within(queueRow).getByRole("button", { name: "Keep" })).toHaveClass("min-w-[7.5rem]");
+    expect(within(queueRow).getByRole("button", { name: "Keep" })).toHaveClass("min-w-0");
     expect(within(queueRow).getByRole("button", { name: "Keep" })).toHaveClass("h-9");
-    expect(within(queueRow).getByRole("button", { name: "Later" })).toHaveClass("min-w-[7.5rem]");
+    expect(within(queueRow).getByRole("button", { name: "Later" })).toHaveClass("min-w-0");
     expect(within(queueRow).getByRole("button", { name: "Later" })).toHaveClass("h-9");
-    expect(within(queueRow).getByRole("button", { name: "Delete" })).toHaveClass("min-w-[7.5rem]");
+    expect(within(queueRow).getByRole("button", { name: "Delete" })).toHaveClass("min-w-0");
     expect(within(queueRow).getByRole("button", { name: "Delete" })).toHaveClass("h-9");
   });
 
