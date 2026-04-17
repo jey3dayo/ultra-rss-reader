@@ -13,6 +13,8 @@ const VIEW_MODES = [
   { value: "all", icon: "list", labelKey: "filter_all" },
   { value: "starred", icon: "star", labelKey: "filter_starred" },
 ] as const;
+const DEFAULT_VISIBLE_MODES: readonly ArticleListViewMode[] = ["unread", "all", "starred"];
+const EMPTY_DISABLED_MODES: readonly ArticleListViewMode[] = [];
 
 const FILTER_TONE_STYLES = {
   unread: {
@@ -29,13 +31,10 @@ const FILTER_TONE_STYLES = {
   },
 } as const;
 
-export function ArticleListFooter({
-  viewMode,
-  modes = ["unread", "all", "starred"],
-  disabledModes = [],
-  onSetViewMode,
-}: ArticleListFooterProps) {
+export function ArticleListFooter({ viewMode, modes, disabledModes, onSetViewMode }: ArticleListFooterProps) {
   const { t } = useTranslation("reader");
+  const resolvedModes = modes ?? DEFAULT_VISIBLE_MODES;
+  const resolvedDisabledModes = disabledModes ?? EMPTY_DISABLED_MODES;
   const handleChange = useCallback(
     (groupValue: string[]) => {
       const latest = groupValue[groupValue.length - 1] as ArticleListViewMode | undefined;
@@ -44,7 +43,7 @@ export function ArticleListFooter({
     [onSetViewMode],
   );
 
-  const visibleModes = VIEW_MODES.filter((mode) => modes.includes(mode.value));
+  const visibleModes = VIEW_MODES.filter((mode) => resolvedModes.includes(mode.value));
 
   if (visibleModes.length === 0) {
     return null;
@@ -54,7 +53,7 @@ export function ArticleListFooter({
     <div className="flex h-10 items-center border-t border-border bg-card px-4">
       <ToggleGroup value={[viewMode]} onValueChange={handleChange} className="flex items-center gap-1">
         {visibleModes.map((mode) => {
-          const isDisabled = disabledModes.includes(mode.value);
+          const isDisabled = resolvedDisabledModes.includes(mode.value);
           return (
             <Toggle
               key={mode.value}

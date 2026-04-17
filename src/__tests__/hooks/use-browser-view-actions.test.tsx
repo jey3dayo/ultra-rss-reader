@@ -57,7 +57,7 @@ describe("useBrowserViewActions", () => {
     const syncBrowserWebview = vi.fn(async () => {});
 
     const { result } = renderHook(() => {
-      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(createBrowserState());
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() => createBrowserState());
       const browserStateRef = useRef(browserState);
       browserStateRef.current = browserState;
       const fallbackInFlightRef = useRef(false);
@@ -105,7 +105,7 @@ describe("useBrowserViewActions", () => {
     const showToast = vi.fn();
 
     const { result } = renderHook(() => {
-      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(createBrowserState());
+      const [browserState, setBrowserState] = useState<BrowserWebviewState | null>(() => createBrowserState());
       const browserStateRef = useRef(browserState);
       browserStateRef.current = browserState;
       const fallbackInFlightRef = useRef(false);

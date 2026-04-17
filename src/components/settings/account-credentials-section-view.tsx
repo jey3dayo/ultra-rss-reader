@@ -4,6 +4,8 @@ import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LoadingButton } from "@/components/shared/loading-button";
 import type { AccountCredentialInputRow } from "./account-detail.types";
 
+const EMPTY_EXTRA_ROWS: AccountCredentialInputRow[] = [];
+
 export type AccountCredentialsSectionViewProps = {
   heading: string;
   note?: string;
@@ -55,9 +57,10 @@ export function AccountCredentialsSectionView({
   testingConnectionLabel,
   onTestConnection,
   isTestingConnection,
-  extraRows = [],
+  extraRows,
 }: AccountCredentialsSectionViewProps) {
   const labelColumnClassName = "sm:w-40 sm:shrink-0";
+  const resolvedExtraRows = extraRows ?? EMPTY_EXTRA_ROWS;
 
   return (
     <SettingsSection heading={heading} note={note} surface="flat" className="mb-6 sm:mb-7">
@@ -83,7 +86,7 @@ export function AccountCredentialsSectionView({
           actionDisabled={!serverUrlValue}
         />
       )}
-      {extraRows.map((row) => (
+      {resolvedExtraRows.map((row) => (
         <LabeledInputRow
           key={row.label}
           label={row.label}
