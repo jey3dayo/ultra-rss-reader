@@ -6,6 +6,7 @@ import {
   getAccountSyncStatus,
   getDevRuntimeOptions,
   getFeedIntegrityReport,
+  getPlatformInfo,
 } from "@/api/tauri-commands";
 import { setupDevMocks } from "@/dev-mocks";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
@@ -61,6 +62,15 @@ describe("setupDevMocks", () => {
       dev_window_width: null,
       dev_window_height: null,
     });
+  });
+
+  it("reports an unknown platform in browser-only preview mode", async () => {
+    setupDevMocks();
+
+    const result = await getPlatformInfo();
+    const platform = Result.unwrap(result);
+
+    expect(platform.kind).toBe("unknown");
   });
 
   it("returns account sync status for browser-only account settings checks", async () => {

@@ -26,6 +26,8 @@ const runtimeCapabilities = {
 function applyRuntimeMode(runtimeMode: RuntimeMode) {
   if (runtimeMode === "browser") {
     delete window.__TAURI_INTERNALS__;
+    window.__DEV_BROWSER_MOCKS__ = true;
+    window.__ULTRA_RSS_BROWSER_MOCKS__ = true;
     usePlatformStore.setState({
       platform: {
         kind: "unknown",
@@ -39,6 +41,8 @@ function applyRuntimeMode(runtimeMode: RuntimeMode) {
   }
 
   window.__TAURI_INTERNALS__ = {} as typeof window.__TAURI_INTERNALS__;
+  window.__DEV_BROWSER_MOCKS__ = false;
+  window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
   usePlatformStore.setState({
     platform: {
       kind: runtimeMode === "mac" ? "macos" : "windows",
@@ -61,6 +65,8 @@ function WorkspaceHeaderStory({
   useLayoutEffect(() => {
     const previousPlatformState = usePlatformStore.getState();
     const previousTauriInternals = window.__TAURI_INTERNALS__;
+    const previousDevBrowserMocks = window.__DEV_BROWSER_MOCKS__;
+    const previousUltraBrowserMocks = window.__ULTRA_RSS_BROWSER_MOCKS__;
 
     applyRuntimeMode(runtimeMode);
 
@@ -69,6 +75,16 @@ function WorkspaceHeaderStory({
         delete window.__TAURI_INTERNALS__;
       } else {
         window.__TAURI_INTERNALS__ = previousTauriInternals;
+      }
+      if (previousDevBrowserMocks == null) {
+        delete window.__DEV_BROWSER_MOCKS__;
+      } else {
+        window.__DEV_BROWSER_MOCKS__ = previousDevBrowserMocks;
+      }
+      if (previousUltraBrowserMocks == null) {
+        delete window.__ULTRA_RSS_BROWSER_MOCKS__;
+      } else {
+        window.__ULTRA_RSS_BROWSER_MOCKS__ = previousUltraBrowserMocks;
       }
       usePlatformStore.setState(previousPlatformState);
     };

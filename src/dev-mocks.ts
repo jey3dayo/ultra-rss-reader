@@ -401,7 +401,7 @@ export function setupDevMocks() {
 
       case "get_platform_info":
         return {
-          kind: "windows",
+          kind: "unknown",
           capabilities: {
             supports_reading_list: false,
             supports_background_browser_open: false,
