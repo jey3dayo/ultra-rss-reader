@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
@@ -1256,10 +1256,20 @@ describe("Sidebar", () => {
     });
   });
 
-  it("disables the sync button during the manual sync cooldown", async () => {
+  it("keeps the sync button hoverable during the manual sync cooldown and shows cooldown feedback on retry", async () => {
     vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-18T02:12:00+09:00"));
+    const lastSuccessAt = new Date("2026-04-18T02:12:00+09:00").toISOString();
 
     setupTauriMocks((cmd) => {
+      if (cmd === "get_account_sync_status") {
+        return {
+          last_success_at: lastSuccessAt,
+          last_error: null,
+          error_count: 0,
+          next_retry_at: null,
+        };
+      }
       if (cmd === "trigger_sync") {
         return {
           synced: true,
@@ -1279,10 +1289,27 @@ describe("Sidebar", () => {
 
     fireEvent.click(syncButton);
     await vi.advanceTimersByTimeAsync(1);
-    expect(syncButton).toBeDisabled();
-
-    await vi.advanceTimersByTimeAsync(15_000);
     expect(syncButton).not.toBeDisabled();
+    expect(syncButton).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByText("Today at 02:12")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+
+    await act(async () => {
+      fireEvent.click(syncButton);
+      await Promise.resolve();
+    });
+    expect(useUiStore.getState().toastMessage).toEqual({
+      message: "Please wait a moment before syncing again",
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+    expect(syncButton).not.toHaveAttribute("aria-disabled");
+    expect(screen.getByText("Today at 02:12")).toBeInTheDocument();
   });
 
   it("shows a warning toast when sync completes with anomalies", async () => {

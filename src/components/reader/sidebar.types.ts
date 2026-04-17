@@ -13,10 +13,12 @@ export type SidebarHeaderProps = {
   onSync: () => void;
   onAddFeed: () => void;
   syncButtonLabel: string;
+  syncTooltipLabel?: string;
   syncButtonText: string;
   addFeedButtonLabel: string;
   addFeedButtonText: string;
   isSyncDisabled?: boolean;
+  isSyncCoolingDown?: boolean;
   isAddFeedDisabled?: boolean;
 };
 
@@ -139,6 +141,8 @@ export type SidebarControllerSectionsParams = {
   closeAccountList: () => void;
   syncProgress: SidebarHeaderPropsParams["syncProgress"];
   handleSync: SidebarHeaderPropsParams["handleSync"];
+  syncTooltipLabel: SidebarHeaderPropsParams["syncTooltipLabel"];
+  isSyncCoolingDown: SidebarHeaderPropsParams["isSyncCoolingDown"];
   isSyncDisabled: SidebarHeaderPropsParams["isSyncDisabled"];
   handleAddFeed: SidebarHeaderPropsParams["handleAddFeed"];
   toggleFeedsSection: () => void;
@@ -170,6 +174,8 @@ export type SidebarHeaderPropsParams = {
     kind: string | null;
   };
   handleSync: () => void | Promise<void>;
+  syncTooltipLabel: string | null;
+  isSyncCoolingDown: boolean;
   isSyncDisabled: boolean;
   handleAddFeed: () => void;
 };
@@ -240,6 +246,8 @@ export type SidebarSectionPropsParams = {
   t: TFunction<"sidebar">;
   syncProgress: SidebarHeaderPropsParams["syncProgress"];
   handleSync: SidebarHeaderPropsParams["handleSync"];
+  syncTooltipLabel: SidebarHeaderPropsParams["syncTooltipLabel"];
+  isSyncCoolingDown: SidebarHeaderPropsParams["isSyncCoolingDown"];
   isSyncDisabled: SidebarHeaderPropsParams["isSyncDisabled"];
   handleAddFeed: SidebarHeaderPropsParams["handleAddFeed"];
   selectedAccountName?: string;

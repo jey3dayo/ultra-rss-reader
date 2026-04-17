@@ -8,6 +8,8 @@ export function useSidebarSectionProps({
   t,
   syncProgress,
   handleSync,
+  syncTooltipLabel,
+  isSyncCoolingDown,
   isSyncDisabled,
   handleAddFeed,
   selectedAccountName,
@@ -51,6 +53,8 @@ export function useSidebarSectionProps({
     t,
     syncProgress,
     handleSync,
+    syncTooltipLabel,
+    isSyncCoolingDown,
     isSyncDisabled,
     handleAddFeed,
   });

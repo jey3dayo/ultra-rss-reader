@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import i18n from "@/lib/i18n";
@@ -10,6 +10,7 @@ import {
   triggerManualSyncWithCooldown,
 } from "@/lib/manual-sync";
 import { summarizeSyncResult, summarizeSyncWarnings } from "@/lib/sync-result-feedback";
+import { attachTauriListeners } from "@/lib/tauri-event-listeners";
 import type {
   SidebarSyncParams,
   SidebarSyncProgressPayload,
@@ -33,9 +34,26 @@ export function useSidebarSync({
     getManualSyncCooldownUntil,
     getManualSyncCooldownUntil,
   );
+  const [cooldownTick, setCooldownTick] = useState(() => Date.now());
   const invalidateAccountSyncStatuses = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ["account-sync-status"] });
   }, [queryClient]);
+
+  useEffect(() => {
+    if (manualSyncCooldownUntil <= Date.now()) {
+      return;
+    }
+
+    setCooldownTick(Date.now());
+
+    const timer = window.setInterval(() => {
+      setCooldownTick(Date.now());
+    }, 1_000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [manualSyncCooldownUntil]);
 
   const lastSyncedLabel = useMemo(() => {
     const lastSuccessAt = syncStatusQuery.data?.last_success_at;
@@ -69,60 +87,36 @@ export function useSidebarSync({
     return t("not_synced_yet");
   }, [selectedAccountId, syncStatusQuery.data, syncStatusQuery.isPending, t]);
 
+  const cooldownRemainingMs = manualSyncCooldownUntil - cooldownTick;
+  const isSyncCoolingDown = cooldownRemainingMs > 0;
+  const syncTooltipLabel = isSyncCoolingDown
+    ? t("sync_cooldown_remaining", { seconds: Math.ceil(cooldownRemainingMs / 1_000) })
+    : null;
+
   useEffect(() => {
-    let cancelled = false;
-    let unlistenCompleted: (() => void) | undefined;
-    let unlistenProgress: (() => void) | undefined;
-    let unlistenWarning: (() => void) | undefined;
-
-    listen("sync-progress", (event) => {
-      const payload =
-        typeof event === "object" && event !== null && "payload" in event
-          ? (event.payload as SidebarSyncProgressPayload)
-          : (event as SidebarSyncProgressPayload);
-      applySyncProgress(payload);
-    }).then((fn) => {
-      if (cancelled) {
-        fn();
-      } else {
-        unlistenProgress = fn;
-      }
-    });
-
-    listen("sync-completed", () => {
-      clearSyncProgress();
-      invalidateAccountSyncStatuses();
-    }).then((fn) => {
-      if (cancelled) {
-        fn();
-      } else {
-        unlistenCompleted = fn;
-      }
-    });
-
-    listen("sync-warning", (event) => {
-      const payload =
-        typeof event === "object" && event !== null && "payload" in event
-          ? (event.payload as SidebarSyncWarningPayload)
-          : (event as SidebarSyncWarningPayload);
-      if (payload.length > 0) {
+    return attachTauriListeners([
+      listen("sync-progress", (event) => {
+        const payload =
+          typeof event === "object" && event !== null && "payload" in event
+            ? (event.payload as SidebarSyncProgressPayload)
+            : (event as SidebarSyncProgressPayload);
+        applySyncProgress(payload);
+      }),
+      listen("sync-completed", () => {
+        clearSyncProgress();
         invalidateAccountSyncStatuses();
-        showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncWarnings(payload)));
-      }
-    }).then((fn) => {
-      if (cancelled) {
-        fn();
-      } else {
-        unlistenWarning = fn;
-      }
-    });
-
-    return () => {
-      cancelled = true;
-      unlistenCompleted?.();
-      unlistenProgress?.();
-      unlistenWarning?.();
-    };
+      }),
+      listen("sync-warning", (event) => {
+        const payload =
+          typeof event === "object" && event !== null && "payload" in event
+            ? (event.payload as SidebarSyncWarningPayload)
+            : (event as SidebarSyncWarningPayload);
+        if (payload.length > 0) {
+          invalidateAccountSyncStatuses();
+          showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncWarnings(payload)));
+        }
+      }),
+    ]);
   }, [applySyncProgress, clearSyncProgress, invalidateAccountSyncStatuses, showToast, t]);
 
   const handleSync = useCallback(async () => {
@@ -148,6 +142,8 @@ export function useSidebarSync({
   return {
     handleSync,
     lastSyncedLabel,
-    isSyncDisabled: manualSyncCooldownUntil > Date.now(),
+    syncTooltipLabel,
+    isSyncCoolingDown,
+    isSyncDisabled: false,
   };
 }

@@ -10,26 +10,32 @@ export function SidebarHeaderView({
   onSync,
   onAddFeed,
   syncButtonLabel,
+  syncTooltipLabel,
   syncButtonText,
   addFeedButtonLabel,
   addFeedButtonText,
   isSyncDisabled = false,
+  isSyncCoolingDown = false,
   isAddFeedDisabled = false,
 }: SidebarHeaderProps) {
   const isMobile = useUiStore((state) => state.layoutMode === "mobile");
+  const headerActionButtonClassName =
+    "h-11 gap-1.5 px-3 text-foreground-soft hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground md:size-7 md:px-0";
 
   return (
     <div className="flex h-12 items-center justify-between border-b border-border/70 px-4 pl-20">
       <div data-tauri-drag-region aria-hidden="true" className="h-full min-w-0 flex-1" />
       <TooltipProvider>
         <div className="flex items-center gap-2">
-          <AppTooltip label={syncButtonLabel}>
+          <AppTooltip label={syncTooltipLabel ?? syncButtonLabel}>
             <Button
               variant="ghost"
               onClick={onSync}
               disabled={isSyncing || isSyncDisabled}
+              aria-disabled={isSyncCoolingDown || undefined}
               className={cn(
-                "h-11 gap-1.5 px-3 text-foreground-soft hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground md:size-7 md:px-0",
+                headerActionButtonClassName,
+                isSyncCoolingDown && "opacity-70",
                 !isMobile && "w-11",
               )}
               aria-label={syncButtonLabel}
@@ -44,7 +50,7 @@ export function SidebarHeaderView({
               onClick={onAddFeed}
               disabled={isAddFeedDisabled}
               className={cn(
-                "h-11 gap-1.5 px-3 text-foreground-soft hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground md:size-7 md:px-0",
+                headerActionButtonClassName,
                 !isMobile && "w-11",
               )}
               aria-label={addFeedButtonLabel}

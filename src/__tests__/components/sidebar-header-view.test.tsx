@@ -65,4 +65,30 @@ describe("SidebarHeaderView", () => {
     expect(screen.getByRole("button", { name: "Add feed" })).toHaveTextContent("Add");
     expect(screen.getByRole("button", { name: "Add feed" }).querySelector("span")).toHaveClass("text-sm");
   });
+
+  it("shows the cooldown countdown in the sync tooltip while keeping the button hoverable", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <SidebarHeaderView
+        isSyncing={false}
+        onSync={vi.fn()}
+        onAddFeed={vi.fn()}
+        syncButtonLabel="Sync feeds"
+        syncTooltipLabel="Sync available in 15s"
+        syncButtonText="Sync"
+        addFeedButtonLabel="Add feed"
+        addFeedButtonText="Add"
+        isSyncCoolingDown={true}
+      />,
+    );
+
+    const syncButton = screen.getByRole("button", { name: "Sync feeds" });
+    expect(syncButton).not.toBeDisabled();
+    expect(syncButton).toHaveAttribute("aria-disabled", "true");
+
+    await user.hover(syncButton);
+
+    expect(await screen.findByText("Sync available in 15s")).toHaveClass("motion-popup-surface");
+  });
 });

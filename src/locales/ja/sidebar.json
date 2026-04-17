@@ -31,6 +31,7 @@
   "account_retry_scheduled_short_soon": "まもなく再試行",
   "sync_already_in_progress": "同期はすでに実行中です",
   "sync_cooldown_active": "少し待ってから再度同期してください",
+  "sync_cooldown_remaining": "再同期まであと {{seconds}} 秒",
   "sync_failed": "同期に失敗しました",
   "sync_failed_with_message": "同期に失敗しました: {{message}}",
   "sync_partial_failure": "同期に失敗したアカウント: {{accounts}}",

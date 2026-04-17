@@ -831,20 +831,6 @@ body,
   overflow: hidden;
 }
 
-/* macOS overlay titlebar drag regions */
-.desktop-overlay-titlebar [data-tauri-drag-region] {
-  -webkit-app-region: drag;
-  app-region: drag;
-}
-
-.desktop-overlay-titlebar [data-tauri-drag-region] button,
-.desktop-overlay-titlebar [data-tauri-drag-region] a,
-.desktop-overlay-titlebar [data-tauri-drag-region] input,
-.desktop-overlay-titlebar [data-tauri-drag-region] [role="button"] {
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
-}
-
 ::-webkit-scrollbar {
   width: 6px;
 }

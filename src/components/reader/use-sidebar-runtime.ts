@@ -24,13 +24,14 @@ export function useSidebarRuntime(): SidebarRuntimeResult {
   const sources = useSidebarSources({ selectedAccountId });
   const feedViewportRef = useRef<HTMLDivElement>(null);
   const { intent: activeDevIntent } = useResolvedDevIntent();
-  const { handleSync, lastSyncedLabel, isSyncDisabled }: SidebarSyncResult = useSidebarSync({
-    selectedAccountId,
-    syncProgress,
-    applySyncProgress,
-    clearSyncProgress,
-    showToast,
-  });
+  const { handleSync, lastSyncedLabel, syncTooltipLabel, isSyncCoolingDown, isSyncDisabled }: SidebarSyncResult =
+    useSidebarSync({
+      selectedAccountId,
+      syncProgress,
+      applySyncProgress,
+      clearSyncProgress,
+      showToast,
+    });
 
   return {
     isFeedsSectionOpen,
@@ -50,6 +51,8 @@ export function useSidebarRuntime(): SidebarRuntimeResult {
     activeDevIntent,
     handleSync,
     lastSyncedLabel,
+    syncTooltipLabel,
+    isSyncCoolingDown,
     isSyncDisabled,
   };
 }

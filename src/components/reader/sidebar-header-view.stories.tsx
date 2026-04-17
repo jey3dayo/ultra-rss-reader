@@ -34,3 +34,10 @@ export const Syncing: Story = {
     isSyncing: true,
   },
 };
+
+export const CooldownTooltip: Story = {
+  args: {
+    syncTooltipLabel: "Sync available in 15s",
+    isSyncCoolingDown: true,
+  },
+};
