@@ -3,15 +3,15 @@ import { describe, expect, it } from "vitest";
 import { ShellExamplesSpecimen, SurfaceRoleSpecimen } from "@/components/storybook/ui-reference-canvas-specimens";
 import { FoundationsCanvas } from "@/components/storybook/ui-reference-foundations-canvas.stories";
 import { NavigationCollectionsCanvas } from "@/components/storybook/ui-reference-navigation-collections-canvas.stories";
-import { InputControlsCanvas } from "@/components/storybook/ui-reference-settings-canvas.stories";
+import { SettingsSectionsCanvas } from "@/components/storybook/ui-reference-settings-canvas.stories";
 import { ShellOverlayCanvas } from "@/components/storybook/ui-reference-shell-overlay-canvas.stories";
 import { WorkspacePatternsCanvas } from "@/components/storybook/ui-reference-workspace-patterns-canvas.stories";
 
 describe("UI Reference canvases", () => {
-  it("renders the input controls canvas with form specimens", () => {
-    render(<InputControlsCanvas />);
+  it("renders the settings sections canvas with form specimens", () => {
+    render(<SettingsSectionsCanvas />);
 
-    expect(screen.getByText("Input controls")).toBeInTheDocument();
+    expect(screen.getByText("Settings sections")).toBeInTheDocument();
     expect(screen.getAllByTestId("reference-annotated-note")[0]).toHaveClass("rounded-md");
     expect(screen.getByTestId("reference-validation-frame")).toHaveClass("rounded-md");
     expect(screen.getByTestId("reference-disabled-switch-frame")).toHaveClass("rounded-md");
@@ -31,6 +31,8 @@ describe("UI Reference canvases", () => {
     expect(screen.getByText("Disabled switch")).toBeInTheDocument();
     expect(screen.getByText("工事中")).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "ミュート時に自動既読" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.queryByText("Shell examples")).not.toBeInTheDocument();
+    expect(screen.queryByText("Dialog shell")).not.toBeInTheDocument();
   });
 
   it("renders the shell and overlay canvas with framing specimens", () => {
@@ -99,7 +101,7 @@ describe("UI Reference canvases", () => {
 
     const surfaceRoleSurface = screen.getByText("Surface roles").closest('[data-surface-card="section"]');
     expect(surfaceRoleSurface).toHaveClass("rounded-md");
-    expect(screen.getByText("Info surface").closest('[data-surface-card="info"]')).toHaveClass("rounded-lg");
+    expect(screen.getByText("Info surface").closest('[data-surface-card="info"]')).toHaveClass("rounded-md");
     expect(screen.getByText("Section surface").closest('[data-surface-card="section"]')).toHaveClass("rounded-md");
 
     expect(screen.getByText("Dialog shell frame").parentElement).toHaveClass("rounded-lg");

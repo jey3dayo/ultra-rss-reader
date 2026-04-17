@@ -4,6 +4,61 @@ import { OverlayStageSurface } from "@/components/shared/overlay-stage-surface";
 import { BrowserSurfaceStateCard } from "./browser-surface-state-card";
 import type { BrowserOverlayStageProps } from "./browser-view.types";
 
+function BrowserOverlayLoadingState({ label, hint }: { label: string; hint: string }) {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6">
+      <div data-testid="browser-loading-state" className="flex max-w-sm flex-col items-center gap-4 text-center">
+        <div className="relative flex items-center justify-center">
+          <div aria-hidden="true" className="absolute h-12 w-20 rounded-lg bg-surface-1/80 blur-2xl" />
+          <LoaderCircle aria-hidden="true" className="relative size-12 animate-spin text-foreground" />
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-sm font-medium tracking-[0.02em] text-foreground">{label}</p>
+          <p className="text-sm text-foreground-soft">{hint}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BrowserOverlayIssueState({
+  issue,
+  showTechnicalDetail,
+  onRetry,
+  onOpenExternal,
+  technicalDetailLabel,
+  retryWebPreviewLabel,
+  openInExternalBrowserLabel,
+}: {
+  issue: BrowserOverlayStageProps["controller"]["activeSurfaceIssue"];
+  showTechnicalDetail: boolean;
+  onRetry: () => void;
+  onOpenExternal: () => void;
+  technicalDetailLabel: string;
+  retryWebPreviewLabel: string;
+  openInExternalBrowserLabel: string;
+}) {
+  if (!issue) {
+    return null;
+  }
+
+  return (
+    <div className="absolute inset-0 z-10 flex items-center justify-center p-6">
+      <BrowserSurfaceStateCard
+        issue={issue}
+        showTechnicalDetail={showTechnicalDetail}
+        onRetry={onRetry}
+        onOpenExternal={onOpenExternal}
+        labels={{
+          technicalDetail: technicalDetailLabel,
+          retryWebPreview: retryWebPreviewLabel,
+          openInExternalBrowser: openInExternalBrowserLabel,
+        }}
+      />
+    </div>
+  );
+}
+
 export function BrowserOverlayStage({ controller }: BrowserOverlayStageProps) {
   const { t } = useTranslation("reader");
 
@@ -32,34 +87,17 @@ export function BrowserOverlayStage({ controller }: BrowserOverlayStageProps) {
           }}
         />
         {controller.isLoading ? (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6">
-            <div data-testid="browser-loading-state" className="flex max-w-sm flex-col items-center gap-4 text-center">
-              <div className="relative flex items-center justify-center">
-                <div aria-hidden="true" className="absolute h-12 w-20 rounded-lg bg-surface-1/80 blur-2xl" />
-                <LoaderCircle aria-hidden="true" className="relative size-12 animate-spin text-foreground" />
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-sm font-medium tracking-[0.02em] text-foreground">{t("browser_loading")}</p>
-                <p className="text-sm text-foreground-soft">{t("browser_loading_hint")}</p>
-              </div>
-            </div>
-          </div>
+          <BrowserOverlayLoadingState label={t("browser_loading")} hint={t("browser_loading_hint")} />
         ) : null}
-        {controller.activeSurfaceIssue ? (
-          <div className="absolute inset-0 z-10 flex items-center justify-center p-6">
-            <BrowserSurfaceStateCard
-              issue={controller.activeSurfaceIssue}
-              showTechnicalDetail={controller.showDiagnostics}
-              onRetry={controller.handleRetry}
-              onOpenExternal={controller.handleOpenExternal}
-              labels={{
-                technicalDetail: t("browser_embed_technical_detail"),
-                retryWebPreview: t("retry_web_preview"),
-                openInExternalBrowser: t("open_in_external_browser"),
-              }}
-            />
-          </div>
-        ) : null}
+        <BrowserOverlayIssueState
+          issue={controller.activeSurfaceIssue}
+          showTechnicalDetail={controller.showDiagnostics}
+          onRetry={controller.handleRetry}
+          onOpenExternal={controller.handleOpenExternal}
+          technicalDetailLabel={t("browser_embed_technical_detail")}
+          retryWebPreviewLabel={t("retry_web_preview")}
+          openInExternalBrowserLabel={t("open_in_external_browser")}
+        />
       </div>
     </OverlayStageSurface>
   );

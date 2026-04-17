@@ -28,7 +28,7 @@ describe("SurfaceCard", () => {
     const sectionCard = screen.getByTestId("section-card");
 
     expect(infoCard).toHaveAttribute("data-surface-card", "info");
-    expect(infoCard).toHaveClass("rounded-lg");
+    expect(infoCard).toHaveClass("rounded-md");
     expect(infoCard).toHaveClass("border-border/70");
 
     expect(sectionCard).toHaveAttribute("data-surface-card", "section");

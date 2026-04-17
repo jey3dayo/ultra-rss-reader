@@ -4,12 +4,18 @@ import { BrowserOverlayStage } from "./browser-overlay-stage";
 import type { BrowserViewProps } from "./browser-view.types";
 import { useBrowserViewController } from "./use-browser-view-controller";
 
-export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, toolbarActions }: BrowserViewProps) {
-  const controller = useBrowserViewController({ scope, onCloseOverlay });
-
-  if (!controller.browserUrl) return null;
-
-  const overlay = (
+function BrowserOverlayShell({
+  controller,
+  scope,
+  labels,
+  toolbarActions,
+}: {
+  controller: ReturnType<typeof useBrowserViewController>;
+  scope: BrowserViewProps["scope"];
+  labels: BrowserViewProps["labels"];
+  toolbarActions?: BrowserViewProps["toolbarActions"];
+}) {
+  return (
     <div
       ref={controller.overlayRef}
       data-testid="browser-overlay-shell"
@@ -53,13 +59,22 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, to
       <BrowserOverlayStage controller={controller} />
     </div>
   );
+}
+
+export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, toolbarActions }: BrowserViewProps) {
+  const controller = useBrowserViewController({ scope, onCloseOverlay });
+
+  if (!controller.browserUrl) return null;
 
   if (scope === "main-stage" && typeof document !== "undefined") {
     const portalTarget = document.querySelector<HTMLElement>("[data-browser-overlay-root]");
     if (portalTarget) {
-      return createPortal(overlay, portalTarget);
+      return createPortal(
+        <BrowserOverlayShell controller={controller} scope={scope} labels={labels} toolbarActions={toolbarActions} />,
+        portalTarget,
+      );
     }
   }
 
-  return overlay;
+  return <BrowserOverlayShell controller={controller} scope={scope} labels={labels} toolbarActions={toolbarActions} />;
 }

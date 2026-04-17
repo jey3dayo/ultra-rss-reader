@@ -12,15 +12,22 @@ function isCloseOnlyProps(
   return "closeLabel" in props;
 }
 
+function BrowserOverlayCloseOnlyChrome({
+  closeLabel,
+  onClose,
+}: Extract<BrowserOverlayChromeProps, { closeLabel: string }>) {
+  return (
+    <IconToolbarSurfaceButton label={closeLabel} onClick={onClose} variant="chrome">
+      <X aria-hidden="true" className="size-4" />
+    </IconToolbarSurfaceButton>
+  );
+}
+
 export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
   const { t } = useTranslation("reader");
 
   if (isCloseOnlyProps(props)) {
-    return (
-      <IconToolbarSurfaceButton label={props.closeLabel} onClick={props.onClose} variant="chrome">
-        <X aria-hidden="true" className="size-4" />
-      </IconToolbarSurfaceButton>
-    );
+    return <BrowserOverlayCloseOnlyChrome {...props} />;
   }
 
   const { controller, presentation, closeWebPreviewLabel, toolbarActions } = props;

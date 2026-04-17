@@ -8,15 +8,15 @@ import {
   ValidationRowSpecimen,
 } from "@/components/storybook/ui-reference-canvas-specimens";
 
-export function InputControlsCanvas() {
+export function SettingsSectionsCanvas() {
   const [livePreview, setLivePreview] = useState(true);
 
   return (
     <ReferencePage maxWidthClassName="max-w-4xl">
       <div className="space-y-4">
         <AnnotatedNote
-          title="Input controls"
-          body="Form rows, validation states, and disabled controls live here. Check this canvas before inventing a new form treatment."
+          title="Settings sections"
+          body="Form rows, validation states, and disabled controls live here. Shell examples stay in Shell & Overlay Canvas."
         />
         <FormRowsSpecimen livePreview={livePreview} onLivePreviewChange={setLivePreview} />
         <ValidationRowSpecimen />
@@ -27,12 +27,12 @@ export function InputControlsCanvas() {
 }
 
 const meta = {
-  title: "UI Reference/Input Controls Canvas",
-  component: InputControlsCanvas,
+  title: "UI Reference/Settings Sections Canvas",
+  component: SettingsSectionsCanvas,
   parameters: {
     layout: "fullscreen",
   },
-} satisfies Meta<typeof InputControlsCanvas>;
+} satisfies Meta<typeof SettingsSectionsCanvas>;
 
 export default meta;
 
