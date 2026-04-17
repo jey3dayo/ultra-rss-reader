@@ -71,7 +71,6 @@ export function BrowserOverlayStage({ controller }: BrowserOverlayStageProps) {
         top: `${controller.geometry.stage.top}px`,
         right: `${controller.geometry.stage.right}px`,
         bottom: `${controller.geometry.stage.bottom}px`,
-        borderRadius: `${controller.geometry.stage.radius}px`,
       }}
     >
       <div ref={controller.stageRef} data-testid="browser-overlay-stage" className="absolute inset-0">

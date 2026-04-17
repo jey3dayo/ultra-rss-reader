@@ -78,7 +78,7 @@ function WorkspaceHeaderStory({
       actions={
         <button
           type="button"
-          className="h-7 rounded-[min(var(--radius-md),12px)] border border-border/60 px-2.5 text-[0.8rem] text-foreground-soft"
+          className="h-7 rounded-md border border-border/60 px-2.5 text-[0.8rem] text-foreground-soft"
         >
           ショートカット
         </button>

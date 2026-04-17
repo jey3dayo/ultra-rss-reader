@@ -16,14 +16,12 @@ export type BrowserViewerGeometry = {
     right: number;
     top: number;
     height: number;
-    radius: number;
   };
   stage: {
     left: number;
     top: number;
     right: number;
     bottom: number;
-    radius: number;
   };
   host: {
     left: number;
@@ -74,14 +72,12 @@ function resolveMainStageGeometry(
       right: 0,
       top: 0,
       height: visualHeaderHeight,
-      radius: 0,
     },
     stage: {
       left: 0,
       top: visualHeaderHeight,
       right: 0,
       bottom: 0,
-      radius: 0,
     },
     host: {
       left: 0,
@@ -128,14 +124,12 @@ export function resolveBrowserViewerGeometry({
       right: 16,
       top: 16,
       height: 46,
-      radius: 18,
     },
     stage: {
       left: 16,
       top: diagnosticsVisible ? 56 : 16,
       right: 16,
       bottom: 16,
-      radius: 20,
     },
     host: {
       left: 0,

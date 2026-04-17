@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 const overlayStageSurfaceVariants = cva("absolute z-10 overflow-hidden bg-background", {
   variants: {
     scope: {
-      "main-stage": "",
-      "content-pane": "border border-border/60 shadow-elevation-3",
+      "main-stage": "rounded-none",
+      "content-pane": "rounded-lg border border-border/60 shadow-elevation-3",
     },
   },
 });

@@ -19,7 +19,7 @@ const MAC_OVERLAY_DRAG_REGION_WIDTH = 72;
 const MAC_OVERLAY_TITLE_OFFSET_CLASS_NAME = "pl-6 sm:pl-6";
 
 export const workspaceHeaderActionClassName =
-  "h-7 rounded-[min(var(--radius-md),12px)] border border-border/60 font-sans text-[0.8rem] font-normal text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground";
+  "h-7 rounded-md border border-border/60 font-sans text-[0.8rem] font-normal text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground";
 
 export function WorkspaceHeader({
   eyebrow,

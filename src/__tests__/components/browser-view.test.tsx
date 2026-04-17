@@ -90,7 +90,7 @@ function parsePixelValue(value: string | null | undefined): number | null {
   return match ? Number(match[1]) : null;
 }
 
-type InlineStyleKey = "bottom" | "borderRadius" | "height" | "left" | "right" | "top";
+type InlineStyleKey = "bottom" | "height" | "left" | "right" | "top";
 
 function expectInlineStyles(element: HTMLElement, expected: Partial<Record<InlineStyleKey, string>>) {
   for (const [property, value] of Object.entries(expected) as [InlineStyleKey, string][]) {
@@ -469,8 +469,8 @@ describe("BrowserView", () => {
       right: "0px",
       top: "56px",
       bottom: "0px",
-      borderRadius: "0px",
     });
+    expect(stage).toHaveClass("rounded-none");
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
     expect(screen.getByTestId("browser-webview-host")).toHaveStyle({ top: "0px" });
   });
@@ -495,21 +495,20 @@ describe("BrowserView", () => {
     expect(stage).toHaveClass("absolute", "z-10", "overflow-hidden", "bg-background");
     expect(stage.className).not.toMatch(/\bborder\b/);
     expect(stage.className).not.toMatch(/\bshadow-/);
-    expect(stage.className).not.toMatch(/\brounded-/);
+    expect(stage).toHaveClass("rounded-none");
     expectInlineStyles(stage, {
       left: "0px",
       right: "0px",
       top: "56px",
       bottom: "0px",
-      borderRadius: "0px",
     });
     expect(topRail).toBeInTheDocument();
+    expect(topRail).toHaveClass("rounded-none");
     expectInlineStyles(topRail, {
       left: "0px",
       right: "0px",
       top: "0px",
       height: "56px",
-      borderRadius: "0px",
     });
     expect(host).toHaveStyle({
       left: "0px",
@@ -658,8 +657,8 @@ describe("BrowserView", () => {
       right: "0px",
       top: "64px",
       bottom: "0px",
-      borderRadius: "0px",
     });
+    expect(stage).toHaveClass("rounded-none");
     expect(screen.getByTestId("browser-overlay-top-rail")).toBeInTheDocument();
     expect(closeButton).toBeInTheDocument();
     expect(closeButton.closest("[data-overlay-shell='action']")).toHaveClass("size-11");

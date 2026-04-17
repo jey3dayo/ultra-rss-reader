@@ -24,14 +24,12 @@ function createController(overrides?: Partial<BrowserOverlayChromeController>): 
         right: 0,
         top: 0,
         height: 56,
-        radius: 0,
       },
       stage: {
         left: 0,
         top: 56,
         right: 0,
         bottom: 0,
-        radius: 0,
       },
       host: {
         left: 0,

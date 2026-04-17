@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { cn } from "@/lib/utils";
 import { BrowserOverlayChrome } from "./browser-overlay-chrome";
 import { BrowserOverlayStage } from "./browser-overlay-stage";
 import type { BrowserViewProps } from "./browser-view.types";
@@ -37,11 +38,13 @@ function BrowserOverlayShell({
             right: `${controller.geometry.chromeRail.right}px`,
             top: `${controller.geometry.chromeRail.top}px`,
             height: `${controller.geometry.chromeRail.height}px`,
-            borderRadius: `${controller.geometry.chromeRail.radius}px`,
             backgroundImage: "var(--browser-overlay-rail)",
             borderColor: "var(--color-browser-overlay-rail-border)",
           }}
-          className="pointer-events-none absolute z-[50] border-b backdrop-blur-md"
+          className={cn(
+            "pointer-events-none absolute z-[50] border-b backdrop-blur-md",
+            scope === "main-stage" ? "rounded-none" : "rounded-t-lg",
+          )}
         />
       ) : null}
       <div

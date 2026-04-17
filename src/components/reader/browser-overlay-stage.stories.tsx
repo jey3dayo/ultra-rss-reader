@@ -20,14 +20,12 @@ function createGeometry(): BrowserViewGeometry {
       right: 0,
       top: 0,
       height: 56,
-      radius: 0,
     },
     stage: {
       left: 0,
       top: 56,
       right: 0,
       bottom: 0,
-      radius: 0,
     },
     host: {
       left: 0,
@@ -126,13 +124,12 @@ function BrowserOverlayStageStory({
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute z-[50] border-b backdrop-blur-md"
+        className="pointer-events-none absolute z-[50] rounded-none border-b backdrop-blur-md"
         style={{
           left: `${chromeController.geometry.chromeRail.left}px`,
           right: `${chromeController.geometry.chromeRail.right}px`,
           top: `${chromeController.geometry.chromeRail.top}px`,
           height: `${chromeController.geometry.chromeRail.height}px`,
-          borderRadius: `${chromeController.geometry.chromeRail.radius}px`,
           backgroundImage: "var(--browser-overlay-rail)",
           borderColor: "var(--color-browser-overlay-rail-border)",
         }}
