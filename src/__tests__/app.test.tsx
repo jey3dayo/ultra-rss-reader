@@ -117,6 +117,22 @@ describe("App", () => {
       }),
     ).toBe(false);
 
+    const originalPlatform = window.navigator.platform;
+    Object.defineProperty(window.navigator, "platform", {
+      configurable: true,
+      value: "MacIntel",
+    });
+    expect(
+      shouldUseDesktopOverlayTitlebar({
+        platformKind: "unknown",
+        hasTauriRuntime: true,
+      }),
+    ).toBe(true);
+    Object.defineProperty(window.navigator, "platform", {
+      configurable: true,
+      value: originalPlatform,
+    });
+
     usePlatformStore.setState({
       platform: {
         kind: "macos",

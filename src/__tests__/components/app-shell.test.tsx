@@ -137,6 +137,54 @@ describe("AppShell", () => {
     }
   });
 
+  it("uses overlay titlebar helper classes on first render when tauri is available and mac platform info is still unknown", () => {
+    const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
+    const originalPlatform = window.navigator.platform;
+
+    try {
+      Object.defineProperty(window, "__TAURI_INTERNALS__", {
+        configurable: true,
+        writable: true,
+        value: {},
+      });
+      Object.defineProperty(window.navigator, "platform", {
+        configurable: true,
+        value: "MacIntel",
+      });
+      usePlatformStore.setState({
+        platform: {
+          kind: "unknown",
+          capabilities: {
+            supports_reading_list: false,
+            supports_background_browser_open: false,
+            supports_runtime_window_icon_replacement: false,
+            supports_native_browser_navigation: false,
+            uses_dev_file_credentials: false,
+          },
+        },
+        loaded: false,
+        loadError: false,
+        inFlightLoad: null,
+      });
+
+      const { container } = render(<AppShell />, { wrapper: createWrapper() });
+
+      const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
+      expect(overlayRoot).toHaveClass("desktop-titlebar-offset");
+      expect(overlayRoot).toHaveClass("desktop-overlay-titlebar");
+    } finally {
+      Object.defineProperty(window.navigator, "platform", {
+        configurable: true,
+        value: originalPlatform,
+      });
+      if (originalTauriInternalsDescriptor) {
+        Object.defineProperty(window, "__TAURI_INTERNALS__", originalTauriInternalsDescriptor);
+      } else {
+        delete window.__TAURI_INTERNALS__;
+      }
+    }
+  });
+
   it("copies the debug HUD contents when clicked", async () => {
     usePreferencesStore.setState((state) => ({
       ...state,

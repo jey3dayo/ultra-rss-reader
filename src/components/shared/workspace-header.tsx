@@ -16,33 +16,10 @@ type WorkspaceHeaderProps = {
 };
 
 const MAC_OVERLAY_DRAG_REGION_WIDTH = 72;
+const MAC_OVERLAY_TITLE_OFFSET_CLASS_NAME = "pl-[52px] sm:pl-12";
 
 export const workspaceHeaderActionClassName =
   "h-7 rounded-[min(var(--radius-md),12px)] border border-border/60 font-sans text-[0.8rem] font-normal text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground";
-
-function looksLikeMacPlatform(): boolean {
-  if (typeof navigator === "undefined") {
-    return false;
-  }
-
-  const userAgentDataPlatform =
-    "userAgentData" in navigator
-      ? (() => {
-          const userAgentData = (
-            navigator as Navigator & {
-              userAgentData?: {
-                platform?: string;
-              };
-            }
-          ).userAgentData;
-
-          return typeof userAgentData?.platform === "string" ? userAgentData.platform : null;
-        })()
-      : null;
-  const platform = userAgentDataPlatform ?? navigator.platform ?? "";
-
-  return /mac/i.test(platform);
-}
 
 export function WorkspaceHeader({
   eyebrow,
@@ -57,12 +34,10 @@ export function WorkspaceHeader({
   const platformKind = usePlatformStore((state) => state.platform.kind);
   const hasRuntime = hasTauriRuntime();
   const isBrowserPreview = !hasRuntime;
-  const useDesktopOverlay =
-    shouldUseDesktopOverlayTitlebar({
-      platformKind,
-      hasTauriRuntime: hasRuntime,
-    }) ||
-    (hasRuntime && platformKind === "unknown" && looksLikeMacPlatform());
+  const useDesktopOverlay = shouldUseDesktopOverlayTitlebar({
+    platformKind,
+    hasTauriRuntime: hasRuntime,
+  });
   const hasBackAction = Boolean(backLabel && onBack);
   const isDesktopApp = hasRuntime;
 
@@ -117,7 +92,10 @@ export function WorkspaceHeader({
             </Button>
           </div>
         </div>
-        <div data-testid="workspace-header-title-group" className="min-w-0 space-y-2 pb-1">
+        <div
+          data-testid="workspace-header-title-group"
+          className={`min-w-0 space-y-2 pb-1 ${useDesktopOverlay ? MAC_OVERLAY_TITLE_OFFSET_CLASS_NAME : ""}`}
+        >
           {isDesktopApp ? (
             <div data-testid="workspace-header-context-row" className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
               <p className="font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase">

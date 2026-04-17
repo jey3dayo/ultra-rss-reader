@@ -185,6 +185,39 @@ describe("Design-themed shared components", () => {
     expect(within(titleGroup).getByRole("heading", { name: "購読一覧" })).toBeInTheDocument();
   });
 
+  it("offsets the desktop workspace title group away from the mac drag region", () => {
+    window.__TAURI_INTERNALS__ = {} as typeof window.__TAURI_INTERNALS__;
+    usePlatformStore.setState({
+      platform: {
+        kind: "macos",
+        capabilities: {
+          supports_reading_list: false,
+          supports_background_browser_open: false,
+          supports_runtime_window_icon_replacement: true,
+          supports_native_browser_navigation: true,
+          uses_dev_file_credentials: false,
+        },
+      },
+      loaded: true,
+      loadError: false,
+      inFlightLoad: null,
+    });
+
+    render(
+      <WorkspaceHeader
+        eyebrow="Workspace"
+        title="購読一覧"
+        subtitle="subtitle"
+        backLabel="戻る"
+        onBack={() => {}}
+        closeLabel="閉じる"
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByTestId("workspace-header-title-group")).toHaveClass("pl-[52px]", "sm:pl-12");
+  });
+
   it("keeps the standard horizontal padding on windows without a mac titlebar offset", () => {
     window.__TAURI_INTERNALS__ = {} as typeof window.__TAURI_INTERNALS__;
     usePlatformStore.setState({
