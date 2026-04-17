@@ -3,6 +3,7 @@ import { useCallback, useLayoutEffect, useRef } from "react";
 import type { BrowserWebviewState } from "@/api/tauri-commands";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
 import type { BrowserDebugGeometryNativeDiagnostics } from "@/lib/browser-debug-geometry";
+import { createTauriListenerGroup } from "@/lib/tauri-event-listeners";
 import type { UseBrowserWebviewEventsParams, UseBrowserWebviewEventsResult } from "./browser-view.types";
 import type { BrowserWebviewFallbackPayload } from "./browser-webview-state";
 
@@ -14,12 +15,10 @@ export function useBrowserWebviewEvents({
   onDiagnostics,
 }: UseBrowserWebviewEventsParams): UseBrowserWebviewEventsResult {
   const listenerReadyRef = useRef<Promise<void> | null>(null);
-  const unlistenRef = useRef<Array<() => void>>([]);
 
   useLayoutEffect(() => {
     let cancelled = false;
-
-    listenerReadyRef.current = Promise.all([
+    const listenerGroup = createTauriListenerGroup([
       listen<BrowserWebviewState>(BROWSER_WINDOW_EVENTS.stateChanged, ({ payload }) => {
         if (cancelled) return;
         onStateChanged(payload);
@@ -40,22 +39,12 @@ export function useBrowserWebviewEvents({
             }),
           ]
         : []),
-    ]).then((cleanups) => {
-      if (cancelled) {
-        cleanups.forEach((cleanup) => {
-          cleanup();
-        });
-        return;
-      }
-      unlistenRef.current = cleanups;
-    });
+    ]);
+    listenerReadyRef.current = listenerGroup.ready;
 
     return () => {
       cancelled = true;
-      unlistenRef.current.forEach((cleanup) => {
-        cleanup();
-      });
-      unlistenRef.current = [];
+      listenerGroup.dispose();
       listenerReadyRef.current = null;
     };
   }, [onClosed, onDiagnostics, onFallback, onStateChanged, showDiagnostics]);
