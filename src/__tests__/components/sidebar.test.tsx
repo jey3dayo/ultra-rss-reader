@@ -1652,10 +1652,12 @@ describe("Sidebar", () => {
     const scrollArea = screen.getByTestId("sidebar-feed-scroll-area");
     const subscriptionsIndexButton = await screen.findByRole("button", { name: "Manage Subscriptions" });
     const settingsButton = screen.getByRole("button", { name: "Settings" });
+    const footerRow = subscriptionsIndexButton.parentElement;
 
     expect(subscriptionsIndexButton.closest('[data-slot="scroll-area"]')).toBeNull();
     expect(settingsButton.closest('[data-slot="scroll-area"]')).toBeNull();
     expect(scrollArea).toBeInTheDocument();
+    expect(footerRow).toHaveClass("border-[var(--sidebar-frame-border)]", "bg-[var(--sidebar-frame-solid-surface)]");
 
     await user.click(settingsButton);
 

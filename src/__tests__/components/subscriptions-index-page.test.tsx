@@ -270,7 +270,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.getByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Fresh Feed/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Loose Feed/ })).toBeInTheDocument();
-    expect(within(detailPane).getByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
+    expect(await within(detailPane).findByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
     expect(firstGroupPanel).toHaveAttribute("aria-hidden", "false");
     expect(firstGroupPanel).toHaveClass("motion-disclosure-panel");
 

@@ -46,6 +46,10 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("navigation", { name: "Reference settings sections" }).parentElement).toHaveClass(
       "rounded-lg",
     );
+    expect(screen.getByRole("navigation", { name: "Reference settings sections" }).parentElement).toHaveClass(
+      "border-[var(--sidebar-frame-border)]",
+      "bg-[var(--sidebar-frame-surface)]",
+    );
     expect(
       screen.getByText("Main content shell").closest('[data-testid="reference-annotated-note"]')?.parentElement,
     ).toHaveClass("rounded-lg");
@@ -120,6 +124,9 @@ describe("UI Reference canvases", () => {
     expect(within(filterGroup).getByRole("button", { name: "未読" })).toBeInTheDocument();
     expect(within(filterGroup).getByRole("button", { name: "すべて" })).toBeInTheDocument();
     expect(within(filterGroup).getByRole("button", { name: "スター" })).toBeInTheDocument();
+    expect(within(filterGroup).getByRole("button", { name: "すべて" })).toHaveClass(
+      "data-[pressed]:bg-[var(--sidebar-pressed-surface)]",
+    );
 
     const accountSection = screen.getByText("Account card stack").closest("section") ?? document.body;
     expect(within(accountSection).getByText("Local")).toBeInTheDocument();

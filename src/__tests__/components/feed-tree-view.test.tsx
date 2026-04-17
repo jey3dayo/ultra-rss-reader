@@ -605,6 +605,10 @@ describe("FeedTreeView", () => {
     const overlay = screen.getByTestId("feed-tree-drag-overlay");
     expect(overlay).toHaveTextContent("Alpha");
     expect(overlay).toHaveStyle({ transform: "translate3d(52px, 64px, 0)" });
+    expect(overlay.firstElementChild).toHaveClass(
+      "border-[var(--sidebar-frame-border)]",
+      "bg-[var(--sidebar-frame-solid-surface)]",
+    );
   });
 
   it("allows moving a feed by clicking the handle and then the target folder", () => {

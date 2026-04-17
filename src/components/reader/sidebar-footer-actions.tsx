@@ -10,7 +10,7 @@ export function SidebarFooterActions({
   onOpenSettings,
 }: SidebarFooterActionsViewProps) {
   return (
-    <div className="flex h-10 items-center justify-center gap-1.5 border-t border-border bg-[var(--sidebar-frame-solid-surface)] px-2">
+    <div className="flex h-10 items-center justify-center gap-1.5 border-t border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] px-2">
       <Button
         variant="ghost"
         size="sm"
