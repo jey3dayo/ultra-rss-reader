@@ -42,9 +42,9 @@ export function FeedCleanupOverviewPanel({
             <SurfaceCard
               key={`${card.label}-${card.caption}`}
               variant="section"
-              tone="default"
+              tone="subtle"
               padding="compact"
-              className="flex items-center gap-3 border-border/55 bg-surface-1/72 shadow-none"
+              className="flex items-center gap-3 border-border/50 shadow-none"
             >
               <span className="inline-flex min-w-10 justify-center rounded-md border border-border/60 bg-surface-1/68 px-2.5 py-2 font-sans text-[1.75rem] font-medium text-foreground">
                 {card.value}
@@ -72,7 +72,7 @@ export function FeedCleanupOverviewPanel({
             variant="section"
             tone="emphasis"
             padding="default"
-            className="border-border/55 bg-surface-1/58 shadow-none"
+            className="border-border/55 bg-card/52 shadow-none"
           >
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0 flex-1 space-y-2.5">

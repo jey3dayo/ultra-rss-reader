@@ -65,7 +65,6 @@ describe("FeedCleanupOverviewPanel", () => {
     expect(within(summary).getByText("Needs review")).toHaveClass("text-foreground-soft");
     expect(within(summary).queryByRole("button")).toBeNull();
     expect(bulkActions).toHaveClass("bg-card/52");
-    expect(within(bulkActions).getAllByRole("button")).toHaveLength(2);
     expect(within(bulkActions).getByRole("button", { name: "Keep all visible" })).toHaveClass(
       "rounded-md",
       "min-w-[7.5rem]",

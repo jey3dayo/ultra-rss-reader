@@ -101,7 +101,7 @@ describe("FeedCleanupQueuePanel", () => {
     );
 
     expect(screen.getByText("1 selected")).toBeInTheDocument();
-    expect(screen.getByTestId("feed-cleanup-selection-rail")).toHaveClass("rounded-md");
+    expect(screen.getByTestId("feed-cleanup-selection-rail")).toHaveClass("rounded-md", "bg-card/52");
     expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("bg-state-success-surface");
     expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("min-w-[7.5rem]");
     expect(screen.getByRole("button", { name: "Defer selected" })).toHaveClass("min-w-[7.5rem]");
@@ -161,7 +161,7 @@ describe("FeedCleanupQueuePanel", () => {
 
     expect(queueRow).toHaveClass("rounded-md");
     expect(queueRow).toHaveClass("border-border-strong");
-    expect(queueRow).toHaveStyle({ backgroundColor: "var(--cleanup-card-surface-selected)" });
+    expect(queueRow).toHaveClass("bg-card/52");
     expect(within(queueRow).getByRole("button", { name: "Delete" })).toBeInTheDocument();
     expect(within(queueRow).getByRole("button", { name: "Keep" })).toHaveClass("min-w-[7.5rem]");
     expect(within(queueRow).getByRole("button", { name: "Later" })).toHaveClass("min-w-[7.5rem]");

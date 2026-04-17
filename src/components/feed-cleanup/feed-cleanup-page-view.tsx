@@ -275,8 +275,7 @@ export function FeedCleanupPageView({
     layoutMode === "stacked"
       ? ""
       : "sticky top-0 h-full min-h-0 overflow-hidden border-l border-border/70 pl-5 sm:pl-6";
-  const queueListClassName =
-    layoutMode === "stacked" ? "space-y-3 overflow-y-auto" : "min-h-0 flex-1 space-y-3 overflow-y-auto";
+  const queueListClassName = layoutMode === "stacked" ? "space-y-3" : "min-h-0 flex-1 space-y-3 overflow-y-auto";
 
   return (
     <div

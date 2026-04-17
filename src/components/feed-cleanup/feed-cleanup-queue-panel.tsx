@@ -126,7 +126,7 @@ export function FeedCleanupQueuePanel({
               variant="section"
               tone={selectionRailActive ? "subtle" : "default"}
               padding="compact"
-              className="min-h-[4.75rem] rounded-md shadow-none"
+              className="min-h-[4.75rem] rounded-md bg-card/52 shadow-none"
             >
               <div className="flex min-h-[3.25rem] flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center gap-3 text-sm font-medium text-foreground">
@@ -188,15 +188,10 @@ export function FeedCleanupQueuePanel({
                   padding="compact"
                   className={cn(
                     "rounded-md transition-colors duration-150 hover:bg-surface-1/72",
-                    isCurrent || isSelected ? "border-border-strong shadow-none" : "border-border/55 shadow-none",
+                    isCurrent || isSelected ? "border-border-strong bg-card/52 shadow-none" : "border-border/55 shadow-none",
                     isFocused && "ring-1 ring-primary/30",
                   )}
-                  style={{
-                    backgroundColor:
-                      isCurrent || isSelected
-                        ? "var(--cleanup-card-surface-selected)"
-                        : "var(--cleanup-card-surface-muted)",
-                  }}
+                  style={isCurrent || isSelected ? undefined : { backgroundColor: "var(--cleanup-card-surface-muted)" }}
                 >
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <label
