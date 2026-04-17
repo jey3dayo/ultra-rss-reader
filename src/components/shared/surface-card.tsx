@@ -11,6 +11,10 @@ const surfaceCardVariants = cva(
         info: "rounded-md",
         section: "rounded-md",
       },
+      frame: {
+        default: "",
+        borderless: "",
+      },
       tone: {
         default: "",
         subtle: "",
@@ -68,8 +72,13 @@ const surfaceCardVariants = cva(
         tone: "danger",
         className: "border-state-danger-border bg-state-danger-surface text-state-danger-foreground",
       },
+      {
+        frame: "borderless",
+        className: "border-transparent shadow-none",
+      },
     ],
     defaultVariants: {
+      frame: "default",
       tone: "default",
       padding: "default",
     },
@@ -83,12 +92,12 @@ type SurfaceCardProps = HTMLAttributes<HTMLDivElement> &
     variant: NonNullable<SurfaceCardVariantProps["variant"]>;
   };
 
-export function SurfaceCard({ variant, tone, padding, className, ...props }: SurfaceCardProps) {
+export function SurfaceCard({ variant, frame, tone, padding, className, ...props }: SurfaceCardProps) {
   return (
     <div
       {...props}
       data-surface-card={variant}
-      className={cn(surfaceCardVariants({ variant, tone, padding }), className)}
+      className={cn(surfaceCardVariants({ variant, frame, tone, padding }), className)}
     />
   );
 }

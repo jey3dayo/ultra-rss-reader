@@ -64,4 +64,18 @@ describe("SurfaceCard", () => {
     expect(dangerCard).toHaveClass("bg-state-danger-surface");
     expect(dangerCard).toHaveClass("text-state-danger-foreground");
   });
+
+  it("can opt into a borderless frame without changing its semantic variant", () => {
+    render(
+      <SurfaceCard data-testid="borderless-card" variant="info" frame="borderless">
+        Borderless
+      </SurfaceCard>,
+    );
+
+    const borderlessCard = screen.getByTestId("borderless-card");
+
+    expect(borderlessCard).toHaveAttribute("data-surface-card", "info");
+    expect(borderlessCard).toHaveClass("border-transparent");
+    expect(borderlessCard).toHaveClass("shadow-none");
+  });
 });
