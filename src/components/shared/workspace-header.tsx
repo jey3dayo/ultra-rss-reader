@@ -51,7 +51,7 @@ export function WorkspaceHeader({
           data-testid="workspace-header-drag-region"
           data-tauri-drag-region
           aria-hidden="true"
-          className="absolute inset-y-0 left-0"
+          className="absolute top-0 left-0 h-10"
           style={{ width: `${MAC_OVERLAY_DRAG_REGION_WIDTH}px` }}
         />
       ) : null}
