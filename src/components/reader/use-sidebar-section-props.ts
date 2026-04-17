@@ -44,6 +44,7 @@ export function useSidebarSectionProps({
   renderTagContextMenu,
   sidebarDensity,
   isFeedTreeLoading,
+  showFeedTreeSkeleton,
 }: SidebarSectionPropsParams): SidebarSectionPropsResult {
   const headerProps = useSidebarHeaderProps({
     t,
@@ -90,6 +91,7 @@ export function useSidebarSectionProps({
     renderTagContextMenu,
     sidebarDensity,
     isFeedTreeLoading,
+    showFeedTreeSkeleton,
   });
   const smartViewsProps = useSidebarSmartViewsProps({
     t,

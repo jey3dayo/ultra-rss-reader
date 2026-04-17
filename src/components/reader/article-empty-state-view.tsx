@@ -1,5 +1,5 @@
-import type { ArticleEmptyStateViewProps } from "./article-view.types";
 import { cn } from "@/lib/utils";
+import type { ArticleEmptyStateViewProps } from "./article-view.types";
 
 const EMPTY_HINTS: string[] = [];
 

@@ -3,6 +3,7 @@ import { AddFeedDialog } from "./add-feed-dialog";
 import { FeedTreeView } from "./feed-tree-view";
 import type { SidebarContentSectionsProps } from "./sidebar.types";
 import { SidebarContentView } from "./sidebar-content-view";
+import { SidebarFeedTreeSkeleton } from "./sidebar-feed-tree-skeleton";
 import { SidebarTagSection } from "./sidebar-tag-section";
 import { useSidebarTagItems } from "./use-sidebar-tag-items";
 
@@ -35,6 +36,7 @@ export function SidebarContentSections({
   renderTagSectionContextMenu,
   sidebarDensity,
   isFeedTreeLoading,
+  showFeedTreeSkeleton,
 }: SidebarContentSectionsProps) {
   const { t: commonT } = useTranslation("common");
   const tagItems = useSidebarTagItems({ tags, tagArticleCounts, selection });
@@ -72,12 +74,16 @@ export function SidebarContentSections({
       onToggleFeedsSection={onToggleFeedsSection}
       viewportRef={viewportRef}
       feedTree={
-        <FeedTreeView
-          {...feedTreeProps}
-          sidebarDensity={sidebarDensity}
-          unfolderedLabel={noFolderLabel}
-          emptyState={feedEmptyState}
-        />
+        showFeedTreeSkeleton ? (
+          <SidebarFeedTreeSkeleton label={commonT("loading")} />
+        ) : (
+          <FeedTreeView
+            {...feedTreeProps}
+            sidebarDensity={sidebarDensity}
+            unfolderedLabel={noFolderLabel}
+            emptyState={feedEmptyState}
+          />
+        )
       }
       tagSection={tagSection}
       subscriptionsIndexLabel={subscriptionsIndexLabel}

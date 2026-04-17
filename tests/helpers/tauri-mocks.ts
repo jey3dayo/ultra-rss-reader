@@ -139,6 +139,8 @@ function createDefaultHandler(): MockHandler {
         return sampleAccounts;
       case "list_feeds":
         return sampleFeeds.filter((f) => f.account_id === args.accountId);
+      case "list_folders":
+        return [];
       case "list_articles":
         return sampleArticles.filter((a) => a.feed_id === args.feedId);
       case "list_account_articles":

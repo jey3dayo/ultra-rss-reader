@@ -218,7 +218,7 @@ describe("Sidebar", () => {
     expect(
       screen.queryByRole("button", { name: /Press \+ to add a feed|\+ でフィードを追加/ }),
     ).not.toBeInTheDocument();
-    expect(await screen.findByText(/Loading…|読み込み中…/)).toBeInTheDocument();
+    expect(await screen.findByTestId("sidebar-feed-tree-skeleton")).toBeInTheDocument();
   });
 
   it("shows the add-feed CTA only after the selected account feeds resolve to empty data", async () => {
@@ -346,6 +346,7 @@ describe("Sidebar", () => {
     rerender(<Sidebar />);
 
     expect(await screen.findByText("Snapshot Feed")).toBeInTheDocument();
+    expect(screen.queryByTestId("sidebar-feed-tree-skeleton")).not.toBeInTheDocument();
     expect(screen.queryByText(/Press \+ to add a feed|\+ でフィードを追加/)).not.toBeInTheDocument();
   });
 

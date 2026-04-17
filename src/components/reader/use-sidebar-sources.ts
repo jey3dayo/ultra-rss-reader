@@ -32,6 +32,7 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
   const { snapshot: sidebarSnapshot } = useScreenSnapshot(sidebarSnapshotCandidate, sidebarSnapshotCandidate !== null);
   const adoptedSnapshot = sidebarSnapshot?.accountId === selectedAccountId ? sidebarSnapshot : null;
   const isFeedTreeLoading = selectedAccountId !== null && (feeds === undefined || folders === undefined);
+  const showFeedTreeSkeleton = isFeedTreeLoading && adoptedSnapshot === null;
   const feedList = adoptedSnapshot?.feeds ?? feeds ?? [];
   const folderList = adoptedSnapshot?.folders ?? folders ?? [];
   const totalUnread = useMemo(() => feedList.reduce((sum, feed) => sum + feed.unread_count, 0), [feedList]);
@@ -61,6 +62,7 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
     feeds: adoptedSnapshot?.feeds ?? feeds,
     folders: adoptedSnapshot?.folders ?? folders,
     isFeedTreeLoading,
+    showFeedTreeSkeleton,
     tags,
     tagArticleCounts: resolvedTagArticleCounts,
     accountArticles,

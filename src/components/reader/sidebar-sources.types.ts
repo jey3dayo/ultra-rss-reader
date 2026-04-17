@@ -15,6 +15,7 @@ export type SidebarSourcesResult = {
   feeds: FeedDto[] | undefined;
   folders: FolderDto[] | undefined;
   isFeedTreeLoading: boolean;
+  showFeedTreeSkeleton: boolean;
   tags: TagDto[] | undefined;
   tagArticleCounts: Record<string, number> | undefined;
   accountArticles: ArticleDto[] | undefined;

@@ -10,6 +10,7 @@ export function useSidebarControllerSections({
   feeds,
   folders,
   isFeedTreeLoading,
+  showFeedTreeSkeleton,
   selection,
   viewMode,
   expandedFolderIds,
@@ -148,5 +149,6 @@ export function useSidebarControllerSections({
     renderTagContextMenu,
     sidebarDensity,
     isFeedTreeLoading,
+    showFeedTreeSkeleton,
   });
 }

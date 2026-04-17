@@ -60,6 +60,7 @@ export type SidebarContentSectionsProps = {
   renderTagSectionContextMenu: NonNullable<SidebarTagListProps["renderTagSectionContextMenu"]>;
   sidebarDensity: SidebarDensity;
   isFeedTreeLoading: boolean;
+  showFeedTreeSkeleton: boolean;
 };
 
 export type SidebarContentProps = SidebarContentSectionsProps;
@@ -105,6 +106,7 @@ export type SidebarControllerSectionsParams = {
   feeds: import("./sidebar-sources.types").SidebarSourcesResult["feeds"];
   folders: import("./sidebar-sources.types").SidebarSourcesResult["folders"];
   isFeedTreeLoading: import("./sidebar-sources.types").SidebarSourcesResult["isFeedTreeLoading"];
+  showFeedTreeSkeleton: import("./sidebar-sources.types").SidebarSourcesResult["showFeedTreeSkeleton"];
   selection: SidebarSelection;
   viewMode: import("./sidebar-feed-tree.types").SidebarFeedTreeViewMode;
   expandedFolderIds: Set<string>;
@@ -229,6 +231,7 @@ export type SidebarContentSectionsPropsParams = {
   renderTagSectionContextMenu: SidebarContentSectionsProps["renderTagSectionContextMenu"];
   sidebarDensity: SidebarDensity;
   isFeedTreeLoading: SidebarContentSectionsProps["isFeedTreeLoading"];
+  showFeedTreeSkeleton: SidebarContentSectionsProps["showFeedTreeSkeleton"];
 };
 
 export type SidebarSectionPropsParams = {
@@ -271,6 +274,7 @@ export type SidebarSectionPropsParams = {
   renderTagSectionContextMenu: SidebarContentSectionsProps["renderTagSectionContextMenu"];
   sidebarDensity: SidebarDensity;
   isFeedTreeLoading: SidebarContentSectionsProps["isFeedTreeLoading"];
+  showFeedTreeSkeleton: SidebarContentSectionsProps["showFeedTreeSkeleton"];
 };
 
 export type SidebarViewPropsParams = {
