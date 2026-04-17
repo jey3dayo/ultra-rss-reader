@@ -37,6 +37,7 @@
     - [ ] debug HUD / destructive dialog footer story の外枠を shell example として扱うか確認する
       - 対象: `src/__tests__/components/debug-hud-frame.test.tsx`, `src/components/shared/destructive-dialog-footer.stories.tsx`
       - `rounded-2xl` を使っているが、 distinct shell role として残すか、 catalog 上の例外として切り分けるかを決める
+      - 状況: `destructive-dialog-footer.stories.tsx` は shell example と明示済み。残りは debug HUD 側の扱い確認
   - 2026-04-17 分類メモ:
     - [ ] `browser-overlay-shell` / `browser-overlay-top-rail` は `shell role`、`browser-overlay-scrim` は `feature-local exception` として固定する
       - 対象: `src/components/reader/browser-view.tsx`
@@ -359,6 +360,7 @@
     - 方針:
       - `text-muted-foreground` を漫然と残さず、supporting copy / helper action / muted chip のどの役割かを決めて token に寄せる
       - `bg-muted` 直書きは既存 surface token で表現できるか先に確認する
+      - 状況: `indeterminate-progress` は `--tone-loading` を使う loading semantic role に整理済み
   - [x] Lane B: reader chrome / list support copy の残りを段階整理する
     - 対象候補:
       - `src/components/reader/command-palette.tsx`

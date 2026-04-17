@@ -8,6 +8,12 @@ const meta = {
   tags: ["autodocs"],
   parameters: {
     layout: "padded",
+    docs: {
+      description: {
+        component:
+          "Footer actions for destructive dialogs. The surrounding rounded frame in this story is a shell example, not a section/card specimen.",
+      },
+    },
   },
   decorators: [
     (Story) => (
