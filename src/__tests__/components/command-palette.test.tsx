@@ -104,10 +104,14 @@ describe("CommandPalette", () => {
 
     expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
     expect(screen.getByRole("dialog")).toHaveClass("bg-surface-2", "shadow-elevation-3");
+    expect(screen.getByPlaceholderText("Search commands…")).toHaveClass("placeholder:text-foreground-soft");
     expect(screen.getByPlaceholderText("Search commands…").closest('[data-slot="command-input-wrapper"]')).toHaveClass(
       "bg-surface-1/76",
     );
     expect(await screen.findByText("Recent Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog").querySelector('[data-slot="command"]')).toHaveClass(
+      "[&_[cmdk-group-heading]]:text-foreground-soft",
+    );
     expect(screen.getByTestId("command-palette-prefix-hints")).toHaveClass("text-foreground-soft");
     expect(screen.getByRole("option", { name: /Open settings/ })).toHaveClass("rounded-md");
     expect(screen.queryByRole("option", { name: /Tech Blog/ })).not.toBeInTheDocument();
@@ -185,6 +189,7 @@ describe("CommandPalette", () => {
     const openSettings = await screen.findByRole("option", { name: /Open settings/ });
     const markAllRead = screen.getByRole("option", { name: /Mark all as read/ });
 
+    expect(openSettings.querySelector('[data-slot="command-shortcut"]')).toHaveClass("text-foreground-soft");
     expect(openSettings).toHaveTextContent("⌘ .");
     expect(markAllRead).toHaveTextContent("Shift + A");
   });

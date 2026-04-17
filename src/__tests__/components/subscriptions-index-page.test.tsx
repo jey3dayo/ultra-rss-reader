@@ -156,6 +156,10 @@ describe("SubscriptionsIndexPage", () => {
     const secondaryFeed = screen.getByRole("button", { name: /Fresh Feed/ });
     expect(selectedFeed).toHaveAccessibleName(/Example Feed/);
     expect(selectedFeed).toHaveAccessibleName(/未読 0件/);
+    expect(within(secondaryFeed).getByText("整理不要").closest("[data-label-chip]")).toHaveAttribute(
+      "data-label-chip",
+      "neutral",
+    );
     expect(selectedFeed).toHaveAttribute("aria-pressed", "true");
     expect(selectedFeed).toHaveClass("bg-[color:var(--subscriptions-list-row-selected-surface)]");
     expect(selectedFeed).toHaveClass("focus-visible:ring-2");
@@ -241,6 +245,10 @@ describe("SubscriptionsIndexPage", () => {
     expect(secondGroupButton).toHaveAccessibleName(/Work/);
     expect(firstGroupButton).toHaveAttribute("aria-expanded", "true");
     expect(secondGroupButton).toHaveAttribute("aria-expanded", "true");
+    expect(within(firstGroupButton).getByText("1").closest("[data-label-chip]")).toHaveAttribute(
+      "data-label-chip",
+      "neutral",
+    );
     expect(firstGroupButton.className).toMatch(/rounded-(md|lg|xl)/);
     expect(secondGroupButton.className).toMatch(/rounded-(md|lg|xl)/);
     expect(firstGroupButton.style.borderColor).toBe("var(--subscriptions-list-divider)");
@@ -350,6 +358,44 @@ describe("SubscriptionsIndexPage", () => {
     expect(emptySurface).toHaveClass("border-dashed");
     expect(emptySurface).toHaveClass("bg-surface-1/78");
     expect(emptySurface).toHaveClass("text-foreground-soft");
+  });
+
+  it("renders the empty subscription list with supportive copy tone when no feeds exist", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return [];
+        case "list_folders":
+          return [
+            { id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 },
+            { id: "folder-2", account_id: args.accountId, name: "Work", sort_order: 1 },
+          ];
+        case "list_account_articles":
+          return [];
+        case "get_feed_integrity_report":
+          return {
+            orphaned_article_count: 0,
+            orphaned_feeds: [],
+          };
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return undefined;
+      }
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    const inventoryHeading = await screen.findByRole("heading", { name: "全購読" });
+    const listPane = inventoryHeading.closest("section");
+
+    if (!listPane) {
+      throw new Error("subscriptions list pane not found");
+    }
+
+    expect(within(listPane).getByText("一致する購読はありません。")).toHaveClass("text-foreground-soft");
   });
 
   it("opens cleanup with stale context from the summary action", async () => {

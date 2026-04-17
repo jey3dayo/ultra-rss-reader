@@ -14,7 +14,7 @@ function resolveStatusTone(labelKey: SubscriptionListRow["status"]["labelKey"]) 
     return "danger";
   }
 
-  return "muted";
+  return "neutral";
 }
 
 export function SubscriptionsListPane({
@@ -58,7 +58,7 @@ export function SubscriptionsListPane({
       </div>
       <div className="space-y-5 pr-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
         {!hasRows ? (
-          <p className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+          <p className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground-soft">
             {emptyLabel}
           </p>
         ) : (
@@ -83,13 +83,13 @@ export function SubscriptionsListPane({
                 >
                   <span className="flex items-center gap-1.5">
                     {expanded ? (
-                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                      <ChevronDown className="h-3.5 w-3.5 text-foreground-soft" />
                     ) : (
-                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                      <ChevronRight className="h-3.5 w-3.5 text-foreground-soft" />
                     )}
                     <h3 className="text-sm font-medium tracking-[-0.01em] text-foreground">{group.label}</h3>
                   </span>
-                  <LabelChip tone="muted" size="compact">
+                  <LabelChip tone="neutral" size="compact">
                     {group.rows.length}
                   </LabelChip>
                 </button>

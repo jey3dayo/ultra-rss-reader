@@ -262,6 +262,9 @@ describe("FeedCleanupPage", () => {
     expect(within(deleteDialog).getByText("Why this feed is here")).toBeInTheDocument();
     expect(within(deleteDialog).getByText("No unread")).toBeInTheDocument();
     expect(within(deleteDialog).getByText("No stars")).toBeInTheDocument();
+    expect(within(deleteDialog).getByText("Old Product Blog").closest("div.space-y-3")).toHaveClass(
+      "text-foreground-soft",
+    );
     expect(warningCard).toHaveClass("rounded-md");
 
     await user.click(within(deleteDialog).getByRole("button", { name: "Delete" }));
@@ -433,6 +436,10 @@ describe("FeedCleanupPage", () => {
 
     expect(screen.getByRole("heading", { name: "Edit Feed" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Maintenance" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Edit Feed" }).parentElement?.querySelector("p")).toHaveClass(
+      "text-foreground-soft",
+    );
+    expect(screen.getByRole("heading", { name: "Maintenance" }).nextElementSibling).toHaveClass("text-foreground-soft");
     expect(screen.getByRole("button", { name: "Refetch feed" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Unsubscribe" })).toHaveAttribute("data-delete-button");
     expect(screen.getByLabelText("Title")).toHaveValue("Old Product Blog");

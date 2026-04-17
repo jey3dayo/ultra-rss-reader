@@ -42,7 +42,7 @@ export function FeedCleanupDeleteDialog({
         <DialogHeader>
           <DialogTitle>{bulkDelete ? bulkTitle : title}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3 text-sm text-muted-foreground">
+        <div className="space-y-3 text-sm text-foreground-soft">
           <p className="font-medium text-foreground">{bulkDelete ? bulkSummary : (primaryCandidate?.title ?? "")}</p>
           <p className="rounded-md border border-state-danger-border bg-state-danger-surface px-3 py-2 text-sm text-state-danger-foreground">
             {warningLabel}

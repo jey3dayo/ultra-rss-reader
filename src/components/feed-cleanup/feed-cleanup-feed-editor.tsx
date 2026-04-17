@@ -36,7 +36,7 @@ export function FeedCleanupFeedEditor({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h4 className="text-base font-semibold">{t("edit_feed")}</h4>
-          <p className="mt-1 text-sm text-muted-foreground">{feed.title}</p>
+          <p className="mt-1 text-sm text-foreground-soft">{feed.title}</p>
         </div>
       </div>
 
@@ -108,7 +108,7 @@ export function FeedCleanupFeedEditor({
         <FeedCleanupCard className="space-y-3">
           <div>
             <h5 className="text-sm font-semibold text-foreground">{maintenanceTitle}</h5>
-            <p className="mt-1 text-sm text-muted-foreground">{maintenanceDescription}</p>
+            <p className="mt-1 text-sm text-foreground-soft">{maintenanceDescription}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" disabled={controller.refetching} onClick={() => void controller.handleRefetch()}>
