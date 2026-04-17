@@ -125,6 +125,72 @@
 
 ## 次の並列バッチ候補
 
+- [ ] 2026-04-17 時点の残レーンを `write scope` 単位で棚卸しし、以後はこのまとまりで並列実行する
+  - [ ] Lane A: shared primitive の muted 契約を `foreground-soft` / semantic surface へ寄せる
+    - 対象候補:
+      - `src/components/shared/control-chip.ts`
+      - `src/components/shared/control-chip-button.tsx`
+      - `src/components/shared/label-chip.tsx`
+      - `src/components/shared/sidebar-section-toggle.tsx`
+      - `src/components/shared/icon-toolbar-control.tsx`
+      - `src/components/shared/labeled-input-row.tsx`
+      - `src/components/shared/nav-row-button.tsx`
+      - `src/components/shared/tag-chip.tsx`
+      - `src/components/shared/confirm-dialog-view.tsx`
+      - `src/components/shared/indeterminate-progress.tsx`
+    - 方針:
+      - `text-muted-foreground` を漫然と残さず、supporting copy / helper action / muted chip のどの役割かを決めて token に寄せる
+      - `bg-muted` 直書きは既存 surface token で表現できるか先に確認する
+  - [ ] Lane B: reader chrome / list support copy の残りを段階整理する
+    - 対象候補:
+      - `src/components/reader/command-palette.tsx`
+      - `src/components/reader/sidebar-header-view.tsx`
+      - `src/components/reader/folder-section.tsx`
+      - `src/components/reader/feed-tree-folder-section.tsx`
+      - `src/components/reader/article-tag-picker-popover.tsx`
+      - `src/components/reader/shortcuts-help-modal.tsx`
+      - `src/components/reader/feed-dialog-url-section.tsx`
+      - `src/components/reader/article-list-screen-view.tsx`
+      - `src/components/shared/feed-detail-panel.tsx`
+    - 方針:
+      - hover / helper / shortcut hint を `foreground-soft` と `surface-1/72` 系へ寄せる
+      - `command-palette` は shell と inner helper copy を混ぜずに扱う
+  - [ ] Lane C: article list row の既読/未読補助トーンを最終整理する
+    - 対象候補:
+      - `src/components/reader/article-list-item.tsx`
+      - 必要なら `src/components/reader/article-list-context-strip.tsx`
+    - 方針:
+      - 主タイトルと supporting copy の差だけを残し、既読/未読で helper 色が暴れないようにする
+      - unread/starred semantic marker の色役割とは分離する
+  - [ ] Lane D: settings / sidebar の小物 tone を整理する
+    - 対象候補:
+      - `src/components/settings/accounts-nav-view.tsx`
+      - `src/components/settings/settings-nav-view.tsx`
+      - `src/components/settings/settings-modal-view.tsx`
+    - 方針:
+      - `bg-muted` の account icon fallback や `sidebar-foreground/*` の helper alpha を整理する
+      - shell role の rail / section label と nav item helper の役割を混ぜない
+  - [ ] Lane E: `workspace-header` browser preview レーンを独立管理する
+    - 対象:
+      - `src/components/shared/workspace-header.tsx`
+      - `src/__tests__/components/design-shared-components.test.tsx`
+    - 現在の論点:
+      - mac overlay drag region と content start の安全域
+      - leading block だけに inset をかけるか、header body 全体に持たせるか
+      - browser preview 時だけ eyebrow を top row へ出すか、title group に残すか
+      - back button の top offset と drag region width の組み合わせを固定値として持つか
+      - drag region width と content start を別定数で持つか、同じ safe inset として扱うか
+    - 注意:
+      - このレーンは見た目確認と test 追従がセットになりやすいので、他レーンと混ぜない
+  - [ ] Lane F: hook / optimistic cache follow-up を test 付きで管理する
+    - 対象候補:
+      - `src/hooks/use-articles.ts`
+      - `src/__tests__/hooks/use-articles.test.tsx`
+      - 必要なら `src/__tests__/components/article-view.test.tsx`
+    - 方針:
+      - `starredArticles` / `accountArticles` の cache patch 漏れだけを扱う
+      - UI tone 調整レーンとは完全に分離する
+
 - [ ] Lane 1: overlay color layer を `DESIGN.md` 準拠の token に寄せる
   - [ ] 棚卸し
     - 対象: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-overlay-presentation.ts`, `src/components/reader/browser-overlay-chrome.tsx`, `src/components/reader/browser-overlay-stage.tsx`, `src/components/reader/browser-surface-state-card.tsx`, `src/components/reader/article-empty-state-view.tsx`
