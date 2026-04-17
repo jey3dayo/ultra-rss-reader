@@ -74,7 +74,7 @@ Tech Stack: React 19, TypeScript, Vitest, Testing Library, class-variance-author
 
 ## Task 1: Add shell primitives
 
-### Files:
+### Files
 
 - Create: `src/components/shared/overlay-action-surface.tsx`
 - Create: `src/components/shared/overlay-stage-surface.tsx`
@@ -267,7 +267,7 @@ git commit -m "test(shared): add browser overlay shell primitives"
 
 ## Task 2: Move overlay presentation to shared shell primitives
 
-### Files:
+### Files
 
 - Modify: `src/components/reader/browser-overlay-presentation.ts`
 - Modify: `src/components/reader/browser-overlay-chrome.tsx`
@@ -422,7 +422,7 @@ git commit -m "refactor(reader): reuse shell primitives in overlay presentation"
 
 ## Task 3: Document shell role and separate shell examples in Storybook
 
-### Files:
+### Files
 
 - Modify: `src/components/storybook/ui-reference-settings-canvas.stories.tsx`
 - Modify: `DESIGN.md`

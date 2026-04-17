@@ -12,7 +12,7 @@ Tech Stack: React 19, TypeScript, Zustand, TanStack Query, Base UI ContextMenu, 
 
 ## Task 1: サイドバーのタグ見出しに右クリックメニューを追加する
 
-### Files:
+### Files
 
 - Create: `src/components/reader/tag-section-context-menu-view.tsx`
 - Create: `src/components/reader/tag-section-context-menu.tsx`
@@ -218,7 +218,7 @@ git commit -m "feat: add tag section context menu"
 
 ## Task 2: Settings モーダルに `タグ` カテゴリとタグ管理ビューを追加する
 
-### Files:
+### Files
 
 - Create: `src/components/settings/tags-settings.tsx`
 - Create: `src/components/settings/tags-settings-view.tsx`
@@ -417,7 +417,7 @@ git commit -m "feat: add tag settings category"
 
 ## Task 3: タグ管理の create / edit / delete と削除後フォールバックを実装する
 
-### Files:
+### Files
 
 - Create: `src/components/settings/create-tag-dialog-view.tsx`
 - Modify: `src/components/settings/tags-settings.tsx`
@@ -598,7 +598,7 @@ git commit -m "feat: implement tag management flows"
 
 ## Task 4: 品質ゲートを通して仕上げる
 
-### Files:
+### Files
 
 - Modify: `src/components/settings/tags-settings.tsx` (if lint/type/test fixes are needed)
 - Modify: `src/components/settings/tags-settings-view.tsx` (if layout/a11y fixes are needed)

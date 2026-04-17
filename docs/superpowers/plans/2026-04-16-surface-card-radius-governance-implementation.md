@@ -65,7 +65,7 @@ Tech Stack: React 19, TypeScript, Vitest, Testing Library, class-variance-author
 
 ## Task 1: Add surface radius tokens and `SurfaceCard`
 
-### Files:
+### Files
 
 - Modify: `src/styles/global.css`
 - Create: `src/components/shared/surface-card.tsx`
@@ -256,7 +256,7 @@ git commit -m "test(shared): add surface card coverage"
 
 ## Task 2: Migrate `ArticleEmptyStateView` to `info` surface
 
-### Files:
+### Files
 
 - Modify: `src/components/reader/article-empty-state-view.tsx`
 - Modify: `src/components/reader/article-empty-state-view.stories.tsx`
@@ -350,7 +350,7 @@ git commit -m "refactor(reader): move article empty state to surface card"
 
 ## Task 3: Migrate `SettingsSection` and add Storybook reference specimens
 
-### Files:
+### Files
 
 - Modify: `src/components/settings/settings-section.tsx`
 - Create: `src/__tests__/components/settings-section.test.tsx`
@@ -494,7 +494,7 @@ git commit -m "refactor(settings): move section containers to surface card"
 
 ## Task 4: Document the governance rules and run full verification
 
-### Files:
+### Files
 
 - Modify: `DESIGN.md`
 - Read: `docs/superpowers/specs/2026-04-16-surface-card-radius-governance-design.md`

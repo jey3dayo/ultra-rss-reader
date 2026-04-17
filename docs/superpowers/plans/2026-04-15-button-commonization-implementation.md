@@ -85,7 +85,7 @@ Tech Stack: React 19, TypeScript, Vitest, Testing Library, class-variance-author
 
 ## Task 1: Add `NavRowButton`
 
-### Files:
+### Files
 
 - Create: `src/components/shared/nav-row-button.tsx`
 - Test: `src/__tests__/components/nav-row-button.test.tsx`
@@ -235,7 +235,7 @@ EOF
 
 ## Task 2: Add `DecisionButton`
 
-### Files:
+### Files
 
 - Create: `src/components/shared/decision-button.tsx`
 - Test: `src/__tests__/components/decision-button.test.tsx`
@@ -331,7 +331,7 @@ EOF
 
 ## Task 3: Reuse `NavRowButton` in settings navigation
 
-### Files:
+### Files
 
 - Modify: `src/components/settings/accounts-nav-view.tsx`
 - Modify: `src/components/settings/settings-nav-view.tsx`
@@ -463,7 +463,7 @@ EOF
 
 ## Task 4: Reuse `NavRowButton` in subscriptions list
 
-### Files:
+### Files
 
 - Modify: `src/components/subscriptions-index/subscriptions-list-pane.tsx`
 - Test: `src/__tests__/components/subscriptions-index-page.test.tsx`
@@ -544,7 +544,7 @@ EOF
 
 ## Task 5: Add chip/button wrapper on top of `control-chip`
 
-### Files:
+### Files
 
 - Modify: `src/components/shared/control-chip.ts`
 - Optionally Create: `src/components/shared/control-chip-button.tsx`
@@ -599,7 +599,7 @@ Expected: either PASS immediately or fail because cleanup still uses old button 
 
 ## Task 6: Reuse `DecisionButton` and chip wrapper in cleanup queue
 
-### Files:
+### Files
 
 - Modify: `src/components/feed-cleanup/feed-cleanup-overview-panel.tsx`
 - Modify: `src/components/feed-cleanup/feed-cleanup-queue-panel.tsx`
@@ -726,7 +726,7 @@ EOF
 
 ## Task 7: Full verification and browser review
 
-### Files:
+### Files
 
 - No code changes required
 - Read: `tmp/screenshots/button-review-home.png`
