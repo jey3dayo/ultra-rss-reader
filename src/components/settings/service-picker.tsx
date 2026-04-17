@@ -34,10 +34,10 @@ export function ServicePicker({ onSelect }: ServicePickerProps) {
                           onSelect(service.kind as AddAccountProviderKind);
                         }
                       }}
-                      className={cn("items-center rounded-lg px-3 py-2.5")}
+                      className={cn("items-center rounded-md px-3 py-2.5")}
                       leading={
                         <div
-                          className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", service.iconBg)}
+                          className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md", service.iconBg)}
                         >
                           <service.icon className="h-[18px] w-[18px] text-white" />
                         </div>

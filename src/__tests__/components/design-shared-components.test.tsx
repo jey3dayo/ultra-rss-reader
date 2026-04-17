@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ControlChipButton } from "@/components/shared/control-chip-button";
+import { LabelChip } from "@/components/shared/label-chip";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { WorkspaceHeader } from "@/components/shared/workspace-header";
@@ -86,6 +87,7 @@ describe("Design-themed shared components", () => {
       <>
         <NavRowButton title="General settings" />
         <ControlChipButton pressed>Unread</ControlChipButton>
+        <LabelChip tone="muted">Muted chip</LabelChip>
       </>,
     );
 
@@ -96,6 +98,8 @@ describe("Design-themed shared components", () => {
       "data-[pressed]:bg-surface-4",
       "data-[pressed]:border-border-strong",
     );
+    expect(screen.getByText("Muted chip")).toHaveAttribute("data-label-chip", "muted");
+    expect(screen.getByText("Muted chip")).toHaveClass("text-foreground-soft");
   });
 
   it("reserves space for mac traffic lights in workspace headers", () => {

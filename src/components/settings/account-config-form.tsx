@@ -103,7 +103,7 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
       {serviceDef && (
         <SurfaceCard variant="info" tone="subtle" padding="compact" className="mb-4">
           <div className="flex items-center gap-3">
-            <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", serviceDef.iconBg)}>
+            <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", serviceDef.iconBg)}>
               <serviceDef.icon className="h-5 w-5 text-white" />
             </div>
             <div className="min-w-0">

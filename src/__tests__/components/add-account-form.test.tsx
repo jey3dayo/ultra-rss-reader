@@ -9,6 +9,10 @@ import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 const servicePickerSource = readFileSync(join(process.cwd(), "src/components/settings/service-picker.tsx"), "utf8");
+const accountConfigFormSource = readFileSync(
+  join(process.cwd(), "src/components/settings/account-config-form.tsx"),
+  "utf8",
+);
 
 async function selectService(user: ReturnType<typeof userEvent.setup>, serviceName: string) {
   await user.click(screen.getByRole("button", { name: new RegExp(serviceName) }));
@@ -50,7 +54,7 @@ describe("AddAccountForm", () => {
 
     const freshrssButton = screen.getByRole("button", { name: /FreshRSS/ });
 
-    expect(freshrssButton).toHaveClass("rounded-lg", "px-3", "py-2.5");
+    expect(freshrssButton).toHaveClass("rounded-md", "px-3", "py-2.5");
     expect(freshrssButton.querySelector(".lucide-chevron-right")).toHaveClass("text-foreground-soft");
   });
 
@@ -63,6 +67,16 @@ describe("AddAccountForm", () => {
       "border-border",
       "bg-surface-1",
       "shadow-elevation-1",
+    );
+  });
+
+  it("keeps the service row and icon badge on the rounded-md baseline", () => {
+    expect(servicePickerSource).toContain('className={cn("items-center rounded-md px-3 py-2.5")}');
+    expect(servicePickerSource).toContain(
+      'className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md", service.iconBg)}',
+    );
+    expect(accountConfigFormSource).toContain(
+      'className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", serviceDef.iconBg)}',
     );
   });
 
