@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type TagColorPickerProps = {
@@ -44,14 +45,16 @@ export function TagColorPicker({
             aria-label={optionAriaLabel(option)}
             title={optionAriaLabel(option)}
             className={cn(
-              "size-8 rounded-full border-2 transition-[border-color,box-shadow,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+              "relative flex size-8 items-center justify-center rounded-full border-2 transition-[border-color,box-shadow,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
               color === option
-                ? "border-border-strong ring-2 ring-ring/35"
+                ? "scale-110 border-white/85 shadow-[0_0_0_1px_rgba(242,241,237,0.88),0_0_0_3px_rgba(245,78,0,0.16)]"
                 : "border-border/60 hover:border-border-strong",
             )}
             style={{ backgroundColor: option }}
             onClick={() => onChange(option)}
-          />
+          >
+            {color === option ? <Check className="size-4 text-white drop-shadow-[0_1px_2px_rgba(38,37,30,0.45)]" /> : null}
+          </button>
         ))}
       </div>
     </div>
