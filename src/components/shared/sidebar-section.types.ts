@@ -5,6 +5,7 @@ export type SidebarSectionToggleProps = {
   isOpen: boolean;
   onToggle: () => void;
   className?: string;
+  panelId?: string;
   contextMenu?: ReactNode;
 };
 
@@ -15,4 +16,5 @@ export type SidebarSectionShellProps = {
   headerClassName?: string;
   bodyClassName?: string;
   children?: ReactNode;
+  panelId?: string;
 };

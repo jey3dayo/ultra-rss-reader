@@ -56,4 +56,42 @@ describe("FeedTreeFolderSection", () => {
     expect(row).toHaveClass("bg-sidebar-accent/16");
     expect(folderButton).toHaveClass("bg-sidebar-accent/32");
   });
+
+  it("keeps the folder feed panel mounted with animated collapse state", () => {
+    render(
+      <FeedTreeFolderSection
+        folder={{
+          ...baseFolder,
+          isExpanded: false,
+          feeds: [
+            {
+              id: "feed-1",
+              accountId: "acc-1",
+              folderId: "folder-1",
+              title: "Alpha",
+              url: "https://example.com/feed.xml",
+              siteUrl: "https://example.com",
+              unreadCount: 1,
+              readerMode: "on",
+              webPreviewMode: "off",
+              isSelected: false,
+              grayscaleFavicon: false,
+            },
+          ],
+        }}
+        activeDropTarget={null}
+        onToggleFolder={vi.fn()}
+        onSelectFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+      />,
+    );
+
+    const toggleButton = screen.getByRole("button", { name: "Toggle folder Comic" });
+    const folderPanel = document.getElementById("feed-tree-folder-panel-folder-1");
+
+    expect(toggleButton.querySelector("svg")).toHaveClass("transition-transform", "duration-200");
+    expect(folderPanel).toHaveAttribute("aria-hidden", "true");
+    expect(folderPanel).toHaveClass("transition-[grid-template-rows,opacity,transform]");
+  });
 });

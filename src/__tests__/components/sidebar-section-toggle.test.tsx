@@ -12,6 +12,8 @@ describe("SidebarSectionToggle", () => {
 
     expect(button).toHaveClass("rounded-md", "hover:bg-surface-1/72");
     expect(button.querySelector("svg")).toHaveClass("text-foreground-soft");
+    expect(button).toHaveClass("transition-[background-color,border-color,color,box-shadow,transform]");
+    expect(button.querySelector("svg")).toHaveClass("transition-transform", "duration-200");
 
     fireEvent.click(button);
 

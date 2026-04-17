@@ -91,6 +91,7 @@ describe("TagListView", () => {
     );
 
     expect(screen.getByRole("button", { name: "Tags" })).toBeInTheDocument();
+    expect(document.getElementById("sidebar-tag-section-panel")).toHaveAttribute("aria-hidden", "false");
     expect(screen.getByText("Later")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
 
