@@ -41,7 +41,7 @@ export function BrowserView({ scope = "content-pane", onCloseOverlay, labels, to
       <div
         aria-hidden="true"
         data-testid="browser-overlay-scrim"
-        className="absolute inset-0 z-0 cursor-default bg-transparent"
+        className="absolute inset-0 z-0 cursor-default bg-background/0"
         onClick={scope === "main-stage" ? undefined : controller.handleCloseOverlay}
       />
       <BrowserOverlayChrome

@@ -218,4 +218,26 @@ describe("ArticleListItem", () => {
     expect(screen.getByText("Tech Blog")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("A hello world article")).toHaveClass("text-foreground-soft");
   });
+
+  it("keeps read titles stronger than supporting copy without falling back to muted-foreground", () => {
+    render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: true, is_starred: false }}
+        isSelected={false}
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName="Tech Blog"
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const title = screen.getByText("First Article");
+
+    expect(title).not.toHaveClass("text-muted-foreground");
+    expect(title).toHaveClass("text-foreground/78");
+  });
 });

@@ -661,7 +661,7 @@ export function WorkspaceTwoPaneSpecimen() {
       <SectionHeading className="mb-2">Workspace two-pane</SectionHeading>
       <div
         data-testid="reference-workspace-two-pane-frame"
-        className="grid gap-4 rounded-lg border border-border/70 bg-card/30 p-3 shadow-none lg:grid-cols-[minmax(0,1fr)_480px]"
+        className="grid gap-4 rounded-md border border-border/70 bg-card/30 p-3 shadow-none lg:grid-cols-[minmax(0,1fr)_480px]"
       >
         <div className="space-y-3">
           <div className="rounded-md border border-border/70 bg-surface-1/88 px-3 py-3 shadow-none">

@@ -216,12 +216,15 @@ describe("SubscriptionsIndexPage", () => {
     if (!leftPaneSection) {
       throw new Error("left pane section not found");
     }
+    expect(leftPaneSection).toHaveClass("rounded-md");
 
     const leftPaneScrollRegion = leftPaneSection.querySelector("div.space-y-5");
     expect(leftPaneScrollRegion).toBeTruthy();
     expect(leftPaneScrollRegion).toHaveClass("lg:min-h-0");
     expect(leftPaneScrollRegion).toHaveClass("lg:flex-1");
     expect(leftPaneScrollRegion).toHaveClass("lg:overflow-y-auto");
+
+    expect(screen.getByTestId("subscriptions-detail-pane")).toHaveClass("rounded-md");
 
     expect(container.querySelector("[data-browser-overlay-root]")).toBeNull();
   });

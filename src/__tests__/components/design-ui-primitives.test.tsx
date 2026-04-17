@@ -109,6 +109,11 @@ describe("Design-themed UI primitives", () => {
       "border-border",
       "shadow-elevation-3",
     );
+    expect(screen.getByRole("dialog", { name: "Confirm" })).toHaveClass(
+      "focus-visible:border-border-strong",
+      "focus-visible:ring-3",
+      "focus-visible:ring-ring/50",
+    );
   });
 
   it("uses the readable overlay token when requested", () => {

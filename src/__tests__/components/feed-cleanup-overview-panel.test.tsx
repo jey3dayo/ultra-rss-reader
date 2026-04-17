@@ -55,13 +55,16 @@ describe("FeedCleanupOverviewPanel", () => {
 
     const summary = screen.getByTestId("feed-cleanup-sidebar-summary");
     const bulkActions = screen.getByTestId("feed-cleanup-bulk-actions");
+    const summaryCard = within(summary).getByText("Pending").closest('[data-surface-card="section"]');
     const pendingCount = within(summary).getByText("3");
 
     expect(summary).toHaveTextContent("Pending");
     expect(summary).toHaveTextContent("Done");
+    expect(summaryCard).toHaveClass("bg-card/24");
     expect(pendingCount.closest("span")).toHaveClass("rounded-md");
     expect(within(summary).getByText("Needs review")).toHaveClass("text-foreground-soft");
     expect(within(summary).queryByRole("button")).toBeNull();
+    expect(bulkActions).toHaveClass("bg-card/52");
     expect(within(bulkActions).getAllByRole("button")).toHaveLength(2);
     expect(within(bulkActions).getByRole("button", { name: "Keep all visible" })).toHaveClass(
       "rounded-md",
@@ -129,5 +132,14 @@ describe("FeedCleanupOverviewPanel", () => {
     ).toHaveClass("border-state-warning-border", "bg-state-warning-surface", "text-state-warning-foreground");
     expect(screen.queryByRole("button", { name: "Keep all visible" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Defer all visible" })).toBeNull();
+  });
+
+  it("keeps bulk visible actions mounted but disabled when no candidates are visible", () => {
+    render(<FeedCleanupOverviewPanel {...buildProps()} visibleCandidateCount={0} bulkVisibleCountLabel="0 visible" />);
+
+    expect(screen.getByTestId("feed-cleanup-bulk-actions")).toBeInTheDocument();
+    expect(screen.getByText("0 visible")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keep all visible" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Defer all visible" })).toBeDisabled();
   });
 });

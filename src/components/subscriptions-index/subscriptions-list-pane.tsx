@@ -39,7 +39,7 @@ export function SubscriptionsListPane({
   const hasRows = groups.some((group) => group.rows.length > 0);
   return (
     <section
-      className="flex flex-col px-4 py-5 sm:px-5 sm:py-5 lg:min-h-0 lg:border-r lg:border-[color:var(--subscriptions-pane-divider)]"
+      className="flex flex-col rounded-md px-4 py-5 sm:px-5 sm:py-5 lg:min-h-0 lg:border-r lg:border-[color:var(--subscriptions-pane-divider)]"
       style={{
         backgroundColor: "var(--subscriptions-list-surface)",
       }}
@@ -63,7 +63,7 @@ export function SubscriptionsListPane({
               <div
                 data-testid={`subscriptions-folder-row-${group.folderId ?? "ungrouped"}`}
                 data-folder-drop-target={group.folderId ? "true" : "false"}
-                className="flex items-center justify-between rounded-lg border px-3 py-2.5"
+                className="flex items-center justify-between rounded-md border px-3 py-2.5"
                 style={{
                   borderColor: "var(--subscriptions-list-divider)",
                   backgroundColor: "var(--subscriptions-list-group-surface)",
@@ -85,7 +85,7 @@ export function SubscriptionsListPane({
                     aria-pressed={selectedFeedId === row.feed.id}
                     onClick={() => onSelectFeed(row.feed.id)}
                     className={cn(
-                      "items-center rounded-lg border border-transparent px-3.5 py-3.5 shadow-none",
+                      "items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none",
                       selectedFeedId === row.feed.id
                         ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[0_8px_20px_-18px_rgba(38,37,30,0.28)]"
                         : "bg-background/15 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",

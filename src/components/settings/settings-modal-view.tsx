@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 export type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
 
 const HIDDEN_SCROLLBAR_CLASS = "[&>[data-slot='scroll-area-scrollbar']]:hidden";
+const SHELL_SECTION_LABEL_CLASS =
+  "mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--settings-shell-section-label)]";
 
 function useScrollOverflowState(dependency: unknown) {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -156,11 +158,7 @@ export function SettingsModalView({
                 className="mx-3 mb-3 max-h-[5.5rem] overflow-y-auto rounded-md border border-border/70 px-3 py-2.5 shadow-elevation-1 sm:hidden"
                 style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
               >
-                {accountsHeading ? (
-                  <p className="mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/40">
-                    {accountsHeading}
-                  </p>
-                ) : null}
+                {accountsHeading ? <p className={SHELL_SECTION_LABEL_CLASS}>{accountsHeading}</p> : null}
                 {accountsNavigation}
               </div>
             </ScrollArea>
@@ -179,11 +177,7 @@ export function SettingsModalView({
             className="mx-3 mb-3 hidden rounded-md border border-border/70 px-3 py-3 shadow-elevation-1 sm:block"
             style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
           >
-            {accountsHeading ? (
-              <p className="mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/40">
-                {accountsHeading}
-              </p>
-            ) : null}
+            {accountsHeading ? <p className={SHELL_SECTION_LABEL_CLASS}>{accountsHeading}</p> : null}
             <div data-testid="settings-accounts-scroll-area" className="min-h-0 max-h-[15rem] overflow-y-auto">
               {accountsNavigation}
             </div>

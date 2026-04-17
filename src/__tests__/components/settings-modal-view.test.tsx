@@ -152,7 +152,7 @@ describe("SettingsModalView", () => {
     expect(screen.getByTestId("settings-accounts-scroll-area")).toHaveClass("max-h-[15rem]");
     expect(screen.getByTestId("settings-accounts-scroll-area")).toHaveClass("min-h-0");
     expect(screen.getAllByText("Accounts")).toHaveLength(2);
-    expect(screen.getAllByText("Accounts")[0]).toHaveClass("text-sidebar-foreground/40");
+    expect(screen.getAllByText("Accounts")[0]).toHaveClass("text-[color:var(--settings-shell-section-label)]");
   });
 
   it("renders a narrow-screen accounts section inside the navigation flow", () => {

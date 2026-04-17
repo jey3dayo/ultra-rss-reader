@@ -44,7 +44,7 @@ export function SubscriptionDetailPane({
   return (
     <section
       data-testid="subscriptions-detail-pane"
-      className="flex flex-col px-4 py-5 sm:px-6 sm:py-5 lg:min-h-0"
+      className="flex flex-col rounded-md px-4 py-5 sm:px-6 sm:py-5 lg:min-h-0"
       style={{
         backgroundColor: "var(--subscriptions-detail-surface)",
       }}

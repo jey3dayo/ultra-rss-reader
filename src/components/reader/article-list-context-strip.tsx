@@ -5,15 +5,13 @@ const TONE_STYLES = {
     accent: "bg-[var(--tone-unread)]",
     primary:
       "text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))] font-semibold",
-    secondary:
-      "text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))] opacity-80",
+    secondary: "text-[var(--sidebar-foreground-soft-strong)]",
   },
   starred: {
     accent: "bg-[var(--tone-starred)]",
     primary:
       "text-[color-mix(in_srgb,var(--tone-starred)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
-    secondary:
-      "text-[color-mix(in_srgb,var(--tone-starred)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))] opacity-80",
+    secondary: "text-[var(--sidebar-foreground-soft-strong)]",
   },
   neutral: {
     accent: "bg-[var(--sidebar-divider-strong)]",

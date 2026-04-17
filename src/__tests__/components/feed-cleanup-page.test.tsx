@@ -576,10 +576,11 @@ describe("FeedCleanupPage", () => {
     render(<FeedCleanupPage />, { wrapper: createWrapper() });
 
     await screen.findByRole("button", { name: "Old Product Blog" });
+    expect(screen.getByRole("button", { name: "Keep selected" })).toBeDisabled();
     await user.click(screen.getByRole("checkbox", { name: "Select candidate Old Product Blog" }));
-    expect(screen.getByRole("button", { name: "Keep selected" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keep selected" })).toBeEnabled();
     await user.click(screen.getByRole("checkbox", { name: "Select candidate Old Product Blog" }));
-    expect(screen.queryByRole("button", { name: "Keep selected" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keep selected" })).toBeDisabled();
   });
 
   it("keeps the queue in normal document flow on narrow screens", async () => {

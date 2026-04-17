@@ -70,7 +70,7 @@ export function ArticleListItem({
             <h3
               className={cn(
                 "line-clamp-2 flex-1 text-sm leading-snug",
-                isUnread ? "font-semibold text-foreground" : "text-muted-foreground",
+                isUnread ? "font-semibold text-foreground" : "text-foreground/78",
               )}
             >
               {article.title}
@@ -83,20 +83,12 @@ export function ArticleListItem({
         <span className="shrink-0 pt-0.5 text-xs text-foreground-soft">{formatArticleTime(article.published_at)}</span>
       </div>
 
-      {showFeedName && (
-        <p className="pl-4 text-xs text-foreground-soft">
-          {normalizedFeedName}
-        </p>
-      )}
+      {showFeedName && <p className="pl-4 text-xs text-foreground-soft">{normalizedFeedName}</p>}
 
       {showSecondaryRow && (
         <div className="flex items-start gap-2 pl-4">
           {showSummary && (
-            <p
-              className="line-clamp-2 flex-1 text-xs leading-relaxed text-foreground-soft"
-            >
-              {normalizedSummary}
-            </p>
+            <p className="line-clamp-2 flex-1 text-xs leading-relaxed text-foreground-soft">{normalizedSummary}</p>
           )}
           {imagePreviews !== "off" && article.thumbnail && (
             <div

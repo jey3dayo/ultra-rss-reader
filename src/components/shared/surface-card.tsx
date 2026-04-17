@@ -9,7 +9,7 @@ const surfaceCardVariants = cva(
     variants: {
       variant: {
         info: "rounded-lg",
-        section: "rounded-lg",
+        section: "rounded-md",
       },
       tone: {
         default: "",

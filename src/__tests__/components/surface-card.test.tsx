@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it } from "vitest";
@@ -7,13 +5,6 @@ import { describe, expect, it } from "vitest";
 import { SurfaceCard } from "@/components/shared/surface-card";
 
 describe("SurfaceCard", () => {
-  it("keeps the shared card radii aligned to the rounded-lg baseline", () => {
-    const globalCss = readFileSync(resolve(process.cwd(), "src/styles/global.css"), "utf8");
-
-    expect(globalCss).toMatch(/--radius-surface-info:\s*0\.75rem;/);
-    expect(globalCss).toMatch(/--radius-surface-section:\s*0\.75rem;/);
-  });
-
   it("requires an explicit variant in the component API", () => {
     // @ts-expect-error SurfaceCard requires a semantic variant.
     const props: ComponentProps<typeof SurfaceCard> = { children: "Missing variant" };
@@ -21,7 +12,7 @@ describe("SurfaceCard", () => {
     expect(props.children).toBe("Missing variant");
   });
 
-  it("maps info and section variants to distinct semantic surfaces", () => {
+  it("maps info and section variants to distinct semantic surfaces on the rounded-md baseline", () => {
     render(
       <>
         <SurfaceCard data-testid="info-card" variant="info">
@@ -41,7 +32,7 @@ describe("SurfaceCard", () => {
     expect(infoCard).toHaveClass("border-border/70");
 
     expect(sectionCard).toHaveAttribute("data-surface-card", "section");
-    expect(sectionCard).toHaveClass("rounded-lg");
+    expect(sectionCard).toHaveClass("rounded-md");
     expect(sectionCard).toHaveClass("border-border/60");
   });
 

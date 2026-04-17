@@ -271,9 +271,12 @@ export function FeedCleanupPageView({
         ? workspaceSplitGridClassName("gap-6 px-5 py-5")
         : "flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-5 sm:px-6 sm:py-5";
 
-  const reviewPanelClassName = layoutMode === "stacked" ? "" : "sticky top-0 h-full min-h-0 overflow-hidden";
+  const reviewPanelClassName =
+    layoutMode === "stacked"
+      ? ""
+      : "sticky top-0 h-full min-h-0 overflow-hidden border-l border-border/70 pl-5 sm:pl-6";
   const queueListClassName =
-    layoutMode === "stacked" ? "space-y-3 pr-1" : "min-h-0 flex-1 space-y-3 overflow-y-auto pr-1";
+    layoutMode === "stacked" ? "space-y-3 overflow-y-auto" : "min-h-0 flex-1 space-y-3 overflow-y-auto";
 
   return (
     <div

@@ -67,7 +67,7 @@ export function FeedTreeFolderSection({
           aria-label={t("toggle_folder", { name: folder.name })}
           aria-expanded={folder.isExpanded}
           density={sidebarDensity}
-          className={cn("-mr-1 text-sidebar-foreground/70 hover:bg-sidebar-accent/28 hover:text-sidebar-foreground")}
+          className={cn("-mr-1 text-foreground-soft hover:bg-sidebar-accent/28 hover:text-sidebar-foreground")}
           onClick={() => onToggleFolder(folder.id)}
         >
           {folder.isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
@@ -81,11 +81,7 @@ export function FeedTreeFolderSection({
                 selected={folder.isSelected}
                 selectedIndicatorMode="hidden"
                 trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
-                trailingClassName={
-                  folder.isSelected
-                    ? "text-[var(--sidebar-selection-muted)]"
-                    : "text-[var(--sidebar-foreground-muted-strong)]"
-                }
+                trailingClassName="text-foreground-soft"
                 {...(canDragFeeds
                   ? {
                       [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "folder",

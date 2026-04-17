@@ -602,10 +602,12 @@ describe("BrowserView", () => {
     const loadingTitle = screen.getByText("Loading");
     const loadingHint = screen.getByText("If this takes too long, open it in your external browser.");
     const loadingHalo = loadingState.querySelector(".blur-2xl");
+    const loadingSpinner = loadingState.querySelector(".animate-spin");
 
     expect(loadingState.className).not.toMatch(/\bborder\b/);
     expect(loadingState.className).not.toMatch(/\bshadow-/);
-    expect(loadingHalo).toHaveClass("bg-surface-1/72");
+    expect(loadingHalo).toHaveClass("bg-surface-1/80");
+    expect(loadingSpinner).toHaveClass("text-foreground");
     expect(loadingTitle).toHaveClass("text-foreground");
     expect(loadingHint).toHaveClass("text-foreground-soft");
   });

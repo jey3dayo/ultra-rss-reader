@@ -20,6 +20,7 @@ describe("FeedDetailPanel", () => {
           { label: "フォルダ", value: "Work" },
           { label: "表示", value: "既定の表示" },
         ]}
+        links={[{ href: "https://example.com/help", label: "Help" }]}
         recentArticlesHeading="最近の記事"
         recentArticles={[
           {
@@ -64,6 +65,7 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByText("未読 0件 / スター 0件")).toHaveClass("text-current");
     expect(screen.getByText("フォルダ").closest("dt")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("Work").closest("dd")).toHaveClass("text-foreground");
+    expect(screen.getByRole("link", { name: "https://example.com/help" })).toHaveClass("text-foreground-soft");
     expect(screen.getByText("最近の記事").parentElement).toHaveClass("border-t", "pt-4");
     expect(screen.getByRole("button", { name: "購読の整理" }).parentElement).toHaveClass("border-t", "pt-4");
     expect(screen.getByRole("button", { name: "購読の整理" })).toHaveClass(

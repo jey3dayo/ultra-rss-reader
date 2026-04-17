@@ -38,7 +38,7 @@ export function ArticleTagPickerPopover({
             onAssignTag(tag.id);
             onExpandedChange(false);
           }}
-          className="flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm text-foreground hover:bg-surface-1"
+          className="flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm text-foreground hover:bg-surface-1/72"
         >
           {tag.color && (
             <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: tag.color }} />
@@ -71,7 +71,7 @@ export function ArticleTagPickerPopover({
           size="icon-sm"
           onClick={onCreateTag}
           disabled={!newTagName.trim()}
-          className="h-10 w-10 rounded-md text-muted-foreground hover:bg-surface-1"
+          className="h-10 w-10 rounded-md text-foreground-soft hover:bg-surface-1/72"
           aria-label={labels.createTag}
         >
           <Plus className="h-3 w-3" />

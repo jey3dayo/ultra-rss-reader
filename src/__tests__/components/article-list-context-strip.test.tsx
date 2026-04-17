@@ -34,4 +34,16 @@ describe("ArticleListContextStrip", () => {
       "text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
     );
   });
+
+  it("keeps the secondary label on a neutral supporting tone for semantic strips", () => {
+    render(<ArticleListContextStrip primaryLabel="Unread" secondaryLabel="12 items" tone="unread" />);
+
+    const secondaryLabel = screen.getByText("12 items");
+
+    expect(secondaryLabel).toHaveAttribute("data-emphasis", "secondary");
+    expect(secondaryLabel).toHaveClass("text-[var(--sidebar-foreground-soft-strong)]");
+    expect(secondaryLabel).not.toHaveClass(
+      "text-[color-mix(in_srgb,var(--tone-unread)_var(--tone-foreground-strength),var(--sidebar-selection-foreground))]",
+    );
+  });
 });

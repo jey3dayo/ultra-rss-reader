@@ -38,14 +38,10 @@ describe("ArticleEmptyStateView", () => {
 
     expect(container).toHaveAttribute("data-surface-card", "info");
     expect(container).toHaveClass("rounded-lg");
-    expect(container).not.toHaveClass("rounded-[2rem]");
     expect(container).toHaveClass("max-w-xl");
-    expect(container).toHaveClass("border-transparent");
-    expect(container).toHaveClass("bg-transparent");
+    expect(container).toHaveClass("border-border/0");
+    expect(container).toHaveClass("bg-surface-1/0");
     expect(container).toHaveClass("shadow-none");
-    expect(container?.getAttribute("style")).toContain("border-color: transparent");
-    expect(container?.getAttribute("style")).toContain("background-color: transparent");
-    expect(container?.getAttribute("style")).toContain("box-shadow: none");
     expect(container).toHaveClass("text-foreground-soft");
     expect(screen.queryByText("Reader")).not.toBeInTheDocument();
     expect(hintsList).toHaveClass("marker:text-foreground-soft");

@@ -29,7 +29,7 @@ export function SidebarHeaderView({
               onClick={onSync}
               disabled={isSyncing || isSyncDisabled}
               className={cn(
-                "h-11 gap-1.5 px-3 text-muted-foreground hover:bg-sidebar-accent/28 hover:text-sidebar-foreground md:size-7 md:px-0",
+                "h-11 gap-1.5 px-3 text-foreground-soft hover:bg-sidebar-accent/28 hover:text-sidebar-foreground md:size-7 md:px-0",
                 !isMobile && "w-11",
               )}
               aria-label={syncButtonLabel}
@@ -44,7 +44,7 @@ export function SidebarHeaderView({
               onClick={onAddFeed}
               disabled={isAddFeedDisabled}
               className={cn(
-                "h-11 gap-1.5 px-3 text-muted-foreground hover:bg-sidebar-accent/28 hover:text-sidebar-foreground md:size-7 md:px-0",
+                "h-11 gap-1.5 px-3 text-foreground-soft hover:bg-sidebar-accent/28 hover:text-sidebar-foreground md:size-7 md:px-0",
                 !isMobile && "w-11",
               )}
               aria-label={addFeedButtonLabel}

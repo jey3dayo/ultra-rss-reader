@@ -5,6 +5,7 @@ import { NavigationCollectionsCanvas } from "@/components/storybook/ui-reference
 import { InputControlsCanvas } from "@/components/storybook/ui-reference-settings-canvas.stories";
 import { ShellOverlayCanvas } from "@/components/storybook/ui-reference-shell-overlay-canvas.stories";
 import { WorkspacePatternsCanvas } from "@/components/storybook/ui-reference-workspace-patterns-canvas.stories";
+import { ShellExamplesSpecimen, SurfaceRoleSpecimen } from "@/components/storybook/ui-reference-canvas-specimens";
 
 describe("UI Reference canvases", () => {
   it("renders the input controls canvas with form specimens", () => {
@@ -46,7 +47,6 @@ describe("UI Reference canvases", () => {
     expect(screen.getByText("Main content shell").closest("div")?.parentElement?.parentElement).toHaveClass(
       "rounded-xl",
     );
-
     expect(screen.getByText("Dialog surface")).toBeInTheDocument();
     expect(screen.getByText("この購読を削除しますか？")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "削除する" })).toBeInTheDocument();
@@ -78,6 +78,23 @@ describe("UI Reference canvases", () => {
     expect(screen.getByText("Review accent")).toBeInTheDocument();
     expect(screen.getAllByText("Thinking accent").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Surface roles").length).toBeGreaterThan(0);
+  });
+
+  it("keeps non-shell card specimens on the rounded-md baseline while preserving shell examples", () => {
+    render(
+      <>
+        <SurfaceRoleSpecimen />
+        <ShellExamplesSpecimen />
+      </>,
+    );
+
+    const surfaceRoleSurface = screen.getByText("Surface roles").closest('[data-surface-card="section"]');
+    expect(surfaceRoleSurface).toHaveClass("rounded-md");
+    expect(screen.getByText("Info surface").closest('[data-surface-card="info"]')).toHaveClass("rounded-lg");
+    expect(screen.getByText("Section surface").closest('[data-surface-card="section"]')).toHaveClass("rounded-md");
+
+    expect(screen.getByText("Dialog shell frame").parentElement).toHaveClass("rounded-lg");
+    expect(screen.getByText("Context menu shell frame").parentElement).toHaveClass("rounded-lg");
   });
 
   it("renders the navigation and collections canvas with list/navigation fragments", () => {
@@ -121,7 +138,7 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("button", { name: "Delete selected" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
     expect(screen.getByTestId("reference-detail-panel-frame")).toBeInTheDocument();
     expect(screen.getAllByText("AUTOMATON").length).toBeGreaterThan(0);
-    expect(screen.getByTestId("reference-workspace-two-pane-frame")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-workspace-two-pane-frame")).toHaveClass("rounded-md");
     expect(screen.getByText("Announcement cards")).toBeInTheDocument();
     expect(screen.getByText("確認待ち")).toBeInTheDocument();
     expect(screen.getByText("判断済み")).toBeInTheDocument();

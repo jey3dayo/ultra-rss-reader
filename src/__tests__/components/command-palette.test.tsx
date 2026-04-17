@@ -107,7 +107,8 @@ describe("CommandPalette", () => {
     expect(screen.getByPlaceholderText("Search commands…").closest('[data-slot="command-input-wrapper"]')).toHaveClass(
       "bg-surface-1/76",
     );
-    expect(await screen.findByText("Recent Actions")).toBeInTheDocument();
+    expect(await screen.findByText("Recent Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
+    expect(screen.getByTestId("command-palette-prefix-hints")).toHaveClass("text-foreground-soft");
     expect(screen.getByRole("option", { name: /Open settings/ })).toHaveClass("rounded-md");
     expect(screen.queryByRole("option", { name: /Tech Blog/ })).not.toBeInTheDocument();
   });

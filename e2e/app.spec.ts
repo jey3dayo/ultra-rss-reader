@@ -151,4 +151,78 @@ test.describe("Ultra RSS Reader - basic rendering", () => {
 
     expect(keepBox.y).toBeLessThan(queueBox.y);
   });
+
+  test("keeps the first cleanup row fixed when selection state changes", async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await page.goto("/");
+
+    await page.getByRole("button", { name: /Review Subscriptions|購読の整理/i }).click();
+    await expect(page.getByRole("heading", { name: /Cleanup Queue|整理キュー/i })).toBeVisible();
+
+    const firstRow = page.locator('[data-testid^="feed-cleanup-queue-row-"]').first();
+    const firstCheckbox = page.getByRole("checkbox").first();
+
+    const rowBefore = await firstRow.boundingBox();
+    await firstCheckbox.check();
+    const rowAfter = await firstRow.boundingBox();
+
+    expect(rowBefore).not.toBeNull();
+    expect(rowAfter).not.toBeNull();
+
+    if (!rowBefore || !rowAfter) {
+      throw new Error("Expected cleanup rows to have measurable bounds.");
+    }
+
+    expect(rowAfter.y).toBe(rowBefore.y);
+  });
+
+  test("keeps the first cleanup row fixed on narrow screens when selection state changes", async ({ page }) => {
+    await page.setViewportSize({ width: 639, height: 900 });
+    await page.goto("/");
+
+    await page.getByRole("button", { name: /Show sidebar|サイドバーを表示/i }).click();
+
+    const feedCleanupButton = page.getByRole("button", { name: /Review Subscriptions|購読の整理/i });
+    await feedCleanupButton.scrollIntoViewIfNeeded();
+    await feedCleanupButton.click();
+
+    const firstRow = page.locator('[data-testid^="feed-cleanup-queue-row-"]').first();
+    const firstCheckbox = page.getByRole("checkbox").first();
+
+    const rowBefore = await firstRow.boundingBox();
+    await firstCheckbox.check();
+    const rowAfter = await firstRow.boundingBox();
+
+    expect(rowBefore).not.toBeNull();
+    expect(rowAfter).not.toBeNull();
+
+    if (!rowBefore || !rowAfter) {
+      throw new Error("Expected cleanup rows to have measurable bounds.");
+    }
+
+    expect(rowAfter.y).toBe(rowBefore.y);
+  });
+
+  test("aligns the selection rail and cleanup rows to the same right content edge", async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await page.goto("/");
+
+    await page.getByRole("button", { name: /Review Subscriptions|購読の整理/i }).click();
+    await expect(page.getByRole("heading", { name: /Cleanup Queue|整理キュー/i })).toBeVisible();
+
+    const selectionRail = page.getByTestId("feed-cleanup-selection-rail");
+    const firstRow = page.locator('[data-testid^="feed-cleanup-queue-row-"]').first();
+
+    const railBox = await selectionRail.boundingBox();
+    const rowBox = await firstRow.boundingBox();
+
+    expect(railBox).not.toBeNull();
+    expect(rowBox).not.toBeNull();
+
+    if (!railBox || !rowBox) {
+      throw new Error("Expected cleanup rail and rows to have measurable bounds.");
+    }
+
+    expect(Math.abs(railBox.x + railBox.width - (rowBox.x + rowBox.width))).toBeLessThanOrEqual(1);
+  });
 });

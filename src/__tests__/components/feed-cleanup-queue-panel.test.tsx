@@ -68,6 +68,18 @@ function buildProps() {
 }
 
 describe("FeedCleanupQueuePanel", () => {
+  it("keeps the selection rail mounted and disabled before anything is selected", () => {
+    render(<FeedCleanupQueuePanel {...buildProps()} />);
+
+    const selectionRail = screen.getByTestId("feed-cleanup-selection-rail");
+
+    expect(selectionRail).toBeInTheDocument();
+    expect(screen.getByText("Selected set")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keep selected" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Defer selected" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Delete selected" })).toBeDisabled();
+  });
+
   it("renders reason chips and compact fact pills", () => {
     render(<FeedCleanupQueuePanel {...buildProps()} />);
 
@@ -89,13 +101,14 @@ describe("FeedCleanupQueuePanel", () => {
     );
 
     expect(screen.getByText("1 selected")).toBeInTheDocument();
-    expect(screen.getByText("1 selected").closest('[data-surface-card="section"]')).toHaveClass("rounded-md");
+    expect(screen.getByTestId("feed-cleanup-selection-rail")).toHaveClass("rounded-md");
     expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("bg-state-success-surface");
     expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("min-w-[7.5rem]");
     expect(screen.getByRole("button", { name: "Defer selected" })).toHaveClass("min-w-[7.5rem]");
     expect(screen.getByRole("button", { name: "Delete selected" })).toHaveClass("min-w-[7.5rem]");
     expect(screen.getByRole("button", { name: "Defer selected" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete selected" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keep selected" })).toBeEnabled();
   });
 
   it("shows inline row actions for the active row", async () => {

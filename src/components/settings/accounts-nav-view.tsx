@@ -57,7 +57,7 @@ export function AccountsNavView({
               <span
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-full",
-                  ACCOUNT_ICON_BG[kindKey] ?? "bg-muted",
+                  ACCOUNT_ICON_BG[kindKey] ?? "bg-surface-1/72",
                 )}
               >
                 <Rss className="h-4 w-4 text-white" />
@@ -66,7 +66,9 @@ export function AccountsNavView({
             title={account.name}
             description={
               kindDescription ? (
-                <div className={account.isActive ? "text-sidebar-accent-foreground/64" : "text-sidebar-foreground/40"}>
+                <div
+                  className={account.isActive ? "text-[var(--sidebar-selection-muted)]" : "text-sidebar-foreground/44"}
+                >
                   {kindDescription}
                 </div>
               ) : undefined
@@ -85,7 +87,7 @@ export function AccountsNavView({
             "border border-border-strong bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong",
         )}
         leading={
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-1/72">
             <Plus className="h-4 w-4" />
           </span>
         }

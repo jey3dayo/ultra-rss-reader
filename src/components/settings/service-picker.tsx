@@ -11,7 +11,10 @@ export function ServicePicker({ onSelect }: ServicePickerProps) {
   const { t } = useTranslation("settings");
 
   return (
-    <div className="p-6">
+    <div
+      data-testid="service-picker-surface"
+      className="rounded-lg border border-border bg-surface-1 p-6 shadow-elevation-1"
+    >
       <h2 className="mb-6 text-center text-lg font-semibold">{t("account.heading")}…</h2>
       <div className="space-y-4">
         {SERVICE_CATEGORIES.map((category) => {

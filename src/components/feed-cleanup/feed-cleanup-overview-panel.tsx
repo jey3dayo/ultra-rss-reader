@@ -28,6 +28,7 @@ export function FeedCleanupOverviewPanel({
   onDeferVisible,
 }: FeedCleanupOverviewPanelProps) {
   const { t } = useTranslation("cleanup");
+  const bulkActionsDisabled = visibleCandidateCount === 0;
 
   return (
     <section
@@ -66,24 +67,73 @@ export function FeedCleanupOverviewPanel({
             {integrityDetailLabels.filter_note}
           </SurfaceCard>
         ) : (
-          <div className="space-y-3">
-            {visibleCandidateCount > 0 ? (
-              <SurfaceCard
-                data-testid="feed-cleanup-bulk-actions"
-                variant="section"
-                tone="emphasis"
-                padding="default"
-                className="flex flex-wrap items-center justify-between gap-3 border-border/55 bg-surface-1/58 shadow-none"
-              >
-                <div className="min-w-0">
-                  <p className="font-sans text-sm font-medium text-foreground">{bulkActionsLabel}</p>
+          <SurfaceCard
+            data-testid="feed-cleanup-bulk-actions"
+            variant="section"
+            tone="emphasis"
+            padding="default"
+            className="border-border/55 bg-surface-1/58 shadow-none"
+          >
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="min-w-0 flex-1 space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="font-sans text-sm font-medium text-foreground">{filtersLabel}</p>
                   <p className="font-serif text-sm text-foreground-soft">{bulkVisibleCountLabel}</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <fieldset className="m-0 min-w-0 border-0 p-0">
+                  <legend className="sr-only">{filtersLabel}</legend>
+                  <div className="flex flex-wrap gap-2">
+                    <ControlChipButton
+                      pressed={activeFilterKeys.size === 0}
+                      size="comfortable"
+                      className="gap-2 rounded-md px-3.5"
+                      onClick={() => {
+                        filterOptions.forEach((filter) => {
+                          if (activeFilterKeys.has(filter.key)) {
+                            onToggleFilter(filter.key);
+                          }
+                        });
+                      }}
+                    >
+                      <span>{t("all_candidates")}</span>
+                      <LabelChip tone="muted" size="compact" className="rounded-sm px-1.5">
+                        {visibleCandidateCount}
+                      </LabelChip>
+                    </ControlChipButton>
+                    {filterOptions.map((filter) => (
+                      <ControlChipButton
+                        key={filter.key}
+                        pressed={activeFilterKeys.has(filter.key)}
+                        size="comfortable"
+                        className="gap-2 rounded-md px-3.5"
+                        aria-label={`${filter.label} ${filterCounts[filter.key]}`}
+                        onClick={() => onToggleFilter(filter.key)}
+                      >
+                        <span>{filter.label}</span>
+                        <LabelChip tone="muted" size="compact" className="rounded-sm px-1.5">
+                          {filterCounts[filter.key]}
+                        </LabelChip>
+                      </ControlChipButton>
+                    ))}
+                    <ControlChipButton
+                      pressed={showDeferred}
+                      size="comfortable"
+                      className="rounded-md px-3.5"
+                      onClick={onToggleShowDeferred}
+                    >
+                      {showDeferredLabel}
+                    </ControlChipButton>
+                  </div>
+                </fieldset>
+              </div>
+              <div className="flex min-h-[4.25rem] min-w-0 flex-col justify-between gap-2 lg:min-w-[18rem] lg:items-end">
+                <p className="font-sans text-sm font-medium text-foreground">{bulkActionsLabel}</p>
+                <div className="flex flex-wrap gap-2 lg:justify-end">
                   <DecisionButton
                     intent="keep"
                     aria-label={bulkKeepVisibleLabel}
                     onClick={onKeepVisible}
+                    disabled={bulkActionsDisabled}
                     className={denseDecisionButtonClassName}
                   >
                     <Check className="h-4 w-4" />
@@ -93,61 +143,16 @@ export function FeedCleanupOverviewPanel({
                     intent="defer"
                     aria-label={bulkDeferVisibleLabel}
                     onClick={onDeferVisible}
+                    disabled={bulkActionsDisabled}
                     className={denseDecisionButtonClassName}
                   >
                     <Clock3 className="h-4 w-4" />
                     {bulkDeferVisibleLabel}
                   </DecisionButton>
                 </div>
-              </SurfaceCard>
-            ) : null}
-
-            <fieldset className="m-0 min-w-0 border-0 p-0">
-              <legend className="sr-only">{filtersLabel}</legend>
-              <div className="flex flex-wrap gap-2">
-                <ControlChipButton
-                  pressed={activeFilterKeys.size === 0}
-                  size="comfortable"
-                  className="gap-2 rounded-md px-3.5"
-                  onClick={() => {
-                    filterOptions.forEach((filter) => {
-                      if (activeFilterKeys.has(filter.key)) {
-                        onToggleFilter(filter.key);
-                      }
-                    });
-                  }}
-                >
-                  <span>{t("all_candidates")}</span>
-                  <LabelChip tone="muted" size="compact" className="rounded-sm px-1.5">
-                    {visibleCandidateCount}
-                  </LabelChip>
-                </ControlChipButton>
-                {filterOptions.map((filter) => (
-                  <ControlChipButton
-                    key={filter.key}
-                    pressed={activeFilterKeys.has(filter.key)}
-                    size="comfortable"
-                    className="gap-2 rounded-md px-3.5"
-                    aria-label={`${filter.label} ${filterCounts[filter.key]}`}
-                    onClick={() => onToggleFilter(filter.key)}
-                  >
-                    <span>{filter.label}</span>
-                    <LabelChip tone="muted" size="compact" className="rounded-sm px-1.5">
-                      {filterCounts[filter.key]}
-                    </LabelChip>
-                  </ControlChipButton>
-                ))}
-                <ControlChipButton
-                  pressed={showDeferred}
-                  size="comfortable"
-                  className="rounded-md px-3.5"
-                  onClick={onToggleShowDeferred}
-                >
-                  {showDeferredLabel}
-                </ControlChipButton>
               </div>
-            </fieldset>
-          </div>
+            </div>
+          </SurfaceCard>
         )}
       </div>
     </section>

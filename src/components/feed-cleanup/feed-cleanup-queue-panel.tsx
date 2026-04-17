@@ -49,6 +49,7 @@ export function FeedCleanupQueuePanel({
   onKeepCandidate = onSelectCandidate,
   onDeferCandidate = onSelectCandidate,
   onDeleteCandidate = onSelectCandidate,
+  bulkSelectionScopeLabel = "Selected set",
   bulkKeepActionLabel = "Keep selected",
   bulkDeferActionLabel = "Defer selected",
   bulkDeleteActionLabel = "Delete selected",
@@ -58,12 +59,14 @@ export function FeedCleanupQueuePanel({
   reasonLabels,
   priorityToneLabels,
   summaryLabels,
-  queueListClassName = "min-h-0 flex-1 space-y-3 overflow-y-auto pr-1",
+  queueListClassName = "min-h-0 flex-1 space-y-3 overflow-y-auto",
 }: FeedCleanupQueuePanelProps) {
   const { t } = useTranslation("cleanup");
+  const selectedCount = selectedFeedIds.size;
+  const selectionRailActive = bulkBarVisible && selectedCount > 0;
 
   return (
-    <section className="relative flex h-full min-h-0 flex-col px-4 pb-4 pt-3 sm:px-6 sm:pb-5 sm:pt-3 lg:border-r lg:border-border/70">
+    <section className="relative flex h-full min-h-0 flex-col px-4 pb-4 pt-3 sm:px-6 sm:pb-5 sm:pt-3">
       <div className="pointer-events-none absolute inset-x-4 top-0 z-10 flex -translate-y-1/2 items-center justify-between gap-3 sm:inset-x-6">
         <h3
           className="px-1.5 font-sans text-sm font-medium tracking-[0.02em]"
@@ -80,50 +83,6 @@ export function FeedCleanupQueuePanel({
           </span>
         ) : null}
       </div>
-      {!integrityMode && bulkBarVisible ? (
-        <SurfaceCard
-          variant="section"
-          tone="subtle"
-          padding="compact"
-          className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md shadow-none"
-        >
-          <div className="flex items-center gap-3 text-sm font-medium text-foreground">
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-md border border-border/70 bg-surface-1/80">
-              <Check className="h-3.5 w-3.5" />
-            </span>
-            <span>{selectedCountLabel}</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <DecisionButton
-              intent="keep"
-              aria-label={bulkKeepActionLabel}
-              onClick={onKeepSelection}
-              className={denseDecisionButtonClassName}
-            >
-              <Check className="h-4 w-4" />
-              {keepLabel}
-            </DecisionButton>
-            <DecisionButton
-              intent="defer"
-              aria-label={bulkDeferActionLabel}
-              onClick={onDeferSelection}
-              className={denseDecisionButtonClassName}
-            >
-              <Clock3 className="h-4 w-4" />
-              {deferredLabel}
-            </DecisionButton>
-            <DecisionButton
-              intent="delete"
-              aria-label={bulkDeleteActionLabel}
-              onClick={onDeleteSelection}
-              className={denseDecisionButtonClassName}
-            >
-              <Trash2 className="h-4 w-4" />
-              {deleteLabel}
-            </DecisionButton>
-          </div>
-        </SurfaceCard>
-      ) : null}
       <div data-testid="feed-cleanup-queue-list" className={queueListClassName}>
         {integrityMode ? (
           integrityIssues.length === 0 ? (
@@ -161,172 +120,224 @@ export function FeedCleanupQueuePanel({
             {emptyLabel}
           </p>
         ) : (
-          queue.map((candidate) => {
-            const queueSummary = summarizeCleanupCandidate(candidate);
-            const reasonFacts = buildCleanupReasonFacts(candidate);
-            const isSelected = selectedFeedIds.has(candidate.feedId);
-            const isFocused = focusedFeedId === candidate.feedId;
-            const isCurrent = selectedCandidate?.feedId === candidate.feedId;
-            const checkboxId = `feed-cleanup-checkbox-${candidate.feedId}`;
-
-            return (
-              <SurfaceCard
-                key={candidate.feedId}
-                data-testid={`feed-cleanup-queue-row-${candidate.feedId}`}
-                data-selected={isSelected}
-                data-focused={isFocused}
-                variant="section"
-                tone={isCurrent || isSelected ? "default" : "subtle"}
-                padding="compact"
-                className={cn(
-                  "rounded-md transition-colors duration-150 hover:bg-surface-1/72",
-                  isCurrent || isSelected ? "border-border-strong shadow-none" : "border-border/55 shadow-none",
-                  isFocused && "ring-1 ring-primary/30",
-                )}
-                style={{
-                  backgroundColor:
-                    isCurrent || isSelected
-                      ? "var(--cleanup-card-surface-selected)"
-                      : "var(--cleanup-card-surface-muted)",
-                }}
-              >
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <label
-                    data-testid={`feed-cleanup-selection-hit-area-${candidate.feedId}`}
-                    htmlFor={checkboxId}
-                    className="-m-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-md p-2"
-                  >
-                    <Checkbox
-                      id={checkboxId}
-                      aria-label={`${selectCandidateLabel} ${candidate.title}`}
-                      checked={isSelected}
-                      onCheckedChange={() => onToggleCandidateSelection(candidate.feedId)}
-                    />
-                  </label>
-                  <div className="flex flex-wrap items-center justify-end gap-2 text-[11px] text-muted-foreground">
-                    {candidate.deferred ? (
-                      <LabelChip tone="muted" size="compact">
-                        {deferredLabel}
-                      </LabelChip>
-                    ) : null}
-                  </div>
+          <div className="space-y-3 pr-3 [scrollbar-gutter:stable]">
+            <SurfaceCard
+              data-testid="feed-cleanup-selection-rail"
+              variant="section"
+              tone={selectionRailActive ? "subtle" : "default"}
+              padding="compact"
+              className="min-h-[4.75rem] rounded-md shadow-none"
+            >
+              <div className="flex min-h-[3.25rem] flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center gap-3 text-sm font-medium text-foreground">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-md border border-border/70 bg-surface-1/80">
+                    <Check className="h-3.5 w-3.5" />
+                  </span>
+                  <span>{selectionRailActive ? selectedCountLabel : bulkSelectionScopeLabel}</span>
                 </div>
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <button
-                    type="button"
-                    aria-label={candidate.title}
-                    onClick={() => onSelectCandidate(candidate.feedId)}
-                    className="flex min-w-0 flex-1 cursor-pointer flex-col gap-2.5 text-left"
+                <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                  <DecisionButton
+                    intent="keep"
+                    aria-label={bulkKeepActionLabel}
+                    onClick={onKeepSelection}
+                    disabled={!selectionRailActive}
+                    className={denseDecisionButtonClassName}
                   >
-                    <div
-                      data-testid={`feed-cleanup-queue-card-header-${candidate.feedId}`}
-                      className="flex flex-col gap-2.5"
+                    <Check className="h-4 w-4" />
+                    {keepLabel}
+                  </DecisionButton>
+                  <DecisionButton
+                    intent="defer"
+                    aria-label={bulkDeferActionLabel}
+                    onClick={onDeferSelection}
+                    disabled={!selectionRailActive}
+                    className={denseDecisionButtonClassName}
+                  >
+                    <Clock3 className="h-4 w-4" />
+                    {deferredLabel}
+                  </DecisionButton>
+                  <DecisionButton
+                    intent="delete"
+                    aria-label={bulkDeleteActionLabel}
+                    onClick={onDeleteSelection}
+                    disabled={!selectionRailActive}
+                    className={denseDecisionButtonClassName}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {deleteLabel}
+                  </DecisionButton>
+                </div>
+              </div>
+            </SurfaceCard>
+            {queue.map((candidate) => {
+              const queueSummary = summarizeCleanupCandidate(candidate);
+              const reasonFacts = buildCleanupReasonFacts(candidate);
+              const isSelected = selectedFeedIds.has(candidate.feedId);
+              const isFocused = focusedFeedId === candidate.feedId;
+              const isCurrent = selectedCandidate?.feedId === candidate.feedId;
+              const checkboxId = `feed-cleanup-checkbox-${candidate.feedId}`;
+
+              return (
+                <SurfaceCard
+                  key={candidate.feedId}
+                  data-testid={`feed-cleanup-queue-row-${candidate.feedId}`}
+                  data-selected={isSelected}
+                  data-focused={isFocused}
+                  variant="section"
+                  tone={isCurrent || isSelected ? "default" : "subtle"}
+                  padding="compact"
+                  className={cn(
+                    "rounded-md transition-colors duration-150 hover:bg-surface-1/72",
+                    isCurrent || isSelected ? "border-border-strong shadow-none" : "border-border/55 shadow-none",
+                    isFocused && "ring-1 ring-primary/30",
+                  )}
+                  style={{
+                    backgroundColor:
+                      isCurrent || isSelected
+                        ? "var(--cleanup-card-surface-selected)"
+                        : "var(--cleanup-card-surface-muted)",
+                  }}
+                >
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <label
+                      data-testid={`feed-cleanup-selection-hit-area-${candidate.feedId}`}
+                      htmlFor={checkboxId}
+                      className="-m-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-md p-2"
                     >
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0">
-                          <span className="line-clamp-1 font-sans font-medium text-foreground">{candidate.title}</span>
-                          <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                            <LabelChip tone="muted" size="compact">
-                              {candidate.folderName ?? "—"}
+                      <Checkbox
+                        id={checkboxId}
+                        aria-label={`${selectCandidateLabel} ${candidate.title}`}
+                        checked={isSelected}
+                        onCheckedChange={() => onToggleCandidateSelection(candidate.feedId)}
+                      />
+                    </label>
+                    <div className="flex flex-wrap items-center justify-end gap-2 text-[11px] text-muted-foreground">
+                      {candidate.deferred ? (
+                        <LabelChip tone="muted" size="compact">
+                          {deferredLabel}
+                        </LabelChip>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <button
+                      type="button"
+                      aria-label={candidate.title}
+                      onClick={() => onSelectCandidate(candidate.feedId)}
+                      className="flex min-w-0 flex-1 cursor-pointer flex-col gap-2.5 text-left"
+                    >
+                      <div
+                        data-testid={`feed-cleanup-queue-card-header-${candidate.feedId}`}
+                        className="flex flex-col gap-2.5"
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <span className="line-clamp-1 font-sans font-medium text-foreground">
+                              {candidate.title}
+                            </span>
+                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                              <LabelChip tone="muted" size="compact">
+                                {candidate.folderName ?? "—"}
+                              </LabelChip>
+                              <LabelChip tone="muted" size="compact">
+                                {candidate.unreadCount} {unreadCountLabel}
+                              </LabelChip>
+                              <LabelChip tone="muted" size="compact">
+                                {candidate.starredCount} {starredCountLabel}
+                              </LabelChip>
+                            </div>
+                          </div>
+                          <div
+                            data-testid={`feed-cleanup-queue-card-status-${candidate.feedId}`}
+                            className="flex flex-wrap items-start gap-1.5 sm:shrink-0 sm:flex-col sm:items-end sm:gap-1"
+                          >
+                            <LabelChip tone={resolvePriorityTone(queueSummary.tone)}>
+                              {priorityToneLabels[queueSummary.tone]}
                             </LabelChip>
-                            <LabelChip tone="muted" size="compact">
-                              {candidate.unreadCount} {unreadCountLabel}
-                            </LabelChip>
-                            <LabelChip tone="muted" size="compact">
-                              {candidate.starredCount} {starredCountLabel}
-                            </LabelChip>
+                            {candidate.deferred ? (
+                              <LabelChip tone="muted" size="compact">
+                                {deferredBadgeLabel}
+                              </LabelChip>
+                            ) : null}
                           </div>
                         </div>
-                        <div
-                          data-testid={`feed-cleanup-queue-card-status-${candidate.feedId}`}
-                          className="flex flex-wrap items-start gap-1.5 sm:shrink-0 sm:flex-col sm:items-end sm:gap-1"
-                        >
-                          <LabelChip tone={resolvePriorityTone(queueSummary.tone)}>
-                            {priorityToneLabels[queueSummary.tone]}
-                          </LabelChip>
-                          {candidate.deferred ? (
-                            <LabelChip tone="muted" size="compact">
-                              {deferredBadgeLabel}
-                            </LabelChip>
-                          ) : null}
-                        </div>
                       </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {candidate.reasonKeys.map((reasonKey) => (
-                        <LabelChip key={reasonKey} tone="warning" size="compact">
-                          {reasonLabels[reasonKey]}
-                        </LabelChip>
-                      ))}
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {reasonFacts.slice(0, 2).map((fact) => (
-                        <LabelChip key={fact.key} tone="muted" size="compact">
-                          {fact.key === "stale_days"
-                            ? t("fact_stale_days", { count: fact.value })
-                            : fact.key === "unread_count"
-                              ? t("fact_unread_count", { count: fact.value })
-                              : t("fact_starred_count", { count: fact.value })}
-                        </LabelChip>
-                      ))}
-                      {reasonFacts.length > 2 ? (
-                        <LabelChip tone="muted" size="compact">
-                          +{reasonFacts.length - 2}
-                        </LabelChip>
+                      <div className="flex flex-wrap gap-1.5">
+                        {candidate.reasonKeys.map((reasonKey) => (
+                          <LabelChip key={reasonKey} tone="warning" size="compact">
+                            {reasonLabels[reasonKey]}
+                          </LabelChip>
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {reasonFacts.slice(0, 2).map((fact) => (
+                          <LabelChip key={fact.key} tone="muted" size="compact">
+                            {fact.key === "stale_days"
+                              ? t("fact_stale_days", { count: fact.value })
+                              : fact.key === "unread_count"
+                                ? t("fact_unread_count", { count: fact.value })
+                                : t("fact_starred_count", { count: fact.value })}
+                          </LabelChip>
+                        ))}
+                        {reasonFacts.length > 2 ? (
+                          <LabelChip tone="muted" size="compact">
+                            +{reasonFacts.length - 2}
+                          </LabelChip>
+                        ) : null}
+                        {reasonFacts.length === 0 && selectedCandidate?.feedId !== candidate.feedId ? (
+                          <LabelChip tone="muted" size="compact">
+                            {summaryLabels.healthy_feed}
+                          </LabelChip>
+                        ) : null}
+                      </div>
+                      {selectedCandidate?.feedId === candidate.feedId ? (
+                        <p className="font-serif text-sm leading-6 text-muted-foreground">
+                          {summaryLabels[queueSummary.summaryKey]}
+                        </p>
                       ) : null}
-                      {reasonFacts.length === 0 && selectedCandidate?.feedId !== candidate.feedId ? (
-                        <LabelChip tone="muted" size="compact">
-                          {summaryLabels.healthy_feed}
-                        </LabelChip>
-                      ) : null}
-                    </div>
-                    {selectedCandidate?.feedId === candidate.feedId ? (
-                      <p className="font-serif text-sm leading-6 text-muted-foreground">
-                        {summaryLabels[queueSummary.summaryKey]}
-                      </p>
+                    </button>
+                    {isSelected || selectedCandidate?.feedId === candidate.feedId ? (
+                      <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0">
+                        <DecisionButton
+                          intent="keep"
+                          className={denseDecisionButtonClassName}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onKeepCandidate(candidate.feedId);
+                          }}
+                        >
+                          <Check className="h-4 w-4" />
+                          {keepLabel}
+                        </DecisionButton>
+                        <DecisionButton
+                          intent="defer"
+                          className={denseDecisionButtonClassName}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onDeferCandidate(candidate.feedId);
+                          }}
+                        >
+                          <Clock3 className="h-4 w-4" />
+                          {deferredLabel}
+                        </DecisionButton>
+                        <DecisionButton
+                          intent="delete"
+                          className={denseDecisionButtonClassName}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onDeleteCandidate(candidate.feedId);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          {deleteLabel}
+                        </DecisionButton>
+                      </div>
                     ) : null}
-                  </button>
-                  {isSelected || selectedCandidate?.feedId === candidate.feedId ? (
-                    <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0">
-                      <DecisionButton
-                        intent="keep"
-                        className={denseDecisionButtonClassName}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onKeepCandidate(candidate.feedId);
-                        }}
-                      >
-                        <Check className="h-4 w-4" />
-                        {keepLabel}
-                      </DecisionButton>
-                      <DecisionButton
-                        intent="defer"
-                        className={denseDecisionButtonClassName}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onDeferCandidate(candidate.feedId);
-                        }}
-                      >
-                        <Clock3 className="h-4 w-4" />
-                        {deferredLabel}
-                      </DecisionButton>
-                      <DecisionButton
-                        intent="delete"
-                        className={denseDecisionButtonClassName}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onDeleteCandidate(candidate.feedId);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        {deleteLabel}
-                      </DecisionButton>
-                    </div>
-                  ) : null}
-                </div>
-              </SurfaceCard>
-            );
-          })
+                  </div>
+                </SurfaceCard>
+              );
+            })}
+          </div>
         )}
       </div>
     </section>

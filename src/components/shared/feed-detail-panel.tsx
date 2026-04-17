@@ -56,7 +56,7 @@ type FeedDetailPanelProps = {
 };
 
 const detailLinkClassName =
-  "inline-flex items-center gap-1 cursor-pointer text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground";
+  "inline-flex items-center gap-1 cursor-pointer text-foreground-soft underline decoration-border underline-offset-4 transition-colors hover:text-foreground";
 
 function resolveBadgeClassName(tone: FeedDetailTone) {
   if (tone === "high") {

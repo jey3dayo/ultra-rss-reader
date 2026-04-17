@@ -66,7 +66,9 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
             <DialogTitle className="text-lg">{t("shortcuts_help.title")}</DialogTitle>
             <DialogDescription className="flex flex-wrap items-center gap-2">
               <span>{t("shortcuts_help.description")}</span>
-              <kbd className="text-muted-foreground rounded-md border px-2 py-0.5 font-mono text-xs">?</kbd>
+              <kbd className="rounded-md border border-border/70 bg-surface-1/72 px-2 py-0.5 font-mono text-xs text-foreground-soft">
+                ?
+              </kbd>
             </DialogDescription>
           </DialogHeader>
         </div>

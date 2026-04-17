@@ -54,6 +54,18 @@ describe("AddAccountForm", () => {
     expect(freshrssButton.querySelector(".lucide-chevron-right")).toHaveClass("text-foreground-soft");
   });
 
+  it("wraps the picker in a semantic surface shell", () => {
+    render(<AddAccountForm />, { wrapper: createWrapper() });
+
+    expect(screen.getByTestId("service-picker-surface")).toHaveClass(
+      "rounded-lg",
+      "border",
+      "border-border",
+      "bg-surface-1",
+      "shadow-elevation-1",
+    );
+  });
+
   it("navigates to config form on service selection and back", async () => {
     const user = userEvent.setup();
     render(<AddAccountForm />, { wrapper: createWrapper() });

@@ -27,8 +27,8 @@ export function SettingsNavView({ ariaLabel, items, onSelectCategory }: Settings
               className={cn(
                 "flex h-6 w-6 items-center justify-center transition-colors",
                 item.isActive
-                  ? "text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/40 group-hover:text-sidebar-foreground/64",
+                  ? "text-[var(--sidebar-selection-muted)]"
+                  : "text-sidebar-foreground/44 group-hover:text-sidebar-foreground/64",
               )}
             >
               {item.icon}

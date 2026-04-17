@@ -33,7 +33,7 @@ describe("SettingsNavView", () => {
     expect(appearanceButton).not.toHaveClass("bg-[var(--bg-selected)]");
     expect(appearanceButton).toHaveClass("rounded-md");
     expect(appearanceButton).toHaveClass("shrink-0");
-    expect(screen.getByText("A").parentElement).toHaveClass("text-sidebar-foreground/40");
+    expect(screen.getByText("A").parentElement).toHaveClass("text-sidebar-foreground/44");
     expect(appearanceButton).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("navigation")).toHaveClass("flex");
     expect(screen.getByRole("navigation")).toHaveClass("overflow-x-auto");

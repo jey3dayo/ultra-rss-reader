@@ -43,4 +43,33 @@ describe("BrowserSurfaceStateCard", () => {
     expect(screen.queryByRole("button", { name: "Retry Web Preview" })).not.toBeInTheDocument();
     expect(openButton).toBeEnabled();
   });
+
+  it("uses a semantic detail surface for technical browser errors", () => {
+    render(
+      <BrowserSurfaceStateCard
+        issue={{
+          kind: "unsupported",
+          title: "browser mode では埋め込み Webプレビューを表示できません。",
+          description:
+            "ネイティブの埋め込み表示はデスクトップアプリで確認し、ここでは外部ブラウザ導線を使ってください。",
+          detail: "The embedded browser could not be created for this feed.",
+          canRetry: true,
+        }}
+        showTechnicalDetail
+        onRetry={vi.fn()}
+        onOpenExternal={vi.fn()}
+        labels={{
+          technicalDetail: "Technical detail",
+          retryWebPreview: "Retry Web Preview",
+          openInExternalBrowser: "Open in External Browser",
+        }}
+      />,
+    );
+
+    const detail = screen.getByText("The embedded browser could not be created for this feed.");
+
+    expect(detail).toHaveClass("rounded-md");
+    expect(detail).toHaveClass("border-border/55");
+    expect(detail).toHaveClass("bg-surface-1/85");
+  });
 });
