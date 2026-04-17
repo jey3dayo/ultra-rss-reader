@@ -109,6 +109,10 @@ describe("Storybook Explorer organization", () => {
     expect(readerTitles.every((title) => title.split("/").length === 3)).toBe(true);
   });
 
+  it("includes the sidebar feed-tree skeleton review story", () => {
+    expect(titles).toContain("Reader/Sidebar/SidebarFeedTreeSkeleton");
+  });
+
   it("keeps feed cleanup stories compact and panel-oriented", () => {
     expect([...titlesUnder("Feed Cleanup")].sort()).toEqual(
       ["Feed Cleanup/OverviewPanel", "Feed Cleanup/QueuePanel", "Feed Cleanup/ReviewPanel"].sort(),
