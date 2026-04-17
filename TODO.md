@@ -4,6 +4,14 @@
 
 ## UI/UX 監査の残り
 
+- [x] px単位の radius 指定を token 化するか、DESIGN.md 例外として明文化するか整理する
+  - 対象: `src/styles/global.css`
+  - `::-webkit-scrollbar-thumb` の `border-radius: 3px;` は browser / UA detail の例外として維持する
+  - 対象: `src/components/shared/workspace-header.tsx`, `src/components/shared/workspace-header.stories.tsx`
+  - `rounded-[min(var(--radius-md),12px)]` は `rounded-md` へ統一済み
+  - 対象: `src/components/reader/browser-view.tsx`, `src/components/reader/browser-overlay-stage.tsx`, `src/components/reader/browser-overlay-stage.stories.tsx`
+  - browser overlay geometry 由来の `borderRadius: \`${radius}px\`` は削除し、`rounded-none` / `rounded-lg` の class 適用へ移行済み
+
 - [x] surface governance の残り範囲を先に棚卸ししてから実装する
   - まず `info card` / `section container` / `shell role` のどれに属するかを対象ごとに分類し、分類が固まったものだけ着手する
   - 初回の棚卸し対象:
@@ -490,7 +498,6 @@
     - [x] `src/components/feed-cleanup/feed-cleanup-review-panel.tsx` と必要なら `src/components/shared/feed-detail-panel.tsx` で review 面の primary action を主ボタンとして見えるようにする
 
 ## Deferred Follow-ups
-
 - [ ] Inoreader の実機疎通確認を release/manual verification レーンで実施する
   - backend 側の provider kind、認証、同期分岐、GReader provider、UI 公開、AppId / AppKey の設定導線は実装済み
   - 残タスクは実在アカウントでの接続テスト、同期、設定保存、資格情報保持の確認
