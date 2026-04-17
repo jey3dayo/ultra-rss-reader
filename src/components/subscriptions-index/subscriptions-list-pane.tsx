@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { LabelChip } from "@/components/shared/label-chip";
 import { NavRowButton } from "@/components/shared/nav-row-button";
@@ -73,88 +73,106 @@ export function SubscriptionsListPane({
                   aria-expanded={expanded}
                   aria-controls={groupBodyId}
                   onClick={() => onToggleGroup(group.key)}
-                  className="flex w-full items-center justify-between rounded-md border px-3 py-2.5 text-left transition-[background-color,border-color,color] duration-150 hover:bg-[color:var(--subscriptions-list-row-hover)]"
+                  className={cn(
+                    "flex w-full items-center justify-between rounded-md border px-3 py-2.5 text-left transition-[background-color,border-color,color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-px hover:bg-[color:var(--subscriptions-list-row-hover)] motion-reduce:transition-none",
+                    expanded ? "shadow-none" : "shadow-[0_10px_28px_-24px_rgba(38,37,30,0.42)]",
+                  )}
                   style={{
                     borderColor: "var(--subscriptions-list-divider)",
                     backgroundColor: "var(--subscriptions-list-group-surface)",
                   }}
                 >
                   <span className="flex items-center gap-1.5">
-                    {expanded ? (
-                      <ChevronDown className="h-3.5 w-3.5 text-foreground-soft" />
-                    ) : (
-                      <ChevronRight className="h-3.5 w-3.5 text-foreground-soft" />
-                    )}
+                    <ChevronDown
+                      className={cn(
+                        "h-3.5 w-3.5 text-foreground-soft transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                        expanded ? "rotate-0" : "-rotate-90",
+                      )}
+                    />
                     <h3 className="text-sm font-medium tracking-[-0.01em] text-foreground">{group.label}</h3>
                   </span>
                   <LabelChip tone="neutral" size="compact">
                     {group.rows.length}
                   </LabelChip>
                 </button>
-                {expanded ? (
-                  <div id={groupBodyId} className="space-y-1.5 pl-1">
-                    {group.rows.map((row) => (
-                      <NavRowButton
-                        key={row.feed.id}
-                        selected={selectedFeedId === row.feed.id}
-                        aria-pressed={selectedFeedId === row.feed.id}
-                        onClick={() => onSelectFeed(row.feed.id)}
-                        className={cn(
-                          "items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none",
-                          selectedFeedId === row.feed.id
-                            ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[0_8px_20px_-18px_rgba(38,37,30,0.28)]"
-                            : "bg-background/15 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",
-                        )}
-                        leading={
-                          <span
-                            className={cn(
-                              "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-colors",
-                              selectedFeedId === row.feed.id
-                                ? "bg-surface-1 text-foreground"
-                                : "bg-surface-2/88 text-foreground",
-                            )}
-                            style={{
-                              borderColor: "var(--subscriptions-list-divider)",
-                              backgroundColor:
+                <div
+                  id={groupBodyId}
+                  aria-hidden={expanded ? "false" : "true"}
+                  className={cn(
+                    "grid overflow-hidden transition-[grid-template-rows,opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                    expanded ? "grid-rows-[1fr] opacity-100" : "pointer-events-none grid-rows-[0fr] opacity-0",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "min-h-0 overflow-hidden transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                      expanded ? "translate-y-0" : "-translate-y-2",
+                    )}
+                  >
+                    <div className="space-y-1.5 pl-1 pt-2.5">
+                      {group.rows.map((row) => (
+                        <NavRowButton
+                          key={row.feed.id}
+                          selected={selectedFeedId === row.feed.id}
+                          aria-pressed={selectedFeedId === row.feed.id}
+                          onClick={() => onSelectFeed(row.feed.id)}
+                          className={cn(
+                            "items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-px motion-reduce:transition-none",
+                            selectedFeedId === row.feed.id
+                              ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[0_8px_20px_-18px_rgba(38,37,30,0.28)]"
+                              : "bg-background/15 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",
+                          )}
+                          leading={
+                            <span
+                              className={cn(
+                                "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-[background-color,border-color,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03] motion-reduce:transition-none",
                                 selectedFeedId === row.feed.id
-                                  ? "var(--subscriptions-list-favicon-surface)"
-                                  : "var(--subscriptions-list-favicon-surface-muted)",
-                            }}
-                          >
-                            <FeedFavicon
-                              title={row.feed.title}
-                              url={row.feed.url}
-                              siteUrl={row.feed.site_url}
-                              size="md"
-                            />
-                          </span>
-                        }
-                        title={
-                          <div className="flex items-center gap-2">
-                            <span className="text-[0.95rem] font-medium tracking-[-0.02em] text-foreground">
-                              {row.feed.title}
+                                  ? "bg-surface-1 text-foreground"
+                                  : "bg-surface-2/88 text-foreground",
+                              )}
+                              style={{
+                                borderColor: "var(--subscriptions-list-divider)",
+                                backgroundColor:
+                                  selectedFeedId === row.feed.id
+                                    ? "var(--subscriptions-list-favicon-surface)"
+                                    : "var(--subscriptions-list-favicon-surface-muted)",
+                              }}
+                            >
+                              <FeedFavicon
+                                title={row.feed.title}
+                                url={row.feed.url}
+                                siteUrl={row.feed.site_url}
+                                size="md"
+                              />
                             </span>
-                          </div>
-                        }
-                        description={
-                          <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-foreground-soft">
-                            <LabelChip tone={resolveStatusTone(row.status.labelKey)} size="compact">
-                              {statusLabels[row.status.labelKey]}
-                            </LabelChip>
-                            <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
-                              •
-                            </span>
-                            <span>{formatUnreadCountLabel(row.feed.unread_count)}</span>
-                            <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
-                              •
-                            </span>
-                            <span>{formatLatestArticleLabel(row.latestArticleAt)}</span>
-                          </div>
-                        }
-                      />
-                    ))}
+                          }
+                          title={
+                            <div className="flex items-center gap-2">
+                              <span className="text-[0.95rem] font-medium tracking-[-0.02em] text-foreground">
+                                {row.feed.title}
+                              </span>
+                            </div>
+                          }
+                          description={
+                            <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-foreground-soft">
+                              <LabelChip tone={resolveStatusTone(row.status.labelKey)} size="compact">
+                                {statusLabels[row.status.labelKey]}
+                              </LabelChip>
+                              <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
+                                •
+                              </span>
+                              <span>{formatUnreadCountLabel(row.feed.unread_count)}</span>
+                              <span aria-hidden="true" style={{ color: "var(--subscriptions-list-meta-divider)" }}>
+                                •
+                              </span>
+                              <span>{formatLatestArticleLabel(row.latestArticleAt)}</span>
+                            </div>
+                          }
+                        />
+                      ))}
+                    </div>
                   </div>
-                ) : null}
+                </div>
               </div>
             );
           })

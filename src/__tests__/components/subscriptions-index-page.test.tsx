@@ -161,6 +161,7 @@ describe("SubscriptionsIndexPage", () => {
       "neutral",
     );
     expect(selectedFeed).toHaveAttribute("aria-pressed", "true");
+    expect(selectedFeed).toHaveClass("transition-[background-color,border-color,box-shadow,transform]");
     expect(selectedFeed).toHaveClass("bg-[color:var(--subscriptions-list-row-selected-surface)]");
     expect(selectedFeed).toHaveClass("focus-visible:ring-2");
     expect(selectedFeed.className).toMatch(/rounded-(md|lg|xl)/);
@@ -249,6 +250,7 @@ describe("SubscriptionsIndexPage", () => {
       "data-label-chip",
       "neutral",
     );
+    expect(firstGroupButton).toHaveClass("transition-[background-color,border-color,color,box-shadow,transform]");
     expect(firstGroupButton.className).toMatch(/rounded-(md|lg|xl)/);
     expect(secondGroupButton.className).toMatch(/rounded-(md|lg|xl)/);
     expect(firstGroupButton.style.borderColor).toBe("var(--subscriptions-list-divider)");
@@ -261,15 +263,19 @@ describe("SubscriptionsIndexPage", () => {
 
     const firstGroupButton = await screen.findByTestId("subscriptions-folder-row-folder-1");
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
+    const firstGroupPanel = document.getElementById("subscriptions-group-panel-folder-1");
 
     expect(screen.getByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Fresh Feed/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Loose Feed/ })).toBeInTheDocument();
     expect(within(detailPane).getByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
+    expect(firstGroupPanel).toHaveAttribute("aria-hidden", "false");
+    expect(firstGroupPanel).toHaveClass("transition-[grid-template-rows,opacity,transform]");
 
     await user.click(firstGroupButton);
 
     expect(firstGroupButton).toHaveAttribute("aria-expanded", "false");
+    expect(firstGroupPanel).toHaveAttribute("aria-hidden", "true");
     expect(screen.queryByRole("button", { name: /Example Feed/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Fresh Feed/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Loose Feed/ })).toBeInTheDocument();
@@ -279,6 +285,7 @@ describe("SubscriptionsIndexPage", () => {
     await user.click(firstGroupButton);
 
     expect(firstGroupButton).toHaveAttribute("aria-expanded", "true");
+    expect(firstGroupPanel).toHaveAttribute("aria-hidden", "false");
     expect(screen.getByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
   });
 
