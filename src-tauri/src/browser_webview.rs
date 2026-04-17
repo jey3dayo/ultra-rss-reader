@@ -1,6 +1,11 @@
 use std::{
     collections::HashMap,
-    sync::atomic::{AtomicBool, AtomicU64, Ordering},
+    sync::atomic::{AtomicBool, Ordering},
+};
+
+#[cfg(windows)]
+use std::{
+    sync::atomic::AtomicU64,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -15,7 +20,9 @@ pub const BROWSER_WEBVIEW_DIAGNOSTICS_EVENT: &str = "browser-webview-diagnostics
 pub const BROWSER_WEBVIEW_DEBUG_INPUT_EVENT: &str = "browser-webview-debug-input";
 
 static BROWSER_WEBVIEW_DIAGNOSTICS_ENABLED: AtomicBool = AtomicBool::new(false);
+#[cfg(windows)]
 static BROWSER_CLOSE_GRACE_UNTIL_MS: AtomicU64 = AtomicU64::new(0);
+#[cfg(windows)]
 const BROWSER_CLOSE_GRACE_WINDOW_MS: u64 = 800;
 
 #[cfg_attr(not(any(test, windows)), allow(dead_code))]
@@ -335,6 +342,7 @@ fn normalize_saved_browser_shortcut(binding: &str) -> Option<String> {
     normalize_browser_shortcut(key?, command_or_control, shift)
 }
 
+#[cfg(windows)]
 fn now_epoch_millis() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -342,7 +350,7 @@ fn now_epoch_millis() -> u64 {
         .unwrap_or(0)
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(windows)]
 fn begin_browser_close_grace_window() {
     BROWSER_CLOSE_GRACE_UNTIL_MS.store(
         now_epoch_millis().saturating_add(BROWSER_CLOSE_GRACE_WINDOW_MS),
@@ -350,12 +358,12 @@ fn begin_browser_close_grace_window() {
     );
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(windows)]
 fn browser_close_grace_window_active() -> bool {
     now_epoch_millis() <= BROWSER_CLOSE_GRACE_UNTIL_MS.load(Ordering::SeqCst)
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(windows)]
 fn is_browser_close_grace_action(action: &str) -> bool {
     matches!(
         action,
@@ -400,7 +408,7 @@ fn browser_preview_script_bindings(
         .collect()
 }
 
-#[cfg_attr(not(any(test, windows)), allow(dead_code))]
+#[cfg(windows)]
 fn browser_preview_script_bridge_source(prefs: &HashMap<String, String>) -> Option<String> {
     let bindings = browser_preview_script_bindings(prefs);
     if bindings.is_empty() {

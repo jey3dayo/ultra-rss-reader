@@ -163,30 +163,30 @@ mod tests {
             )
             .unwrap();
 
-        let article_repo = SqliteArticleRepository::new(guard.writer());
-        let feed_repo = SqliteFeedRepository::new(guard.writer());
-        let article = crate::domain::article::Article {
-            id: crate::domain::types::ArticleId(uuid::Uuid::new_v4().to_string()),
-            feed_id: feed_id.clone(),
-            remote_id: None,
-            title: "Kindle Unlimited campaign".to_string(),
-            content_raw: "raw".to_string(),
-            content_sanitized: "sanitized".to_string(),
-            sanitizer_version: 1,
-            summary: None,
-            url: None,
-            author: None,
-            published_at: chrono::Utc::now(),
-            thumbnail: None,
-            is_read: false,
-            is_starred: false,
-            fetched_at: chrono::Utc::now(),
-        };
-        article_repo.upsert(std::slice::from_ref(&article)).unwrap();
-        feed_repo.recalculate_unread_count(&feed_id).unwrap();
+        {
+            let article_repo = SqliteArticleRepository::new(guard.writer());
+            let feed_repo = SqliteFeedRepository::new(guard.writer());
+            let article = crate::domain::article::Article {
+                id: crate::domain::types::ArticleId(uuid::Uuid::new_v4().to_string()),
+                feed_id: feed_id.clone(),
+                remote_id: None,
+                title: "Kindle Unlimited campaign".to_string(),
+                content_raw: "raw".to_string(),
+                content_sanitized: "sanitized".to_string(),
+                sanitizer_version: 1,
+                summary: None,
+                url: None,
+                author: None,
+                published_at: chrono::Utc::now(),
+                thumbnail: None,
+                is_read: false,
+                is_starred: false,
+                fetched_at: chrono::Utc::now(),
+            };
+            article_repo.upsert(std::slice::from_ref(&article)).unwrap();
+            feed_repo.recalculate_unread_count(&feed_id).unwrap();
+        }
 
-        drop(feed_repo);
-        drop(article_repo);
         drop(guard);
 
         set_mute_auto_mark_read_impl(&db, true).unwrap();
