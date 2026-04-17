@@ -4,7 +4,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
-## [0.12.0] - 2026-04-16
+## [0.13.0] - 2026-04-18
 
 ### Features
 
@@ -13,6 +13,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 - tag management settings・sidebar tag actions・mute keyword filtering を追加し、整理系ワークフローを設定画面から扱えるようにした
 - subscriptions index と cleanup surface を分離し、workspace 管理と購読整理の導線を整理した
 - startup sync account preference、sidebar density setting、screen snapshot hook を追加し、起動時同期と表示状態の扱いを強化した
+- Inoreader account setup と shared credentials を settings から扱えるようにし、beta 表示で導線を明確にした
+- subscriptions / cleanup を filtered review state と grouped feed collapse を軸に再整理し、レビュー主導の購読整理フローを強化した
+- reader の記事タイトルを Web Preview で開けるようにし、starred article 専用 source と browser overlay navigation controls を追加した
+- command palette に theme command を追加し、テーマ遷移もアニメーション付きで扱えるようにした
 
 ### Bug Fixes
 
@@ -22,12 +26,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 - article/account snapshot 保持、stale unread count 再計算、content text reconciliation を修正し、更新前後の状態不整合を減らした
 - macOS titlebar inset・drag strip・overlay chrome と browser-mode 補助 UI を調整し、デスクトップ実機での表示崩れを抑えた
 - Storybook の i18n fallback crash、favicon 404 noise、fixed wrapper 起因の mobile overflow を解消し、狭幅確認を安定させた
+- mobile toolbar discoverability、article list footer filter chips、cleanup の action row / selection rail を調整し、狭幅時の窮屈さを減らした
+- subscriptions workspace を Escape と狭幅レイアウトで安定させ、pane close と scroll の破綻を防いだ
+- unsupported account services の非表示、credential edit の整理、greader network failure の分類で provider 設定の不整合を減らした
+- starred / account cache の optimistic patch と backfill を補強し、star/unstar 後の一覧状態を崩れにくくした
 
 ### Documentation
 
 - reader pane simplification、button commonization、mute keyword settings、sqlite-first snapshot などの設計メモを追加した
 - release manual verification、incident runbook、feed content privacy/CSP 方針を docs に整理し、release 前後の確認項目を明文化した
 - plan task/document の見出しと metadata formatting を揃え、ローカル設計ノートの表記を整理した
+- surface role governance、browser overlay shell role、layout stability、settings form rules を DESIGN/TODO/plan docs に反映した
+- Feedly/provider follow-up と issue-managed backlog を TODO から切り出し、未完了タスクを追いやすくした
 
 ### Maintenance
 
@@ -36,6 +46,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 - focus debug HUD と browser surface fallback card の構成を整理し、overlay 検証時のノイズを減らした
 - account detail の cache/error toast と reader の feed query cache を small helper へ寄せ、状態更新ロジックの重複を減らした
 - app-shell の modal entry point 遅延読み込み、frontend dependency 更新、jsdom animation compatibility 修正で開発基盤を整えた
+- settings / subscriptions / cleanup / reader の surface governance と radius 整理を進め、shell / section / info card / utility detail の役割を明確にした
+- popup / disclosure / theme の motion primitive を統一し、workspace chrome 全体の遷移トーンを揃えた
+- subscriptions / cleanup / storybook の shell・backdrop・detail surface を横断的に見直し、lighter workspace baseline へ寄せた
+- Storybook explorer のカテゴリ整理、loading/browser overlay/workspace header preview の追加、shared panel coverage 拡充で UI 参照面を強化した
+- issue templates と release check gate の整備で、開発とリリースの運用を安定させた
 
 ## [0.11.0] - 2026-04-14
 
