@@ -229,6 +229,7 @@ describe("ArticleView", () => {
       { wrapper: createWrapper() },
     );
 
+    expect(screen.getByTestId("article-pane")).toHaveClass("typography-lane-reader");
     calls.length = 0;
     await userEvent.setup().click(screen.getByRole("link", { name: "Read more" }));
 

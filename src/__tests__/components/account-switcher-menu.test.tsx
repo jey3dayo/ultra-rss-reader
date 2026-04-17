@@ -28,7 +28,8 @@ describe("AccountSwitcherMenu", () => {
     const freshRssButton = screen.getByRole("menuitemradio", { name: /FreshRSS/i });
 
     expect(localButton).toHaveClass("bg-[var(--bg-selected)]");
-    expect(localButton).toHaveClass("before:bg-primary");
+    expect(localButton).toHaveClass("border-border-strong");
+    expect(localButton).toHaveClass("before:bg-border-strong");
     expect(localButton).toHaveAttribute("aria-checked", "true");
     expect(freshRssButton).not.toHaveClass("bg-[var(--bg-selected)]");
     expect(freshRssButton).toHaveClass("hover:bg-sidebar-accent/28");

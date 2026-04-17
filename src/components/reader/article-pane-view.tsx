@@ -36,7 +36,7 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
   const { onOpenArticleTitleInWebPreview, ...readerBodyStateProps } = readerBodyProps;
 
   return (
-    <div data-testid="article-pane" className="flex h-full flex-1 flex-col bg-background">
+    <div data-testid="article-pane" className="typography-lane-reader flex h-full flex-1 flex-col bg-background">
       <ArticleToolbar {...toolbarProps} />
       <BrowserOverlaySurface
         {...browserOverlayProps}
