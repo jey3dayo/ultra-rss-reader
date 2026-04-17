@@ -39,6 +39,7 @@ describe("ArticleEmptyStateView", () => {
     expect(container).toHaveClass("max-w-xl");
     expect(container).toHaveClass("px-7");
     expect(container).toHaveClass("py-7");
+    expect(container).toHaveClass("min-h-44");
     expect(container).toHaveClass("text-foreground-soft");
     expect(container).not.toHaveAttribute("data-surface-card");
     expect(screen.queryByText("Reader")).not.toBeInTheDocument();
@@ -59,5 +60,28 @@ describe("ArticleEmptyStateView", () => {
     expect(list).toHaveClass("list-disc");
     expect(list).toHaveClass("pl-5");
     expect(firstHint.querySelector('[aria-hidden="true"]')).toBeNull();
+  });
+
+  it("keeps the same layout for setup guidance variants", () => {
+    render(
+      <ArticleEmptyStateView
+        message="Add your first feed"
+        hints={[
+          "Use the + button in the top-left to add a feed.",
+          "Paste a site URL or feed URL to discover feeds automatically.",
+        ]}
+      />,
+    );
+
+    const container = screen.getByText("Add your first feed").parentElement;
+    const hintsList = screen.getByRole("list");
+
+    expect(container).toHaveClass("max-w-xl");
+    expect(container).toHaveClass("px-7");
+    expect(container).toHaveClass("py-7");
+    expect(container).toHaveClass("min-h-44");
+    expect(screen.getByText("Add your first feed")).toHaveClass("text-left");
+    expect(hintsList).toHaveClass("text-left");
+    expect(hintsList).toHaveClass("pl-5");
   });
 });

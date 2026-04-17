@@ -1,11 +1,12 @@
 import type { ArticleEmptyStateViewProps } from "./article-view.types";
+import { cn } from "@/lib/utils";
 
 const EMPTY_HINTS: string[] = [];
 
 export function ArticleEmptyStateView({ message, hints = EMPTY_HINTS }: ArticleEmptyStateViewProps) {
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-10 text-center">
-      <div className="max-w-xl px-7 py-7 text-left text-foreground-soft">
+      <div className={cn("max-w-xl px-7 py-7 text-left text-foreground-soft", hints.length > 0 && "min-h-44")}>
         <p className="text-left text-[1.35rem] font-semibold leading-[1.2] tracking-[-0.02em] text-foreground">
           {message}
         </p>
