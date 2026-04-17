@@ -28,7 +28,12 @@ describe("ConfirmDialogView", () => {
     );
     expect(screen.getByTestId("confirm-dialog-icon")).toHaveClass("bg-surface-1/72");
     expect(screen.getByRole("button", { name: "Mark all read" })).toHaveClass("min-h-11");
-    expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11", "text-foreground-soft");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass(
+      "min-h-11",
+      "border-border/45",
+      "bg-surface-1/72",
+      "text-foreground-soft",
+    );
 
     await user.click(screen.getByRole("button", { name: "Mark all read" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
