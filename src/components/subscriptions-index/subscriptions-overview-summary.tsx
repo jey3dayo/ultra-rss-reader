@@ -1,4 +1,3 @@
-import { ArrowUpRight } from "lucide-react";
 import { LabelChip } from "@/components/shared/label-chip";
 import { cn } from "@/lib/utils";
 import type { SubscriptionSummaryCard } from "./subscriptions-index.types";
@@ -19,29 +18,40 @@ function resolveCardClassName(tone: SubscriptionSummaryCard["tone"] = "neutral")
   return "border-border/70 bg-surface-1/72";
 }
 
-export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSummaryCard[] }) {
+export function SubscriptionsOverviewSummary({
+  cards,
+  onSelectFilter,
+  batchActionLabel,
+  batchActionDescription,
+  onOpenBatchAction,
+}: {
+  cards: SubscriptionSummaryCard[];
+  onSelectFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
+  batchActionLabel?: string;
+  batchActionDescription?: string;
+  onOpenBatchAction?: (() => void) | null;
+}) {
   return (
     <section
-      className="rounded-lg border border-border/55 px-4 py-4 sm:px-6 sm:py-5"
+      className="rounded-lg border border-border/55 px-4 py-3 sm:px-5 sm:py-4"
       style={{
         backgroundColor: "var(--subscriptions-summary-surface)",
       }}
     >
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[0.96fr_1.12fr_0.96fr_0.96fr] lg:gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[0.96fr_1.12fr_0.96fr_0.96fr] lg:gap-3.5">
         {cards.map((card) => {
           const numericValue = Number(card.value);
-          const hasAction = Boolean(card.actionLabel && card.onAction);
-          const isActionable = hasAction && Number.isFinite(numericValue) && numericValue > 0;
-          const isPrimary = isActionable && card.tone === "review";
+          const isActionable = Number.isFinite(numericValue);
+          const isPrimary = card.tone === "review";
           const className = cn(
-            "flex min-h-[116px] flex-col justify-between rounded-lg border px-3.5 py-3.5 text-left transition-[border-color,background-color,color,box-shadow,transform] duration-150 sm:min-h-[132px] sm:px-5 sm:py-5",
-            resolveCardClassName(isActionable ? card.tone : "neutral"),
-            isPrimary ? "shadow-[var(--subscriptions-summary-card-shadow)]" : "shadow-none",
-            !isActionable && card.actionLabel && "text-foreground-soft/80",
+            "flex min-h-[96px] flex-col justify-between rounded-lg border px-3.5 py-3 text-left transition-[border-color,background-color,color,box-shadow,transform] duration-150 sm:min-h-[108px] sm:px-4.5 sm:py-4",
+            resolveCardClassName(card.tone),
+            isPrimary || card.isActive ? "shadow-[var(--subscriptions-summary-card-shadow)]" : "shadow-none",
             isPrimary && "col-span-2 lg:col-span-1",
+            card.isActive && "border-border-strong bg-surface-1/92 ring-1 ring-border-strong/65",
           );
 
-          if (isActionable && card.actionLabel && card.onAction) {
+          if (isActionable) {
             return (
               <button
                 key={card.label}
@@ -49,39 +59,35 @@ export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSum
                 className={cn(
                   className,
                   "group cursor-pointer",
-                  isPrimary
-                    ? "hover:-translate-y-0.5 hover:border-border-strong hover:shadow-elevation-1"
-                    : "hover:-translate-y-0.5 hover:border-border-strong/90",
+                  "hover:-translate-y-0.5 hover:border-border-strong/90",
                 )}
-                onClick={card.onAction}
+                aria-pressed={card.isActive}
+                onClick={() => onSelectFilter(card.filterKey)}
               >
                 <div>
                   <span className="block text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
                     {card.label}
                   </span>
-                  <span className="mt-2 block text-[1.85rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.1rem]">
+                  <span className="mt-1.5 block text-[1.72rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[1.96rem]">
                     {card.value}
                   </span>
                   {card.caption ? (
-                    <p className="mt-1.5 max-w-[24ch] text-[13px] leading-5 text-foreground-soft sm:mt-2 sm:max-w-[26ch] sm:text-sm sm:leading-[1.55]">
+                    <p className="mt-1 max-w-[24ch] text-[12px] leading-5 text-foreground-soft sm:max-w-[26ch] sm:text-[13px] sm:leading-[1.5]">
                       {card.caption}
                     </p>
                   ) : null}
                 </div>
-                <div className="mt-3 flex items-center justify-between gap-3 sm:mt-4">
+                <div className="mt-2 flex items-center justify-between gap-3">
                   <LabelChip
                     tone="neutral"
                     className={cn(
-                      "px-2.5 py-1 text-[10px] text-foreground-soft transition-colors group-hover:text-foreground",
-                      isPrimary && "bg-surface-1/88",
+                      "px-2 py-0.75 text-[10px] text-foreground-soft transition-colors group-hover:text-foreground",
+                      card.isActive && "border-border-strong bg-surface-1 text-foreground",
+                      isPrimary && !card.isActive && "bg-surface-1/88",
                     )}
                   >
-                    {card.actionLabel}
+                    {card.isActive ? "表示中" : "絞り込む"}
                   </LabelChip>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-medium tracking-[0.08em] text-foreground-soft transition-colors group-hover:text-foreground uppercase">
-                    整理へ
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                  </span>
                 </div>
               </button>
             );
@@ -104,6 +110,18 @@ export function SubscriptionsOverviewSummary({ cards }: { cards: SubscriptionSum
           );
         })}
       </div>
+      {batchActionLabel && onOpenBatchAction ? (
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-surface-1/82 px-4 py-2.5">
+          <p className="text-sm text-foreground-soft">{batchActionDescription}</p>
+          <button
+            type="button"
+            className="rounded-md border border-border-strong bg-surface-1 px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-surface-2"
+            onClick={onOpenBatchAction}
+          >
+            {batchActionLabel}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

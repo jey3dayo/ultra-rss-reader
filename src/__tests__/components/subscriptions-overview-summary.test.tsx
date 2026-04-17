@@ -8,19 +8,20 @@ describe("SubscriptionsOverviewSummary", () => {
       <SubscriptionsOverviewSummary
         cards={[
           {
+            filterKey: "review",
             label: "Needs review",
             value: "2",
             caption: "Check these feeds",
-            actionLabel: "Review now",
-            onAction: vi.fn(),
             tone: "review",
           },
           {
+            filterKey: "all",
             label: "Healthy",
             value: "5",
             caption: "All good",
           },
         ]}
+        onSelectFilter={vi.fn()}
       />,
     );
 
@@ -33,14 +34,14 @@ describe("SubscriptionsOverviewSummary", () => {
     const actionableCard = screen.getByRole("button", { name: /Needs review/ });
     expect(within(actionableCard).getByText("Needs review")).toHaveClass("text-foreground-soft");
     expect(within(actionableCard).getByText("Check these feeds")).toHaveClass("text-foreground-soft");
-    expect(within(actionableCard).getByText("Review now").closest("span")).toHaveAttribute(
+    expect(within(actionableCard).getByText("絞り込む").closest("span")).toHaveAttribute(
       "data-label-chip",
       "neutral",
     );
 
-    const neutralCard = screen.getByText("Healthy").closest("div");
+    const neutralCard = screen.getByRole("button", { name: /Healthy/ });
     expect(neutralCard).not.toBeNull();
-    expect(within(neutralCard as HTMLElement).getByText("Healthy")).toHaveClass("text-foreground-soft");
-    expect(within(neutralCard as HTMLElement).getByText("All good")).toHaveClass("text-foreground-soft");
+    expect(within(neutralCard).getByText("Healthy")).toHaveClass("text-foreground-soft");
+    expect(within(neutralCard).getByText("All good")).toHaveClass("text-foreground-soft");
   });
 });

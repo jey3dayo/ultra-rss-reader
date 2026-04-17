@@ -13,6 +13,13 @@
   "summary_broken": "参照エラー",
   "summary_broken_caption_one": "1 件の壊れた参照があります",
   "summary_broken_caption_other": "{{count}} 件の壊れた参照があります",
+  "batch_review_action": "まとめて処理",
+  "batch_review_description_one": "現在の絞り込み対象 1 件を一括で見直します。",
+  "batch_review_description_other": "現在の絞り込み対象 {{count}} 件を一括で見直します。",
+  "decision_keep": "残す",
+  "decision_defer": "あとで",
+  "decision_kept": "{{title}} を残すにしました",
+  "decision_deferred": "{{title}} をあとで確認にしました",
   "open_cleanup_review": "要確認を見る",
   "open_cleanup_stale": "止まった購読を見る",
   "open_cleanup_broken_references": "参照エラーを見る",
@@ -38,5 +45,7 @@
   "detail_reason_stale_but_supported": "更新は止まっています。消す前に一度だけ見ておきたい購読です。",
   "detail_recent_articles": "最近の記事",
   "empty": "一致する購読はありません。",
-  "detail_empty": "購読を選ぶと詳細が表示されます。"
+  "empty_broken_filter": "参照エラーは一覧対象外です。まとめて処理から確認できます。",
+  "detail_empty": "購読を選ぶと詳細が表示されます。",
+  "detail_empty_broken": "参照エラーは一覧対象外です。まとめて処理から確認できます。"
 }

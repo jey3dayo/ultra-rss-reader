@@ -186,27 +186,26 @@ describe("SubscriptionsIndexPage", () => {
     expect(selectedFeed.querySelector('img[src*="google.com/s2/favicons?domain=example.com"]')).toBeTruthy();
   });
 
-  it("renders only actionable summary cards as buttons", async () => {
+  it("treats summary cards as in-place filters instead of cleanup navigation", async () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    const totalSubscriptionsLabel = await screen.findByText("総購読数");
+    const totalSubscriptionsLabel = await screen.findByRole("button", { name: /総購読数/ });
     const summarySection = totalSubscriptionsLabel.closest("section");
     expect(summarySection).not.toBeNull();
     expect(summarySection).toHaveClass("rounded-lg", "border-border/55");
     expect(summarySection).toHaveStyle({ backgroundColor: "var(--subscriptions-summary-surface)" });
     expect(summarySection?.querySelector(".grid")).toHaveClass("grid-cols-1", "gap-3");
     expect(summarySection?.querySelector(".grid")).toHaveClass("lg:grid-cols-[0.96fr_1.12fr_0.96fr_0.96fr]");
-    expect(screen.queryByRole("button", { name: /総購読数/ })).toBeNull();
-    expect(await screen.findByRole("button", { name: /要確認を見る/ })).toHaveClass(
+    expect(await screen.findByRole("button", { name: /要確認/ })).toHaveClass(
       "rounded-lg",
       "border-state-review-border",
       "bg-state-review-surface",
     );
-    expect(await screen.findByRole("button", { name: /要確認を見る/ })).toHaveClass(
+    expect(await screen.findByRole("button", { name: /要確認/ })).toHaveClass(
       "shadow-[var(--subscriptions-summary-card-shadow)]",
     );
-    expect(await screen.findByRole("button", { name: /止まった購読を見る/ })).toHaveClass("rounded-lg");
-    expect(await screen.findByRole("button", { name: /参照エラーを見る/ })).toHaveClass("rounded-lg");
+    expect(await screen.findByRole("button", { name: /90日停止/ })).toHaveClass("rounded-lg");
+    expect(await screen.findByRole("button", { name: /参照エラー/ })).toHaveClass("rounded-lg");
   });
 
   it("keeps the subscriptions workspace shell aligned with the lighter left pane", async () => {
@@ -291,7 +290,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(screen.getByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
   });
 
-  it("shows selected feed details and a cleanup hand-off action", async () => {
+  it("shows selected feed details without embedding row-level destructive actions", async () => {
     const user = userEvent.setup();
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
@@ -314,13 +313,79 @@ describe("SubscriptionsIndexPage", () => {
     const articleLink = within(detailPane).getByRole("link", { name: "Old article" });
     expect(articleLink).toHaveAttribute("href", "https://example.com/old/1");
     expect(articleLink).toHaveClass("cursor-pointer");
-    expect(within(detailPane).getByRole("button", { name: "購読の整理" })).toBeInTheDocument();
+    expect(within(detailPane).queryByRole("button", { name: "購読の整理" })).toBeNull();
 
     const detailScrollRegion = detailPane.querySelector("div.pr-2");
     expect(detailScrollRegion).toBeTruthy();
     expect(detailScrollRegion).toHaveClass("lg:min-h-0");
     expect(detailScrollRegion).toHaveClass("lg:flex-1");
     expect(detailScrollRegion).toHaveClass("lg:overflow-y-auto");
+  });
+
+  it("filters the list in place from the summary cards and restores all subscriptions", async () => {
+    const user = userEvent.setup();
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await screen.findByRole("button", { name: /Example Feed/ });
+    expect(screen.getByRole("button", { name: /Fresh Feed/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Loose Feed/ })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /要確認/ }));
+
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
+      kind: "index",
+      cleanupContext: null,
+    });
+    expect(screen.queryByRole("button", { name: /Fresh Feed/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Loose Feed/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /総購読数/ }));
+
+    expect(await screen.findByRole("button", { name: /Fresh Feed/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Loose Feed/ })).toBeInTheDocument();
+  });
+
+  it("shows decision actions only for flagged subscriptions", async () => {
+    const user = userEvent.setup();
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    const detailPane = await screen.findByTestId("subscriptions-detail-pane");
+    await user.click(await screen.findByRole("button", { name: /Example Feed/ }));
+
+    expect(await within(detailPane).findByTestId("subscriptions-detail-decision-bar")).toBeInTheDocument();
+    expect(within(detailPane).getByRole("button", { name: "残す" })).toBeInTheDocument();
+    expect(within(detailPane).getByRole("button", { name: "あとで" })).toBeInTheDocument();
+    expect(within(detailPane).getByRole("button", { name: "削除" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Fresh Feed/ }));
+
+    expect(within(detailPane).queryByTestId("subscriptions-detail-decision-bar")).toBeNull();
+  });
+
+  it("opens feed cleanup from the currently filtered subset", async () => {
+    const user = userEvent.setup();
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: /要確認/ }));
+    await user.click(screen.getByRole("button", { name: "まとめて処理" }));
+
+    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
+      kind: "cleanup",
+      cleanupContext: {
+        reason: "review",
+        feedIds: ["feed-1"],
+        returnTo: "index",
+        returnState: {
+          activeSummaryFilter: "review",
+          selectedFeedId: "feed-1",
+        },
+      },
+    });
   });
 
   it("keeps the empty detail surface on the rounded-md baseline", async () => {
@@ -407,32 +472,19 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(listPane).getByText("一致する購読はありません。")).toHaveClass("text-foreground-soft");
   });
 
-  it("opens cleanup with stale context from the summary action", async () => {
+  it("applies the broken filter without navigating away", async () => {
     const user = userEvent.setup();
 
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("button", { name: /止まった購読を見る/ }));
+    await user.click(await screen.findByRole("button", { name: /参照エラー/ }));
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
-      kind: "cleanup",
-      cleanupContext: { reason: "stale_90d", returnTo: "index" },
+      kind: "index",
+      cleanupContext: null,
     });
-    expect("feedCleanupOpen" in useUiStore.getState()).toBe(false);
-  });
-
-  it("opens cleanup with broken-references context from the summary action", async () => {
-    const user = userEvent.setup();
-
-    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
-
-    await user.click(await screen.findByRole("button", { name: /参照エラーを見る/ }));
-
-    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
-      kind: "cleanup",
-      cleanupContext: { reason: "broken_references", returnTo: "index" },
-    });
-    expect("feedCleanupOpen" in useUiStore.getState()).toBe(false);
+    expect(screen.queryByRole("button", { name: /Example Feed/ })).not.toBeInTheDocument();
+    expect(screen.getAllByText("参照エラーは一覧対象外です。まとめて処理から確認できます。")).toHaveLength(2);
   });
 
   it("closes the subscriptions workspace from the header action", async () => {

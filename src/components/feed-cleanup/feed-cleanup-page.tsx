@@ -211,7 +211,7 @@ export function FeedCleanupPage() {
           stale_but_supported: t("candidate_summary_stale_but_supported"),
           healthy_feed: t("candidate_summary_healthy_feed"),
         }}
-        onBackToIndex={() => openSubscriptionsIndex()}
+        onBackToIndex={() => openSubscriptionsIndex(subscriptionsWorkspace?.cleanupContext?.returnState)}
         onClose={() => closeFeedCleanup()}
         onToggleIntegrityMode={cleanupState.toggleIntegrityMode}
         onToggleFilter={cleanupState.toggleFilter}

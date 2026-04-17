@@ -1,6 +1,8 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { UnsubscribeDialog } from "@/components/reader/unsubscribe-feed-dialog";
 import { useAccountArticles, useFeedIntegrityReport } from "@/hooks/use-articles";
+import { useDeleteFeed } from "@/hooks/use-delete-feed";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { resolveFeedDisplayPreset } from "@/lib/article-display";
@@ -18,19 +20,17 @@ import type {
   SubscriptionDetailCandidate,
   SubscriptionListRow,
   SubscriptionSummaryCard,
+  SubscriptionSummaryFilterKey,
 } from "./subscriptions-index.types";
 import { SubscriptionsIndexPageView } from "./subscriptions-index-page-view";
 import { useSubscriptionsIndexState } from "./use-subscriptions-index-state";
 
-function resolveCleanupReason(row: SubscriptionListRow): FeedCleanupContextReason {
-  if (row.status.labelKey === "stale_90d") {
+function resolveBatchCleanupReason(filterKey: SubscriptionSummaryFilterKey): FeedCleanupContextReason {
+  if (filterKey === "broken") {
+    return "broken_references";
+  }
+  if (filterKey === "stale") {
     return "stale_90d";
-  }
-  if (row.status.labelKey === "no_unread") {
-    return "no_unread";
-  }
-  if (row.status.labelKey === "no_stars") {
-    return "no_stars";
   }
   return "review";
 }
@@ -43,10 +43,14 @@ export function SubscriptionsIndexPage() {
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
   const openFeedCleanup = useUiStore((state) => state.openFeedCleanup);
   const closeSubscriptionsWorkspace = useUiStore((state) => state.closeSubscriptionsWorkspace);
+  const showToast = useUiStore((state) => state.showToast);
+  const subscriptionsWorkspace = useUiStore((state) => state.subscriptionsWorkspace);
   const { data: feeds = [] } = useFeeds(selectedAccountId);
   const { data: folders = [] } = useFolders(selectedAccountId);
   const { data: accountArticles = [] } = useAccountArticles(selectedAccountId);
   const { data: integrityReport } = useFeedIntegrityReport();
+  const deleteFeedMutation = useDeleteFeed();
+  const [deleteTargetFeed, setDeleteTargetFeed] = useState<SubscriptionListRow["feed"] | null>(null);
 
   const candidates = useMemo(
     () =>
@@ -77,7 +81,12 @@ export function SubscriptionsIndexPage() {
     [candidateMap, feeds, folderNameById, integrityReport],
   );
 
-  const state = useSubscriptionsIndexState(rows);
+  const state = useSubscriptionsIndexState(rows, {
+    initialSummaryFilter:
+      subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState?.activeSummaryFilter : undefined,
+    initialSelectedFeedId:
+      subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState?.selectedFeedId : undefined,
+  });
   const selectedMetrics = state.selectedRow
     ? buildSubscriptionDetailMetrics({
         feed: state.selectedRow.feed,
@@ -114,6 +123,7 @@ export function SubscriptionsIndexPage() {
               ? "detail_reason_stale_but_supported"
               : "detail_reason_normal",
     );
+
     return {
       candidate: selectedCandidate,
       tone: summary.tone,
@@ -134,6 +144,7 @@ export function SubscriptionsIndexPage() {
       reasonLabels: selectedCandidate.reasonKeys.map((reasonKey) => tCleanup(`reason_${reasonKey}`)),
     };
   }, [selectedCandidate, state.selectedRow, t, tCleanup]);
+
   const selectedDisplayModeLabel = state.selectedRow
     ? (() => {
         const preset = resolveFeedDisplayPreset(state.selectedRow.feed);
@@ -146,12 +157,81 @@ export function SubscriptionsIndexPage() {
         return tr("display_mode_preview");
       })()
     : tr("display_mode_default");
+
   const groupedRows = useMemo(
     () => buildSubscriptionListGroups(state.visibleRows, t("meta_folder_none")),
     [state.visibleRows, t],
   );
 
   const summary = buildSubscriptionsIndexSummary({ feeds, candidates, integrityReport });
+  const summaryCards = [
+    {
+      filterKey: "all",
+      label: t("summary_total"),
+      value: String(summary.totalCount),
+      caption: t("summary_total_caption", { count: summary.totalCount }),
+      tone: "neutral",
+      isActive: state.activeSummaryFilter === "all",
+    },
+    {
+      filterKey: "review",
+      label: t("summary_review"),
+      value: String(summary.reviewCount),
+      caption: t("summary_review_caption", { count: summary.reviewCount }),
+      tone: "review",
+      isActive: state.activeSummaryFilter === "review",
+    },
+    {
+      filterKey: "stale",
+      label: t("summary_stale"),
+      value: String(summary.staleCount),
+      caption: t("summary_stale_caption", { count: summary.staleCount }),
+      tone: "stale",
+      isActive: state.activeSummaryFilter === "stale",
+    },
+    {
+      filterKey: "broken",
+      label: t("summary_broken"),
+      value: String(summary.brokenReferenceCount),
+      caption: t("summary_broken_caption", { count: summary.brokenReferenceCount }),
+      tone: "danger",
+      isActive: state.activeSummaryFilter === "broken",
+    },
+  ] satisfies SubscriptionSummaryCard[];
+
+  const decisionActions =
+    state.selectedRow && state.selectedRow.status.labelKey !== "normal"
+      ? {
+          keepLabel: t("decision_keep"),
+          deferLabel: t("decision_defer"),
+          deleteLabel: tc("delete"),
+          onKeep: () => {
+            state.markSelectedFeedKept();
+            if (state.selectedRow) {
+              showToast(t("decision_kept", { title: state.selectedRow.feed.title }));
+            }
+          },
+          onDefer: () => {
+            state.markSelectedFeedDeferred();
+            if (state.selectedRow) {
+              showToast(t("decision_deferred", { title: state.selectedRow.feed.title }));
+            }
+          },
+          onDelete: () => {
+            if (state.selectedRow) {
+              setDeleteTargetFeed(state.selectedRow.feed);
+            }
+          },
+        }
+      : null;
+
+  const batchReviewLabel =
+    (state.activeSummaryFilter === "review" ||
+      state.activeSummaryFilter === "stale" ||
+      state.activeSummaryFilter === "broken") &&
+    (state.visibleRows.length > 0 || state.activeSummaryFilter === "broken")
+      ? t("batch_review_action")
+      : undefined;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -176,92 +256,93 @@ export function SubscriptionsIndexPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [closeSubscriptionsWorkspace]);
 
-  const summaryCards = [
-    {
-      label: t("summary_total"),
-      value: String(summary.totalCount),
-      caption: t("summary_total_caption", { count: summary.totalCount }),
-      tone: "neutral",
-    },
-    {
-      label: t("summary_review"),
-      value: String(summary.reviewCount),
-      caption: t("summary_review_caption", { count: summary.reviewCount }),
-      actionLabel: t("open_cleanup_review"),
-      onAction: () => openFeedCleanup({ reason: "review", returnTo: "index" }),
-      tone: "review",
-    },
-    {
-      label: t("summary_stale"),
-      value: String(summary.staleCount),
-      caption: t("summary_stale_caption", { count: summary.staleCount }),
-      actionLabel: t("open_cleanup_stale"),
-      onAction: () => openFeedCleanup({ reason: "stale_90d", returnTo: "index" }),
-      tone: "stale",
-    },
-    {
-      label: t("summary_broken"),
-      value: String(summary.brokenReferenceCount),
-      caption: t("summary_broken_caption", { count: summary.brokenReferenceCount }),
-      actionLabel: t("open_cleanup_broken_references"),
-      onAction: () => openFeedCleanup({ reason: "broken_references", returnTo: "index" }),
-      tone: "danger",
-    },
-  ] satisfies SubscriptionSummaryCard[];
-
   return (
-    <SubscriptionsIndexPageView
-      title={t("title")}
-      subtitle={t("subtitle")}
-      summaryCards={summaryCards}
-      inventoryHeading={t("inventory_heading")}
-      detailHeading={t("detail_heading")}
-      groups={groupedRows}
-      selectedFeedId={state.selectedFeedId}
-      selectedRow={state.selectedRow}
-      selectedMetrics={selectedMetrics}
-      selectedDetailCandidate={selectedDetailCandidate}
-      emptyLabel={t("empty")}
-      detailEmptyLabel={t("detail_empty")}
-      statusLabels={{
-        normal: t("status_normal"),
-        review: t("status_review"),
-        stale_90d: t("status_stale_90d"),
-        no_unread: t("status_no_unread"),
-        no_stars: t("status_no_stars"),
-      }}
-      formatUnreadCountLabel={(count) => t("meta_unread_count", { count })}
-      formatLatestArticleLabel={(value) =>
-        value ? t("meta_latest_article", { date: new Date(value).toLocaleDateString() }) : t("meta_latest_article_none")
-      }
-      folderLabel={tCleanup("folder")}
-      latestArticleLabel={tCleanup("latest_article")}
-      unreadCountLabel={tCleanup("unread_count")}
-      starredCountLabel={tCleanup("starred_count")}
-      reasonHeading={t("detail_reason_heading")}
-      reasonHint={t("detail_reason_hint")}
-      recentArticlesHeading={t("detail_recent_articles")}
-      displayModeLabel={tr("display_mode")}
-      displayModeValue={selectedDisplayModeLabel}
-      openCleanupLabel={t("open_cleanup_for_feed")}
-      backLabel={tc("back")}
-      closeLabel={tc("close")}
-      isGroupExpanded={state.isGroupExpanded}
-      onSelectFeed={state.setSelectedFeedId}
-      onToggleGroup={state.toggleGroup}
-      onOpenCleanup={() => {
-        if (!state.selectedRow) {
-          return;
+    <>
+      <SubscriptionsIndexPageView
+        title={t("title")}
+        subtitle={t("subtitle")}
+        summaryCards={summaryCards}
+        inventoryHeading={t("inventory_heading")}
+        detailHeading={t("detail_heading")}
+        groups={groupedRows}
+        selectedFeedId={state.selectedFeedId}
+        selectedRow={state.selectedRow}
+        selectedMetrics={selectedMetrics}
+        selectedDetailCandidate={selectedDetailCandidate}
+        emptyLabel={state.activeSummaryFilter === "broken" ? t("empty_broken_filter") : t("empty")}
+        detailEmptyLabel={state.activeSummaryFilter === "broken" ? t("detail_empty_broken") : t("detail_empty")}
+        statusLabels={{
+          normal: t("status_normal"),
+          review: t("status_review"),
+          stale_90d: t("status_stale_90d"),
+          no_unread: t("status_no_unread"),
+          no_stars: t("status_no_stars"),
+        }}
+        formatUnreadCountLabel={(count) => t("meta_unread_count", { count })}
+        formatLatestArticleLabel={(value) =>
+          value
+            ? t("meta_latest_article", { date: new Date(value).toLocaleDateString() })
+            : t("meta_latest_article_none")
         }
+        folderLabel={tCleanup("folder")}
+        latestArticleLabel={tCleanup("latest_article")}
+        unreadCountLabel={tCleanup("unread_count")}
+        starredCountLabel={tCleanup("starred_count")}
+        reasonHeading={t("detail_reason_heading")}
+        reasonHint={t("detail_reason_hint")}
+        recentArticlesHeading={t("detail_recent_articles")}
+        displayModeLabel={tr("display_mode")}
+        displayModeValue={selectedDisplayModeLabel}
+        batchReviewLabel={batchReviewLabel}
+        batchReviewDescription={
+          batchReviewLabel
+            ? t("batch_review_description", {
+                count: state.activeSummaryFilter === "broken" ? summary.brokenReferenceCount : state.visibleRows.length,
+              })
+            : undefined
+        }
+        decisionActions={decisionActions}
+        backLabel={tc("back")}
+        closeLabel={tc("close")}
+        isGroupExpanded={state.isGroupExpanded}
+        onSelectSummaryFilter={state.setActiveSummaryFilter}
+        onSelectFeed={state.setSelectedFeedId}
+        onToggleGroup={state.toggleGroup}
+        onOpenCleanup={() => {
+          openFeedCleanup({
+            reason: resolveBatchCleanupReason(state.activeSummaryFilter),
+            feedIds: state.visibleRows.map((row) => row.feed.id),
+            returnTo: "index",
+            returnState: {
+              activeSummaryFilter: state.activeSummaryFilter,
+              selectedFeedId: state.selectedFeedId,
+            },
+          });
+        }}
+        onBack={() => closeSubscriptionsWorkspace()}
+        onClose={() => closeSubscriptionsWorkspace()}
+      />
 
-        openFeedCleanup({
-          reason: resolveCleanupReason(state.selectedRow),
-          feedId: state.selectedRow.feed.id,
-          returnTo: "index",
-        });
-      }}
-      onBack={() => closeSubscriptionsWorkspace()}
-      onClose={() => closeSubscriptionsWorkspace()}
-    />
+      {deleteTargetFeed ? (
+        <UnsubscribeDialog
+          feed={deleteTargetFeed}
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) {
+              setDeleteTargetFeed(null);
+            }
+          }}
+          onConfirm={() => {
+            void deleteFeedMutation.mutateAsync({
+              feedId: deleteTargetFeed.id,
+              title: deleteTargetFeed.title,
+              onSuccess: () => {
+                setDeleteTargetFeed(null);
+              },
+            });
+          }}
+        />
+      ) : null}
+    </>
   );
 }

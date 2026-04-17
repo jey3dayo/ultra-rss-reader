@@ -2,13 +2,15 @@ import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type { FeedCleanupCandidate, FeedCleanupTone } from "@/lib/feed-cleanup";
 import type { SubscriptionRowStatus } from "@/lib/subscriptions-index";
 
+export type SubscriptionSummaryFilterKey = "all" | "review" | "stale" | "broken";
+
 export type SubscriptionSummaryCard = {
+  filterKey: SubscriptionSummaryFilterKey;
   label: string;
   value: string;
   caption?: string;
-  actionLabel?: string;
-  onAction?: () => void;
   tone?: "neutral" | "review" | "stale" | "danger";
+  isActive?: boolean;
 };
 
 export type SubscriptionListRow = {

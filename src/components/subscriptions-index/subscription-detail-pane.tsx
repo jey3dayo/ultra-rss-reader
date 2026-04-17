@@ -1,5 +1,8 @@
+import { Check, Clock3, Trash2 } from "lucide-react";
+import { DecisionButton } from "@/components/shared/decision-button";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
+import { SurfaceCard } from "@/components/shared/surface-card";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
@@ -21,8 +24,7 @@ export function SubscriptionDetailPane({
   recentArticlesHeading,
   displayModeLabel,
   displayModeValue,
-  openCleanupLabel,
-  onOpenCleanup,
+  decisionActions,
 }: {
   heading: string;
   emptyLabel: string;
@@ -38,8 +40,14 @@ export function SubscriptionDetailPane({
   recentArticlesHeading: string;
   displayModeLabel: string;
   displayModeValue: string;
-  openCleanupLabel: string;
-  onOpenCleanup: () => void;
+  decisionActions: {
+    keepLabel: string;
+    deferLabel: string;
+    deleteLabel: string;
+    onKeep: () => void;
+    onDefer: () => void;
+    onDelete: () => void;
+  } | null;
 }) {
   return (
     <section
@@ -60,7 +68,7 @@ export function SubscriptionDetailPane({
         </div>
       ) : (
         <div className="pr-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-          <div className="flex w-full flex-col pb-7 pt-1 lg:min-h-full">
+          <div className="flex w-full flex-col gap-4 pb-7 pt-1 lg:min-h-full">
             <FeedDetailPanel
               title={row.feed.title}
               titleHref={row.feed.site_url}
@@ -98,8 +106,45 @@ export function SubscriptionDetailPane({
                 publishedAt: new Date(article.published_at).toLocaleDateString(),
                 url: article.url,
               }))}
-              primaryAction={{ label: openCleanupLabel, onClick: onOpenCleanup, ariaLabel: openCleanupLabel }}
             />
+
+            {decisionActions ? (
+              <SurfaceCard
+                data-testid="subscriptions-detail-decision-bar"
+                variant="section"
+                tone="default"
+                padding="compact"
+                className="grid grid-cols-3 gap-2 rounded-lg px-4 shadow-none sm:px-5"
+              >
+                <DecisionButton
+                  intent="keep"
+                  size="lg"
+                  aria-label={decisionActions.keepLabel}
+                  onClick={decisionActions.onKeep}
+                >
+                  <Check className="h-4 w-4" />
+                  {decisionActions.keepLabel}
+                </DecisionButton>
+                <DecisionButton
+                  intent="defer"
+                  size="lg"
+                  aria-label={decisionActions.deferLabel}
+                  onClick={decisionActions.onDefer}
+                >
+                  <Clock3 className="h-4 w-4" />
+                  {decisionActions.deferLabel}
+                </DecisionButton>
+                <DecisionButton
+                  intent="delete"
+                  size="lg"
+                  aria-label={decisionActions.deleteLabel}
+                  onClick={decisionActions.onDelete}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {decisionActions.deleteLabel}
+                </DecisionButton>
+              </SurfaceCard>
+            ) : null}
           </div>
         </div>
       )}

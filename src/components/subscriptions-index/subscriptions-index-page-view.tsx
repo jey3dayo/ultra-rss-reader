@@ -42,10 +42,13 @@ export function SubscriptionsIndexPageView({
   recentArticlesHeading,
   displayModeLabel,
   displayModeValue,
-  openCleanupLabel,
+  batchReviewLabel,
+  batchReviewDescription,
+  decisionActions,
   backLabel,
   closeLabel,
   isGroupExpanded,
+  onSelectSummaryFilter,
   onSelectFeed,
   onToggleGroup,
   onOpenCleanup,
@@ -76,10 +79,20 @@ export function SubscriptionsIndexPageView({
   recentArticlesHeading: string;
   displayModeLabel: string;
   displayModeValue: string;
-  openCleanupLabel: string;
+  batchReviewLabel?: string;
+  batchReviewDescription?: string;
+  decisionActions: {
+    keepLabel: string;
+    deferLabel: string;
+    deleteLabel: string;
+    onKeep: () => void;
+    onDefer: () => void;
+    onDelete: () => void;
+  } | null;
   backLabel: string;
   closeLabel: string;
   isGroupExpanded: (groupKey: string) => boolean;
+  onSelectSummaryFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
   onSelectFeed: (feedId: string) => void;
   onToggleGroup: (groupKey: string) => void;
   onOpenCleanup: () => void;
@@ -103,9 +116,15 @@ export function SubscriptionsIndexPageView({
         closeLabel={closeLabel}
         onClose={onClose}
       />
-      <div className={`${WORKSPACE_CHROME_SPACING_CLASS} pt-1.5 sm:pt-2`}>
-        <div className={`${WORKSPACE_CANVAS_CLASS} gap-4 sm:gap-5 ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}>
-          <SubscriptionsOverviewSummary cards={summaryCards} />
+      <div className={`${WORKSPACE_CHROME_SPACING_CLASS} pt-1 sm:pt-1.5`}>
+        <div className={`${WORKSPACE_CANVAS_CLASS} gap-3.5 sm:gap-4 ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}>
+          <SubscriptionsOverviewSummary
+            cards={summaryCards}
+            onSelectFilter={onSelectSummaryFilter}
+            batchActionLabel={batchReviewLabel}
+            batchActionDescription={batchReviewDescription}
+            onOpenBatchAction={batchReviewLabel ? onOpenCleanup : null}
+          />
           <div
             data-testid="subscriptions-workspace-shell"
             className={workspaceSplitShellClassName("mt-0 rounded-xl border-border/55")}
@@ -128,10 +147,10 @@ export function SubscriptionsIndexPageView({
             />
             <SubscriptionDetailPane
               heading={detailHeading}
-              emptyLabel={detailEmptyLabel}
               row={selectedRow}
               metrics={selectedMetrics}
               detailCandidate={selectedDetailCandidate}
+              emptyLabel={detailEmptyLabel}
               folderLabel={folderLabel}
               latestArticleLabel={latestArticleLabel}
               unreadCountLabel={unreadCountLabel}
@@ -141,8 +160,7 @@ export function SubscriptionsIndexPageView({
               recentArticlesHeading={recentArticlesHeading}
               displayModeLabel={displayModeLabel}
               displayModeValue={displayModeValue}
-              openCleanupLabel={openCleanupLabel}
-              onOpenCleanup={onOpenCleanup}
+              decisionActions={decisionActions}
             />
           </div>
         </div>

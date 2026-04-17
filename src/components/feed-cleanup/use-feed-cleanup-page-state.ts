@@ -211,6 +211,14 @@ export function useFeedCleanupPageState({
 }: FeedCleanupPageInput) {
   const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
   const cleanupWorkspaceOpen = subscriptionsWorkspace?.kind === "cleanup";
+  const scopedFeedIds = useMemo(() => {
+    if (subscriptionsWorkspace?.kind !== "cleanup") {
+      return null;
+    }
+
+    const feedIds = subscriptionsWorkspace.cleanupContext?.feedIds;
+    return feedIds && feedIds.length > 0 ? new Set(feedIds) : null;
+  }, [subscriptionsWorkspace]);
 
   const hiddenFeedIds = useMemo(() => {
     const hidden = new Set(state.keptFeedIds);
@@ -230,8 +238,8 @@ export function useFeedCleanupPageState({
         articles: accountArticles,
         now: new Date(),
         hiddenFeedIds: new Set(),
-      }),
-    [accountArticles, feeds, folders],
+      }).filter((candidate) => (scopedFeedIds ? scopedFeedIds.has(candidate.feedId) : true)),
+    [accountArticles, feeds, folders, scopedFeedIds],
   );
 
   const allCandidates = useMemo(
@@ -242,11 +250,13 @@ export function useFeedCleanupPageState({
         articles: accountArticles,
         now: new Date(),
         hiddenFeedIds,
-      }).map((candidate) => ({
-        ...candidate,
-        deferred: state.deferredFeedIds.has(candidate.feedId),
-      })),
-    [accountArticles, feeds, folders, hiddenFeedIds, state.deferredFeedIds],
+      })
+        .filter((candidate) => (scopedFeedIds ? scopedFeedIds.has(candidate.feedId) : true))
+        .map((candidate) => ({
+          ...candidate,
+          deferred: state.deferredFeedIds.has(candidate.feedId),
+        })),
+    [accountArticles, feeds, folders, hiddenFeedIds, scopedFeedIds, state.deferredFeedIds],
   );
 
   const visibleCandidates = useMemo(

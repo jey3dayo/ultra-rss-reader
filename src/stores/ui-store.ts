@@ -50,13 +50,20 @@ export type FocusedPane = "sidebar" | "list" | "content";
 export type ContentMode = "empty" | "reader" | "browser" | "loading";
 export type PendingBrowserCloseAction = "prev-article" | "next-article" | "prev-feed" | "next-feed";
 export type FeedCleanupContextReason = "review" | "stale_90d" | "no_unread" | "no_stars" | "broken_references";
+export type SubscriptionSummaryFilterState = "all" | "review" | "stale" | "broken";
+export type SubscriptionsWorkspaceReturnState = {
+  activeSummaryFilter: SubscriptionSummaryFilterState;
+  selectedFeedId: string | null;
+};
 export type FeedCleanupContext = {
   reason: FeedCleanupContextReason;
   feedId?: string | null;
+  feedIds?: string[];
+  returnState?: SubscriptionsWorkspaceReturnState;
   returnTo: "index";
 };
 export type SubscriptionsWorkspace =
-  | { kind: "index"; cleanupContext: null }
+  | { kind: "index"; cleanupContext: null; returnState?: SubscriptionsWorkspaceReturnState }
   | { kind: "cleanup"; cleanupContext: FeedCleanupContext | null };
 export type SettingsCategory =
   | "general"
@@ -145,7 +152,7 @@ interface UiActions {
   setSettingsAddAccount: (show: boolean) => void;
   setSettingsLoading: (loading: boolean) => void;
   setAppLoading: (loading: boolean) => void;
-  openSubscriptionsIndex: () => void;
+  openSubscriptionsIndex: (state?: SubscriptionsWorkspaceReturnState) => void;
   openFeedCleanup: (context?: FeedCleanupContext) => void;
   closeFeedCleanup: () => void;
   closeSubscriptionsWorkspace: () => void;
@@ -360,9 +367,9 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   setSettingsAddAccount: (show) => set({ settingsAddAccount: show, settingsAccountId: null }),
   setSettingsLoading: (loading) => set({ settingsLoading: loading }),
   setAppLoading: (loading) => set({ appLoading: loading }),
-  openSubscriptionsIndex: () =>
+  openSubscriptionsIndex: (returnState) =>
     set({
-      subscriptionsWorkspace: { kind: "index", cleanupContext: null },
+      subscriptionsWorkspace: { kind: "index", cleanupContext: null, returnState },
       focusedPane: "content",
     }),
   openFeedCleanup: (context) =>

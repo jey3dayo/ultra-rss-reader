@@ -13,6 +13,13 @@
   "summary_broken": "Broken references",
   "summary_broken_caption_one": "1 broken article reference",
   "summary_broken_caption_other": "{{count}} broken article references",
+  "batch_review_action": "Batch review",
+  "batch_review_description_one": "Review the current filtered item as a batch.",
+  "batch_review_description_other": "Review the current {{count}} filtered items as a batch.",
+  "decision_keep": "Keep",
+  "decision_defer": "Later",
+  "decision_kept": "Marked {{title}} to keep",
+  "decision_deferred": "Deferred {{title}} for later",
   "open_cleanup_review": "Review flagged subscriptions",
   "open_cleanup_stale": "Clean up 90-day stale subscriptions",
   "open_cleanup_broken_references": "Review broken references",
@@ -38,5 +45,7 @@
   "detail_reason_stale_but_supported": "The feed is quiet, but there is still enough signal to review before deleting.",
   "detail_recent_articles": "Recent articles",
   "empty": "No subscriptions match the current filters.",
-  "detail_empty": "Select a subscription to view details."
+  "empty_broken_filter": "Broken references are outside the subscription list. Open batch review to inspect them.",
+  "detail_empty": "Select a subscription to view details.",
+  "detail_empty_broken": "Broken references are outside the subscription list. Open batch review to inspect them."
 }
