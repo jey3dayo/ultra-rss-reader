@@ -92,11 +92,7 @@ function findCachedArticle(qc: QueryClient, articleId: string): ArticleDto | nul
   return null;
 }
 
-function updateCachedArticleArray(
-  current: unknown,
-  nextArticle: ArticleDto,
-  options?: { insertIfMissing?: boolean },
-) {
+function updateCachedArticleArray(current: unknown, nextArticle: ArticleDto, options?: { insertIfMissing?: boolean }) {
   if (!Array.isArray(current)) {
     return current;
   }
