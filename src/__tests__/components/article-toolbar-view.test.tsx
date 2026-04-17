@@ -35,10 +35,14 @@ describe("ArticleToolbarView", () => {
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
+          toggleReadShort: "Read",
           toggleStar: "Toggle star",
+          toggleStarShort: "Star",
           copyLink: "Copy link",
           previewToggleOff: "Open Web Preview",
+          previewToggleOffShort: "Preview",
           previewToggleOn: "Close Web Preview",
+          previewToggleOnShort: "Close",
           openInExternalBrowser: "Open in External Browser",
           moreActions: "More actions",
         }}
@@ -104,10 +108,14 @@ describe("ArticleToolbarView", () => {
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
+          toggleReadShort: "Read",
           toggleStar: "Toggle star",
+          toggleStarShort: "Star",
           copyLink: "Copy link",
           previewToggleOff: "Open Web Preview",
+          previewToggleOffShort: "Preview",
           previewToggleOn: "Close Web Preview",
+          previewToggleOnShort: "Close",
           openInExternalBrowser: "Open in External Browser",
           moreActions: "More actions",
         }}
@@ -151,10 +159,14 @@ describe("ArticleToolbarView", () => {
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
+          toggleReadShort: "Read",
           toggleStar: "Toggle star",
+          toggleStarShort: "Star",
           copyLink: "Copy link",
           previewToggleOff: "Open Web Preview",
+          previewToggleOffShort: "Preview",
           previewToggleOn: "Close Web Preview",
+          previewToggleOnShort: "Close",
           openInExternalBrowser: "Open in External Browser",
           moreActions: "More actions",
         }}
@@ -194,10 +206,14 @@ describe("ArticleToolbarView", () => {
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
+          toggleReadShort: "Read",
           toggleStar: "Toggle star",
+          toggleStarShort: "Star",
           copyLink: "Copy link",
           previewToggleOff: "Open Web Preview",
+          previewToggleOffShort: "Preview",
           previewToggleOn: "Close Web Preview",
+          previewToggleOnShort: "Close",
           openInExternalBrowser: "Open in External Browser",
           moreActions: "More actions",
         }}
@@ -238,10 +254,14 @@ describe("ArticleToolbarView", () => {
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
+          toggleReadShort: "Read",
           toggleStar: "Toggle star",
+          toggleStarShort: "Star",
           copyLink: "Copy link",
           previewToggleOff: "Open Web Preview",
+          previewToggleOffShort: "Preview",
           previewToggleOn: "Close Web Preview",
+          previewToggleOnShort: "Close",
           openInExternalBrowser: "Open in External Browser",
           moreActions: "More actions",
         }}
@@ -278,10 +298,14 @@ describe("ArticleToolbarView", () => {
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
+          toggleReadShort: "Read",
           toggleStar: "Toggle star",
+          toggleStarShort: "Star",
           copyLink: "Copy link",
           previewToggleOff: "Open Web Preview",
+          previewToggleOffShort: "Preview",
           previewToggleOn: "Close Web Preview",
+          previewToggleOnShort: "Close",
           openInExternalBrowser: "Open in External Browser",
           moreActions: "More actions",
         }}
@@ -317,10 +341,14 @@ describe("ArticleToolbarView", () => {
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
+          toggleReadShort: "Read",
           toggleStar: "Toggle star",
+          toggleStarShort: "Star",
           copyLink: "Copy link",
           previewToggleOff: "Open Web Preview",
+          previewToggleOffShort: "Preview",
           previewToggleOn: "Close Web Preview",
+          previewToggleOnShort: "Close",
           openInExternalBrowser: "Open in External Browser",
           moreActions: "More actions",
         }}
@@ -371,10 +399,14 @@ describe("ArticleToolbarView", () => {
         labels={{
           closeView: "Close article",
           toggleRead: "Toggle read",
+          toggleReadShort: "Read",
           toggleStar: "Toggle star",
+          toggleStarShort: "Star",
           copyLink: "Copy link",
           previewToggleOff: "Open Web Preview",
+          previewToggleOffShort: "Preview",
           previewToggleOn: "Close Web Preview",
+          previewToggleOnShort: "Close",
           openInExternalBrowser: "Open in External Browser",
           moreActions: "More actions",
         }}
@@ -387,6 +419,12 @@ describe("ArticleToolbarView", () => {
       />,
     );
 
+    expect(screen.getByRole("button", { name: "Toggle read" })).toHaveTextContent("Read");
+    expect(screen.getByRole("button", { name: "Toggle star" })).toHaveTextContent("Star");
+    expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveTextContent("Preview");
+    expect(screen.getByRole("button", { name: "Toggle read" })).toHaveClass("h-11", "text-sm");
+    expect(screen.getByRole("button", { name: "Toggle star" })).toHaveClass("h-11", "text-sm");
+    expect(screen.getByRole("button", { name: "Open Web Preview" })).toHaveClass("h-11", "text-sm");
     expect(screen.queryByRole("button", { name: "Copy link" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open in External Browser" })).not.toBeInTheDocument();
 
@@ -397,5 +435,49 @@ describe("ArticleToolbarView", () => {
 
     expect(onCopyLink).toHaveBeenCalledTimes(1);
     expect(onOpenInExternalBrowser).toHaveBeenCalledTimes(1);
+  });
+
+  it("switches the mobile preview label when Web Preview is already open", () => {
+    useUiStore.setState({ layoutMode: "mobile" });
+
+    render(
+      <ArticleToolbarView
+        showCloseButton
+        canToggleRead
+        canToggleStar
+        isRead={false}
+        isStarred={false}
+        isBrowserOpen
+        showCopyLinkButton={false}
+        canCopyLink={false}
+        showOpenInBrowserButton
+        canOpenInBrowser
+        showOpenInExternalBrowserButton={false}
+        canOpenInExternalBrowser={false}
+        labels={{
+          closeView: "Close article",
+          toggleRead: "Toggle read",
+          toggleReadShort: "Read",
+          toggleStar: "Toggle star",
+          toggleStarShort: "Star",
+          copyLink: "Copy link",
+          previewToggleOff: "Open Web Preview",
+          previewToggleOffShort: "Preview",
+          previewToggleOn: "Close Web Preview",
+          previewToggleOnShort: "Close",
+          openInExternalBrowser: "Open in External Browser",
+          moreActions: "More actions",
+        }}
+        onCloseView={vi.fn()}
+        onToggleRead={vi.fn()}
+        onToggleStar={vi.fn()}
+        onCopyLink={vi.fn()}
+        onOpenInBrowser={vi.fn()}
+        onOpenInExternalBrowser={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveTextContent("Close");
+    expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveClass("h-11", "text-sm");
   });
 });

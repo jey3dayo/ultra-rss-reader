@@ -76,9 +76,13 @@ export function useArticleToolbarControls({
     labels: {
       closeView: t("close_view"),
       toggleRead: t("toggle_read"),
+      toggleReadShort: t("toggle_read_short"),
       toggleStar: t("toggle_star"),
+      toggleStarShort: t("toggle_star_short"),
       previewToggleOff: t("open_in_browser"),
+      previewToggleOffShort: t("preview_toggle_off_short"),
       previewToggleOn: t("close_browser_overlay"),
+      previewToggleOnShort: t("preview_toggle_on_short"),
       copyLink: t("copy_link"),
       openInExternalBrowser: t("open_in_external_browser"),
       moreActions: t("more_actions"),

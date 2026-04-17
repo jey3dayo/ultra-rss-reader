@@ -8,6 +8,7 @@ import {
   IconToolbarToggle,
   iconToolbarSurfaceControlVariants,
 } from "@/components/shared/icon-toolbar-control";
+import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
@@ -70,6 +71,42 @@ function ArticleToolbarMoreMenu({
   );
 }
 
+function ArticleToolbarMobilePrimaryButton({
+  label,
+  shortLabel,
+  ariaPressed,
+  disabled = false,
+  onClick,
+  active = false,
+  children,
+}: {
+  label: string;
+  shortLabel?: string;
+  ariaPressed?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  active?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      aria-label={label}
+      aria-pressed={ariaPressed}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "h-11 gap-2 px-3.5 text-sm font-medium text-foreground-soft",
+        active && "bg-surface-1/72 text-foreground",
+      )}
+    >
+      {children}
+      <span>{shortLabel ?? label}</span>
+    </Button>
+  );
+}
+
 export function ArticleToolbarActionStrip({
   hasArticle = true,
   canToggleRead,
@@ -96,35 +133,72 @@ export function ArticleToolbarActionStrip({
 
   return (
     <div className="flex items-center gap-1">
-      <IconToolbarToggle
-        label={labels.toggleRead}
-        pressed={isRead}
-        onPressedChange={(nextRead) => onToggleRead(nextRead)}
-        disabled={!canToggleRead}
-        className="text-foreground-soft hover:text-foreground"
-      >
-        <UnreadIcon unread={hasArticle && !isRead} className="h-3 w-3" />
-      </IconToolbarToggle>
-      <IconToolbarToggle
-        label={labels.toggleStar}
-        pressed={isStarred}
-        onPressedChange={(nextStarred) => onToggleStar(nextStarred)}
-        disabled={!canToggleStar}
-        className="text-foreground-soft hover:text-foreground"
-      >
-        <StarIcon starred={isStarred} className="h-4 w-4" />
-      </IconToolbarToggle>
-      {showOpenInBrowserButton && !hideBrowserOverlayActions && (
-        <IconToolbarToggle
-          label={isBrowserOpen ? labels.previewToggleOn : labels.previewToggleOff}
-          pressed={isBrowserOpen}
-          onPressedChange={() => onOpenInBrowser()}
-          disabled={!canOpenInBrowser}
-          pressedTone="accent"
-          focusTargetKey="open-in-browser"
-        >
-          <Eye className="h-4 w-4" />
-        </IconToolbarToggle>
+      {isMobile ? (
+        <>
+          <ArticleToolbarMobilePrimaryButton
+            label={labels.toggleRead}
+            shortLabel={labels.toggleReadShort}
+            ariaPressed={isRead}
+            disabled={!canToggleRead}
+            onClick={() => onToggleRead(!isRead)}
+          >
+            <UnreadIcon unread={hasArticle && !isRead} className="h-3 w-3" />
+          </ArticleToolbarMobilePrimaryButton>
+          <ArticleToolbarMobilePrimaryButton
+            label={labels.toggleStar}
+            shortLabel={labels.toggleStarShort}
+            ariaPressed={isStarred}
+            disabled={!canToggleStar}
+            onClick={() => onToggleStar(!isStarred)}
+          >
+            <StarIcon starred={isStarred} className="h-4 w-4" />
+          </ArticleToolbarMobilePrimaryButton>
+          {showOpenInBrowserButton && !hideBrowserOverlayActions ? (
+            <ArticleToolbarMobilePrimaryButton
+              label={isBrowserOpen ? labels.previewToggleOn : labels.previewToggleOff}
+              shortLabel={isBrowserOpen ? labels.previewToggleOnShort : labels.previewToggleOffShort}
+              ariaPressed={isBrowserOpen}
+              disabled={!canOpenInBrowser}
+              onClick={onOpenInBrowser}
+              active={isBrowserOpen}
+            >
+              <Eye className="h-4 w-4" />
+            </ArticleToolbarMobilePrimaryButton>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <IconToolbarToggle
+            label={labels.toggleRead}
+            pressed={isRead}
+            onPressedChange={(nextRead) => onToggleRead(nextRead)}
+            disabled={!canToggleRead}
+            className="text-foreground-soft hover:text-foreground"
+          >
+            <UnreadIcon unread={hasArticle && !isRead} className="h-3 w-3" />
+          </IconToolbarToggle>
+          <IconToolbarToggle
+            label={labels.toggleStar}
+            pressed={isStarred}
+            onPressedChange={(nextStarred) => onToggleStar(nextStarred)}
+            disabled={!canToggleStar}
+            className="text-foreground-soft hover:text-foreground"
+          >
+            <StarIcon starred={isStarred} className="h-4 w-4" />
+          </IconToolbarToggle>
+          {showOpenInBrowserButton && !hideBrowserOverlayActions ? (
+            <IconToolbarToggle
+              label={isBrowserOpen ? labels.previewToggleOn : labels.previewToggleOff}
+              pressed={isBrowserOpen}
+              onPressedChange={() => onOpenInBrowser()}
+              disabled={!canOpenInBrowser}
+              pressedTone="accent"
+              focusTargetKey="open-in-browser"
+            >
+              <Eye className="h-4 w-4" />
+            </IconToolbarToggle>
+          ) : null}
+        </>
       )}
       {showOpenInExternalBrowserButton && !hideBrowserOverlayActions && !isMobile && (
         <IconToolbarButton

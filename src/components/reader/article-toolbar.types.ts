@@ -6,9 +6,13 @@ import type { BrowserOverlayActionRenderer } from "./browser-view.types";
 export type ArticleToolbarViewLabels = {
   closeView: string;
   toggleRead: string;
+  toggleReadShort?: string;
   toggleStar: string;
+  toggleStarShort?: string;
   previewToggleOff: string;
+  previewToggleOffShort?: string;
   previewToggleOn: string;
+  previewToggleOnShort?: string;
   copyLink: string;
   openInExternalBrowser: string;
   moreActions: string;
