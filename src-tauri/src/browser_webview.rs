@@ -12,6 +12,9 @@ use std::{
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Runtime, Webview};
 
+#[cfg(windows)]
+use crate::menu::MENU_ACTION_EVENT;
+
 pub const BROWSER_WEBVIEW_LABEL: &str = "browser-webview";
 pub const BROWSER_WEBVIEW_STATE_CHANGED_EVENT: &str = "browser-webview-state-changed";
 pub const BROWSER_WEBVIEW_CLOSED_EVENT: &str = "browser-webview-closed";
@@ -587,7 +590,7 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
                         if BROWSER_PREVIEW_SHORTCUT_SPECS.iter().any(|shortcut| {
                             shortcut.supports_script_bridge && shortcut.app_action == action
                         }) {
-                            let _ = app_handle.emit("menu-action", action);
+                            let _ = app_handle.emit(MENU_ACTION_EVENT, action);
                         }
                         Ok(())
                     },
@@ -651,7 +654,7 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
                         begin_browser_close_grace_window();
                         focus_main_webview_window(&app_handle);
                     }
-                    let _ = app_handle.emit("menu-action", action);
+                    let _ = app_handle.emit(MENU_ACTION_EVENT, action);
                     Ok(())
                 },
             ));

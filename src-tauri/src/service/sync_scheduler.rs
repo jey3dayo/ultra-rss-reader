@@ -20,8 +20,14 @@ use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
 use crate::repository::account::AccountRepository;
 use crate::repository::sync_state::{SyncState, SyncStateRepository};
 
-const TICK_INTERVAL: Duration = Duration::from_secs(10);
-const MAX_BACKOFF: Duration = Duration::from_secs(3600);
+const SCHEDULER_TICK_INTERVAL_SECS: u64 = 10;
+const DEFAULT_SYNC_INTERVAL_SECS: u64 = 3_600;
+const BACKOFF_BASE_SECS: u64 = 60;
+const MAX_BACKOFF_SHIFT_BITS: u32 = 10;
+const MAX_BACKOFF_MULTIPLIER: u64 = 1 << MAX_BACKOFF_SHIFT_BITS;
+
+const TICK_INTERVAL: Duration = Duration::from_secs(SCHEDULER_TICK_INTERVAL_SECS);
+const MAX_BACKOFF: Duration = Duration::from_secs(DEFAULT_SYNC_INTERVAL_SECS);
 const SYNC_STATE_SCOPE: &str = "scheduler";
 
 /// Per-account scheduling state kept in memory.
@@ -226,14 +232,16 @@ fn account_interval(account: &Account) -> Duration {
     let secs = if account.sync_interval_secs > 0 {
         account.sync_interval_secs as u64
     } else {
-        3600
+        DEFAULT_SYNC_INTERVAL_SECS
     };
     Duration::from_secs(secs)
 }
 
 fn calculate_backoff(account: &Account, error_count: i32) -> Duration {
     let base = account_interval(account);
-    let multiplier = 1u64.checked_shl(error_count.min(10) as u32).unwrap_or(1024);
+    let multiplier = 1u64
+        .checked_shl(error_count.min(MAX_BACKOFF_SHIFT_BITS as i32) as u32)
+        .unwrap_or(MAX_BACKOFF_MULTIPLIER);
     let backoff = base.saturating_mul(multiplier as u32);
     backoff.min(MAX_BACKOFF)
 }
@@ -331,9 +339,10 @@ fn increment_error_count(
 }
 
 fn calculate_backoff_secs(error_count: i32) -> u64 {
-    let base: u64 = 60; // 1 minute base
-    let multiplier = 1u64.checked_shl(error_count.min(10) as u32).unwrap_or(1024);
-    (base * multiplier).min(MAX_BACKOFF.as_secs())
+    let multiplier = 1u64
+        .checked_shl(error_count.min(MAX_BACKOFF_SHIFT_BITS as i32) as u32)
+        .unwrap_or(MAX_BACKOFF_MULTIPLIER);
+    (BACKOFF_BASE_SECS * multiplier).min(MAX_BACKOFF.as_secs())
 }
 
 pub async fn wait_for_automatic_sync_enabled(
@@ -414,7 +423,10 @@ mod tests {
             sync_on_wake: false,
             keep_read_items_days: 30,
         };
-        assert_eq!(account_interval(&account), Duration::from_secs(3600));
+        assert_eq!(
+            account_interval(&account),
+            Duration::from_secs(DEFAULT_SYNC_INTERVAL_SECS)
+        );
     }
 
     #[test]
