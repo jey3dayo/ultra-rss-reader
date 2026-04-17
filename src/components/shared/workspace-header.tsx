@@ -1,6 +1,7 @@
 import { ChevronLeft, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 
@@ -124,13 +125,18 @@ export function WorkspaceHeader({
           className={`min-w-0 space-y-0.5 pb-0.5 ${useDesktopOverlay ? MAC_OVERLAY_TITLE_OFFSET_CLASS_NAME : ""}`}
         >
           {isDesktopApp ? (
-            <div data-testid="workspace-header-context-row" className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <p
-                data-motion-phase={contentMotionPhase}
-                className="motion-content-swap font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase"
-              >
-                {eyebrow}
-              </p>
+            <div
+              data-testid="workspace-header-context-drag-region"
+              data-tauri-drag-region={useDesktopOverlay ? true : undefined}
+            >
+              <div data-testid="workspace-header-context-row" className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <p
+                  data-motion-phase={contentMotionPhase}
+                  className="motion-content-swap font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase"
+                >
+                  {eyebrow}
+                </p>
+              </div>
             </div>
           ) : null}
           {isDesktopApp ? (
@@ -147,12 +153,18 @@ export function WorkspaceHeader({
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
               ) : null}
-              <h1
-                data-motion-phase={contentMotionPhase}
-                className="motion-content-swap font-sans text-[1.65rem] leading-[0.96] font-normal tracking-[-0.04em] text-foreground"
+              <div
+                data-testid="workspace-header-title-drag-region"
+                data-tauri-drag-region={useDesktopOverlay ? true : undefined}
+                className={cn("min-w-0 flex-1")}
               >
-                {title}
-              </h1>
+                <h1
+                  data-motion-phase={contentMotionPhase}
+                  className="motion-content-swap font-sans text-[1.65rem] leading-[0.96] font-normal tracking-[-0.04em] text-foreground"
+                >
+                  {title}
+                </h1>
+              </div>
             </div>
           ) : (
             <h1
@@ -163,6 +175,8 @@ export function WorkspaceHeader({
             </h1>
           )}
           <p
+            data-testid="workspace-header-subtitle-drag-region"
+            data-tauri-drag-region={useDesktopOverlay ? true : undefined}
             data-motion-phase={contentMotionPhase}
             className="motion-content-swap max-w-2xl font-serif text-[0.95rem] leading-[1.42] text-foreground-soft"
           >
