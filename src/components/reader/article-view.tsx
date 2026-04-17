@@ -28,7 +28,7 @@ function EmptyState() {
       body={
         <ArticleEmptyStateView
           message={t("select_article_to_read")}
-          hints={[t("empty_state_pick_from_list"), t("empty_state_search_hint"), t("empty_state_web_preview_hint")]}
+          hints={[t("empty_state_search_hint"), t("empty_state_web_preview_hint")]}
         />
       }
     />

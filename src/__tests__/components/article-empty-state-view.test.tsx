@@ -30,19 +30,17 @@ describe("ArticleEmptyStateView", () => {
     expect(screen.getByText("Pick one from the list").closest("ul")).toHaveClass("pl-5");
   });
 
-  it("uses semantic surface tokens for the empty-state container", () => {
+  it("keeps the empty-state container borderless in reader mode", () => {
     render(<ArticleEmptyStateView message="Select an article to read" hints={["Pick one from the list"]} />);
 
     const container = screen.getByText("Select an article to read").parentElement;
     const hintsList = screen.getByRole("list");
 
-    expect(container).toHaveAttribute("data-surface-card", "info");
-    expect(container).toHaveClass("rounded-md");
     expect(container).toHaveClass("max-w-xl");
-    expect(container).toHaveClass("border-border/0");
-    expect(container).toHaveClass("bg-surface-1/0");
-    expect(container).toHaveClass("shadow-none");
+    expect(container).toHaveClass("px-7");
+    expect(container).toHaveClass("py-7");
     expect(container).toHaveClass("text-foreground-soft");
+    expect(container).not.toHaveAttribute("data-surface-card");
     expect(screen.queryByText("Reader")).not.toBeInTheDocument();
     expect(hintsList).toHaveClass("marker:text-foreground-soft");
   });
