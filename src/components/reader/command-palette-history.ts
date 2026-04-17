@@ -16,20 +16,22 @@ export function createCommandPaletteHistoryValue(entry: CommandPaletteHistoryEnt
 }
 
 export function parseCommandPaletteHistoryEntry(value: string): CommandPaletteHistoryEntry | null {
-  if (value.startsWith(COMMAND_PALETTE_HISTORY_PREFIX.action)) {
-    return {
-      kind: "action",
-      id: value.slice(COMMAND_PALETTE_HISTORY_PREFIX.action.length) as AppAction,
-    };
+  for (const [kind, prefix] of Object.entries(COMMAND_PALETTE_HISTORY_PREFIX)) {
+    if (!value.startsWith(prefix)) {
+      continue;
+    }
+
+    const id = value.slice(prefix.length);
+    return kind === "action"
+      ? {
+          kind,
+          id: id as AppAction,
+        }
+      : {
+          kind,
+          id,
+        };
   }
-  if (value.startsWith(COMMAND_PALETTE_HISTORY_PREFIX.feed)) {
-    return { kind: "feed", id: value.slice(COMMAND_PALETTE_HISTORY_PREFIX.feed.length) };
-  }
-  if (value.startsWith(COMMAND_PALETTE_HISTORY_PREFIX.tag)) {
-    return { kind: "tag", id: value.slice(COMMAND_PALETTE_HISTORY_PREFIX.tag.length) };
-  }
-  if (value.startsWith(COMMAND_PALETTE_HISTORY_PREFIX.article)) {
-    return { kind: "article", id: value.slice(COMMAND_PALETTE_HISTORY_PREFIX.article.length) };
-  }
+
   return null;
 }

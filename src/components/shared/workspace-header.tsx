@@ -41,10 +41,6 @@ export function WorkspaceHeader({
   });
   const hasBackAction = Boolean(backLabel && onBack);
   const isDesktopApp = hasRuntime;
-  // During local drag debugging, tint the exact Tauri drag surfaces so we can
-  // verify what is actually draggable without affecting production builds.
-  const debugDragRegionClassName =
-    useDesktopOverlay && import.meta.env.DEV ? "bg-lime-400/20 outline outline-1 outline-lime-300/80" : undefined;
   const contentKey = `${eyebrow}::${title}::${subtitle}`;
   const previousContentKeyRef = useRef(contentKey);
   const [contentMotionPhase, setContentMotionPhase] = useState<"steady" | "entering">("steady");
@@ -80,7 +76,7 @@ export function WorkspaceHeader({
           data-testid="workspace-header-drag-region"
           data-tauri-drag-region
           aria-hidden="true"
-          className={cn("absolute top-0 left-0 h-10", debugDragRegionClassName)}
+          className="absolute top-0 left-0 h-10"
           style={{ width: `${MAC_OVERLAY_DRAG_REGION_WIDTH}px` }}
         />
       ) : null}
@@ -96,7 +92,7 @@ export function WorkspaceHeader({
               data-testid="workspace-header-top-row-drag-region"
               data-tauri-drag-region
               aria-hidden="true"
-              className={cn("absolute inset-0 z-10", debugDragRegionClassName)}
+              className="absolute inset-0 z-10"
             />
           ) : null}
           <div
@@ -154,7 +150,7 @@ export function WorkspaceHeader({
               data-testid="workspace-header-title-group-drag-region"
               data-tauri-drag-region
               aria-hidden="true"
-              className={cn("absolute inset-0 z-10", debugDragRegionClassName)}
+              className="absolute inset-0 z-10"
             />
           ) : null}
           {isDesktopApp ? (
