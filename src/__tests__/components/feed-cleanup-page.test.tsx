@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FeedCleanupPage } from "@/components/feed-cleanup/feed-cleanup-page";
 import i18n from "@/lib/i18n";
+import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
@@ -193,6 +194,30 @@ describe("FeedCleanupPage", () => {
         day: "numeric",
       }),
     );
+  });
+
+  it("aligns the cleanup workspace shell closer to the mac header baseline when overlay titlebars are active", async () => {
+    usePlatformStore.setState({
+      platform: {
+        kind: "macos",
+        capabilities: {
+          supports_reading_list: false,
+          supports_background_browser_open: false,
+          supports_runtime_window_icon_replacement: true,
+          supports_native_browser_navigation: true,
+          uses_dev_file_credentials: false,
+        },
+      },
+      loaded: true,
+      loadError: false,
+      inFlightLoad: null,
+    });
+
+    render(<FeedCleanupPage />, { wrapper: createWrapper() });
+
+    const layoutHost = await screen.findByTestId("feed-cleanup-layout").parentElement;
+    expect(layoutHost).not.toBeNull();
+    expect(layoutHost).toHaveClass("pl-2", "sm:pl-2");
   });
 
   it("filters candidates, updates the review panel, and deletes a confirmed feed", async () => {

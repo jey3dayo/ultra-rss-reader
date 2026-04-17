@@ -99,7 +99,7 @@ export function SubscriptionsListPane({
                   aria-controls={groupBodyId}
                   onClick={() => onToggleGroup(group.key)}
                   className={cn(
-                    "motion-disclosure-trigger flex w-full items-center justify-between rounded-md border px-3 py-2.5 text-left hover:-translate-y-px hover:bg-[color:var(--subscriptions-list-row-hover)]",
+                    "motion-disclosure-trigger flex w-full items-center justify-between rounded-md border px-3 py-2.5 text-left hover:bg-[color:var(--subscriptions-list-row-hover)]",
                     expanded ? "shadow-none" : "shadow-[0_10px_28px_-24px_rgba(38,37,30,0.42)]",
                   )}
                   style={{
