@@ -1,15 +1,8 @@
 import { Monitor, Rss, Thermometer } from "lucide-react";
 import { FreshRssLogoIcon, InoreaderLogoIcon } from "@/components/icons/provider-icons";
+import { PROVIDER_ICON_BG_CLASS } from "@/components/shared/exception-palettes";
 import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import type { ServiceCategory, ServiceDefinition } from "./add-account-services.types";
-
-export const PROVIDER_ICON_BG_CLASS = {
-  Local: "bg-orange-500",
-  FreshRss: "bg-[#0062BE]",
-  Fever: "bg-gray-500",
-  Feedly: "bg-[#2BB24C]",
-  Inoreader: "bg-[#1875F3]",
-} as const satisfies Record<ServiceDefinition["kind"], string>;
 
 export const SERVICE_CATEGORIES: ServiceCategory[] = [
   {

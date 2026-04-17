@@ -14,6 +14,7 @@ import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
 import { ControlChipButton } from "@/components/shared/control-chip-button";
 import { DecisionButton, denseDecisionButtonClassName } from "@/components/shared/decision-button";
+import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { LabelChip } from "@/components/shared/label-chip";
@@ -107,18 +108,6 @@ const NAV_SAMPLE_FEEDS: FeedDto[] = [
     web_preview_mode: "off",
   },
 ];
-
-const TAG_COLOR_PRESETS = [
-  "#cf7868",
-  "#c88d62",
-  "#b59a64",
-  "#5f9670",
-  "#5f9695",
-  "#6f8eb8",
-  "#8c79b2",
-  "#b97a90",
-  "#726d66",
-] as const;
 
 const STACK_SPECIMEN_FRAME_RADIUS_CLASS = "rounded-md";
 const SHELL_SPECIMEN_OUTER_RADIUS_CLASS = "rounded-xl";

@@ -4,20 +4,9 @@ import type { TagDto } from "@/api/tauri-commands";
 import { DeleteTagDialogView } from "@/components/reader/delete-tag-dialog-view";
 import { RenameTagDialogView } from "@/components/reader/rename-tag-dialog-view";
 import { TagsSettingsView } from "@/components/settings/tags-settings-view";
+import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
 import { useCreateTag, useDeleteTag, useRenameTag, useTags } from "@/hooks/use-tags";
 import { useUiStore } from "@/stores/ui-store";
-
-const TAG_COLOR_PRESETS = [
-  "#cf7868",
-  "#c88d62",
-  "#b59a64",
-  "#5f9670",
-  "#5f9695",
-  "#6f8eb8",
-  "#8c79b2",
-  "#b97a90",
-  "#726d66",
-];
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
@@ -115,7 +104,7 @@ export function TagsSettings() {
         namePlaceholder={t("tags.name_placeholder")}
         colorLabel={tr("color")}
         colorValue={color}
-        colorOptions={TAG_COLOR_PRESETS}
+        colorOptions={[...TAG_COLOR_PRESETS]}
         noColorLabel={tr("no_color")}
         colorOptionAriaLabel={(option) => `${tr("color")} ${option}`}
         createLabel={t("tags.create")}
@@ -141,7 +130,7 @@ export function TagsSettings() {
         onOpenChange={(open) => !open && setEditingTag(null)}
         onNameChange={setRenameName}
         onColorChange={setRenameColor}
-        colorOptions={TAG_COLOR_PRESETS}
+        colorOptions={[...TAG_COLOR_PRESETS]}
         noColorLabel={tr("no_color")}
         onSubmit={() => void handleRename()}
       />

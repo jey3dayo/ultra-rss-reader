@@ -1,23 +1,12 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TagDto } from "@/api/tauri-commands";
+import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
 import { useDeleteTag, useRenameTag } from "@/hooks/use-tags";
 import { useUiStore } from "@/stores/ui-store";
 import { DeleteTagDialogView } from "./delete-tag-dialog-view";
 import { RenameTagDialogView } from "./rename-tag-dialog-view";
 import { TagContextMenuView } from "./tag-context-menu-view";
-
-const TAG_COLOR_PRESETS = [
-  "#cf7868",
-  "#c88d62",
-  "#b59a64",
-  "#5f9670",
-  "#5f9695",
-  "#6f8eb8",
-  "#8c79b2",
-  "#b97a90",
-  "#726d66",
-];
 
 export type TagContextMenuContentProps = {
   tag: TagDto;
@@ -107,7 +96,7 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
         onOpenChange={handleRenameOpenChange}
         onNameChange={setRenameName}
         onColorChange={setRenameColor}
-        colorOptions={TAG_COLOR_PRESETS}
+        colorOptions={[...TAG_COLOR_PRESETS]}
         noColorLabel={t("no_color")}
         onSubmit={handleRenameSubmit}
       />
