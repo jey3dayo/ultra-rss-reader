@@ -13,7 +13,7 @@ describe("ArticleListFooter", () => {
     );
 
     const footer = container.firstElementChild;
-    expect(footer).toHaveClass("flex", "h-10", "items-center");
+    expect(footer).toHaveClass("flex", "h-10", "items-center", "justify-center");
     expect(screen.getByRole("group")).toHaveClass("flex", "items-center", "gap-1");
 
     const unreadButton = screen.getByRole("button", { name: /unread/i });

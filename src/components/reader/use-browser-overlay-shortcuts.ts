@@ -16,7 +16,7 @@ export function useBrowserOverlayShortcuts({ browserUrl, handleCloseOverlay }: U
       handleCloseOverlay();
     };
 
-    const removeWindowEvents = bindWindowEvents([{ type: "keydown", listener: handleKeyDown }]);
+    const removeWindowEvents = bindWindowEvents([{ type: "keydown", listener: handleKeyDown as EventListener }]);
     return () => {
       window.cancelAnimationFrame(frame);
       removeWindowEvents();

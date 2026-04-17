@@ -99,10 +99,10 @@ export function useFeedTreePointerDragEvents({
     };
 
     return bindWindowEvents([
-      { type: "pointermove", listener: handlePointerMove },
-      { type: "pointerup", listener: handlePointerUp },
-      { type: "pointercancel", listener: handlePointerCancel },
-      { type: "keydown", listener: handleEscape },
+      { type: "pointermove", listener: handlePointerMove as EventListener },
+      { type: "pointerup", listener: handlePointerUp as EventListener },
+      { type: "pointercancel", listener: handlePointerCancel as EventListener },
+      { type: "keydown", listener: handleEscape as EventListener },
     ]);
   }, [
     clearPointerTracking,
