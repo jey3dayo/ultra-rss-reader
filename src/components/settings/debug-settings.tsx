@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsPageView } from "@/components/settings/settings-page-view";
+import { DEV_SCENARIO_ID, type DevScenarioId } from "@/lib/dev-scenario-ids";
 import { runRuntimeDevScenario } from "@/lib/dev-scenario-runtime";
 import { resolveDevWebPreviewGeometryUrl } from "@/lib/dev-web-preview-geometry";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
@@ -33,8 +34,8 @@ export function DebugSettings() {
   }, [closeSettings, openBrowser]);
 
   const runScenario = useCallback(
-    async (id: "open-feed-cleanup-broken-references" | "open-settings-reading-display-mode") => {
-      if (id !== "open-settings-reading-display-mode") {
+    async (id: DevScenarioId) => {
+      if (id !== DEV_SCENARIO_ID.openSettingsReadingDisplayMode) {
         closeSettings();
       }
 
@@ -54,8 +55,8 @@ export function DebugSettings() {
     devBuild,
     openWebPreviewUrl,
     openWebPreviewGeometryCheck,
-    runFeedCleanupBrokenReferencesScenario: () => void runScenario("open-feed-cleanup-broken-references"),
-    runReadingDisplayModeScenario: () => void runScenario("open-settings-reading-display-mode"),
+    runFeedCleanupBrokenReferencesScenario: () => void runScenario(DEV_SCENARIO_ID.openFeedCleanupBrokenReferences),
+    runReadingDisplayModeScenario: () => void runScenario(DEV_SCENARIO_ID.openSettingsReadingDisplayMode),
   });
 
   return <SettingsPageView {...viewProps} />;

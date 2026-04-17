@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { getPreferredAccountId } from "@/components/accounts/get-preferred-account-id";
+import { DEV_SCENARIO_ID } from "@/lib/dev-scenario-ids";
 import type { SidebarAccountSelectionParams } from "./sidebar-runtime.types";
 
 export function useSidebarAccountSelection({
@@ -35,7 +36,7 @@ export function useSidebarAccountSelection({
 
     const hasValidSelection =
       selectedAccountId !== null && accounts.some((account) => account.id === selectedAccountId);
-    if (hasValidSelection || activeDevIntent === "open-web-preview-url") {
+    if (hasValidSelection || activeDevIntent === DEV_SCENARIO_ID.openWebPreviewUrl) {
       return;
     }
 

@@ -3,4 +3,5 @@ export const APP_EVENTS = {
   navigateFeed: "ultra-rss:navigate-feed",
   debugInputTrace: "ultra-rss:debug-input-trace",
   browserDebugGeometry: "ultra-rss:browser-debug-geometry",
+  menuAction: "menu-action",
 } as const;

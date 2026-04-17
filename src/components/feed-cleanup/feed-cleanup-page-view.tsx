@@ -4,15 +4,17 @@ import { WorkspaceHeader, workspaceHeaderActionClassName } from "@/components/sh
 import { workspaceSplitGridClassName } from "@/components/shared/workspace-pane-layout";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  FEED_CLEANUP_SPLIT_LAYOUT_WIDTH_PX,
+  FEED_CLEANUP_WIDE_LAYOUT_WIDTH_PX,
+  SIDEBAR_PANE_WIDTH_PX,
+} from "@/constants/ui-layout";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 import type { FeedCleanupPageViewProps } from "./feed-cleanup.types";
 import { FeedCleanupOverviewPanel } from "./feed-cleanup-overview-panel";
 import { FeedCleanupQueuePanel } from "./feed-cleanup-queue-panel";
 import { FeedCleanupReviewPanel } from "./feed-cleanup-review-panel";
-
-const FEED_CLEANUP_SPLIT_LAYOUT_WIDTH = 900;
-const FEED_CLEANUP_WIDE_LAYOUT_WIDTH = 1180;
 
 function resolveFeedCleanupLayoutWidth(measuredWidth: number | null): number {
   if (measuredWidth != null && measuredWidth > 0) {
@@ -23,7 +25,7 @@ function resolveFeedCleanupLayoutWidth(measuredWidth: number | null): number {
     return 0;
   }
 
-  return window.innerWidth >= 1024 ? Math.max(window.innerWidth - 280, 0) : window.innerWidth;
+  return window.innerWidth >= 1024 ? Math.max(window.innerWidth - SIDEBAR_PANE_WIDTH_PX, 0) : window.innerWidth;
 }
 
 export function FeedCleanupPageView({
@@ -276,9 +278,9 @@ export function FeedCleanupPageView({
   }, []);
 
   const layoutMode =
-    layoutWidth >= FEED_CLEANUP_WIDE_LAYOUT_WIDTH
+    layoutWidth >= FEED_CLEANUP_WIDE_LAYOUT_WIDTH_PX
       ? "wide"
-      : layoutWidth >= FEED_CLEANUP_SPLIT_LAYOUT_WIDTH
+      : layoutWidth >= FEED_CLEANUP_SPLIT_LAYOUT_WIDTH_PX
         ? "split"
         : "stacked";
 

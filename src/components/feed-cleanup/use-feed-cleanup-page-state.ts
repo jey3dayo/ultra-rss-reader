@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useReducer } from "react";
+import { DEV_SCENARIO_ID } from "@/lib/dev-scenario-ids";
 import type { FeedCleanupCandidate } from "@/lib/feed-cleanup";
 import { buildFeedCleanupCandidates, summarizeCleanupCandidate } from "@/lib/feed-cleanup";
 import type {
@@ -327,7 +328,7 @@ export function useFeedCleanupPageState({
       return;
     }
 
-    if (devIntent !== "open-feed-cleanup-broken-references") {
+    if (devIntent !== DEV_SCENARIO_ID.openFeedCleanupBrokenReferences) {
       return;
     }
 

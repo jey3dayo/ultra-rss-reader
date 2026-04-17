@@ -11,6 +11,7 @@ import {
 } from "@/dev/scenarios/constants";
 import type { DevScenario, DevScenarioContext, DevScenarioId } from "@/dev/scenarios/types";
 import { loadDevRuntimeOptions, readDevWebUrl, readDevWindowSize } from "@/lib/dev-intent";
+import { DEV_SCENARIO_ID } from "@/lib/dev-scenario-ids";
 import { resolveFeedLandingArticle } from "@/lib/feed-landing";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
@@ -169,7 +170,7 @@ export async function runOpenWebPreviewUrlScenario(ctx: DevScenarioContext): Pro
   await loadDevRuntimeOptions();
   const webUrl = readDevWebUrl();
   if (!webUrl) {
-    ctx.ui.showToast('Dev scenario "open-web-preview-url" requires VITE_DEV_WEB_URL.');
+    ctx.ui.showToast(`Dev scenario "${DEV_SCENARIO_ID.openWebPreviewUrl}" requires VITE_DEV_WEB_URL.`);
     return;
   }
 
@@ -251,13 +252,16 @@ async function applyDevWindowSize(): Promise<void> {
 
     const finalSize = await readCurrentLogicalSize();
     if (!sizeMatchesWithinTolerance(finalSize, targetSize)) {
-      console.warn('Dev scenario "open-web-preview-url" did not reach the requested window size.', {
+      console.warn(`Dev scenario "${DEV_SCENARIO_ID.openWebPreviewUrl}" did not reach the requested window size.`, {
         targetSize,
         finalSize,
       });
     }
   } catch (error) {
-    console.warn('Dev scenario "open-web-preview-url" could not apply the requested window size.', error);
+    console.warn(
+      `Dev scenario "${DEV_SCENARIO_ID.openWebPreviewUrl}" could not apply the requested window size.`,
+      error,
+    );
   }
 }
 
@@ -265,20 +269,20 @@ export async function runOpenFeedFirstArticleScenario(ctx: DevScenarioContext): 
   try {
     const accounts = await cacheAccounts(ctx);
     if (accounts.length === 0) {
-      ctx.ui.showToast('Dev scenario "open-feed-first-article" could not find any accounts.');
+      ctx.ui.showToast(`Dev scenario "${DEV_SCENARIO_ID.openFeedFirstArticle}" could not find any accounts.`);
       return;
     }
 
     const selection = await findRankedLandingFeedSelection(ctx, accounts);
     if (!selection) {
-      ctx.ui.showToast('Dev scenario "open-feed-first-article" could not find any articles.');
+      ctx.ui.showToast(`Dev scenario "${DEV_SCENARIO_ID.openFeedFirstArticle}" could not find any articles.`);
       return;
     }
 
     selectFeedArticle(ctx, selection.account.id, selection.feed.id, selection.article.id, "on", "off");
   } catch (error) {
-    console.error('Failed to run dev scenario "open-feed-first-article":', error);
-    ctx.ui.showToast('Dev scenario "open-feed-first-article" failed to open a feed article.');
+    console.error(`Failed to run dev scenario "${DEV_SCENARIO_ID.openFeedFirstArticle}":`, error);
+    ctx.ui.showToast(`Dev scenario "${DEV_SCENARIO_ID.openFeedFirstArticle}" failed to open a feed article.`);
   }
 }
 
@@ -286,19 +290,19 @@ export async function runOpenTagViewScenario(ctx: DevScenarioContext): Promise<v
   try {
     const accounts = await cacheAccounts(ctx);
     if (accounts.length === 0) {
-      ctx.ui.showToast('Dev scenario "open-tag-view" could not find any accounts.');
+      ctx.ui.showToast(`Dev scenario "${DEV_SCENARIO_ID.openTagView}" could not find any accounts.`);
       return;
     }
 
     const accountSelection = resolvePreferredScenarioAccount(accounts, ctx.ui.selectedAccountId);
     if (!accountSelection) {
-      ctx.ui.showToast('Dev scenario "open-tag-view" could not find any accounts.');
+      ctx.ui.showToast(`Dev scenario "${DEV_SCENARIO_ID.openTagView}" could not find any accounts.`);
       return;
     }
 
     const selection = await findTagScenarioSelection(ctx, accountSelection.account);
     if (!selection) {
-      ctx.ui.showToast('Dev scenario "open-tag-view" could not find any articles.');
+      ctx.ui.showToast(`Dev scenario "${DEV_SCENARIO_ID.openTagView}" could not find any articles.`);
       return;
     }
 
@@ -309,8 +313,8 @@ export async function runOpenTagViewScenario(ctx: DevScenarioContext): Promise<v
     ctx.ui.selectTag(selection.tag.id);
     ctx.ui.setViewMode("all");
   } catch (error) {
-    console.error('Failed to run dev scenario "open-tag-view":', error);
-    ctx.ui.showToast('Dev scenario "open-tag-view" failed to open the tag view.');
+    console.error(`Failed to run dev scenario "${DEV_SCENARIO_ID.openTagView}":`, error);
+    ctx.ui.showToast(`Dev scenario "${DEV_SCENARIO_ID.openTagView}" failed to open the tag view.`);
   }
 }
 

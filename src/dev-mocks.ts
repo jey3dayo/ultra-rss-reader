@@ -55,6 +55,7 @@ import type {
 } from "./api/tauri-commands";
 import { mockAccounts, mockArticles, mockArticleTags, mockFeeds, mockFolders, mockTags } from "./dev-mock-data";
 import { readDevIntent, readDevWebUrl, readDevWindowSize } from "./lib/dev-intent";
+import { DEV_SCENARIO_ID } from "./lib/dev-scenario-ids";
 
 let nextAccountId = 100;
 let nextFeedId = 100;
@@ -120,7 +121,7 @@ export function setupDevMocks() {
 
   const devIntent = readDevIntent();
   const feedIntegrityReport =
-    devIntent === "open-feed-cleanup-broken-references"
+    devIntent === DEV_SCENARIO_ID.openFeedCleanupBrokenReferences
       ? {
           orphaned_article_count: 3,
           orphaned_feeds: [

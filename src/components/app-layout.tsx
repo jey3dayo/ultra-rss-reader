@@ -1,3 +1,4 @@
+import { ARTICLE_LIST_PANE_WIDTH_PX, SIDEBAR_PANE_WIDTH_PX } from "@/constants/ui-layout";
 import { computeTranslateX, isPaneVisible, resolveLayout } from "../hooks/use-layout";
 import { cn } from "../lib/utils";
 import { type ContentMode, useUiStore } from "../stores/ui-store";
@@ -29,21 +30,23 @@ function SlidingPaneLayout({
     <div className="h-full overflow-hidden bg-background text-foreground">
       <div
         data-testid="sliding-pane-tray"
-        className={cn(
-          "flex h-full transition-transform duration-300 ease-in-out motion-reduce:duration-0",
-          isMobile ? "w-[300%]" : "w-[calc(100%+280px)]",
-        )}
-        style={{ transform: `translateX(${translateX})` }}
+        className="flex h-full transition-transform duration-300 ease-in-out motion-reduce:duration-0"
+        style={{
+          width: isMobile ? "300%" : `calc(100% + ${SIDEBAR_PANE_WIDTH_PX}px)`,
+          transform: `translateX(${translateX})`,
+        }}
       >
         <div
-          className={cn(isMobile ? "w-1/3 shrink-0" : "w-[280px] shrink-0")}
+          className={cn(isMobile ? "w-1/3 shrink-0" : "shrink-0")}
+          style={isMobile ? undefined : { width: `${SIDEBAR_PANE_WIDTH_PX}px` }}
           aria-hidden={!isPaneVisible(layoutMode, focusedPane, "sidebar")}
           {...(!isPaneVisible(layoutMode, focusedPane, "sidebar") ? { inert: true } : {})}
         >
           <Sidebar />
         </div>
         <div
-          className={cn(isMobile ? "w-1/3 shrink-0" : "w-[380px] shrink-0")}
+          className={cn(isMobile ? "w-1/3 shrink-0" : "shrink-0")}
+          style={isMobile ? undefined : { width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}
           aria-hidden={!isPaneVisible(layoutMode, focusedPane, "list")}
           {...(!isPaneVisible(layoutMode, focusedPane, "list") ? { inert: true } : {})}
         >
@@ -113,13 +116,15 @@ function WideLayout({
           className={cn(
             "shrink-0 overflow-hidden border-r transition-[width,opacity,transform,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
             shouldShowSidebar
-              ? "w-[280px] border-border opacity-100 translate-x-0"
-              : "w-0 border-transparent opacity-0 -translate-x-3",
+              ? "border-border opacity-100 translate-x-0"
+              : "border-transparent opacity-0 -translate-x-3",
           )}
+          style={{ width: shouldShowSidebar ? `${SIDEBAR_PANE_WIDTH_PX}px` : "0px" }}
         >
           <div
             data-testid="wide-sidebar-content"
-            className={cn("h-full w-[280px]", !shouldShowSidebar && "pointer-events-none")}
+            className={cn("h-full", !shouldShowSidebar && "pointer-events-none")}
+            style={{ width: `${SIDEBAR_PANE_WIDTH_PX}px` }}
             aria-hidden={!shouldShowSidebar}
             {...(!shouldShowSidebar ? { inert: true } : {})}
           >
@@ -129,7 +134,7 @@ function WideLayout({
       )}
       <div data-testid="main-stage" className="flex min-w-0 flex-1">
         {panes.includes("list") && (
-          <div className="w-[380px] shrink-0">
+          <div className="shrink-0" style={{ width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}>
             <ArticleList />
           </div>
         )}

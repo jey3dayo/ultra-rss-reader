@@ -1,16 +1,28 @@
-export const DEV_SCENARIO_IDS = [
-  "open-web-preview-url",
-  "open-feed-first-article",
-  "open-tag-view",
-  "open-settings-reading",
-  "open-settings-reading-display-mode",
-  "open-add-feed-dialog",
-  "open-feed-cleanup",
-  "open-feed-cleanup-broken-references",
-  "sync-all-smoke",
-] as const;
+export const DEV_SCENARIO_ID = {
+  openWebPreviewUrl: "open-web-preview-url",
+  openFeedFirstArticle: "open-feed-first-article",
+  openTagView: "open-tag-view",
+  openSettingsReading: "open-settings-reading",
+  openSettingsReadingDisplayMode: "open-settings-reading-display-mode",
+  openAddFeedDialog: "open-add-feed-dialog",
+  openFeedCleanup: "open-feed-cleanup",
+  openFeedCleanupBrokenReferences: "open-feed-cleanup-broken-references",
+  syncAllSmoke: "sync-all-smoke",
+} as const;
 
-export type DevScenarioId = (typeof DEV_SCENARIO_IDS)[number];
+export type DevScenarioId = (typeof DEV_SCENARIO_ID)[keyof typeof DEV_SCENARIO_ID];
+
+export const DEV_SCENARIO_IDS = [
+  DEV_SCENARIO_ID.openWebPreviewUrl,
+  DEV_SCENARIO_ID.openFeedFirstArticle,
+  DEV_SCENARIO_ID.openTagView,
+  DEV_SCENARIO_ID.openSettingsReading,
+  DEV_SCENARIO_ID.openSettingsReadingDisplayMode,
+  DEV_SCENARIO_ID.openAddFeedDialog,
+  DEV_SCENARIO_ID.openFeedCleanup,
+  DEV_SCENARIO_ID.openFeedCleanupBrokenReferences,
+  DEV_SCENARIO_ID.syncAllSmoke,
+] as const satisfies readonly DevScenarioId[];
 
 const DEV_SCENARIO_ID_SET = new Set<string>(DEV_SCENARIO_IDS);
 

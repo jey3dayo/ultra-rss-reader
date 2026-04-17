@@ -1,18 +1,22 @@
+import {
+  COMPACT_LAYOUT_BREAKPOINT_PX,
+  MOBILE_LAYOUT_BREAKPOINT_PX,
+  SIDEBAR_PANE_WIDTH_PX,
+} from "@/constants/ui-layout";
+
 export type Pane = "sidebar" | "list" | "content";
 export type ResponsiveLayoutMode = "wide" | "compact" | "mobile";
 type SlidingLayoutMode = "compact" | "mobile";
 type FocusedPane = "sidebar" | "list" | "content";
-const MOBILE_LAYOUT_BREAKPOINT = 640;
-const COMPACT_LAYOUT_BREAKPOINT = 1100;
 
 export function resolveResponsiveLayoutMode(
   preferredLayoutMode: "wide" | "compact",
   viewportWidth: number,
 ): ResponsiveLayoutMode {
-  if (viewportWidth < MOBILE_LAYOUT_BREAKPOINT) {
+  if (viewportWidth < MOBILE_LAYOUT_BREAKPOINT_PX) {
     return "mobile";
   }
-  if (viewportWidth < COMPACT_LAYOUT_BREAKPOINT) {
+  if (viewportWidth < COMPACT_LAYOUT_BREAKPOINT_PX) {
     return "compact";
   }
   return preferredLayoutMode;
@@ -49,5 +53,5 @@ export function computeTranslateX(layoutMode: SlidingLayoutMode, focusedPane: Fo
         return "calc(-200% / 3)";
     }
   }
-  return focusedPane === "content" ? "-280px" : "0px";
+  return focusedPane === "content" ? `-${SIDEBAR_PANE_WIDTH_PX}px` : "0px";
 }

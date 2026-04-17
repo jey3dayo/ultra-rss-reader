@@ -1,4 +1,10 @@
 import { describe, expect, it } from "vitest";
+import {
+  ARTICLE_LIST_PANE_WIDTH_PX,
+  COMPACT_LAYOUT_BREAKPOINT_PX,
+  MOBILE_LAYOUT_BREAKPOINT_PX,
+  SIDEBAR_PANE_WIDTH_PX,
+} from "@/constants/ui-layout";
 import { computeTranslateX, isPaneVisible, resolveLayout, resolveResponsiveLayoutMode } from "../../hooks/use-layout";
 
 describe("resolveLayout", () => {
@@ -45,7 +51,7 @@ describe("computeTranslateX", () => {
   });
 
   it("compact+content: -280px", () => {
-    expect(computeTranslateX("compact", "content")).toBe("-280px");
+    expect(computeTranslateX("compact", "content")).toBe(`-${SIDEBAR_PANE_WIDTH_PX}px`);
   });
 });
 
@@ -89,16 +95,21 @@ describe("resolveResponsiveLayoutMode", () => {
   });
 
   it("downgrades wide layout to compact when the viewport is too narrow", () => {
-    expect(resolveResponsiveLayoutMode("wide", 900)).toBe("compact");
+    expect(resolveResponsiveLayoutMode("wide", COMPACT_LAYOUT_BREAKPOINT_PX - 200)).toBe("compact");
   });
 
   it("downgrades compact layout to mobile on small screens before the compact split gets too cramped", () => {
-    expect(resolveResponsiveLayoutMode("compact", 500)).toBe("mobile");
-    expect(resolveResponsiveLayoutMode("wide", 639)).toBe("mobile");
-    expect(resolveResponsiveLayoutMode("compact", 420)).toBe("mobile");
+    expect(resolveResponsiveLayoutMode("compact", MOBILE_LAYOUT_BREAKPOINT_PX - 140)).toBe("mobile");
+    expect(resolveResponsiveLayoutMode("wide", MOBILE_LAYOUT_BREAKPOINT_PX - 1)).toBe("mobile");
+    expect(resolveResponsiveLayoutMode("compact", MOBILE_LAYOUT_BREAKPOINT_PX - 220)).toBe("mobile");
   });
 
   it("keeps 640px-wide screens in compact layout", () => {
-    expect(resolveResponsiveLayoutMode("compact", 640)).toBe("compact");
+    expect(resolveResponsiveLayoutMode("compact", MOBILE_LAYOUT_BREAKPOINT_PX)).toBe("compact");
+  });
+
+  it("uses the shared pane width constants for the desktop layout contract", () => {
+    expect(SIDEBAR_PANE_WIDTH_PX).toBe(280);
+    expect(ARTICLE_LIST_PANE_WIDTH_PX).toBe(380);
   });
 });

@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AppLayout } from "@/components/app-layout";
+import { ARTICLE_LIST_PANE_WIDTH_PX, SIDEBAR_PANE_WIDTH_PX } from "@/constants/ui-layout";
 import { shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -28,7 +29,7 @@ describe("App", () => {
     const { rerender } = render(<AppLayout />, { wrapper: createWrapper() });
 
     const tray = screen.getByTestId("sliding-pane-tray");
-    expect(tray).toHaveClass("w-[300%]");
+    expect(tray).toHaveStyle({ width: "300%" });
 
     // sidebar focused: sidebar visible, list and content hidden
     const panes = tray?.children;
@@ -70,7 +71,7 @@ describe("App", () => {
     render(<AppLayout />, { wrapper: createWrapper() });
 
     const tray = screen.getByTestId("sliding-pane-tray");
-    expect(tray).toHaveClass("w-[calc(100%+280px)]");
+    expect(tray).toHaveStyle({ width: `calc(100% + ${SIDEBAR_PANE_WIDTH_PX}px)` });
   });
 
   it("wide: renders conditional panes without sliding tray", () => {
@@ -92,7 +93,9 @@ describe("App", () => {
     expect(container.innerHTML).not.toContain("w-[300%]");
     expect(container.innerHTML).not.toContain("w-[calc(100%+280px)]");
     expect(container.innerHTML).toContain('data-testid="wide-sidebar-shell"');
-    expect(container.innerHTML).toContain("w-[380px]");
+    expect(screen.getByTestId("main-stage").firstElementChild).toHaveStyle({
+      width: `${ARTICLE_LIST_PANE_WIDTH_PX}px`,
+    });
   });
 
   it("wide: keeps the sidebar shell mounted and animates it closed when the desktop toggle is off", () => {
@@ -102,11 +105,13 @@ describe("App", () => {
       sidebarOpen: false,
     });
 
-    const { getByTestId, container } = render(<AppLayout />, { wrapper: createWrapper() });
+    const { getByTestId } = render(<AppLayout />, { wrapper: createWrapper() });
 
-    expect(getByTestId("wide-sidebar-shell")).toHaveClass("w-0");
+    expect(getByTestId("wide-sidebar-shell")).toHaveStyle({ width: "0px" });
     expect(getByTestId("wide-sidebar-shell")).toHaveClass("opacity-0");
-    expect(container.innerHTML).toContain("w-[380px]");
+    expect(screen.getByTestId("main-stage").firstElementChild).toHaveStyle({
+      width: `${ARTICLE_LIST_PANE_WIDTH_PX}px`,
+    });
   });
 
   it("uses overlay titlebar only when tauri runtime is available on macos platform info", () => {

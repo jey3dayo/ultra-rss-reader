@@ -4,7 +4,7 @@ import {
   runOpenWebPreviewUrlScenario,
 } from "@/dev/scenarios/helpers";
 import type { DevScenarioContext } from "@/dev/scenarios/types";
-import { DEV_SCENARIO_IDS, type DevScenario, type DevScenarioId } from "@/dev/scenarios/types";
+import { DEV_SCENARIO_ID, DEV_SCENARIO_IDS, type DevScenario, type DevScenarioId } from "@/dev/scenarios/types";
 import type { AppAction } from "@/lib/actions";
 
 function createActionBackedDevScenarioRunner(actionId: AppAction): DevScenario["run"] {
@@ -20,47 +20,47 @@ function createUiBackedDevScenarioRunner(run: (ui: DevScenarioContext["ui"]) => 
 }
 
 const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
-  "open-web-preview-url": {
+  [DEV_SCENARIO_ID.openWebPreviewUrl]: {
     title: "Open web preview URL",
     keywords: ["web", "preview", "url", "browser"],
     run: runOpenWebPreviewUrlScenario,
   },
-  "open-feed-first-article": {
+  [DEV_SCENARIO_ID.openFeedFirstArticle]: {
     title: "Open feed first article",
     keywords: ["feed", "article", "open"],
     run: runOpenFeedFirstArticleScenario,
   },
-  "open-tag-view": {
+  [DEV_SCENARIO_ID.openTagView]: {
     title: "Open tag view",
     keywords: ["tag", "view"],
     run: runOpenTagViewScenario,
   },
-  "open-settings-reading": {
+  [DEV_SCENARIO_ID.openSettingsReading]: {
     title: "Open settings reading",
     keywords: ["settings", "reading", "display", "mode"],
     run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("reading")),
   },
-  "open-settings-reading-display-mode": {
+  [DEV_SCENARIO_ID.openSettingsReadingDisplayMode]: {
     title: "Open settings reading display mode",
     keywords: ["settings", "reading", "display", "mode", "dropdown"],
     run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("reading")),
   },
-  "open-add-feed-dialog": {
+  [DEV_SCENARIO_ID.openAddFeedDialog]: {
     title: "Open add feed dialog",
     keywords: ["add", "feed", "dialog"],
     run: createActionBackedDevScenarioRunner("open-add-feed"),
   },
-  "open-feed-cleanup": {
+  [DEV_SCENARIO_ID.openFeedCleanup]: {
     title: "Open feed cleanup",
     keywords: ["feed", "cleanup", "management"],
     run: createActionBackedDevScenarioRunner("open-feed-cleanup"),
   },
-  "open-feed-cleanup-broken-references": {
+  [DEV_SCENARIO_ID.openFeedCleanupBrokenReferences]: {
     title: "Open feed cleanup broken references",
     keywords: ["feed", "cleanup", "management", "broken", "references", "integrity"],
     run: createActionBackedDevScenarioRunner("open-feed-cleanup"),
   },
-  "sync-all-smoke": {
+  [DEV_SCENARIO_ID.syncAllSmoke]: {
     title: "Sync all smoke",
     keywords: ["sync", "smoke"],
     run: createActionBackedDevScenarioRunner("sync-all"),
