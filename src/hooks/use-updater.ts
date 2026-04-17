@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { checkForUpdate, downloadAndInstallUpdate, restartApp } from "@/api/tauri-commands";
+import { attachTauriListeners } from "@/lib/tauri-event-listeners";
 import { useUiStore } from "@/stores/ui-store";
 
 type UpdateInfo = { version: string; body: string | null };
@@ -155,26 +156,23 @@ export function useUpdater(): void {
         console.warn("Startup update check failed (silent):", e);
       });
 
-    // Listen for download progress events
-    const progressUnlisten = listen<{ percent: number | null }>("update-download-progress", (event) => {
-      const store = useUiStore.getState();
-      const percent = event.payload.percent;
-      const message = percent != null ? `ダウンロード中… ${percent}%` : "ダウンロード中…";
-      store.showToast({
-        message,
-        persistent: true,
-        progress: percent,
-      });
-    });
-
-    // Listen for update-ready events
-    const readyUnlisten = listen("update-ready", () => {
-      showRestartToast();
-    });
-
-    return () => {
-      progressUnlisten.then((fn) => fn()).catch(() => {});
-      readyUnlisten.then((fn) => fn()).catch(() => {});
-    };
+    return attachTauriListeners(
+      [
+        listen<{ percent: number | null }>("update-download-progress", (event) => {
+          const store = useUiStore.getState();
+          const percent = event.payload.percent;
+          const message = percent != null ? `ダウンロード中… ${percent}%` : "ダウンロード中…";
+          store.showToast({
+            message,
+            persistent: true,
+            progress: percent,
+          });
+        }),
+        listen("update-ready", () => {
+          showRestartToast();
+        }),
+      ],
+      () => {},
+    );
   }, []);
 }

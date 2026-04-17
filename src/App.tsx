@@ -8,6 +8,7 @@ import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS } from "./constants/ui-runtime";
 import { useDevIntent } from "./hooks/use-dev-intent";
 import { useResolvedDevIntent } from "./hooks/use-resolved-dev-intent";
 import { queryClient } from "./lib/query-client";
+import { attachTauriListeners } from "./lib/tauri-event-listeners";
 import { resolvePreferenceValue, usePreferencesStore } from "./stores/preferences-store";
 
 function AppInner() {
@@ -78,18 +79,11 @@ function AppInner() {
 
   // Invalidate all queries when background sync completes
   useEffect(() => {
-    let cancelled = false;
-    let unlisten: (() => void) | undefined;
-    listen("sync-completed", () => {
-      queryClient.invalidateQueries();
-    }).then((fn) => {
-      if (cancelled) fn();
-      else unlisten = fn;
-    });
-    return () => {
-      cancelled = true;
-      unlisten?.();
-    };
+    return attachTauriListeners([
+      listen("sync-completed", () => {
+        queryClient.invalidateQueries();
+      }),
+    ]);
   }, []);
 
   return <AppShell />;

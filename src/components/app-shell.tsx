@@ -12,6 +12,7 @@ import { useUpdater } from "../hooks/use-updater";
 import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "../lib/browser-debug-geometry";
 import { copyValueToClipboard } from "../lib/clipboard";
 import { emitDebugInputTrace } from "../lib/debug-input-trace";
+import { attachTauriListeners } from "../lib/tauri-event-listeners";
 import { cn } from "../lib/utils";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "../lib/window-chrome";
 import { usePlatformStore } from "../stores/platform-store";
@@ -234,30 +235,16 @@ function FocusDebugHud() {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    let unlisten: (() => void) | undefined;
-
-    listen<string>("browser-webview-debug-input", (event) => {
-      if (cancelled) {
-        return;
-      }
-      setTraces((current) => [...current.slice(-5), event.payload]);
-    })
-      .then((cleanup) => {
-        if (cancelled) {
-          cleanup();
-          return;
-        }
-        unlisten = cleanup;
-      })
-      .catch(() => {
+    return attachTauriListeners(
+      [
+        listen<string>("browser-webview-debug-input", (event) => {
+          setTraces((current) => [...current.slice(-5), event.payload]);
+        }),
+      ],
+      () => {
         // browser mode / non-tauri
-      });
-
-    return () => {
-      cancelled = true;
-      unlisten?.();
-    };
+      },
+    );
   }, []);
 
   const debugHudText = [
