@@ -32,6 +32,8 @@ describe("SubscriptionsOverviewSummary", () => {
     expect(summarySection?.querySelector(".grid")).toHaveClass("grid-cols-1", "gap-3");
 
     const actionableCard = screen.getByRole("button", { name: /Needs review/ });
+    expect(actionableCard).toHaveClass("w-full", "min-w-0");
+    expect(actionableCard).toHaveClass("sm:col-span-2", "lg:col-span-1");
     expect(within(actionableCard).getByText("Needs review")).toHaveClass("text-foreground-soft");
     expect(within(actionableCard).getByText("Check these feeds")).toHaveClass("text-foreground-soft");
     expect(within(actionableCard).getByText("絞り込む").closest("span")).toHaveAttribute("data-label-chip", "neutral");
@@ -97,6 +99,51 @@ describe("SubscriptionsOverviewSummary", () => {
       "bg-state-review-surface/92",
       "text-state-review-foreground",
     );
+    expect(activeCard).toHaveClass("shadow-[var(--subscriptions-summary-active-shadow-review)]");
+    expect(activeCard).toHaveClass("ring-[color:var(--subscriptions-summary-active-ring-review)]");
     expect(within(activeCard).getByText("2")).toHaveClass("text-state-review-foreground");
+  });
+
+  it("uses all-items copy when the total card is active", () => {
+    render(
+      <SubscriptionsOverviewSummary
+        cards={[
+          {
+            filterKey: "all",
+            label: "Total subscriptions",
+            value: "10",
+            caption: "All feeds in the workspace",
+            isActive: true,
+          },
+        ]}
+        onSelectFilter={vi.fn()}
+      />,
+    );
+
+    const activeCard = screen.getByRole("button", { name: /Total subscriptions/ });
+    expect(within(activeCard).getByText("表示中")).toBeInTheDocument();
+    expect(within(activeCard).getByText("全件表示")).toBeInTheDocument();
+    expect(within(activeCard).queryByText("フィルタ中")).toBeNull();
+  });
+
+  it("uses all-items copy when the total card is inactive", () => {
+    render(
+      <SubscriptionsOverviewSummary
+        cards={[
+          {
+            filterKey: "all",
+            label: "Total subscriptions",
+            value: "10",
+            caption: "All feeds in the workspace",
+            isActive: false,
+          },
+        ]}
+        onSelectFilter={vi.fn()}
+      />,
+    );
+
+    const card = screen.getByRole("button", { name: /Total subscriptions/ });
+    expect(within(card).getByText("すべて表示")).toBeInTheDocument();
+    expect(within(card).queryByText("フィルタ中")).toBeNull();
   });
 });

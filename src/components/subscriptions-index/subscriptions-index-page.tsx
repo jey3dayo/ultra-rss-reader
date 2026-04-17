@@ -209,6 +209,11 @@ export function SubscriptionsIndexPage() {
     },
   ] satisfies SubscriptionSummaryCard[];
 
+  const inventoryHeading =
+    state.activeSummaryFilter === "all"
+      ? t("inventory_heading")
+      : (summaryCards.find((card) => card.filterKey === state.activeSummaryFilter)?.label ?? t("inventory_heading"));
+
   const decisionActions =
     state.selectedRow && isSubscriptionRowFlagged(state.selectedRow.status)
       ? {
@@ -281,7 +286,7 @@ export function SubscriptionsIndexPage() {
         title={t("title")}
         subtitle={t("subtitle")}
         summaryCards={summaryCards}
-        inventoryHeading={t("inventory_heading")}
+        inventoryHeading={inventoryHeading}
         detailHeading={t("detail_heading")}
         groups={groupedRows}
         selectedFeedId={state.selectedFeedId}

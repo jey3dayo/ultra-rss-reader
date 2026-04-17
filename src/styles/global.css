@@ -186,7 +186,21 @@
   --subscriptions-list-row-hover: rgba(235, 234, 229, 0.54);
   --subscriptions-list-row-selected-surface: rgba(230, 229, 224, 0.72);
   --subscriptions-list-row-selected-border: rgba(38, 37, 30, 0.16);
+  --subscriptions-list-row-selected-shadow: 0 8px 20px -18px rgba(38, 37, 30, 0.28);
+  --subscriptions-list-group-collapsed-shadow: 0 10px 28px -24px rgba(38, 37, 30, 0.42);
   --subscriptions-summary-card-shadow: 0 18px 44px -36px rgba(38, 37, 30, 0.28);
+  --subscriptions-summary-active-shadow-neutral:
+    0 0 0 1px rgba(38, 37, 30, 0.18), 0 18px 38px -24px rgba(0, 0, 0, 0.34);
+  --subscriptions-summary-active-shadow-review: 0 0 0 1px rgba(245, 78, 0, 0.26), 0 20px 42px -24px rgba(0, 0, 0, 0.42);
+  --subscriptions-summary-active-shadow-stale:
+    0 0 0 1px rgba(192, 133, 50, 0.28), 0 18px 38px -24px rgba(0, 0, 0, 0.38);
+  --subscriptions-summary-active-shadow-danger:
+    0 0 0 1px rgba(207, 45, 86, 0.34), 0 18px 38px -24px rgba(0, 0, 0, 0.42);
+  --subscriptions-summary-active-ring-neutral: color-mix(in srgb, var(--color-border-strong) 60%, transparent);
+  --subscriptions-summary-active-ring-review: color-mix(in srgb, var(--color-state-review-border) 45%, transparent);
+  --subscriptions-summary-active-ring-stale: color-mix(in srgb, var(--color-state-warning-border) 45%, transparent);
+  --subscriptions-summary-active-ring-danger: color-mix(in srgb, var(--color-state-danger-border) 50%, transparent);
+  --subscriptions-summary-active-chip-shadow: 0 0 0 1px rgba(38, 37, 30, 0.08);
   --subscriptions-workspace-surface: rgba(247, 247, 244, 0.58);
   --subscriptions-workspace-shadow: 0 14px 34px -30px rgba(38, 37, 30, 0.14);
   --subscriptions-pane-divider: rgba(38, 37, 30, 0.08);
@@ -358,7 +372,21 @@
   --subscriptions-summary-card-shadow: 0 14px 34px -28px rgba(0, 0, 0, 0.28);
   --subscriptions-workspace-surface: rgba(34, 30, 25, 0.5);
   --subscriptions-workspace-shadow: 0 16px 38px -34px rgba(0, 0, 0, 0.24);
+  --subscriptions-list-row-selected-shadow: 0 8px 20px -18px rgba(0, 0, 0, 0.34);
+  --subscriptions-list-group-collapsed-shadow: 0 10px 28px -24px rgba(0, 0, 0, 0.48);
   --subscriptions-pane-divider: rgba(243, 239, 230, 0.08);
+  --subscriptions-summary-active-shadow-neutral:
+    0 0 0 1px rgba(243, 239, 230, 0.14), 0 18px 38px -24px rgba(0, 0, 0, 0.4);
+  --subscriptions-summary-active-shadow-review: 0 0 0 1px rgba(245, 78, 0, 0.22), 0 20px 42px -24px rgba(0, 0, 0, 0.48);
+  --subscriptions-summary-active-shadow-stale:
+    0 0 0 1px rgba(192, 133, 50, 0.24), 0 18px 38px -24px rgba(0, 0, 0, 0.44);
+  --subscriptions-summary-active-shadow-danger:
+    0 0 0 1px rgba(207, 45, 86, 0.28), 0 18px 38px -24px rgba(0, 0, 0, 0.48);
+  --subscriptions-summary-active-ring-neutral: color-mix(in srgb, var(--color-border-strong) 60%, transparent);
+  --subscriptions-summary-active-ring-review: color-mix(in srgb, var(--color-state-review-border) 45%, transparent);
+  --subscriptions-summary-active-ring-stale: color-mix(in srgb, var(--color-state-warning-border) 45%, transparent);
+  --subscriptions-summary-active-ring-danger: color-mix(in srgb, var(--color-state-danger-border) 50%, transparent);
+  --subscriptions-summary-active-chip-shadow: 0 0 0 1px rgba(243, 239, 230, 0.08);
   --subscriptions-list-group-surface: rgba(34, 30, 25, 0.62);
   --cleanup-summary-surface: rgba(28, 25, 21, 0.84);
   --cleanup-dialog-surface: rgba(28, 25, 21, 0.95);

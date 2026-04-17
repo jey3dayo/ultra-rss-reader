@@ -100,7 +100,7 @@ export function SubscriptionsListPane({
                   onClick={() => onToggleGroup(group.key)}
                   className={cn(
                     "motion-disclosure-trigger flex w-full items-center justify-between rounded-md border px-3 py-2.5 text-left hover:bg-[color:var(--subscriptions-list-row-hover)]",
-                    expanded ? "shadow-none" : "shadow-[0_10px_28px_-24px_rgba(38,37,30,0.42)]",
+                    expanded ? "shadow-none" : "shadow-[var(--subscriptions-list-group-collapsed-shadow)]",
                   )}
                   style={{
                     borderColor: "var(--subscriptions-list-divider)",
@@ -137,7 +137,7 @@ export function SubscriptionsListPane({
                           className={cn(
                             "items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-px motion-reduce:transition-none",
                             selectedFeedId === row.feed.id
-                              ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[0_8px_20px_-18px_rgba(38,37,30,0.28)]"
+                              ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[var(--subscriptions-list-row-selected-shadow)]"
                               : "bg-background/15 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",
                           )}
                           leading={

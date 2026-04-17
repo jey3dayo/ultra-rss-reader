@@ -163,6 +163,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(selectedFeed).toHaveAttribute("aria-pressed", "true");
     expect(selectedFeed).toHaveClass("transition-[background-color,border-color,box-shadow,transform]");
     expect(selectedFeed).toHaveClass("bg-[color:var(--subscriptions-list-row-selected-surface)]");
+    expect(selectedFeed).toHaveClass("shadow-[var(--subscriptions-list-row-selected-shadow)]");
     expect(selectedFeed).toHaveClass("focus-visible:ring-2");
     expect(selectedFeed.className).toMatch(/rounded-(md|lg|xl)/);
     const selectedFaviconSurface = selectedFeed.querySelector("span.rounded-md");
@@ -276,6 +277,7 @@ describe("SubscriptionsIndexPage", () => {
     await user.click(firstGroupButton);
 
     expect(firstGroupButton).toHaveAttribute("aria-expanded", "false");
+    expect(firstGroupButton).toHaveClass("shadow-[var(--subscriptions-list-group-collapsed-shadow)]");
     expect(firstGroupPanel).toHaveAttribute("aria-hidden", "true");
     expect(screen.queryByRole("button", { name: /Example Feed/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Fresh Feed/ })).toBeInTheDocument();
@@ -337,12 +339,14 @@ describe("SubscriptionsIndexPage", () => {
       kind: "index",
       cleanupContext: null,
     });
+    expect(screen.getByRole("heading", { name: "要確認" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Fresh Feed/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Loose Feed/ })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /総購読数/ }));
 
+    expect(await screen.findByRole("heading", { name: "全購読" })).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /Fresh Feed/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Example Feed/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Loose Feed/ })).toBeInTheDocument();
@@ -390,6 +394,71 @@ describe("SubscriptionsIndexPage", () => {
         },
       },
     });
+  });
+
+  it("restores a returned stale filter, collapsed group state, and list scroll position", async () => {
+    useUiStore.setState({
+      ...useUiStore.getState(),
+      subscriptionsWorkspace: {
+        kind: "index",
+        cleanupContext: null,
+        returnState: {
+          activeSummaryFilter: "stale",
+          selectedFeedId: "feed-1",
+          expandedGroups: {
+            "folder-1": false,
+            "folder-2": true,
+            "__ungrouped__": true,
+          },
+          listScrollTop: 18,
+          keptFeedIds: [],
+          deferredFeedIds: [],
+        },
+      },
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    const firstGroupButton = await screen.findByTestId("subscriptions-folder-row-folder-1");
+    const firstGroupPanel = document.getElementById("subscriptions-group-panel-folder-1");
+    const detailPane = screen.getByTestId("subscriptions-detail-pane");
+    const workspaceShell = screen.getByTestId("subscriptions-workspace-shell");
+    const listPane = workspaceShell.querySelector("section");
+    const listScrollRegion = listPane?.querySelector("div.space-y-5");
+
+    expect(firstGroupButton).toHaveAttribute("aria-expanded", "false");
+    expect(firstGroupPanel).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByRole("button", { name: /Example Feed/ })).not.toBeInTheDocument();
+    expect(within(detailPane).getByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
+    expect(listScrollRegion).toHaveProperty("scrollTop", 18);
+  });
+
+  it("hides feeds already kept in cleanup when returning to the review filter", async () => {
+    useUiStore.setState({
+      ...useUiStore.getState(),
+      subscriptionsWorkspace: {
+        kind: "index",
+        cleanupContext: null,
+        returnState: {
+          activeSummaryFilter: "review",
+          selectedFeedId: "feed-1",
+          expandedGroups: {
+            "folder-1": true,
+            "folder-2": true,
+            "__ungrouped__": true,
+          },
+          listScrollTop: 0,
+          keptFeedIds: ["feed-1"],
+          deferredFeedIds: [],
+        },
+      },
+    });
+
+    render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("一致する購読はありません。")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Example Feed/ })).not.toBeInTheDocument();
+    expect(screen.getByText("購読を選ぶと詳細が表示されます。")).toBeInTheDocument();
   });
 
   it("keeps the empty detail surface on the rounded-md baseline", async () => {

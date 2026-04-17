@@ -20,18 +20,18 @@ function resolveCardClassName(tone: SubscriptionSummaryCard["tone"] = "neutral")
 
 function resolveActiveCardClassName(tone: SubscriptionSummaryCard["tone"] = "neutral") {
   if (tone === "danger") {
-    return "border-state-danger-border/90 bg-state-danger-surface shadow-[0_0_0_1px_rgba(207,45,86,0.34),0_18px_38px_-24px_rgba(0,0,0,0.42)] ring-1 ring-state-danger-border/50";
+    return "border-state-danger-border/90 bg-state-danger-surface shadow-[var(--subscriptions-summary-active-shadow-danger)] ring-1 ring-[color:var(--subscriptions-summary-active-ring-danger)]";
   }
 
   if (tone === "stale") {
-    return "border-state-warning-border/90 bg-state-warning-surface shadow-[0_0_0_1px_rgba(192,133,50,0.28),0_18px_38px_-24px_rgba(0,0,0,0.38)] ring-1 ring-state-warning-border/45";
+    return "border-state-warning-border/90 bg-state-warning-surface shadow-[var(--subscriptions-summary-active-shadow-stale)] ring-1 ring-[color:var(--subscriptions-summary-active-ring-stale)]";
   }
 
   if (tone === "review") {
-    return "border-state-review-border/95 bg-state-review-surface shadow-[0_0_0_1px_rgba(245,78,0,0.26),0_20px_42px_-24px_rgba(0,0,0,0.42)] ring-1 ring-state-review-border/45";
+    return "border-state-review-border/95 bg-state-review-surface shadow-[var(--subscriptions-summary-active-shadow-review)] ring-1 ring-[color:var(--subscriptions-summary-active-ring-review)]";
   }
 
-  return "border-border-strong bg-surface-1 shadow-[0_0_0_1px_rgba(38,37,30,0.18),0_18px_38px_-24px_rgba(0,0,0,0.34)] ring-1 ring-border-strong/60";
+  return "border-border-strong bg-surface-1 shadow-[var(--subscriptions-summary-active-shadow-neutral)] ring-1 ring-[color:var(--subscriptions-summary-active-ring-neutral)]";
 }
 
 function resolveActiveAccentClassName(tone: SubscriptionSummaryCard["tone"] = "neutral") {
@@ -95,6 +95,22 @@ export function SubscriptionsOverviewSummary({
   batchActionDescription?: string;
   onOpenBatchAction?: (() => void) | null;
 }) {
+  const resolveActiveBadgeLabel = () => "表示中";
+
+  const resolveActionChipLabel = ({
+    filterKey,
+    isActive,
+  }: {
+    filterKey: SubscriptionSummaryCard["filterKey"];
+    isActive?: boolean;
+  }) => {
+    if (isActive) {
+      return filterKey === "all" ? "全件表示" : "フィルタ中";
+    }
+
+    return filterKey === "all" ? "すべて表示" : "絞り込む";
+  };
+
   return (
     <section
       className="rounded-lg border border-border/55 px-4 py-3 sm:px-5 sm:py-4"
@@ -108,10 +124,10 @@ export function SubscriptionsOverviewSummary({
           const isActionable = Number.isFinite(numericValue);
           const isPrimary = card.tone === "review";
           const className = cn(
-            "relative flex min-h-[96px] flex-col justify-between overflow-hidden rounded-lg border px-3.5 py-3 text-left transition-[border-color,background-color,color,box-shadow,transform] duration-150 sm:min-h-[108px] sm:px-4.5 sm:py-4",
+            "relative flex min-h-[96px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-lg border px-3.5 py-3 text-left transition-[border-color,background-color,color,box-shadow,transform] duration-150 sm:min-h-[108px] sm:px-4.5 sm:py-4",
             resolveCardClassName(card.tone),
             isPrimary && "shadow-[var(--subscriptions-summary-card-shadow)]",
-            isPrimary && "col-span-2 lg:col-span-1",
+            isPrimary && "sm:col-span-2 lg:col-span-1",
             card.isActive ? resolveActiveCardClassName(card.tone) : "shadow-none",
           );
 
@@ -153,7 +169,7 @@ export function SubscriptionsOverviewSummary({
                         )}
                         aria-hidden={card.isActive ? undefined : "true"}
                       >
-                        表示中
+                        {resolveActiveBadgeLabel()}
                       </span>
                     </span>
                   </div>
@@ -182,11 +198,11 @@ export function SubscriptionsOverviewSummary({
                     className={cn(
                       "px-2 py-0.75 text-[10px] text-foreground-soft transition-colors group-hover:text-foreground",
                       card.isActive &&
-                        "border-border-strong/75 bg-surface-1 text-foreground shadow-[0_0_0_1px_rgba(38,37,30,0.08)]",
+                        "border-border-strong/75 bg-surface-1 text-foreground shadow-[var(--subscriptions-summary-active-chip-shadow)]",
                       isPrimary && !card.isActive && "bg-surface-1/88",
                     )}
                   >
-                    {card.isActive ? "フィルタ中" : "絞り込む"}
+                    {resolveActionChipLabel({ filterKey: card.filterKey, isActive: card.isActive })}
                   </LabelChip>
                 </div>
               </button>
