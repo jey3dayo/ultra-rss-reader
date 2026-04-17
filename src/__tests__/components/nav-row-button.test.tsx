@@ -21,7 +21,14 @@ describe("NavRowButton", () => {
     expect(button).toHaveClass("shadow-[var(--sidebar-selection-inset-shadow)]");
     expect(screen.getByText("Secondary text")).toBeInTheDocument();
     expect(screen.getByText("L")).toBeInTheDocument();
-    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("3").parentElement).toHaveClass("motion-content-swap");
+  });
+
+  it("animates primitive trailing values as content swaps", () => {
+    render(<NavRowButton title="Primary row" trailing={7} />);
+
+    expect(screen.getByText("7")).toHaveClass("motion-content-swap", "tabular-nums");
+    expect(screen.getByText("7")).toHaveAttribute("data-motion-phase", "entering");
   });
 
   it("keeps sidebar rows borderless", () => {

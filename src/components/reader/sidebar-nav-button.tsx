@@ -21,13 +21,15 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
     ref,
   ) => {
     const tokens = getSidebarDensityTokens(density);
+    const trailingMotionKey =
+      typeof trailing === "string" || typeof trailing === "number" ? String(trailing) : undefined;
 
     return (
       <button
         ref={ref}
         type={type}
         className={cn(
-          "relative flex w-full items-center justify-between overflow-hidden rounded-md text-sm transition-[background-color,color,box-shadow] duration-150 focus:outline-none focus-visible:bg-[var(--sidebar-selection-background)] focus-visible:text-[var(--sidebar-selection-foreground)] focus-visible:shadow-[var(--sidebar-selection-shadow)]",
+          "motion-contextual-surface relative flex w-full items-center justify-between overflow-hidden rounded-md text-sm transition-[background-color,color,box-shadow] duration-150 focus:outline-none focus-visible:bg-[var(--sidebar-selection-background)] focus-visible:text-[var(--sidebar-selection-foreground)] focus-visible:shadow-[var(--sidebar-selection-shadow)]",
           tokens.navButtonPaddingX,
           size === "default" ? "min-h-10 py-2" : tokens.navButton,
           selected
@@ -50,8 +52,10 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
         </span>
         {trailing ? (
           <span
+            key={trailingMotionKey}
+            data-motion-phase={trailingMotionKey ? "entering" : undefined}
             className={cn(
-              "ml-3 shrink-0 text-[0.78rem] font-medium tabular-nums text-[var(--sidebar-foreground-muted-strong)]",
+              "motion-content-swap ml-3 shrink-0 text-[0.78rem] font-medium tabular-nums text-[var(--sidebar-foreground-muted-strong)]",
               selected && "text-[var(--sidebar-selection-muted)]",
               trailingClassName,
             )}

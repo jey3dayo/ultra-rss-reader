@@ -30,7 +30,7 @@ describe("FeedItemView", () => {
     expect(button).toHaveClass("before:bg-border-strong");
     expect(button).toHaveClass("min-h-9");
     expect(button).not.toHaveAttribute("aria-haspopup");
-    expect(screen.getByText("42")).toBeInTheDocument();
+    expect(screen.getByText("42")).toHaveClass("motion-content-swap", "tabular-nums");
 
     await user.click(button);
 

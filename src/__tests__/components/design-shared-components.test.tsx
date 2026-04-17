@@ -95,10 +95,12 @@ describe("Design-themed shared components", () => {
 
     expect(screen.getByRole("button", { name: "General settings" })).toHaveClass(
       "motion-interactive-surface",
+      "motion-contextual-surface",
       "hover:bg-surface-2",
     );
     expect(screen.getByRole("button", { name: "Unread" })).toHaveClass(
       "motion-interactive-surface",
+      "motion-contextual-surface",
       "bg-surface-2/88",
       "border-border/70",
       "data-[pressed]:bg-surface-4",
@@ -286,8 +288,9 @@ describe("Design-themed shared components", () => {
     const titleGroup = screen.getByTestId("workspace-header-title-group");
 
     expect(within(topRow).getByRole("button", { name: "戻る" })).toBeInTheDocument();
-    expect(within(topRow).getByText("Workspace")).toBeInTheDocument();
+    expect(within(topRow).getByText("Workspace")).toHaveClass("motion-content-swap");
     expect(within(titleGroup).queryByText("Workspace")).toBeNull();
     expect(screen.queryByTestId("workspace-header-navigation-row")).toBeNull();
+    expect(screen.getByRole("heading", { name: "購読一覧" })).toHaveClass("motion-content-swap");
   });
 });

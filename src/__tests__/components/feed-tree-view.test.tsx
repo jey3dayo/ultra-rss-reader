@@ -77,7 +77,9 @@ describe("FeedTreeView", () => {
     expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveClass("h-7");
     expect(screen.getByRole("button", { name: "Toggle folder Work" })).toHaveClass("w-7");
     expect(screen.getByRole("button", { name: "Select folder Work" })).toHaveClass("min-h-9");
+    expect(screen.getByRole("button", { name: "Select folder Work" })).toHaveClass("motion-contextual-surface");
     expect(screen.getByRole("button", { name: /Alpha/ })).toHaveClass("min-h-9");
+    expect(screen.getByRole("button", { name: /Alpha/ })).toHaveClass("motion-contextual-surface");
     expect(screen.getByRole("button", { name: /Beta/ })).toHaveClass("min-h-9");
 
     await user.click(screen.getByRole("button", { name: "Toggle folder Work" }));

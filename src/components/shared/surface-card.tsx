@@ -4,7 +4,7 @@ import type { HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 const surfaceCardVariants = cva(
-  "border text-card-foreground shadow-elevation-1 transition-[background-color,border-color,box-shadow]",
+  "motion-contextual-surface border text-card-foreground shadow-elevation-1 transition-[background-color,border-color,box-shadow]",
   {
     variants: {
       variant: {

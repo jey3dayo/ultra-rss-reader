@@ -9,6 +9,7 @@ describe("SidebarNavButton", () => {
     const button = screen.getByRole("button", { name: "Selected feed" });
     const content = container.querySelector("button > span");
 
+    expect(button).toHaveClass("motion-contextual-surface");
     expect(button).toHaveClass("before:bg-primary/85");
     expect(button).toHaveClass("shadow-[var(--sidebar-selection-shadow)]");
     expect(button).not.toHaveClass("group-hover/feed-row:before:opacity-0");
@@ -47,6 +48,16 @@ describe("SidebarNavButton", () => {
   it("uses the softened hover surface for unselected rows", () => {
     render(<SidebarNavButton>Feed row</SidebarNavButton>);
 
-    expect(screen.getByRole("button", { name: "Feed row" })).toHaveClass("hover:bg-[var(--sidebar-hover-surface)]");
+    expect(screen.getByRole("button", { name: "Feed row" })).toHaveClass(
+      "motion-contextual-surface",
+      "hover:bg-[var(--sidebar-hover-surface)]",
+    );
+  });
+
+  it("uses content-swap treatment for trailing counts", () => {
+    render(<SidebarNavButton trailing={12}>Feed row</SidebarNavButton>);
+
+    expect(screen.getByText("12")).toHaveClass("motion-content-swap", "tabular-nums");
+    expect(screen.getByText("12")).toHaveAttribute("data-motion-phase", "entering");
   });
 });

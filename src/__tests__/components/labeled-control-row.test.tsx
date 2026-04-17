@@ -11,6 +11,10 @@ describe("LabeledControlRow", () => {
     );
 
     expect(screen.getByText("Open links")).toHaveClass("text-[color:var(--form-row-label)]");
-    expect(screen.getByText("Open links").closest("div")).toHaveClass("border-b", "border-border/70");
+    expect(screen.getByText("Open links").closest("div")).toHaveClass(
+      "motion-contextual-surface",
+      "border-b",
+      "border-border/70",
+    );
   });
 });

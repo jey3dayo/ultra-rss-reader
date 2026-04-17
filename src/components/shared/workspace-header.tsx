@@ -1,5 +1,5 @@
 import { ChevronLeft, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -40,6 +40,30 @@ export function WorkspaceHeader({
   });
   const hasBackAction = Boolean(backLabel && onBack);
   const isDesktopApp = hasRuntime;
+  const contentKey = `${eyebrow}::${title}::${subtitle}`;
+  const previousContentKeyRef = useRef(contentKey);
+  const [contentMotionPhase, setContentMotionPhase] = useState<"steady" | "entering">("steady");
+
+  useEffect(() => {
+    if (previousContentKeyRef.current === contentKey) {
+      return;
+    }
+
+    previousContentKeyRef.current = contentKey;
+    setContentMotionPhase("entering");
+
+    let resetHandle = 0;
+    const frameHandle = requestAnimationFrame(() => {
+      resetHandle = requestAnimationFrame(() => {
+        setContentMotionPhase("steady");
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(frameHandle);
+      cancelAnimationFrame(resetHandle);
+    };
+  }, [contentKey]);
 
   return (
     <div
@@ -73,7 +97,10 @@ export function WorkspaceHeader({
               ) : null
             ) : null}
             {isBrowserPreview ? (
-              <p className="font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase">
+              <p
+                data-motion-phase={contentMotionPhase}
+                className="motion-content-swap font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase"
+              >
                 {eyebrow}
               </p>
             ) : null}
@@ -98,7 +125,10 @@ export function WorkspaceHeader({
         >
           {isDesktopApp ? (
             <div data-testid="workspace-header-context-row" className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <p className="font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase">
+              <p
+                data-motion-phase={contentMotionPhase}
+                className="motion-content-swap font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase"
+              >
                 {eyebrow}
               </p>
             </div>
@@ -117,16 +147,27 @@ export function WorkspaceHeader({
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
               ) : null}
-              <h1 className="font-sans text-[1.65rem] leading-[0.96] font-normal tracking-[-0.04em] text-foreground">
+              <h1
+                data-motion-phase={contentMotionPhase}
+                className="motion-content-swap font-sans text-[1.65rem] leading-[0.96] font-normal tracking-[-0.04em] text-foreground"
+              >
                 {title}
               </h1>
             </div>
           ) : (
-            <h1 className="font-sans text-[1.65rem] leading-[0.96] font-normal tracking-[-0.04em] text-foreground">
+            <h1
+              data-motion-phase={contentMotionPhase}
+              className="motion-content-swap font-sans text-[1.65rem] leading-[0.96] font-normal tracking-[-0.04em] text-foreground"
+            >
               {title}
             </h1>
           )}
-          <p className="max-w-2xl font-serif text-[0.95rem] leading-[1.42] text-foreground-soft">{subtitle}</p>
+          <p
+            data-motion-phase={contentMotionPhase}
+            className="motion-content-swap max-w-2xl font-serif text-[0.95rem] leading-[1.42] text-foreground-soft"
+          >
+            {subtitle}
+          </p>
         </div>
       </div>
     </div>

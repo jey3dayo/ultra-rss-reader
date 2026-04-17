@@ -23,7 +23,7 @@ export function ControlChipButton({
       data-pressed={pressed ? "" : undefined}
       className={cn(
         controlChipVariants({ size, interaction: "toggle" }),
-        "motion-interactive-surface rounded-full border border-border/70 bg-surface-2/88 text-foreground-soft shadow-elevation-1 hover:bg-surface-3 hover:text-foreground",
+        "motion-interactive-surface motion-contextual-surface rounded-full border border-border/70 bg-surface-2/88 text-foreground-soft shadow-elevation-1 hover:bg-surface-3 hover:text-foreground",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         "[&_[data-label-chip]]:border-border/45 [&_[data-label-chip]]:bg-background/58 [&_[data-label-chip]]:text-foreground/62",
         "data-[pressed]:border-border-strong data-[pressed]:bg-surface-4 data-[pressed]:text-foreground data-[pressed]:shadow-[var(--control-chip-pressed-shadow)]",

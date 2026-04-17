@@ -76,7 +76,7 @@ export function FeedTreeRow({
           aria-hidden="true"
           data-feed-row-selected-indicator={feed.id}
           className={cn(
-            "pointer-events-none absolute inset-y-1.5 left-[var(--feed-tree-rail-offset)] z-0 w-0.5 rounded-full bg-primary/85 transition-opacity duration-150",
+            "pointer-events-none absolute inset-y-1.5 left-[var(--feed-tree-rail-offset)] z-0 w-0.5 rounded-full bg-primary/85 transition-[opacity,transform,background-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
             canDragFeeds && "group-hover/feed-row:opacity-0 group-focus-within/feed-row:opacity-0",
           )}
         />

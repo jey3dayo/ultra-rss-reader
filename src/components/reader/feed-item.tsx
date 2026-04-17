@@ -36,7 +36,16 @@ function getFeedItemButtonProps({ feed, displayFavicons, grayscaleFavicons }: Fe
       </span>
     ) : undefined,
     title: <span className="truncate">{feed.title}</span>,
-    trailing: feed.unread_count > 0 ? feed.unread_count : undefined,
+    trailing:
+      feed.unread_count > 0 ? (
+        <span
+          key={`${feed.id}:${feed.unread_count}`}
+          data-motion-phase="entering"
+          className="motion-content-swap inline-flex tabular-nums"
+        >
+          {feed.unread_count}
+        </span>
+      ) : undefined,
   };
 }
 

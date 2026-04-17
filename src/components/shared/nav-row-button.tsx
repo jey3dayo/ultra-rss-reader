@@ -16,12 +16,15 @@ export const NavRowButton = forwardRef<HTMLButtonElement, NavRowButtonProps>(
     { title, description, leading, trailing, tone = "default", selected = false, className, type = "button", ...props },
     ref,
   ) => {
+    const trailingMotionKey =
+      typeof trailing === "string" || typeof trailing === "number" ? String(trailing) : undefined;
+
     return (
       <button
         ref={ref}
         type={type}
         className={cn(
-          "motion-interactive-surface group flex w-full items-start gap-3 rounded-md px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+          "motion-interactive-surface motion-contextual-surface group flex w-full items-start gap-3 rounded-md px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
           tone === "sidebar"
             ? "focus-visible:bg-sidebar-accent/65 focus-visible:text-sidebar-foreground"
             : "border focus-visible:border-border-strong focus-visible:bg-surface-2/90",
@@ -42,7 +45,17 @@ export const NavRowButton = forwardRef<HTMLButtonElement, NavRowButtonProps>(
           <div className="truncate font-medium">{title}</div>
           {description ? <div className="mt-1 text-xs text-foreground-soft">{description}</div> : null}
         </div>
-        {trailing ? <div className="shrink-0">{trailing}</div> : null}
+        {trailing ? (
+          <div className="shrink-0">
+            <span
+              key={trailingMotionKey}
+              data-motion-phase={trailingMotionKey ? "entering" : undefined}
+              className="motion-content-swap tabular-nums"
+            >
+              {trailing}
+            </span>
+          </div>
+        ) : null}
       </button>
     );
   },
