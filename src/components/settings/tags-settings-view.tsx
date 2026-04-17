@@ -108,7 +108,7 @@ export function TagsSettingsView({
                   <span
                     aria-hidden="true"
                     data-testid={`tags-settings-swatch-${tag.id}`}
-                    className="inline-block h-5 w-5 shrink-0 rounded-full border border-border/70 sm:mr-1"
+                    className="inline-block h-8 w-8 shrink-0 rounded-full border border-border/70 sm:mr-1"
                     style={{ backgroundColor: tag.color }}
                   />
                 ) : null}

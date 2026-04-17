@@ -94,7 +94,7 @@ export function WorkspaceHeader({
         </div>
         <div
           data-testid="workspace-header-title-group"
-          className={`min-w-0 space-y-0.5 pb-0 ${useDesktopOverlay ? MAC_OVERLAY_TITLE_OFFSET_CLASS_NAME : ""}`}
+          className={`min-w-0 space-y-0.5 pb-0.5 ${useDesktopOverlay ? MAC_OVERLAY_TITLE_OFFSET_CLASS_NAME : ""}`}
         >
           {isDesktopApp ? (
             <div data-testid="workspace-header-context-row" className="flex flex-wrap items-center gap-x-2 gap-y-0.5">

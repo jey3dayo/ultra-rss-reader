@@ -71,6 +71,7 @@ describe("TagsSettingsView", () => {
 
     expect(screen.getByRole("textbox", { name: "Name" })).toHaveClass("h-10");
     expect(screen.getByRole("button", { name: "Create" })).toHaveClass("h-10", "sm:px-4");
+    expect(screen.getByTestId("tags-settings-swatch-tag-1")).toHaveClass("h-8", "w-8");
     expect(screen.getByRole("button", { name: "Edit Fav" })).toHaveClass("h-10", "px-4");
     expect(screen.getByRole("button", { name: "Delete Fav" })).toHaveClass("h-10", "px-4");
   });
