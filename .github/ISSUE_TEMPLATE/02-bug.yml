@@ -1,0 +1,89 @@
+name: Bug Report
+description: 不具合、回帰、hardening、failure-path 改善を起票する
+title: "fix: "
+labels: ["fix"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        既存 issue と重複していないか先に確認してください。
+
+        この form は `fix` 系 issue のベースです。`risk/*`, `size/*`, `frontend`, `backend`, `category/tests` などの詳細ラベルは、起票後に maintainer が補完します。
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current Behavior
+      description: 今起きている問題を簡潔に書いてください
+      placeholder: |
+        Windows のファイルロックや backup/restore 失敗時に、DB migration recovery の挙動が脆い可能性がある。
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: 本来どうあるべきか
+      placeholder: |
+        restore は fail-fast を維持し、部分復旧状態で処理が継続しないこと。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction / Failure Path
+      description: 再現手順、失敗シナリオ、テストで再現したい観点
+      placeholder: |
+        1. Windows file lock を想定した失敗注入を行う
+        2. backup/restore failure を発生させる
+        3. recovery path のログと継続条件を確認する
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: 影響範囲や想定リスク
+      placeholder: |
+        migration recovery はユーザーデータに直結するため、失敗時の導線が sharp edge になりやすい。
+    validations:
+      required: true
+  - type: checkboxes
+    id: areas
+    attributes:
+      label: Affected Areas
+      options:
+        - label: フロントエンド (React / TypeScript)
+        - label: バックエンド (Rust / Tauri)
+        - label: データベース
+        - label: API連携 / provider
+        - label: テスト
+        - label: ドキュメント
+  - type: checkboxes
+    id: follow-up-labels
+    attributes:
+      label: Likely Follow-Up Labels
+      description: maintainer が後で付けるべきラベルの目安
+      options:
+        - label: category/tests が必要
+        - label: risk/high 相当
+        - label: manual-verification が必要
+        - label: release-readiness に入る
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs / Evidence
+      description: ログ、エラーメッセージ、関連コード、参考資料
+      render: shell
+    validations:
+      required: false
+  - type: textarea
+    id: done-when
+    attributes:
+      label: Done When
+      description: 修正完了の判断条件をチェックリストで書いてください
+      placeholder: |
+        - [ ] 問題が再現しなくなる
+        - [ ] 関連 failure-path tests が追加または更新されている
+        - [ ] 必要な recovery guidance が整理されている
+    validations:
+      required: true

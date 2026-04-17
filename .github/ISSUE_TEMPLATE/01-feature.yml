@@ -1,0 +1,96 @@
+name: Feature Request
+description: 新機能、拡張、product/release umbrella を起票する
+title: "feat: "
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        既存 issue を先に確認してください。
+
+        この form は `feature` 系 issue のベースです。
+        `size/*`, `risk/*`, `frontend`, `backend`, `manual-verification`,
+        `release-readiness`, `product` などの詳細ラベルは、
+        起票後に maintainer が補完します。
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: 何を追加したいかを 2-4 行で簡潔に書いてください
+      placeholder: |
+        Feedly のアカウント登録と同期対応を追加する。
+    validations:
+      required: true
+  - type: textarea
+    id: background
+    attributes:
+      label: Background
+      description: 背景、現状、なぜ必要か
+      placeholder: |
+        現状の remote provider は FreshRss / Inoreader 前提で、Feedly は disabled のまま。
+        認証方式や同期契約を個別に整理する必要がある。
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Expected Scope
+      description: 想定している作業範囲を箇条書きで書いてください
+      placeholder: |
+        - ProviderKind と provider implementation 方針を決める
+        - account add/update/test-connection flow を追加する
+        - sync flow と pending mutation compatibility を定義する
+        - UI と tests を追加する
+    validations:
+      required: true
+  - type: textarea
+    id: non-goals
+    attributes:
+      label: Non-Goals
+      description: 今回やらないこと、含めないこと
+      placeholder: |
+        - 既存 provider の全面リライト
+        - release 前の無理な MVP ねじ込み
+    validations:
+      required: false
+  - type: checkboxes
+    id: areas
+    attributes:
+      label: Affected Areas
+      description: 関係しそうな領域を選んでください
+      options:
+        - label: フロントエンド (React / TypeScript)
+        - label: バックエンド (Rust / Tauri)
+        - label: データベース
+        - label: API連携 / provider
+        - label: CI/CD
+        - label: ドキュメント
+        - label: Product / release planning
+  - type: checkboxes
+    id: follow-up-labels
+    attributes:
+      label: Likely Follow-Up Labels
+      description: maintainer が後で付けるべきラベルの目安
+      options:
+        - label: manual-verification が必要
+        - label: release-readiness に入る
+        - label: product に入る
+        - label: risk/high 相当
+  - type: textarea
+    id: done-when
+    attributes:
+      label: Done When
+      description: 完了条件をチェックリストで書いてください
+      placeholder: |
+        - [ ] 主要フローが実装されている
+        - [ ] 必要な automated tests が追加されている
+        - [ ] manual verification が必要なら観点が整理されている
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: 参考リンク、open questions、補足
+    validations:
+      required: false

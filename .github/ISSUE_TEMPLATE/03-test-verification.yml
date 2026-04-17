@@ -1,0 +1,78 @@
+name: Test / Verification Task
+description: 手動検証、release readiness、テスト観点整理の task を起票する
+title: "test: "
+labels: ["category/tests"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        この form は `test` / verification 系 issue のベースです。`manual-verification`, `release-readiness`, `size/*` などの詳細ラベルは、起票後に maintainer が補完します。
+  - type: textarea
+    id: background
+    attributes:
+      label: Background
+      description: なぜ今この検証が必要か
+      placeholder: |
+        自動アップデート失敗シナリオは CI だけでは確認しづらく、リリース前に実機で代表ケースを確認したい。
+    validations:
+      required: true
+  - type: textarea
+    id: scenarios
+    attributes:
+      label: Verification Scenarios
+      description: 確認したい観点をチェックリストや箇条書きで書いてください
+      placeholder: |
+        - [ ] 署名不一致
+        - [ ] ネットワーク切断
+        - [ ] ダウンロード破損
+        - [ ] endpoint 404 / 5xx
+    validations:
+      required: true
+  - type: textarea
+    id: prerequisites
+    attributes:
+      label: Preconditions
+      description: 前提条件、必要な環境、必要な配布物
+      placeholder: |
+        - 署名付きリリース資産
+        - 実機テスト環境
+        - 手順書または再現用セットアップ
+    validations:
+      required: true
+  - type: checkboxes
+    id: areas
+    attributes:
+      label: Affected Areas
+      options:
+        - label: フロントエンド (React / TypeScript)
+        - label: バックエンド (Rust / Tauri)
+        - label: updater / release flow
+        - label: CI/CD
+        - label: ドキュメント
+  - type: checkboxes
+    id: follow-up-labels
+    attributes:
+      label: Likely Follow-Up Labels
+      description: maintainer が後で付けるべきラベルの目安
+      options:
+        - label: manual-verification が必要
+        - label: release-readiness に入る
+        - label: risk/high 相当
+  - type: textarea
+    id: done-when
+    attributes:
+      label: Done When
+      description: 完了条件をチェックリストで書いてください
+      placeholder: |
+        - [ ] 各シナリオの挙動を確認した
+        - [ ] リカバリ方法や注意点を記録した
+        - [ ] 必要なら release note / docs へ反映した
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: 関連 issue、TODO、docs など
+    validations:
+      required: false

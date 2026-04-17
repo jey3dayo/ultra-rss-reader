@@ -1,0 +1,89 @@
+name: Maintenance Task
+description: chore、運用整理、release prep、non-feature task を起票する
+title: "chore: "
+labels: ["chore"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        この form は `chore` 系 issue のベースです。
+        `release-readiness`, `manual-verification`, `product`,
+        `dependencies`, `docs`, `ci` などの詳細ラベルは、
+        起票後に maintainer が補完します。
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: 何を整理・確認・改善したいか
+      placeholder: |
+        production 用 bundle identifier 変更後の互換性影響を確認する。
+    validations:
+      required: true
+  - type: textarea
+    id: background
+    attributes:
+      label: Background
+      description: 背景、今の状態、なぜ必要か
+      placeholder: |
+        identifier 変更はデータ保存先や OS 側の認識に影響する可能性があるため、v1.0 前に確認しておきたい。
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: 予定している確認項目や作業内容
+      placeholder: |
+        - Keychain / app_data_dir / updater の互換性確認
+        - 既存環境からの移行影響確認
+        - 必要なら release note 反映
+    validations:
+      required: true
+  - type: textarea
+    id: non-goals
+    attributes:
+      label: Non-Goals
+      description: 今回やらないこと
+    validations:
+      required: false
+  - type: checkboxes
+    id: areas
+    attributes:
+      label: Affected Areas
+      options:
+        - label: リリース運用
+        - label: Product / go-to-market
+        - label: dependencies
+        - label: CI/CD
+        - label: ドキュメント
+        - label: 実機確認
+  - type: checkboxes
+    id: follow-up-labels
+    attributes:
+      label: Likely Follow-Up Labels
+      description: maintainer が後で付けるべきラベルの目安
+      options:
+        - label: manual-verification が必要
+        - label: release-readiness に入る
+        - label: product に入る
+        - label: dependencies に入る
+        - label: docs に入る
+        - label: ci に入る
+  - type: textarea
+    id: done-when
+    attributes:
+      label: Done When
+      description: 完了条件をチェックリストで書いてください
+      placeholder: |
+        - [ ] 必要な確認項目を消化した
+        - [ ] 影響有無を記録した
+        - [ ] follow-up が必要なら別 issue や release note に落とした
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: 関連 issue、TODO、docs、外部リンクなど
+    validations:
+      required: false
