@@ -12,6 +12,7 @@ describe("semantic tone tokens", () => {
     const darkRootMatch = css.match(/:root\.dark\s*\{[\s\S]*?\n\}/);
 
     expect(lightRootMatch?.[0]).toContain("--tone-unread:");
+    expect(lightRootMatch?.[0]).toContain("--tone-loading:");
     expect(lightRootMatch?.[0]).toContain("--tone-starred:");
     expect(lightRootMatch?.[0]).toContain("--tone-foreground-strength:");
     expect(lightRootMatch?.[0]).toContain("--tone-surface-strength:");
@@ -23,6 +24,7 @@ describe("semantic tone tokens", () => {
     expect(lightRootMatch?.[0]).toContain("--reader-context-border:");
 
     expect(darkRootMatch?.[0]).toContain("--tone-unread:");
+    expect(darkRootMatch?.[0]).toContain("--tone-loading:");
     expect(darkRootMatch?.[0]).toContain("--tone-starred:");
     expect(darkRootMatch?.[0]).toContain("--tone-foreground-strength:");
     expect(darkRootMatch?.[0]).toContain("--tone-surface-strength:");

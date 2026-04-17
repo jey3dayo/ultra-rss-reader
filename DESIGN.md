@@ -37,6 +37,7 @@ Derived roles used across the product:
 - Border Strong (`rgba(38, 37, 30, 0.2)`): Focused, active, or emphasized border
 - Success (`#1f8a65`): Positive state and successful completion messaging
 - Unread (`#9fbbe0`): Fixed semantic accent for unread state, unread markers, and reading-context navigation
+- Loading (`#9fbbe0`): Fixed semantic accent for indeterminate loading, startup progress, settings loading, and sync-progress bars
 - Starred (`#facc15`): Fixed semantic accent for starred state, starred markers, and star-focused navigation
 
 Feature and timeline accents:
@@ -44,6 +45,7 @@ Feature and timeline accents:
 - Thinking (`#dfa88f`): AI or background processing state
 - Grep (`#9fc9a2`): Search and indexing state
 - Read / Unread Context (`#9fbbe0`): Reading-related state, unread indicators, and reading-context navigation accents
+- Loading (`#9fbbe0`): Generic loading and sync-progress feedback that needs stronger visibility than the warm accent ring
 - Edit (`#c0a8dd`): Edit and mutation state
 
 Color governance:
@@ -51,6 +53,7 @@ Color governance:
 - If an existing semantic token can express a color, use the token instead of a literal value in code.
 - If a repeated UI meaning needs a new color role, add it here and to the token layer before spreading literals in code.
 - Unread and starred UI are fixed semantic roles. Define them in `DESIGN.md` and the shared token layer before using them in multiple components.
+- Loading is a fixed semantic role for indeterminate progress feedback. Keep it separate from the warm `ring` accent and from unread-reading context.
 - Tag palettes and provider brand colors are exceptions and should be managed as central palettes, not mixed into the base theme colors.
 
 ## Typography
@@ -119,7 +122,7 @@ Elevation scale:
 - Buttons: Primary buttons use a warm surface fill with dark text; secondary and tertiary actions rely on surface tone, border contrast, or transparent warm overlays. Shared action buttons should default to `rounded-md` so input, select, and button controls read as one family inside forms and settings panels. Hover states often shift text toward the tertiary accent (`#cf2d56`) rather than increasing fill saturation.
 - Chips and Tags: Secondary and filter chips should read as pill elements by default. Use full-pill radius, muted warm surfaces, and restrained text contrast. Selected chips deepen through surface tone before introducing stronger chroma. In dense workspace toolbars and cleanup-style filter clusters, compact filter chips may step down to `rounded-md`, and their count badges may step down again to `rounded-sm` so the controls feel more editorial and less soft.
 - Cards and Containers: Use warm cream surfaces, a warm border ring, and border-led separation by default. Shared section and info containers should default to `rounded-lg` so structural surfaces feel slightly softer than direct-manipulation controls. Elevated cards may use the Level 3 shadow. 20px+ radii belong to separate shell roles rather than standard cards.
-- Inputs and Forms: Inputs should stay neutral and legible, with warm borders and a restrained focus treatment. Prefer border emphasis or accent-orange focus hints over cold blue rings. Shared input-like primitives should use `rounded-md`; switches remain `rounded-full`.
+- Inputs and Forms: Inputs should stay neutral and legible, with warm borders and a restrained focus treatment. Prefer border emphasis or accent-orange focus hints over cold blue rings. Shared input-like primitives should use `rounded-md`; switches remain `rounded-full`. Loading bars are the exception: they may use the dedicated loading blue when the warm ring is not legible enough.
 - Settings Forms: Treat settings pages as desktop-app settings panels, not generic web forms. The canonical row is a stable left label column plus a stable right control column. Controls should resolve against one right-column endpoint so input, select, button, checkbox, switch, and segmented choice groups feel aligned as a system. Long controls may cap their width instead of stretching edge-to-edge, but compact controls must still live on the same control rail rather than floating at arbitrary intermediate positions. The desired rhythm is: section gap first, then heading-to-first-row gap, then a consistent row cadence, with a fixed label-to-control column gap.
 - Lists and Navigation: Lists should separate items through tone and dividers rather than heavy blocks of accent color. Navigation and tab treatments should feel clean, compact, and editorial rather than dashboard-like. Smart views, context strips, filter chips, and article state icons may use the fixed unread/starred semantic colors, but the color should usually appear as icon tint or a light surface wash rather than a solid block.
 - Media and Preview Surfaces: Code or browser previews may use darker surfaces, but they should still feel framed by warm borders and integrated into the cream-based system rather than floating as disconnected black panels.

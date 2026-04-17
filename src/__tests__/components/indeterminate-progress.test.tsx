@@ -8,4 +8,11 @@ describe("IndeterminateProgress", () => {
 
     expect(container.firstElementChild).toHaveClass("bg-surface-3/72");
   });
+
+  it("uses the loading tone token for the moving bar", () => {
+    const { container } = render(<IndeterminateProgress />);
+
+    expect(container.firstElementChild?.firstElementChild).toHaveClass("bg-[var(--tone-loading)]");
+    expect(container.firstElementChild?.firstElementChild).not.toHaveClass("bg-ring");
+  });
 });
