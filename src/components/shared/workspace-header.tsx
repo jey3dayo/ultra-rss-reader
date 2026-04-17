@@ -17,7 +17,7 @@ type WorkspaceHeaderProps = {
 };
 
 const MAC_OVERLAY_DRAG_REGION_WIDTH = 72;
-const MAC_OVERLAY_TITLE_OFFSET_PX = 20;
+const MAC_OVERLAY_TITLE_OFFSET_PX = 24;
 
 export const workspaceHeaderActionClassName =
   "h-7 rounded-md border border-border/60 font-sans text-[0.8rem] font-normal text-foreground-soft shadow-none hover:bg-surface-2 hover:text-foreground";

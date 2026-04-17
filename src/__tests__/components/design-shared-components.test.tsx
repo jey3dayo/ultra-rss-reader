@@ -246,7 +246,7 @@ describe("Design-themed shared components", () => {
     );
 
     expect(screen.getByTestId("workspace-header-title-group")).toHaveStyle({
-      paddingLeft: "20px",
+      paddingLeft: "24px",
     });
   });
 
