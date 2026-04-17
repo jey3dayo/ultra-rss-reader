@@ -24,7 +24,7 @@ export const NavRowButton = forwardRef<HTMLButtonElement, NavRowButtonProps>(
         ref={ref}
         type={type}
         className={cn(
-          "motion-interactive-surface motion-contextual-surface group flex w-full items-start gap-3 rounded-md px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+          "motion-interactive-surface motion-contextual-surface group flex w-full items-start gap-3 rounded-md px-3 py-2 text-left select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
           tone === "sidebar"
             ? "focus-visible:bg-sidebar-accent/65 focus-visible:text-sidebar-foreground"
             : "border focus-visible:border-border-strong focus-visible:bg-surface-2/90",

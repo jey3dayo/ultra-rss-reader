@@ -18,7 +18,7 @@ export function SidebarSectionToggle({
       aria-expanded={isOpen}
       aria-controls={panelId}
       className={cn(
-        "motion-disclosure-trigger flex w-full items-center justify-between rounded-md px-2 py-1 text-sidebar-foreground hover:bg-surface-1/72",
+        "motion-disclosure-trigger flex w-full items-center justify-between rounded-md px-2 py-1 text-sidebar-foreground select-none hover:bg-surface-1/72",
         className,
       )}
     >

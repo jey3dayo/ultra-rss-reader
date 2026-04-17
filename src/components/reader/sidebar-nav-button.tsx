@@ -29,7 +29,7 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
         ref={ref}
         type={type}
         className={cn(
-          "motion-contextual-surface relative flex w-full items-center justify-between overflow-hidden rounded-md text-sm transition-[background-color,color,box-shadow] duration-150 focus:outline-none focus-visible:bg-[var(--sidebar-selection-background)] focus-visible:text-[var(--sidebar-selection-foreground)] focus-visible:shadow-[var(--sidebar-selection-shadow)]",
+          "motion-contextual-surface relative flex w-full items-center justify-between overflow-hidden rounded-md text-sm select-none transition-[background-color,color,box-shadow] duration-150 focus:outline-none focus-visible:bg-[var(--sidebar-selection-background)] focus-visible:text-[var(--sidebar-selection-foreground)] focus-visible:shadow-[var(--sidebar-selection-shadow)]",
           tokens.navButtonPaddingX,
           size === "default" ? "min-h-10 py-2" : tokens.navButton,
           selected

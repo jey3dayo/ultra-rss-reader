@@ -18,6 +18,7 @@ describe("NavRowButton", () => {
     const button = screen.getByRole("button", { name: /Primary row/i });
 
     expect(button).toHaveClass("bg-sidebar-accent");
+    expect(button).toHaveClass("select-none");
     expect(button).toHaveClass("shadow-[var(--sidebar-selection-inset-shadow)]");
     expect(screen.getByText("Secondary text")).toBeInTheDocument();
     expect(screen.getByText("L")).toBeInTheDocument();
@@ -37,6 +38,7 @@ describe("NavRowButton", () => {
     const button = screen.getByRole("button", { name: "Sidebar row" });
 
     expect(button).not.toHaveClass("border");
+    expect(button).toHaveClass("select-none");
     expect(button).toHaveClass("hover:bg-[var(--sidebar-hover-surface)]");
   });
 

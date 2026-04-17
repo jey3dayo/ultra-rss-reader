@@ -10,6 +10,7 @@ describe("SidebarNavButton", () => {
     const content = container.querySelector("button > span");
 
     expect(button).toHaveClass("motion-contextual-surface");
+    expect(button).toHaveClass("select-none");
     expect(button).toHaveClass("before:bg-primary/85");
     expect(button).toHaveClass("shadow-[var(--sidebar-selection-shadow)]");
     expect(button).not.toHaveClass("group-hover/feed-row:before:opacity-0");
@@ -50,6 +51,7 @@ describe("SidebarNavButton", () => {
 
     expect(screen.getByRole("button", { name: "Feed row" })).toHaveClass(
       "motion-contextual-surface",
+      "select-none",
       "hover:bg-[var(--sidebar-hover-surface)]",
     );
   });

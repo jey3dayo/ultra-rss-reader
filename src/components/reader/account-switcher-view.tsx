@@ -48,7 +48,7 @@ export function AccountSwitcherView({
             onClose(true);
           }
         }}
-        className={cn("text-left", hasMultipleAccounts ? "cursor-pointer" : "cursor-default")}
+        className={cn("select-none text-left", hasMultipleAccounts ? "cursor-pointer" : "cursor-default")}
         aria-haspopup={hasMultipleAccounts ? "menu" : undefined}
         aria-expanded={hasMultipleAccounts ? isExpanded : undefined}
         aria-controls={hasMultipleAccounts ? menuId : undefined}

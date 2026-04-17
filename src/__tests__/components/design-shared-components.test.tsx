@@ -96,11 +96,13 @@ describe("Design-themed shared components", () => {
     expect(screen.getByRole("button", { name: "General settings" })).toHaveClass(
       "motion-interactive-surface",
       "motion-contextual-surface",
+      "select-none",
       "hover:bg-surface-2",
     );
     expect(screen.getByRole("button", { name: "Unread" })).toHaveClass(
       "motion-interactive-surface",
       "motion-contextual-surface",
+      "select-none",
       "bg-surface-2/88",
       "border-border/70",
       "data-[pressed]:bg-surface-4",

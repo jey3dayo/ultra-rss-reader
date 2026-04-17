@@ -33,6 +33,7 @@ describe("AccountSwitcherView", () => {
     );
 
     expect(screen.getByRole("button", { name: /Local/ })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: /Local/ })).toHaveClass("select-none");
     expect(screen.getByRole("menu", { name: "Accounts" })).toBeInTheDocument();
     expect(screen.getAllByRole("menuitemradio")).toHaveLength(2);
     expect(screen.getByRole("heading", { name: "Local" }).querySelector(".lucide-chevron-down")).toHaveClass(
