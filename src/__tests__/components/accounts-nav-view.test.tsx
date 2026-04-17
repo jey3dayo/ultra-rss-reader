@@ -31,9 +31,10 @@ describe("AccountsNavView", () => {
     expect(within(localButton).getAllByText("Local", { exact: true })).toHaveLength(1);
     expect(within(freshRssButton).getAllByText("FreshRSS", { exact: true })).toHaveLength(1);
     expect(within(freshRssButton).queryByText("FrEsHrSs", { exact: true })).not.toBeInTheDocument();
-    expect(within(mysteryButton).getByText("Account", { exact: true })).toHaveClass("text-sidebar-foreground/44");
+    expect(within(mysteryButton).getByText("Account", { exact: true })).toHaveClass("text-sidebar-foreground/38");
     expect(localButton).toHaveClass("rounded-md");
     expect(localButton).toHaveClass("shrink-0");
+    expect(localButton).toHaveClass("text-[13px]");
     expect(freshRssButton).toHaveClass("rounded-md");
     expect(freshRssButton).toHaveClass("shrink-0");
     expect(mysteryButton).toHaveClass("rounded-md");
@@ -43,10 +44,10 @@ describe("AccountsNavView", () => {
     expect(localButton).toHaveAttribute("aria-pressed", "true");
     expect(freshRssButton).toHaveAttribute("aria-pressed", "false");
     expect(addAccountButton).toHaveAttribute("aria-pressed", "false");
-    expect(localButton.querySelector("span")?.className).toContain("bg-orange-500");
-    expect(freshRssButton.querySelector("span")?.className).toContain("bg-[#0062BE]");
+    expect(localButton.querySelector("span")?.className).toContain("h-7");
+    expect(freshRssButton.querySelector("span")?.className).toContain("w-7");
     expect(mysteryButton.querySelector("span")?.className).toContain("bg-surface-1/72");
-    expect(within(freshRssButton).getByText("FreshRSS")).toHaveClass("text-sidebar-foreground/44");
+    expect(within(freshRssButton).getByText("FreshRSS")).toHaveClass("text-sidebar-foreground/38");
     expect(localButton.parentElement).toHaveClass("flex");
     expect(localButton.parentElement).toHaveClass("overflow-x-auto");
 

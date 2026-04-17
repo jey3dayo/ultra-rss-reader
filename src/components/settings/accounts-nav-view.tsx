@@ -49,25 +49,27 @@ export function AccountsNavView({
             aria-pressed={account.isActive}
             onClick={() => onSelectAccount(account.id)}
             className={cn(
-              "relative shrink-0 items-center overflow-hidden rounded-md px-3 py-2 text-sm sm:w-full",
+              "relative shrink-0 items-center overflow-hidden rounded-md px-3 py-1.5 text-[13px] leading-[1.25] sm:w-full",
               account.isActive &&
                 "border border-border-strong bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong",
             )}
             leading={
               <span
                 className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full",
+                  "flex h-7 w-7 items-center justify-center rounded-full",
                   ACCOUNT_ICON_BG[kindKey] ?? "bg-surface-1/72",
                 )}
               >
-                <Rss className="h-4 w-4 text-white" />
+                <Rss className="h-[15px] w-[15px] text-white" />
               </span>
             }
             title={account.name}
             description={
               kindDescription ? (
                 <div
-                  className={account.isActive ? "text-[var(--sidebar-selection-muted)]" : "text-sidebar-foreground/44"}
+                  className={
+                    account.isActive ? "text-[color:var(--settings-shell-section-label)]" : "text-sidebar-foreground/38"
+                  }
                 >
                   {kindDescription}
                 </div>
@@ -82,13 +84,13 @@ export function AccountsNavView({
         aria-pressed={isAddAccountActive}
         onClick={onAddAccount}
         className={cn(
-          "relative shrink-0 items-center overflow-hidden rounded-md px-3 py-2 text-sm sm:w-full",
+          "relative shrink-0 items-center overflow-hidden rounded-md px-3 py-1.5 text-[13px] leading-[1.25] sm:w-full",
           isAddAccountActive &&
             "border border-border-strong bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong",
         )}
         leading={
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-1/72">
-            <Plus className="h-4 w-4" />
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-1/72">
+            <Plus className="h-[15px] w-[15px]" />
           </span>
         }
         title={addAccountLabel}

@@ -13,6 +13,8 @@ describe("SettingsContentLayout", () => {
     expect(screen.getByRole("heading", { name: "General" })).toHaveClass(
       "text-[color:var(--settings-shell-content-title)]",
     );
-    expect(screen.getByText("Tune reading behavior.")).toHaveClass("text-[color:var(--settings-shell-field-label)]");
+    expect(screen.getByRole("heading", { name: "General" })).toHaveClass("text-[24px]");
+    expect(screen.getByText("Tune reading behavior.")).toHaveClass("text-[color:var(--settings-shell-section-label)]");
+    expect(screen.getByText("Tune reading behavior.")).toHaveClass("text-[13px]");
   });
 });
