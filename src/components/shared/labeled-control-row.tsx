@@ -3,6 +3,7 @@ import type { LabeledControlRowProps } from "./form-row.types";
 
 export function LabeledControlRow({
   label,
+  description,
   children,
   htmlFor,
   labelId,
@@ -10,6 +11,14 @@ export function LabeledControlRow({
   labelClassName,
 }: LabeledControlRowProps) {
   const labelClasses = cn("font-sans text-[14px] leading-[1.35] text-[color:var(--form-row-label)]", labelClassName);
+  const labelContent = (
+    <span className="flex min-w-0 flex-col gap-1.5">
+      <span className={labelClasses}>{label}</span>
+      {description ? (
+        <span className="font-serif text-xs leading-[1.45] text-foreground-soft">{description}</span>
+      ) : null}
+    </span>
+  );
 
   return (
     <div
@@ -19,12 +28,12 @@ export function LabeledControlRow({
       )}
     >
       {htmlFor ? (
-        <label id={labelId} htmlFor={htmlFor} className={labelClasses}>
-          {label}
+        <label id={labelId} htmlFor={htmlFor} className="min-w-0">
+          {labelContent}
         </label>
       ) : (
-        <span id={labelId} className={labelClasses}>
-          {label}
+        <span id={labelId} className="min-w-0">
+          {labelContent}
         </span>
       )}
       <div className="min-w-0 sm:flex sm:items-center sm:justify-end">{children}</div>

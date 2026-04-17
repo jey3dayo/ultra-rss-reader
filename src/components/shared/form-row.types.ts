@@ -2,6 +2,7 @@ import type { KeyboardEventHandler, ReactNode, RefObject } from "react";
 
 export type LabeledControlRowProps = {
   label: string;
+  description?: string;
   children?: ReactNode;
   htmlFor?: string;
   labelId?: string;

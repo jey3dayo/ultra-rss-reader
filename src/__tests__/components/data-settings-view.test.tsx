@@ -29,8 +29,8 @@ describe("DataSettingsView", () => {
 
     expect(screen.getByRole("heading", { name: "Data" })).toBeInTheDocument();
     expect(screen.getByText("1.50 MB")).toHaveClass("text-foreground-soft");
-    expect(screen.getByText("Optimize the database.")).toHaveClass("text-foreground-soft");
-    expect(screen.getByText("Open the log directory.")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("Optimize the database.")).toHaveClass("font-serif", "text-foreground-soft");
+    expect(screen.getByText("Open the log directory.")).toHaveClass("font-serif", "text-foreground-soft");
 
     await user.click(screen.getByRole("button", { name: "Optimize now" }));
     await user.click(screen.getByRole("button", { name: "Open log directory" }));

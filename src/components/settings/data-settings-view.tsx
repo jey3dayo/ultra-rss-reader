@@ -42,20 +42,18 @@ export function DataSettingsView({
         </LabeledControlRow>
       </SettingsSection>
       <SettingsSection heading={optimizationHeading} surface="flat" className="mb-6 sm:mb-7">
-        <p className="mb-2.5 text-xs text-foreground-soft sm:mb-3">{vacuumDescription}</p>
-        <div className="flex justify-end">
+        <LabeledControlRow label={vacuumLabel} description={vacuumDescription}>
           <Button variant="outline" className="h-10 w-full px-4 sm:w-auto" disabled={vacuuming} onClick={onVacuum}>
             {vacuumLabel}
           </Button>
-        </div>
+        </LabeledControlRow>
       </SettingsSection>
       <SettingsSection heading={logsHeading} surface="flat">
-        <p className="mb-2.5 text-xs text-foreground-soft sm:mb-3">{openLogDirDescription}</p>
-        <div className="flex justify-end">
+        <LabeledControlRow label={openLogDirLabel} description={openLogDirDescription}>
           <Button variant="outline" className="h-10 w-full px-4 sm:w-auto" onClick={onOpenLogDir}>
             {openLogDirLabel}
           </Button>
-        </div>
+        </LabeledControlRow>
       </SettingsSection>
     </SettingsContentLayout>
   );
