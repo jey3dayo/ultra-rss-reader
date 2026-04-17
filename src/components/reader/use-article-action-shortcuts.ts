@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import type { UseArticleActionShortcutsParams } from "./article-actions.types";
+import { bindWindowEvents } from "./use-browser-url-effect";
 
 export function useArticleActionShortcuts({
   keyboardShortcuts,
@@ -15,22 +16,14 @@ export function useArticleActionShortcuts({
       return;
     }
 
-    window.addEventListener(keyboardEvents.openInAppBrowser, keyboardShortcuts.onToggleBrowserOverlay);
-    window.addEventListener(keyboardEvents.closeBrowserOverlay, keyboardShortcuts.onCloseBrowserOverlay);
-    window.addEventListener(keyboardEvents.toggleRead, onToggleRead);
-    window.addEventListener(keyboardEvents.toggleStar, onToggleStar);
-    window.addEventListener(keyboardEvents.openExternalBrowser, onOpenExternalBrowser);
-    window.addEventListener(keyboardEvents.copyLink, onCopyLink);
-    window.addEventListener(keyboardEvents.addToReadingList, onAddToReadingList);
-
-    return () => {
-      window.removeEventListener(keyboardEvents.openInAppBrowser, keyboardShortcuts.onToggleBrowserOverlay);
-      window.removeEventListener(keyboardEvents.closeBrowserOverlay, keyboardShortcuts.onCloseBrowserOverlay);
-      window.removeEventListener(keyboardEvents.toggleRead, onToggleRead);
-      window.removeEventListener(keyboardEvents.toggleStar, onToggleStar);
-      window.removeEventListener(keyboardEvents.openExternalBrowser, onOpenExternalBrowser);
-      window.removeEventListener(keyboardEvents.copyLink, onCopyLink);
-      window.removeEventListener(keyboardEvents.addToReadingList, onAddToReadingList);
-    };
+    return bindWindowEvents([
+      { type: keyboardEvents.openInAppBrowser, listener: keyboardShortcuts.onToggleBrowserOverlay },
+      { type: keyboardEvents.closeBrowserOverlay, listener: keyboardShortcuts.onCloseBrowserOverlay },
+      { type: keyboardEvents.toggleRead, listener: onToggleRead },
+      { type: keyboardEvents.toggleStar, listener: onToggleStar },
+      { type: keyboardEvents.openExternalBrowser, listener: onOpenExternalBrowser },
+      { type: keyboardEvents.copyLink, listener: onCopyLink },
+      { type: keyboardEvents.addToReadingList, listener: onAddToReadingList },
+    ]);
   }, [keyboardShortcuts, onAddToReadingList, onCopyLink, onOpenExternalBrowser, onToggleRead, onToggleStar]);
 }

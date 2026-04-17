@@ -1,6 +1,6 @@
 import { useUiStore } from "@/stores/ui-store";
 import type { UseBrowserWebviewBoundsSyncParams } from "./browser-view.types";
-import { useBrowserUrlLayoutEffect } from "./use-browser-url-effect";
+import { bindWindowEvents, useBrowserUrlLayoutEffect } from "./use-browser-url-effect";
 
 export function useBrowserWebviewBoundsSync({
   browserUrl,
@@ -40,12 +40,12 @@ export function useBrowserWebviewBoundsSync({
       const handleResize = () => {
         syncBounds("resize");
       };
-      window.addEventListener("resize", handleResize);
+      const removeWindowEvents = bindWindowEvents([{ type: "resize", listener: handleResize }]);
 
       return () => {
         cancelled = true;
         observer?.disconnect();
-        window.removeEventListener("resize", handleResize);
+        removeWindowEvents();
       };
     },
     [hostRef, syncBrowserWebview, waitForBrowserWebviewListeners],

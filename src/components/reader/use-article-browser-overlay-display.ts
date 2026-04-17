@@ -8,6 +8,7 @@ import {
 } from "@/lib/article-display";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import type { UseArticleBrowserOverlayDisplayParams } from "./article-view.types";
+import { bindWindowEvents } from "./use-browser-url-effect";
 
 export function useArticleBrowserOverlayDisplay({
   articleId,
@@ -56,10 +57,7 @@ export function useArticleBrowserOverlayDisplay({
       preserveBrowserOverlayOnNextArticleRef.current = webPreviewModeOverride === "on";
     };
 
-    window.addEventListener(APP_EVENTS.navigateArticle, markKeyboardNavigationIntent);
-    return () => {
-      window.removeEventListener(APP_EVENTS.navigateArticle, markKeyboardNavigationIntent);
-    };
+    return bindWindowEvents([{ type: APP_EVENTS.navigateArticle, listener: markKeyboardNavigationIntent }]);
   }, [webPreviewModeOverride]);
 
   useEffect(() => {

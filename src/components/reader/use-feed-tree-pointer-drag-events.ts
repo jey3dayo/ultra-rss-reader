@@ -8,6 +8,7 @@ import {
 } from "./feed-tree-drag-session";
 import { getFeedDropTargetAtPoint, isSameFeedDropTarget } from "./feed-tree-drop-target";
 import { applyFeedTreeHoverTarget } from "./feed-tree-hover-target";
+import { bindWindowEvents } from "./use-browser-url-effect";
 
 export function useFeedTreePointerDragEvents({
   isPointerTracking,
@@ -97,17 +98,12 @@ export function useFeedTreePointerDragEvents({
       finishPointerDrag(null, true);
     };
 
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-    window.addEventListener("pointercancel", handlePointerCancel);
-    window.addEventListener("keydown", handleEscape);
-
-    return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-      window.removeEventListener("pointercancel", handlePointerCancel);
-      window.removeEventListener("keydown", handleEscape);
-    };
+    return bindWindowEvents([
+      { type: "pointermove", listener: handlePointerMove },
+      { type: "pointerup", listener: handlePointerUp },
+      { type: "pointercancel", listener: handlePointerCancel },
+      { type: "keydown", listener: handleEscape },
+    ]);
   }, [
     clearPointerTracking,
     isPointerTracking,

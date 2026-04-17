@@ -1,5 +1,5 @@
 import type { UseBrowserOverlayShortcutsParams } from "./browser-view.types";
-import { useBrowserUrlEffect } from "./use-browser-url-effect";
+import { bindWindowEvents, useBrowserUrlEffect } from "./use-browser-url-effect";
 
 export function useBrowserOverlayShortcuts({ browserUrl, handleCloseOverlay }: UseBrowserOverlayShortcutsParams) {
   useBrowserUrlEffect(browserUrl, () => {
@@ -16,10 +16,10 @@ export function useBrowserOverlayShortcuts({ browserUrl, handleCloseOverlay }: U
       handleCloseOverlay();
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    const removeWindowEvents = bindWindowEvents([{ type: "keydown", listener: handleKeyDown }]);
     return () => {
       window.cancelAnimationFrame(frame);
-      window.removeEventListener("keydown", handleKeyDown);
+      removeWindowEvents();
     };
   }, [handleCloseOverlay]);
 }
