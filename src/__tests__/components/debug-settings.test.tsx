@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DebugSettings } from "@/components/settings/debug-settings";
 import { usePreferencesStore } from "@/stores/preferences-store";
+import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
@@ -19,6 +20,21 @@ describe("DebugSettings", () => {
   beforeEach(() => {
     setupTauriMocks();
     usePreferencesStore.setState({ prefs: {}, loaded: true });
+    usePlatformStore.setState({
+      platform: {
+        kind: "unknown",
+        capabilities: {
+          supports_reading_list: false,
+          supports_background_browser_open: false,
+          supports_runtime_window_icon_replacement: false,
+          supports_native_browser_navigation: false,
+          uses_dev_file_credentials: false,
+        },
+      },
+      loaded: false,
+      loadError: false,
+      inFlightLoad: null,
+    });
     useUiStore.setState(useUiStore.getInitialState());
     runRuntimeDevScenarioMock.mockReset();
   });
@@ -76,5 +92,13 @@ describe("DebugSettings", () => {
     expect(screen.getByText("Open web preview geometry check")).toHaveClass("whitespace-nowrap");
     expect(screen.getByText("Open feed cleanup broken references")).toHaveClass("whitespace-nowrap");
     expect(screen.getByText("Open reading display mode settings")).toHaveClass("whitespace-nowrap");
+  });
+
+  it("shows the current credentials backend and relaunch hint", async () => {
+    render(<DebugSettings />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("OS keyring")).toBeInTheDocument();
+    expect(screen.getByText(/mise run app:dev/i)).toBeInTheDocument();
+    expect(screen.getByText(/mise run app:dev:native-keyring/i)).toBeInTheDocument();
   });
 });

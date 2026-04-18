@@ -75,4 +75,30 @@ describe("SettingsPageView", () => {
 
     expect(container.querySelector('[data-surface-card="section"]')).not.toBeNull();
   });
+
+  it("renders read-only info rows without interactive controls", () => {
+    render(
+      <SettingsPageView
+        title="Debug"
+        sections={[
+          {
+            id: "credentials",
+            heading: "Credentials",
+            controls: [
+              {
+                id: "credentials-backend",
+                type: "info",
+                label: "Storage backend",
+                value: "OS keyring",
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Storage backend")).toBeInTheDocument();
+    expect(screen.getByText("OS keyring")).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Storage backend" })).toBeNull();
+  });
 });

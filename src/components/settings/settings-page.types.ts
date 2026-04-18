@@ -58,11 +58,20 @@ export type SettingsPageActionControl = {
   labelClassName?: string;
 };
 
+export type SettingsPageInfoControl = {
+  id: string;
+  type: "info";
+  label: string;
+  value: string;
+  valueClassName?: string;
+};
+
 export type SettingsPageControl =
   | SettingsPageSelectControl
   | SettingsPageSwitchControl
   | SettingsPageTextControl
-  | SettingsPageActionControl;
+  | SettingsPageActionControl
+  | SettingsPageInfoControl;
 
 export type SettingsPageSection = {
   id: string;
@@ -91,4 +100,8 @@ export type SettingsPageTextRowProps = {
 
 export type SettingsPageActionRowProps = {
   control: SettingsPageActionControl;
+};
+
+export type SettingsPageInfoRowProps = {
+  control: SettingsPageInfoControl;
 };

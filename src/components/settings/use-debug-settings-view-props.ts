@@ -3,6 +3,7 @@ import type { SettingsPageViewProps, SettingsPreferenceViewPropsParams } from ".
 
 type UseDebugSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {
   devBuild: boolean;
+  credentialsBackendValue: string;
   openWebPreviewUrl: () => void;
   openWebPreviewGeometryCheck: () => void;
   runFeedCleanupBrokenReferencesScenario: () => void;
@@ -14,6 +15,7 @@ export function useDebugSettingsViewProps({
   prefs,
   setPref,
   devBuild,
+  credentialsBackendValue,
   openWebPreviewUrl,
   openWebPreviewGeometryCheck,
   runFeedCleanupBrokenReferencesScenario,
@@ -45,6 +47,19 @@ export function useDebugSettingsViewProps({
             onAction: openWebPreviewUrl,
             actionLabel: t("debug.open_now"),
             actionAriaLabel: `${t("debug.open_now")}: ${t("debug.web_preview_url")}`,
+          },
+        ],
+      },
+      {
+        id: "debug-credentials",
+        heading: t("debug.credentials"),
+        note: t("debug.credentials_note"),
+        controls: [
+          {
+            id: "debug-credentials-backend",
+            type: "info",
+            label: t("debug.credentials_backend"),
+            value: credentialsBackendValue,
           },
         ],
       },

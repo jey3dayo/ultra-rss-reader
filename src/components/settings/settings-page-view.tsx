@@ -1,6 +1,7 @@
 import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import type {
   SettingsPageActionRowProps,
+  SettingsPageInfoRowProps,
   SettingsPageSelectRowProps,
   SettingsPageSwitchRowProps,
   SettingsPageTextRowProps,
@@ -12,6 +13,7 @@ import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 function SettingsPageSelectRow({ control }: SettingsPageSelectRowProps) {
   return (
@@ -79,6 +81,21 @@ function SettingsPageActionRow({ control }: SettingsPageActionRowProps) {
   );
 }
 
+function SettingsPageInfoRow({ control }: SettingsPageInfoRowProps) {
+  return (
+    <LabeledControlRow label={control.label} className="gap-4">
+      <span
+        className={cn(
+          "block text-right font-serif text-sm leading-[1.45] text-foreground sm:max-w-[30rem]",
+          control.valueClassName,
+        )}
+      >
+        {control.value}
+      </span>
+    </LabeledControlRow>
+  );
+}
+
 export function SettingsPageView({ title, sections, sectionSurface = "flat" }: SettingsPageViewProps) {
   return (
     <SettingsContentLayout title={title} outerTestId="settings-page-root">
@@ -98,6 +115,8 @@ export function SettingsPageView({ title, sections, sectionSurface = "flat" }: S
               <SettingsPageSwitchRow key={control.id} control={control} />
             ) : control.type === "text" ? (
               <SettingsPageTextRow key={control.id} control={control} />
+            ) : control.type === "info" ? (
+              <SettingsPageInfoRow key={control.id} control={control} />
             ) : (
               <SettingsPageActionRow key={control.id} control={control} />
             ),
