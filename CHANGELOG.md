@@ -4,6 +4,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-04-19
+
+### Bug Fixes
+
+- settings navigation の選択状態を安定化し、アカウント nav label の clipping と selection shift を防いだ
+- biome ignore pattern を修正し、build folder が check 対象に混ざる問題を防いだ
+
+### Documentation
+
+- FreshRSS connection summary の design spec を追加した
+- typography table formatting を整え、design doc の markdown lint を通した
+- README / llms.txt / documentation entrypoint を現在の構成に同期した
+
+### Maintenance
+
+- system font stack と calmer surface motion へ寄せ、Windows を含む desktop app の typography / hover tone を安定化した
+- biome formatting を適用し、settings/account 周辺の整形を揃えた
+
 ## [0.14.0] - 2026-04-18
 
 ### Features
