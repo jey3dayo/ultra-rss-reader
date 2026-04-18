@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
+import { useUiStore } from "@/stores/ui-store";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticlePane, ArticleToolbar } from "./article-pane-view";
 import { ArticleEmptyStateShell, ArticleNotFoundStateView, BrowserOnlyStateView } from "./article-view-state";
@@ -20,20 +21,39 @@ export { ArticlePane, ArticleToolbar } from "./article-pane-view";
 
 function EmptyState({ emptyReason }: { emptyReason: "default" | "no-accounts" | "no-feeds" }) {
   const { t } = useTranslation("reader");
+  const { t: settingsT } = useTranslation("settings");
+  const openSettings = useUiStore((state) => state.openSettings);
+  const setSettingsAddAccount = useUiStore((state) => state.setSettingsAddAccount);
+  const openAddFeedDialog = useUiStore((state) => state.openAddFeedDialog);
+
+  const openAddAccountSettings = () => {
+    openSettings("accounts");
+    setSettingsAddAccount(true);
+  };
+
   const content =
     emptyReason === "no-accounts"
       ? {
+          eyebrow: t("empty_state_no_accounts_eyebrow"),
           message: t("empty_state_no_accounts_title"),
+          description: t("empty_state_no_accounts_description"),
           hints: [t("empty_state_no_accounts_sidebar_hint"), t("empty_state_no_accounts_settings_hint")],
+          actions: [{ label: settingsT("add_account_ellipsis"), onClick: openAddAccountSettings, variant: "default" as const }],
         }
       : emptyReason === "no-feeds"
         ? {
+            eyebrow: t("empty_state_no_feeds_eyebrow"),
             message: t("empty_state_no_feeds_title"),
+            description: t("empty_state_no_feeds_description"),
             hints: [t("empty_state_no_feeds_add_hint"), t("empty_state_no_feeds_discovery_hint")],
+            actions: [{ label: t("add_feed"), onClick: openAddFeedDialog, variant: "default" as const }],
           }
         : {
+            eyebrow: t("empty_state_default_eyebrow"),
             message: t("select_article_to_read"),
+            description: t("empty_state_default_description"),
             hints: [t("empty_state_search_hint"), t("empty_state_web_preview_hint")],
+            actions: [],
           };
 
   return (
@@ -41,7 +61,15 @@ function EmptyState({ emptyReason }: { emptyReason: "default" | "no-accounts" | 
       toolbar={
         <ArticleToolbar article={null} isBrowserOpen={false} onCloseView={() => {}} onToggleBrowserOverlay={() => {}} />
       }
-      body={<ArticleEmptyStateView message={content.message} hints={content.hints} />}
+      body={
+        <ArticleEmptyStateView
+          eyebrow={content.eyebrow}
+          message={content.message}
+          description={content.description}
+          hints={content.hints}
+          actions={content.actions}
+        />
+      }
     />
   );
 }

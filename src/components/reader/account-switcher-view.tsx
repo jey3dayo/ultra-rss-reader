@@ -1,5 +1,6 @@
 import { ChevronDown } from "lucide-react";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { AccountSwitcherProps } from "./account-switcher.types";
 import { AccountSwitcherMenu, focusAccountItem } from "./account-switcher-menu";
@@ -19,6 +20,7 @@ export function AccountSwitcherView({
   onSelectAccount,
   onClose,
 }: AccountSwitcherProps) {
+  const { t } = useTranslation("sidebar");
   const selectedAccount = accounts.find((account) => account.id === selectedAccountId);
   const hasMultipleAccounts = accounts.length > 1;
 
@@ -53,11 +55,14 @@ export function AccountSwitcherView({
         aria-expanded={hasMultipleAccounts ? isExpanded : undefined}
         aria-controls={hasMultipleAccounts ? menuId : undefined}
       >
-        <h1 className="flex items-center gap-1 text-2xl font-bold text-sidebar-foreground">
+        <span className="mb-1 inline-flex rounded-full border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-surface)] px-2.5 py-1 text-[0.64rem] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+          {t("workspace_label")}
+        </span>
+        <h1 className="flex items-center gap-1 text-[2rem] font-semibold tracking-[-0.04em] text-sidebar-foreground">
           {selectedAccount?.name ?? title}
           {hasMultipleAccounts && <ChevronDown className="h-4 w-4 text-foreground-soft" />}
         </h1>
-        <p className="text-xs text-foreground-soft">{lastSyncedLabel}</p>
+        <p className="mt-1 text-xs text-foreground-soft">{lastSyncedLabel}</p>
       </button>
 
       {isExpanded && accounts.length > 0 ? (

@@ -58,7 +58,7 @@ export function SidebarHeaderView({
   };
 
   return (
-    <div className="flex h-12 items-center justify-between border-b border-border/70 px-4 pl-20">
+    <div className="flex h-12 items-center justify-between border-b border-border/70 bg-[var(--workspace-header-surface)] px-4 pl-20 backdrop-blur-sm">
       <div data-tauri-drag-region aria-hidden="true" className="h-full min-w-0 flex-1" />
       <TooltipProvider>
         <div className="flex items-center gap-2">

@@ -75,8 +75,15 @@ export type ArticleNotFoundStateViewProps = {
 };
 
 export type ArticleEmptyStateViewProps = {
+  eyebrow?: string;
   message: string;
+  description?: string;
   hints?: string[];
+  actions?: Array<{
+    label: string;
+    onClick: () => void;
+    variant?: "default" | "outline" | "link";
+  }>;
 };
 
 export type UseArticleBrowserOverlayParams = {

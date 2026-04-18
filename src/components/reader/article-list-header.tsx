@@ -27,7 +27,7 @@ export function ArticleListHeader({
   const searchArticlesPlaceholder = t("search_articles_placeholder");
   return (
     <>
-      <div className="flex h-12 items-center border-b border-border px-3">
+      <div className="flex h-12 items-center border-b border-border/70 bg-[var(--workspace-header-surface)] px-3 backdrop-blur-sm">
         <ArticleListHeaderActions
           showSearch={showSearch}
           showSidebarButton={showSidebarButton}

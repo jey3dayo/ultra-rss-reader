@@ -14,6 +14,7 @@
   "accounts": "Accounts",
   "feed_cleanup": "Review Subscriptions",
   "settings": "Settings",
+  "workspace_label": "Reading workspace",
   "checking_sync_status": "Checking sync history…",
   "not_synced_yet": "Not synced yet",
   "today_at": "Today at {{time}}",

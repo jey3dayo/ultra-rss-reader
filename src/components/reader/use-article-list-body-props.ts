@@ -32,7 +32,7 @@ export function useArticleListBodyProps({
     emptyMessage: isSearchEmptyState
       ? t("search_no_results_title", { query: trimmedDebouncedQuery })
       : t("no_articles"),
-    emptyDescription: isSearchEmptyState ? t("search_no_results_description") : undefined,
+    emptyDescription: isSearchEmptyState ? t("search_no_results_description") : t("no_articles_description"),
     emptyActionLabel: isSearchEmptyState ? t("clear_search_action") : undefined,
     onEmptyAction: isSearchEmptyState ? handleCloseSearch : undefined,
     groups: articleGroups,

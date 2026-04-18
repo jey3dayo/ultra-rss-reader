@@ -12,7 +12,7 @@ export function ArticleList() {
   return (
     <div
       className={cn(
-        "flex h-full flex-col border-r border-border bg-card",
+        "flex h-full flex-col border-r border-[var(--subscriptions-pane-divider)] bg-[linear-gradient(180deg,rgba(247,247,244,0.94)_0%,rgba(235,234,229,0.82)_100%)]",
         layoutMode === "mobile" ? "w-full" : undefined,
       )}
       style={layoutMode === "mobile" ? undefined : { width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}
