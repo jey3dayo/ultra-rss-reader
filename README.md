@@ -71,23 +71,25 @@ mise install
 pnpm install
 
 # Run the desktop app in development mode
-pnpm tauri dev
+mise run app:dev
 ```
 
-`pnpm tauri dev` is the default development entry point. In this project, Tauri starts the Vite dev server with
-`beforeDevCommand` and loads the frontend from `devUrl` (`http://localhost:1420`).
+`mise run app:dev` is the default development entry point. It wraps the Tauri dev configuration used by this repository.
+Under the hood, Tauri starts the Vite dev server with `beforeDevCommand` and loads the frontend from `devUrl`
+(`http://localhost:1420`).
 
 ## Development Modes
 
-| Goal                                  | Command                      | Notes                                                                                                 |
-| ------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Live desktop development              | `pnpm tauri dev`             | Recommended default. Launches the Tauri shell and connects it to the Vite dev server with hot reload. |
-| Web-only frontend debugging           | `pnpm dev`                   | Starts the Vite dev server on `http://localhost:1420` without the Tauri shell.                        |
-| Preview the production frontend build | `pnpm build && pnpm preview` | Serves the current `dist/` output. Rebuild before previewing new changes.                             |
+- Live desktop development: `mise run app:dev`
+  Recommended default. Launches the Tauri shell with the repository dev config and hot reload.
+- Web-only frontend debugging: `mise run app:dev:browser`
+  Starts the browser-mode dev server on `http://127.0.0.1:4173/` without the Tauri shell.
+- Preview the production frontend build: `pnpm build && pnpm preview`
+  Serves the current `dist/` output. Rebuild before previewing new changes.
 
-`pnpm preview` is intentionally different from `pnpm tauri dev`:
+`pnpm preview` is intentionally different from `mise run app:dev`:
 
-- `pnpm tauri dev` is for day-to-day UI development.
+- `mise run app:dev` is for day-to-day UI development.
 - `pnpm preview` serves the built `dist/` directory and will show stale output until `pnpm build` is run again.
 - Use `pnpm preview` to sanity-check the production bundle, not as a replacement for the normal dev workflow.
 
@@ -102,6 +104,8 @@ mise run test         # Vitest + cargo test
 mise run test:e2e     # Playwright browser-mode E2E tests
 mise run test:all     # Rust + Vitest + Playwright
 mise run test:live    # FreshRSS integration tests (requires .env credentials)
+mise run app:dev      # Launch the native app in repository dev mode
+mise run app:dev:browser         # Launch browser-mode UI testing
 mise run app:dev:feed-cleanup         # Launch the native app directly into Feed Cleanup
 mise run app:dev:browser:feed-cleanup # Launch browser-mode UI directly into Feed Cleanup
 ```
@@ -129,9 +133,19 @@ Always run `mise run check` before committing.
 
 ## Troubleshooting
 
+- Start from [docs/README.md](docs/README.md) if you are not sure which operational document you need.
 - Use [docs/incident-runbook.md](docs/incident-runbook.md) for the shortest path to logs, backups, and failure-specific triage steps.
-- If the app looks stale during development, make sure you are using `pnpm tauri dev` or `pnpm dev`, not `pnpm preview`.
+- If the app looks stale during development, make sure you are using `mise run app:dev` or `mise run app:dev:browser`, not `pnpm preview`.
 - If `pnpm preview` does not reflect a recent frontend change, run `pnpm build` first so `dist/` is regenerated.
+
+## Documentation Map
+
+- [docs/README.md](docs/README.md) — index for operational docs and historical implementation records
+- [docs/superpowers/README.md](docs/superpowers/README.md) — reading guide for dated design and implementation records
+- [docs/release-manual-verification.md](docs/release-manual-verification.md) — packaged-build and live-service release checklist
+- [docs/incident-runbook.md](docs/incident-runbook.md) — failure triage for logs, backups, updater, keyring, and sync issues
+- [docs/feed-content-privacy.md](docs/feed-content-privacy.md) — privacy and CSP policy for remote article content
+- [.claude/rules/README.md](.claude/rules/README.md) — project-specific engineering rules by topic
 
 ## Architecture
 

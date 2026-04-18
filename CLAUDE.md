@@ -1,66 +1,51 @@
 # Ultra RSS Reader
 
-Desktop RSS feed reader built with Tauri 2 (Rust) + React 19 (TypeScript) + SQLite.
-Architecture, tech stack, and coding conventions are documented in [README.md](README.md).
+Use [README.md](README.md) as the primary source of truth for product overview, architecture, development modes, and command details.
+This file stays intentionally short and focuses on agent-facing workflow guidance.
 
-## Commands
+## Daily Workflow
 
-```bash
-mise run check          # format + lint + test (local dev loop)
-mise run ci             # format + lint + test + build (full gate)
-mise run format         # Biome + cargo fmt + taplo
-mise run lint           # tsc --noEmit + Biome lint + Clippy (-D warnings)
-mise run test           # Vitest + cargo test
-mise run test:live      # FreshRSS integration tests (requires .env credentials)
-mise run app:dev        # Run the app in dev mode
-mise run app:dev:browser # Browser UI testing (http://127.0.0.1:4173/)
-mise run app:build      # Build native app for current platform
-mise run app:icon       # Generate app icons
-```
+- Run `mise run check` before committing.
+- Use `mise run ci` when you need the full repository gate including build validation.
+- Default desktop development entry point: `mise run app:dev`.
+- Use `mise run app:dev:browser` only when browser-mode UI debugging is enough.
 
-Always run `mise run check` before committing.
+## Operational Notes
 
-## Development Notes
+- Dev builds log to stdout. Set `RUST_LOG=info` or higher when diagnosing sync, browser, or provider issues.
+- Release builds write file logs. Use the in-app "Open log directory" flow or `get_log_dir` for packaged-app troubleshooting.
+- `DEV_CREDENTIALS=1` is for development only and switches credentials to file-based storage. Production builds must keep using the OS keyring.
+- Before tagging a release or sharing a packaged build, follow [docs/release-manual-verification.md](docs/release-manual-verification.md).
+- For incident triage, logs, backups, or failure-specific recovery steps, start from [docs/README.md](docs/README.md).
 
-- Use `mise run app:dev` as the default desktop development entry point. Use `mise run app:dev:browser` when you only need browser-mode UI debugging.
-- Treat `README.md` as the human-facing source of truth for development modes and command details. Keep only short, always-needed guidance here.
-- Dev builds log to stdout. The default Rust log level is `warn`, so use `RUST_LOG=info` or higher when diagnosing sync, browser, or provider issues.
-- Release builds write file logs. Use the in-app "Open log directory" flow or `get_log_dir` when you need packaged-app logs for troubleshooting.
-- Setting `DEV_CREDENTIALS=1` switches development builds to the file-based credential store. Production builds should continue using the OS keyring.
-- Use `mise run test:live` only for live FreshRSS verification with encrypted `.env` credentials; keep it separate from the normal local dev loop.
-- Before tagging a release or handing off a packaged build, follow [docs/release-manual-verification.md](docs/release-manual-verification.md).
-- If a debugging or recovery procedure grows beyond a short note, move the detailed workflow into a skill and keep the background details in `README.md` or `docs/`.
+## Task Tracking
+
+- `TODO.md` tracks in-progress and upcoming work only.
+- `CHANGELOG.md` records completed user-visible changes.
+- Move finished TODO items into `CHANGELOG.md` once the work stabilizes.
 
 ## Temporary Artifacts
 
 - Save screenshots only when they are necessary for the task.
-- When a screenshot must be saved, store it under `tmp/screenshots/`.
-- Do not place screenshots in the repository root or alongside source files.
-- Prefer temporary logs and other Codex-generated artifacts under `tmp/` as well.
+- Store screenshots under `tmp/screenshots/`.
+- Prefer other temporary Codex-generated artifacts under `tmp/` as well.
+- Do not leave ad-hoc artifacts in the repository root or alongside source files.
 
-## Task Management
+## Documentation Map
 
-- `TODO.md`: Track in-progress and upcoming tasks.
-- `CHANGELOG.md`: Record completed features and fixes in Keep a Changelog format.
-- Once a batch of work stabilizes, move finished items from TODO.md to CHANGELOG.md.
+- [README.md](README.md): product overview, architecture, commands, verification model
+- [docs/README.md](docs/README.md): operational and reference docs index
+- [.claude/rules/README.md](.claude/rules/README.md): project-specific focused rules by topic
 
-## Architecture Overview
+## Feature Work Reminder
 
-```text
-Commands (IPC boundary) -> Service -> Repository (traits) -> Domain
-                                          |
-                                        Infra (SQLite, HTTP, providers)
-```
+When adding a feature, prefer this path unless the existing code suggests a tighter local pattern:
 
-Details in [README.md § Architecture](README.md#architecture).
-
-## Adding a New Feature
-
-1. Domain types in `src-tauri/src/domain/` (if new entities needed)
-2. Repository trait in `repository/` + SQLite implementation in `infra/db/`
-3. Service logic in `service/` (if orchestration needed)
-4. Tauri command in `commands/` with DTO conversion and AppError mapping
-5. TypeScript wrapper in `src/api/tauri-commands.ts` using `safeInvoke`
-6. React Query hook in `src/hooks/`
-7. UI components in `src/components/`
-8. Tests: `cargo test` (Rust), `vitest` (TypeScript)
+1. Domain types in `src-tauri/src/domain/` if new entities are needed.
+2. Repository trait and implementation updates in `repository/` and `infra/db/`.
+3. Service orchestration in `service/`.
+4. Tauri command wiring in `commands/`.
+5. TypeScript wrapper in `src/api/tauri-commands.ts` via `safeInvoke`.
+6. React Query hooks in `src/hooks/`.
+7. UI components in `src/components/`.
+8. Verification in Rust and TypeScript test suites.
