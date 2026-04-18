@@ -4,6 +4,27 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-04-19
+
+### Features
+
+- reader の empty state を state-aware に見直し、アカウント未設定・フィード未登録時の案内と CTA を分かりやすくした
+- Debug settings で現在の認証情報 backend を表示し、dev file credentials と OS keyring の切り替え導線を確認しやすくした
+
+### Bug Fixes
+
+- Windows 本番 build で keyring backend が mock に落ちる構成を修正し、Credential Manager への保存検証が失敗する問題を解消した
+
+### Documentation
+
+- release workflow の tag guard を補強し、release commit / tag / version file の整合確認を明文化した
+
+### Maintenance
+
+- `mise run app:dev:native-keyring` を追加し、開発中でも OS keyring backend を明示的に使って確認できるようにした
+- reader の refreshed empty state と debug backend 表示のテスト coverage を追加した
+- biome formatting を適用し、reader / settings 周辺の整形を揃えた
+
 ## [0.15.0] - 2026-04-19
 
 ### Bug Fixes
