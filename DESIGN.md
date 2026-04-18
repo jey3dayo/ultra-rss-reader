@@ -60,10 +60,10 @@ Color governance:
 
 ## Typography
 
-- Headline Font: `CursorGothic`, with fallbacks `CursorGothic Fallback, system-ui, Helvetica Neue, Helvetica, Arial`
-- Body Font: `jjannon`, with fallbacks `Iowan Old Style, Palatino Linotype, URW Palladio L, P052, ui-serif, Georgia, Cambria, Times New Roman, Times`
-- Label Font: `CursorGothic`, with fallbacks matching the headline stack
-- Code Font: `berkeleyMono`, with fallbacks `ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New`
+- Headline Font: platform-native sans UI stack, with `ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI Variable Text, Segoe UI, Hiragino Sans, Hiragino Kaku Gothic ProN, Yu Gothic UI, Meiryo`
+- Body Font: platform-native sans UI stack by default; serif is a secondary accent stack for reading surfaces only
+- Label Font: platform-native sans UI stack matching the headline stack
+- Code Font: platform-native monospace stack, with `ui-monospace, SFMono-Regular, SF Mono, Cascadia Mono, Cascadia Code, Consolas, Menlo, Monaco, Liberation Mono, Courier New`
 
 Role guidance:
 
@@ -76,27 +76,27 @@ Detailed hierarchy:
 
 | Role            | Font         | Size              | Weight  | Line Height    | Letter Spacing | Notes                                |
 | --------------- | ------------ | ----------------- | ------- | -------------- | -------------- | ------------------------------------ |
-| Display Hero    | CursorGothic | 72px (4.50rem)    | 400     | 1.10 (tight)   | -2.16px        | Maximum compression, hero statements |
-| Section Heading | CursorGothic | 36px (2.25rem)    | 400     | 1.20 (tight)   | -0.72px        | Feature sections, CTA headlines      |
-| Sub-heading     | CursorGothic | 26px (1.63rem)    | 400     | 1.25 (tight)   | -0.325px       | Card headings, sub-sections          |
-| Title Small     | CursorGothic | 22px (1.38rem)    | 400     | 1.30 (tight)   | -0.11px        | Smaller titles, list headings        |
-| Body Serif      | jjannon      | 19.2px (1.20rem)  | 500     | 1.50           | normal         | Editorial body with `"cswh"`         |
-| Body Serif SM   | jjannon      | 17.28px (1.08rem) | 400     | 1.35           | normal         | Standard body text, descriptions     |
-| Body Sans       | CursorGothic | 16px (1.00rem)    | 400     | 1.50           | normal/0.08px  | UI body text                         |
-| Button Label    | CursorGothic | 14px (0.88rem)    | 400     | 1.00 (tight)   | normal         | Primary button text                  |
-| Button Caption  | CursorGothic | 14px (0.88rem)    | 400     | 1.50           | 0.14px         | Secondary button with `"ss09"`       |
-| Caption         | CursorGothic | 11px (0.69rem)    | 400-500 | 1.50           | normal         | Small captions, metadata             |
+| Display Hero    | System UI Sans | 72px (4.50rem)  | 500     | 1.10 (tight)   | -2.16px        | Maximum compression, hero statements |
+| Section Heading | System UI Sans | 36px (2.25rem)  | 500     | 1.20 (tight)   | -0.72px        | Feature sections, CTA headlines      |
+| Sub-heading     | System UI Sans | 26px (1.63rem)  | 500     | 1.25 (tight)   | -0.325px       | Card headings, sub-sections          |
+| Title Small     | System UI Sans | 22px (1.38rem)  | 500     | 1.30 (tight)   | -0.11px        | Smaller titles, list headings        |
+| Body Serif      | System Serif   | 19.2px (1.20rem)| 500     | 1.50           | normal         | Editorial body for reading surfaces  |
+| Body Serif SM   | System Serif   | 17.28px (1.08rem)| 400    | 1.35           | normal         | Standard body text, descriptions     |
+| Body Sans       | System UI Sans | 16px (1.00rem)  | 400     | 1.50           | normal/0.08px  | UI body text                         |
+| Button Label    | System UI Sans | 14px (0.88rem)  | 500     | 1.00 (tight)   | normal         | Primary button text                  |
+| Button Caption  | System UI Sans | 14px (0.88rem)  | 400     | 1.50           | 0.14px         | Secondary button label               |
+| Caption         | System UI Sans | 11px (0.69rem)  | 400-500 | 1.50           | normal         | Small captions, metadata             |
 | System Heading  | system-ui    | 20px (1.25rem)    | 700     | 1.55           | normal         | System UI headings                   |
 | System Caption  | system-ui    | 13px (0.81rem)    | 500-600 | 1.33           | normal         | System UI labels                     |
 | System Micro    | system-ui    | 11px (0.69rem)    | 500     | 1.27 (tight)   | 0.048px        | Uppercase micro labels               |
-| Mono Body       | berkeleyMono | 12px (0.75rem)    | 400     | 1.67 (relaxed) | normal         | Code blocks                          |
-| Mono Small      | berkeleyMono | 11px (0.69rem)    | 400     | 1.33           | -0.275px       | Inline code, terminal                |
+| Mono Body       | System Mono  | 12px (0.75rem)    | 400     | 1.67 (relaxed) | normal         | Code blocks                          |
+| Mono Small      | System Mono  | 11px (0.69rem)    | 400     | 1.33           | -0.275px       | Inline code, terminal                |
 
 Typography principles:
 
-- CursorGothic uses size and tracking for hierarchy more than weight.
-- The serif body font should provide warmth and reading comfort.
-- The relationship between gothic display, serif body, and mono technical text is part of the brand and should remain visible in the UI.
+- Desktop-app UI should prefer platform-native font rendering for settings, navigation, forms, dialogs, and dense controls.
+- Serif is an accent layer for reading comfort and editorial warmth, not the default UI face.
+- If a custom brand font is needed, bundle it explicitly and limit it to large headings or marketing-like moments instead of core app chrome.
 
 ## Elevation
 
@@ -159,6 +159,7 @@ Elevation scale:
 ### Layout Stability
 
 - Important workspace layouts should keep their geometry stable as state changes. Selection, filtering, loading, and bulk-action states should usually swap content within an existing rail instead of inserting a new structural row that pushes the main list or detail view.
+- In navigation rails and settings sidebars, selected and focused rows should keep the same outer geometry as idle rows. Prefer inset strokes, inner shadows, or overlaid indicators over borders or rings that change the row's occupied size.
 - When a screen needs contextual controls such as bulk actions, filter summaries, or status messaging, prefer a persistent control rail with quieter empty or disabled states over a panel that appears and disappears. The user should feel that the interface is changing emphasis, not reflowing underneath them.
 - Distinguish the content edge from the scroll edge. The right edge of cards, list rows, headers, and control rails should align to one shared content endpoint, while scrollbar gutter and overflow clearance should be handled as a separate lane rather than by ad hoc padding nudges.
 - Border and divider responsibility should live in one place. Avoid combining a section border, an inner scroll lane, and last-mile padding adjustments in a way that creates double lines or drifting endpoints.

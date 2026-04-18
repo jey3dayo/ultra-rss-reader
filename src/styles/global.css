@@ -72,12 +72,14 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-  --font-sans: "CursorGothic", "CursorGothic Fallback", system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI",
+    "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", Meiryo, sans-serif;
   --font-serif:
-    "jjannon", "Iowan Old Style", "Palatino Linotype", "URW Palladio L", P052, ui-serif, Georgia, Cambria,
-    "Times New Roman", Times, serif;
+    ui-serif, Georgia, Cambria, "Times New Roman", Times, "Hiragino Mincho ProN", "Yu Mincho", YuMincho, serif;
   --font-mono:
-    "berkeleyMono", ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    ui-monospace, "SFMono-Regular", "SF Mono", "Cascadia Mono", "Cascadia Code", Consolas, Menlo, Monaco,
+    "Liberation Mono", "Courier New", monospace;
   --animate-indeterminate: indeterminate 1.5s ease-in-out infinite;
 }
 
@@ -652,17 +654,9 @@ body {
 }
 
 .motion-interactive-surface {
-  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-property: background-color, border-color, color, box-shadow;
   transition-duration: var(--motion-duration-disclosure);
   transition-timing-function: var(--motion-ease-standard);
-}
-
-.motion-interactive-surface:hover {
-  transform: translateY(-1px);
-}
-
-.motion-interactive-surface:active {
-  transform: translateY(0);
 }
 
 .motion-pressable-surface {
@@ -686,18 +680,9 @@ body {
 }
 
 .motion-contextual-surface {
-  transition-property: background-color, border-color, color, box-shadow, opacity, transform;
+  transition-property: background-color, border-color, color, box-shadow, opacity;
   transition-duration: var(--motion-duration-contextual);
   transition-timing-function: var(--motion-ease-standard);
-}
-
-.motion-contextual-surface:hover,
-.motion-contextual-surface:focus-within {
-  transform: translateY(-1px);
-}
-
-.motion-contextual-surface:active {
-  transform: translateY(0);
 }
 
 @keyframes motion-content-swap-enter {
