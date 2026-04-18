@@ -1,7 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useRef, useState } from "react";
-import { copyToClipboard, setPreference, testAccountConnection, updateAccountCredentials } from "@/api/tauri-commands";
-import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
+import { copyToClipboard, testAccountConnection, updateAccountCredentials } from "@/api/tauri-commands";
 import { useUiStore } from "@/stores/ui-store";
 import type {
   UseAccountDetailCredentialsEditorParams,
@@ -17,24 +16,14 @@ export function useAccountDetailCredentialsEditor({
   queryClient,
   t,
 }: UseAccountDetailCredentialsEditorParams): UseAccountDetailCredentialsEditorResult {
-  const prefs = usePreferencesStore((s) => s.prefs);
   const [credServerUrl, setCredServerUrl] = useState<string | null>(null);
   const [credUsername, setCredUsername] = useState<string | null>(null);
   const [credPassword, setCredPassword] = useState<string | null>(null);
-  const [appId, setAppId] = useState<string | null>(null);
-  const [appKey, setAppKey] = useState<string | null>(null);
-  const [hasSavedAppKey, setHasSavedAppKey] = useState(false);
   const [hasSavedPassword, setHasSavedPassword] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const pendingCredentialSaveRef = useRef<Promise<boolean> | null>(null);
-  const pendingAppCredentialSaveRef = useRef<Promise<boolean> | null>(null);
   const showCredentialSaveError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
-  const showAppCredentialSaveError = createAccountDetailErrorToast(t, "account.failed_to_save_app_credentials");
   const showConnectionError = createAccountDetailErrorToast(t, "account.connection_failed");
-  const currentAppId = resolvePreferenceValue(prefs, "inoreader_app_id");
-  const currentAppKey = resolvePreferenceValue(prefs, "inoreader_app_key");
-  const appIdValue = appId ?? currentAppId;
-  const appKeyValue = appKey ?? (hasSavedAppKey || currentAppKey ? MASKED_PASSWORD_VALUE : "");
   const passwordDisplayValue = credPassword ?? (hasSavedPassword ? MASKED_PASSWORD_VALUE : "");
 
   const commitCredentials = async (): Promise<boolean> => {
@@ -80,70 +69,9 @@ export function useAccountDetailCredentialsEditor({
     return pendingCredentialSaveRef.current;
   };
 
-  const commitAppCredentials = async (): Promise<boolean> => {
-    if (account.kind !== "Inoreader") {
-      return true;
-    }
-
-    if (pendingAppCredentialSaveRef.current) {
-      return pendingAppCredentialSaveRef.current;
-    }
-
-    const saveTask = (async () => {
-      const nextAppId = (appId ?? currentAppId).trim();
-      const nextAppKey = (appKey ?? currentAppKey).trim();
-      const appIdChanged = appId !== null && nextAppId !== currentAppId;
-      const appKeyChanged = appKey !== null && nextAppKey !== currentAppKey;
-
-      if (!appIdChanged && !appKeyChanged) {
-        setAppKey(null);
-        return true;
-      }
-
-      let saved = false;
-      const saveAppId = appIdChanged ? await setPreference("inoreader_app_id", nextAppId) : Result.succeed(null);
-      const saveAppKey = appKeyChanged ? await setPreference("inoreader_app_key", nextAppKey) : Result.succeed(null);
-
-      if (Result.isFailure(saveAppId)) {
-        showAppCredentialSaveError(Result.unwrapError(saveAppId));
-        return false;
-      }
-
-      if (Result.isFailure(saveAppKey)) {
-        showAppCredentialSaveError(Result.unwrapError(saveAppKey));
-        return false;
-      }
-
-      usePreferencesStore.setState((state) => ({
-        prefs: {
-          ...state.prefs,
-          inoreader_app_id: nextAppId,
-          inoreader_app_key: nextAppKey,
-        },
-      }));
-      setAppId(null);
-      setAppKey(null);
-      setHasSavedAppKey(nextAppKey.length > 0);
-      useUiStore.getState().showToast(t("account.app_credentials_saved"));
-      saved = true;
-      return saved;
-    })();
-
-    pendingAppCredentialSaveRef.current = saveTask.finally(() => {
-      pendingAppCredentialSaveRef.current = null;
-    });
-
-    return pendingAppCredentialSaveRef.current;
-  };
-
   const handleTestConnection = async () => {
     setTestingConnection(true);
     try {
-      const appCredentialsSaved = await commitAppCredentials();
-      if (!appCredentialsSaved) {
-        return;
-      }
-
       const credentialsSaved = await commitCredentials();
       if (!credentialsSaved) {
         return;
@@ -191,30 +119,18 @@ export function useAccountDetailCredentialsEditor({
     }
   };
 
-  const onAppKeyFocus = () => {
-    if (appKey === null) {
-      setAppKey("");
-    }
-  };
-
   return {
     credServerUrl,
     credUsername,
     credPassword,
-    appIdValue,
-    appKeyValue,
     passwordDisplayValue,
     testingConnection,
     setCredServerUrl,
     setCredUsername,
     setCredPassword,
-    setAppId,
-    setAppKey,
     commitCredentials,
-    commitAppCredentials,
     handleTestConnection,
     handleCopyServerUrl,
     onPasswordFocus,
-    onAppKeyFocus,
   };
 }

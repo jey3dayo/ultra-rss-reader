@@ -3,10 +3,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft } from "lucide-react";
 import { useMemo, useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { addAccount, setPreference } from "@/api/tauri-commands";
+import { addAccount } from "@/api/tauri-commands";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
-import { LabelChip } from "@/components/shared/label-chip";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import {
@@ -17,7 +16,6 @@ import {
   getAddAccountFormConfig,
 } from "@/lib/add-account-form";
 import { cn } from "@/lib/utils";
-import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { findServiceDefinition } from "./add-account-services";
 import type { AccountConfigFormProps } from "./add-account-services.types";
@@ -27,13 +25,10 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
   const { t: tc } = useTranslation("common");
   const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
   const setSettingsAccountId = useUiStore((s) => s.setSettingsAccountId);
-  const prefs = usePreferencesStore((s) => s.prefs);
   const qc = useQueryClient();
   const [form, dispatch] = useReducer(addAccountFormReducer, {
     ...addAccountFormInitialState,
     kind,
-    appId: kind === "Inoreader" ? resolvePreferenceValue(prefs, "inoreader_app_id") : "",
-    appKey: kind === "Inoreader" ? resolvePreferenceValue(prefs, "inoreader_app_key") : "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -42,28 +37,6 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
   const serviceDef = findServiceDefinition(kind);
   const labelColumnClassName = "sm:w-40 sm:shrink-0";
   const inputClassName = "h-10";
-
-  const persistInoreaderPreferences = async (appId: string, appKey: string) => {
-    const saveAppId = await setPreference("inoreader_app_id", appId);
-    if (Result.isFailure(saveAppId)) {
-      return Result.fail(Result.unwrapError(saveAppId));
-    }
-
-    const saveAppKey = await setPreference("inoreader_app_key", appKey);
-    if (Result.isFailure(saveAppKey)) {
-      return Result.fail(Result.unwrapError(saveAppKey));
-    }
-
-    usePreferencesStore.setState((state) => ({
-      prefs: {
-        ...state.prefs,
-        inoreader_app_id: appId,
-        inoreader_app_key: appKey,
-      },
-    }));
-
-    return Result.succeed(undefined);
-  };
 
   const handleSubmit = async () => {
     setErrorMessage(null);
@@ -79,19 +52,6 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
     const payload = Result.unwrap(payloadResult);
     setSubmitting(true);
 
-    if (payload.kind === "Inoreader") {
-      const savePrefs = await persistInoreaderPreferences(payload.appId ?? "", payload.appKey ?? "");
-      if (Result.isFailure(savePrefs)) {
-        const message = t("account.failed_to_save_app_credentials", {
-          message: Result.unwrapError(savePrefs).message,
-        });
-        setErrorMessage(message);
-        useUiStore.getState().showToast(message);
-        setSubmitting(false);
-        return;
-      }
-    }
-
     Result.pipe(
       await addAccount(payload.kind, payload.name, payload.serverUrl, payload.username, payload.password),
       Result.inspectError((e) => {
@@ -99,8 +59,6 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
         let message: string;
         if (appError.type === "Retryable") {
           message = t("account.error_network");
-        } else if (payload.kind === "Inoreader" && appError.message.toLowerCase().includes("app id")) {
-          message = t("account.error_missing_inoreader_app_credentials");
         } else if (appError.message.toLowerCase().includes("auth")) {
           message = t("account.error_auth");
           if (kind === "FreshRss") {
@@ -152,20 +110,10 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
             <div className="min-w-0">
               <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <span>{t(serviceDef.nameKey as "account.local_feeds")}</span>
-                {serviceDef.beta ? (
-                  <LabelChip tone="warning" size="compact" className="rounded-md px-1.5 py-0.5">
-                    {t("account.beta_badge")}
-                  </LabelChip>
-                ) : null}
               </div>
               <div className="font-serif text-xs leading-[1.45] text-foreground-soft">
                 {t(serviceDef.descKey as "account.local_desc")}
               </div>
-              {serviceDef.beta ? (
-                <p className="mt-1 font-serif text-xs leading-[1.45] text-foreground-soft">
-                  {t("account.inoreader_beta_note")}
-                </p>
-              ) : null}
             </div>
           </div>
         </SurfaceCard>
@@ -205,31 +153,8 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
                 disabled={submitting}
               />
             )}
-            {formConfig.showAppCredentials && (
-              <>
-                <LabeledInputRow
-                  label={t("account.app_id")}
-                  name="app-id"
-                  value={form.appId}
-                  onChange={(value) => dispatch({ type: "setField", field: "appId", value })}
-                  labelClassName={labelColumnClassName}
-                  inputClassName={inputClassName}
-                  disabled={submitting}
-                />
-                <LabeledInputRow
-                  label={t("account.app_key")}
-                  name="app-key"
-                  type="password"
-                  value={form.appKey}
-                  onChange={(value) => dispatch({ type: "setField", field: "appKey", value })}
-                  labelClassName={labelColumnClassName}
-                  inputClassName={inputClassName}
-                  disabled={submitting}
-                />
-              </>
-            )}
             <LabeledInputRow
-              label={form.kind === "Inoreader" ? t("account.email") : (formConfig.credentialLabel ?? "")}
+              label={formConfig.credentialLabel ?? ""}
               name={formConfig.credentialName ?? undefined}
               value={form.username}
               onChange={(value) => dispatch({ type: "setField", field: "username", value })}

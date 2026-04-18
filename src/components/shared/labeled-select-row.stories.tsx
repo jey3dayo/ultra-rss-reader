@@ -23,7 +23,6 @@ const meta = {
     options: [
       { value: "freshrss", label: "FreshRSS" },
       { value: "feedbin", label: "Feedbin" },
-      { value: "inoreader", label: "Inoreader" },
     ],
     onChange: fn(),
   },

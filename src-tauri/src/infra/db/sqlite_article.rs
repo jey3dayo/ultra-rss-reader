@@ -491,11 +491,10 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
 
             for (_, _, remote_entry_id, account_kind, row_account_id, feed_remote_id) in &rows {
                 if let Some(remote_entry_id) = remote_entry_id {
-                    let supports_remote_mutations =
-                        matches!(account_kind.as_str(), "FreshRss" | "Inoreader")
-                            && feed_remote_id
-                                .as_deref()
-                                .is_some_and(|remote_id| remote_id.starts_with("feed/"));
+                    let supports_remote_mutations = matches!(account_kind.as_str(), "FreshRss")
+                        && feed_remote_id
+                            .as_deref()
+                            .is_some_and(|remote_id| remote_id.starts_with("feed/"));
 
                     if supports_remote_mutations {
                         let mutation = PendingMutation {

@@ -16,7 +16,6 @@ const meta = {
       options: [
         { value: "Local", label: "Local feeds" },
         { value: "FreshRSS", label: "FreshRSS" },
-        { value: "Inoreader", label: "Inoreader" },
       ],
       onChange: fn(),
       disabled: false,
@@ -60,7 +59,6 @@ export const FreshRSSAccount: Story = {
       options: [
         { value: "Local", label: "Local feeds" },
         { value: "FreshRSS", label: "FreshRSS" },
-        { value: "Inoreader", label: "Inoreader" },
       ],
       onChange: fn(),
       disabled: false,

@@ -30,8 +30,6 @@ describe("AddAccountForm", () => {
 
     expect(screen.getByText("Local Feeds")).toBeInTheDocument();
     expect(screen.getByText("FreshRSS")).toBeInTheDocument();
-    expect(screen.getByText("Inoreader")).toBeInTheDocument();
-    expect(screen.getAllByText("Beta")).not.toHaveLength(0);
     expect(screen.getByText("Feedly")).toBeInTheDocument();
     expect(screen.getByText("Fever")).toBeInTheDocument();
   });
@@ -41,11 +39,9 @@ describe("AddAccountForm", () => {
 
     const feverButton = screen.getByRole("button", { name: /Fever/ });
     const feedlyButton = screen.getByRole("button", { name: /Feedly/ });
-    const inoreaderButton = screen.getByRole("button", { name: /Inoreader/ });
 
     expect(feverButton).toBeDisabled();
     expect(feedlyButton).toBeDisabled();
-    expect(inoreaderButton).not.toBeDisabled();
     expect(screen.getByText("Deprecated. Not recommended.")).toBeInTheDocument();
     expect(screen.getByText("On hold due to enterprise-only API access")).toBeInTheDocument();
   });
@@ -106,33 +102,6 @@ describe("AddAccountForm", () => {
     await waitFor(() => {
       expect(screen.getByText("Local Feeds")).toBeInTheDocument();
     });
-  });
-
-  it("shows Inoreader-specific app credential fields in the config form", async () => {
-    const user = userEvent.setup();
-    usePreferencesStore.setState({
-      prefs: {
-        inoreader_app_id: "saved-app-id",
-        inoreader_app_key: "saved-app-key",
-      },
-      loaded: true,
-    });
-
-    render(<AddAccountForm />, { wrapper: createWrapper() });
-
-    await selectService(user, "Inoreader");
-
-    expect(screen.getByLabelText("Name")).toBeInTheDocument();
-    expect(screen.getByLabelText("App ID")).toHaveValue("saved-app-id");
-    expect(screen.getByLabelText("App Key")).toHaveValue("saved-app-key");
-    expect(screen.getByLabelText("Email")).toBeInTheDocument();
-    expect(screen.getByLabelText("Password")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Server URL")).not.toBeInTheDocument();
-    expect(screen.getByText("inoreader.com")).toHaveClass("text-foreground-soft");
-    expect(screen.getAllByText("Beta")).not.toHaveLength(0);
-    expect(
-      screen.getByText("Beta: requires Inoreader App ID / App Key. Real-world verification is still in progress."),
-    ).toHaveClass("text-foreground-soft");
   });
 
   it("does not navigate to the config form when a planned service is clicked", async () => {

@@ -135,21 +135,15 @@ export type UseAccountDetailCredentialsEditorResult = {
   credServerUrl: string | null;
   credUsername: string | null;
   credPassword: string | null;
-  appIdValue: string;
-  appKeyValue: string;
   passwordDisplayValue: string;
   testingConnection: boolean;
   setCredServerUrl: (value: string | null) => void;
   setCredUsername: (value: string | null) => void;
   setCredPassword: (value: string | null) => void;
-  setAppId: (value: string | null) => void;
-  setAppKey: (value: string | null) => void;
   commitCredentials: () => Promise<boolean>;
-  commitAppCredentials: () => Promise<boolean>;
   handleTestConnection: () => Promise<void>;
   handleCopyServerUrl: () => Promise<void>;
   onPasswordFocus: () => void;
-  onAppKeyFocus: () => void;
 };
 
 export type UseAccountDetailSyncControlsParams = {

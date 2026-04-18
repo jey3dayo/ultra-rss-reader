@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 pub enum ProviderKind {
     Local,
     FreshRss,
-    Inoreader,
 }
 
 #[derive(Debug, Clone)]

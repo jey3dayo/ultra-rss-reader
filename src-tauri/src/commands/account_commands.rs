@@ -7,36 +7,10 @@ use crate::domain::account::Account;
 use crate::domain::provider::ProviderKind;
 use crate::domain::types::AccountId;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
-use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
 use crate::infra::keyring_store;
 use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::traits::{Credentials, FeedProvider};
 use crate::repository::account::AccountRepository;
-use crate::repository::preference::PreferenceRepository;
-
-fn load_inoreader_app_credentials(
-    pref_repo: &SqlitePreferenceRepository<'_>,
-) -> Result<(Option<String>, Option<String>), AppError> {
-    let app_id = pref_repo.get("inoreader_app_id").unwrap_or(None);
-    let app_key = pref_repo.get("inoreader_app_key").unwrap_or(None);
-
-    let has_app_id = app_id
-        .as_deref()
-        .map(|value| !value.trim().is_empty())
-        .unwrap_or(false);
-    let has_app_key = app_key
-        .as_deref()
-        .map(|value| !value.trim().is_empty())
-        .unwrap_or(false);
-
-    if !has_app_id || !has_app_key {
-        return Err(AppError::UserVisible {
-            message: "Inoreader App ID and App Key are not configured".into(),
-        });
-    }
-
-    Ok((app_id, app_key))
-}
 
 #[tauri::command]
 pub fn list_accounts(state: State<'_, AppState>) -> Result<Vec<AccountDto>, AppError> {
@@ -60,7 +34,6 @@ pub async fn add_account(
     let provider_kind = match kind.as_str() {
         "Local" => ProviderKind::Local,
         "FreshRss" => ProviderKind::FreshRss,
-        "Inoreader" => ProviderKind::Inoreader,
         _ => {
             return Err(AppError::UserVisible {
                 message: "Unknown provider kind".into(),
@@ -81,26 +54,9 @@ pub async fn add_account(
     };
 
     // Validate connection for remote providers (no DB lock held during .await)
-    if matches!(
-        account.kind,
-        ProviderKind::FreshRss | ProviderKind::Inoreader
-    ) {
-        let mut provider = match account.kind {
-            ProviderKind::FreshRss => {
-                GReaderProvider::for_freshrss(account.server_url.as_deref().unwrap_or_default())
-            }
-            ProviderKind::Inoreader => {
-                let (app_id, app_key) = {
-                    let db_guard = state.db.lock().map_err(|e| AppError::UserVisible {
-                        message: format!("Lock error: {e}"),
-                    })?;
-                    let pref_repo = SqlitePreferenceRepository::new(db_guard.reader());
-                    load_inoreader_app_credentials(&pref_repo)?
-                }; // DB lock dropped here before .await
-                GReaderProvider::for_inoreader(app_id, app_key)
-            }
-            _ => unreachable!(),
-        };
+    if matches!(account.kind, ProviderKind::FreshRss) {
+        let mut provider =
+            GReaderProvider::for_freshrss(account.server_url.as_deref().unwrap_or_default());
 
         provider
             .authenticate(&Credentials {
@@ -111,10 +67,7 @@ pub async fn add_account(
     }
 
     // Store password in OS keyring BEFORE DB save (fail fast)
-    if matches!(
-        account.kind,
-        ProviderKind::FreshRss | ProviderKind::Inoreader
-    ) {
+    if matches!(account.kind, ProviderKind::FreshRss) {
         if let Some(ref pw) = password {
             keyring_store::set_password(account.id.as_ref(), pw)?;
         }
@@ -227,27 +180,17 @@ pub async fn test_account_connection(
 ) -> Result<bool, AppError> {
     let id = AccountId(account_id);
 
-    let (account, inoreader_creds) = {
+    let account = {
         let db = state.db.lock().map_err(|e| AppError::UserVisible {
             message: format!("Lock error: {e}"),
         })?;
         let repo = SqliteAccountRepository::new(db.reader());
-        let account = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
+        repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
             message: "Account not found".into(),
-        })?;
-        let creds = if account.kind == ProviderKind::Inoreader {
-            let pref_repo = SqlitePreferenceRepository::new(db.reader());
-            load_inoreader_app_credentials(&pref_repo)?
-        } else {
-            (None, None)
-        };
-        (account, creds)
+        })?
     }; // DB lock dropped
 
-    if !matches!(
-        account.kind,
-        ProviderKind::FreshRss | ProviderKind::Inoreader
-    ) {
+    if !matches!(account.kind, ProviderKind::FreshRss) {
         return Ok(true);
     }
 
@@ -260,15 +203,8 @@ pub async fn test_account_connection(
 
     let password = keyring_store::get_password(id.as_ref())?;
 
-    let mut provider = match account.kind {
-        ProviderKind::FreshRss => {
-            GReaderProvider::for_freshrss(account.server_url.as_deref().unwrap_or_default())
-        }
-        ProviderKind::Inoreader => {
-            GReaderProvider::for_inoreader(inoreader_creds.0, inoreader_creds.1)
-        }
-        _ => unreachable!(),
-    };
+    let mut provider =
+        GReaderProvider::for_freshrss(account.server_url.as_deref().unwrap_or_default());
 
     provider
         .authenticate(&Credentials {
@@ -278,38 +214,6 @@ pub async fn test_account_connection(
         .await?;
 
     Ok(true)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::infra::db::connection::DbManager;
-
-    #[test]
-    fn inoreader_app_credentials_require_both_values() {
-        let db = DbManager::new_in_memory().unwrap();
-        let repo = SqlitePreferenceRepository::new(db.writer());
-        repo.set("inoreader_app_id", "app-id").unwrap();
-
-        let error = load_inoreader_app_credentials(&repo).unwrap_err();
-        match error {
-            AppError::UserVisible { message } => {
-                assert!(message.contains("Inoreader App ID and App Key"));
-            }
-            AppError::Retryable { message } => panic!("unexpected retryable error: {message}"),
-        }
-    }
-
-    #[test]
-    fn inoreader_app_credentials_return_values_when_present() {
-        let db = DbManager::new_in_memory().unwrap();
-        let repo = SqlitePreferenceRepository::new(db.writer());
-        repo.set("inoreader_app_id", "app-id").unwrap();
-        repo.set("inoreader_app_key", "app-key").unwrap();
-
-        let creds = load_inoreader_app_credentials(&repo).unwrap();
-        assert_eq!(creds, (Some("app-id".into()), Some("app-key".into())));
-    }
 }
 
 #[tauri::command]

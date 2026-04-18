@@ -17,6 +17,7 @@ const MIGRATION_V11: &str = include_str!("../../../migrations/V11__account_sync_
 const MIGRATION_V12: &str = include_str!("../../../migrations/V12__mute_keywords.sql");
 const MIGRATION_V13: &str = include_str!("../../../migrations/V13__tag_color_palette_refresh.sql");
 const MIGRATION_V14: &str = include_str!("../../../migrations/V14__article_content_text.sql");
+const MIGRATION_V15: &str = include_str!("../../../migrations/V15__remove_inoreader.sql");
 
 /// Result of a migration run.
 pub struct MigrationResult {
@@ -35,7 +36,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 14;
+pub const LATEST_VERSION: i32 = 15;
 
 pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     let tx = conn.transaction()?;
@@ -84,6 +85,9 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 14 {
         tx.execute_batch(MIGRATION_V14)?;
+    }
+    if from_version < 15 {
+        tx.execute_batch(MIGRATION_V15)?;
     }
 
     let to_version = get_schema_version(&tx);
@@ -606,5 +610,137 @@ mod tests {
         assert!(conn
             .prepare("SELECT content_text FROM articles LIMIT 0")
             .is_ok());
+    }
+
+    #[test]
+    fn v15_removes_inoreader_accounts_and_preferences() {
+        let mut conn = open_in_memory();
+        conn.execute_batch(MIGRATION_V1).unwrap();
+        conn.execute_batch(MIGRATION_V2).unwrap();
+        conn.execute_batch(MIGRATION_V3).unwrap();
+        conn.execute_batch(MIGRATION_V4).unwrap();
+        conn.execute_batch(MIGRATION_V5).unwrap();
+        conn.execute_batch(MIGRATION_V6).unwrap();
+        conn.execute_batch(MIGRATION_V7).unwrap();
+        conn.execute_batch(MIGRATION_V8).unwrap();
+        conn.execute_batch(MIGRATION_V9).unwrap();
+        set_schema_version(&conn, 10).unwrap();
+        conn.execute_batch(MIGRATION_V11).unwrap();
+        conn.execute_batch(MIGRATION_V12).unwrap();
+        conn.execute_batch(MIGRATION_V13).unwrap();
+        conn.execute_batch(MIGRATION_V14).unwrap();
+
+        conn.execute(
+            "INSERT INTO accounts (id, kind, name) VALUES (?1, ?2, ?3)",
+            params!["acc-inoreader", "Inoreader", "Inoreader"],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO folders (id, account_id, remote_id, name) VALUES (?1, ?2, ?3, ?4)",
+            params!["folder-1", "acc-inoreader", "folder-remote", "Folder"],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO feeds (id, account_id, folder_id, remote_id, title, url, site_url, unread_count, reader_mode, web_preview_mode)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 'inherit', 'inherit')",
+            params![
+                "feed-1",
+                "acc-inoreader",
+                "folder-1",
+                "feed/http://example.com/rss",
+                "Feed",
+                "https://example.com/rss",
+                "https://example.com"
+            ],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, content_text, sanitizer_version, summary, url, author, thumbnail, published_at, is_read, is_starred, fetched_at)
+             VALUES (?1, ?2, ?3, ?4, '', '', '', 1, NULL, NULL, NULL, NULL, ?5, 0, 0, ?6)",
+            params![
+                "article-1",
+                "feed-1",
+                "remote-1",
+                "Article",
+                "2026-04-18T00:00:00Z",
+                "2026-04-18T00:00:00Z"
+            ],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO sync_state (account_id, scope_key) VALUES (?1, '')",
+            params!["acc-inoreader"],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO pending_mutations (account_id, mutation_type, remote_entry_id, created_at)
+             VALUES (?1, 'mark_read', 'remote-1', ?2)",
+            params!["acc-inoreader", "2026-04-18T00:00:00Z"],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO preferences (key, value) VALUES ('inoreader_app_id', 'app-id')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO preferences (key, value) VALUES ('inoreader_app_key', 'app-key')",
+            [],
+        )
+        .unwrap();
+
+        let result = run_migrations(&mut conn).unwrap();
+        assert_eq!(result.from_version, 14);
+        assert_eq!(result.to_version, LATEST_VERSION);
+
+        let account_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM accounts WHERE kind = 'Inoreader'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let feed_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM feeds WHERE account_id = 'acc-inoreader'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let article_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE feed_id = 'feed-1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let sync_state_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sync_state WHERE account_id = 'acc-inoreader'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let pending_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM pending_mutations WHERE account_id = 'acc-inoreader'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let pref_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM preferences WHERE key IN ('inoreader_app_id', 'inoreader_app_key')",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(account_count, 0);
+        assert_eq!(feed_count, 0);
+        assert_eq!(article_count, 0);
+        assert_eq!(sync_state_count, 0);
+        assert_eq!(pending_count, 0);
+        assert_eq!(pref_count, 0);
     }
 }

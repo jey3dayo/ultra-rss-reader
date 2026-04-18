@@ -11,7 +11,6 @@ const ACCOUNT_KIND_LABELS: Record<string, string> = {
   freshrss: "FreshRSS",
   fever: "Fever",
   feedly: "Feedly",
-  inoreader: "Inoreader",
 };
 
 const ACCOUNT_ICON_BG: Record<string, string> = Object.fromEntries(

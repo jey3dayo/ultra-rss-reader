@@ -22,12 +22,7 @@ export function useAccountDetailViewProps({
       infoRows: [
         {
           label: t("account.type"),
-          value:
-            account.kind === "FreshRss"
-              ? t("account.freshrss")
-              : account.kind === "Inoreader"
-                ? t("account.inoreader")
-                : t("account.local"),
+          value: account.kind === "FreshRss" ? t("account.freshrss") : t("account.local"),
         },
       ],
       onStartEditingName: controller.startEditingName,
@@ -36,38 +31,17 @@ export function useAccountDetailViewProps({
       onNameKeyDown: controller.handleNameKeyDown,
     },
     credentialsSection:
-      account.kind === "FreshRss" || account.kind === "Inoreader" ? (
+      account.kind === "FreshRss" ? (
         <AccountCredentialsSectionView
-          heading={account.kind === "FreshRss" ? t("account.server") : t("account.credentials")}
-          note={account.kind === "Inoreader" ? t("account.inoreader_app_credentials_note") : undefined}
-          serverUrlLabel={account.kind === "FreshRss" ? t("account.server_url") : undefined}
+          heading={t("account.server")}
+          serverUrlLabel={t("account.server_url")}
           serverUrlValue={controller.credServerUrl ?? account.server_url ?? ""}
           serverUrlPlaceholder={t("account.server_url_placeholder")}
           serverUrlCopyLabel={t("account.copy_server_url")}
-          onServerUrlChange={account.kind === "FreshRss" ? controller.setCredServerUrl : undefined}
+          onServerUrlChange={controller.setCredServerUrl}
           onServerUrlBlur={controller.commitCredentials}
-          onServerUrlCopy={account.kind === "FreshRss" ? () => void controller.handleCopyServerUrl() : undefined}
-          extraRows={
-            account.kind === "Inoreader"
-              ? [
-                  {
-                    label: t("account.app_id"),
-                    value: controller.appIdValue,
-                    onChange: controller.setAppId,
-                    onBlur: () => void controller.commitAppCredentials(),
-                  },
-                  {
-                    label: t("account.app_key"),
-                    value: controller.appKeyValue,
-                    type: "password",
-                    onChange: controller.setAppKey,
-                    onFocus: controller.onAppKeyFocus,
-                    onBlur: () => void controller.commitAppCredentials(),
-                  },
-                ]
-              : undefined
-          }
-          usernameLabel={account.kind === "Inoreader" ? t("account.email") : t("account.username")}
+          onServerUrlCopy={() => void controller.handleCopyServerUrl()}
+          usernameLabel={t("account.username")}
           usernameValue={controller.credUsername ?? account.username ?? ""}
           onUsernameChange={controller.setCredUsername}
           onUsernameBlur={controller.commitCredentials}

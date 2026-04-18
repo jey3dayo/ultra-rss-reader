@@ -20,14 +20,12 @@ fn provider_kind_to_str(kind: &ProviderKind) -> &'static str {
     match kind {
         ProviderKind::Local => "Local",
         ProviderKind::FreshRss => "FreshRss",
-        ProviderKind::Inoreader => "Inoreader",
     }
 }
 
 fn provider_kind_from_str(s: &str) -> ProviderKind {
     match s {
         "FreshRss" => ProviderKind::FreshRss,
-        "Inoreader" => ProviderKind::Inoreader,
         _ => ProviderKind::Local,
     }
 }

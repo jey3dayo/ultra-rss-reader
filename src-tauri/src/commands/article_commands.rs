@@ -42,7 +42,7 @@ fn should_use_background_browser_open(
 }
 
 fn supports_remote_mutations(account_kind: &str, feed_remote_id: Option<&str>) -> bool {
-    matches!(account_kind, "FreshRss" | "Inoreader")
+    matches!(account_kind, "FreshRss")
         && feed_remote_id.is_some_and(|remote_id| remote_id.starts_with("feed/"))
 }
 
@@ -267,7 +267,7 @@ pub fn mark_articles_read(
         }
     }
 
-    // Queue pending mutations for FreshRSS/Inoreader articles
+    // Queue pending mutations for FreshRSS articles
     for id in &ids {
         maybe_queue_mutation(db.writer(), id, "mark_read")?;
     }
@@ -290,7 +290,7 @@ pub fn mark_feed_read(state: State<'_, AppState>, feed_id: String) -> Result<(),
              JOIN feeds f ON a.feed_id = f.id
              JOIN accounts acc ON f.account_id = acc.id
              WHERE a.feed_id = ?1 AND a.is_read = 0 AND a.remote_id IS NOT NULL
-             AND (acc.kind = 'FreshRss' OR acc.kind = 'Inoreader')",
+             AND acc.kind = 'FreshRss'",
         )
         .and_then(|mut stmt| {
             stmt.query_map(rusqlite::params![feed_id.0], |row| row.get::<_, String>(0))
@@ -328,7 +328,7 @@ pub fn mark_folder_read(state: State<'_, AppState>, folder_id: String) -> Result
              JOIN feeds f ON a.feed_id = f.id
              JOIN accounts acc ON f.account_id = acc.id
              WHERE f.folder_id = ?1 AND a.is_read = 0 AND a.remote_id IS NOT NULL
-             AND (acc.kind = 'FreshRss' OR acc.kind = 'Inoreader')",
+             AND acc.kind = 'FreshRss'",
         )
         .and_then(|mut stmt| {
             stmt.query_map(rusqlite::params![folder_id.0], |row| {
@@ -530,10 +530,6 @@ mod tests {
     #[test]
     fn remote_mutations_require_provider_managed_greader_feed_ids() {
         assert!(supports_remote_mutations("FreshRss", Some("feed/1")));
-        assert!(supports_remote_mutations(
-            "Inoreader",
-            Some("feed/http://example.com/rss")
-        ));
 
         assert!(!supports_remote_mutations(
             "FreshRss",

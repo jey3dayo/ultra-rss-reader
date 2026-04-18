@@ -15,5 +15,4 @@ export const PROVIDER_ICON_BG_CLASS = {
   FreshRss: "bg-[#0062BE]",
   Fever: "bg-gray-500",
   Feedly: "bg-[#2BB24C]",
-  Inoreader: "bg-[#1875F3]",
 } as const;

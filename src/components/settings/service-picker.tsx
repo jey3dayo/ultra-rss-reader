@@ -1,6 +1,5 @@
 import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { LabelChip } from "@/components/shared/label-chip";
 import { NavRowButton } from "@/components/shared/nav-row-button";
 import { SectionHeading } from "@/components/shared/section-heading";
 import type { AddAccountProviderKind } from "@/lib/add-account-form";
@@ -46,11 +45,6 @@ export function ServicePicker({ onSelect }: ServicePickerProps) {
                       title={
                         <div className="flex items-center gap-2">
                           <span>{t(service.nameKey as "account.local_feeds")}</span>
-                          {service.beta ? (
-                            <LabelChip tone="warning" size="compact" className="rounded-md px-1.5 py-0.5">
-                              {t("account.beta_badge")}
-                            </LabelChip>
-                          ) : null}
                         </div>
                       }
                       description={<div>{t(service.descKey as "account.local_desc")}</div>}

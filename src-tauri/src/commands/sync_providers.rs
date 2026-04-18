@@ -151,7 +151,7 @@ pub(super) async fn sync_local_feed(
     Ok(())
 }
 
-/// Sync a GReader-compatible account (FreshRSS, Inoreader): authenticate, sync folders, subscriptions, entries, state, unread counts.
+/// Sync a GReader-compatible account: authenticate, sync folders, subscriptions, entries, state, unread counts.
 pub(super) async fn sync_greader_account(
     db: &Mutex<DbManager>,
     account: &Account,

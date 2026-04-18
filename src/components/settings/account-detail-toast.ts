@@ -8,7 +8,6 @@ type AccountDetailError = {
 type AccountDetailErrorToastKey =
   | "account.failed_to_rename"
   | "account.failed_to_update_sync"
-  | "account.failed_to_save_app_credentials"
   | "account.connection_failed"
   | "account.sync_failed"
   | "account.failed_to_export_opml"

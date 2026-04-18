@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 
-export type AddAccountProviderKind = "Local" | "FreshRss" | "Inoreader";
+export type AddAccountProviderKind = "Local" | "FreshRss";
 
 export type AddAccountPayload = {
   kind: AddAccountProviderKind;
@@ -8,37 +8,26 @@ export type AddAccountPayload = {
   serverUrl?: string;
   username?: string;
   password?: string;
-  appId?: string;
-  appKey?: string;
 };
 
-export type AddAccountValidationError =
-  | "missing_server_url"
-  | "missing_username"
-  | "missing_password"
-  | "missing_app_id"
-  | "missing_app_key";
+export type AddAccountValidationError = "missing_server_url" | "missing_username" | "missing_password";
 
 export type AddAccountFormState = {
   kind: AddAccountProviderKind;
   name: string;
   serverUrl: string;
-  appId: string;
-  appKey: string;
   username: string;
   password: string;
 };
 
 export type AddAccountFormAction =
   | { type: "setKind"; value: AddAccountProviderKind }
-  | { type: "setField"; field: "name" | "serverUrl" | "appId" | "appKey" | "username" | "password"; value: string };
+  | { type: "setField"; field: "name" | "serverUrl" | "username" | "password"; value: string };
 
 export const addAccountFormInitialState: AddAccountFormState = {
   kind: "Local",
   name: "",
   serverUrl: "",
-  appId: "",
-  appKey: "",
   username: "",
   password: "",
 };
@@ -57,9 +46,8 @@ type AddAccountFormInput = AddAccountFormState;
 type AddAccountFormConfig = {
   sectionHeading: "Account" | "Server" | "Credentials";
   showServerUrl: boolean;
-  showAppCredentials: boolean;
-  credentialLabel: "Username" | "Email" | null;
-  credentialName: "username" | "email" | null;
+  credentialLabel: "Username" | null;
+  credentialName: "username" | null;
   requiresCredentials: boolean;
 };
 
@@ -69,25 +57,14 @@ export function getAddAccountFormConfig(kind: AddAccountProviderKind): AddAccoun
       return {
         sectionHeading: "Server",
         showServerUrl: true,
-        showAppCredentials: false,
         credentialLabel: "Username",
         credentialName: "username",
-        requiresCredentials: true,
-      };
-    case "Inoreader":
-      return {
-        sectionHeading: "Credentials",
-        showServerUrl: false,
-        showAppCredentials: true,
-        credentialLabel: "Email",
-        credentialName: "email",
         requiresCredentials: true,
       };
     case "Local":
       return {
         sectionHeading: "Account",
         showServerUrl: false,
-        showAppCredentials: false,
         credentialLabel: null,
         credentialName: null,
         requiresCredentials: false,
@@ -96,20 +73,16 @@ export function getAddAccountFormConfig(kind: AddAccountProviderKind): AddAccoun
 }
 
 export function formatAddAccountValidationError(
-  kind: AddAccountProviderKind,
+  _kind: AddAccountProviderKind,
   error: AddAccountValidationError,
 ): string {
   switch (error) {
     case "missing_server_url":
       return "Server URL is required";
     case "missing_username":
-      return kind === "Inoreader" ? "Email is required" : "Username is required";
+      return "Username is required";
     case "missing_password":
       return "Password is required";
-    case "missing_app_id":
-      return "App ID is required";
-    case "missing_app_key":
-      return "App Key is required";
   }
 }
 
@@ -134,17 +107,6 @@ export function buildAddAccountPayload(
 ): Result.Result<AddAccountPayload, AddAccountValidationError> {
   const config = getAddAccountFormConfig(input.kind);
   const name = input.name.trim() || input.kind;
-  const appId = input.appId?.trim() ?? "";
-  const appKey = input.appKey?.trim() ?? "";
-
-  if (config.showAppCredentials) {
-    if (!appId) {
-      return Result.fail("missing_app_id");
-    }
-    if (!appKey) {
-      return Result.fail("missing_app_key");
-    }
-  }
 
   if (config.showServerUrl) {
     const serverUrl = input.serverUrl.trim();
@@ -158,8 +120,6 @@ export function buildAddAccountPayload(
         kind: input.kind,
         name,
         serverUrl,
-        appId: appId || undefined,
-        appKey: appKey || undefined,
         ...creds,
       })),
     );
@@ -171,8 +131,6 @@ export function buildAddAccountPayload(
       Result.map((creds) => ({
         kind: input.kind,
         name,
-        appId: appId || undefined,
-        appKey: appKey || undefined,
         ...creds,
       })),
     );

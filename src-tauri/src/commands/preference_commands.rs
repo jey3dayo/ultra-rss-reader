@@ -48,8 +48,6 @@ const ALLOWED_KEYS: &[&str] = &[
     "mute_auto_mark_read",
     "debug_browser_hud",
     "debug_web_preview_url",
-    "inoreader_app_id",
-    "inoreader_app_key",
     "mute_auto_mark_read",
     "selected_account_id",
 ];

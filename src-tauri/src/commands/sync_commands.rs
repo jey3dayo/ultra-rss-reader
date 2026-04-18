@@ -17,14 +17,12 @@ use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
-use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
 use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
 use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::local::LocalProvider;
 use crate::repository::account::AccountRepository;
 use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
-use crate::repository::preference::PreferenceRepository;
 use crate::repository::sync_state::{SyncState, SyncStateRepository};
 
 use super::feed_commands::lock_db;
@@ -35,30 +33,6 @@ pub(crate) const SYNC_COMPLETED_EVENT: &str = "sync-completed";
 pub(crate) const SYNC_SUCCEEDED_EVENT: &str = "sync-succeeded";
 pub(crate) const SYNC_WARNING_EVENT: &str = "sync-warning";
 const SYNC_PROGRESS_EVENT: &str = "sync-progress";
-
-fn load_inoreader_app_credentials(
-    pref_repo: &SqlitePreferenceRepository<'_>,
-) -> Result<(Option<String>, Option<String>), AppError> {
-    let app_id = pref_repo.get("inoreader_app_id").unwrap_or(None);
-    let app_key = pref_repo.get("inoreader_app_key").unwrap_or(None);
-
-    let has_app_id = app_id
-        .as_deref()
-        .map(|value| !value.trim().is_empty())
-        .unwrap_or(false);
-    let has_app_key = app_key
-        .as_deref()
-        .map(|value| !value.trim().is_empty())
-        .unwrap_or(false);
-
-    if !has_app_id || !has_app_key {
-        return Err(AppError::UserVisible {
-            message: "Inoreader App ID and App Key are not configured".into(),
-        });
-    }
-
-    Ok((app_id, app_key))
-}
 
 /// RAII guard that resets the `AtomicBool` to `false` on drop, ensuring the
 /// sync flag is always cleared even on early return or panic.
@@ -201,15 +175,6 @@ pub(crate) async fn sync_account(
             let provider = GReaderProvider::for_freshrss(server_url);
             sync_greader_account(db, account, provider).await
         }
-        ProviderKind::Inoreader => {
-            let (app_id, app_key) = {
-                let db_guard = lock_db(db)?;
-                let pref_repo = SqlitePreferenceRepository::new(db_guard.reader());
-                load_inoreader_app_credentials(&pref_repo)?
-            };
-            let provider = GReaderProvider::for_inoreader(app_id, app_key);
-            sync_greader_account(db, account, provider).await
-        }
     }
 }
 
@@ -227,15 +192,6 @@ pub(crate) async fn sync_feed(
         ProviderKind::FreshRss => {
             let server_url = account.server_url.as_deref().unwrap_or_default();
             let provider = GReaderProvider::for_freshrss(server_url);
-            sync_greader_feed(db, account, feed, provider).await
-        }
-        ProviderKind::Inoreader => {
-            let (app_id, app_key) = {
-                let db_guard = lock_db(db)?;
-                let pref_repo = SqlitePreferenceRepository::new(db_guard.reader());
-                load_inoreader_app_credentials(&pref_repo)?
-            };
-            let provider = GReaderProvider::for_inoreader(app_id, app_key);
             sync_greader_feed(db, account, feed, provider).await
         }
     }

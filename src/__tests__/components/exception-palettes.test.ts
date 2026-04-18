@@ -22,7 +22,6 @@ describe("exception palettes", () => {
       FreshRss: "bg-[#0062BE]",
       Fever: "bg-gray-500",
       Feedly: "bg-[#2BB24C]",
-      Inoreader: "bg-[#1875F3]",
     });
   });
 });

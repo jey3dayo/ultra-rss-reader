@@ -120,7 +120,7 @@ describe("AccountCredentialsSectionView", () => {
     render(
       <AccountCredentialsSectionView
         heading="Credentials"
-        note="Applies to all Inoreader accounts."
+        note="Shared credentials note."
         extraRows={[
           {
             label: "App ID",
@@ -148,7 +148,7 @@ describe("AccountCredentialsSectionView", () => {
       />,
     );
 
-    expect(screen.getByText("Applies to all Inoreader accounts.")).toBeInTheDocument();
+    expect(screen.getByText("Shared credentials note.")).toBeInTheDocument();
     expect(screen.getByDisplayValue("shared-id")).toBeInTheDocument();
     expect(screen.getByDisplayValue("shared-key")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Email" })).toBeInTheDocument();
