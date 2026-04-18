@@ -74,23 +74,23 @@ Role guidance:
 
 Detailed hierarchy:
 
-| Role            | Font         | Size              | Weight  | Line Height    | Letter Spacing | Notes                                |
-| --------------- | ------------ | ----------------- | ------- | -------------- | -------------- | ------------------------------------ |
-| Display Hero    | System UI Sans | 72px (4.50rem)  | 500     | 1.10 (tight)   | -2.16px        | Maximum compression, hero statements |
-| Section Heading | System UI Sans | 36px (2.25rem)  | 500     | 1.20 (tight)   | -0.72px        | Feature sections, CTA headlines      |
-| Sub-heading     | System UI Sans | 26px (1.63rem)  | 500     | 1.25 (tight)   | -0.325px       | Card headings, sub-sections          |
-| Title Small     | System UI Sans | 22px (1.38rem)  | 500     | 1.30 (tight)   | -0.11px        | Smaller titles, list headings        |
-| Body Serif      | System Serif   | 19.2px (1.20rem)| 500     | 1.50           | normal         | Editorial body for reading surfaces  |
-| Body Serif SM   | System Serif   | 17.28px (1.08rem)| 400    | 1.35           | normal         | Standard body text, descriptions     |
-| Body Sans       | System UI Sans | 16px (1.00rem)  | 400     | 1.50           | normal/0.08px  | UI body text                         |
-| Button Label    | System UI Sans | 14px (0.88rem)  | 500     | 1.00 (tight)   | normal         | Primary button text                  |
-| Button Caption  | System UI Sans | 14px (0.88rem)  | 400     | 1.50           | 0.14px         | Secondary button label               |
-| Caption         | System UI Sans | 11px (0.69rem)  | 400-500 | 1.50           | normal         | Small captions, metadata             |
-| System Heading  | system-ui    | 20px (1.25rem)    | 700     | 1.55           | normal         | System UI headings                   |
-| System Caption  | system-ui    | 13px (0.81rem)    | 500-600 | 1.33           | normal         | System UI labels                     |
-| System Micro    | system-ui    | 11px (0.69rem)    | 500     | 1.27 (tight)   | 0.048px        | Uppercase micro labels               |
-| Mono Body       | System Mono  | 12px (0.75rem)    | 400     | 1.67 (relaxed) | normal         | Code blocks                          |
-| Mono Small      | System Mono  | 11px (0.69rem)    | 400     | 1.33           | -0.275px       | Inline code, terminal                |
+| Role            | Font           | Size             | Weight  | Line Height    | Letter Spacing | Notes                                |
+| --------------- | -------------- | ---------------- | ------- | -------------- | -------------- | ------------------------------------ |
+| Display Hero    | System UI Sans | 72px (4.50rem)   | 500     | 1.10 (tight)   | -2.16px        | Maximum compression, hero statements |
+| Section Heading | System UI Sans | 36px (2.25rem)   | 500     | 1.20 (tight)   | -0.72px        | Feature sections, CTA headlines      |
+| Sub-heading     | System UI Sans | 26px (1.63rem)   | 500     | 1.25 (tight)   | -0.325px       | Card headings, sub-sections          |
+| Title Small     | System UI Sans | 22px (1.38rem)   | 500     | 1.30 (tight)   | -0.11px        | Smaller titles, list headings        |
+| Body Serif      | System Serif   | 19.2px (1.20rem) | 500     | 1.50           | normal         | Editorial body for reading surfaces  |
+| Body Serif SM   | System Serif   | 17.28px (1.08rem)| 400     | 1.35           | normal         | Standard body text, descriptions     |
+| Body Sans       | System UI Sans | 16px (1.00rem)   | 400     | 1.50           | normal/0.08px  | UI body text                         |
+| Button Label    | System UI Sans | 14px (0.88rem)   | 500     | 1.00 (tight)   | normal         | Primary button text                  |
+| Button Caption  | System UI Sans | 14px (0.88rem)   | 400     | 1.50           | 0.14px         | Secondary button label               |
+| Caption         | System UI Sans | 11px (0.69rem)   | 400-500 | 1.50           | normal         | Small captions, metadata             |
+| System Heading  | system-ui      | 20px (1.25rem)   | 700     | 1.55           | normal         | System UI headings                   |
+| System Caption  | system-ui      | 13px (0.81rem)   | 500-600 | 1.33           | normal         | System UI labels                     |
+| System Micro    | system-ui      | 11px (0.69rem)   | 500     | 1.27 (tight)   | 0.048px        | Uppercase micro labels               |
+| Mono Body       | System Mono    | 12px (0.75rem)   | 400     | 1.67 (relaxed) | normal         | Code blocks                          |
+| Mono Small      | System Mono    | 11px (0.69rem)   | 400     | 1.33           | -0.275px       | Inline code, terminal                |
 
 Typography principles:
 
