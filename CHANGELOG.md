@@ -4,6 +4,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-04-18
+
+### Features
+
+- dev intent scenario を拡張し、settings の account-add intent を追加した
+
+### Bug Fixes
+
+- subscriptions workspace が Escape 操作で確実に閉じるよう修正した
+- tauri vite manager import を guard し、dev 起動時の失敗を防いだ
+
+### Maintenance
+
+- unsupported な Inoreader integration を削除した
+- locale 依存の UI expectation を緩和し、テストの安定性を高めた
+
 ## [0.13.1] - 2026-04-18
 
 ### Maintenance
