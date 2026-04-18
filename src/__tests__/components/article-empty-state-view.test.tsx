@@ -1,20 +1,35 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ArticleEmptyStateView } from "@/components/reader/article-empty-state-view";
 
 describe("ArticleEmptyStateView", () => {
   it("renders the placeholder message with follow-up guidance", () => {
+    const onPrimaryAction = vi.fn();
+    const onSecondaryAction = vi.fn();
+
     render(
       <ArticleEmptyStateView
+        eyebrow="Reader ready"
         message="Select an article to read"
+        description="Choose a scope on the left, then open something from the middle queue to start reading."
         hints={["Pick one from the list", "Press / to search", "Open Web Preview from the toolbar"]}
+        actions={[
+          { label: "Open settings", onClick: onPrimaryAction },
+          { label: "Jump to sidebar", onClick: onSecondaryAction, variant: "outline" },
+        ]}
       />,
     );
 
+    expect(screen.getByText("Reader ready")).toBeInTheDocument();
     expect(screen.getByText("Select an article to read")).toBeInTheDocument();
+    expect(
+      screen.getByText("Choose a scope on the left, then open something from the middle queue to start reading."),
+    ).toBeInTheDocument();
     expect(screen.getByText("Pick one from the list")).toBeInTheDocument();
     expect(screen.getByText("Press / to search")).toBeInTheDocument();
     expect(screen.getByText("Open Web Preview from the toolbar")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open settings" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Jump to sidebar" })).toBeInTheDocument();
   });
 
   it("left-aligns the message and guidance for easier scanning", () => {
@@ -30,19 +45,27 @@ describe("ArticleEmptyStateView", () => {
     expect(screen.getByText("Pick one from the list").closest("ul")).toHaveClass("pl-5");
   });
 
-  it("keeps the empty-state container borderless in reader mode", () => {
-    render(<ArticleEmptyStateView message="Select an article to read" hints={["Pick one from the list"]} />);
+  it("renders the empty-state container as a surfaced welcome card in reader mode", () => {
+    render(
+      <ArticleEmptyStateView
+        eyebrow="Reader ready"
+        message="Select an article to read"
+        description="Choose a scope on the left, then open something from the middle queue to start reading."
+        hints={["Pick one from the list"]}
+      />,
+    );
 
     const container = screen.getByText("Select an article to read").parentElement;
     const hintsList = screen.getByRole("list");
 
-    expect(container).toHaveClass("max-w-xl");
+    expect(container).toHaveClass("max-w-2xl");
+    expect(container).toHaveClass("rounded-3xl");
+    expect(container).toHaveClass("border");
     expect(container).toHaveClass("px-7");
     expect(container).toHaveClass("py-7");
     expect(container).toHaveClass("min-h-44");
     expect(container).toHaveClass("text-foreground-soft");
-    expect(container).not.toHaveAttribute("data-surface-card");
-    expect(screen.queryByText("Reader")).not.toBeInTheDocument();
+    expect(screen.getByText("Reader ready")).toHaveClass("uppercase");
     expect(hintsList).toHaveClass("marker:text-foreground-soft");
   });
 
@@ -76,7 +99,7 @@ describe("ArticleEmptyStateView", () => {
     const container = screen.getByText("Add your first feed").parentElement;
     const hintsList = screen.getByRole("list");
 
-    expect(container).toHaveClass("max-w-xl");
+    expect(container).toHaveClass("max-w-2xl");
     expect(container).toHaveClass("px-7");
     expect(container).toHaveClass("py-7");
     expect(container).toHaveClass("min-h-44");

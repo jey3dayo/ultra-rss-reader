@@ -1508,8 +1508,12 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     expect(await screen.findByText("Add your first account")).toBeInTheDocument();
+    expect(
+      screen.getByText("You can jump straight into account setup from here and start syncing right away."),
+    ).toBeInTheDocument();
     expect(screen.getByText('Use "Add an account to get started" in the sidebar.')).toBeInTheDocument();
     expect(screen.getByText("Open Add Account in Settings to get started right away.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add account…" })).toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 
@@ -1544,8 +1548,12 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     expect(await screen.findByText("Add your first feed")).toBeInTheDocument();
+    expect(
+      screen.getByText("Your account is ready. Add the first feed and the reading queue will come to life."),
+    ).toBeInTheDocument();
     expect(screen.getByText("Use the + button in the top-left to add a feed.")).toBeInTheDocument();
     expect(screen.getByText("Paste a site URL or feed URL to discover feeds automatically.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Feed" })).toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
 

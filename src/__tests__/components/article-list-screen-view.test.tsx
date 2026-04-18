@@ -187,11 +187,11 @@ describe("ArticleListScreenView", () => {
     );
 
     expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument();
+    expect(screen.getByText("Queue")).toBeInTheDocument();
     expect(screen.getByText("Try a different keyword or clear the current search.")).toHaveClass(
-      "rounded-md",
-      "border",
-      "border-border/70",
-      "bg-surface-1/72",
+      "mt-3",
+      "text-sm",
+      "leading-6",
       "text-foreground-soft",
     );
     expect(screen.queryByRole("listbox", { name: "Article list" })).not.toBeInTheDocument();
