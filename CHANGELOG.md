@@ -4,6 +4,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-04-18
+
+### Maintenance
+
+- frontend package versions を更新し、`@biomejs/biome`、`@praha/byethrow`、`i18next`、`react-i18next`、`shadcn`、`typescript` を現行パッチへ揃えた
+- `biome.json` の schema version を `2.4.12` に合わせ、依存更新後も formatter/lint gate がそのまま通るようにした
+
 ## [0.13.0] - 2026-04-18
 
 ### Features
