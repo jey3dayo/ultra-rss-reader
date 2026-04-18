@@ -90,11 +90,15 @@ mise run app:dev
 `mise run app:dev` is the default development entry point. It wraps the Tauri dev configuration used by this repository.
 Under the hood, Tauri starts the Vite dev server with `beforeDevCommand` and loads the frontend from `devUrl`
 (`http://localhost:1420`).
+By default, `mise run app:dev` uses `DEV_CREDENTIALS=1`, so credentials go to the dev file store instead of the native OS keyring.
+Use `mise run app:dev:native-keyring` when you need to verify Keychain or Credential Manager behavior in development.
 
 ## Development Modes
 
 - Live desktop development: `mise run app:dev`
-  Recommended default. Launches the Tauri shell with the repository dev config and hot reload.
+  Recommended default. Launches the Tauri shell with the repository dev config and hot reload, using file-based dev credentials.
+- Native keyring desktop development: `mise run app:dev:native-keyring`
+  Launches the same Tauri dev flow without `DEV_CREDENTIALS`, so credentials use the OS keyring backend.
 - macOS signed dev run: `mise run app:dev:signed`
   Builds, codesigns with `UltraRSSReader-Dev`, and runs the dev binary to suppress Keychain access dialogs. macOS only and one-shot (no file watching). Initial setup is documented in [.claude/rules/macos-dev-codesign.md](.claude/rules/macos-dev-codesign.md).
 - Subscriptions index development: `mise run app:dev:subscriptions-index`
@@ -124,6 +128,7 @@ mise run test:e2e     # Playwright browser-mode E2E tests
 mise run test:all     # Rust + Vitest + Playwright
 mise run test:live    # FreshRSS integration tests (requires .env credentials)
 mise run app:dev      # Launch the native app in repository dev mode
+mise run app:dev:native-keyring     # Launch the native app in dev mode with the OS keyring backend
 mise run app:dev:signed              # macOS-only: build, codesign, and run the dev binary (no Keychain dialog)
 mise run app:dev:subscriptions-index # Launch the native app directly into the subscriptions index workspace
 mise run app:dev:web-preview         # Launch the native app directly into Web Preview for VITE_DEV_WEB_URL

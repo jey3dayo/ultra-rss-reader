@@ -148,6 +148,10 @@ description = "Run native app in dev mode"
 env = { DEV_CREDENTIALS = "1" }
 run = "pnpm exec tauri dev -c src-tauri/tauri.dev.conf.json"
 
+[tasks."app:dev:native-keyring"]
+description = "Run native app in dev mode with the OS keyring backend"
+run = "pnpm exec tauri dev -c src-tauri/tauri.dev.conf.json"
+
 [tasks."app:dev:subscriptions-index"]
 description = "Run native app in dev mode and jump into the subscriptions index workspace"
 env = { DEV_CREDENTIALS = "1", VITE_DEV_INTENT = "open-subscriptions-index" }
