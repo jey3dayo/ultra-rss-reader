@@ -48,7 +48,7 @@ export function AccountsNavView({
             aria-pressed={account.isActive}
             onClick={() => onSelectAccount(account.id)}
             className={cn(
-              "relative shrink-0 items-center overflow-hidden rounded-md px-3 py-1.5 text-[13px] leading-[1.25] sm:w-full",
+              "relative shrink-0 rounded-md px-3 py-2 text-[13px] leading-[1.3] sm:w-full",
               account.isActive &&
                 "border border-border-strong bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong",
             )}
@@ -83,7 +83,7 @@ export function AccountsNavView({
         aria-pressed={isAddAccountActive}
         onClick={onAddAccount}
         className={cn(
-          "relative shrink-0 items-center overflow-hidden rounded-md px-3 py-1.5 text-[13px] leading-[1.25] sm:w-full",
+          "relative shrink-0 items-center rounded-md px-3 py-2 text-[13px] leading-[1.3] sm:w-full",
           isAddAccountActive &&
             "border border-border-strong bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong",
         )}

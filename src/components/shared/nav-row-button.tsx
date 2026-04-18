@@ -41,9 +41,9 @@ export const NavRowButton = forwardRef<HTMLButtonElement, NavRowButtonProps>(
         {...props}
       >
         {leading ? <div className="shrink-0">{leading}</div> : null}
-        <div className="min-w-0 flex-1">
-          <div className="truncate font-medium">{title}</div>
-          {description ? <div className="mt-1 text-xs text-foreground-soft">{description}</div> : null}
+        <div className="min-w-0 flex-1 space-y-0.5">
+          <div className="truncate font-medium leading-[1.3]">{title}</div>
+          {description ? <div className="text-xs leading-[1.35] text-foreground-soft">{description}</div> : null}
         </div>
         {trailing ? (
           <div className="shrink-0">
