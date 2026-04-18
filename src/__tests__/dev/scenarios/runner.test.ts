@@ -79,6 +79,7 @@ function createUiStub(overrides?: Record<string, unknown>): DevScenarioContext["
     openSettings: vi.fn(),
     openAddFeedDialog: vi.fn(),
     openCommandPalette: vi.fn(),
+    openShortcutsHelp: vi.fn(),
     closeCommandPalette: vi.fn(),
     toggleCommandPalette: vi.fn(),
     ...overrides,
@@ -611,6 +612,30 @@ describe("runDevScenario", () => {
     expect(context.ui.showToast).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["open-settings-general", "general"],
+    ["open-settings-appearance", "appearance"],
+    ["open-settings-mute", "mute"],
+    ["open-settings-tags", "tags"],
+    ["open-settings-shortcuts", "shortcuts"],
+    ["open-settings-actions", "actions"],
+    ["open-settings-data", "data"],
+    ["open-settings-debug", "debug"],
+    ["open-settings-accounts", "accounts"],
+  ] as const)("opens settings at %s", async (scenarioId, tab) => {
+    const context = createContext({
+      actions: createActions({
+        executeAction: vi.fn(),
+      }),
+    });
+
+    await runDevScenario(scenarioId, { context });
+
+    expect(context.ui.openSettings).toHaveBeenCalledWith(tab);
+    expect(context.actions.executeAction).not.toHaveBeenCalled();
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+  });
+
   it("runs the settings accounts add scenario through the app action dispatcher", async () => {
     const context = createContext({
       actions: createActions({
@@ -634,6 +659,47 @@ describe("runDevScenario", () => {
     await runDevScenario("open-settings-reading-display-mode", { context });
 
     expect(context.ui.openSettings).toHaveBeenCalledWith("reading");
+    expect(context.actions.executeAction).not.toHaveBeenCalled();
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+  });
+
+  it("runs the command-palette scenario through the app action dispatcher", async () => {
+    const context = createContext({
+      actions: createActions({
+        executeAction: vi.fn(),
+      }),
+    });
+
+    await runDevScenario("open-command-palette", { context });
+
+    expect(context.actions.executeAction).toHaveBeenCalledWith("open-command-palette");
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+  });
+
+  it("opens the shortcuts-help scenario through the ui helper", async () => {
+    const context = createContext({
+      actions: createActions({
+        executeAction: vi.fn(),
+      }),
+    });
+
+    await runDevScenario("open-shortcuts-help", { context });
+
+    expect(context.ui.openShortcutsHelp).toHaveBeenCalledTimes(1);
+    expect(context.actions.executeAction).not.toHaveBeenCalled();
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+  });
+
+  it("opens the web-preview-geometry-check scenario directly in the browser pane", async () => {
+    const context = createContext({
+      actions: createActions({
+        executeAction: vi.fn(),
+      }),
+    });
+
+    await runDevScenario("open-web-preview-geometry-check", { context });
+
+    expect(context.ui.openBrowser).toHaveBeenCalledWith("http://localhost:3000/dev-web-preview-geometry.html");
     expect(context.actions.executeAction).not.toHaveBeenCalled();
     expect(context.ui.showToast).not.toHaveBeenCalled();
   });

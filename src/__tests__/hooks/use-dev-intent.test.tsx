@@ -77,6 +77,45 @@ describe("useDevIntent", () => {
     expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-subscriptions-index");
   });
 
+  it("runs the settings-accounts-add startup scenario when requested", async () => {
+    vi.stubEnv("VITE_DEV_INTENT", "open-settings-accounts-add");
+
+    renderHook(() => useDevIntent(), {
+      wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+    });
+
+    await vi.runAllTimersAsync();
+
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledTimes(1);
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-settings-accounts-add");
+  });
+
+  it("runs the command-palette startup scenario when requested", async () => {
+    vi.stubEnv("VITE_DEV_INTENT", "open-command-palette");
+
+    renderHook(() => useDevIntent(), {
+      wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+    });
+
+    await vi.runAllTimersAsync();
+
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledTimes(1);
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-command-palette");
+  });
+
+  it("runs the shortcuts-help startup scenario when requested", async () => {
+    vi.stubEnv("VITE_DEV_INTENT", "open-shortcuts-help");
+
+    renderHook(() => useDevIntent(), {
+      wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
+    });
+
+    await vi.runAllTimersAsync();
+
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledTimes(1);
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-shortcuts-help");
+  });
+
   it("runs the startup scenario only once under StrictMode", async () => {
     vi.stubEnv("VITE_DEV_INTENT", "open-feed-cleanup");
 

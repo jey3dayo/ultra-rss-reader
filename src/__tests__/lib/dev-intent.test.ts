@@ -8,13 +8,25 @@ describe("dev-intent helpers", () => {
 
   it("parses known dev scenario ids", () => {
     expect(parseDevIntent("open-add-feed-dialog")).toBe("open-add-feed-dialog");
+    expect(parseDevIntent("open-command-palette")).toBe("open-command-palette");
     expect(parseDevIntent("open-feed-cleanup")).toBe("open-feed-cleanup");
     expect(parseDevIntent("open-feed-cleanup-broken-references")).toBe("open-feed-cleanup-broken-references");
+    expect(parseDevIntent("open-shortcuts-help")).toBe("open-shortcuts-help");
+    expect(parseDevIntent("open-settings-actions")).toBe("open-settings-actions");
+    expect(parseDevIntent("open-settings-accounts")).toBe("open-settings-accounts");
+    expect(parseDevIntent("open-settings-appearance")).toBe("open-settings-appearance");
     expect(parseDevIntent("open-subscriptions-index")).toBe("open-subscriptions-index");
+    expect(parseDevIntent("open-settings-data")).toBe("open-settings-data");
+    expect(parseDevIntent("open-settings-debug")).toBe("open-settings-debug");
+    expect(parseDevIntent("open-settings-general")).toBe("open-settings-general");
+    expect(parseDevIntent("open-settings-mute")).toBe("open-settings-mute");
     expect(parseDevIntent("open-web-preview-url")).toBe("open-web-preview-url");
     expect(parseDevIntent("open-settings-reading")).toBe("open-settings-reading");
     expect(parseDevIntent("open-settings-accounts-add")).toBe("open-settings-accounts-add");
+    expect(parseDevIntent("open-settings-shortcuts")).toBe("open-settings-shortcuts");
+    expect(parseDevIntent("open-settings-tags")).toBe("open-settings-tags");
     expect(parseDevIntent("open-settings-reading-display-mode")).toBe("open-settings-reading-display-mode");
+    expect(parseDevIntent("open-web-preview-geometry-check")).toBe("open-web-preview-geometry-check");
   });
 
   it("rejects removed legacy overlay intents", () => {

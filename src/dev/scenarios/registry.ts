@@ -6,6 +6,7 @@ import {
 import type { DevScenarioContext } from "@/dev/scenarios/types";
 import { DEV_SCENARIO_ID, DEV_SCENARIO_IDS, type DevScenario, type DevScenarioId } from "@/dev/scenarios/types";
 import type { AppAction } from "@/lib/actions";
+import { resolveDevWebPreviewGeometryUrl } from "@/lib/dev-web-preview-geometry";
 
 function createActionBackedDevScenarioRunner(actionId: AppAction): DevScenario["run"] {
   return async ({ actions }: DevScenarioContext) => {
@@ -16,6 +17,12 @@ function createActionBackedDevScenarioRunner(actionId: AppAction): DevScenario["
 function createUiBackedDevScenarioRunner(run: (ui: DevScenarioContext["ui"]) => void): DevScenario["run"] {
   return ({ ui }) => {
     run(ui);
+  };
+}
+
+function createBrowserBackedDevScenarioRunner(resolveUrl: () => string): DevScenario["run"] {
+  return ({ ui }) => {
+    ui.openBrowser(resolveUrl());
   };
 }
 
@@ -40,10 +47,55 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
     keywords: ["tag", "view"],
     run: runOpenTagViewScenario,
   },
+  [DEV_SCENARIO_ID.openSettingsGeneral]: {
+    title: "Open settings general",
+    keywords: ["settings", "general"],
+    run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("general")),
+  },
+  [DEV_SCENARIO_ID.openSettingsAppearance]: {
+    title: "Open settings appearance",
+    keywords: ["settings", "appearance"],
+    run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("appearance")),
+  },
+  [DEV_SCENARIO_ID.openSettingsMute]: {
+    title: "Open settings mute",
+    keywords: ["settings", "mute"],
+    run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("mute")),
+  },
   [DEV_SCENARIO_ID.openSettingsReading]: {
     title: "Open settings reading",
     keywords: ["settings", "reading", "display", "mode"],
     run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("reading")),
+  },
+  [DEV_SCENARIO_ID.openSettingsTags]: {
+    title: "Open settings tags",
+    keywords: ["settings", "tags"],
+    run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("tags")),
+  },
+  [DEV_SCENARIO_ID.openSettingsShortcuts]: {
+    title: "Open settings shortcuts",
+    keywords: ["settings", "shortcuts"],
+    run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("shortcuts")),
+  },
+  [DEV_SCENARIO_ID.openSettingsActions]: {
+    title: "Open settings actions",
+    keywords: ["settings", "actions"],
+    run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("actions")),
+  },
+  [DEV_SCENARIO_ID.openSettingsData]: {
+    title: "Open settings data",
+    keywords: ["settings", "data"],
+    run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("data")),
+  },
+  [DEV_SCENARIO_ID.openSettingsDebug]: {
+    title: "Open settings debug",
+    keywords: ["settings", "debug"],
+    run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("debug")),
+  },
+  [DEV_SCENARIO_ID.openSettingsAccounts]: {
+    title: "Open settings accounts",
+    keywords: ["settings", "accounts"],
+    run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("accounts")),
   },
   [DEV_SCENARIO_ID.openSettingsAccountsAdd]: {
     title: "Open settings accounts add",
@@ -54,6 +106,21 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
     title: "Open settings reading display mode",
     keywords: ["settings", "reading", "display", "mode", "dropdown"],
     run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("reading")),
+  },
+  [DEV_SCENARIO_ID.openCommandPalette]: {
+    title: "Open command palette",
+    keywords: ["command", "palette", "search"],
+    run: createActionBackedDevScenarioRunner("open-command-palette"),
+  },
+  [DEV_SCENARIO_ID.openShortcutsHelp]: {
+    title: "Open shortcuts help",
+    keywords: ["shortcuts", "help", "keyboard"],
+    run: createUiBackedDevScenarioRunner((ui) => ui.openShortcutsHelp()),
+  },
+  [DEV_SCENARIO_ID.openWebPreviewGeometryCheck]: {
+    title: "Open web preview geometry check",
+    keywords: ["web", "preview", "geometry", "debug", "layout"],
+    run: createBrowserBackedDevScenarioRunner(resolveDevWebPreviewGeometryUrl),
   },
   [DEV_SCENARIO_ID.openAddFeedDialog]: {
     title: "Open add feed dialog",

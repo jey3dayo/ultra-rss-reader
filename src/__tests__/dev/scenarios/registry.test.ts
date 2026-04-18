@@ -8,9 +8,9 @@ describe("dev scenario registry", () => {
   });
 
   it("returns a registered scenario for a known id", () => {
-    expect(getDevScenario(DEV_SCENARIO_ID.openSettingsReading)).toMatchObject({
-      id: DEV_SCENARIO_ID.openSettingsReading,
-      title: "Open settings reading",
+    expect(getDevScenario(DEV_SCENARIO_ID.openSettingsGeneral)).toMatchObject({
+      id: DEV_SCENARIO_ID.openSettingsGeneral,
+      title: "Open settings general",
     });
   });
 
@@ -18,6 +18,27 @@ describe("dev scenario registry", () => {
     expect(getDevScenario(DEV_SCENARIO_ID.openSettingsAccountsAdd)).toMatchObject({
       id: DEV_SCENARIO_ID.openSettingsAccountsAdd,
       title: "Open settings accounts add",
+    });
+  });
+
+  it("registers the command palette scenario", () => {
+    expect(getDevScenario(DEV_SCENARIO_ID.openCommandPalette)).toMatchObject({
+      id: DEV_SCENARIO_ID.openCommandPalette,
+      title: "Open command palette",
+    });
+  });
+
+  it("registers the shortcuts help scenario", () => {
+    expect(getDevScenario(DEV_SCENARIO_ID.openShortcutsHelp)).toMatchObject({
+      id: DEV_SCENARIO_ID.openShortcutsHelp,
+      title: "Open shortcuts help",
+    });
+  });
+
+  it("registers the web preview geometry check scenario", () => {
+    expect(getDevScenario(DEV_SCENARIO_ID.openWebPreviewGeometryCheck)).toMatchObject({
+      id: DEV_SCENARIO_ID.openWebPreviewGeometryCheck,
+      title: "Open web preview geometry check",
     });
   });
 

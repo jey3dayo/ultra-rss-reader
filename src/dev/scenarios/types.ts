@@ -19,10 +19,21 @@ export type DevScenarioContext = {
     openBrowser(url: string): void;
     setViewMode(mode: "all" | "unread" | "starred"): void;
     openSettings(
-      tab?: "general" | "appearance" | "mute" | "reading" | "shortcuts" | "actions" | "data" | "debug" | "accounts",
+      tab?:
+        | "general"
+        | "appearance"
+        | "mute"
+        | "reading"
+        | "shortcuts"
+        | "actions"
+        | "data"
+        | "debug"
+        | "tags"
+        | "accounts",
     ): void;
     openAddFeedDialog(): void;
     openCommandPalette(): void;
+    openShortcutsHelp(): void;
     closeCommandPalette(): void;
     toggleCommandPalette(): void;
   };
