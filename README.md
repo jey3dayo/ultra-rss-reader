@@ -10,10 +10,11 @@ It supports local feeds and FreshRSS, stores data in SQLite, and keeps credentia
 ## Features
 
 - Multiple providers — Local RSS/Atom feeds and FreshRSS (Google Reader API)
-- Three-pane layout — Sidebar, article list, article view with in-app reader and external browser
+- Reader and Web Preview — Three-pane reading flow plus embedded publisher pages with dedicated browser controls
 - Full-text search — SQLite FTS5 across all articles
 - Sync — Background periodic sync, sync-on-wake, manual trigger, and bidirectional pending mutations (read status, stars)
 - Folder hierarchy — Organize feeds into nested folders
+- Organization workflows — Command palette feed landing, subscriptions index workspace, Feed Cleanup review queue, tags, and mute keywords
 - OPML — Import and export feed lists
 - Bionic reading — Bold-emphasis rendering for faster reading
 - Keyboard shortcuts — `m` read/unread, `s` star, `v` in-app view, `b` browser, `a` mark all read, `/` search
@@ -29,6 +30,12 @@ It supports local feeds and FreshRSS, stores data in SQLite, and keeps credentia
 - Feeds in `Widescreen` mode land in browser view
 - If a feed has no visible unread articles, the app stops at the feed list instead of forcing an article open
 
+## Subscriptions Index
+
+- Open the subscriptions index workspace from the sidebar management area
+- Use it when you want to manage subscription structure separately from the cleanup queue
+- For focused UI work, use `mise run app:dev:subscriptions-index`
+
 ## Feed Cleanup
 
 - Open `Feed Cleanup` from the sidebar management area
@@ -36,6 +43,12 @@ It supports local feeds and FreshRSS, stores data in SQLite, and keeps credentia
 - Inspect why a feed is a candidate before deleting it
 - Use `Keep` or `Later` to clear the queue without unsubscribing immediately
 - For focused UI work, use `mise run app:dev:feed-cleanup` or `mise run app:dev:browser:feed-cleanup`
+
+## Web Preview
+
+- Open the article title or browser actions to load the publisher page inside the app
+- Use Web Preview when you need the original page layout without leaving the reading workflow
+- For focused UI work, use `mise run app:dev:web-preview` with `VITE_DEV_WEB_URL`
 
 ## Tech Stack
 
@@ -82,6 +95,10 @@ Under the hood, Tauri starts the Vite dev server with `beforeDevCommand` and loa
 
 - Live desktop development: `mise run app:dev`
   Recommended default. Launches the Tauri shell with the repository dev config and hot reload.
+- Subscriptions index development: `mise run app:dev:subscriptions-index`
+  Starts the native app and jumps directly into the subscriptions index workspace.
+- Web Preview development: `mise run app:dev:web-preview`
+  Starts the native app and opens `VITE_DEV_WEB_URL` directly in Web Preview. Optional sizing comes from `VITE_DEV_WINDOW_WIDTH` and `VITE_DEV_WINDOW_HEIGHT`.
 - Web-only frontend debugging: `mise run app:dev:browser`
   Starts the browser-mode dev server on `http://127.0.0.1:4173/` without the Tauri shell.
 - Preview the production frontend build: `pnpm build && pnpm preview`
@@ -105,6 +122,8 @@ mise run test:e2e     # Playwright browser-mode E2E tests
 mise run test:all     # Rust + Vitest + Playwright
 mise run test:live    # FreshRSS integration tests (requires .env credentials)
 mise run app:dev      # Launch the native app in repository dev mode
+mise run app:dev:subscriptions-index # Launch the native app directly into the subscriptions index workspace
+mise run app:dev:web-preview         # Launch the native app directly into Web Preview for VITE_DEV_WEB_URL
 mise run app:dev:browser         # Launch browser-mode UI testing
 mise run app:dev:feed-cleanup         # Launch the native app directly into Feed Cleanup
 mise run app:dev:browser:feed-cleanup # Launch browser-mode UI directly into Feed Cleanup

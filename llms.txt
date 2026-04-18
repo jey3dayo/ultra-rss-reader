@@ -1,6 +1,6 @@
 # Ultra RSS Reader
 
-> Ultra RSS Reader is a desktop-first RSS reader built with Tauri 2, Rust, React 19, TypeScript, and SQLite. It supports local RSS/Atom feeds and FreshRSS, stores credentials in the OS keyring, and uses a layered Rust backend with a React frontend.
+> Ultra RSS Reader is a desktop-first RSS reader built with Tauri 2, Rust, React 19, TypeScript, and SQLite. It supports local RSS/Atom feeds and FreshRSS, includes Feed Cleanup and Web Preview workflows, stores credentials in the OS keyring, and uses a layered Rust backend with a React frontend.
 
 Read `README.md` first for product and architecture context. Read `CLAUDE.md` and `AGENTS.md` before changing code. Use `mise run check` as the default verification gate. Native integrations such as keyring behavior, updater installation, and packaged app flows still need manual verification.
 
@@ -31,6 +31,7 @@ Important implementation constraints:
 - `mise run check`: Default local verification gate (`format` + `lint` + `test`).
 - `mise run ci`: CI-equivalent gate (`format:check` + `lint` + `test` + `build`).
 - `mise run app:dev`: Default native Tauri development mode with `DEV_CREDENTIALS=1`.
+- `mise run app:dev:subscriptions-index`: Native dev mode that jumps directly into the subscriptions index workspace.
 - `mise run app:dev:browser`: Browser-mode UI debugging on `http://127.0.0.1:4173/`.
 - `mise run app:dev:web-preview`: Native dev mode that opens `VITE_DEV_WEB_URL` directly in Web Preview.
 - `mise run app:dev:feed-cleanup` and `mise run app:dev:browser:feed-cleanup`: Shortcut dev modes for the Feed Cleanup UI.
