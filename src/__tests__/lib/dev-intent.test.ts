@@ -13,6 +13,7 @@ describe("dev-intent helpers", () => {
     expect(parseDevIntent("open-subscriptions-index")).toBe("open-subscriptions-index");
     expect(parseDevIntent("open-web-preview-url")).toBe("open-web-preview-url");
     expect(parseDevIntent("open-settings-reading")).toBe("open-settings-reading");
+    expect(parseDevIntent("open-settings-accounts-add")).toBe("open-settings-accounts-add");
     expect(parseDevIntent("open-settings-reading-display-mode")).toBe("open-settings-reading-display-mode");
   });
 

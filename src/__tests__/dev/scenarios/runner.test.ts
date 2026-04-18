@@ -611,6 +611,19 @@ describe("runDevScenario", () => {
     expect(context.ui.showToast).not.toHaveBeenCalled();
   });
 
+  it("runs the settings accounts add scenario through the app action dispatcher", async () => {
+    const context = createContext({
+      actions: createActions({
+        executeAction: vi.fn(),
+      }),
+    });
+
+    await runDevScenario("open-settings-accounts-add", { context });
+
+    expect(context.actions.executeAction).toHaveBeenCalledWith("open-settings-accounts-add");
+    expect(context.ui.showToast).not.toHaveBeenCalled();
+  });
+
   it("opens settings at the reading section for the display-mode showcase scenario", async () => {
     const context = createContext({
       actions: createActions({

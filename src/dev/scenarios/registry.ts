@@ -45,6 +45,11 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
     keywords: ["settings", "reading", "display", "mode"],
     run: createUiBackedDevScenarioRunner((ui) => ui.openSettings("reading")),
   },
+  [DEV_SCENARIO_ID.openSettingsAccountsAdd]: {
+    title: "Open settings accounts add",
+    keywords: ["settings", "accounts", "add", "account"],
+    run: createActionBackedDevScenarioRunner("open-settings-accounts-add"),
+  },
   [DEV_SCENARIO_ID.openSettingsReadingDisplayMode]: {
     title: "Open settings reading display mode",
     keywords: ["settings", "reading", "display", "mode", "dropdown"],

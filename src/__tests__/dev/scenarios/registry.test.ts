@@ -14,6 +14,13 @@ describe("dev scenario registry", () => {
     });
   });
 
+  it("registers the accounts add scenario", () => {
+    expect(getDevScenario(DEV_SCENARIO_ID.openSettingsAccountsAdd)).toMatchObject({
+      id: DEV_SCENARIO_ID.openSettingsAccountsAdd,
+      title: "Open settings accounts add",
+    });
+  });
+
   it("registers the display-mode showcase scenario", () => {
     expect(getDevScenario(DEV_SCENARIO_ID.openSettingsReadingDisplayMode)).toMatchObject({
       id: DEV_SCENARIO_ID.openSettingsReadingDisplayMode,
