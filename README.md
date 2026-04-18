@@ -95,6 +95,8 @@ Under the hood, Tauri starts the Vite dev server with `beforeDevCommand` and loa
 
 - Live desktop development: `mise run app:dev`
   Recommended default. Launches the Tauri shell with the repository dev config and hot reload.
+- macOS signed dev run: `mise run app:dev:signed`
+  Builds, codesigns with `UltraRSSReader-Dev`, and runs the dev binary to suppress Keychain access dialogs. macOS only and one-shot (no file watching). Initial setup is documented in [.claude/rules/macos-dev-codesign.md](.claude/rules/macos-dev-codesign.md).
 - Subscriptions index development: `mise run app:dev:subscriptions-index`
   Starts the native app and jumps directly into the subscriptions index workspace.
 - Web Preview development: `mise run app:dev:web-preview`
@@ -122,6 +124,7 @@ mise run test:e2e     # Playwright browser-mode E2E tests
 mise run test:all     # Rust + Vitest + Playwright
 mise run test:live    # FreshRSS integration tests (requires .env credentials)
 mise run app:dev      # Launch the native app in repository dev mode
+mise run app:dev:signed              # macOS-only: build, codesign, and run the dev binary (no Keychain dialog)
 mise run app:dev:subscriptions-index # Launch the native app directly into the subscriptions index workspace
 mise run app:dev:web-preview         # Launch the native app directly into Web Preview for VITE_DEV_WEB_URL
 mise run app:dev:browser         # Launch browser-mode UI testing
@@ -140,13 +143,13 @@ Always run `mise run check` before committing.
 
 ### Verification Matrix
 
-| Area | Default CI / local gate | Additional verification |
-| ---- | ------------------------ | ----------------------- |
-| TypeScript / Rust regressions | `mise run check` | None |
-| Browser-mode UI flow | `mise run test:e2e` | Optional manual pass in `mise run app:dev:browser` |
-| FreshRSS real-server integration | Not part of default CI | `mise run test:live` with real credentials |
-| Native keyring integration | Unit / integration tests around app logic only | Manual verification on each target OS |
-| Updater download / install | Config and command-level checks only | Manual verification on packaged builds per target OS |
+| Area                             | Default CI / local gate                        | Additional verification                              |
+| -------------------------------- | ---------------------------------------------- | ---------------------------------------------------- |
+| TypeScript / Rust regressions    | `mise run check`                               | None                                                 |
+| Browser-mode UI flow             | `mise run test:e2e`                            | Optional manual pass in `mise run app:dev:browser`   |
+| FreshRSS real-server integration | Not part of default CI                         | `mise run test:live` with real credentials           |
+| Native keyring integration       | Unit / integration tests around app logic only | Manual verification on each target OS                |
+| Updater download / install       | Config and command-level checks only           | Manual verification on packaged builds per target OS |
 
 `mise run ci` intentionally covers format, lint, repository tests, and frontend build. It does not run live-service tests or native packaged-app checks, so release validation still needs the checklist in [docs/release-manual-verification.md](docs/release-manual-verification.md).
 
@@ -212,15 +215,20 @@ Error mapping: `DomainError` → `AppError` at the command boundary (`Network` �
 
 ### TypeScript Frontend (`src/`)
 
-| Path                    | Responsibility                                                                              |
-| ----------------------- | ------------------------------------------------------------------------------------------- |
-| `api/tauri-commands.ts` | All `invoke()` calls wrapped in `safeInvoke` returning `Result<T, AppError>`                |
-| `stores/`               | Zustand stores — ui-store (selection, layout), preferences-store (async SQLite persistence) |
-| `hooks/`                | React Query hooks (articles, feeds, accounts, folders) + UI hooks                           |
-| `components/reader/`    | Three-pane layout: sidebar, article-list, article-view, browser-view                        |
-| `components/settings/`  | Per-category settings panels (7 tabs)                                                       |
-| `components/ui/`        | Base UI headless primitives wrapped with Tailwind                                           |
-| `styles/global.css`     | Tailwind CSS v4 with OKLch design tokens                                                    |
+| Path                              | Responsibility                                                                                                    |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `api/tauri-commands.ts`           | All `invoke()` calls wrapped in `safeInvoke` returning `Result<T, AppError>`                                      |
+| `stores/`                         | Zustand stores — ui-store (selection, layout), preferences-store (async SQLite persistence)                       |
+| `hooks/`                          | React Query hooks (articles, feeds, accounts, folders) + UI hooks                                                 |
+| `components/reader/`              | Three-pane layout: sidebar, article-list, article-view, browser-view, command palette                             |
+| `components/settings/`            | Per-category settings panels (general, reading, appearance, mute, tags, shortcuts, actions, data, dev-only debug) |
+| `components/accounts/`            | Account setup wizard and credential flows                                                                         |
+| `components/feed-cleanup/`        | Feed Cleanup review queue workspace                                                                               |
+| `components/subscriptions-index/` | Subscriptions index management workspace                                                                          |
+| `components/shared/`              | Cross-feature primitives reused by reader, settings, and workspaces                                               |
+| `components/ui/`                  | shadcn/ui + Base UI headless primitives wrapped with Tailwind                                                     |
+| `dev/scenarios/`                  | `VITE_DEV_INTENT` scenarios for direct dev entry points and command palette dev commands                          |
+| `styles/global.css`               | Tailwind CSS v4 with OKLch design tokens                                                                          |
 
 ## Coding Conventions
 

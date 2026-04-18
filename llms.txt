@@ -5,6 +5,7 @@
 Read `README.md` first for product and architecture context. Read `CLAUDE.md` and `AGENTS.md` before changing code. Use `mise run check` as the default verification gate. Native integrations such as keyring behavior, updater installation, and packaged app flows still need manual verification.
 
 Important implementation constraints:
+
 - TypeScript is strict-mode, functional React only, and all Tauri IPC calls go through `src/api/tauri-commands.ts` via `safeInvoke`.
 - Rust follows a layered architecture: `commands -> service -> repository -> domain -> infra`.
 - Do not hold `std::sync::Mutex` locks across `.await` points.
@@ -20,17 +21,20 @@ Important implementation constraints:
 ## Code Map
 
 - [src-tauri/src](src-tauri/src/): Rust application code including Tauri commands, services, repositories, domain types, providers, browser webview, and platform integration.
-- [src](src/): React application code including the app shell, reader UI, settings UI, hooks, stores, API schemas, and utilities.
+- [src](src/): React application code including the app shell, reader UI, settings UI, accounts flow, feed cleanup, subscriptions index, hooks, stores, API schemas, and utilities.
 - [src-tauri/migrations](src-tauri/migrations/): SQLite schema migrations and persistence history.
 - [src/api/tauri-commands.ts](src/api/tauri-commands.ts): Canonical TypeScript IPC boundary and `safeInvoke` wrapper.
 - [src/App.tsx](src/App.tsx): Frontend entry composition.
+- [src/dev/scenarios](src/dev/scenarios/): `VITE_DEV_INTENT` scenarios powering direct dev entry points and command palette dev commands.
 - [src-tauri/src/lib.rs](src-tauri/src/lib.rs): Rust bootstrap and shared module wiring.
+- [src-tauri/tauri.dev.conf.json](src-tauri/tauri.dev.conf.json): Repository dev configuration consumed by every `mise run app:dev*` task.
 
 ## Development Commands
 
 - `mise run check`: Default local verification gate (`format` + `lint` + `test`).
 - `mise run ci`: CI-equivalent gate (`format:check` + `lint` + `test` + `build`).
 - `mise run app:dev`: Default native Tauri development mode with `DEV_CREDENTIALS=1`.
+- `mise run app:dev:signed`: macOS-only one-shot dev run that builds, codesigns with `UltraRSSReader-Dev`, and launches the dev binary to suppress Keychain dialogs.
 - `mise run app:dev:subscriptions-index`: Native dev mode that jumps directly into the subscriptions index workspace.
 - `mise run app:dev:browser`: Browser-mode UI debugging on `http://127.0.0.1:4173/`.
 - `mise run app:dev:web-preview`: Native dev mode that opens `VITE_DEV_WEB_URL` directly in Web Preview.
