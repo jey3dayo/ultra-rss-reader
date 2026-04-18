@@ -49,10 +49,10 @@
       "*.tsx",
       "*.js",
       "*.json",
-      "!node_modules",
-      "!dist",
-      "!src-tauri/target",
-      "!.worktrees"
+      "!!node_modules",
+      "!!dist",
+      "!!src-tauri/target",
+      "!!.worktrees"
     ]
   }
 }
