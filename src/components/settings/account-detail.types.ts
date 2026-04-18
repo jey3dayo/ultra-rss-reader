@@ -84,6 +84,7 @@ export type AccountCredentialInputRow = {
 export type AccountDetailViewProps = {
   title: string;
   subtitle?: string;
+  headerSummary?: ReactNode;
   generalSection: AccountGeneralSectionViewProps;
   credentialsSection?: ReactNode;
   syncSection: AccountSyncSectionViewProps;
@@ -200,11 +201,13 @@ export type UseAccountDetailViewPropsParams = {
   account: AccountDetailAccount;
   controller: UseAccountDetailControllerResult;
   isSyncing: boolean;
+  syncStatus: AccountSyncStatusDto | undefined;
   syncStatusRows: AccountSyncStatusRow[];
+  language: string;
   t: TFunction<"settings">;
 };
 
 export type UseAccountDetailViewPropsResult = Pick<
   AccountDetailViewProps,
-  "title" | "generalSection" | "credentialsSection" | "syncSection" | "dangerZone"
+  "title" | "headerSummary" | "generalSection" | "credentialsSection" | "syncSection" | "dangerZone"
 >;

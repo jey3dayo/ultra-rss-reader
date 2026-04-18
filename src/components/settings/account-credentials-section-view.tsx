@@ -1,7 +1,9 @@
+import type { ComponentProps } from "react";
 import { Copy } from "lucide-react";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LoadingButton } from "@/components/shared/loading-button";
+import type { Button } from "@/components/ui/button";
 import type { AccountCredentialInputRow } from "./account-detail.types";
 
 const EMPTY_EXTRA_ROWS: AccountCredentialInputRow[] = [];
@@ -30,6 +32,7 @@ export type AccountCredentialsSectionViewProps = {
   testingConnectionLabel?: string;
   onTestConnection?: () => void;
   isTestingConnection?: boolean;
+  testConnectionVariant?: ComponentProps<typeof Button>["variant"];
   extraRows?: AccountCredentialInputRow[];
 };
 
@@ -57,6 +60,7 @@ export function AccountCredentialsSectionView({
   testingConnectionLabel,
   onTestConnection,
   isTestingConnection,
+  testConnectionVariant,
   extraRows,
 }: AccountCredentialsSectionViewProps) {
   const labelColumnClassName = "sm:w-40 sm:shrink-0";
@@ -123,6 +127,7 @@ export function AccountCredentialsSectionView({
         <div className="flex justify-end pt-3">
           <LoadingButton
             className="h-10 w-full justify-center px-4 sm:w-auto"
+            variant={testConnectionVariant}
             onClick={onTestConnection}
             loading={isTestingConnection}
             loadingLabel={testingConnectionLabel}

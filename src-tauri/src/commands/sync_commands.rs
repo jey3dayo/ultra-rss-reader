@@ -727,6 +727,7 @@ pub async fn trigger_sync_feed(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::account::ConnectionVerificationStatus;
     use crate::domain::feed::Feed;
     use crate::domain::provider::ProviderKind;
     use crate::domain::types::AccountId;
@@ -971,6 +972,9 @@ mod tests {
             sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
         };
         let selected_feed = Feed {
             id: FeedId::new(),

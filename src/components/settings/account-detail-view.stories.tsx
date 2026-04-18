@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
+import { AccountConnectionSummary } from "./account-connection-summary";
 import { AccountDetailView } from "./account-detail-view";
 
 const syncIntervalOptions = [
@@ -21,6 +22,7 @@ const meta = {
   args: {
     title: "Personal FreshRSS",
     subtitle: "FreshRSS",
+    headerSummary: <AccountConnectionSummary statusLabel="Verified" statusTone="success" detail="Today 01:06" />,
     generalSection: {
       heading: "General",
       nameLabel: "Description",

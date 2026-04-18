@@ -247,7 +247,7 @@ function createDefaultHandler(): MockHandler {
           web_preview_mode: "inherit",
         };
       case "test_account_connection":
-        return true;
+        return sampleAccounts.find((account) => account.id === args.accountId) ?? sampleAccounts[0];
       case "delete_account":
         return null;
       case "get_account_sync_status":

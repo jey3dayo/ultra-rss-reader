@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const AccountConnectionVerificationStatusSchema = z.enum(["verified", "unverified", "error"]);
+
 export const AccountDtoSchema = z.object({
   id: z.string(),
   kind: z.string(),
@@ -10,6 +12,9 @@ export const AccountDtoSchema = z.object({
   sync_on_startup: z.boolean(),
   sync_on_wake: z.boolean(),
   keep_read_items_days: z.number(),
+  connection_verification_status: AccountConnectionVerificationStatusSchema.optional(),
+  connection_verified_at: z.string().nullable().optional(),
+  connection_verification_error: z.string().nullable().optional(),
 });
 
 export type AccountDto = z.infer<typeof AccountDtoSchema>;

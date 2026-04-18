@@ -1,4 +1,4 @@
-use crate::domain::account::Account;
+use crate::domain::account::{Account, ConnectionVerificationStatus};
 use crate::domain::error::DomainResult;
 use crate::domain::types::AccountId;
 
@@ -19,6 +19,13 @@ pub trait AccountRepository {
         id: &AccountId,
         server_url: Option<&str>,
         username: Option<&str>,
+    ) -> DomainResult<()>;
+    fn update_connection_verification(
+        &self,
+        id: &AccountId,
+        status: ConnectionVerificationStatus,
+        verified_at: Option<&str>,
+        verification_error: Option<&str>,
     ) -> DomainResult<()>;
     fn rename(&self, id: &AccountId, name: &str) -> DomainResult<()>;
     fn delete(&self, id: &AccountId) -> DomainResult<()>;

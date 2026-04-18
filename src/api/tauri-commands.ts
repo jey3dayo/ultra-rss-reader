@@ -291,7 +291,7 @@ export const renameAccount = (accountId: string, name: string) =>
   safeInvoke("rename_account", { response: AccountDtoSchema, args: renameAccountArgs }, { accountId, name });
 
 export const testAccountConnection = (accountId: string) =>
-  safeInvoke("test_account_connection", { response: z.boolean(), args: testAccountConnectionArgs }, { accountId });
+  safeInvoke("test_account_connection", { response: AccountDtoSchema, args: testAccountConnectionArgs }, { accountId });
 
 export const deleteAccount = (accountId: string) =>
   safeInvoke("delete_account", { response: z.null(), args: deleteAccountArgs }, { accountId });

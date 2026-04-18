@@ -19,7 +19,7 @@ export function useAccountDetailCredentialsEditor({
   const [credServerUrl, setCredServerUrl] = useState<string | null>(null);
   const [credUsername, setCredUsername] = useState<string | null>(null);
   const [credPassword, setCredPassword] = useState<string | null>(null);
-  const [hasSavedPassword, setHasSavedPassword] = useState(false);
+  const [hasSavedPassword, setHasSavedPassword] = useState(account.kind === "FreshRss");
   const [testingConnection, setTestingConnection] = useState(false);
   const pendingCredentialSaveRef = useRef<Promise<boolean> | null>(null);
   const showCredentialSaveError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
@@ -78,19 +78,15 @@ export function useAccountDetailCredentialsEditor({
       }
 
       const result = await testAccountConnection(account.id);
-      Result.pipe(
-        result,
-        Result.inspectError(showConnectionError),
-        Result.inspect((connected) => {
-          useUiStore
-            .getState()
-            .showToast(
-              connected
-                ? t("account.connection_success")
-                : t("account.connection_failed", { message: t("account.connection_unsuccessful") }),
-            );
-        }),
-      );
+      if (Result.isFailure(result)) {
+        showConnectionError(Result.unwrapError(result));
+        await queryClient.invalidateQueries({ queryKey: ["accounts"] });
+        return;
+      }
+
+      const updated = Result.unwrap(result);
+      updateCachedAccount(queryClient, updated);
+      useUiStore.getState().showToast(t("account.connection_success"));
     } finally {
       setTestingConnection(false);
     }

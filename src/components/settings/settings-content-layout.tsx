@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 type SettingsContentLayoutProps = {
   title: string;
   subtitle?: string;
+  headerSummary?: ReactNode;
   children: ReactNode;
   titleLayout?: "sticky-centered" | "stacked-left";
   maxWidthClassName?: string;
@@ -14,6 +15,7 @@ type SettingsContentLayoutProps = {
 export function SettingsContentLayout({
   title,
   subtitle,
+  headerSummary,
   children,
   titleLayout = "sticky-centered",
   maxWidthClassName,
@@ -43,15 +45,18 @@ export function SettingsContentLayout({
             {title}
           </h2>
         ) : (
-          <header className="mb-6 flex flex-col items-start gap-1.5 sm:mb-7">
-            <h2 className="font-sans text-[22px] font-medium tracking-[-0.03em] text-[color:var(--settings-shell-content-title)] sm:text-[24px]">
-              {title}
-            </h2>
-            {subtitle ? (
-              <p className="max-w-[42rem] font-sans text-[13px] leading-5 text-[color:var(--settings-shell-section-label)]">
-                {subtitle}
-              </p>
-            ) : null}
+          <header className="mb-6 flex flex-col gap-2 sm:mb-7 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h2 className="font-sans text-[22px] font-medium tracking-[-0.03em] text-[color:var(--settings-shell-content-title)] sm:text-[24px]">
+                {title}
+              </h2>
+              {subtitle ? (
+                <p className="max-w-[42rem] font-sans text-[13px] leading-5 text-[color:var(--settings-shell-section-label)]">
+                  {subtitle}
+                </p>
+              ) : null}
+            </div>
+            {headerSummary ? <div className="w-full sm:w-auto sm:pl-4">{headerSummary}</div> : null}
           </header>
         )}
         {children}

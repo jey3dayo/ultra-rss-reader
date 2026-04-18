@@ -7,6 +7,7 @@ import { SettingsContentLayout } from "@/components/settings/settings-content-la
 export function AccountDetailView({
   title,
   subtitle,
+  headerSummary,
   generalSection,
   credentialsSection,
   syncSection,
@@ -16,6 +17,7 @@ export function AccountDetailView({
     <SettingsContentLayout
       title={title}
       subtitle={subtitle}
+      headerSummary={headerSummary}
       titleLayout="stacked-left"
       maxWidthClassName="max-w-[640px]"
       contentTestId="account-detail-layout"

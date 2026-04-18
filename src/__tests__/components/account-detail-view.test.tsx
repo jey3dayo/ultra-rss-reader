@@ -138,4 +138,64 @@ describe("AccountDetailView", () => {
     expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
     expect(screen.queryByText(/^FreshRss$/)).not.toBeInTheDocument();
   });
+
+  it("renders a header summary alongside the stacked title", () => {
+    render(
+      <AccountDetailView
+        title="FreshRSS"
+        subtitle="FreshRss"
+        headerSummary={<div>Verified</div>}
+        generalSection={{
+          heading: "General",
+          nameLabel: "Description",
+          nameValue: "FreshRSS",
+          editNameTitle: "Click to edit",
+          isEditingName: false,
+          nameDraft: "FreshRSS",
+          infoRows: [{ label: "Type", value: "FreshRSS" }],
+          onStartEditingName: vi.fn(),
+          onNameDraftChange: vi.fn(),
+          onCommitName: vi.fn(),
+          onNameKeyDown: vi.fn(),
+        }}
+        syncSection={{
+          heading: "Syncing",
+          syncInterval: {
+            name: "sync-interval",
+            label: "Sync",
+            value: "3600",
+            options: [{ value: "3600", label: "Every hour" }],
+            onChange: vi.fn(),
+          },
+          syncOnWake: {
+            label: "Sync on wake",
+            checked: false,
+            onChange: vi.fn(),
+          },
+          syncOnStartup: {
+            label: "Sync on startup",
+            checked: true,
+            onChange: vi.fn(),
+          },
+          keepReadItems: {
+            name: "keep-read-items",
+            label: "Keep read items",
+            value: "30",
+            options: [{ value: "30", label: "One month" }],
+            onChange: vi.fn(),
+          },
+        }}
+        dangerZone={{
+          dataHeading: "Data",
+          dangerHeading: "Danger Zone",
+          exportLabel: "Export OPML",
+          deleteLabel: "Delete account",
+          onExport: vi.fn(),
+          onRequestDelete: vi.fn(),
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Verified")).toBeInTheDocument();
+  });
 });

@@ -18,6 +18,8 @@ const MIGRATION_V12: &str = include_str!("../../../migrations/V12__mute_keywords
 const MIGRATION_V13: &str = include_str!("../../../migrations/V13__tag_color_palette_refresh.sql");
 const MIGRATION_V14: &str = include_str!("../../../migrations/V14__article_content_text.sql");
 const MIGRATION_V15: &str = include_str!("../../../migrations/V15__remove_inoreader.sql");
+const MIGRATION_V16: &str =
+    include_str!("../../../migrations/V16__account_connection_verification.sql");
 
 /// Result of a migration run.
 pub struct MigrationResult {
@@ -36,7 +38,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 15;
+pub const LATEST_VERSION: i32 = 16;
 
 pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     let tx = conn.transaction()?;
@@ -88,6 +90,9 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 15 {
         tx.execute_batch(MIGRATION_V15)?;
+    }
+    if from_version < 16 {
+        tx.execute_batch(MIGRATION_V16)?;
     }
 
     let to_version = get_schema_version(&tx);
@@ -329,6 +334,22 @@ mod tests {
             has_sync_on_startup,
             "latest accounts schema should include sync_on_startup"
         );
+    }
+
+    #[test]
+    fn latest_schema_includes_account_connection_verification_columns() {
+        let mut conn = open_in_memory();
+        run_migrations(&mut conn).unwrap();
+
+        assert!(conn
+            .prepare("SELECT connection_verification_status FROM accounts LIMIT 0")
+            .is_ok());
+        assert!(conn
+            .prepare("SELECT connection_verified_at FROM accounts LIMIT 0")
+            .is_ok());
+        assert!(conn
+            .prepare("SELECT connection_verification_error FROM accounts LIMIT 0")
+            .is_ok());
     }
 
     #[test]

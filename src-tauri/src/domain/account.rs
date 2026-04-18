@@ -3,6 +3,15 @@ use serde::{Deserialize, Serialize};
 use crate::domain::provider::ProviderKind;
 use crate::domain::types::AccountId;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ConnectionVerificationStatus {
+    Verified,
+    #[default]
+    Unverified,
+    Error,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Account {
     pub id: AccountId,
@@ -14,4 +23,7 @@ pub struct Account {
     pub sync_on_startup: bool,
     pub sync_on_wake: bool,
     pub keep_read_items_days: i64,
+    pub connection_verification_status: ConnectionVerificationStatus,
+    pub connection_verified_at: Option<String>,
+    pub connection_verification_error: Option<String>,
 }

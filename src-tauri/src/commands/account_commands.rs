@@ -3,7 +3,7 @@ use tracing::warn;
 
 use crate::commands::dto::{AccountDto, AppError};
 use crate::commands::AppState;
-use crate::domain::account::Account;
+use crate::domain::account::{Account, ConnectionVerificationStatus};
 use crate::domain::provider::ProviderKind;
 use crate::domain::types::AccountId;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
@@ -41,7 +41,7 @@ pub async fn add_account(
         }
     };
 
-    let account = Account {
+    let mut account = Account {
         id: AccountId::new(),
         kind: provider_kind,
         name,
@@ -51,6 +51,9 @@ pub async fn add_account(
         sync_on_startup: true,
         sync_on_wake: false,
         keep_read_items_days: 30,
+        connection_verification_status: ConnectionVerificationStatus::Unverified,
+        connection_verified_at: None,
+        connection_verification_error: None,
     };
 
     // Validate connection for remote providers (no DB lock held during .await)
@@ -64,6 +67,9 @@ pub async fn add_account(
                 password: password.clone(),
             })
             .await?;
+
+        account.connection_verification_status = ConnectionVerificationStatus::Verified;
+        account.connection_verified_at = Some(chrono::Utc::now().to_rfc3339());
     }
 
     // Store password in OS keyring BEFORE DB save (fail fast)
@@ -177,7 +183,7 @@ pub fn rename_account(
 pub async fn test_account_connection(
     state: State<'_, AppState>,
     account_id: String,
-) -> Result<bool, AppError> {
+) -> Result<AccountDto, AppError> {
     let id = AccountId(account_id);
 
     let account = {
@@ -191,7 +197,7 @@ pub async fn test_account_connection(
     }; // DB lock dropped
 
     if !matches!(account.kind, ProviderKind::FreshRss) {
-        return Ok(true);
+        return Ok(AccountDto::from(account));
     }
 
     let username = account
@@ -206,14 +212,43 @@ pub async fn test_account_connection(
     let mut provider =
         GReaderProvider::for_freshrss(account.server_url.as_deref().unwrap_or_default());
 
-    provider
+    if let Err(error) = provider
         .authenticate(&Credentials {
             token: Some(username.to_string()),
             password: Some(password),
         })
-        .await?;
+        .await
+    {
+        let error_message = error.to_string();
+        let db = state.db.lock().map_err(|e| AppError::UserVisible {
+            message: format!("Lock error: {e}"),
+        })?;
+        let repo = SqliteAccountRepository::new(db.writer());
+        repo.update_connection_verification(
+            &id,
+            ConnectionVerificationStatus::Error,
+            None,
+            Some(&error_message),
+        )?;
+        return Err(error.into());
+    }
 
-    Ok(true)
+    let verified_at = chrono::Utc::now().to_rfc3339();
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let repo = SqliteAccountRepository::new(db.writer());
+    repo.update_connection_verification(
+        &id,
+        ConnectionVerificationStatus::Verified,
+        Some(&verified_at),
+        None,
+    )?;
+    let updated = repo.find_by_id(&id)?.ok_or_else(|| AppError::UserVisible {
+        message: "Account not found".into(),
+    })?;
+
+    Ok(AccountDto::from(updated))
 }
 
 #[tauri::command]

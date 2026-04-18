@@ -6,7 +6,7 @@ use std::sync::Mutex;
 use chrono::Utc;
 use mockito::Matcher;
 use ultra_rss_reader_lib::commands::sync_commands::run_full_sync;
-use ultra_rss_reader_lib::domain::account::Account;
+use ultra_rss_reader_lib::domain::account::{Account, ConnectionVerificationStatus};
 use ultra_rss_reader_lib::domain::article::{generate_entry_id, Article};
 use ultra_rss_reader_lib::domain::feed::Feed;
 use ultra_rss_reader_lib::domain::provider::ProviderKind;
@@ -63,6 +63,9 @@ async fn local_feed_e2e() {
         sync_on_startup: true,
         sync_on_wake: false,
         keep_read_items_days: 30,
+        connection_verification_status: ConnectionVerificationStatus::Unverified,
+        connection_verified_at: None,
+        connection_verification_error: None,
     };
     account_repo.save(&account).unwrap();
 
@@ -244,6 +247,9 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
                 sync_on_startup: true,
                 sync_on_wake: false,
                 keep_read_items_days: 30,
+                connection_verification_status: ConnectionVerificationStatus::Unverified,
+                connection_verified_at: None,
+                connection_verification_error: None,
             })
             .unwrap();
         feed_repo

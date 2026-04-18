@@ -3,14 +3,15 @@ import { describe, expect, it } from "vitest";
 import { SettingsRow } from "@/components/settings/settings-components";
 
 describe("SettingsRow", () => {
-  it("left-aligns read-only text values within the content column", () => {
+  it("left-aligns read-only text values with the same inset as input controls", () => {
     render(<SettingsRow label="Type" type="text" value="FreshRSS" />);
 
     const value = screen.getByText("FreshRSS");
-    expect(value).toHaveClass("w-full");
-    expect(value).toHaveClass("text-left");
-    expect(value).toHaveClass("sm:flex-1");
-    expect(value).toHaveClass("text-foreground-soft");
+    expect(value.parentElement).toHaveClass("w-full");
+    expect(value.parentElement).toHaveClass("text-left");
+    expect(value.parentElement).toHaveClass("min-h-10");
+    expect(value.parentElement).toHaveClass("px-3");
+    expect(value.parentElement).toHaveClass("text-foreground-soft");
   });
 
   it("renders read-only select values without a literal triangle glyph", () => {
@@ -18,6 +19,7 @@ describe("SettingsRow", () => {
 
     expect(screen.getByText(/Dark/)).toBeInTheDocument();
     expect(screen.getByText("Dark").parentElement).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("Dark").parentElement).toHaveClass("px-3");
     expect(screen.queryByText("▼")).not.toBeInTheDocument();
   });
 });

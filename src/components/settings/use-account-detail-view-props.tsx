@@ -1,15 +1,51 @@
+import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
 import { AccountCredentialsSectionView } from "@/components/settings/account-credentials-section-view";
+import { formatAccountLastSuccessLabel } from "@/lib/account-sync-status-format";
 import type { UseAccountDetailViewPropsParams, UseAccountDetailViewPropsResult } from "./account-detail.types";
 
 export function useAccountDetailViewProps({
   account,
   controller,
   isSyncing,
+  syncStatus,
   syncStatusRows,
+  language,
   t,
 }: UseAccountDetailViewPropsParams): UseAccountDetailViewPropsResult {
+  const verificationStatus = account.connection_verification_status ?? "unverified";
+  const lastSuccessLabel = formatAccountLastSuccessLabel(syncStatus?.last_success_at ?? undefined, language);
+  const summaryDetail = lastSuccessLabel
+    ? lastSuccessLabel.isToday
+      ? t("account.synced_today_at", { time: lastSuccessLabel.time })
+      : t("account.synced_date_at", {
+          date: lastSuccessLabel.date,
+          time: lastSuccessLabel.time,
+        })
+    : verificationStatus === "error"
+      ? t("account.connection_auth_failed_summary")
+      : syncStatus?.last_error
+        ? t("account.connection_fetch_failed_summary")
+        : t("account.connection_not_fetched_summary");
+  const headerSummary =
+    account.kind === "FreshRss" ? (
+      <AccountConnectionSummary
+        statusLabel={
+          verificationStatus === "verified"
+            ? t("account.connection_verified_status")
+            : verificationStatus === "error"
+              ? t("account.connection_error_status")
+              : t("account.connection_unverified_status")
+        }
+        statusTone={
+          verificationStatus === "verified" ? "success" : verificationStatus === "error" ? "danger" : "warning"
+        }
+        detail={summaryDetail}
+      />
+    ) : undefined;
+
   return {
     title: account.name,
+    headerSummary,
     generalSection: {
       heading: t("account.general"),
       nameLabel: t("account.description"),
@@ -53,6 +89,7 @@ export function useAccountDetailViewProps({
           onPasswordBlur={controller.commitCredentials}
           testConnectionLabel={t("account.test_connection")}
           testingConnectionLabel={t("account.testing_connection")}
+          testConnectionVariant={verificationStatus === "verified" ? "secondary" : "default"}
           onTestConnection={controller.handleTestConnection}
           isTestingConnection={controller.testingConnection}
         />

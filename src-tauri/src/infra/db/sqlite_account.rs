@@ -1,6 +1,6 @@
 use rusqlite::{params, Connection, OptionalExtension};
 
-use crate::domain::account::Account;
+use crate::domain::account::{Account, ConnectionVerificationStatus};
 use crate::domain::error::DomainResult;
 use crate::domain::provider::ProviderKind;
 use crate::domain::types::AccountId;
@@ -30,8 +30,25 @@ fn provider_kind_from_str(s: &str) -> ProviderKind {
     }
 }
 
+fn verification_status_to_str(status: ConnectionVerificationStatus) -> &'static str {
+    match status {
+        ConnectionVerificationStatus::Verified => "verified",
+        ConnectionVerificationStatus::Unverified => "unverified",
+        ConnectionVerificationStatus::Error => "error",
+    }
+}
+
+fn verification_status_from_str(status: &str) -> ConnectionVerificationStatus {
+    match status {
+        "verified" => ConnectionVerificationStatus::Verified,
+        "error" => ConnectionVerificationStatus::Error,
+        _ => ConnectionVerificationStatus::Unverified,
+    }
+}
+
 fn row_to_account(row: &rusqlite::Row) -> rusqlite::Result<Account> {
     let kind_str: String = row.get(1)?;
+    let verification_status: String = row.get(9)?;
     Ok(Account {
         id: AccountId(row.get(0)?),
         kind: provider_kind_from_str(&kind_str),
@@ -42,13 +59,16 @@ fn row_to_account(row: &rusqlite::Row) -> rusqlite::Result<Account> {
         sync_on_startup: row.get::<_, bool>(6)?,
         sync_on_wake: row.get::<_, bool>(7)?,
         keep_read_items_days: row.get(8)?,
+        connection_verification_status: verification_status_from_str(&verification_status),
+        connection_verified_at: row.get(10)?,
+        connection_verification_error: row.get(11)?,
     })
 }
 
 impl AccountRepository for SqliteAccountRepository<'_> {
     fn find_all(&self) -> DomainResult<Vec<Account>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days FROM accounts",
+            "SELECT id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days, connection_verification_status, connection_verified_at, connection_verification_error FROM accounts",
         )?;
         let accounts = stmt
             .query_map([], row_to_account)?
@@ -58,7 +78,7 @@ impl AccountRepository for SqliteAccountRepository<'_> {
 
     fn find_by_id(&self, id: &AccountId) -> DomainResult<Option<Account>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days FROM accounts WHERE id = ?1",
+            "SELECT id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days, connection_verification_status, connection_verified_at, connection_verification_error FROM accounts WHERE id = ?1",
         )?;
         let account = stmt.query_row(params![id.0], row_to_account).optional()?;
         Ok(account)
@@ -66,7 +86,7 @@ impl AccountRepository for SqliteAccountRepository<'_> {
 
     fn save(&self, account: &Account) -> DomainResult<()> {
         self.conn.execute(
-            "INSERT OR REPLACE INTO accounts (id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            "INSERT OR REPLACE INTO accounts (id, kind, name, server_url, username, sync_interval_secs, sync_on_startup, sync_on_wake, keep_read_items_days, connection_verification_status, connection_verified_at, connection_verification_error) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
             params![
                 account.id.0,
                 provider_kind_to_str(&account.kind),
@@ -77,6 +97,9 @@ impl AccountRepository for SqliteAccountRepository<'_> {
                 account.sync_on_startup,
                 account.sync_on_wake,
                 account.keep_read_items_days,
+                verification_status_to_str(account.connection_verification_status),
+                account.connection_verified_at,
+                account.connection_verification_error,
             ],
         )?;
         Ok(())
@@ -104,8 +127,37 @@ impl AccountRepository for SqliteAccountRepository<'_> {
         username: Option<&str>,
     ) -> DomainResult<()> {
         self.conn.execute(
-            "UPDATE accounts SET server_url = ?1, username = ?2 WHERE id = ?3",
+            "UPDATE accounts
+             SET server_url = ?1,
+                 username = ?2,
+                 connection_verification_status = 'unverified',
+                 connection_verified_at = NULL,
+                 connection_verification_error = NULL
+             WHERE id = ?3",
             params![server_url, username, id.0],
+        )?;
+        Ok(())
+    }
+
+    fn update_connection_verification(
+        &self,
+        id: &AccountId,
+        status: ConnectionVerificationStatus,
+        verified_at: Option<&str>,
+        verification_error: Option<&str>,
+    ) -> DomainResult<()> {
+        self.conn.execute(
+            "UPDATE accounts
+             SET connection_verification_status = ?1,
+                 connection_verified_at = ?2,
+                 connection_verification_error = ?3
+             WHERE id = ?4",
+            params![
+                verification_status_to_str(status),
+                verified_at,
+                verification_error,
+                id.0
+            ],
         )?;
         Ok(())
     }
@@ -145,6 +197,9 @@ mod tests {
             sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
         }
     }
 
@@ -219,5 +274,43 @@ mod tests {
         assert!(!saved.sync_on_startup);
         assert!(saved.sync_on_wake);
         assert_eq!(saved.keep_read_items_days, 90);
+    }
+
+    #[test]
+    fn save_and_update_credentials_persist_connection_verification_state() {
+        let db = test_db();
+        let repo = SqliteAccountRepository::new(db.writer());
+
+        let mut account = make_account("FreshRSS");
+        account.kind = ProviderKind::FreshRss;
+        account.connection_verification_status =
+            crate::domain::account::ConnectionVerificationStatus::Verified;
+        account.connection_verified_at = Some("2026-04-19T05:32:00Z".to_string());
+        repo.save(&account).unwrap();
+
+        let saved = repo.find_by_id(&account.id).unwrap().unwrap();
+        assert_eq!(
+            saved.connection_verification_status,
+            crate::domain::account::ConnectionVerificationStatus::Verified
+        );
+        assert_eq!(
+            saved.connection_verified_at.as_deref(),
+            Some("2026-04-19T05:32:00Z")
+        );
+
+        repo.update_credentials(
+            &account.id,
+            Some("https://freshrss.example.com"),
+            Some("debug"),
+        )
+        .unwrap();
+
+        let updated = repo.find_by_id(&account.id).unwrap().unwrap();
+        assert_eq!(
+            updated.connection_verification_status,
+            crate::domain::account::ConnectionVerificationStatus::Unverified
+        );
+        assert_eq!(updated.connection_verified_at, None);
+        assert_eq!(updated.connection_verification_error, None);
     }
 }

@@ -155,6 +155,9 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("button", { name: "Defer selected" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
     expect(screen.getByRole("button", { name: "Delete selected" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
     expect(screen.getByTestId("reference-detail-panel-frame")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-settings-header-summary-frame")).toBeInTheDocument();
+    expect(screen.getByText("Settings header summary")).toBeInTheDocument();
+    expect(screen.getAllByText("確認済み").length).toBeGreaterThan(0);
     expect(screen.getAllByText("AUTOMATON").length).toBeGreaterThan(0);
     expect(screen.getByTestId("reference-workspace-two-pane-frame")).toHaveClass("rounded-md");
     expect(screen.getByText("Announcement cards")).toBeInTheDocument();

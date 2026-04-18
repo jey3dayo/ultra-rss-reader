@@ -14,6 +14,7 @@ const accountDetailViewSpy = vi.fn();
 vi.mock("@/components/settings/account-detail-view", () => ({
   AccountDetailView: (props: {
     title: string;
+    headerSummary?: ReactNode;
     generalSection: {
       nameValue: string;
       isEditingName: boolean;
@@ -45,6 +46,7 @@ vi.mock("@/components/settings/account-detail-view", () => ({
     return (
       <div>
         <h2>{props.title}</h2>
+        {props.headerSummary}
         {props.generalSection.isEditingName ? (
           <input
             aria-label="Account name"
@@ -438,7 +440,20 @@ describe("AccountDetail", () => {
               });
           });
         case "test_account_connection":
-          return true;
+          return {
+            id: "acc-1",
+            kind: "FreshRss",
+            name: "FreshRSS",
+            username: "user",
+            server_url: "https://freshrss.example.com",
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: "verified",
+            connection_verified_at: "2026-04-19T05:32:00Z",
+            connection_verification_error: null,
+          };
         default:
           return null;
       }
@@ -447,7 +462,7 @@ describe("AccountDetail", () => {
     render(<AccountDetail />, { wrapper: createWrapper() });
 
     const passwordInput = (await screen.findByPlaceholderText("Enter new password")) as HTMLInputElement;
-    expect(passwordInput).toHaveValue("");
+    expect(passwordInput).toHaveValue("••••••••");
     await user.click(passwordInput);
     await user.type(passwordInput, "new-secret");
 
@@ -527,6 +542,91 @@ describe("AccountDetail", () => {
     });
   });
 
+  it("shows the persisted connection summary for a verified FreshRSS account", async () => {
+    const now = new Date();
+    const localTodayAt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+      now.getDate(),
+    ).padStart(2, "0")}T01:06:00`;
+
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+              connection_verification_status: "verified",
+              connection_verified_at: "2026-04-19T05:32:00Z",
+              connection_verification_error: null,
+            },
+          ];
+        case "get_account_sync_status":
+          return {
+            last_success_at: localTodayAt,
+            last_error: null,
+            error_count: 0,
+            next_retry_at: null,
+          };
+        default:
+          return null;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    expect(await screen.findByTestId("account-connection-summary")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Verified")).toBeInTheDocument();
+      expect(screen.getByText("Today 01:06")).toBeInTheDocument();
+    });
+  });
+
+  it("shows an auth-failure summary when verification has never succeeded", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+              connection_verification_status: "error",
+              connection_verified_at: null,
+              connection_verification_error: "Authentication failed",
+            },
+          ];
+        case "get_account_sync_status":
+          return {
+            last_success_at: null,
+            last_error: null,
+            error_count: 0,
+            next_retry_at: null,
+          };
+        default:
+          return null;
+      }
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    expect(await screen.findByTestId("account-connection-summary")).toBeInTheDocument();
+    expect(screen.getByText("Unauthorized")).toBeInTheDocument();
+    expect(screen.getByText("Authentication failed")).toBeInTheDocument();
+  });
+
   it("treats an unsuccessful connection test result as a failure toast", async () => {
     const user = userEvent.setup();
 
@@ -547,7 +647,7 @@ describe("AccountDetail", () => {
             },
           ];
         case "test_account_connection":
-          return false;
+          throw { type: "UserVisible", message: "Connection failed: connection could not be verified" };
         default:
           return null;
       }

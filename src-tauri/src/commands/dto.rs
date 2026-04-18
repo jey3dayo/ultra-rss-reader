@@ -171,6 +171,9 @@ pub struct AccountDto {
     pub sync_on_startup: bool,
     pub sync_on_wake: bool,
     pub keep_read_items_days: i64,
+    pub connection_verification_status: String,
+    pub connection_verified_at: Option<String>,
+    pub connection_verification_error: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -288,6 +291,14 @@ impl From<crate::domain::account::Account> for AccountDto {
             sync_on_startup: a.sync_on_startup,
             sync_on_wake: a.sync_on_wake,
             keep_read_items_days: a.keep_read_items_days,
+            connection_verification_status: match a.connection_verification_status {
+                crate::domain::account::ConnectionVerificationStatus::Verified => "verified",
+                crate::domain::account::ConnectionVerificationStatus::Unverified => "unverified",
+                crate::domain::account::ConnectionVerificationStatus::Error => "error",
+            }
+            .to_string(),
+            connection_verified_at: a.connection_verified_at,
+            connection_verification_error: a.connection_verification_error,
         }
     }
 }

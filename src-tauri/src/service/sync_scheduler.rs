@@ -357,6 +357,7 @@ pub async fn wait_for_automatic_sync_enabled(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::account::ConnectionVerificationStatus;
     use std::sync::atomic::{AtomicBool, Ordering};
     use tokio::sync::Notify;
 
@@ -406,6 +407,9 @@ mod tests {
             sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
         };
         assert_eq!(account_interval(&account), Duration::from_secs(900));
     }
@@ -422,6 +426,9 @@ mod tests {
             sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
         };
         assert_eq!(
             account_interval(&account),
@@ -441,6 +448,9 @@ mod tests {
             sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
         };
         assert_eq!(calculate_backoff(&account, 0), Duration::from_secs(60));
         assert_eq!(calculate_backoff(&account, 1), Duration::from_secs(120));
@@ -460,6 +470,9 @@ mod tests {
             sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
         };
         assert_eq!(calculate_backoff(&account, 20), MAX_BACKOFF);
     }

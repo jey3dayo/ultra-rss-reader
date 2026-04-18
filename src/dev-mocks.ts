@@ -189,7 +189,11 @@ export function setupDevMocks() {
       }
 
       case "test_account_connection":
-        return true;
+        return (
+          mockAccounts.find((account) => account.id === (payload as { accountId?: string } | null)?.accountId) ??
+          mockAccounts[0] ??
+          null
+        );
 
       case "delete_account": {
         const { accountId } = deleteAccountArgs.parse(payload);

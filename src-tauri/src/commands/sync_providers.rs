@@ -727,6 +727,7 @@ fn provider_managed_feed_snapshots(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::account::ConnectionVerificationStatus;
     use crate::domain::provider::ProviderKind;
     use crate::infra::db::sqlite_account::SqliteAccountRepository;
     use crate::repository::account::AccountRepository;
@@ -776,6 +777,9 @@ mod tests {
             sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
         }
     }
 
@@ -819,6 +823,9 @@ mod tests {
             sync_on_startup: true,
             sync_on_wake: false,
             keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
         }
     }
 

@@ -54,7 +54,9 @@ function SnapshotBackedAccountDetail({
     account,
     controller,
     isSyncing,
+    syncStatus: syncStatusQuery.data,
     syncStatusRows,
+    language: i18n.language,
     t,
   });
 

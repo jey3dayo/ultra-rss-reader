@@ -60,25 +60,37 @@ export type SettingsRowProps =
     };
 
 export function SettingsRow(props: SettingsRowProps) {
+  const valueRailClassName = "flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end";
+  const valueTextClassName = "flex min-h-10 w-full items-center px-3 text-left text-sm text-foreground-soft";
+
   return (
     <LabeledControlRow label={props.label} labelClassName={props.labelClassName}>
       {props.type === "switch" && <GradientSwitch checked={props.checked} disabled />}
       {props.type === "select" && (
-        <span className={cn("inline-flex items-center gap-2 text-sm text-foreground-soft", props.valueClassName)}>
-          <span>{props.value}</span>
-          <ChevronDownIcon className="h-4 w-4 opacity-50" aria-hidden="true" />
-        </span>
+        <div className={valueRailClassName}>
+          <span
+            className={cn(
+              valueTextClassName,
+              "inline-flex justify-between gap-2",
+              props.valueClassName,
+            )}
+          >
+            <span>{props.value}</span>
+            <ChevronDownIcon className="h-4 w-4 opacity-50" aria-hidden="true" />
+          </span>
+        </div>
       )}
       {props.type === "text" && (
-        <span
-          className={cn(
-            "w-full text-left text-sm text-foreground-soft sm:min-w-0 sm:flex-1",
-            props.valueClassName,
-            props.truncate && "truncate",
-          )}
-        >
-          {props.value}
-        </span>
+        <div className={valueRailClassName}>
+          <span
+            className={cn(
+              valueTextClassName,
+              props.valueClassName,
+            )}
+          >
+            <span className={cn("min-w-0", props.truncate && "truncate")}>{props.value}</span>
+          </span>
+        </div>
       )}
     </LabeledControlRow>
   );

@@ -4,6 +4,7 @@ import {
   AnnouncementCardsSpecimen,
   DetailPanelSpecimen,
   ReferencePage,
+  SettingsHeaderSummarySpecimen,
   WorkspaceActionClusterSpecimen,
   WorkspaceFilterClusterSpecimen,
   WorkspaceTwoPaneSpecimen,
@@ -23,6 +24,7 @@ export function ViewSpecimensCanvas() {
           <AnnouncementCardsSpecimen />
           <DetailPanelSpecimen />
         </div>
+        <SettingsHeaderSummarySpecimen />
         <WorkspaceTwoPaneSpecimen />
       </div>
     </ReferencePage>
