@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { UnsubscribeDialog } from "@/components/reader/unsubscribe-feed-dialog";
 import { useAccountArticles, useFeedIntegrityReport } from "@/hooks/use-articles";
@@ -257,7 +257,7 @@ export function SubscriptionsIndexPage() {
       ? t("batch_review_action")
       : undefined;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target;
       if (
