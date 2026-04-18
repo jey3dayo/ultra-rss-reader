@@ -293,6 +293,7 @@ mod tests {
     };
     use crate::domain::error::DomainError;
     use crate::platform::{platform_info_for_kind, PlatformKind};
+    use keyring::credential::CredentialPersistence;
     use std::collections::HashMap;
     use std::path::{Path, PathBuf};
 
@@ -520,6 +521,16 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "Keychain error: Failed to verify saved password: retrieved value did not match the saved credential"
+        );
+    }
+
+    #[test]
+    fn desktop_builds_use_persistent_keyring_backends() {
+        let persistence = keyring::default::default_credential_builder().persistence();
+
+        assert!(
+            matches!(persistence, CredentialPersistence::UntilDelete),
+            "desktop builds must use a persistent keyring backend; got non-persistent storage"
         );
     }
 }

@@ -36,7 +36,11 @@ hex = "0.4"
 log = "0.4"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-keyring = { version = "3", features = ["apple-native", "sync-secret-service"] }
+keyring = { version = "3", features = [
+  "apple-native",
+  "windows-native",
+  "sync-secret-service",
+] }
 async-trait = "0.1"
 thiserror = "2"
 quick-xml = "0.36"
