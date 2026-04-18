@@ -48,9 +48,9 @@ export function AccountsNavView({
             aria-pressed={account.isActive}
             onClick={() => onSelectAccount(account.id)}
             className={cn(
-              "relative shrink-0 rounded-md px-3 py-2 text-[13px] leading-[1.3] sm:w-full",
+              "relative shrink-0 rounded-md px-3 py-2 text-[13px] leading-[1.3] focus-visible:ring-0 focus-visible:ring-transparent sm:w-full",
               account.isActive &&
-                "border border-border-strong bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong",
+                "bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-[var(--sidebar-selection-inset-shadow)] before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong",
             )}
             leading={
               <span
@@ -83,9 +83,9 @@ export function AccountsNavView({
         aria-pressed={isAddAccountActive}
         onClick={onAddAccount}
         className={cn(
-          "relative shrink-0 items-center rounded-md px-3 py-2 text-[13px] leading-[1.3] sm:w-full",
+          "relative shrink-0 items-center rounded-md px-3 py-2 text-[13px] leading-[1.3] focus-visible:ring-0 focus-visible:ring-transparent sm:w-full",
           isAddAccountActive &&
-            "border border-border-strong bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-none before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong",
+            "bg-[var(--bg-selected)] text-sidebar-accent-foreground shadow-[var(--sidebar-selection-inset-shadow)] before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-border-strong",
         )}
         leading={
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-1/72">
