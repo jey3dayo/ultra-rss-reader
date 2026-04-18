@@ -38,7 +38,9 @@ function EmptyState({ emptyReason }: { emptyReason: "default" | "no-accounts" | 
           message: t("empty_state_no_accounts_title"),
           description: t("empty_state_no_accounts_description"),
           hints: [t("empty_state_no_accounts_sidebar_hint"), t("empty_state_no_accounts_settings_hint")],
-          actions: [{ label: settingsT("add_account_ellipsis"), onClick: openAddAccountSettings, variant: "default" as const }],
+          actions: [
+            { label: settingsT("add_account_ellipsis"), onClick: openAddAccountSettings, variant: "default" as const },
+          ],
         }
       : emptyReason === "no-feeds"
         ? {
