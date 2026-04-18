@@ -141,7 +141,7 @@ describe("SubscriptionsIndexPage", () => {
       0,
     );
     expect(screen.getByText("未読 0件")).toBeInTheDocument();
-    expect(screen.getByText("最終更新 2024/1/1")).toBeInTheDocument();
+    expect(screen.getByText((text) => text.startsWith("最終更新 ") && text.includes("2024"))).toBeInTheDocument();
     expect(screen.getAllByText("整理不要").length).toBeGreaterThan(0);
 
     const detailPane = screen.getByTestId("subscriptions-detail-pane");

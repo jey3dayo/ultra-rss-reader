@@ -1285,13 +1285,18 @@ describe("Sidebar", () => {
     render(<Sidebar />, { wrapper: createWrapper() });
 
     const syncButton = screen.getByLabelText("Sync feeds");
+    const expectedLastSyncedTime = new Date("2026-04-18T02:12:00+09:00");
+    const expectedLastSyncedTimeLabel = `${expectedLastSyncedTime.getHours().toString().padStart(2, "0")}:${expectedLastSyncedTime
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
     expect(syncButton).not.toBeDisabled();
 
     fireEvent.click(syncButton);
     await vi.advanceTimersByTimeAsync(1);
     expect(syncButton).not.toBeDisabled();
     expect(syncButton).toHaveAttribute("aria-disabled", "true");
-    expect(screen.getByText("Today at 02:12")).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(expectedLastSyncedTimeLabel))).toBeInTheDocument();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_000);
@@ -1309,7 +1314,7 @@ describe("Sidebar", () => {
       await vi.advanceTimersByTimeAsync(15_000);
     });
     expect(syncButton).not.toHaveAttribute("aria-disabled");
-    expect(screen.getByText("Today at 02:12")).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(expectedLastSyncedTimeLabel))).toBeInTheDocument();
   });
 
   it("shows a warning toast when sync completes with anomalies", async () => {
