@@ -1,8 +1,8 @@
-#!/usr/bin/env node
 // @ts-check
 
 import { execFile, spawn } from "node:child_process";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -236,7 +236,12 @@ async function main() {
   });
 }
 
-main().catch((error) => {
-  console.error("[tauri-dev-vite-manager]", error instanceof Error ? error.message : error);
-  process.exit(1);
-});
+const isMainModule =
+  typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isMainModule) {
+  main().catch((error) => {
+    console.error("[tauri-dev-vite-manager]", error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
+}
