@@ -122,11 +122,23 @@ fi
 release: v{new_version}
 ```
 
-1. annotated タグを作成する:
+1. `git rev-parse HEAD` で release commit hash を記録し、その commit に対して annotated タグを作成する:
 
 ```bash
+git rev-parse HEAD
 git tag -a v{new_version} -m "v{new_version}"
 ```
+
+1. push 前に次をすべて確認する:
+
+```bash
+git rev-list -n 1 v{new_version}
+git show v{new_version}:package.json
+git show v{new_version}:src-tauri/Cargo.toml
+git show v{new_version}:src-tauri/tauri.conf.json
+```
+
+タグが release commit hash と一致しない、または tag 先の 3 ファイルの version が `{new_version}` でない場合は中止する。
 
 🔸 ユーザー確認③: push 前に以下を表示してユーザーの確認を求める:
 

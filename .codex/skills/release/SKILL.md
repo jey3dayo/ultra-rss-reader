@@ -115,11 +115,21 @@ Stage the release changes and create:
 release: v{new_version}
 ```
 
-Then create an annotated tag:
+Capture the release commit hash from `HEAD`, then create an annotated tag from that exact commit:
 
 ```bash
+git rev-parse HEAD
 git tag -a v{new_version} -m "v{new_version}"
 ```
+
+Before any push, verify all of these:
+
+- `git rev-list -n 1 v{new_version}` exactly matches the release commit hash from `git rev-parse HEAD`
+- `git show v{new_version}:package.json` contains `"version": "{new_version}"`
+- `git show v{new_version}:src-tauri/Cargo.toml` contains `version = "{new_version}"`
+- `git show v{new_version}:src-tauri/tauri.conf.json` contains `"version": "{new_version}"`
+
+Abort if the tag points at any earlier commit or if any tagged file still shows the previous version.
 
 Before any push, show:
 

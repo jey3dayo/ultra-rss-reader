@@ -24,6 +24,8 @@ paths:
 
 - バージョンは `tauri.conf.json` の `version`、`Cargo.toml` の `version`、`package.json` の `version` の 3 箇所で管理される
 - タグ作成前に 3 箇所のバージョンが一致していることを確認する
+- release タグは version bump commit を作成した後、その `HEAD` commit に対して作成する
+- push 前に `git rev-list -n 1 vX.Y.Z` が release commit hash と一致し、tag 先の 3 ファイルが同じ `X.Y.Z` を返すことを確認する
 - セマンティックバージョニング (semver) に従う
 
 ## 開発フロー（リリースノート自動生成の前提）
