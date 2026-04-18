@@ -34,7 +34,10 @@ export function formatAccountSyncRetryDateTime(retryAt: string | undefined, lang
   });
 }
 
-export function formatAccountLastSuccessLabel(lastSuccessAt: string | undefined, language: string): {
+export function formatAccountLastSuccessLabel(
+  lastSuccessAt: string | undefined,
+  language: string,
+): {
   date: string;
   time: string;
   isToday: boolean;
@@ -50,9 +53,7 @@ export function formatAccountLastSuccessLabel(lastSuccessAt: string | undefined,
 
   const now = new Date();
   const isToday =
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate();
+    date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
 
   return {
     date: date.toLocaleDateString(language, { month: "short", day: "numeric" }),

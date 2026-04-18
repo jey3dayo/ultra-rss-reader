@@ -23,9 +23,7 @@ export function AccountConnectionSummary({
         {statusLabel}
       </LabelChip>
       {detail ? (
-        <p className="font-sans text-[12px] leading-[1.35] text-foreground/58 sm:text-right">
-          {detail}
-        </p>
+        <p className="font-sans text-[12px] leading-[1.35] text-foreground/58 sm:text-right">{detail}</p>
       ) : null}
     </div>
   );

@@ -68,13 +68,7 @@ export function SettingsRow(props: SettingsRowProps) {
       {props.type === "switch" && <GradientSwitch checked={props.checked} disabled />}
       {props.type === "select" && (
         <div className={valueRailClassName}>
-          <span
-            className={cn(
-              valueTextClassName,
-              "inline-flex justify-between gap-2",
-              props.valueClassName,
-            )}
-          >
+          <span className={cn(valueTextClassName, "inline-flex justify-between gap-2", props.valueClassName)}>
             <span>{props.value}</span>
             <ChevronDownIcon className="h-4 w-4 opacity-50" aria-hidden="true" />
           </span>
@@ -82,12 +76,7 @@ export function SettingsRow(props: SettingsRowProps) {
       )}
       {props.type === "text" && (
         <div className={valueRailClassName}>
-          <span
-            className={cn(
-              valueTextClassName,
-              props.valueClassName,
-            )}
-          >
+          <span className={cn(valueTextClassName, props.valueClassName)}>
             <span className={cn("min-w-0", props.truncate && "truncate")}>{props.value}</span>
           </span>
         </div>

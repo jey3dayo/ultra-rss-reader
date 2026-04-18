@@ -1,5 +1,5 @@
-import type { ComponentProps } from "react";
 import { Copy } from "lucide-react";
+import type { ComponentProps } from "react";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LoadingButton } from "@/components/shared/loading-button";
