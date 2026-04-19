@@ -85,22 +85,18 @@ export function ArticleListScreenView({
 
   return (
     <ScrollArea className="h-full" viewportRef={viewportRef}>
-      <div
-        ref={listRef}
-        role="listbox"
-        aria-label={listAriaLabel}
-        className="pb-4"
-        onKeyDownCapture={onListKeyDownCapture}
-      >
-        <ArticleGroupsView
-          groups={groups}
-          dimArchived={dimArchived}
-          textPreview={textPreview}
-          imagePreviews={imagePreviews}
-          selectionStyle={selectionStyle}
-          onSelectArticle={onSelectArticle}
-          renderRow={renderRow}
-        />
+      <div data-testid="article-list-scroll-content" className="pb-4 pr-3">
+        <div ref={listRef} role="listbox" aria-label={listAriaLabel} onKeyDownCapture={onListKeyDownCapture}>
+          <ArticleGroupsView
+            groups={groups}
+            dimArchived={dimArchived}
+            textPreview={textPreview}
+            imagePreviews={imagePreviews}
+            selectionStyle={selectionStyle}
+            onSelectArticle={onSelectArticle}
+            renderRow={renderRow}
+          />
+        </div>
       </div>
     </ScrollArea>
   );

@@ -92,6 +92,41 @@ describe("ArticleListScreenView", () => {
     expect(screen.getByTestId(`screen-row-${sampleArticles[0].id}`)).toBeInTheDocument();
   });
 
+  it("keeps article rows inside a dedicated scroll content lane so the scrollbar does not overlap selections", () => {
+    render(
+      <ArticleListScreenView
+        listAriaLabel="Article list"
+        listRef={{ current: null }}
+        isLoading={false}
+        emptyMessage="No articles"
+        loadingMessage="Loading articles"
+        groups={[
+          {
+            id: "today",
+            label: "Today",
+            showLabel: true,
+            items: [
+              {
+                article: sampleArticles[0],
+                feedName: "Tech Blog",
+                isSelected: true,
+                isRecentlyRead: false,
+              },
+            ],
+          },
+        ]}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        onSelectArticle={vi.fn()}
+        renderRow={({ content }) => content}
+      />,
+    );
+
+    expect(screen.getByTestId("article-list-scroll-content")).toHaveClass("pr-3", "pb-4");
+  });
+
   it("restores the unread marker when a retained row is no longer recently read", () => {
     const article = {
       ...sampleArticles[0],

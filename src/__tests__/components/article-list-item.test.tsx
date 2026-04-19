@@ -158,7 +158,10 @@ describe("ArticleListItem", () => {
     );
 
     const selectedOption = screen.getByRole("option", { name: "First Article (unread)" });
-    expect(selectedOption).toHaveClass("bg-surface-1", "ring-1", "ring-border-strong");
+    expect(selectedOption).toHaveClass("bg-surface-1");
+    expect(selectedOption).not.toHaveClass("ring-1");
+    expect(selectedOption).not.toHaveClass("ring-border-strong");
+    expect(selectedOption).toHaveClass("after:bg-border-strong");
 
     rerender(
       <ArticleListItem
@@ -214,8 +217,12 @@ describe("ArticleListItem", () => {
     );
 
     const option = screen.getByRole("option", { name: "First Article (unread)" });
-    expect(option).toHaveClass("ring-1", "ring-border-strong");
+    expect(option).not.toHaveClass("focus-visible:ring-2");
+    expect(option).not.toHaveClass("focus-visible:ring-ring/45");
+    expect(option).not.toHaveClass("ring-1");
     expect(option).not.toHaveClass("hover:bg-surface-1/72");
+    expect(option).toHaveClass("focus-visible:shadow-[inset_0_0_0_1px_var(--color-border-strong)]");
+    expect(option).toHaveClass("shadow-[0_18px_34px_-30px_rgba(38,37,30,0.48)]");
   });
 
   it("removes inline timestamps from article rows to keep the title column dominant", () => {
