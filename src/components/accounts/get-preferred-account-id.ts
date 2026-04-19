@@ -1,9 +1,5 @@
-type AccountWithId = {
-  id: string;
-};
-
-export function getPreferredAccountId(
-  accounts: readonly AccountWithId[],
+export function getPreferredAccountId<T extends { id: string }>(
+  accounts: readonly T[],
   savedAccountId: string | null | undefined,
 ): string | null {
   if (accounts.length === 0) {

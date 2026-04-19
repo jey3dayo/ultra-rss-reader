@@ -3,11 +3,7 @@ import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { getAccountSyncStatus } from "@/api/tauri-commands";
 
-type AccountLike = {
-  id: string;
-};
-
-export function useAccountSyncStatuses(accounts: readonly AccountLike[] | undefined) {
+export function useAccountSyncStatuses<T extends { id: string }>(accounts: readonly T[] | undefined) {
   const queries = useQueries({
     queries: (accounts ?? []).map((account) => ({
       queryKey: ["account-sync-status", account.id],

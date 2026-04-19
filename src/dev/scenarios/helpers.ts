@@ -186,10 +186,12 @@ export async function runOpenWebPreviewUrlScenario(ctx: DevScenarioContext): Pro
   window.setTimeout(applyPreviewState, OPEN_WEB_PREVIEW_URL_SCENARIO_REPLAY_LATE_DELAY_MS);
 }
 
-function sizeMatchesWithinTolerance(
-  current: { width: number; height: number },
-  target: { width: number; height: number },
-): boolean {
+type WindowSizeLike = {
+  width: number;
+  height: number;
+};
+
+function sizeMatchesWithinTolerance(current: WindowSizeLike, target: WindowSizeLike): boolean {
   return (
     Math.abs(current.width - target.width) <= DEV_WINDOW_RESIZE_TOLERANCE_PX &&
     Math.abs(current.height - target.height) <= DEV_WINDOW_RESIZE_TOLERANCE_PX

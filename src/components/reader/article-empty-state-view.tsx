@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import type { ArticleEmptyStateViewProps } from "./article-view.types";
 
 const EMPTY_HINTS: string[] = [];
+const EMPTY_ACTIONS: NonNullable<ArticleEmptyStateViewProps["actions"]> = [];
 
 export function ArticleEmptyStateView({
   eyebrow,
@@ -11,7 +12,7 @@ export function ArticleEmptyStateView({
   hints = EMPTY_HINTS,
   containerClassName,
   cardClassName,
-  actions = [],
+  actions = EMPTY_ACTIONS,
 }: ArticleEmptyStateViewProps) {
   return (
     <div
