@@ -68,7 +68,7 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
   }, [articleContentHtml, contentContainerElement]);
 
   return (
-    <ScrollArea data-testid="article-reader-scroll-area" className="h-full">
+    <ScrollArea data-testid="article-reader-scroll-area" className="h-full" contentClassName="pr-3">
       <article className="mx-auto max-w-[44rem] px-7 pb-20 pt-10 md:px-11 md:pt-13">
         <ArticleMetaView
           title={article.title}

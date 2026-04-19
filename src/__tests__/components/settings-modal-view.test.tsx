@@ -31,11 +31,7 @@ const { ResizeObserverMock, resizeObserverCallbacks } = vi.hoisted(() => {
 vi.stubGlobal("ResizeObserver", ResizeObserverMock);
 
 function setScrollMetrics(scrollArea: HTMLElement, clientHeight: number, scrollHeight: number) {
-  const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]');
-
-  if (!(viewport instanceof HTMLElement)) {
-    throw new Error("Expected scroll area viewport");
-  }
+  const viewport = getScrollViewport(scrollArea);
 
   Object.defineProperty(viewport, "clientHeight", {
     configurable: true,
@@ -45,6 +41,16 @@ function setScrollMetrics(scrollArea: HTMLElement, clientHeight: number, scrollH
     configurable: true,
     value: scrollHeight,
   });
+}
+
+function getScrollViewport(scrollArea: HTMLElement) {
+  const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]');
+
+  if (!(viewport instanceof HTMLElement)) {
+    throw new Error("Expected scroll area viewport");
+  }
+
+  return viewport;
 }
 
 function notifyResizeObservers() {
@@ -111,6 +117,29 @@ describe("SettingsModalView", () => {
     expect(contentScrollArea).toHaveClass("h-full");
   });
 
+  it("uses shared content lanes for settings scroll surfaces", () => {
+    render(
+      <SettingsModalView
+        open={true}
+        title="Preferences"
+        closeLabel="Close preferences"
+        navigation={<div data-testid="settings-nav">Settings navigation</div>}
+        accountsHeading="Accounts"
+        accountsNavigation={<div>Accounts navigation</div>}
+        content={<div data-testid="settings-content">Settings content</div>}
+        contentResetKey="general::false"
+        onClose={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    const navLane = screen.getByTestId("settings-nav").closest('[data-slot="scroll-area-content"]');
+    const contentLane = screen.getByTestId("settings-content").closest('[data-slot="scroll-area-content"]');
+
+    expect(navLane).toHaveClass("pr-3");
+    expect(contentLane).toHaveClass("pr-3");
+  });
+
   it("adds visual scroll affordances and a taller modal surface", () => {
     render(
       <SettingsModalView
@@ -157,6 +186,9 @@ describe("SettingsModalView", () => {
     });
     expect(screen.getByTestId("settings-accounts-scroll-area")).toHaveClass("max-h-[15rem]");
     expect(screen.getByTestId("settings-accounts-scroll-area")).toHaveClass("min-h-0");
+    expect(
+      screen.getByTestId("settings-accounts-section").querySelector('[data-slot="scroll-area-content"]'),
+    ).toHaveClass("pr-2");
     expect(screen.getAllByText("Accounts")).toHaveLength(2);
     expect(screen.getAllByText("Accounts")[0]).toHaveClass("text-[color:var(--settings-shell-section-label)]");
   });
@@ -179,10 +211,14 @@ describe("SettingsModalView", () => {
 
     expect(screen.getByTestId("settings-mobile-accounts-section")).toBeInTheDocument();
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("rounded-md");
-    expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("max-h-[5.5rem]");
-    expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("overflow-y-auto");
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("border-border/60");
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveClass("shadow-none");
+    expect(screen.getByTestId("settings-mobile-accounts-scroll-area")).toHaveClass("max-h-[5.5rem]");
+    expect(screen.getAllByText("Accounts navigation")[0].closest('[data-slot="scroll-area-content"]')).toHaveClass(
+      "px-3",
+      "py-2.5",
+      "pr-5",
+    );
     expect(screen.getByTestId("settings-mobile-accounts-section")).toHaveStyle({
       backgroundColor: "var(--settings-shell-account-surface)",
     });
@@ -366,9 +402,10 @@ describe("SettingsModalView", () => {
       .getByTestId("settings-content-scroll-area")
       .querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
     const accountsScrollArea = screen.getByTestId("settings-accounts-scroll-area");
+    const accountsViewport = getScrollViewport(accountsScrollArea);
 
     initialContentViewport.scrollTop = 180;
-    accountsScrollArea.scrollTop = 90;
+    accountsViewport.scrollTop = 90;
 
     rerender(
       <SettingsModalView
@@ -390,6 +427,6 @@ describe("SettingsModalView", () => {
       .querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
 
     expect(nextContentViewport.scrollTop).toBe(0);
-    expect(accountsScrollArea.scrollTop).toBe(90);
+    expect(accountsViewport.scrollTop).toBe(90);
   });
 });

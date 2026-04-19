@@ -151,16 +151,23 @@ export function SettingsModalView({
             <ScrollArea
               data-testid="settings-nav-scroll-area"
               viewportRef={navigationOverflow.viewportRef}
+              contentClassName="pr-3"
               className={cn("h-full min-h-0", !navigationOverflow.hasOverflow && HIDDEN_SCROLLBAR_CLASS)}
             >
               {navigation}
               <div
                 data-testid="settings-mobile-accounts-section"
-                className="mx-3 mb-3 max-h-[5.5rem] overflow-y-auto rounded-md border border-border/60 px-3 py-2.5 shadow-none sm:hidden"
+                className="mx-3 mb-3 overflow-hidden rounded-md border border-border/60 shadow-none sm:hidden"
                 style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
               >
-                {accountsHeading ? <p className={SHELL_SECTION_LABEL_CLASS}>{accountsHeading}</p> : null}
-                {accountsNavigation}
+                <ScrollArea
+                  data-testid="settings-mobile-accounts-scroll-area"
+                  className="min-h-0 max-h-[5.5rem]"
+                  contentClassName="px-3 py-2.5 pr-5"
+                >
+                  {accountsHeading ? <p className={SHELL_SECTION_LABEL_CLASS}>{accountsHeading}</p> : null}
+                  {accountsNavigation}
+                </ScrollArea>
               </div>
             </ScrollArea>
             {navigationOverflow.hasOverflow ? (
@@ -179,9 +186,13 @@ export function SettingsModalView({
             style={{ backgroundColor: "var(--settings-shell-account-surface)" }}
           >
             {accountsHeading ? <p className={SHELL_SECTION_LABEL_CLASS}>{accountsHeading}</p> : null}
-            <div data-testid="settings-accounts-scroll-area" className="min-h-0 max-h-[15rem] overflow-y-auto">
+            <ScrollArea
+              data-testid="settings-accounts-scroll-area"
+              className="min-h-0 max-h-[15rem]"
+              contentClassName="pr-2"
+            >
               {accountsNavigation}
-            </div>
+            </ScrollArea>
           </div>
         </div>
 
@@ -203,6 +214,7 @@ export function SettingsModalView({
               key={contentResetKey}
               data-testid="settings-content-scroll-area"
               viewportRef={contentOverflow.viewportRef}
+              contentClassName="pr-3"
               className={cn("h-full min-h-0", !contentHasOverflow && HIDDEN_SCROLLBAR_CLASS)}
             >
               {content}
