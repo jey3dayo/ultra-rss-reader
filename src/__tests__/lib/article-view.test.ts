@@ -120,12 +120,14 @@ describe("formatArticleDate", () => {
     expect(timePart).toBeTruthy();
   });
 
-  it("formats Japanese UI dates with a Japanese locale", () => {
+  it("formats Japanese UI dates as a concise date and time label", () => {
     const result = formatArticleDate("2026-03-25T10:00:00Z", "ja");
 
     expect(result).toContain("2026年");
+    expect(result).toMatch(/\d{1,2}:\d{2}/);
     expect(result).not.toContain("AT");
     expect(result).not.toContain("MARCH");
+    expect(result).not.toContain("水曜日");
   });
 
   it("respects English regional locales when formatting article dates", () => {

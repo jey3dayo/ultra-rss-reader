@@ -15,18 +15,20 @@ describe("ArticleMetaView", () => {
         title="First Article"
         author="Alice"
         feedName="Tech Blog"
-        publishedLabel="Mar 25, 2026"
+        publishedLabel="2026年3月25日 10:00"
         onTitleClick={onTitleClick}
         onTitleAuxClick={onTitleAuxClick}
         onFeedClick={onFeedClick}
       />,
     );
 
-    expect(screen.getByText("Mar 25, 2026")).toBeInTheDocument();
+    expect(screen.getByText("2026年3月25日 10:00")).toBeInTheDocument();
     expect(screen.getByText("Alice")).toBeInTheDocument();
-    expect(screen.getByText("Mar 25, 2026").parentElement).toHaveClass("text-[0.8rem]");
-    expect(screen.getByText("Mar 25, 2026").parentElement).toHaveClass("font-sans");
-    expect(screen.getByText("Mar 25, 2026").parentElement).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("2026年3月25日 10:00").parentElement).toHaveClass("text-[0.8rem]");
+    expect(screen.getByText("2026年3月25日 10:00").parentElement).toHaveClass("font-sans");
+    expect(screen.getByText("2026年3月25日 10:00").parentElement).toHaveClass("tracking-[0.08em]");
+    expect(screen.getByText("2026年3月25日 10:00").parentElement).toHaveClass("tabular-nums");
+    expect(screen.getByText("2026年3月25日 10:00").parentElement).not.toHaveClass("uppercase");
     expect(screen.getByText("Alice").parentElement).toHaveClass("text-[0.95rem]");
     expect(screen.getByText("Alice").parentElement).toHaveClass("font-serif");
     expect(screen.getByText("Alice").parentElement).toHaveClass("text-foreground-soft");
@@ -51,7 +53,7 @@ describe("ArticleMetaView", () => {
   });
 
   it("renders a static title when no title callback is provided", () => {
-    render(<ArticleMetaView title="Offline Article" publishedLabel="Mar 25, 2026" />);
+    render(<ArticleMetaView title="Offline Article" publishedLabel="2026年3月25日 10:00" />);
 
     const heading = screen.getByRole("heading", { level: 1, name: "Offline Article" });
 

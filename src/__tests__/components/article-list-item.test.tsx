@@ -141,7 +141,7 @@ describe("ArticleListItem", () => {
     expect(screen.getAllByText("Episode 150")).toHaveLength(1);
   });
 
-  it("uses softer surface selection for modern rows and softer hover for unselected rows", () => {
+  it("uses a distinct selected surface for modern rows and softer hover for unselected rows", () => {
     const { rerender } = render(
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
@@ -158,7 +158,7 @@ describe("ArticleListItem", () => {
     );
 
     const selectedOption = screen.getByRole("option", { name: "First Article (unread)" });
-    expect(selectedOption).toHaveClass("bg-surface-1/72");
+    expect(selectedOption).toHaveClass("bg-surface-1", "ring-1", "ring-border-strong");
 
     rerender(
       <ArticleListItem
@@ -197,6 +197,47 @@ describe("ArticleListItem", () => {
     expect(option).toHaveClass("border-l-2", "border-primary", "bg-surface-1/72");
   });
 
+  it("gives selected modern rows a clear keyboard focus treatment without relying on hover", () => {
+    render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
+        isSelected
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const option = screen.getByRole("option", { name: "First Article (unread)" });
+    expect(option).toHaveClass("ring-1", "ring-border-strong");
+    expect(option).not.toHaveClass("hover:bg-surface-1/72");
+  });
+
+  it("removes inline timestamps from article rows to keep the title column dominant", () => {
+    render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
+        isSelected={false}
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName="Tech Blog"
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const option = screen.getByRole("option", { name: "First Article (unread)" });
+    expect(option.querySelector(".shrink-0.pt-0\\.5.text-xs")).toBeNull();
+  });
+
   it("uses softened supporting copy for timestamps and secondary text", () => {
     render(
       <ArticleListItem
@@ -213,8 +254,6 @@ describe("ArticleListItem", () => {
       { wrapper: createWrapper() },
     );
 
-    const option = screen.getByRole("option", { name: "First Article (unread)" });
-    expect(option.querySelector(".shrink-0.pt-0\\.5.text-xs")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("Tech Blog")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("A hello world article")).toHaveClass("text-foreground-soft");
   });

@@ -61,11 +61,10 @@ export function formatArticleDate(dateStr: string, locale = "en-US"): string {
 
   if (!resolvedLocale.toLowerCase().startsWith("en")) {
     return date.toLocaleString(resolvedLocale, {
-      weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
-      hour: "numeric",
+      hour: "2-digit",
       minute: "2-digit",
     });
   }

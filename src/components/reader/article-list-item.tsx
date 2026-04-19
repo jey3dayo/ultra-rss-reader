@@ -1,7 +1,6 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
-import { formatArticleTime } from "@/lib/article-list";
 import { stripHtmlTags } from "@/lib/html";
 import { cn } from "@/lib/utils";
 import type { ArticleListItemProps } from "./article-list.types";
@@ -55,22 +54,29 @@ export function ArticleListItem({
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
-        "flex w-full cursor-pointer flex-col gap-1 px-4 py-3 text-left outline-none transition-colors",
+        "relative flex w-full cursor-pointer flex-col gap-1 px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color] duration-150 focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:ring-offset-0",
         selectionStyle === "classic"
           ? cn(isSelected && "border-l-2 border-primary bg-surface-1/72")
-          : cn(isSelected && "bg-surface-1/72"),
+          : cn(
+              isSelected &&
+                "bg-surface-1 ring-1 ring-border-strong shadow-[inset_0_0_0_1px_var(--color-border-strong),0_18px_34px_-30px_rgba(38,37,30,0.48)] after:absolute after:inset-y-2 after:left-1.5 after:w-1 after:rounded-full after:bg-border-strong",
+            ),
         !isSelected && "hover:bg-surface-1/72",
         isRead && !isSelected && (isRecentlyRead || dimArchived === "true") && "opacity-50",
       )}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start gap-2">
         <div className="flex flex-1 items-start gap-2">
           <UnreadIcon unread={isUnread} className={cn("mt-1.5 h-2 w-2", !isUnread && "invisible")} />
           <div className="flex flex-1 items-start gap-1.5">
             <h3
               className={cn(
                 "line-clamp-2 flex-1 text-sm leading-snug",
-                isUnread ? "font-semibold text-foreground" : "text-foreground/78",
+                isSelected
+                  ? "font-semibold text-foreground"
+                  : isUnread
+                    ? "font-semibold text-foreground"
+                    : "text-foreground/78",
               )}
             >
               {article.title}
@@ -80,10 +86,13 @@ export function ArticleListItem({
             ) : null}
           </div>
         </div>
-        <span className="shrink-0 pt-0.5 text-xs text-foreground-soft">{formatArticleTime(article.published_at)}</span>
       </div>
 
-      {showFeedName && <p className="pl-4 text-xs text-foreground-soft">{normalizedFeedName}</p>}
+      {showFeedName && (
+        <p className={cn("pl-4 text-xs text-foreground-soft", isSelected && "text-foreground/72")}>
+          {normalizedFeedName}
+        </p>
+      )}
 
       {showSecondaryRow && (
         <div className="flex items-start gap-2 pl-4">
