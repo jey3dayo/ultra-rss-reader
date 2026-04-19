@@ -7,6 +7,8 @@
   "feeds": "フィード",
   "subscriptions": "購読",
   "subscriptions_index": "購読一覧",
+  "expand_all_folders": "すべてのフォルダを開く",
+  "collapse_all_folders": "すべてのフォルダを畳む",
   "no_folder": "フォルダなし",
   "tags": "タグ",
   "add_tag": "タグを追加",

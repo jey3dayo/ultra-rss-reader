@@ -7,6 +7,7 @@ export function SidebarContentView({
   subscriptionsLabel,
   isFeedsSectionOpen,
   onToggleFeedsSection,
+  renderSubscriptionsSectionContextMenu,
   viewportRef,
   feedTree,
   tagSection,
@@ -18,7 +19,12 @@ export function SidebarContentView({
 }: SidebarContentViewProps) {
   return (
     <>
-      <SidebarFeedSection title={subscriptionsLabel} isOpen={isFeedsSectionOpen} onToggle={onToggleFeedsSection} />
+      <SidebarFeedSection
+        title={subscriptionsLabel}
+        isOpen={isFeedsSectionOpen}
+        onToggle={onToggleFeedsSection}
+        contextMenu={renderSubscriptionsSectionContextMenu()}
+      />
 
       <ScrollArea data-testid="sidebar-feed-scroll-area" className="flex-1" viewportRef={viewportRef}>
         <div className="pb-4 pr-3">

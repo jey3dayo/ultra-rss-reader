@@ -3,15 +3,20 @@ import { FeedContextMenuContent } from "./feed-context-menu";
 import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 import { FolderContextMenuContent } from "./folder-context-menu";
 import type { SidebarContextMenuRenderersResult } from "./sidebar.types";
+import { SubscriptionsSectionContextMenu } from "./subscriptions-section-context-menu";
 import { TagContextMenuContent } from "./tag-context-menu";
 import type { TagListItemViewModel } from "./tag-list-view";
 import { TagSectionContextMenu } from "./tag-section-context-menu";
 
 type UseSidebarContextMenuRenderersParams = {
+  folders: Array<{ id: string }> | undefined;
+  setExpandedFolders: (folderIds: Iterable<string>) => void;
   onManageTags: () => void;
 };
 
 export function useSidebarContextMenuRenderers({
+  folders,
+  setExpandedFolders,
   onManageTags,
 }: UseSidebarContextMenuRenderersParams): SidebarContextMenuRenderersResult {
   const renderFolderContextMenu = useCallback(
@@ -58,10 +63,22 @@ export function useSidebarContextMenuRenderers({
     [onManageTags],
   );
 
+  const renderSubscriptionsSectionContextMenu = useCallback(
+    () => (
+      <SubscriptionsSectionContextMenu
+        folderIds={(folders ?? []).map((folder) => folder.id)}
+        onExpandAllFolders={(folderIds) => setExpandedFolders(folderIds)}
+        onCollapseAllFolders={() => setExpandedFolders([])}
+      />
+    ),
+    [folders, setExpandedFolders],
+  );
+
   return {
     renderFolderContextMenu,
     renderFeedContextMenu,
     renderTagContextMenu,
     renderTagSectionContextMenu,
+    renderSubscriptionsSectionContextMenu,
   };
 }

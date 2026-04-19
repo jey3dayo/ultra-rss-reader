@@ -1836,6 +1836,104 @@ describe("Sidebar", () => {
     });
   });
 
+  it("opens the subscriptions section context menu from the root header", async () => {
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent.contextMenu(await screen.findByRole("button", { name: "Subscriptions" }));
+
+    expect(await screen.findByRole("menuitem", { name: "Expand all folders" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Collapse all folders" })).toBeInTheDocument();
+  });
+
+  it("expands and collapses all folders from the subscriptions section context menu", async () => {
+    const user = userEvent.setup();
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [
+            { id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 },
+            { id: "folder-2", account_id: args.accountId, name: "Personal", sort_order: 1 },
+          ];
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], id: "feed-1", title: "Work Feed", folder_id: "folder-1", unread_count: 2 },
+            { ...sampleFeeds[1], id: "feed-2", title: "Personal Feed", folder_id: "folder-2", unread_count: 1 },
+          ];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      expandedFolderIds: new Set(["folder-1"]),
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent.contextMenu(await screen.findByRole("button", { name: "Subscriptions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Expand all folders" }));
+
+    expect(useUiStore.getState().expandedFolderIds).toEqual(new Set(["folder-1", "folder-2"]));
+
+    fireEvent.contextMenu(screen.getByRole("button", { name: "Subscriptions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Collapse all folders" }));
+
+    expect(useUiStore.getState().expandedFolderIds).toEqual(new Set());
+  });
+
+  it("keeps subscriptions section context menu actions as no-ops when no folders exist", async () => {
+    const user = userEvent.setup();
+
+    setupTauriMocks((cmd, _args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [];
+        case "list_feeds":
+          return [{ ...sampleFeeds[0], id: "feed-1", title: "Root Feed", folder_id: null, unread_count: 2 }];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      expandedFolderIds: new Set(["stale-folder"]),
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent.contextMenu(await screen.findByRole("button", { name: "Subscriptions" }));
+    expect(await screen.findByRole("menuitem", { name: "Expand all folders" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Collapse all folders" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("menuitem", { name: "Expand all folders" }));
+    expect(useUiStore.getState().expandedFolderIds).toEqual(new Set());
+
+    fireEvent.contextMenu(screen.getByRole("button", { name: "Subscriptions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Collapse all folders" }));
+    expect(useUiStore.getState().expandedFolderIds).toEqual(new Set());
+  });
+
   it("opens the create tag dialog from the tags section add action", async () => {
     const user = userEvent.setup();
 

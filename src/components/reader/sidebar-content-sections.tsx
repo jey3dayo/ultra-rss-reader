@@ -11,6 +11,7 @@ export function SidebarContentSections({
   subscriptionsLabel,
   isFeedsSectionOpen,
   onToggleFeedsSection,
+  renderSubscriptionsSectionContextMenu,
   viewportRef,
   subscriptionsIndexLabel,
   settingsLabel,
@@ -72,6 +73,7 @@ export function SidebarContentSections({
       subscriptionsLabel={subscriptionsLabel}
       isFeedsSectionOpen={isFeedsSectionOpen}
       onToggleFeedsSection={onToggleFeedsSection}
+      renderSubscriptionsSectionContextMenu={renderSubscriptionsSectionContextMenu}
       viewportRef={viewportRef}
       feedTree={
         showFeedTreeSkeleton ? (

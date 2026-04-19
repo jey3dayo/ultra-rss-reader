@@ -78,10 +78,17 @@ export function useSidebarControllerSections({
     showSidebarStarred,
     t,
   });
-  const { renderFolderContextMenu, renderFeedContextMenu, renderTagContextMenu, renderTagSectionContextMenu } =
-    useSidebarContextMenuRenderers({
-      onManageTags: handleOpenTagSettings,
-    });
+  const {
+    renderFolderContextMenu,
+    renderFeedContextMenu,
+    renderTagContextMenu,
+    renderTagSectionContextMenu,
+    renderSubscriptionsSectionContextMenu,
+  } = useSidebarContextMenuRenderers({
+    folders,
+    setExpandedFolders,
+    onManageTags: handleOpenTagSettings,
+  });
   const { feedTreeProps } = useSidebarFeedSectionController({
     selectedAccountId,
     feeds,
@@ -153,6 +160,7 @@ export function useSidebarControllerSections({
     selectTag,
     renderTagSectionContextMenu,
     renderTagContextMenu,
+    renderSubscriptionsSectionContextMenu,
     sidebarDensity,
     isFeedTreeLoading,
     showFeedTreeSkeleton,

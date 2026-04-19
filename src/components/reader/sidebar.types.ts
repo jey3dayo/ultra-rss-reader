@@ -60,6 +60,7 @@ export type SidebarContentSectionsProps = {
   onSelectTag: SidebarTagListProps["onSelectTag"];
   renderTagContextMenu: NonNullable<SidebarTagListProps["renderContextMenu"]>;
   renderTagSectionContextMenu: NonNullable<SidebarTagListProps["renderTagSectionContextMenu"]>;
+  renderSubscriptionsSectionContextMenu: () => ReactNode;
   sidebarDensity: SidebarDensity;
   isFeedTreeLoading: boolean;
   showFeedTreeSkeleton: boolean;
@@ -220,6 +221,7 @@ export type SidebarContentSectionsPropsParams = {
   t: TFunction<"sidebar">;
   isFeedsSectionOpen: boolean;
   toggleFeedsSection: () => void;
+  renderSubscriptionsSectionContextMenu: SidebarContentSectionsProps["renderSubscriptionsSectionContextMenu"];
   feedViewportRef: SidebarContentSectionsProps["viewportRef"];
   openSubscriptionsIndex: () => void;
   handleOpenSettings: () => void;
@@ -267,6 +269,7 @@ export type SidebarSectionPropsParams = {
   selectSmartView: SidebarSmartViewsProps["onSelectSmartView"];
   isFeedsSectionOpen: boolean;
   toggleFeedsSection: () => void;
+  renderSubscriptionsSectionContextMenu: SidebarContentSectionsProps["renderSubscriptionsSectionContextMenu"];
   feedViewportRef: import("react").RefObject<HTMLDivElement | null>;
   openSubscriptionsIndex: () => void;
   handleOpenSettings: () => void;
@@ -300,6 +303,7 @@ export type SidebarFeedSectionViewProps = {
   title: string;
   isOpen: boolean;
   onToggle: () => void;
+  contextMenu?: ReactNode;
 };
 
 export type SidebarFooterActionsViewProps = {
@@ -313,6 +317,7 @@ export type SidebarContentViewProps = {
   subscriptionsLabel: string;
   isFeedsSectionOpen: boolean;
   onToggleFeedsSection: () => void;
+  renderSubscriptionsSectionContextMenu: () => ReactNode;
   viewportRef: RefObject<HTMLDivElement | null>;
   feedTree: ReactNode;
   tagSection: ReactNode;
@@ -328,4 +333,5 @@ export type SidebarContextMenuRenderersResult = {
   renderFeedContextMenu?: FeedTreeViewProps["renderFeedContextMenu"];
   renderTagContextMenu: SidebarContentSectionsProps["renderTagContextMenu"];
   renderTagSectionContextMenu: SidebarContentSectionsProps["renderTagSectionContextMenu"];
+  renderSubscriptionsSectionContextMenu: SidebarContentSectionsProps["renderSubscriptionsSectionContextMenu"];
 };

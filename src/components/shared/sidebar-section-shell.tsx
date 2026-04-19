@@ -7,6 +7,7 @@ export function SidebarSectionShell({
   title,
   isOpen = true,
   onToggle,
+  contextMenu,
   headerClassName,
   bodyClassName,
   children,
@@ -22,7 +23,13 @@ export function SidebarSectionShell({
       {hasHeader ? (
         <div className={cn("px-3 pt-3 pb-1.5", headerClassName)}>
           {onToggle ? (
-            <SidebarSectionToggle label={title} isOpen={isOpen} onToggle={onToggle} panelId={resolvedPanelId} />
+            <SidebarSectionToggle
+              label={title}
+              isOpen={isOpen}
+              onToggle={onToggle}
+              panelId={resolvedPanelId}
+              contextMenu={contextMenu}
+            />
           ) : null}
           {!onToggle ? (
             <div className="px-1 text-[0.72rem] font-medium tracking-[0.12em] text-[var(--sidebar-foreground-soft-strong)] uppercase">
