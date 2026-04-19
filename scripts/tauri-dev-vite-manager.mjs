@@ -2,7 +2,7 @@
 
 import { execFile, spawn } from "node:child_process";
 import process from "node:process";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -29,6 +29,17 @@ export function classifyPortOwnerCommandLine(commandLine) {
   }
 
   return "foreign";
+}
+
+/**
+ * @param {string} [scriptUrl]
+ * @returns {{ command: string; args: string[] }}
+ */
+export function buildViteSpawnSpec(scriptUrl = import.meta.url) {
+  return {
+    command: process.execPath,
+    args: [fileURLToPath(new URL("../node_modules/vite/bin/vite.js", scriptUrl))],
+  };
 }
 
 /**
@@ -204,8 +215,8 @@ async function main() {
     return;
   }
 
-  const viteCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-  const child = spawn(viteCommand, ["exec", "vite"], {
+  const viteSpawnSpec = buildViteSpawnSpec();
+  const child = spawn(viteSpawnSpec.command, viteSpawnSpec.args, {
     stdio: "inherit",
     env: process.env,
   });
