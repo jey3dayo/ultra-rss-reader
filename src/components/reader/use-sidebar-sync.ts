@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import i18n from "@/lib/i18n";
@@ -19,6 +19,27 @@ import type {
 } from "./sidebar-sync.types";
 import { resolveSidebarSyncFeedbackMessage } from "./sidebar-sync-feedback";
 
+type SidebarSyncState = {
+  cooldownTick: number;
+};
+
+type SidebarSyncAction = { type: "set-cooldown-tick"; value: number };
+
+function createInitialSidebarSyncState() {
+  return {
+    cooldownTick: Date.now(),
+  } satisfies SidebarSyncState;
+}
+
+function sidebarSyncReducer(state: SidebarSyncState, action: SidebarSyncAction): SidebarSyncState {
+  switch (action.type) {
+    case "set-cooldown-tick":
+      return { ...state, cooldownTick: action.value };
+    default:
+      return state;
+  }
+}
+
 export function useSidebarSync({
   selectedAccountId,
   syncProgress,
@@ -34,7 +55,8 @@ export function useSidebarSync({
     getManualSyncCooldownUntil,
     getManualSyncCooldownUntil,
   );
-  const [cooldownTick, setCooldownTick] = useState(() => Date.now());
+  const [state, dispatch] = useReducer(sidebarSyncReducer, undefined, createInitialSidebarSyncState);
+  const { cooldownTick } = state;
   const invalidateAccountSyncStatuses = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ["account-sync-status"] });
   }, [queryClient]);
@@ -44,10 +66,10 @@ export function useSidebarSync({
       return;
     }
 
-    setCooldownTick(Date.now());
+    dispatch({ type: "set-cooldown-tick", value: Date.now() });
 
     const timer = window.setInterval(() => {
-      setCooldownTick(Date.now());
+      dispatch({ type: "set-cooldown-tick", value: Date.now() });
     }, 1_000);
 
     return () => {

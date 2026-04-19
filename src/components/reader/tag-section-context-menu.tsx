@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import { CreateTagDialogView } from "@/components/settings/create-tag-dialog-view";
 import { useCreateTag } from "@/hooks/use-tags";
@@ -8,6 +8,37 @@ import { TagSectionContextMenuView } from "./tag-section-context-menu-view";
 export type TagSectionContextMenuProps = {
   onManageTags: () => void;
 };
+
+type TagSectionContextMenuState = {
+  showCreateDialog: boolean;
+  createName: string;
+};
+
+type TagSectionContextMenuAction =
+  | { type: "open-create-dialog" }
+  | { type: "close-create-dialog" }
+  | { type: "set-create-name"; value: string };
+
+const initialTagSectionContextMenuState: TagSectionContextMenuState = {
+  showCreateDialog: false,
+  createName: "",
+};
+
+function tagSectionContextMenuReducer(
+  state: TagSectionContextMenuState,
+  action: TagSectionContextMenuAction,
+): TagSectionContextMenuState {
+  switch (action.type) {
+    case "open-create-dialog":
+      return { ...state, showCreateDialog: true };
+    case "close-create-dialog":
+      return { showCreateDialog: false, createName: "" };
+    case "set-create-name":
+      return { ...state, createName: action.value };
+    default:
+      return state;
+  }
+}
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
@@ -22,16 +53,15 @@ function getErrorMessage(error: unknown) {
 export function TagSectionContextMenu({ onManageTags }: TagSectionContextMenuProps) {
   const { t } = useTranslation("sidebar");
   const { t: ts } = useTranslation("settings");
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [createName, setCreateName] = useState("");
+  const [state, dispatch] = useReducer(tagSectionContextMenuReducer, initialTagSectionContextMenuState);
+  const { showCreateDialog, createName } = state;
   const showToast = useUiStore((state) => state.showToast);
   const createTag = useCreateTag();
 
   const handleCreate = async () => {
     try {
       await createTag.mutateAsync({ name: createName.trim() });
-      setCreateName("");
-      setShowCreateDialog(false);
+      dispatch({ type: "close-create-dialog" });
       showToast(ts("tags.create_success"));
     } catch (error) {
       showToast(ts("tags.create_failed", { message: getErrorMessage(error) }));
@@ -43,7 +73,7 @@ export function TagSectionContextMenu({ onManageTags }: TagSectionContextMenuPro
       <TagSectionContextMenuView
         addTagLabel={t("add_tag")}
         manageTagsLabel={t("manage_tags")}
-        onAddTag={() => setShowCreateDialog(true)}
+        onAddTag={() => dispatch({ type: "open-create-dialog" })}
         onManageTags={onManageTags}
       />
       <CreateTagDialogView
@@ -51,12 +81,9 @@ export function TagSectionContextMenu({ onManageTags }: TagSectionContextMenuPro
         name={createName}
         loading={createTag.isPending}
         onOpenChange={(open) => {
-          setShowCreateDialog(open);
-          if (!open) {
-            setCreateName("");
-          }
+          dispatch({ type: open ? "open-create-dialog" : "close-create-dialog" });
         }}
-        onNameChange={setCreateName}
+        onNameChange={(value) => dispatch({ type: "set-create-name", value })}
         onSubmit={() => void handleCreate()}
       />
     </>

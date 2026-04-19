@@ -1,17 +1,52 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import { ARTICLE_SEARCH_DEBOUNCE_MS } from "@/constants/reader";
 import { useSearchArticles } from "@/hooks/use-articles";
 import type { UseArticleListSearchParams, UseArticleListSearchResult } from "./article-list.types";
 
+type ArticleListSearchState = {
+  showSearch: boolean;
+  searchQuery: string;
+  debouncedQuery: string;
+};
+
+type ArticleListSearchAction =
+  | { type: "open-search" }
+  | { type: "close-search" }
+  | { type: "set-search-query"; value: string }
+  | { type: "set-debounced-query"; value: string };
+
+const initialArticleListSearchState: ArticleListSearchState = {
+  showSearch: false,
+  searchQuery: "",
+  debouncedQuery: "",
+};
+
+function articleListSearchReducer(
+  state: ArticleListSearchState,
+  action: ArticleListSearchAction,
+): ArticleListSearchState {
+  switch (action.type) {
+    case "open-search":
+      return { ...state, showSearch: true };
+    case "close-search":
+      return { ...state, showSearch: false, searchQuery: "" };
+    case "set-search-query":
+      return { ...state, searchQuery: action.value };
+    case "set-debounced-query":
+      return { ...state, debouncedQuery: action.value };
+    default:
+      return state;
+  }
+}
+
 export function useArticleListSearch({ selectedAccountId }: UseArticleListSearchParams): UseArticleListSearchResult {
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [state, dispatch] = useReducer(articleListSearchReducer, initialArticleListSearchState);
+  const { showSearch, searchQuery, debouncedQuery } = state;
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
+      dispatch({ type: "set-debounced-query", value: searchQuery });
     }, ARTICLE_SEARCH_DEBOUNCE_MS);
     return () => {
       clearTimeout(timer);
@@ -22,22 +57,20 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
   const { data: searchResults, isFetching: isSearching } = useSearchArticles(selectedAccountId, trimmedDebouncedQuery);
 
   const openSearch = useCallback(() => {
-    setShowSearch(true);
+    dispatch({ type: "open-search" });
     requestAnimationFrame(() => searchInputRef.current?.focus());
   }, []);
 
   const handleToggleSearch = useCallback(() => {
-    setShowSearch((visible) => !visible);
     if (!showSearch) {
       openSearch();
     } else {
-      setSearchQuery("");
+      dispatch({ type: "close-search" });
     }
   }, [openSearch, showSearch]);
 
   const handleCloseSearch = useCallback(() => {
-    setShowSearch(false);
-    setSearchQuery("");
+    dispatch({ type: "close-search" });
   }, []);
 
   return {
@@ -50,6 +83,6 @@ export function useArticleListSearch({ selectedAccountId }: UseArticleListSearch
     openSearch,
     handleToggleSearch,
     handleCloseSearch,
-    setSearchQuery,
+    setSearchQuery: (value) => dispatch({ type: "set-search-query", value }),
   };
 }

@@ -1,8 +1,35 @@
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useReducer, useRef } from "react";
 import type { SidebarAccountSwitcherResult } from "./sidebar-runtime.types";
 
+type SidebarAccountSwitcherState = {
+  isAccountListOpen: boolean;
+};
+
+type SidebarAccountSwitcherAction =
+  | { type: "set-account-list-open"; value: boolean }
+  | { type: "toggle-account-list-open" };
+
+const initialSidebarAccountSwitcherState: SidebarAccountSwitcherState = {
+  isAccountListOpen: false,
+};
+
+function sidebarAccountSwitcherReducer(
+  state: SidebarAccountSwitcherState,
+  action: SidebarAccountSwitcherAction,
+): SidebarAccountSwitcherState {
+  switch (action.type) {
+    case "set-account-list-open":
+      return { ...state, isAccountListOpen: action.value };
+    case "toggle-account-list-open":
+      return { ...state, isAccountListOpen: !state.isAccountListOpen };
+    default:
+      return state;
+  }
+}
+
 export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
-  const [isAccountListOpen, setIsAccountListOpen] = useState(false);
+  const [state, dispatch] = useReducer(sidebarAccountSwitcherReducer, initialSidebarAccountSwitcherState);
+  const { isAccountListOpen } = state;
   const accountDropdownRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
   const accountItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -13,7 +40,7 @@ export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
 
     const handler = (event: MouseEvent) => {
       if (accountDropdownRef.current && !accountDropdownRef.current.contains(event.target as Node)) {
-        setIsAccountListOpen(false);
+        dispatch({ type: "set-account-list-open", value: false });
       }
     };
 
@@ -22,14 +49,14 @@ export function useSidebarAccountSwitcher(): SidebarAccountSwitcherResult {
   }, [isAccountListOpen]);
 
   const closeAccountList = useCallback((restoreFocus = false) => {
-    setIsAccountListOpen(false);
+    dispatch({ type: "set-account-list-open", value: false });
     if (restoreFocus) {
       accountTriggerRef.current?.focus();
     }
   }, []);
 
   const toggleAccountList = useCallback(() => {
-    setIsAccountListOpen((value) => !value);
+    dispatch({ type: "toggle-account-list-open" });
   }, []);
 
   return {

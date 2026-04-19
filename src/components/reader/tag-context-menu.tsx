@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import type { TagDto } from "@/api/tauri-commands";
 import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
@@ -12,6 +12,58 @@ export type TagContextMenuContentProps = {
   tag: TagDto;
 };
 
+type TagContextMenuState = {
+  showRenameDialog: boolean;
+  showDeleteDialog: boolean;
+  renameName: string;
+  renameColor: string | null;
+};
+
+type TagContextMenuAction =
+  | { type: "open-rename-dialog"; tag: TagDto }
+  | { type: "close-rename-dialog" }
+  | { type: "sync-rename-draft"; tag: TagDto }
+  | { type: "set-delete-dialog"; value: boolean }
+  | { type: "set-rename-name"; value: string }
+  | { type: "set-rename-color"; value: string | null };
+
+function createInitialTagContextMenuState(tag: TagDto): TagContextMenuState {
+  return {
+    showRenameDialog: false,
+    showDeleteDialog: false,
+    renameName: tag.name,
+    renameColor: tag.color,
+  };
+}
+
+function tagContextMenuReducer(state: TagContextMenuState, action: TagContextMenuAction): TagContextMenuState {
+  switch (action.type) {
+    case "open-rename-dialog":
+      return {
+        ...state,
+        showRenameDialog: true,
+        renameName: action.tag.name,
+        renameColor: action.tag.color,
+      };
+    case "close-rename-dialog":
+      return { ...state, showRenameDialog: false };
+    case "sync-rename-draft":
+      return {
+        ...state,
+        renameName: action.tag.name,
+        renameColor: action.tag.color,
+      };
+    case "set-delete-dialog":
+      return { ...state, showDeleteDialog: action.value };
+    case "set-rename-name":
+      return { ...state, renameName: action.value };
+    case "set-rename-color":
+      return { ...state, renameColor: action.value };
+    default:
+      return state;
+  }
+}
+
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
     return error.message;
@@ -24,10 +76,8 @@ function getErrorMessage(error: unknown) {
 
 export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
   const { t } = useTranslation("reader");
-  const [showRenameDialog, setShowRenameDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [renameName, setRenameName] = useState(tag.name);
-  const [renameColor, setRenameColor] = useState<string | null>(tag.color);
+  const [state, dispatch] = useReducer(tagContextMenuReducer, tag, createInitialTagContextMenuState);
+  const { showRenameDialog, showDeleteDialog, renameName, renameColor } = state;
   const showToast = useUiStore((s) => s.showToast);
   const renameTag = useRenameTag();
   const deleteTag = useDeleteTag();
@@ -37,16 +87,20 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
       return;
     }
 
-    setRenameName(tag.name);
-    setRenameColor(tag.color);
-  }, [showRenameDialog, tag.color, tag.name]);
+    dispatch({ type: "sync-rename-draft", tag });
+  }, [showRenameDialog, tag]);
 
   const handleRenameOpenChange = (open: boolean) => {
-    setShowRenameDialog(open);
+    if (open) {
+      dispatch({ type: "open-rename-dialog", tag });
+      return;
+    }
+
+    dispatch({ type: "close-rename-dialog" });
   };
 
   const handleDeleteOpenChange = (open: boolean) => {
-    setShowDeleteDialog(open);
+    dispatch({ type: "set-delete-dialog", value: open });
   };
 
   const handleRenameSubmit = () => {
@@ -94,8 +148,8 @@ export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
         color={renameColor}
         loading={renameTag.isPending}
         onOpenChange={handleRenameOpenChange}
-        onNameChange={setRenameName}
-        onColorChange={setRenameColor}
+        onNameChange={(value) => dispatch({ type: "set-rename-name", value })}
+        onColorChange={(value) => dispatch({ type: "set-rename-color", value })}
         colorOptions={[...TAG_COLOR_PRESETS]}
         noColorLabel={t("no_color")}
         onSubmit={handleRenameSubmit}

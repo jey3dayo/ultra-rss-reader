@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import type { FeedDto } from "@/api/tauri-commands";
 import { useFolders } from "@/hooks/use-folders";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
@@ -15,15 +16,49 @@ import type {
 } from "./rename-feed-dialog.types";
 import { buildFolderOptions, useFolderSelection } from "./use-folder-selection";
 
+type RenameFeedDialogState = {
+  title: string;
+  displayPreset: FeedEditDisplayPreset;
+  loading: boolean;
+};
+
+type RenameFeedDialogAction =
+  | { type: "reset"; feed: FeedDto }
+  | { type: "set-title"; value: string }
+  | { type: "set-display-preset"; value: FeedEditDisplayPreset }
+  | { type: "set-loading"; value: boolean };
+
+function createInitialRenameFeedDialogState(feed: FeedDto): RenameFeedDialogState {
+  return {
+    title: feed.title,
+    displayPreset: resolveFeedDisplayPreset(feed),
+    loading: false,
+  };
+}
+
+function renameFeedDialogReducer(state: RenameFeedDialogState, action: RenameFeedDialogAction): RenameFeedDialogState {
+  switch (action.type) {
+    case "reset":
+      return createInitialRenameFeedDialogState(action.feed);
+    case "set-title":
+      return { ...state, title: action.value };
+    case "set-display-preset":
+      return { ...state, displayPreset: action.value };
+    case "set-loading":
+      return { ...state, loading: action.value };
+    default:
+      return state;
+  }
+}
+
 export function useRenameFeedDialogController({
   feed,
   open,
   onOpenChange,
 }: RenameFeedDialogControllerParams): RenameFeedDialogController {
   const { t } = useTranslation("reader");
-  const [title, setTitle] = useState(feed.title);
-  const [displayPreset, setDisplayPreset] = useState<FeedEditDisplayPreset>(() => resolveFeedDisplayPreset(feed));
-  const [loading, setLoading] = useState(false);
+  const [state, dispatch] = useReducer(renameFeedDialogReducer, feed, createInitialRenameFeedDialogState);
+  const { title, displayPreset, loading } = state;
   const inputRef = useRef<HTMLInputElement>(null);
   const {
     selectedFolderId,
@@ -46,10 +81,8 @@ export function useRenameFeedDialogController({
       return;
     }
 
-    setTitle(feed.title);
+    dispatch({ type: "reset", feed });
     resetFolderSelection(feed.folder_id);
-    setDisplayPreset(resolveFeedDisplayPreset(feed));
-    setLoading(false);
     requestAnimationFrame(() => {
       inputRef.current?.focus();
       inputRef.current?.select();
@@ -72,7 +105,7 @@ export function useRenameFeedDialogController({
       return;
     }
 
-    setLoading(true);
+    dispatch({ type: "set-loading", value: true });
     try {
       const saved = await submitFeedEdits({
         feed,
@@ -97,7 +130,7 @@ export function useRenameFeedDialogController({
         onOpenChange(false);
       }
     } finally {
-      setLoading(false);
+      dispatch({ type: "set-loading", value: false });
     }
   };
 
@@ -107,8 +140,8 @@ export function useRenameFeedDialogController({
     displayPreset,
     inputRef,
     folders,
-    setTitle,
-    setDisplayPreset,
+    setTitle: (value) => dispatch({ type: "set-title", value }),
+    setDisplayPreset: (value) => dispatch({ type: "set-display-preset", value }),
     handleCopy,
     handleSubmit,
     folderSelectProps: {

@@ -1,5 +1,5 @@
 import { Plus, RefreshCw } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,25 @@ import type { SidebarHeaderProps } from "./sidebar.types";
 
 const ACCEPTED_SYNC_SPIN_MS = 1_000;
 const COOLDOWN_SYNC_SPIN_MS = 450;
+
+type SidebarHeaderState = {
+  isFeedbackSpinning: boolean;
+};
+
+type SidebarHeaderAction = { type: "set-feedback-spinning"; value: boolean };
+
+const initialSidebarHeaderState: SidebarHeaderState = {
+  isFeedbackSpinning: false,
+};
+
+function sidebarHeaderReducer(state: SidebarHeaderState, action: SidebarHeaderAction): SidebarHeaderState {
+  switch (action.type) {
+    case "set-feedback-spinning":
+      return { ...state, isFeedbackSpinning: action.value };
+    default:
+      return state;
+  }
+}
 
 export function SidebarHeaderView({
   isSyncing,
@@ -30,7 +49,8 @@ export function SidebarHeaderView({
     platformKind,
     hasTauriRuntime: hasTauriRuntime(),
   });
-  const [isFeedbackSpinning, setIsFeedbackSpinning] = useState(false);
+  const [state, dispatch] = useReducer(sidebarHeaderReducer, initialSidebarHeaderState);
+  const { isFeedbackSpinning } = state;
   const feedbackSpinTimerRef = useRef<number | null>(null);
   const headerActionButtonClassName =
     "h-11 gap-1.5 px-3 text-foreground-soft hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground md:size-7 md:px-0";
@@ -44,14 +64,14 @@ export function SidebarHeaderView({
   }, []);
 
   const startFeedbackSpin = (durationMs: number) => {
-    setIsFeedbackSpinning(true);
+    dispatch({ type: "set-feedback-spinning", value: true });
 
     if (feedbackSpinTimerRef.current) {
       window.clearTimeout(feedbackSpinTimerRef.current);
     }
 
     feedbackSpinTimerRef.current = window.setTimeout(() => {
-      setIsFeedbackSpinning(false);
+      dispatch({ type: "set-feedback-spinning", value: false });
       feedbackSpinTimerRef.current = null;
     }, durationMs);
   };

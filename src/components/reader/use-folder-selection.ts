@@ -1,10 +1,50 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import { type FolderSelectOption, NEW_FOLDER_VALUE } from "./folder-select-view";
 
 type FolderOptionSource = {
   id: string;
   name: string;
 };
+
+type FolderSelectionState = {
+  selectedFolderId: string | null;
+  newFolderName: string;
+  isCreatingFolder: boolean;
+};
+
+type FolderSelectionAction =
+  | { type: "reset"; folderId: string | null }
+  | { type: "start-creating-folder" }
+  | { type: "select-folder"; folderId: string | null }
+  | { type: "set-new-folder-name"; value: string };
+
+function createInitialFolderSelectionState(initialFolderId: string | null): FolderSelectionState {
+  return {
+    selectedFolderId: initialFolderId,
+    newFolderName: "",
+    isCreatingFolder: false,
+  };
+}
+
+function folderSelectionReducer(state: FolderSelectionState, action: FolderSelectionAction): FolderSelectionState {
+  switch (action.type) {
+    case "reset":
+      return createInitialFolderSelectionState(action.folderId);
+    case "start-creating-folder":
+      return { ...state, isCreatingFolder: true, selectedFolderId: null };
+    case "select-folder":
+      return {
+        ...state,
+        isCreatingFolder: false,
+        newFolderName: "",
+        selectedFolderId: action.folderId,
+      };
+    case "set-new-folder-name":
+      return { ...state, newFolderName: action.value };
+    default:
+      return state;
+  }
+}
 
 export function buildFolderOptions(
   folders: FolderOptionSource[] | undefined,
@@ -17,9 +57,8 @@ export function buildFolderOptions(
 }
 
 export function useFolderSelection(initialFolderId: string | null) {
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(initialFolderId);
-  const [newFolderName, setNewFolderName] = useState("");
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [state, dispatch] = useReducer(folderSelectionReducer, initialFolderId, createInitialFolderSelectionState);
+  const { selectedFolderId, newFolderName, isCreatingFolder } = state;
   const newFolderInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -29,21 +68,16 @@ export function useFolderSelection(initialFolderId: string | null) {
   }, [isCreatingFolder]);
 
   const resetFolderSelection = useCallback((folderId: string | null) => {
-    setSelectedFolderId(folderId);
-    setNewFolderName("");
-    setIsCreatingFolder(false);
+    dispatch({ type: "reset", folderId });
   }, []);
 
   const handleFolderChange = useCallback((value: string) => {
     if (value === NEW_FOLDER_VALUE) {
-      setIsCreatingFolder(true);
-      setSelectedFolderId(null);
+      dispatch({ type: "start-creating-folder" });
       return;
     }
 
-    setIsCreatingFolder(false);
-    setNewFolderName("");
-    setSelectedFolderId(value || null);
+    dispatch({ type: "select-folder", folderId: value || null });
   }, []);
 
   return {
@@ -54,6 +88,6 @@ export function useFolderSelection(initialFolderId: string | null) {
     folderSelectValue: isCreatingFolder ? NEW_FOLDER_VALUE : (selectedFolderId ?? ""),
     handleFolderChange,
     resetFolderSelection,
-    setNewFolderName,
+    setNewFolderName: (value: string) => dispatch({ type: "set-new-folder-name", value }),
   };
 }
