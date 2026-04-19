@@ -162,7 +162,7 @@ describe("SubscriptionsIndexPage", () => {
       "neutral",
     );
     expect(selectedFeed).toHaveAttribute("aria-pressed", "true");
-    expect(selectedFeed).toHaveClass("transition-[background-color,border-color,box-shadow,transform]");
+    expect(selectedFeed).toHaveClass("transition-[background-color,border-color,box-shadow]");
     expect(selectedFeed).toHaveClass("bg-[color:var(--subscriptions-list-row-selected-surface)]");
     expect(selectedFeed).toHaveClass("shadow-[var(--subscriptions-list-row-selected-shadow)]");
     expect(selectedFeed).toHaveClass("focus-visible:ring-2");
