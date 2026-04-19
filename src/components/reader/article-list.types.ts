@@ -225,6 +225,7 @@ export type UseArticleListPresentationParams = {
   tc: TFunction<"common">;
   ts: TFunction<"sidebar">;
   selection: UseArticleListViewStateParams["selection"];
+  feeds: UseArticleListSourcesResult["feeds"];
   feedId: string | null;
   tagId: string | null;
   accountListScopeId: string | null;
@@ -265,6 +266,8 @@ export type UseArticleListPresentationParams = {
 };
 
 export type UseArticleListHeaderActionsParams = {
+  selection: UiSelection;
+  feeds: FeedDto[] | undefined;
   feedId: string | null;
   selectedFeed: FeedDto | undefined;
   filteredArticles: ArticleDto[];
@@ -278,6 +281,8 @@ export type UseArticleListHeaderActionsResult = {
 };
 
 export type UseArticleListHeaderControllerParams = {
+  selection: UiSelection;
+  feeds: FeedDto[] | undefined;
   feedId: string | null;
   selectedFeed: FeedDto | undefined;
   filteredArticles: ArticleDto[];

@@ -88,6 +88,7 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     tc,
     ts,
     selection,
+    feeds,
     feedId: resolvedFeedId,
     tagId: resolvedTagId,
     accountListScopeId: resolvedAccountListScopeId,

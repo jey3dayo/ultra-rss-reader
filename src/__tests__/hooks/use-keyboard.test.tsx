@@ -36,6 +36,7 @@ function renderAppShell(calls: MockTauriCommandCall[]) {
         return {};
       case "mark_article_read":
       case "mark_articles_read":
+      case "mark_feed_read":
       case "toggle_article_star":
       case "open_in_browser":
       case "trigger_sync":
@@ -263,7 +264,7 @@ describe("useKeyboard", () => {
     });
   });
 
-  it("pressing a marks unread articles in the current list as read", async () => {
+  it("pressing a marks the selected feed as read when the current list is a feed", async () => {
     const calls: MockTauriCommandCall[] = [];
     renderAppShell(calls);
 
@@ -274,8 +275,8 @@ describe("useKeyboard", () => {
 
     await waitFor(() => {
       expect(calls).toContainEqual({
-        cmd: "mark_articles_read",
-        args: { articleIds: ["art-1"] },
+        cmd: "mark_feed_read",
+        args: { feedId: "feed-1" },
       });
     });
   });

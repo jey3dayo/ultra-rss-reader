@@ -11,7 +11,12 @@ import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { sampleArticles, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import {
+  type MockTauriCommandCall,
+  sampleArticles,
+  sampleFeeds,
+  setupTauriMocks,
+} from "../../../tests/helpers/tauri-mocks";
 
 describe("ArticleList", () => {
   afterEach(() => {
@@ -897,6 +902,164 @@ describe("ArticleList", () => {
     await waitFor(() => {
       expect(screen.queryByText("First Article")).not.toBeInTheDocument();
     });
+  });
+
+  it("marks the selected feed as read from the header even when the visible list is empty", async () => {
+    const commands: MockTauriCommandCall[] = [];
+    const feeds = sampleFeeds.map((feed) =>
+      feed.id === "feed-1"
+        ? {
+            ...feed,
+            unread_count: 48,
+          }
+        : feed,
+    );
+
+    setupTauriMocks((cmd, args) => {
+      commands.push({ cmd, args });
+      switch (cmd) {
+        case "list_feeds":
+          return feeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_articles":
+          return [];
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            feeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "list_articles_by_tag":
+          return [];
+        case "search_articles":
+          return [];
+        case "mark_feed_read":
+          return null;
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+
+    const user = userEvent.setup();
+    render(
+      <>
+        <ArticleList />
+        <AppConfirmDialog />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    const markAllReadButton = await screen.findByRole("button", { name: "Mark all as read" });
+
+    await user.click(markAllReadButton);
+    expect(screen.getAllByText("Mark 48 articles as read?").length).toBeGreaterThan(0);
+    await user.click(screen.getByRole("button", { name: "Mark as Read" }));
+
+    await waitFor(() => {
+      expect(commands).toContainEqual({
+        cmd: "mark_feed_read",
+        args: { feedId: "feed-1" },
+      });
+    });
+    expect(commands.some((command) => command.cmd === "mark_articles_read")).toBe(false);
+  });
+
+  it("marks the selected folder as read from the header using the folder unread total", async () => {
+    const commands: MockTauriCommandCall[] = [];
+    const folderFeeds = [
+      { ...sampleFeeds[0], id: "feed-folder-1", folder_id: "folder-1", unread_count: 3 },
+      { ...sampleFeeds[1], id: "feed-folder-2", folder_id: "folder-1", unread_count: 4 },
+      { ...sampleFeeds[1], id: "feed-other", folder_id: "folder-2", unread_count: 9 },
+    ];
+
+    setupTauriMocks((cmd, args) => {
+      commands.push({ cmd, args });
+      switch (cmd) {
+        case "list_feeds":
+          return folderFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_articles":
+          return [];
+        case "list_account_articles":
+          return [];
+        case "list_articles_by_tag":
+          return [];
+        case "search_articles":
+          return [];
+        case "mark_folder_read":
+          return null;
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "folder", folderId: "folder-1" },
+      viewMode: "unread",
+    });
+
+    const user = userEvent.setup();
+    render(
+      <>
+        <ArticleList />
+        <AppConfirmDialog />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    const markAllReadButton = await screen.findByRole("button", { name: "Mark all as read" });
+
+    await user.click(markAllReadButton);
+    expect(screen.getAllByText("Mark 7 articles as read?").length).toBeGreaterThan(0);
+    await user.click(screen.getByRole("button", { name: "Mark as Read" }));
+
+    await waitFor(() => {
+      expect(commands).toContainEqual({
+        cmd: "mark_folder_read",
+        args: { folderId: "folder-1" },
+      });
+    });
+    expect(commands.some((command) => command.cmd === "mark_articles_read")).toBe(false);
+  });
+
+  it("does not open confirmation when the selected feed has no unread articles", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_feeds":
+          return sampleFeeds.map((feed) =>
+            feed.account_id === args.accountId && feed.id === "feed-1" ? { ...feed, unread_count: 0 } : feed,
+          );
+        case "list_articles":
+          return [];
+        case "list_account_articles":
+          return [];
+        case "list_articles_by_tag":
+          return [];
+        case "search_articles":
+          return [];
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+
+    const user = userEvent.setup();
+    render(
+      <>
+        <ArticleList />
+        <AppConfirmDialog />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    const markAllReadButton = await screen.findByRole("button", { name: "Mark all as read" });
+
+    await user.click(markAllReadButton);
+
+    expect(screen.queryByRole("button", { name: "Mark as Read" })).not.toBeInTheDocument();
   });
 
   it("does not render read articles in unread view even when recentlyReadIds contains them", async () => {

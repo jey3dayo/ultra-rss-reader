@@ -11,6 +11,7 @@ export function useArticleListPresentation({
   tc,
   ts,
   selection,
+  feeds,
   feedId,
   tagId,
   accountListScopeId,
@@ -75,6 +76,8 @@ export function useArticleListPresentation({
   });
 
   const headerController = useArticleListHeaderController({
+    selection,
+    feeds,
     feedId,
     selectedFeed,
     filteredArticles,

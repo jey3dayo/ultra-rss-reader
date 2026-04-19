@@ -4,6 +4,8 @@ import { useArticleListHeaderActions } from "./use-article-list-header-actions";
 import { useArticleListHeaderControls } from "./use-article-list-header-controls";
 
 export function useArticleListHeaderController({
+  selection,
+  feeds,
   feedId,
   selectedFeed,
   filteredArticles,
@@ -18,6 +20,8 @@ export function useArticleListHeaderController({
 }: UseArticleListHeaderControllerParams): UseArticleListHeaderControllerResult {
   const { selectedFeedDisplayPreset, displayPresetOptions, handleSetDisplayMode, handleMarkAllRead } =
     useArticleListHeaderActions({
+      selection,
+      feeds,
       feedId,
       selectedFeed,
       filteredArticles,
