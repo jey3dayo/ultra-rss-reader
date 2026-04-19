@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import { syncFeed } from "@/api/tauri-commands";
 import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mode";
@@ -16,6 +16,46 @@ import type {
   FeedCleanupFeedEditorControllerParams,
 } from "./feed-cleanup.types";
 
+type FeedCleanupFeedEditorState = {
+  title: string;
+  displayPreset: FeedEditDisplayPreset;
+  loading: boolean;
+  refetching: boolean;
+};
+
+type FeedCleanupFeedEditorAction =
+  | { type: "set-title"; value: string }
+  | { type: "set-display-preset"; value: FeedEditDisplayPreset }
+  | { type: "set-loading"; value: boolean }
+  | { type: "set-refetching"; value: boolean };
+
+function createInitialFeedCleanupFeedEditorState(feed: FeedCleanupFeedEditorControllerParams["feed"]) {
+  return {
+    title: feed.title,
+    displayPreset: resolveFeedDisplayPreset(feed),
+    loading: false,
+    refetching: false,
+  } satisfies FeedCleanupFeedEditorState;
+}
+
+function feedCleanupFeedEditorReducer(
+  state: FeedCleanupFeedEditorState,
+  action: FeedCleanupFeedEditorAction,
+): FeedCleanupFeedEditorState {
+  switch (action.type) {
+    case "set-title":
+      return { ...state, title: action.value };
+    case "set-display-preset":
+      return { ...state, displayPreset: action.value };
+    case "set-loading":
+      return { ...state, loading: action.value };
+    case "set-refetching":
+      return { ...state, refetching: action.value };
+    default:
+      return state;
+  }
+}
+
 export function useFeedCleanupFeedEditorController({
   feed,
   folders,
@@ -27,10 +67,8 @@ export function useFeedCleanupFeedEditorController({
   const showToast = useUiStore((state) => state.showToast);
   const updateFeedFolderMutation = useUpdateFeedFolder();
   const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
-  const [title, setTitle] = useState(feed.title);
-  const [displayPreset, setDisplayPreset] = useState<FeedEditDisplayPreset>(() => resolveFeedDisplayPreset(feed));
-  const [loading, setLoading] = useState(false);
-  const [refetching, setRefetching] = useState(false);
+  const [state, dispatch] = useReducer(feedCleanupFeedEditorReducer, feed, createInitialFeedCleanupFeedEditorState);
+  const { title, displayPreset, loading, refetching } = state;
   const {
     selectedFolderId,
     newFolderName,
@@ -53,7 +91,7 @@ export function useFeedCleanupFeedEditorController({
       return;
     }
 
-    setLoading(true);
+    dispatch({ type: "set-loading", value: true });
     try {
       const saved = await submitFeedEdits({
         feed,
@@ -78,14 +116,14 @@ export function useFeedCleanupFeedEditorController({
         onSaved();
       }
     } finally {
-      setLoading(false);
+      dispatch({ type: "set-loading", value: false });
     }
   };
 
   const handleRefetch = async () => {
-    setRefetching(true);
+    dispatch({ type: "set-refetching", value: true });
     const result = await syncFeed(feed.id);
-    setRefetching(false);
+    dispatch({ type: "set-refetching", value: false });
 
     Result.pipe(
       result,
@@ -126,8 +164,8 @@ export function useFeedCleanupFeedEditorController({
     loading,
     refetching,
     displayModeOptions,
-    setTitle,
-    setDisplayPreset,
+    setTitle: (value) => dispatch({ type: "set-title", value }),
+    setDisplayPreset: (value) => dispatch({ type: "set-display-preset", value }),
     handleCopy,
     handleSave,
     handleRefetch,

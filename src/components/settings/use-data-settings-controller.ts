@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { openPath } from "@tauri-apps/plugin-opener";
 import type { TFunction } from "i18next";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import { getDatabaseInfo, getLogDir, vacuumDatabase } from "@/api/tauri-commands";
 import { BYTES_PER_KIBIBYTE, BYTES_PER_MEBIBYTE, DATA_SIZE_FRACTION_DIGITS } from "@/constants/data-size";
 
@@ -18,6 +18,34 @@ type UseDataSettingsControllerResult = {
   handleOpenLogDir: () => Promise<void>;
 };
 
+type DataSettingsControllerState = {
+  totalSize: number | null;
+  vacuuming: boolean;
+};
+
+type DataSettingsControllerAction =
+  | { type: "set-total-size"; value: number | null }
+  | { type: "set-vacuuming"; value: boolean };
+
+const initialDataSettingsControllerState: DataSettingsControllerState = {
+  totalSize: null,
+  vacuuming: false,
+};
+
+function dataSettingsControllerReducer(
+  state: DataSettingsControllerState,
+  action: DataSettingsControllerAction,
+): DataSettingsControllerState {
+  switch (action.type) {
+    case "set-total-size":
+      return { ...state, totalSize: action.value };
+    case "set-vacuuming":
+      return { ...state, vacuuming: action.value };
+    default:
+      return state;
+  }
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < BYTES_PER_KIBIBYTE) {
     return `${bytes} B`;
@@ -33,13 +61,13 @@ export function useDataSettingsController({
   showToast,
   setSettingsLoading,
 }: UseDataSettingsControllerParams): UseDataSettingsControllerResult {
-  const [totalSize, setTotalSize] = useState<number | null>(null);
-  const [vacuuming, setVacuuming] = useState(false);
+  const [state, dispatch] = useReducer(dataSettingsControllerReducer, initialDataSettingsControllerState);
+  const { totalSize, vacuuming } = state;
 
   const fetchDbInfo = useCallback(async () => {
     Result.pipe(
       await getDatabaseInfo(),
-      Result.inspect((info) => setTotalSize(info.total_size_bytes)),
+      Result.inspect((info) => dispatch({ type: "set-total-size", value: info.total_size_bytes })),
       Result.inspectError((error) => console.error("Failed to get database info:", error)),
     );
   }, []);
@@ -54,13 +82,13 @@ export function useDataSettingsController({
     }
 
     const sizeBefore = totalSize;
-    setVacuuming(true);
+    dispatch({ type: "set-vacuuming", value: true });
     setSettingsLoading(true);
     try {
       Result.pipe(
         await vacuumDatabase(),
         Result.inspect((info) => {
-          setTotalSize(info.total_size_bytes);
+          dispatch({ type: "set-total-size", value: info.total_size_bytes });
           const saved = sizeBefore != null ? sizeBefore - info.total_size_bytes : 0;
           showToast(t("data.vacuum_success", { saved: saved > 0 ? `-${formatBytes(saved)}` : formatBytes(0) }));
         }),
@@ -70,7 +98,7 @@ export function useDataSettingsController({
         }),
       );
     } finally {
-      setVacuuming(false);
+      dispatch({ type: "set-vacuuming", value: false });
       setSettingsLoading(false);
     }
   };
