@@ -135,7 +135,7 @@ export function SubscriptionsListPane({
                           aria-pressed={selectedFeedId === row.feed.id}
                           onClick={() => onSelectFeed(row.feed.id)}
                           className={cn(
-                            "items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-px motion-reduce:transition-none",
+                            "items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none transition-[background-color,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
                             selectedFeedId === row.feed.id
                               ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[var(--subscriptions-list-row-selected-shadow)]"
                               : "bg-background/15 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",

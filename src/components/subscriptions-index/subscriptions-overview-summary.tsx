@@ -124,7 +124,7 @@ export function SubscriptionsOverviewSummary({
           const isActionable = Number.isFinite(numericValue);
           const isPrimary = card.tone === "review";
           const className = cn(
-            "relative flex min-h-[96px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-lg border px-3.5 py-3 text-left transition-[border-color,background-color,color,box-shadow,transform] duration-150 sm:min-h-[108px] sm:px-4.5 sm:py-4",
+            "relative flex min-h-[96px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-lg border px-3.5 py-3 text-left transition-[border-color,background-color,color,box-shadow] duration-150 sm:min-h-[108px] sm:px-4.5 sm:py-4",
             resolveCardClassName(card.tone),
             isPrimary && "shadow-[var(--subscriptions-summary-card-shadow)]",
             isPrimary && "sm:col-span-2 lg:col-span-1",
@@ -136,11 +136,7 @@ export function SubscriptionsOverviewSummary({
               <button
                 key={card.label}
                 type="button"
-                className={cn(
-                  className,
-                  "group cursor-pointer",
-                  "hover:-translate-y-0.5 hover:border-border-strong/90",
-                )}
+                className={cn(className, "group cursor-pointer", "hover:border-border-strong/90")}
                 aria-pressed={card.isActive}
                 onClick={() => onSelectFilter(card.filterKey)}
               >

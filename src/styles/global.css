@@ -636,17 +636,13 @@ body {
 }
 
 .motion-disclosure-trigger {
-  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-property: background-color, border-color, color, box-shadow;
   transition-duration: var(--motion-duration-disclosure);
   transition-timing-function: var(--motion-ease-standard);
 }
 
 .motion-disclosure-trigger:hover {
-  transform: translateY(-1px);
-}
-
-.motion-disclosure-trigger:active {
-  transform: translateY(0);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 28%, transparent);
 }
 
 .motion-disclosure-icon {
