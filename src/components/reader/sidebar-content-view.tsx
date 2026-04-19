@@ -26,8 +26,13 @@ export function SidebarContentView({
         contextMenu={renderSubscriptionsSectionContextMenu()}
       />
 
-      <ScrollArea data-testid="sidebar-feed-scroll-area" className="flex-1" viewportRef={viewportRef}>
-        <div className="pb-4 pr-3">
+      <ScrollArea
+        data-testid="sidebar-feed-scroll-area"
+        className="flex-1"
+        contentClassName="pb-4 pr-3"
+        viewportRef={viewportRef}
+      >
+        <div>
           {feedTree}
           {tagSection}
         </div>

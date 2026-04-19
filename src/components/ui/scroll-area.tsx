@@ -3,7 +3,7 @@ import { ScrollArea as ScrollAreaPrimitive } from "@base-ui/react/scroll-area";
 import { cn } from "@/lib/utils";
 import type { ScrollAreaProps } from "./scroll-area.types";
 
-function ScrollArea({ className, children, viewportRef, ...props }: ScrollAreaProps) {
+function ScrollArea({ className, children, contentClassName, viewportRef, ...props }: ScrollAreaProps) {
   return (
     <ScrollAreaPrimitive.Root data-slot="scroll-area" className={cn("relative min-h-0", className)} {...props}>
       <ScrollAreaPrimitive.Viewport
@@ -11,7 +11,13 @@ function ScrollArea({ className, children, viewportRef, ...props }: ScrollAreaPr
         data-slot="scroll-area-viewport"
         className="size-full rounded-[inherit] transition-[color,box-shadow,outline-color] outline-none focus-visible:outline-1 focus-visible:outline-border/80 focus-visible:ring-2 focus-visible:ring-border/35"
       >
-        {children}
+        {contentClassName ? (
+          <div data-slot="scroll-area-content" className={contentClassName}>
+            {children}
+          </div>
+        ) : (
+          children
+        )}
       </ScrollAreaPrimitive.Viewport>
       <ScrollBar />
       <ScrollAreaPrimitive.Corner />

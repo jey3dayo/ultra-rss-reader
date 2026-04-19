@@ -27,4 +27,17 @@ describe("ScrollArea", () => {
     expect(viewport).toHaveClass("focus-visible:ring-border/35");
     expect(viewport).not.toHaveClass("focus-visible:ring-ring/50");
   });
+
+  it("can render a shared scroll content lane wrapper", () => {
+    render(
+      <ScrollArea data-testid="scroll-area" contentClassName="pb-4 pr-3">
+        <div>Scrollable content</div>
+      </ScrollArea>,
+    );
+
+    const content = screen.getByTestId("scroll-area").querySelector('[data-slot="scroll-area-content"]');
+
+    expect(content).toHaveClass("pb-4");
+    expect(content).toHaveClass("pr-3");
+  });
 });

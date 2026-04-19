@@ -124,7 +124,9 @@ describe("ArticleListScreenView", () => {
       />,
     );
 
-    expect(screen.getByTestId("article-list-scroll-content")).toHaveClass("pr-3", "pb-4");
+    const contentLane = screen.getByTestId("article-list-scroll-content").closest('[data-slot="scroll-area-content"]');
+
+    expect(contentLane).toHaveClass("pr-3", "pb-4");
   });
 
   it("restores the unread marker when a retained row is no longer recently read", () => {
