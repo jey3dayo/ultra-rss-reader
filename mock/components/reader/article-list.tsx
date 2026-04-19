@@ -118,6 +118,7 @@ export function ArticleList({
                           src={article.thumbnail}
                           alt=""
                           fill
+                          sizes="80px"
                           className="object-cover"
                         />
                       </div>

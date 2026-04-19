@@ -1,6 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
-import type { ElementType, ReactElement } from "react";
-import { createElement } from "react";
+import { cleanup, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import overviewMeta, {
   CleanupMode as OverviewCleanupMode,
@@ -12,22 +10,7 @@ import reviewMeta, {
   EditingState,
   IntegrityIssueReview,
 } from "@/components/feed-cleanup/feed-cleanup-review-panel.stories";
-
-type StoryMeta = {
-  component: ElementType;
-  args?: object;
-};
-
-type StoryLike = {
-  args?: object;
-  render?: ((args: never, context: never) => ReactElement) | undefined;
-};
-
-function renderStory(meta: StoryMeta, story: StoryLike) {
-  const args = { ...(meta.args ?? {}), ...(story.args ?? {}) };
-  const ui = story.render ? story.render(args as never, {} as never) : createElement(meta.component, args);
-  return render(ui);
-}
+import { renderStory } from "../../../tests/helpers/render-story";
 
 describe("Feed cleanup stories", () => {
   it("renders overview stories for cleanup and integrity modes", () => {

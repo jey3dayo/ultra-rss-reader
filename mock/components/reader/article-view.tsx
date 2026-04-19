@@ -111,6 +111,7 @@ export function ArticleView({ article, feedName, totalUnread }: ArticleViewProps
                 src={article.thumbnail}
                 alt=""
                 fill
+                sizes="(max-width: 768px) 100vw, 768px"
                 className="object-cover"
               />
             </div>
@@ -118,9 +119,9 @@ export function ArticleView({ article, feedName, totalUnread }: ArticleViewProps
 
           {/* Content */}
           <div className="prose prose-invert max-w-none">
-            {article.content.split("\n\n").map((paragraph, index) => (
+            {article.content.split("\n\n").map((paragraph) => (
               <p
-                key={index}
+                key={`${article.id}-${paragraph.slice(0, 48)}`}
                 className="mb-4 text-base leading-relaxed text-foreground/90"
               >
                 {paragraph}

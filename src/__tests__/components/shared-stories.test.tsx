@@ -1,6 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
-import type { ElementType, ReactElement } from "react";
-import { createElement } from "react";
+import { cleanup, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import formActionButtonsMeta, {
   Loading as FormActionButtonsLoading,
@@ -28,23 +26,14 @@ import workspaceHeaderMeta, {
   WindowsDesktop as WorkspaceHeaderWindowsDesktop,
 } from "@/components/shared/workspace-header.stories";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
+import { renderStory as renderStoryHelper } from "../../../tests/helpers/render-story";
 
-type StoryMeta = {
-  component: ElementType;
-  args?: object;
-  render?: ((args: never, context: never) => ReactElement) | undefined;
-};
-
-type StoryLike = {
-  args?: object;
-  render?: ((args: never, context: never) => ReactElement) | undefined;
-};
-
-function renderStory(meta: StoryMeta, story: StoryLike, useWrapper = false) {
-  const args = { ...(meta.args ?? {}), ...(story.args ?? {}) };
-  const renderStoryFn = story.render ?? meta.render;
-  const ui = renderStoryFn ? renderStoryFn(args as never, {} as never) : createElement(meta.component, args);
-  return render(ui, useWrapper ? { wrapper: createWrapper() } : undefined);
+function renderStory(
+  meta: Parameters<typeof renderStoryHelper>[0],
+  story: Parameters<typeof renderStoryHelper>[1],
+  useWrapper = false,
+) {
+  return renderStoryHelper(meta, story, useWrapper ? { wrapper: createWrapper() } : undefined);
 }
 
 describe("Shared stories", () => {
