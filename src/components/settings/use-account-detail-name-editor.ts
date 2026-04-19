@@ -1,24 +1,61 @@
 import { Result } from "@praha/byethrow";
-import { type KeyboardEvent, useRef, useState } from "react";
+import { type KeyboardEvent, useReducer, useRef } from "react";
 import { renameAccount } from "@/api/tauri-commands";
 import type { UseAccountDetailNameEditorParams, UseAccountDetailNameEditorResult } from "./account-detail.types";
 import { updateCachedAccount } from "./account-detail-query-cache";
 import { createAccountDetailErrorToast } from "./account-detail-toast";
+
+type AccountDetailNameEditorState = {
+  editingName: boolean;
+  savingName: boolean;
+  nameDraft: string;
+};
+
+type AccountDetailNameEditorAction =
+  | { type: "start-edit"; value: string }
+  | { type: "set-name-draft"; value: string }
+  | { type: "set-saving-name"; value: boolean }
+  | { type: "finish-edit"; value: string }
+  | { type: "cancel-edit" };
+
+const initialAccountDetailNameEditorState: AccountDetailNameEditorState = {
+  editingName: false,
+  savingName: false,
+  nameDraft: "",
+};
+
+function accountDetailNameEditorReducer(
+  state: AccountDetailNameEditorState,
+  action: AccountDetailNameEditorAction,
+): AccountDetailNameEditorState {
+  switch (action.type) {
+    case "start-edit":
+      return { ...state, editingName: true, nameDraft: action.value };
+    case "set-name-draft":
+      return { ...state, nameDraft: action.value };
+    case "set-saving-name":
+      return { ...state, savingName: action.value };
+    case "finish-edit":
+      return { editingName: false, savingName: false, nameDraft: action.value };
+    case "cancel-edit":
+      return { ...state, editingName: false };
+    default:
+      return state;
+  }
+}
 
 export function useAccountDetailNameEditor({
   account,
   queryClient,
   t,
 }: UseAccountDetailNameEditorParams): UseAccountDetailNameEditorResult {
-  const [editingName, setEditingName] = useState(false);
-  const [savingName, setSavingName] = useState(false);
-  const [nameDraft, setNameDraft] = useState("");
+  const [state, dispatch] = useReducer(accountDetailNameEditorReducer, initialAccountDetailNameEditorState);
+  const { editingName, savingName, nameDraft } = state;
   const nameInputRef = useRef<HTMLInputElement>(null);
   const showRenameError = createAccountDetailErrorToast(t, "account.failed_to_rename");
 
   const startEditingName = () => {
-    setNameDraft(account.name);
-    setEditingName(true);
+    dispatch({ type: "start-edit", value: account.name });
     requestAnimationFrame(() => {
       nameInputRef.current?.focus();
       nameInputRef.current?.select();
@@ -28,26 +65,24 @@ export function useAccountDetailNameEditor({
   const commitRename = async () => {
     const trimmed = nameDraft.trim();
     if (!trimmed || trimmed === account.name) {
-      setNameDraft(account.name);
-      setEditingName(false);
+      dispatch({ type: "finish-edit", value: account.name });
       return;
     }
 
-    setSavingName(true);
+    dispatch({ type: "set-saving-name", value: true });
     let renameSucceeded = false;
     Result.pipe(
       await renameAccount(account.id, trimmed),
       Result.inspectError(showRenameError),
       Result.inspect((updated) => {
         renameSucceeded = true;
-        setNameDraft(updated.name);
+        dispatch({ type: "finish-edit", value: updated.name });
         updateCachedAccount(queryClient, updated);
         queryClient.invalidateQueries({ queryKey: ["accounts"] });
       }),
     );
-    setSavingName(false);
-    if (renameSucceeded) {
-      setEditingName(false);
+    if (!renameSucceeded) {
+      dispatch({ type: "set-saving-name", value: false });
     }
   };
 
@@ -56,7 +91,7 @@ export function useAccountDetailNameEditor({
       event.preventDefault();
       void commitRename();
     } else if (event.key === "Escape") {
-      setEditingName(false);
+      dispatch({ type: "cancel-edit" });
     }
   };
 
@@ -64,7 +99,7 @@ export function useAccountDetailNameEditor({
     editingName,
     savingName,
     nameDraft,
-    setNameDraft,
+    setNameDraft: (value) => dispatch({ type: "set-name-draft", value }),
     nameInputRef,
     startEditingName,
     commitRename,

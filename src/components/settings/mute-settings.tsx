@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import type { MuteKeywordDto } from "@/api/tauri-commands";
 import { MuteSettingsView } from "@/components/settings/mute-settings-view";
@@ -12,6 +12,39 @@ import {
 } from "@/hooks/use-mute-keywords";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
+
+type MuteSettingsState = {
+  keyword: string;
+  scope: "title" | "body" | "title_and_body";
+  confirmRule: MuteKeywordDto | null;
+};
+
+type MuteSettingsAction =
+  | { type: "set-keyword"; value: string }
+  | { type: "reset-keyword" }
+  | { type: "set-scope"; value: "title" | "body" | "title_and_body" }
+  | { type: "set-confirm-rule"; value: MuteKeywordDto | null };
+
+const initialMuteSettingsState: MuteSettingsState = {
+  keyword: "",
+  scope: "title_and_body",
+  confirmRule: null,
+};
+
+function muteSettingsReducer(state: MuteSettingsState, action: MuteSettingsAction): MuteSettingsState {
+  switch (action.type) {
+    case "set-keyword":
+      return { ...state, keyword: action.value };
+    case "reset-keyword":
+      return { ...state, keyword: "" };
+    case "set-scope":
+      return { ...state, scope: action.value };
+    case "set-confirm-rule":
+      return { ...state, confirmRule: action.value };
+    default:
+      return state;
+  }
+}
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
@@ -32,9 +65,8 @@ export function MuteSettings() {
   const deleteMuteKeyword = useDeleteMuteKeyword();
   const setMuteAutoMarkRead = useSetMuteAutoMarkRead();
   const updateMuteKeyword = useUpdateMuteKeyword();
-  const [keyword, setKeyword] = useState("");
-  const [scope, setScope] = useState<"title" | "body" | "title_and_body">("title_and_body");
-  const [confirmRule, setConfirmRule] = useState<MuteKeywordDto | null>(null);
+  const [state, dispatch] = useReducer(muteSettingsReducer, initialMuteSettingsState);
+  const { keyword, scope, confirmRule } = state;
   const autoMarkReadEnabled = resolvePreferenceValue(prefs, "mute_auto_mark_read") === "true";
   const keywordLength = Array.from(keyword.trim()).length;
 
@@ -44,7 +76,7 @@ export function MuteSettings() {
         keyword,
         scope,
       });
-      setKeyword("");
+      dispatch({ type: "reset-keyword" });
       showToast(t("mute.add_success"));
     } catch (error) {
       showToast(t("mute.add_failed", { message: getErrorMessage(error) }));
@@ -53,7 +85,7 @@ export function MuteSettings() {
 
   const handleRequestDelete = (ruleId: string) => {
     const rule = rules.find((candidate) => candidate.id === ruleId) ?? null;
-    setConfirmRule(rule);
+    dispatch({ type: "set-confirm-rule", value: rule });
   };
 
   const handleConfirmDelete = async () => {
@@ -66,7 +98,7 @@ export function MuteSettings() {
         muteKeywordId: confirmRule.id,
       });
       showToast(t("mute.delete_success"));
-      setConfirmRule(null);
+      dispatch({ type: "set-confirm-rule", value: null });
     } catch (error) {
       showToast(t("mute.delete_failed", { message: getErrorMessage(error) }));
     }
@@ -114,14 +146,14 @@ export function MuteSettings() {
     autoMarkReadChecked: autoMarkReadEnabled,
     autoMarkReadDisabled: setMuteAutoMarkRead.isPending,
     confirmRule,
-    onKeywordChange: setKeyword,
-    onScopeChange: setScope,
+    onKeywordChange: (value) => dispatch({ type: "set-keyword", value }),
+    onScopeChange: (value) => dispatch({ type: "set-scope", value }),
     onRuleScopeChange: (ruleId, nextScope) => void handleRuleScopeChange(ruleId, nextScope),
     onAutoMarkReadChange: (checked) => void handleAutoMarkReadChange(checked),
     onAdd: () => void handleAdd(),
     onRequestDelete: handleRequestDelete,
     onConfirmDelete: () => void handleConfirmDelete(),
-    onCancelDelete: () => setConfirmRule(null),
+    onCancelDelete: () => dispatch({ type: "set-confirm-rule", value: null }),
   });
 
   return <MuteSettingsView {...viewProps} />;

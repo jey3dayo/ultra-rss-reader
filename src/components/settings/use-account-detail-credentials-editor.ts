@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { useRef, useState } from "react";
+import { useReducer, useRef } from "react";
 import { copyToClipboard, testAccountConnection, updateAccountCredentials } from "@/api/tauri-commands";
 import { useUiStore } from "@/stores/ui-store";
 import type {
@@ -11,16 +11,73 @@ import { createAccountDetailErrorToast } from "./account-detail-toast";
 
 const MASKED_PASSWORD_VALUE = "••••••••";
 
+type AccountDetailCredentialsEditorState = {
+  credServerUrl: string | null;
+  credUsername: string | null;
+  credPassword: string | null;
+  hasSavedPassword: boolean;
+  testingConnection: boolean;
+};
+
+type AccountDetailCredentialsEditorAction =
+  | { type: "set-cred-server-url"; value: string | null }
+  | { type: "set-cred-username"; value: string | null }
+  | { type: "set-cred-password"; value: string | null }
+  | { type: "set-testing-connection"; value: boolean }
+  | { type: "clear-credential-drafts"; passwordWasSaved: boolean }
+  | { type: "clear-password-input" };
+
+function createInitialAccountDetailCredentialsEditorState(
+  account: UseAccountDetailCredentialsEditorParams["account"],
+): AccountDetailCredentialsEditorState {
+  return {
+    credServerUrl: null,
+    credUsername: null,
+    credPassword: null,
+    hasSavedPassword: account.kind === "FreshRss",
+    testingConnection: false,
+  };
+}
+
+function accountDetailCredentialsEditorReducer(
+  state: AccountDetailCredentialsEditorState,
+  action: AccountDetailCredentialsEditorAction,
+): AccountDetailCredentialsEditorState {
+  switch (action.type) {
+    case "set-cred-server-url":
+      return { ...state, credServerUrl: action.value };
+    case "set-cred-username":
+      return { ...state, credUsername: action.value };
+    case "set-cred-password":
+      return { ...state, credPassword: action.value };
+    case "set-testing-connection":
+      return { ...state, testingConnection: action.value };
+    case "clear-credential-drafts":
+      return {
+        ...state,
+        credServerUrl: null,
+        credUsername: null,
+        credPassword: null,
+        hasSavedPassword: state.hasSavedPassword || action.passwordWasSaved,
+      };
+    case "clear-password-input":
+      return { ...state, credPassword: null };
+    default:
+      return state;
+  }
+}
+
 export function useAccountDetailCredentialsEditor({
   account,
   queryClient,
   t,
 }: UseAccountDetailCredentialsEditorParams): UseAccountDetailCredentialsEditorResult {
-  const [credServerUrl, setCredServerUrl] = useState<string | null>(null);
-  const [credUsername, setCredUsername] = useState<string | null>(null);
-  const [credPassword, setCredPassword] = useState<string | null>(null);
-  const [hasSavedPassword, setHasSavedPassword] = useState(account.kind === "FreshRss");
-  const [testingConnection, setTestingConnection] = useState(false);
+  const [state, dispatch] = useReducer(
+    accountDetailCredentialsEditorReducer,
+    account,
+    createInitialAccountDetailCredentialsEditorState,
+  );
+  const { credServerUrl, credUsername, credPassword, hasSavedPassword, testingConnection } = state;
   const pendingCredentialSaveRef = useRef<Promise<boolean> | null>(null);
   const showCredentialSaveError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
   const showConnectionError = createAccountDetailErrorToast(t, "account.connection_failed");
@@ -40,7 +97,7 @@ export function useAccountDetailCredentialsEditor({
       const passwordChanged = credPassword !== null && credPassword !== "";
 
       if (!serverUrlChanged && !usernameChanged && !passwordChanged) {
-        setCredPassword(null);
+        dispatch({ type: "clear-password-input" });
         return true;
       }
 
@@ -51,10 +108,7 @@ export function useAccountDetailCredentialsEditor({
         Result.inspect((updated) => {
           saved = true;
           updateCachedAccount(queryClient, updated);
-          setCredServerUrl(null);
-          setCredUsername(null);
-          setCredPassword(null);
-          setHasSavedPassword((current) => current || passwordChanged);
+          dispatch({ type: "clear-credential-drafts", passwordWasSaved: passwordChanged });
           useUiStore.getState().showToast(t("account.credentials_saved"));
         }),
       );
@@ -70,7 +124,7 @@ export function useAccountDetailCredentialsEditor({
   };
 
   const handleTestConnection = async () => {
-    setTestingConnection(true);
+    dispatch({ type: "set-testing-connection", value: true });
     try {
       const credentialsSaved = await commitCredentials();
       if (!credentialsSaved) {
@@ -88,7 +142,7 @@ export function useAccountDetailCredentialsEditor({
       updateCachedAccount(queryClient, updated);
       useUiStore.getState().showToast(t("account.connection_success"));
     } finally {
-      setTestingConnection(false);
+      dispatch({ type: "set-testing-connection", value: false });
     }
   };
 
@@ -111,7 +165,7 @@ export function useAccountDetailCredentialsEditor({
 
   const onPasswordFocus = () => {
     if (credPassword === null) {
-      setCredPassword("");
+      dispatch({ type: "set-cred-password", value: "" });
     }
   };
 
@@ -121,9 +175,9 @@ export function useAccountDetailCredentialsEditor({
     credPassword,
     passwordDisplayValue,
     testingConnection,
-    setCredServerUrl,
-    setCredUsername,
-    setCredPassword,
+    setCredServerUrl: (value) => dispatch({ type: "set-cred-server-url", value }),
+    setCredUsername: (value) => dispatch({ type: "set-cred-username", value }),
+    setCredPassword: (value) => dispatch({ type: "set-cred-password", value }),
     commitCredentials,
     handleTestConnection,
     handleCopyServerUrl,

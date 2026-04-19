@@ -1,7 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft } from "lucide-react";
-import { useMemo, useReducer, useState } from "react";
+import { useMemo, useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import { addAccount } from "@/api/tauri-commands";
 import { SettingsSection } from "@/components/settings/settings-section";
@@ -20,6 +20,31 @@ import { useUiStore } from "@/stores/ui-store";
 import { findServiceDefinition } from "./add-account-services";
 import type { AccountConfigFormProps } from "./add-account-services.types";
 
+type AccountConfigUiState = {
+  submitting: boolean;
+  errorMessage: string | null;
+};
+
+type AccountConfigUiAction =
+  | { type: "set-submitting"; value: boolean }
+  | { type: "set-error-message"; value: string | null };
+
+const initialAccountConfigUiState: AccountConfigUiState = {
+  submitting: false,
+  errorMessage: null,
+};
+
+function accountConfigUiReducer(state: AccountConfigUiState, action: AccountConfigUiAction): AccountConfigUiState {
+  switch (action.type) {
+    case "set-submitting":
+      return { ...state, submitting: action.value };
+    case "set-error-message":
+      return { ...state, errorMessage: action.value };
+    default:
+      return state;
+  }
+}
+
 export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
   const { t } = useTranslation("settings");
   const { t: tc } = useTranslation("common");
@@ -30,8 +55,8 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
     ...addAccountFormInitialState,
     kind,
   });
-  const [submitting, setSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [uiState, dispatchUi] = useReducer(accountConfigUiReducer, initialAccountConfigUiState);
+  const { submitting, errorMessage } = uiState;
   const formConfig = useMemo(() => getAddAccountFormConfig(form.kind), [form.kind]);
 
   const serviceDef = findServiceDefinition(kind);
@@ -39,18 +64,18 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
   const inputClassName = "h-10";
 
   const handleSubmit = async () => {
-    setErrorMessage(null);
+    dispatchUi({ type: "set-error-message", value: null });
     const payloadResult = buildAddAccountPayload(form);
 
     if (Result.isFailure(payloadResult)) {
       const message = formatAddAccountValidationError(form.kind, Result.unwrapError(payloadResult));
-      setErrorMessage(message);
+      dispatchUi({ type: "set-error-message", value: message });
       useUiStore.getState().showToast(message);
       return;
     }
 
     const payload = Result.unwrap(payloadResult);
-    setSubmitting(true);
+    dispatchUi({ type: "set-submitting", value: true });
 
     Result.pipe(
       await addAccount(payload.kind, payload.name, payload.serverUrl, payload.username, payload.password),
@@ -67,7 +92,7 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
         } else {
           message = t("account.failed_to_add", { message: e.message });
         }
-        setErrorMessage(message);
+        dispatchUi({ type: "set-error-message", value: message });
         useUiStore.getState().showToast(message);
       }),
       Result.inspect((account) => {
@@ -79,7 +104,7 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
       }),
     );
 
-    setSubmitting(false);
+    dispatchUi({ type: "set-submitting", value: false });
   };
 
   return (

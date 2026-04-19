@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useReducer, useRef } from "react";
 import type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
 import { IndeterminateProgress } from "@/components/shared/indeterminate-progress";
 import { Button } from "@/components/ui/button";
@@ -13,14 +13,39 @@ const HIDDEN_SCROLLBAR_CLASS = "[&>[data-slot='scroll-area-scrollbar']]:hidden";
 const SHELL_SECTION_LABEL_CLASS =
   "mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--settings-shell-section-label)]";
 
+type ScrollOverflowState = {
+  viewportElement: HTMLDivElement | null;
+  hasOverflow: boolean;
+};
+
+type ScrollOverflowAction =
+  | { type: "set-viewport-element"; value: HTMLDivElement | null }
+  | { type: "set-has-overflow"; value: boolean };
+
+const initialScrollOverflowState: ScrollOverflowState = {
+  viewportElement: null,
+  hasOverflow: false,
+};
+
+function scrollOverflowReducer(state: ScrollOverflowState, action: ScrollOverflowAction): ScrollOverflowState {
+  switch (action.type) {
+    case "set-viewport-element":
+      return { ...state, viewportElement: action.value };
+    case "set-has-overflow":
+      return { ...state, hasOverflow: action.value };
+    default:
+      return state;
+  }
+}
+
 function useScrollOverflowState(dependency: unknown) {
   const viewportRef = useRef<HTMLDivElement>(null);
-  const [viewportElement, setViewportElement] = useState<HTMLDivElement | null>(null);
-  const [hasOverflow, setHasOverflow] = useState(false);
+  const [state, dispatch] = useReducer(scrollOverflowReducer, initialScrollOverflowState);
+  const { viewportElement, hasOverflow } = state;
 
   const setViewportNode = useCallback((node: HTMLDivElement | null) => {
     viewportRef.current = node;
-    setViewportElement(node);
+    dispatch({ type: "set-viewport-element", value: node });
   }, []);
 
   useLayoutEffect(() => {
@@ -33,7 +58,7 @@ function useScrollOverflowState(dependency: unknown) {
     }
 
     const updateOverflow = () => {
-      setHasOverflow(viewport.scrollHeight > viewport.clientHeight + 1);
+      dispatch({ type: "set-has-overflow", value: viewport.scrollHeight > viewport.clientHeight + 1 });
     };
 
     updateOverflow();
