@@ -62,7 +62,7 @@ export function ArticleListScreenView({
     return (
       <ScrollArea className="h-full" viewportRef={viewportRef}>
         <div className="flex h-full items-center justify-center p-6">
-          <div className="w-full max-w-sm rounded-3xl border border-border/80 bg-[linear-gradient(180deg,rgba(247,247,244,0.94)_0%,rgba(235,234,229,0.86)_100%)] px-5 py-6 text-left shadow-[0_24px_56px_-40px_rgba(38,37,30,0.26)]">
+          <div className="w-full max-w-sm rounded-3xl border border-border/80 bg-[linear-gradient(180deg,rgba(247,247,244,0.94)_0%,rgba(235,234,229,0.86)_100%)] px-5 py-6 text-left shadow-[0_24px_56px_-40px_rgba(38,37,30,0.26)] dark:border-border/90 dark:bg-[linear-gradient(180deg,rgba(38,34,29,0.96)_0%,rgba(28,25,21,0.92)_100%)] dark:shadow-[0_32px_88px_-52px_rgba(0,0,0,0.62)]">
             <div className="mb-3 inline-flex rounded-full border border-border/70 bg-surface-1/88 px-2.5 py-1 text-[0.65rem] font-medium tracking-[0.12em] text-foreground-soft uppercase">
               {t("queue_label")}
             </div>

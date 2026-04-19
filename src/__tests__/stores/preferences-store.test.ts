@@ -83,6 +83,19 @@ describe("usePreferencesStore preferences", () => {
     expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("dark");
   });
 
+  it("keeps the mirrored bootstrapped theme when loaded preferences omit theme", async () => {
+    vi.mocked(getPreferences).mockResolvedValue(Result.succeed({}));
+    document.documentElement.classList.add("dark");
+    document.documentElement.style.colorScheme = "dark";
+    window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+
+    await usePreferencesStore.getState().loadPreferences();
+
+    expect(document.documentElement).toHaveClass("dark");
+    expect(document.documentElement.style.colorScheme).toBe("dark");
+    expect(window.localStorage.getItem(STORAGE_KEYS.theme)).toBe("dark");
+  });
+
   it("defaults reader and web preview preferences independently", () => {
     expect(resolvePreferenceValue({}, "reader_mode_default")).toBe("true");
     expect(resolvePreferenceValue({}, "web_preview_mode_default")).toBe("false");

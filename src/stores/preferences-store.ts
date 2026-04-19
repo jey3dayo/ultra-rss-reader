@@ -204,6 +204,18 @@ function mirrorThemePreference(theme: Theme): void {
   }
 }
 
+function readMirroredThemePreference(): Theme | null {
+  try {
+    const storedTheme = window.localStorage.getItem(STORAGE_KEYS.theme);
+    if (storedTheme === null) {
+      return null;
+    }
+    return themeSchema.safeParse(storedTheme).success ? (storedTheme as Theme) : null;
+  } catch {
+    return null;
+  }
+}
+
 function scheduleThemeTransition(root: HTMLElement): void {
   const prefersReducedMotion =
     typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -301,7 +313,9 @@ export const usePreferencesStore = create<PreferencesState & PreferencesActions>
       result,
       Result.inspect((data) => {
         set({ prefs: data, loaded: true });
-        const theme = resolvePreferenceValue(data, "theme");
+        const theme = objectHasOwnProperty.call(data, "theme")
+          ? resolvePreferenceValue(data, "theme")
+          : (readMirroredThemePreference() ?? resolvePreferenceValue(data, "theme"));
         applyTheme(theme, { withTransition: false });
         mirrorThemePreference(theme);
         applyLanguage(resolvePreferenceValue(data, "language"));
