@@ -119,7 +119,7 @@ depends = ["test:rust", "test:unit"]
 [tasks."test:rust"]
 description = "Run Rust tests"
 run = "rtk test cargo test --manifest-path src-tauri/Cargo.toml"
-run_windows = "rtk test cargo test --manifest-path src-tauri/Cargo.toml --test integration_test"
+run_windows = "rtk test cargo test --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"
 
 [tasks."test:unit"]
 description = "Run Vitest unit tests"
