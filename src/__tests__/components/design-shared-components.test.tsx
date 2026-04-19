@@ -280,8 +280,15 @@ describe("Design-themed shared components", () => {
       />,
     );
 
+    const headerRoot = screen.getByTestId("workspace-header-body").parentElement;
+    const topRow = screen.getByTestId("workspace-header-top-row");
+    const titleGroup = screen.getByTestId("workspace-header-title-group");
+
+    expect(headerRoot).toHaveClass("py-1.5");
     expect(screen.queryByTestId("workspace-header-drag-region")).toBeNull();
     expect(screen.getByTestId("workspace-header-navigation-row")).toBeInTheDocument();
+    expect(within(topRow).getByText("Workspace")).toBeInTheDocument();
+    expect(within(titleGroup).queryByText("Workspace")).toBeNull();
   });
 
   it("shows the eyebrow inline with the back action in browser preview mode", () => {

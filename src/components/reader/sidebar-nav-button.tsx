@@ -55,7 +55,7 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
             key={trailingMotionKey}
             data-motion-phase={trailingMotionKey ? "entering" : undefined}
             className={cn(
-              "motion-content-swap ml-3 shrink-0 text-[0.78rem] font-medium tabular-nums text-[var(--sidebar-foreground-muted-strong)]",
+              "motion-content-swap ml-3 shrink-0 text-[0.75rem] font-medium tabular-nums text-[var(--sidebar-foreground-muted-strong)]",
               selected && "text-[var(--sidebar-selection-muted)]",
               trailingClassName,
             )}

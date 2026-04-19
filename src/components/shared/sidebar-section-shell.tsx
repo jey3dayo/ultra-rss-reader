@@ -18,13 +18,17 @@ export function SidebarSectionShell({
   const resolvedPanelId = panelId ?? `sidebar-section-panel-${fallbackPanelId}`;
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       {hasHeader ? (
-        <div className={cn("px-2 py-2", headerClassName)}>
+        <div className={cn("px-3 pt-3 pb-1.5", headerClassName)}>
           {onToggle ? (
             <SidebarSectionToggle label={title} isOpen={isOpen} onToggle={onToggle} panelId={resolvedPanelId} />
           ) : null}
-          {!onToggle ? <div className="text-sm font-medium text-sidebar-foreground">{title}</div> : null}
+          {!onToggle ? (
+            <div className="px-1 text-[0.72rem] font-medium tracking-[0.12em] text-[var(--sidebar-foreground-soft-strong)] uppercase">
+              {title}
+            </div>
+          ) : null}
         </div>
       ) : null}
       {hasBody ? (
@@ -35,7 +39,7 @@ export function SidebarSectionShell({
           className="motion-disclosure-panel"
         >
           <div className="motion-disclosure-body">
-            <div className={cn("space-y-1 px-2", bodyClassName)}>{children}</div>
+            <div className={cn("space-y-1.5 px-3", bodyClassName)}>{children}</div>
           </div>
         </div>
       ) : null}

@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
+import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 import type { SidebarHeaderProps } from "./sidebar.types";
 
@@ -23,6 +25,11 @@ export function SidebarHeaderView({
   isAddFeedDisabled = false,
 }: SidebarHeaderProps) {
   const isMobile = useUiStore((state) => state.layoutMode === "mobile");
+  const platformKind = usePlatformStore((state) => state.platform.kind);
+  const useDesktopOverlay = shouldUseDesktopOverlayTitlebar({
+    platformKind,
+    hasTauriRuntime: hasTauriRuntime(),
+  });
   const [isFeedbackSpinning, setIsFeedbackSpinning] = useState(false);
   const feedbackSpinTimerRef = useRef<number | null>(null);
   const headerActionButtonClassName =
@@ -58,7 +65,12 @@ export function SidebarHeaderView({
   };
 
   return (
-    <div className="flex h-12 items-center justify-between border-b border-border/70 bg-[var(--workspace-header-surface)] px-4 pl-20 backdrop-blur-sm">
+    <div
+      className={cn(
+        "flex h-12 items-center justify-between border-b border-border/70 bg-[var(--workspace-header-surface)] px-4 backdrop-blur-sm",
+        useDesktopOverlay && "pl-20",
+      )}
+    >
       <div data-tauri-drag-region aria-hidden="true" className="h-full min-w-0 flex-1" />
       <TooltipProvider>
         <div className="flex items-center gap-2">

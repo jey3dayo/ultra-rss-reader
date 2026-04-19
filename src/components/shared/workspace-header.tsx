@@ -41,6 +41,9 @@ export function WorkspaceHeader({
   });
   const hasBackAction = Boolean(backLabel && onBack);
   const isDesktopApp = hasRuntime;
+  const useCompactDesktopHeader = isDesktopApp && !useDesktopOverlay;
+  const showEyebrowInTopRow = isBrowserPreview || useCompactDesktopHeader;
+  const showEyebrowInTitleGroup = isDesktopApp && !useCompactDesktopHeader;
   const contentKey = `${eyebrow}::${title}::${subtitle}`;
   const previousContentKeyRef = useRef(contentKey);
   const [contentMotionPhase, setContentMotionPhase] = useState<"steady" | "entering">("steady");
@@ -68,7 +71,10 @@ export function WorkspaceHeader({
 
   return (
     <div
-      className="relative border-b border-border/70 px-5 py-2 backdrop-blur-sm sm:px-6"
+      className={cn(
+        "relative border-b border-border/70 px-5 backdrop-blur-sm sm:px-6",
+        useCompactDesktopHeader ? "py-1.5 sm:py-1.5" : "py-2 sm:py-2",
+      )}
       style={{ backgroundColor: "var(--workspace-header-surface)" }}
     >
       {useDesktopOverlay ? (
@@ -80,10 +86,16 @@ export function WorkspaceHeader({
           style={{ width: `${MAC_OVERLAY_DRAG_REGION_WIDTH}px` }}
         />
       ) : null}
-      <div data-testid="workspace-header-body" className="flex flex-col gap-1.5">
+      <div
+        data-testid="workspace-header-body"
+        className={cn("flex flex-col", useCompactDesktopHeader ? "gap-1" : "gap-1.5")}
+      >
         <div
           data-testid="workspace-header-top-row"
-          className="relative flex min-h-5 items-center justify-between gap-4"
+          className={cn(
+            "relative flex items-center justify-between gap-4",
+            useCompactDesktopHeader ? "min-h-4" : "min-h-5",
+          )}
         >
           {useDesktopOverlay ? (
             <div
@@ -117,7 +129,7 @@ export function WorkspaceHeader({
                 </Button>
               ) : null
             ) : null}
-            {isBrowserPreview ? (
+            {showEyebrowInTopRow ? (
               <p
                 data-motion-phase={contentMotionPhase}
                 className="motion-content-swap font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase"
@@ -142,7 +154,7 @@ export function WorkspaceHeader({
         </div>
         <div
           data-testid="workspace-header-title-group"
-          className="relative min-w-0 space-y-0.5 pb-0.5"
+          className={cn("relative min-w-0 pb-0.5", useCompactDesktopHeader ? "space-y-0" : "space-y-0.5")}
           style={useDesktopOverlay ? { paddingLeft: `${MAC_OVERLAY_TITLE_OFFSET_PX}px` } : undefined}
         >
           {useDesktopOverlay ? (
@@ -155,7 +167,7 @@ export function WorkspaceHeader({
               className="absolute inset-0 z-10"
             />
           ) : null}
-          {isDesktopApp ? (
+          {showEyebrowInTitleGroup ? (
             <div className={cn("relative z-20", useDesktopOverlay && "pointer-events-none")}>
               <div
                 data-testid="workspace-header-context-row"

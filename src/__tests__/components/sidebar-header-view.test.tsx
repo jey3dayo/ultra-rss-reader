@@ -2,11 +2,14 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SidebarHeaderView } from "@/components/reader/sidebar-header-view";
+import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 
 describe("SidebarHeaderView", () => {
   beforeEach(() => {
     useUiStore.setState({ layoutMode: "wide" });
+    usePlatformStore.setState(usePlatformStore.getInitialState());
+    delete window.__TAURI_INTERNALS__;
   });
 
   afterEach(() => {
@@ -68,6 +71,72 @@ describe("SidebarHeaderView", () => {
     expect(screen.getByRole("button", { name: "Sync feeds" }).querySelector("span")).toHaveClass("text-sm");
     expect(screen.getByRole("button", { name: "Add feed" })).toHaveTextContent("Add");
     expect(screen.getByRole("button", { name: "Add feed" }).querySelector("span")).toHaveClass("text-sm");
+  });
+
+  it("reserves left space for mac overlay traffic lights only on mac desktop", () => {
+    window.__TAURI_INTERNALS__ = {} as typeof window.__TAURI_INTERNALS__;
+    usePlatformStore.setState({
+      platform: {
+        kind: "macos",
+        capabilities: {
+          supports_reading_list: false,
+          supports_background_browser_open: false,
+          supports_runtime_window_icon_replacement: true,
+          supports_native_browser_navigation: true,
+          uses_dev_file_credentials: false,
+        },
+      },
+      loaded: true,
+      loadError: false,
+      inFlightLoad: null,
+    });
+
+    const { container } = render(
+      <SidebarHeaderView
+        isSyncing={false}
+        onSync={vi.fn()}
+        onAddFeed={vi.fn()}
+        syncButtonLabel="Sync feeds"
+        syncButtonText="Sync"
+        addFeedButtonLabel="Add feed"
+        addFeedButtonText="Add"
+      />,
+    );
+
+    expect(container.firstElementChild).toHaveClass("pl-20");
+  });
+
+  it("keeps sidebar actions flush on windows desktop without mac-only left padding", () => {
+    window.__TAURI_INTERNALS__ = {} as typeof window.__TAURI_INTERNALS__;
+    usePlatformStore.setState({
+      platform: {
+        kind: "windows",
+        capabilities: {
+          supports_reading_list: false,
+          supports_background_browser_open: false,
+          supports_runtime_window_icon_replacement: true,
+          supports_native_browser_navigation: true,
+          uses_dev_file_credentials: false,
+        },
+      },
+      loaded: true,
+      loadError: false,
+      inFlightLoad: null,
+    });
+
+    const { container } = render(
+      <SidebarHeaderView
+        isSyncing={false}
+        onSync={vi.fn()}
+        onAddFeed={vi.fn()}
+        syncButtonLabel="Sync feeds"
+        syncButtonText="Sync"
+        addFeedButtonLabel="Add feed"
+        addFeedButtonText="Add"
+      />,
+    );
+
+    expect(container.firstElementChild).not.toHaveClass("pl-20");
   });
 
   it("shows the cooldown countdown in the sync tooltip while keeping the button hoverable", async () => {
