@@ -3,8 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import * as tauriCommands from "@/api/tauri-commands";
 import type { FeedDto } from "@/api/tauri-commands";
+import * as tauriCommands from "@/api/tauri-commands";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import type { ToastData } from "@/stores/ui-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -31,19 +31,22 @@ describe("useUpdateFeedFolder", () => {
   });
 
   function seedFeeds() {
-    queryClient.setQueryData<FeedDto[]>(["feeds", "acc-1"], [
-      {
-        id: "feed-1",
-        account_id: "acc-1",
-        folder_id: null,
-        title: "Tech Blog",
-        url: "https://example.com/feed.xml",
-        site_url: "https://example.com",
-        unread_count: 5,
-        reader_mode: "inherit",
-        web_preview_mode: "inherit",
-      },
-    ]);
+    queryClient.setQueryData<FeedDto[]>(
+      ["feeds", "acc-1"],
+      [
+        {
+          id: "feed-1",
+          account_id: "acc-1",
+          folder_id: null,
+          title: "Tech Blog",
+          url: "https://example.com/feed.xml",
+          site_url: "https://example.com",
+          unread_count: 5,
+          reader_mode: "inherit",
+          web_preview_mode: "inherit",
+        },
+      ],
+    );
   }
 
   it("invalidates feeds after a successful folder update", async () => {

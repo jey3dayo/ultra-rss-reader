@@ -1,4 +1,4 @@
-import { render, type RenderOptions } from "@testing-library/react";
+import { type RenderOptions, render } from "@testing-library/react";
 import type { ElementType, ReactElement } from "react";
 import { createElement } from "react";
 
