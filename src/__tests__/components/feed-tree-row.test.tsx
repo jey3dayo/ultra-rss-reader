@@ -45,7 +45,7 @@ describe("FeedTreeRow", () => {
     expect(selectedIndicator).toHaveClass("left-[var(--feed-tree-rail-offset)]");
     expect(handleAnchor).toHaveClass("left-[var(--feed-tree-rail-offset)]");
     expect(selectedIndicator).toHaveClass("group-hover/feed-row:opacity-0");
-    expect(selectedIndicator).toHaveClass("group-focus-within/feed-row:opacity-0");
+    expect(selectedIndicator).not.toHaveClass("group-focus-within/feed-row:opacity-0");
     expect(feedButton).not.toHaveClass("before:-left-2");
     expect(row).toHaveAttribute("data-feed-row-id", "feed-1");
   });
@@ -64,7 +64,7 @@ describe("FeedTreeRow", () => {
     expect(dragButton).toBeNull();
   });
 
-  it("shows the drag handle only on row hover or focus", () => {
+  it("shows the drag handle only on row hover or its own focus-visible state", () => {
     const { container } = render(
       <FeedTreeRow
         feed={{ ...baseFeed, isSelected: false }}
@@ -81,7 +81,8 @@ describe("FeedTreeRow", () => {
 
     expect(dragButton).toHaveClass("opacity-0");
     expect(dragButton).toHaveClass("group-hover/feed-row:opacity-100");
-    expect(dragButton).toHaveClass("group-focus-within/feed-row:opacity-100");
+    expect(dragButton).not.toHaveClass("group-focus-within/feed-row:opacity-100");
+    expect(dragButton).toHaveClass("focus-visible:opacity-100");
     expect(container.firstChild).toHaveClass("group/feed-row");
   });
 

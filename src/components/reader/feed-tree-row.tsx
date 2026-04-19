@@ -73,9 +73,7 @@ export function FeedTreeRow({
       rowProps={{ "data-feed-row-id": feed.id }}
       selected={feed.isSelected}
       selectedIndicatorProps={{ "data-feed-row-selected-indicator": feed.id }}
-      selectedIndicatorClassName={cn(
-        canDragFeeds && "group-hover/feed-row:opacity-0 group-focus-within/feed-row:opacity-0",
-      )}
+      selectedIndicatorClassName={cn(canDragFeeds && "group-hover/feed-row:opacity-0")}
       leadingControl={
         <DragHandle
           feedTitle={feed.title}
