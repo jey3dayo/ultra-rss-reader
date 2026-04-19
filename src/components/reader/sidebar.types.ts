@@ -317,7 +317,7 @@ export type SidebarContentViewProps = {
   subscriptionsLabel: string;
   isFeedsSectionOpen: boolean;
   onToggleFeedsSection: () => void;
-  renderSubscriptionsSectionContextMenu: () => ReactNode;
+  subscriptionsSectionContextMenu?: ReactNode;
   viewportRef: RefObject<HTMLDivElement | null>;
   feedTree: ReactNode;
   tagSection: ReactNode;

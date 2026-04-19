@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import type { TagDto } from "@/api/tauri-commands";
 import { DeleteTagDialogView } from "@/components/reader/delete-tag-dialog-view";
@@ -18,6 +18,65 @@ function getErrorMessage(error: unknown) {
   return "Unknown error";
 }
 
+type TagsSettingsState = {
+  name: string;
+  color: string | null;
+  editingTag: TagDto | null;
+  deletingTag: TagDto | null;
+  renameName: string;
+  renameColor: string | null;
+};
+
+type TagsSettingsAction =
+  | { type: "set-name"; value: string }
+  | { type: "set-color"; value: string | null }
+  | { type: "reset-create" }
+  | { type: "start-edit"; tag: TagDto | null }
+  | { type: "close-edit" }
+  | { type: "set-rename-name"; value: string }
+  | { type: "set-rename-color"; value: string | null }
+  | { type: "start-delete"; tag: TagDto | null }
+  | { type: "close-delete" };
+
+const initialTagsSettingsState: TagsSettingsState = {
+  name: "",
+  color: null,
+  editingTag: null,
+  deletingTag: null,
+  renameName: "",
+  renameColor: null,
+};
+
+function tagsSettingsReducer(state: TagsSettingsState, action: TagsSettingsAction): TagsSettingsState {
+  switch (action.type) {
+    case "set-name":
+      return { ...state, name: action.value };
+    case "set-color":
+      return { ...state, color: action.value };
+    case "reset-create":
+      return { ...state, name: "", color: null };
+    case "start-edit":
+      return {
+        ...state,
+        editingTag: action.tag,
+        renameName: action.tag?.name ?? "",
+        renameColor: action.tag?.color ?? null,
+      };
+    case "close-edit":
+      return { ...state, editingTag: null, renameName: "", renameColor: null };
+    case "set-rename-name":
+      return { ...state, renameName: action.value };
+    case "set-rename-color":
+      return { ...state, renameColor: action.value };
+    case "start-delete":
+      return { ...state, deletingTag: action.tag };
+    case "close-delete":
+      return { ...state, deletingTag: null };
+    default:
+      return state;
+  }
+}
+
 export function TagsSettings() {
   const { t } = useTranslation("settings");
   const { t: tr } = useTranslation("reader");
@@ -26,27 +85,13 @@ export function TagsSettings() {
   const renameTag = useRenameTag();
   const deleteTag = useDeleteTag();
   const showToast = useUiStore((state) => state.showToast);
-  const [name, setName] = useState("");
-  const [color, setColor] = useState<string | null>(null);
-  const [editingTag, setEditingTag] = useState<TagDto | null>(null);
-  const [deletingTag, setDeletingTag] = useState<TagDto | null>(null);
-  const [renameName, setRenameName] = useState("");
-  const [renameColor, setRenameColor] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!editingTag) {
-      return;
-    }
-
-    setRenameName(editingTag.name);
-    setRenameColor(editingTag.color);
-  }, [editingTag]);
+  const [state, dispatch] = useReducer(tagsSettingsReducer, initialTagsSettingsState);
+  const { name, color, editingTag, deletingTag, renameName, renameColor } = state;
 
   const handleCreate = async () => {
     try {
       await createTag.mutateAsync({ name: name.trim(), color: color ?? undefined });
-      setName("");
-      setColor(null);
+      dispatch({ type: "reset-create" });
       showToast(t("tags.create_success"));
     } catch (error) {
       showToast(t("tags.create_failed", { message: getErrorMessage(error) }));
@@ -62,7 +107,7 @@ export function TagsSettings() {
     const nameChanged = trimmed !== editingTag.name;
     const colorChanged = renameColor !== editingTag.color;
     if (!trimmed || (!nameChanged && !colorChanged)) {
-      setEditingTag(null);
+      dispatch({ type: "close-edit" });
       return;
     }
 
@@ -72,7 +117,7 @@ export function TagsSettings() {
         name: trimmed,
         color: renameColor,
       });
-      setEditingTag(null);
+      dispatch({ type: "close-edit" });
       showToast(t("tags.rename_success"));
     } catch (error) {
       showToast(t("tags.rename_failed", { message: getErrorMessage(error) }));
@@ -86,7 +131,7 @@ export function TagsSettings() {
 
     try {
       await deleteTag.mutateAsync({ tagId: deletingTag.id });
-      setDeletingTag(null);
+      dispatch({ type: "close-delete" });
       showToast(t("tags.delete_success"));
     } catch (error) {
       showToast(t("tags.delete_failed", { message: getErrorMessage(error) }));
@@ -108,8 +153,8 @@ export function TagsSettings() {
         noColorLabel={tr("no_color")}
         colorOptionAriaLabel={(option) => `${tr("color")} ${option}`}
         createLabel={t("tags.create")}
-        onNameChange={setName}
-        onColorChange={setColor}
+        onNameChange={(value) => dispatch({ type: "set-name", value })}
+        onColorChange={(value) => dispatch({ type: "set-color", value })}
         onCreate={() => void handleCreate()}
         createDisabled={createTag.isPending || name.trim().length === 0}
         savedHeading={t("tags.saved")}
@@ -119,17 +164,17 @@ export function TagsSettings() {
         editAriaLabel={(tagName) => t("tags.edit_aria_label", { name: tagName })}
         deleteLabel={t("tags.delete")}
         deleteAriaLabel={(tagName) => t("tags.delete_aria_label", { name: tagName })}
-        onEdit={(tagId) => setEditingTag(tags.find((tag) => tag.id === tagId) ?? null)}
-        onDelete={(tagId) => setDeletingTag(tags.find((tag) => tag.id === tagId) ?? null)}
+        onEdit={(tagId) => dispatch({ type: "start-edit", tag: tags.find((tag) => tag.id === tagId) ?? null })}
+        onDelete={(tagId) => dispatch({ type: "start-delete", tag: tags.find((tag) => tag.id === tagId) ?? null })}
       />
       <RenameTagDialogView
         open={editingTag !== null}
         name={renameName}
         color={renameColor}
         loading={renameTag.isPending}
-        onOpenChange={(open) => !open && setEditingTag(null)}
-        onNameChange={setRenameName}
-        onColorChange={setRenameColor}
+        onOpenChange={(open) => !open && dispatch({ type: "close-edit" })}
+        onNameChange={(value) => dispatch({ type: "set-rename-name", value })}
+        onColorChange={(value) => dispatch({ type: "set-rename-color", value })}
         colorOptions={[...TAG_COLOR_PRESETS]}
         noColorLabel={tr("no_color")}
         onSubmit={() => void handleRename()}
@@ -137,7 +182,7 @@ export function TagsSettings() {
       <DeleteTagDialogView
         open={deletingTag !== null}
         tagName={deletingTag?.name ?? ""}
-        onOpenChange={(open) => !open && setDeletingTag(null)}
+        onOpenChange={(open) => !open && dispatch({ type: "close-delete" })}
         onConfirm={() => void handleDelete()}
       />
     </>

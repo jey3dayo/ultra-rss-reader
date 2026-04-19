@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import { Component, lazy, type ReactNode, Suspense, useEffect, useState } from "react";
+import { Component, lazy, type ReactNode, Suspense, useEffect, useReducer } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { APP_EVENTS } from "../constants/events";
@@ -163,8 +163,48 @@ function describeActiveElement(element: Element | null): string {
   return parts.join(" | ");
 }
 
-function FocusDebugHud() {
+type FocusDebugHudState = {
+  activeElementDescription: string;
+  traces: string[];
+  browserGeometry: BrowserDebugGeometrySnapshot | null;
+};
+
+type FocusDebugHudAction =
+  | { type: "set-active-element"; value: string }
+  | { type: "append-trace"; value: string }
+  | { type: "append-browser-trace"; value: string }
+  | { type: "set-browser-geometry"; value: BrowserDebugGeometrySnapshot | null };
+
+const initialFocusDebugHudState: FocusDebugHudState = {
+  activeElementDescription: "none",
+  traces: [],
+  browserGeometry: null,
+};
+
+function focusDebugHudReducer(state: FocusDebugHudState, action: FocusDebugHudAction): FocusDebugHudState {
   const MAX_TRACE_LINES = 20;
+
+  switch (action.type) {
+    case "set-active-element":
+      return { ...state, activeElementDescription: action.value };
+    case "append-trace":
+      return {
+        ...state,
+        traces: [...state.traces.slice(-(MAX_TRACE_LINES - 1)), action.value],
+      };
+    case "append-browser-trace":
+      return {
+        ...state,
+        traces: [...state.traces.slice(-5), action.value],
+      };
+    case "set-browser-geometry":
+      return { ...state, browserGeometry: action.value };
+    default:
+      return state;
+  }
+}
+
+function FocusDebugHud() {
   const { t } = useTranslation("reader");
   const focusedPane = useUiStore((state) => state.focusedPane);
   const contentMode = useUiStore((state) => state.contentMode);
@@ -172,23 +212,22 @@ function FocusDebugHud() {
   const browserCloseInFlight = useUiStore((state) => state.browserCloseInFlight);
   const pendingBrowserCloseAction = useUiStore((state) => state.pendingBrowserCloseAction);
   const showToast = useUiStore((state) => state.showToast);
-  const [activeElementDescription, setActiveElementDescription] = useState("none");
-  const [traces, setTraces] = useState<string[]>([]);
-  const [browserGeometry, setBrowserGeometry] = useState<BrowserDebugGeometrySnapshot | null>(null);
+  const [state, dispatch] = useReducer(focusDebugHudReducer, initialFocusDebugHudState);
+  const { activeElementDescription, traces, browserGeometry } = state;
 
   useEffect(() => {
     const update = () => {
-      setActiveElementDescription(describeActiveElement(document.activeElement));
+      dispatch({ type: "set-active-element", value: describeActiveElement(document.activeElement) });
     };
 
     update();
     const keyTraceListener = (event: KeyboardEvent) => {
-      setTraces((current) => [
-        ...current.slice(-(MAX_TRACE_LINES - 1)),
-        `${new Date().toISOString().slice(11, 23)} raw-key ${event.key} target=${describeActiveElement(
+      dispatch({
+        type: "append-trace",
+        value: `${new Date().toISOString().slice(11, 23)} raw-key ${event.key} target=${describeActiveElement(
           event.target instanceof Element ? event.target : null,
         )}`,
-      ]);
+      });
     };
     window.addEventListener("focusin", update, true);
     window.addEventListener("focusout", update, true);
@@ -196,26 +235,29 @@ function FocusDebugHud() {
     window.addEventListener("keydown", keyTraceListener, true);
     const traceListener = (event: Event) => {
       const detail = (event as CustomEvent<string>).detail;
-      setTraces((current) => [...current.slice(-(MAX_TRACE_LINES - 1)), detail]);
+      dispatch({ type: "append-trace", value: detail });
     };
     const geometryListener = (event: Event) => {
-      setBrowserGeometry((event as CustomEvent<BrowserDebugGeometrySnapshot | null>).detail);
+      dispatch({
+        type: "set-browser-geometry",
+        value: (event as CustomEvent<BrowserDebugGeometrySnapshot | null>).detail,
+      });
     };
     const pointerTraceListener = (event: PointerEvent) => {
-      setTraces((current) => [
-        ...current.slice(-(MAX_TRACE_LINES - 1)),
-        `${new Date().toISOString().slice(11, 23)} raw-pointer ${event.type} x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeActiveElement(
+      dispatch({
+        type: "append-trace",
+        value: `${new Date().toISOString().slice(11, 23)} raw-pointer ${event.type} x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeActiveElement(
           event.target instanceof Element ? event.target : null,
         )}`,
-      ]);
+      });
     };
     const clickTraceListener = (event: MouseEvent) => {
-      setTraces((current) => [
-        ...current.slice(-(MAX_TRACE_LINES - 1)),
-        `${new Date().toISOString().slice(11, 23)} raw-click x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeActiveElement(
+      dispatch({
+        type: "append-trace",
+        value: `${new Date().toISOString().slice(11, 23)} raw-click x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeActiveElement(
           event.target instanceof Element ? event.target : null,
         )}`,
-      ]);
+      });
     };
     window.addEventListener(APP_EVENTS.debugInputTrace, traceListener);
     window.addEventListener(APP_EVENTS.browserDebugGeometry, geometryListener);
@@ -238,7 +280,7 @@ function FocusDebugHud() {
     return attachTauriListeners(
       [
         listen<string>("browser-webview-debug-input", (event) => {
-          setTraces((current) => [...current.slice(-5), event.payload]);
+          dispatch({ type: "append-browser-trace", value: event.payload });
         }),
       ],
       () => {

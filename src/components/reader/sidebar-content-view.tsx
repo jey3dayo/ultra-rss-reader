@@ -7,7 +7,7 @@ export function SidebarContentView({
   subscriptionsLabel,
   isFeedsSectionOpen,
   onToggleFeedsSection,
-  renderSubscriptionsSectionContextMenu,
+  subscriptionsSectionContextMenu,
   viewportRef,
   feedTree,
   tagSection,
@@ -23,7 +23,7 @@ export function SidebarContentView({
         title={subscriptionsLabel}
         isOpen={isFeedsSectionOpen}
         onToggle={onToggleFeedsSection}
-        contextMenu={renderSubscriptionsSectionContextMenu()}
+        contextMenu={subscriptionsSectionContextMenu}
       />
 
       <ScrollArea

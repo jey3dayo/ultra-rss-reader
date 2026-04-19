@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { AddFeedDialog } from "./add-feed-dialog";
 import { FeedTreeView } from "./feed-tree-view";
@@ -67,13 +68,17 @@ export function SidebarContentSections({
   const addFeedDialog = selectedAccountId ? (
     <AddFeedDialog open={isAddFeedDialogOpen} onOpenChange={onAddFeedDialogOpenChange} accountId={selectedAccountId} />
   ) : null;
+  const subscriptionsSectionContextMenu = useMemo(
+    () => renderSubscriptionsSectionContextMenu(),
+    [renderSubscriptionsSectionContextMenu],
+  );
 
   return (
     <SidebarContentView
       subscriptionsLabel={subscriptionsLabel}
       isFeedsSectionOpen={isFeedsSectionOpen}
       onToggleFeedsSection={onToggleFeedsSection}
-      renderSubscriptionsSectionContextMenu={renderSubscriptionsSectionContextMenu}
+      subscriptionsSectionContextMenu={subscriptionsSectionContextMenu}
       viewportRef={viewportRef}
       feedTree={
         showFeedTreeSkeleton ? (
