@@ -26,7 +26,7 @@ export function useSidebarUiState(): SidebarUiStateResult {
   const isAddFeedDialogOpen = useUiStore((s) => s.isAddFeedDialogOpen);
   const openAddFeedDialog = useUiStore((s) => s.openAddFeedDialog);
   const closeAddFeedDialog = useUiStore((s) => s.closeAddFeedDialog);
-  const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
+  const openSettingsAddAccount = useUiStore((s) => s.openSettingsAddAccount);
   const showToast = useUiStore((s) => s.showToast);
   const syncProgress = useUiStore((s) => s.syncProgress);
   const applySyncProgress = useUiStore((s) => s.applySyncProgress);
@@ -76,7 +76,7 @@ export function useSidebarUiState(): SidebarUiStateResult {
     isAddFeedDialogOpen,
     openAddFeedDialog,
     closeAddFeedDialog,
-    setSettingsAddAccount,
+    openSettingsAddAccount,
     showToast,
     syncProgress,
     applySyncProgress,

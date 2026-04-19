@@ -115,8 +115,9 @@ export function SettingsModal() {
   const closeSettings = useUiStore((s) => s.closeSettings);
   const openSettings = useUiStore((s) => s.openSettings);
   const setSettingsCategory = useUiStore((s) => s.setSettingsCategory);
-  const setSettingsAccountId = useUiStore((s) => s.setSettingsAccountId);
-  const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
+  const openSettingsAccount = useUiStore((s) => s.openSettingsAccount);
+  const openSettingsAddAccount = useUiStore((s) => s.openSettingsAddAccount);
+  const setSettingsAccountsView = useUiStore((s) => s.setSettingsAccountsView);
   const settingsLoading = useUiStore((s) => s.settingsLoading);
   const [deletedAccountIds, setDeletedAccountIds] = useState<string[]>([]);
   const { data: accounts } = useAccounts();
@@ -168,13 +169,9 @@ export function SettingsModal() {
 
     if (settingsAccountId && !hasSelectedVisibleAccount) {
       if (resolvedSettingsAccountId) {
-        if (settingsAddAccount) {
-          setSettingsAddAccount(false);
-        }
-        setSettingsAccountId(resolvedSettingsAccountId);
+        setSettingsAccountsView(resolvedSettingsAccountId, false);
       } else {
-        setSettingsAccountId(null);
-        setSettingsAddAccount(true);
+        setSettingsAccountsView(null, true);
       }
       return;
     }
@@ -185,16 +182,13 @@ export function SettingsModal() {
 
     if (resolvedSettingsAccountId) {
       if (settingsAccountId !== resolvedSettingsAccountId) {
-        setSettingsAccountId(resolvedSettingsAccountId);
+        setSettingsAccountsView(resolvedSettingsAccountId, false);
       }
       return;
     }
 
-    if (settingsAccountId) {
-      setSettingsAccountId(null);
-    }
-    if (!settingsAddAccount) {
-      setSettingsAddAccount(true);
+    if (settingsAccountId || !settingsAddAccount) {
+      setSettingsAccountsView(null, true);
     }
   }, [
     settingsCategory,
@@ -203,13 +197,12 @@ export function SettingsModal() {
     visibleAccounts,
     hasSelectedVisibleAccount,
     resolvedSettingsAccountId,
-    setSettingsAccountId,
-    setSettingsAddAccount,
+    setSettingsAccountsView,
   ]);
 
   const handleAccountDeleted = (accountId: string) => {
     setDeletedAccountIds((current) => (current.includes(accountId) ? current : [...current, accountId]));
-    setSettingsAccountId(null);
+    setSettingsAccountsView(null, false);
   };
 
   const viewProps = useSettingsModalViewProps({
@@ -233,8 +226,8 @@ export function SettingsModal() {
     closeSettings,
     openSettings,
     setSettingsCategory,
-    setSettingsAccountId,
-    setSettingsAddAccount,
+    openSettingsAccount,
+    openSettingsAddAccount,
   });
 
   return <SettingsModalView {...viewProps} />;

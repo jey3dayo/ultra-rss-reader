@@ -40,7 +40,7 @@ export type SidebarUiStateResult = Pick<
   | "isAddFeedDialogOpen"
   | "openAddFeedDialog"
   | "closeAddFeedDialog"
-  | "setSettingsAddAccount"
+  | "openSettingsAddAccount"
   | "showToast"
   | "syncProgress"
   | "applySyncProgress"

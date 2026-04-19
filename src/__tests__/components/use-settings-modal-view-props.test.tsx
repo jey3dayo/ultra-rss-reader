@@ -37,8 +37,8 @@ describe("useSettingsModalViewProps", () => {
       closeSettings: vi.fn(),
       openSettings: vi.fn(),
       setSettingsCategory: vi.fn(),
-      setSettingsAccountId: vi.fn(),
-      setSettingsAddAccount: vi.fn(),
+      openSettingsAccount: vi.fn(),
+      openSettingsAddAccount: vi.fn(),
     });
 
     render(viewProps.navigation);
@@ -70,8 +70,8 @@ describe("useSettingsModalViewProps", () => {
       closeSettings: vi.fn(),
       openSettings: vi.fn(),
       setSettingsCategory: vi.fn(),
-      setSettingsAccountId: vi.fn(),
-      setSettingsAddAccount: vi.fn(),
+      openSettingsAccount: vi.fn(),
+      openSettingsAddAccount: vi.fn(),
     });
 
     render(viewProps.navigation);

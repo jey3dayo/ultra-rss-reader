@@ -21,8 +21,8 @@ type UseSettingsModalViewPropsParams = {
   closeSettings: () => void;
   openSettings: () => void;
   setSettingsCategory: (category: SettingsCategory) => void;
-  setSettingsAccountId: (accountId: string | null) => void;
-  setSettingsAddAccount: (open: boolean) => void;
+  openSettingsAccount: (accountId: string) => void;
+  openSettingsAddAccount: () => void;
 };
 
 const settingsCategoryByNavId: Record<string, SettingsCategory> = {
@@ -50,8 +50,8 @@ export function useSettingsModalViewProps({
   closeSettings,
   openSettings,
   setSettingsCategory,
-  setSettingsAccountId,
-  setSettingsAddAccount,
+  openSettingsAccount,
+  openSettingsAddAccount,
 }: UseSettingsModalViewPropsParams): SettingsModalViewProps {
   const navItems: SettingsNavItem[] = [
     {
@@ -130,13 +130,11 @@ export function useSettingsModalViewProps({
   };
 
   const handleSelectAccount = (accountId: string) => {
-    setSettingsCategory("accounts");
-    setSettingsAccountId(accountId);
+    openSettingsAccount(accountId);
   };
 
   const handleAddAccount = () => {
-    setSettingsCategory("accounts");
-    setSettingsAddAccount(true);
+    openSettingsAddAccount();
   };
 
   return {

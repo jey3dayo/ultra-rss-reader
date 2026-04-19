@@ -22,13 +22,11 @@ export { ArticlePane, ArticleToolbar } from "./article-pane-view";
 function EmptyState({ emptyReason }: { emptyReason: "default" | "no-accounts" | "no-feeds" }) {
   const { t } = useTranslation("reader");
   const { t: settingsT } = useTranslation("settings");
-  const openSettings = useUiStore((state) => state.openSettings);
-  const setSettingsAddAccount = useUiStore((state) => state.setSettingsAddAccount);
+  const openSettingsAddAccount = useUiStore((state) => state.openSettingsAddAccount);
   const openAddFeedDialog = useUiStore((state) => state.openAddFeedDialog);
 
   const openAddAccountSettings = () => {
-    openSettings("accounts");
-    setSettingsAddAccount(true);
+    openSettingsAddAccount();
   };
 
   const content =

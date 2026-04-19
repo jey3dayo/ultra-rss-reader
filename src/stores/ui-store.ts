@@ -85,6 +85,14 @@ function getSidebarHiddenFallbackPane(state: Pick<UiState, "contentMode">): Focu
   return state.contentMode === "empty" ? "list" : "content";
 }
 
+function getSettingsAccountsViewState(accountId: string | null, addAccount: boolean) {
+  if (addAccount) {
+    return { settingsAccountId: null, settingsAddAccount: true };
+  }
+
+  return { settingsAccountId: accountId, settingsAddAccount: false };
+}
+
 interface UiState {
   layoutMode: LayoutMode;
   focusedPane: FocusedPane;
@@ -152,8 +160,11 @@ interface UiActions {
   openAddFeedDialog: () => void;
   closeAddFeedDialog: () => void;
   setSettingsCategory: (cat: SettingsCategory) => void;
+  openSettingsAccount: (id: string) => void;
+  openSettingsAddAccount: () => void;
   setSettingsAccountId: (id: string | null) => void;
   setSettingsAddAccount: (show: boolean) => void;
+  setSettingsAccountsView: (accountId: string | null, addAccount: boolean) => void;
   setSettingsLoading: (loading: boolean) => void;
   setAppLoading: (loading: boolean) => void;
   openSubscriptionsIndex: (state?: SubscriptionsWorkspaceReturnState) => void;
@@ -367,8 +378,21 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   closeSettings: () =>
     set({ settingsOpen: false, settingsCategory: "general", settingsAccountId: null, settingsAddAccount: false }),
   setSettingsCategory: (cat) => set({ settingsCategory: cat, settingsAccountId: null, settingsAddAccount: false }),
-  setSettingsAccountId: (id) => set({ settingsAccountId: id, settingsAddAccount: false }),
-  setSettingsAddAccount: (show) => set({ settingsAddAccount: show, settingsAccountId: null }),
+  openSettingsAccount: (id) =>
+    set({
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      ...getSettingsAccountsViewState(id, false),
+    }),
+  openSettingsAddAccount: () =>
+    set({
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      ...getSettingsAccountsViewState(null, true),
+    }),
+  setSettingsAccountId: (id) => set(getSettingsAccountsViewState(id, false)),
+  setSettingsAddAccount: (show) => set(getSettingsAccountsViewState(null, show)),
+  setSettingsAccountsView: (accountId, addAccount) => set(getSettingsAccountsViewState(accountId, addAccount)),
   setSettingsLoading: (loading) => set({ settingsLoading: loading }),
   setAppLoading: (loading) => set({ appLoading: loading }),
   openSubscriptionsIndex: (returnState) =>

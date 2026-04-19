@@ -238,8 +238,7 @@ export function executeAction(action: AppAction): void {
       store.openSettings("accounts");
       break;
     case "open-settings-accounts-add":
-      store.openSettings("accounts");
-      store.setSettingsAddAccount(true);
+      store.openSettingsAddAccount();
       break;
     case "open-add-feed":
       store.openAddFeedDialog();
