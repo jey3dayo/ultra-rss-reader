@@ -135,7 +135,7 @@ export function SubscriptionsListPane({
                           aria-pressed={selectedFeedId === row.feed.id}
                           onClick={() => onSelectFeed(row.feed.id)}
                           className={cn(
-                            "items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none transition-[background-color,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                            "motion-static-hover-surface items-center rounded-md border border-transparent px-3.5 py-3.5 shadow-none",
                             selectedFeedId === row.feed.id
                               ? "border-[color:var(--subscriptions-list-row-selected-border)] bg-[color:var(--subscriptions-list-row-selected-surface)] shadow-[var(--subscriptions-list-row-selected-shadow)]"
                               : "bg-background/15 hover:border-[color:var(--subscriptions-list-divider)] hover:bg-[color:var(--subscriptions-list-row-hover)]",
@@ -143,7 +143,7 @@ export function SubscriptionsListPane({
                           leading={
                             <span
                               className={cn(
-                                "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-[background-color,border-color,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03] motion-reduce:transition-none",
+                                "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
                                 selectedFeedId === row.feed.id
                                   ? "bg-surface-1 text-foreground"
                                   : "bg-surface-2/88 text-foreground",

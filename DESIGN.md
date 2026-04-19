@@ -127,6 +127,7 @@ Elevation scale:
 - Inputs and Forms: Inputs should stay neutral and legible, with warm borders and a restrained focus treatment. Prefer border emphasis or accent-orange focus hints over cold blue rings. Shared input-like primitives should use `rounded-md`; switches remain `rounded-full`. Loading bars are the exception: they may use the dedicated loading blue when the warm ring is not legible enough.
 - Settings Forms: Treat settings pages as desktop-app settings panels, not generic web forms. The canonical row is a stable left label column plus a stable right control column. Controls should resolve against one right-column endpoint so input, select, button, checkbox, switch, and segmented choice groups feel aligned as a system. Long controls may cap their width instead of stretching edge-to-edge, but compact controls must still live on the same control rail rather than floating at arbitrary intermediate positions. The desired rhythm is: section gap first, then heading-to-first-row gap, then a consistent row cadence, with a fixed label-to-control column gap.
 - Settings and Review Hierarchy: In settings and feed-cleanup style workspaces, the outer shell should read as framing, account/status subsections should sit one tonal step quieter than the active editing surface, and only the primary next action should get the strongest emphasis. Avoid letting navigation rows, passive summary cards, or repeated outline buttons compete with the main review action.
+- Dense Workspace Hover: In subscriptions, cleanup, settings, and other high-density workspace panels, hover feedback should stay geometrically stable. Prefer tone, border, text, and shadow changes over hover lift so repeated rows do not shimmer, feel nauseating, or clip against nearby edges.
 - Lists and Navigation: Lists should separate items through tone and dividers rather than heavy blocks of accent color. Navigation and tab treatments should feel clean, compact, and editorial rather than dashboard-like. Smart views, context strips, filter chips, and article state icons may use the fixed unread/starred semantic colors, but the color should usually appear as icon tint or a light surface wash rather than a solid block.
 - Media and Preview Surfaces: Code or browser previews may use darker surfaces, but they should still feel framed by warm borders and integrated into the cream-based system rather than floating as disconnected black panels.
 - Dialog and Popup Shells: Dialogs, command palettes, and other popup shells should use named scrim roles from the token layer instead of ad hoc alpha literals. Use the standard dialog scrim for modal separation and the readable scrim only when the content behind the popup needs to stay legible as a softened surface instead of falling into darkness.
@@ -165,6 +166,7 @@ Elevation scale:
 - Border and divider responsibility should live in one place. Avoid combining a section border, an inner scroll lane, and last-mile padding adjustments in a way that creates double lines or drifting endpoints.
 - Numeric badges, counters, and rapidly changing labels should avoid jitter. Reserve enough width, use tabular figures when repeated values update in place, and keep local state changes from changing surrounding alignment.
 - Motion and feedback should reinforce continuity. Prefer opacity, tone, border, and transform changes over height or position changes that cause reflow, especially in dense workspace panels and two-pane review layouts.
+- In dense workspace panels, avoid compound hover motion. Do not stack row lift, card lift, and icon scale on the same interaction unless a component is intentionally special and documented as such.
 
 ### Border Radius Scale
 
@@ -202,6 +204,7 @@ Surface governance:
 - Buttons shift text toward the tertiary accent (`#cf2d56`) on hover
 - Links may shift toward primary or add understated underline emphasis
 - Cards intensify shadow or border contrast subtly rather than jumping in scale
+- Dense workspace rows and summary cards should default to non-lifting hover treatments. If hover needs stronger emphasis, increase border or surface contrast before adding translate or scale.
 
 ### Focus States
 

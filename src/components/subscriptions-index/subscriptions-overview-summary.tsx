@@ -124,7 +124,7 @@ export function SubscriptionsOverviewSummary({
           const isActionable = Number.isFinite(numericValue);
           const isPrimary = card.tone === "review";
           const className = cn(
-            "relative flex min-h-[96px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-lg border px-3.5 py-3 text-left transition-[border-color,background-color,color,box-shadow] duration-150 sm:min-h-[108px] sm:px-4.5 sm:py-4",
+            "motion-static-hover-surface relative flex min-h-[96px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-lg border px-3.5 py-3 text-left sm:min-h-[108px] sm:px-4.5 sm:py-4",
             resolveCardClassName(card.tone),
             isPrimary && "shadow-[var(--subscriptions-summary-card-shadow)]",
             isPrimary && "sm:col-span-2 lg:col-span-1",

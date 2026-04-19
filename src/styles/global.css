@@ -681,6 +681,18 @@ body {
   transition-timing-function: var(--motion-ease-standard);
 }
 
+.motion-static-hover-surface {
+  transition-property: background-color, border-color, color, box-shadow, opacity;
+  transition-duration: var(--motion-duration-contextual);
+  transition-timing-function: var(--motion-ease-standard);
+}
+
+.motion-static-hover-surface:hover,
+.motion-static-hover-surface:active,
+.motion-static-hover-surface:focus-visible {
+  transform: none;
+}
+
 @keyframes motion-content-swap-enter {
   from {
     opacity: 0;
@@ -762,6 +774,7 @@ body {
   .motion-pressable-surface,
   .motion-button-surface,
   .motion-contextual-surface,
+  .motion-static-hover-surface,
   .motion-content-swap,
   .motion-popup-overlay,
   .motion-popup-dialog,

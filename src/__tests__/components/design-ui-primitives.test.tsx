@@ -61,6 +61,7 @@ describe("Design-themed UI primitives", () => {
     expect(globalCss).toContain("--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);");
     expect(globalCss).toContain(".motion-disclosure-panel");
     expect(globalCss).toContain(".motion-contextual-surface");
+    expect(globalCss).toContain(".motion-static-hover-surface");
     expect(globalCss).toContain(".motion-content-swap");
     expect(globalCss).toContain(".motion-popup-surface");
     expect(globalCss).toContain(".motion-disclosure-trigger:hover");
