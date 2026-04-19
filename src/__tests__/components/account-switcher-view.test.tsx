@@ -78,7 +78,7 @@ describe("AccountSwitcherView", () => {
     const secondItem = screen.getByRole("menuitemradio", { name: /FreshRSS/ });
 
     expect(screen.getByRole("button", { name: /Local/ })).toBeInTheDocument();
-    expect(screen.getByText("Not synced yet")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("Not synced yet")).toHaveClass("text-sidebar-foreground/58");
     firstItem.focus();
     fireEvent.keyDown(menu, { key: "ArrowDown" });
     expect(secondItem).toHaveFocus();

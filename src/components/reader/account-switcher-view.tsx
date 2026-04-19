@@ -1,6 +1,5 @@
 import { ChevronDown } from "lucide-react";
 import { useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { AccountSwitcherProps } from "./account-switcher.types";
 import { AccountSwitcherMenu, focusAccountItem } from "./account-switcher-menu";
@@ -20,7 +19,6 @@ export function AccountSwitcherView({
   onSelectAccount,
   onClose,
 }: AccountSwitcherProps) {
-  const { t } = useTranslation("sidebar");
   const selectedAccount = accounts.find((account) => account.id === selectedAccountId);
   const hasMultipleAccounts = accounts.length > 1;
 
@@ -34,7 +32,7 @@ export function AccountSwitcherView({
   }, [accounts, isExpanded, itemRefs, selectedAccountId]);
 
   return (
-    <div className="relative px-4 pb-1">
+    <div className="relative px-5 pt-4 pb-4">
       <button
         ref={triggerRef}
         type="button"
@@ -50,19 +48,23 @@ export function AccountSwitcherView({
             onClose(true);
           }
         }}
-        className={cn("select-none text-left", hasMultipleAccounts ? "cursor-pointer" : "cursor-default")}
+        className={cn(
+          "group flex w-full flex-col items-start gap-0.5 rounded-xl text-left select-none transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+          hasMultipleAccounts
+            ? "cursor-pointer text-sidebar-foreground/92 hover:text-sidebar-foreground"
+            : "cursor-default text-sidebar-foreground",
+        )}
         aria-haspopup={hasMultipleAccounts ? "menu" : undefined}
         aria-expanded={hasMultipleAccounts ? isExpanded : undefined}
         aria-controls={hasMultipleAccounts ? menuId : undefined}
       >
-        <span className="mb-1 inline-flex rounded-full border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-surface)] px-2.5 py-1 text-[0.64rem] font-medium tracking-[0.14em] text-foreground-soft uppercase">
-          {t("workspace_label")}
-        </span>
-        <h1 className="flex items-center gap-1 text-[2rem] font-semibold tracking-[-0.04em] text-sidebar-foreground">
+        <h1 className="flex max-w-full items-end gap-1.5 text-[1.68rem] leading-[0.95] font-normal tracking-[-0.055em] text-current">
           {selectedAccount?.name ?? title}
-          {hasMultipleAccounts && <ChevronDown className="h-4 w-4 text-foreground-soft" />}
+          {hasMultipleAccounts && (
+            <ChevronDown className="mb-0.5 h-3.5 w-3.5 shrink-0 text-foreground-soft transition-colors duration-200 group-hover:text-sidebar-foreground" />
+          )}
         </h1>
-        <p className="mt-1 text-xs text-foreground-soft">{lastSyncedLabel}</p>
+        <p className="text-[0.78rem] font-medium tracking-[0.01em] text-sidebar-foreground/58">{lastSyncedLabel}</p>
       </button>
 
       {isExpanded && accounts.length > 0 ? (
