@@ -75,17 +75,6 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
   }
 
   const { controller, presentation, closeWebPreviewLabel, toolbarActions } = props;
-  const overlayActionRenderer = {
-    compact: presentation.actionButtonSurface.compact,
-    renderAction: (content: ReactNode, options?: { key?: string }) =>
-      renderBrowserOverlayActionSurface(
-        content,
-        presentation.actionButtonSurface.compact,
-        presentation.actionButtonSurface.tone,
-        options,
-      ),
-  } as const;
-
   return (
     <TooltipProvider>
       <div
@@ -152,7 +141,14 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
           >
             <ExternalLink aria-hidden="true" className="size-4" />
           </BrowserOverlayIconAction>
-          {toolbarActions ? toolbarActions(overlayActionRenderer) : null}
+          {toolbarActions?.map((action) =>
+            renderBrowserOverlayActionSurface(
+              action.content,
+              presentation.actionButtonSurface.compact,
+              presentation.actionButtonSurface.tone,
+              { key: action.key },
+            ),
+          )}
         </div>
       </div>
     </TooltipProvider>

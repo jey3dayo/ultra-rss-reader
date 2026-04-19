@@ -2,8 +2,7 @@ import type { MouseEventHandler, ReactNode } from "react";
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type { ResolvedArticleDisplay } from "@/lib/article-display";
 import type { ContentMode } from "@/stores/ui-store";
-import type { ArticleToolbarActionStripProps } from "./article-toolbar.types";
-import type { BrowserOverlayActionsRenderer } from "./browser-view.types";
+import type { BrowserOverlayToolbarAction } from "./browser-view.types";
 
 export type ArticlePaneProps = {
   article: ArticleDto;
@@ -44,13 +43,13 @@ export type BrowserOverlaySurfaceProps = {
   children?: ReactNode;
   onCloseOverlay: () => void;
   showBrowserView?: boolean;
-  toolbarActions?: BrowserOverlayActionsRenderer;
+  toolbarActions?: BrowserOverlayToolbarAction[];
 };
 
 export type ArticlePaneControllerResult = {
   toolbarProps: ArticleToolbarProps;
   browserOverlayProps: Omit<BrowserOverlaySurfaceProps, "children" | "toolbarActions">;
-  browserOverlayActionStripProps: ArticleToolbarActionStripProps;
+  browserOverlayToolbarActions?: BrowserOverlayToolbarAction[];
   showWebPreviewUnavailableWarning: boolean;
   webPreviewUnavailableLabel: string;
   showReaderBody: boolean;

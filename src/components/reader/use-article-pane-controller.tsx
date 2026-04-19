@@ -74,13 +74,9 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
       onCloseOverlay: handleCloseBrowserOverlay,
       showBrowserView: isBrowserOpen,
     },
-    browserOverlayActionStripProps: {
-      ...actionStripProps,
-      labels: {
-        ...actionStripProps.labels,
-        previewToggleOn: t("web_preview_mode"),
-      },
-    },
+    browserOverlayToolbarActions: actionStripProps.shareMenuControl
+      ? [{ key: "share-menu", content: actionStripProps.shareMenuControl }]
+      : undefined,
     showWebPreviewUnavailableWarning: resolvedDisplay.fallbackReason === "missing_web_preview",
     webPreviewUnavailableLabel: t("web_preview_unavailable"),
     showReaderBody: resolvedDisplay.readerMode,

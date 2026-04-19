@@ -29,12 +29,10 @@ export type BrowserViewSurfacePresentation = {
   stageSurface: BrowserOverlayStageSurfacePresentation;
 };
 
-export type BrowserOverlayActionRenderer = {
-  compact: boolean;
-  renderAction: (content: ReactNode, options?: { key?: string }) => ReactNode;
+export type BrowserOverlayToolbarAction = {
+  key: string;
+  content: ReactNode;
 };
-
-export type BrowserOverlayActionsRenderer = (renderer: BrowserOverlayActionRenderer) => ReactNode;
 
 export type BrowserViewPresentation = BrowserViewSurfacePresentation & {
   geometry: BrowserViewGeometry;
@@ -58,7 +56,7 @@ export type BrowserViewProps = {
   labels: {
     closeWebPreview: string;
   };
-  toolbarActions?: BrowserOverlayActionsRenderer;
+  toolbarActions?: BrowserOverlayToolbarAction[];
 };
 
 export type UseBrowserViewControllerParams = {
@@ -103,7 +101,7 @@ export type BrowserOverlayChromeProps =
       controller: BrowserOverlayChromeController;
       presentation: Pick<BrowserViewSurfacePresentation, "leadingActionSurface" | "actionButtonSurface">;
       closeWebPreviewLabel: string;
-      toolbarActions?: BrowserOverlayActionsRenderer;
+      toolbarActions?: BrowserOverlayToolbarAction[];
     }
   | {
       closeLabel: string;

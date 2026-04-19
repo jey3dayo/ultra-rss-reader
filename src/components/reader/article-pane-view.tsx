@@ -27,7 +27,7 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
   const {
     toolbarProps,
     browserOverlayProps,
-    browserOverlayActionStripProps,
+    browserOverlayToolbarActions,
     showWebPreviewUnavailableWarning,
     webPreviewUnavailableLabel,
     showReaderBody,
@@ -38,14 +38,7 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
   return (
     <div data-testid="article-pane" className="typography-lane-reader flex h-full flex-1 flex-col bg-background">
       <ArticleToolbar {...toolbarProps} />
-      <BrowserOverlaySurface
-        {...browserOverlayProps}
-        toolbarActions={(overlayActionRenderer) =>
-          browserOverlayActionStripProps.shareMenuControl
-            ? overlayActionRenderer.renderAction(browserOverlayActionStripProps.shareMenuControl, { key: "share-menu" })
-            : null
-        }
-      >
+      <BrowserOverlaySurface {...browserOverlayProps} toolbarActions={browserOverlayToolbarActions}>
         {showWebPreviewUnavailableWarning ? (
           <div className="border-b border-border bg-state-warning-surface px-4 py-2 text-sm text-state-warning-foreground">
             {webPreviewUnavailableLabel}

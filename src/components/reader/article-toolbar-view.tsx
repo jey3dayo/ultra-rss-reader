@@ -2,21 +2,12 @@ import { Menu } from "@base-ui/react/menu";
 import { Copy, Ellipsis, ExternalLink, Eye, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
-import {
-  IconToolbarButton,
-  IconToolbarMenuTrigger,
-  IconToolbarToggle,
-  iconToolbarSurfaceControlVariants,
-} from "@/components/shared/icon-toolbar-control";
+import { IconToolbarButton, IconToolbarMenuTrigger, IconToolbarToggle } from "@/components/shared/icon-toolbar-control";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
-import type {
-  ArticleToolbarActionStripProps,
-  ArticleToolbarOverlayActionsProps,
-  ArticleToolbarViewProps,
-} from "./article-toolbar.types";
+import type { ArticleToolbarActionStripProps, ArticleToolbarViewProps } from "./article-toolbar.types";
 import { contextMenuStyles } from "./context-menu-styles";
 
 function ArticleToolbarMoreMenu({
@@ -227,123 +218,6 @@ export function ArticleToolbarActionStrip({
       ) : null}
       {shareMenuControl}
     </div>
-  );
-}
-
-function ArticleToolbarOverlayActionButton({
-  overlayActionRenderer,
-  label,
-  disabled = false,
-  pressed,
-  pressedTone,
-  onClick,
-  focusTargetKey,
-  children,
-}: {
-  overlayActionRenderer: ArticleToolbarOverlayActionsProps["overlayActionRenderer"];
-  label: string;
-  disabled?: boolean;
-  pressed?: boolean;
-  pressedTone?: "none" | "neutral" | "accent";
-  onClick: () => void;
-  focusTargetKey?: string;
-  children: ReactNode;
-}) {
-  const buttonClassName = cn(iconToolbarSurfaceControlVariants({ pressedTone }), "size-full");
-
-  return overlayActionRenderer.renderAction(
-    <button
-      type="button"
-      aria-label={label}
-      aria-pressed={pressed}
-      disabled={disabled}
-      data-browser-overlay-return-focus={focusTargetKey}
-      onClick={onClick}
-      className={buttonClassName}
-    >
-      {children}
-    </button>,
-  );
-}
-
-export function ArticleToolbarOverlayActions({
-  hasArticle = true,
-  overlayActionRenderer,
-  canToggleRead,
-  canToggleStar,
-  isRead,
-  isStarred,
-  isBrowserOpen,
-  hideBrowserOverlayActions = false,
-  showCopyLinkButton,
-  canCopyLink,
-  showOpenInBrowserButton,
-  canOpenInBrowser,
-  showOpenInExternalBrowserButton,
-  canOpenInExternalBrowser,
-  shareMenuControl,
-  labels,
-  onToggleRead,
-  onToggleStar,
-  onCopyLink,
-  onOpenInBrowser,
-  onOpenInExternalBrowser,
-}: ArticleToolbarOverlayActionsProps) {
-  return (
-    <>
-      <ArticleToolbarOverlayActionButton
-        overlayActionRenderer={overlayActionRenderer}
-        label={labels.toggleRead}
-        disabled={!canToggleRead}
-        pressed={isRead}
-        onClick={() => onToggleRead(!isRead)}
-      >
-        <UnreadIcon unread={hasArticle && !isRead} className="h-3 w-3" />
-      </ArticleToolbarOverlayActionButton>
-      <ArticleToolbarOverlayActionButton
-        overlayActionRenderer={overlayActionRenderer}
-        label={labels.toggleStar}
-        disabled={!canToggleStar}
-        pressed={isStarred}
-        onClick={() => onToggleStar(!isStarred)}
-      >
-        <StarIcon starred={isStarred} className="h-4 w-4" />
-      </ArticleToolbarOverlayActionButton>
-      {showOpenInBrowserButton && !hideBrowserOverlayActions ? (
-        <ArticleToolbarOverlayActionButton
-          overlayActionRenderer={overlayActionRenderer}
-          label={isBrowserOpen ? labels.previewToggleOn : labels.previewToggleOff}
-          disabled={!canOpenInBrowser}
-          pressed={isBrowserOpen}
-          pressedTone="accent"
-          onClick={onOpenInBrowser}
-          focusTargetKey="open-in-browser"
-        >
-          <Eye className="h-4 w-4" />
-        </ArticleToolbarOverlayActionButton>
-      ) : null}
-      {showOpenInExternalBrowserButton && !hideBrowserOverlayActions ? (
-        <ArticleToolbarOverlayActionButton
-          overlayActionRenderer={overlayActionRenderer}
-          label={labels.openInExternalBrowser}
-          disabled={!canOpenInExternalBrowser}
-          onClick={onOpenInExternalBrowser}
-        >
-          <ExternalLink className="h-4 w-4" />
-        </ArticleToolbarOverlayActionButton>
-      ) : null}
-      {showCopyLinkButton ? (
-        <ArticleToolbarOverlayActionButton
-          overlayActionRenderer={overlayActionRenderer}
-          label={labels.copyLink}
-          disabled={!canCopyLink}
-          onClick={onCopyLink}
-        >
-          <Copy className="h-4 w-4" />
-        </ArticleToolbarOverlayActionButton>
-      ) : null}
-      {shareMenuControl ? overlayActionRenderer.renderAction(shareMenuControl, { key: "share-menu" }) : null}
-    </>
   );
 }
 

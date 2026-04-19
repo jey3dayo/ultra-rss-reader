@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BrowserView } from "@/components/reader/browser-view";
+import type { BrowserOverlayToolbarAction } from "@/components/reader/browser-view.types";
 import { BROWSER_WINDOW_EVENTS } from "@/constants/browser";
 import { usePlatformStore } from "@/stores/platform-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -167,6 +168,11 @@ function BrowserViewHarness({ scope = "main-stage", onCloseOverlay }: BrowserVie
     </div>
   );
 }
+
+const browserViewToolbarActions: BrowserOverlayToolbarAction[] = [
+  { key: "a", content: <button type="button">Toolbar Action A</button> },
+  { key: "b", content: <button type="button">Toolbar Action B</button> },
+];
 
 describe("BrowserView", () => {
   let commands: MockTauriCommandCall[];
@@ -395,12 +401,7 @@ describe("BrowserView", () => {
         scope="content-pane"
         onCloseOverlay={() => {}}
         labels={{ closeWebPreview: "Close Web Preview" }}
-        toolbarActions={({ renderAction }) => (
-          <>
-            {renderAction(<button type="button">Toolbar Action A</button>, { key: "a" })}
-            {renderAction(<button type="button">Toolbar Action B</button>, { key: "b" })}
-          </>
-        )}
+        toolbarActions={browserViewToolbarActions}
       />,
       { wrapper: createWrapper() },
     );

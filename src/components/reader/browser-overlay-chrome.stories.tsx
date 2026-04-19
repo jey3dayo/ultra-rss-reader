@@ -2,8 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { fn } from "storybook/test";
 import { BrowserOverlayChrome } from "./browser-overlay-chrome";
 import type {
-  BrowserOverlayActionsRenderer,
   BrowserOverlayChromeController,
+  BrowserOverlayToolbarAction,
   BrowserViewSurfacePresentation,
 } from "./browser-view.types";
 
@@ -85,7 +85,7 @@ type BrowserOverlayChromeStoryProps = {
   controller?: BrowserOverlayChromeController;
   presentation?: BrowserViewSurfacePresentation;
   closeWebPreviewLabel?: string;
-  toolbarActions?: BrowserOverlayActionsRenderer;
+  toolbarActions?: BrowserOverlayToolbarAction[];
 };
 
 function BrowserOverlayChromeStory({

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { BrowserOverlayChrome } from "@/components/reader/browser-overlay-chrome";
 import type {
   BrowserOverlayChromeController,
+  BrowserOverlayToolbarAction,
   BrowserViewSurfacePresentation,
 } from "@/components/reader/browser-view.types";
 
@@ -82,6 +83,22 @@ function createSurfacePresentation(
     ...overrides,
   };
 }
+
+const customToolbarActions: BrowserOverlayToolbarAction[] = [
+  { key: "a", content: <button type="button">Custom Action A</button> },
+  { key: "b", content: <button type="button">Custom Action B</button> },
+];
+
+const shareToolbarActions: BrowserOverlayToolbarAction[] = [
+  {
+    key: "share",
+    content: (
+      <button type="button" aria-label="Share">
+        Share
+      </button>
+    ),
+  },
+];
 
 describe("BrowserOverlayChrome", () => {
   it("renders only the close action for the image-viewer overlay chrome", async () => {
@@ -226,12 +243,7 @@ describe("BrowserOverlayChrome", () => {
         controller={controller}
         presentation={presentation}
         closeWebPreviewLabel="Close Web Preview"
-        toolbarActions={({ renderAction }) => (
-          <>
-            {renderAction(<button type="button">Custom Action A</button>, { key: "a" })}
-            {renderAction(<button type="button">Custom Action B</button>, { key: "b" })}
-          </>
-        )}
+        toolbarActions={customToolbarActions}
       />,
     );
 
@@ -262,16 +274,7 @@ describe("BrowserOverlayChrome", () => {
         controller={controller}
         presentation={presentation}
         closeWebPreviewLabel="Close Web Preview"
-        toolbarActions={(overlayActionRenderer) => (
-          <>
-            {overlayActionRenderer.renderAction(
-              <button type="button" aria-label="Share">
-                Share
-              </button>,
-              { key: "share" },
-            )}
-          </>
-        )}
+        toolbarActions={shareToolbarActions}
       />,
     );
 

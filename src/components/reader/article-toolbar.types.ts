@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
 import type { ArticleActionKeyboardShortcuts } from "./article-actions.types";
-import type { BrowserOverlayActionRenderer } from "./browser-view.types";
 
 export type ArticleToolbarViewLabels = {
   closeView: string;
@@ -45,10 +44,6 @@ export type ArticleToolbarViewProps = {
 };
 
 export type ArticleToolbarActionStripProps = Omit<ArticleToolbarViewProps, "showCloseButton" | "onCloseView">;
-
-export type ArticleToolbarOverlayActionsProps = ArticleToolbarActionStripProps & {
-  overlayActionRenderer: BrowserOverlayActionRenderer;
-};
 
 export type UseArticleToolbarControlsParams = {
   article: ArticleDto | null;
