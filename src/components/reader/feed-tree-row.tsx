@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { cn } from "@/lib/utils";
 import type { FeedTreeDragHandleProps, FeedTreeRowProps } from "./feed-tree.types";
+import { FeedTreeSelectableRow } from "./feed-tree-selectable-row";
 import { getSidebarDensityTokens } from "./sidebar-density";
 import { SidebarLeadingControlButton } from "./sidebar-leading-control-button";
 import { SidebarNavButton } from "./sidebar-nav-button";
@@ -66,37 +67,28 @@ export function FeedTreeRow({
   } as CSSProperties;
 
   return (
-    <div
-      className={cn("group/feed-row relative", isDragged && "opacity-70")}
-      data-feed-row-id={feed.id}
-      style={rowStyle}
-    >
-      {feed.isSelected ? (
-        <span
-          aria-hidden="true"
-          data-feed-row-selected-indicator={feed.id}
-          className={cn(
-            "pointer-events-none absolute inset-y-1.5 left-[var(--feed-tree-rail-offset)] z-0 w-0.5 rounded-full bg-primary/85 transition-[opacity,transform,background-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
-            canDragFeeds && "group-hover/feed-row:opacity-0 group-focus-within/feed-row:opacity-0",
-          )}
+    <FeedTreeSelectableRow
+      rowClassName={cn("group/feed-row", isDragged && "opacity-70")}
+      rowStyle={rowStyle}
+      rowProps={{ "data-feed-row-id": feed.id }}
+      selected={feed.isSelected}
+      selectedIndicatorProps={{ "data-feed-row-selected-indicator": feed.id }}
+      selectedIndicatorClassName={cn(
+        canDragFeeds && "group-hover/feed-row:opacity-0 group-focus-within/feed-row:opacity-0",
+      )}
+      leadingControl={
+        <DragHandle
+          feedTitle={feed.title}
+          sidebarDensity={sidebarDensity}
+          canDragFeeds={canDragFeeds}
+          isArmed={isDragged}
+          onArm={() => onDragStartFeed?.(feed)}
+          onPointerDown={(event) => onPointerDownFeed?.(feed, event)}
+          consumeSuppressedClick={consumeSuppressedHandleClick}
         />
-      ) : null}
-      <div
-        className="pointer-events-none absolute inset-y-0 left-[var(--feed-tree-rail-offset)] z-10 flex -translate-x-1/2 items-center"
-        data-feed-row-handle-anchor={feed.id}
-      >
-        <div className="pointer-events-auto">
-          <DragHandle
-            feedTitle={feed.title}
-            sidebarDensity={sidebarDensity}
-            canDragFeeds={canDragFeeds}
-            isArmed={isDragged}
-            onArm={() => onDragStartFeed?.(feed)}
-            onPointerDown={(event) => onPointerDownFeed?.(feed, event)}
-            consumeSuppressedClick={consumeSuppressedHandleClick}
-          />
-        </div>
-      </div>
+      }
+      leadingControlAnchorProps={{ "data-feed-row-handle-anchor": feed.id }}
+    >
       <ContextMenu.Root>
         <ContextMenu.Trigger
           render={
@@ -124,6 +116,6 @@ export function FeedTreeRow({
         </ContextMenu.Trigger>
         {renderFeedContextMenu?.(feed)}
       </ContextMenu.Root>
-    </div>
+    </FeedTreeSelectableRow>
   );
 }

@@ -36,6 +36,26 @@ describe("FeedTreeFolderSection", () => {
     expect(screen.getByText("9,274")).toHaveClass("text-foreground-soft");
   });
 
+  it("keeps the folder toggle in normal row flow so the selection bar stays off the chevron rail", () => {
+    render(
+      <FeedTreeFolderSection
+        folder={baseFolder}
+        activeDropTarget={null}
+        onToggleFolder={vi.fn()}
+        onSelectFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+      />,
+    );
+
+    const folderButton = screen.getByRole("button", { name: "Select folder Comic" });
+    const selectedIndicator = document.querySelector<HTMLElement>("[data-folder-row-selected-indicator='folder-1']");
+
+    expect(folderButton).toHaveClass("pl-1.5");
+    expect(folderButton).not.toHaveClass("pl-7");
+    expect(selectedIndicator?.parentElement).toHaveClass("flex", "items-center", "gap-0.5");
+  });
+
   it("uses a softer active drop tone for folder targets", () => {
     render(
       <FeedTreeFolderSection

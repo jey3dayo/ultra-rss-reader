@@ -209,7 +209,7 @@ describe("FeedTreeView", () => {
     expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
   });
 
-  it("renders selected folder indicator aligned from the row edge and hides the button marker", () => {
+  it("renders selected folder indicator from the folder row edge and hides the button marker", () => {
     const { container } = render(
       <FeedTreeView
         isOpen={true}
