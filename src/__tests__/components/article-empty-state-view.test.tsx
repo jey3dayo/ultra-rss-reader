@@ -52,24 +52,32 @@ describe("ArticleEmptyStateView", () => {
         message="Select an article to read"
         description="Choose a scope on the left, then open something from the middle queue to start reading."
         hints={["Pick one from the list"]}
-        containerClassName="-translate-y-[10%] md:-translate-y-[12%]"
+        containerClassName="-translate-y-[14%] md:-translate-y-[16%]"
       />,
     );
 
     const container = screen.getByText("Select an article to read").parentElement;
     const layout = container?.parentElement;
+    const backdrop = layout?.querySelector('[aria-hidden="true"]');
     const hintsList = screen.getByRole("list");
 
-    expect(container).toHaveClass("max-w-2xl");
-    expect(layout).toHaveClass("-translate-y-[10%]");
+    expect(container).toHaveClass("max-w-[40rem]");
+    expect(container).toHaveClass("relative");
+    expect(layout).toHaveClass("relative");
+    expect(layout).toHaveClass("overflow-hidden");
+    expect(layout).toHaveClass("-translate-y-[14%]");
     expect(container).toHaveClass("rounded-3xl");
     expect(container).toHaveClass("border");
-    expect(container).toHaveClass("px-7");
-    expect(container).toHaveClass("py-7");
+    expect(container).toHaveClass("dark:border-border/90");
+    expect(container).toHaveClass("px-8");
+    expect(container).toHaveClass("py-8");
     expect(container).toHaveClass("min-h-44");
     expect(container).toHaveClass("text-foreground-soft");
+    expect(container).toHaveClass("dark:shadow-[0_36px_96px_-56px_rgba(0,0,0,0.68)]");
     expect(screen.getByText("Reader ready")).toHaveClass("uppercase");
     expect(hintsList).toHaveClass("marker:text-foreground-soft");
+    expect(hintsList).toHaveClass("max-w-[29rem]");
+    expect(backdrop).not.toBeNull();
   });
 
   it("uses semantic list markers so wrapped hints stay aligned", () => {
@@ -102,9 +110,9 @@ describe("ArticleEmptyStateView", () => {
     const container = screen.getByText("Add your first feed").parentElement;
     const hintsList = screen.getByRole("list");
 
-    expect(container).toHaveClass("max-w-2xl");
-    expect(container).toHaveClass("px-7");
-    expect(container).toHaveClass("py-7");
+    expect(container).toHaveClass("max-w-[40rem]");
+    expect(container).toHaveClass("px-8");
+    expect(container).toHaveClass("py-8");
     expect(container).toHaveClass("min-h-44");
     expect(screen.getByText("Add your first feed")).toHaveClass("text-left");
     expect(hintsList).toHaveClass("text-left");

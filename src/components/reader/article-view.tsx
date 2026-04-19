@@ -59,7 +59,7 @@ function EmptyState({ emptyReason }: { emptyReason: "default" | "no-accounts" | 
             message: t("select_article_to_read"),
             description: t("empty_state_default_description"),
             hints: [t("empty_state_search_hint"), t("empty_state_web_preview_hint")],
-            containerClassName: "-translate-y-[10%] md:-translate-y-[12%]",
+            containerClassName: "-translate-y-[14%] md:-translate-y-[16%]",
             cardClassName: undefined,
             actions: [],
           };
