@@ -25,12 +25,14 @@ import stackedSelectFieldMeta from "@/components/shared/stacked-select-field.sto
 import workspaceHeaderMeta, {
   BrowserPreview as WorkspaceHeaderBrowserPreview,
   MacDesktop as WorkspaceHeaderMacDesktop,
+  WindowsDesktop as WorkspaceHeaderWindowsDesktop,
 } from "@/components/shared/workspace-header.stories";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 
 type StoryMeta = {
   component: ElementType;
   args?: object;
+  render?: ((args: never, context: never) => ReactElement) | undefined;
 };
 
 type StoryLike = {
@@ -40,7 +42,8 @@ type StoryLike = {
 
 function renderStory(meta: StoryMeta, story: StoryLike, useWrapper = false) {
   const args = { ...(meta.args ?? {}), ...(story.args ?? {}) };
-  const ui = story.render ? story.render(args as never, {} as never) : createElement(meta.component, args);
+  const renderStoryFn = story.render ?? meta.render;
+  const ui = renderStoryFn ? renderStoryFn(args as never, {} as never) : createElement(meta.component, args);
   return render(ui, useWrapper ? { wrapper: createWrapper() } : undefined);
 }
 
@@ -97,10 +100,16 @@ describe("Shared stories", () => {
     renderStory(workspaceHeaderMeta, WorkspaceHeaderBrowserPreview);
     expect(screen.getByRole("heading", { name: "購読の整理" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "戻る" })).toBeInTheDocument();
+    expect(screen.queryByTestId("workspace-header-drag-region")).toBeNull();
 
     cleanup();
     renderStory(workspaceHeaderMeta, WorkspaceHeaderMacDesktop);
     expect(screen.getAllByRole("button", { name: "閉じる" }).length).toBeGreaterThan(0);
     expect(screen.getByTestId("workspace-header-drag-region")).toHaveAttribute("data-tauri-drag-region");
+
+    cleanup();
+    renderStory(workspaceHeaderMeta, WorkspaceHeaderWindowsDesktop);
+    expect(screen.getByRole("heading", { name: "購読の整理" })).toBeInTheDocument();
+    expect(screen.queryByTestId("workspace-header-drag-region")).toBeNull();
   });
 });

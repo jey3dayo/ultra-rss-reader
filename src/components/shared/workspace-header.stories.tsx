@@ -1,5 +1,7 @@
 import { Controls, Primary, Subtitle, Title } from "@storybook/addon-docs/blocks";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ReactNode } from "react";
+import { useEffect } from "react";
 import { fn } from "storybook/test";
 import { usePlatformStore } from "@/stores/platform-store";
 import { WorkspaceHeader } from "./workspace-header";
@@ -22,6 +24,21 @@ const runtimeCapabilities = {
   supports_native_browser_navigation: true,
   uses_dev_file_credentials: false,
 };
+
+function resetRuntimeMode() {
+  delete window.__TAURI_INTERNALS__;
+  window.__DEV_BROWSER_MOCKS__ = false;
+  window.__ULTRA_RSS_BROWSER_MOCKS__ = false;
+  usePlatformStore.setState(usePlatformStore.getInitialState());
+}
+
+function resolveRuntimeMode(runtimeMode: RuntimeMode | undefined): RuntimeMode {
+  if (runtimeMode === "mac" || runtimeMode === "windows") {
+    return runtimeMode;
+  }
+
+  return "browser";
+}
 
 function applyRuntimeMode(runtimeMode: RuntimeMode) {
   if (runtimeMode === "browser") {
@@ -54,6 +71,16 @@ function applyRuntimeMode(runtimeMode: RuntimeMode) {
   });
 }
 
+function WorkspaceHeaderStoryFrame({ runtimeMode, children }: { runtimeMode: RuntimeMode; children: ReactNode }) {
+  // Storybook docs/controls can render once before effects run. Apply the
+  // runtime mode synchronously so the first frame matches the selected mode.
+  applyRuntimeMode(runtimeMode);
+
+  useEffect(() => resetRuntimeMode, []);
+
+  return <div className="min-h-[320px] bg-background text-foreground">{children}</div>;
+}
+
 function WorkspaceHeaderStory({
   runtimeMode,
   eyebrow,
@@ -62,28 +89,26 @@ function WorkspaceHeaderStory({
   backLabel,
   closeLabel,
 }: WorkspaceHeaderStoryProps) {
-  // Storybook docs/controls can render once before effects run. Apply the
-  // runtime mode synchronously so the first frame matches the selected mode.
-  applyRuntimeMode(runtimeMode);
-
   return (
-    <WorkspaceHeader
-      eyebrow={eyebrow}
-      title={title}
-      subtitle={subtitle}
-      backLabel={backLabel}
-      onBack={fn()}
-      closeLabel={closeLabel}
-      onClose={fn()}
-      actions={
-        <button
-          type="button"
-          className="h-7 rounded-md border border-border/60 px-2.5 text-[0.8rem] text-foreground-soft"
-        >
-          ショートカット
-        </button>
-      }
-    />
+    <WorkspaceHeaderStoryFrame runtimeMode={resolveRuntimeMode(runtimeMode)}>
+      <WorkspaceHeader
+        eyebrow={eyebrow}
+        title={title}
+        subtitle={subtitle}
+        backLabel={backLabel}
+        onBack={fn()}
+        closeLabel={closeLabel}
+        onClose={fn()}
+        actions={
+          <button
+            type="button"
+            className="h-7 rounded-md border border-border/60 px-2.5 text-[0.8rem] text-foreground-soft"
+          >
+            ショートカット
+          </button>
+        }
+      />
+    </WorkspaceHeaderStoryFrame>
   );
 }
 
@@ -104,13 +129,6 @@ const meta = {
       ),
     },
   },
-  decorators: [
-    (Story) => (
-      <div className="min-h-[320px] bg-background text-foreground">
-        <Story />
-      </div>
-    ),
-  ],
   argTypes: {
     runtimeMode: {
       control: "inline-radio",
