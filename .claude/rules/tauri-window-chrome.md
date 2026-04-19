@@ -4,10 +4,16 @@ paths:
   - "src/lib/window-chrome.ts"
   - "src/components/app-shell.tsx"
   - "src/components/app-layout.tsx"
+  - "src/components/shared/workspace-header.tsx"
+  - "src/components/shared/workspace-header.stories.tsx"
+  - "src/components/reader/sidebar-header-view.tsx"
   - "src/components/reader/*"
   - "src/styles/global.css"
   - "src/__tests__/app.test.tsx"
   - "src/__tests__/components/app-shell.test.tsx"
+  - "src/__tests__/components/design-shared-components.test.tsx"
+  - "src/__tests__/components/sidebar-header-view.test.tsx"
+  - "src/__tests__/components/shared-stories.test.tsx"
   - "src/__tests__/components/*"
 ---
 
@@ -15,19 +21,25 @@ paths:
 
 ## 背景
 
-Tauri の header / titlebar は OS ごとに挙動が違う。特に macOS は overlay titlebar を使うと、コンテンツがネイティブ titlebar 領域の下に潜り込む前提になる一方、Windows は通常 titlebar のまま扱う方が自然。
+Tauri の window chrome は OS ごとに前提が違う。特に macOS は overlay titlebar を使うと、コンテンツがネイティブ titlebar 領域の下に潜り込む前提になる。一方で Windows は通常 titlebar のまま扱う方が自然で、browser mode はそもそも desktop chrome 前提を持たない。
 
-この差分を無視して共通 header を組むと、macOS では上端に謎の空白が見えたり、逆にドラッグできない領域ができたりする。
+この差分を無視して共通 header を組むと、macOS では信号ボタン領域と drag surface が壊れ、Windows では mac 用の余白が残り、browser mode では desktop 前提の offset が混入する。
 
 ## 現在の実装
 
-- `src-tauri/src/lib.rs` では macOS のみ `tauri::TitleBarStyle::Overlay`、それ以外は `Visible` を使う
-- `src/lib/window-chrome.ts` の `shouldUseDesktopOverlayTitlebar()` も macOS + Tauri runtime のときだけ `true` を返す
-- フロント側は `src/styles/global.css` の `--desktop-titlebar-offset: 44px` を使うが、この offset は `AppLayout` には入れない
-- `src/components/app-shell.tsx` は shell-wide の drag strip を置かず、`data-browser-overlay-root` にだけ titlebar helper class を付ける
-- `src/components/app-layout.tsx` は常に top flush を保ち、pane header 自体が titlebar 領域まで上がる前提で組む
-- 各 pane の visible header / toolbar が個別に top chrome を持つ。`sidebar-header-view.tsx`、`article-list-header.tsx`、`article-toolbar-view.tsx` の下線位置は揃える
-- drag region の実装は現在まだ混在している。今後の変更では「狭い spacer を置く」より「visible header 内の非インタラクティブ面を自然に掴める」ことを優先する
+- ネイティブ側は `src-tauri/src/lib.rs` で macOS のみ `tauri::TitleBarStyle::Overlay`、それ以外は `Visible` を使う
+- フロント側の判定入口は `src/lib/window-chrome.ts` の `hasTauriRuntime()` と `shouldUseDesktopOverlayTitlebar()` に閉じる
+- `shouldUseDesktopOverlayTitlebar()` は `macos + Tauri runtime` のときだけ `true`
+- 初回 desktop render で `platformKind === "unknown"` でも、`navigator.platform` が mac なら一時的に overlay として扱い、1 フレームだけ mac 余白が跳ねるのを防ぐ
+- `src/components/app-layout.tsx` は top flush を保ち、pane header 自体が上端を取る
+- `src/components/app-shell.tsx` は shell-wide の透明 drag strip を置かず、pane header / toolbar が個別に top chrome を持つ
+- `src/components/shared/workspace-header.tsx` は 3 モードで責務を分ける
+  - `browser`: drag-region なし、desktop offset なし、eyebrow は top row
+  - `windows + Tauri`: compact desktop header。drag-region なし、mac 用 offset なし、eyebrow は top row
+  - `macOS + Tauri overlay`: drag-region あり、左 drag region 幅 `72px`、title group offset `24px`、eyebrow は title group
+- `src/components/reader/sidebar-header-view.tsx` の `pl-20` は mac overlay のときだけ有効。Windows と browser では入れない
+- Storybook では `src/components/shared/workspace-header.stories.tsx` に `BrowserPreview / MacDesktop / WindowsDesktop` を持ち、runtime mock を初回描画から同期適用して比較できる状態にする
+- `src/__tests__/components/design-shared-components.test.tsx`、`sidebar-header-view.test.tsx`、`shared-stories.test.tsx` で mac 維持 / windows 圧縮 / browser 非 desktop を固定する
 
 ## 制約
 
@@ -37,8 +49,10 @@ Tauri の header / titlebar は OS ごとに挙動が違う。特に macOS は o
 - shell-wide の透明 drag overlay を再導入しない。visible な pane header / toolbar の drag spacer を優先する
 - header の見た目だけを直すために、`padding-top` や `top` を場当たり的に足して帳尻を合わせない
 - `data-tauri-drag-region` を interactive 要素まで広げない。button / input / link / menu trigger / search field / toggle は drag region に含めない
+- browser mode に desktop chrome 前提の offset / drag-region / padding を混入させない
 - Windows / Linux 向け変更で macOS overlay 専用クラスを常時有効にしない
-- desktop overlay 時に header 上段の action row を通常フローに残さない。右上ボタンや補助 drag row は absolute に逃がし、title block の基準線を押し下げない
+- desktop overlay 時に top row や title group の drag surface を interactive 要素より前面に置かない。必要なら passive wrapper 側で `pointer-events-none`、button 側で `pointer-events-auto` を使う
+- Windows header を詰める変更では、compact 化は `WorkspaceHeader` 側の分岐に閉じ、browser と mac を巻き込まない
 - 大きい drag surface を敷く場合、text wrapper や row wrapper がその上で hit test を奪わないようにする。passive content 側の wrapper には `pointer-events-none` を検討し、interactive 要素だけ `pointer-events-auto` で戻す
 
 ## drag 方針
@@ -55,23 +69,25 @@ Tauri の header / titlebar は OS ごとに挙動が違う。特に macOS は o
 
 ## 変更時の確認ポイント
 
-- macOS で visible な pane header / toolbar の passive surface を自然にドラッグできること
-- macOS で pane 全体が 44px 下がらず、header が titlebar 領域まで上がっていること
-- macOS で action button が drag に奪われず普通に押せること
-- macOS でタイトル文字や説明文の近くを掴んでも drag が始まる一方、戻る/閉じる/検索などの操作は普通に動くこと
-- sidebar / list / content の top border が 1px ずれず横一直線に見えること
-- Windows で overlay 前提の余白や drag strip が混入しないこと
-- `TitleBarStyle`、`shouldUseDesktopOverlayTitlebar()`、shell 側 helper class の 3 点が矛盾していないこと
-- overlay 用に追加した top row や action row が title / subtitle block を押し下げていないこと。実機スクリーンショットで横ライン位置まで確認する
-- title 文字の真上、eyebrow の真上、説明文の真上、右上ボタンの左側の空き面の 4 点で実際に drag を試すこと
+- macOS で visible header の passive surface を自然にドラッグできること
+- macOS で `WorkspaceHeader` の左 drag region 幅と title offset が維持されていること
+- macOS で戻る / 閉じる / shortcut などの action button が drag に奪われず普通に押せること
+- Windows で mac 用の上余白や左逃がしが残らず、compact header が使われていること
+- browser mode で desktop offset や drag-region が混入しないこと
+- `TitleBarStyle`、`shouldUseDesktopOverlayTitlebar()`、`WorkspaceHeader` / `SidebarHeaderView` の分岐が矛盾していないこと
+- Storybook で `browser / mac / windows` の 3 story が import error なしで開くこと
+- 実アプリ確認時は、Windows は Tauri 実機、browser は `mise run app:dev:browser`、mac は story / テスト / 実機のいずれかで確認する
+- 実機では title 文字の真上、eyebrow の真上、説明文の真上、右上ボタンの左側の空き面の 4 点で drag を試すこと
 
 ## テスト方針
 
 - macOS overlay 判定を変えたら `src/__tests__/app.test.tsx` を更新する
 - shell の titlebar 補助要素を変えたら `src/__tests__/components/app-shell.test.tsx` を更新する
-- header / toolbar の drag region 範囲や top border を変えたら `article-list-header` / `sidebar-header-view` / `article-toolbar-view` / `workspace-header` のテストを更新する
+- `WorkspaceHeader` の mode 分岐を変えたら `src/__tests__/components/design-shared-components.test.tsx` と `src/__tests__/components/shared-stories.test.tsx` を更新する
+- `SidebarHeaderView` の mac 専用逃がしを変えたら `src/__tests__/components/sidebar-header-view.test.tsx` を更新する
 - drag テストは「spacer がある」ことより、「interactive 要素が drag region に含まれないこと」と「passive surface 側に drag region が置かれていること」を確認する
-- drag 修正の完了判定は DOM テストだけで終えない。`tauri-dev-screenshot` などで実機ウィンドウを取り、layout 崩れと drag surface の位置を必ず目視確認する
+- Storybook 確認導線を触ったら `workspace-header.stories.tsx` の runtime mock と `shared-stories.test.tsx` の両方を見直す
+- drag 修正の完了判定は DOM テストだけで終えない。`tauri-dev-screenshot` や browser 実画面確認で layout 崩れと drag surface の位置を必ず目視確認する
 
 ## 避けること
 
@@ -79,12 +95,14 @@ Tauri の header / titlebar は OS ごとに挙動が違う。特に macOS は o
 - `desktop-titlebar-offset` を shell と layout の両方に入れて二重に top inset を作る
 - pane header より前面に透明な drag 要素を被せてクリックを奪う
 - header 内の interactive 要素を drag region で覆う
+- browser mode を desktop app の一種として扱い、Windows と同じ compact desktop 分岐に混ぜる
 - 掴める面が十分ある header なのに、40px x 72px のような狭い strip や中央 spacer のみに drag を閉じ込める
 - ancestor selector で `app-region: drag` を当てないと動かない前提の CSS に依存する
 - drag surface を広げるために上段 wrapper を増やし、その wrapper 自体が title block を押し下げる
 - drag 可視化の色だけ見て「掴めるはず」と判断し、実機の hit testing を確認しない
 - ネイティブ側は `Visible` のまま、フロントだけ overlay 前提の offset を入れる
 - 逆にネイティブ側だけ `Overlay` にして、フロント側の offset / helper root を追加しない
+- Storybook の stale cache / HMR 崩れを app ロジックの不具合と決めつける。まず fresh 起動で `workspace-header` の 3 story を見直す
 
 ## 強制
 
