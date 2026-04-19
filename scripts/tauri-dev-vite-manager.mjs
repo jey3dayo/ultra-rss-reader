@@ -24,7 +24,7 @@ export function classifyPortOwnerCommandLine(commandLine) {
     return "vite";
   }
 
-  if (/[/\\]vite[/\\]bin[/\\]vite\.js(?:\s|$)/.test(normalized)) {
+  if (/[/\\]vite[/\\]bin[/\\]vite\.js(?:"|\s|$)/.test(normalized)) {
     return "vite";
   }
 

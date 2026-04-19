@@ -10,6 +10,14 @@ describe("classifyPortOwnerCommandLine", () => {
     expect(classifyPortOwnerCommandLine("node ./node_modules/vite/bin/vite.js")).toBe("vite");
   });
 
+  it("treats quoted Windows vite entrypoints with args as restartable", () => {
+    expect(
+      classifyPortOwnerCommandLine(
+        'node "C:\\repo\\node_modules\\.pnpm\\vite@8.0.8\\node_modules\\vite\\bin\\vite.js" "--host" "127.0.0.1" "--port" "1420" "--strictPort"',
+      ),
+    ).toBe("vite");
+  });
+
   it("treats unrelated listeners as foreign", () => {
     expect(classifyPortOwnerCommandLine("python -m http.server 1420")).toBe("foreign");
   });
