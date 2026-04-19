@@ -38,6 +38,8 @@ function EmptyState({ emptyReason }: { emptyReason: "default" | "no-accounts" | 
           message: t("empty_state_no_accounts_title"),
           description: t("empty_state_no_accounts_description"),
           hints: [t("empty_state_no_accounts_sidebar_hint"), t("empty_state_no_accounts_settings_hint")],
+          containerClassName: undefined,
+          cardClassName: undefined,
           actions: [
             { label: settingsT("add_account_ellipsis"), onClick: openAddAccountSettings, variant: "default" as const },
           ],
@@ -48,13 +50,17 @@ function EmptyState({ emptyReason }: { emptyReason: "default" | "no-accounts" | 
             message: t("empty_state_no_feeds_title"),
             description: t("empty_state_no_feeds_description"),
             hints: [t("empty_state_no_feeds_add_hint"), t("empty_state_no_feeds_discovery_hint")],
+            containerClassName: undefined,
+            cardClassName: undefined,
             actions: [{ label: t("add_feed"), onClick: openAddFeedDialog, variant: "default" as const }],
           }
         : {
-            eyebrow: t("empty_state_default_eyebrow"),
+            eyebrow: undefined,
             message: t("select_article_to_read"),
             description: t("empty_state_default_description"),
             hints: [t("empty_state_search_hint"), t("empty_state_web_preview_hint")],
+            containerClassName: "-translate-y-[10%] md:-translate-y-[12%]",
+            cardClassName: undefined,
             actions: [],
           };
 
@@ -69,6 +75,8 @@ function EmptyState({ emptyReason }: { emptyReason: "default" | "no-accounts" | 
           message={content.message}
           description={content.description}
           hints={content.hints}
+          containerClassName={content.containerClassName}
+          cardClassName={content.cardClassName}
           actions={content.actions}
         />
       }

@@ -16,6 +16,8 @@ function getScenarioContent(scenario: EmptyStateScenario) {
         'Use "Add an account to get started" in the sidebar.',
         "Open Add Account in Settings to get started right away.",
       ],
+      containerClassName: undefined,
+      cardClassName: undefined,
       actions: [{ label: "Add account…", onClick: () => {} }],
     };
   }
@@ -29,15 +31,19 @@ function getScenarioContent(scenario: EmptyStateScenario) {
         "Use the + button in the top-left to add a feed.",
         "Paste a site URL or feed URL to discover feeds automatically.",
       ],
+      containerClassName: undefined,
+      cardClassName: undefined,
       actions: [{ label: "Add Feed", onClick: () => {} }],
     };
   }
 
   return {
-    eyebrow: "Reader ready",
+    eyebrow: undefined,
     message: "Select an article to read",
     description: "Choose a scope on the left, then open something from the middle queue to start reading.",
     hints: ["Choose an article from the list", "Open Web Preview from the toolbar"],
+    containerClassName: "-translate-y-[10%] md:-translate-y-[12%]",
+    cardClassName: undefined,
     actions: [],
   };
 }
@@ -50,6 +56,8 @@ function ArticleEmptyStateStory({ scenario }: ArticleEmptyStateStoryProps) {
       message={content.message}
       description={content.description}
       hints={content.hints}
+      containerClassName={content.containerClassName}
+      cardClassName={content.cardClassName}
       actions={content.actions}
     />
   );

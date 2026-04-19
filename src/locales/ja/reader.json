@@ -7,7 +7,6 @@
   "no_articles": "記事がありません",
   "article_not_found": "記事が見つかりません",
   "select_article_to_read": "記事を選んでください",
-  "empty_state_default_eyebrow": "読む準備完了",
   "empty_state_default_description": "左で範囲を選び、中央の記事一覧から読みたいものを開いてください。",
   "empty_state_no_accounts_eyebrow": "はじめに",
   "empty_state_no_accounts_title": "まずアカウントを追加してください",

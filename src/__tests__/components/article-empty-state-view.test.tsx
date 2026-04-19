@@ -52,13 +52,16 @@ describe("ArticleEmptyStateView", () => {
         message="Select an article to read"
         description="Choose a scope on the left, then open something from the middle queue to start reading."
         hints={["Pick one from the list"]}
+        containerClassName="-translate-y-[10%] md:-translate-y-[12%]"
       />,
     );
 
     const container = screen.getByText("Select an article to read").parentElement;
+    const layout = container?.parentElement;
     const hintsList = screen.getByRole("list");
 
     expect(container).toHaveClass("max-w-2xl");
+    expect(layout).toHaveClass("-translate-y-[10%]");
     expect(container).toHaveClass("rounded-3xl");
     expect(container).toHaveClass("border");
     expect(container).toHaveClass("px-7");

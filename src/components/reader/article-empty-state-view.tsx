@@ -9,14 +9,17 @@ export function ArticleEmptyStateView({
   message,
   description,
   hints = EMPTY_HINTS,
+  containerClassName,
+  cardClassName,
   actions = [],
 }: ArticleEmptyStateViewProps) {
   return (
-    <div className="flex flex-1 items-center justify-center px-6 py-10">
+    <div className={cn("flex flex-1 items-center justify-center px-6 pt-6 pb-12", containerClassName)}>
       <div
         className={cn(
           "w-full max-w-2xl overflow-hidden rounded-3xl border border-border/80 bg-[linear-gradient(180deg,rgba(247,247,244,0.94)_0%,rgba(242,241,237,0.9)_100%)] px-7 py-7 text-left text-foreground-soft shadow-[0_28px_70px_-44px_rgba(38,37,30,0.28)]",
           hints.length > 0 && "min-h-44",
+          cardClassName,
         )}
       >
         {eyebrow ? (

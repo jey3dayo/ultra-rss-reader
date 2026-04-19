@@ -79,6 +79,8 @@ export type ArticleEmptyStateViewProps = {
   message: string;
   description?: string;
   hints?: string[];
+  containerClassName?: string;
+  cardClassName?: string;
   actions?: Array<{
     label: string;
     onClick: () => void;
