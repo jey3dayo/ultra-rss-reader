@@ -872,6 +872,71 @@ describe("Sidebar", () => {
     });
   });
 
+  it("moves the feed into the folder panel before the folder update resolves", async () => {
+    const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
+    let resolveMove: (() => void) | undefined;
+    let currentFeeds: Array<(typeof sampleFeeds)[number] & { folder_id: string | null }> = [
+      { ...sampleFeeds[0], title: "Tech Blog", folder_id: null },
+    ];
+
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-empty", account_id: args.accountId, name: "Empty", sort_order: 0 }];
+        case "list_feeds":
+          return currentFeeds;
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        case "update_feed_folder":
+          return new Promise((resolve) => {
+            resolveMove = () => {
+              currentFeeds = [{ ...currentFeeds[0], folder_id: "folder-empty" }];
+              resolve(null);
+            };
+          });
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      expandedFolderIds: new Set(["folder-empty"]),
+    });
+
+    const { container } = render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Drag Tech Blog" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Move to Empty" }));
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "update_feed_folder",
+        args: { feedId: "feed-1", folderId: "folder-empty" },
+      });
+    });
+
+    await waitFor(() => {
+      const folderPanel = container.querySelector("#feed-tree-folder-panel-folder-empty");
+      expect(folderPanel?.querySelector('[data-feed-row-id="feed-1"]')).not.toBeNull();
+      expect(container.querySelectorAll('[data-feed-row-id="feed-1"]')).toHaveLength(1);
+    });
+
+    resolveMove?.();
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Move to Empty" })).not.toBeInTheDocument();
+    });
+  });
+
   it("does not call update_feed_folder when moving into the same folder", async () => {
     const calls: Array<{ cmd: string; args: Record<string, unknown> }> = [];
 

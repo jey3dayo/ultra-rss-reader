@@ -1,9 +1,10 @@
 import { Result } from "@praha/byethrow";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as tauriCommands from "@/api/tauri-commands";
+import type { FeedDto } from "@/api/tauri-commands";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import type { ToastData } from "@/stores/ui-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -29,8 +30,25 @@ describe("useUpdateFeedFolder", () => {
     useUiStore.setState(useUiStore.getInitialState());
   });
 
+  function seedFeeds() {
+    queryClient.setQueryData<FeedDto[]>(["feeds", "acc-1"], [
+      {
+        id: "feed-1",
+        account_id: "acc-1",
+        folder_id: null,
+        title: "Tech Blog",
+        url: "https://example.com/feed.xml",
+        site_url: "https://example.com",
+        unread_count: 5,
+        reader_mode: "inherit",
+        web_preview_mode: "inherit",
+      },
+    ]);
+  }
+
   it("invalidates feeds after a successful folder update", async () => {
     const invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const cancelQueriesSpy = vi.spyOn(queryClient, "cancelQueries");
     const updateFeedFolderSpy = vi.spyOn(tauriCommands, "updateFeedFolder").mockResolvedValue(Result.succeed(null));
 
     const wrapper = ({ children }: { children: ReactNode }) => (
@@ -43,7 +61,32 @@ describe("useUpdateFeedFolder", () => {
 
     expect(updateFeedFolderSpy).toHaveBeenCalledWith("feed-1", "folder-1");
     await waitFor(() => {
+      expect(cancelQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
       expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ["feeds"] });
+    });
+  });
+
+  it("optimistically updates cached feeds before the folder update resolves", async () => {
+    seedFeeds();
+    vi.spyOn(tauriCommands, "updateFeedFolder").mockImplementation(() => new Promise<never>(() => {}));
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    const { result } = renderHook(() => useUpdateFeedFolder(), { wrapper });
+
+    act(() => {
+      result.current.mutate({ feedId: "feed-1", folderId: "folder-1" });
+    });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+        expect.objectContaining({
+          id: "feed-1",
+          folder_id: "folder-1",
+        }),
+      ]);
     });
   });
 
@@ -62,6 +105,59 @@ describe("useUpdateFeedFolder", () => {
 
     await waitFor(() => {
       expect(showToastMock).toHaveBeenCalledWith("Failed to update folder: boom");
+    });
+  });
+
+  it("rolls back cached feeds when the folder update fails", async () => {
+    seedFeeds();
+    let resolveUpdate: ((value: Result.Result<null, { type: "UserVisible"; message: string }>) => void) | null = null;
+    vi.spyOn(tauriCommands, "updateFeedFolder").mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveUpdate = resolve;
+        }),
+    );
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    const { result } = renderHook(() => useUpdateFeedFolder(), { wrapper });
+    let mutationPromise: Promise<unknown> | undefined;
+
+    act(() => {
+      mutationPromise = result.current.mutateAsync({ feedId: "feed-1", folderId: "folder-1" }).catch(() => undefined);
+    });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+        expect.objectContaining({
+          id: "feed-1",
+          folder_id: "folder-1",
+        }),
+      ]);
+    });
+
+    await waitFor(() => {
+      expect(resolveUpdate).not.toBeNull();
+    });
+
+    await act(async () => {
+      resolveUpdate?.(Result.fail({ type: "UserVisible", message: "boom" }));
+      await mutationPromise;
+    });
+
+    await waitFor(() => {
+      expect(showToastMock).toHaveBeenCalledWith("Failed to update folder: boom");
+    });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData<FeedDto[]>(["feeds", "acc-1"])).toEqual([
+        expect.objectContaining({
+          id: "feed-1",
+          folder_id: null,
+        }),
+      ]);
     });
   });
 });
