@@ -122,13 +122,14 @@ Use `mise run app:dev:native-keyring` when you need to verify Keychain or Creden
 mise run check        # format + lint + test  (local dev loop)
 mise run ci           # format + lint + test + build  (full CI gate)
 mise run format       # Biome + cargo fmt + taplo
-mise run lint         # tsc --noEmit + Biome + Clippy (-D warnings)
+mise run lint         # tsc --noEmit + Biome + Clippy (-D warnings) + actionlint + yamllint
 mise run test         # Vitest + cargo test
 mise run test:e2e     # Playwright browser-mode E2E tests
 mise run test:all     # Rust + Vitest + Playwright
 mise run test:live    # FreshRSS integration tests (requires .env credentials)
 mise run app:dev      # Launch the native app in repository dev mode
 mise run app:dev:native-keyring     # Launch the native app in dev mode with the OS keyring backend
+mise run app:install  # Build and install the current-platform packaged app
 mise run app:dev:signed              # macOS-only: build, codesign, and run the dev binary (no Keychain dialog)
 mise run app:dev:subscriptions-index # Launch the native app directly into the subscriptions index workspace
 mise run app:dev:web-preview         # Launch the native app directly into Web Preview for VITE_DEV_WEB_URL

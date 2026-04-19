@@ -16,6 +16,7 @@ pnpm = "latest"
 rust = "stable"
 taplo = "latest"
 rtk = "latest"
+actionlint = "latest"
 "pipx:yamllint" = "latest"
 
 # ========================================
@@ -73,7 +74,14 @@ run = "rtk err taplo fmt --check mise.toml src-tauri/Cargo.toml"
 
 [tasks.lint]
 description = "All lint checks"
-depends = ["lint:types", "lint:biome", "lint:clippy", "lint:md", "lint:yaml"]
+depends = [
+  "lint:types",
+  "lint:biome",
+  "lint:clippy",
+  "lint:md",
+  "lint:yaml",
+  "lint:actions",
+]
 
 [tasks."lint:types"]
 description = "TypeScript type check"
@@ -179,20 +187,6 @@ kill $DEV_PID 2>/dev/null || true
 """
 run_windows = "echo app:dev:signed is macOS-only (requires codesign and Unix shell tooling). && exit /b 1"
 
-[tasks."app:open"]
-description = "Remove quarantine & ad-hoc sign, then open the installed app on macOS"
-run = """
-APP="/Applications/Ultra RSS Reader.app"
-if [ ! -d "$APP" ]; then
-  echo "Error: $APP not found" >&2
-  exit 1
-fi
-xattr -cr "$APP"
-codesign --force --deep --sign - "$APP"
-open "$APP"
-"""
-run_windows = "echo app:open is macOS-only (expects /Applications, xattr, and open). && exit /b 1"
-
 [tasks."app:dev:browser"]
 description = "Run frontend dev server for browser UI testing"
 run = "pnpm dev --host 127.0.0.1 --port 4173 --strictPort"
@@ -205,6 +199,41 @@ run = "pnpm dev --host 127.0.0.1 --port 4173 --strictPort"
 [tasks."app:build"]
 description = "Build native app for current platform (.app/.dmg on macOS, .msi/.exe on Windows)"
 run = "pnpm exec tauri build"
+
+[tasks."app:install"]
+description = "Build and install the native app for the current platform"
+depends = ["app:build"]
+run = """
+APP_SRC="src-tauri/target/release/bundle/macos/Ultra RSS Reader.app"
+APP_DST="/Applications/Ultra RSS Reader.app"
+if [ ! -d "$APP_SRC" ]; then
+  echo "Error: $APP_SRC not found" >&2
+  exit 1
+fi
+rm -rf "$APP_DST"
+cp -R "$APP_SRC" "$APP_DST"
+xattr -cr "$APP_DST"
+codesign --force --deep --sign - "$APP_DST"
+open "$APP_DST"
+"""
+run_windows = """
+$msi = Get-ChildItem 'src-tauri\\target\\release\\bundle\\msi\\*.msi' -ErrorAction SilentlyContinue |
+  Sort-Object LastWriteTime -Descending |
+  Select-Object -First 1
+if ($msi) {
+  $process = Start-Process msiexec.exe -ArgumentList @('/i', $msi.FullName, '/passive') -Wait -PassThru
+  exit $process.ExitCode
+}
+$exe = Get-ChildItem 'src-tauri\\target\\release\\bundle\\nsis\\*.exe' -ErrorAction SilentlyContinue |
+  Sort-Object LastWriteTime -Descending |
+  Select-Object -First 1
+if ($exe) {
+  $process = Start-Process -FilePath $exe.FullName -Wait -PassThru
+  exit $process.ExitCode
+}
+Write-Error 'No Windows installer found under src-tauri\\target\\release\\bundle.'
+exit 1
+"""
 
 [tasks."app:build:debug"]
 description = "Build native app in debug mode (faster, no optimizations)"
