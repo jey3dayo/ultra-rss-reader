@@ -66,9 +66,10 @@ describe("Design-themed UI primitives", () => {
     expect(globalCss).toContain(".motion-popup-surface");
     expect(globalCss).toContain(".motion-disclosure-trigger:hover");
     expect(globalCss).not.toContain("transform: translateY(-1px);");
-    expect(globalCss).toContain(
+    expect(globalCss).not.toContain(
       "box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 28%, transparent);",
     );
+    expect(globalCss).toContain("border-color: color-mix(in srgb, var(--color-border-strong) 28%, transparent);");
     expect(globalCss).toContain(".motion-contextual-surface:focus-within");
     expect(globalCss).toContain('.motion-content-swap[data-motion-phase="entering"]');
     expect(globalCss).toContain("@keyframes motion-content-swap-enter");
