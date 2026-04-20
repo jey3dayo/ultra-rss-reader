@@ -1,4 +1,4 @@
-import { FolderTree, Settings } from "lucide-react";
+import { Rss, Settings } from "lucide-react";
 import { controlChipIconVariants, controlChipVariants } from "@/components/shared/control-chip";
 import { Button } from "@/components/ui/button";
 import type { SidebarFooterActionsViewProps } from "./sidebar.types";
@@ -17,7 +17,7 @@ export function SidebarFooterActions({
         onClick={onOpenSubscriptionsIndex}
         className={controlChipVariants({ size: "comfortable", interaction: "action" })}
       >
-        <FolderTree className={controlChipIconVariants({ size: "comfortable" })} />
+        <Rss className={controlChipIconVariants({ size: "comfortable" })} />
         <span>{subscriptionsIndexLabel}</span>
       </Button>
       <Button
