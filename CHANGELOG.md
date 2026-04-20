@@ -4,6 +4,59 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-04-20
+
+### Bug Fixes
+
+- use RSS icon for subscriptions entry
+- preserve disclosure trigger focus ring
+- keep selected article rows free from focus outlines
+- route tauri tasks through portable dispatcher
+- optimistically move feeds between folders
+- extend shared scroll content lanes
+- share scroll content lane
+- align article list selection lane
+- restore hover-only feed tree handles
+- share feed tree row shell
+- isolate rust test target on windows
+- spawn vite directly in dev manager
+- detect quoted vite entrypoints
+- add subscriptions root context menu
+- refine article selection hierarchy
+- scope mark all read to current selection
+- polish article empty state presence
+- stabilize dark article surfaces
+- refine loopback network error handling
+- restore workspace header stories
+- refine article empty state placement
+- polish sidebar hierarchy and desktop header spacing
+- polish sidebar account header
+- share calm hover motion for dense workspaces
+- calm hover motion across subscriptions
+
+### Documentation
+
+- refresh window chrome guidance
+- track sidebar polish follow-ups
+
+### Maintenance
+
+- remove remaining lightweight local state
+- unify lightweight local state in settings
+- unify lightweight local state in reader
+- unify lightweight controller state
+- normalize helper imports
+- remove unsafe chart style injection
+- reduce react doctor warnings
+- simplify overlay toolbar actions
+- normalize accounts modal view state
+- extract browser overlay chrome actions
+- improve stable mock UI behavior
+- reduce lightweight similarity findings
+- reduce react doctor warnings in mocks
+- sync Tauri package version
+- streamline mise lint and install tasks
+
 ## [0.16.0] - 2026-04-19
 
 ### Features
