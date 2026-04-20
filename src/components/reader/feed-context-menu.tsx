@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { useState } from "react";
+import { useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { openInBrowser } from "@/api/tauri-commands";
@@ -22,10 +22,35 @@ export type FeedContextMenuContentProps = {
   feed: FeedDto;
 };
 
+type FeedContextMenuState = {
+  showRenameDialog: boolean;
+  showUnsubscribeDialog: boolean;
+};
+
+type FeedContextMenuAction =
+  | { type: "set-rename-dialog"; value: boolean }
+  | { type: "set-unsubscribe-dialog"; value: boolean };
+
+const initialFeedContextMenuState: FeedContextMenuState = {
+  showRenameDialog: false,
+  showUnsubscribeDialog: false,
+};
+
+function feedContextMenuReducer(state: FeedContextMenuState, action: FeedContextMenuAction): FeedContextMenuState {
+  switch (action.type) {
+    case "set-rename-dialog":
+      return { ...state, showRenameDialog: action.value };
+    case "set-unsubscribe-dialog":
+      return { ...state, showUnsubscribeDialog: action.value };
+    default:
+      return state;
+  }
+}
+
 export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   const { t } = useTranslation("reader");
-  const [showRenameDialog, setShowRenameDialog] = useState(false);
-  const [showUnsubscribeDialog, setShowUnsubscribeDialog] = useState(false);
+  const [state, dispatch] = useReducer(feedContextMenuReducer, initialFeedContextMenuState);
+  const { showRenameDialog, showUnsubscribeDialog } = state;
   const confirmMarkAllRead = useConfirmMarkAllRead();
   const markFeedRead = useMarkFeedRead();
   const deleteFeedMutation = useDeleteFeed();
@@ -68,7 +93,7 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
       await deleteFeedMutation.mutateAsync({
         feedId: feed.id,
         title: feed.title,
-        onSuccess: () => setShowUnsubscribeDialog(false),
+        onSuccess: () => dispatch({ type: "set-unsubscribe-dialog", value: false }),
       });
     } catch {
       return;
@@ -91,15 +116,19 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
           const nextModes = displayPresetToTriStateModes(value as "default" | "standard" | "preview");
           void updateFeedDisplaySettings(feed.id, nextModes.readerMode, nextModes.webPreviewMode);
         }}
-        onUnsubscribe={() => setShowUnsubscribeDialog(true)}
-        onEdit={() => setShowRenameDialog(true)}
+        onUnsubscribe={() => dispatch({ type: "set-unsubscribe-dialog", value: true })}
+        onEdit={() => dispatch({ type: "set-rename-dialog", value: true })}
       />
 
-      <RenameDialog feed={feed} open={showRenameDialog} onOpenChange={setShowRenameDialog} />
+      <RenameDialog
+        feed={feed}
+        open={showRenameDialog}
+        onOpenChange={(value) => dispatch({ type: "set-rename-dialog", value })}
+      />
       <UnsubscribeDialog
         feed={feed}
         open={showUnsubscribeDialog}
-        onOpenChange={setShowUnsubscribeDialog}
+        onOpenChange={(value) => dispatch({ type: "set-unsubscribe-dialog", value })}
         onConfirm={handleConfirmUnsubscribe}
       />
     </>
