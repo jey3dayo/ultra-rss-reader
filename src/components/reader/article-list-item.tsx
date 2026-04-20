@@ -54,9 +54,12 @@ export function ArticleListItem({
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
-        "relative flex w-full cursor-pointer flex-col gap-1 px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color] duration-150 focus-visible:bg-surface-1/72 focus-visible:shadow-[inset_0_0_0_1px_var(--color-border-strong)]",
+        "relative flex w-full cursor-pointer flex-col gap-1 px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color] duration-150",
         selectionStyle === "classic"
-          ? cn(isSelected && "border-l-2 border-primary bg-surface-1/72")
+          ? cn(
+              "focus-visible:bg-surface-1/72 focus-visible:shadow-[inset_0_0_0_1px_var(--color-border-strong)]",
+              isSelected && "border-l-2 border-primary bg-surface-1/72",
+            )
           : cn(
               isSelected &&
                 "bg-surface-1 shadow-[0_18px_34px_-30px_rgba(38,37,30,0.48)] after:absolute after:inset-y-2 after:left-1.5 after:w-1 after:rounded-full after:bg-border-strong",

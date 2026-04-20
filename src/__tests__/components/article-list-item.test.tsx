@@ -200,7 +200,7 @@ describe("ArticleListItem", () => {
     expect(option).toHaveClass("border-l-2", "border-primary", "bg-surface-1/72");
   });
 
-  it("gives selected modern rows a clear keyboard focus treatment without relying on hover", () => {
+  it("keeps selected modern rows free from extra keyboard focus outlines", () => {
     render(
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
@@ -221,7 +221,8 @@ describe("ArticleListItem", () => {
     expect(option).not.toHaveClass("focus-visible:ring-ring/45");
     expect(option).not.toHaveClass("ring-1");
     expect(option).not.toHaveClass("hover:bg-surface-1/72");
-    expect(option).toHaveClass("focus-visible:shadow-[inset_0_0_0_1px_var(--color-border-strong)]");
+    expect(option).not.toHaveClass("focus-visible:bg-surface-1/72");
+    expect(option).not.toHaveClass("focus-visible:shadow-[inset_0_0_0_1px_var(--color-border-strong)]");
     expect(option).toHaveClass("shadow-[0_18px_34px_-30px_rgba(38,37,30,0.48)]");
   });
 
