@@ -26,6 +26,85 @@ const ciWaitOptions = { timeout: 20_000 };
 const readingListTestTimeout = 30_000;
 const primaryArticle = sampleArticles[0];
 const primaryFeed = sampleFeeds[0];
+const autoMarkArticleReadCall = {
+  cmd: "mark_article_read",
+  args: { articleId: "art-1", read: true },
+} as const satisfies MockTauriCommandCall;
+
+function requirePrimaryArticlePaneProps() {
+  if (!primaryArticle || !primaryFeed) {
+    throw new Error("primary article fixtures are missing");
+  }
+
+  return {
+    article: primaryArticle,
+    feed: primaryFeed,
+    feedName: "Feed One",
+  } as const;
+}
+
+function setupAutoMarkMocks(calls: MockTauriCommandCall[]) {
+  setupTauriMocks((cmd, args) => {
+    calls.push({ cmd, args });
+
+    switch (cmd) {
+      case "list_articles":
+        return sampleArticles.filter((article) => article.feed_id === args.feedId);
+      case "list_feeds":
+        return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+      case "list_tags":
+        return [];
+      case "get_article_tags":
+      case "mark_article_read":
+        return null;
+      default:
+        return undefined;
+    }
+  });
+}
+
+async function expectArticleAutoMarksAsRead({
+  afterReading,
+  delayMs,
+}: {
+  afterReading: "after_0_3s" | "after_0_5s" | "after_1s";
+  delayMs: number;
+}) {
+  vi.useFakeTimers();
+
+  try {
+    const calls: MockTauriCommandCall[] = [];
+    setupAutoMarkMocks(calls);
+
+    usePreferencesStore.setState({
+      prefs: { after_reading: afterReading },
+      loaded: true,
+    });
+
+    render(<ArticlePane {...requirePrimaryArticlePaneProps()} />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(calls).not.toContainEqual(autoMarkArticleReadCall);
+
+    await vi.advanceTimersByTimeAsync(delayMs - 1);
+    expect(calls).not.toContainEqual(autoMarkArticleReadCall);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const markCalls = calls.filter(
+      (call) =>
+        call.cmd === autoMarkArticleReadCall.cmd &&
+        call.args.articleId === autoMarkArticleReadCall.args.articleId &&
+        call.args.read === autoMarkArticleReadCall.args.read,
+    );
+    expect(markCalls).toHaveLength(1);
+  } finally {
+    vi.useRealTimers();
+  }
+}
 
 function setReadingListPlatformSupport(enabled: boolean) {
   usePlatformStore.setState({
@@ -1193,178 +1272,24 @@ describe("ArticleView", () => {
   });
 
   it("auto-marks the selected article as read after 0.3 seconds", async () => {
-    vi.useFakeTimers();
-
-    if (!primaryArticle) {
-      throw new Error("primaryArticle fixture is missing");
-    }
-
-    const calls: MockTauriCommandCall[] = [];
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
-
-      switch (cmd) {
-        case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
-        case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
-        case "list_tags":
-          return [];
-        case "get_article_tags":
-          return [];
-        case "mark_article_read":
-          return null;
-        default:
-          return undefined;
-      }
+    await expectArticleAutoMarksAsRead({
+      afterReading: "after_0_3s",
+      delayMs: 300,
     });
-
-    usePreferencesStore.setState({
-      prefs: { after_reading: "after_0_3s" },
-      loaded: true,
-    });
-
-    render(<ArticlePane article={primaryArticle} feed={primaryFeed} feedName="Feed One" />, {
-      wrapper: createWrapper(),
-    });
-
-    expect(calls).not.toContainEqual({
-      cmd: "mark_article_read",
-      args: { articleId: "art-1", read: true },
-    });
-
-    await vi.advanceTimersByTimeAsync(299);
-
-    expect(calls).not.toContainEqual({
-      cmd: "mark_article_read",
-      args: { articleId: "art-1", read: true },
-    });
-
-    await vi.advanceTimersByTimeAsync(1);
-    await Promise.resolve();
-    await Promise.resolve();
-
-    const markCalls = calls.filter(
-      (call) => call.cmd === "mark_article_read" && call.args.articleId === "art-1" && call.args.read === true,
-    );
-    expect(markCalls).toHaveLength(1);
-    vi.useRealTimers();
   });
 
   it("auto-marks the selected article as read after 0.5 seconds", async () => {
-    vi.useFakeTimers();
-
-    if (!primaryArticle) {
-      throw new Error("primaryArticle fixture is missing");
-    }
-
-    const calls: MockTauriCommandCall[] = [];
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
-
-      switch (cmd) {
-        case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
-        case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
-        case "list_tags":
-          return [];
-        case "get_article_tags":
-          return [];
-        default:
-          return undefined;
-      }
+    await expectArticleAutoMarksAsRead({
+      afterReading: "after_0_5s",
+      delayMs: 500,
     });
-
-    usePreferencesStore.setState({
-      prefs: { after_reading: "after_0_5s" },
-      loaded: true,
-    });
-
-    render(<ArticlePane article={primaryArticle} feed={primaryFeed} feedName="Feed One" />, {
-      wrapper: createWrapper(),
-    });
-
-    expect(calls).not.toContainEqual({
-      cmd: "mark_article_read",
-      args: { articleId: "art-1", read: true },
-    });
-
-    await vi.advanceTimersByTimeAsync(499);
-
-    expect(calls).not.toContainEqual({
-      cmd: "mark_article_read",
-      args: { articleId: "art-1", read: true },
-    });
-
-    await vi.advanceTimersByTimeAsync(1);
-    await Promise.resolve();
-    await Promise.resolve();
-
-    const markCalls = calls.filter(
-      (call) => call.cmd === "mark_article_read" && call.args.articleId === "art-1" && call.args.read === true,
-    );
-    expect(markCalls).toHaveLength(1);
-    vi.useRealTimers();
   });
 
   it("auto-marks the selected article as read after one second", async () => {
-    vi.useFakeTimers();
-
-    if (!primaryArticle) {
-      throw new Error("primaryArticle fixture is missing");
-    }
-
-    const calls: MockTauriCommandCall[] = [];
-    setupTauriMocks((cmd, args) => {
-      calls.push({ cmd, args });
-
-      switch (cmd) {
-        case "list_articles":
-          return sampleArticles.filter((article) => article.feed_id === args.feedId);
-        case "list_feeds":
-          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
-        case "list_tags":
-          return [];
-        case "get_article_tags":
-          return [];
-        case "mark_article_read":
-          return null;
-        default:
-          return undefined;
-      }
+    await expectArticleAutoMarksAsRead({
+      afterReading: "after_1s",
+      delayMs: 1000,
     });
-
-    usePreferencesStore.setState({
-      prefs: { after_reading: "after_1s" },
-      loaded: true,
-    });
-
-    render(<ArticlePane article={primaryArticle} feed={primaryFeed} feedName="Feed One" />, {
-      wrapper: createWrapper(),
-    });
-
-    expect(calls).not.toContainEqual({
-      cmd: "mark_article_read",
-      args: { articleId: "art-1", read: true },
-    });
-
-    await vi.advanceTimersByTimeAsync(999);
-
-    expect(calls).not.toContainEqual({
-      cmd: "mark_article_read",
-      args: { articleId: "art-1", read: true },
-    });
-
-    await vi.advanceTimersByTimeAsync(1);
-    await Promise.resolve();
-    await Promise.resolve();
-
-    const markCalls = calls.filter(
-      (call) => call.cmd === "mark_article_read" && call.args.articleId === "art-1" && call.args.read === true,
-    );
-    expect(markCalls).toHaveLength(1);
-    vi.useRealTimers();
   });
 
   it("does not auto-mark the article as read when unmounted before one second", async () => {
