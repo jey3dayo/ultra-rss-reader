@@ -18,5 +18,7 @@ describe("SidebarFooterActions", () => {
 
     expect(subscriptionsButton.querySelector("svg.lucide-rss")).toBeInTheDocument();
     expect(settingsButton.querySelector("svg.lucide-settings")).toBeInTheDocument();
+    expect(subscriptionsButton).toHaveClass("h-8", "px-3");
+    expect(settingsButton).toHaveClass("h-8", "px-3");
   });
 });

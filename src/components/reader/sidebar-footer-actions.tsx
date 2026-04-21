@@ -15,7 +15,7 @@ export function SidebarFooterActions({
         variant="ghost"
         size="sm"
         onClick={onOpenSubscriptionsIndex}
-        className={controlChipVariants({ size: "comfortable", interaction: "action" })}
+        className={`${controlChipVariants({ size: "comfortable", interaction: "action" })} h-8 px-3`}
       >
         <Rss className={controlChipIconVariants({ size: "comfortable" })} />
         <span>{subscriptionsIndexLabel}</span>
@@ -24,7 +24,7 @@ export function SidebarFooterActions({
         variant="ghost"
         size="sm"
         onClick={onOpenSettings}
-        className={controlChipVariants({ size: "comfortable", interaction: "action" })}
+        className={`${controlChipVariants({ size: "comfortable", interaction: "action" })} h-8 px-3`}
       >
         <Settings className={controlChipIconVariants({ size: "comfortable" })} />
         <span>{settingsLabel}</span>
