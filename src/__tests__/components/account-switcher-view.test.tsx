@@ -36,8 +36,10 @@ describe("AccountSwitcherView", () => {
     expect(screen.getByRole("button", { name: /Local/ })).toHaveClass("select-none");
     expect(screen.getByRole("menu", { name: "Accounts" })).toBeInTheDocument();
     expect(screen.getAllByRole("menuitemradio")).toHaveLength(2);
+    expect(screen.getByRole("heading", { name: "Local" })).toHaveClass("font-medium");
+    expect(screen.getByText("Not synced yet")).toHaveClass("text-[0.72rem]", "tracking-[0.04em]");
     expect(screen.getByRole("heading", { name: "Local" }).querySelector(".lucide-chevron-down")).toHaveClass(
-      "text-foreground-soft",
+      "text-sidebar-foreground/56",
     );
     expect(screen.getByText("Retrying at 12:15")).toBeInTheDocument();
 
@@ -78,7 +80,7 @@ describe("AccountSwitcherView", () => {
     const secondItem = screen.getByRole("menuitemradio", { name: /FreshRSS/ });
 
     expect(screen.getByRole("button", { name: /Local/ })).toBeInTheDocument();
-    expect(screen.getByText("Not synced yet")).toHaveClass("text-sidebar-foreground/58");
+    expect(screen.getByText("Not synced yet")).toHaveClass("text-sidebar-foreground/54");
     firstItem.focus();
     fireEvent.keyDown(menu, { key: "ArrowDown" });
     expect(secondItem).toHaveFocus();

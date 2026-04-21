@@ -20,7 +20,7 @@ describe("SmartViewsView", () => {
     );
 
     expect(screen.getByText("Smart views")).toBeInTheDocument();
-    expect(screen.getByText("Smart views")).toHaveClass("text-[var(--sidebar-foreground-soft-strong)]");
+    expect(screen.getByText("Smart views")).toHaveClass("px-2", "font-semibold", "text-sidebar-foreground/50");
 
     const unreadButton = screen.getByRole("button", { name: /Unread/ });
     const starredButton = screen.getByRole("button", { name: /Starred/ });
@@ -28,10 +28,13 @@ describe("SmartViewsView", () => {
     expect(unreadButton).toHaveAttribute("aria-pressed", "true");
     expect(starredButton).toHaveAttribute("aria-pressed", "false");
     expect(unreadButton).toHaveClass("w-full");
+    expect(unreadButton).toHaveClass("rounded-lg");
     expect(starredButton).toHaveClass("w-full");
+    expect(starredButton).toHaveClass("rounded-lg");
     expect(unreadButton).toHaveClass("bg-[var(--semantic-tone-unread-surface)]");
     expect(unreadButton).toHaveClass("text-[var(--semantic-tone-unread-sidebar-foreground)]");
     expect(unreadButton).toHaveClass("before:bg-primary/85");
+    expect(screen.getByText("Unread")).toHaveClass("font-semibold");
     expect(unreadButton).not.toHaveAttribute("style");
     expect(starredButton).toHaveClass("hover:text-[var(--semantic-tone-starred-sidebar-foreground)]");
     expect(starredButton).not.toHaveAttribute("style");

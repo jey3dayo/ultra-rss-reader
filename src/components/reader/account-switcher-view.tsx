@@ -58,13 +58,13 @@ export function AccountSwitcherView({
         aria-expanded={hasMultipleAccounts ? isExpanded : undefined}
         aria-controls={hasMultipleAccounts ? menuId : undefined}
       >
-        <h1 className="flex max-w-full items-end gap-1.5 text-[1.68rem] leading-[0.95] font-normal tracking-[-0.055em] text-current">
+        <h1 className="flex max-w-full items-end gap-1.5 text-[1.68rem] leading-[0.95] font-medium tracking-[-0.055em] text-current">
           {selectedAccount?.name ?? title}
           {hasMultipleAccounts && (
-            <ChevronDown className="mb-0.5 h-3.5 w-3.5 shrink-0 text-foreground-soft transition-colors duration-200 group-hover:text-sidebar-foreground" />
+            <ChevronDown className="mb-0.5 h-3.5 w-3.5 shrink-0 text-sidebar-foreground/56 transition-colors duration-200 group-hover:text-sidebar-foreground/78" />
           )}
         </h1>
-        <p className="text-[0.78rem] font-medium tracking-[0.01em] text-sidebar-foreground/58">{lastSyncedLabel}</p>
+        <p className="text-[0.72rem] font-medium tracking-[0.04em] text-sidebar-foreground/54">{lastSyncedLabel}</p>
       </button>
 
       {isExpanded && accounts.length > 0 ? (

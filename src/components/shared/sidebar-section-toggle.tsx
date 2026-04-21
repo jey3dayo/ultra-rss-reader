@@ -18,12 +18,14 @@ export function SidebarSectionToggle({
       aria-expanded={isOpen}
       aria-controls={panelId}
       className={cn(
-        "motion-disclosure-trigger flex w-full items-center justify-between rounded-md px-1 py-1.5 text-[var(--sidebar-foreground-soft-strong)] select-none transition-[background-color,color] duration-150 hover:bg-surface-1/72 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
+        "motion-disclosure-trigger flex w-full items-center justify-between rounded-lg px-1.5 py-1.5 text-[var(--sidebar-foreground-soft-strong)] select-none transition-[background-color,color] duration-150 hover:bg-surface-1/72 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45",
         className,
       )}
     >
-      <span className="text-[0.72rem] font-medium tracking-[0.12em] uppercase">{label}</span>
-      <ChevronDown className={cn("motion-disclosure-icon h-3.5 w-3.5 text-foreground-soft", !isOpen && "-rotate-90")} />
+      <span className="text-[0.72rem] font-semibold tracking-[0.12em] uppercase">{label}</span>
+      <ChevronDown
+        className={cn("motion-disclosure-icon h-3.5 w-3.5 text-sidebar-foreground/54", !isOpen && "-rotate-90")}
+      />
     </button>
   );
 

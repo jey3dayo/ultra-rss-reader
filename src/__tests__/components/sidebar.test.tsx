@@ -539,6 +539,7 @@ describe("Sidebar", () => {
     expect(smartViewsHeading.closest('[data-slot="scroll-area"]')).toBeNull();
     expect(unreadButton.closest('[data-slot="scroll-area"]')).toBeNull();
     expect(feedsHeader.closest('[data-slot="scroll-area"]')).toBeNull();
+    expect(feedsHeader).toHaveClass("rounded-lg");
 
     await user.click(unreadButton);
     expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "unread" });
