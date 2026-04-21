@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.18.1] - 2026-04-22
+
+### Bug Fixes
+
+- restore browser overlay drag region
+
 ## [0.18.0] - 2026-04-21
 
 ### Bug Fixes
