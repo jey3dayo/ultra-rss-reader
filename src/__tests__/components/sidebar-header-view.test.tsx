@@ -39,10 +39,12 @@ describe("SidebarHeaderView", () => {
     expect(screen.getByLabelText("Sync feeds")).toHaveClass(
       "text-foreground-soft",
       "hover:bg-[var(--sidebar-hover-surface)]",
+      "md:size-8",
     );
     expect(screen.getByLabelText("Add feed")).toHaveClass(
       "text-foreground-soft",
       "hover:bg-[var(--sidebar-hover-surface)]",
+      "md:size-8",
     );
 
     await user.click(screen.getByLabelText("Sync feeds"));

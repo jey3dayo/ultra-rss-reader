@@ -32,7 +32,7 @@ const densityMap: Record<SidebarDensity, SidebarDensityTokens> = {
     navButton: "min-h-9 py-1",
     navButtonPaddingX: "px-1.5",
     navButtonContentGap: "gap-1.5",
-    leadingControl: "h-7 w-7",
+    leadingControl: "h-8 w-8",
     treeRailOffset: "-0.5rem",
     treeGap: "space-y-0.5",
     childGap: "space-y-0.5",

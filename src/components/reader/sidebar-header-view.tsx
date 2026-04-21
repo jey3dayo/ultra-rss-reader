@@ -53,7 +53,7 @@ export function SidebarHeaderView({
   const { isFeedbackSpinning } = state;
   const feedbackSpinTimerRef = useRef<number | null>(null);
   const headerActionButtonClassName =
-    "h-11 gap-1.5 px-3 text-foreground-soft hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground md:size-7 md:px-0";
+    "h-11 gap-1.5 px-3 text-foreground-soft hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground md:size-8 md:px-0";
 
   useEffect(() => {
     return () => {
