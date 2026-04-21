@@ -87,7 +87,7 @@ export function FeedTreeFolderSection({
                 selected={folder.isSelected}
                 selectedIndicatorMode="hidden"
                 trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
-                trailingClassName="text-foreground-soft"
+                trailingClassName="text-[0.72rem] text-sidebar-foreground/54"
                 {...(canDragFeeds
                   ? {
                       [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "folder",
@@ -95,14 +95,14 @@ export function FeedTreeFolderSection({
                     }
                   : {})}
                 className={cn(
-                  "flex-1 px-0.5 pl-1.5",
+                  "flex-1 rounded-lg px-0.5 pl-1.5",
                   isActive && "border-dashed bg-[var(--feed-tree-drop-target-surface)] ring-1 ring-sidebar-border",
                 )}
               />
             }
             onClick={() => onSelectFolder?.(folder.id)}
           >
-            <span className="font-medium">{folder.name}</span>
+            <span className="font-medium tracking-[-0.01em]">{folder.name}</span>
           </ContextMenu.Trigger>
           {renderFolderContextMenu?.(folder)}
         </ContextMenu.Root>

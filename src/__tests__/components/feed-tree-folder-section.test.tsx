@@ -31,10 +31,12 @@ describe("FeedTreeFolderSection", () => {
     const toggleButton = screen.getByRole("button", { name: "Toggle folder Comic" });
 
     expect(folderButton).toHaveClass("pl-1.5");
+    expect(folderButton).toHaveClass("rounded-lg");
     expect(folderButton).not.toHaveClass("pl-0");
     expect(toggleButton).toHaveClass("select-none", "hover:bg-[var(--sidebar-hover-surface)]");
     expect(toggleButton).toHaveClass("h-8", "w-8");
-    expect(screen.getByText("9,274")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("Comic")).toHaveClass("font-medium");
+    expect(screen.getByText("9,274")).toHaveClass("text-[0.72rem]", "text-sidebar-foreground/54");
   });
 
   it("keeps the folder toggle in normal row flow so the selection bar stays off the chevron rail", () => {

@@ -97,10 +97,11 @@ export function FeedTreeRow({
               trailing={feed.unreadCount > 0 ? feed.unreadCount.toLocaleString() : undefined}
               trailingClassName={
                 feed.isSelected
-                  ? "text-[var(--sidebar-selection-muted)]"
-                  : "text-[var(--sidebar-foreground-muted-strong)]"
+                  ? "text-[0.72rem] text-[var(--sidebar-selection-muted)]"
+                  : "text-[0.72rem] text-sidebar-foreground/52"
               }
               data-feed-id={feed.id}
+              className="rounded-lg"
             />
           }
           onClick={() => onSelectFeed(feed.id)}
@@ -110,7 +111,7 @@ export function FeedTreeRow({
               <FeedFavicon title={feed.title} url={feed.url} siteUrl={feed.siteUrl} grayscale={feed.grayscaleFavicon} />
             </span>
           )}
-          <span className="truncate">{feed.title}</span>
+          <span className="truncate font-medium">{feed.title}</span>
         </ContextMenu.Trigger>
         {renderFeedContextMenu?.(feed)}
       </ContextMenu.Root>

@@ -4,10 +4,6 @@
 
 ## UI/UX 監査の残り
 
-- [ ] サイドバー全体を 95 点ラインまで磨く
-  - account header だけでなく、`スマートビュー` 見出し、未読サマリーカード、`購読` セクション見出し、行ごとの余白と強弱をまとめて整える
-  - 先頭から下へ視線が自然に流れるよう、タイトル・補助情報・集計 UI の hierarchy を再確認する
-  - 候補箇所: `src/components/reader/account-switcher-view.tsx`, `src/components/reader/smart-views-view.tsx`, `src/components/reader/sidebar-feed-section.tsx`, `src/components/reader/feed-tree-row.tsx`
 - [ ] ダークテーマでサイドバー冒頭のコントラストと温度感を検証する
   - account header のタイトル、時刻、hover/focus、未読サマリーカードが dark でも沈みすぎないかを Tauri 実機で確認する
   - light で整えた hierarchy が dark でも維持されるよう、必要なら色トークンと hover tone を微調整する

@@ -42,6 +42,7 @@ describe("FeedTreeRow", () => {
     expect(row).not.toBeNull();
     expect(feedButton).not.toHaveClass("pl-7");
     expect(feedButton).not.toHaveClass("pl-8");
+    expect(feedButton).toHaveClass("rounded-lg");
     expect(selectedIndicator).toHaveClass("left-[var(--feed-tree-rail-offset)]");
     expect(handleAnchor).toHaveClass("left-[var(--feed-tree-rail-offset)]");
     expect(selectedIndicator).toHaveClass("group-hover/feed-row:opacity-0");
@@ -62,6 +63,20 @@ describe("FeedTreeRow", () => {
     expect(selectedIndicator).not.toHaveClass("group-hover/feed-row:opacity-0");
     expect(selectedIndicator).not.toHaveClass("group-focus-within/feed-row:opacity-0");
     expect(dragButton).toBeNull();
+  });
+
+  it("keeps feed titles slightly stronger than their unread counts", () => {
+    render(
+      <FeedTreeRow
+        feed={{ ...baseFeed, isSelected: false }}
+        displayFavicons={false}
+        onSelectFeed={vi.fn()}
+        canDragFeeds={false}
+      />,
+    );
+
+    expect(screen.getByText("Alpha")).toHaveClass("font-medium");
+    expect(screen.getByText("4")).toHaveClass("text-[0.72rem]", "text-sidebar-foreground/52");
   });
 
   it("shows the drag handle only on row hover or its own focus-visible state", () => {
