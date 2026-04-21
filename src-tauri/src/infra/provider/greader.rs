@@ -311,7 +311,11 @@ impl FeedProvider for GReaderProvider {
             .subscriptions
             .into_iter()
             .map(|s| {
-                let folder_remote_id = s.categories.first().map(|c| c.id.clone());
+                let folder_remote_id = s
+                    .categories
+                    .iter()
+                    .find(|category| category.id.starts_with(LABEL_PREFIX))
+                    .map(|category| category.id.clone());
                 RemoteSubscription {
                     remote_id: s.id,
                     title: s.title,
@@ -777,6 +781,7 @@ mod tests {
                             "url": "https://example.com/rss",
                             "htmlUrl": "https://example.com",
                             "categories": [
+                                {"id": "user/-/state/com.google/reading-list", "label": "reading-list"},
                                 {"id": "user/-/label/Tech", "label": "Tech"}
                             ],
                             "iconUrl": "https://example.com/icon.png"
