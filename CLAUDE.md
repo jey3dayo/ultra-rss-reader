@@ -35,7 +35,21 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 
 - [README.md](README.md): product overview, architecture, commands, verification model
 - [docs/README.md](docs/README.md): operational and reference docs index
+- [DESIGN.md](DESIGN.md): visual rules and reusable UI design decisions
+- [DESIGN_REVIEW.md](DESIGN_REVIEW.md): UI review flow and routing (`DESIGN.md` vs `shared` vs feature-local)
 - [.claude/rules/README.md](.claude/rules/README.md): project-specific focused rules by topic
+
+## Agent Routing
+
+- `AGENTS.md` is only the entry point. Keep repository-local operating guidance centralized in this file.
+- For UI implementation, consult `DESIGN.md` before changing visuals or introducing reusable design patterns.
+- For UI review and abstraction decisions, follow `DESIGN_REVIEW.md`.
+- Put longer debugging, recovery, or diagnostic workflows in skills or `README.md` / `docs/`, not in `AGENTS.md`.
+
+## Codex App Notes
+
+- In Codex app sessions, when asking the user to choose among a small fixed set of options or confirm a decision, prefer the app's wizard or button selection UI over free-form text.
+- For prompts such as `A/B`, `yes/no`, or short enumerated decisions, offer clickable choices first. If that UI is unavailable, fall back to a numbered list or `y/n` reply that can be answered with minimal typing.
 
 ## Feature Work Reminder
 
