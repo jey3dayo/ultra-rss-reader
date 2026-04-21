@@ -175,24 +175,36 @@ describe("executeAction", () => {
   });
 
   describe("development actions", () => {
-    it("restarts the app in dev builds", async () => {
+    it("reloads the current window instead of calling the native app restart in dev builds", async () => {
       vi.stubEnv("DEV", true);
+      const reloadSpy = vi.fn();
+      vi.spyOn(window, "location", "get").mockReturnValue({
+        ...window.location,
+        reload: reloadSpy,
+      } as Location);
 
       executeAction("restart-app");
 
       await waitFor(() => {
-        expect(restartAppMock).toHaveBeenCalledTimes(1);
+        expect(reloadSpy).toHaveBeenCalledTimes(1);
       });
+      expect(restartAppMock).not.toHaveBeenCalled();
     });
 
     it("does not restart the app outside dev builds", async () => {
       vi.stubEnv("DEV", false);
+      const reloadSpy = vi.fn();
+      vi.spyOn(window, "location", "get").mockReturnValue({
+        ...window.location,
+        reload: reloadSpy,
+      } as Location);
 
       executeAction("restart-app");
 
       await waitFor(() => {
         expect(restartAppMock).not.toHaveBeenCalled();
       });
+      expect(reloadSpy).not.toHaveBeenCalled();
     });
   });
 

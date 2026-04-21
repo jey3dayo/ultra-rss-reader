@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { DEV_RESTART_SHORTCUT, formatKeyForDisplay, getShortcutDisplay } from "@/lib/keyboard-shortcuts";
+import { getShortcutDisplay } from "@/lib/keyboard-shortcuts";
 import type { UseCommandPaletteActionsParams, UseCommandPaletteActionsResult } from "./command-palette.types";
 
 export function useCommandPaletteActions({
@@ -84,7 +84,6 @@ export function useCommandPaletteActions({
       actions.push({
         id: "restart-app",
         label: t("command_palette.restart_app"),
-        shortcut: formatKeyForDisplay(DEV_RESTART_SHORTCUT, platformKind),
         keywords: ["restart", "relaunch", "reload", "dev"],
         icon: RotateCcwIcon,
       });

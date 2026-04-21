@@ -299,7 +299,7 @@ describe("CommandPalette", () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     const restartOption = await screen.findByRole("option", { name: /Restart app/ });
-    expect(restartOption).toHaveTextContent("⌘ Shift + R");
+    expect(restartOption).not.toHaveTextContent("⌘ Shift + R");
 
     await user.click(restartOption);
 

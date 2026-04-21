@@ -207,8 +207,6 @@ export const shortcutPrefKey = (id: ShortcutActionId): string => `shortcut_${id}
 
 export type KeyboardShortcutPrefs = Record<string, string>;
 export type KeyToActionMap = Map<string, ShortcutActionId>;
-export const DEV_RESTART_SHORTCUT = "\u2318+Shift+R";
-
 export function getShortcutKey(id: ShortcutActionId, prefs: KeyboardShortcutPrefs): string {
   const definition = shortcutDefinitions.find((item) => item.id === id);
   return prefs[shortcutPrefKey(id)] ?? definition?.defaultKey ?? "";
@@ -385,10 +383,6 @@ export function resolveKeyboardAction(
 
   if (key === "?") {
     return Result.succeed({ type: "open-shortcuts-help" });
-  }
-
-  if (import.meta.env.DEV && normalized === DEV_RESTART_SHORTCUT) {
-    return Result.succeed({ type: "restart-app" });
   }
 
   // Modifier shortcuts should not fall back to plain single-key bindings.

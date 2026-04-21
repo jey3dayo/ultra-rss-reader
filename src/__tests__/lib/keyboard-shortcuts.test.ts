@@ -42,7 +42,7 @@ describe("keyboard shortcut resolver", () => {
     expect(Result.unwrap(result)).toEqual({ type: "open-command-palette" });
   });
 
-  it("resolves Cmd+Shift+R to restart-app only in dev", () => {
+  it("does not reserve Cmd+Shift+R in dev builds", () => {
     vi.stubEnv("DEV", true);
 
     const result = resolveKeyboardAction({
@@ -56,7 +56,7 @@ describe("keyboard shortcut resolver", () => {
       viewMode: "all",
     });
 
-    expect(Result.unwrap(result)).toEqual({ type: "restart-app" });
+    expect(Result.unwrapError(result)).toBe("no_action");
   });
 
   it("ignores Cmd+Shift+R outside dev builds", () => {

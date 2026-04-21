@@ -1,5 +1,5 @@
 import { Result } from "@praha/byethrow";
-import { reloadBrowserWebview, restartApp } from "@/api/tauri-commands";
+import { reloadBrowserWebview } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import { runManualUpdateCheck } from "@/hooks/use-updater";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
@@ -256,15 +256,10 @@ export function executeAction(action: AppAction): void {
       if (!import.meta.env.DEV) {
         break;
       }
-      void restartApp().then((result) => {
-        Result.pipe(
-          result,
-          Result.inspectError((error) => {
-            console.error("App restart failed:", error);
-            store.showToast("再起動に失敗しました");
-          }),
-        );
-      });
+      // Tauri's native app.restart() detaches a new dev process from `cargo run`,
+      // which can leave the relaunched window blank. Keep the dev shortcut scoped
+      // to a frontend reload so the active dev session stays attached.
+      window.location.reload();
       break;
 
     // --- Article navigation ---
