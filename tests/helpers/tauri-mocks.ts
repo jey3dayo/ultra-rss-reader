@@ -142,10 +142,14 @@ function createDefaultHandler(): MockHandler {
       case "list_folders":
         return [];
       case "list_articles":
-        return sampleArticles.filter((a) => a.feed_id === args.feedId);
+        return sampleArticles.filter(
+          (a) => a.feed_id === args.feedId && (!args.unreadOnly || !a.is_read),
+        );
       case "list_account_articles":
         return sampleArticles.filter((a) =>
-          sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId),
+          sampleFeeds.some(
+            (f) => f.id === a.feed_id && f.account_id === args.accountId && (!args.unreadOnly || !a.is_read),
+          ),
         );
       case "list_starred_articles":
         return sampleArticles.filter(

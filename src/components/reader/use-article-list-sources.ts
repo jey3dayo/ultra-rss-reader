@@ -14,15 +14,20 @@ export function useArticleListSources({
   selectionContext,
   selectedAccountId,
   selectedArticleId,
+  viewMode,
 }: UseArticleListSourcesParams): UseArticleListSourcesResult {
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const folderId = selection.type === "folder" ? selection.folderId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
   const smartViewKind = selection.type === "smart" ? selection.kind : null;
   const accountListScopeId = feedId || tagId ? null : selectedAccountId;
+  const unreadOnlyForFeed = smartViewKind !== "starred" && viewMode === "unread";
+  const unreadOnlyForAccount = smartViewKind === "unread" || (smartViewKind !== "starred" && viewMode === "unread");
   const { data: feeds } = useFeeds(selectedAccountId);
-  const { data: articles, isLoading } = useArticles(feedId);
-  const { data: accountArticles, isLoading: isLoadingAccountArticles } = useAccountArticles(accountListScopeId);
+  const { data: articles, isLoading } = useArticles(feedId, { unreadOnly: unreadOnlyForFeed });
+  const { data: accountArticles, isLoading: isLoadingAccountArticles } = useAccountArticles(accountListScopeId, {
+    unreadOnly: unreadOnlyForAccount,
+  });
   const { data: starredArticles, isLoading: isLoadingStarredArticles } = useStarredArticles(
     smartViewKind === "starred" ? accountListScopeId : null,
   );

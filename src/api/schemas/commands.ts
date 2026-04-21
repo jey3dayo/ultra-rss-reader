@@ -7,6 +7,7 @@ export const listFeedsArgs = z.object({ accountId: z.string() });
 // --- listArticles ---
 export const listArticlesArgs = z.object({
   feedId: z.string(),
+  unreadOnly: z.boolean().optional(),
   offset: z.number().optional(),
   limit: z.number().optional(),
 });
@@ -14,6 +15,7 @@ export const listArticlesArgs = z.object({
 // --- listAccountArticles ---
 export const listAccountArticlesArgs = z.object({
   accountId: z.string(),
+  unreadOnly: z.boolean().optional(),
   offset: z.number().optional(),
   limit: z.number().optional(),
 });

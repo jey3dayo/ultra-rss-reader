@@ -21,7 +21,17 @@ impl Default for Pagination {
 pub trait ArticleRepository {
     fn find_by_feed(&self, feed_id: &FeedId, pagination: &Pagination)
         -> DomainResult<Vec<Article>>;
+    fn find_unread_by_feed(
+        &self,
+        feed_id: &FeedId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>>;
     fn find_by_account(
+        &self,
+        account_id: &AccountId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>>;
+    fn find_unread_by_account(
         &self,
         account_id: &AccountId,
         pagination: &Pagination,

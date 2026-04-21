@@ -178,19 +178,39 @@ export const listFolders = (accountId: string) =>
 export const listFeeds = (accountId: string) =>
   safeInvoke("list_feeds", { response: z.array(FeedDtoSchema), args: listFeedsArgs }, { accountId });
 
-export const listArticles = (feedId: string, offset?: number, limit?: number) =>
-  safeInvoke(
+export const listArticles = (
+  feedId: string,
+  unreadOnlyOrOffset?: boolean | number,
+  offsetOrLimit?: number,
+  limit?: number,
+) => {
+  const unreadOnly = typeof unreadOnlyOrOffset === "boolean" ? unreadOnlyOrOffset : undefined;
+  const offset = typeof unreadOnlyOrOffset === "number" ? unreadOnlyOrOffset : offsetOrLimit;
+  const resolvedLimit = typeof unreadOnlyOrOffset === "number" ? offsetOrLimit : limit;
+
+  return safeInvoke(
     "list_articles",
     { response: z.array(ArticleDtoSchema), args: listArticlesArgs },
-    { feedId, offset, limit },
+    { feedId, unreadOnly, offset, limit: resolvedLimit },
   );
+};
 
-export const listAccountArticles = (accountId: string, offset?: number, limit?: number) =>
-  safeInvoke(
+export const listAccountArticles = (
+  accountId: string,
+  unreadOnlyOrOffset?: boolean | number,
+  offsetOrLimit?: number,
+  limit?: number,
+) => {
+  const unreadOnly = typeof unreadOnlyOrOffset === "boolean" ? unreadOnlyOrOffset : undefined;
+  const offset = typeof unreadOnlyOrOffset === "number" ? unreadOnlyOrOffset : offsetOrLimit;
+  const resolvedLimit = typeof unreadOnlyOrOffset === "number" ? offsetOrLimit : limit;
+
+  return safeInvoke(
     "list_account_articles",
     { response: z.array(ArticleDtoSchema), args: listAccountArticlesArgs },
-    { accountId, offset, limit },
+    { accountId, unreadOnly, offset, limit: resolvedLimit },
   );
+};
 
 export const listStarredArticles = (accountId: string, offset?: number, limit?: number) =>
   safeInvoke(

@@ -368,6 +368,7 @@ export type UseArticleListSourcesParams = {
   selectionContext: ArticleListPrimarySourceContext;
   selectedAccountId: string | null;
   selectedArticleId: string | null;
+  viewMode: ArticleListViewMode;
 };
 
 export type ArticleListPrimarySourceKind = "feed" | "account" | "tag";

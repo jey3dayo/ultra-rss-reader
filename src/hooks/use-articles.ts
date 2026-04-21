@@ -183,9 +183,25 @@ function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred
   });
 }
 
-export const useArticles = createQuery("articles", listArticles);
+export function useArticles(feedId: string | null, options?: { unreadOnly?: boolean }) {
+  const unreadOnly = options?.unreadOnly ?? false;
 
-export const useAccountArticles = createQuery("accountArticles", listAccountArticles);
+  return useQuery({
+    queryKey: ["articles", feedId, { unreadOnly }],
+    queryFn: () => listArticles(feedId as string, unreadOnly).then(Result.unwrap()),
+    enabled: !!feedId,
+  });
+}
+
+export function useAccountArticles(accountId: string | null, options?: { unreadOnly?: boolean }) {
+  const unreadOnly = options?.unreadOnly ?? false;
+
+  return useQuery({
+    queryKey: ["accountArticles", accountId, { unreadOnly }],
+    queryFn: () => listAccountArticles(accountId as string, unreadOnly).then(Result.unwrap()),
+    enabled: !!accountId,
+  });
+}
 
 export const useStarredArticles = createQuery("starredArticles", listStarredArticles);
 

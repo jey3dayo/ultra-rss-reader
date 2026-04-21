@@ -94,6 +94,7 @@ pub async fn check_browser_embed_support(url: String) -> Result<bool, AppError> 
 pub fn list_articles(
     state: State<'_, AppState>,
     feed_id: String,
+    unread_only: Option<bool>,
     offset: Option<usize>,
     limit: Option<usize>,
 ) -> Result<Vec<ArticleDto>, AppError> {
@@ -105,7 +106,11 @@ pub fn list_articles(
         offset: offset.unwrap_or(0),
         limit: limit.unwrap_or(50),
     };
-    let articles = repo.find_by_feed(&FeedId(feed_id), &pagination)?;
+    let articles = if unread_only.unwrap_or(false) {
+        repo.find_unread_by_feed(&FeedId(feed_id), &pagination)?
+    } else {
+        repo.find_by_feed(&FeedId(feed_id), &pagination)?
+    };
     Ok(articles.into_iter().map(ArticleDto::from).collect())
 }
 
@@ -113,6 +118,7 @@ pub fn list_articles(
 pub fn list_account_articles(
     state: State<'_, AppState>,
     account_id: String,
+    unread_only: Option<bool>,
     offset: Option<usize>,
     limit: Option<usize>,
 ) -> Result<Vec<ArticleDto>, AppError> {
@@ -124,7 +130,11 @@ pub fn list_account_articles(
         offset: offset.unwrap_or(0),
         limit: limit.unwrap_or(50),
     };
-    let articles = repo.find_by_account(&AccountId(account_id), &pagination)?;
+    let articles = if unread_only.unwrap_or(false) {
+        repo.find_unread_by_account(&AccountId(account_id), &pagination)?
+    } else {
+        repo.find_by_account(&AccountId(account_id), &pagination)?
+    };
     Ok(articles.into_iter().map(ArticleDto::from).collect())
 }
 

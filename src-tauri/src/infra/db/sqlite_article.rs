@@ -159,6 +159,51 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         Ok(articles)
     }
 
+    fn find_unread_by_feed(
+        &self,
+        feed_id: &FeedId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>> {
+        if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            let sql = format!(
+                "SELECT {SELECT_COLS} FROM articles
+                 WHERE feed_id = ?1
+                   AND is_read = 0
+                 ORDER BY published_at DESC
+                 LIMIT ?2 OFFSET ?3"
+            );
+            let mut stmt = self.conn.prepare(&sql)?;
+            let articles = stmt
+                .query_map(
+                    params![feed_id.0, pagination.limit as i64, pagination.offset as i64],
+                    row_to_article,
+                )?
+                .collect::<Result<Vec<_>, _>>()?;
+            return Ok(articles);
+        }
+
+        let mute_clause = build_mute_keyword_exclusion_clause(
+            "title",
+            "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
+        );
+        let sql = format!(
+            "SELECT {SELECT_COLS} FROM articles
+             WHERE feed_id = ?1
+               AND is_read = 0
+               AND {mute_clause}
+             ORDER BY published_at DESC
+             LIMIT ?2 OFFSET ?3"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let articles = stmt
+            .query_map(
+                params![feed_id.0, pagination.limit as i64, pagination.offset as i64],
+                row_to_article,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(articles)
+    }
+
     fn find_by_account(
         &self,
         account_id: &AccountId,
@@ -204,6 +249,67 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
             "SELECT {select_cols_prefixed} FROM articles a
              JOIN feeds f ON a.feed_id = f.id
              WHERE f.account_id = ?1
+               AND {mute_clause}
+             ORDER BY a.published_at DESC
+             LIMIT ?2 OFFSET ?3"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let articles = stmt
+            .query_map(
+                params![
+                    account_id.0,
+                    pagination.limit as i64,
+                    pagination.offset as i64
+                ],
+                row_to_article,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(articles)
+    }
+
+    fn find_unread_by_account(
+        &self,
+        account_id: &AccountId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<Article>> {
+        let select_cols_prefixed = SELECT_COLS
+            .split(", ")
+            .map(|col| format!("a.{col}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            let sql = format!(
+                "SELECT {select_cols_prefixed} FROM articles a
+                 JOIN feeds f ON a.feed_id = f.id
+                 WHERE f.account_id = ?1
+                   AND a.is_read = 0
+                 ORDER BY a.published_at DESC
+                 LIMIT ?2 OFFSET ?3"
+            );
+            let mut stmt = self.conn.prepare(&sql)?;
+            let articles = stmt
+                .query_map(
+                    params![
+                        account_id.0,
+                        pagination.limit as i64,
+                        pagination.offset as i64
+                    ],
+                    row_to_article,
+                )?
+                .collect::<Result<Vec<_>, _>>()?;
+            return Ok(articles);
+        }
+
+        let mute_clause = build_mute_keyword_exclusion_clause(
+            "a.title",
+            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+        );
+        let sql = format!(
+            "SELECT {select_cols_prefixed} FROM articles a
+             JOIN feeds f ON a.feed_id = f.id
+             WHERE f.account_id = ?1
+               AND a.is_read = 0
                AND {mute_clause}
              ORDER BY a.published_at DESC
              LIMIT ?2 OFFSET ?3"
@@ -1077,6 +1183,76 @@ mod tests {
         insert_mute_keyword(&db, "kindle unlimited", "title");
 
         assert_eq!(repo.count_unread_by_account(&account_id).unwrap(), 1);
+    }
+
+    #[test]
+    fn find_unread_by_feed_filters_before_pagination() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut older_unread = make_article(&feed_id, "Older unread");
+        older_unread.published_at = Utc::now() - chrono::Duration::days(3);
+
+        let mut newer_read_articles = Vec::new();
+        for i in 0..60 {
+            let mut article = make_article(&feed_id, &format!("Read article {i}"));
+            article.published_at = Utc::now() + chrono::Duration::seconds(i);
+            article.is_read = true;
+            newer_read_articles.push(article);
+        }
+
+        let mut articles = newer_read_articles;
+        articles.push(older_unread.clone());
+        repo.upsert(&articles).unwrap();
+
+        let page = repo
+            .find_unread_by_feed(
+                &feed_id,
+                &Pagination {
+                    offset: 0,
+                    limit: 50,
+                },
+            )
+            .unwrap();
+
+        assert_eq!(page.iter().map(|article| article.title.as_str()).collect::<Vec<_>>(), vec!["Older unread"]);
+    }
+
+    #[test]
+    fn find_unread_by_account_filters_before_pagination() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let mut older_unread = make_article(&feed_id, "Older unread");
+        older_unread.published_at = Utc::now() - chrono::Duration::days(3);
+
+        let mut newer_read_articles = Vec::new();
+        for i in 0..60 {
+            let mut article = make_article(&feed_id, &format!("Read article {i}"));
+            article.published_at = Utc::now() + chrono::Duration::seconds(i);
+            article.is_read = true;
+            newer_read_articles.push(article);
+        }
+
+        let mut articles = newer_read_articles;
+        articles.push(older_unread.clone());
+        repo.upsert(&articles).unwrap();
+
+        let page = repo
+            .find_unread_by_account(
+                &account_id,
+                &Pagination {
+                    offset: 0,
+                    limit: 50,
+                },
+            )
+            .unwrap();
+
+        assert_eq!(page.iter().map(|article| article.title.as_str()).collect::<Vec<_>>(), vec!["Older unread"]);
     }
 
     #[test]
