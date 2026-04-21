@@ -284,11 +284,29 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
     }
 
     fn count_unread_by_account(&self, account_id: &AccountId) -> DomainResult<i32> {
-        let count = self.conn.query_row(
-            "SELECT COUNT(*) FROM articles a JOIN feeds f ON a.feed_id = f.id WHERE f.account_id = ?1 AND a.is_read = 0",
-            params![account_id.0],
-            |row| row.get(0),
-        )?;
+        if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            let count = self.conn.query_row(
+                "SELECT COUNT(*) FROM articles a JOIN feeds f ON a.feed_id = f.id WHERE f.account_id = ?1 AND a.is_read = 0",
+                params![account_id.0],
+                |row| row.get(0),
+            )?;
+            return Ok(count);
+        }
+
+        let mute_clause = build_mute_keyword_exclusion_clause(
+            "a.title",
+            "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+        );
+        let sql = format!(
+            "SELECT COUNT(*) FROM articles a
+             JOIN feeds f ON a.feed_id = f.id
+             WHERE f.account_id = ?1
+               AND a.is_read = 0
+               AND {mute_clause}"
+        );
+        let count = self
+            .conn
+            .query_row(&sql, params![account_id.0], |row| row.get(0))?;
         Ok(count)
     }
 
@@ -1044,6 +1062,37 @@ mod tests {
             .unwrap();
 
         assert_eq!(repo.count_unread_by_account(&account_a).unwrap(), 2);
+    }
+
+    #[test]
+    fn count_unread_by_account_excludes_muted_unread_articles() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let muted = make_article(&feed_id, "Kindle Unlimited offer");
+        let visible = make_article(&feed_id, "Visible article");
+        repo.upsert(&[muted, visible]).unwrap();
+        insert_mute_keyword(&db, "kindle unlimited", "title");
+
+        assert_eq!(repo.count_unread_by_account(&account_id).unwrap(), 1);
+    }
+
+    #[test]
+    fn recalculate_unread_count_excludes_muted_unread_articles() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let feed_id = insert_test_feed(&db, &account_id);
+        let article_repo = SqliteArticleRepository::new(db.writer());
+        let feed_repo = crate::infra::db::sqlite_feed::SqliteFeedRepository::new(db.writer());
+
+        let muted = make_article(&feed_id, "Kindle Unlimited offer");
+        let visible = make_article(&feed_id, "Visible article");
+        article_repo.upsert(&[muted, visible]).unwrap();
+        insert_mute_keyword(&db, "kindle unlimited", "title");
+
+        assert_eq!(feed_repo.recalculate_unread_count(&feed_id).unwrap(), 1);
     }
 
     #[test]

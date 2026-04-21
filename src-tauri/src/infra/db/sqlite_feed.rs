@@ -3,7 +3,11 @@ use rusqlite::{params, Connection};
 use crate::domain::error::DomainResult;
 use crate::domain::feed::Feed;
 use crate::domain::types::{AccountId, FeedId, FolderId};
+use crate::infra::db::sqlite_mute_keyword::{
+    build_mute_keyword_exclusion_clause, SqliteMuteKeywordRepository,
+};
 use crate::repository::feed::FeedRepository;
+use crate::repository::mute_keyword::MuteKeywordRepository;
 
 pub struct SqliteFeedRepository<'a> {
     conn: &'a Connection,
@@ -37,7 +41,36 @@ const SELECT_COLS: &str =
 
 impl FeedRepository for SqliteFeedRepository<'_> {
     fn find_by_account(&self, account_id: &AccountId) -> DomainResult<Vec<Feed>> {
-        let sql = format!("SELECT {SELECT_COLS} FROM feeds WHERE account_id = ?1");
+        let sql = if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            format!("SELECT {SELECT_COLS} FROM feeds WHERE account_id = ?1")
+        } else {
+            let mute_clause = build_mute_keyword_exclusion_clause(
+                "a.title",
+                "CASE WHEN trim(coalesce(a.content_text, '')) = '' THEN coalesce(a.summary, '') ELSE a.content_text END",
+            );
+            format!(
+                "SELECT
+                    f.id,
+                    f.account_id,
+                    f.folder_id,
+                    f.remote_id,
+                    f.title,
+                    f.url,
+                    f.site_url,
+                    f.icon,
+                    (
+                        SELECT COUNT(*)
+                        FROM articles a
+                        WHERE a.feed_id = f.id
+                          AND a.is_read = 0
+                          AND {mute_clause}
+                    ) AS unread_count,
+                    f.reader_mode,
+                    f.web_preview_mode
+                 FROM feeds f
+                 WHERE f.account_id = ?1"
+            )
+        };
         let mut stmt = self.conn.prepare(&sql)?;
         let feeds = stmt
             .query_map(params![account_id.0], row_to_feed)?
@@ -105,10 +138,29 @@ impl FeedRepository for SqliteFeedRepository<'_> {
     }
 
     fn recalculate_unread_count(&self, feed_id: &FeedId) -> DomainResult<i32> {
-        self.conn.execute(
-            "UPDATE feeds SET unread_count = (SELECT COUNT(*) FROM articles WHERE feed_id = ?1 AND is_read = 0) WHERE id = ?1",
-            params![feed_id.0],
-        )?;
+        if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
+            self.conn.execute(
+                "UPDATE feeds SET unread_count = (SELECT COUNT(*) FROM articles WHERE feed_id = ?1 AND is_read = 0) WHERE id = ?1",
+                params![feed_id.0],
+            )?;
+        } else {
+            let mute_clause = build_mute_keyword_exclusion_clause(
+                "title",
+                "CASE WHEN trim(coalesce(content_text, '')) = '' THEN coalesce(summary, '') ELSE content_text END",
+            );
+            let sql = format!(
+                "UPDATE feeds
+                 SET unread_count = (
+                   SELECT COUNT(*)
+                   FROM articles
+                   WHERE feed_id = ?1
+                     AND is_read = 0
+                     AND {mute_clause}
+                 )
+                 WHERE id = ?1"
+            );
+            self.conn.execute(&sql, params![feed_id.0])?;
+        }
         let count: i32 = self.conn.query_row(
             "SELECT unread_count FROM feeds WHERE id = ?1",
             params![feed_id.0],
@@ -226,6 +278,48 @@ mod tests {
         let feeds = repo.find_by_account(&account_id).unwrap();
         assert_eq!(feeds.len(), 1);
         assert_eq!(feeds[0].title, "Rust Blog");
+    }
+
+    #[test]
+    fn find_by_account_excludes_muted_unread_articles_from_counts() {
+        let db = test_db();
+        let account_id = insert_test_account(&db);
+        let repo = SqliteFeedRepository::new(db.writer());
+
+        let feed = make_feed(&account_id, "Finance", "http://finance.example/rss");
+        repo.save(&feed).unwrap();
+
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, content_text, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at)
+                 VALUES (?1, ?2, NULL, ?3, '', '', '', 1, NULL, NULL, NULL, datetime('now'), NULL, 0, 0, datetime('now'))",
+                params![uuid::Uuid::new_v4().to_string(), feed.id.0, "Kindle Unlimited offer"],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO articles (id, feed_id, remote_id, title, content_raw, content_sanitized, content_text, sanitizer_version, summary, url, author, published_at, thumbnail, is_read, is_starred, fetched_at)
+                 VALUES (?1, ?2, NULL, ?3, '', '', '', 1, NULL, NULL, NULL, datetime('now'), NULL, 0, 0, datetime('now'))",
+                params![uuid::Uuid::new_v4().to_string(), feed.id.0, "Visible article"],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "INSERT INTO mute_keywords (id, keyword, scope, created_at, updated_at) VALUES (?1, ?2, ?3, datetime('now'), datetime('now'))",
+                params![uuid::Uuid::new_v4().to_string(), "kindle unlimited", "title"],
+            )
+            .unwrap();
+        db.writer()
+            .execute(
+                "UPDATE feeds SET unread_count = 2 WHERE id = ?1",
+                params![feed.id.0],
+            )
+            .unwrap();
+
+        let feeds = repo.find_by_account(&account_id).unwrap();
+
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].unread_count, 1);
     }
 
     #[test]
