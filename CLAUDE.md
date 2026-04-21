@@ -49,8 +49,8 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 ## MCP and Skills
 
 - For browser-only frontend debugging, prefer `mise run app:dev:browser` plus the `agent-browser` skill.
-- For a running native Tauri app, prefer `tauri-mcp-server` with the MCP Bridge plugin for webview screenshots, DOM inspection, JavaScript execution, window info, and IPC observation.
-- For native-window capture on macOS or Windows, use `tauri-dev-screenshot` and save artifacts under `tmp/screenshots/`.
+- For a running native Tauri app, prefer `tauri-mcp-server` for webview screenshots, DOM inspection, computed style checks, and interactive UI review.
+- Use `tauri-dev-screenshot` only when you need a saved native-window PNG artifact, window chrome, or an occlusion-safe capture outside MCP inspection.
 - For child webview sizing, overlay shells, or logical-vs-physical pixel issues, use `tauri-webview-geometry`.
 - Use the `tauri` skill when changing Tauri-facing code paths, especially filesystem and path handling from the webview.
 - Do not use `agent-browser` as a substitute for Tauri-native inspection when the bug depends on the desktop shell, IPC, window state, or embedded webview geometry.
