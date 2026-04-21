@@ -37,6 +37,20 @@ export function isCurrentBrowserUrl(browserUrl: string) {
   return useUiStore.getState().browserUrl === browserUrl;
 }
 
+function createBrowserUrlEffectCallback(
+  browserUrl: string | null,
+  runEffect: ReturnType<typeof useEffectEvent<BrowserUrlEffect>>,
+) {
+  if (!browserUrl) {
+    return undefined;
+  }
+
+  return runEffect({
+    browserUrl,
+    isCurrent: () => isCurrentBrowserUrl(browserUrl),
+  });
+}
+
 export function useBrowserUrlEffect(
   browserUrl: string | null,
   effect: BrowserUrlEffect,
@@ -44,16 +58,7 @@ export function useBrowserUrlEffect(
 ) {
   const runEffect = useEffectEvent(effect);
 
-  useEffect(() => {
-    if (!browserUrl) {
-      return undefined;
-    }
-
-    return runEffect({
-      browserUrl,
-      isCurrent: () => isCurrentBrowserUrl(browserUrl),
-    });
-  }, [browserUrl, ...dependencies]);
+  useEffect(() => createBrowserUrlEffectCallback(browserUrl, runEffect), [browserUrl, ...dependencies]);
 }
 
 export function useBrowserUrlLayoutEffect(
@@ -63,14 +68,5 @@ export function useBrowserUrlLayoutEffect(
 ) {
   const runEffect = useEffectEvent(effect);
 
-  useLayoutEffect(() => {
-    if (!browserUrl) {
-      return undefined;
-    }
-
-    return runEffect({
-      browserUrl,
-      isCurrent: () => isCurrentBrowserUrl(browserUrl),
-    });
-  }, [browserUrl, ...dependencies]);
+  useLayoutEffect(() => createBrowserUrlEffectCallback(browserUrl, runEffect), [browserUrl, ...dependencies]);
 }
