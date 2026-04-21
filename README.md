@@ -114,15 +114,15 @@ Use `mise run app:dev:native-keyring` when you need to verify Keychain or Creden
 
 Use this table when you need to decide whether you are optimizing for iteration speed, credential realism, or macOS-native behavior.
 
-| Mode | Main use | Database / app data | Credential backend | Signing | Watch / reload |
-| --- | --- | --- | --- | --- | --- |
-| `mise run app:dev` | Default day-to-day development | Same native app data DB used by the dev Tauri app | Dev file credentials (`DEV_CREDENTIALS=1`) | No | Yes |
-| `mise run app:dev:native-keyring` | Verify real account access against the OS keyring without leaving the normal dev loop | Same native app data DB used by the dev Tauri app | OS keyring | No | Yes |
-| `mise run app:dev:signed` | macOS-only, more production-like validation for Keychain and signed-app behavior | Same native app data DB used by the dev Tauri app | OS keyring | Yes (`UltraRSSReader-Dev`) | No, one-shot run |
+| Mode | Main use | Data environment | Database / app data | Credential backend | Signing | Watch / reload |
+| --- | --- | --- | --- | --- | --- | --- |
+| `mise run app:dev` | Default day-to-day development | Dev-like credentials, shared local article/account DB | Same native app data DB used by the dev Tauri app | Dev file credentials (`DEV_CREDENTIALS=1`) | No | Yes |
+| `mise run app:dev:native-keyring` | Verify real account access against the OS keyring without leaving the normal dev loop | Production-like credentials, shared local article/account DB | Same native app data DB used by the dev Tauri app | OS keyring | No | Yes |
+| `mise run app:dev:signed` | macOS-only, more production-like validation for Keychain and signed-app behavior | Most production-like dev mode for credentials and macOS runtime behavior | Same native app data DB used by the dev Tauri app | OS keyring | Yes (`UltraRSSReader-Dev`) | No, one-shot run |
 
 Practical guidance:
 
-- `app:dev` and `app:dev:native-keyring` usually show the same accounts and article database state. The main difference is where credentials are loaded from.
+- `app:dev`, `app:dev:native-keyring`, and `app:dev:signed` usually point at the same local app database. The biggest environment difference is which credential store they can read from.
 - `app:dev` can look like a different environment when an account exists in SQLite but its password/token only exists in the OS keyring. In that case the account row is shared, but authentication behavior is not.
 - `app:dev:signed` is closer to packaged macOS behavior than `app:dev`, but it is still a debug build and not a substitute for packaged-app verification.
 - When you want to inspect production-like data and authentication behavior, prefer `app:dev:native-keyring` first. Reach for `app:dev:signed` when macOS signing or Keychain dialog behavior itself matters.
