@@ -15,7 +15,7 @@ export function useSidebarFeedTree({
   selection,
   viewMode,
   expandedFolderIds,
-  sortSubscriptions,
+  sortSubscriptions: _sortSubscriptions,
   grayscaleFavicons,
   draggedFeedId,
 }: UseSidebarFeedTreeParams): UseSidebarFeedTreeResult {
@@ -30,16 +30,10 @@ export function useSidebarFeedTree({
   );
 
   const sortedFolderList = useMemo(() => {
-    if (sortSubscriptions === "alphabetical") {
-      return [...folderList].sort((a, b) => a.name.localeCompare(b.name));
-    }
-    return folderList;
-  }, [folderList, sortSubscriptions]);
+    return [...folderList].sort((a, b) => a.name.localeCompare(b.name));
+  }, [folderList]);
 
-  const sortFeeds = useCallback(
-    (candidateFeeds: FeedDto[]): FeedDto[] => sortFeedsByPreference(candidateFeeds, sortSubscriptions),
-    [sortSubscriptions],
-  );
+  const sortFeeds = useCallback((candidateFeeds: FeedDto[]): FeedDto[] => sortFeedsByPreference(candidateFeeds), []);
 
   const unfolderedFeeds = useMemo(() => sortFeeds(rawUnfolderedFeeds), [rawUnfolderedFeeds, sortFeeds]);
 

@@ -21,15 +21,6 @@ export function groupFeedsByFolder(feeds: FeedDto[]): GroupedFeeds {
   return { feedsByFolder: byFolder, unfolderedFeeds: unfoldered };
 }
 
-export function sortFeedsByPreference(feeds: FeedDto[], sortPreference: SortSubscriptions): FeedDto[] {
-  switch (sortPreference) {
-    case "alphabetical":
-      return [...feeds].sort((a, b) => a.title.localeCompare(b.title));
-    case "newest_first":
-      return [...feeds].reverse();
-    case "oldest_first":
-      return [...feeds];
-    default:
-      return feeds;
-  }
+export function sortFeedsByPreference(feeds: FeedDto[], _sortPreference?: SortSubscriptions): FeedDto[] {
+  return [...feeds].sort((a, b) => a.title.localeCompare(b.title));
 }

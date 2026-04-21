@@ -65,11 +65,11 @@ describe("sortFeedsByPreference", () => {
     expect(sortFeedsByPreference(feeds, "alphabetical").map((feed) => feed.id)).toEqual(["f2", "f3", "f1"]);
   });
 
-  it("preserves source order for oldest_first instead of mapping to title order", () => {
-    expect(sortFeedsByPreference(feeds, "oldest_first").map((feed) => feed.id)).toEqual(["f1", "f2", "f3"]);
+  it("keeps feeds alphabetical even when the preference is oldest_first", () => {
+    expect(sortFeedsByPreference(feeds, "oldest_first").map((feed) => feed.id)).toEqual(["f2", "f3", "f1"]);
   });
 
-  it("reverses source order for newest_first instead of mapping to reverse title order", () => {
-    expect(sortFeedsByPreference(feeds, "newest_first").map((feed) => feed.id)).toEqual(["f3", "f2", "f1"]);
+  it("keeps feeds alphabetical even when the preference is newest_first", () => {
+    expect(sortFeedsByPreference(feeds, "newest_first").map((feed) => feed.id)).toEqual(["f2", "f3", "f1"]);
   });
 });
