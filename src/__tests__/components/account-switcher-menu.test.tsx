@@ -39,8 +39,9 @@ describe("AccountSwitcherMenu", () => {
     expect(freshRssButton).not.toHaveClass("bg-[var(--sidebar-hover-surface)]");
     expect(freshRssButton).toHaveClass("hover:bg-[var(--sidebar-hover-surface)]");
     expect(freshRssButton).toHaveClass("text-sidebar-foreground/88");
-    expect(screen.getByText("local")).toHaveClass("text-foreground-soft");
     expect(screen.getByText("Local only")).toHaveClass("text-foreground-soft");
+    expect(screen.queryByText("local")).toBeNull();
+    expect(screen.queryByText("freshrss")).toBeNull();
     expect(screen.getByText("Local only")).toBeInTheDocument();
 
     await user.click(freshRssButton);

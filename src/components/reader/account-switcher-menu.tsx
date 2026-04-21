@@ -4,6 +4,10 @@ import { cn } from "@/lib/utils";
 import type { AccountSwitcherMenuProps } from "./account-switcher.types";
 import { focusRovingButton } from "./roving-focus";
 
+function shouldShowKindLabel(name: string, kind: string): boolean {
+  return name.trim().toLocaleLowerCase() !== kind.trim().toLocaleLowerCase();
+}
+
 export function focusAccountItem(
   itemRefs: RefObject<Array<HTMLButtonElement | null>>,
   accountsLength: number,
@@ -48,6 +52,7 @@ export function AccountSwitcherMenu({
     >
       {accounts.map((account, index) => {
         const statusLabel = accountStatusLabels?.[account.id];
+        const showKindLabel = shouldShowKindLabel(account.name, account.kind);
         return (
           <NavRowButton
             key={account.id}
@@ -58,7 +63,7 @@ export function AccountSwitcherMenu({
             title={
               <div className="flex items-center gap-2">
                 <span className="truncate">{account.name}</span>
-                <span className="text-xs text-foreground-soft">{account.kind}</span>
+                {showKindLabel ? <span className="text-xs text-foreground-soft">{account.kind}</span> : null}
               </div>
             }
             description={statusLabel ? <p className="text-xs text-foreground-soft">{statusLabel}</p> : undefined}

@@ -4,18 +4,6 @@
 
 ## UI/UX 監査の残り
 
-- [ ] ダークテーマでサイドバー冒頭のコントラストと温度感を検証する
-  - account header のタイトル、時刻、hover/focus、未読サマリーカードが dark でも沈みすぎないかを Tauri 実機で確認する
-  - light で整えた hierarchy が dark でも維持されるよう、必要なら色トークンと hover tone を微調整する
-  - 候補箇所: `src/components/reader/account-switcher-view.tsx`, `src/components/reader/smart-views-view.tsx`, `src/styles/global.css`
-- [ ] 複数アカウント時の hover / focus の手触りを実機で詰める
-  - account header の hover と keyboard focus が視覚的に強すぎず弱すぎず、複数アカウント切り替えの affordance として自然かを Tauri 実機で確認する
-  - hover / focus / expanded の状態差が素直に読めるよう、必要なら ring、text tone、chevron の反応を微調整する
-  - 候補箇所: `src/components/reader/account-switcher-view.tsx`, `src/components/reader/account-switcher-menu.tsx`
-- [ ] サイドバー周辺の回帰確認を広げる
-  - `pnpm vitest run` の関連範囲を account switcher 単体から少し広げ、サイドバー選択や header 周辺のテストも含めて確認する
-  - Tauri 実機でも hover、focus、expanded など状態差分のスクリーンショットを数枚残し、見た目の回帰確認に使える材料を揃える
-  - 候補箇所: `src/__tests__/components/account-switcher-view.test.tsx`, `src/__tests__/components/sidebar-account-selection.test.ts`, `src/components/reader/account-switcher-view.tsx`
 - [ ] モバイル向け UI を正式対応する段階で、アイコンのみ導線の見直しを再開する
   - 現時点では mobile を主要提供面にしないため必須対応から外すが、狭い幅での discoverability 課題として保留する
   - 対応する場合は tooltip 前提の主要操作を、ラベル表示かメニュー集約で補う
