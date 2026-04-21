@@ -505,6 +505,8 @@ describe("BrowserView", () => {
     });
     expect(topRail).toBeInTheDocument();
     expect(topRail).toHaveClass("rounded-none");
+    expect(topRail).not.toHaveClass("pointer-events-none");
+    expect(topRail).toHaveAttribute("data-tauri-drag-region");
     expectInlineStyles(topRail, {
       left: "0px",
       right: "0px",

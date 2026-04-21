@@ -42,7 +42,7 @@ function BrowserOverlayShell({
             borderColor: "var(--color-browser-overlay-rail-border)",
           }}
           className={cn(
-            "pointer-events-none absolute z-[50] border-b backdrop-blur-md",
+            "absolute z-[50] border-b backdrop-blur-md",
             scope === "main-stage" ? "rounded-none" : "rounded-t-lg",
           )}
         />

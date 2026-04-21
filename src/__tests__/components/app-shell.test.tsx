@@ -97,6 +97,24 @@ describe("AppShell", () => {
     expect(overlayRoot?.compareDocumentPosition(appLayout)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
+  it("keeps the browser overlay root non-interactive until browser mode is active", () => {
+    const { container, rerender } = render(<AppShell />, { wrapper: createWrapper() });
+
+    const overlayRoot = container.querySelector<HTMLElement>("[data-browser-overlay-root]");
+    expect(overlayRoot).toHaveClass("pointer-events-none");
+    expect(overlayRoot).not.toHaveClass("pointer-events-auto");
+
+    useUiStore.setState({
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/article",
+    });
+    rerender(<AppShell />);
+
+    expect(overlayRoot).toHaveClass("pointer-events-auto");
+    expect(overlayRoot).not.toHaveClass("pointer-events-none");
+  });
+
   it("keeps the desktop overlay titlebar helper classes on the shell overlay root without adding a shell-wide drag strip", () => {
     const originalTauriInternalsDescriptor = Object.getOwnPropertyDescriptor(window, "__TAURI_INTERNALS__");
 

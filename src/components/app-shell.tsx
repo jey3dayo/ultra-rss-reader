@@ -355,6 +355,7 @@ export function AppShell() {
   const closeShortcutsHelp = useUiStore((state) => state.closeShortcutsHelp);
   const settingsOpen = useUiStore((state) => state.settingsOpen);
   const closeSettings = useUiStore((state) => state.closeSettings);
+  const browserUrl = useUiStore((state) => state.browserUrl);
   const appLoading = useUiStore((state) => state.appLoading);
   const prefs = usePreferencesStore((state) => state.prefs);
   const overlayTitlebar = shouldUseDesktopOverlayTitlebar({
@@ -372,7 +373,8 @@ export function AppShell() {
       <div
         data-browser-overlay-root=""
         className={cn(
-          "pointer-events-none absolute inset-0 z-40",
+          "absolute inset-0 z-40",
+          browserUrl ? "pointer-events-auto" : "pointer-events-none",
           // Browser overlay geometry is measured against the shell, not AppLayout,
           // so the titlebar helper classes stay here.
           overlayTitlebar && "desktop-titlebar-offset desktop-overlay-titlebar",
