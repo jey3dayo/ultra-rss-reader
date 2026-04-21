@@ -24,6 +24,7 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selection = useUiStore((s) => s.selection);
+  const retainedArticleIds = useUiStore((s) => s.retainedArticleIds);
   const { data: accounts } = useAccounts();
   const feedId = selection.type === "feed" ? selection.feedId : null;
   const tagId = selection.type === "tag" ? selection.tagId : null;
@@ -34,17 +35,19 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   const { data: tagArticles } = useArticlesByTag(tagId, selectedAccountId);
   const { data: feeds } = useFeeds(selectedAccountId);
   const selectionKey = `${selectedAccountId ?? "null"}:${selection.type}`;
-  const selectedAccountSource = useMemo(
-    () =>
-      selectedArticleId === null
-        ? null
-        : smartViewKind === "starred"
-          ? (starredArticles?.find((article) => article.id === selectedArticleId) ??
-            accountArticles?.find((article) => article.id === selectedArticleId) ??
-            null)
-          : (accountArticles?.find((article) => article.id === selectedArticleId) ?? null),
-    [accountArticles, selectedArticleId, smartViewKind, starredArticles],
-  );
+  const selectedAccountSource = useMemo(() => {
+    if (selectedArticleId === null) {
+      return null;
+    }
+
+    return (
+      starredArticles?.find((article) => article.id === selectedArticleId) ??
+      accountArticles?.find((article) => article.id === selectedArticleId) ??
+      articles?.find((article) => article.id === selectedArticleId) ??
+      tagArticles?.find((article) => article.id === selectedArticleId) ??
+      null
+    );
+  }, [accountArticles, articles, selectedArticleId, starredArticles, tagArticles]);
   const articleSnapshotCandidate = useMemo(
     () =>
       selectedArticleId && selectedAccountSource
@@ -66,7 +69,11 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
       return [selectedAccountSource, ...(starredArticles ?? []).filter((article) => article.id !== selectedArticleId)];
     }
 
-    if (articleSnapshot?.selectionKey === selectionKey && articleSnapshot.articleId === selectedArticleId) {
+    if (
+      retainedArticleIds.has(selectedArticleId ?? "") &&
+      articleSnapshot?.selectionKey === selectionKey &&
+      articleSnapshot.articleId === selectedArticleId
+    ) {
       return [
         articleSnapshot.article,
         ...(starredArticles ?? []).filter((article) => article.id !== selectedArticleId),
@@ -82,6 +89,7 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
     selectionKey,
     smartViewKind,
     starredArticles,
+    retainedArticleIds,
   ]);
 
   if (subscriptionsWorkspace?.kind === "index") {

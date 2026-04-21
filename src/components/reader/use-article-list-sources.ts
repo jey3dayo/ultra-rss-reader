@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { ArticleDto } from "@/api/tauri-commands";
 import { useAccountArticles, useArticles, useStarredArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { adoptSnapshotByKey, useScreenSnapshot } from "@/hooks/use-screen-snapshot";
@@ -9,11 +10,28 @@ import type {
   UseArticleListSourcesResult,
 } from "./article-list.types";
 
+function areArticlesEquivalent(left: ArticleDto[], right: ArticleDto[]) {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((article, index) => {
+    const candidate = right[index];
+    return (
+      candidate !== undefined &&
+      article.id === candidate.id &&
+      article.is_read === candidate.is_read &&
+      article.is_starred === candidate.is_starred &&
+      article.title === candidate.title
+    );
+  });
+}
+
 export function useArticleListSources({
   selection,
   selectionContext,
   selectedAccountId,
-  selectedArticleId,
+  retainedArticleIds,
   viewMode,
 }: UseArticleListSourcesParams): UseArticleListSourcesResult {
   const feedId = selection.type === "feed" ? selection.feedId : null;
@@ -24,7 +42,9 @@ export function useArticleListSources({
   const unreadOnlyForFeed = smartViewKind !== "starred" && viewMode === "unread";
   const unreadOnlyForAccount = smartViewKind === "unread" || (smartViewKind !== "starred" && viewMode === "unread");
   const { data: feeds } = useFeeds(selectedAccountId);
+  const { data: allFeedArticles } = useArticles(feedId);
   const { data: articles, isLoading } = useArticles(feedId, { unreadOnly: unreadOnlyForFeed });
+  const { data: allAccountArticles } = useAccountArticles(accountListScopeId);
   const { data: accountArticles, isLoading: isLoadingAccountArticles } = useAccountArticles(accountListScopeId, {
     unreadOnly: unreadOnlyForAccount,
   });
@@ -40,17 +60,6 @@ export function useArticleListSources({
   const adoptedFeedsSnapshot = adoptSnapshotByKey(feedsSnapshot, "accountId", selectedAccountId);
   const resolvedFeeds = adoptedFeedsSnapshot?.feeds ?? feeds;
   const accountSelectionArticles = smartViewKind === "starred" ? starredArticles : accountArticles;
-  const selectedAccountSource = useMemo(
-    () =>
-      selectedArticleId === null
-        ? null
-        : smartViewKind === "starred"
-          ? (starredArticles?.find((article) => article.id === selectedArticleId) ??
-            accountArticles?.find((article) => article.id === selectedArticleId) ??
-            null)
-          : (accountArticles?.find((article) => article.id === selectedArticleId) ?? null),
-    [accountArticles, selectedArticleId, smartViewKind, starredArticles],
-  );
   const primarySourceArticles =
     selectionContext.kind === "feed"
       ? articles
@@ -81,64 +90,100 @@ export function useArticleListSources({
   );
   const adoptedPrimarySourceSnapshot = adoptSnapshotByKey(primarySourceSnapshot, "contextKey", selectionContext.key);
   const resolvedPrimarySourceArticles = adoptedPrimarySourceSnapshot?.articles ?? primarySourceArticles;
-  const selectedStarredArticleSnapshotCandidate = useMemo(
-    () =>
-      smartViewKind === "starred" && selectedArticleId
-        ? (() => {
-            const selectedArticle =
-              accountSelectionArticles?.find((article) => article.id === selectedArticleId) ??
-              accountArticles?.find((article) => article.id === selectedArticleId) ??
-              null;
-
-            return selectedArticle === null
-              ? null
-              : {
-                  contextKey: selectionContext.key,
-                  articleId: selectedArticleId,
-                  article: selectedArticle,
-                };
-          })()
-        : null,
-    [accountArticles, accountSelectionArticles, selectedArticleId, selectionContext.key, smartViewKind],
-  );
-  const { snapshot: selectedStarredArticleSnapshot } = useScreenSnapshot(
-    selectedStarredArticleSnapshotCandidate,
-    selectedStarredArticleSnapshotCandidate !== null,
-  );
-  const adoptedSelectedStarredArticleSnapshot = adoptSnapshotByKey(
-    selectedStarredArticleSnapshot,
-    "contextKey",
-    selectionContext.key,
-  );
-  const resolvedAccountArticles = useMemo(() => {
-    if (smartViewKind !== "starred" || selectedArticleId === null || resolvedPrimarySourceArticles === undefined) {
-      return resolvedPrimarySourceArticles;
+  const currentRetainedArticles = useMemo(() => {
+    if (retainedArticleIds.size === 0) {
+      return [];
     }
 
-    const latestSelectedArticle =
-      selectedAccountSource ??
-      (adoptedSelectedStarredArticleSnapshot?.articleId === selectedArticleId
-        ? adoptedSelectedStarredArticleSnapshot.article
-        : null);
-
-    if (latestSelectedArticle === null) {
-      return resolvedPrimarySourceArticles;
+    const merged = new Map<string, ArticleDto>();
+    const sources = [
+      primarySourceArticles,
+      accountArticles,
+      articles,
+      allFeedArticles,
+      allAccountArticles,
+      tagArticles,
+    ];
+    for (const source of sources) {
+      if (!Array.isArray(source)) {
+        continue;
+      }
+      for (const article of source) {
+        if (retainedArticleIds.has(article.id)) {
+          merged.set(article.id, article);
+        }
+      }
     }
 
-    if (resolvedPrimarySourceArticles.some((article) => article.id === selectedArticleId)) {
-      return resolvedPrimarySourceArticles.map((article) =>
-        article.id === selectedArticleId ? latestSelectedArticle : article,
-      );
-    }
-
-    return [latestSelectedArticle, ...resolvedPrimarySourceArticles];
+    return [...merged.values()];
   }, [
-    resolvedPrimarySourceArticles,
-    adoptedSelectedStarredArticleSnapshot,
-    selectedAccountSource,
-    selectedArticleId,
-    smartViewKind,
+    accountArticles,
+    articles,
+    allFeedArticles,
+    allAccountArticles,
+    primarySourceArticles,
+    retainedArticleIds,
+    tagArticles,
   ]);
+  const [retainedArticlesSnapshot, setRetainedArticlesSnapshot] = useState<{
+    contextKey: string;
+    articles: NonNullable<typeof primarySourceArticles>;
+  } | null>(null);
+
+  useEffect(() => {
+    if (retainedArticleIds.size === 0) {
+      setRetainedArticlesSnapshot(null);
+      return;
+    }
+
+    setRetainedArticlesSnapshot((previous) => {
+      const preservedArticles =
+        previous?.contextKey === selectionContext.key
+          ? previous.articles.filter((article) => retainedArticleIds.has(article.id))
+          : [];
+      const merged = new Map(preservedArticles.map((article) => [article.id, article]));
+      for (const article of currentRetainedArticles) {
+        merged.set(article.id, article);
+      }
+
+      if (merged.size === 0) {
+        return null;
+      }
+
+      const nextSnapshot = {
+        contextKey: selectionContext.key,
+        articles: [...merged.values()],
+      };
+
+      if (
+        previous?.contextKey === nextSnapshot.contextKey &&
+        areArticlesEquivalent(previous.articles, nextSnapshot.articles)
+      ) {
+        return previous;
+      }
+
+      return nextSnapshot;
+    });
+  }, [currentRetainedArticles, retainedArticleIds, selectionContext.key]);
+  const resolvedPrimarySourceArticlesWithRetained = useMemo(() => {
+    if (retainedArticleIds.size === 0 || resolvedPrimarySourceArticles === undefined) {
+      return resolvedPrimarySourceArticles;
+    }
+
+    const retainedArticles =
+      retainedArticlesSnapshot?.contextKey === selectionContext.key
+        ? retainedArticlesSnapshot.articles.filter((article) => retainedArticleIds.has(article.id))
+        : [];
+    if (retainedArticles.length === 0) {
+      return resolvedPrimarySourceArticles;
+    }
+
+    const currentIds = new Set(resolvedPrimarySourceArticles.map((article) => article.id));
+    const missingRetainedArticles = retainedArticles.filter((article) => !currentIds.has(article.id));
+    return missingRetainedArticles.length === 0
+      ? resolvedPrimarySourceArticles
+      : [...missingRetainedArticles, ...resolvedPrimarySourceArticles];
+  }, [resolvedPrimarySourceArticles, retainedArticleIds, retainedArticlesSnapshot, selectionContext.key]);
   const isPrimarySourceLoading = primarySourceLoading && adoptedPrimarySourceSnapshot === null;
 
   return {
@@ -148,9 +193,9 @@ export function useArticleListSources({
     smartViewKind,
     accountListScopeId,
     feeds: resolvedFeeds,
-    articles: selectionContext.kind === "feed" ? resolvedPrimarySourceArticles : articles,
-    accountArticles: selectionContext.kind === "account" ? resolvedAccountArticles : accountArticles,
-    tagArticles: selectionContext.kind === "tag" ? resolvedPrimarySourceArticles : tagArticles,
+    articles: selectionContext.kind === "feed" ? resolvedPrimarySourceArticlesWithRetained : articles,
+    accountArticles: selectionContext.kind === "account" ? resolvedPrimarySourceArticlesWithRetained : accountArticles,
+    tagArticles: selectionContext.kind === "tag" ? resolvedPrimarySourceArticlesWithRetained : tagArticles,
     isLoading: selectionContext.kind === "feed" ? isPrimarySourceLoading : isLoading,
     isLoadingAccountArticles: selectionContext.kind === "account" ? isPrimarySourceLoading : isLoadingAccountArticles,
     isLoadingTagArticles: selectionContext.kind === "tag" ? isPrimarySourceLoading : isLoadingTagArticles,

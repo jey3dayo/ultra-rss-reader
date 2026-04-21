@@ -368,6 +368,7 @@ export type UseArticleListSourcesParams = {
   selectionContext: ArticleListPrimarySourceContext;
   selectedAccountId: string | null;
   selectedArticleId: string | null;
+  retainedArticleIds: Set<string>;
   viewMode: ArticleListViewMode;
 };
 
