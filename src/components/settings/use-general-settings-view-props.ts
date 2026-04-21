@@ -174,20 +174,6 @@ export function useGeneralSettingsViewProps({
             onChange: (value) => setPref("group_by", value),
           },
           {
-            id: "sort-subscriptions",
-            type: "select",
-            name: "sort_subscriptions",
-            label: t("general.sort_subscriptions"),
-            value: resolvePreferenceValue(prefs, "sort_subscriptions"),
-            options: [
-              { value: "folders_first", label: t("general.folders_first") },
-              { value: "alphabetical", label: t("general.alphabetical") },
-              { value: "newest_first", label: t("general.newest_first") },
-              { value: "oldest_first", label: t("general.oldest_first") },
-            ],
-            onChange: (value) => setPref("sort_subscriptions", value),
-          },
-          {
             id: "cmd-click-browser",
             type: "switch",
             label: t("general.cmd_click_browser", { modifier: browserShortcutModifier }),

@@ -76,6 +76,12 @@ describe("GeneralSettings", () => {
     expect(usePreferencesStore.getState().prefs.startup_folder_expansion).toBe("unread_folders");
   });
 
+  it("does not expose the subscription sort control in general settings", () => {
+    render(<GeneralSettings />, { wrapper: createWrapper() });
+
+    expect(screen.queryByRole("combobox", { name: "Sort subscriptions" })).not.toBeInTheDocument();
+  });
+
   it("renders the browser shortcut hint with the current platform modifier", () => {
     render(<GeneralSettings />, { wrapper: createWrapper() });
 

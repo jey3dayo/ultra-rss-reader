@@ -128,10 +128,16 @@ const corePreferenceDefaults = {
   mute_auto_mark_read: "false",
 } satisfies { [K in KnownPreferenceKey]: z.input<(typeof preferenceSchemas)[K]> };
 
-export const preferenceDefaults: Record<string, string> = {
-  ...corePreferenceDefaults,
-  ...shortcutDefaults,
-};
+const hiddenPreferenceDefaults = {
+  sort_subscriptions: corePreferenceDefaults.sort_subscriptions,
+} as const;
+
+export const preferenceDefaults: Record<string, string> = Object.fromEntries(
+  Object.entries({
+    ...corePreferenceDefaults,
+    ...shortcutDefaults,
+  }).filter(([key]) => key !== "sort_subscriptions"),
+);
 
 interface PreferencesState {
   prefs: Record<string, string>;
@@ -186,7 +192,10 @@ export function resolvePreferenceValue<K extends KnownPreferenceKey>(
 ): PreferenceValue<K>;
 export function resolvePreferenceValue(prefs: Record<string, string>, key: string): string;
 export function resolvePreferenceValue(prefs: Record<string, string>, key: string): string {
-  return normalizePreferenceValue(key, prefs[key] ?? preferenceDefaults[key] ?? "");
+  const fallbackValue = objectHasOwnProperty.call(hiddenPreferenceDefaults, key)
+    ? hiddenPreferenceDefaults[key as keyof typeof hiddenPreferenceDefaults]
+    : preferenceDefaults[key];
+  return normalizePreferenceValue(key, prefs[key] ?? fallbackValue ?? "");
 }
 
 let systemThemeCleanup: (() => void) | null = null;

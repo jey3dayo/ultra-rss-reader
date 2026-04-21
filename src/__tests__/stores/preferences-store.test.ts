@@ -133,6 +133,10 @@ describe("usePreferencesStore preferences", () => {
     expect(resolvePreferenceValue({}, "startup_folder_expansion")).toBe("all_collapsed");
   });
 
+  it("does not expose subscription sort in preference defaults", () => {
+    expect(preferenceDefaults).not.toHaveProperty("sort_subscriptions");
+  });
+
   it("normalizes invalid sidebar visibility preferences back to true", () => {
     expect(resolvePreferenceValue({ show_sidebar_unread: "maybe" }, "show_sidebar_unread")).toBe("true");
     expect(resolvePreferenceValue({ show_sidebar_starred: "nope" }, "show_sidebar_starred")).toBe("true");
