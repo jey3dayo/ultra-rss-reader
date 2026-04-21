@@ -46,10 +46,15 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - For UI review and abstraction decisions, follow `DESIGN_REVIEW.md`.
 - Put longer debugging, recovery, or diagnostic workflows in skills or `README.md` / `docs/`, not in `AGENTS.md`.
 
-## Codex App Notes
+## MCP and Skills
 
-- In Codex app sessions, when asking the user to choose among a small fixed set of options or confirm a decision, prefer the app's wizard or button selection UI over free-form text.
-- For prompts such as `A/B`, `yes/no`, or short enumerated decisions, offer clickable choices first. If that UI is unavailable, fall back to a numbered list or `y/n` reply that can be answered with minimal typing.
+- For browser-only frontend debugging, prefer `mise run app:dev:browser` plus the `agent-browser` skill.
+- For a running native Tauri app, prefer `tauri-mcp-server` with the MCP Bridge plugin for webview screenshots, DOM inspection, JavaScript execution, window info, and IPC observation.
+- For native-window capture on macOS or Windows, use `tauri-dev-screenshot` and save artifacts under `tmp/screenshots/`.
+- For child webview sizing, overlay shells, or logical-vs-physical pixel issues, use `tauri-webview-geometry`.
+- Use the `tauri` skill when changing Tauri-facing code paths, especially filesystem and path handling from the webview.
+- Do not use `agent-browser` as a substitute for Tauri-native inspection when the bug depends on the desktop shell, IPC, window state, or embedded webview geometry.
+- Start from `mise run app:dev` before using `tauri-mcp-server` tools against the desktop app.
 
 ## Feature Work Reminder
 
