@@ -37,8 +37,6 @@ vi.mock("@/stores/preferences-store", () => ({
       prefs: preferencesState.prefs,
       loaded: preferencesState.loaded,
     }),
-  resolvePreferenceValue: (prefs: Record<string, string>, key: string) =>
-    prefs[key] ?? (key === "sync_on_startup" ? "true" : ""),
 }));
 
 vi.mock("@/api/tauri-commands", () => ({
@@ -84,7 +82,7 @@ describe("App", () => {
     expect(syncAccountMock).not.toHaveBeenCalled();
   });
 
-  it("does not trigger full sync on mount when startup sync is disabled", async () => {
+  it("still checks startup sync on mount when startup sync is disabled", async () => {
     preferencesState.prefs = { sync_on_startup: "false" };
 
     render(<App />);
@@ -92,7 +90,9 @@ describe("App", () => {
     await waitFor(() => {
       expect(loadPreferencesMock).toHaveBeenCalledTimes(1);
     });
-    expect(triggerStartupSyncMock).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(triggerStartupSyncMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("does not trigger startup sync while any dev intent is active", async () => {

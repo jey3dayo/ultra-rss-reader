@@ -17,18 +17,24 @@ use crate::infra::db::connection::DbManager;
 use crate::infra::db::sqlite_account::SqliteAccountRepository;
 use crate::infra::db::sqlite_article::SqliteArticleRepository;
 use crate::infra::db::sqlite_feed::SqliteFeedRepository;
+use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
 use crate::infra::db::sqlite_sync_state::SqliteSyncStateRepository;
 use crate::infra::provider::greader::GReaderProvider;
 use crate::infra::provider::local::LocalProvider;
 use crate::repository::account::AccountRepository;
 use crate::repository::article::ArticleRepository;
 use crate::repository::feed::FeedRepository;
+use crate::repository::preference::PreferenceRepository;
 use crate::repository::sync_state::{SyncState, SyncStateRepository};
 
 use super::feed_commands::lock_db;
-use super::sync_providers::{sync_greader_account, sync_greader_feed, sync_local_feed};
+use super::sync_providers::{
+    repair_greader_remote_state, sync_greader_account, sync_greader_feed, sync_local_feed,
+};
 
 const SCHEDULER_SYNC_STATE_SCOPE: &str = "scheduler";
+const STARTUP_REMOTE_STATE_REPAIR_KEY: &str = "startup_remote_state_repair_v1";
+const STARTUP_REMOTE_STATE_REPAIR_VALUE: &str = "done";
 pub(crate) const SYNC_COMPLETED_EVENT: &str = "sync-completed";
 pub(crate) const SYNC_SUCCEEDED_EVENT: &str = "sync-succeeded";
 pub(crate) const SYNC_WARNING_EVENT: &str = "sync-warning";
@@ -150,6 +156,25 @@ fn enable_automatic_sync(
     if !automatic_sync_enabled.swap(true, Ordering::SeqCst) {
         automatic_sync_notify.notify_waiters();
     }
+}
+
+fn startup_remote_state_repair_pending(db: &Mutex<DbManager>) -> Result<bool, AppError> {
+    let db_guard = lock_db(db)?;
+    let preference_repo = SqlitePreferenceRepository::new(db_guard.reader());
+    Ok(preference_repo
+        .get(STARTUP_REMOTE_STATE_REPAIR_KEY)?
+        .as_deref()
+        != Some(STARTUP_REMOTE_STATE_REPAIR_VALUE))
+}
+
+fn mark_startup_remote_state_repair_complete(db: &Mutex<DbManager>) -> Result<(), AppError> {
+    let db_guard = lock_db(db)?;
+    let preference_repo = SqlitePreferenceRepository::new(db_guard.writer());
+    preference_repo.set(
+        STARTUP_REMOTE_STATE_REPAIR_KEY,
+        STARTUP_REMOTE_STATE_REPAIR_VALUE,
+    )?;
+    Ok(())
 }
 
 /// Sync a single account, returning warnings on soft anomalies and Err on hard failures.
@@ -328,16 +353,30 @@ pub async fn trigger_startup_sync(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<SyncResult, AppError> {
-    let accounts = {
+    let all_accounts = {
         let db_guard = lock_db(&state.db)?;
         let account_repo = SqliteAccountRepository::new(db_guard.reader());
-        account_repo
-            .find_all()?
-            .into_iter()
-            .filter(|account| account.sync_on_startup)
-            .collect::<Vec<_>>()
+        account_repo.find_all()?
     };
-    if accounts.is_empty() {
+    let startup_sync_accounts = all_accounts
+        .iter()
+        .filter(|account| account.sync_on_startup)
+        .cloned()
+        .collect::<Vec<_>>();
+    let repair_pending = startup_remote_state_repair_pending(&state.db)?;
+    let repair_only_accounts = if repair_pending {
+        all_accounts
+            .iter()
+            .filter(|account| {
+                matches!(account.kind, ProviderKind::FreshRss) && !account.sync_on_startup
+            })
+            .cloned()
+            .collect::<Vec<_>>()
+    } else {
+        Vec::new()
+    };
+
+    if startup_sync_accounts.is_empty() && repair_only_accounts.is_empty() {
         return Ok(SyncResult {
             synced: false,
             total: 0,
@@ -346,25 +385,87 @@ pub async fn trigger_startup_sync(
             warnings: Vec::new(),
         });
     }
-    let reporter = SyncProgressReporter::new(
-        app_handle.clone(),
-        SyncProgressKind::ManualAll,
-        accounts.len(),
-    );
-    let result =
-        run_sync_for_accounts_with_progress(&state.db, &state.syncing, accounts, Some(reporter))
-            .await?;
-    if result.synced {
+
+    let mut repaired_account_ids = Vec::new();
+    let mut repair_failures = Vec::new();
+    for account in &repair_only_accounts {
+        let server_url = account.server_url.as_deref().unwrap_or_default();
+        let provider = GReaderProvider::for_freshrss(server_url);
+        match repair_greader_remote_state(&state.db, account, provider).await {
+            Ok(()) => repaired_account_ids.push(account.id.as_ref().to_string()),
+            Err(error) => repair_failures.push(AccountSyncError {
+                account_id: account.id.as_ref().to_string(),
+                account_name: account.name.clone(),
+                message: error.to_string(),
+            }),
+        }
+    }
+
+    let sync_result = if startup_sync_accounts.is_empty() {
+        SyncResult {
+            synced: !repaired_account_ids.is_empty(),
+            total: repair_only_accounts.len(),
+            succeeded: repaired_account_ids.len(),
+            failed: repair_failures.clone(),
+            warnings: Vec::new(),
+        }
+    } else {
+        let reporter = SyncProgressReporter::new(
+            app_handle.clone(),
+            SyncProgressKind::ManualAll,
+            startup_sync_accounts.len(),
+        );
+        let mut result = run_sync_for_accounts_with_progress(
+            &state.db,
+            &state.syncing,
+            startup_sync_accounts,
+            Some(reporter),
+        )
+        .await?;
+        result.total += repair_only_accounts.len();
+        result.succeeded += repaired_account_ids.len();
+        result.failed.extend(repair_failures.clone());
+        if !repair_failures.is_empty() {
+            result.synced = true;
+        }
+        result
+    };
+
+    if repair_pending {
+        let full_sync_failed_ids = sync_result
+            .failed
+            .iter()
+            .map(|failure| failure.account_id.as_str())
+            .collect::<std::collections::HashSet<_>>();
+        let repair_candidates = all_accounts
+            .iter()
+            .filter(|account| matches!(account.kind, ProviderKind::FreshRss))
+            .map(|account| account.id.as_ref())
+            .collect::<Vec<_>>();
+        let remote_state_repair_succeeded = repair_candidates
+            .iter()
+            .all(|account_id| !full_sync_failed_ids.contains(account_id));
+        if remote_state_repair_succeeded {
+            mark_startup_remote_state_repair_complete(&state.db)?;
+        }
+    }
+
+    if sync_result.synced
+        && !all_accounts.is_empty()
+        && all_accounts.iter().any(|account| account.sync_on_startup)
+    {
         enable_automatic_sync(
             state.automatic_sync_enabled.as_ref(),
             state.automatic_sync_notify.as_ref(),
         );
+    }
+    if sync_result.synced {
         let _ = app_handle.emit(SYNC_COMPLETED_EVENT, ());
-        if should_emit_sync_succeeded(&result) {
+        if should_emit_sync_succeeded(&sync_result) {
             let _ = app_handle.emit(SYNC_SUCCEEDED_EVENT, ());
         }
     }
-    Ok(result)
+    Ok(sync_result)
 }
 
 fn clear_scheduler_sync_status(

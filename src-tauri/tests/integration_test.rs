@@ -200,6 +200,17 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
         .create_async()
         .await;
 
+    let unread_count_mock = server
+        .mock("GET", "/api/greader.php/reader/api/0/unread-count")
+        .match_query(Matcher::AllOf(vec![
+            Matcher::UrlEncoded("output".into(), "json".into()),
+            Matcher::UrlEncoded("all".into(), "true".into()),
+        ]))
+        .with_status(200)
+        .with_body(r#"{ "unreadcounts": [] }"#)
+        .create_async()
+        .await;
+
     let local_feed_mock = server
         .mock("GET", "/feed.xml")
         .with_status(200)
@@ -319,6 +330,7 @@ async fn freshrss_sync_preserves_local_like_feed_read_state() {
     subscriptions_mock.assert_async().await;
     read_ids_mock.assert_async().await;
     starred_ids_mock.assert_async().await;
+    unread_count_mock.assert_async().await;
     local_feed_mock.assert_async().await;
 
     let db_guard = db.lock().unwrap();

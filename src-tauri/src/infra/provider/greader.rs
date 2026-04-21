@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use chrono::DateTime;
 use reqwest::header::HeaderValue;
 use serde::{Deserialize, Deserializer};
+use std::collections::HashMap;
 use std::time::Duration;
 
 use crate::domain::error::{DomainError, DomainResult};
@@ -92,6 +93,17 @@ struct GReaderTag {
 }
 
 #[derive(Deserialize)]
+struct UnreadCountsResponse {
+    unreadcounts: Vec<UnreadCountEntry>,
+}
+
+#[derive(Deserialize)]
+struct UnreadCountEntry {
+    id: String,
+    count: i32,
+}
+
+#[derive(Deserialize)]
 struct StreamItemIdsResponse {
     #[serde(rename = "itemRefs")]
     item_refs: Option<Vec<ItemRef>>,
@@ -165,6 +177,117 @@ impl GReaderProvider {
             .ok_or_else(|| DomainError::Auth("Not authenticated".into()))?;
         HeaderValue::from_str(&format!("GoogleLogin auth={token}"))
             .map_err(|e| DomainError::Auth(e.to_string()))
+    }
+
+    async fn fetch_unread_count_map(&self) -> DomainResult<HashMap<String, i32>> {
+        let url = self.api_url("/reader/api/0/unread-count?output=json&all=true");
+        let response: UnreadCountsResponse = self
+            .http_client
+            .get(&url)
+            .header("Authorization", self.auth_header()?)
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| DomainError::Network(e.to_string()))?
+            .json()
+            .await?;
+
+        Ok(response
+            .unreadcounts
+            .into_iter()
+            .map(|entry| (entry.id, entry.count))
+            .collect())
+    }
+
+    async fn pull_entries_for_stream(
+        &self,
+        stream_id: &str,
+        exclude_target: Option<&str>,
+        cursor: Option<SyncCursor>,
+        fallback_stream_id: Option<&str>,
+    ) -> DomainResult<PullResult> {
+        let mut url = format!(
+            "{}?output=json&n={STREAM_CONTENTS_LIMIT}",
+            self.api_url(&format!(
+                "/reader/api/0/stream/contents/{}",
+                urlencoded(stream_id)
+            ))
+        );
+
+        if let Some(xt) = exclude_target {
+            url.push_str(&format!("&xt={}", urlencoded(xt)));
+        }
+
+        if let Some(ref c) = cursor {
+            if let Some(ref cont) = c.continuation {
+                url.push_str(&format!("&c={}", urlencoded(cont)));
+            }
+            if let Some(since) = c.since {
+                url.push_str(&format!("&ot={}", since.timestamp_micros()));
+            }
+        }
+
+        let resp: StreamContentsResponse = self
+            .http_client
+            .get(&url)
+            .header("Authorization", self.auth_header()?)
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| DomainError::Network(e.to_string()))?
+            .json()
+            .await?;
+
+        let raw_item_count = resp.items.len();
+        let next_since_usec = resp
+            .items
+            .iter()
+            .filter_map(Self::item_cursor_timestamp_usec)
+            .max();
+        let has_more = resp.continuation.is_some();
+        let next_cursor =
+            if resp.continuation.is_some() || next_since_usec.is_some() || cursor.is_some() {
+                Some(SyncCursor {
+                    continuation: resp.continuation,
+                    since: next_since_usec
+                        .and_then(DateTime::from_timestamp_micros)
+                        .or_else(|| cursor.as_ref().and_then(|current| current.since)),
+                    etag: cursor.as_ref().and_then(|current| current.etag.clone()),
+                    last_modified: cursor
+                        .as_ref()
+                        .and_then(|current| current.last_modified.clone()),
+                })
+            } else {
+                None
+            };
+
+        let entries = resp
+            .items
+            .into_iter()
+            .filter_map(|item| Self::map_item_to_entry(item, fallback_stream_id))
+            .collect::<Vec<_>>();
+        let skipped_entries = raw_item_count.saturating_sub(entries.len());
+
+        Ok(PullResult {
+            entries,
+            next_cursor,
+            has_more,
+            not_modified: false,
+            skipped_entries,
+        })
+    }
+
+    pub(crate) async fn get_unread_count_map(&self) -> DomainResult<HashMap<String, i32>> {
+        self.fetch_unread_count_map().await
+    }
+
+    pub(crate) async fn pull_unread_entries_for_feed(
+        &self,
+        remote_id: &str,
+        cursor: Option<SyncCursor>,
+    ) -> DomainResult<PullResult> {
+        self.pull_entries_for_stream(remote_id, Some(STATE_READ), cursor, Some(remote_id))
+            .await
     }
 
     fn item_cursor_timestamp_usec(item: &GReaderItem) -> Option<i64> {
@@ -433,77 +556,13 @@ impl FeedProvider for GReaderProvider {
             _ => None,
         };
 
-        let mut url = format!(
-            "{}?output=json&n={STREAM_CONTENTS_LIMIT}",
-            self.api_url(&format!(
-                "/reader/api/0/stream/contents/{}",
-                urlencoded(&stream_id)
-            ))
-        );
-
-        if let Some(ref xt) = exclude_target {
-            url.push_str(&format!("&xt={}", urlencoded(xt)));
-        }
-
-        if let Some(ref c) = cursor {
-            if let Some(ref cont) = c.continuation {
-                url.push_str(&format!("&c={}", urlencoded(cont)));
-            }
-            if let Some(since) = c.since {
-                url.push_str(&format!("&ot={}", since.timestamp_micros()));
-            }
-        }
-
-        let resp: StreamContentsResponse = self
-            .http_client
-            .get(&url)
-            .header("Authorization", self.auth_header()?)
-            .send()
-            .await?
-            .error_for_status()
-            .map_err(|e| DomainError::Network(e.to_string()))?
-            .json()
-            .await?;
-
-        let raw_item_count = resp.items.len();
-        let next_since_usec = resp
-            .items
-            .iter()
-            .filter_map(Self::item_cursor_timestamp_usec)
-            .max();
-        let has_more = resp.continuation.is_some();
-        let next_cursor =
-            if resp.continuation.is_some() || next_since_usec.is_some() || cursor.is_some() {
-                Some(SyncCursor {
-                    continuation: resp.continuation,
-                    since: next_since_usec
-                        .and_then(DateTime::from_timestamp_micros)
-                        .or_else(|| cursor.as_ref().and_then(|current| current.since)),
-                    // `stream/contents` does not expose HTTP validators; these fields are
-                    // only carried through to keep `SyncCursor` generic across providers.
-                    etag: cursor.as_ref().and_then(|current| current.etag.clone()),
-                    last_modified: cursor
-                        .as_ref()
-                        .and_then(|current| current.last_modified.clone()),
-                })
-            } else {
-                None
-            };
-
-        let entries = resp
-            .items
-            .into_iter()
-            .filter_map(|item| Self::map_item_to_entry(item, fallback_stream_id))
-            .collect::<Vec<_>>();
-        let skipped_entries = raw_item_count.saturating_sub(entries.len());
-
-        Ok(PullResult {
-            entries,
-            next_cursor,
-            has_more,
-            not_modified: false,
-            skipped_entries,
-        })
+        self.pull_entries_for_stream(
+            &stream_id,
+            exclude_target.as_deref(),
+            cursor,
+            fallback_stream_id,
+        )
+        .await
     }
 
     async fn pull_state(&self) -> DomainResult<RemoteState> {
