@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import { syncAccount, updateAccountSync } from "@/api/tauri-commands";
+import { invalidateFeedQueries } from "@/lib/query-invalidation";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync-result-feedback";
 import { useUiStore } from "@/stores/ui-store";
 import type {
@@ -40,7 +41,7 @@ export function useAccountDetailSyncControls({
     Result.pipe(
       result,
       Result.inspect((syncResult) => {
-        queryClient.invalidateQueries({ queryKey: ["feeds"] });
+        invalidateFeedQueries(queryClient, { includeFolders: false });
         queryClient.invalidateQueries({ queryKey: ["articles"] });
         onSyncStatusChanged?.();
         useUiStore.getState().showToast(

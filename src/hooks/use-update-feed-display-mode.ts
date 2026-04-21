@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { type FeedDto, updateFeedDisplaySettings } from "@/api/tauri-commands";
+import { invalidateFeedQueries } from "@/lib/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
 export function useUpdateFeedDisplaySettings() {
@@ -32,7 +33,7 @@ export function useUpdateFeedDisplaySettings() {
         return false;
       }
 
-      void qc.invalidateQueries({ queryKey: ["feeds"] });
+      invalidateFeedQueries(qc, { includeFolders: false });
       return true;
     },
     [qc, showToast, t],

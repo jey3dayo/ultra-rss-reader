@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { updateFeedFolder } from "@/api/tauri-commands";
+import { invalidateFeedQueries } from "@/lib/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
 type UpdateFeedFolderArgs = {
@@ -35,7 +36,7 @@ export function useUpdateFeedFolder() {
       return { previousFeedsQueries };
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["feeds"] });
+      invalidateFeedQueries(qc, { includeFolders: false });
     },
     onError: (error, _variables, context) => {
       for (const [queryKey, previousFeeds] of context?.previousFeedsQueries ?? []) {

@@ -7,6 +7,7 @@ import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mo
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import { resolveFeedDisplayPreset } from "@/lib/article-display";
 import { copyValueToClipboard } from "@/lib/clipboard";
+import { invalidateArticleQueries, invalidateFeedQueries } from "@/lib/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 import { type FeedEditDisplayPreset, submitFeedEdits } from "../reader/feed-edit-submit";
 import { buildFolderOptions, useFolderSelection } from "../reader/use-folder-selection";
@@ -128,12 +129,16 @@ export function useFeedCleanupFeedEditorController({
     Result.pipe(
       result,
       Result.inspect((syncResult) => {
-        void qc.invalidateQueries({ queryKey: ["feeds"] });
-        void qc.invalidateQueries({ queryKey: ["folders"] });
-        void qc.invalidateQueries({ queryKey: ["articles"] });
-        void qc.invalidateQueries({ queryKey: ["accountArticles"] });
-        void qc.invalidateQueries({ queryKey: ["accountUnreadCount"] });
-        void qc.invalidateQueries({ queryKey: ["feedIntegrityReport"] });
+        invalidateFeedQueries(qc, { includeAccountUnreadCount: true });
+        invalidateArticleQueries(qc, {
+          includeStarredArticles: false,
+          includeAccountUnreadCount: false,
+          includeAccountStarredCount: false,
+          includeFeeds: false,
+          includeArticlesByTag: false,
+          includeSearch: false,
+          includeFeedIntegrityReport: true,
+        });
 
         if (!syncResult.synced) {
           showToast(tCleanup("editor_refetch_in_progress"));

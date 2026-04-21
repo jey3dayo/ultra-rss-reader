@@ -17,6 +17,7 @@ import {
 } from "@/api/tauri-commands";
 import { createMutation } from "@/hooks/create-mutation";
 import { createQuery } from "@/hooks/create-query";
+import { invalidateArticleQueries } from "@/lib/query-invalidation";
 
 export type SetReadMutationInput = {
   id: string;
@@ -27,17 +28,6 @@ export type ToggleStarMutationInput = {
   id: string;
   starred: boolean;
 };
-
-function invalidateArticleQueries(qc: QueryClient) {
-  qc.invalidateQueries({ queryKey: ["articles"] });
-  qc.invalidateQueries({ queryKey: ["accountArticles"] });
-  qc.invalidateQueries({ queryKey: ["starredArticles"] });
-  qc.invalidateQueries({ queryKey: ["accountUnreadCount"] });
-  qc.invalidateQueries({ queryKey: ["accountStarredCount"] });
-  qc.invalidateQueries({ queryKey: ["feeds"] });
-  qc.invalidateQueries({ queryKey: ["articlesByTag"] });
-  qc.invalidateQueries({ queryKey: ["search"] });
-}
 
 function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: boolean) {
   const updateArticleArray = (current: unknown) => {
@@ -228,12 +218,12 @@ export function useSetRead() {
 
 export const useMarkAllRead = createMutation(
   (articleIds: string[]) => markArticlesRead(articleIds),
-  invalidateArticleQueries,
+  (qc) => invalidateArticleQueries(qc),
 );
 
-export const useMarkFeedRead = createMutation(markFeedRead, invalidateArticleQueries);
+export const useMarkFeedRead = createMutation(markFeedRead, (qc) => invalidateArticleQueries(qc));
 
-export const useMarkFolderRead = createMutation(markFolderRead, invalidateArticleQueries);
+export const useMarkFolderRead = createMutation(markFolderRead, (qc) => invalidateArticleQueries(qc));
 
 export function useSearchArticles(accountId: string | null, query: string) {
   return useQuery({

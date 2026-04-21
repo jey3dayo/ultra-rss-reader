@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { deleteFeed } from "@/api/tauri-commands";
+import { invalidateFeedQueries } from "@/lib/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
 
 type DeleteFeedArgs = {
@@ -22,8 +23,7 @@ export function useDeleteFeed() {
       return Result.unwrap(result);
     },
     onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ["feeds"] });
-      void queryClient.invalidateQueries({ queryKey: ["accountUnreadCount"] });
+      invalidateFeedQueries(queryClient, { includeFolders: false, includeAccountUnreadCount: true });
       void queryClient.invalidateQueries({ queryKey: ["accountArticles"] });
       showToast(t("unsubscribed_from", { title: variables.title }));
       variables.onSuccess?.();
