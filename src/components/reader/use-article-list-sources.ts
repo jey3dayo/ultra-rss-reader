@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useAccountArticles, useArticles, useStarredArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
-import { useScreenSnapshot } from "@/hooks/use-screen-snapshot";
+import { adoptSnapshotByKey, useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 import { useArticlesByTag } from "@/hooks/use-tags";
 import type {
   ArticleListPrimarySourceSnapshot,
@@ -32,7 +32,7 @@ export function useArticleListSources({
     [feeds, selectedAccountId],
   );
   const { snapshot: feedsSnapshot } = useScreenSnapshot(feedsSnapshotCandidate, feedsSnapshotCandidate !== null);
-  const adoptedFeedsSnapshot = feedsSnapshot?.accountId === selectedAccountId ? feedsSnapshot : null;
+  const adoptedFeedsSnapshot = adoptSnapshotByKey(feedsSnapshot, "accountId", selectedAccountId);
   const resolvedFeeds = adoptedFeedsSnapshot?.feeds ?? feeds;
   const accountSelectionArticles = smartViewKind === "starred" ? starredArticles : accountArticles;
   const selectedAccountSource = useMemo(
@@ -74,8 +74,7 @@ export function useArticleListSources({
     primarySourceSnapshotCandidate,
     primarySourceSnapshotCandidate !== null,
   );
-  const adoptedPrimarySourceSnapshot =
-    primarySourceSnapshot?.contextKey === selectionContext.key ? primarySourceSnapshot : null;
+  const adoptedPrimarySourceSnapshot = adoptSnapshotByKey(primarySourceSnapshot, "contextKey", selectionContext.key);
   const resolvedPrimarySourceArticles = adoptedPrimarySourceSnapshot?.articles ?? primarySourceArticles;
   const selectedStarredArticleSnapshotCandidate = useMemo(
     () =>
@@ -101,6 +100,11 @@ export function useArticleListSources({
     selectedStarredArticleSnapshotCandidate,
     selectedStarredArticleSnapshotCandidate !== null,
   );
+  const adoptedSelectedStarredArticleSnapshot = adoptSnapshotByKey(
+    selectedStarredArticleSnapshot,
+    "contextKey",
+    selectionContext.key,
+  );
   const resolvedAccountArticles = useMemo(() => {
     if (smartViewKind !== "starred" || selectedArticleId === null || resolvedPrimarySourceArticles === undefined) {
       return resolvedPrimarySourceArticles;
@@ -108,9 +112,8 @@ export function useArticleListSources({
 
     const latestSelectedArticle =
       selectedAccountSource ??
-      (selectedStarredArticleSnapshot?.contextKey === selectionContext.key &&
-      selectedStarredArticleSnapshot.articleId === selectedArticleId
-        ? selectedStarredArticleSnapshot.article
+      (adoptedSelectedStarredArticleSnapshot?.articleId === selectedArticleId
+        ? adoptedSelectedStarredArticleSnapshot.article
         : null);
 
     if (latestSelectedArticle === null) {
@@ -126,10 +129,9 @@ export function useArticleListSources({
     return [latestSelectedArticle, ...resolvedPrimarySourceArticles];
   }, [
     resolvedPrimarySourceArticles,
+    adoptedSelectedStarredArticleSnapshot,
     selectedAccountSource,
     selectedArticleId,
-    selectedStarredArticleSnapshot,
-    selectionContext.key,
     smartViewKind,
   ]);
   const isPrimarySourceLoading = primarySourceLoading && adoptedPrimarySourceSnapshot === null;

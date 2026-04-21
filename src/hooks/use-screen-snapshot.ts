@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
+export function adoptSnapshotByKey<T extends Record<TKey, string>, TKey extends string>(
+  snapshot: T | null,
+  key: TKey,
+  value: string | null,
+) {
+  return value !== null && snapshot?.[key] === value ? snapshot : null;
+}
+
 /**
  * `candidate === null` means there is no newly adoptable snapshot yet.
  * It represents unresolved input, not a resolved empty state.

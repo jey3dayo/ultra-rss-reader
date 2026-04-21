@@ -3,7 +3,7 @@ import { useAccounts } from "@/hooks/use-accounts";
 import { useAccountArticles, useAccountStarredCount } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
-import { useScreenSnapshot } from "@/hooks/use-screen-snapshot";
+import { adoptSnapshotByKey, useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 import { useTagArticleCounts, useTags } from "@/hooks/use-tags";
 import type { SidebarSourcesParams, SidebarSourcesResult } from "./sidebar-sources.types";
 import { useSidebarAccountStatusLabels } from "./use-sidebar-account-status-labels";
@@ -30,7 +30,7 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
     [feeds, folders, selectedAccountId],
   );
   const { snapshot: sidebarSnapshot } = useScreenSnapshot(sidebarSnapshotCandidate, sidebarSnapshotCandidate !== null);
-  const adoptedSnapshot = sidebarSnapshot?.accountId === selectedAccountId ? sidebarSnapshot : null;
+  const adoptedSnapshot = adoptSnapshotByKey(sidebarSnapshot, "accountId", selectedAccountId);
   const isFeedTreeLoading = selectedAccountId !== null && (feeds === undefined || folders === undefined);
   const showFeedTreeSkeleton = isFeedTreeLoading && adoptedSnapshot === null;
   const feedList = adoptedSnapshot?.feeds ?? feeds ?? [];
@@ -51,7 +51,7 @@ export function useSidebarSources({ selectedAccountId }: SidebarSourcesParams): 
     sidebarCountsSnapshotCandidate,
     sidebarCountsSnapshotCandidate !== null,
   );
-  const adoptedCountsSnapshot = sidebarCountsSnapshot?.accountId === selectedAccountId ? sidebarCountsSnapshot : null;
+  const adoptedCountsSnapshot = adoptSnapshotByKey(sidebarCountsSnapshot, "accountId", selectedAccountId);
   const resolvedTagArticleCounts = adoptedCountsSnapshot?.tagArticleCounts ?? tagArticleCounts;
   const starredCount = adoptedCountsSnapshot?.starredCount ?? accountStarredCount ?? 0;
 
