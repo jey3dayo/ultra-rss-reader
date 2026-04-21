@@ -4,6 +4,50 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-04-21
+
+### Bug Fixes
+
+- prioritize selected startup account
+- simplify account switcher menu labels
+- refine feed tree hierarchy
+- tighten top hierarchy
+- add preview action feedback
+- preserve retained article state
+- keep subscriptions alphabetical
+- remove subscription sort control
+- align FreshRSS unread counts
+- follow greader continuation for remote state
+- filter unread queries before pagination
+- align sidebar header control sizing
+- normalize sidebar footer action sizing
+- align folder trigger sizing and focus states
+- default auto-mark delay to 0.3s
+- add delayed auto-mark options
+- avoid blank window on restart shortcut
+- prefer label categories for subscription folders
+- exclude muted articles from sidebar counts
+
+### Documentation
+
+- clarify tauri screenshot guidance
+- document mcp and skill routing
+- centralize routing in CLAUDE
+- clarify dev data environments
+- compare dev run modes
+
+### Maintenance
+
+- align unread filtering fixtures
+- reuse snapshot adoption checks
+- centralize summary tone styles
+- share account sync datetime parsing
+- deduplicate browser url effect setup
+- deduplicate auto-mark timing cases
+- centralize invalidation helpers
+- enable mcp bridge for dev debugging
+- include darwin in supported architectures
+
 ## [0.17.0] - 2026-04-20
 
 ### Bug Fixes
