@@ -34,6 +34,8 @@ const meta = {
             options: [
               { value: "never", label: "Do nothing" },
               { value: "immediately", label: "Mark immediately" },
+              { value: "after_0_3s", label: "Mark after 0.3 seconds" },
+              { value: "after_0_5s", label: "Mark after 0.5 seconds" },
               { value: "after_1s", label: "Mark after 1 second" },
             ],
             onChange: fn(),

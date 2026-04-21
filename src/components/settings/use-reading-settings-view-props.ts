@@ -62,6 +62,8 @@ export function useReadingSettingsViewProps({
             options: [
               { value: "never", label: t("reading.do_nothing") },
               { value: "immediately", label: t("reading.mark_immediately") },
+              { value: "after_0_3s", label: t("reading.mark_after_0_3s") },
+              { value: "after_0_5s", label: t("reading.mark_after_0_5s") },
               { value: "after_1s", label: t("reading.mark_after_1s") },
             ],
             onChange: (value) => setPref("after_reading", value),

@@ -108,6 +108,8 @@
     "after_reading": "When opening an article",
     "do_nothing": "Do nothing",
     "mark_immediately": "Mark immediately",
+    "mark_after_0_3s": "Mark after 0.3 seconds",
+    "mark_after_0_5s": "Mark after 0.5 seconds",
     "mark_after_1s": "Mark after 1 second",
     "scroll": "Scroll",
     "scroll_to_top_on_feed_change": "Scroll to top on feed change"

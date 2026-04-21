@@ -1192,6 +1192,122 @@ describe("ArticleView", () => {
     });
   });
 
+  it("auto-marks the selected article as read after 0.3 seconds", async () => {
+    vi.useFakeTimers();
+
+    if (!primaryArticle) {
+      throw new Error("primaryArticle fixture is missing");
+    }
+
+    const calls: MockTauriCommandCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        case "mark_article_read":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    usePreferencesStore.setState({
+      prefs: { after_reading: "after_0_3s" },
+      loaded: true,
+    });
+
+    render(<ArticlePane article={primaryArticle} feed={primaryFeed} feedName="Feed One" />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(calls).not.toContainEqual({
+      cmd: "mark_article_read",
+      args: { articleId: "art-1", read: true },
+    });
+
+    await vi.advanceTimersByTimeAsync(299);
+
+    expect(calls).not.toContainEqual({
+      cmd: "mark_article_read",
+      args: { articleId: "art-1", read: true },
+    });
+
+    await vi.advanceTimersByTimeAsync(1);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const markCalls = calls.filter(
+      (call) => call.cmd === "mark_article_read" && call.args.articleId === "art-1" && call.args.read === true,
+    );
+    expect(markCalls).toHaveLength(1);
+    vi.useRealTimers();
+  });
+
+  it("auto-marks the selected article as read after 0.5 seconds", async () => {
+    vi.useFakeTimers();
+
+    if (!primaryArticle) {
+      throw new Error("primaryArticle fixture is missing");
+    }
+
+    const calls: MockTauriCommandCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+
+      switch (cmd) {
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    usePreferencesStore.setState({
+      prefs: { after_reading: "after_0_5s" },
+      loaded: true,
+    });
+
+    render(<ArticlePane article={primaryArticle} feed={primaryFeed} feedName="Feed One" />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(calls).not.toContainEqual({
+      cmd: "mark_article_read",
+      args: { articleId: "art-1", read: true },
+    });
+
+    await vi.advanceTimersByTimeAsync(499);
+
+    expect(calls).not.toContainEqual({
+      cmd: "mark_article_read",
+      args: { articleId: "art-1", read: true },
+    });
+
+    await vi.advanceTimersByTimeAsync(1);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const markCalls = calls.filter(
+      (call) => call.cmd === "mark_article_read" && call.args.articleId === "art-1" && call.args.read === true,
+    );
+    expect(markCalls).toHaveLength(1);
+    vi.useRealTimers();
+  });
+
   it("auto-marks the selected article as read after one second", async () => {
     vi.useFakeTimers();
 

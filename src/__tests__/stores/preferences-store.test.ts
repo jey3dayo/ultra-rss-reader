@@ -121,6 +121,8 @@ describe("usePreferencesStore preferences", () => {
   it("preserves the current auto-mark values", () => {
     expect(resolvePreferenceValue({ after_reading: "never" }, "after_reading")).toBe("never");
     expect(resolvePreferenceValue({ after_reading: "immediately" }, "after_reading")).toBe("immediately");
+    expect(resolvePreferenceValue({ after_reading: "after_0_3s" }, "after_reading")).toBe("after_0_3s");
+    expect(resolvePreferenceValue({ after_reading: "after_0_5s" }, "after_reading")).toBe("after_0_5s");
     expect(resolvePreferenceValue({ after_reading: "after_1s" }, "after_reading")).toBe("after_1s");
   });
 

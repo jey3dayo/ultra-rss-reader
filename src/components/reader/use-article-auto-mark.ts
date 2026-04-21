@@ -1,6 +1,12 @@
 import { useEffect, useRef } from "react";
 import type { UseArticleAutoMarkParams } from "./article-actions.types";
 
+const delayedAutoMarkTimeoutsMs = {
+  after_0_3s: 300,
+  after_0_5s: 500,
+  after_1s: 1000,
+} as const;
+
 export function useArticleAutoMark({
   articleId,
   isRead,
@@ -53,7 +59,7 @@ export function useArticleAutoMark({
       return;
     }
 
-    pendingAutoMarkTimeoutRef.current = setTimeout(markArticleAsRead, 1000);
+    pendingAutoMarkTimeoutRef.current = setTimeout(markArticleAsRead, delayedAutoMarkTimeoutsMs[afterReading]);
 
     return () => {
       if (pendingAutoMarkTimeoutRef.current !== null) {
