@@ -10,8 +10,8 @@ describe("SidebarSectionToggle", () => {
 
     const button = screen.getByRole("button", { name: "Feeds" });
 
-    expect(button).toHaveClass("motion-disclosure-trigger", "rounded-md", "select-none", "hover:bg-surface-1/72");
-    expect(button.querySelector("svg")).toHaveClass("text-foreground-soft");
+    expect(button).toHaveClass("motion-disclosure-trigger", "rounded-lg", "select-none", "hover:bg-surface-1/72");
+    expect(button.querySelector("svg")).toHaveClass("text-sidebar-foreground/54");
     expect(button.querySelector("svg")).toHaveClass("motion-disclosure-icon");
 
     fireEvent.click(button);

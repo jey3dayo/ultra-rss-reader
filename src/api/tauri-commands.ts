@@ -66,6 +66,7 @@ import {
   setBrowserWebviewBoundsArgs,
   setMuteAutoMarkReadArgs,
   setPreferenceArgs,
+  startupSyncArgs,
   syncAccountArgs,
   syncFeedArgs,
   type TagDto,
@@ -376,7 +377,8 @@ export const closeBrowserWebview = () => safeInvoke("close_browser_webview", { r
 
 export const triggerSync = () => safeInvoke("trigger_sync", { response: SyncResultSchema });
 
-export const triggerStartupSync = () => safeInvoke("trigger_startup_sync", { response: SyncResultSchema });
+export const triggerStartupSync = (preferredAccountId?: string) =>
+  safeInvoke("trigger_startup_sync", { response: SyncResultSchema, args: startupSyncArgs }, { preferredAccountId });
 
 export const triggerAutomaticSync = () => safeInvoke("trigger_automatic_sync", { response: SyncResultSchema });
 

@@ -11,6 +11,7 @@ import { useResolvedDevIntent } from "./hooks/use-resolved-dev-intent";
 import { queryClient } from "./lib/query-client";
 import { attachTauriListeners } from "./lib/tauri-event-listeners";
 import { usePreferencesStore } from "./stores/preferences-store";
+import { useUiStore } from "./stores/ui-store";
 
 function getLastStartupSyncTriggeredAt(): number | null {
   try {
@@ -42,6 +43,7 @@ function markStartupSyncTriggered(): void {
 function AppInner() {
   const loadPreferences = usePreferencesStore((s) => s.loadPreferences);
   const preferencesLoaded = usePreferencesStore((s) => s.loaded);
+  const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const { intent: activeDevIntent, ready: devIntentReady } = useResolvedDevIntent();
   useDevIntent();
 
@@ -62,7 +64,7 @@ function AppInner() {
 
     startupSyncRequested.current = true;
     markStartupSyncTriggered();
-    triggerStartupSync().then((result) =>
+    triggerStartupSync(selectedAccountId ?? undefined).then((result) =>
       Result.pipe(
         result,
         Result.inspectError((error) => {
@@ -70,7 +72,7 @@ function AppInner() {
         }),
       ),
     );
-  }, [activeDevIntent, devIntentReady, preferencesLoaded]);
+  }, [activeDevIntent, devIntentReady, preferencesLoaded, selectedAccountId]);
 
   // Sync on wake: trigger sync when returning from sleep/suspend if any account has sync_on_wake enabled
   const lastHiddenAt = useRef<number>(0);

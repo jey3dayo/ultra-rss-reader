@@ -10,6 +10,7 @@ const {
   listAccountsMock,
   preferencesState,
   devIntentState,
+  uiState,
 } = vi.hoisted(() => ({
   loadPreferencesMock: vi.fn(),
   triggerStartupSyncMock: vi.fn(() => Promise.resolve(Result.succeed(true))),
@@ -21,6 +22,9 @@ const {
   },
   devIntentState: {
     intent: null as string | null,
+  },
+  uiState: {
+    selectedAccountId: null as string | null,
   },
 }));
 
@@ -36,6 +40,13 @@ vi.mock("@/stores/preferences-store", () => ({
       loadPreferences: loadPreferencesMock,
       prefs: preferencesState.prefs,
       loaded: preferencesState.loaded,
+    }),
+}));
+
+vi.mock("@/stores/ui-store", () => ({
+  useUiStore: <T,>(selector: (state: { selectedAccountId: string | null }) => T) =>
+    selector({
+      selectedAccountId: uiState.selectedAccountId,
     }),
 }));
 
@@ -66,10 +77,12 @@ describe("App", () => {
     preferencesState.prefs = {};
     preferencesState.loaded = true;
     devIntentState.intent = null;
+    uiState.selectedAccountId = null;
   });
 
   it("triggers one full sync on mount when startup sync is enabled", async () => {
     preferencesState.prefs = { sync_on_startup: "true" };
+    uiState.selectedAccountId = "acc-2";
 
     render(<App />);
 
@@ -79,6 +92,7 @@ describe("App", () => {
     await waitFor(() => {
       expect(triggerStartupSyncMock).toHaveBeenCalledTimes(1);
     });
+    expect(triggerStartupSyncMock).toHaveBeenCalledWith("acc-2");
     expect(syncAccountMock).not.toHaveBeenCalled();
   });
 

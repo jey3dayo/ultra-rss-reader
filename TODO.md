@@ -8,12 +8,6 @@
   - 現時点では mobile を主要提供面にしないため必須対応から外すが、狭い幅での discoverability 課題として保留する
   - 対応する場合は tooltip 前提の主要操作を、ラベル表示かメニュー集約で補う
   - 候補箇所: `src/components/reader/sidebar-header-view.tsx`, `src/components/reader/article-list-header.tsx`, `src/components/reader/article-toolbar-view.tsx`
-## 将来の同期改善候補
-
-- [ ] 起動時同期を「選択中アカウント優先 + 残りは後続」に再設計する
-  - 起動直後は現在見えているアカウントの鮮度を優先し、残りの `sync_on_startup` アカウントは後続で順次処理する案を検討する
-  - `sync_on_startup` 設定の意味、選択中アカウントの決め方、失敗時の扱いを先に整理してから着手する
-  - 候補箇所: `src/App.tsx`, `src-tauri/src/commands/sync_commands.rs`
 
 ## 次の並列バッチ候補
 

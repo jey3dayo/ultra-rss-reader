@@ -167,6 +167,22 @@ fn startup_remote_state_repair_pending(db: &Mutex<DbManager>) -> Result<bool, Ap
         != Some(STARTUP_REMOTE_STATE_REPAIR_VALUE))
 }
 
+fn prioritize_startup_sync_accounts(
+    accounts: Vec<Account>,
+    preferred_account_id: Option<&str>,
+) -> Vec<Account> {
+    let Some(preferred_account_id) = preferred_account_id else {
+        return accounts;
+    };
+
+    let (preferred, mut others): (Vec<_>, Vec<_>) = accounts
+        .into_iter()
+        .partition(|account| account.id.as_ref() == preferred_account_id);
+    let mut prioritized = preferred;
+    prioritized.append(&mut others);
+    prioritized
+}
+
 fn mark_startup_remote_state_repair_complete(db: &Mutex<DbManager>) -> Result<(), AppError> {
     let db_guard = lock_db(db)?;
     let preference_repo = SqlitePreferenceRepository::new(db_guard.writer());
@@ -352,6 +368,7 @@ async fn run_sync_for_accounts_with_progress(
 pub async fn trigger_startup_sync(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
+    preferred_account_id: Option<String>,
 ) -> Result<SyncResult, AppError> {
     let all_accounts = {
         let db_guard = lock_db(&state.db)?;
@@ -363,6 +380,8 @@ pub async fn trigger_startup_sync(
         .filter(|account| account.sync_on_startup)
         .cloned()
         .collect::<Vec<_>>();
+    let startup_sync_accounts =
+        prioritize_startup_sync_accounts(startup_sync_accounts, preferred_account_id.as_deref());
     let repair_pending = startup_remote_state_repair_pending(&state.db)?;
     let repair_only_accounts = if repair_pending {
         all_accounts
@@ -926,6 +945,96 @@ mod tests {
         };
 
         assert!(!should_emit_sync_succeeded(&result));
+    }
+
+    #[test]
+    fn prioritize_startup_sync_accounts_moves_preferred_account_to_the_front() {
+        let account_a = Account {
+            id: AccountId("acc-1".to_string()),
+            kind: ProviderKind::Local,
+            name: "Local".to_string(),
+            server_url: None,
+            username: None,
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
+        };
+        let account_b = Account {
+            id: AccountId("acc-2".to_string()),
+            kind: ProviderKind::FreshRss,
+            name: "FreshRSS".to_string(),
+            server_url: Some("https://example.com".to_string()),
+            username: Some("user".to_string()),
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
+        };
+
+        let prioritized = prioritize_startup_sync_accounts(
+            vec![account_a.clone(), account_b.clone()],
+            Some("acc-2"),
+        );
+
+        assert_eq!(
+            prioritized
+                .iter()
+                .map(|account| account.id.as_ref())
+                .collect::<Vec<_>>(),
+            vec!["acc-2", "acc-1"]
+        );
+    }
+
+    #[test]
+    fn prioritize_startup_sync_accounts_keeps_original_order_when_preferred_account_is_missing() {
+        let account_a = Account {
+            id: AccountId("acc-1".to_string()),
+            kind: ProviderKind::Local,
+            name: "Local".to_string(),
+            server_url: None,
+            username: None,
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
+        };
+        let account_b = Account {
+            id: AccountId("acc-2".to_string()),
+            kind: ProviderKind::FreshRss,
+            name: "FreshRSS".to_string(),
+            server_url: Some("https://example.com".to_string()),
+            username: Some("user".to_string()),
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+            connection_verification_status: ConnectionVerificationStatus::Unverified,
+            connection_verified_at: None,
+            connection_verification_error: None,
+        };
+
+        let prioritized = prioritize_startup_sync_accounts(
+            vec![account_a.clone(), account_b.clone()],
+            Some("acc-missing"),
+        );
+
+        assert_eq!(
+            prioritized
+                .iter()
+                .map(|account| account.id.as_ref())
+                .collect::<Vec<_>>(),
+            vec!["acc-1", "acc-2"]
+        );
     }
 
     #[test]

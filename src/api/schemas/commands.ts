@@ -103,6 +103,11 @@ export const getAccountSyncStatusArgs = z.object({ accountId: z.string() });
 // --- syncFeed ---
 export const syncFeedArgs = z.object({ feedId: z.string() });
 
+// --- startup sync ---
+export const startupSyncArgs = z.object({
+  preferredAccountId: z.string().optional(),
+});
+
 // --- testAccountConnection ---
 export const testAccountConnectionArgs = z.object({ accountId: z.string() });
 
@@ -271,6 +276,7 @@ export const commandArgsSchemas: Record<string, z.ZodType> = {
   test_account_connection: testAccountConnectionArgs,
   delete_account: deleteAccountArgs,
   get_account_sync_status: getAccountSyncStatusArgs,
+  trigger_startup_sync: startupSyncArgs,
   trigger_sync_account: syncAccountArgs,
   trigger_sync_feed: syncFeedArgs,
   discover_feeds: discoverFeedsArgs,

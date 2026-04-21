@@ -42,6 +42,7 @@ export {
   setBrowserWebviewBoundsArgs,
   setMuteAutoMarkReadArgs,
   setPreferenceArgs,
+  startupSyncArgs,
   syncAccountArgs,
   syncFeedArgs,
   tagArticleArgs,
