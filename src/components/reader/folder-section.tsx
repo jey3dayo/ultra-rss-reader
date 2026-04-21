@@ -27,7 +27,7 @@ export type FolderSectionTriggerContentProps = {
 };
 
 function getFolderTriggerClassName() {
-  return "flex min-h-9 w-full items-center justify-between rounded-md px-2 py-1 text-sm hover:bg-[var(--sidebar-hover-surface)]";
+  return "flex min-h-9 w-full items-center justify-between rounded-md px-2 py-1 text-sm hover:bg-[var(--sidebar-hover-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:bg-[var(--sidebar-hover-surface)]";
 }
 
 function FolderSectionTriggerContent({ folderName, folderUnread, isExpanded }: FolderSectionTriggerContentProps) {
@@ -37,7 +37,7 @@ function FolderSectionTriggerContent({ folderName, folderUnread, isExpanded }: F
         {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
         <span className="font-medium">{folderName}</span>
       </div>
-      {folderUnread > 0 && <span className="text-foreground-soft">{folderUnread.toLocaleString()}</span>}
+      {folderUnread > 0 && <span className="text-foreground-soft tabular-nums">{folderUnread.toLocaleString()}</span>}
     </>
   );
 }

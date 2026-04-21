@@ -33,6 +33,7 @@ describe("FeedTreeFolderSection", () => {
     expect(folderButton).toHaveClass("pl-1.5");
     expect(folderButton).not.toHaveClass("pl-0");
     expect(toggleButton).toHaveClass("select-none", "hover:bg-[var(--sidebar-hover-surface)]");
+    expect(toggleButton).toHaveClass("h-8", "w-8");
     expect(screen.getByText("9,274")).toHaveClass("text-foreground-soft");
   });
 
