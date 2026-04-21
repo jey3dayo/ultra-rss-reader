@@ -1,10 +1,15 @@
-export function formatAccountSyncRetryTime(retryAt: string | undefined, language: string): string | null {
-  if (!retryAt) {
+function parseAccountSyncDateTime(value: string | undefined): Date | null {
+  if (!value) {
     return null;
   }
 
-  const date = new Date(retryAt);
-  if (Number.isNaN(date.getTime())) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function formatAccountSyncRetryTime(retryAt: string | undefined, language: string): string | null {
+  const date = parseAccountSyncDateTime(retryAt);
+  if (date === null) {
     return null;
   }
 
@@ -16,12 +21,8 @@ export function formatAccountSyncRetryTime(retryAt: string | undefined, language
 }
 
 export function formatAccountSyncRetryDateTime(retryAt: string | undefined, language: string): string | null {
-  if (!retryAt) {
-    return null;
-  }
-
-  const date = new Date(retryAt);
-  if (Number.isNaN(date.getTime())) {
+  const date = parseAccountSyncDateTime(retryAt);
+  if (date === null) {
     return null;
   }
 
@@ -42,12 +43,8 @@ export function formatAccountLastSuccessLabel(
   time: string;
   isToday: boolean;
 } | null {
-  if (!lastSuccessAt) {
-    return null;
-  }
-
-  const date = new Date(lastSuccessAt);
-  if (Number.isNaN(date.getTime())) {
+  const date = parseAccountSyncDateTime(lastSuccessAt);
+  if (date === null) {
     return null;
   }
 
