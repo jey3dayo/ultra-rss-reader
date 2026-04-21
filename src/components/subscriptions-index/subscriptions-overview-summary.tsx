@@ -2,84 +2,54 @@ import { LabelChip } from "@/components/shared/label-chip";
 import { cn } from "@/lib/utils";
 import type { SubscriptionSummaryCard } from "./subscriptions-index.types";
 
-function resolveCardClassName(tone: SubscriptionSummaryCard["tone"] = "neutral") {
-  if (tone === "danger") {
-    return "border-state-danger-border/75 bg-state-danger-surface/84";
+type SubscriptionSummaryTone = NonNullable<SubscriptionSummaryCard["tone"]>;
+
+const summaryToneClassNames = {
+  neutral: {
+    card: "border-border/60 bg-surface-1/62",
+    activeCard:
+      "border-border-strong bg-surface-1 shadow-[var(--subscriptions-summary-active-shadow-neutral)] ring-1 ring-[color:var(--subscriptions-summary-active-ring-neutral)]",
+    activeAccent: "bg-secondary",
+    activeBadge: "border-border-strong/70 bg-surface-1 text-foreground",
+    activeValue: "text-foreground",
+  },
+  danger: {
+    card: "border-state-danger-border/75 bg-state-danger-surface/84",
+    activeCard:
+      "border-state-danger-border/90 bg-state-danger-surface shadow-[var(--subscriptions-summary-active-shadow-danger)] ring-1 ring-[color:var(--subscriptions-summary-active-ring-danger)]",
+    activeAccent: "bg-state-danger-border",
+    activeBadge: "border-state-danger-border/75 bg-state-danger-surface/92 text-state-danger-foreground",
+    activeValue: "text-state-danger-foreground",
+  },
+  stale: {
+    card: "border-state-warning-border/75 bg-state-warning-surface/84",
+    activeCard:
+      "border-state-warning-border/90 bg-state-warning-surface shadow-[var(--subscriptions-summary-active-shadow-stale)] ring-1 ring-[color:var(--subscriptions-summary-active-ring-stale)]",
+    activeAccent: "bg-state-warning-border",
+    activeBadge: "border-state-warning-border/75 bg-state-warning-surface/92 text-state-warning-foreground",
+    activeValue: "text-state-warning-foreground",
+  },
+  review: {
+    card: "border-state-review-border/80 bg-state-review-surface/86",
+    activeCard:
+      "border-state-review-border/95 bg-state-review-surface shadow-[var(--subscriptions-summary-active-shadow-review)] ring-1 ring-[color:var(--subscriptions-summary-active-ring-review)]",
+    activeAccent: "bg-state-review-border",
+    activeBadge: "border-state-review-border/75 bg-state-review-surface/92 text-state-review-foreground",
+    activeValue: "text-state-review-foreground",
+  },
+} as const satisfies Record<
+  SubscriptionSummaryTone,
+  {
+    card: string;
+    activeCard: string;
+    activeAccent: string;
+    activeBadge: string;
+    activeValue: string;
   }
+>;
 
-  if (tone === "stale") {
-    return "border-state-warning-border/75 bg-state-warning-surface/84";
-  }
-
-  if (tone === "review") {
-    return "border-state-review-border/80 bg-state-review-surface/86";
-  }
-
-  return "border-border/60 bg-surface-1/62";
-}
-
-function resolveActiveCardClassName(tone: SubscriptionSummaryCard["tone"] = "neutral") {
-  if (tone === "danger") {
-    return "border-state-danger-border/90 bg-state-danger-surface shadow-[var(--subscriptions-summary-active-shadow-danger)] ring-1 ring-[color:var(--subscriptions-summary-active-ring-danger)]";
-  }
-
-  if (tone === "stale") {
-    return "border-state-warning-border/90 bg-state-warning-surface shadow-[var(--subscriptions-summary-active-shadow-stale)] ring-1 ring-[color:var(--subscriptions-summary-active-ring-stale)]";
-  }
-
-  if (tone === "review") {
-    return "border-state-review-border/95 bg-state-review-surface shadow-[var(--subscriptions-summary-active-shadow-review)] ring-1 ring-[color:var(--subscriptions-summary-active-ring-review)]";
-  }
-
-  return "border-border-strong bg-surface-1 shadow-[var(--subscriptions-summary-active-shadow-neutral)] ring-1 ring-[color:var(--subscriptions-summary-active-ring-neutral)]";
-}
-
-function resolveActiveAccentClassName(tone: SubscriptionSummaryCard["tone"] = "neutral") {
-  if (tone === "danger") {
-    return "bg-state-danger-border";
-  }
-
-  if (tone === "stale") {
-    return "bg-state-warning-border";
-  }
-
-  if (tone === "review") {
-    return "bg-state-review-border";
-  }
-
-  return "bg-secondary";
-}
-
-function resolveActiveBadgeClassName(tone: SubscriptionSummaryCard["tone"] = "neutral") {
-  if (tone === "danger") {
-    return "border-state-danger-border/75 bg-state-danger-surface/92 text-state-danger-foreground";
-  }
-
-  if (tone === "stale") {
-    return "border-state-warning-border/75 bg-state-warning-surface/92 text-state-warning-foreground";
-  }
-
-  if (tone === "review") {
-    return "border-state-review-border/75 bg-state-review-surface/92 text-state-review-foreground";
-  }
-
-  return "border-border-strong/70 bg-surface-1 text-foreground";
-}
-
-function resolveActiveValueClassName(tone: SubscriptionSummaryCard["tone"] = "neutral") {
-  if (tone === "danger") {
-    return "text-state-danger-foreground";
-  }
-
-  if (tone === "stale") {
-    return "text-state-warning-foreground";
-  }
-
-  if (tone === "review") {
-    return "text-state-review-foreground";
-  }
-
-  return "text-foreground";
+function resolveSummaryToneClasses(tone: SubscriptionSummaryCard["tone"] = "neutral") {
+  return summaryToneClassNames[tone ?? "neutral"];
 }
 
 export function SubscriptionsOverviewSummary({
@@ -123,12 +93,13 @@ export function SubscriptionsOverviewSummary({
           const numericValue = Number(card.value);
           const isActionable = Number.isFinite(numericValue);
           const isPrimary = card.tone === "review";
+          const toneClasses = resolveSummaryToneClasses(card.tone);
           const className = cn(
             "motion-static-hover-surface relative flex min-h-[96px] w-full min-w-0 flex-col justify-between overflow-hidden rounded-lg border px-3.5 py-3 text-left sm:min-h-[108px] sm:px-4.5 sm:py-4",
-            resolveCardClassName(card.tone),
+            toneClasses.card,
             isPrimary && "shadow-[var(--subscriptions-summary-card-shadow)]",
             isPrimary && "sm:col-span-2 lg:col-span-1",
-            card.isActive ? resolveActiveCardClassName(card.tone) : "shadow-none",
+            card.isActive ? toneClasses.activeCard : "shadow-none",
           );
 
           if (isActionable) {
@@ -144,7 +115,7 @@ export function SubscriptionsOverviewSummary({
                   aria-hidden="true"
                   className={cn(
                     "absolute inset-x-0 top-0 h-1.5 transition-opacity duration-150",
-                    resolveActiveAccentClassName(card.tone),
+                    toneClasses.activeAccent,
                     card.isActive ? "opacity-100" : "opacity-0",
                   )}
                 />
@@ -160,7 +131,7 @@ export function SubscriptionsOverviewSummary({
                       <span
                         className={cn(
                           "inline-flex h-6 items-center rounded-full border border-border-strong/70 bg-surface-1 px-2.5 text-[10px] font-medium tracking-[0.12em] text-foreground uppercase shadow-[var(--subscriptions-summary-badge-shadow)]",
-                          card.isActive && resolveActiveBadgeClassName(card.tone),
+                          card.isActive && toneClasses.activeBadge,
                           !card.isActive && "invisible",
                         )}
                         aria-hidden={card.isActive ? undefined : "true"}
@@ -172,7 +143,7 @@ export function SubscriptionsOverviewSummary({
                   <span
                     className={cn(
                       "mt-1.5 block text-[1.72rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[1.96rem]",
-                      card.isActive && resolveActiveValueClassName(card.tone),
+                      card.isActive && toneClasses.activeValue,
                     )}
                   >
                     {card.value}
