@@ -95,6 +95,7 @@ struct GReaderTag {
 struct StreamItemIdsResponse {
     #[serde(rename = "itemRefs")]
     item_refs: Option<Vec<ItemRef>>,
+    continuation: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -170,6 +171,58 @@ impl GReaderProvider {
         item.timestamp_usec
             .or_else(|| item.updated.map(|ts| ts.saturating_mul(1_000_000)))
             .or_else(|| item.published.map(|ts| ts.saturating_mul(1_000_000)))
+    }
+
+    async fn pull_item_ids_page(
+        &self,
+        stream_id: &str,
+        continuation: Option<&str>,
+    ) -> DomainResult<StreamItemIdsResponse> {
+        let mut url = format!(
+            "{}?output=json&n={STREAM_IDS_LIMIT}&s={}",
+            self.api_url("/reader/api/0/stream/items/ids"),
+            urlencoded(stream_id)
+        );
+
+        if let Some(continuation) = continuation {
+            url.push_str(&format!("&c={}", urlencoded(continuation)));
+        }
+
+        self.http_client
+            .get(&url)
+            .header("Authorization", self.auth_header()?)
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| DomainError::Network(e.to_string()))?
+            .json::<StreamItemIdsResponse>()
+            .await
+            .map_err(DomainError::from)
+    }
+
+    async fn pull_all_item_ids(&self, stream_id: &str) -> DomainResult<Vec<String>> {
+        let mut ids = Vec::new();
+        let mut continuation: Option<String> = None;
+
+        loop {
+            let response = self
+                .pull_item_ids_page(stream_id, continuation.as_deref())
+                .await?;
+            ids.extend(
+                response
+                    .item_refs
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|item| normalize_item_id(&item.id)),
+            );
+
+            let Some(next) = response.continuation else {
+                break;
+            };
+            continuation = Some(next);
+        }
+
+        Ok(ids)
     }
 
     fn map_item_to_entry(
@@ -454,64 +507,14 @@ impl FeedProvider for GReaderProvider {
     }
 
     async fn pull_state(&self) -> DomainResult<RemoteState> {
-        let read_url = format!(
-            "{}?output=json&n={STREAM_IDS_LIMIT}&s={}",
-            self.api_url("/reader/api/0/stream/items/ids"),
-            urlencoded(STATE_READ)
-        );
-
-        let starred_url = format!(
-            "{}?output=json&n={STREAM_IDS_LIMIT}&s={}",
-            self.api_url("/reader/api/0/stream/items/ids"),
-            urlencoded(STATE_STARRED)
-        );
-
-        let auth = self.auth_header()?;
-
         let (read_resp, starred_resp) = tokio::try_join!(
-            async {
-                self.http_client
-                    .get(&read_url)
-                    .header("Authorization", auth.clone())
-                    .send()
-                    .await?
-                    .error_for_status()
-                    .map_err(|e| DomainError::Network(e.to_string()))?
-                    .json::<StreamItemIdsResponse>()
-                    .await
-                    .map_err(DomainError::from)
-            },
-            async {
-                self.http_client
-                    .get(&starred_url)
-                    .header("Authorization", auth.clone())
-                    .send()
-                    .await?
-                    .error_for_status()
-                    .map_err(|e| DomainError::Network(e.to_string()))?
-                    .json::<StreamItemIdsResponse>()
-                    .await
-                    .map_err(DomainError::from)
-            }
+            self.pull_all_item_ids(STATE_READ),
+            self.pull_all_item_ids(STATE_STARRED)
         )?;
 
-        let read_ids = read_resp
-            .item_refs
-            .unwrap_or_default()
-            .into_iter()
-            .map(|r| normalize_item_id(&r.id))
-            .collect();
-
-        let starred_ids = starred_resp
-            .item_refs
-            .unwrap_or_default()
-            .into_iter()
-            .map(|r| normalize_item_id(&r.id))
-            .collect();
-
         Ok(RemoteState {
-            read_ids,
-            starred_ids,
+            read_ids: read_resp,
+            starred_ids: starred_resp,
         })
     }
 
@@ -1139,6 +1142,101 @@ mod tests {
         assert!(state.starred_ids.is_empty());
         read_mock.assert_async().await;
         starred_mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn pull_state_follows_continuation_until_all_ids_are_loaded() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let read_page_1 = server
+            .mock("GET", "/api/greader.php/reader/api/0/stream/items/ids")
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), "10000".into()),
+                mockito::Matcher::UrlEncoded("s".into(), STATE_READ.into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(r#"{ "itemRefs": [{ "id": "1" }], "continuation": "read-next" }"#)
+            .create_async()
+            .await;
+
+        let read_page_2 = server
+            .mock("GET", "/api/greader.php/reader/api/0/stream/items/ids")
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), "10000".into()),
+                mockito::Matcher::UrlEncoded("s".into(), STATE_READ.into()),
+                mockito::Matcher::UrlEncoded("c".into(), "read-next".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(r#"{ "itemRefs": [{ "id": "2" }] }"#)
+            .create_async()
+            .await;
+
+        let starred_page_1 = server
+            .mock("GET", "/api/greader.php/reader/api/0/stream/items/ids")
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), "10000".into()),
+                mockito::Matcher::UrlEncoded("s".into(), STATE_STARRED.into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(r#"{ "itemRefs": [{ "id": "3" }], "continuation": "star-next" }"#)
+            .create_async()
+            .await;
+
+        let starred_page_2 = server
+            .mock("GET", "/api/greader.php/reader/api/0/stream/items/ids")
+            .match_query(mockito::Matcher::AllOf(vec![
+                mockito::Matcher::UrlEncoded("output".into(), "json".into()),
+                mockito::Matcher::UrlEncoded("n".into(), "10000".into()),
+                mockito::Matcher::UrlEncoded("s".into(), STATE_STARRED.into()),
+                mockito::Matcher::UrlEncoded("c".into(), "star-next".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(r#"{ "itemRefs": [{ "id": "4" }] }"#)
+            .create_async()
+            .await;
+
+        let mut provider = GReaderProvider::for_freshrss(&server.url());
+        provider
+            .authenticate(&Credentials {
+                password: Some("p".into()),
+                token: Some("u".into()),
+            })
+            .await
+            .unwrap();
+
+        let state = provider.pull_state().await.unwrap();
+
+        assert_eq!(
+            state.read_ids,
+            vec![
+                "tag:google.com,2005:reader/item/0000000000000001".to_string(),
+                "tag:google.com,2005:reader/item/0000000000000002".to_string(),
+            ]
+        );
+        assert_eq!(
+            state.starred_ids,
+            vec![
+                "tag:google.com,2005:reader/item/0000000000000003".to_string(),
+                "tag:google.com,2005:reader/item/0000000000000004".to_string(),
+            ]
+        );
+        read_page_1.assert_async().await;
+        read_page_2.assert_async().await;
+        starred_page_1.assert_async().await;
+        starred_page_2.assert_async().await;
     }
 
     // === Live integration tests ===
