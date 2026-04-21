@@ -1,6 +1,6 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { BrowserOverlayChrome } from "@/components/reader/browser-overlay-chrome";
 import type {
   BrowserOverlayChromeController,
@@ -101,6 +101,10 @@ const shareToolbarActions: BrowserOverlayToolbarAction[] = [
 ];
 
 describe("BrowserOverlayChrome", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("renders only the close action for the image-viewer overlay chrome", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
@@ -284,5 +288,66 @@ describe("BrowserOverlayChrome", () => {
       .filter((label): label is string => label !== null);
 
     expect(toolbarButtons).toEqual(["Reload page", "Open in External Browser", "Share"]);
+  });
+
+  it("spins the back icon briefly after an accepted click", async () => {
+    vi.useFakeTimers();
+    const controller = createController({
+      browserState: {
+        url: "https://example.com/article",
+        can_go_back: true,
+        can_go_forward: false,
+        is_loading: false,
+      },
+    });
+
+    render(
+      <BrowserOverlayChrome
+        controller={controller}
+        presentation={createSurfacePresentation()}
+        closeWebPreviewLabel="Close Web Preview"
+      />,
+    );
+
+    const backButton = screen.getByRole("button", { name: "Web back" });
+    const icon = backButton.querySelector("svg");
+
+    expect(icon).not.toHaveClass("animate-spin");
+
+    fireEvent.click(backButton);
+
+    expect(controller.handleGoBack).toHaveBeenCalledTimes(1);
+    expect(icon).toHaveClass("animate-spin");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(999);
+    });
+    expect(icon).toHaveClass("animate-spin");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(icon).not.toHaveClass("animate-spin");
+  });
+
+  it("does not start reload feedback when the action is disabled", () => {
+    vi.useFakeTimers();
+    const controller = createController({ browserState: null });
+
+    render(
+      <BrowserOverlayChrome
+        controller={controller}
+        presentation={createSurfacePresentation()}
+        closeWebPreviewLabel="Close Web Preview"
+      />,
+    );
+
+    const reloadButton = screen.getByRole("button", { name: "Reload page" });
+    const icon = reloadButton.querySelector("svg");
+
+    fireEvent.click(reloadButton);
+
+    expect(controller.handleReload).not.toHaveBeenCalled();
+    expect(icon).not.toHaveClass("animate-spin");
   });
 });

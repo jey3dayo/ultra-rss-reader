@@ -1,10 +1,14 @@
 import { ChevronLeft, ChevronRight, ExternalLink, RotateCw, X } from "lucide-react";
 import type { ReactNode } from "react";
+import { cloneElement, isValidElement, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IconToolbarSurfaceButton } from "@/components/shared/icon-toolbar-control";
 import { OverlayActionSurface } from "@/components/shared/overlay-action-surface";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import type { BrowserOverlayChromeProps } from "./browser-view.types";
+
+const ACCEPTED_ACTION_SPIN_MS = 1_000;
 
 function isCloseOnlyProps(
   props: BrowserOverlayChromeProps,
@@ -29,6 +33,7 @@ function BrowserOverlayIconAction({
   label,
   onClick,
   disabled = false,
+  spinning = false,
   children,
 }: {
   actionKey: string;
@@ -36,8 +41,15 @@ function BrowserOverlayIconAction({
   label: string;
   onClick: () => void | Promise<void>;
   disabled?: boolean;
+  spinning?: boolean;
   children: ReactNode;
 }) {
+  const content = isValidElement<{ className?: string }>(children)
+    ? cloneElement(children, {
+        className: cn(children.props.className, spinning && "animate-spin"),
+      })
+    : children;
+
   return (
     <IconToolbarSurfaceButton
       key={actionKey}
@@ -49,7 +61,7 @@ function BrowserOverlayIconAction({
       }}
       disabled={disabled}
     >
-      {children}
+      {content}
     </IconToolbarSurfaceButton>
   );
 }
@@ -69,12 +81,36 @@ function renderBrowserOverlayActionSurface(
 
 export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
   const { t } = useTranslation("reader");
+  const [activeFeedbackAction, setActiveFeedbackAction] = useState<string | null>(null);
+  const feedbackTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current !== null) {
+        window.clearTimeout(feedbackTimerRef.current);
+      }
+    };
+  }, []);
 
   if (isCloseOnlyProps(props)) {
     return <BrowserOverlayCloseOnlyChrome {...props} />;
   }
 
   const { controller, presentation, closeWebPreviewLabel, toolbarActions } = props;
+
+  const startAcceptedFeedback = (actionKey: string) => {
+    setActiveFeedbackAction(actionKey);
+
+    if (feedbackTimerRef.current !== null) {
+      window.clearTimeout(feedbackTimerRef.current);
+    }
+
+    feedbackTimerRef.current = window.setTimeout(() => {
+      setActiveFeedbackAction(null);
+      feedbackTimerRef.current = null;
+    }, ACCEPTED_ACTION_SPIN_MS);
+  };
+
   return (
     <TooltipProvider>
       <div
@@ -98,8 +134,12 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
             actionKey="browser-back"
             compact={presentation.leadingActionSurface.compact}
             label={t("web_back")}
-            onClick={controller.handleGoBack}
+            onClick={() => {
+              startAcceptedFeedback("browser-back");
+              return controller.handleGoBack();
+            }}
             disabled={!controller.browserState?.can_go_back}
+            spinning={activeFeedbackAction === "browser-back"}
           >
             <ChevronLeft aria-hidden="true" className="size-4" />
           </BrowserOverlayIconAction>
@@ -107,8 +147,12 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
             actionKey="browser-forward"
             compact={presentation.leadingActionSurface.compact}
             label={t("web_forward")}
-            onClick={controller.handleGoForward}
+            onClick={() => {
+              startAcceptedFeedback("browser-forward");
+              return controller.handleGoForward();
+            }}
             disabled={!controller.browserState?.can_go_forward}
+            spinning={activeFeedbackAction === "browser-forward"}
           >
             <ChevronRight aria-hidden="true" className="size-4" />
           </BrowserOverlayIconAction>
@@ -127,8 +171,12 @@ export function BrowserOverlayChrome(props: BrowserOverlayChromeProps) {
             actionKey="reload-web-preview"
             compact={presentation.actionButtonSurface.compact}
             label={t("reload_page")}
-            onClick={controller.handleReload}
+            onClick={() => {
+              startAcceptedFeedback("reload-web-preview");
+              return controller.handleReload();
+            }}
             disabled={!controller.browserState}
+            spinning={activeFeedbackAction === "reload-web-preview"}
           >
             <RotateCw aria-hidden="true" className="size-4" />
           </BrowserOverlayIconAction>
