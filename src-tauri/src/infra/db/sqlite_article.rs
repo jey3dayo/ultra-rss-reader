@@ -1217,7 +1217,12 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(page.iter().map(|article| article.title.as_str()).collect::<Vec<_>>(), vec!["Older unread"]);
+        assert_eq!(
+            page.iter()
+                .map(|article| article.title.as_str())
+                .collect::<Vec<_>>(),
+            vec!["Older unread"]
+        );
     }
 
     #[test]
@@ -1252,7 +1257,12 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(page.iter().map(|article| article.title.as_str()).collect::<Vec<_>>(), vec!["Older unread"]);
+        assert_eq!(
+            page.iter()
+                .map(|article| article.title.as_str())
+                .collect::<Vec<_>>(),
+            vec!["Older unread"]
+        );
     }
 
     #[test]

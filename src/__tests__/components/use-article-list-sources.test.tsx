@@ -4,19 +4,14 @@ import { useArticleListSources } from "@/components/reader/use-article-list-sour
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds } from "../../../tests/helpers/tauri-mocks";
 
-const {
-  useFeedsMock,
-  useArticlesMock,
-  useAccountArticlesMock,
-  useStarredArticlesMock,
-  useArticlesByTagMock,
-} = vi.hoisted(() => ({
-  useFeedsMock: vi.fn(),
-  useArticlesMock: vi.fn(),
-  useAccountArticlesMock: vi.fn(),
-  useStarredArticlesMock: vi.fn(),
-  useArticlesByTagMock: vi.fn(),
-}));
+const { useFeedsMock, useArticlesMock, useAccountArticlesMock, useStarredArticlesMock, useArticlesByTagMock } =
+  vi.hoisted(() => ({
+    useFeedsMock: vi.fn(),
+    useArticlesMock: vi.fn(),
+    useAccountArticlesMock: vi.fn(),
+    useStarredArticlesMock: vi.fn(),
+    useArticlesByTagMock: vi.fn(),
+  }));
 
 vi.mock("@/hooks/use-feeds", () => ({
   useFeeds: (...args: unknown[]) => useFeedsMock(...args),
@@ -37,7 +32,10 @@ describe("useArticleListSources", () => {
     useFeedsMock.mockReturnValue({ data: sampleFeeds });
     useArticlesMock.mockReturnValue({ data: sampleArticles, isLoading: false });
     useAccountArticlesMock.mockReturnValue({ data: sampleArticles, isLoading: false });
-    useStarredArticlesMock.mockReturnValue({ data: sampleArticles.filter((article) => article.is_starred), isLoading: false });
+    useStarredArticlesMock.mockReturnValue({
+      data: sampleArticles.filter((article) => article.is_starred),
+      isLoading: false,
+    });
     useArticlesByTagMock.mockReturnValue({ data: [], isLoading: false });
   });
 

@@ -142,9 +142,7 @@ function createDefaultHandler(): MockHandler {
       case "list_folders":
         return [];
       case "list_articles":
-        return sampleArticles.filter(
-          (a) => a.feed_id === args.feedId && (!args.unreadOnly || !a.is_read),
-        );
+        return sampleArticles.filter((a) => a.feed_id === args.feedId && (!args.unreadOnly || !a.is_read));
       case "list_account_articles":
         return sampleArticles.filter((a) =>
           sampleFeeds.some(
