@@ -27,18 +27,62 @@ function getAccountKindDescription(accountName: string, kind: string): string | 
   return accountName.trim().toLowerCase() === kindLabel.toLowerCase() ? null : kindLabel;
 }
 
+function normalizeDetail(value?: string | null): string | null {
+  const normalized = value?.trim();
+  return normalized ? normalized : null;
+}
+
+function normalizeComparable(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function getServerHostLabel(serverUrl?: string | null): string | null {
+  const normalized = normalizeDetail(serverUrl);
+  if (!normalized) {
+    return null;
+  }
+
+  try {
+    return new URL(normalized).host || normalized;
+  } catch {
+    return normalized;
+  }
+}
+
+function getAccountDescription(account: AccountsNavViewProps["accounts"][number]): string | null {
+  const title = normalizeComparable(account.name);
+  const candidates = [
+    normalizeDetail(account.username),
+    getServerHostLabel(account.serverUrl),
+    getAccountKindDescription(account.name, account.kind),
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+    if (normalizeComparable(candidate) === title) {
+      continue;
+    }
+    return candidate;
+  }
+
+  return null;
+}
+
 export function AccountsNavView({
   accounts,
   addAccountLabel,
   isAddAccountActive,
   onSelectAccount,
   onAddAccount,
+  disabled = false,
 }: AccountsNavViewProps) {
   return (
     <div className="flex gap-2 overflow-x-auto sm:block sm:space-y-1 sm:overflow-visible">
       {accounts.map((account) => {
         const kindKey = account.kind.toLowerCase();
-        const kindDescription = getAccountKindDescription(account.name, account.kind);
+        const description = getAccountDescription(account);
 
         return (
           <NavRowButton
@@ -46,6 +90,7 @@ export function AccountsNavView({
             tone="sidebar"
             selected={account.isActive}
             aria-pressed={account.isActive}
+            disabled={disabled}
             onClick={() => onSelectAccount(account.id)}
             className={cn(
               "relative shrink-0 rounded-md px-3 py-2 text-[13px] leading-[1.3] focus-visible:ring-0 focus-visible:ring-transparent sm:w-full",
@@ -64,13 +109,13 @@ export function AccountsNavView({
             }
             title={account.name}
             description={
-              kindDescription ? (
+              description ? (
                 <div
                   className={
                     account.isActive ? "text-[color:var(--settings-shell-section-label)]" : "text-sidebar-foreground/38"
                   }
                 >
-                  {kindDescription}
+                  {description}
                 </div>
               ) : undefined
             }
@@ -81,6 +126,7 @@ export function AccountsNavView({
         tone="sidebar"
         selected={isAddAccountActive}
         aria-pressed={isAddAccountActive}
+        disabled={disabled}
         onClick={onAddAccount}
         className={cn(
           "relative shrink-0 items-center rounded-md px-3 py-2 text-[13px] leading-[1.3] focus-visible:ring-0 focus-visible:ring-transparent sm:w-full",

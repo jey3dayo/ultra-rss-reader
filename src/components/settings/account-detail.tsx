@@ -8,7 +8,12 @@ import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useUiStore } from "@/stores/ui-store";
 
-function AccountDetailContent({ account, isSyncing }: AccountDetailContentProps) {
+function AccountDetailContent({
+  account,
+  isSyncing,
+  accountSetupState,
+  accountSetupErrorMessage,
+}: AccountDetailContentProps) {
   const { t, i18n } = useTranslation("settings");
   const syncStatusQuery = useAccountSyncStatus(account.id);
   const setSettingsAccountId = useUiStore((s) => s.setSettingsAccountId);
@@ -19,6 +24,7 @@ function AccountDetailContent({ account, isSyncing }: AccountDetailContentProps)
     onSyncStatusChanged: () => {
       void syncStatusQuery.refetch();
     },
+    accountSetupState,
   });
 
   const syncStatusRows = useAccountDetailSyncStatusRows({
@@ -35,6 +41,8 @@ function AccountDetailContent({ account, isSyncing }: AccountDetailContentProps)
     syncStatusRows,
     language: i18n.language,
     t,
+    accountSetupState,
+    accountSetupErrorMessage,
   });
 
   return <AccountDetailView {...viewProps} />;
@@ -43,6 +51,7 @@ function AccountDetailContent({ account, isSyncing }: AccountDetailContentProps)
 export function AccountDetail() {
   const settingsAccountId = useUiStore((s) => s.settingsAccountId);
   const syncProgress = useUiStore((s) => s.syncProgress);
+  const accountSetupSession = useUiStore((s) => s.accountSetupSession);
   const { data: accounts } = useAccounts();
 
   const account = accounts?.find((a) => a.id === settingsAccountId);
@@ -51,6 +60,16 @@ export function AccountDetail() {
 
   const isSyncing =
     syncProgress.active && (syncProgress.kind !== "manual_account" || syncProgress.activeAccountIds.has(account.id));
+  const accountSetupState = accountSetupSession?.accountId === account.id ? accountSetupSession.state : null;
+  const accountSetupErrorMessage =
+    accountSetupSession?.accountId === account.id ? accountSetupSession.errorMessage : null;
 
-  return <AccountDetailContent account={account} isSyncing={isSyncing} />;
+  return (
+    <AccountDetailContent
+      account={account}
+      isSyncing={isSyncing || accountSetupState === "syncing"}
+      accountSetupState={accountSetupState}
+      accountSetupErrorMessage={accountSetupErrorMessage}
+    />
+  );
 }

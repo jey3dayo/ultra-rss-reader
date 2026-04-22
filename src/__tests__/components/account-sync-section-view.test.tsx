@@ -189,4 +189,60 @@ describe("AccountSyncSectionView", () => {
     expect(statusSurface).toHaveClass("bg-surface-1/72");
     expect(screen.getByText("Next sync")).toHaveClass("text-foreground-soft");
   });
+
+  it("renders setup note and secondary action for failed setup state", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    const onEditCredentials = vi.fn();
+
+    render(
+      <AccountSyncSectionView
+        heading="Initial setup in progress"
+        note="Finish the first sync before closing this screen."
+        syncInterval={{
+          name: "sync-interval",
+          label: "Sync",
+          value: "3600",
+          options: [{ value: "3600", label: "Every hour" }],
+          onChange: () => {},
+          disabled: true,
+        }}
+        syncOnWake={{
+          label: "Sync on wake",
+          checked: true,
+          onChange: () => {},
+          disabled: true,
+        }}
+        syncOnStartup={{
+          label: "Sync on startup",
+          checked: true,
+          onChange: () => {},
+          disabled: true,
+        }}
+        keepReadItems={{
+          name: "keep-read-items",
+          label: "Keep read items",
+          value: "30",
+          options: [{ value: "30", label: "One month" }],
+          onChange: () => {},
+          disabled: true,
+        }}
+        syncNowLabel="Retry setup"
+        onSyncNow={onRetry}
+        secondaryActionLabel="Edit credentials"
+        onSecondaryAction={onEditCredentials}
+      />,
+    );
+
+    expect(screen.getByText("Finish the first sync before closing this screen.")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Sync" })).toHaveAttribute("data-disabled", "");
+    expect(screen.getByRole("switch", { name: "Sync on wake" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("switch", { name: "Sync on startup" })).toHaveAttribute("aria-disabled", "true");
+
+    await user.click(screen.getByRole("button", { name: "Retry setup" }));
+    await user.click(screen.getByRole("button", { name: "Edit credentials" }));
+
+    expect(onRetry).toHaveBeenCalledOnce();
+    expect(onEditCredentials).toHaveBeenCalledOnce();
+  });
 });

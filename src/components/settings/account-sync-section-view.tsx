@@ -6,6 +6,7 @@ import { LoadingButton } from "@/components/shared/loading-button";
 
 export function AccountSyncSectionView({
   heading,
+  note,
   syncInterval,
   syncOnStartup,
   syncOnWake,
@@ -15,12 +16,24 @@ export function AccountSyncSectionView({
   syncingLabel,
   onSyncNow,
   isSyncing,
+  secondaryActionLabel,
+  onSecondaryAction,
 }: AccountSyncSectionViewProps) {
   return (
-    <SettingsSection heading={heading} surface="flat" className="mb-6 sm:mb-7">
+    <SettingsSection heading={heading} note={note} surface="flat" className="mb-6 sm:mb-7">
       <AccountSelectRow control={syncInterval} />
-      <LabeledSwitchRow label={syncOnStartup.label} checked={syncOnStartup.checked} onChange={syncOnStartup.onChange} />
-      <LabeledSwitchRow label={syncOnWake.label} checked={syncOnWake.checked} onChange={syncOnWake.onChange} />
+      <LabeledSwitchRow
+        label={syncOnStartup.label}
+        checked={syncOnStartup.checked}
+        onChange={syncOnStartup.onChange}
+        disabled={syncOnStartup.disabled}
+      />
+      <LabeledSwitchRow
+        label={syncOnWake.label}
+        checked={syncOnWake.checked}
+        onChange={syncOnWake.onChange}
+        disabled={syncOnWake.disabled}
+      />
       <AccountSelectRow control={keepReadItems} />
       {statusRows && statusRows.length > 0 ? (
         <div className="mt-3 ml-auto w-full max-w-[30rem] space-y-2 rounded-md border border-border/60 bg-surface-1/72 p-3 text-sm">
@@ -32,16 +45,27 @@ export function AccountSyncSectionView({
           ))}
         </div>
       ) : null}
-      {onSyncNow && (
-        <div className="flex justify-end pt-3">
-          <LoadingButton
-            className="h-10 w-full justify-center px-4 sm:w-auto"
-            onClick={onSyncNow}
-            loading={isSyncing}
-            loadingLabel={syncingLabel}
-          >
-            {syncNowLabel}
-          </LoadingButton>
+      {(onSyncNow || onSecondaryAction) && (
+        <div className="flex flex-col-reverse gap-2 pt-3 sm:flex-row sm:justify-end">
+          {onSecondaryAction && secondaryActionLabel ? (
+            <LoadingButton
+              className="h-10 w-full justify-center px-4 sm:w-auto"
+              variant="outline"
+              onClick={onSecondaryAction}
+            >
+              {secondaryActionLabel}
+            </LoadingButton>
+          ) : null}
+          {onSyncNow ? (
+            <LoadingButton
+              className="h-10 w-full justify-center px-4 sm:w-auto"
+              onClick={onSyncNow}
+              loading={isSyncing}
+              loadingLabel={syncingLabel}
+            >
+              {syncNowLabel}
+            </LoadingButton>
+          ) : null}
         </div>
       )}
     </SettingsSection>
@@ -56,6 +80,7 @@ function AccountSelectRow({ control }: AccountSelectRowProps) {
       value={control.value}
       options={control.options}
       onChange={control.onChange}
+      disabled={control.disabled}
     />
   );
 }

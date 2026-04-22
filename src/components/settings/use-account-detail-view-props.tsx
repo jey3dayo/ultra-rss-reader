@@ -11,7 +11,12 @@ export function useAccountDetailViewProps({
   syncStatusRows,
   language,
   t,
+  accountSetupState,
+  accountSetupErrorMessage,
 }: UseAccountDetailViewPropsParams): UseAccountDetailViewPropsResult {
+  const isSetupSyncing = accountSetupState === "syncing";
+  const isSetupFailed = accountSetupState === "failed";
+  const isSetupActive = isSetupSyncing || isSetupFailed;
   const verificationStatus = account.connection_verification_status ?? "unverified";
   const lastSuccessLabel = formatAccountLastSuccessLabel(syncStatus?.last_success_at ?? undefined, language);
   const summaryDetail = lastSuccessLabel
@@ -65,20 +70,25 @@ export function useAccountDetailViewProps({
       onNameDraftChange: controller.setNameDraft,
       onCommitName: controller.commitRename,
       onNameKeyDown: controller.handleNameKeyDown,
+      disabled: isSetupActive,
     },
     credentialsSection:
       account.kind === "FreshRss" ? (
         <AccountCredentialsSectionView
           heading={t("account.server")}
+          note={isSetupFailed ? t("account.setup_failed_credentials_note") : undefined}
+          disabled={isSetupSyncing}
           serverUrlLabel={t("account.server_url")}
           serverUrlValue={controller.credServerUrl ?? account.server_url ?? ""}
           serverUrlPlaceholder={t("account.server_url_placeholder")}
+          serverUrlInputRef={controller.serverUrlInputRef}
           serverUrlCopyLabel={t("account.copy_server_url")}
           onServerUrlChange={controller.setCredServerUrl}
           onServerUrlBlur={controller.commitCredentials}
           onServerUrlCopy={() => void controller.handleCopyServerUrl()}
           usernameLabel={t("account.username")}
           usernameValue={controller.credUsername ?? account.username ?? ""}
+          usernameInputRef={controller.usernameInputRef}
           onUsernameChange={controller.setCredUsername}
           onUsernameBlur={controller.commitCredentials}
           passwordLabel={t("account.password")}
@@ -87,31 +97,43 @@ export function useAccountDetailViewProps({
           onPasswordChange={controller.setCredPassword}
           onPasswordFocus={controller.onPasswordFocus}
           onPasswordBlur={controller.commitCredentials}
-          testConnectionLabel={t("account.test_connection")}
-          testingConnectionLabel={t("account.testing_connection")}
+          testConnectionLabel={isSetupActive ? undefined : t("account.test_connection")}
+          testingConnectionLabel={isSetupActive ? undefined : t("account.testing_connection")}
           testConnectionVariant={verificationStatus === "verified" ? "secondary" : "default"}
-          onTestConnection={controller.handleTestConnection}
+          onTestConnection={isSetupActive ? undefined : controller.handleTestConnection}
           isTestingConnection={controller.testingConnection}
         />
       ) : undefined,
     syncSection: {
-      heading: t("account.syncing"),
+      heading: isSetupSyncing
+        ? t("account.setup_syncing_heading")
+        : isSetupFailed
+          ? t("account.setup_failed_heading")
+          : t("account.syncing"),
+      note: isSetupSyncing
+        ? t("account.setup_syncing_description")
+        : isSetupFailed
+          ? (accountSetupErrorMessage ?? t("account.setup_failed_description"))
+          : undefined,
       syncInterval: {
         name: "sync-interval",
         label: t("account.sync"),
         value: String(account.sync_interval_secs),
         options: controller.syncIntervalOptions,
         onChange: (value) => controller.handleSyncUpdate({ syncIntervalSecs: Number(value) }),
+        disabled: isSetupActive,
       },
       syncOnStartup: {
         label: t("account.sync_on_startup"),
         checked: account.sync_on_startup,
         onChange: (value) => controller.handleSyncUpdate({ syncOnStartup: value }),
+        disabled: isSetupActive,
       },
       syncOnWake: {
         label: t("account.sync_on_wake"),
         checked: account.sync_on_wake,
         onChange: (value) => controller.handleSyncUpdate({ syncOnWake: value }),
+        disabled: isSetupActive,
       },
       keepReadItems: {
         name: "keep-read-items",
@@ -119,12 +141,15 @@ export function useAccountDetailViewProps({
         value: String(account.keep_read_items_days),
         options: controller.keepReadItemsOptions,
         onChange: (value) => controller.handleSyncUpdate({ keepReadItemsDays: Number(value) }),
+        disabled: isSetupActive,
       },
       statusRows: syncStatusRows,
-      syncNowLabel: t("account.sync_now"),
-      syncingLabel: t("account.syncing_now"),
-      onSyncNow: controller.handleSyncNow,
+      syncNowLabel: isSetupFailed ? t("account.setup_retry") : t("account.sync_now"),
+      syncingLabel: isSetupSyncing ? t("account.setup_syncing_action") : t("account.syncing_now"),
+      onSyncNow: isSetupActive ? controller.handleSetupRetry : controller.handleSyncNow,
       isSyncing,
+      secondaryActionLabel: isSetupFailed ? t("account.setup_edit_credentials") : undefined,
+      onSecondaryAction: isSetupFailed ? controller.focusCredentialsEditor : undefined,
     },
     dangerZone: {
       dataHeading: t("account.data_section"),
@@ -133,6 +158,7 @@ export function useAccountDetailViewProps({
       deleteLabel: t("account.delete_account"),
       onExport: controller.handleExportOpml,
       onRequestDelete: controller.handleRequestDelete,
+      disabled: isSetupActive,
     },
   };
 }

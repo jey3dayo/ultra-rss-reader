@@ -18,6 +18,8 @@ export type SettingsModalViewProps = {
   contentResetKey?: string;
   contentScrollBehavior?: "auto" | "always" | "never";
   isLoading?: boolean;
+  isCloseDisabled?: boolean;
+  lockMessage?: string;
   onClose: () => void;
   onOpenChange: (open: boolean) => void;
 };

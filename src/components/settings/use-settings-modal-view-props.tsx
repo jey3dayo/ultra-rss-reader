@@ -23,6 +23,7 @@ type UseSettingsModalViewPropsParams = {
   setSettingsCategory: (category: SettingsCategory) => void;
   openSettingsAccount: (accountId: string) => void;
   openSettingsAddAccount: () => void;
+  setupLockReason?: string | null;
 };
 
 const settingsCategoryByNavId: Record<string, SettingsCategory> = {
@@ -52,7 +53,9 @@ export function useSettingsModalViewProps({
   setSettingsCategory,
   openSettingsAccount,
   openSettingsAddAccount,
+  setupLockReason,
 }: UseSettingsModalViewPropsParams): SettingsModalViewProps {
+  const setupLocked = Boolean(setupLockReason);
   const navItems: SettingsNavItem[] = [
     {
       id: "general",
@@ -117,10 +120,15 @@ export function useSettingsModalViewProps({
     id: account.id,
     name: account.name,
     kind: account.kind,
+    username: account.username,
+    serverUrl: account.server_url,
     isActive: settingsAccountId === account.id,
   }));
 
   const handleSelectCategory = (categoryId: SettingsNavItemId) => {
+    if (setupLocked) {
+      return;
+    }
     const nextCategory = settingsCategoryByNavId[categoryId];
     if (!nextCategory) {
       return;
@@ -130,10 +138,16 @@ export function useSettingsModalViewProps({
   };
 
   const handleSelectAccount = (accountId: string) => {
+    if (setupLocked) {
+      return;
+    }
     openSettingsAccount(accountId);
   };
 
   const handleAddAccount = () => {
+    if (setupLocked) {
+      return;
+    }
     openSettingsAddAccount();
   };
 
@@ -141,7 +155,7 @@ export function useSettingsModalViewProps({
     open: settingsOpen,
     title: t("preferences"),
     closeLabel: t("close_preferences"),
-    navigation: <SettingsNavView items={navItems} onSelectCategory={handleSelectCategory} />,
+    navigation: <SettingsNavView items={navItems} onSelectCategory={handleSelectCategory} disabled={setupLocked} />,
     accountsHeading: t("accounts_heading"),
     accountsNavigation: (
       <AccountsNavView
@@ -150,12 +164,29 @@ export function useSettingsModalViewProps({
         isAddAccountActive={settingsAddAccount}
         onSelectAccount={handleSelectAccount}
         onAddAccount={handleAddAccount}
+        disabled={setupLocked}
       />
     ),
     content,
     contentResetKey: `${settingsCategory}:${settingsAccountId ?? ""}:${settingsAddAccount ? "add" : "browse"}`,
     isLoading: settingsLoading,
-    onClose: closeSettings,
-    onOpenChange: (open) => (!open ? closeSettings() : openSettings()),
+    isCloseDisabled: setupLocked,
+    lockMessage: setupLockReason ?? undefined,
+    onClose: () => {
+      if (setupLocked) {
+        return;
+      }
+      closeSettings();
+    },
+    onOpenChange: (open) => {
+      if (!open) {
+        if (setupLocked) {
+          return;
+        }
+        closeSettings();
+        return;
+      }
+      openSettings();
+    },
   };
 }

@@ -17,6 +17,7 @@ export function AccountGeneralSectionView({
   onNameDraftChange,
   onCommitName,
   onNameKeyDown,
+  disabled = false,
 }: AccountGeneralSectionViewProps) {
   const labelColumnClassName = "sm:w-40 sm:shrink-0";
 
@@ -30,12 +31,12 @@ export function AccountGeneralSectionView({
         title={editNameTitle}
         inputRef={nameInputRef}
         onChange={onNameDraftChange}
-        onBlur={isEditingName ? onCommitName : undefined}
-        onFocus={!isEditingName ? onStartEditingName : undefined}
-        onKeyDown={isEditingName ? onNameKeyDown : undefined}
+        onBlur={!disabled && isEditingName ? onCommitName : undefined}
+        onFocus={!disabled && !isEditingName ? onStartEditingName : undefined}
+        onKeyDown={!disabled && isEditingName ? onNameKeyDown : undefined}
         labelClassName={labelColumnClassName}
         inputClassName="h-10"
-        disabled={isSavingName}
+        disabled={disabled || isSavingName}
       />
       {infoRows.map((row) => (
         <SettingsRow

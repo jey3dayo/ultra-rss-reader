@@ -11,15 +11,18 @@ const EMPTY_EXTRA_ROWS: AccountCredentialInputRow[] = [];
 export type AccountCredentialsSectionViewProps = {
   heading: string;
   note?: string;
+  disabled?: boolean;
   serverUrlLabel?: string;
   serverUrlValue?: string;
   serverUrlPlaceholder?: string;
+  serverUrlInputRef?: AccountCredentialInputRow["inputRef"];
   onServerUrlChange?: (value: string) => void;
   onServerUrlBlur?: () => void;
   serverUrlCopyLabel?: string;
   onServerUrlCopy?: () => void;
   usernameLabel: string;
   usernameValue: string;
+  usernameInputRef?: AccountCredentialInputRow["inputRef"];
   onUsernameChange: (value: string) => void;
   onUsernameBlur: () => void;
   passwordLabel: string;
@@ -39,15 +42,18 @@ export type AccountCredentialsSectionViewProps = {
 export function AccountCredentialsSectionView({
   heading,
   note,
+  disabled = false,
   serverUrlLabel,
   serverUrlValue,
   serverUrlPlaceholder,
+  serverUrlInputRef,
   onServerUrlChange,
   onServerUrlBlur,
   serverUrlCopyLabel,
   onServerUrlCopy,
   usernameLabel,
   usernameValue,
+  usernameInputRef,
   onUsernameChange,
   onUsernameBlur,
   passwordLabel,
@@ -75,8 +81,9 @@ export function AccountCredentialsSectionView({
           type="url"
           value={serverUrlValue ?? ""}
           placeholder={serverUrlPlaceholder}
+          inputRef={serverUrlInputRef}
           onChange={onServerUrlChange}
-          onBlur={onServerUrlBlur}
+          onBlur={!disabled ? onServerUrlBlur : undefined}
           labelClassName={labelColumnClassName}
           inputClassName="h-10"
           actionLabel={serverUrlCopyLabel}
@@ -87,7 +94,8 @@ export function AccountCredentialsSectionView({
           actionVariant="ghost"
           actionSize="icon-sm"
           onAction={onServerUrlCopy}
-          actionDisabled={!serverUrlValue}
+          actionDisabled={disabled || !serverUrlValue}
+          disabled={disabled}
         />
       )}
       {resolvedExtraRows.map((row) => (
@@ -96,32 +104,37 @@ export function AccountCredentialsSectionView({
           label={row.label}
           type={row.type}
           value={row.value}
+          inputRef={row.inputRef}
           onChange={row.onChange}
-          onFocus={row.onFocus}
-          onBlur={row.onBlur}
+          onFocus={!disabled ? row.onFocus : undefined}
+          onBlur={!disabled ? row.onBlur : undefined}
           placeholder={row.placeholder}
           labelClassName={labelColumnClassName}
           inputClassName="h-10"
+          disabled={disabled}
         />
       ))}
       <LabeledInputRow
         label={usernameLabel}
         value={usernameValue}
+        inputRef={usernameInputRef}
         onChange={onUsernameChange}
-        onBlur={onUsernameBlur}
+        onBlur={!disabled ? onUsernameBlur : undefined}
         labelClassName={labelColumnClassName}
         inputClassName="h-10"
+        disabled={disabled}
       />
       <LabeledInputRow
         label={passwordLabel}
         type="password"
         value={passwordValue}
         onChange={onPasswordChange}
-        onFocus={onPasswordFocus}
-        onBlur={onPasswordBlur}
+        onFocus={!disabled ? onPasswordFocus : undefined}
+        onBlur={!disabled ? onPasswordBlur : undefined}
         placeholder={passwordPlaceholder}
         labelClassName={labelColumnClassName}
         inputClassName="h-10"
+        disabled={disabled}
       />
       {onTestConnection && (
         <div className="flex justify-end pt-3">
@@ -131,6 +144,7 @@ export function AccountCredentialsSectionView({
             onClick={onTestConnection}
             loading={isTestingConnection}
             loadingLabel={testingConnectionLabel}
+            disabled={disabled}
           >
             {testConnectionLabel}
           </LoadingButton>

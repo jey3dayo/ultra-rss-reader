@@ -92,6 +92,34 @@ describe("SettingsModalView", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it("disables closing and shows the lock reason while setup is in progress", () => {
+    const onClose = vi.fn();
+
+    render(
+      <SettingsModalView
+        open={true}
+        title="Preferences"
+        closeLabel="Close preferences"
+        navigation={<div data-testid="settings-nav">Settings navigation</div>}
+        accountsHeading="Accounts"
+        accountsNavigation={<div data-testid="accounts-nav">Accounts navigation</div>}
+        content={<div>Settings content</div>}
+        contentResetKey="general::false"
+        isCloseDisabled={true}
+        lockMessage="Finish the first sync before closing this screen."
+        onClose={onClose}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Finish the first sync before closing this screen.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close preferences" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Close preferences" }));
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("keeps both settings scroll areas constrained to their column height", () => {
     render(
       <SettingsModalView

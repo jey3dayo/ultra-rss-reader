@@ -4,7 +4,7 @@ import type { SettingsNavViewProps } from "./settings-nav.types";
 
 export type { SettingsNavItem, SettingsNavItemId, SettingsNavViewProps } from "./settings-nav.types";
 
-export function SettingsNavView({ ariaLabel, items, onSelectCategory }: SettingsNavViewProps) {
+export function SettingsNavView({ ariaLabel, items, onSelectCategory, disabled = false }: SettingsNavViewProps) {
   return (
     <nav
       aria-label={ariaLabel}
@@ -16,6 +16,7 @@ export function SettingsNavView({ ariaLabel, items, onSelectCategory }: Settings
           tone="sidebar"
           selected={item.isActive}
           aria-pressed={item.isActive}
+          disabled={disabled}
           onClick={() => onSelectCategory(item.id)}
           className={cn(
             "relative shrink-0 items-center overflow-hidden rounded-md px-3 py-1.5 text-[13px] font-medium leading-[1.25] focus-visible:ring-0 focus-visible:ring-transparent sm:w-full",

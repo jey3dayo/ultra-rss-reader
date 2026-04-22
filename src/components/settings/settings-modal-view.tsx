@@ -123,6 +123,8 @@ export function SettingsModalView({
   contentResetKey = "",
   contentScrollBehavior = "auto",
   isLoading,
+  isCloseDisabled = false,
+  lockMessage,
   onClose,
   onOpenChange,
 }: SettingsModalViewProps) {
@@ -154,14 +156,25 @@ export function SettingsModalView({
               variant="ghost"
               size="icon-sm"
               onClick={onClose}
+              disabled={isCloseDisabled}
               aria-label={closeLabel}
               className="text-sidebar-foreground/40 hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground"
             >
               <X className="h-4 w-4" />
             </Button>
-            <DialogTitle className="font-sans text-[15px] font-medium tracking-[-0.01em] text-sidebar-foreground">
-              {title}
-            </DialogTitle>
+            <div className="min-w-0">
+              <DialogTitle className="font-sans text-[15px] font-medium tracking-[-0.01em] text-sidebar-foreground">
+                {title}
+              </DialogTitle>
+              {lockMessage ? (
+                <p
+                  className="mt-1 text-xs leading-[1.4] text-sidebar-foreground/56"
+                  data-testid="settings-lock-message"
+                >
+                  {lockMessage}
+                </p>
+              ) : null}
+            </div>
           </DialogHeader>
 
           <div className="relative min-h-0 flex-1">

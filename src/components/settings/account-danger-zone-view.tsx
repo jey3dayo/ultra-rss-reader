@@ -10,6 +10,7 @@ export function AccountDangerZoneView({
   deleteLabel,
   onExport,
   onRequestDelete,
+  disabled = false,
 }: AccountDangerZoneViewProps) {
   return (
     <>
@@ -18,7 +19,12 @@ export function AccountDangerZoneView({
         className="mt-6 border-t border-border pt-6"
         contentClassName="pl-2 sm:pl-3"
       >
-        <Button variant="outline" onClick={onExport} className="w-full justify-center text-sm sm:w-auto">
+        <Button
+          variant="outline"
+          onClick={onExport}
+          disabled={disabled}
+          className="w-full justify-center text-sm sm:w-auto"
+        >
           {exportLabel}
         </Button>
       </SettingsSection>
@@ -29,7 +35,7 @@ export function AccountDangerZoneView({
         headingClassName="text-state-danger-foreground/72"
         contentClassName="pl-2 sm:pl-3"
       >
-        <DeleteButton onClick={onRequestDelete} className="w-full justify-center text-sm sm:w-auto">
+        <DeleteButton onClick={onRequestDelete} disabled={disabled} className="w-full justify-center text-sm sm:w-auto">
           {deleteLabel}
         </DeleteButton>
       </SettingsSection>

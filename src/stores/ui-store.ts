@@ -38,6 +38,14 @@ export type SyncProgressState = {
   activeAccountIds: Set<string>;
 };
 
+export type AccountSetupSessionState = "syncing" | "failed" | "succeeded";
+
+export type AccountSetupSession = {
+  accountId: string;
+  state: AccountSetupSessionState;
+  errorMessage?: string;
+};
+
 export type UiSelection =
   | { type: "feed"; feedId: string }
   | { type: "folder"; folderId: string }
@@ -115,6 +123,7 @@ interface UiState {
   appLoading: boolean;
   subscriptionsWorkspace: SubscriptionsWorkspace | null;
   syncProgress: SyncProgressState;
+  accountSetupSession: AccountSetupSession | null;
   commandPaletteOpen: boolean;
   shortcutsHelpOpen: boolean;
   isAddFeedDialogOpen: boolean;
@@ -173,6 +182,10 @@ interface UiActions {
   closeSubscriptionsWorkspace: () => void;
   applySyncProgress: (event: SyncProgressEvent) => void;
   clearSyncProgress: () => void;
+  startAccountSetup: (accountId: string) => void;
+  markAccountSetupFailed: (accountId: string, errorMessage?: string) => void;
+  markAccountSetupSucceeded: (accountId: string) => void;
+  clearAccountSetup: () => void;
   openCommandPalette: () => void;
   closeCommandPalette: () => void;
   toggleCommandPalette: () => void;
@@ -227,6 +240,7 @@ const initialState: UiState = {
     completed: 0,
     activeAccountIds: new Set(),
   },
+  accountSetupSession: null,
   commandPaletteOpen: false,
   shortcutsHelpOpen: false,
   isAddFeedDialogOpen: false,
@@ -463,6 +477,37 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
         activeAccountIds: new Set(),
       },
     }),
+  startAccountSetup: (accountId) =>
+    set({
+      accountSetupSession: {
+        accountId,
+        state: "syncing",
+      },
+    }),
+  markAccountSetupFailed: (accountId, errorMessage) =>
+    set((state) =>
+      state.accountSetupSession?.accountId !== accountId
+        ? state
+        : {
+            accountSetupSession: {
+              accountId,
+              state: "failed",
+              ...(errorMessage ? { errorMessage } : {}),
+            },
+          },
+    ),
+  markAccountSetupSucceeded: (accountId) =>
+    set((state) =>
+      state.accountSetupSession?.accountId !== accountId
+        ? state
+        : {
+            accountSetupSession: {
+              accountId,
+              state: "succeeded",
+            },
+          },
+    ),
+  clearAccountSetup: () => set({ accountSetupSession: null }),
   openCommandPalette: () => set({ commandPaletteOpen: true, shortcutsHelpOpen: false }),
   closeCommandPalette: () => set({ commandPaletteOpen: false }),
   toggleCommandPalette: () =>

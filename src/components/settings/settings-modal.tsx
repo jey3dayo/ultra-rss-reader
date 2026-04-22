@@ -119,6 +119,7 @@ export function SettingsModal() {
   const openSettingsAddAccount = useUiStore((s) => s.openSettingsAddAccount);
   const setSettingsAccountsView = useUiStore((s) => s.setSettingsAccountsView);
   const settingsLoading = useUiStore((s) => s.settingsLoading);
+  const accountSetupSession = useUiStore((s) => s.accountSetupSession);
   const [deletedAccountIds, setDeletedAccountIds] = useState<string[]>([]);
   const { data: accounts } = useAccounts();
   const savedAccountId = usePreferencesStore((s) => s.prefs.selected_account_id ?? "");
@@ -128,19 +129,35 @@ export function SettingsModal() {
     accountsSnapshotCandidate !== null,
   );
   const visibleAccounts = (accountsSnapshot ?? accounts)?.filter((account) => !deletedAccountIds.includes(account.id));
+  const activeSetupAccountId =
+    accountSetupSession !== null && (accountSetupSession.state === "syncing" || accountSetupSession.state === "failed")
+      ? accountSetupSession.accountId
+      : null;
+  const setupVisibleAccount =
+    activeSetupAccountId && visibleAccounts
+      ? visibleAccounts.find((account) => account.id === activeSetupAccountId)
+      : undefined;
   const hasSelectedVisibleAccount = settingsAccountId
     ? (visibleAccounts?.some((account) => account.id === settingsAccountId) ?? false)
     : false;
   const resolvedSettingsAccountId =
     settingsCategory !== "accounts" || settingsAddAccount || !visibleAccounts
       ? null
-      : hasSelectedVisibleAccount
-        ? settingsAccountId
-        : getPreferredAccountId(visibleAccounts, savedAccountId);
+      : activeSetupAccountId && setupVisibleAccount
+        ? activeSetupAccountId
+        : hasSelectedVisibleAccount
+          ? settingsAccountId
+          : getPreferredAccountId(visibleAccounts, savedAccountId);
   const selectedVisibleAccount =
-    resolvedSettingsAccountId && visibleAccounts
+    setupVisibleAccount ??
+    (resolvedSettingsAccountId && visibleAccounts
       ? visibleAccounts.find((account) => account.id === resolvedSettingsAccountId)
-      : undefined;
+      : undefined);
+  const isSetupLocked =
+    accountSetupSession !== null &&
+    (accountSetupSession.state === "syncing" || accountSetupSession.state === "failed") &&
+    (selectedVisibleAccount?.id === accountSetupSession.accountId ||
+      settingsAccountId === accountSetupSession.accountId);
 
   useEffect(() => {
     if (deletedAccountIds.length === 0 || accounts === undefined) {
@@ -164,6 +181,13 @@ export function SettingsModal() {
 
   useEffect(() => {
     if (settingsCategory !== "accounts" || !visibleAccounts) {
+      return;
+    }
+
+    if (activeSetupAccountId) {
+      if (settingsAccountId !== activeSetupAccountId || settingsAddAccount) {
+        setSettingsAccountsView(activeSetupAccountId, false);
+      }
       return;
     }
 
@@ -195,6 +219,7 @@ export function SettingsModal() {
     settingsAccountId,
     settingsAddAccount,
     visibleAccounts,
+    activeSetupAccountId,
     hasSelectedVisibleAccount,
     resolvedSettingsAccountId,
     setSettingsAccountsView,
@@ -228,6 +253,7 @@ export function SettingsModal() {
     setSettingsCategory,
     openSettingsAccount,
     openSettingsAddAccount,
+    setupLockReason: isSetupLocked ? t("account.setup_lock_reason") : null,
   });
 
   return <SettingsModalView {...viewProps} />;

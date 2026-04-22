@@ -79,6 +79,8 @@ export function useAccountDetailCredentialsEditor({
   );
   const { credServerUrl, credUsername, credPassword, hasSavedPassword, testingConnection } = state;
   const pendingCredentialSaveRef = useRef<Promise<boolean> | null>(null);
+  const serverUrlInputRef = useRef<HTMLInputElement>(null);
+  const usernameInputRef = useRef<HTMLInputElement>(null);
   const showCredentialSaveError = createAccountDetailErrorToast(t, "account.failed_to_update_sync");
   const showConnectionError = createAccountDetailErrorToast(t, "account.connection_failed");
   const passwordDisplayValue = credPassword ?? (hasSavedPassword ? MASKED_PASSWORD_VALUE : "");
@@ -169,12 +171,27 @@ export function useAccountDetailCredentialsEditor({
     }
   };
 
+  const focusCredentialsEditor = () => {
+    if (serverUrlInputRef.current) {
+      serverUrlInputRef.current.focus();
+      serverUrlInputRef.current.select();
+      return;
+    }
+
+    if (usernameInputRef.current) {
+      usernameInputRef.current.focus();
+      usernameInputRef.current.select();
+    }
+  };
+
   return {
     credServerUrl,
     credUsername,
     credPassword,
     passwordDisplayValue,
     testingConnection,
+    serverUrlInputRef,
+    usernameInputRef,
     setCredServerUrl: (value) => dispatch({ type: "set-cred-server-url", value }),
     setCredUsername: (value) => dispatch({ type: "set-cred-username", value }),
     setCredPassword: (value) => dispatch({ type: "set-cred-password", value }),
@@ -182,5 +199,6 @@ export function useAccountDetailCredentialsEditor({
     handleTestConnection,
     handleCopyServerUrl,
     onPasswordFocus,
+    focusCredentialsEditor,
   };
 }

@@ -27,18 +27,27 @@ vi.mock("@/components/settings/account-detail-view", () => ({
     };
     credentialsSection?: ReactNode;
     syncSection: {
+      heading: string;
+      note?: string;
       isSyncing?: boolean;
       syncNowLabel?: string;
       syncingLabel?: string;
       onSyncNow?: () => void;
+      secondaryActionLabel?: string;
+      onSecondaryAction?: () => void;
       statusRows?: Array<{ label: string; value: string }>;
       syncOnStartup: {
         onChange: (checked: boolean) => void;
+        disabled?: boolean;
       };
       keepReadItems: {
         options: Array<{ value: string; label: string }>;
         onChange: (value: string) => void;
+        disabled?: boolean;
       };
+    };
+    dangerZone: {
+      disabled?: boolean;
     };
   }) => {
     accountDetailViewSpy(props);
@@ -62,6 +71,8 @@ vi.mock("@/components/settings/account-detail-view", () => ({
           </button>
         )}
         {props.credentialsSection}
+        <div>{props.syncSection.heading}</div>
+        {props.syncSection.note ? <p>{props.syncSection.note}</p> : null}
         <button type="button" onClick={() => props.syncSection.syncOnStartup.onChange(true)}>
           Enable startup sync
         </button>
@@ -73,6 +84,11 @@ vi.mock("@/components/settings/account-detail-view", () => ({
             {props.syncSection.isSyncing ? props.syncSection.syncingLabel : props.syncSection.syncNowLabel}
           </button>
         )}
+        {props.syncSection.onSecondaryAction && props.syncSection.secondaryActionLabel ? (
+          <button type="button" onClick={props.syncSection.onSecondaryAction}>
+            {props.syncSection.secondaryActionLabel}
+          </button>
+        ) : null}
         <ul>
           {props.syncSection.keepReadItems.options.map((option) => (
             <li key={option.value}>{option.label}</li>
@@ -398,6 +414,137 @@ describe("AccountDetail", () => {
     await waitFor(() => {
       const lastCall = accountDetailViewSpy.mock.calls[accountDetailViewSpy.mock.calls.length - 1];
       expect(lastCall?.[0].syncSection.isSyncing).toBe(true);
+    });
+  });
+
+  it("shows setup mode messaging while the first sync is in progress", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        return [
+          {
+            id: "acc-1",
+            kind: "FreshRss",
+            name: "FreshRSS",
+            username: "user",
+            server_url: "https://freshrss.example.com",
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+          },
+        ];
+      }
+      return null;
+    });
+
+    useUiStore.setState({
+      accountSetupSession: {
+        accountId: "acc-1",
+        state: "syncing",
+      },
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Initial setup in progress")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "We are finishing the first sync so this account is ready for the unread view. This screen cannot be closed until sync finishes.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Setting up…" })).toBeDisabled();
+  });
+
+  it("shows retry and credential-edit actions after setup failure", async () => {
+    setupTauriMocks((cmd) => {
+      if (cmd === "list_accounts") {
+        return [
+          {
+            id: "acc-1",
+            kind: "FreshRss",
+            name: "FreshRSS",
+            username: "user",
+            server_url: "https://freshrss.example.com",
+            sync_interval_secs: 3600,
+            sync_on_startup: true,
+            sync_on_wake: false,
+            keep_read_items_days: 30,
+          },
+        ];
+      }
+      return null;
+    });
+
+    useUiStore.setState({
+      accountSetupSession: {
+        accountId: "acc-1",
+        state: "failed",
+        errorMessage: "Sync failed: Authentication failed",
+      },
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Could not finish setup")).toBeInTheDocument();
+    expect(screen.getByText("Sync failed: Authentication failed")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry setup" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit credentials" })).toBeInTheDocument();
+  });
+
+  it("closes settings and lands on unread after setup retry succeeds", async () => {
+    const user = userEvent.setup();
+
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_accounts":
+          return [
+            {
+              id: "acc-1",
+              kind: "FreshRss",
+              name: "FreshRSS",
+              username: "user",
+              server_url: "https://freshrss.example.com",
+              sync_interval_secs: 3600,
+              sync_on_startup: true,
+              sync_on_wake: false,
+              keep_read_items_days: 30,
+            },
+          ];
+        case "trigger_sync_account":
+          return {
+            synced: true,
+            total: 1,
+            succeeded: 1,
+            failed: [],
+            warnings: [],
+          };
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: "acc-1",
+      selectedAccountId: "acc-1",
+      accountSetupSession: {
+        accountId: "acc-1",
+        state: "failed",
+        errorMessage: "Sync failed: Authentication failed",
+      },
+    });
+
+    render(<AccountDetail />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Retry setup" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().settingsOpen).toBe(false);
+      expect(useUiStore.getState().selection).toEqual({ type: "smart", kind: "unread" });
+      expect(useUiStore.getState().viewMode).toBe("unread");
+      expect(useUiStore.getState().accountSetupSession).toBeNull();
+      expect(useUiStore.getState().toastMessage).toEqual({ message: "Setup complete" });
     });
   });
 

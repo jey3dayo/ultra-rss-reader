@@ -10,6 +10,7 @@ export function useAccountDetailController({
   t,
   onAccountDeleted,
   onSyncStatusChanged,
+  accountSetupState,
 }: UseAccountDetailControllerParams): UseAccountDetailControllerResult {
   const qc = useQueryClient();
   const nameEditor = useAccountDetailNameEditor({
@@ -27,6 +28,7 @@ export function useAccountDetailController({
     queryClient: qc,
     t,
     onSyncStatusChanged,
+    accountSetupState,
   });
   const dangerZone = useAccountDetailDangerZone({
     account,

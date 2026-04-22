@@ -5,6 +5,7 @@ import { useMemo, useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import { addAccount } from "@/api/tauri-commands";
 import { SettingsSection } from "@/components/settings/settings-section";
+import { runAccountSetupSync } from "@/components/settings/use-account-detail-sync-controls";
 import { FormActionButtons } from "@/components/shared/form-action-buttons";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { SurfaceCard } from "@/components/shared/surface-card";
@@ -17,6 +18,7 @@ import {
 } from "@/lib/add-account-form";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
+import { upsertCachedAccount } from "./account-detail-query-cache";
 import { findServiceDefinition } from "./add-account-services";
 import type { AccountConfigFormProps } from "./add-account-services.types";
 
@@ -96,11 +98,17 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
         useUiStore.getState().showToast(message);
       }),
       Result.inspect((account) => {
+        upsertCachedAccount(qc, account);
         qc.invalidateQueries({ queryKey: ["accounts"] });
         qc.invalidateQueries({ queryKey: ["feeds"] });
         const { selectAccount } = useUiStore.getState();
         selectAccount(account.id);
         setSettingsAccountId(account.id);
+        void runAccountSetupSync({
+          accountId: account.id,
+          queryClient: qc,
+          t,
+        });
       }),
     );
 

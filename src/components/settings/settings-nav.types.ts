@@ -4,6 +4,8 @@ export type AccountNavItem = {
   id: string;
   name: string;
   kind: string;
+  username?: string | null;
+  serverUrl?: string | null;
   isActive: boolean;
 };
 
@@ -13,6 +15,7 @@ export type AccountsNavViewProps = {
   isAddAccountActive: boolean;
   onSelectAccount: (accountId: string) => void;
   onAddAccount: () => void;
+  disabled?: boolean;
 };
 
 export type SettingsNavItemId = string;
@@ -28,4 +31,5 @@ export type SettingsNavViewProps = {
   ariaLabel?: string;
   items: SettingsNavItem[];
   onSelectCategory: (categoryId: SettingsNavItemId) => void;
+  disabled?: boolean;
 };

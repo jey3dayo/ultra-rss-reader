@@ -126,6 +126,30 @@ describe("SettingsModal", () => {
     expect(screen.getByRole("heading", { level: 2, name: /Add Account/i })).toBeInTheDocument();
   });
 
+  it("prefers the active setup account detail over the add-account top screen", async () => {
+    useUiStore.setState(useUiStore.getInitialState());
+    useUiStore.setState({
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: null,
+      settingsAddAccount: true,
+      accountSetupSession: {
+        accountId: "acc-2",
+        state: "syncing",
+      },
+    });
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().settingsAccountId).toBe("acc-2");
+      expect(useUiStore.getState().settingsAddAccount).toBe(false);
+    });
+
+    expect(await screen.findByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 2, name: /Add Account/i })).not.toBeInTheDocument();
+  });
+
   it("shows the mute settings category in navigation", async () => {
     setupTauriMocks((cmd) => {
       if (cmd === "list_mute_keywords") {

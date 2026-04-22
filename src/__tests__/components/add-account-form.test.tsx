@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useEffect } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AddAccountForm } from "@/components/settings/add-account-form";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -17,6 +19,33 @@ const accountConfigFormSource = readFileSync(
 
 async function selectService(user: ReturnType<typeof userEvent.setup>, serviceName: string) {
   await user.click(screen.getByRole("button", { name: new RegExp(serviceName) }));
+}
+
+function QueryClientCapture({ onReady }: { onReady: (queryClient: QueryClient) => void }) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    onReady(queryClient);
+  }, [onReady, queryClient]);
+
+  return null;
+}
+
+function createWrapperWithClient(onReady: (queryClient: QueryClient) => void) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  });
+
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <QueryClientCapture onReady={onReady} />
+        {children}
+      </QueryClientProvider>
+    );
+  };
 }
 
 describe("AddAccountForm", () => {
@@ -272,6 +301,100 @@ describe("AddAccountForm", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Add" })).not.toBeDisabled();
+    });
+  });
+
+  it("starts an account setup session after successful registration", async () => {
+    const user = userEvent.setup();
+    let releaseSync = () => {};
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "add_account") {
+        return {
+          id: "acc-new",
+          kind: "FreshRss",
+          name: "FreshRSS",
+          username: "alice",
+          server_url: "https://freshrss.example.com",
+          sync_interval_secs: 3600,
+          sync_on_startup: true,
+          sync_on_wake: false,
+          keep_read_items_days: 30,
+        };
+      }
+      if (cmd === "trigger_sync_account") {
+        return new Promise((resolve) => {
+          releaseSync = () => resolve({ synced: true, total: 1, succeeded: 1, failed: [], warnings: [] });
+        });
+      }
+      return null;
+    });
+
+    render(<AddAccountForm />, { wrapper: createWrapper() });
+
+    await selectService(user, "FreshRSS");
+    await user.type(screen.getByLabelText("Server URL"), "https://freshrss.example.com");
+    await user.type(screen.getByLabelText("Username"), "alice");
+    await user.type(screen.getByLabelText("Password"), "secret");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedAccountId).toBe("acc-new");
+      expect(useUiStore.getState().settingsAccountId).toBe("acc-new");
+      expect(useUiStore.getState().accountSetupSession).toEqual({
+        accountId: "acc-new",
+        state: "syncing",
+      });
+    });
+
+    releaseSync();
+  });
+
+  it("adds the new account to the accounts query cache immediately after registration", async () => {
+    const user = userEvent.setup();
+    let queryClient: QueryClient | undefined;
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "add_account") {
+        return {
+          id: "acc-new",
+          kind: "FreshRss",
+          name: "FreshRSS",
+          username: "alice",
+          server_url: "https://freshrss.example.com",
+          sync_interval_secs: 3600,
+          sync_on_startup: true,
+          sync_on_wake: false,
+          keep_read_items_days: 30,
+        };
+      }
+      if (cmd === "trigger_sync_account") {
+        return new Promise(() => {});
+      }
+      return null;
+    });
+
+    render(<AddAccountForm />, {
+      wrapper: createWrapperWithClient((captured) => {
+        queryClient = captured;
+      }),
+    });
+
+    await selectService(user, "FreshRSS");
+    await user.type(screen.getByLabelText("Server URL"), "https://freshrss.example.com");
+    await user.type(screen.getByLabelText("Username"), "alice");
+    await user.type(screen.getByLabelText("Password"), "secret");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => {
+      expect(queryClient?.getQueryData(["accounts"])).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "acc-new",
+            name: "FreshRSS",
+          }),
+        ]),
+      );
     });
   });
 });

@@ -198,4 +198,77 @@ describe("AccountDetailView", () => {
 
     expect(screen.getByText("Verified")).toBeInTheDocument();
   });
+
+  it("passes setup guidance through the sync section composition", () => {
+    render(
+      <AccountDetailView
+        title="FreshRSS"
+        headerSummary={<div>Verified</div>}
+        generalSection={{
+          heading: "General",
+          nameLabel: "Description",
+          nameValue: "FreshRSS",
+          editNameTitle: "Click to edit",
+          isEditingName: false,
+          nameDraft: "FreshRSS",
+          infoRows: [{ label: "Type", value: "FreshRSS" }],
+          onStartEditingName: vi.fn(),
+          onNameDraftChange: vi.fn(),
+          onCommitName: vi.fn(),
+          onNameKeyDown: vi.fn(),
+          disabled: true,
+        }}
+        syncSection={{
+          heading: "Initial setup in progress",
+          note: "Finish the first sync before closing this screen.",
+          syncInterval: {
+            name: "sync-interval",
+            label: "Sync",
+            value: "3600",
+            options: [{ value: "3600", label: "Every hour" }],
+            onChange: vi.fn(),
+            disabled: true,
+          },
+          syncOnWake: {
+            label: "Sync on wake",
+            checked: false,
+            onChange: vi.fn(),
+            disabled: true,
+          },
+          syncOnStartup: {
+            label: "Sync on startup",
+            checked: true,
+            onChange: vi.fn(),
+            disabled: true,
+          },
+          keepReadItems: {
+            name: "keep-read-items",
+            label: "Keep read items",
+            value: "30",
+            options: [{ value: "30", label: "One month" }],
+            onChange: vi.fn(),
+            disabled: true,
+          },
+          syncNowLabel: "Retry setup",
+          onSyncNow: vi.fn(),
+          secondaryActionLabel: "Edit credentials",
+          onSecondaryAction: vi.fn(),
+        }}
+        dangerZone={{
+          dataHeading: "Data",
+          dangerHeading: "Danger Zone",
+          exportLabel: "Export OPML",
+          deleteLabel: "Delete account",
+          onExport: vi.fn(),
+          onRequestDelete: vi.fn(),
+          disabled: true,
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { level: 3, name: "Initial setup in progress" })).toBeInTheDocument();
+    expect(screen.getByText("Finish the first sync before closing this screen.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry setup" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit credentials" })).toBeInTheDocument();
+  });
 });
