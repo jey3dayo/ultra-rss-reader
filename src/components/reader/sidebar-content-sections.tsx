@@ -21,14 +21,12 @@ export function SidebarContentSections({
   selectedAccountId,
   isAddFeedDialogOpen,
   onAddFeedDialogOpenChange,
-  addAccountToStartLabel,
   pressPlusToAddFeedLabel,
   tagsLabel,
   noFolderLabel,
   showSidebarTags,
   isTagsSectionOpen,
   onToggleTagsSection,
-  onOpenAccountSettings,
   feedTreeProps,
   tags,
   tagArticleCounts,
@@ -46,11 +44,7 @@ export function SidebarContentSections({
     ? isFeedTreeLoading
       ? { kind: "loading" as const, label: commonT("loading") }
       : { kind: "message" as const, message: pressPlusToAddFeedLabel }
-    : {
-        kind: "action" as const,
-        label: addAccountToStartLabel,
-        onAction: onOpenAccountSettings,
-      };
+    : { kind: "hidden" as const };
 
   const tagSection = showSidebarTags ? (
     <SidebarTagSection

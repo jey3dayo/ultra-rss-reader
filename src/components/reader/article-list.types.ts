@@ -8,6 +8,8 @@ import type { ArticleGroupsViewGroup } from "./article-groups-view";
 
 export type ArticleListLayoutMode = "wide" | "compact" | "mobile";
 export type ArticleListViewMode = "all" | "unread" | "starred";
+export type ArticleListEmptyStateVariant = "default" | "setup" | "hidden";
+export type ArticleListSetupState = "none" | "no-accounts" | "no-feeds";
 
 export type ArticleListHeaderSearchProps = {
   searchInputRef: RefObject<HTMLInputElement | null>;
@@ -66,6 +68,7 @@ export type ArticleListBodyProps = {
   onListKeyDownCapture: (event: KeyboardEvent<HTMLDivElement>) => void;
   isLoading: boolean;
   loadingMessage: string;
+  emptyStateVariant?: ArticleListEmptyStateVariant;
   emptyMessage: string;
   emptyDescription?: string;
   emptyActionLabel?: string;
@@ -135,9 +138,12 @@ export type UseArticleListInteractionsResult = {
 export type UseArticleListViewStateParams = {
   selection: UiSelection;
   t: TFunction<"reader">;
+  selectedAccountId: string | null;
   feedId: string | null;
   tagId: string | null;
   accountListScopeId: string | null;
+  accountCount?: number;
+  feedCount?: number;
   isLoading: boolean;
   isLoadingAccountArticles: boolean;
   isLoadingTagArticles: boolean;
@@ -159,6 +165,7 @@ export type UseArticleListViewStateResult = {
   isPrimarySourceLoading: boolean;
   isSearchLoading: boolean;
   isSearchEmptyState: boolean;
+  setupEmptyState: ArticleListSetupState;
 };
 
 export type UseArticleListEffectsParams = {
@@ -217,7 +224,12 @@ export type UseArticleListViewPropsParams = {
 > &
   Pick<
     UseArticleListViewStateResult,
-    "contextStripContext" | "footerModes" | "footerDisabledModes" | "isSearchLoading" | "isSearchEmptyState"
+    | "contextStripContext"
+    | "footerModes"
+    | "footerDisabledModes"
+    | "isSearchLoading"
+    | "isSearchEmptyState"
+    | "setupEmptyState"
   >;
 
 export type UseArticleListPresentationParams = {
@@ -225,6 +237,8 @@ export type UseArticleListPresentationParams = {
   tc: TFunction<"common">;
   ts: TFunction<"sidebar">;
   selection: UseArticleListViewStateParams["selection"];
+  selectedAccountId: string | null;
+  accountCount?: number;
   feeds: UseArticleListSourcesResult["feeds"];
   feedId: string | null;
   tagId: string | null;
@@ -335,6 +349,7 @@ export type UseArticleListBodyPropsParams = {
   isLoadingTagArticles: boolean;
   isSearchLoading: boolean;
   isSearchEmptyState: boolean;
+  setupEmptyState: ArticleListSetupState;
   trimmedDebouncedQuery: string;
   articleGroups: ArticleListBodyProps["groups"];
   dimArchived: ArticleListBodyProps["dimArchived"];

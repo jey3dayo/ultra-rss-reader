@@ -1,6 +1,10 @@
 import type { FeedTreeEmptyStateProps } from "./feed-tree.types";
 
 export function FeedTreeEmptyState(props: FeedTreeEmptyStateProps) {
+  if (props.kind === "hidden") {
+    return null;
+  }
+
   const text = props.text ?? props.message ?? props.label;
   return (
     <div

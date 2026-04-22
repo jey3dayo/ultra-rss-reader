@@ -3,7 +3,9 @@ import { useTranslation } from "react-i18next";
 import type { ArticleDto } from "@/api/tauri-commands";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import { ArticleGroupsView, type ArticleGroupsViewGroup } from "./article-groups-view";
+import type { ArticleListEmptyStateVariant } from "./article-list.types";
 
 export type ArticleListScreenViewProps = {
   listAriaLabel: string;
@@ -12,6 +14,7 @@ export type ArticleListScreenViewProps = {
   onListKeyDownCapture?: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
   isLoading: boolean;
   loadingMessage: string;
+  emptyStateVariant?: ArticleListEmptyStateVariant;
   emptyMessage: string;
   emptyDescription?: string;
   emptyActionLabel?: string;
@@ -32,6 +35,7 @@ export function ArticleListScreenView({
   onListKeyDownCapture,
   isLoading,
   loadingMessage,
+  emptyStateVariant = "default",
   emptyMessage,
   emptyDescription,
   emptyActionLabel,
@@ -59,25 +63,48 @@ export function ArticleListScreenView({
   }
 
   if (groups.length === 0) {
+    const isSetupEmptyState = emptyStateVariant === "setup";
+    const isHiddenEmptyState = emptyStateVariant === "hidden";
+
     return (
       <ScrollArea className="h-full" viewportRef={viewportRef}>
-        <div className="flex h-full items-center justify-center p-6">
-          <div className="w-full max-w-sm rounded-3xl border border-border/80 bg-[linear-gradient(180deg,rgba(247,247,244,0.94)_0%,rgba(235,234,229,0.86)_100%)] px-5 py-6 text-left shadow-[0_24px_56px_-40px_rgba(38,37,30,0.26)] dark:border-border/90 dark:bg-[linear-gradient(180deg,rgba(38,34,29,0.96)_0%,rgba(28,25,21,0.92)_100%)] dark:shadow-[0_32px_88px_-52px_rgba(0,0,0,0.62)]">
-            <div className="mb-3 inline-flex rounded-full border border-border/70 bg-surface-1/88 px-2.5 py-1 text-[0.65rem] font-medium tracking-[0.12em] text-foreground-soft uppercase">
-              {t("queue_label")}
+        <div className={cn("h-full", isHiddenEmptyState ? "" : "flex items-center justify-center p-6")}>
+          {isHiddenEmptyState ? null : (
+            <div
+              className={cn(
+                "w-full max-w-sm px-5 py-6 text-left",
+                isSetupEmptyState
+                  ? "rounded-2xl border border-border/65 bg-surface-1/48 shadow-[0_18px_48px_-40px_rgba(38,37,30,0.18)] dark:border-border/75 dark:bg-[rgba(38,34,29,0.52)] dark:shadow-none"
+                  : "rounded-3xl border border-border/80 bg-[linear-gradient(180deg,rgba(247,247,244,0.94)_0%,rgba(235,234,229,0.86)_100%)] shadow-[0_24px_56px_-40px_rgba(38,37,30,0.26)] dark:border-border/90 dark:bg-[linear-gradient(180deg,rgba(38,34,29,0.96)_0%,rgba(28,25,21,0.92)_100%)] dark:shadow-[0_32px_88px_-52px_rgba(0,0,0,0.62)]",
+              )}
+            >
+              {isSetupEmptyState ? null : (
+                <div className="mb-3 inline-flex rounded-full border border-border/70 bg-surface-1/88 px-2.5 py-1 text-[0.65rem] font-medium tracking-[0.12em] text-foreground-soft uppercase">
+                  {t("queue_label")}
+                </div>
+              )}
+              <p
+                className={cn(
+                  "text-foreground",
+                  isSetupEmptyState
+                    ? "text-base font-medium leading-6 tracking-[-0.01em]"
+                    : "text-[1.15rem] font-semibold leading-[1.2] tracking-[-0.02em]",
+                )}
+              >
+                {emptyMessage}
+              </p>
+              {emptyDescription ? (
+                <p className={cn("text-sm leading-6 text-foreground-soft", isSetupEmptyState ? "mt-2" : "mt-3")}>
+                  {emptyDescription}
+                </p>
+              ) : null}
+              {emptyActionLabel && onEmptyAction ? (
+                <Button type="button" variant="outline" size="sm" className="mt-5" onClick={onEmptyAction}>
+                  {emptyActionLabel}
+                </Button>
+              ) : null}
             </div>
-            <p className="text-[1.15rem] font-semibold leading-[1.2] tracking-[-0.02em] text-foreground">
-              {emptyMessage}
-            </p>
-            {emptyDescription ? (
-              <p className="mt-3 text-sm leading-6 text-foreground-soft">{emptyDescription}</p>
-            ) : null}
-            {emptyActionLabel && onEmptyAction ? (
-              <Button type="button" variant="outline" size="sm" className="mt-5" onClick={onEmptyAction}>
-                {emptyActionLabel}
-              </Button>
-            ) : null}
-          </div>
+          )}
         </div>
       </ScrollArea>
     );

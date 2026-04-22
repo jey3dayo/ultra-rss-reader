@@ -1724,9 +1724,7 @@ describe("Sidebar", () => {
     expect(screen.getByRole("heading", { name: "Ultra RSS" })).toBeInTheDocument();
   });
 
-  it("offers an add-account empty state action when no accounts are available", async () => {
-    const user = userEvent.setup();
-
+  it("keeps the subscriptions pane quiet when onboarding is handled in the reader pane", async () => {
     setupTauriMocks((cmd) => {
       switch (cmd) {
         case "list_accounts":
@@ -1746,13 +1744,9 @@ describe("Sidebar", () => {
 
     render(<Sidebar />, { wrapper: createWrapper() });
 
-    const addAccountButton = await screen.findByRole("button", { name: "Add an account to get started" });
-
-    await user.click(addAccountButton);
-
-    expect(useUiStore.getState().settingsOpen).toBe(true);
-    expect(useUiStore.getState().settingsCategory).toBe("accounts");
-    expect(useUiStore.getState().settingsAddAccount).toBe(true);
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Add account" })).not.toBeInTheDocument();
+    });
   });
 
   it("routes the header add-feed action to account settings when no account is available", async () => {

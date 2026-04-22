@@ -11,11 +11,8 @@ function getScenarioContent(scenario: EmptyStateScenario) {
     return {
       eyebrow: "Getting started",
       message: "Add your first account",
-      description: "You can jump straight into account setup from here and start syncing right away.",
-      hints: [
-        'Use "Add an account to get started" in the sidebar.',
-        "Open Add Account in Settings to get started right away.",
-      ],
+      description: "Add an account first to get subscriptions and sync ready.",
+      hints: [],
       containerClassName: undefined,
       cardClassName: undefined,
       actions: [{ label: "Add account…", onClick: () => {} }],

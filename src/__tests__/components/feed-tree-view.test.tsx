@@ -264,6 +264,22 @@ describe("FeedTreeView", () => {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
+  it("renders nothing when the empty state is intentionally hidden", () => {
+    const { container } = render(
+      <FeedTreeView
+        isOpen={true}
+        folders={[]}
+        unfolderedFeeds={[]}
+        onToggleFolder={vi.fn()}
+        onSelectFeed={vi.fn()}
+        displayFavicons={false}
+        emptyState={{ kind: "hidden" }}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("arms a feed from the handle and moves it to a folder target", () => {
     const onDragStartFeed = vi.fn();
     const onDropToFolder = vi.fn();

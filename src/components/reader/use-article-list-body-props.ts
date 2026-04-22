@@ -12,6 +12,7 @@ export function useArticleListBodyProps({
   isLoadingTagArticles,
   isSearchLoading,
   isSearchEmptyState,
+  setupEmptyState,
   trimmedDebouncedQuery,
   articleGroups,
   dimArchived,
@@ -22,6 +23,23 @@ export function useArticleListBodyProps({
   handleCloseSearch,
   handleMarkAllRead,
 }: UseArticleListBodyPropsParams): React.ComponentProps<typeof ArticleListBody> {
+  const emptyStateVariant =
+    setupEmptyState === "no-accounts" ? "hidden" : setupEmptyState === "none" ? "default" : "setup";
+  const emptyMessage = isSearchEmptyState
+    ? t("search_no_results_title", { query: trimmedDebouncedQuery })
+    : setupEmptyState === "no-accounts"
+      ? t("article_list_setup_no_accounts_title")
+      : setupEmptyState === "no-feeds"
+        ? t("article_list_setup_no_feeds_title")
+        : t("no_articles");
+  const emptyDescription = isSearchEmptyState
+    ? t("search_no_results_description")
+    : setupEmptyState === "no-accounts"
+      ? t("article_list_setup_no_accounts_description")
+      : setupEmptyState === "no-feeds"
+        ? t("article_list_setup_no_feeds_description")
+        : t("no_articles_description");
+
   return {
     listAriaLabel: t("article_list"),
     listRef,
@@ -29,10 +47,9 @@ export function useArticleListBodyProps({
     onListKeyDownCapture: handleListKeyDownCapture,
     isLoading: isLoading || isLoadingAccountArticles || isLoadingTagArticles || isSearchLoading,
     loadingMessage: tc("loading"),
-    emptyMessage: isSearchEmptyState
-      ? t("search_no_results_title", { query: trimmedDebouncedQuery })
-      : t("no_articles"),
-    emptyDescription: isSearchEmptyState ? t("search_no_results_description") : t("no_articles_description"),
+    emptyStateVariant,
+    emptyMessage,
+    emptyDescription,
     emptyActionLabel: isSearchEmptyState ? t("clear_search_action") : undefined,
     onEmptyAction: isSearchEmptyState ? handleCloseSearch : undefined,
     groups: articleGroups,

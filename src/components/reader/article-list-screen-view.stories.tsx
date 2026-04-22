@@ -73,3 +73,12 @@ export const Empty: Story = {
     groups: [],
   },
 };
+
+export const SetupEmpty: Story = {
+  args: {
+    groups: [],
+    emptyStateVariant: "setup",
+    emptyMessage: "Add an account and your articles will appear here.",
+    emptyDescription: "The list stays empty until the initial setup is complete.",
+  },
+};

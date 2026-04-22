@@ -45,14 +45,12 @@ export type SidebarContentSectionsProps = {
   selectedAccountId: string | null;
   isAddFeedDialogOpen: boolean;
   onAddFeedDialogOpenChange: (open: boolean) => void;
-  addAccountToStartLabel: string;
   pressPlusToAddFeedLabel: string;
   tagsLabel: string;
   noFolderLabel: string;
   showSidebarTags: boolean;
   isTagsSectionOpen: SidebarTagListProps["isOpen"];
   onToggleTagsSection: SidebarTagListProps["onToggleOpen"];
-  onOpenAccountSettings: () => void;
   feedTreeProps: SidebarFeedTreeProps;
   tags: SidebarTagItemsParams["tags"];
   tagArticleCounts: SidebarTagItemsParams["tagArticleCounts"];

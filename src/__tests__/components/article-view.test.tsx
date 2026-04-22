@@ -1549,11 +1549,7 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     expect(await screen.findByText("Add your first account")).toBeInTheDocument();
-    expect(
-      screen.getByText("You can jump straight into account setup from here and start syncing right away."),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Use "Add an account to get started" in the sidebar.')).toBeInTheDocument();
-    expect(screen.getByText("Open Add Account in Settings to get started right away.")).toBeInTheDocument();
+    expect(screen.getByText("Add an account first to get subscriptions and sync ready.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add account…" })).toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });

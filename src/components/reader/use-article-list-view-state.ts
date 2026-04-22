@@ -4,9 +4,12 @@ import type { UseArticleListViewStateParams, UseArticleListViewStateResult } fro
 export function useArticleListViewState({
   selection,
   t,
+  selectedAccountId,
   feedId,
   tagId,
   accountListScopeId,
+  accountCount,
+  feedCount,
   isLoading,
   isLoadingAccountArticles,
   isLoadingTagArticles,
@@ -61,6 +64,14 @@ export function useArticleListViewState({
   const isSearchLoading = showSearch && trimmedDebouncedQuery.length > 0 && searchResults === undefined && isSearching;
   const isSearchEmptyState =
     showSearch && trimmedDebouncedQuery.length > 0 && !isSearchLoading && filteredArticleCount === 0;
+  const setupEmptyState =
+    isSearchEmptyState || filteredArticleCount > 0
+      ? "none"
+      : accountCount === 0
+        ? "no-accounts"
+        : selectedAccountId !== null && feedCount === 0
+          ? "no-feeds"
+          : "none";
 
   return {
     contextStripContext,
@@ -69,5 +80,6 @@ export function useArticleListViewState({
     isPrimarySourceLoading,
     isSearchLoading,
     isSearchEmptyState,
+    setupEmptyState,
   };
 }

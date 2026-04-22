@@ -92,6 +92,61 @@ describe("ArticleListScreenView", () => {
     expect(screen.getByTestId(`screen-row-${sampleArticles[0].id}`)).toBeInTheDocument();
   });
 
+  it("renders a quieter setup placeholder when the list is waiting for initial setup", () => {
+    const { container } = render(
+      <ArticleListScreenView
+        listAriaLabel="Article list"
+        listRef={{ current: null }}
+        isLoading={false}
+        emptyStateVariant="setup"
+        emptyMessage="Add an account and your articles will appear here."
+        emptyDescription="The list stays empty until the initial setup is complete."
+        loadingMessage="Loading articles"
+        groups={[]}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        onSelectArticle={vi.fn()}
+        renderRow={({ content }) => content}
+      />,
+    );
+
+    expect(screen.getByText("Add an account and your articles will appear here.")).toBeInTheDocument();
+    expect(screen.queryByText("Queue")).not.toBeInTheDocument();
+    expect(container.querySelector(".rounded-2xl")).toHaveClass(
+      "border-border/65",
+      "bg-surface-1/48",
+      "dark:border-border/75",
+      "dark:shadow-none",
+    );
+  });
+
+  it("renders no middle-pane message when onboarding is handled elsewhere", () => {
+    render(
+      <ArticleListScreenView
+        listAriaLabel="Article list"
+        listRef={{ current: null }}
+        isLoading={false}
+        emptyStateVariant="hidden"
+        emptyMessage="Unused"
+        emptyDescription="Unused"
+        loadingMessage="Loading articles"
+        groups={[]}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        onSelectArticle={vi.fn()}
+        renderRow={({ content }) => content}
+      />,
+    );
+
+    expect(screen.queryByText("Unused")).not.toBeInTheDocument();
+    expect(screen.queryByText("Queue")).not.toBeInTheDocument();
+    expect(screen.queryByRole("listbox", { name: "Article list" })).not.toBeInTheDocument();
+  });
+
   it("keeps article rows inside a dedicated scroll content lane so the scrollbar does not overlap selections", () => {
     render(
       <ArticleListScreenView

@@ -35,7 +35,7 @@ function EmptyState({ emptyReason }: { emptyReason: "default" | "no-accounts" | 
           eyebrow: t("empty_state_no_accounts_eyebrow"),
           message: t("empty_state_no_accounts_title"),
           description: t("empty_state_no_accounts_description"),
-          hints: [t("empty_state_no_accounts_sidebar_hint"), t("empty_state_no_accounts_settings_hint")],
+          hints: [],
           containerClassName: undefined,
           cardClassName: undefined,
           actions: [

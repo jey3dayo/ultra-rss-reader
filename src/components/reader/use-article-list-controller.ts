@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { useAccounts } from "@/hooks/use-accounts";
 import type { UseArticleListViewPropsResult } from "./article-list.types";
 import { useArticleListData } from "./use-article-list-data";
 import { useArticleListPresentation } from "./use-article-list-presentation";
@@ -8,8 +9,10 @@ export function useArticleListController(): UseArticleListViewPropsResult {
   const { t } = useTranslation("reader");
   const { t: tc } = useTranslation("common");
   const { t: ts } = useTranslation("sidebar");
+  const { data: accounts } = useAccounts();
   const {
     selection,
+    selectedAccountId,
     selectedArticleId,
     selectArticle,
     clearArticle,
@@ -88,6 +91,8 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     tc,
     ts,
     selection,
+    selectedAccountId,
+    accountCount: accounts?.length,
     feeds,
     feedId: resolvedFeedId,
     tagId: resolvedTagId,

@@ -32,6 +32,7 @@ export type FeedTreeFolderViewModel = {
 export type ActiveDropTarget = { kind: "folder"; folderId: string } | { kind: "unfoldered" } | null;
 
 export type FeedTreeEmptyState =
+  | { kind: "hidden"; text?: never; message?: never; label?: never }
   | { kind: "message"; text: string; message?: never; label?: never }
   | { kind: "loading"; text: string; message?: never; label?: never }
   | { kind: "action"; text: string; onAction: () => void; message?: never; label?: never }
