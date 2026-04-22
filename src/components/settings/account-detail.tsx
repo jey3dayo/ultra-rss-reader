@@ -11,6 +11,7 @@ import { useUiStore } from "@/stores/ui-store";
 function AccountDetailContent({
   account,
   isSyncing,
+  syncProgress,
   accountSetupState,
   accountSetupErrorMessage,
 }: AccountDetailContentProps) {
@@ -37,6 +38,7 @@ function AccountDetailContent({
     account,
     controller,
     isSyncing,
+    syncProgress: isSyncing ? syncProgress : undefined,
     syncStatus: syncStatusQuery.data,
     syncStatusRows,
     language: i18n.language,
@@ -68,6 +70,15 @@ export function AccountDetail() {
     <AccountDetailContent
       account={account}
       isSyncing={isSyncing || accountSetupState === "syncing"}
+      syncProgress={
+        isSyncing || accountSetupState === "syncing"
+          ? {
+              total: syncProgress.total,
+              completed: syncProgress.completed,
+              currentAccountName: syncProgress.currentAccountName,
+            }
+          : undefined
+      }
       accountSetupState={accountSetupState}
       accountSetupErrorMessage={accountSetupErrorMessage}
     />

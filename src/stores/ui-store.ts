@@ -33,8 +33,10 @@ export type SyncProgressEvent = {
 export type SyncProgressState = {
   active: boolean;
   kind: SyncProgressKind | null;
+  stage: SyncProgressStage | null;
   total: number;
   completed: number;
+  currentAccountName: string | null;
   activeAccountIds: Set<string>;
 };
 
@@ -236,8 +238,10 @@ const initialState: UiState = {
   syncProgress: {
     active: false,
     kind: null,
+    stage: null,
     total: 0,
     completed: 0,
+    currentAccountName: null,
     activeAccountIds: new Set(),
   },
   accountSetupSession: null,
@@ -446,8 +450,10 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
           syncProgress: {
             active: false,
             kind: null,
+            stage: null,
             total: 0,
             completed: 0,
+            currentAccountName: null,
             activeAccountIds: new Set(),
           },
         };
@@ -460,8 +466,10 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
         syncProgress: {
           active: true,
           kind: event.kind,
+          stage: event.stage,
           total: event.total,
           completed: event.completed,
+          currentAccountName: event.account_name ?? state.syncProgress.currentAccountName,
           activeAccountIds,
         },
       };
@@ -472,8 +480,10 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       syncProgress: {
         active: false,
         kind: null,
+        stage: null,
         total: 0,
         completed: 0,
+        currentAccountName: null,
         activeAccountIds: new Set(),
       },
     }),

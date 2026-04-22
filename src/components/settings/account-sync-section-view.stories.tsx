@@ -70,3 +70,15 @@ export const ForeverRetention: Story = {
     },
   },
 };
+
+export const SyncInProgress: Story = {
+  args: {
+    progressLabel: "1 of 3 completed",
+    progressValue: 33,
+    progressCurrentLabel: "Syncing: FreshRSS",
+    syncNowLabel: "Sync Now",
+    syncingLabel: "Syncing…",
+    onSyncNow: fn(),
+    isSyncing: true,
+  },
+};

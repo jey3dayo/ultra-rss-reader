@@ -110,6 +110,9 @@ describe("AccountSyncSectionView", () => {
     render(
       <AccountSyncSectionView
         heading="Syncing"
+        progressLabel="1 of 3 completed"
+        progressValue={33}
+        progressCurrentLabel="Syncing: FreshRSS"
         syncInterval={{
           name: "sync-interval",
           label: "Sync",
@@ -147,6 +150,9 @@ describe("AccountSyncSectionView", () => {
     expect(button).toHaveClass("w-full");
     expect(button).toHaveClass("sm:w-auto");
     expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
+    const progressbar = screen.getByRole("progressbar");
+    expect(progressbar).toHaveAttribute("aria-valuetext", "1 of 3 completed");
+    expect(screen.getByText("Syncing: FreshRSS")).toBeInTheDocument();
   });
 
   it("uses softened support surfaces for scheduler status rows", () => {

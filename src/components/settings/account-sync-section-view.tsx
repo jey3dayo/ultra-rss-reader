@@ -3,10 +3,14 @@ import { SettingsSection } from "@/components/settings/settings-section";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { LoadingButton } from "@/components/shared/loading-button";
+import { cn } from "@/lib/utils";
 
 export function AccountSyncSectionView({
   heading,
   note,
+  progressLabel,
+  progressValue,
+  progressCurrentLabel,
   syncInterval,
   syncOnStartup,
   syncOnWake,
@@ -21,6 +25,32 @@ export function AccountSyncSectionView({
 }: AccountSyncSectionViewProps) {
   return (
     <SettingsSection heading={heading} note={note} surface="flat" className="mb-6 sm:mb-7">
+      {progressLabel ? (
+        <div className="mb-3 ml-auto w-full max-w-[30rem] rounded-md border border-border/60 bg-surface-1/72 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm font-medium text-foreground">{progressLabel}</div>
+            {progressCurrentLabel ? (
+              <div className="text-xs leading-5 text-foreground-soft">{progressCurrentLabel}</div>
+            ) : null}
+          </div>
+          <div
+            className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-3/80"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progressValue ?? undefined}
+            aria-valuetext={progressLabel}
+          >
+            <div
+              className={cn(
+                "h-full rounded-full bg-[var(--tone-loading)] transition-[width] duration-300 ease-out",
+                progressValue === null && "w-2/5 animate-indeterminate",
+              )}
+              style={progressValue != null ? { width: `${Math.min(progressValue, 100)}%` } : undefined}
+            />
+          </div>
+        </div>
+      ) : null}
       <AccountSelectRow control={syncInterval} />
       <LabeledSwitchRow
         label={syncOnStartup.label}

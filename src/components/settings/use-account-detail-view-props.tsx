@@ -7,6 +7,7 @@ export function useAccountDetailViewProps({
   account,
   controller,
   isSyncing,
+  syncProgress,
   syncStatus,
   syncStatusRows,
   language,
@@ -17,6 +18,25 @@ export function useAccountDetailViewProps({
   const isSetupSyncing = accountSetupState === "syncing";
   const isSetupFailed = accountSetupState === "failed";
   const isSetupActive = isSetupSyncing || isSetupFailed;
+  const progressValue =
+    isSyncing && syncProgress && syncProgress.total > 0
+      ? Math.max((syncProgress.completed / syncProgress.total) * 100, syncProgress.completed === 0 ? 8 : 0)
+      : null;
+  const progressLabel =
+    isSyncing && syncProgress && syncProgress.total > 0
+      ? t("account.sync_progress_summary", {
+          completed: syncProgress.completed,
+          total: syncProgress.total,
+        })
+      : isSyncing
+        ? t("account.sync_progress_preparing")
+        : undefined;
+  const progressCurrentLabel =
+    isSyncing && syncProgress?.currentAccountName
+      ? t("account.sync_progress_current_account", {
+          name: syncProgress.currentAccountName,
+        })
+      : undefined;
   const verificationStatus = account.connection_verification_status ?? "unverified";
   const lastSuccessLabel = formatAccountLastSuccessLabel(syncStatus?.last_success_at ?? undefined, language);
   const summaryDetail = lastSuccessLabel
@@ -115,6 +135,9 @@ export function useAccountDetailViewProps({
         : isSetupFailed
           ? (accountSetupErrorMessage ?? t("account.setup_failed_description"))
           : undefined,
+      progressLabel,
+      progressValue,
+      progressCurrentLabel,
       syncInterval: {
         name: "sync-interval",
         label: t("account.sync"),

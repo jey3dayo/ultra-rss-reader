@@ -28,6 +28,9 @@ export type AccountSwitchControl = {
 export type AccountSyncSectionViewProps = {
   heading: string;
   note?: string;
+  progressLabel?: string;
+  progressValue?: number | null;
+  progressCurrentLabel?: string;
   syncInterval: AccountSelectControl;
   syncOnStartup: AccountSwitchControl;
   syncOnWake: AccountSwitchControl;
@@ -105,6 +108,11 @@ export type AccountDetailAccount = AccountDto;
 export type AccountDetailContentProps = {
   account: AccountDetailAccount;
   isSyncing: boolean;
+  syncProgress?: {
+    total: number;
+    completed: number;
+    currentAccountName: string | null;
+  };
   accountSetupState: AccountSetupSessionState | null;
   accountSetupErrorMessage?: string | null;
 };
@@ -218,6 +226,11 @@ export type UseAccountDetailViewPropsParams = {
   account: AccountDetailAccount;
   controller: UseAccountDetailControllerResult;
   isSyncing: boolean;
+  syncProgress?: {
+    total: number;
+    completed: number;
+    currentAccountName: string | null;
+  };
   syncStatus: AccountSyncStatusDto | undefined;
   syncStatusRows: AccountSyncStatusRow[];
   language: string;
