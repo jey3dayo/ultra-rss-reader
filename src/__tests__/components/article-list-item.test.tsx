@@ -158,10 +158,13 @@ describe("ArticleListItem", () => {
     );
 
     const selectedOption = screen.getByRole("option", { name: "First Article (unread)" });
-    expect(selectedOption).toHaveClass("bg-surface-1");
+    expect(selectedOption).toHaveClass("bg-surface-1/95");
     expect(selectedOption).not.toHaveClass("ring-1");
     expect(selectedOption).not.toHaveClass("ring-border-strong");
     expect(selectedOption).toHaveClass("after:bg-border-strong");
+    expect(selectedOption).toHaveClass(
+      "shadow-[inset_0_0_0_1px_var(--color-border-strong),0_18px_34px_-30px_rgba(38,37,30,0.48)]",
+    );
 
     rerender(
       <ArticleListItem
@@ -223,7 +226,9 @@ describe("ArticleListItem", () => {
     expect(option).not.toHaveClass("hover:bg-surface-1/72");
     expect(option).not.toHaveClass("focus-visible:bg-surface-1/72");
     expect(option).not.toHaveClass("focus-visible:shadow-[inset_0_0_0_1px_var(--color-border-strong)]");
-    expect(option).toHaveClass("shadow-[0_18px_34px_-30px_rgba(38,37,30,0.48)]");
+    expect(option).toHaveClass(
+      "shadow-[inset_0_0_0_1px_var(--color-border-strong),0_18px_34px_-30px_rgba(38,37,30,0.48)]",
+    );
   });
 
   it("removes inline timestamps from article rows to keep the title column dominant", () => {
@@ -286,5 +291,44 @@ describe("ArticleListItem", () => {
 
     expect(title).not.toHaveClass("text-muted-foreground");
     expect(title).toHaveClass("text-foreground/78");
+  });
+
+  it("makes selected rows read stronger than unread rows through tone and typography", () => {
+    const { rerender } = render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], summary: "A hello world article", is_read: false, is_starred: false }}
+        isSelected
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName="Tech Blog"
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByText("First Article")).toHaveClass("font-semibold", "text-foreground");
+    expect(screen.getByText("Tech Blog")).toHaveClass("text-foreground/72");
+    expect(screen.getByText("A hello world article")).toHaveClass("text-foreground/68");
+
+    rerender(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], summary: "A hello world article", is_read: false, is_starred: false }}
+        isSelected={false}
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName="Tech Blog"
+        onSelect={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("First Article")).toHaveClass("font-medium", "text-foreground/92");
+    expect(screen.getByText("Tech Blog")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("A hello world article")).toHaveClass("text-foreground-soft");
   });
 });

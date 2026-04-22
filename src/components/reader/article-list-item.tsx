@@ -54,7 +54,7 @@ export function ArticleListItem({
       onClick={onSelect}
       onKeyDown={handleKeyDown}
       className={cn(
-        "relative flex w-full cursor-pointer flex-col gap-1 px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color] duration-150",
+        "relative isolate flex w-full cursor-pointer flex-col gap-1 rounded-lg px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color,opacity] duration-150",
         selectionStyle === "classic"
           ? cn(
               "focus-visible:bg-surface-1/72 focus-visible:shadow-[inset_0_0_0_1px_var(--color-border-strong)]",
@@ -62,7 +62,7 @@ export function ArticleListItem({
             )
           : cn(
               isSelected &&
-                "bg-surface-1 shadow-[0_18px_34px_-30px_rgba(38,37,30,0.48)] after:absolute after:inset-y-2 after:left-1.5 after:w-1 after:rounded-full after:bg-border-strong",
+                "bg-surface-1/95 shadow-[inset_0_0_0_1px_var(--color-border-strong),0_18px_34px_-30px_rgba(38,37,30,0.48)] after:absolute after:inset-y-2 after:left-1.5 after:w-1 after:rounded-full after:bg-border-strong",
             ),
         !isSelected && "hover:bg-surface-1/72",
         isRead && !isSelected && (isRecentlyRead || dimArchived === "true") && "opacity-50",
@@ -78,7 +78,7 @@ export function ArticleListItem({
                 isSelected
                   ? "font-semibold text-foreground"
                   : isUnread
-                    ? "font-semibold text-foreground"
+                    ? "font-medium text-foreground/92"
                     : "text-foreground/78",
               )}
             >
@@ -92,7 +92,12 @@ export function ArticleListItem({
       </div>
 
       {showFeedName && (
-        <p className={cn("pl-4 text-xs text-foreground-soft", isSelected && "text-foreground/72")}>
+        <p
+          className={cn(
+            "pl-4 text-xs text-foreground-soft transition-colors duration-150",
+            isSelected && "text-foreground/72",
+          )}
+        >
           {normalizedFeedName}
         </p>
       )}
@@ -100,7 +105,14 @@ export function ArticleListItem({
       {showSecondaryRow && (
         <div className="flex items-start gap-2 pl-4">
           {showSummary && (
-            <p className="line-clamp-2 flex-1 text-xs leading-relaxed text-foreground-soft">{normalizedSummary}</p>
+            <p
+              className={cn(
+                "line-clamp-2 flex-1 text-xs leading-relaxed text-foreground-soft transition-colors duration-150",
+                isSelected && "text-foreground/68",
+              )}
+            >
+              {normalizedSummary}
+            </p>
           )}
           {imagePreviews !== "off" && article.thumbnail && (
             <div
