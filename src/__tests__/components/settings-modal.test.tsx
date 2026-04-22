@@ -592,6 +592,26 @@ describe("SettingsModal", () => {
     expect(screen.getByRole("combobox", { name: "Default display mode" })).toHaveTextContent("Preview");
   });
 
+  it("opens the default display mode select on click during normal reading settings usage", async () => {
+    const user = userEvent.setup();
+
+    usePreferencesStore.setState({
+      prefs: { reader_mode_default: "true", web_preview_mode_default: "false" },
+      loaded: true,
+    });
+
+    render(<ReadingSettings />, { wrapper: createWrapper() });
+
+    const combobox = screen.getByRole("combobox", { name: "Default display mode" });
+    expect(combobox).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(combobox);
+
+    expect(await screen.findByRole("option", { name: "Standard" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Preview" })).toBeInTheDocument();
+    expect(combobox).toHaveAttribute("aria-expanded", "true");
+  });
+
   it("opens the default display mode select for the display-mode showcase intent", async () => {
     vi.stubEnv("DEV", true);
     vi.stubEnv("VITE_DEV_INTENT", "open-settings-reading-display-mode");

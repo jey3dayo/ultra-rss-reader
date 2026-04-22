@@ -16,6 +16,7 @@ export function useReadingSettingsViewProps({
   devIntent,
 }: UseReadingSettingsViewPropsParams): ReadingSettingsViewProps {
   const shouldShowDisplayModeOptions = devIntent === DEV_SCENARIO_ID.openSettingsReadingDisplayMode;
+  const displayModeOpenState = shouldShowDisplayModeOptions ? { open: true } : {};
 
   return {
     title: t("reading.heading"),
@@ -30,7 +31,7 @@ export function useReadingSettingsViewProps({
             name: "display_preset",
             label: t("reading.default_display_mode"),
             value: resolveAppDefaultDisplayPreset(prefs),
-            open: shouldShowDisplayModeOptions,
+            ...displayModeOpenState,
             options: [
               { value: "standard", label: t("reading.standard") },
               { value: "preview", label: t("reading.preview") },
