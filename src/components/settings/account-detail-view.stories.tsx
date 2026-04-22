@@ -80,8 +80,14 @@ const meta = {
     },
   },
   decorators: [
-    (Story) => (
-      <div className="w-full max-w-[480px] bg-background p-4">
+    (Story, context) => (
+      <div
+        className={
+          context.viewMode === "docs"
+            ? "mx-auto w-full max-w-[480px] bg-background p-4"
+            : "mx-auto h-[820px] w-full max-w-[480px] overflow-auto bg-background p-4"
+        }
+      >
         <Story />
       </div>
     ),

@@ -24,6 +24,7 @@ const uiReferenceTitles = [
   "UI Reference/Foundations Canvas",
   "UI Reference/Input Controls Canvas",
   "UI Reference/Shell & Overlay Canvas",
+  "UI Reference/Settings Workspace Canvas",
   "UI Reference/Navigation & Collections Canvas",
   "UI Reference/View Specimens Canvas",
 ] as const;
@@ -55,6 +56,7 @@ describe("Storybook Explorer organization", () => {
           "Foundations Canvas",
           "Input Controls Canvas",
           "Shell & Overlay Canvas",
+          "Settings Workspace Canvas",
           "Navigation & Collections Canvas",
           "View Specimens Canvas",
         ],

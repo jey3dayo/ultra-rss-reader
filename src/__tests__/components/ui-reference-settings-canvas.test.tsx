@@ -4,6 +4,7 @@ import { ShellExamplesSpecimen, SurfaceRoleSpecimen } from "@/components/storybo
 import { FoundationsCanvas } from "@/components/storybook/ui-reference-foundations-canvas.stories";
 import { NavigationCollectionsCanvas } from "@/components/storybook/ui-reference-navigation-collections-canvas.stories";
 import { InputControlsCanvas } from "@/components/storybook/ui-reference-settings-canvas.stories";
+import { SettingsWorkspaceCanvas } from "@/components/storybook/ui-reference-settings-workspace-canvas.stories";
 import { ShellOverlayCanvas } from "@/components/storybook/ui-reference-shell-overlay-canvas.stories";
 import { ViewSpecimensCanvas } from "@/components/storybook/ui-reference-workspace-patterns-canvas.stories";
 
@@ -163,5 +164,21 @@ describe("UI Reference canvases", () => {
     expect(screen.getByText("Announcement cards")).toBeInTheDocument();
     expect(screen.getByText("確認待ち")).toBeInTheDocument();
     expect(screen.getByText("判断済み")).toBeInTheDocument();
+  });
+
+  it("renders the settings workspace canvas with real settings shell composition", () => {
+    render(<SettingsWorkspaceCanvas />);
+
+    expect(screen.getByText("Settings workspace")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-settings-workspace-detail-shell")).toHaveClass("rounded-xl");
+    expect(screen.getByTestId("reference-settings-workspace-add-shell")).toHaveClass("rounded-xl");
+    expect(screen.getAllByText("Settings").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Accounts").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Debug").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { level: 2, name: "Debug" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "FreshRSS" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Add account…" }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
   });
 });
