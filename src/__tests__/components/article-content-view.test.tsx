@@ -54,6 +54,18 @@ describe("ArticleContentView", () => {
     expect(screen.getByText("本文です")).toBeInTheDocument();
   });
 
+  it("hides placeholder null article bodies", () => {
+    const { container, rerender } = render(<ArticleContentView contentHtml="null" />);
+
+    expect(screen.queryByText("null")).not.toBeInTheDocument();
+    expect(container.querySelector(".prose")?.textContent?.trim()).toBe("");
+
+    rerender(<ArticleContentView contentHtml="<p>null</p>" />);
+
+    expect(screen.queryByText("null")).not.toBeInTheDocument();
+    expect(container.querySelector(".prose")?.textContent?.trim()).toBe("");
+  });
+
   it("uses a fixture-only thumbnail in storybook", () => {
     expect(articleContentViewStories.args?.thumbnailUrl).toBeTruthy();
     expect(articleContentViewStories.args?.thumbnailUrl).not.toMatch(/^https?:\/\//);

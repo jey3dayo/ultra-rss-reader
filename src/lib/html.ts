@@ -74,3 +74,8 @@ export function stripLeadingDuplicateLabel(html: string, label?: string | null):
 
   return body.innerHTML;
 }
+
+export function normalizeArticleBodyHtml(html: string, label?: string | null): string {
+  const normalizedHtml = stripLeadingDuplicateLabel(html, label);
+  return stripHtmlTags(normalizedHtml).toLowerCase() === "null" ? "" : normalizedHtml;
+}
