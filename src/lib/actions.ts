@@ -22,6 +22,7 @@ export type AppAction =
   | "open-settings"
   | "open-settings-accounts"
   | "open-settings-accounts-add"
+  | "open-settings-accounts-add-freshrss"
   | "open-add-feed"
   | "open-subscriptions-index"
   | "open-feed-cleanup"
@@ -57,6 +58,7 @@ const appActions = new Set<string>([
   "open-settings",
   "open-settings-accounts",
   "open-settings-accounts-add",
+  "open-settings-accounts-add-freshrss",
   "open-add-feed",
   "open-subscriptions-index",
   "open-feed-cleanup",
@@ -239,6 +241,9 @@ export function executeAction(action: AppAction): void {
       break;
     case "open-settings-accounts-add":
       store.openSettingsAddAccount();
+      break;
+    case "open-settings-accounts-add-freshrss":
+      store.openSettingsAddAccount("FreshRss");
       break;
     case "open-add-feed":
       store.openAddFeedDialog();

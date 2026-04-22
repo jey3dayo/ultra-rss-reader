@@ -126,6 +126,23 @@ describe("SettingsModal", () => {
     expect(screen.getByRole("heading", { level: 2, name: /Add Account/i })).toBeInTheDocument();
   });
 
+  it("opens the FreshRSS config form directly when an initial provider is preset", async () => {
+    useUiStore.setState(useUiStore.getInitialState());
+    useUiStore.setState({
+      settingsOpen: true,
+      settingsCategory: "accounts",
+      settingsAccountId: null,
+      settingsAddAccount: true,
+      settingsAddAccountInitialKind: "FreshRss",
+    });
+
+    render(<SettingsModal />, { wrapper: createWrapper() });
+
+    expect(await screen.findByLabelText("Server URL")).toBeInTheDocument();
+    expect(screen.getByLabelText("Username")).toBeInTheDocument();
+    expect(screen.queryByText("Local Feeds")).not.toBeInTheDocument();
+  });
+
   it("prefers the active setup account detail over the add-account top screen", async () => {
     useUiStore.setState(useUiStore.getInitialState());
     useUiStore.setState({

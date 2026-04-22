@@ -102,6 +102,11 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
     keywords: ["settings", "accounts", "add", "account"],
     run: createActionBackedDevScenarioRunner("open-settings-accounts-add"),
   },
+  [DEV_SCENARIO_ID.openSettingsAccountsAddFreshRss]: {
+    title: "Open settings accounts add FreshRSS",
+    keywords: ["settings", "accounts", "add", "account", "freshrss", "credentials", "debug"],
+    run: createActionBackedDevScenarioRunner("open-settings-accounts-add-freshrss"),
+  },
   [DEV_SCENARIO_ID.openSettingsReadingDisplayMode]: {
     title: "Open settings reading display mode",
     keywords: ["settings", "reading", "display", "mode", "dropdown"],

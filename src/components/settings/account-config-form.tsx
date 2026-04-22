@@ -47,7 +47,7 @@ function accountConfigUiReducer(state: AccountConfigUiState, action: AccountConf
   }
 }
 
-export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
+export function AccountConfigForm({ kind, onBack, debugState }: AccountConfigFormProps) {
   const { t } = useTranslation("settings");
   const { t: tc } = useTranslation("common");
   const setSettingsAddAccount = useUiStore((s) => s.setSettingsAddAccount);
@@ -56,8 +56,16 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
   const [form, dispatch] = useReducer(addAccountFormReducer, {
     ...addAccountFormInitialState,
     kind,
+    name: debugState?.name ?? addAccountFormInitialState.name,
+    serverUrl: debugState?.serverUrl ?? addAccountFormInitialState.serverUrl,
+    username: debugState?.username ?? addAccountFormInitialState.username,
+    password: debugState?.password ?? addAccountFormInitialState.password,
   });
-  const [uiState, dispatchUi] = useReducer(accountConfigUiReducer, initialAccountConfigUiState);
+  const [uiState, dispatchUi] = useReducer(accountConfigUiReducer, {
+    ...initialAccountConfigUiState,
+    submitting: debugState?.submitting ?? initialAccountConfigUiState.submitting,
+    errorMessage: debugState?.errorMessage ?? initialAccountConfigUiState.errorMessage,
+  });
   const { submitting, errorMessage } = uiState;
   const formConfig = useMemo(() => getAddAccountFormConfig(form.kind), [form.kind]);
 
@@ -73,6 +81,11 @@ export function AccountConfigForm({ kind, onBack }: AccountConfigFormProps) {
       const message = formatAddAccountValidationError(form.kind, Result.unwrapError(payloadResult));
       dispatchUi({ type: "set-error-message", value: message });
       useUiStore.getState().showToast(message);
+      return;
+    }
+
+    if (debugState?.submitMessage) {
+      dispatchUi({ type: "set-error-message", value: debugState.submitMessage });
       return;
     }
 

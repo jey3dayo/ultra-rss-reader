@@ -63,6 +63,76 @@ describe("AddAccountForm", () => {
     expect(screen.getByText("Fever")).toBeInTheDocument();
   });
 
+  it("can start directly on the provider config screen for debugging", async () => {
+    const user = userEvent.setup();
+
+    render(<AddAccountForm initialKind="FreshRss" />, { wrapper: createWrapper() });
+
+    expect(screen.getByLabelText("Name")).toBeInTheDocument();
+    expect(screen.getByLabelText("Server URL")).toBeInTheDocument();
+    expect(screen.queryByText("Local Feeds")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Back/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Local Feeds")).toBeInTheDocument();
+    });
+  });
+
+  it("can render a fixed loading state for Storybook debugging", () => {
+    render(
+      <AddAccountForm
+        initialKind="FreshRss"
+        debugState={{
+          name: "Work RSS",
+          serverUrl: "https://freshrss.example.com",
+          username: "alice",
+          password: "secret",
+          submitting: true,
+        }}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByLabelText("Name")).toHaveValue("Work RSS");
+    expect(screen.getByLabelText("Server URL")).toHaveValue("https://freshrss.example.com");
+    expect(screen.getByLabelText("Username")).toHaveValue("alice");
+    expect(screen.getByLabelText("Password")).toHaveValue("secret");
+    expect(screen.getByRole("button", { name: "Testing connection…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+  });
+
+  it("intercepts submit in Storybook debug mode instead of calling the Tauri command", async () => {
+    const user = userEvent.setup();
+    const addAccountCalls = vi.fn();
+
+    setupTauriMocks((cmd) => {
+      if (cmd === "add_account") {
+        addAccountCalls();
+      }
+      return null;
+    });
+
+    render(
+      <AddAccountForm
+        initialKind="FreshRss"
+        debugState={{
+          name: "Work RSS",
+          serverUrl: "https://freshrss.example.com",
+          username: "alice",
+          password: "secret",
+          submitMessage: "Storybook preview only",
+        }}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    expect(addAccountCalls).not.toHaveBeenCalled();
+    expect(screen.getByText("Storybook preview only")).toBeInTheDocument();
+  });
+
   it("shows planned services as disabled with a coming-soon label", () => {
     render(<AddAccountForm />, { wrapper: createWrapper() });
 

@@ -6,6 +6,7 @@ import { AccountsNavView } from "@/components/settings/accounts-nav-view";
 import type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
 import type { AccountNavItem, SettingsNavItem, SettingsNavItemId } from "@/components/settings/settings-nav.types";
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
+import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import type { SettingsCategory } from "@/stores/ui-store";
 
 type UseSettingsModalViewPropsParams = {
@@ -15,6 +16,7 @@ type UseSettingsModalViewPropsParams = {
   settingsCategory: SettingsCategory;
   settingsAccountId: string | null;
   settingsAddAccount: boolean;
+  settingsAddAccountInitialKind: AddAccountProviderKind | null;
   settingsLoading: boolean;
   accounts: AccountDto[] | undefined;
   content: ReactNode;
@@ -22,7 +24,7 @@ type UseSettingsModalViewPropsParams = {
   openSettings: () => void;
   setSettingsCategory: (category: SettingsCategory) => void;
   openSettingsAccount: (accountId: string) => void;
-  openSettingsAddAccount: () => void;
+  openSettingsAddAccount: (initialKind?: AddAccountProviderKind) => void;
   setupLockReason?: string | null;
 };
 
@@ -45,6 +47,7 @@ export function useSettingsModalViewProps({
   settingsCategory,
   settingsAccountId,
   settingsAddAccount,
+  settingsAddAccountInitialKind,
   settingsLoading,
   accounts,
   content,
@@ -168,7 +171,7 @@ export function useSettingsModalViewProps({
       />
     ),
     content,
-    contentResetKey: `${settingsCategory}:${settingsAccountId ?? ""}:${settingsAddAccount ? "add" : "browse"}`,
+    contentResetKey: `${settingsCategory}:${settingsAccountId ?? ""}:${settingsAddAccount ? `add:${settingsAddAccountInitialKind ?? "pick"}` : "browse"}`,
     isLoading: settingsLoading,
     isCloseDisabled: setupLocked,
     lockMessage: setupLockReason ?? undefined,

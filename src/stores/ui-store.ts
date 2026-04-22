@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { create } from "zustand";
 import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
+import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
@@ -95,12 +96,24 @@ function getSidebarHiddenFallbackPane(state: Pick<UiState, "contentMode">): Focu
   return state.contentMode === "empty" ? "list" : "content";
 }
 
-function getSettingsAccountsViewState(accountId: string | null, addAccount: boolean) {
+function getSettingsAccountsViewState(
+  accountId: string | null,
+  addAccount: boolean,
+  initialKind: AddAccountProviderKind | null = null,
+) {
   if (addAccount) {
-    return { settingsAccountId: null, settingsAddAccount: true };
+    return {
+      settingsAccountId: null,
+      settingsAddAccount: true,
+      settingsAddAccountInitialKind: initialKind,
+    };
   }
 
-  return { settingsAccountId: accountId, settingsAddAccount: false };
+  return {
+    settingsAccountId: accountId,
+    settingsAddAccount: false,
+    settingsAddAccountInitialKind: null,
+  };
 }
 
 interface UiState {
@@ -121,6 +134,7 @@ interface UiState {
   settingsCategory: SettingsCategory;
   settingsAccountId: string | null;
   settingsAddAccount: boolean;
+  settingsAddAccountInitialKind: AddAccountProviderKind | null;
   settingsLoading: boolean;
   appLoading: boolean;
   subscriptionsWorkspace: SubscriptionsWorkspace | null;
@@ -172,10 +186,14 @@ interface UiActions {
   closeAddFeedDialog: () => void;
   setSettingsCategory: (cat: SettingsCategory) => void;
   openSettingsAccount: (id: string) => void;
-  openSettingsAddAccount: () => void;
+  openSettingsAddAccount: (initialKind?: AddAccountProviderKind) => void;
   setSettingsAccountId: (id: string | null) => void;
-  setSettingsAddAccount: (show: boolean) => void;
-  setSettingsAccountsView: (accountId: string | null, addAccount: boolean) => void;
+  setSettingsAddAccount: (show: boolean, initialKind?: AddAccountProviderKind) => void;
+  setSettingsAccountsView: (
+    accountId: string | null,
+    addAccount: boolean,
+    initialKind?: AddAccountProviderKind,
+  ) => void;
   setSettingsLoading: (loading: boolean) => void;
   setAppLoading: (loading: boolean) => void;
   openSubscriptionsIndex: (state?: SubscriptionsWorkspaceReturnState) => void;
@@ -232,6 +250,7 @@ const initialState: UiState = {
   settingsCategory: "general",
   settingsAccountId: null,
   settingsAddAccount: false,
+  settingsAddAccountInitialKind: null,
   settingsLoading: false,
   appLoading: false,
   subscriptionsWorkspace: null,
@@ -394,23 +413,36 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   openAddFeedDialog: () => set({ isAddFeedDialogOpen: true }),
   closeAddFeedDialog: () => set({ isAddFeedDialogOpen: false }),
   closeSettings: () =>
-    set({ settingsOpen: false, settingsCategory: "general", settingsAccountId: null, settingsAddAccount: false }),
-  setSettingsCategory: (cat) => set({ settingsCategory: cat, settingsAccountId: null, settingsAddAccount: false }),
+    set({
+      settingsOpen: false,
+      settingsCategory: "general",
+      settingsAccountId: null,
+      settingsAddAccount: false,
+      settingsAddAccountInitialKind: null,
+    }),
+  setSettingsCategory: (cat) =>
+    set({
+      settingsCategory: cat,
+      settingsAccountId: null,
+      settingsAddAccount: false,
+      settingsAddAccountInitialKind: null,
+    }),
   openSettingsAccount: (id) =>
     set({
       settingsOpen: true,
       settingsCategory: "accounts",
       ...getSettingsAccountsViewState(id, false),
     }),
-  openSettingsAddAccount: () =>
+  openSettingsAddAccount: (initialKind) =>
     set({
       settingsOpen: true,
       settingsCategory: "accounts",
-      ...getSettingsAccountsViewState(null, true),
+      ...getSettingsAccountsViewState(null, true, initialKind ?? null),
     }),
   setSettingsAccountId: (id) => set(getSettingsAccountsViewState(id, false)),
-  setSettingsAddAccount: (show) => set(getSettingsAccountsViewState(null, show)),
-  setSettingsAccountsView: (accountId, addAccount) => set(getSettingsAccountsViewState(accountId, addAccount)),
+  setSettingsAddAccount: (show, initialKind) => set(getSettingsAccountsViewState(null, show, initialKind ?? null)),
+  setSettingsAccountsView: (accountId, addAccount, initialKind) =>
+    set(getSettingsAccountsViewState(accountId, addAccount, initialKind ?? null)),
   setSettingsLoading: (loading) => set({ settingsLoading: loading }),
   setAppLoading: (loading) => set({ appLoading: loading }),
   openSubscriptionsIndex: (returnState) =>

@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
+import type { AddAccountProviderKind } from "@/lib/add-account-form";
 import type { SettingsCategory } from "@/stores/ui-store";
 
 export type SettingsContentProps = {
   settingsAccountId: string | null;
   settingsAddAccount: boolean;
+  settingsAddAccountInitialKind: AddAccountProviderKind | null;
   settingsCategory: SettingsCategory;
 };
 

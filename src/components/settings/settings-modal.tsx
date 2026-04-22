@@ -66,6 +66,7 @@ function SnapshotBackedAccountDetail({
 function SettingsContent({
   devBuild,
   settingsAddAccount,
+  settingsAddAccountInitialKind,
   settingsCategory,
   selectedAccount,
   onAccountDeleted,
@@ -79,7 +80,7 @@ function SettingsContent({
   }
   if (settingsCategory === "accounts") {
     if (settingsAddAccount) {
-      return <AddAccountForm />;
+      return <AddAccountForm initialKind={settingsAddAccountInitialKind ?? undefined} />;
     }
     return null;
   }
@@ -112,6 +113,7 @@ export function SettingsModal() {
   const settingsCategory = useUiStore((s) => s.settingsCategory);
   const settingsAccountId = useUiStore((s) => s.settingsAccountId);
   const settingsAddAccount = useUiStore((s) => s.settingsAddAccount);
+  const settingsAddAccountInitialKind = useUiStore((s) => s.settingsAddAccountInitialKind);
   const closeSettings = useUiStore((s) => s.closeSettings);
   const openSettings = useUiStore((s) => s.openSettings);
   const setSettingsCategory = useUiStore((s) => s.setSettingsCategory);
@@ -236,12 +238,14 @@ export function SettingsModal() {
     settingsCategory,
     settingsAccountId,
     settingsAddAccount,
+    settingsAddAccountInitialKind,
     settingsLoading,
     accounts: visibleAccounts,
     content: (
       <SettingsContent
         devBuild={devBuild}
         settingsAddAccount={settingsAddAccount}
+        settingsAddAccountInitialKind={settingsAddAccountInitialKind}
         settingsCategory={settingsCategory}
         selectedAccount={selectedVisibleAccount}
         onAccountDeleted={handleAccountDeleted}

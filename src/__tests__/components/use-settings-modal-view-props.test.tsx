@@ -32,6 +32,7 @@ describe("useSettingsModalViewProps", () => {
       settingsCategory: "general",
       settingsAccountId: null,
       settingsAddAccount: false,
+      settingsAddAccountInitialKind: null,
       settingsLoading: false,
       accounts: [],
       content: <div>Settings content</div>,
@@ -65,6 +66,7 @@ describe("useSettingsModalViewProps", () => {
       settingsCategory: "general",
       settingsAccountId: null,
       settingsAddAccount: false,
+      settingsAddAccountInitialKind: null,
       settingsLoading: false,
       accounts: [],
       content: <div>Settings content</div>,
@@ -101,6 +103,7 @@ describe("useSettingsModalViewProps", () => {
       settingsCategory: "general",
       settingsAccountId: "acc-1",
       settingsAddAccount: false,
+      settingsAddAccountInitialKind: null,
       settingsLoading: false,
       accounts: [
         {

@@ -23,6 +23,7 @@ describe("dev-intent helpers", () => {
     expect(parseDevIntent("open-web-preview-url")).toBe("open-web-preview-url");
     expect(parseDevIntent("open-settings-reading")).toBe("open-settings-reading");
     expect(parseDevIntent("open-settings-accounts-add")).toBe("open-settings-accounts-add");
+    expect(parseDevIntent("open-settings-accounts-add-freshrss")).toBe("open-settings-accounts-add-freshrss");
     expect(parseDevIntent("open-settings-shortcuts")).toBe("open-settings-shortcuts");
     expect(parseDevIntent("open-settings-tags")).toBe("open-settings-tags");
     expect(parseDevIntent("open-settings-reading-display-mode")).toBe("open-settings-reading-display-mode");

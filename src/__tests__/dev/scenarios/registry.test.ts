@@ -21,6 +21,13 @@ describe("dev scenario registry", () => {
     });
   });
 
+  it("registers the FreshRSS accounts add scenario", () => {
+    expect(getDevScenario(DEV_SCENARIO_ID.openSettingsAccountsAddFreshRss)).toMatchObject({
+      id: DEV_SCENARIO_ID.openSettingsAccountsAddFreshRss,
+      title: "Open settings accounts add FreshRSS",
+    });
+  });
+
   it("registers the command palette scenario", () => {
     expect(getDevScenario(DEV_SCENARIO_ID.openCommandPalette)).toMatchObject({
       id: DEV_SCENARIO_ID.openCommandPalette,

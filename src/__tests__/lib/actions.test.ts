@@ -137,6 +137,15 @@ describe("executeAction", () => {
       expect(useUiStore.getState().settingsOpen).toBe(true);
       expect(useUiStore.getState().settingsCategory).toBe("accounts");
       expect(useUiStore.getState().settingsAddAccount).toBe(true);
+      expect(useUiStore.getState().settingsAddAccountInitialKind).toBeNull();
+    });
+
+    it("opens settings at the FreshRSS config form for account debugging", () => {
+      executeAction("open-settings-accounts-add-freshrss");
+      expect(useUiStore.getState().settingsOpen).toBe(true);
+      expect(useUiStore.getState().settingsCategory).toBe("accounts");
+      expect(useUiStore.getState().settingsAddAccount).toBe(true);
+      expect(useUiStore.getState().settingsAddAccountInitialKind).toBe("FreshRss");
     });
 
     it("opens add feed dialog", () => {
