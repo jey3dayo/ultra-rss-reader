@@ -54,7 +54,7 @@ describe("SidebarHeaderView", () => {
     expect(onAddFeed).toHaveBeenCalledTimes(1);
   });
 
-  it("shows short text labels in mobile layout", () => {
+  it("uses icon-dominant actions in mobile layout", () => {
     useUiStore.setState({ layoutMode: "mobile" });
 
     render(
@@ -69,10 +69,10 @@ describe("SidebarHeaderView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Sync feeds" })).toHaveTextContent("Sync");
-    expect(screen.getByRole("button", { name: "Sync feeds" }).querySelector("span")).toHaveClass("text-sm");
-    expect(screen.getByRole("button", { name: "Add feed" })).toHaveTextContent("Add");
-    expect(screen.getByRole("button", { name: "Add feed" }).querySelector("span")).toHaveClass("text-sm");
+    expect(screen.getByRole("button", { name: "Sync feeds" })).not.toHaveTextContent("Sync");
+    expect(screen.getByRole("button", { name: "Sync feeds" })).toHaveClass("size-11", "rounded-md");
+    expect(screen.getByRole("button", { name: "Add feed" })).not.toHaveTextContent("Add");
+    expect(screen.getByRole("button", { name: "Add feed" })).toHaveClass("size-11", "rounded-md");
   });
 
   it("reserves left space for mac overlay traffic lights only on mac desktop", () => {

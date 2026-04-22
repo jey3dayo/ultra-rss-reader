@@ -64,7 +64,7 @@ function ArticleToolbarMoreMenu({
 
 function ArticleToolbarMobilePrimaryButton({
   label,
-  shortLabel,
+  shortLabel: _shortLabel,
   ariaPressed,
   disabled = false,
   onClick,
@@ -82,18 +82,17 @@ function ArticleToolbarMobilePrimaryButton({
   return (
     <Button
       variant="ghost"
-      size="sm"
+      size="icon"
       aria-label={label}
       aria-pressed={ariaPressed}
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "h-11 gap-2 px-3.5 text-sm font-medium text-foreground-soft",
-        active && "bg-surface-1/72 text-foreground",
+        "size-11 rounded-md border border-transparent bg-transparent text-foreground-soft shadow-none hover:bg-surface-2/72 hover:text-foreground focus-visible:border-border/60 focus-visible:bg-surface-2/72 focus-visible:ring-2 focus-visible:ring-ring/45 disabled:text-foreground-soft",
+        active && "border-border/60 bg-surface-2/84 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
       )}
     >
       {children}
-      <span>{shortLabel ?? label}</span>
     </Button>
   );
 }

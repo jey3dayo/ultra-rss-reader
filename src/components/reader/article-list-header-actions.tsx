@@ -17,12 +17,16 @@ export function ArticleListHeaderActions({
   onToggleSearch,
   onCloseSearch,
   markAllReadLabel,
-  markAllReadButtonText,
+  markAllReadButtonText: _markAllReadButtonText,
   searchArticlesLabel,
-  searchArticlesButtonText,
+  searchArticlesButtonText: _searchArticlesButtonText,
   closeSearchLabel,
 }: ArticleListHeaderActionsProps) {
   const isMobile = useUiStore((state) => state.layoutMode === "mobile");
+  const mobileToolbarButtonClassName =
+    "size-11 rounded-md border border-transparent bg-transparent text-foreground-soft shadow-none hover:bg-surface-2/72 hover:text-foreground focus-visible:border-border/60 focus-visible:bg-surface-2/72 focus-visible:ring-2 focus-visible:ring-ring/45";
+  const mobileToolbarButtonActiveClassName =
+    "border-border/60 bg-surface-2/84 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]";
 
   return (
     <TooltipProvider>
@@ -38,7 +42,9 @@ export function ArticleListHeaderActions({
               className={cn(
                 "text-foreground-soft transition-colors duration-200 hover:text-foreground",
                 sidebarButtonText && "gap-2 px-3 text-sm font-medium",
+                !sidebarButtonText && isMobile && mobileToolbarButtonClassName,
                 isSidebarVisible && "bg-surface-1/72 text-foreground",
+                !sidebarButtonText && isMobile && isSidebarVisible && mobileToolbarButtonActiveClassName,
               )}
             >
               <PanelLeft className="h-4 w-4" />
@@ -57,10 +63,9 @@ export function ArticleListHeaderActions({
             size={isMobile ? "sm" : "icon"}
             aria-label={markAllReadLabel}
             onClick={onMarkAllRead}
-            className={cn("text-foreground-soft", isMobile && "h-11 gap-2 px-3.5 text-sm font-medium")}
+            className={cn("text-foreground-soft", isMobile && mobileToolbarButtonClassName)}
           >
             <CheckCheck className="h-4 w-4" />
-            {isMobile ? <span>{markAllReadButtonText}</span> : null}
           </Button>
         </AppTooltip>
         <AppTooltip label={searchArticlesLabel}>
@@ -71,12 +76,12 @@ export function ArticleListHeaderActions({
             aria-label={searchArticlesLabel}
             className={cn(
               "text-foreground-soft",
-              isMobile && "h-11 gap-2 px-3.5 text-sm font-medium",
+              isMobile && mobileToolbarButtonClassName,
               showSearch && "text-foreground",
+              isMobile && showSearch && mobileToolbarButtonActiveClassName,
             )}
           >
             <Search className="h-4 w-4" />
-            {isMobile ? <span>{searchArticlesButtonText}</span> : null}
           </Button>
         </AppTooltip>
         {showSearch && (
@@ -86,7 +91,7 @@ export function ArticleListHeaderActions({
               size="icon"
               onClick={onCloseSearch}
               aria-label={closeSearchLabel}
-              className="text-foreground-soft"
+              className={cn("text-foreground-soft", isMobile && mobileToolbarButtonClassName)}
             >
               <X className="h-4 w-4" />
             </Button>

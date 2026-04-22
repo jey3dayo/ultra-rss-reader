@@ -129,7 +129,7 @@ describe("ArticleListHeader", () => {
     expect(button).toHaveClass("text-foreground-soft");
   });
 
-  it("shows short action labels in mobile layout", () => {
+  it("uses icon-dominant toolbar controls in mobile layout", () => {
     useUiStore.setState({ layoutMode: "mobile" });
 
     render(
@@ -148,13 +148,11 @@ describe("ArticleListHeader", () => {
       { wrapper: createWrapper() },
     );
 
-    expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveTextContent("Read");
-    expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveClass("h-11");
-    expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveClass("text-sm");
+    expect(screen.getByRole("button", { name: "Mark all as read" })).not.toHaveTextContent("Read");
+    expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveClass("size-11", "rounded-md");
     expect(screen.getByRole("button", { name: "Mark all as read" })).toHaveClass("text-foreground-soft");
-    expect(screen.getByRole("button", { name: "Search articles" })).toHaveTextContent("Search");
-    expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass("h-11");
-    expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass("text-sm");
+    expect(screen.getByRole("button", { name: "Search articles" })).not.toHaveTextContent("Search");
+    expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass("size-11", "rounded-md");
     expect(screen.getByRole("button", { name: "Search articles" })).toHaveClass("text-foreground-soft");
   });
 });

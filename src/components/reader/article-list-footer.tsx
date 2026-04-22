@@ -31,6 +31,9 @@ const FILTER_TONE_STYLES = {
   },
 } as const;
 
+const compactFooterButtonClassName =
+  "h-11 rounded-md border border-transparent bg-transparent px-3.5 text-[0.82rem] font-medium tracking-[0.01em] shadow-none hover:bg-surface-2/58 hover:text-foreground focus-visible:border-border/55 focus-visible:bg-surface-2/58 focus-visible:ring-2 focus-visible:ring-ring/45 data-[pressed]:border-border/55 data-[pressed]:bg-surface-3/92 data-[pressed]:text-foreground data-[pressed]:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] sm:h-7 sm:rounded-md sm:border-0 sm:bg-transparent sm:px-3 sm:text-[13px] sm:font-medium sm:tracking-normal sm:shadow-none";
+
 export function ArticleListFooter({ viewMode, modes, disabledModes, onSetViewMode }: ArticleListFooterProps) {
   const { t } = useTranslation("reader");
   const resolvedModes = modes ?? DEFAULT_VISIBLE_MODES;
@@ -62,6 +65,7 @@ export function ArticleListFooter({ viewMode, modes, disabledModes, onSetViewMod
               disabled={isDisabled}
               className={cn(
                 controlChipVariants({ size: "filter", interaction: "toggle" }),
+                compactFooterButtonClassName,
                 FILTER_TONE_STYLES[mode.value].button,
               )}
             >

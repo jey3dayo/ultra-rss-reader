@@ -36,9 +36,9 @@ export function SidebarHeaderView({
   onAddFeed,
   syncButtonLabel,
   syncTooltipLabel,
-  syncButtonText,
+  syncButtonText: _syncButtonText,
   addFeedButtonLabel,
-  addFeedButtonText,
+  addFeedButtonText: _addFeedButtonText,
   isSyncDisabled = false,
   isSyncCoolingDown = false,
   isAddFeedDisabled = false,
@@ -53,7 +53,9 @@ export function SidebarHeaderView({
   const { isFeedbackSpinning } = state;
   const feedbackSpinTimerRef = useRef<number | null>(null);
   const headerActionButtonClassName =
-    "h-11 gap-1.5 px-3 text-foreground-soft hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground md:size-8 md:px-0";
+    "text-foreground-soft hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground md:size-8 md:px-0";
+  const mobileHeaderActionButtonClassName =
+    "size-11 rounded-md border border-transparent bg-transparent shadow-none focus-visible:border-border/60 focus-visible:bg-surface-2/72 focus-visible:ring-2 focus-visible:ring-ring/45";
 
   useEffect(() => {
     return () => {
@@ -100,11 +102,14 @@ export function SidebarHeaderView({
               onClick={handleSyncClick}
               disabled={isSyncing || isSyncDisabled}
               aria-disabled={isSyncCoolingDown || undefined}
-              className={cn(headerActionButtonClassName, isSyncCoolingDown && "opacity-70", !isMobile && "w-11")}
+              className={cn(
+                headerActionButtonClassName,
+                isMobile ? mobileHeaderActionButtonClassName : "w-11",
+                isSyncCoolingDown && "opacity-70",
+              )}
               aria-label={syncButtonLabel}
             >
               <RefreshCw className={cn("h-4 w-4", (isSyncing || isFeedbackSpinning) && "animate-spin")} />
-              {isMobile ? <span className="text-sm font-medium">{syncButtonText}</span> : null}
             </Button>
           </AppTooltip>
           <AppTooltip label={addFeedButtonLabel}>
@@ -112,11 +117,10 @@ export function SidebarHeaderView({
               variant="ghost"
               onClick={onAddFeed}
               disabled={isAddFeedDisabled}
-              className={cn(headerActionButtonClassName, !isMobile && "w-11")}
+              className={cn(headerActionButtonClassName, isMobile ? mobileHeaderActionButtonClassName : "w-11")}
               aria-label={addFeedButtonLabel}
             >
               <Plus className="h-4 w-4" />
-              {isMobile ? <span className="text-sm font-medium">{addFeedButtonText}</span> : null}
             </Button>
           </AppTooltip>
         </div>
