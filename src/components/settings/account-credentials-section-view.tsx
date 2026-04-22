@@ -7,6 +7,7 @@ import type { Button } from "@/components/ui/button";
 import type { AccountCredentialInputRow } from "./account-detail.types";
 
 const EMPTY_EXTRA_ROWS: AccountCredentialInputRow[] = [];
+const CONTROL_RAIL_CLASS = "ml-auto w-full max-w-[30rem]";
 
 export type AccountCredentialsSectionViewProps = {
   heading: string;
@@ -85,7 +86,7 @@ export function AccountCredentialsSectionView({
           onChange={onServerUrlChange}
           onBlur={!disabled ? onServerUrlBlur : undefined}
           labelClassName={labelColumnClassName}
-          inputClassName="h-10"
+          inputClassName="h-11"
           actionLabel={serverUrlCopyLabel}
           actionAriaLabel={serverUrlCopyLabel}
           actionTooltipLabel={serverUrlCopyLabel}
@@ -110,7 +111,7 @@ export function AccountCredentialsSectionView({
           onBlur={!disabled ? row.onBlur : undefined}
           placeholder={row.placeholder}
           labelClassName={labelColumnClassName}
-          inputClassName="h-10"
+          inputClassName="h-11"
           disabled={disabled}
         />
       ))}
@@ -121,7 +122,7 @@ export function AccountCredentialsSectionView({
         onChange={onUsernameChange}
         onBlur={!disabled ? onUsernameBlur : undefined}
         labelClassName={labelColumnClassName}
-        inputClassName="h-10"
+        inputClassName="h-11"
         disabled={disabled}
       />
       <LabeledInputRow
@@ -133,13 +134,13 @@ export function AccountCredentialsSectionView({
         onBlur={!disabled ? onPasswordBlur : undefined}
         placeholder={passwordPlaceholder}
         labelClassName={labelColumnClassName}
-        inputClassName="h-10"
+        inputClassName="h-11"
         disabled={disabled}
       />
       {onTestConnection && (
-        <div className="flex justify-end pt-3">
+        <div className={`${CONTROL_RAIL_CLASS} flex justify-end`}>
           <LoadingButton
-            className="h-10 w-full justify-center px-4 sm:w-auto"
+            className="mt-4 h-11 w-full justify-center px-4 sm:w-[220px]"
             variant={testConnectionVariant}
             onClick={onTestConnection}
             loading={isTestingConnection}

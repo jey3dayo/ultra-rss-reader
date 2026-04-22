@@ -35,7 +35,7 @@ export function AccountGeneralSectionView({
         onFocus={!disabled && !isEditingName ? onStartEditingName : undefined}
         onKeyDown={!disabled && isEditingName ? onNameKeyDown : undefined}
         labelClassName={labelColumnClassName}
-        inputClassName="h-10"
+        inputClassName="h-11"
         disabled={disabled || isSavingName}
       />
       {infoRows.map((row) => (

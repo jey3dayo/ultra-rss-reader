@@ -32,7 +32,7 @@ describe("AccountGeneralSectionView", () => {
     const nameInput = screen.getByRole("textbox", { name: "Description" });
     expect(nameInput).toHaveValue("Personal FreshRSS");
     expect(nameInput).toHaveAttribute("readonly");
-    expect(nameInput).toHaveClass("h-10");
+    expect(nameInput).toHaveClass("h-11");
     expect(screen.getByText("Type")).toHaveClass("sm:w-40");
     expect(screen.getByText("Type")).toHaveClass("sm:shrink-0");
     expect(screen.getByText("https://freshrss.example.com")).toBeInTheDocument();
@@ -65,7 +65,7 @@ describe("AccountGeneralSectionView", () => {
     );
 
     const input = screen.getByDisplayValue("Personal FreshRSS");
-    expect(input).toHaveClass("h-10");
+    expect(input).toHaveClass("h-11");
     expect(input).toHaveClass("w-full");
 
     fireEvent.change(input, { target: { value: "Renamed account" } });

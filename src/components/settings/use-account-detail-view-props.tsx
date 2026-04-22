@@ -119,7 +119,7 @@ export function useAccountDetailViewProps({
           onPasswordBlur={controller.commitCredentials}
           testConnectionLabel={isSetupActive ? undefined : t("account.test_connection")}
           testingConnectionLabel={isSetupActive ? undefined : t("account.testing_connection")}
-          testConnectionVariant={verificationStatus === "verified" ? "secondary" : "default"}
+          testConnectionVariant={verificationStatus === "verified" ? "secondary" : "outline"}
           onTestConnection={isSetupActive ? undefined : controller.handleTestConnection}
           isTestingConnection={controller.testingConnection}
         />
