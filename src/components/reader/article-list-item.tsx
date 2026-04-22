@@ -62,7 +62,7 @@ export function ArticleListItem({
             )
           : cn(
               isSelected &&
-                "bg-surface-1/95 shadow-[inset_0_0_0_1px_var(--color-border-strong),0_18px_34px_-30px_rgba(38,37,30,0.48)] after:absolute after:inset-y-2 after:left-1.5 after:w-1 after:rounded-full after:bg-border-strong",
+                "bg-[var(--sidebar-selection-background)] after:absolute after:inset-y-2 after:left-1.5 after:w-1 after:rounded-full after:bg-border-strong",
             ),
         !isSelected && "hover:bg-surface-1/72",
         isRead && !isSelected && (isRecentlyRead || dimArchived === "true") && "opacity-50",

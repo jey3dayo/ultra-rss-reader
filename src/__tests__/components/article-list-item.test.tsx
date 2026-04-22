@@ -141,7 +141,7 @@ describe("ArticleListItem", () => {
     expect(screen.getAllByText("Episode 150")).toHaveLength(1);
   });
 
-  it("uses a distinct selected surface for modern rows and softer hover for unselected rows", () => {
+  it("uses the shared selected surface token for modern rows and softer hover for unselected rows", () => {
     const { rerender } = render(
       <ArticleListItem
         article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
@@ -158,13 +158,11 @@ describe("ArticleListItem", () => {
     );
 
     const selectedOption = screen.getByRole("option", { name: "First Article (unread)" });
-    expect(selectedOption).toHaveClass("bg-surface-1/95");
+    expect(selectedOption).toHaveClass("bg-[var(--sidebar-selection-background)]");
     expect(selectedOption).not.toHaveClass("ring-1");
     expect(selectedOption).not.toHaveClass("ring-border-strong");
     expect(selectedOption).toHaveClass("after:bg-border-strong");
-    expect(selectedOption).toHaveClass(
-      "shadow-[inset_0_0_0_1px_var(--color-border-strong),0_18px_34px_-30px_rgba(38,37,30,0.48)]",
-    );
+    expect(selectedOption).not.toHaveClass("shadow-[var(--sidebar-selection-shadow)]");
 
     rerender(
       <ArticleListItem
@@ -226,9 +224,7 @@ describe("ArticleListItem", () => {
     expect(option).not.toHaveClass("hover:bg-surface-1/72");
     expect(option).not.toHaveClass("focus-visible:bg-surface-1/72");
     expect(option).not.toHaveClass("focus-visible:shadow-[inset_0_0_0_1px_var(--color-border-strong)]");
-    expect(option).toHaveClass(
-      "shadow-[inset_0_0_0_1px_var(--color-border-strong),0_18px_34px_-30px_rgba(38,37,30,0.48)]",
-    );
+    expect(option).not.toHaveClass("shadow-[var(--sidebar-selection-shadow)]");
   });
 
   it("removes inline timestamps from article rows to keep the title column dominant", () => {
