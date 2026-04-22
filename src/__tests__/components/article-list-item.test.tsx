@@ -64,6 +64,26 @@ describe("ArticleListItem", () => {
     expect(screen.getByTestId("article-star-indicator")).toHaveClass("h-3", "w-3");
   });
 
+  it("reserves the star slot even when the article is not starred", () => {
+    render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: true, is_starred: false }}
+        isSelected={false}
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.queryByTestId("article-star-indicator")).toBeNull();
+    expect(screen.getByTestId("article-star-slot")).toHaveClass("h-3", "w-3", "shrink-0");
+  });
+
   it("activates article rows with Enter and Space", () => {
     const onSelect = vi.fn();
 
