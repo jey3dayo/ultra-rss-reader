@@ -29,6 +29,17 @@ export function useSidebarContextMenuRenderers({
           sort_order: folder.sortOrder,
         }}
         folderUnread={folder.unreadCount}
+        feeds={folder.feeds.map((feed) => ({
+          id: feed.id,
+          account_id: feed.accountId,
+          folder_id: feed.folderId,
+          title: feed.title,
+          url: feed.url,
+          site_url: feed.siteUrl,
+          unread_count: feed.unreadCount,
+          reader_mode: feed.readerMode,
+          web_preview_mode: feed.webPreviewMode,
+        }))}
       />
     ),
     [],

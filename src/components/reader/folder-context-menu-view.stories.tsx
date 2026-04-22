@@ -9,7 +9,15 @@ const meta = {
   tags: ["autodocs"],
   args: {
     markAllReadLabel: "Mark all as read",
+    displayModeLabel: "Display mode",
+    displayPresetOptions: [
+      { value: "default", label: "Default" },
+      { value: "standard", label: "Standard" },
+      { value: "preview", label: "Preview" },
+    ],
+    selectedDisplayPreset: "default",
     onMarkAllRead: fn(),
+    onSetDisplayPreset: fn(),
   },
   render: (args) => (
     <div className="min-h-48 bg-background p-16">

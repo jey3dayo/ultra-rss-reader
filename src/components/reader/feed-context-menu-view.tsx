@@ -51,7 +51,7 @@ export function FeedContextMenuView({
               className={contextMenuStyles.item}
               onClick={() => onSetDisplayPreset(option.value)}
             >
-              <span className="mr-2 inline-flex w-4 justify-center">
+              <span aria-hidden="true" className="mr-2 inline-flex w-4 justify-center">
                 {selectedDisplayPreset === option.value ? "✓" : ""}
               </span>
               {option.label}

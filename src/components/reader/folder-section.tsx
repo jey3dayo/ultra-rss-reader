@@ -101,7 +101,7 @@ export function FolderSection(props: FolderSectionViewProps) {
             />
           </CollapsibleTrigger>
         </ContextMenu.Trigger>
-        <FolderContextMenuContent folder={props.folder} folderUnread={folderUnread} />
+        <FolderContextMenuContent folder={props.folder} folderUnread={folderUnread} feeds={props.feeds} />
       </ContextMenu.Root>
       <CollapsibleContent>
         <div className="space-y-0.5 pl-3">
