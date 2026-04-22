@@ -263,6 +263,22 @@ pub fn browser_webview<R: Runtime, M: Manager<R>>(manager: &M) -> Option<Webview
     manager.get_webview(BROWSER_WEBVIEW_LABEL)
 }
 
+pub fn load_browser_preview_prefs<R: Runtime>(
+    app_handle: &AppHandle<R>,
+) -> Result<HashMap<String, String>, std::io::Error> {
+    use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
+    use crate::repository::preference::PreferenceRepository;
+
+    let app_state = app_handle.state::<crate::commands::AppState>();
+    let db = app_state
+        .db
+        .lock()
+        .map_err(|error| std::io::Error::other(format!("Preference DB lock error: {error}")))?;
+    let repo = SqlitePreferenceRepository::new(db.reader());
+    repo.get_all()
+        .map_err(|error| std::io::Error::other(format!("Preference read error: {error}")))
+}
+
 #[cfg(windows)]
 fn focus_main_webview_window<R: Runtime>(app_handle: &AppHandle<R>) {
     use windows::Win32::UI::{
@@ -411,6 +427,75 @@ fn browser_preview_script_bindings(
         .collect()
 }
 
+#[cfg(any(test, not(windows)))]
+pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> Option<String> {
+    let close_binding = BROWSER_PREVIEW_SHORTCUT_SPECS
+        .iter()
+        .find(|shortcut| shortcut.app_action == "close-browser")
+        .and_then(|shortcut| {
+            let binding = prefs
+                .get(shortcut.pref_key)
+                .map(String::as_str)
+                .unwrap_or(shortcut.default_binding);
+            normalize_saved_browser_shortcut(binding)
+        })?;
+
+    let close_binding_json = serde_json::to_string(&close_binding).ok()?;
+    Some(format!(
+        r#"
+(() => {{
+  const closeBinding = {close_binding_json};
+  let closeInFlight = false;
+  const isEditableTarget = (target) => {{
+    if (!(target instanceof Element)) return false;
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {{
+      return true;
+    }}
+    if (target.isContentEditable) {{
+      return true;
+    }}
+    return Boolean(target.closest(
+      'input, textarea, select, [contenteditable=""], [contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"], [role="searchbox"]'
+    ));
+  }};
+  const normalize = (event) => {{
+    if (event.altKey) return null;
+    const parts = [];
+    if (event.metaKey || event.ctrlKey) parts.push('⌘');
+    if (event.shiftKey && event.key !== 'Shift') parts.push('Shift');
+    let key = event.key;
+    if (!key) return null;
+    if (key.length === 1) {{
+      key = event.shiftKey ? key.toUpperCase() : key.toLowerCase();
+    }}
+    parts.push(key);
+    return parts.join('+');
+  }};
+  window.addEventListener('keydown', (event) => {{
+    if (event.defaultPrevented || isEditableTarget(event.target)) {{
+      return;
+    }}
+    const normalized = normalize(event);
+    if (!normalized || normalized !== closeBinding || closeInFlight) {{
+      return;
+    }}
+    const invoke = window.__TAURI_INTERNALS__?.invoke;
+    if (typeof invoke !== 'function') {{
+      return;
+    }}
+    closeInFlight = true;
+    event.preventDefault();
+    event.stopPropagation();
+    void invoke('close_browser_webview').catch((error) => {{
+      closeInFlight = false;
+      console.error('Failed to close embedded browser webview from key bridge:', error);
+    }});
+  }}, true);
+}})();
+"#
+    ))
+}
+
 #[cfg(windows)]
 fn browser_preview_script_bridge_source(prefs: &HashMap<String, String>) -> Option<String> {
     let bindings = browser_preview_script_bindings(prefs);
@@ -541,21 +626,8 @@ pub fn install_escape_accelerator_bridge<R: Runtime>(
     use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyState, VK_CONTROL, VK_SHIFT};
 
     let app_handle = app_handle.clone();
-    let shortcut_script = {
-        use crate::infra::db::sqlite_preference::SqlitePreferenceRepository;
-        use crate::repository::preference::PreferenceRepository;
-
-        let app_state = app_handle.state::<crate::commands::AppState>();
-        let db = app_state
-            .db
-            .lock()
-            .map_err(|error| std::io::Error::other(format!("Preference DB lock error: {error}")))?;
-        let repo = SqlitePreferenceRepository::new(db.reader());
-        let prefs = repo
-            .get_all()
-            .map_err(|error| std::io::Error::other(format!("Preference read error: {error}")))?;
-        browser_preview_script_bridge_source(&prefs)
-    };
+    let prefs = load_browser_preview_prefs(&app_handle)?;
+    let shortcut_script = browser_preview_script_bridge_source(&prefs);
     let (tx, rx) = mpsc::channel();
 
     browser_webview.with_webview(move |platform_webview| unsafe {
@@ -881,10 +953,11 @@ mod tests {
     use std::collections::HashMap;
 
     use super::{
-        browser_preview_action_for_shortcut, browser_preview_script_bindings,
-        browser_webview_diagnostics_enabled, set_browser_webview_diagnostics_enabled,
-        should_trigger_timeout_fallback, supports_native_navigation, BrowserNavigationAvailability,
-        BrowserWebviewState, BrowserWebviewTracker,
+        browser_preview_action_for_shortcut, browser_preview_close_bridge_source,
+        browser_preview_script_bindings, browser_webview_diagnostics_enabled,
+        set_browser_webview_diagnostics_enabled, should_trigger_timeout_fallback,
+        supports_native_navigation, BrowserNavigationAvailability, BrowserWebviewState,
+        BrowserWebviewTracker,
     };
     use crate::platform::{platform_info_for_kind, PlatformKind};
 
@@ -1146,5 +1219,26 @@ mod tests {
         assert_eq!(bindings.get("⌘+h"), Some(&"prev-feed"));
         assert_eq!(bindings.get("Shift+R"), Some(&"reload-webview"));
         assert!(!bindings.values().any(|action| *action == "close-browser"));
+    }
+
+    #[test]
+    fn browser_preview_close_bridge_uses_default_escape_binding() {
+        let prefs = HashMap::new();
+
+        let script = browser_preview_close_bridge_source(&prefs)
+            .expect("default close bridge script should exist");
+
+        assert!(script.contains("\"Escape\""));
+        assert!(script.contains("close_browser_webview"));
+    }
+
+    #[test]
+    fn browser_preview_close_bridge_uses_saved_close_binding() {
+        let prefs = HashMap::from([("shortcut_close_or_clear".to_string(), "Shift+X".to_string())]);
+
+        let script = browser_preview_close_bridge_source(&prefs)
+            .expect("saved close bridge script should exist");
+
+        assert!(script.contains("\"Shift+X\""));
     }
 }
