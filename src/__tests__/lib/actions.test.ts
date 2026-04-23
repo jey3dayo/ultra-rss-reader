@@ -31,8 +31,26 @@ const reloadBrowserWebviewMock = vi.fn(async () =>
     is_loading: false,
   }),
 );
+const goBackBrowserWebviewMock = vi.fn(async () =>
+  Result.succeed({
+    url: "https://example.com/article",
+    can_go_back: true,
+    can_go_forward: false,
+    is_loading: false,
+  }),
+);
+const goForwardBrowserWebviewMock = vi.fn(async () =>
+  Result.succeed({
+    url: "https://example.com/article",
+    can_go_back: true,
+    can_go_forward: false,
+    is_loading: false,
+  }),
+);
 
 vi.mock("@/api/tauri-commands", () => ({
+  goBackBrowserWebview: goBackBrowserWebviewMock,
+  goForwardBrowserWebview: goForwardBrowserWebviewMock,
   reloadBrowserWebview: reloadBrowserWebviewMock,
   restartApp: restartAppMock,
   triggerSync: triggerSyncMock,
@@ -98,6 +116,8 @@ beforeEach(async () => {
 afterEach(() => {
   vi.restoreAllMocks();
   reloadBrowserWebviewMock.mockClear();
+  goBackBrowserWebviewMock.mockClear();
+  goForwardBrowserWebviewMock.mockClear();
 });
 
 describe("executeAction", () => {
@@ -240,6 +260,42 @@ describe("executeAction", () => {
       expect((handler.mock.calls[0][0] as CustomEvent).detail).toBe(1);
 
       window.removeEventListener(APP_EVENTS.navigateArticle, handler);
+    });
+
+    it("clears the selected article and focuses the list target for mouse-back outside browser mode", async () => {
+      document.body.innerHTML = '<div data-article-id="art-1" tabindex="-1"></div>';
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedArticleId: "art-1",
+        contentMode: "reader",
+        focusedPane: "content",
+      });
+
+      executeAction("mouse-back");
+
+      await waitFor(() => {
+        expect(useUiStore.getState().selectedArticleId).toBeNull();
+        expect(useUiStore.getState().contentMode).toBe("empty");
+        expect(useUiStore.getState().focusedPane).toBe("list");
+        expect(document.activeElement).toHaveAttribute("data-article-id", "art-1");
+      });
+    });
+
+    it("focuses the selected sidebar target for mouse-back from the article list", async () => {
+      document.body.innerHTML = '<button data-sidebar-selected-target="true" data-feed-id="feed-1">Feed</button>';
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selection: { type: "feed", feedId: "feed-1" },
+        focusedPane: "list",
+      });
+
+      executeAction("mouse-back");
+
+      await waitFor(() => {
+        expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+        expect(useUiStore.getState().focusedPane).toBe("sidebar");
+        expect(document.activeElement).toHaveAttribute("data-feed-id", "feed-1");
+      });
     });
 
     it("buffers article navigation while browser close is in flight and flushes it later", () => {
@@ -386,6 +442,55 @@ describe("executeAction", () => {
 
       expect(useUiStore.getState().contentMode).toBe("empty");
       expect(useUiStore.getState().browserUrl).toBeNull();
+    });
+
+    it("routes mouse-back to native browser back when history is available", async () => {
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        contentMode: "browser",
+        browserUrl: "https://example.com/article",
+        browserNavigationState: { canGoBack: true, canGoForward: false },
+      });
+
+      executeAction("mouse-back");
+
+      await waitFor(() => {
+        expect(goBackBrowserWebviewMock).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it("routes mouse-forward to native browser forward when history is available", async () => {
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        contentMode: "browser",
+        browserUrl: "https://example.com/article",
+        browserNavigationState: { canGoBack: true, canGoForward: true },
+      });
+
+      executeAction("mouse-forward");
+
+      await waitFor(() => {
+        expect(goForwardBrowserWebviewMock).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it("treats mouse-back like browser close when no browser history is available", () => {
+      useUiStore.setState({
+        ...useUiStore.getInitialState(),
+        selectedArticleId: "art-1",
+        contentMode: "browser",
+        browserUrl: "https://example.com/article",
+        browserNavigationState: { canGoBack: false, canGoForward: false },
+      });
+      const handler = vi.fn();
+      window.addEventListener(keyboardEvents.closeBrowserOverlay, handler);
+
+      executeAction("mouse-back");
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(goBackBrowserWebviewMock).not.toHaveBeenCalled();
+
+      window.removeEventListener(keyboardEvents.closeBrowserOverlay, handler);
     });
 
     it("does not throw for copy-link", () => {
@@ -574,6 +679,8 @@ describe("executeAction", () => {
       expect(isAppAction("open-settings")).toBe(true);
       expect(isAppAction("sync-all")).toBe(true);
       expect(isAppAction("close-browser")).toBe(true);
+      expect(isAppAction("mouse-back")).toBe(true);
+      expect(isAppAction("mouse-forward")).toBe(true);
       expect(isAppAction("set-filter-unread")).toBe(true);
       expect(isAppAction("open-command-palette")).toBe(true);
       expect(isAppAction("restart-app")).toBe(true);
