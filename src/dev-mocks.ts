@@ -8,6 +8,7 @@ import {
   addAccountArgs,
   addLocalFeedArgs,
   checkBrowserEmbedSupportArgs,
+  countAccountStarredArticlesArgs,
   countAccountUnreadArticlesArgs,
   createFolderArgs,
   createMuteKeywordArgs,
@@ -25,6 +26,7 @@ import {
   listArticlesByTagArgs,
   listFeedsArgs,
   listFoldersArgs,
+  listStarredArticlesArgs,
   markArticleReadArgs,
   markArticlesReadArgs,
   markFeedReadArgs,
@@ -83,6 +85,11 @@ function recalcUnread(feedId: string) {
 function countUnreadByAccount(accountId: string) {
   const feedIds = mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id);
   return mockArticles.filter((article) => feedIds.includes(article.feed_id) && !article.is_read).length;
+}
+
+function countStarredByAccount(accountId: string) {
+  const feedIds = mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id);
+  return mockArticles.filter((article) => feedIds.includes(article.feed_id) && article.is_starred).length;
 }
 
 function applyMuteKeywordFilter<T extends { title: string; content_sanitized: string; summary: string | null }>(
@@ -283,6 +290,17 @@ export function setupDevMocks() {
       case "count_account_unread_articles": {
         const { accountId } = countAccountUnreadArticlesArgs.parse(payload);
         return countUnreadByAccount(accountId);
+      }
+
+      case "count_account_starred_articles": {
+        const { accountId } = countAccountStarredArticlesArgs.parse(payload);
+        return countStarredByAccount(accountId);
+      }
+
+      case "list_starred_articles": {
+        const { accountId } = listStarredArticlesArgs.parse(payload);
+        const feedIds = mockFeeds.filter((f) => f.account_id === accountId).map((f) => f.id);
+        return applyMuteKeywordFilter(mockArticles.filter((a) => feedIds.includes(a.feed_id) && a.is_starred));
       }
 
       case "get_feed_integrity_report":

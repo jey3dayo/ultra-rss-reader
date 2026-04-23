@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   addAccount,
+  countAccountStarredArticles,
   countAccountUnreadArticles,
   createMuteKeyword,
   createOrUpdateBrowserWebview,
@@ -13,6 +14,7 @@ import {
   listArticles,
   listFeeds,
   listMuteKeywords,
+  listStarredArticles,
   markArticleRead,
   setMuteAutoMarkRead,
   updateMuteKeyword,
@@ -73,6 +75,32 @@ describe("tauri-commands with mockIPC", () => {
     it("returns unread count for a given account", async () => {
       const value = Result.unwrap(await countAccountUnreadArticles("acc-1"));
       expect(value).toBe(1);
+    });
+  });
+
+  describe("starred fallbacks", () => {
+    it("treats transient null starred count responses as zero", async () => {
+      setupTauriMocks((cmd) => {
+        if (cmd === "count_account_starred_articles") {
+          return null;
+        }
+        return undefined;
+      });
+
+      const value = Result.unwrap(await countAccountStarredArticles("acc-1"));
+      expect(value).toBe(0);
+    });
+
+    it("treats transient null starred article responses as an empty list", async () => {
+      setupTauriMocks((cmd) => {
+        if (cmd === "list_starred_articles") {
+          return null;
+        }
+        return undefined;
+      });
+
+      const value = Result.unwrap(await listStarredArticles("acc-1"));
+      expect(value).toEqual([]);
     });
   });
 
