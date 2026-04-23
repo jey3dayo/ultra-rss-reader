@@ -1386,6 +1386,71 @@ describe("ArticleView", () => {
     vi.useRealTimers();
   });
 
+  it("keeps the selected article visible in browser mode after unread auto-mark removes it from the unread source", async () => {
+    if (!primaryArticle || !primaryFeed) {
+      throw new Error("primary fixtures are missing");
+    }
+
+    let articlesState = sampleArticles.map((article) => ({ ...article }));
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_articles":
+          return articlesState.filter(
+            (article) => article.feed_id === args.feedId && (!args.unreadOnly || !article.is_read),
+          );
+        case "list_feeds":
+          return sampleFeeds
+            .filter((feed) => feed.account_id === args.accountId)
+            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
+        case "list_tags":
+        case "get_article_tags":
+          return [];
+        case "mark_article_read":
+          articlesState = articlesState.map((article) =>
+            article.id === args.articleId ? { ...article, is_read: Boolean(args.read) } : article,
+          );
+          return null;
+        case "create_or_update_browser_webview":
+          return {
+            url: args.url,
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+          };
+        case "set_browser_webview_bounds":
+        case "close_browser_webview":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: "https://example.com/1",
+      viewMode: "unread",
+    });
+    usePreferencesStore.setState({
+      prefs: { after_reading: "immediately" },
+      loaded: true,
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
+      expect(useUiStore.getState().contentMode).toBe("browser");
+      expect(screen.queryByText("Article not found")).not.toBeInTheDocument();
+    });
+  });
+
   it("auto opens browser mode for all-items selection when the current feed enables web preview", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
@@ -1458,6 +1523,102 @@ describe("ArticleView", () => {
     expect(await screen.findByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
     expect(useUiStore.getState().contentMode).toBe("browser");
+    expect(useUiStore.getState().browserUrl).toBe(previewUrl);
+  });
+
+  it("keeps browser preview visible when the selected article can no longer be resolved", async () => {
+    const previewUrl = "https://example.com/1";
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_articles":
+          return [];
+        case "list_account_articles":
+          return [];
+        case "list_feeds":
+          return sampleFeeds
+            .filter((feed) => feed.account_id === args.accountId)
+            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
+        case "list_tags":
+        case "get_article_tags":
+          return [];
+        case "create_or_update_browser_webview":
+          return {
+            url: args.url,
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+          };
+        case "set_browser_webview_bounds":
+        case "close_browser_webview":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: previewUrl,
+      viewMode: "unread",
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
+    expect(screen.queryByText("Article not found")).not.toBeInTheDocument();
+  });
+
+  it("keeps browser preview available for unread smart-view selections that only exist in the unread query source", async () => {
+    const previewUrl = "https://example.com/1";
+    const offSourceArticles = sampleArticles
+      .filter((article) => article.id !== "art-1")
+      .map((article) => ({ ...article, id: `${article.id}-off-source` }));
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_account_articles":
+          return args.unreadOnly ? sampleArticles.filter((article) => article.id === "art-1") : offSourceArticles;
+        case "list_feeds":
+          return sampleFeeds
+            .filter((feed) => feed.account_id === args.accountId)
+            .map((feed) => (feed.id === "feed-1" ? { ...feed, reader_mode: "on", web_preview_mode: "on" } : feed));
+        case "list_tags":
+        case "get_article_tags":
+          return [];
+        case "create_or_update_browser_webview":
+          return {
+            url: args.url,
+            can_go_back: false,
+            can_go_forward: false,
+            is_loading: true,
+          };
+        case "set_browser_webview_bounds":
+        case "close_browser_webview":
+          return null;
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "smart", kind: "unread" },
+      selectedArticleId: "art-1",
+      contentMode: "browser",
+      browserUrl: previewUrl,
+      viewMode: "unread",
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
+    expect(screen.queryByText("Article not found")).not.toBeInTheDocument();
     expect(useUiStore.getState().browserUrl).toBe(previewUrl);
   });
 
