@@ -13,6 +13,7 @@ export function useArticleListController(): UseArticleListViewPropsResult {
   const {
     selection,
     selectedAccountId,
+    focusedPane,
     selectedArticleId,
     selectArticle,
     clearArticle,
@@ -91,6 +92,7 @@ export function useArticleListController(): UseArticleListViewPropsResult {
     tc,
     ts,
     selection,
+    focusedPane,
     selectedAccountId,
     accountCount: accounts?.length,
     feeds,

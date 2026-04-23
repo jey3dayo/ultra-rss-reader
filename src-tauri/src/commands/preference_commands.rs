@@ -41,6 +41,7 @@ const ALLOWED_KEYS: &[&str] = &[
     "reading_sort",
     "after_reading",
     "scroll_to_top_on_change",
+    "open_first_article_on_feed_selection",
     "sort_subscriptions",
     "sync_on_startup",
     "action_copy_link",

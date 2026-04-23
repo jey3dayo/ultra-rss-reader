@@ -19,6 +19,7 @@ export type SidebarAccountSwitcherResult = {
 export type SidebarUiStateResult = Pick<
   UiStoreState,
   | "layoutMode"
+  | "focusedPane"
   | "selectedAccountId"
   | "selectAccount"
   | "restoreAccountSelection"

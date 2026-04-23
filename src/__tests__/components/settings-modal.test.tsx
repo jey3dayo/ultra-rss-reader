@@ -626,4 +626,22 @@ describe("SettingsModal", () => {
     expect(await screen.findByRole("option", { name: "Standard" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Preview" })).toBeInTheDocument();
   });
+
+  it("renders and updates the auto-open-first-article reading switch", async () => {
+    const user = userEvent.setup();
+
+    usePreferencesStore.setState({
+      prefs: {},
+      loaded: true,
+    });
+
+    render(<ReadingSettings />, { wrapper: createWrapper() });
+
+    const autoOpenSwitch = screen.getByRole("switch", { name: "Open the first article when selecting a feed" });
+    expect(autoOpenSwitch).not.toBeChecked();
+
+    await user.click(autoOpenSwitch);
+
+    expect(usePreferencesStore.getState().prefs.open_first_article_on_feed_selection).toBe("true");
+  });
 });

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import type { SidebarControllerResult } from "./sidebar.types";
@@ -22,6 +23,7 @@ export function useSidebarController(): SidebarControllerResult {
     closeAccountList,
     toggleAccountList,
     layoutMode,
+    focusedPane,
     selectedAccountId,
     selectAccount,
     restoreAccountSelection,
@@ -78,6 +80,27 @@ export function useSidebarController(): SidebarControllerResult {
     isSyncDisabled,
   } = useSidebarRuntime();
   const updateFeedFolderMutation = useUpdateFeedFolder();
+
+  useEffect(() => {
+    if (focusedPane !== "sidebar" || selection.type !== "feed") {
+      return;
+    }
+
+    const selectedFeedId = selection.feedId;
+    const focusSelectedFeed = requestAnimationFrame(() => {
+      const selectedFeedButton = document.querySelector<HTMLButtonElement>(`[data-feed-id="${selectedFeedId}"]`);
+      if (!selectedFeedButton) {
+        return;
+      }
+
+      selectedFeedButton.focus({ preventScroll: true });
+      selectedFeedButton.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+    });
+
+    return () => {
+      cancelAnimationFrame(focusSelectedFeed);
+    };
+  }, [focusedPane, selection]);
 
   const {
     setSelectedAccountPreference,

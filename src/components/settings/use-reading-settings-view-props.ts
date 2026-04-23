@@ -76,6 +76,13 @@ export function useReadingSettingsViewProps({
         heading: t("reading.scroll"),
         controls: [
           {
+            id: "open-first-article-on-feed-selection",
+            type: "switch",
+            label: t("reading.open_first_article_on_feed_selection"),
+            checked: resolvePreferenceValue(prefs, "open_first_article_on_feed_selection") === "true",
+            onChange: (checked) => setPref("open_first_article_on_feed_selection", String(checked)),
+          },
+          {
             id: "scroll-to-top-on-change",
             type: "switch",
             label: t("reading.scroll_to_top_on_feed_change"),

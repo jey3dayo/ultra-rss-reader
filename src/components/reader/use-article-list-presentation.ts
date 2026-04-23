@@ -11,6 +11,7 @@ export function useArticleListPresentation({
   tc,
   ts,
   selection,
+  focusedPane,
   selectedAccountId,
   accountCount,
   feeds,
@@ -112,8 +113,10 @@ export function useArticleListPresentation({
   useArticleListEffects({
     selection,
     scrollToTopOnChange,
+    listRef,
     viewportRef,
     filteredArticles,
+    focusedPane,
     selectedArticleId,
     isPrimarySourceLoading: viewState.isPrimarySourceLoading,
     clearArticle,

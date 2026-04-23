@@ -171,8 +171,10 @@ export type UseArticleListViewStateResult = {
 export type UseArticleListEffectsParams = {
   selection: UiSelection;
   scrollToTopOnChange: string;
+  listRef: RefObject<HTMLDivElement | null>;
   viewportRef: RefObject<HTMLDivElement | null>;
   filteredArticles: ArticleDto[];
+  focusedPane: "sidebar" | "list" | "content";
   selectedArticleId: string | null;
   isPrimarySourceLoading: boolean;
   clearArticle: () => void;
@@ -237,6 +239,7 @@ export type UseArticleListPresentationParams = {
   tc: TFunction<"common">;
   ts: TFunction<"sidebar">;
   selection: UseArticleListViewStateParams["selection"];
+  focusedPane: "sidebar" | "list" | "content";
   selectedAccountId: string | null;
   accountCount?: number;
   feeds: UseArticleListSourcesResult["feeds"];

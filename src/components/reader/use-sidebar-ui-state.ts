@@ -5,6 +5,7 @@ import type { SidebarUiStateResult } from "./sidebar-runtime.types";
 
 export function useSidebarUiState(): SidebarUiStateResult {
   const layoutMode = useUiStore((s) => s.layoutMode);
+  const focusedPane = useUiStore((s) => s.focusedPane);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
   const selectAccount = useUiStore((s) => s.selectAccount);
   const restoreAccountSelection = useUiStore((s) => s.restoreAccountSelection);
@@ -55,6 +56,7 @@ export function useSidebarUiState(): SidebarUiStateResult {
 
   return {
     layoutMode,
+    focusedPane,
     selectedAccountId,
     selectAccount,
     restoreAccountSelection,

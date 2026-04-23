@@ -4,6 +4,7 @@ import { useUiStore } from "@/stores/ui-store";
 export function useArticleListUiState() {
   const selection = useUiStore((s) => s.selection);
   const selectedAccountId = useUiStore((s) => s.selectedAccountId);
+  const focusedPane = useUiStore((s) => s.focusedPane);
   const selectedArticleId = useUiStore((s) => s.selectedArticleId);
   const selectArticle = useUiStore((s) => s.selectArticle);
   const clearArticle = useUiStore((s) => s.clearArticle);
@@ -28,6 +29,7 @@ export function useArticleListUiState() {
   return {
     selection,
     selectedAccountId,
+    focusedPane,
     selectedArticleId,
     selectArticle,
     clearArticle,

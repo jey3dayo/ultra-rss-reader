@@ -1156,6 +1156,176 @@ describe("Sidebar", () => {
     });
   });
 
+  it("opens the focused feed with Enter from the sidebar", async () => {
+    const user = userEvent.setup();
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], id: "feed-1", title: "Alpha Feed", folder_id: "folder-1", unread_count: 4 },
+            { ...sampleFeeds[1], id: "feed-2", title: "Beta Feed", folder_id: "folder-1", unread_count: 2 },
+          ];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "all" },
+      focusedPane: "sidebar",
+      viewMode: "all",
+      expandedFolderIds: new Set(["folder-1"]),
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await screen.findByText("Beta Feed");
+    const betaFeed = document.querySelector('[data-feed-id="feed-2"]') as HTMLButtonElement | null;
+    expect(betaFeed).not.toBeNull();
+    if (!betaFeed) {
+      throw new Error("Expected feed button for feed-2");
+    }
+    betaFeed.focus();
+    expect(betaFeed).toHaveFocus();
+
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-2" });
+      expect(useUiStore.getState().focusedPane).toBe("list");
+    });
+  });
+
+  it("opens the first article immediately when the reading preference is enabled", async () => {
+    const user = userEvent.setup();
+
+    usePreferencesStore.setState({
+      prefs: { open_first_article_on_feed_selection: "true" },
+      loaded: true,
+    });
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], id: "feed-1", title: "Alpha Feed", folder_id: "folder-1", unread_count: 4 },
+            { ...sampleFeeds[1], id: "feed-2", title: "Beta Feed", folder_id: "folder-1", unread_count: 2 },
+          ];
+        case "list_articles":
+          return [
+            {
+              id: "art-1",
+              feed_id: "feed-2",
+              title: "First Beta Article",
+              content_sanitized: "<p>hello</p>",
+              summary: "hello",
+              url: "https://example.com/beta-1",
+              author: null,
+              published_at: "2026-04-24T00:00:00Z",
+              thumbnail: null,
+              is_read: false,
+              is_starred: false,
+            },
+          ];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "all" },
+      focusedPane: "sidebar",
+      viewMode: "all",
+      expandedFolderIds: new Set(["folder-1"]),
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    const betaFeedButtons = await screen.findAllByRole("button", { name: /Beta Feed/ });
+    const betaFeed = betaFeedButtons[betaFeedButtons.length - 1];
+    if (!betaFeed) {
+      throw new Error("Expected Beta Feed button");
+    }
+    await user.click(betaFeed);
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-2" });
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(useUiStore.getState().contentMode).toBe("reader");
+    });
+  });
+
+  it("moves DOM focus to the selected feed when the sidebar pane becomes active", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], id: "feed-1", title: "Alpha Feed", folder_id: "folder-1", unread_count: 4 },
+            { ...sampleFeeds[1], id: "feed-2", title: "Beta Feed", folder_id: "folder-1", unread_count: 2 },
+          ];
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-2" },
+      focusedPane: "sidebar",
+      viewMode: "all",
+      expandedFolderIds: new Set(["folder-1"]),
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await screen.findByText("Beta Feed");
+    const betaFeed = document.querySelector('[data-feed-id="feed-2"]') as HTMLButtonElement | null;
+    expect(betaFeed).not.toBeNull();
+    if (!betaFeed) {
+      throw new Error("Expected feed button for feed-2");
+    }
+
+    await waitFor(() => {
+      expect(betaFeed).toHaveFocus();
+    });
+  });
+
   it("expands folders with unread feeds on startup when that policy is enabled", async () => {
     setupTauriMocks((cmd, args) => {
       switch (cmd) {

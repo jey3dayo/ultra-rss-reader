@@ -538,6 +538,35 @@ describe("ArticleList", () => {
     });
   });
 
+  it("focuses the first article row and opens it with Enter when the list pane becomes active", async () => {
+    const user = userEvent.setup();
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().setViewMode("all");
+
+    render(
+      <>
+        <ArticleList />
+        <ArticleView />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    const firstOption = await screen.findByRole("option", { name: /First Article/ });
+
+    await waitFor(() => {
+      expect(firstOption).toHaveFocus();
+    });
+
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(useUiStore.getState().contentMode).toBe("reader");
+    });
+  });
+
   it("queues focused-row navigation while browser close is in flight", async () => {
     useUiStore.getState().selectAccount("acc-1");
     useUiStore.getState().selectFeed("feed-1");

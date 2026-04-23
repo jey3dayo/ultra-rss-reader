@@ -1,4 +1,6 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
+import { useFeedLanding } from "@/hooks/use-feed-landing";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import type { SidebarFeedSectionParams, SidebarFeedSectionResult } from "./sidebar-feed-section.types";
 import { useSidebarFeedDragState } from "./use-sidebar-feed-drag-state";
 import { useSidebarFeedNavigation } from "./use-sidebar-feed-navigation";
@@ -36,6 +38,10 @@ export function useSidebarFeedSectionController({
   renderFolderContextMenu,
   renderFeedContextMenu,
 }: SidebarFeedSectionParams): SidebarFeedSectionResult {
+  const openFeedLanding = useFeedLanding();
+  const openFirstArticleOnFeedSelection =
+    usePreferencesStore((state) => resolvePreferenceValue(state.prefs, "open_first_article_on_feed_selection")) ===
+    "true";
   const feedList = feeds ?? [];
   const folderList = folders ?? [];
   const canDragFeeds = folderList.length > 0;
@@ -68,6 +74,18 @@ export function useSidebarFeedSectionController({
     grayscaleFavicons,
     draggedFeedId,
   });
+
+  const handleSelectFeed = useCallback(
+    (feedId: string) => {
+      if (openFirstArticleOnFeedSelection) {
+        void openFeedLanding(feedId);
+        return;
+      }
+
+      selectFeed(feedId);
+    },
+    [openFeedLanding, openFirstArticleOnFeedSelection, selectFeed],
+  );
 
   useSidebarStartupFolderExpansion({
     selectedAccountId,
@@ -102,7 +120,7 @@ export function useSidebarFeedSectionController({
     expandedFolderIds,
     getFeedFolderId: (feedId) => feedById.get(feedId)?.folder_id,
     setExpandedFolders,
-    selectFeed,
+    selectFeed: handleSelectFeed,
   });
 
   const feedTreeProps = useSidebarFeedTreeProps({
@@ -111,7 +129,7 @@ export function useSidebarFeedSectionController({
     unfolderedFeedViews,
     toggleFolder,
     selectFolder,
-    selectFeed,
+    selectFeed: handleSelectFeed,
     displayFavicons,
     sidebarDensity,
     canDragFeeds,

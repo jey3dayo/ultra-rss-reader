@@ -112,6 +112,7 @@
     "mark_after_0_5s": "Mark after 0.5 seconds",
     "mark_after_1s": "Mark after 1 second",
     "scroll": "Scroll",
+    "open_first_article_on_feed_selection": "Open the first article when selecting a feed",
     "scroll_to_top_on_feed_change": "Scroll to top on feed change"
   },
   "mute": {
