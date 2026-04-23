@@ -91,6 +91,15 @@ const BrowserWebviewStateSchema = z.object({
   can_go_forward: z.boolean(),
   is_loading: z.boolean(),
 });
+const NullableStarredArticlesSchema = z
+  .array(ArticleDtoSchema)
+  .nullable()
+  .transform((value) => value ?? []);
+const NullableStarredCountSchema = z
+  .number()
+  .int()
+  .nullable()
+  .transform((value) => value ?? 0);
 
 export type BrowserWebviewState = z.infer<typeof BrowserWebviewStateSchema>;
 
@@ -216,7 +225,7 @@ export const listAccountArticles = (
 export const listStarredArticles = (accountId: string, offset?: number, limit?: number) =>
   safeInvoke(
     "list_starred_articles",
-    { response: z.array(ArticleDtoSchema), args: listStarredArticlesArgs },
+    { response: NullableStarredArticlesSchema, args: listStarredArticlesArgs },
     { accountId, offset, limit },
   );
 
@@ -230,7 +239,7 @@ export const countAccountUnreadArticles = (accountId: string) =>
 export const countAccountStarredArticles = (accountId: string) =>
   safeInvoke(
     "count_account_starred_articles",
-    { response: z.number().int(), args: countAccountStarredArticlesArgs },
+    { response: NullableStarredCountSchema, args: countAccountStarredArticlesArgs },
     { accountId },
   );
 

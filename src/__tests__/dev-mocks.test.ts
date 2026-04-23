@@ -2,11 +2,13 @@ import { Result } from "@praha/byethrow";
 import { clearMocks } from "@tauri-apps/api/mocks";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  countAccountStarredArticles,
   createOrUpdateBrowserWebview,
   getAccountSyncStatus,
   getDevRuntimeOptions,
   getFeedIntegrityReport,
   getPlatformInfo,
+  listStarredArticles,
 } from "@/api/tauri-commands";
 import { setupDevMocks } from "@/dev-mocks";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
@@ -85,6 +87,17 @@ describe("setupDevMocks", () => {
       error_count: 0,
       next_retry_at: null,
     });
+  });
+
+  it("returns starred counts and articles in browser-only mode", async () => {
+    setupDevMocks();
+
+    const starredCount = Result.unwrap(await countAccountStarredArticles("acc-freshrss"));
+    const starredArticles = Result.unwrap(await listStarredArticles("acc-freshrss"));
+
+    expect(starredCount).toBe(2);
+    expect(starredArticles).toHaveLength(2);
+    expect(starredArticles[0]?.is_starred).toBe(true);
   });
 
   it("returns grouped broken references for the dedicated feed cleanup integrity intent", async () => {
