@@ -48,13 +48,16 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 
 ## MCP and Skills
 
-- For browser-only frontend debugging, prefer `mise run app:dev:browser` plus the `agent-browser` skill.
-- For a running native Tauri app, prefer `tauri-mcp-server` for webview screenshots, DOM inspection, computed style checks, and interactive UI review.
-- Use `tauri-dev-screenshot` only when you need a saved native-window PNG artifact, window chrome, or an occlusion-safe capture outside MCP inspection.
+- For browser-only frontend debugging or view-only inspection, prefer `mise run app:dev:browser` plus the `agent-browser` skill.
+- In Codex, prefer Computer Use when you need to observe or drive desktop-app behavior beyond browser view-only inspection, including visible-state checks, screenshots, and end-to-end interaction against the development app.
+- For a running native Tauri app, prefer `tauri-mcp-server` for DOM inspection, computed style checks, and webview-level interactive UI review.
+- Use `tauri-dev-screenshot` only when you need a saved native-window PNG artifact, window chrome, or an occlusion-safe capture that Computer Use or `tauri-mcp-server` cannot provide reliably.
 - For child webview sizing, overlay shells, or logical-vs-physical pixel issues, use `tauri-webview-geometry`.
 - Use the `tauri` skill when changing Tauri-facing code paths, especially filesystem and path handling from the webview.
 - Do not use `agent-browser` as a substitute for Tauri-native inspection when the bug depends on the desktop shell, IPC, window state, or embedded webview geometry.
-- Start from `mise run app:dev` before using `tauri-mcp-server` tools against the desktop app.
+- Start from `mise run app:dev` before using Computer Use or `tauri-mcp-server` against the desktop app.
+- When using Computer Use for desktop debugging, always operate the development app, not a packaged or release build.
+- Before launching the development app for Computer Use, check whether it is already running and avoid multi-launching duplicate app instances.
 
 ## Feature Work Reminder
 
