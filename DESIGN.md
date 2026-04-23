@@ -169,6 +169,9 @@ Elevation scale:
 - Numeric badges, counters, and rapidly changing labels should avoid jitter. Reserve enough width, use tabular figures when repeated values update in place, and keep local state changes from changing surrounding alignment.
 - Motion and feedback should reinforce continuity. Prefer opacity, tone, border, and transform changes over height or position changes that cause reflow, especially in dense workspace panels and two-pane review layouts.
 - In dense workspace panels, avoid compound hover motion. Do not stack row lift, card lift, and icon scale on the same interaction unless a component is intentionally special and documented as such.
+- Quiet empty states and selection-summary cards should use optical centering rather than mathematical centering. In tall desktop panes, a mathematically centered passive card often reads as too low because the surrounding rails, toolbar chrome, and heading weight pull the visual balance downward.
+- In the main reader detail pane, passive cards should sit slightly above center by default. Keep one shared upward offset across generic empty states and passive selection summaries so switching between feed, folder, tag, unread, and starred does not make the pane feel like it sags.
+- Treat this as a reusable shell rule, not a feature-local nudge. When a passive card is the primary surface in a tall pane, prefer a small shared upward translate before inventing one-off padding or min-height adjustments.
 
 ### Border Radius Scale
 

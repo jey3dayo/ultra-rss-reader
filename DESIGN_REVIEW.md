@@ -137,3 +137,4 @@ If the direction is unclear:
 - If a local exception is intentional, document the reason in review output.
 - If a motion rule affects multiple screens or shell-level behavior, document it in `DESIGN.md` instead of leaving it feature-local.
 - If a settings-form issue appears in multiple rows or multiple settings pages, treat it as a `DESIGN.md` plus `shared` concern before considering feature-local overrides.
+- If a passive card or empty state looks visually low in a tall pane, treat optical-centering compensation as a reusable layout rule. Put the rule in `DESIGN.md` and keep the implementation in shared or repeated shell-level components instead of scattering per-screen nudges.
