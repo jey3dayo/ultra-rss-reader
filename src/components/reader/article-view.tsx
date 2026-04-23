@@ -1,10 +1,15 @@
-import { lazy, Suspense } from "react";
+import { FolderClosed, Inbox, Star, Tag as TagIcon } from "lucide-react";
+import { lazy, type ReactNode, Suspense } from "react";
 import { useTranslation } from "react-i18next";
+import type { FeedDto } from "@/api/tauri-commands";
+import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
+import { FeedFavicon } from "@/components/shared/feed-favicon";
+import { resolveArticleDateLocale } from "@/lib/article-view";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticlePane, ArticleToolbar } from "./article-pane-view";
 import { ArticleEmptyStateShell, ArticleNotFoundStateView, BrowserOnlyStateView } from "./article-view-state";
-import { useArticleViewSelection } from "./use-article-view-selection";
+import { type ArticleViewSummaryState, useArticleViewSelection } from "./use-article-view-selection";
 import { useArticleViewUiState } from "./use-article-view-ui-state";
 
 const LazyFeedCleanupPage = lazy(async () => {
@@ -19,7 +24,182 @@ const LazySubscriptionsIndexPage = lazy(async () => {
 
 export { ArticlePane, ArticleToolbar } from "./article-pane-view";
 
-function EmptyState({ emptyReason }: { emptyReason: "default" | "no-accounts" | "no-feeds" }) {
+const OPTICAL_CENTER_OFFSET_CLASS_NAME = "-translate-y-[14%] md:-translate-y-[16%]";
+const SUMMARY_CONTAINER_CLASS_NAME = `w-full max-w-[42rem] ${OPTICAL_CENTER_OFFSET_CLASS_NAME}`;
+
+type SummaryCardProps = {
+  title: string;
+  titleHref?: string | null;
+  leadingVisual?: ReactNode;
+  metrics: Array<{ label: string; value: ReactNode }>;
+};
+
+function resolveWebsiteHref(feed: FeedDto): string | null {
+  return feed.site_url || feed.url || null;
+}
+
+function resolveWebsiteLabel(feed: FeedDto): string | null {
+  const href = resolveWebsiteHref(feed);
+  if (!href) {
+    return null;
+  }
+
+  try {
+    return new URL(href).host;
+  } catch {
+    return href;
+  }
+}
+
+function formatFeedSummaryDate(value: string | null | undefined, locale: string): string {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
+function SummaryEmptyState({ title, titleHref = null, leadingVisual, metrics }: SummaryCardProps) {
+  const { t } = useTranslation("reader");
+
+  return (
+    <ArticleEmptyStateShell
+      toolbar={
+        <ArticleToolbar article={null} isBrowserOpen={false} onCloseView={() => {}} onToggleBrowserOverlay={() => {}} />
+      }
+      body={
+        <div className="flex flex-1 items-center justify-center overflow-hidden px-6 pt-6 pb-12">
+          <div data-testid="article-selection-summary" className={SUMMARY_CONTAINER_CLASS_NAME}>
+            <FeedDetailPanel
+              title={title}
+              titleHref={titleHref}
+              leadingVisual={leadingVisual}
+              metrics={metrics}
+              links={[]}
+              recentArticlesHeading={t("latest_article")}
+              recentArticles={[]}
+            />
+          </div>
+        </div>
+      }
+    />
+  );
+}
+
+function buildSummaryCardProps(
+  summary: ArticleViewSummaryState,
+  locale: string,
+  readerT: ReturnType<typeof useTranslation<"reader">>["t"],
+  sidebarT: ReturnType<typeof useTranslation<"sidebar">>["t"],
+): SummaryCardProps {
+  if (summary.kind === "feed") {
+    const websiteHref = resolveWebsiteHref(summary.feed);
+    const websiteLabel = resolveWebsiteLabel(summary.feed);
+
+    return {
+      title: summary.feed.title,
+      titleHref: websiteHref,
+      leadingVisual: (
+        <FeedFavicon title={summary.feed.title} url={summary.feed.url} siteUrl={summary.feed.site_url} size="lg" />
+      ),
+      metrics: [
+        {
+          label: readerT("latest_article"),
+          value: (
+            <span className="block max-w-[24rem] truncate" title={summary.latestArticleTitle ?? undefined}>
+              {summary.latestArticleTitle ?? "—"}
+            </span>
+          ),
+        },
+        {
+          label: readerT("latest_update"),
+          value: formatFeedSummaryDate(summary.latestArticlePublishedAt, locale),
+        },
+        {
+          label: readerT("website_url"),
+          value:
+            websiteHref && websiteLabel ? (
+              <span className="block max-w-[24rem] truncate text-foreground-soft" title={websiteHref} translate="no">
+                {websiteLabel}
+              </span>
+            ) : (
+              "—"
+            ),
+        },
+      ],
+    };
+  }
+
+  if (summary.kind === "folder") {
+    return {
+      title: summary.folder.name,
+      leadingVisual: <FolderClosed className="h-5 w-5 text-foreground-soft" />,
+      metrics: [
+        { label: sidebarT("feeds"), value: summary.feedCount.toLocaleString() },
+        { label: readerT("unread"), value: summary.unreadCount.toLocaleString() },
+        { label: readerT("latest_update"), value: formatFeedSummaryDate(summary.latestArticlePublishedAt, locale) },
+      ],
+    };
+  }
+
+  if (summary.kind === "tag") {
+    return {
+      title: summary.tag.name,
+      leadingVisual: summary.tag.color ? (
+        <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: summary.tag.color }} />
+      ) : (
+        <TagIcon className="h-5 w-5 text-foreground-soft" />
+      ),
+      metrics: [
+        { label: readerT("articles"), value: summary.articleCount.toLocaleString() },
+        { label: sidebarT("feeds"), value: summary.feedCount.toLocaleString() },
+        { label: readerT("latest_update"), value: formatFeedSummaryDate(summary.latestArticlePublishedAt, locale) },
+      ],
+    };
+  }
+
+  return {
+    title: summary.smartKind === "unread" ? sidebarT("unread") : sidebarT("starred"),
+    leadingVisual:
+      summary.smartKind === "unread" ? (
+        <Inbox className="h-5 w-5 text-foreground-soft" />
+      ) : (
+        <Star className="h-5 w-5 text-foreground-soft" />
+      ),
+    metrics: [
+      { label: readerT("articles"), value: summary.articleCount.toLocaleString() },
+      { label: sidebarT("feeds"), value: summary.feedCount.toLocaleString() },
+      { label: readerT("latest_update"), value: formatFeedSummaryDate(summary.latestArticlePublishedAt, locale) },
+    ],
+  };
+}
+
+function SelectionSummaryEmptyState({ summary }: { summary: ArticleViewSummaryState }) {
+  const { t } = useTranslation("reader");
+  const { t: sidebarT } = useTranslation("sidebar");
+  const { i18n } = useTranslation("reader");
+  const locale = resolveArticleDateLocale(i18n.language);
+  const cardProps = buildSummaryCardProps(summary, locale, t, sidebarT);
+
+  return <SummaryEmptyState {...cardProps} />;
+}
+
+function EmptyState({
+  emptyReason,
+  summary,
+}: {
+  emptyReason: "default" | "no-accounts" | "no-feeds";
+  summary?: ArticleViewSummaryState;
+}) {
   const { t } = useTranslation("reader");
   const { t: settingsT } = useTranslation("settings");
   const openSettingsAddAccount = useUiStore((state) => state.openSettingsAddAccount);
@@ -28,6 +208,10 @@ function EmptyState({ emptyReason }: { emptyReason: "default" | "no-accounts" | 
   const openAddAccountSettings = () => {
     openSettingsAddAccount();
   };
+
+  if (emptyReason === "default" && summary) {
+    return <SelectionSummaryEmptyState summary={summary} />;
+  }
 
   const content =
     emptyReason === "no-accounts"
@@ -57,7 +241,8 @@ function EmptyState({ emptyReason }: { emptyReason: "default" | "no-accounts" | 
             message: t("select_article_to_read"),
             description: t("empty_state_default_description"),
             hints: [t("empty_state_search_hint"), t("empty_state_web_preview_hint")],
-            containerClassName: "-translate-y-[14%] md:-translate-y-[16%]",
+            // Optical centering keeps passive cards from reading too low in tall detail panes.
+            containerClassName: OPTICAL_CENTER_OFFSET_CLASS_NAME,
             cardClassName: undefined,
             actions: [],
           };
@@ -113,7 +298,7 @@ export function ArticleView() {
   }
 
   if (selectionState.kind === "empty") {
-    return <EmptyState emptyReason={selectionState.emptyReason} />;
+    return <EmptyState emptyReason={selectionState.emptyReason} summary={selectionState.summary} />;
   }
 
   if (selectionState.kind === "not-found") {

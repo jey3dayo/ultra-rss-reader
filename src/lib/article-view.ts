@@ -29,6 +29,31 @@ export function findSelectedArticle(params: FindSelectedArticleParams): Result.R
   return article ? Result.succeed(article) : Result.fail("article_not_found");
 }
 
+export function findLatestArticle(articles: ArticleDto[] | undefined): ArticleDto | null {
+  if (!articles || articles.length === 0) {
+    return null;
+  }
+
+  return articles.reduce<ArticleDto | null>((latest, candidate) => {
+    if (latest === null) {
+      return candidate;
+    }
+
+    const latestTime = new Date(latest.published_at).getTime();
+    const candidateTime = new Date(candidate.published_at).getTime();
+
+    if (Number.isNaN(latestTime)) {
+      return candidate;
+    }
+
+    if (Number.isNaN(candidateTime)) {
+      return latest;
+    }
+
+    return candidateTime > latestTime ? candidate : latest;
+  }, null);
+}
+
 export function shouldOpenArticleTitleInExternalBrowser(params: LinkNavigationParams): boolean {
   const { openLinks, metaKey, ctrlKey } = params;
   return metaKey || ctrlKey || openLinks === "default_browser";

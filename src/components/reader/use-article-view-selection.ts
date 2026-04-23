@@ -1,18 +1,56 @@
 import { Result } from "@praha/byethrow";
-import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
+import type { ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
 import { useAccounts } from "@/hooks/use-accounts";
-import { findSelectedArticle } from "@/lib/article-view";
+import { useArticles } from "@/hooks/use-articles";
+import { useFolders } from "@/hooks/use-folders";
+import { useTags } from "@/hooks/use-tags";
+import { findLatestArticle, findSelectedArticle } from "@/lib/article-view";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { getPrimarySourceContext } from "./article-selection-context";
 import { useArticleListData } from "./use-article-list-data";
 import { useArticleListSources } from "./use-article-list-sources";
 
+export type ArticleViewSummaryState =
+  | {
+      kind: "feed";
+      feed: FeedDto;
+      latestArticleTitle?: string | null;
+      latestArticlePublishedAt?: string | null;
+    }
+  | {
+      kind: "folder";
+      folder: FolderDto;
+      feedCount: number;
+      unreadCount: number;
+      latestArticlePublishedAt?: string | null;
+    }
+  | {
+      kind: "tag";
+      tag: TagDto;
+      articleCount: number;
+      feedCount: number;
+      latestArticlePublishedAt?: string | null;
+    }
+  | {
+      kind: "smart";
+      smartKind: "unread" | "starred";
+      articleCount: number;
+      feedCount: number;
+      latestArticlePublishedAt?: string | null;
+    };
+
+type ArticleViewEmptyState = {
+  kind: "empty";
+  emptyReason: "default" | "no-accounts" | "no-feeds";
+  summary?: ArticleViewSummaryState;
+};
+
 export type ArticleViewSelectionState =
   | { kind: "subscriptions-index" }
   | { kind: "feed-cleanup" }
   | { kind: "browser-only"; browserUrl: string }
-  | { kind: "empty"; emptyReason: "default" | "no-accounts" | "no-feeds" }
+  | ArticleViewEmptyState
   | { kind: "not-found" }
   | { kind: "article"; article: ArticleDto; feed?: FeedDto };
 
@@ -25,7 +63,11 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
   const selection = useUiStore((s) => s.selection);
   const retainedArticleIds = useUiStore((s) => s.retainedArticleIds);
   const viewMode = useUiStore((s) => s.viewMode);
+  const selectedFeedId = selection.type === "feed" ? selection.feedId : null;
   const { data: accounts } = useAccounts();
+  const { data: folders } = useFolders(selectedAccountId);
+  const { data: tags } = useTags();
+  const { data: allFeedArticles } = useArticles(selectedFeedId);
   const sortUnread = usePreferencesStore((s) => s.prefs.reading_sort ?? s.prefs.sort_unread ?? "newest_first");
   const groupBy = usePreferencesStore((s) => s.prefs.group_by ?? "date");
   const selectionContext = getPrimarySourceContext(selection, selectedAccountId);
@@ -79,7 +121,70 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
       return { kind: "empty", emptyReason: "no-feeds" };
     }
 
-    return { kind: "empty", emptyReason: "default" };
+    const visibleFeedIds = new Set(data.filteredArticles.map((article) => article.feed_id));
+    const latestVisibleArticle = findLatestArticle(data.filteredArticles);
+    const summary =
+      selection.type === "feed"
+        ? (() => {
+            const feed = selectedFeedId
+              ? sources.feeds?.find((candidate) => candidate.id === selectedFeedId)
+              : undefined;
+            const latestFeedArticle = findLatestArticle(allFeedArticles);
+
+            return feed
+              ? {
+                  kind: "feed" as const,
+                  feed,
+                  latestArticleTitle: latestFeedArticle?.title ?? null,
+                  latestArticlePublishedAt: latestFeedArticle?.published_at ?? null,
+                }
+              : undefined;
+          })()
+        : selection.type === "folder"
+          ? (() => {
+              const folder = folders?.find((candidate) => candidate.id === selection.folderId);
+              if (!folder) {
+                return undefined;
+              }
+
+              return {
+                kind: "folder" as const,
+                folder,
+                feedCount: (sources.feeds ?? []).filter((feed) => feed.folder_id === folder.id).length,
+                unreadCount: data.filteredArticles.filter((article) => !article.is_read).length,
+                latestArticlePublishedAt: latestVisibleArticle?.published_at ?? null,
+              };
+            })()
+          : selection.type === "tag"
+            ? (() => {
+                const tag = tags?.find((candidate) => candidate.id === selection.tagId);
+                if (!tag) {
+                  return undefined;
+                }
+
+                return {
+                  kind: "tag" as const,
+                  tag,
+                  articleCount: data.filteredArticles.length,
+                  feedCount: visibleFeedIds.size,
+                  latestArticlePublishedAt: latestVisibleArticle?.published_at ?? null,
+                };
+              })()
+            : selection.type === "smart"
+              ? {
+                  kind: "smart" as const,
+                  smartKind: selection.kind,
+                  articleCount: data.filteredArticles.length,
+                  feedCount: visibleFeedIds.size,
+                  latestArticlePublishedAt: latestVisibleArticle?.published_at ?? null,
+                }
+              : undefined;
+
+    return {
+      kind: "empty",
+      emptyReason: "default",
+      summary,
+    };
   }
 
   const articleResult = findSelectedArticle({

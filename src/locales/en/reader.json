@@ -7,6 +7,8 @@
   "no_articles": "No articles",
   "article_not_found": "Article not found",
   "select_article_to_read": "Select an article",
+  "latest_article": "Latest Article",
+  "latest_update": "Latest Update",
   "empty_state_default_description": "Choose a scope on the left, then open something from the middle queue to start reading.",
   "empty_state_no_accounts_eyebrow": "Getting started",
   "empty_state_no_accounts_title": "Add your first account",
