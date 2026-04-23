@@ -1,6 +1,7 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import type { FeedTreeFolderSectionProps } from "./feed-tree.types";
 import { FEED_DROP_TARGET_ID_ATTRIBUTE, FEED_DROP_TARGET_KIND_ATTRIBUTE } from "./feed-tree-drop-target";
@@ -88,6 +89,7 @@ export function FeedTreeFolderSection({
                 selectedIndicatorMode="hidden"
                 trailing={folder.unreadCount > 0 ? folder.unreadCount.toLocaleString() : undefined}
                 trailingClassName="text-[0.72rem] text-sidebar-foreground/54"
+                {...(folder.isSelected ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
                 {...(canDragFeeds
                   ? {
                       [FEED_DROP_TARGET_KIND_ATTRIBUTE]: "folder",

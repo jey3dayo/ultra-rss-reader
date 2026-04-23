@@ -1,5 +1,6 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { SidebarSectionToggle } from "@/components/shared/sidebar-section-toggle";
+import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import { getSidebarDensityTokens } from "./sidebar-density";
 import { SidebarNavButton } from "./sidebar-nav-button";
@@ -48,6 +49,7 @@ export function TagListView({
                       density={sidebarDensity}
                       onClick={() => onSelectTag(tag.id)}
                       selected={tag.isSelected}
+                      {...(tag.isSelected ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
                       trailing={tag.articleCount > 0 ? tag.articleCount.toLocaleString() : undefined}
                       className={!tag.isSelected ? "text-sidebar-foreground" : undefined}
                     />

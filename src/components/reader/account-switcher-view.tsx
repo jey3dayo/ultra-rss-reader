@@ -1,5 +1,6 @@
 import { ChevronDown } from "lucide-react";
 import { useEffect } from "react";
+import { SIDEBAR_FALLBACK_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import type { AccountSwitcherProps } from "./account-switcher.types";
 import { AccountSwitcherMenu, focusAccountItem } from "./account-switcher-menu";
@@ -36,6 +37,7 @@ export function AccountSwitcherView({
       <button
         ref={triggerRef}
         type="button"
+        {...{ [SIDEBAR_FALLBACK_TARGET_ATTRIBUTE]: "true" }}
         onClick={() => hasMultipleAccounts && onToggle()}
         onKeyDown={(e) => {
           if (!hasMultipleAccounts) return;

@@ -3,6 +3,7 @@ import { GripVertical } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
+import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import type { FeedTreeDragHandleProps, FeedTreeRowProps } from "./feed-tree.types";
 import { FeedTreeSelectableRow } from "./feed-tree-selectable-row";
@@ -100,6 +101,7 @@ export function FeedTreeRow({
                   ? "text-[0.72rem] text-[var(--sidebar-selection-muted)]"
                   : "text-[0.72rem] text-sidebar-foreground/52"
               }
+              {...(feed.isSelected ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
               data-feed-id={feed.id}
               className="rounded-lg"
             />

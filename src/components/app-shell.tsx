@@ -8,6 +8,7 @@ import { useBadge } from "../hooks/use-badge";
 import { useBreakpoint } from "../hooks/use-breakpoint";
 import { useKeyboard } from "../hooks/use-keyboard";
 import { useMenuEvents } from "../hooks/use-menu-events";
+import { useMouseNavigation } from "../hooks/use-mouse-navigation";
 import { useUpdater } from "../hooks/use-updater";
 import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "../lib/browser-debug-geometry";
 import { copyValueToClipboard } from "../lib/clipboard";
@@ -346,6 +347,7 @@ export function AppShell() {
   useBadge();
   useBreakpoint();
   useKeyboard();
+  useMouseNavigation();
   useMenuEvents();
   useUpdater();
   const loadPlatformInfo = usePlatformStore((state) => state.loadPlatformInfo);

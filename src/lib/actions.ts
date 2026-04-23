@@ -1,11 +1,12 @@
 import { Result } from "@praha/byethrow";
-import { reloadBrowserWebview } from "@/api/tauri-commands";
+import { goBackBrowserWebview, goForwardBrowserWebview, reloadBrowserWebview } from "@/api/tauri-commands";
 import { APP_EVENTS } from "@/constants/events";
 import { runManualUpdateCheck } from "@/hooks/use-updater";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import i18n from "@/lib/i18n";
 import { keyboardEvents, type ViewMode } from "@/lib/keyboard-shortcuts";
 import { triggerManualSyncWithCooldown } from "@/lib/manual-sync";
+import { focusArticleListTarget, focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import { resolveSyncFeedbackMessage, summarizeSyncResult } from "@/lib/sync-result-feedback";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -34,6 +35,8 @@ export type AppAction =
   | "next-feed"
   | "reload-webview"
   | "close-browser"
+  | "mouse-back"
+  | "mouse-forward"
   | "open-in-reader"
   | "open-in-browser"
   | "toggle-star"
@@ -70,6 +73,8 @@ const appActions = new Set<string>([
   "next-feed",
   "reload-webview",
   "close-browser",
+  "mouse-back",
+  "mouse-forward",
   "open-in-reader",
   "open-in-browser",
   "toggle-star",
@@ -124,6 +129,48 @@ function dispatchBufferedBrowserCloseAction(action: BufferedBrowserCloseAction):
       emitNavigationEvent(APP_EVENTS.navigateFeed, 1);
       break;
   }
+}
+
+function focusArticleListAfterClearingArticle(articleId: string | null): void {
+  useUiStore.getState().setFocusedPane("list");
+  requestAnimationFrame(() => {
+    focusArticleListTarget(articleId);
+  });
+}
+
+function focusSidebarSelection(): void {
+  useUiStore.getState().setFocusedPane("sidebar");
+  requestAnimationFrame(() => {
+    focusSelectedSidebarTarget();
+  });
+}
+
+async function navigateBrowserBackOrClose(): Promise<void> {
+  const store = useUiStore.getState();
+  if (!store.browserNavigationState?.canGoBack) {
+    executeAction("close-browser");
+    return;
+  }
+
+  Result.pipe(
+    await goBackBrowserWebview(),
+    Result.inspectError((error) => {
+      console.error("Menu webview back failed:", error);
+    }),
+  );
+}
+
+async function navigateBrowserForward(): Promise<void> {
+  if (!useUiStore.getState().browserNavigationState?.canGoForward) {
+    return;
+  }
+
+  Result.pipe(
+    await goForwardBrowserWebview(),
+    Result.inspectError((error) => {
+      console.error("Menu webview forward failed:", error);
+    }),
+  );
 }
 
 export function flushPendingBrowserCloseAction(): void {
@@ -311,6 +358,26 @@ export function executeAction(action: AppAction): void {
         emitEvent(keyboardEvents.closeBrowserOverlay);
       } else {
         store.closeBrowser();
+      }
+      break;
+    case "mouse-back":
+      if (store.contentMode === "browser") {
+        void navigateBrowserBackOrClose();
+        break;
+      }
+      if (store.selectedArticleId) {
+        const previousArticleId = store.selectedArticleId;
+        store.clearArticle();
+        focusArticleListAfterClearingArticle(previousArticleId);
+        break;
+      }
+      if (store.focusedPane === "list") {
+        focusSidebarSelection();
+      }
+      break;
+    case "mouse-forward":
+      if (store.contentMode === "browser") {
+        void navigateBrowserForward();
       }
       break;
 

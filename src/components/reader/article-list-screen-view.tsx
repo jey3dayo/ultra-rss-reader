@@ -113,7 +113,14 @@ export function ArticleListScreenView({
   return (
     <ScrollArea className="h-full" contentClassName="pb-4 pr-3" viewportRef={viewportRef}>
       <div data-testid="article-list-scroll-content">
-        <div ref={listRef} role="listbox" aria-label={listAriaLabel} onKeyDownCapture={onListKeyDownCapture}>
+        <div
+          ref={listRef}
+          role="listbox"
+          tabIndex={-1}
+          data-article-list-root="true"
+          aria-label={listAriaLabel}
+          onKeyDownCapture={onListKeyDownCapture}
+        >
           <ArticleGroupsView
             groups={groups}
             dimArchived={dimArchived}

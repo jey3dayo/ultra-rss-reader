@@ -1,5 +1,6 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { AppError, BrowserWebviewState } from "@/api/tauri-commands";
+import { useUiStore } from "@/stores/ui-store";
 
 export type BrowserWebviewFallbackPayload = {
   url: string;
@@ -8,6 +9,17 @@ export type BrowserWebviewFallbackPayload = {
 };
 
 const MISSING_EMBEDDED_BROWSER_WEBVIEW_ERROR = "Embedded browser webview is not open";
+
+function toBrowserNavigationState(nextState: BrowserWebviewState | null) {
+  if (!nextState) {
+    return null;
+  }
+
+  return {
+    canGoBack: nextState.can_go_back,
+    canGoForward: nextState.can_go_forward,
+  };
+}
 
 export function initialBrowserState(url: string): BrowserWebviewState {
   return {
@@ -68,6 +80,7 @@ export function setBrowserStateWithRef(
   nextState: BrowserWebviewState | null,
 ) {
   browserStateRef.current = nextState;
+  useUiStore.getState().setBrowserNavigationState(toBrowserNavigationState(nextState));
   setBrowserState(nextState);
 }
 
@@ -79,6 +92,7 @@ export function updateBrowserStateWithRef(
   setBrowserState((currentState) => {
     const nextState = update(currentState);
     browserStateRef.current = nextState;
+    useUiStore.getState().setBrowserNavigationState(toBrowserNavigationState(nextState));
     return nextState;
   });
 }

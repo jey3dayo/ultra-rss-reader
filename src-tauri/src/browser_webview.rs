@@ -446,6 +446,7 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
 (() => {{
   const closeBinding = {close_binding_json};
   let closeInFlight = false;
+  let mouseNavigationInFlight = false;
   const isEditableTarget = (target) => {{
     if (!(target instanceof Element)) return false;
     if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {{
@@ -471,6 +472,25 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
     parts.push(key);
     return parts.join('+');
   }};
+  const getInvoke = () => window.__TAURI_INTERNALS__?.invoke;
+  const closeBrowserPreview = async () => {{
+    if (closeInFlight) {{
+      return;
+    }}
+
+    const invoke = getInvoke();
+    if (typeof invoke !== 'function') {{
+      return;
+    }}
+
+    closeInFlight = true;
+    try {{
+      await invoke('close_browser_webview');
+    }} catch (error) {{
+      closeInFlight = false;
+      console.error('Failed to close embedded browser webview from bridge:', error);
+    }}
+  }};
   window.addEventListener('keydown', (event) => {{
     if (event.defaultPrevented || isEditableTarget(event.target)) {{
       return;
@@ -479,17 +499,56 @@ pub fn browser_preview_close_bridge_source(prefs: &HashMap<String, String>) -> O
     if (!normalized || normalized !== closeBinding || closeInFlight) {{
       return;
     }}
-    const invoke = window.__TAURI_INTERNALS__?.invoke;
+    event.preventDefault();
+    event.stopPropagation();
+    void closeBrowserPreview();
+  }}, true);
+  window.addEventListener('mousedown', (event) => {{
+    if ((event.button !== 3 && event.button !== 4) || event.defaultPrevented || isEditableTarget(event.target)) {{
+      return;
+    }}
+
+    event.preventDefault();
+    event.stopPropagation();
+  }}, true);
+  window.addEventListener('mouseup', (event) => {{
+    if ((event.button !== 3 && event.button !== 4) || event.defaultPrevented || isEditableTarget(event.target) || mouseNavigationInFlight) {{
+      return;
+    }}
+
+    const invoke = getInvoke();
     if (typeof invoke !== 'function') {{
       return;
     }}
-    closeInFlight = true;
+
     event.preventDefault();
     event.stopPropagation();
-    void invoke('close_browser_webview').catch((error) => {{
-      closeInFlight = false;
-      console.error('Failed to close embedded browser webview from key bridge:', error);
-    }});
+    mouseNavigationInFlight = true;
+
+    if (event.button === 3) {{
+      void invoke('go_back_browser_webview')
+        .then((state) => {{
+          if (!state?.can_go_back) {{
+            return closeBrowserPreview();
+          }}
+          return null;
+        }})
+        .catch((error) => {{
+          console.error('Failed to navigate back from mouse bridge:', error);
+        }})
+        .finally(() => {{
+          mouseNavigationInFlight = false;
+        }});
+      return;
+    }}
+
+    void invoke('go_forward_browser_webview')
+      .catch((error) => {{
+        console.error('Failed to navigate forward from mouse bridge:', error);
+      }})
+      .finally(() => {{
+        mouseNavigationInFlight = false;
+      }});
   }}, true);
 }})();
 "#
@@ -545,6 +604,24 @@ fn browser_preview_script_bridge_source(prefs: &HashMap<String, String>) -> Opti
     if (!action) {{
       return;
     }}
+    event.preventDefault();
+    event.stopPropagation();
+    window.chrome?.webview?.postMessage(action);
+  }}, true);
+  window.addEventListener('mousedown', (event) => {{
+    if ((event.button !== 3 && event.button !== 4) || event.defaultPrevented || isEditableTarget(event.target)) {{
+      return;
+    }}
+
+    event.preventDefault();
+    event.stopPropagation();
+  }}, true);
+  window.addEventListener('mouseup', (event) => {{
+    if ((event.button !== 3 && event.button !== 4) || event.defaultPrevented || isEditableTarget(event.target)) {{
+      return;
+    }}
+
+    const action = event.button === 3 ? 'mouse-back' : 'mouse-forward';
     event.preventDefault();
     event.stopPropagation();
     window.chrome?.webview?.postMessage(action);
@@ -1230,6 +1307,10 @@ mod tests {
 
         assert!(script.contains("\"Escape\""));
         assert!(script.contains("close_browser_webview"));
+        assert!(script.contains("go_back_browser_webview"));
+        assert!(script.contains("go_forward_browser_webview"));
+        assert!(script.contains("event.button === 3"));
+        assert!(script.contains("event.button !== 4"));
     }
 
     #[test]

@@ -60,6 +60,10 @@ export type LayoutMode = "wide" | "compact" | "mobile";
 export type FocusedPane = "sidebar" | "list" | "content";
 export type ContentMode = "empty" | "reader" | "browser" | "loading";
 export type PendingBrowserCloseAction = "prev-article" | "next-article" | "prev-feed" | "next-feed";
+export type BrowserNavigationState = {
+  canGoBack: boolean;
+  canGoForward: boolean;
+};
 export type FeedCleanupContextReason = "review" | "stale_90d" | "no_unread" | "no_stars" | "broken_references";
 export type SubscriptionSummaryFilterState = "all" | "review" | "stale" | "broken";
 export type SubscriptionsWorkspaceReturnState = {
@@ -127,6 +131,7 @@ interface UiState {
   viewMode: "all" | "unread" | "starred";
   searchQuery: string;
   browserUrl: string | null;
+  browserNavigationState: BrowserNavigationState | null;
   browserCloseInFlight: boolean;
   pendingBrowserCloseAction: PendingBrowserCloseAction | null;
   expandedFolderIds: Set<string>;
@@ -174,6 +179,7 @@ interface UiActions {
   clearArticle: () => void;
   openBrowser: (url: string) => void;
   closeBrowser: () => void;
+  setBrowserNavigationState: (state: BrowserNavigationState | null) => void;
   setBrowserCloseInFlight: (inFlight: boolean) => void;
   setPendingBrowserCloseAction: (action: PendingBrowserCloseAction | null) => void;
   setViewMode: (mode: "all" | "unread" | "starred") => void;
@@ -243,6 +249,7 @@ const initialState: UiState = {
   viewMode: "unread",
   searchQuery: "",
   browserUrl: null,
+  browserNavigationState: null,
   browserCloseInFlight: false,
   pendingBrowserCloseAction: null,
   expandedFolderIds: new Set(),
@@ -385,6 +392,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     set({
       contentMode: "browser",
       browserUrl: url,
+      browserNavigationState: { canGoBack: false, canGoForward: false },
       focusedPane: "content",
       browserCloseInFlight: false,
       pendingBrowserCloseAction: null,
@@ -393,9 +401,11 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     set((s) => ({
       contentMode: s.selectedArticleId ? "reader" : "empty",
       browserUrl: null,
+      browserNavigationState: null,
       focusedPane: s.selectedArticleId ? "content" : "list",
       browserCloseInFlight: false,
     })),
+  setBrowserNavigationState: (state) => set({ browserNavigationState: state }),
   setBrowserCloseInFlight: (inFlight) => set({ browserCloseInFlight: inFlight }),
   setPendingBrowserCloseAction: (action) => set({ pendingBrowserCloseAction: action }),
   setViewMode: (mode) => set({ viewMode: mode, recentlyReadIds: new Set(), retainedArticleIds: new Set() }),
