@@ -61,6 +61,8 @@ struct GReaderAccountEntriesSyncOutcome {
 }
 
 const GREADER_ACCOUNT_SYNC_STATE_SCOPE: &str = "account:greader:all";
+const GREADER_REMOTE_STATE_SYNC_SCOPE: &str = "account:greader:remote-state-full";
+const GREADER_REMOTE_STATE_PULL_COOLDOWN_MINUTES: i64 = 10;
 
 fn build_article_from_remote_entry(
     account: &Account,
@@ -107,6 +109,65 @@ fn update_latest_timestamp_usec(
                 .unwrap_or(next_timestamp_usec),
         );
     }
+}
+
+fn load_sync_state(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+    scope_key: &str,
+) -> Result<Option<SyncState>, AppError> {
+    let db_guard = lock_db(db)?;
+    let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
+    Ok(sync_state_repo.get(account_id, scope_key)?)
+}
+
+fn save_sync_state(db: &Mutex<DbManager>, state: &SyncState) -> Result<(), AppError> {
+    let db_guard = lock_db(db)?;
+    let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+    sync_state_repo.save(state)?;
+    Ok(())
+}
+
+fn should_pull_remote_state(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+    now: chrono::DateTime<chrono::Utc>,
+) -> Result<bool, AppError> {
+    let state = load_sync_state(db, account_id, GREADER_REMOTE_STATE_SYNC_SCOPE)?;
+    let Some(last_success_at) = state.and_then(|saved| saved.last_success_at) else {
+        return Ok(true);
+    };
+
+    let Ok(last_success_at) = chrono::DateTime::parse_from_rfc3339(&last_success_at) else {
+        return Ok(true);
+    };
+
+    Ok(
+        now.signed_duration_since(last_success_at.with_timezone(&chrono::Utc))
+            >= chrono::Duration::minutes(GREADER_REMOTE_STATE_PULL_COOLDOWN_MINUTES),
+    )
+}
+
+fn mark_remote_state_sync_completed(
+    db: &Mutex<DbManager>,
+    account_id: &AccountId,
+    now: chrono::DateTime<chrono::Utc>,
+) -> Result<(), AppError> {
+    save_sync_state(
+        db,
+        &SyncState {
+            account_id: account_id.clone(),
+            scope_key: GREADER_REMOTE_STATE_SYNC_SCOPE.to_string(),
+            timestamp_usec: Some(now.timestamp_micros()),
+            continuation: None,
+            etag: None,
+            last_modified: None,
+            last_success_at: Some(now.to_rfc3339()),
+            last_error: None,
+            error_count: 0,
+            next_retry_at: None,
+        },
+    )
 }
 
 /// Fetch articles for a single local feed and save them to DB.
@@ -294,6 +355,7 @@ pub(super) async fn repair_greader_remote_state(
     account: &Account,
     mut provider: GReaderProvider,
 ) -> Result<(), AppError> {
+    let now = chrono::Utc::now();
     let username = match &account.username {
         Some(u) => u.clone(),
         None => {
@@ -351,6 +413,7 @@ pub(super) async fn repair_greader_remote_state(
     let server_unread_counts = provider.get_unread_count_map().await?;
     let _ = reconcile_greader_unread_counts(db, &provider, account, &feeds, &server_unread_counts)
         .await?;
+    mark_remote_state_sync_completed(db, &account.id, now)?;
 
     Ok(())
 }
@@ -455,11 +518,7 @@ async fn sync_greader_account_entries(
     account: &Account,
     feeds_by_remote_id: &HashMap<String, Feed>,
 ) -> Result<GReaderAccountEntriesSyncOutcome, AppError> {
-    let saved_state = {
-        let db_guard = lock_db(db)?;
-        let sync_state_repo = SqliteSyncStateRepository::new(db_guard.reader());
-        sync_state_repo.get(&account.id, GREADER_ACCOUNT_SYNC_STATE_SCOPE)?
-    };
+    let saved_state = load_sync_state(db, &account.id, GREADER_ACCOUNT_SYNC_STATE_SCOPE)?;
 
     let mut cursor = cursor_from_state(saved_state.as_ref());
     let mut latest_timestamp_usec = saved_state.as_ref().and_then(|state| state.timestamp_usec);
@@ -530,9 +589,7 @@ async fn sync_greader_account_entries(
         error_count: 0,
         next_retry_at: None,
     };
-    let db_guard = lock_db(db)?;
-    let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
-    sync_state_repo.save(&next_state)?;
+    save_sync_state(db, &next_state)?;
 
     Ok(GReaderAccountEntriesSyncOutcome {
         skipped_entries,
@@ -748,23 +805,28 @@ async fn sync_greader_feeds(
         ids.dedup();
         ids
     };
-
-    let remote_state = provider.pull_state().await?;
-    {
-        let db_guard = lock_db(db)?;
-        let article_repo = SqliteArticleRepository::new(db_guard.writer());
-        article_repo.apply_remote_state(
-            &account.id,
-            &remote_state.read_ids,
-            &remote_state.starred_ids,
-            &pending_remote_ids,
-        )?;
+    let now = chrono::Utc::now();
+    let should_pull_remote_state = should_pull_remote_state(db, &account.id, now)?;
+    if should_pull_remote_state {
+        let remote_state = provider.pull_state().await?;
+        {
+            let db_guard = lock_db(db)?;
+            let article_repo = SqliteArticleRepository::new(db_guard.writer());
+            article_repo.apply_remote_state(
+                &account.id,
+                &remote_state.read_ids,
+                &remote_state.starred_ids,
+                &pending_remote_ids,
+            )?;
+        }
+        mark_remote_state_sync_completed(db, &account.id, now)?;
     }
     info!(
         account_id = %account.id.as_ref(),
         account_name = %account.name,
         phase = "pull_state",
         elapsed_ms = pull_state_started_at.elapsed().as_millis() as u64,
+        skipped = !should_pull_remote_state,
         "FreshRSS sync phase completed"
     );
 
@@ -1835,6 +1897,134 @@ mod tests {
         assert!(outcome.warnings[0]
             .message
             .contains("skipped 1 entry item(s) during sync"));
+    }
+
+    #[tokio::test]
+    async fn sync_greader_account_skips_pull_state_when_recent_remote_state_sync_exists() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        server
+            .mock("GET", "/api/greader.php/reader/api/0/tag/list")
+            .match_query(Matcher::UrlEncoded("output".into(), "json".into()))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(r#"{ "tags": [] }"#)
+            .create_async()
+            .await;
+
+        server
+            .mock("GET", "/api/greader.php/reader/api/0/subscription/list")
+            .match_query(Matcher::UrlEncoded("output".into(), "json".into()))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "subscriptions": [
+                        {
+                            "id": "feed/https://example.com/feed-1.xml",
+                            "title": "Feed One",
+                            "url": "https://example.com/feed-1.xml",
+                            "htmlUrl": "https://example.com/one",
+                            "categories": []
+                        }
+                    ]
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/user%2F-%2Fstate%2Fcom.google%2Freading-list",
+            )
+            .match_query(Matcher::AllOf(vec![
+                Matcher::UrlEncoded("output".into(), "json".into()),
+                Matcher::UrlEncoded("n".into(), "200".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(r#"{ "items": [] }"#)
+            .create_async()
+            .await;
+
+        let pull_state_read_mock = server
+            .mock("GET", "/api/greader.php/reader/api/0/stream/items/ids")
+            .match_query(Matcher::AllOf(vec![
+                Matcher::UrlEncoded("output".into(), "json".into()),
+                Matcher::UrlEncoded("n".into(), "10000".into()),
+                Matcher::UrlEncoded("s".into(), "user/-/state/com.google/read".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .expect(0)
+            .create_async()
+            .await;
+        let pull_state_starred_mock = server
+            .mock("GET", "/api/greader.php/reader/api/0/stream/items/ids")
+            .match_query(Matcher::AllOf(vec![
+                Matcher::UrlEncoded("output".into(), "json".into()),
+                Matcher::UrlEncoded("n".into(), "10000".into()),
+                Matcher::UrlEncoded("s".into(), "user/-/state/com.google/starred".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .expect(0)
+            .create_async()
+            .await;
+
+        server
+            .mock("GET", "/api/greader.php/reader/api/0/unread-count")
+            .match_query(Matcher::AllOf(vec![
+                Matcher::UrlEncoded("output".into(), "json".into()),
+                Matcher::UrlEncoded("all".into(), "true".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(r#"{ "unreadcounts": [] }"#)
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, _feeds) = insert_account_and_feeds(
+            &db,
+            &server.url(),
+            &[(
+                "feed/https://example.com/feed-1.xml",
+                "Feed One",
+                "https://example.com/feed-1.xml",
+                "https://example.com/one",
+            )],
+        );
+        {
+            let db_guard = db.lock().unwrap();
+            let sync_state_repo = SqliteSyncStateRepository::new(db_guard.writer());
+            sync_state_repo
+                .save(&SyncState {
+                    account_id: account.id.clone(),
+                    scope_key: GREADER_REMOTE_STATE_SYNC_SCOPE.to_string(),
+                    timestamp_usec: Some(chrono::Utc::now().timestamp_micros()),
+                    continuation: None,
+                    etag: None,
+                    last_modified: None,
+                    last_success_at: Some(chrono::Utc::now().to_rfc3339()),
+                    last_error: None,
+                    error_count: 0,
+                    next_retry_at: None,
+                })
+                .unwrap();
+        }
+        let _credentials = configure_dev_credentials(&account.id).await;
+
+        let provider = GReaderProvider::for_freshrss(&server.url());
+        sync_greader_account(&db, &account, provider).await.unwrap();
+
+        pull_state_read_mock.assert_async().await;
+        pull_state_starred_mock.assert_async().await;
     }
 
     #[tokio::test]
