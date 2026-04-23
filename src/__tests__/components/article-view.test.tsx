@@ -12,6 +12,7 @@ import {
   sampleAccounts,
   sampleArticles,
   sampleFeeds,
+  sampleTags,
   setupTauriMocks,
 } from "../../../tests/helpers/tauri-mocks";
 
@@ -1691,6 +1692,182 @@ describe("ArticleView", () => {
     expect(readIcon).not.toBeNull();
     expect(readIcon).not.toHaveClass("bg-[var(--tone-unread)]");
     expect(readIcon).not.toHaveClass("text-[var(--tone-unread)]");
+  });
+
+  it("renders a feed summary card when a feed is selected without an article", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: null,
+      contentMode: "empty",
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    const summary = await screen.findByTestId("article-selection-summary");
+    expect(summary).toHaveClass("-translate-y-[14%]", "md:-translate-y-[16%]");
+    expect(within(summary).getByRole("heading", { level: 3, name: "Tech Blog" })).toBeInTheDocument();
+    expect(within(summary).getByText("Latest Article")).toBeInTheDocument();
+    expect(within(summary).getByText("First Article")).toBeInTheDocument();
+    expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
+    expect(within(summary).getByText("example.com")).toBeInTheDocument();
+    expect(within(summary).queryByRole("link", { name: "example.com" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
+  });
+
+  it("keeps the feed summary card stable when the selected feed has no articles", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_articles":
+          return [];
+        case "list_tags":
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      selectedArticleId: null,
+      contentMode: "empty",
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    const summary = await screen.findByTestId("article-selection-summary");
+    expect(within(summary).getByRole("heading", { level: 3, name: "Tech Blog" })).toBeInTheDocument();
+    expect(within(summary).getAllByText("—").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
+  });
+
+  it("renders a folder summary card when a folder is selected without an article", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-1", account_id: "acc-1", name: "Gaming", sort_order: 0 }];
+        case "list_feeds":
+          return sampleFeeds
+            .filter((feed) => feed.account_id === args.accountId)
+            .map((feed) => ({ ...feed, folder_id: "folder-1" }));
+        case "list_account_articles":
+          return sampleArticles;
+        case "list_tags":
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "folder", folderId: "folder-1" },
+      selectedArticleId: null,
+      contentMode: "empty",
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    const summary = await screen.findByTestId("article-selection-summary");
+    expect(within(summary).getByRole("heading", { level: 3, name: "Gaming" })).toBeInTheDocument();
+    expect(within(summary).getByText("Feeds")).toBeInTheDocument();
+    expect(within(summary).getByText("2")).toBeInTheDocument();
+    expect(within(summary).getByText("Unread")).toBeInTheDocument();
+    expect(within(summary).getByText("1")).toBeInTheDocument();
+    expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
+    expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
+  });
+
+  it("renders a tag summary card when a tag is selected without an article", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_tags":
+          return sampleTags;
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_articles_by_tag":
+          return sampleArticles;
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "tag", tagId: "tag-1" },
+      selectedArticleId: null,
+      contentMode: "empty",
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    const summary = await screen.findByTestId("article-selection-summary");
+    expect(within(summary).getByRole("heading", { level: 3, name: "Tech" })).toBeInTheDocument();
+    expect(within(summary).getByText("Articles")).toBeInTheDocument();
+    expect(within(summary).getAllByText("2").length).toBeGreaterThan(0);
+    expect(within(summary).getByText("Feeds")).toBeInTheDocument();
+    expect(within(summary).getByText("1")).toBeInTheDocument();
+    expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
+  });
+
+  it("renders an unread smart-view summary card when unread is selected without an article", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "smart", kind: "unread" },
+      selectedArticleId: null,
+      contentMode: "empty",
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    const summary = await screen.findByTestId("article-selection-summary");
+    expect(within(summary).getByRole("heading", { level: 3, name: "Unread" })).toBeInTheDocument();
+    expect(within(summary).getByText("Articles")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(within(summary).getAllByText("1").length).toBeGreaterThan(0);
+    });
+    expect(within(summary).getByText("Feeds")).toBeInTheDocument();
+    expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
+  });
+
+  it("renders a starred smart-view summary card when starred is selected without an article", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "smart", kind: "starred" },
+      selectedArticleId: null,
+      contentMode: "empty",
+      viewMode: "all",
+    });
+
+    render(<ArticleView />, { wrapper: createWrapper() });
+
+    const summary = await screen.findByTestId("article-selection-summary");
+    expect(within(summary).getByRole("heading", { level: 3, name: "Starred" })).toBeInTheDocument();
+    expect(within(summary).getByText("Articles")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(within(summary).getAllByText("1").length).toBeGreaterThan(0);
+    });
+    expect(within(summary).getByText("Feeds")).toBeInTheDocument();
+    expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
   });
 
   it("renders account setup guidance when no accounts are available", async () => {
