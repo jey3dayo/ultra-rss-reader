@@ -30,6 +30,7 @@ Routing rules:
 - form rows, validation, and disabled states go in `Input Controls Canvas`
 - settings-form row behavior, control rail alignment, and shared radius rules belong in `shared` once they repeat
 - app-level outer frames, dialog shells, and menu shells go in `Shell & Overlay Canvas`
+- compact borderless utility-action chrome for sidebar headers, article toolbars, and browser-overlay rails also belongs in `Shell & Overlay Canvas`
 - feature-local display fragments and density specimens go in `View Specimens Canvas`
 - do not mix shell examples into section or form reference surfaces
 - when adjusting radius in these reference canvases, prefer shared scale utilities such as `rounded-md` through `rounded-2xl` instead of pixel literals
@@ -61,8 +62,10 @@ Promote a fix into `shared` only when all of these are true:
 - the accessibility behavior is the same
 - the pattern is repeated or clearly reusable
 - the row alignment rule or radius rule should stay consistent across multiple settings surfaces
+- compact utility-action chrome keeps the same borderless resting state, focus treatment, and tonal selected treatment across screens
 
 Do not promote a component into `shared` only because it looks similar.
+Do not fold form buttons, primary CTAs, or label-led action buttons into the compact utility-action family just because they share an icon.
 
 ### 3. Feature-local components
 

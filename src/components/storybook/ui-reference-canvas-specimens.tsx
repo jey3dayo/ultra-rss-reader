@@ -18,6 +18,7 @@ import { DecisionButton, denseDecisionButtonClassName } from "@/components/share
 import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
+import { iconToolbarButtonClassName } from "@/components/shared/icon-toolbar-control";
 import { LabelChip } from "@/components/shared/label-chip";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
@@ -897,7 +898,7 @@ export function ShellExamplesSpecimen() {
   return (
     <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Shell examples</SectionHeading>
-      <div className="grid gap-3 xl:grid-cols-2">
+      <div className="grid gap-3 xl:grid-cols-3">
         <div
           className={cn(
             SHELL_SPECIMEN_OUTER_RADIUS_CLASS,
@@ -926,6 +927,63 @@ export function ShellExamplesSpecimen() {
                   </Button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+        <div
+          className={cn(
+            SHELL_SPECIMEN_OUTER_RADIUS_CLASS,
+            "border border-border/60 bg-card/36 px-4 py-4 shadow-elevation-1 sm:px-5 sm:py-5",
+          )}
+        >
+          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-foreground/58">Utility action chrome</div>
+          <p className="mb-3 font-serif text-xs leading-[1.45] text-foreground/58">
+            Resting state stays borderless. Selection comes from tonal fill and semantic icon tint, while focus remains
+            a separate layer.
+          </p>
+          <div className={cn(SHELL_SPECIMEN_INNER_RADIUS_CLASS, "border border-border/70 bg-background/70 p-4")}>
+            <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-foreground/58">
+              Sidebar or toolbar chrome
+            </div>
+            <div className="flex items-center gap-2 rounded-lg bg-[#202122] px-3 py-3 text-white">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Refresh"
+                className={cn(iconToolbarButtonClassName, "hover:bg-white/8 hover:text-white focus-visible:bg-white/8")}
+              >
+                <Clock3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Unread"
+                className={cn(iconToolbarButtonClassName, "hover:bg-white/8 hover:text-white focus-visible:bg-white/8")}
+              >
+                <UnreadIcon unread={true} className="h-2.5 w-2.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Starred"
+                className={cn(
+                  iconToolbarButtonClassName,
+                  "bg-[var(--semantic-tone-starred-surface)] text-[var(--semantic-tone-starred-content-foreground)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] hover:bg-[var(--semantic-tone-starred-surface)] hover:text-[var(--semantic-tone-starred-content-foreground)]",
+                )}
+              >
+                <StarIcon starred={true} className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Preview"
+                className={cn(
+                  iconToolbarButtonClassName,
+                  "bg-primary/12 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] hover:bg-primary/12 hover:text-primary",
+                )}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>

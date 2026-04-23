@@ -13,7 +13,7 @@ export function ShellOverlayCanvas() {
       <div className="space-y-6">
         <AnnotatedNote
           title="Shell & overlay"
-          body="Outer frame patterns belong here. Use this canvas for rails, main content shells, dialogs, and context menu framing, not for generic section cards."
+          body="Outer frame patterns belong here. Use this canvas for rails, main content shells, dialogs, context menu framing, and borderless utility-action chrome, not for generic section cards."
         />
         <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
           <LeftBandShellSpecimen />

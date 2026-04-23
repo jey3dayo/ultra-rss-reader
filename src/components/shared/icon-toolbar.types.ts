@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 
-export type IconToolbarPressedTone = "none" | "neutral" | "accent";
+export type IconToolbarPressedTone = "none" | "neutral" | "accent" | "starred";
 
 export type IconToolbarControlBaseProps = {
   label: string;
+  tooltipLabel?: string;
   disabled?: boolean;
+  ariaDisabled?: boolean;
   className?: string;
   children: ReactNode;
 };

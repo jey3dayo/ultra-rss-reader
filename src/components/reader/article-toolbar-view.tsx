@@ -69,6 +69,7 @@ function ArticleToolbarMobilePrimaryButton({
   disabled = false,
   onClick,
   active = false,
+  activeTone = "neutral",
   children,
 }: {
   label: string;
@@ -77,8 +78,16 @@ function ArticleToolbarMobilePrimaryButton({
   disabled?: boolean;
   onClick: () => void;
   active?: boolean;
+  activeTone?: "neutral" | "accent" | "starred";
   children: ReactNode;
 }) {
+  const activeClassName =
+    activeTone === "starred"
+      ? "bg-[var(--semantic-tone-starred-surface)] text-[var(--semantic-tone-starred-content-foreground)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+      : activeTone === "accent"
+        ? "bg-primary/12 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+        : "bg-surface-3/92 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]";
+
   return (
     <Button
       variant="ghost"
@@ -89,7 +98,7 @@ function ArticleToolbarMobilePrimaryButton({
       onClick={onClick}
       className={cn(
         "size-11 rounded-md border border-transparent bg-transparent text-foreground-soft shadow-none hover:bg-surface-2/72 hover:text-foreground focus-visible:border-border/60 focus-visible:bg-surface-2/72 focus-visible:ring-2 focus-visible:ring-ring/45 disabled:text-foreground-soft",
-        active && "border-border/60 bg-surface-2/84 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
+        active && activeClassName,
       )}
     >
       {children}
@@ -140,6 +149,8 @@ export function ArticleToolbarActionStrip({
             ariaPressed={isStarred}
             disabled={!canToggleStar}
             onClick={() => onToggleStar(!isStarred)}
+            active={isStarred}
+            activeTone="starred"
           >
             <StarIcon starred={isStarred} className="h-4 w-4" />
           </ArticleToolbarMobilePrimaryButton>
@@ -151,6 +162,7 @@ export function ArticleToolbarActionStrip({
               disabled={!canOpenInBrowser}
               onClick={onOpenInBrowser}
               active={isBrowserOpen}
+              activeTone="accent"
             >
               <Eye className="h-4 w-4" />
             </ArticleToolbarMobilePrimaryButton>
@@ -172,7 +184,7 @@ export function ArticleToolbarActionStrip({
             pressed={isStarred}
             onPressedChange={(nextStarred) => onToggleStar(nextStarred)}
             disabled={!canToggleStar}
-            className="text-foreground-soft hover:text-foreground"
+            pressedTone="starred"
           >
             <StarIcon starred={isStarred} className="h-4 w-4" />
           </IconToolbarToggle>

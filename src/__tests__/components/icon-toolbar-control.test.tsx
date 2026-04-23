@@ -58,7 +58,10 @@ describe("IconToolbarControl", () => {
     );
 
     expect(screen.getByRole("button", { name: "Close browser window" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "Close browser window" })).toHaveClass("data-[pressed]:text-primary");
+    expect(screen.getByRole("button", { name: "Close browser window" })).toHaveClass(
+      "data-[pressed]:bg-primary/12",
+      "data-[pressed]:text-primary",
+    );
   });
 
   it("uses neutral pressed styling by default for shared toggles", () => {
@@ -70,7 +73,42 @@ describe("IconToolbarControl", () => {
       </TooltipProvider>,
     );
 
-    expect(screen.getByRole("button", { name: "Toggle read" })).toHaveClass("data-[pressed]:text-foreground");
+    expect(screen.getByRole("button", { name: "Toggle read" })).toHaveClass(
+      "data-[pressed]:bg-surface-3/88",
+      "data-[pressed]:text-foreground",
+    );
+  });
+
+  it("supports semantic pressed styling for starred toggles", () => {
+    render(
+      <TooltipProvider>
+        <IconToolbarToggle label="Toggle star" pressed={true} pressedTone="starred" onPressedChange={vi.fn()}>
+          <Globe className="h-4 w-4" />
+        </IconToolbarToggle>
+      </TooltipProvider>,
+    );
+
+    expect(screen.getByRole("button", { name: "Toggle star" })).toHaveClass(
+      "data-[pressed]:bg-[var(--semantic-tone-starred-surface)]",
+      "data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)]",
+    );
+  });
+
+  it("allows a tooltip label that differs from the aria label", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <TooltipProvider>
+        <IconToolbarButton label="Sync now" tooltipLabel="Refresh subscriptions" onClick={vi.fn()}>
+          <Globe className="h-4 w-4" />
+        </IconToolbarButton>
+      </TooltipProvider>,
+    );
+
+    const button = screen.getByRole("button", { name: "Sync now" });
+    await user.hover(button);
+
+    expect(await screen.findByText("Refresh subscriptions")).toBeInTheDocument();
   });
 
   it("renders a shared icon menu trigger with tooltip semantics", async () => {
@@ -99,6 +137,7 @@ describe("IconToolbarControl", () => {
       "size-11",
       "md:size-8",
       "rounded-md",
+      "border-transparent",
       "text-foreground-soft",
     );
     expect(menuTrigger).not.toHaveClass("text-muted-foreground");

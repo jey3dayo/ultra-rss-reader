@@ -9,15 +9,19 @@ import { OverlayActionSurface } from "./overlay-action-surface";
 
 export const iconToolbarButtonClassName = cn(
   buttonVariants({ variant: "ghost", size: "icon" }),
-  "motion-interactive-surface text-foreground-soft active:translate-y-0",
+  "motion-interactive-surface border-transparent bg-transparent text-foreground-soft shadow-none hover:bg-surface-2/72 hover:text-foreground aria-expanded:bg-surface-3/88 aria-expanded:text-foreground focus-visible:border-border/60 focus-visible:bg-surface-2/72 focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45 active:translate-y-0 disabled:opacity-100 disabled:text-foreground-soft",
 );
 
 export const iconToolbarControlVariants = cva(iconToolbarButtonClassName, {
   variants: {
     pressedTone: {
       none: "",
-      neutral: "data-[pressed]:text-foreground",
-      accent: "data-[pressed]:text-primary",
+      neutral:
+        "data-[pressed]:bg-surface-3/88 data-[pressed]:text-foreground data-[pressed]:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
+      accent:
+        "data-[pressed]:bg-primary/12 data-[pressed]:text-primary data-[pressed]:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
+      starred:
+        "data-[pressed]:bg-[var(--semantic-tone-starred-surface)] data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)] data-[pressed]:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
     },
   },
   defaultVariants: {
@@ -53,15 +57,24 @@ type IconToolbarSurfaceButtonProps = IconToolbarButtonProps & {
   variant?: "default" | "chrome";
 };
 
-export function IconToolbarButton({ label, disabled = false, className, children, onClick }: IconToolbarButtonProps) {
+export function IconToolbarButton({
+  label,
+  tooltipLabel,
+  disabled = false,
+  ariaDisabled,
+  className,
+  children,
+  onClick,
+}: IconToolbarButtonProps) {
   return (
-    <AppTooltip label={label}>
+    <AppTooltip label={tooltipLabel ?? label}>
       <Button
         variant="ghost"
         size="icon"
         onClick={onClick}
         className={cn(iconToolbarButtonClassName, className)}
         disabled={disabled}
+        aria-disabled={ariaDisabled || undefined}
         aria-label={label}
       >
         {children}
@@ -72,6 +85,7 @@ export function IconToolbarButton({ label, disabled = false, className, children
 
 export function IconToolbarSurfaceButton({
   label,
+  tooltipLabel,
   disabled = false,
   className,
   children,
@@ -82,7 +96,7 @@ export function IconToolbarSurfaceButton({
 }: IconToolbarSurfaceButtonProps) {
   return (
     <OverlayActionSurface compact={compact} tone={tone} variant={variant}>
-      <AppTooltip label={label}>
+      <AppTooltip label={tooltipLabel ?? label}>
         <Button
           variant="ghost"
           size="icon"
@@ -100,6 +114,7 @@ export function IconToolbarSurfaceButton({
 
 export function IconToolbarToggle({
   label,
+  tooltipLabel,
   pressed,
   onPressedChange,
   disabled = false,
@@ -109,7 +124,7 @@ export function IconToolbarToggle({
   children,
 }: IconToolbarToggleProps) {
   return (
-    <AppTooltip label={label}>
+    <AppTooltip label={tooltipLabel ?? label}>
       <Toggle
         pressed={pressed}
         onPressedChange={onPressedChange}
@@ -124,9 +139,15 @@ export function IconToolbarToggle({
   );
 }
 
-export function IconToolbarMenuTrigger({ label, disabled = false, className, children }: IconToolbarMenuTriggerProps) {
+export function IconToolbarMenuTrigger({
+  label,
+  tooltipLabel,
+  disabled = false,
+  className,
+  children,
+}: IconToolbarMenuTriggerProps) {
   return (
-    <AppTooltip label={label}>
+    <AppTooltip label={tooltipLabel ?? label}>
       <Menu.Trigger
         render={
           <Button

@@ -1,7 +1,6 @@
 import { Plus, RefreshCw } from "lucide-react";
 import { useEffect, useReducer, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { AppTooltip, TooltipProvider } from "@/components/ui/tooltip";
+import { IconToolbarButton } from "@/components/shared/icon-toolbar-control";
 import { cn } from "@/lib/utils";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -52,10 +51,8 @@ export function SidebarHeaderView({
   const [state, dispatch] = useReducer(sidebarHeaderReducer, initialSidebarHeaderState);
   const { isFeedbackSpinning } = state;
   const feedbackSpinTimerRef = useRef<number | null>(null);
-  const headerActionButtonClassName =
-    "text-foreground-soft hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground md:size-8 md:px-0";
-  const mobileHeaderActionButtonClassName =
-    "size-11 rounded-md border border-transparent bg-transparent shadow-none focus-visible:border-border/60 focus-visible:bg-surface-2/72 focus-visible:ring-2 focus-visible:ring-ring/45";
+  const headerActionButtonClassName = "hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground md:px-0";
+  const mobileHeaderActionButtonClassName = "size-11";
 
   useEffect(() => {
     return () => {
@@ -94,37 +91,30 @@ export function SidebarHeaderView({
       )}
     >
       <div data-tauri-drag-region aria-hidden="true" className="h-full min-w-0 flex-1" />
-      <TooltipProvider>
-        <div className="flex items-center gap-2">
-          <AppTooltip label={syncTooltipLabel ?? syncButtonLabel}>
-            <Button
-              variant="ghost"
-              onClick={handleSyncClick}
-              disabled={isSyncing || isSyncDisabled}
-              aria-disabled={isSyncCoolingDown || undefined}
-              className={cn(
-                headerActionButtonClassName,
-                isMobile ? mobileHeaderActionButtonClassName : "w-11",
-                isSyncCoolingDown && "opacity-70",
-              )}
-              aria-label={syncButtonLabel}
-            >
-              <RefreshCw className={cn("h-4 w-4", (isSyncing || isFeedbackSpinning) && "animate-spin")} />
-            </Button>
-          </AppTooltip>
-          <AppTooltip label={addFeedButtonLabel}>
-            <Button
-              variant="ghost"
-              onClick={onAddFeed}
-              disabled={isAddFeedDisabled}
-              className={cn(headerActionButtonClassName, isMobile ? mobileHeaderActionButtonClassName : "w-11")}
-              aria-label={addFeedButtonLabel}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </AppTooltip>
-        </div>
-      </TooltipProvider>
+      <div className="flex items-center gap-2">
+        <IconToolbarButton
+          label={syncButtonLabel}
+          tooltipLabel={syncTooltipLabel ?? syncButtonLabel}
+          onClick={handleSyncClick}
+          disabled={isSyncing || isSyncDisabled}
+          ariaDisabled={isSyncCoolingDown}
+          className={cn(
+            headerActionButtonClassName,
+            isMobile ? mobileHeaderActionButtonClassName : "w-11",
+            isSyncCoolingDown && "opacity-70",
+          )}
+        >
+          <RefreshCw className={cn("h-4 w-4", (isSyncing || isFeedbackSpinning) && "animate-spin")} />
+        </IconToolbarButton>
+        <IconToolbarButton
+          label={addFeedButtonLabel}
+          onClick={onAddFeed}
+          disabled={isAddFeedDisabled}
+          className={cn(headerActionButtonClassName, isMobile ? mobileHeaderActionButtonClassName : "w-11")}
+        >
+          <Plus className="h-4 w-4" />
+        </IconToolbarButton>
+      </div>
     </div>
   );
 }
