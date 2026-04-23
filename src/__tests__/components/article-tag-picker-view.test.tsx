@@ -39,10 +39,8 @@ describe("ArticleTagPickerView", () => {
     const addTagButton = screen.getByRole("button", { name: "Add tag" });
     expect(removeButton).toHaveClass("size-4");
     expect(screen.queryByText("Tags")).not.toBeInTheDocument();
-    expect(addTagButton).toHaveClass("size-8");
-    expect(addTagButton).toHaveClass("border");
-    expect(addTagButton).toHaveClass("bg-surface-1/55");
-    expect(addTagButton).toHaveClass("text-foreground-soft");
+    expect(addTagButton).not.toHaveClass("size-8");
+    expect(addTagButton).toHaveClass("min-h-6", "rounded-full", "border", "bg-surface-2/88", "text-foreground");
     expect(screen.getByRole("listbox", { name: "Available tags" })).toHaveClass(
       "rounded-lg",
       "bg-surface-2",
@@ -94,6 +92,8 @@ describe("ArticleTagPickerView", () => {
     );
 
     const trigger = screen.getByRole("button", { name: "Add tag" });
+    expect(trigger).toHaveTextContent("Add tag");
+    expect(trigger).toHaveClass("min-h-6", "rounded-full");
     expect(trigger).toHaveAttribute("aria-expanded", "false");
 
     await user.click(trigger);
@@ -123,6 +123,7 @@ describe("ArticleTagPickerView", () => {
 
     const listbox = screen.getByRole("listbox", { name: "Available tags" });
     expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(trigger).toHaveClass("bg-surface-2/88", "text-foreground");
 
     await user.click(screen.getByRole("textbox", { name: "" }));
     await user.keyboard("{Escape}");

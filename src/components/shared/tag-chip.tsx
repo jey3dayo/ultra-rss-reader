@@ -13,7 +13,7 @@ export function TagChip({ label, color, onRemove, removeLabel, className }: TagC
   return (
     <span
       className={cn(
-        "group/tag-chip inline-flex min-h-6 items-center gap-1.5 rounded-full border border-border/38 bg-transparent px-2.5 text-[12px] leading-none text-foreground/86",
+        "group/tag-chip inline-flex min-h-6 items-center gap-1 rounded-full border border-border/38 bg-transparent px-2.5 pr-1.5 text-[12px] leading-none text-foreground/86 transition-[border-color,background-color,color] hover:border-border/54 hover:bg-background/14 focus-within:border-border/54",
         className,
       )}
     >
@@ -25,10 +25,10 @@ export function TagChip({ label, color, onRemove, removeLabel, className }: TagC
         <button
           type="button"
           onClick={onRemove}
-          className="inline-flex size-4 items-center justify-center rounded-full text-foreground-soft opacity-0 transition-[opacity,color,background-color] group-hover/tag-chip:opacity-100 group-focus-within/tag-chip:opacity-100 hover:bg-surface-1/72 hover:text-foreground focus-visible:opacity-100"
+          className="inline-flex size-4 items-center justify-center rounded-full text-foreground-soft opacity-55 transition-[opacity,color,background-color,box-shadow] group-hover/tag-chip:opacity-100 group-focus-within/tag-chip:opacity-100 hover:bg-surface-1/72 hover:text-foreground hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:opacity-100"
           aria-label={removeLabel}
         >
-          <X className="h-3 w-3" />
+          <X className="h-3 w-3" aria-hidden="true" />
         </button>
       ) : null}
     </span>
