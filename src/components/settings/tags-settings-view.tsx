@@ -1,9 +1,10 @@
+import { Pencil, Trash2 } from "lucide-react";
+import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { TagColorPicker } from "@/components/shared/tag-color-picker";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export type TagsSettingsListItem = {
   id: string;
@@ -59,9 +60,9 @@ export function TagsSettingsView({
   savedHeading,
   emptyState,
   tags,
-  editLabel,
+  editLabel: _editLabel,
   editAriaLabel,
-  deleteLabel,
+  deleteLabel: _deleteLabel,
   deleteAriaLabel,
   onEdit,
   onDelete,
@@ -69,21 +70,25 @@ export function TagsSettingsView({
   return (
     <SettingsContentLayout title={title} outerTestId="tags-settings-root">
       <SettingsSection heading={addHeading} note={intro} surface="flat" className="mb-6 sm:mb-7">
-        <LabeledInputRow
+        <LabeledControlRow
           label={nameLabel}
-          name="tag_name"
-          value={nameValue}
-          placeholder={namePlaceholder}
-          onChange={onNameChange}
-          actionLabel={createLabel}
-          actionAriaLabel={createLabel}
-          onAction={onCreate}
-          actionDisabled={createDisabled}
-          rowClassName="items-start sm:items-center"
+          className="items-start sm:items-center"
           labelClassName="sm:w-40 sm:shrink-0"
-          inputClassName="h-10"
-          actionClassName="h-10 sm:px-4"
-        />
+        >
+          <div className="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end">
+            <Input
+              name="tag_name"
+              aria-label={nameLabel}
+              value={nameValue}
+              placeholder={namePlaceholder}
+              onChange={(event) => onNameChange(event.target.value)}
+              className="h-10 flex-1"
+            />
+            <SettingsActionButton size="compact" onClick={onCreate} disabled={createDisabled} aria-label={createLabel}>
+              {createLabel}
+            </SettingsActionButton>
+          </div>
+        </LabeledControlRow>
         <LabeledControlRow label={colorLabel} labelClassName="sm:w-40 sm:shrink-0">
           <div className="w-full sm:max-w-[400px]">
             <TagColorPicker
@@ -112,24 +117,24 @@ export function TagsSettingsView({
                     style={{ backgroundColor: tag.color }}
                   />
                 ) : null}
-                <Button
+                <SettingsActionButton
                   type="button"
-                  variant="outline"
-                  className="h-10 px-4 sm:flex-none"
+                  size="icon"
+                  tone="subtle"
                   aria-label={editAriaLabel(tag.name)}
                   onClick={() => onEdit(tag.id)}
                 >
-                  {editLabel}
-                </Button>
-                <Button
+                  <Pencil className="h-4 w-4" />
+                </SettingsActionButton>
+                <SettingsActionButton
                   type="button"
-                  variant="outline"
-                  className="h-10 px-4 sm:flex-none"
+                  size="icon"
+                  tone="danger"
                   aria-label={deleteAriaLabel(tag.name)}
                   onClick={() => onDelete(tag.id)}
                 >
-                  {deleteLabel}
-                </Button>
+                  <Trash2 className="h-4 w-4" />
+                </SettingsActionButton>
               </div>
             </LabeledControlRow>
           ))

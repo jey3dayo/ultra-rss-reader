@@ -105,6 +105,7 @@ describe("MuteSettingsView", () => {
     expect(screen.getByRole("textbox", { name: "Keyword" })).toHaveClass("sm:w-[220px]");
     expect(screen.getByRole("combobox", { name: "Mute scope" })).toHaveClass("sm:w-[192px]");
     expect(screen.getByRole("combobox", { name: "Saved scope" })).toHaveClass("h-10", "sm:flex-1");
+    expect(screen.getByRole("button", { name: "Add" })).toHaveClass("h-10", "px-4");
     expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("h-10", "px-4");
   });
 });

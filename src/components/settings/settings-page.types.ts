@@ -45,6 +45,7 @@ export type SettingsPageTextControl = {
   actionAriaLabel?: string;
   onAction?: () => void;
   actionDisabled?: boolean;
+  actionSize?: "text" | "compact";
 };
 
 export type SettingsPageActionControl = {
@@ -54,6 +55,7 @@ export type SettingsPageActionControl = {
   actionLabel: string;
   onAction: () => void;
   disabled?: boolean;
+  actionSize?: "text" | "compact";
   rowClassName?: string;
   labelClassName?: string;
 };

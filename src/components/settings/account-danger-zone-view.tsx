@@ -1,5 +1,5 @@
+import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { DeleteButton } from "@/components/shared/delete-button";
-import { Button } from "@/components/ui/button";
 import type { AccountDangerZoneViewProps } from "./account-detail.types";
 import { SettingsSection } from "./settings-section";
 
@@ -19,14 +19,9 @@ export function AccountDangerZoneView({
         className="mt-6 border-t border-border pt-6"
         contentClassName="pl-2 sm:pl-3"
       >
-        <Button
-          variant="outline"
-          onClick={onExport}
-          disabled={disabled}
-          className="w-full justify-center text-sm sm:w-auto"
-        >
+        <SettingsActionButton onClick={onExport} disabled={disabled} className="justify-center text-sm">
           {exportLabel}
-        </Button>
+        </SettingsActionButton>
       </SettingsSection>
 
       <SettingsSection

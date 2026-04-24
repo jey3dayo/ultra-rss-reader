@@ -1,10 +1,10 @@
 import { AlertTriangle } from "lucide-react";
+import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { ConfirmDialogView } from "@/components/shared/confirm-dialog-view";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -129,9 +129,9 @@ export function MuteSettingsView({
                   ))}
                 </SelectPopup>
               </Select>
-              <Button type="button" className="h-10 sm:px-4 sm:flex-none" onClick={onAdd} disabled={addDisabled}>
+              <SettingsActionButton size="compact" onClick={onAdd} disabled={addDisabled}>
                 {addLabel}
-              </Button>
+              </SettingsActionButton>
             </div>
           </LabeledControlRow>
         </SettingsSection>
@@ -175,14 +175,9 @@ export function MuteSettingsView({
                       ))}
                     </SelectPopup>
                   </Select>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-10 px-4 sm:flex-none"
-                    onClick={() => onRequestDelete(rule.id)}
-                  >
+                  <SettingsActionButton type="button" size="compact" onClick={() => onRequestDelete(rule.id)}>
                     {deleteLabel}
-                  </Button>
+                  </SettingsActionButton>
                 </div>
               </LabeledControlRow>
             ))

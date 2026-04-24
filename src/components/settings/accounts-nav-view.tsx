@@ -6,26 +6,9 @@ import type { AccountsNavViewProps } from "./settings-nav.types";
 
 export type { AccountNavItem, AccountsNavViewProps } from "./settings-nav.types";
 
-const ACCOUNT_KIND_LABELS: Record<string, string> = {
-  local: "Local",
-  freshrss: "FreshRSS",
-  fever: "Fever",
-  feedly: "Feedly",
-};
-
 const ACCOUNT_ICON_BG: Record<string, string> = Object.fromEntries(
   SERVICE_CATEGORIES.flatMap((cat) => cat.services.map((s) => [s.kind.toLowerCase(), s.iconBg])),
 );
-
-function getAccountKindLabel(kind: string): string {
-  return ACCOUNT_KIND_LABELS[kind.toLowerCase()] ?? "Account";
-}
-
-function getAccountKindDescription(accountName: string, kind: string): string | null {
-  const kindLabel = getAccountKindLabel(kind);
-
-  return accountName.trim().toLowerCase() === kindLabel.toLowerCase() ? null : kindLabel;
-}
 
 function normalizeDetail(value?: string | null): string | null {
   const normalized = value?.trim();
@@ -49,13 +32,16 @@ function getServerHostLabel(serverUrl?: string | null): string | null {
   }
 }
 
-function getAccountDescription(account: AccountsNavViewProps["accounts"][number]): string | null {
+function getAccountDescription(
+  account: AccountsNavViewProps["accounts"][number],
+  hasMultipleAccounts: boolean,
+): string | null {
+  if (!hasMultipleAccounts) {
+    return null;
+  }
+
   const title = normalizeComparable(account.name);
-  const candidates = [
-    normalizeDetail(account.username),
-    getServerHostLabel(account.serverUrl),
-    getAccountKindDescription(account.name, account.kind),
-  ];
+  const candidates = [normalizeDetail(account.username), getServerHostLabel(account.serverUrl)];
 
   for (const candidate of candidates) {
     if (!candidate) {
@@ -78,11 +64,13 @@ export function AccountsNavView({
   onAddAccount,
   disabled = false,
 }: AccountsNavViewProps) {
+  const hasMultipleAccounts = accounts.length > 1;
+
   return (
     <div className="flex gap-2 overflow-x-auto sm:block sm:space-y-1 sm:overflow-visible">
       {accounts.map((account) => {
         const kindKey = account.kind.toLowerCase();
-        const description = getAccountDescription(account);
+        const description = getAccountDescription(account, hasMultipleAccounts);
 
         return (
           <NavRowButton

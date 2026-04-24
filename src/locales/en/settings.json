@@ -321,6 +321,7 @@
     "web_preview_geometry_check": "Open web preview geometry check",
     "feed_cleanup_broken_references": "Open feed cleanup broken references",
     "reading_display_mode": "Open reading display mode settings",
+    "open_short": "Open",
     "open_now": "Open now",
     "scenario_failed": "Couldn't open the debug screen: {{message}}"
   }

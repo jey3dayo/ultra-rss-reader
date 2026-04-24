@@ -1,7 +1,7 @@
+import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { Button } from "@/components/ui/button";
 
 export type DataSettingsViewProps = {
   title: string;
@@ -43,16 +43,14 @@ export function DataSettingsView({
       </SettingsSection>
       <SettingsSection heading={optimizationHeading} surface="flat" className="mb-6 sm:mb-7">
         <LabeledControlRow label={vacuumLabel} description={vacuumDescription}>
-          <Button variant="outline" className="h-10 w-full px-4 sm:w-auto" disabled={vacuuming} onClick={onVacuum}>
+          <SettingsActionButton disabled={vacuuming} onClick={onVacuum}>
             {vacuumLabel}
-          </Button>
+          </SettingsActionButton>
         </LabeledControlRow>
       </SettingsSection>
       <SettingsSection heading={logsHeading} surface="flat">
         <LabeledControlRow label={openLogDirLabel} description={openLogDirDescription}>
-          <Button variant="outline" className="h-10 w-full px-4 sm:w-auto" onClick={onOpenLogDir}>
-            {openLogDirLabel}
-          </Button>
+          <SettingsActionButton onClick={onOpenLogDir}>{openLogDirLabel}</SettingsActionButton>
         </LabeledControlRow>
       </SettingsSection>
     </SettingsContentLayout>

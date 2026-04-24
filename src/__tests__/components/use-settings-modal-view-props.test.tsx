@@ -136,13 +136,11 @@ describe("useSettingsModalViewProps", () => {
       </div>,
     );
 
-    expect(screen.getByText("alice")).toBeInTheDocument();
-
     const buttons = screen.getAllByRole("button");
     expect(buttons.every((button) => button.hasAttribute("disabled"))).toBe(true);
 
     await user.click(screen.getByRole("button", { name: "Reading" }));
-    await user.click(screen.getByRole("button", { name: "FreshRSS alice" }));
+    await user.click(screen.getByRole("button", { name: "FreshRSS" }));
     await user.click(screen.getByRole("button", { name: "Add account…" }));
 
     expect(setSettingsCategory).not.toHaveBeenCalled();

@@ -4,7 +4,33 @@ import { AccountsNavView } from "@/components/settings/accounts-nav-view";
 import type { AccountNavItem } from "@/components/settings/settings-nav.types";
 
 describe("AccountsNavView", () => {
-  it("renders account rows, avoids duplicate visible labels, and reports selection", () => {
+  it("hides account descriptions when there is only one account", () => {
+    render(
+      <AccountsNavView
+        accounts={[
+          {
+            id: "acc-1",
+            name: "FreshRSS",
+            kind: "freshrss",
+            username: "alice",
+            serverUrl: "https://freshrss.example.com/api/greader.php",
+            isActive: true,
+          },
+        ]}
+        addAccountLabel="Add account…"
+        isAddAccountActive={false}
+        onSelectAccount={vi.fn()}
+        onAddAccount={vi.fn()}
+      />,
+    );
+
+    const accountButton = screen.getByRole("button", { name: /^FreshRSS$/i });
+
+    expect(within(accountButton).queryByText("alice", { exact: true })).not.toBeInTheDocument();
+    expect(within(accountButton).queryByText("freshrss.example.com", { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("shows account descriptions only when multiple accounts need disambiguation", () => {
     const onSelectAccount = vi.fn();
     const onAddAccount = vi.fn();
     const accounts: AccountNavItem[] = [
@@ -38,10 +64,10 @@ describe("AccountsNavView", () => {
       />,
     );
 
-    const localButton = screen.getByRole("button", { name: /Local/i });
+    const localButton = screen.getByRole("button", { name: /^Local$/i });
     const freshRssButton = screen.getByRole("button", { name: /^FreshRSS alice$/i });
     const debugButton = screen.getByRole("button", { name: /^debug feeds\.example\.com$/i });
-    const archiveButton = screen.getByRole("button", { name: /Archive/i });
+    const archiveButton = screen.getByRole("button", { name: /^Archive$/i });
     const addAccountButton = screen.getByRole("button", { name: "Add account…" });
 
     expect(within(localButton).getAllByText("Local", { exact: true })).toHaveLength(1);
@@ -50,7 +76,8 @@ describe("AccountsNavView", () => {
     expect(within(debugButton).getByText("feeds.example.com", { exact: true })).toHaveClass(
       "text-sidebar-foreground/38",
     );
-    expect(within(archiveButton).getByText("Account", { exact: true })).toHaveClass("text-sidebar-foreground/38");
+    expect(within(localButton).queryByText("Local", { exact: true })).toBeInTheDocument();
+    expect(within(archiveButton).queryByText("Account", { exact: true })).not.toBeInTheDocument();
     expect(localButton).toHaveClass("rounded-md");
     expect(localButton).toHaveClass("shrink-0");
     expect(localButton).toHaveClass("text-[13px]");

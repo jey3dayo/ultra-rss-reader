@@ -1,8 +1,8 @@
 import { X } from "lucide-react";
 import { useCallback, useLayoutEffect, useReducer, useRef } from "react";
+import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
 import { IndeterminateProgress } from "@/components/shared/indeterminate-progress";
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -152,16 +152,15 @@ export function SettingsModalView({
             className="flex min-h-[4.5rem] flex-row items-center gap-3 border-b border-border/80 px-5 py-0 backdrop-blur-sm"
             style={{ backgroundColor: "var(--settings-shell-rail)" }}
           >
-            <Button
-              variant="ghost"
-              size="icon-sm"
+            <SettingsActionButton
+              size="icon"
+              tone="rail"
               onClick={onClose}
               disabled={isCloseDisabled}
               aria-label={closeLabel}
-              className="text-sidebar-foreground/40 hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground"
             >
               <X className="h-4 w-4" />
-            </Button>
+            </SettingsActionButton>
             <div className="min-w-0">
               <DialogTitle className="font-sans text-[15px] font-medium tracking-[-0.01em] text-sidebar-foreground">
                 {title}

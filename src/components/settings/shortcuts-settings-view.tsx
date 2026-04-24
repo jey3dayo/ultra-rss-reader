@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
+import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { Button } from "@/components/ui/button";
 
 export type ShortcutsSettingsItem = {
   id: string;
@@ -88,9 +88,9 @@ export function ShortcutsSettingsView({
   return (
     <SettingsContentLayout title={title} outerTestId="shortcuts-settings-root">
       <div className="mb-5 flex justify-end sm:mb-6">
-        <Button variant="outline" onClick={onResetAll} disabled={resetDisabled} className="h-10 w-full px-4 sm:w-auto">
+        <SettingsActionButton tone="header" onClick={onResetAll} disabled={resetDisabled}>
           {resetLabel}
-        </Button>
+        </SettingsActionButton>
       </div>
       {conflictMessage && (
         <div className="mb-4 rounded-md border border-state-danger-border bg-state-danger-surface px-4 py-2 text-sm text-state-danger-foreground">

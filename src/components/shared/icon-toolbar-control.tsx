@@ -1,15 +1,14 @@
+import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { Menu } from "@base-ui/react/menu";
 import { Toggle } from "@base-ui/react/toggle";
 import { cva } from "class-variance-authority";
-import { Button, buttonVariants } from "@/components/ui/button";
 import { AppTooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { IconToolbarButtonProps, IconToolbarMenuTriggerProps, IconToolbarToggleProps } from "./icon-toolbar.types";
 import { OverlayActionSurface } from "./overlay-action-surface";
 
 export const iconToolbarButtonClassName = cn(
-  buttonVariants({ variant: "ghost", size: "icon" }),
-  "motion-interactive-surface border-transparent bg-transparent text-foreground-soft shadow-none hover:bg-surface-2/72 hover:text-foreground aria-expanded:bg-surface-3/88 aria-expanded:text-foreground focus-visible:border-border/60 focus-visible:bg-surface-2/72 focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45 active:translate-y-0 disabled:opacity-100 disabled:text-foreground-soft",
+  "motion-interactive-surface inline-flex size-11 shrink-0 items-center justify-center rounded-md bg-transparent text-foreground-soft shadow-none outline-none select-none transition-none md:size-8 hover:bg-surface-2/72 hover:text-foreground aria-expanded:bg-surface-3/88 aria-expanded:text-foreground focus-visible:bg-surface-2/72 focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45 active:translate-y-0 disabled:pointer-events-none disabled:opacity-100 disabled:text-foreground-soft [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 );
 
 export const iconToolbarControlVariants = cva(iconToolbarButtonClassName, {
@@ -30,8 +29,7 @@ export const iconToolbarControlVariants = cva(iconToolbarButtonClassName, {
 });
 
 export const iconToolbarSurfaceButtonClassName = cn(
-  buttonVariants({ variant: "ghost", size: "icon" }),
-  "motion-interactive-surface rounded-lg border-transparent bg-transparent text-inherit shadow-none hover:bg-transparent hover:text-inherit aria-expanded:bg-transparent focus-visible:border-transparent focus-visible:ring-0 active:translate-y-0 disabled:opacity-100 disabled:text-foreground-soft",
+  "motion-interactive-surface inline-flex size-11 shrink-0 items-center justify-center rounded-lg bg-transparent text-inherit shadow-none outline-none select-none transition-none md:size-8 hover:bg-transparent hover:text-inherit aria-expanded:bg-transparent focus-visible:ring-0 active:translate-y-0 disabled:pointer-events-none disabled:opacity-100 disabled:text-foreground-soft [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 );
 
 export const iconToolbarSurfaceControlVariants = cva(iconToolbarSurfaceButtonClassName, {
@@ -48,7 +46,7 @@ export const iconToolbarSurfaceControlVariants = cva(iconToolbarSurfaceButtonCla
 });
 
 export const iconToolbarSurfaceLabelButtonClassName = cn(
-  "motion-interactive-surface inline-flex h-full w-full items-center justify-center gap-1 rounded-lg border border-transparent bg-transparent px-0 text-inherit outline-none focus-visible:border-transparent focus-visible:ring-0 active:translate-y-0 disabled:pointer-events-none disabled:opacity-100 disabled:text-foreground-soft",
+  "motion-interactive-surface inline-flex h-full w-full items-center justify-center gap-1 rounded-lg bg-transparent px-0 text-inherit outline-none focus-visible:ring-0 active:translate-y-0 disabled:pointer-events-none disabled:opacity-100 disabled:text-foreground-soft",
 );
 
 type IconToolbarSurfaceButtonProps = IconToolbarButtonProps & {
@@ -62,23 +60,23 @@ export function IconToolbarButton({
   tooltipLabel,
   disabled = false,
   ariaDisabled,
+  ariaPressed,
   className,
   children,
   onClick,
 }: IconToolbarButtonProps) {
   return (
     <AppTooltip label={tooltipLabel ?? label}>
-      <Button
-        variant="ghost"
-        size="icon"
+      <ButtonPrimitive
         onClick={onClick}
         className={cn(iconToolbarButtonClassName, className)}
         disabled={disabled}
         aria-disabled={ariaDisabled || undefined}
+        aria-pressed={ariaPressed}
         aria-label={label}
       >
         {children}
-      </Button>
+      </ButtonPrimitive>
     </AppTooltip>
   );
 }
@@ -97,16 +95,14 @@ export function IconToolbarSurfaceButton({
   return (
     <OverlayActionSurface compact={compact} tone={tone} variant={variant}>
       <AppTooltip label={tooltipLabel ?? label}>
-        <Button
-          variant="ghost"
-          size="icon"
+        <ButtonPrimitive
           onClick={onClick}
           className={cn(iconToolbarSurfaceButtonClassName, className)}
           disabled={disabled}
           aria-label={label}
         >
           {children}
-        </Button>
+        </ButtonPrimitive>
       </AppTooltip>
     </OverlayActionSurface>
   );
@@ -150,9 +146,7 @@ export function IconToolbarMenuTrigger({
     <AppTooltip label={tooltipLabel ?? label}>
       <Menu.Trigger
         render={
-          <Button
-            variant="ghost"
-            size="icon"
+          <ButtonPrimitive
             className={cn(iconToolbarButtonClassName, className)}
             disabled={disabled}
             aria-label={label}

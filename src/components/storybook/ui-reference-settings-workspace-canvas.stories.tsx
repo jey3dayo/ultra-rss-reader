@@ -8,9 +8,9 @@ import { AccountCredentialsSectionView } from "@/components/settings/account-cre
 import { AccountDetailView } from "@/components/settings/account-detail-view";
 import { AccountsNavView } from "@/components/settings/accounts-nav-view";
 import { AddAccountForm } from "@/components/settings/add-account-form";
+import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { SettingsNavView } from "@/components/settings/settings-nav-view";
 import { AnnotatedNote, ReferencePage } from "@/components/storybook/ui-reference-canvas-specimens";
-import { Button } from "@/components/ui/button";
 
 const SHELL_SECTION_LABEL_CLASS =
   "mb-2 px-1 font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--settings-shell-section-label)]";
@@ -114,14 +114,9 @@ function SettingsWorkspaceShell({
           className="flex min-h-[4.5rem] items-center gap-3 border-b border-border/80 px-5"
           style={{ backgroundColor: "var(--settings-shell-rail)" }}
         >
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Close settings"
-            className="text-sidebar-foreground/40 hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground"
-          >
+          <SettingsActionButton size="icon" tone="rail" aria-label="Close settings">
             <X className="h-4 w-4" />
-          </Button>
+          </SettingsActionButton>
           <div className="min-w-0">
             <h3 className="font-sans text-[15px] font-medium tracking-[-0.01em] text-sidebar-foreground">{title}</h3>
           </div>
@@ -166,6 +161,22 @@ export function SettingsWorkspaceCanvas() {
             title="Settings workspace"
             body="This canvas is the interface reference for the settings modal as a whole: left rail, account stack, header summary, right-side control rail, and add-account flow should be judged here together."
           />
+          <div className="rounded-md border border-border/70 bg-surface-1/84 px-4 py-4 shadow-none">
+            <p className="font-sans text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+              Settings actions
+            </p>
+            <p className="mt-1 font-serif text-sm leading-[1.45] text-foreground/68">
+              Shell close stays borderless in the rail. Content-side secondary actions use a quiet filled treatment so
+              they remain visible without feeling like heavy outline buttons.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <SettingsActionButton size="icon" tone="rail" aria-label="Close settings">
+                <X className="h-4 w-4" />
+              </SettingsActionButton>
+              <SettingsActionButton>Reset to defaults</SettingsActionButton>
+              <SettingsActionButton>Open log directory</SettingsActionButton>
+            </div>
+          </div>
 
           <div className="grid gap-6">
             <div className="space-y-3">

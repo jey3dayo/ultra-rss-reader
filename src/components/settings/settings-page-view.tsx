@@ -1,3 +1,4 @@
+import { SettingsActionButton } from "@/components/settings/settings-action-button";
 import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import type {
   SettingsPageActionRowProps,
@@ -9,10 +10,9 @@ import type {
 } from "@/components/settings/settings-page.types";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
-import { LabeledInputRow } from "@/components/shared/labeled-input-row";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 function SettingsPageSelectRow({ control }: SettingsPageSelectRowProps) {
@@ -43,21 +43,29 @@ function SettingsPageSwitchRow({ control }: SettingsPageSwitchRowProps) {
 
 function SettingsPageTextRow({ control }: SettingsPageTextRowProps) {
   return (
-    <LabeledInputRow
-      label={control.label}
-      name={control.name}
-      value={control.value}
-      onChange={control.onChange}
-      placeholder={control.placeholder}
-      disabled={control.disabled}
-      rowClassName="gap-4"
-      labelClassName="w-40 shrink-0"
-      inputClassName="h-10 flex-1"
-      actionLabel={control.actionLabel}
-      actionAriaLabel={control.actionAriaLabel}
-      onAction={control.onAction}
-      actionDisabled={control.actionDisabled}
-    />
+    <LabeledControlRow label={control.label} className="gap-4" labelClassName="w-40 shrink-0">
+      <div className="flex w-full items-center gap-2 sm:max-w-[30rem] sm:justify-end">
+        <Input
+          name={control.name}
+          value={control.value}
+          onChange={(event) => control.onChange(event.target.value)}
+          placeholder={control.placeholder}
+          className="h-10 flex-1"
+          disabled={control.disabled}
+          aria-label={control.label}
+        />
+        {control.actionLabel && control.onAction ? (
+          <SettingsActionButton
+            size={control.actionSize ?? "compact"}
+            onClick={control.onAction}
+            disabled={control.actionDisabled}
+            aria-label={control.actionAriaLabel ?? `${control.actionLabel}: ${control.label}`}
+          >
+            {control.actionLabel}
+          </SettingsActionButton>
+        ) : null}
+      </div>
+    </LabeledControlRow>
   );
 }
 
@@ -68,15 +76,15 @@ function SettingsPageActionRow({ control }: SettingsPageActionRowProps) {
       className={control.rowClassName ?? "gap-4"}
       labelClassName={control.labelClassName}
     >
-      <Button
+      <SettingsActionButton
         type="button"
-        variant="outline"
+        size={control.actionSize ?? "compact"}
         onClick={control.onAction}
         disabled={control.disabled}
         aria-label={`${control.actionLabel}: ${control.label}`}
       >
         {control.actionLabel}
-      </Button>
+      </SettingsActionButton>
     </LabeledControlRow>
   );
 }

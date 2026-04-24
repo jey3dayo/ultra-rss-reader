@@ -7,6 +7,7 @@ export type IconToolbarControlBaseProps = {
   tooltipLabel?: string;
   disabled?: boolean;
   ariaDisabled?: boolean;
+  ariaPressed?: boolean;
   className?: string;
   children: ReactNode;
 };
