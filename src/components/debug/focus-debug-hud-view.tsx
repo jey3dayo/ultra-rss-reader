@@ -103,18 +103,18 @@ export function FocusDebugHudView({
 
         {expanded ? (
           <div className="grid gap-2 border-b border-white/10 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="rounded-xl border border-white/6 bg-white/[0.03] px-2.5 py-2 font-mono text-[11px] leading-5 text-white/84">
+            <div className="rounded-lg border border-white/8 bg-white/[0.045] px-2.5 py-2 font-mono text-[11px] leading-5 text-white/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
               <div className="truncate">{`article=${selectedArticleId ?? "none"}`}</div>
               <div className="line-clamp-2 text-white/60">{activeElementDescription}</div>
             </div>
-            <div className="flex min-w-[7.5rem] flex-col justify-center rounded-xl border border-white/6 bg-white/[0.03] px-2.5 py-2 font-mono text-[11px] leading-5 text-white/72">
+            <div className="flex min-w-[7.5rem] flex-col justify-center rounded-lg border border-white/8 bg-white/[0.045] px-2.5 py-2 font-mono text-[11px] leading-5 text-white/72 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
               <div>closing={String(browserCloseInFlight)}</div>
               <div>pending={pendingBrowserCloseAction ?? "none"}</div>
             </div>
           </div>
         ) : (
           <div className="border-b border-white/10 px-3 py-2">
-            <div className="rounded-xl border border-white/6 bg-white/[0.03] px-2.5 py-2">
+            <div className="rounded-lg border border-white/8 bg-white/[0.045] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
               <div className="line-clamp-2 text-[12px] font-medium leading-5 text-white/84">
                 {collapsedSummary.label}
               </div>
@@ -124,10 +124,10 @@ export function FocusDebugHudView({
                 </div>
               ) : null}
               <div className="mt-2 flex flex-wrap gap-1.5">
-                <span className="rounded-full border border-white/8 bg-white/[0.04] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/58">
+                <span className="rounded-full border border-white/8 bg-white/[0.05] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/58">
                   closing={String(browserCloseInFlight)}
                 </span>
-                <span className="rounded-full border border-white/8 bg-white/[0.04] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/58">
+                <span className="rounded-full border border-white/8 bg-white/[0.05] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/58">
                   pending={pendingBrowserCloseAction ?? "none"}
                 </span>
               </div>
@@ -137,7 +137,7 @@ export function FocusDebugHudView({
 
         {expanded && browserGeometryRows.length > 0 ? (
           <div className="border-b border-white/10 px-3 py-2">
-            <div className="rounded-xl border border-white/6 bg-white/[0.03] px-2.5 py-2">
+            <div className="rounded-lg border border-white/8 bg-white/[0.045] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/42">Geometry</div>
                 <DebugHudActionButton
@@ -173,7 +173,7 @@ export function FocusDebugHudView({
 
         {expanded ? (
           <div id={tracePanelId} className="min-h-0 flex-1 px-2 py-2">
-            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-white/8 bg-black/28">
+            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-white/8 bg-black/24 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
               <div className="border-b border-white/8 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-white/42">
                 Trace
               </div>
@@ -192,7 +192,7 @@ export function FocusDebugHudView({
           </div>
         ) : (
           <div className="px-3 py-2">
-            <div className="rounded-xl border border-white/8 bg-black/28 px-2.5 py-2">
+            <div className="rounded-lg border border-white/8 bg-black/24 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
               <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/42">Recent events</div>
               <div className="mt-1.5 font-mono text-[11px] leading-5 text-white/68">
                 <div className="line-clamp-2 break-words">{latestTrace}</div>

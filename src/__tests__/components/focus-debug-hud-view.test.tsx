@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { FocusDebugHudView } from "@/components/debug/focus-debug-hud-view";
 
 describe("FocusDebugHudView", () => {
-  it("keeps the collapsed HUD visually subdued until it is focused", () => {
+  it("keeps the collapsed HUD as a quiet transparent shell", () => {
     render(
       <FocusDebugHudView
         focusedPane="list"
@@ -22,10 +22,35 @@ describe("FocusDebugHudView", () => {
 
     const hud = screen.getByRole("button", { name: "More" }).closest("section");
 
-    expect(hud).toHaveClass("bg-black/56");
-    expect(hud).toHaveClass("opacity-80");
-    expect(hud).toHaveClass("hover:opacity-35");
-    expect(hud).toHaveClass("focus-within:opacity-100");
+    expect(hud).toHaveClass("rounded-[22px]");
+    expect(hud).toHaveClass("bg-black/42");
+    expect(hud).toHaveClass("backdrop-blur-xl");
+    expect(hud).not.toHaveClass("hover:opacity-35");
+  });
+
+  it("uses product-aligned inner cards without dropping monospace surfaces", () => {
+    render(
+      <FocusDebugHudView
+        focusedPane="list"
+        contentMode="reader"
+        selectedArticleId="article-1"
+        browserCloseInFlight={false}
+        pendingBrowserCloseAction={null}
+        activeElementDescription="button | label=Copy debug HUD"
+        browserGeometryRows={[]}
+        traces={["12:00:00.000 raw-key Enter"]}
+        onCopyClick={vi.fn()}
+        onCopyPointerDown={vi.fn()}
+      />,
+    );
+
+    const summaryCard = screen.getByText("Copy debug HUD").parentElement;
+    const recentEventsCard = screen.getByText("Recent events").parentElement;
+
+    expect(summaryCard).toHaveClass("rounded-lg", "border-white/8", "bg-white/[0.045]", "shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]");
+    expect(summaryCard).not.toHaveClass("rounded-xl", "bg-white/[0.03]");
+    expect(recentEventsCard).toHaveClass("rounded-lg", "bg-black/24");
+    expect(recentEventsCard).not.toHaveClass("rounded-xl", "bg-black/28");
   });
 
   it("anchors the HUD to the bottom-right corner", () => {
