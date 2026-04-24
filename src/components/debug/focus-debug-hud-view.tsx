@@ -92,6 +92,7 @@ export function FocusDebugHudView({
               aria-label="Copy debug HUD"
               onClick={onCopyClick}
               onPointerDown={onCopyPointerDown}
+              className="gap-2"
             >
               <Copy className="size-3.5" />
               Copy

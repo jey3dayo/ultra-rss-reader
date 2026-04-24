@@ -104,16 +104,17 @@ describe("FocusDebugHudView", () => {
       "text-sm",
       "font-medium",
     );
-    expect(screen.getByRole("button", { name: "More" })).not.toHaveClass("rounded-lg", "border-white/12");
+    expect(screen.getByRole("button", { name: "More" })).not.toHaveClass("rounded-lg", "border-white/12", "min-w-11", "gap-1.5");
     expect(screen.getByRole("button", { name: "Copy debug HUD" })).toHaveClass(
       "motion-interactive-surface",
       "rounded-md",
       "h-10",
       "px-4",
+      "gap-2",
       "text-sm",
       "font-medium",
     );
-    expect(screen.getByRole("button", { name: "Copy debug HUD" })).not.toHaveClass("rounded-lg", "border-white/14");
+    expect(screen.getByRole("button", { name: "Copy debug HUD" })).not.toHaveClass("rounded-lg", "border-white/14", "min-w-11");
 
     await user.click(screen.getByRole("button", { name: "More" }));
 
@@ -125,6 +126,6 @@ describe("FocusDebugHudView", () => {
       "text-sm",
       "font-medium",
     );
-    expect(screen.getByRole("button", { name: "Show" })).not.toHaveClass("rounded-lg");
+    expect(screen.getByRole("button", { name: "Show" })).not.toHaveClass("rounded-lg", "min-w-11", "gap-1.5");
   });
 });
