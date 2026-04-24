@@ -87,18 +87,28 @@ export function useSidebarController(): SidebarControllerResult {
     }
 
     const selectedFeedId = selection.feedId;
-    const focusSelectedFeed = requestAnimationFrame(() => {
+    let frameId = 0;
+    let retriesRemaining = 10;
+    const focusSelectedFeed = () => {
       const selectedFeedButton = document.querySelector<HTMLButtonElement>(`[data-feed-id="${selectedFeedId}"]`);
       if (!selectedFeedButton) {
+        if (retriesRemaining <= 0) {
+          return;
+        }
+
+        retriesRemaining -= 1;
+        frameId = requestAnimationFrame(focusSelectedFeed);
         return;
       }
 
       selectedFeedButton.focus({ preventScroll: true });
       selectedFeedButton.scrollIntoView?.({ block: "nearest", inline: "nearest" });
-    });
+    };
+
+    frameId = requestAnimationFrame(focusSelectedFeed);
 
     return () => {
-      cancelAnimationFrame(focusSelectedFeed);
+      cancelAnimationFrame(frameId);
     };
   }, [focusedPane, selection]);
 
