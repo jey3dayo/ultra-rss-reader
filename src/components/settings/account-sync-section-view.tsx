@@ -1,6 +1,5 @@
 import type { AccountSelectRowProps, AccountSyncSectionViewProps } from "@/components/settings/account-detail.types";
 import { SettingsSection } from "@/components/settings/settings-section";
-import { LabelChip } from "@/components/shared/label-chip";
 import { LabeledSelectRow } from "@/components/shared/labeled-select-row";
 import { LabeledSwitchRow } from "@/components/shared/labeled-switch-row";
 import { LoadingButton } from "@/components/shared/loading-button";
@@ -11,9 +10,6 @@ const CONTROL_RAIL_CLASS = "ml-auto w-full max-w-[30rem]";
 export function AccountSyncSectionView({
   heading,
   note,
-  progressLabel,
-  progressValue,
-  progressCurrentLabel,
   syncInterval,
   syncOnStartup,
   syncOnWake,
@@ -26,48 +22,8 @@ export function AccountSyncSectionView({
   secondaryActionLabel,
   onSecondaryAction,
 }: AccountSyncSectionViewProps) {
-  const progressPercent = progressValue != null ? Math.round(Math.min(progressValue, 100)) : null;
-
   return (
     <SettingsSection heading={heading} note={note} surface="flat" className="mb-6 sm:mb-7">
-      {progressLabel ? (
-        <div
-          className={cn(
-            CONTROL_RAIL_CLASS,
-            "mb-4 rounded-lg border border-border/70 bg-surface-1/80 px-4 py-3.5 shadow-elevation-1",
-          )}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-sm font-medium leading-5 text-foreground">{progressLabel}</div>
-              {progressCurrentLabel ? (
-                <div className="mt-1 text-xs leading-5 text-foreground-soft">{progressCurrentLabel}</div>
-              ) : null}
-            </div>
-            {progressPercent !== null ? (
-              <LabelChip tone="neutral" size="compact" className="shrink-0 bg-background/70 text-foreground">
-                {progressPercent}%
-              </LabelChip>
-            ) : null}
-          </div>
-          <div
-            className="mt-3 h-2 overflow-hidden rounded-full bg-surface-3/75"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={progressValue ?? undefined}
-            aria-valuetext={progressLabel}
-          >
-            <div
-              className={cn(
-                "h-full rounded-full bg-[var(--tone-loading)] transition-[width] duration-300 ease-out",
-                progressValue === null && "w-2/5 animate-indeterminate",
-              )}
-              style={progressValue != null ? { width: `${Math.min(progressValue, 100)}%` } : undefined}
-            />
-          </div>
-        </div>
-      ) : null}
       <AccountSelectRow control={syncInterval} />
       <LabeledSwitchRow
         label={syncOnStartup.label}

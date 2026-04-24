@@ -106,7 +106,7 @@ describe("AccountSyncSectionView", () => {
     expect(onKeepReadItemsChange).toHaveBeenCalledWith("90");
   });
 
-  it("shows a loading button while syncing", () => {
+  it("shows only the local loading button while syncing", () => {
     render(
       <AccountSyncSectionView
         heading="Syncing"
@@ -150,9 +150,9 @@ describe("AccountSyncSectionView", () => {
     expect(button).toHaveClass("w-full");
     expect(button).toHaveClass("sm:w-auto");
     expect(button.querySelector("[data-slot='loading-spinner']")).not.toBeNull();
-    const progressbar = screen.getByRole("progressbar");
-    expect(progressbar).toHaveAttribute("aria-valuetext", "1 of 3 completed");
-    expect(screen.getByText("Syncing: FreshRSS")).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(screen.queryByText("1 of 3 completed")).not.toBeInTheDocument();
+    expect(screen.queryByText("Syncing: FreshRSS")).not.toBeInTheDocument();
   });
 
   it("uses softened support surfaces for scheduler status rows", () => {
