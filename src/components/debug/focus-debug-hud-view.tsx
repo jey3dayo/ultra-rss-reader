@@ -84,6 +84,7 @@ export function FocusDebugHudView({
               onClick={() => setExpanded((current) => !current)}
               aria-expanded={expanded}
               aria-controls={tracePanelId}
+              className="min-h-11"
             >
               {expanded ? "Less" : "More"}
             </DebugHudActionButton>
@@ -92,7 +93,7 @@ export function FocusDebugHudView({
               aria-label="Copy debug HUD"
               onClick={onCopyClick}
               onPointerDown={onCopyPointerDown}
-              className="gap-2"
+              className="min-h-11 gap-2"
             >
               <Copy className="size-3.5" />
               Copy
@@ -144,6 +145,7 @@ export function FocusDebugHudView({
                   onClick={() => setShowGeometry((current) => !current)}
                   aria-expanded={showGeometry}
                   aria-controls={geometryPanelId}
+                  className="min-h-11 border-transparent bg-transparent text-white/56 shadow-none hover:border-transparent hover:bg-white/[0.04] hover:text-white/82 focus-visible:border-transparent focus-visible:bg-white/[0.04] focus-visible:text-white/82"
                 >
                   {showGeometry ? "Hide" : "Show"}
                 </DebugHudActionButton>

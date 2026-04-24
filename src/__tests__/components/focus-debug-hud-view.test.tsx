@@ -78,7 +78,7 @@ describe("FocusDebugHudView", () => {
     expect(screen.getByRole("button", { name: "Less" })).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("uses the shared compact action button family for HUD controls", async () => {
+  it("adopts the shared button family while keeping HUD actions touch-safe", async () => {
     const user = userEvent.setup();
 
     render(
@@ -96,36 +96,20 @@ describe("FocusDebugHudView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "More" })).toHaveClass(
-      "motion-interactive-surface",
-      "rounded-md",
-      "h-10",
-      "px-4",
-      "text-sm",
-      "font-medium",
-    );
-    expect(screen.getByRole("button", { name: "More" })).not.toHaveClass("rounded-lg", "border-white/12", "min-w-11", "gap-1.5");
+    expect(screen.getByRole("button", { name: "More" })).toHaveClass("motion-interactive-surface", "rounded-md", "min-h-11");
+    expect(screen.getByRole("button", { name: "More" })).not.toHaveClass("rounded-lg", "border-white/12");
     expect(screen.getByRole("button", { name: "Copy debug HUD" })).toHaveClass(
       "motion-interactive-surface",
       "rounded-md",
-      "h-10",
-      "px-4",
+      "min-h-11",
       "gap-2",
-      "text-sm",
-      "font-medium",
     );
-    expect(screen.getByRole("button", { name: "Copy debug HUD" })).not.toHaveClass("rounded-lg", "border-white/14", "min-w-11");
+    expect(screen.getByRole("button", { name: "Copy debug HUD" })).not.toHaveClass("rounded-lg", "border-white/14");
 
     await user.click(screen.getByRole("button", { name: "More" }));
 
-    expect(screen.getByRole("button", { name: "Show" })).toHaveClass(
-      "motion-interactive-surface",
-      "rounded-md",
-      "h-10",
-      "px-4",
-      "text-sm",
-      "font-medium",
-    );
-    expect(screen.getByRole("button", { name: "Show" })).not.toHaveClass("rounded-lg", "min-w-11", "gap-1.5");
+    expect(screen.getByRole("button", { name: "Show" })).toHaveClass("motion-interactive-surface", "rounded-md", "min-h-11");
+    expect(screen.getByRole("button", { name: "Show" })).toHaveClass("border-transparent", "bg-transparent");
+    expect(screen.getByRole("button", { name: "Show" })).not.toHaveClass("rounded-lg");
   });
 });
