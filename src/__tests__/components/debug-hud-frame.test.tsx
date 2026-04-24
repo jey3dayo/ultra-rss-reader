@@ -16,10 +16,9 @@ describe("DebugHudFrame", () => {
     expect(frame).toHaveClass("pointer-events-auto");
     expect(frame).toHaveClass("rounded-[22px]");
     expect(frame).toHaveClass("border-white/8");
-    expect(frame).toHaveClass("bg-black/42");
-    expect(frame).not.toHaveClass("opacity-80");
-    expect(frame).toHaveClass("shadow-[0_18px_40px_rgba(0,0,0,0.24)]");
     expect(frame).toHaveClass("backdrop-blur-xl");
+    expect(frame).not.toHaveClass("rounded-2xl");
+    expect(frame).not.toHaveClass("backdrop-blur-md");
     expect(frame).not.toHaveClass("hover:opacity-35");
   });
 

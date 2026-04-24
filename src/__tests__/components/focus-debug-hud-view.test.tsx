@@ -23,8 +23,10 @@ describe("FocusDebugHudView", () => {
     const hud = screen.getByRole("button", { name: "More" }).closest("section");
 
     expect(hud).toHaveClass("rounded-[22px]");
-    expect(hud).toHaveClass("bg-black/42");
+    expect(hud).toHaveClass("border-white/8");
     expect(hud).toHaveClass("backdrop-blur-xl");
+    expect(hud).not.toHaveClass("rounded-2xl");
+    expect(hud).not.toHaveClass("backdrop-blur-md");
     expect(hud).not.toHaveClass("hover:opacity-35");
   });
 
@@ -47,10 +49,10 @@ describe("FocusDebugHudView", () => {
     const summaryCard = screen.getByText("Copy debug HUD").parentElement;
     const recentEventsCard = screen.getByText("Recent events").parentElement;
 
-    expect(summaryCard).toHaveClass("rounded-lg", "border-white/8", "bg-white/[0.045]", "shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]");
-    expect(summaryCard).not.toHaveClass("rounded-xl", "bg-white/[0.03]");
-    expect(recentEventsCard).toHaveClass("rounded-lg", "bg-black/24");
-    expect(recentEventsCard).not.toHaveClass("rounded-xl", "bg-black/28");
+    expect(summaryCard).toHaveClass("debug-hud-inner-card", "rounded-lg", "border-white/8");
+    expect(summaryCard).not.toHaveClass("rounded-xl");
+    expect(recentEventsCard).toHaveClass("debug-hud-inner-card", "rounded-lg", "border-white/8");
+    expect(recentEventsCard).not.toHaveClass("rounded-xl");
   });
 
   it("anchors the HUD to the bottom-right corner", () => {

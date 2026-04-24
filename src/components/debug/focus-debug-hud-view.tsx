@@ -6,6 +6,10 @@ import type { BrowserDebugGeometryRow } from "@/lib/browser-debug-geometry";
 import { cn } from "@/lib/utils";
 
 const EMPTY_BROWSER_GEOMETRY_ROWS: BrowserDebugGeometryRow[] = [];
+const DEBUG_HUD_INNER_CARD_CLASS =
+  "debug-hud-inner-card rounded-lg border border-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]";
+const DEBUG_HUD_INNER_CARD_LIGHT_CLASS = `${DEBUG_HUD_INNER_CARD_CLASS} bg-white/[0.045]`;
+const DEBUG_HUD_INNER_CARD_DARK_CLASS = `${DEBUG_HUD_INNER_CARD_CLASS} bg-black/24`;
 
 function extractCollapsedSummaryParts(description: string) {
   const labelMatch = description.match(/label=(.+)$/);
@@ -103,18 +107,23 @@ export function FocusDebugHudView({
 
         {expanded ? (
           <div className="grid gap-2 border-b border-white/10 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="rounded-lg border border-white/8 bg-white/[0.045] px-2.5 py-2 font-mono text-[11px] leading-5 text-white/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            <div className={cn(DEBUG_HUD_INNER_CARD_LIGHT_CLASS, "px-2.5 py-2 font-mono text-[11px] leading-5 text-white/84")}>
               <div className="truncate">{`article=${selectedArticleId ?? "none"}`}</div>
               <div className="line-clamp-2 text-white/60">{activeElementDescription}</div>
             </div>
-            <div className="flex min-w-[7.5rem] flex-col justify-center rounded-lg border border-white/8 bg-white/[0.045] px-2.5 py-2 font-mono text-[11px] leading-5 text-white/72 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            <div
+              className={cn(
+                DEBUG_HUD_INNER_CARD_LIGHT_CLASS,
+                "flex min-w-[7.5rem] flex-col justify-center px-2.5 py-2 font-mono text-[11px] leading-5 text-white/72",
+              )}
+            >
               <div>closing={String(browserCloseInFlight)}</div>
               <div>pending={pendingBrowserCloseAction ?? "none"}</div>
             </div>
           </div>
         ) : (
           <div className="border-b border-white/10 px-3 py-2">
-            <div className="rounded-lg border border-white/8 bg-white/[0.045] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            <div className={cn(DEBUG_HUD_INNER_CARD_LIGHT_CLASS, "px-2.5 py-2")}>
               <div className="line-clamp-2 text-[12px] font-medium leading-5 text-white/84">
                 {collapsedSummary.label}
               </div>
@@ -137,7 +146,7 @@ export function FocusDebugHudView({
 
         {expanded && browserGeometryRows.length > 0 ? (
           <div className="border-b border-white/10 px-3 py-2">
-            <div className="rounded-lg border border-white/8 bg-white/[0.045] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            <div className={cn(DEBUG_HUD_INNER_CARD_LIGHT_CLASS, "px-2.5 py-2")}>
               <div className="mb-2 flex items-center justify-between gap-3">
                 <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/42">Geometry</div>
                 <DebugHudActionButton
@@ -173,7 +182,7 @@ export function FocusDebugHudView({
 
         {expanded ? (
           <div id={tracePanelId} className="min-h-0 flex-1 px-2 py-2">
-            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-white/8 bg-black/24 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            <div className={cn(DEBUG_HUD_INNER_CARD_DARK_CLASS, "flex h-full min-h-0 flex-col overflow-hidden")}>
               <div className="border-b border-white/8 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-white/42">
                 Trace
               </div>
@@ -192,7 +201,7 @@ export function FocusDebugHudView({
           </div>
         ) : (
           <div className="px-3 py-2">
-            <div className="rounded-lg border border-white/8 bg-black/24 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            <div className={cn(DEBUG_HUD_INNER_CARD_DARK_CLASS, "px-2.5 py-2")}>
               <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/42">Recent events</div>
               <div className="mt-1.5 font-mono text-[11px] leading-5 text-white/68">
                 <div className="line-clamp-2 break-words">{latestTrace}</div>
