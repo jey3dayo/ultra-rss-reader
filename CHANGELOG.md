@@ -4,6 +4,33 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-04-25
+
+### Features
+
+- feed や folder を選んだときに最初の記事を自動で開くようにし、reader の遷移を減らした
+- 記事未選択時の summary card、マウスの戻る/進む操作、folder display mode action を追加し、reader 操作を進めやすくした
+- tag settings の行レイアウトを reader 側とそろえ、設定画面でもタグ管理を見通しやすくした
+- account 追加用の debug entry point と Debug HUD の情報階層を整え、開発時の確認導線を強化した
+
+### Bug Fixes
+
+- Debug HUD の action 群を共通 button に寄せつつ borderless 化し、レイアウト崩れと操作しづらさを抑えた
+- reader の utility icon action、選択行、記事タイトル幅、null article body、embedded webview の Escape close を調整し、記事操作時の引っかかりを減らした
+- account setup 中の sync progress 表示、初回 sync 中の lock、sync feedback、detail form layout を見直し、settings のセットアップ体験を安定させた
+- FreshRSS の full sync と state refresh を軽くし、starred の一時的な null 応答も吸収して同期の不安定さを減らした
+- sample personal data の sanitize を追加し、privacy サンプルで実データが混ざるリスクを下げた
+
+### Documentation
+
+- Debug HUD、tag settings、account setup lock、mobile chrome button の設計メモを追加し、今回の UI 調整意図を追いやすくした
+- Codex desktop debugging tools と passive card の optical centering ガイドを追記し、開発時の確認基準を明確にした
+
+### Maintenance
+
+- Debug HUD と tags settings 周辺の Storybook / テスト expectation を更新し、見た目調整後の回帰確認を補強した
+- Debug HUD の action wrapper や settings の loading action button を整理し、共通 UI 部品への寄せを進めた
+
 ## [0.18.1] - 2026-04-22
 
 ### Bug Fixes

@@ -291,7 +291,7 @@ describe("AppShell", () => {
       }),
     );
 
-    fireEvent.click(await screen.findByRole("button", { name: "More" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Expand debug HUD" }));
     fireEvent.click(await screen.findByRole("button", { name: "Show" }));
 
     expect(await screen.findByText("Geometry")).toBeInTheDocument();
