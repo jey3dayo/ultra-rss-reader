@@ -20,7 +20,7 @@ describe("FocusDebugHudView", () => {
       />,
     );
 
-    const hud = screen.getByRole("button", { name: "More" }).closest("section");
+    const hud = screen.getByRole("button", { name: "Expand debug HUD" }).closest("section");
 
     expect(hud).toHaveClass("rounded-[22px]");
     expect(hud).toHaveClass("border-white/8");
@@ -96,7 +96,7 @@ describe("FocusDebugHudView", () => {
       />,
     );
 
-    const hud = screen.getByRole("button", { name: "More" }).closest("section");
+    const hud = screen.getByRole("button", { name: "Expand debug HUD" }).closest("section");
     const container = hud?.parentElement;
 
     expect(container).toHaveClass("right-4");
@@ -121,13 +121,13 @@ describe("FocusDebugHudView", () => {
       />,
     );
 
-    const toggleButton = screen.getByRole("button", { name: "More" });
+    const toggleButton = screen.getByRole("button", { name: "Expand debug HUD" });
 
     expect(toggleButton).toHaveAttribute("aria-expanded", "false");
 
     await user.click(toggleButton);
 
-    expect(screen.getByRole("button", { name: "Less" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Collapse debug HUD" })).toHaveAttribute("aria-expanded", "true");
   });
 
   it("adopts the shared button family while keeping HUD actions touch-safe", async () => {
@@ -148,20 +148,19 @@ describe("FocusDebugHudView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "More" })).toHaveClass("min-h-11", "px-3");
-    expect(screen.getByRole("button", { name: "More" })).not.toHaveClass("rounded-lg", "border-white/12");
-    expect(screen.getByRole("button", { name: "Copy debug HUD" })).toHaveClass(
-      "min-h-11",
-      "gap-1.5",
-      "px-3",
-    );
-    expect(screen.getByRole("button", { name: "Copy debug HUD" })).not.toHaveClass("rounded-lg", "border-white/14");
+    expect(screen.getByRole("button", { name: "Expand debug HUD" })).toHaveAttribute("data-debug-hud-action-button");
+    expect(screen.getByRole("button", { name: "Expand debug HUD" })).toHaveClass("min-h-11", "w-11");
+    expect(screen.getByRole("button", { name: "Copy debug HUD" })).toHaveAttribute("data-debug-hud-action-button");
+    expect(screen.getByRole("button", { name: "Copy debug HUD" })).toHaveClass("min-h-11", "w-11", "px-0");
+    expect(screen.queryByText(/^More$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Less$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Copy$/)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "More" }));
+    await user.click(screen.getByRole("button", { name: "Expand debug HUD" }));
 
+    expect(screen.getByRole("button", { name: "Show" })).toHaveAttribute("data-debug-hud-action-button");
     expect(screen.getByRole("button", { name: "Show" })).toHaveClass("min-h-11");
     expect(screen.getByRole("button", { name: "Show" })).toHaveClass("border-transparent", "bg-transparent");
-    expect(screen.getByRole("button", { name: "Show" })).not.toHaveClass("rounded-lg");
   });
 
   it("uses lighter labels in the expanded hierarchy without dropping raw values", () => {
@@ -193,5 +192,6 @@ describe("FocusDebugHudView", () => {
     expect(screen.getByText("article=article-1")).toBeInTheDocument();
     expect(screen.getByText("button | role=button | label=Copy debug HUD")).toBeInTheDocument();
     expect(focusedElementLabel.closest("div.grid")).not.toHaveClass("sm:grid-cols-[minmax(0,1fr)_auto]");
+    expect(screen.queryByText(/^Collapse debug HUD$/)).not.toBeInTheDocument();
   });
 });

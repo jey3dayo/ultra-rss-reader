@@ -1,4 +1,4 @@
-import { Copy } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy } from "lucide-react";
 import { useId, useState } from "react";
 import { DebugHudActionButton } from "@/components/debug/debug-hud-action-button";
 import { DebugHudFrame } from "@/components/debug/debug-hud-frame";
@@ -89,21 +89,21 @@ export function FocusDebugHudView({
             <DebugHudActionButton
               type="button"
               onClick={() => setExpanded((current) => !current)}
+              aria-label={expanded ? "Collapse debug HUD" : "Expand debug HUD"}
               aria-expanded={expanded}
               aria-controls={tracePanelId}
-              className="min-h-11 px-3 text-[13px]"
+              className="min-h-11 w-11 px-0"
             >
-              {expanded ? "Less" : "More"}
+              {expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
             </DebugHudActionButton>
             <DebugHudActionButton
               type="button"
               aria-label="Copy debug HUD"
               onClick={onCopyClick}
               onPointerDown={onCopyPointerDown}
-              className="min-h-11 gap-1.5 px-3 text-[13px]"
+              className="min-h-11 w-11 px-0"
             >
               <Copy className="size-3.5" />
-              Copy
             </DebugHudActionButton>
           </div>
         </header>
