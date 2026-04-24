@@ -78,7 +78,7 @@ describe("FocusDebugHudView", () => {
     expect(screen.getByRole("button", { name: "Less" })).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("keeps the header and geometry controls at least 44px tall", async () => {
+  it("uses the shared compact action button family for HUD controls", async () => {
     const user = userEvent.setup();
 
     render(
@@ -96,11 +96,35 @@ describe("FocusDebugHudView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "More" })).toHaveClass("min-h-11");
-    expect(screen.getByRole("button", { name: "Copy debug HUD" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "More" })).toHaveClass(
+      "motion-interactive-surface",
+      "rounded-md",
+      "h-10",
+      "px-4",
+      "text-sm",
+      "font-medium",
+    );
+    expect(screen.getByRole("button", { name: "More" })).not.toHaveClass("rounded-lg", "border-white/12");
+    expect(screen.getByRole("button", { name: "Copy debug HUD" })).toHaveClass(
+      "motion-interactive-surface",
+      "rounded-md",
+      "h-10",
+      "px-4",
+      "text-sm",
+      "font-medium",
+    );
+    expect(screen.getByRole("button", { name: "Copy debug HUD" })).not.toHaveClass("rounded-lg", "border-white/14");
 
     await user.click(screen.getByRole("button", { name: "More" }));
 
-    expect(screen.getByRole("button", { name: "Show" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Show" })).toHaveClass(
+      "motion-interactive-surface",
+      "rounded-md",
+      "h-10",
+      "px-4",
+      "text-sm",
+      "font-medium",
+    );
+    expect(screen.getByRole("button", { name: "Show" })).not.toHaveClass("rounded-lg");
   });
 });

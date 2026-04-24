@@ -1,5 +1,6 @@
 import { Copy } from "lucide-react";
 import { useId, useState } from "react";
+import { DebugHudActionButton } from "@/components/debug/debug-hud-action-button";
 import { DebugHudFrame } from "@/components/debug/debug-hud-frame";
 import type { BrowserDebugGeometryRow } from "@/lib/browser-debug-geometry";
 import { cn } from "@/lib/utils";
@@ -78,33 +79,23 @@ export function FocusDebugHudView({
             </p>
           </div>
           <div className="flex items-center gap-1.5">
-            <button
+            <DebugHudActionButton
               type="button"
               onClick={() => setExpanded((current) => !current)}
               aria-expanded={expanded}
               aria-controls={tracePanelId}
-              className={cn(
-                "inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-white/12 bg-white/[0.03] px-3 py-2",
-                "text-[11px] font-medium text-white/76 transition-colors",
-                "hover:border-white/22 hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/24",
-              )}
             >
               {expanded ? "Less" : "More"}
-            </button>
-            <button
+            </DebugHudActionButton>
+            <DebugHudActionButton
               type="button"
               aria-label="Copy debug HUD"
               onClick={onCopyClick}
               onPointerDown={onCopyPointerDown}
-              className={cn(
-                "inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-lg border border-white/14 bg-white/[0.04] px-3 py-2",
-                "text-[11px] font-medium text-white/88 transition-colors",
-                "hover:border-white/24 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/24",
-              )}
             >
               <Copy className="size-3.5" />
               Copy
-            </button>
+            </DebugHudActionButton>
           </div>
         </header>
 
@@ -147,19 +138,14 @@ export function FocusDebugHudView({
             <div className="rounded-xl border border-white/6 bg-white/[0.03] px-2.5 py-2">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/42">Geometry</div>
-                <button
+                <DebugHudActionButton
                   type="button"
                   onClick={() => setShowGeometry((current) => !current)}
                   aria-expanded={showGeometry}
                   aria-controls={geometryPanelId}
-                  className={cn(
-                    "inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-3 py-2",
-                    "text-[10px] font-medium uppercase tracking-[0.16em] text-white/52 transition-colors",
-                    "hover:bg-white/[0.04] hover:text-white/82 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/24",
-                  )}
                 >
                   {showGeometry ? "Hide" : "Show"}
-                </button>
+                </DebugHudActionButton>
               </div>
               {showGeometry ? (
                 <div
