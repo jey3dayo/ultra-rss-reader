@@ -61,7 +61,7 @@ describe("DebugSettings", () => {
 
     expect(screen.queryByText("Open a URL in Web Preview")).not.toBeInTheDocument();
     await user.type(screen.getByLabelText("Web preview URL"), "https://example.com/debug");
-    await user.click(screen.getByRole("button", { name: "Open now: Web preview URL" }));
+    await user.click(screen.getByRole("button", { name: "Open: Web preview URL" }));
 
     expect(usePreferencesStore.getState().prefs.debug_web_preview_url).toBe("https://example.com/debug");
     expect(useUiStore.getState().browserUrl).toBe("https://example.com/debug");
@@ -77,8 +77,8 @@ describe("DebugSettings", () => {
 
     render(<DebugSettings />, { wrapper: createWrapper() });
 
-    expect(screen.queryByRole("button", { name: "Open now: Open image viewer overlay" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Open now: Open web preview geometry check" }));
+    expect(screen.queryByRole("button", { name: "Open: Open image viewer overlay" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Open: Open web preview geometry check" }));
 
     expect(runRuntimeDevScenarioMock).not.toHaveBeenCalled();
     expect(useUiStore.getState().browserUrl).toBe(geometryCheckUrl);

@@ -76,7 +76,7 @@ describe("ArticleListHeader", () => {
 
     const button = screen.getByRole("button", { name: "Hide sidebar" });
     expect(button).toHaveAttribute("aria-pressed", "true");
-    expect(button).toHaveClass("bg-surface-1/72", "text-foreground");
+    expect(button).toHaveClass("bg-surface-3/88", "text-foreground");
 
     await user.click(button);
 
