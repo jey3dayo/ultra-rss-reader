@@ -148,19 +148,29 @@ describe("FocusDebugHudView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "More" })).toHaveClass("motion-interactive-surface", "rounded-md", "min-h-11");
+    expect(screen.getByRole("button", { name: "More" })).toHaveClass(
+      "motion-interactive-surface",
+      "rounded-md",
+      "min-h-11",
+      "px-3",
+    );
     expect(screen.getByRole("button", { name: "More" })).not.toHaveClass("rounded-lg", "border-white/12");
     expect(screen.getByRole("button", { name: "Copy debug HUD" })).toHaveClass(
       "motion-interactive-surface",
       "rounded-md",
       "min-h-11",
-      "gap-2",
+      "gap-1.5",
+      "px-3",
     );
     expect(screen.getByRole("button", { name: "Copy debug HUD" })).not.toHaveClass("rounded-lg", "border-white/14");
 
     await user.click(screen.getByRole("button", { name: "More" }));
 
-    expect(screen.getByRole("button", { name: "Show" })).toHaveClass("motion-interactive-surface", "rounded-md", "min-h-11");
+    expect(screen.getByRole("button", { name: "Show" })).toHaveClass(
+      "motion-interactive-surface",
+      "rounded-md",
+      "min-h-11",
+    );
     expect(screen.getByRole("button", { name: "Show" })).toHaveClass("border-transparent", "bg-transparent");
     expect(screen.getByRole("button", { name: "Show" })).not.toHaveClass("rounded-lg");
   });
@@ -184,12 +194,15 @@ describe("FocusDebugHudView", () => {
 
     expect(screen.getByText("pane=list")).toBeInTheDocument();
     expect(screen.getByText("mode=reader")).toBeInTheDocument();
-    expect(screen.getByText("Focused element")).toBeInTheDocument();
+    const focusedElementLabel = screen.getByText("Focused element");
+    expect(focusedElementLabel).toBeInTheDocument();
+    expect(focusedElementLabel).toHaveClass("whitespace-nowrap");
     expect(screen.getAllByText("Recent events")).toHaveLength(1);
     expect(screen.queryByText("Trace")).not.toBeInTheDocument();
     expect(screen.getByText("closing=true")).toHaveClass("rounded-full");
     expect(screen.getByText("pending=dismiss")).toHaveClass("rounded-full");
     expect(screen.getByText("article=article-1")).toBeInTheDocument();
     expect(screen.getByText("button | role=button | label=Copy debug HUD")).toBeInTheDocument();
+    expect(focusedElementLabel.closest("div.grid")).not.toHaveClass("sm:grid-cols-[minmax(0,1fr)_auto]");
   });
 });

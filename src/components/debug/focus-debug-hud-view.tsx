@@ -91,7 +91,7 @@ export function FocusDebugHudView({
               onClick={() => setExpanded((current) => !current)}
               aria-expanded={expanded}
               aria-controls={tracePanelId}
-              className="min-h-11"
+              className="min-h-11 px-3 text-[13px]"
             >
               {expanded ? "Less" : "More"}
             </DebugHudActionButton>
@@ -100,7 +100,7 @@ export function FocusDebugHudView({
               aria-label="Copy debug HUD"
               onClick={onCopyClick}
               onPointerDown={onCopyPointerDown}
-              className="min-h-11 gap-2"
+              className="min-h-11 gap-1.5 px-3 text-[13px]"
             >
               <Copy className="size-3.5" />
               Copy
@@ -109,9 +109,14 @@ export function FocusDebugHudView({
         </header>
 
         {expanded ? (
-          <div className="grid gap-2 border-b border-white/10 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <div className={cn(DEBUG_HUD_INNER_CARD_LIGHT_CLASS, "px-2.5 py-2 font-mono text-[11px] leading-5 text-white/84")}>
-              <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-white/42">Focused element</div>
+          <div className="grid grid-cols-1 gap-2 border-b border-white/10 px-3 py-2">
+            <div
+              className={cn(
+                DEBUG_HUD_INNER_CARD_LIGHT_CLASS,
+                "px-2.5 py-2 font-mono text-[11px] leading-5 text-white/84",
+              )}
+            >
+              <div className="mb-1 whitespace-nowrap text-[10px] tracking-[0.12em] text-white/42">Focused element</div>
               <div className="truncate">{`article=${selectedArticleId ?? "none"}`}</div>
               <div className="line-clamp-2 text-white/60">{activeElementDescription}</div>
             </div>
