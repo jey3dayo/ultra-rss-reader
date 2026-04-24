@@ -55,6 +55,31 @@ describe("FocusDebugHudView", () => {
     expect(recentEventsCard).not.toHaveClass("rounded-xl");
   });
 
+  it("uses compact badges and lighter labels in the collapsed hierarchy", () => {
+    render(
+      <FocusDebugHudView
+        focusedPane="list"
+        contentMode="reader"
+        selectedArticleId="article-1"
+        browserCloseInFlight={false}
+        pendingBrowserCloseAction="dismiss"
+        activeElementDescription="button | role=button | label=Copy debug HUD"
+        browserGeometryRows={[]}
+        traces={["12:00:00.000 raw-key Enter", "12:00:00.050 focus copy-button"]}
+        onCopyClick={vi.fn()}
+        onCopyPointerDown={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText("pane=list mode=reader")).not.toBeInTheDocument();
+    expect(screen.getByText("pane=list")).toHaveClass("rounded-full");
+    expect(screen.getByText("mode=reader")).toHaveClass("rounded-full");
+    expect(screen.getByText("closing=false")).toHaveClass("rounded-full");
+    expect(screen.getByText("pending=dismiss")).toHaveClass("rounded-full");
+    expect(screen.getByText("Recent events")).toBeInTheDocument();
+    expect(screen.queryByText("Trace")).not.toBeInTheDocument();
+  });
+
   it("anchors the HUD to the bottom-right corner", () => {
     render(
       <FocusDebugHudView
@@ -138,5 +163,33 @@ describe("FocusDebugHudView", () => {
     expect(screen.getByRole("button", { name: "Show" })).toHaveClass("motion-interactive-surface", "rounded-md", "min-h-11");
     expect(screen.getByRole("button", { name: "Show" })).toHaveClass("border-transparent", "bg-transparent");
     expect(screen.getByRole("button", { name: "Show" })).not.toHaveClass("rounded-lg");
+  });
+
+  it("uses lighter labels in the expanded hierarchy without dropping raw values", () => {
+    render(
+      <FocusDebugHudView
+        focusedPane="list"
+        contentMode="reader"
+        selectedArticleId="article-1"
+        browserCloseInFlight
+        pendingBrowserCloseAction="dismiss"
+        activeElementDescription="button | role=button | label=Copy debug HUD"
+        browserGeometryRows={[]}
+        traces={["12:00:00.000 raw-key Enter"]}
+        onCopyClick={vi.fn()}
+        onCopyPointerDown={vi.fn()}
+        defaultExpanded
+      />,
+    );
+
+    expect(screen.getByText("pane=list")).toBeInTheDocument();
+    expect(screen.getByText("mode=reader")).toBeInTheDocument();
+    expect(screen.getByText("Focused element")).toBeInTheDocument();
+    expect(screen.getAllByText("Recent events")).toHaveLength(1);
+    expect(screen.queryByText("Trace")).not.toBeInTheDocument();
+    expect(screen.getByText("closing=true")).toHaveClass("rounded-full");
+    expect(screen.getByText("pending=dismiss")).toHaveClass("rounded-full");
+    expect(screen.getByText("article=article-1")).toBeInTheDocument();
+    expect(screen.getByText("button | role=button | label=Copy debug HUD")).toBeInTheDocument();
   });
 });

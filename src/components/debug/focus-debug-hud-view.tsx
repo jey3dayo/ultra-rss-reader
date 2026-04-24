@@ -10,6 +10,8 @@ const DEBUG_HUD_INNER_CARD_CLASS =
   "debug-hud-inner-card rounded-lg border border-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]";
 const DEBUG_HUD_INNER_CARD_LIGHT_CLASS = `${DEBUG_HUD_INNER_CARD_CLASS} bg-white/[0.045]`;
 const DEBUG_HUD_INNER_CARD_DARK_CLASS = `${DEBUG_HUD_INNER_CARD_CLASS} bg-black/24`;
+const DEBUG_HUD_QUIET_BADGE_CLASS =
+  "rounded-full border border-white/8 bg-white/[0.05] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/58";
 
 function extractCollapsedSummaryParts(description: string) {
   const labelMatch = description.match(/label=(.+)$/);
@@ -78,9 +80,10 @@ export function FocusDebugHudView({
         <header className="flex items-start justify-between gap-3 border-b border-white/10 px-3 py-2.5">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/48">Debug HUD</p>
-            <p className="mt-1 font-mono text-[11px] leading-5 text-white/92">
-              pane={focusedPane} mode={contentMode}
-            </p>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              <span className={DEBUG_HUD_QUIET_BADGE_CLASS}>{`pane=${focusedPane}`}</span>
+              <span className={DEBUG_HUD_QUIET_BADGE_CLASS}>{`mode=${contentMode}`}</span>
+            </div>
           </div>
           <div className="flex items-center gap-1.5">
             <DebugHudActionButton
@@ -108,17 +111,18 @@ export function FocusDebugHudView({
         {expanded ? (
           <div className="grid gap-2 border-b border-white/10 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <div className={cn(DEBUG_HUD_INNER_CARD_LIGHT_CLASS, "px-2.5 py-2 font-mono text-[11px] leading-5 text-white/84")}>
+              <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-white/42">Focused element</div>
               <div className="truncate">{`article=${selectedArticleId ?? "none"}`}</div>
               <div className="line-clamp-2 text-white/60">{activeElementDescription}</div>
             </div>
             <div
               className={cn(
                 DEBUG_HUD_INNER_CARD_LIGHT_CLASS,
-                "flex min-w-[7.5rem] flex-col justify-center px-2.5 py-2 font-mono text-[11px] leading-5 text-white/72",
+                "flex min-w-[7.5rem] flex-wrap content-start gap-1.5 px-2.5 py-2",
               )}
             >
-              <div>closing={String(browserCloseInFlight)}</div>
-              <div>pending={pendingBrowserCloseAction ?? "none"}</div>
+              <span className={DEBUG_HUD_QUIET_BADGE_CLASS}>{`closing=${String(browserCloseInFlight)}`}</span>
+              <span className={DEBUG_HUD_QUIET_BADGE_CLASS}>{`pending=${pendingBrowserCloseAction ?? "none"}`}</span>
             </div>
           </div>
         ) : (
@@ -133,12 +137,8 @@ export function FocusDebugHudView({
                 </div>
               ) : null}
               <div className="mt-2 flex flex-wrap gap-1.5">
-                <span className="rounded-full border border-white/8 bg-white/[0.05] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/58">
-                  closing={String(browserCloseInFlight)}
-                </span>
-                <span className="rounded-full border border-white/8 bg-white/[0.05] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/58">
-                  pending={pendingBrowserCloseAction ?? "none"}
-                </span>
+                <span className={DEBUG_HUD_QUIET_BADGE_CLASS}>{`closing=${String(browserCloseInFlight)}`}</span>
+                <span className={DEBUG_HUD_QUIET_BADGE_CLASS}>{`pending=${pendingBrowserCloseAction ?? "none"}`}</span>
               </div>
             </div>
           </div>
@@ -184,7 +184,7 @@ export function FocusDebugHudView({
           <div id={tracePanelId} className="min-h-0 flex-1 px-2 py-2">
             <div className={cn(DEBUG_HUD_INNER_CARD_DARK_CLASS, "flex h-full min-h-0 flex-col overflow-hidden")}>
               <div className="border-b border-white/8 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-white/42">
-                Trace
+                Recent events
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto px-2.5 py-2 font-mono text-[11px] leading-5 text-white/68">
                 {visibleTraces.length > 0 ? (
