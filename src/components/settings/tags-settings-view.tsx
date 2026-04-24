@@ -106,38 +106,50 @@ export function TagsSettingsView({
         {tags.length === 0 ? (
           <p className="border-b border-border py-3 text-sm text-foreground-soft">{emptyState}</p>
         ) : (
-          tags.map((tag) => (
-            <LabeledControlRow key={tag.id} label={tag.name} labelClassName="sm:max-w-[280px] sm:shrink-0 sm:truncate">
-              <div className="flex w-full flex-col gap-2 sm:max-w-[30rem] sm:flex-row sm:items-center sm:justify-end">
-                {tag.color ? (
-                  <span
-                    aria-hidden="true"
-                    data-testid={`tags-settings-swatch-${tag.id}`}
-                    className="inline-block h-8 w-8 shrink-0 rounded-full border border-border/70 sm:mr-1"
-                    style={{ backgroundColor: tag.color }}
-                  />
-                ) : null}
-                <SettingsActionButton
-                  type="button"
-                  size="icon"
-                  tone="subtle"
-                  aria-label={editAriaLabel(tag.name)}
-                  onClick={() => onEdit(tag.id)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </SettingsActionButton>
-                <SettingsActionButton
-                  type="button"
-                  size="icon"
-                  tone="danger"
-                  aria-label={deleteAriaLabel(tag.name)}
-                  onClick={() => onDelete(tag.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </SettingsActionButton>
+          <div className="border-t border-border/70">
+            {tags.map((tag) => (
+              <div
+                key={tag.id}
+                data-testid={`tags-settings-row-${tag.id}`}
+                className="motion-contextual-surface flex min-h-[44px] items-center justify-between gap-3 border-b border-border/70 py-3"
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  {tag.color ? (
+                    <span
+                      aria-hidden="true"
+                      data-testid={`tags-settings-color-dot-${tag.id}`}
+                      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: tag.color }}
+                    />
+                  ) : null}
+                  <span className="truncate text-[14px] leading-[1.35] text-[color:var(--form-row-label)]">{tag.name}</span>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <SettingsActionButton
+                    type="button"
+                    size="icon"
+                    tone="subtle"
+                    className="size-8"
+                    aria-label={editAriaLabel(tag.name)}
+                    onClick={() => onEdit(tag.id)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </SettingsActionButton>
+                  <SettingsActionButton
+                    type="button"
+                    size="icon"
+                    tone="danger"
+                    className="size-8"
+                    aria-label={deleteAriaLabel(tag.name)}
+                    onClick={() => onDelete(tag.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </SettingsActionButton>
+                </div>
               </div>
-            </LabeledControlRow>
-          ))
+            ))}
+          </div>
         )}
       </SettingsSection>
     </SettingsContentLayout>

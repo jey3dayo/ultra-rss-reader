@@ -299,7 +299,9 @@ describe("SettingsModal", () => {
     await user.click(createButton);
 
     expect(await screen.findByText("Later")).toBeInTheDocument();
-    expect(screen.getByTestId("tags-settings-swatch-tag-created")).toBeInTheDocument();
+    expect(screen.getByTestId("tags-settings-row-tag-created")).toBeInTheDocument();
+    expect(screen.getByTestId("tags-settings-color-dot-tag-created")).toBeInTheDocument();
+    expect(screen.queryByTestId("tags-settings-swatch-tag-created")).toBeNull();
     expect(nameInput).toHaveValue("");
   });
 
@@ -312,8 +314,10 @@ describe("SettingsModal", () => {
 
     expect(await screen.findByText("Tech")).toBeInTheDocument();
     expect(screen.getByText("Later")).toBeInTheDocument();
-    expect(screen.getByTestId("tags-settings-swatch-tag-1")).toBeInTheDocument();
-    expect(screen.queryByTestId("tags-settings-swatch-tag-2")).not.toBeInTheDocument();
+    expect(screen.getByTestId("tags-settings-row-tag-1")).toBeInTheDocument();
+    expect(screen.getByTestId("tags-settings-color-dot-tag-1")).toBeInTheDocument();
+    expect(screen.queryByTestId("tags-settings-color-dot-tag-2")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("tags-settings-swatch-tag-1")).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Edit Tech" }));
 
