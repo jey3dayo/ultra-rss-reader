@@ -1,9 +1,8 @@
 import { Copy } from "lucide-react";
 import type { ComponentProps } from "react";
+import { SettingsLoadingActionButton } from "@/components/settings/settings-loading-action-button";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { LabeledInputRow } from "@/components/shared/labeled-input-row";
-import { LoadingButton } from "@/components/shared/loading-button";
-import type { Button } from "@/components/ui/button";
 import type { AccountCredentialInputRow } from "./account-detail.types";
 
 const EMPTY_EXTRA_ROWS: AccountCredentialInputRow[] = [];
@@ -36,7 +35,7 @@ export type AccountCredentialsSectionViewProps = {
   testingConnectionLabel?: string;
   onTestConnection?: () => void;
   isTestingConnection?: boolean;
-  testConnectionVariant?: ComponentProps<typeof Button>["variant"];
+  testConnectionTone?: ComponentProps<typeof SettingsLoadingActionButton>["tone"];
   extraRows?: AccountCredentialInputRow[];
 };
 
@@ -67,7 +66,7 @@ export function AccountCredentialsSectionView({
   testingConnectionLabel,
   onTestConnection,
   isTestingConnection,
-  testConnectionVariant,
+  testConnectionTone,
   extraRows,
 }: AccountCredentialsSectionViewProps) {
   const labelColumnClassName = "sm:w-40 sm:shrink-0";
@@ -139,16 +138,16 @@ export function AccountCredentialsSectionView({
       />
       {onTestConnection && (
         <div className={`${CONTROL_RAIL_CLASS} flex justify-end`}>
-          <LoadingButton
-            className="mt-4 h-11 w-full justify-center px-4 sm:w-[220px]"
-            variant={testConnectionVariant}
+          <SettingsLoadingActionButton
+            className="mt-4 h-10 w-full justify-center px-4 sm:min-w-[10rem] sm:w-auto"
+            tone={testConnectionTone}
             onClick={onTestConnection}
             loading={isTestingConnection}
             loadingLabel={testingConnectionLabel}
             disabled={disabled}
           >
             {testConnectionLabel}
-          </LoadingButton>
+          </SettingsLoadingActionButton>
         </div>
       )}
     </SettingsSection>
