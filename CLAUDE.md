@@ -51,6 +51,8 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 - For browser-only frontend debugging or view-only inspection, prefer `mise run app:dev:browser` plus the `agent-browser` skill.
 - In Codex, prefer Computer Use when you need to observe or drive desktop-app behavior beyond browser view-only inspection, including visible-state checks, screenshots, and end-to-end interaction against the development app.
 - For a running native Tauri app, prefer `tauri-mcp-server` for DOM inspection, computed style checks, and webview-level interactive UI review.
+- For native desktop UI debugging, start from `mise run app:dev`, turn on `Settings > Debug > Show layout HUD`, and inspect the running dev window with `tauri-mcp-server` rather than a packaged build or browser-only preview.
+- If Computer Use is available, use it alongside `tauri-mcp-server` for visible-state confirmation and window-level interaction while the `Debug HUD` is on-screen.
 - Use `tauri-dev-screenshot` only when you need a saved native-window PNG artifact, window chrome, or an occlusion-safe capture that Computer Use or `tauri-mcp-server` cannot provide reliably.
 - For child webview sizing, overlay shells, or logical-vs-physical pixel issues, use `tauri-webview-geometry`.
 - Use the `tauri` skill when changing Tauri-facing code paths, especially filesystem and path handling from the webview.
