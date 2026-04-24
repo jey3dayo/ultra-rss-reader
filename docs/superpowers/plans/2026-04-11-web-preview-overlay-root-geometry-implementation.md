@@ -12,32 +12,32 @@ Tech Stack: React 19, TypeScript, Tailwind utilities, Zustand, Vitest, Tauri 2 c
 
 ## File Map
 
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\app-shell.tsx`
+- Modify: `src\components\app-shell.tsx`
   - `data-browser-overlay-root` を fullscreen geometry root として維持し、必要な titlebar/positioning contract を固定する
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\lib\browser-viewer-geometry.ts`
+- Modify: `src\lib\browser-viewer-geometry.ts`
   - `main-stage` の safe lane, top rail, host rect contract を一元化する
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\browser-view.tsx`
+- Modify: `src\components\reader\browser-view.tsx`
   - `stage === host` 契約、top rail、close icon、native bounds sync を実装する
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\shared\icon-toolbar-control.tsx`
+- Modify: `src\components\shared\icon-toolbar-control.tsx`
   - 共有側の変更が必要なら最小限だけ行う。不要なら触らない
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\app-shell.test.tsx`
+- Modify: `src\__tests__\components\app-shell.test.tsx`
   - overlay root が app shell full area の geometry root であることを固定する
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\app-layout.test.tsx`
+- Modify: `src\__tests__\components\app-layout.test.tsx`
   - overlay root が `AppLayout` 内に戻っていないことを固定する
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\lib\browser-viewer-geometry.test.ts`
+- Modify: `src\__tests__\lib\browser-viewer-geometry.test.ts`
   - safe lane と host rect の期待値を固定する
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
+- Modify: `src\__tests__\components\browser-view.test.tsx`
   - `host == native` 契約、close icon、rail、scrim 非閉鎖、full-width bounds を固定する
-- Optional Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src-tauri\src\commands\browser_webview_commands.rs`
+- Optional Modify: `src-tauri\src\commands\browser_webview_commands.rs`
   - diagnostics/logging コメントだけ整理する。挙動変更は原則しない
 
 ## Task 1: Lock The Overlay Root Contract In Tests
 
 ## Task 1 Files
 
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\app-shell.test.tsx`
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\app-layout.test.tsx`
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\app-shell.tsx`
+- Modify: `src\__tests__\components\app-shell.test.tsx`
+- Modify: `src\__tests__\components\app-layout.test.tsx`
+- Modify: `src\components\app-shell.tsx`
 
 - [ ] **Step 1: Write the failing shell-level expectation**
 
@@ -92,8 +92,8 @@ git commit -m "refactor(reader): anchor web preview overlay at app shell"
 
 ## Task 2 Files
 
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\lib\browser-viewer-geometry.ts`
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\lib\browser-viewer-geometry.test.ts`
+- Modify: `src\lib\browser-viewer-geometry.ts`
+- Modify: `src\__tests__\lib\browser-viewer-geometry.test.ts`
 
 - [ ] **Step 1: Add a failing test for the safe lane**
 
@@ -169,8 +169,8 @@ git commit -m "refactor(reader): define overlay-root browser geometry contract"
 
 ## Task 3 Files
 
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\browser-view.tsx`
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
+- Modify: `src\components\reader\browser-view.tsx`
+- Modify: `src\__tests__\components\browser-view.test.tsx`
 
 - [ ] **Step 1: Write a failing test that `stage === host` for `main-stage`**
 
@@ -252,7 +252,7 @@ git commit -m "feat(reader): align web preview host and native geometry"
 
 ## Task 4 Files
 
-- Optional Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src-tauri\src\commands\browser_webview_commands.rs`
+- Optional Modify: `src-tauri\src\commands\browser_webview_commands.rs`
 
 - [ ] **Step 1: Read the current Rust command comments and diagnostics wording**
 
@@ -308,7 +308,7 @@ Expected: the Tauri shell opens successfully.
 Open an article, enter browser mode, and save a screenshot under:
 
 ```text
-C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\tmp\screenshots\
+tmp\screenshots\
 ```
 
 - [ ] **Step 3: Check the required checklist items**

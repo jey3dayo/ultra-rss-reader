@@ -45,7 +45,7 @@ Reeder準拠の2ペイン構成。左にカテゴリ、右にコンテンツ。
 ```text
 ACCOUNTS
 ┌────────────────────────────┐
-│ 📡 FreshRSS    jey3dayo  >│
+│ 📡 FreshRSS    demo-user  >│
 │ 📁 Local                  >│
 └────────────────────────────┘
 + Add Account
@@ -59,11 +59,11 @@ ACCOUNTS
 ← Accounts
 
 FreshRSS
-jey3dayo
+demo-user
 
 GENERAL
 Description       FreshRSS
-Server            http://jey3dayo.asuscomm.com:5556/api/greader.php
+Server            https://demo.freshrss.example.com/api/greader.php
 
 SYNCING
 Sync              Every hour ▾

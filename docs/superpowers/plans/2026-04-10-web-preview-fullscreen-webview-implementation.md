@@ -12,23 +12,23 @@ Tech Stack: React 19, TypeScript, Zustand, Vitest, Tauri 2 child webview, PowerS
 
 ## File Map
 
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\lib\browser-viewer-geometry.ts`
+- Modify: `src\lib\browser-viewer-geometry.ts`
   - `main-stage` 用 geometry を full-bleed に変更し、chrome compact 化だけを残す
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\lib\browser-viewer-geometry.test.ts`
+- Modify: `src\__tests__\lib\browser-viewer-geometry.test.ts`
   - fullscreen geometry contract を固定する
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\browser-view.tsx`
+- Modify: `src\components\reader\browser-view.tsx`
   - fullscreen host、rail 廃止、scrim click close 廃止、diagnostics overlay 分離を実装する
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
+- Modify: `src\__tests__\components\browser-view.test.tsx`
   - fullscreen shell / no-rail / no-scrim-close / diagnostics non-resize を検証する
-- Optional Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src-tauri\src\commands\browser_webview_commands.rs`
+- Optional Modify: `src-tauri\src\commands\browser_webview_commands.rs`
   - comment や diagnostics wording を fullscreen host 前提に整える。挙動変更は不要
 
 ## Task 1: Lock In The Fullscreen Geometry Contract
 
 ## Task 1 Files
 
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\lib\browser-viewer-geometry.test.ts`
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\lib\browser-viewer-geometry.ts`
+- Modify: `src\__tests__\lib\browser-viewer-geometry.test.ts`
+- Modify: `src\lib\browser-viewer-geometry.ts`
 
 - [ ] **Step 1: Write the failing geometry expectations for wide screens**
 
@@ -108,7 +108,7 @@ git commit -m "refactor(reader): make browser viewer geometry full bleed"
 
 ## Task 2 Files
 
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
+- Modify: `src\__tests__\components\browser-view.test.tsx`
 
 - [ ] **Step 1: Replace the inset-stage expectation with fullscreen stage assertions**
 
@@ -170,8 +170,8 @@ Expected: FAIL on stage inset, rail visibility, scrim-close behavior, and fullsc
 
 ## Task 3 Files
 
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\browser-view.tsx`
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
+- Modify: `src\components\reader\browser-view.tsx`
+- Modify: `src\__tests__\components\browser-view.test.tsx`
 
 - [ ] **Step 1: Remove the stage styling that makes `main-stage` look like a floating panel**
 
@@ -228,8 +228,8 @@ git commit -m "feat(reader): make web preview fullscreen in main stage"
 
 ## Task 4 Files
 
-- Optional Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src-tauri\src\commands\browser_webview_commands.rs`
-- Optional Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\article-view.tsx`
+- Optional Modify: `src-tauri\src\commands\browser_webview_commands.rs`
+- Optional Modify: `src\components\reader\article-view.tsx`
 
 - [ ] **Step 1: Review whether `ArticleView` needs code changes**
 

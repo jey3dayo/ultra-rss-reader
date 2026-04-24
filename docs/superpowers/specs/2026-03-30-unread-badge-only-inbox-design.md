@@ -20,9 +20,9 @@ Settings > General > 未読バッジの `only_inbox` を、`feeds.unread_count` 
 
 ## Current State
 
-- [src/hooks/use-badge.ts](/Users/t00114/src/github.com/jey3dayo/ultra-rss-reader/src/hooks/use-badge.ts) は `badgePref !== "dont_display"` の場合、常に `feeds.unread_count` の総和をバッジに設定している
-- [src/stores/preferences-store.ts](/Users/t00114/src/github.com/jey3dayo/ultra-rss-reader/src/stores/preferences-store.ts) には `unread_badge = "dont_display" | "all_unread" | "only_inbox"` が既に存在する
-- [src-tauri/src/infra/db/sqlite_feed.rs](/Users/t00114/src/github.com/jey3dayo/ultra-rss-reader/src-tauri/src/infra/db/sqlite_feed.rs) の `recalculate_unread_count` は feed 単位の `is_read = 0` 件数だけを保持している
+- [src/hooks/use-badge.ts](src/hooks/use-badge.ts) は `badgePref !== "dont_display"` の場合、常に `feeds.unread_count` の総和をバッジに設定している
+- [src/stores/preferences-store.ts](src/stores/preferences-store.ts) には `unread_badge = "dont_display" | "all_unread" | "only_inbox"` が既に存在する
+- [src-tauri/src/infra/db/sqlite_feed.rs](src-tauri/src/infra/db/sqlite_feed.rs) の `recalculate_unread_count` は feed 単位の `is_read = 0` 件数だけを保持している
 - 現行データモデルには「inbox 専用状態」はないため、当面の `only_inbox` は「feed 集計に依存しないアカウント単位未読件数」を意味する
 
 ## Recommended Approach
@@ -51,7 +51,7 @@ Rust 側にアカウント単位未読件数を返す read-only query を追加�
 
 - `src/api/tauri-commands.ts` に新 command の wrapper を追加する
 - `src/hooks/` に account unread badge count 用 query hook を追加するか、`useBadge` 内で既存の query helper を使って取得する
-- [src/hooks/use-badge.ts](/Users/t00114/src/github.com/jey3dayo/ultra-rss-reader/src/hooks/use-badge.ts) は設定値ごとに件数ソースを切り替える
+- [src/hooks/use-badge.ts](src/hooks/use-badge.ts) は設定値ごとに件数ソースを切り替える
 
 ## Data Flow
 
@@ -122,7 +122,7 @@ hook の形は次のどちらでもよいが、既存パターンとの整合を
 
 ### 4. Badge Selection Logic
 
-[src/hooks/use-badge.ts](/Users/t00114/src/github.com/jey3dayo/ultra-rss-reader/src/hooks/use-badge.ts) の分岐は次の形にする。
+[src/hooks/use-badge.ts](src/hooks/use-badge.ts) の分岐は次の形にする。
 
 - `dont_display`: バッジ非表示
 - `all_unread`: feed 合算を利用
@@ -132,9 +132,9 @@ hook の形は次のどちらでもよいが、既存パターンとの整合を
 
 ### 5. Query Invalidation
 
-既存の [src/hooks/use-articles.ts](/Users/t00114/src/github.com/jey3dayo/ultra-rss-reader/src/hooks/use-articles.ts) では既読化後に `articles` / `accountArticles` / `feeds` などを invalidate している。
+既存の [src/hooks/use-articles.ts](src/hooks/use-articles.ts) では既読化後に `articles` / `accountArticles` / `feeds` などを invalidate している。
 
-ここに新しい unread count query key も追加する。加えて、未読総数を変えうる feed/account の追加・削除系フローでも同じ key を invalidate する。少なくとも現状は [src/components/reader/add-feed-dialog.tsx](/Users/t00114/src/github.com/jey3dayo/ultra-rss-reader/src/components/reader/add-feed-dialog.tsx) の feed 追加成功時と、[src/components/reader/feed-context-menu.tsx](/Users/t00114/src/github.com/jey3dayo/ultra-rss-reader/src/components/reader/feed-context-menu.tsx) の feed 削除成功時を対象に含める。これにより以下の操作後にバッジ値が再評価される。
+ここに新しい unread count query key も追加する。加えて、未読総数を変えうる feed/account の追加・削除系フローでも同じ key を invalidate する。少なくとも現状は [src/components/reader/add-feed-dialog.tsx](src/components/reader/add-feed-dialog.tsx) の feed 追加成功時と、[src/components/reader/feed-context-menu.tsx](src/components/reader/feed-context-menu.tsx) の feed 削除成功時を対象に含める。これにより以下の操作後にバッジ値が再評価される。
 
 - 単一記事の既読/未読切替
 - 複数記事一括既読

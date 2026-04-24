@@ -42,7 +42,7 @@ const detailAccounts = [
     name: "Debug",
     kind: "freshrss",
     username: "debug",
-    serverUrl: "http://jey3dayo.asuscomm.com:5556/api/greader.php",
+    serverUrl: "https://demo.freshrss.example.com/api/greader.php",
     isActive: true,
   },
   {
@@ -216,7 +216,7 @@ export function SettingsWorkspaceCanvas() {
                       <AccountCredentialsSectionView
                         heading="Server"
                         serverUrlLabel="Server URL"
-                        serverUrlValue="http://jey3dayo.asuscomm.com:5556/api/greader.php"
+                        serverUrlValue="https://demo.freshrss.example.com/api/greader.php"
                         serverUrlPlaceholder="https://your-freshrss.com"
                         serverUrlCopyLabel="Copy Server URL"
                         usernameLabel="Username"

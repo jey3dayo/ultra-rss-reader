@@ -212,7 +212,7 @@ function ReadingSettings() {
   return (
     <div className="p-6">
       <h2 className="mb-6 text-center text-lg font-semibold">FreshRSS</h2>
-      <p className="mb-6 text-center text-sm text-muted-foreground">jey3dayo</p>
+      <p className="mb-6 text-center text-sm text-muted-foreground">demo-user</p>
 
       {/* General Section */}
       <section className="mb-6">
@@ -222,7 +222,7 @@ function ReadingSettings() {
         <SettingsRow label="Description" value="FreshRSS" type="text" />
         <SettingsRow
           label="Server"
-          value="http://jey3dayo.asuscomm.com:5556/api/greader..."
+          value="https://demo.freshrss.example.com/api/greader..."
           type="text"
           truncate
         />

@@ -133,6 +133,6 @@ export const articles: Article[] = [
 ]
 
 export const accounts = [
-  { id: "inoreader", name: "Inoreader", email: "j138cm@gmail.com", icon: "circle" },
-  { id: "freshrss", name: "FreshRSS", email: "jey3dayo", icon: "rss" },
+  { id: "inoreader", name: "Inoreader", email: "reader@example.com", icon: "circle" },
+  { id: "freshrss", name: "FreshRSS", email: "demo-user", icon: "rss" },
 ]

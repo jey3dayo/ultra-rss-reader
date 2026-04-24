@@ -12,27 +12,27 @@ Tech Stack: React 19, TypeScript, Zustand, Vitest, Tauri 2 child webview, HWND s
 
 ## File Map
 
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\app-layout.tsx`
+- Modify: `src\components\app-layout.tsx`
   - browser overlay portal root を `main-stage` 内限定から app 全体へ持ち上げる
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\browser-view.tsx`
+- Modify: `src\components\reader\browser-view.tsx`
   - Minimal Viewer shell、scrim click close、minimal chrome、intent 共通 shell を実装する
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\article-view.tsx`
+- Modify: `src\components\reader\article-view.tsx`
   - 記事起動と intent 起動の viewer entry を共通化し、旧 context/title chrome を外す
-- Optional Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\hooks\use-layout.ts`
+- Optional Modify: `src\hooks\use-layout.ts`
   - 実装途中で wide layout 判定の責務整理が必要になった場合だけ最小変更する
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
+- Modify: `src\__tests__\components\browser-view.test.tsx`
   - viewer shell / minimal chrome / scrim close / HUD 条件を追加する
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\article-view.test.tsx`
+- Modify: `src\__tests__\components\article-view.test.tsx`
   - intent 起動と通常起動の shell 共通化を追加する
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\TODO.md`
+- Modify: `TODO.md`
   - 完了した right-gutter / viewer shell TODO を整理する
 
 ## Task 1: Lock In Viewer Behavior With Failing Tests
 
 ## Task 1 Files
 
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\article-view.test.tsx`
+- Modify: `src\__tests__\components\browser-view.test.tsx`
+- Modify: `src\__tests__\components\article-view.test.tsx`
 
 - [ ] **Step 1: Add a browser-view test for minimal chrome**
 
@@ -103,7 +103,7 @@ Do not commit in a red state. Keep this task uncommitted until implementation pa
 
 ## Task 2 Files
 
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\app-layout.tsx`
+- Modify: `src\components\app-layout.tsx`
 
 - [ ] **Step 1: Add a single full-app overlay portal root**
 
@@ -151,8 +151,8 @@ git commit -m "refactor(layout): lift browser overlay root to app shell"
 
 ## Task 3 Files
 
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\browser-view.tsx`
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\browser-view.test.tsx`
+- Modify: `src\components\reader\browser-view.tsx`
+- Modify: `src\__tests__\components\browser-view.test.tsx`
 
 - [ ] **Step 1: Replace legacy context/title chrome with minimal chrome**
 
@@ -221,8 +221,8 @@ git commit -m "feat(reader): adopt minimal web preview viewer"
 
 ## Task 4 Files
 
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\components\reader\article-view.tsx`
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\src\__tests__\components\article-view.test.tsx`
+- Modify: `src\components\reader\article-view.tsx`
+- Modify: `src\__tests__\components\article-view.test.tsx`
 
 - [ ] **Step 1: Simplify browser-only and article-driven rendering**
 
@@ -268,7 +268,7 @@ git commit -m "refactor(reader): unify web preview entry paths"
 
 ## Task 5 Files
 
-- Modify: `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\TODO.md`
+- Modify: `TODO.md`
 
 - [ ] **Step 1: Run the local TypeScript and targeted UI test suite**
 
@@ -298,7 +298,7 @@ Expected: app boots directly into the same Minimal Viewer shell.
 
 Use the HWND screenshot workflow and save under:
 
-- `C:\Users\j138c\src\github.com\jey3dayo\ultra-rss-reader\tmp\screenshots\`
+- `tmp\screenshots\`
 
 Capture:
 
