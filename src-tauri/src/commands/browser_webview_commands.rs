@@ -7,12 +7,16 @@ use tauri::{
 use tokio::time::{sleep, Duration};
 
 use crate::browser_webview::{
-    browser_preview_close_bridge_source, browser_webview, browser_webview_diagnostics_enabled,
-    emit_browser_webview_closed, emit_browser_webview_diagnostics, emit_browser_webview_fallback,
-    emit_browser_webview_state, go_back, go_forward, install_escape_accelerator_bridge,
-    load_browser_preview_prefs, navigation_availability, should_trigger_timeout_fallback,
+    browser_webview, browser_webview_diagnostics_enabled, emit_browser_webview_closed,
+    emit_browser_webview_diagnostics, emit_browser_webview_fallback, emit_browser_webview_state,
+    go_back, go_forward, install_escape_accelerator_bridge, navigation_availability,
+    should_trigger_timeout_fallback,
     BrowserNavigationAvailability, BrowserWebviewDiagnosticsPayload, BrowserWebviewFallbackPayload,
     BrowserWebviewLogicalRect, BrowserWebviewState, BROWSER_WEBVIEW_LABEL,
+};
+#[cfg(not(windows))]
+use crate::browser_webview::{
+    browser_preview_close_bridge_source, load_browser_preview_prefs,
 };
 use crate::commands::dto::AppError;
 use crate::commands::AppState;
