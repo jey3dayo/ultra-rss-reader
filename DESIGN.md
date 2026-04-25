@@ -33,10 +33,10 @@ Derived roles used across the product:
 - Text / Foreground (`#26251e`): Primary text and icon color
 - Muted Foreground (`rgba(38, 37, 30, 0.74)`): Secondary text and helper copy
 - Soft Foreground (`rgba(38, 37, 30, 0.58)`): Tertiary labels and lighter metadata
-- Border (`oklab(0.263084 -0.00230259 0.0124794 / 0.1)`): Default border and divider tone
+- Border (`rgba(38, 37, 30, 0.12)`): Default border and divider tone
 - Border Strong (`rgba(38, 37, 30, 0.2)`): Focused, active, or emphasized border
-- Browser Overlay Loading Halo: Ambient glow behind embedded-browser loading feedback
-- Browser Overlay Detail Surface: Inset support surface for technical detail inside browser overlay issue cards
+- Browser Overlay Loading Halo (`rgba(247, 247, 244, 0.8)` in light mode): Ambient glow behind embedded-browser loading feedback
+- Browser Overlay Detail Surface (`rgba(247, 247, 244, 0.85)` in light mode): Inset support surface for technical detail inside browser overlay issue cards
 - Success (`#1f8a65`): Positive state and successful completion messaging
 - Unread (`#9fbbe0`): Fixed semantic accent for unread state, unread markers, and reading-context navigation
 - Loading (`#9fbbe0`): Fixed semantic accent for indeterminate loading, startup progress, settings loading, and sync-progress bars
@@ -49,6 +49,8 @@ Feature and timeline accents:
 - Read / Unread Context (`#9fbbe0`): Reading-related state, unread indicators, and reading-context navigation accents
 - Loading (`#9fbbe0`): Generic loading and sync-progress feedback that needs stronger visibility than the warm accent ring
 - Edit (`#c0a8dd`): Edit and mutation state
+
+Unread/read context and loading intentionally share `#9fbbe0`, but they must stay separate semantic roles. Use the role name, not the hue, to decide where the color appears.
 
 Color governance:
 
@@ -339,16 +341,18 @@ These colors should be centralized as provider brand tokens or a dedicated excep
 
 #### Quick Color Reference
 
-- Primary CTA: `#ebeae5` background with `#26251e` text
+- Primary action surface: `#ebeae5` background with `#26251e` text
 - Page background: `#f2f1ed`
 - Primary text: `#26251e`
-- Secondary text: `rgba(38, 37, 30, 0.55)`
+- Secondary text: `rgba(38, 37, 30, 0.74)`
+- Tertiary text: `rgba(38, 37, 30, 0.58)`
+- Muted text: `rgba(38, 37, 30, 0.44)`
 - Brand accent: `#f54e00`
 - Hover / expressive accent: `#cf2d56`
 - Success: `#1f8a65`
 - Unread semantic accent: `#9fbbe0`
 - Starred semantic accent: `#facc15`
-- Default border: `oklab(0.263084 -0.00230259 0.0124794 / 0.1)` with warm rgba fallback
+- Default border: `rgba(38, 37, 30, 0.12)` with warm oklab-style alternatives only when they match the same optical weight
 
 #### Example Prompt Framing
 
