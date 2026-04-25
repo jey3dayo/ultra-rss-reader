@@ -4,6 +4,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-04-26
+
+### Bug Fixes
+
+- reader の unread view で read 済みになった選択中の記事を残し、操作中に記事が消える引っかかりを減らした
+- FreshRSS の unread count をローカル記事状態から再計算し、サーバー側 backfill が空のときも表示件数がずれないようにした
+- CI の sidebar focus 検証を feed 描画まで待つようにして、タイミング依存の失敗を抑えた
+- browser preview の import guard format を整え、CI 上の非 Windows import 判定を安定させた
+
+### Documentation
+
+- design token guidance を実装状況に合わせ、reader verification follow-up を記録・完了扱いにした
+
+### Maintenance
+
+- Windows 向けタスクを native shell 経由に寄せ、`mise run ci` と Tauri build が WSL 側の依存解決へ流れないようにした
+- Tauri の generated Windows schema を更新した
+
 ## [0.19.0] - 2026-04-25
 
 ### Features
