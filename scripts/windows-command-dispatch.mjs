@@ -51,30 +51,27 @@ function quotePowerShellLiteral(value) {
 }
 
 /**
- * @param {string[]} cliArgs
- * @param {string} [scriptUrl]
+ * @param {string} command
+ * @param {string[]} args
  * @returns {SpawnSpec}
  */
-export function buildLocalTauriSpawnSpec(cliArgs, scriptUrl = import.meta.url) {
-  void scriptUrl;
-
-  return {
-    command: "pnpm",
-    args: ["exec", "tauri", ...cliArgs],
-  };
+export function buildLocalCommandSpawnSpec(command, args) {
+  return { command, args };
 }
 
 /**
- * @param {string[]} cliArgs
+ * @param {string} command
+ * @param {string[]} args
  * @param {string} windowsCwd
  * @param {Record<string, string>} [envOverrides]
  * @returns {string}
  */
-function buildPowerShellScript(cliArgs, windowsCwd, envOverrides = {}) {
+function buildPowerShellScript(command, args, windowsCwd, envOverrides = {}) {
   const envAssignments = Object.entries(envOverrides).map(
     ([key, value]) => `$env:${key} = ${quotePowerShellLiteral(value)}`,
   );
-  const tauriArgs = cliArgs.map((arg) => quotePowerShellLiteral(arg)).join(" ");
+  const commandLine = [command, ...args].map((arg) => quotePowerShellLiteral(arg)).join(" ");
+
   return [
     "$ErrorActionPreference = 'Stop'",
     "$ProgressPreference = 'SilentlyContinue'",
@@ -85,19 +82,20 @@ function buildPowerShellScript(cliArgs, windowsCwd, envOverrides = {}) {
     "$env:Path = ($pathParts | Where-Object { $_ }) -join ';'",
     `Set-Location -LiteralPath ${quotePowerShellLiteral(windowsCwd)}`,
     ...envAssignments,
-    `& pnpm exec tauri ${tauriArgs}`.trim(),
+    `& ${commandLine}`.trim(),
     "exit $LASTEXITCODE",
   ].join("; ");
 }
 
 /**
- * @param {string[]} cliArgs
+ * @param {string} command
+ * @param {string[]} args
  * @param {string} windowsCwd
  * @param {Record<string, string>} [envOverrides]
  * @returns {SpawnSpec}
  */
-export function buildWslTauriSpawnSpec(cliArgs, windowsCwd, envOverrides = {}) {
-  const powerShellScript = buildPowerShellScript(cliArgs, windowsCwd, envOverrides);
+export function buildWslWindowsCommandSpawnSpec(command, args, windowsCwd, envOverrides = {}) {
+  const powerShellScript = buildPowerShellScript(command, args, windowsCwd, envOverrides);
   const encodedCommand = Buffer.from(powerShellScript, "utf16le").toString("base64");
   return {
     command: "sh",
@@ -122,11 +120,10 @@ async function convertWslPathToWindows(currentDirectory) {
  */
 async function canUseWindowsInterop() {
   try {
-    await execFileAsync(
-      "sh",
-      ["-lc", "powershell.exe -NoProfile -Command \"exit 0\""],
-      { timeout: 5_000, encoding: "utf8" },
-    );
+    await execFileAsync("sh", ["-lc", 'powershell.exe -NoProfile -Command "exit 0"'], {
+      timeout: 5_000,
+      encoding: "utf8",
+    });
     return true;
   } catch {
     return false;
@@ -134,25 +131,31 @@ async function canUseWindowsInterop() {
 }
 
 /**
- * @param {string[]} cliArgs
+ * @param {string} command
+ * @param {string[]} args
  * @returns {Promise<SpawnSpec>}
  */
-async function resolveSpawnSpec(cliArgs) {
+async function resolveSpawnSpec(command, args) {
   if (!isWslEnvironment()) {
-    return buildLocalTauriSpawnSpec(cliArgs);
+    return buildLocalCommandSpawnSpec(command, args);
   }
 
   if (!(await canUseWindowsInterop())) {
-    return buildLocalTauriSpawnSpec(cliArgs);
+    return buildLocalCommandSpawnSpec(command, args);
   }
 
   const windowsCwd = await convertWslPathToWindows(process.cwd());
-  return buildWslTauriSpawnSpec(cliArgs, windowsCwd, pickWindowsEnvOverrides(process.env));
+  return buildWslWindowsCommandSpawnSpec(command, args, windowsCwd, pickWindowsEnvOverrides(process.env));
 }
 
 async function main() {
-  const cliArgs = process.argv.slice(2);
-  const spawnSpec = await resolveSpawnSpec(cliArgs);
+  const [command, ...args] = process.argv.slice(2);
+  if (!command) {
+    console.error("[windows-command-dispatch] missing command");
+    process.exit(1);
+  }
+
+  const spawnSpec = await resolveSpawnSpec(command, args);
   const child = spawn(spawnSpec.command, spawnSpec.args, {
     stdio: "inherit",
     env: process.env,
@@ -180,7 +183,7 @@ async function main() {
   });
 
   child.on("error", (error) => {
-    console.error("[tauri-cli-dispatch] failed to start Tauri CLI:", error);
+    console.error("[windows-command-dispatch] failed to start command:", error);
     process.exit(1);
   });
 }
@@ -190,7 +193,7 @@ const isMainModule =
 
 if (isMainModule) {
   main().catch((error) => {
-    console.error("[tauri-cli-dispatch]", error instanceof Error ? error.message : error);
+    console.error("[windows-command-dispatch]", error instanceof Error ? error.message : error);
     process.exit(1);
   });
 }

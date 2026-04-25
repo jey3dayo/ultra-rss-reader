@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildLocalTauriSpawnSpec,
-  buildWslTauriSpawnSpec,
+  buildLocalCommandSpawnSpec,
+  buildWslWindowsCommandSpawnSpec,
   isWslEnvironment,
   pickWindowsEnvOverrides,
-} from "../../../scripts/tauri-cli-dispatch.mjs";
+} from "../../../scripts/windows-command-dispatch.mjs";
 
-describe("isWslEnvironment", () => {
+describe("windows-command-dispatch isWslEnvironment", () => {
   it("detects WSL via WSL_INTEROP", () => {
     expect(
       isWslEnvironment({
@@ -28,49 +28,45 @@ describe("isWslEnvironment", () => {
   });
 });
 
-describe("pickWindowsEnvOverrides", () => {
-  it("forwards app-dev specific environment variables only", () => {
+describe("windows-command-dispatch pickWindowsEnvOverrides", () => {
+  it("forwards task-specific environment variables only", () => {
     expect(
       pickWindowsEnvOverrides({
         DEV_CREDENTIALS: "1",
-        VITE_DEV_INTENT: "open-subscriptions-index",
         RUST_LOG: "info",
         PATH: "/usr/bin",
         HOME: "/home/dev",
       }),
     ).toEqual({
       DEV_CREDENTIALS: "1",
-      VITE_DEV_INTENT: "open-subscriptions-index",
       RUST_LOG: "info",
     });
   });
 });
 
-describe("buildLocalTauriSpawnSpec", () => {
-  it("spawns the local Tauri CLI through pnpm", () => {
-    const spawnSpec = buildLocalTauriSpawnSpec(
-      ["dev", "-c", "src-tauri/tauri.dev.conf.json"],
-      "file:///C:/repo/scripts/tauri-cli-dispatch.mjs",
-    );
-
-    expect(spawnSpec.command).toBe("pnpm");
-    expect(spawnSpec.args).toEqual(["exec", "tauri", "dev", "-c", "src-tauri/tauri.dev.conf.json"]);
+describe("buildLocalCommandSpawnSpec", () => {
+  it("spawns the requested command directly", () => {
+    expect(buildLocalCommandSpawnSpec("cargo", ["clippy"])).toEqual({
+      command: "cargo",
+      args: ["clippy"],
+    });
   });
 });
 
-describe("buildWslTauriSpawnSpec", () => {
-  it("dispatches Tauri through Windows PowerShell from a WSL shell", () => {
-    const spawnSpec = buildWslTauriSpawnSpec(["dev", "-c", "src-tauri/tauri.dev.conf.json"], "C:\\repo", {
-      DEV_CREDENTIALS: "1",
-      VITE_DEV_INTENT: "open-feed-cleanup",
-    });
+describe("buildWslWindowsCommandSpawnSpec", () => {
+  it("dispatches arbitrary commands through sanitized Windows PowerShell", () => {
+    const spawnSpec = buildWslWindowsCommandSpawnSpec(
+      "cargo",
+      ["clippy", "--manifest-path", "src-tauri/Cargo.toml"],
+      "C:\\repo",
+      { RUST_LOG: "info" },
+    );
 
     expect(spawnSpec.command).toBe("sh");
     expect(spawnSpec.args[0]).toBe("-lc");
     expect(spawnSpec.args[1]).toContain(
       "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -OutputFormat Text -EncodedCommand ",
     );
-    expect(spawnSpec.args[1]).not.toContain("open-feed-cleanup");
 
     const encodedCommand = spawnSpec.args[1].split(" -EncodedCommand ")[1];
     const powerShellScript = Buffer.from(encodedCommand, "base64").toString("utf16le");
@@ -78,6 +74,8 @@ describe("buildWslTauriSpawnSpec", () => {
     expect(powerShellScript).toContain("[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()");
     expect(powerShellScript).toContain("$env:HOME = $env:USERPROFILE");
     expect(powerShellScript).toContain("[Environment]::GetEnvironmentVariable('Path', 'Machine')");
-    expect(powerShellScript).toContain("& pnpm exec tauri");
+    expect(powerShellScript).toContain("Set-Location -LiteralPath 'C:\\repo'");
+    expect(powerShellScript).toContain("& 'cargo' 'clippy' '--manifest-path' 'src-tauri/Cargo.toml'");
+    expect(powerShellScript).toContain("$env:RUST_LOG = 'info'");
   });
 });

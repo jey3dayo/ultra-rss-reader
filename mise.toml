@@ -59,14 +59,17 @@ depends = [
 [tasks."format:biome:check"]
 description = "Biome format + lint check (no writes)"
 run = "rtk err biome check --formatter-enabled=true --linter-enabled=true ."
+run_windows = "node ./scripts/windows-command-dispatch.mjs pnpm exec biome check --formatter-enabled=true --linter-enabled=true ."
 
 [tasks."format:rust:check"]
 description = "Rust format check (no writes)"
 run = "rtk err cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check"
+run_windows = "node ./scripts/windows-command-dispatch.mjs cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check"
 
 [tasks."format:toml:check"]
 description = "TOML format check (no writes)"
 run = "rtk err taplo fmt --check mise.toml src-tauri/Cargo.toml"
+run_windows = "node ./scripts/windows-command-dispatch.mjs taplo fmt --check mise.toml src-tauri/Cargo.toml"
 
 # ========================================
 # リント
@@ -86,19 +89,22 @@ depends = [
 [tasks."lint:types"]
 description = "TypeScript type check"
 run = "rtk pnpm exec tsc --noEmit"
+run_windows = "node ./scripts/windows-command-dispatch.mjs pnpm exec tsc --noEmit"
 
 [tasks."lint:biome"]
 description = "Biome lint check"
 run = "rtk pnpm run lint"
-run_windows = "pnpm exec biome lint ."
+run_windows = "node ./scripts/windows-command-dispatch.mjs pnpm exec biome lint ."
 
 [tasks."lint:clippy"]
 description = "Rust clippy"
 run = "rtk err cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
+run_windows = "node ./scripts/windows-command-dispatch.mjs cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings"
 
 [tasks."lint:md"]
 description = "Markdown lint check"
 run = "pnpm markdownlint-cli2 **/*.md #**/node_modules/** #**/.worktrees/** #**/target/**"
+run_windows = "node ./scripts/windows-command-dispatch.mjs pnpm markdownlint-cli2 **/*.md #**/node_modules/** #**/.worktrees/** #**/target/**"
 
 [tasks."lint:yaml"]
 description = "YAML lint check"
@@ -119,17 +125,17 @@ depends = ["test:rust", "test:unit"]
 [tasks."test:rust"]
 description = "Run Rust tests"
 run = "rtk test cargo test --manifest-path src-tauri/Cargo.toml"
-run_windows = "rtk test cargo test --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"
+run_windows = "node ./scripts/windows-command-dispatch.mjs cargo test --manifest-path src-tauri/Cargo.toml --target-dir src-tauri/target/test-rust --test integration_test"
 
 [tasks."test:unit"]
 description = "Run Vitest unit tests"
 run = "rtk test pnpm run test"
-run_windows = "pnpm exec vitest run"
+run_windows = "node ./scripts/windows-command-dispatch.mjs pnpm exec vitest run"
 
 [tasks."test:e2e"]
 description = "Run Playwright E2E tests"
 run = "rtk test pnpm exec playwright test"
-run_windows = "pnpm exec playwright test"
+run_windows = "node ./scripts/windows-command-dispatch.mjs pnpm exec playwright test"
 
 [tasks."test:all"]
 description = "Run all tests including E2E"
@@ -146,6 +152,7 @@ run = "dotenvx run -- rtk test cargo test --manifest-path src-tauri/Cargo.toml f
 [tasks.build]
 description = "Build frontend"
 run = ["pnpm build"]
+run_windows = "node ./scripts/windows-command-dispatch.mjs pnpm build"
 
 # ========================================
 # アプリ（Tauri）
@@ -198,7 +205,8 @@ run = "pnpm dev --host 127.0.0.1 --port 4173 --strictPort"
 
 [tasks."app:build"]
 description = "Build native app for current platform (.app/.dmg on macOS, .msi/.exe on Windows)"
-run = "pnpm exec tauri build"
+run = "node ./scripts/tauri-cli-dispatch.mjs build"
+run_windows = "node ./scripts/tauri-cli-dispatch.mjs build"
 
 [tasks."app:install"]
 description = "Build and install the native app for the current platform"
@@ -217,18 +225,18 @@ codesign --force --deep --sign - "$APP_DST"
 open "$APP_DST"
 """
 run_windows = """
-$msi = Get-ChildItem 'src-tauri\\target\\release\\bundle\\msi\\*.msi' -ErrorAction SilentlyContinue |
-  Sort-Object LastWriteTime -Descending |
-  Select-Object -First 1
-if ($msi) {
-  $process = Start-Process msiexec.exe -ArgumentList @('/i', $msi.FullName, '/passive') -Wait -PassThru
-  exit $process.ExitCode
-}
 $exe = Get-ChildItem 'src-tauri\\target\\release\\bundle\\nsis\\*.exe' -ErrorAction SilentlyContinue |
   Sort-Object LastWriteTime -Descending |
   Select-Object -First 1
 if ($exe) {
-  $process = Start-Process -FilePath $exe.FullName -Wait -PassThru
+  $process = Start-Process -FilePath $exe.FullName -ArgumentList '/S' -Wait -PassThru
+  exit $process.ExitCode
+}
+$msi = Get-ChildItem 'src-tauri\\target\\release\\bundle\\msi\\*.msi' -ErrorAction SilentlyContinue |
+  Sort-Object LastWriteTime -Descending |
+  Select-Object -First 1
+if ($msi) {
+  $process = Start-Process msiexec.exe -ArgumentList @('/i', $msi.FullName, '/qn', '/norestart') -Wait -PassThru
   exit $process.ExitCode
 }
 Write-Error 'No Windows installer found under src-tauri\\target\\release\\bundle.'
@@ -237,7 +245,8 @@ exit 1
 
 [tasks."app:build:debug"]
 description = "Build native app in debug mode (faster, no optimizations)"
-run = "pnpm exec tauri build --debug"
+run = "node ./scripts/tauri-cli-dispatch.mjs build --debug"
+run_windows = "node ./scripts/tauri-cli-dispatch.mjs build --debug"
 
 [tasks."app:icon"]
 description = "Generate app icons from source image"
