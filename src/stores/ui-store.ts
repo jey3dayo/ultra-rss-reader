@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import { create } from "zustand";
 import type { ConfirmDialogVariant } from "@/components/shared/dialog.types";
 import type { AddAccountProviderKind } from "@/lib/add-account-form";
+import { addRetainedArticle, getRetainedArticleIdsAfterSelectingArticle } from "@/lib/article-retention";
 import { TOAST_AUTO_DISMISS_TIMEOUT_MS } from "../constants/ui-runtime";
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
@@ -386,7 +387,17 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       recentlyReadIds: new Set(),
       retainedArticleIds: new Set(),
     }),
-  selectArticle: (id) => set({ selectedArticleId: id, contentMode: "reader", focusedPane: "content" }),
+  selectArticle: (id) =>
+    set((state) => ({
+      selectedArticleId: id,
+      contentMode: "reader",
+      focusedPane: "content",
+      retainedArticleIds: getRetainedArticleIdsAfterSelectingArticle({
+        articleId: id,
+        viewMode: state.viewMode,
+        currentRetainedArticleIds: state.retainedArticleIds,
+      }),
+    })),
   clearArticle: () => set({ selectedArticleId: null, contentMode: "empty" }),
   openBrowser: (url) =>
     set({
@@ -598,12 +609,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       return { recentlyReadIds: next };
     }),
   clearRecentlyRead: () => set({ recentlyReadIds: new Set() }),
-  retainArticle: (id) =>
-    set((s) => {
-      const next = new Set(s.retainedArticleIds);
-      next.add(id);
-      return { retainedArticleIds: next };
-    }),
+  retainArticle: (id) => set((s) => ({ retainedArticleIds: addRetainedArticle(s.retainedArticleIds, id) })),
   clearRetainedArticles: () => set({ retainedArticleIds: new Set() }),
   showConfirm: (message, onConfirm, options) =>
     set({

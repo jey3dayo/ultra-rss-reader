@@ -84,6 +84,24 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().selectedArticleId).toBe("a1");
   });
 
+  it("keeps selected articles retained in unread mode until the screen changes", () => {
+    useUiStore.getState().retainArticle("art-1");
+    useUiStore.getState().selectArticle("art-1");
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
+
+    useUiStore.getState().selectArticle("art-2");
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1", "art-2"]));
+  });
+
+  it("does not change retained articles when selecting in all mode", () => {
+    useUiStore.getState().setViewMode("all");
+    useUiStore.getState().retainArticle("art-1");
+
+    useUiStore.getState().selectArticle("art-2");
+
+    expect(useUiStore.getState().retainedArticleIds).toEqual(new Set(["art-1"]));
+  });
+
   it("openBrowser switches mode", () => {
     useUiStore.getState().openBrowser("https://ex.com");
     expect(useUiStore.getState().contentMode).toBe("browser");
