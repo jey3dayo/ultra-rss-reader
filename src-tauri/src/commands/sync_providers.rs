@@ -935,7 +935,7 @@ async fn reconcile_greader_unread_counts(
 
         let db_guard = lock_db(db)?;
         let feed_repo = SqliteFeedRepository::new(db_guard.writer());
-        feed_repo.update_unread_count(&feed.id, server_unread_count)?;
+        feed_repo.recalculate_unread_count(&feed.id)?;
     }
 
     Ok(backfilled_feeds)
@@ -1607,6 +1607,57 @@ mod tests {
         assert_eq!(feed_two_articles[0].title, "Article Two");
         assert_eq!(feed_one.unread_count, 1);
         assert_eq!(feed_two.unread_count, 1);
+    }
+
+    #[tokio::test]
+    async fn reconcile_greader_unread_counts_keeps_local_count_when_backfill_returns_no_articles() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let unread_stream_mock = server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fhttps%3A%2F%2Fexample.com%2Frss",
+            )
+            .match_query(Matcher::AllOf(vec![
+                Matcher::UrlEncoded("output".into(), "json".into()),
+                Matcher::UrlEncoded("n".into(), "200".into()),
+                Matcher::UrlEncoded("xt".into(), "user/-/state/com.google/read".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(r#"{ "items": [] }"#)
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_account_and_feed(&db, &server.url());
+        let provider = authenticated_provider(&server.url()).await;
+        let server_unread_counts = HashMap::from([(FEED_REMOTE_ID.to_string(), 1)]);
+
+        let backfilled = reconcile_greader_unread_counts(
+            &db,
+            &provider,
+            &account,
+            std::slice::from_ref(&feed),
+            &server_unread_counts,
+        )
+        .await
+        .unwrap();
+
+        unread_stream_mock.assert_async().await;
+
+        let db_guard = db.lock().unwrap();
+        let feed_repo = SqliteFeedRepository::new(db_guard.reader());
+        let reconciled_feed = feed_repo.find_by_id(&feed.id).unwrap().unwrap();
+
+        assert_eq!(backfilled, 1);
+        assert_eq!(reconciled_feed.unread_count, 0);
     }
 
     #[tokio::test]
