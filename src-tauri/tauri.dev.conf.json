@@ -1,5 +1,6 @@
 {
   "productName": "Ultra RSS Reader (Dev)",
+  "identifier": "com.ultra-rss-reader.dev",
   "app": {
     "windows": [
       {
