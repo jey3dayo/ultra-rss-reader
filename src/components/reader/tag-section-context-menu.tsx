@@ -2,6 +2,7 @@ import { useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import { CreateTagDialogView } from "@/components/settings/create-tag-dialog-view";
 import { useCreateTag } from "@/hooks/use-tags";
+import { getErrorMessage } from "@/lib/errors";
 import { useUiStore } from "@/stores/ui-store";
 import { TagSectionContextMenuView } from "./tag-section-context-menu-view";
 
@@ -38,16 +39,6 @@ function tagSectionContextMenuReducer(
     default:
       return state;
   }
-}
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  if (typeof error === "object" && error !== null && "message" in error) {
-    return String((error as { message: unknown }).message);
-  }
-  return "Unknown error";
 }
 
 export function TagSectionContextMenu({ onManageTags }: TagSectionContextMenuProps) {

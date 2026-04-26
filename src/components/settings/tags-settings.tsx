@@ -6,17 +6,8 @@ import { RenameTagDialogView } from "@/components/reader/rename-tag-dialog-view"
 import { TagsSettingsView } from "@/components/settings/tags-settings-view";
 import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
 import { useCreateTag, useDeleteTag, useRenameTag, useTags } from "@/hooks/use-tags";
+import { getErrorMessage } from "@/lib/errors";
 import { useUiStore } from "@/stores/ui-store";
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  if (typeof error === "object" && error !== null && "message" in error) {
-    return String((error as { message: unknown }).message);
-  }
-  return "Unknown error";
-}
 
 type TagsSettingsState = {
   name: string;

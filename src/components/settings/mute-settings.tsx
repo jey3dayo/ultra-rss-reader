@@ -10,6 +10,7 @@ import {
   useSetMuteAutoMarkRead,
   useUpdateMuteKeyword,
 } from "@/hooks/use-mute-keywords";
+import { getErrorMessage } from "@/lib/errors";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -44,16 +45,6 @@ function muteSettingsReducer(state: MuteSettingsState, action: MuteSettingsActio
     default:
       return state;
   }
-}
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  if (typeof error === "object" && error !== null && "message" in error) {
-    return String((error as { message: unknown }).message);
-  }
-  return "Unknown error";
 }
 
 export function MuteSettings() {

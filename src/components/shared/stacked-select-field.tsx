@@ -1,11 +1,8 @@
 import { useId } from "react";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getOptionLabelByValue } from "@/lib/options";
 import { cn } from "@/lib/utils";
-import type { StackedSelectFieldProps, StackedSelectOption } from "./stacked-field.types";
-
-function getOptionLabel(options: readonly StackedSelectOption[], value: string | null) {
-  return options.find((option) => option.value === (value ?? ""))?.label ?? value ?? "";
-}
+import type { StackedSelectFieldProps } from "./stacked-field.types";
 
 export function StackedSelectField({
   labelId,
@@ -29,7 +26,7 @@ export function StackedSelectField({
       </span>
       <Select name={name} value={value} onValueChange={(next) => next !== null && onChange(next)} disabled={disabled}>
         <SelectTrigger aria-labelledby={resolvedLabelId} className={triggerClassName}>
-          <SelectValue>{(selectedValue: string | null) => getOptionLabel(options, selectedValue)}</SelectValue>
+          <SelectValue>{(selectedValue: string | null) => getOptionLabelByValue(options, selectedValue)}</SelectValue>
         </SelectTrigger>
         <SelectPopup>
           {options.map((option) => (

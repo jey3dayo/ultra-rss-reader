@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { TagDto } from "@/api/tauri-commands";
 import { TAG_COLOR_PRESETS } from "@/components/shared/exception-palettes";
 import { useDeleteTag, useRenameTag } from "@/hooks/use-tags";
+import { getErrorMessage } from "@/lib/errors";
 import { useUiStore } from "@/stores/ui-store";
 import { DeleteTagDialogView } from "./delete-tag-dialog-view";
 import { RenameTagDialogView } from "./rename-tag-dialog-view";
@@ -62,16 +63,6 @@ function tagContextMenuReducer(state: TagContextMenuState, action: TagContextMen
     default:
       return state;
   }
-}
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  if (typeof error === "object" && error !== null && "message" in error) {
-    return String((error as { message: unknown }).message);
-  }
-  return "Unknown error";
 }
 
 export function TagContextMenuContent({ tag }: TagContextMenuContentProps) {
