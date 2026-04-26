@@ -12,6 +12,7 @@ import { useMouseNavigation } from "../hooks/use-mouse-navigation";
 import { useUpdater } from "../hooks/use-updater";
 import { type BrowserDebugGeometrySnapshot, getBrowserGeometryRows } from "../lib/browser-debug-geometry";
 import { copyValueToClipboard } from "../lib/clipboard";
+import { formatDebugTimestamp } from "../lib/datetime";
 import { emitDebugInputTrace } from "../lib/debug-input-trace";
 import { attachTauriListeners } from "../lib/tauri-event-listeners";
 import { cn } from "../lib/utils";
@@ -225,7 +226,7 @@ function FocusDebugHud() {
     const keyTraceListener = (event: KeyboardEvent) => {
       dispatch({
         type: "append-trace",
-        value: `${new Date().toISOString().slice(11, 23)} raw-key ${event.key} target=${describeActiveElement(
+        value: `${formatDebugTimestamp()} raw-key ${event.key} target=${describeActiveElement(
           event.target instanceof Element ? event.target : null,
         )}`,
       });
@@ -247,7 +248,7 @@ function FocusDebugHud() {
     const pointerTraceListener = (event: PointerEvent) => {
       dispatch({
         type: "append-trace",
-        value: `${new Date().toISOString().slice(11, 23)} raw-pointer ${event.type} x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeActiveElement(
+        value: `${formatDebugTimestamp()} raw-pointer ${event.type} x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeActiveElement(
           event.target instanceof Element ? event.target : null,
         )}`,
       });
@@ -255,7 +256,7 @@ function FocusDebugHud() {
     const clickTraceListener = (event: MouseEvent) => {
       dispatch({
         type: "append-trace",
-        value: `${new Date().toISOString().slice(11, 23)} raw-click x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeActiveElement(
+        value: `${formatDebugTimestamp()} raw-click x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeActiveElement(
           event.target instanceof Element ? event.target : null,
         )}`,
       });

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useReducer } from "react";
+import { getCurrentDate } from "@/lib/datetime";
 import { DEV_SCENARIO_ID } from "@/lib/dev-scenario-ids";
 import type { FeedCleanupCandidate } from "@/lib/feed-cleanup";
 import { buildFeedCleanupCandidates, summarizeCleanupCandidate } from "@/lib/feed-cleanup";
@@ -225,7 +226,7 @@ export function useFeedCleanupPageState({
         feeds,
         folders,
         articles: accountArticles,
-        now: new Date(),
+        now: getCurrentDate(),
         hiddenFeedIds: new Set(),
       }).filter((candidate) => (scopedFeedIds ? scopedFeedIds.has(candidate.feedId) : true)),
     [accountArticles, feeds, folders, scopedFeedIds],
@@ -237,7 +238,7 @@ export function useFeedCleanupPageState({
         feeds,
         folders,
         articles: accountArticles,
-        now: new Date(),
+        now: getCurrentDate(),
         hiddenFeedIds,
       })
         .filter((candidate) => (scopedFeedIds ? scopedFeedIds.has(candidate.feedId) : true))

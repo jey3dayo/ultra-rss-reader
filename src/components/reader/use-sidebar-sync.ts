@@ -3,6 +3,8 @@ import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useReducer, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccountSyncStatus } from "@/hooks/use-account-sync-status";
+import { formatAccountLastSuccessLabel } from "@/lib/account-sync-status-format";
+import { getCurrentTimeMs } from "@/lib/datetime";
 import i18n from "@/lib/i18n";
 import {
   getManualSyncCooldownUntil,
@@ -27,7 +29,7 @@ type SidebarSyncAction = { type: "set-cooldown-tick"; value: number };
 
 function createInitialSidebarSyncState() {
   return {
-    cooldownTick: Date.now(),
+    cooldownTick: getCurrentTimeMs(),
   } satisfies SidebarSyncState;
 }
 
@@ -62,14 +64,14 @@ export function useSidebarSync({
   }, [queryClient]);
 
   useEffect(() => {
-    if (manualSyncCooldownUntil <= Date.now()) {
+    if (manualSyncCooldownUntil <= getCurrentTimeMs()) {
       return;
     }
 
-    dispatch({ type: "set-cooldown-tick", value: Date.now() });
+    dispatch({ type: "set-cooldown-tick", value: getCurrentTimeMs() });
 
     const timer = window.setInterval(() => {
-      dispatch({ type: "set-cooldown-tick", value: Date.now() });
+      dispatch({ type: "set-cooldown-tick", value: getCurrentTimeMs() });
     }, 1_000);
 
     return () => {
@@ -79,24 +81,13 @@ export function useSidebarSync({
 
   const lastSyncedLabel = useMemo(() => {
     const lastSuccessAt = syncStatusQuery.data?.last_success_at;
-    if (lastSuccessAt) {
-      const date = new Date(lastSuccessAt);
-      if (!Number.isNaN(date.getTime())) {
-        const hours = date.getHours().toString().padStart(2, "0");
-        const minutes = date.getMinutes().toString().padStart(2, "0");
-        const now = new Date();
-        const isToday =
-          date.getFullYear() === now.getFullYear() &&
-          date.getMonth() === now.getMonth() &&
-          date.getDate() === now.getDate();
-
-        if (isToday) {
-          return t("today_at", { time: `${hours}:${minutes}` });
-        }
-
-        const dateLabel = date.toLocaleDateString(i18n.language, { month: "short", day: "numeric" });
-        return t("date_at", { date: dateLabel, time: `${hours}:${minutes}` });
+    const lastSuccessLabel = formatAccountLastSuccessLabel(lastSuccessAt ?? undefined, i18n.language);
+    if (lastSuccessLabel) {
+      if (lastSuccessLabel.isToday) {
+        return t("today_at", { time: lastSuccessLabel.time });
       }
+
+      return t("date_at", { date: lastSuccessLabel.date, time: lastSuccessLabel.time });
     }
 
     if (selectedAccountId && syncStatusQuery.isPending && syncStatusQuery.data === undefined) {

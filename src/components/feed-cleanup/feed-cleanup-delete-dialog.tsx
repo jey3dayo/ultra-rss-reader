@@ -1,18 +1,7 @@
 import { DestructiveDialogFooter } from "@/components/shared/destructive-dialog-footer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { formatFeedCleanupDate } from "@/lib/feed-cleanup";
 import type { FeedCleanupDeleteDialogProps } from "./feed-cleanup.types";
-
-function formatDate(value: string | null, locale: string): string {
-  if (!value) {
-    return "—";
-  }
-
-  return new Date(value).toLocaleDateString(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 export function FeedCleanupDeleteDialog({
   candidates,
@@ -56,7 +45,7 @@ export function FeedCleanupDeleteDialog({
           ) : (
             <>
               <p>
-                {latestArticleLabel}: {formatDate(primaryCandidate?.latestArticleAt ?? null, dateLocale)}
+                {latestArticleLabel}: {formatFeedCleanupDate(primaryCandidate?.latestArticleAt ?? null, dateLocale)}
               </p>
               <p>
                 {unreadCountLabel}: {primaryCandidate?.unreadCount ?? 0}

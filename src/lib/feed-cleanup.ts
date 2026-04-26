@@ -1,4 +1,5 @@
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
+import { formatMediumDate, formatShortDate } from "@/lib/datetime";
 
 export type FeedCleanupReasonKey = "stale_90d" | "no_unread" | "no_stars";
 export type FeedCleanupTone = "high" | "medium" | "low";
@@ -97,6 +98,14 @@ export function buildCleanupReasonFacts(candidate: FeedCleanupCandidate): Array<
   }
 
   return facts;
+}
+
+export function formatFeedCleanupDate(value: string | null, locale: string): string {
+  return formatMediumDate(value, locale) ?? "—";
+}
+
+export function formatFeedCleanupRecentArticleDate(value: string | null, locale: string): string {
+  return formatShortDate(value, locale) ?? "—";
 }
 
 export function buildFeedCleanupCandidates({

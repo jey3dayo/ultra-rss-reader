@@ -33,6 +33,7 @@ export function SubscriptionsIndexPageView({
   statusLabels,
   formatUnreadCountLabel,
   formatLatestArticleLabel,
+  dateLocale,
   listScrollTop,
   folderLabel,
   latestArticleLabel,
@@ -72,6 +73,7 @@ export function SubscriptionsIndexPageView({
   statusLabels: Record<SubscriptionListRow["status"]["labelKey"], string>;
   formatUnreadCountLabel: (count: number) => string;
   formatLatestArticleLabel: (value: string | null) => string;
+  dateLocale: string;
   listScrollTop: number;
   folderLabel: string;
   latestArticleLabel: string;
@@ -166,6 +168,7 @@ export function SubscriptionsIndexPageView({
               recentArticlesHeading={recentArticlesHeading}
               displayModeLabel={displayModeLabel}
               displayModeValue={displayModeValue}
+              dateLocale={dateLocale}
               decisionActions={decisionActions}
             />
           </div>

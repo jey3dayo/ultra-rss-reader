@@ -6,12 +6,14 @@ import { useDeleteFeed } from "@/hooks/use-delete-feed";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { resolveFeedDisplayPreset } from "@/lib/article-display";
+import { getCurrentDate } from "@/lib/datetime";
 import { buildCleanupReasonFacts, buildFeedCleanupCandidates, summarizeCleanupCandidate } from "@/lib/feed-cleanup";
 import {
   buildCleanupCandidateMap,
   buildSubscriptionDetailMetrics,
   buildSubscriptionListGroups,
   buildSubscriptionsIndexSummary,
+  formatSubscriptionDate,
   isSubscriptionRowFlagged,
   resolveSubscriptionRowStatus,
 } from "@/lib/subscriptions-index";
@@ -37,7 +39,7 @@ function resolveBatchCleanupReason(filterKey: SubscriptionSummaryFilterKey): Fee
 }
 
 export function SubscriptionsIndexPage() {
-  const { t } = useTranslation("subscriptions");
+  const { t, i18n } = useTranslation("subscriptions");
   const { t: tr } = useTranslation("reader");
   const { t: tCleanup } = useTranslation("cleanup");
   const { t: tc } = useTranslation("common");
@@ -62,7 +64,7 @@ export function SubscriptionsIndexPage() {
         feeds,
         folders,
         articles: accountArticles,
-        now: new Date(),
+        now: getCurrentDate(),
         hiddenFeedIds: new Set(),
       }),
     [accountArticles, feeds, folders],
@@ -305,9 +307,10 @@ export function SubscriptionsIndexPage() {
         formatUnreadCountLabel={(count) => t("meta_unread_count", { count })}
         formatLatestArticleLabel={(value) =>
           value
-            ? t("meta_latest_article", { date: new Date(value).toLocaleDateString() })
+            ? t("meta_latest_article", { date: formatSubscriptionDate(value, i18n.language) })
             : t("meta_latest_article_none")
         }
+        dateLocale={i18n.language}
         folderLabel={tCleanup("folder")}
         listScrollTop={listScrollTop}
         latestArticleLabel={tCleanup("latest_article")}

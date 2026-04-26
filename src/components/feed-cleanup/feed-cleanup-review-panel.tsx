@@ -1,22 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { SurfaceCard } from "@/components/shared/surface-card";
-import { buildCleanupReasonFacts } from "@/lib/feed-cleanup";
+import { buildCleanupReasonFacts, formatFeedCleanupDate, formatFeedCleanupRecentArticleDate } from "@/lib/feed-cleanup";
 import { cn } from "@/lib/utils";
 import type { FeedCleanupReviewPanelProps } from "./feed-cleanup.types";
 import { FeedCleanupCard, FeedCleanupDetailRow } from "./feed-cleanup-card";
-
-function formatDate(value: string | null, locale: string): string {
-  if (!value) {
-    return "—";
-  }
-
-  return new Date(value).toLocaleDateString(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 export function FeedCleanupReviewPanel({
   reviewLabel,
@@ -86,7 +74,7 @@ export function FeedCleanupReviewPanel({
                   />
                   <FeedCleanupDetailRow
                     label={integrityDetailLabels.latest_published_at}
-                    value={formatDate(selectedIntegrityIssue.latest_article_published_at, dateLocale)}
+                    value={formatFeedCleanupDate(selectedIntegrityIssue.latest_article_published_at, dateLocale)}
                   />
                 </dl>
               </div>
@@ -125,7 +113,10 @@ export function FeedCleanupReviewPanel({
               }}
               metrics={[
                 { label: folderLabel, value: selectedCandidate.folderName ?? "—" },
-                { label: latestArticleLabel, value: formatDate(selectedCandidate.latestArticleAt, dateLocale) },
+                {
+                  label: latestArticleLabel,
+                  value: formatFeedCleanupDate(selectedCandidate.latestArticleAt, dateLocale),
+                },
                 { label: unreadCountLabel, value: selectedCandidate.unreadCount },
                 { label: starredCountLabel, value: selectedCandidate.starredCount },
               ]}
@@ -134,7 +125,7 @@ export function FeedCleanupReviewPanel({
               recentArticles={selectedMetrics.previewArticles.map((article) => ({
                 id: article.id,
                 title: article.title,
-                publishedAt: new Date(article.published_at).toLocaleDateString(dateLocale),
+                publishedAt: formatFeedCleanupRecentArticleDate(article.published_at, dateLocale),
                 url: article.url,
               }))}
               primaryAction={{

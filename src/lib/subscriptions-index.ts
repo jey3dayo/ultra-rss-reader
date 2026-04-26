@@ -3,6 +3,7 @@ import type {
   SubscriptionListGroup,
   SubscriptionListRow,
 } from "@/components/subscriptions-index/subscriptions-index.types";
+import { formatMediumDate } from "@/lib/datetime";
 import type { FeedCleanupCandidate } from "@/lib/feed-cleanup";
 import { summarizeCleanupCandidate } from "@/lib/feed-cleanup";
 
@@ -107,4 +108,8 @@ export function buildSubscriptionDetailMetrics({ feed, articles }: { feed: FeedD
     starredCount: feedArticles.filter((article) => article.is_starred).length,
     previewArticles,
   };
+}
+
+export function formatSubscriptionDate(value: string | null | undefined, locale?: string): string {
+  return formatMediumDate(value, locale) ?? "—";
 }

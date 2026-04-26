@@ -3,6 +3,7 @@ import { DecisionButton } from "@/components/shared/decision-button";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { SurfaceCard } from "@/components/shared/surface-card";
+import { formatSubscriptionDate } from "@/lib/subscriptions-index";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
@@ -24,6 +25,7 @@ export function SubscriptionDetailPane({
   recentArticlesHeading,
   displayModeLabel,
   displayModeValue,
+  dateLocale,
   decisionActions,
 }: {
   heading: string;
@@ -40,6 +42,7 @@ export function SubscriptionDetailPane({
   recentArticlesHeading: string;
   displayModeLabel: string;
   displayModeValue: string;
+  dateLocale: string;
   decisionActions: {
     keepLabel: string;
     deferLabel: string;
@@ -92,7 +95,7 @@ export function SubscriptionDetailPane({
                 { label: folderLabel, value: row.folderName ?? "—" },
                 {
                   label: latestArticleLabel,
-                  value: metrics.latestArticleAt ? new Date(metrics.latestArticleAt).toLocaleDateString() : "—",
+                  value: formatSubscriptionDate(metrics.latestArticleAt, dateLocale),
                 },
                 { label: unreadCountLabel, value: row.feed.unread_count },
                 { label: starredCountLabel, value: metrics.starredCount },
@@ -103,7 +106,7 @@ export function SubscriptionDetailPane({
               recentArticles={metrics.previewArticles.map((article) => ({
                 id: article.id,
                 title: article.title,
-                publishedAt: new Date(article.published_at).toLocaleDateString(),
+                publishedAt: formatSubscriptionDate(article.published_at, dateLocale),
                 url: article.url,
               }))}
             />

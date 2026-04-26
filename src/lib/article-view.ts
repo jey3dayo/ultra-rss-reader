@@ -1,5 +1,6 @@
 import { Result } from "@praha/byethrow";
 import type { ArticleDto } from "@/api/tauri-commands";
+import { formatMediumDate } from "@/lib/datetime";
 
 export type FindSelectedArticleParams = {
   selectedArticleId: string | null;
@@ -109,4 +110,8 @@ export function formatArticleDate(dateStr: string, locale = "en-US"): string {
       minute: "2-digit",
     })
   );
+}
+
+export function formatArticleSummaryDate(value: string | null | undefined, locale: string): string {
+  return formatMediumDate(value, locale) ?? "—";
 }
