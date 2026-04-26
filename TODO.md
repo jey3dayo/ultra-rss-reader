@@ -2,6 +2,14 @@
 
 完了済みの項目は `CHANGELOG.md` を参照し、このファイルには未完了タスクだけを残す。
 
+## 開発データ運用
+
+- [ ] デバッグ画面から本番相当データを Dev 環境へ安全に同期する導線を検討する
+  - 本番アプリでは表示せず、Dev 起動時だけ利用できるようにする
+  - SQLite 接続中の DB を直接置き換えないよう、Dev 側 DB のバックアップ、アプリ終了、コピー、再起動まで含めた安全なフローにする
+  - Windows と macOS の app data パス差、`ultra-rss-reader.db` / `-wal` / `-shm` の扱い、OS Keyring と Dev file credentials の差を考慮する
+  - まずは `mise run app:dev:seed-from-prod` のような手動コマンドで安全性を固めてから、デバッグ画面ボタンへ接続する
+
 ## UI/UX 監査の残り
 
 - [ ] `Debug HUD` の collision handling を見直す
