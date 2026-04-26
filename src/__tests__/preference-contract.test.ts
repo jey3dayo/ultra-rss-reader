@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import frontendSource from "@/stores/preferences-store.ts?raw";
+import frontendSource from "@/stores/preferences-schema.ts?raw";
 import backendSource from "../../src-tauri/src/commands/preference_commands.rs?raw";
 
 function extractBlock(source: string, pattern: RegExp, label: string): string {
@@ -11,11 +11,7 @@ function extractBlock(source: string, pattern: RegExp, label: string): string {
 }
 
 function extractFrontendPreferenceKeys(source: string): string[] {
-  const block = extractBlock(
-    source,
-    /const preferenceSchemas = \{([\s\S]*?)\} as const;/,
-    "frontend preferenceSchemas block",
-  );
+  const block = extractBlock(source, /const preferenceSchemas = \{([\s\S]*?)\};/, "frontend preferenceSchemas block");
 
   return [...block.matchAll(/^\s*([a-z_]+):/gm)].map((match) => match[1]);
 }

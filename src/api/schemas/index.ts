@@ -1,6 +1,7 @@
 export { type AccountDto, AccountDtoSchema } from "./account";
 export { type AccountSyncStatusDto, AccountSyncStatusSchema } from "./account-sync-status";
 export { type ArticleDto, ArticleDtoSchema } from "./article";
+export { type BrowserWebviewState, BrowserWebviewStateSchema } from "./browser-webview";
 export {
   addAccountArgs,
   addLocalFeedArgs,
@@ -70,6 +71,7 @@ export {
   type PlatformInfo,
   PlatformInfoSchema,
 } from "./platform-info";
+export { NullableStarredArticlesSchema, NullableStarredCountSchema } from "./starred-articles";
 export {
   type AccountSyncError,
   type AccountSyncWarning,

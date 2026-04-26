@@ -14,6 +14,8 @@ import {
   addAccountArgs,
   addLocalFeedArgs,
   addToReadingListArgs,
+  type BrowserWebviewState,
+  BrowserWebviewStateSchema,
   checkBrowserEmbedSupportArgs,
   copyToClipboardArgs,
   countAccountStarredArticlesArgs,
@@ -55,6 +57,8 @@ import {
   markArticlesReadArgs,
   markFeedReadArgs,
   markFolderReadArgs,
+  NullableStarredArticlesSchema,
+  NullableStarredCountSchema,
   openInBrowserArgs,
   type PlatformInfo,
   PlatformInfoSchema,
@@ -85,30 +89,13 @@ import {
 } from "@/api/schemas";
 import type { BrowserWebviewBounds } from "@/lib/browser-webview";
 
-const BrowserWebviewStateSchema = z.object({
-  url: z.string(),
-  can_go_back: z.boolean(),
-  can_go_forward: z.boolean(),
-  is_loading: z.boolean(),
-});
-const NullableStarredArticlesSchema = z
-  .array(ArticleDtoSchema)
-  .nullable()
-  .transform((value) => value ?? []);
-const NullableStarredCountSchema = z
-  .number()
-  .int()
-  .nullable()
-  .transform((value) => value ?? 0);
-
-export type BrowserWebviewState = z.infer<typeof BrowserWebviewStateSchema>;
-
 // Re-export types so existing consumers don't break
 export type {
   AccountDto,
   AccountSyncStatusDto,
   AppError,
   ArticleDto,
+  BrowserWebviewState,
   DatabaseInfoDto,
   DevRuntimeOptions,
   DiscoveredFeedDto,
