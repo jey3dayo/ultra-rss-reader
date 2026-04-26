@@ -538,6 +538,33 @@ describe("ArticleList", () => {
     });
   });
 
+  it("navigates articles with arrow keys from a focused list option", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().setViewMode("all");
+    useUiStore.getState().selectArticle("art-1");
+
+    render(<ArticleList />, { wrapper: createWrapper() });
+
+    const firstOption = await screen.findByRole("option", { name: /First Article/ });
+    firstOption.focus();
+    expect(firstOption).toHaveFocus();
+
+    fireEvent.keyDown(firstOption, { key: "ArrowDown" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("art-2");
+      expect(screen.getByRole("option", { name: /Second Article/ })).toHaveFocus();
+    });
+
+    fireEvent.keyDown(screen.getByRole("option", { name: /Second Article/ }), { key: "ArrowUp" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("art-1");
+      expect(screen.getByRole("option", { name: /First Article/ })).toHaveFocus();
+    });
+  });
+
   it("focuses the first article row and opens it with Enter when the list pane becomes active", async () => {
     const user = userEvent.setup();
 

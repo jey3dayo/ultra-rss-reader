@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
+import { ArticleList } from "@/components/reader/article-list";
 import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
 import * as articleHooks from "@/hooks/use-articles";
@@ -1153,6 +1154,110 @@ describe("Sidebar", () => {
 
     await waitFor(() => {
       expect(betaFeed).toHaveFocus();
+    });
+  });
+
+  it("moves the selected subscription with arrow keys from a focused feed row", async () => {
+    const user = userEvent.setup();
+
+    usePreferencesStore.setState({
+      prefs: { open_first_article_on_feed_selection: "true" },
+      loaded: true,
+    });
+
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], id: "feed-1", title: "Alpha Feed", folder_id: "folder-1", unread_count: 4 },
+            { ...sampleFeeds[1], id: "feed-2", title: "Beta Feed", folder_id: "folder-1", unread_count: 2 },
+          ];
+        case "list_articles":
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              resolve([
+                {
+                  id: `${args.feedId}-art-1`,
+                  feed_id: args.feedId,
+                  title: `${args.feedId} Article`,
+                  content_sanitized: "<p>hello</p>",
+                  summary: "hello",
+                  url: `https://example.com/${args.feedId}`,
+                  author: null,
+                  published_at: "2026-04-24T00:00:00Z",
+                  thumbnail: null,
+                  is_read: false,
+                  is_starred: false,
+                },
+              ]);
+            }, 20);
+          });
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return [];
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      viewMode: "all",
+      expandedFolderIds: new Set(["folder-1"]),
+    });
+
+    render(
+      <>
+        <Sidebar />
+        <ArticleList />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    await screen.findByText("Alpha Feed");
+    const alphaFeed = document.querySelector('[data-feed-id="feed-1"]') as HTMLButtonElement | null;
+    expect(alphaFeed).not.toBeNull();
+    if (!alphaFeed) {
+      throw new Error("Expected feed button for feed-1");
+    }
+    await user.click(alphaFeed);
+    expect(alphaFeed).toHaveFocus();
+
+    fireEvent.keyDown(alphaFeed, { key: "ArrowDown" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-2" });
+    });
+
+    const betaFeed = document.querySelector('[data-feed-id="feed-2"]') as HTMLButtonElement | null;
+    expect(betaFeed).not.toBeNull();
+    if (!betaFeed) {
+      throw new Error("Expected feed button for feed-2");
+    }
+
+    await waitFor(() => {
+      expect(betaFeed).toHaveFocus();
+    });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("feed-2-art-1");
+      expect(betaFeed).toHaveFocus();
+    });
+
+    fireEvent.keyDown(betaFeed, { key: "ArrowUp" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-1" });
+      expect(alphaFeed).toHaveFocus();
     });
   });
 

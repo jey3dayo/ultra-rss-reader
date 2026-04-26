@@ -20,6 +20,21 @@ export function useArticleListKeydownHandler({
         return;
       }
 
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const direction = event.key === "ArrowDown" ? 1 : -1;
+        emitDebugInputTrace(`list-key ${event.key} -> navigate-article`);
+        handleArticleListKeyboardAction({
+          action: { type: "navigate-article", direction },
+          clearArticle,
+          toggleSidebar,
+          openSidebar,
+        });
+        return;
+      }
+
       const action = resolveKeyboardAction({
         key: event.key,
         metaKey: event.metaKey,
