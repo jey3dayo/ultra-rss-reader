@@ -1,6 +1,6 @@
 import { ContextMenu } from "@base-ui/react/context-menu";
 import { GripVertical } from "lucide-react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
@@ -55,6 +55,7 @@ export function FeedTreeRow({
   feed,
   displayFavicons,
   onSelectFeed,
+  onMarkFeedRead,
   renderFeedContextMenu,
   canDragFeeds,
   isDragged = false,
@@ -66,6 +67,14 @@ export function FeedTreeRow({
   const rowStyle = {
     "--feed-tree-rail-offset": tokens.treeRailOffset,
   } as CSSProperties;
+  const handleAuxClick = (event: ReactMouseEvent<HTMLElement>) => {
+    if (event.button !== 1) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    onMarkFeedRead?.(feed);
+  };
 
   return (
     <FeedTreeSelectableRow
@@ -107,6 +116,7 @@ export function FeedTreeRow({
             />
           }
           onClick={() => onSelectFeed(feed.id)}
+          onAuxClick={handleAuxClick}
         >
           {displayFavicons && (
             <span className="flex h-5 w-5 shrink-0 items-center justify-center">

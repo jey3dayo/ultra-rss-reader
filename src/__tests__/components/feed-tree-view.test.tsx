@@ -13,6 +13,7 @@ describe("FeedTreeView", () => {
     const user = userEvent.setup();
     const onToggleFolder = vi.fn();
     const onSelectFeed = vi.fn();
+    const onMarkFeedRead = vi.fn();
     const renderFeedContextMenu = vi.fn(() => <div />);
 
     render(
@@ -62,6 +63,7 @@ describe("FeedTreeView", () => {
         ]}
         onToggleFolder={onToggleFolder}
         onSelectFeed={onSelectFeed}
+        onMarkFeedRead={onMarkFeedRead}
         displayFavicons={false}
         emptyState={{ kind: "message", message: "No feeds yet" }}
         renderFolderContextMenu={() => <div />}
@@ -85,10 +87,12 @@ describe("FeedTreeView", () => {
     await user.click(screen.getByRole("button", { name: "Toggle folder Work" }));
     await user.click(screen.getByRole("button", { name: /Alpha/ }));
     await user.click(screen.getByRole("button", { name: /Beta/ }));
+    fireEvent(screen.getByRole("button", { name: /Alpha/ }), new MouseEvent("auxclick", { bubbles: true, button: 1 }));
 
     expect(onToggleFolder).toHaveBeenCalledWith("folder-1");
     expect(onSelectFeed).toHaveBeenNthCalledWith(1, "feed-1");
     expect(onSelectFeed).toHaveBeenNthCalledWith(2, "feed-2");
+    expect(onMarkFeedRead).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-1", unreadCount: 4 }));
     expect(renderFeedContextMenu).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-1", folderId: "folder-1" }));
     expect(renderFeedContextMenu).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-2", folderId: null }));
   });

@@ -1,4 +1,6 @@
 import { useCallback, useMemo } from "react";
+import { useMarkFeedRead } from "@/hooks/use-articles";
+import { useConfirmMarkAllRead } from "@/hooks/use-confirm-mark-all-read";
 import { useFeedLanding } from "@/hooks/use-feed-landing";
 import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import type { SidebarFeedSectionParams, SidebarFeedSectionResult } from "./sidebar-feed-section.types";
@@ -39,6 +41,8 @@ export function useSidebarFeedSectionController({
   renderFeedContextMenu,
 }: SidebarFeedSectionParams): SidebarFeedSectionResult {
   const openFeedLanding = useFeedLanding();
+  const confirmMarkAllRead = useConfirmMarkAllRead();
+  const { mutate: markFeedRead } = useMarkFeedRead();
   const openFirstArticleOnFeedSelection =
     usePreferencesStore((state) => resolvePreferenceValue(state.prefs, "open_first_article_on_feed_selection")) ===
     "true";
@@ -86,6 +90,15 @@ export function useSidebarFeedSectionController({
     },
     [openFeedLanding, openFirstArticleOnFeedSelection, selectFeed],
   );
+  const handleMarkFeedRead = useCallback(
+    (feed: { id: string; unreadCount: number }) => {
+      confirmMarkAllRead({
+        count: feed.unreadCount,
+        onConfirm: () => markFeedRead(feed.id),
+      });
+    },
+    [confirmMarkAllRead, markFeedRead],
+  );
 
   useSidebarStartupFolderExpansion({
     selectedAccountId,
@@ -130,6 +143,7 @@ export function useSidebarFeedSectionController({
     toggleFolder,
     selectFolder,
     selectFeed: handleSelectFeed,
+    markFeedRead: handleMarkFeedRead,
     displayFavicons,
     sidebarDensity,
     canDragFeeds,

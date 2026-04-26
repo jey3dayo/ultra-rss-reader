@@ -11,7 +11,12 @@ import { resetManualSyncCooldownForTests } from "@/lib/manual-sync";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
-import { sampleAccounts, sampleFeeds, setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
+import {
+  type MockTauriCommandCall,
+  sampleAccounts,
+  sampleFeeds,
+  setupTauriMocks,
+} from "../../../tests/helpers/tauri-mocks";
 
 const { devIntentState } = vi.hoisted(() => ({
   devIntentState: {
@@ -565,6 +570,33 @@ describe("Sidebar", () => {
 
     expect(scrollArea).toHaveClass("flex-1");
     expect(scrollArea).toHaveClass("min-h-0");
+  });
+
+  it("marks a subscription feed read from middle click", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    setupTauriMocks((cmd, args) => {
+      calls.push({ cmd, args });
+      return undefined;
+    });
+    usePreferencesStore.setState({ prefs: { ask_before_mark_all: "false" }, loaded: true });
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    fireEvent(
+      await screen.findByRole("button", { name: /Tech Blog/ }),
+      new MouseEvent("auxclick", { bubbles: true, button: 1 }),
+    );
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "mark_feed_read",
+        args: { feedId: "feed-1" },
+      });
+    });
   });
 
   it("preserves folder_id when opening feed context menus for folder-backed feeds", async () => {

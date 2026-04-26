@@ -8,6 +8,7 @@ export function FeedTreeUnfolderedSection({
   unfolderedFeeds,
   unfolderedLabel,
   onSelectFeed,
+  onMarkFeedRead,
   displayFavicons,
   renderFeedContextMenu,
   canDragFeeds,
@@ -42,6 +43,7 @@ export function FeedTreeUnfolderedSection({
             feed={feed}
             displayFavicons={displayFavicons}
             onSelectFeed={onSelectFeed}
+            onMarkFeedRead={onMarkFeedRead}
             renderFeedContextMenu={renderFeedContextMenu}
             canDragFeeds={canDragFeeds}
             isDragged={normalizedDraggedFeedId === feed.id}

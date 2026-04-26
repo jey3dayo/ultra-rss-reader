@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { FeedTreeFeedViewModel } from "@/components/reader/feed-tree.types";
 import { FeedTreeRow } from "@/components/reader/feed-tree-row";
@@ -77,6 +77,26 @@ describe("FeedTreeRow", () => {
 
     expect(screen.getByText("Alpha")).toHaveClass("font-medium");
     expect(screen.getByText("4")).toHaveClass("text-[0.72rem]", "text-sidebar-foreground/52");
+  });
+
+  it("marks the feed read on middle click without selecting it", () => {
+    const onSelectFeed = vi.fn();
+    const onMarkFeedRead = vi.fn();
+
+    render(
+      <FeedTreeRow
+        feed={{ ...baseFeed, isSelected: false }}
+        displayFavicons={false}
+        onSelectFeed={onSelectFeed}
+        onMarkFeedRead={onMarkFeedRead}
+        canDragFeeds={false}
+      />,
+    );
+
+    fireEvent(screen.getByRole("button", { name: /Alpha/ }), new MouseEvent("auxclick", { bubbles: true, button: 1 }));
+
+    expect(onMarkFeedRead).toHaveBeenCalledWith(expect.objectContaining({ id: "feed-1", unreadCount: 4 }));
+    expect(onSelectFeed).not.toHaveBeenCalled();
   });
 
   it("shows the drag handle only on row hover or its own focus-visible state", () => {
