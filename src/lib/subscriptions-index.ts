@@ -3,7 +3,7 @@ import type {
   SubscriptionListGroup,
   SubscriptionListRow,
 } from "@/components/subscriptions-index/subscriptions-index.types";
-import { formatMediumDate } from "@/lib/datetime";
+import { compareDateInputsAsc, formatMediumDate } from "@/lib/datetime";
 import type { FeedCleanupCandidate } from "@/lib/feed-cleanup";
 import { summarizeCleanupCandidate } from "@/lib/feed-cleanup";
 
@@ -100,7 +100,7 @@ export function buildSubscriptionDetailMetrics({ feed, articles }: { feed: FeedD
 } {
   const feedArticles = articles.filter((article) => article.feed_id === feed.id);
   const previewArticles = [...feedArticles]
-    .sort((left, right) => new Date(right.published_at).getTime() - new Date(left.published_at).getTime())
+    .sort((left, right) => compareDateInputsAsc(right.published_at, left.published_at))
     .slice(0, 3);
 
   return {

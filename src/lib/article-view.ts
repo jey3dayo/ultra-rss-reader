@@ -1,6 +1,6 @@
 import { Result } from "@praha/byethrow";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { formatMediumDate } from "@/lib/datetime";
+import { formatMediumDate, getDateInputTimeMs, parseDateInput } from "@/lib/datetime";
 
 export type FindSelectedArticleParams = {
   selectedArticleId: string | null;
@@ -40,14 +40,14 @@ export function findLatestArticle(articles: ArticleDto[] | undefined): ArticleDt
       return candidate;
     }
 
-    const latestTime = new Date(latest.published_at).getTime();
-    const candidateTime = new Date(candidate.published_at).getTime();
+    const latestTime = getDateInputTimeMs(latest.published_at);
+    const candidateTime = getDateInputTimeMs(candidate.published_at);
 
-    if (Number.isNaN(latestTime)) {
+    if (latestTime === null) {
       return candidate;
     }
 
-    if (Number.isNaN(candidateTime)) {
+    if (candidateTime === null) {
       return latest;
     }
 
@@ -78,8 +78,8 @@ export function resolveArticleDateLocale(locale: string | undefined): string {
 }
 
 export function formatArticleDate(dateStr: string, locale = "en-US"): string {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) {
+  const date = parseDateInput(dateStr);
+  if (date === null) {
     return dateStr;
   }
 

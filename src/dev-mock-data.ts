@@ -4,10 +4,14 @@
  */
 
 import type { AccountDto, ArticleDto, FeedDto, FolderDto, TagDto } from "./api/tauri-commands";
+import { addLocalDays, createLocalDateTime, getCurrentDate, toIsoTimestamp } from "./lib/datetime";
 
-const now = new Date();
-const yesterday = new Date(now);
-yesterday.setDate(yesterday.getDate() - 1);
+const now = getCurrentDate();
+const yesterday = addLocalDays(now, -1);
+
+function mockArticlePublishedAt(baseDate: Date, hours: number, minutes: number): string {
+  return toIsoTimestamp(createLocalDateTime(baseDate, hours, minutes));
+}
 
 export const mockAccounts: AccountDto[] = [
   {
@@ -175,7 +179,7 @@ export const mockArticles: ArticleDto[] = [
       "Housemarque開発の高難度3D弾幕ローグライトシューター『SAROS』のクリエイティブディレクターへのインタビュー。弾幕ゲームとしてのこだわりを語る。",
     url: "https://automaton-media.com/articles/interviewsjp/saros-interview/",
     author: "TAKAYUKI SAWAHATA",
-    published_at: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 7).toISOString(),
+    published_at: mockArticlePublishedAt(now, 9, 7),
     thumbnail: "https://images.unsplash.com/photo-1614732414444-096e5f1122d5?w=400&h=300&fit=crop",
     is_read: false,
     is_starred: false,
@@ -189,7 +193,7 @@ export const mockArticles: ArticleDto[] = [
     summary: "人気海上街づくりサバイバルシム『Havendock』がEpic Gamesストアにて3月28日まで無料配布中。",
     url: "https://automaton-media.com/articles/newsjp/havendock-free/",
     author: "AUTOMATON編集部",
-    published_at: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 30).toISOString(),
+    published_at: mockArticlePublishedAt(now, 8, 30),
     thumbnail: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop",
     is_read: false,
     is_starred: false,
@@ -203,7 +207,7 @@ export const mockArticles: ArticleDto[] = [
     summary: "『紅の砂漠』で木を使った意外な攻略法が話題に。丸太を持つだけでボスを一撃で倒せる。",
     url: "https://automaton-media.com/articles/newsjp/crimson-desert-tree/",
     author: "AUTOMATON編集部",
-    published_at: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 18, 24).toISOString(),
+    published_at: mockArticlePublishedAt(yesterday, 18, 24),
     thumbnail: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=400&h=300&fit=crop",
     is_read: false,
     is_starred: false,
@@ -218,7 +222,7 @@ export const mockArticles: ArticleDto[] = [
       "PostgreSQL 18ベータ版がリリース。仮想生成カラムやJSONパス機能など多くの新機能とパフォーマンス改善を含む。",
     url: "https://www.publickey1.jp/blog/26/postgresql_18.html",
     author: "Publickey編集部",
-    published_at: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 10, 0).toISOString(),
+    published_at: mockArticlePublishedAt(yesterday, 10, 0),
     thumbnail: "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=400&h=300&fit=crop",
     is_read: false,
     is_starred: true,
@@ -232,7 +236,7 @@ export const mockArticles: ArticleDto[] = [
     summary: "生成AIプロジェクト向け技術書の著者が、AIを使ったプレゼン資料作成のコツを紹介。",
     url: "https://qiita.com/yamazombie/items/example",
     author: "@yamazombie",
-    published_at: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 16, 8).toISOString(),
+    published_at: mockArticlePublishedAt(now, 16, 8),
     thumbnail: null,
     is_read: true,
     is_starred: false,
@@ -245,7 +249,7 @@ export const mockArticles: ArticleDto[] = [
     summary: "選挙期間中の競馬広告について。「ほとんどの方が馬券外れている」という指摘。",
     url: "https://example.com/keiba",
     author: null,
-    published_at: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 15, 56).toISOString(),
+    published_at: mockArticlePublishedAt(now, 15, 56),
     thumbnail: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop",
     is_read: true,
     is_starred: false,
@@ -258,7 +262,7 @@ export const mockArticles: ArticleDto[] = [
     summary: "26日午前、岩手県で震度4の地震。津波被害の心配なし。",
     url: "https://www3.nhk.or.jp/news/html/example.html",
     author: "NHK",
-    published_at: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11, 30).toISOString(),
+    published_at: mockArticlePublishedAt(now, 11, 30),
     thumbnail: null,
     is_read: false,
     is_starred: false,
@@ -273,7 +277,7 @@ export const mockArticles: ArticleDto[] = [
       "Claude 4.5 Sonnetの新機能まとめ。コンテキストウィンドウ拡張、コーディング能力改善、マルチモーダル理解の向上。",
     url: "https://note.com/npaka/n/example",
     author: "npaka",
-    published_at: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 14, 0).toISOString(),
+    published_at: mockArticlePublishedAt(yesterday, 14, 0),
     thumbnail: null,
     is_read: false,
     is_starred: true,

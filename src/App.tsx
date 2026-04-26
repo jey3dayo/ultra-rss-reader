@@ -8,6 +8,7 @@ import { STORAGE_KEYS } from "./constants/storage";
 import { APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS, STARTUP_SYNC_THROTTLE_MS } from "./constants/ui-runtime";
 import { useDevIntent } from "./hooks/use-dev-intent";
 import { useResolvedDevIntent } from "./hooks/use-resolved-dev-intent";
+import { getCurrentTimeMs } from "./lib/datetime";
 import { queryClient } from "./lib/query-client";
 import { attachTauriListeners } from "./lib/tauri-event-listeners";
 import { usePreferencesStore } from "./stores/preferences-store";
@@ -29,12 +30,12 @@ function getLastStartupSyncTriggeredAt(): number | null {
 
 function shouldThrottleStartupSync(): boolean {
   const lastTriggeredAt = getLastStartupSyncTriggeredAt();
-  return lastTriggeredAt != null && Date.now() - lastTriggeredAt < STARTUP_SYNC_THROTTLE_MS;
+  return lastTriggeredAt != null && getCurrentTimeMs() - lastTriggeredAt < STARTUP_SYNC_THROTTLE_MS;
 }
 
 function markStartupSyncTriggered(): void {
   try {
-    window.localStorage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, String(Date.now()));
+    window.localStorage.setItem(STORAGE_KEYS.startupSyncLastTriggeredAt, String(getCurrentTimeMs()));
   } catch {
     // Ignore storage failures and fall back to process-local guarding only.
   }
@@ -78,11 +79,11 @@ function AppInner() {
   const lastHiddenAt = useRef<number>(0);
   const handleVisibilityChange = useCallback(() => {
     if (document.hidden) {
-      lastHiddenAt.current = Date.now();
+      lastHiddenAt.current = getCurrentTimeMs();
       return;
     }
     // Only trigger if hidden for more than 30 seconds (likely sleep, not tab switch)
-    const hiddenDuration = Date.now() - lastHiddenAt.current;
+    const hiddenDuration = getCurrentTimeMs() - lastHiddenAt.current;
     if (hiddenDuration < APP_HIDDEN_DURATION_SYNC_THRESHOLD_MS) return;
 
     listAccounts().then((result) =>

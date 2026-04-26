@@ -56,6 +56,7 @@ import type {
   TagDto,
 } from "./api/tauri-commands";
 import { mockAccounts, mockArticles, mockArticleTags, mockFeeds, mockFolders, mockTags } from "./dev-mock-data";
+import { addHours, getCurrentDate, getCurrentIsoTimestamp, toIsoTimestamp } from "./lib/datetime";
 import { readDevIntent, readDevWebUrl, readDevWindowSize } from "./lib/dev-intent";
 import { DEV_SCENARIO_ID } from "./lib/dev-scenario-ids";
 
@@ -255,10 +256,8 @@ export function setupDevMocks() {
         };
         mockFeeds.push(feed);
         // Generate sample articles for the new feed
-        const now = new Date();
+        const now = getCurrentDate();
         for (let i = 0; i < 3; i++) {
-          const pubDate = new Date(now);
-          pubDate.setHours(pubDate.getHours() - i);
           mockArticles.push({
             id: `${feedId}-art-${i}`,
             feed_id: feedId,
@@ -267,7 +266,7 @@ export function setupDevMocks() {
             summary: `Sample summary for article ${i + 1}`,
             url: `${url}#article-${i}`,
             author: null,
-            published_at: pubDate.toISOString(),
+            published_at: toIsoTimestamp(addHours(now, -i)),
             thumbnail: null,
             is_read: false,
             is_starred: false,
@@ -324,7 +323,7 @@ export function setupDevMocks() {
           throw { type: "UserVisible", message: "Mute keyword already exists" };
         }
 
-        const now = new Date().toISOString();
+        const now = getCurrentIsoTimestamp();
         const rule: MuteKeywordDto = {
           id: `dev-mute-${nextMuteKeywordId++}`,
           keyword: keyword.trim(),
@@ -352,7 +351,7 @@ export function setupDevMocks() {
           throw { type: "UserVisible", message: "Mute keyword already exists" };
         }
         rule.scope = scope;
-        rule.updated_at = new Date().toISOString();
+        rule.updated_at = getCurrentIsoTimestamp();
         return rule;
       }
 

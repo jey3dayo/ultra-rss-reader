@@ -1,5 +1,13 @@
 import { Result } from "@praha/byethrow";
 import type { ArticleDto } from "@/api/tauri-commands";
+import {
+  addLocalDays,
+  compareDateInputsAsc,
+  formatLocalHourMinute,
+  getCurrentDate,
+  getStartOfLocalDay,
+  parseDateInput,
+} from "@/lib/datetime";
 
 type ViewMode = "all" | "unread" | "starred";
 
@@ -38,13 +46,14 @@ export type CalculateArticleNavigationScrollTopParams = {
 };
 
 function getDateGroup(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
+  const date = parseDateInput(dateStr);
+  if (date === null) {
+    return dateStr;
+  }
 
-  const articleDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const today = getStartOfLocalDay(getCurrentDate());
+  const yesterday = addLocalDays(today, -1);
+  const articleDate = getStartOfLocalDay(date);
 
   if (articleDate.getTime() >= today.getTime()) return "TODAY";
   if (articleDate.getTime() >= yesterday.getTime()) return "YESTERDAY";
@@ -56,10 +65,7 @@ function getDateGroup(dateStr: string): string {
 }
 
 export function formatArticleTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  return `${hours}:${minutes}`;
+  return formatLocalHourMinute(dateStr) ?? dateStr;
 }
 
 function filterByFolderFeedIds(
@@ -142,7 +148,7 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
   }
 
   const direction = sortUnread === "oldest_first" ? 1 : -1;
-  list.sort((a, b) => (new Date(a.published_at).getTime() - new Date(b.published_at).getTime()) * direction);
+  list.sort((a, b) => compareDateInputsAsc(a.published_at, b.published_at) * direction);
   return list;
 }
 

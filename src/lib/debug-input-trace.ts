@@ -1,4 +1,5 @@
 import { APP_EVENTS } from "@/constants/events";
+import { formatDebugTimestamp } from "@/lib/datetime";
 
 export function emitDebugInputTrace(message: string): void {
   if (typeof window === "undefined") {
@@ -7,7 +8,7 @@ export function emitDebugInputTrace(message: string): void {
 
   window.dispatchEvent(
     new CustomEvent(APP_EVENTS.debugInputTrace, {
-      detail: `${new Date().toISOString().slice(11, 23)} ${message}`,
+      detail: `${formatDebugTimestamp()} ${message}`,
     }),
   );
 }

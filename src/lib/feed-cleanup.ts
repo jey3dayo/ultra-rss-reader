@@ -1,5 +1,11 @@
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
-import { formatMediumDate, formatShortDate } from "@/lib/datetime";
+import {
+  compareDateInputsAsc,
+  differenceInDays,
+  formatMediumDate,
+  formatShortDate,
+  parseDateInput,
+} from "@/lib/datetime";
 
 export type FeedCleanupReasonKey = "stale_90d" | "no_unread" | "no_stars";
 export type FeedCleanupTone = "high" | "medium" | "low";
@@ -135,13 +141,11 @@ export function buildFeedCleanupCandidates({
         if (!latest) {
           return article.published_at;
         }
-        return new Date(article.published_at).getTime() > new Date(latest).getTime() ? article.published_at : latest;
+        return compareDateInputsAsc(article.published_at, latest) > 0 ? article.published_at : latest;
       }, null);
 
-      const staleDays =
-        latestArticleAt == null
-          ? null
-          : Math.floor((now.getTime() - new Date(latestArticleAt).getTime()) / (1000 * 60 * 60 * 24));
+      const latestArticleDate = parseDateInput(latestArticleAt);
+      const staleDays = latestArticleDate === null ? null : differenceInDays(now, latestArticleDate);
       const starredCount = feedArticles.filter((article) => article.is_starred).length;
       const reasonKeys: FeedCleanupReasonKey[] = [];
 

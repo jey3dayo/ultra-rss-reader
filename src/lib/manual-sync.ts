@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { SyncResultDto } from "@/api/schemas";
 import { type AppError, triggerSync } from "@/api/tauri-commands";
+import { getCurrentTimeMs } from "@/lib/datetime";
 
 const MANUAL_SYNC_COOLDOWN_MS = 15_000;
 
@@ -22,7 +23,7 @@ function setManualSyncCooldownUntil(nextCooldownUntil: number) {
     manualSyncCooldownTimer = null;
   }
 
-  const remainingMs = Math.max(nextCooldownUntil - Date.now(), 0);
+  const remainingMs = Math.max(nextCooldownUntil - getCurrentTimeMs(), 0);
   if (remainingMs === 0) {
     emitManualSyncCooldownChanged();
     return;
@@ -49,7 +50,7 @@ export function subscribeManualSyncCooldown(listener: () => void) {
 }
 
 export function isManualSyncCoolingDown() {
-  return manualSyncCooldownUntil > Date.now();
+  return manualSyncCooldownUntil > getCurrentTimeMs();
 }
 
 type TriggerManualSyncWithCooldownParams = {
@@ -72,7 +73,7 @@ export async function triggerManualSyncWithCooldown({
 
   onRequestStart?.();
   const result = await triggerSync();
-  setManualSyncCooldownUntil(Date.now() + MANUAL_SYNC_COOLDOWN_MS);
+  setManualSyncCooldownUntil(getCurrentTimeMs() + MANUAL_SYNC_COOLDOWN_MS);
 
   Result.pipe(result, Result.inspect(onSuccess), Result.inspectError(onError));
 }

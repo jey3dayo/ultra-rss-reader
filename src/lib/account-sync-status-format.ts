@@ -1,27 +1,11 @@
-function parseAccountSyncDateTime(value: string | undefined): Date | null {
-  if (!value) {
-    return null;
-  }
-
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
+import { formatHourMinute, getCurrentDate, isSameLocalDay, parseDateInput } from "@/lib/datetime";
 
 export function formatAccountSyncRetryTime(retryAt: string | undefined, language: string): string | null {
-  const date = parseAccountSyncDateTime(retryAt);
-  if (date === null) {
-    return null;
-  }
-
-  return date.toLocaleTimeString(language, {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  return formatHourMinute(retryAt, language);
 }
 
 export function formatAccountSyncRetryDateTime(retryAt: string | undefined, language: string): string | null {
-  const date = parseAccountSyncDateTime(retryAt);
+  const date = parseDateInput(retryAt);
   if (date === null) {
     return null;
   }
@@ -43,22 +27,14 @@ export function formatAccountLastSuccessLabel(
   time: string;
   isToday: boolean;
 } | null {
-  const date = parseAccountSyncDateTime(lastSuccessAt);
+  const date = parseDateInput(lastSuccessAt);
   if (date === null) {
     return null;
   }
 
-  const now = new Date();
-  const isToday =
-    date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
-
   return {
     date: date.toLocaleDateString(language, { month: "short", day: "numeric" }),
-    time: date.toLocaleTimeString(language, {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }),
-    isToday,
+    time: formatHourMinute(date, language) ?? "",
+    isToday: isSameLocalDay(date, getCurrentDate()),
   };
 }
