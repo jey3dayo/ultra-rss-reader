@@ -7,6 +7,7 @@ import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getOptionLabelByValue } from "@/lib/options";
 
 export type MuteSettingsScopeOption = {
   value: "title" | "body" | "title_and_body";
@@ -54,10 +55,6 @@ export type MuteSettingsViewProps = {
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
 };
-
-function getScopeLabel(options: readonly MuteSettingsScopeOption[], value: string) {
-  return options.find((option) => option.value === value)?.label ?? value;
-}
 
 export function MuteSettingsView({
   title,
@@ -118,7 +115,7 @@ export function MuteSettingsView({
               <Select value={scopeValue} onValueChange={(value) => value && onScopeChange(value as typeof scopeValue)}>
                 <SelectTrigger aria-label={scopeAriaLabel} className="h-10 w-full sm:w-[192px]">
                   <SelectValue>
-                    {(selectedValue: string | null) => getScopeLabel(scopeOptions, selectedValue ?? scopeValue)}
+                    {(selectedValue: string | null) => getOptionLabelByValue(scopeOptions, selectedValue ?? scopeValue)}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectPopup>
@@ -164,7 +161,9 @@ export function MuteSettingsView({
                   >
                     <SelectTrigger aria-label={savedScopeAriaLabel(rule.keyword)} className="h-10 w-full sm:flex-1">
                       <SelectValue>
-                        {(selectedValue: string | null) => getScopeLabel(scopeOptions, selectedValue ?? rule.scope)}
+                        {(selectedValue: string | null) =>
+                          getOptionLabelByValue(scopeOptions, selectedValue ?? rule.scope)
+                        }
                       </SelectValue>
                     </SelectTrigger>
                     <SelectPopup>
