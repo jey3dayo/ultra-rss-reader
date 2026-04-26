@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
 import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
+import { buildSidebarSmartViews } from "@/lib/sidebar-smart-views";
 
 const makeFeed = (overrides: Partial<FeedDto> & { id: string }): FeedDto => ({
   account_id: "acc-1",
@@ -71,5 +72,47 @@ describe("sortFeedsByPreference", () => {
 
   it("keeps feeds alphabetical even when the preference is newest_first", () => {
     expect(sortFeedsByPreference(feeds, "newest_first").map((feed) => feed.id)).toEqual(["f2", "f3", "f1"]);
+  });
+});
+
+describe("buildSidebarSmartViews", () => {
+  it("places recently viewed articles below unread and starred when enabled", () => {
+    const views = buildSidebarSmartViews({
+      selectedSmartViewKind: null,
+      totalUnread: 7,
+      starredCount: 2,
+      showUnreadCount: true,
+      showStarredCount: true,
+      showSidebarUnread: true,
+      showSidebarStarred: true,
+      showSidebarRecentArticles: true,
+      labels: {
+        unread: "Unread",
+        starred: "Starred",
+        recent: "Recently viewed",
+      },
+    });
+
+    expect(views.map((view) => view.kind)).toEqual(["unread", "starred", "recent"]);
+  });
+
+  it("hides recently viewed articles when the sidebar preference is disabled", () => {
+    const views = buildSidebarSmartViews({
+      selectedSmartViewKind: null,
+      totalUnread: 7,
+      starredCount: 2,
+      showUnreadCount: true,
+      showStarredCount: true,
+      showSidebarUnread: true,
+      showSidebarStarred: true,
+      showSidebarRecentArticles: false,
+      labels: {
+        unread: "Unread",
+        starred: "Starred",
+        recent: "Recently viewed",
+      },
+    });
+
+    expect(views.map((view) => view.kind)).toEqual(["unread", "starred"]);
   });
 });

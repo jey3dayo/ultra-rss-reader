@@ -66,7 +66,7 @@ export type SidebarContentSectionsProps = {
 
 export type SidebarContentProps = SidebarContentSectionsProps;
 
-export type SmartViewKind = "unread" | "starred";
+export type SmartViewKind = "unread" | "starred" | "recent";
 
 export type SmartViewItemViewModel = {
   kind: SmartViewKind;
@@ -117,6 +117,7 @@ export type SidebarControllerSectionsParams = {
   startupFolderExpansion: import("./sidebar-feed-section.types").StartupFolderExpansionMode;
   showSidebarUnread: boolean;
   showSidebarStarred: boolean;
+  showSidebarRecentArticles: boolean;
   showSidebarTags: boolean;
   setExpandedFolders: (folderIds: Iterable<string>) => void;
   selectFeed: (feedId: string) => void;
@@ -187,6 +188,7 @@ export type SidebarSmartViewsParams = {
   showStarredCount: boolean;
   showSidebarUnread: boolean;
   showSidebarStarred: boolean;
+  showSidebarRecentArticles: boolean;
   t: TFunction<"sidebar">;
 };
 

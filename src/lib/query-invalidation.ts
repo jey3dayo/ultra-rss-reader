@@ -15,6 +15,7 @@ type InvalidateArticleQueriesOptions = {
   includeArticlesByTag?: boolean;
   includeSearch?: boolean;
   includeFeedIntegrityReport?: boolean;
+  includeRecentArticles?: boolean;
 };
 
 const QUERY_KEYS = {
@@ -23,6 +24,7 @@ const QUERY_KEYS = {
   articles: ["articles"],
   accountArticles: ["accountArticles"],
   starredArticles: ["starredArticles"],
+  recentArticles: ["recentArticles"],
   accountUnreadCount: ["accountUnreadCount"],
   accountStarredCount: ["accountStarredCount"],
   articlesByTag: ["articlesByTag"],
@@ -68,6 +70,7 @@ export function invalidateArticleQueries(
     includeArticlesByTag = true,
     includeSearch = true,
     includeFeedIntegrityReport = false,
+    includeRecentArticles = true,
   }: InvalidateArticleQueriesOptions = {},
 ) {
   const queryKeys: Array<readonly [string]> = [QUERY_KEYS.articles];
@@ -102,6 +105,10 @@ export function invalidateArticleQueries(
 
   if (includeFeedIntegrityReport) {
     queryKeys.push(QUERY_KEYS.feedIntegrityReport);
+  }
+
+  if (includeRecentArticles) {
+    queryKeys.push(QUERY_KEYS.recentArticles);
   }
 
   invalidateQueryKeys(queryClient, queryKeys);

@@ -27,6 +27,13 @@ export const listStarredArticlesArgs = z.object({
   limit: z.number().optional(),
 });
 
+// --- listRecentArticles ---
+export const listRecentArticlesArgs = z.object({
+  accountId: z.string(),
+  offset: z.number().optional(),
+  limit: z.number().optional(),
+});
+
 // --- countAccountUnreadArticles ---
 export const countAccountUnreadArticlesArgs = z.object({ accountId: z.string() });
 
@@ -45,6 +52,16 @@ export const searchArticlesArgs = z.object({
 export const markArticleReadArgs = z.object({
   articleId: z.string(),
   read: z.boolean().optional(),
+});
+
+// --- article view history ---
+export const recordArticleViewArgs = z.object({
+  accountId: z.string(),
+  articleId: z.string(),
+});
+
+export const clearArticleViewHistoryArgs = z.object({
+  accountId: z.string(),
 });
 
 // --- markArticlesRead ---
@@ -261,10 +278,13 @@ export const commandArgsSchemas: Record<string, z.ZodType> = {
   list_articles: listArticlesArgs,
   list_account_articles: listAccountArticlesArgs,
   list_starred_articles: listStarredArticlesArgs,
+  list_recent_articles: listRecentArticlesArgs,
   count_account_unread_articles: countAccountUnreadArticlesArgs,
   count_account_starred_articles: countAccountStarredArticlesArgs,
   search_articles: searchArticlesArgs,
   mark_article_read: markArticleReadArgs,
+  record_article_view: recordArticleViewArgs,
+  clear_article_view_history: clearArticleViewHistoryArgs,
   mark_articles_read: markArticlesReadArgs,
   toggle_article_star: toggleArticleStarArgs,
   mark_feed_read: markFeedReadArgs,

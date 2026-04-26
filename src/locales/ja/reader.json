@@ -2,6 +2,8 @@
   "articles": "記事",
   "unread": "未読",
   "starred": "スター",
+  "recent_articles": "最近見た記事",
+  "viewed_at": "閲覧 {{time}}",
   "tagged_articles": "タグ付き記事",
   "all_articles": "すべての記事",
   "no_articles": "記事がありません",

@@ -58,10 +58,11 @@ export type SidebarVisibilityFallbackParams = {
   viewMode: SidebarFeedTreeViewMode;
   showSidebarUnread: boolean;
   showSidebarStarred: boolean;
+  showSidebarRecentArticles: boolean;
   showSidebarTags: boolean;
   selectFeed: (feedId: string) => void;
   selectAll: () => void;
-  selectSmartView: (kind: "unread" | "starred") => void;
+  selectSmartView: (kind: "unread" | "starred" | "recent") => void;
   setViewMode: (mode: SidebarFeedTreeViewMode) => void;
 };
 
@@ -78,13 +79,14 @@ export type SidebarFeedSectionParams = {
   startupFolderExpansion: StartupFolderExpansionMode;
   showSidebarUnread: boolean;
   showSidebarStarred: boolean;
+  showSidebarRecentArticles: boolean;
   showSidebarTags: boolean;
   tags: TagDto[] | undefined;
   setExpandedFolders: (folderIds: Iterable<string>) => void;
   selectFeed: (feedId: string) => void;
   selectFolder: (folderId: string) => void;
   selectAll: () => void;
-  selectSmartView: (kind: "unread" | "starred") => void;
+  selectSmartView: (kind: "unread" | "starred" | "recent") => void;
   setViewMode: (mode: SidebarFeedTreeViewMode) => void;
   toggleFolder: (folderId: string) => void;
   displayFavicons: boolean;

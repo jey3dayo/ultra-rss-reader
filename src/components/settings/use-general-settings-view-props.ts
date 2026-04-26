@@ -79,6 +79,13 @@ export function useGeneralSettingsViewProps({
             onChange: (checked) => setPref("show_sidebar_starred", String(checked)),
           },
           {
+            id: "show-sidebar-recent-articles",
+            type: "switch",
+            label: t("general.show_recent_articles"),
+            checked: resolvePreferenceValue(prefs, "show_sidebar_recent_articles") === "true",
+            onChange: (checked) => setPref("show_sidebar_recent_articles", String(checked)),
+          },
+          {
             id: "show-sidebar-tags",
             type: "switch",
             label: t("general.show_tags"),

@@ -8,6 +8,7 @@ export function useSidebarVisibilityFallback({
   viewMode,
   showSidebarUnread,
   showSidebarStarred,
+  showSidebarRecentArticles,
   showSidebarTags,
   selectFeed,
   selectAll,
@@ -17,6 +18,7 @@ export function useSidebarVisibilityFallback({
   const selectedSmartViewKind = selection.type === "smart" ? selection.kind : null;
   const hasSmartUnreadSelection = selectedSmartViewKind === "unread";
   const hasSmartStarredSelection = selectedSmartViewKind === "starred";
+  const hasSmartRecentSelection = selectedSmartViewKind === "recent";
   const hasFilterOnlyUnread = viewMode === "unread" && !hasSmartUnreadSelection;
   const hasFilterOnlyStarred = viewMode === "starred" && !hasSmartStarredSelection;
   const isMissingSelectedTag =
@@ -38,6 +40,15 @@ export function useSidebarVisibilityFallback({
     }
 
     if (hasSmartStarredSelection && !showSidebarStarred) {
+      if (showSidebarUnread) {
+        selectSmartView("unread");
+      } else {
+        fallbackToFeedOrAll();
+      }
+      return;
+    }
+
+    if (hasSmartRecentSelection && !showSidebarRecentArticles) {
       if (showSidebarUnread) {
         selectSmartView("unread");
       } else {
@@ -69,6 +80,7 @@ export function useSidebarVisibilityFallback({
     hasFilterOnlyUnread,
     isMissingSelectedTag,
     hasSmartStarredSelection,
+    hasSmartRecentSelection,
     hasSmartUnreadSelection,
     selectAll,
     selectFeed,
@@ -76,6 +88,7 @@ export function useSidebarVisibilityFallback({
     selection,
     setViewMode,
     showSidebarStarred,
+    showSidebarRecentArticles,
     showSidebarTags,
     showSidebarUnread,
   ]);

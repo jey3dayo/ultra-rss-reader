@@ -3,15 +3,18 @@ import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type ArticleDto,
+  clearArticleViewHistory,
   countAccountStarredArticles,
   getFeedIntegrityReport,
   listAccountArticles,
   listArticles,
+  listRecentArticles,
   listStarredArticles,
   markArticleRead,
   markArticlesRead,
   markFeedRead,
   markFolderRead,
+  recordArticleView,
   searchArticles,
   toggleArticleStar,
 } from "@/api/tauri-commands";
@@ -27,6 +30,11 @@ export type SetReadMutationInput = {
 export type ToggleStarMutationInput = {
   id: string;
   starred: boolean;
+};
+
+export type RecordArticleViewMutationInput = {
+  accountId: string;
+  articleId: string;
 };
 
 function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: boolean) {
@@ -48,6 +56,7 @@ function patchCachedArticleReadState(qc: QueryClient, articleId: string, read: b
   qc.setQueriesData({ queryKey: ["articles"] }, updateArticleArray);
   qc.setQueriesData({ queryKey: ["accountArticles"] }, updateArticleArray);
   qc.setQueriesData({ queryKey: ["starredArticles"] }, updateArticleArray);
+  qc.setQueriesData({ queryKey: ["recentArticles"] }, updateArticleArray);
   qc.setQueriesData({ queryKey: ["articlesByTag"] }, updateArticleArray);
   qc.setQueriesData({ queryKey: ["search"] }, updateArticleArray);
 }
@@ -63,7 +72,14 @@ function isArticleDto(candidate: unknown): candidate is ArticleDto {
 }
 
 function findCachedArticle(qc: QueryClient, articleId: string): ArticleDto | null {
-  const queryKeys = [["articles"], ["accountArticles"], ["articlesByTag"], ["search"], ["starredArticles"]] as const;
+  const queryKeys = [
+    ["articles"],
+    ["accountArticles"],
+    ["articlesByTag"],
+    ["search"],
+    ["starredArticles"],
+    ["recentArticles"],
+  ] as const;
 
   for (const queryKey of queryKeys) {
     const matches = qc.getQueriesData<unknown>({ queryKey });
@@ -130,6 +146,7 @@ function patchCachedArticleStarState(qc: QueryClient, articleId: string, starred
   qc.setQueriesData({ queryKey: ["articles"] }, (current) => updateCachedArticleArray(current, nextArticle));
   qc.setQueriesData({ queryKey: ["articlesByTag"] }, (current) => updateCachedArticleArray(current, nextArticle));
   qc.setQueriesData({ queryKey: ["search"] }, (current) => updateCachedArticleArray(current, nextArticle));
+  qc.setQueriesData({ queryKey: ["recentArticles"] }, (current) => updateCachedArticleArray(current, nextArticle));
 
   if (accountQueryKeys.length > 0) {
     for (const queryKey of accountQueryKeys) {
@@ -205,6 +222,8 @@ export function useAccountArticles(accountId: string | null, options?: { unreadO
 
 export const useStarredArticles = createQuery("starredArticles", listStarredArticles);
 
+export const useRecentArticles = createQuery("recentArticles", listRecentArticles);
+
 export function useFeedIntegrityReport() {
   return useQuery({
     queryKey: ["feedIntegrityReport"],
@@ -235,6 +254,40 @@ export function useSetRead() {
 export const useMarkAllRead = createMutation(
   (articleIds: string[]) => markArticlesRead(articleIds),
   (qc) => invalidateArticleQueries(qc),
+);
+
+export function useRecordArticleView() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ accountId, articleId }: RecordArticleViewMutationInput) =>
+      recordArticleView(accountId, articleId).then(Result.unwrap),
+    onSuccess: () => {
+      invalidateArticleQueries(qc, {
+        includeAccountArticles: false,
+        includeStarredArticles: false,
+        includeAccountUnreadCount: false,
+        includeAccountStarredCount: false,
+        includeFeeds: false,
+        includeArticlesByTag: false,
+        includeSearch: false,
+        includeRecentArticles: true,
+      });
+    },
+  });
+}
+
+export const useClearArticleViewHistory = createMutation(clearArticleViewHistory, (qc) =>
+  invalidateArticleQueries(qc, {
+    includeAccountArticles: false,
+    includeStarredArticles: false,
+    includeAccountUnreadCount: false,
+    includeAccountStarredCount: false,
+    includeFeeds: false,
+    includeArticlesByTag: false,
+    includeSearch: false,
+    includeRecentArticles: true,
+  }),
 );
 
 export const useMarkFeedRead = createMutation(markFeedRead, (qc) => invalidateArticleQueries(qc));

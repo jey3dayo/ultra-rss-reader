@@ -406,7 +406,7 @@ export type UseArticleListSourcesResult = {
   feedId: string | null;
   folderId: string | null;
   tagId: string | null;
-  smartViewKind: "unread" | "starred" | null;
+  smartViewKind: "unread" | "starred" | "recent" | null;
   accountListScopeId: string | null;
   feeds: FeedDto[] | undefined;
   articles: ArticleDto[] | undefined;

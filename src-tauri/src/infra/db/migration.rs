@@ -20,6 +20,7 @@ const MIGRATION_V14: &str = include_str!("../../../migrations/V14__article_conte
 const MIGRATION_V15: &str = include_str!("../../../migrations/V15__remove_inoreader.sql");
 const MIGRATION_V16: &str =
     include_str!("../../../migrations/V16__account_connection_verification.sql");
+const MIGRATION_V17: &str = include_str!("../../../migrations/V17__article_view_history.sql");
 
 /// Result of a migration run.
 pub struct MigrationResult {
@@ -38,7 +39,7 @@ impl MigrationResult {
     }
 }
 
-pub const LATEST_VERSION: i32 = 16;
+pub const LATEST_VERSION: i32 = 17;
 
 pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     let tx = conn.transaction()?;
@@ -93,6 +94,9 @@ pub fn run_migrations(conn: &mut Connection) -> DomainResult<MigrationResult> {
     }
     if from_version < 16 {
         tx.execute_batch(MIGRATION_V16)?;
+    }
+    if from_version < 17 {
+        tx.execute_batch(MIGRATION_V17)?;
     }
 
     let to_version = get_schema_version(&tx);
@@ -349,6 +353,16 @@ mod tests {
             .is_ok());
         assert!(conn
             .prepare("SELECT connection_verification_error FROM accounts LIMIT 0")
+            .is_ok());
+    }
+
+    #[test]
+    fn latest_schema_includes_article_view_history() {
+        let mut conn = open_in_memory();
+        run_migrations(&mut conn).unwrap();
+
+        assert!(conn
+            .prepare("SELECT account_id, article_id, viewed_at FROM article_view_history LIMIT 0")
             .is_ok());
     }
 

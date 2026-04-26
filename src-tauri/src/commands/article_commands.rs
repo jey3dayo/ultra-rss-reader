@@ -158,6 +158,25 @@ pub fn list_starred_articles(
 }
 
 #[tauri::command]
+pub fn list_recent_articles(
+    state: State<'_, AppState>,
+    account_id: String,
+    offset: Option<usize>,
+    limit: Option<usize>,
+) -> Result<Vec<ArticleDto>, AppError> {
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let repo = SqliteArticleRepository::new(db.reader());
+    let pagination = Pagination {
+        offset: offset.unwrap_or(0),
+        limit: limit.unwrap_or(20),
+    };
+    let articles = repo.find_recently_viewed_by_account(&AccountId(account_id), &pagination)?;
+    Ok(articles.into_iter().map(ArticleDto::from).collect())
+}
+
+#[tauri::command]
 pub fn count_account_unread_articles(
     state: State<'_, AppState>,
     account_id: String,
@@ -238,6 +257,32 @@ pub fn mark_article_read(
     maybe_queue_mutation(db.writer(), &article_id, mutation_type)?;
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn record_article_view(
+    state: State<'_, AppState>,
+    account_id: String,
+    article_id: String,
+) -> Result<(), AppError> {
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let repo = SqliteArticleRepository::new(db.writer());
+    repo.record_view(&AccountId(account_id), &ArticleId(article_id))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn clear_article_view_history(
+    state: State<'_, AppState>,
+    account_id: String,
+) -> Result<u64, AppError> {
+    let db = state.db.lock().map_err(|e| AppError::UserVisible {
+        message: format!("Lock error: {e}"),
+    })?;
+    let repo = SqliteArticleRepository::new(db.writer());
+    Ok(repo.clear_view_history(&AccountId(account_id))?)
 }
 
 #[tauri::command]

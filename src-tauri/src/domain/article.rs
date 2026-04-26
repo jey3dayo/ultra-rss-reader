@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::domain::types::{ArticleId, FeedId};
+use crate::domain::types::{AccountId, ArticleId, FeedId};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Article {
@@ -21,6 +21,13 @@ pub struct Article {
     pub is_read: bool,
     pub is_starred: bool,
     pub fetched_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ArticleViewHistoryItem {
+    pub account_id: AccountId,
+    pub article: Article,
+    pub viewed_at: DateTime<Utc>,
 }
 
 /// Generate a stable article ID. Account-scoped to prevent cross-account collision.

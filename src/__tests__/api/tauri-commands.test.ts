@@ -2,6 +2,7 @@ import { Result } from "@praha/byethrow";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   addAccount,
+  clearArticleViewHistory,
   countAccountStarredArticles,
   countAccountUnreadArticles,
   createMuteKeyword,
@@ -14,8 +15,10 @@ import {
   listArticles,
   listFeeds,
   listMuteKeywords,
+  listRecentArticles,
   listStarredArticles,
   markArticleRead,
+  recordArticleView,
   setMuteAutoMarkRead,
   updateMuteKeyword,
 } from "@/api/tauri-commands";
@@ -68,6 +71,19 @@ describe("tauri-commands with mockIPC", () => {
       const value = Result.unwrap(await listAccountArticles("acc-1"));
       expect(value).toEqual(sampleArticles);
       expect(value).toHaveLength(2);
+    });
+  });
+
+  describe("recent article commands", () => {
+    it("returns recently viewed articles for a given account", async () => {
+      const value = Result.unwrap(await listRecentArticles("acc-1"));
+      expect(value.map((article) => article.id)).toEqual(["art-2", "art-1"]);
+      expect(value[0]?.viewed_at).toBe("2026-04-20T10:00:00Z");
+    });
+
+    it("records and clears recently viewed articles", async () => {
+      Result.unwrap(await recordArticleView("acc-1", "art-1"));
+      Result.unwrap(await clearArticleViewHistory("acc-1"));
     });
   });
 

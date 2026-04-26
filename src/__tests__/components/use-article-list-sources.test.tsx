@@ -4,14 +4,21 @@ import { useArticleListSources } from "@/components/reader/use-article-list-sour
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleArticles, sampleFeeds } from "../../../tests/helpers/tauri-mocks";
 
-const { useFeedsMock, useArticlesMock, useAccountArticlesMock, useStarredArticlesMock, useArticlesByTagMock } =
-  vi.hoisted(() => ({
-    useFeedsMock: vi.fn(),
-    useArticlesMock: vi.fn(),
-    useAccountArticlesMock: vi.fn(),
-    useStarredArticlesMock: vi.fn(),
-    useArticlesByTagMock: vi.fn(),
-  }));
+const {
+  useFeedsMock,
+  useArticlesMock,
+  useAccountArticlesMock,
+  useStarredArticlesMock,
+  useRecentArticlesMock,
+  useArticlesByTagMock,
+} = vi.hoisted(() => ({
+  useFeedsMock: vi.fn(),
+  useArticlesMock: vi.fn(),
+  useAccountArticlesMock: vi.fn(),
+  useStarredArticlesMock: vi.fn(),
+  useRecentArticlesMock: vi.fn(),
+  useArticlesByTagMock: vi.fn(),
+}));
 
 vi.mock("@/hooks/use-feeds", () => ({
   useFeeds: (...args: unknown[]) => useFeedsMock(...args),
@@ -21,6 +28,7 @@ vi.mock("@/hooks/use-articles", () => ({
   useArticles: (...args: unknown[]) => useArticlesMock(...args),
   useAccountArticles: (...args: unknown[]) => useAccountArticlesMock(...args),
   useStarredArticles: (...args: unknown[]) => useStarredArticlesMock(...args),
+  useRecentArticles: (...args: unknown[]) => useRecentArticlesMock(...args),
 }));
 
 vi.mock("@/hooks/use-tags", () => ({
@@ -42,6 +50,7 @@ describe("useArticleListSources", () => {
       data: sampleArticles.filter((article) => article.is_starred),
       isLoading: false,
     });
+    useRecentArticlesMock.mockReturnValue({ data: [sampleArticles[1], sampleArticles[0]], isLoading: false });
     useArticlesByTagMock.mockReturnValue({ data: [], isLoading: false });
   });
 
@@ -77,6 +86,24 @@ describe("useArticleListSources", () => {
     );
 
     expect(useAccountArticlesMock).toHaveBeenCalledWith("acc-1", { unreadOnly: true });
+  });
+
+  it("requests recent articles for the smart recent view", () => {
+    const { result } = renderHook(
+      () =>
+        useArticleListSources({
+          selection: { type: "smart", kind: "recent" },
+          selectionContext: { kind: "account", key: "account:acc-1:smart:recent" },
+          selectedAccountId: "acc-1",
+          selectedArticleId: null,
+          retainedArticleIds: new Set(),
+          viewMode: "all",
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    expect(useRecentArticlesMock).toHaveBeenCalledWith("acc-1");
+    expect(result.current.accountArticles?.map((article) => article.id)).toEqual(["art-2", "art-1"]);
   });
 
   it("keeps a retained selected article in the feed source after unread refetch removes it", () => {

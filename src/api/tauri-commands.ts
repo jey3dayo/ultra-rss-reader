@@ -17,6 +17,7 @@ import {
   type BrowserWebviewState,
   BrowserWebviewStateSchema,
   checkBrowserEmbedSupportArgs,
+  clearArticleViewHistoryArgs,
   copyToClipboardArgs,
   countAccountStarredArticlesArgs,
   countAccountUnreadArticlesArgs,
@@ -50,6 +51,7 @@ import {
   listArticlesByTagArgs,
   listFeedsArgs,
   listFoldersArgs,
+  listRecentArticlesArgs,
   listStarredArticlesArgs,
   type MuteKeywordDto,
   MuteKeywordDtoSchema,
@@ -62,6 +64,7 @@ import {
   openInBrowserArgs,
   type PlatformInfo,
   PlatformInfoSchema,
+  recordArticleViewArgs,
   renameAccountArgs,
   renameFeedArgs,
   renameTagArgs,
@@ -216,6 +219,13 @@ export const listStarredArticles = (accountId: string, offset?: number, limit?: 
     { accountId, offset, limit },
   );
 
+export const listRecentArticles = (accountId: string, offset?: number, limit?: number) =>
+  safeInvoke(
+    "list_recent_articles",
+    { response: z.array(ArticleDtoSchema), args: listRecentArticlesArgs },
+    { accountId, offset, limit },
+  );
+
 export const countAccountUnreadArticles = (accountId: string) =>
   safeInvoke(
     "count_account_unread_articles",
@@ -235,6 +245,16 @@ export const getFeedIntegrityReport = () =>
 
 export const markArticleRead = (articleId: string, read = true) =>
   safeInvoke("mark_article_read", { response: z.null(), args: markArticleReadArgs }, { articleId, read });
+
+export const recordArticleView = (accountId: string, articleId: string) =>
+  safeInvoke("record_article_view", { response: z.null(), args: recordArticleViewArgs }, { accountId, articleId });
+
+export const clearArticleViewHistory = (accountId: string) =>
+  safeInvoke(
+    "clear_article_view_history",
+    { response: z.number().int(), args: clearArticleViewHistoryArgs },
+    { accountId },
+  );
 
 export const markArticlesRead = (articleIds: string[]) =>
   safeInvoke("mark_articles_read", { response: z.null(), args: markArticlesReadArgs }, { articleIds });

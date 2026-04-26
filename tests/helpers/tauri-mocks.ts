@@ -153,6 +153,10 @@ function createDefaultHandler(): MockHandler {
         return sampleArticles.filter(
           (a) => a.is_starred && sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId),
         );
+      case "list_recent_articles":
+        return [sampleArticles[1], sampleArticles[0]]
+          .filter((article): article is ArticleDto => article !== undefined)
+          .map((article) => ({ ...article, viewed_at: "2026-04-20T10:00:00Z" }));
       case "count_account_unread_articles":
         return sampleArticles.filter((a) =>
           sampleFeeds.some((f) => f.id === a.feed_id && f.account_id === args.accountId && !a.is_read),
@@ -177,7 +181,10 @@ function createDefaultHandler(): MockHandler {
         } satisfies AccountDto;
       case "mark_article_read":
       case "mark_articles_read":
+      case "record_article_view":
         return null;
+      case "clear_article_view_history":
+        return 1;
       case "toggle_article_star":
         return null;
       case "search_articles":

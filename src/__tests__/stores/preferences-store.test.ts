@@ -129,6 +129,7 @@ describe("usePreferencesStore preferences", () => {
   it("defaults sidebar section visibility preferences to true", () => {
     expect(resolvePreferenceValue({}, "show_sidebar_unread")).toBe("true");
     expect(resolvePreferenceValue({}, "show_sidebar_starred")).toBe("true");
+    expect(resolvePreferenceValue({}, "show_sidebar_recent_articles")).toBe("true");
     expect(resolvePreferenceValue({}, "show_sidebar_tags")).toBe("true");
     expect(resolvePreferenceValue({}, "startup_folder_expansion")).toBe("all_collapsed");
   });
@@ -140,10 +141,20 @@ describe("usePreferencesStore preferences", () => {
   it("normalizes invalid sidebar visibility preferences back to true", () => {
     expect(resolvePreferenceValue({ show_sidebar_unread: "maybe" }, "show_sidebar_unread")).toBe("true");
     expect(resolvePreferenceValue({ show_sidebar_starred: "nope" }, "show_sidebar_starred")).toBe("true");
+    expect(resolvePreferenceValue({ show_sidebar_recent_articles: "unset" }, "show_sidebar_recent_articles")).toBe(
+      "true",
+    );
     expect(resolvePreferenceValue({ show_sidebar_tags: "unset" }, "show_sidebar_tags")).toBe("true");
     expect(resolvePreferenceValue({ startup_folder_expansion: "surprise" }, "startup_folder_expansion")).toBe(
       "all_collapsed",
     );
+  });
+
+  it("defaults recently viewed history recording to enabled and normalizes invalid values", () => {
+    expect(resolvePreferenceValue({}, "recent_articles_history_enabled")).toBe("true");
+    expect(
+      resolvePreferenceValue({ recent_articles_history_enabled: "maybe" }, "recent_articles_history_enabled"),
+    ).toBe("true");
   });
 
   it("defaults sidebar density to normal and normalizes invalid values", () => {

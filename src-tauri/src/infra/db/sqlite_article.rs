@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
 
-use crate::domain::article::Article;
+use crate::domain::article::{Article, ArticleViewHistoryItem};
 use crate::domain::error::DomainResult;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::sqlite_mute_keyword::{
@@ -109,6 +109,7 @@ fn row_to_article(row: &rusqlite::Row) -> rusqlite::Result<Article> {
 }
 
 const SELECT_COLS: &str = "id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, thumbnail, published_at, is_read, is_starred, fetched_at";
+const ARTICLE_VIEW_HISTORY_LIMIT: usize = 20;
 
 fn article_body_text(value: &str, summary: Option<&str>) -> String {
     if value.trim().is_empty() {
@@ -116,6 +117,18 @@ fn article_body_text(value: &str, summary: Option<&str>) -> String {
     } else {
         crate::infra::sanitizer::extract_visible_text(value)
     }
+}
+
+fn row_to_article_view_history_item(
+    row: &rusqlite::Row,
+) -> rusqlite::Result<ArticleViewHistoryItem> {
+    let article = row_to_article(row)?;
+    let viewed_at_str: String = row.get(16)?;
+    Ok(ArticleViewHistoryItem {
+        account_id: AccountId(row.get(15)?),
+        article,
+        viewed_at: parse_datetime(&viewed_at_str),
+    })
 }
 
 impl ArticleRepository for SqliteArticleRepository<'_> {
@@ -389,6 +402,40 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
         Ok(articles)
     }
 
+    fn find_recently_viewed_by_account(
+        &self,
+        account_id: &AccountId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<ArticleViewHistoryItem>> {
+        let select_cols_prefixed = SELECT_COLS
+            .split(", ")
+            .map(|col| format!("a.{col}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let sql = format!(
+            "SELECT {select_cols_prefixed}, h.account_id, h.viewed_at
+             FROM article_view_history h
+             JOIN articles a ON h.article_id = a.id
+             JOIN feeds f ON a.feed_id = f.id
+             WHERE h.account_id = ?1
+               AND f.account_id = ?1
+             ORDER BY h.viewed_at DESC
+             LIMIT ?2 OFFSET ?3"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let items = stmt
+            .query_map(
+                params![
+                    account_id.0,
+                    pagination.limit as i64,
+                    pagination.offset as i64
+                ],
+                row_to_article_view_history_item,
+            )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(items)
+    }
+
     fn count_unread_by_account(&self, account_id: &AccountId) -> DomainResult<i32> {
         if !SqliteMuteKeywordRepository::new(self.conn).has_any()? {
             let count = self.conn.query_row(
@@ -441,6 +488,47 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
             .conn
             .query_row(&sql, params![account_id.0], |row| row.get(0))?;
         Ok(count)
+    }
+
+    fn record_view(&self, account_id: &AccountId, article_id: &ArticleId) -> DomainResult<()> {
+        let viewed_at = Utc::now().to_rfc3339();
+        let tx = self.conn.unchecked_transaction()?;
+        tx.execute(
+            "INSERT INTO article_view_history (account_id, article_id, viewed_at)
+             SELECT ?1, ?2, ?3
+             WHERE EXISTS (
+               SELECT 1
+               FROM articles a
+               JOIN feeds f ON a.feed_id = f.id
+               WHERE a.id = ?2
+                 AND f.account_id = ?1
+             )
+             ON CONFLICT(account_id, article_id)
+             DO UPDATE SET viewed_at = excluded.viewed_at",
+            params![account_id.0, article_id.0, viewed_at],
+        )?;
+        tx.execute(
+            "DELETE FROM article_view_history
+             WHERE account_id = ?1
+               AND article_id NOT IN (
+                 SELECT article_id
+                 FROM article_view_history
+                 WHERE account_id = ?1
+                 ORDER BY viewed_at DESC
+                 LIMIT ?2
+               )",
+            params![account_id.0, ARTICLE_VIEW_HISTORY_LIMIT as i64],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    fn clear_view_history(&self, account_id: &AccountId) -> DomainResult<u64> {
+        let removed = self.conn.execute(
+            "DELETE FROM article_view_history WHERE account_id = ?1",
+            params![account_id.0],
+        )?;
+        Ok(removed as u64)
     }
 
     fn upsert(&self, articles: &[Article]) -> DomainResult<()> {
@@ -1413,6 +1501,85 @@ mod tests {
             ["Newest starred", "Older starred"]
         );
         assert_eq!(repo.count_starred_by_account(&account_a).unwrap(), 2);
+    }
+
+    #[test]
+    fn article_view_history_is_account_scoped_deduplicated_and_limited() {
+        let db = test_db();
+        let account_a = insert_test_account(&db);
+        let account_b = insert_test_account(&db);
+        let feed_a = insert_test_feed(&db, &account_a);
+        let feed_b = insert_test_feed(&db, &account_b);
+        let repo = SqliteArticleRepository::new(db.writer());
+
+        let articles_a = (0..22)
+            .map(|index| make_article(&feed_a, &format!("Account A Article {index:02}")))
+            .collect::<Vec<_>>();
+        let article_b = make_article(&feed_b, "Account B Article");
+        repo.upsert(&articles_a).unwrap();
+        repo.upsert(std::slice::from_ref(&article_b)).unwrap();
+
+        for article in &articles_a {
+            repo.record_view(&account_a, &article.id).unwrap();
+        }
+        repo.record_view(&account_b, &article_b.id).unwrap();
+        repo.record_view(&account_a, &articles_a[3].id).unwrap();
+
+        let recent_a = repo
+            .find_recently_viewed_by_account(
+                &account_a,
+                &Pagination {
+                    offset: 0,
+                    limit: 25,
+                },
+            )
+            .unwrap();
+        let recent_b = repo
+            .find_recently_viewed_by_account(&account_b, &Pagination::default())
+            .unwrap();
+
+        assert_eq!(recent_a.len(), 20);
+        assert_eq!(recent_a[0].article.id, articles_a[3].id);
+        assert_eq!(
+            recent_a
+                .iter()
+                .filter(|item| item.article.id == articles_a[3].id)
+                .count(),
+            1
+        );
+        assert!(recent_a.iter().all(|item| item.account_id == account_a));
+        assert_eq!(recent_b.len(), 1);
+        assert_eq!(recent_b[0].article.id, article_b.id);
+    }
+
+    #[test]
+    fn clear_article_view_history_removes_only_that_accounts_history() {
+        let db = test_db();
+        let account_a = insert_test_account(&db);
+        let account_b = insert_test_account(&db);
+        let feed_a = insert_test_feed(&db, &account_a);
+        let feed_b = insert_test_feed(&db, &account_b);
+        let repo = SqliteArticleRepository::new(db.writer());
+        let article_a = make_article(&feed_a, "Account A Article");
+        let article_b = make_article(&feed_b, "Account B Article");
+        repo.upsert(&[article_a.clone(), article_b.clone()])
+            .unwrap();
+        repo.record_view(&account_a, &article_a.id).unwrap();
+        repo.record_view(&account_b, &article_b.id).unwrap();
+
+        let removed = repo.clear_view_history(&account_a).unwrap();
+
+        assert_eq!(removed, 1);
+        assert!(repo
+            .find_recently_viewed_by_account(&account_a, &Pagination::default())
+            .unwrap()
+            .is_empty());
+        assert_eq!(
+            repo.find_recently_viewed_by_account(&account_b, &Pagination::default())
+                .unwrap()
+                .len(),
+            1
+        );
     }
 
     #[test]

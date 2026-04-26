@@ -52,6 +52,7 @@ export type SidebarUiStateResult = Pick<
   showStarredCount: boolean;
   showSidebarUnread: boolean;
   showSidebarStarred: boolean;
+  showSidebarRecentArticles: boolean;
   showSidebarTags: boolean;
   displayFavicons: boolean;
   grayscaleFavicons: boolean;

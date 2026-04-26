@@ -210,6 +210,7 @@ pub struct ArticleDto {
     pub thumbnail: Option<String>,
     pub is_read: bool,
     pub is_starred: bool,
+    pub viewed_at: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -344,7 +345,16 @@ impl From<crate::domain::article::Article> for ArticleDto {
             thumbnail: a.thumbnail,
             is_read: a.is_read,
             is_starred: a.is_starred,
+            viewed_at: None,
         }
+    }
+}
+
+impl From<crate::domain::article::ArticleViewHistoryItem> for ArticleDto {
+    fn from(item: crate::domain::article::ArticleViewHistoryItem) -> Self {
+        let mut dto = ArticleDto::from(item.article);
+        dto.viewed_at = Some(item.viewed_at.to_rfc3339());
+        dto
     }
 }
 

@@ -1,6 +1,7 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
+import { formatArticleTime } from "@/lib/article-list";
 import { stripHtmlTags } from "@/lib/html";
 import { cn } from "@/lib/utils";
 import type { ArticleListItemProps } from "./article-list.types";
@@ -24,6 +25,8 @@ export function ArticleListItem({
   const summaryText = article.summary ? stripHtmlTags(article.summary) : "";
   const normalizedSummary = summaryText.trim();
   const showFeedName = Boolean(normalizedFeedName) && normalizedFeedName !== normalizedTitle;
+  const viewedAtLabel = article.viewed_at ? t("viewed_at", { time: formatArticleTime(article.viewed_at) }) : null;
+  const metaLabel = [showFeedName ? normalizedFeedName : null, viewedAtLabel].filter(Boolean).join(" · ");
   const showSummary =
     textPreview === "true" &&
     Boolean(normalizedSummary) &&
@@ -97,14 +100,14 @@ export function ArticleListItem({
         </div>
       </div>
 
-      {showFeedName && (
+      {metaLabel && (
         <p
           className={cn(
             "pl-4 text-xs text-foreground-soft transition-colors duration-150",
             isSelected && "text-foreground/72",
           )}
         >
-          {normalizedFeedName}
+          {metaLabel}
         </p>
       )}
 

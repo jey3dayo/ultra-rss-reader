@@ -20,7 +20,7 @@ export type SelectVisibleArticlesParams = {
   tagId: string | null;
   folderFeedIds?: ReadonlySet<string> | null;
   viewMode: ViewMode;
-  smartViewKind?: "unread" | "starred" | null;
+  smartViewKind?: "unread" | "starred" | "recent" | null;
   showSearch: boolean;
   searchQuery: string;
   sortUnread: string;
@@ -86,7 +86,7 @@ function filterByFolderFeedIds(
 function filterByViewMode(
   articles: ArticleDto[],
   viewMode: ViewMode,
-  smartViewKind: "unread" | "starred" | null | undefined,
+  smartViewKind: "unread" | "starred" | "recent" | null | undefined,
   retainedArticleIds: ReadonlySet<string> | undefined,
 ): ArticleDto[] {
   const starredSmartView = smartViewKind === "starred";
@@ -145,6 +145,10 @@ export function selectVisibleArticles(params: SelectVisibleArticlesParams): Arti
       smartViewKind,
       retainedArticleIds,
     );
+  }
+
+  if (smartViewKind === "recent") {
+    return list;
   }
 
   const direction = sortUnread === "oldest_first" ? 1 : -1;

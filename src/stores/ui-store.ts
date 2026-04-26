@@ -53,7 +53,7 @@ export type AccountSetupSession = {
 export type UiSelection =
   | { type: "feed"; feedId: string }
   | { type: "folder"; folderId: string }
-  | { type: "smart"; kind: "unread" | "starred" }
+  | { type: "smart"; kind: "unread" | "starred" | "recent" }
   | { type: "tag"; tagId: string }
   | { type: "all" };
 
@@ -173,7 +173,7 @@ interface UiActions {
   clearSelectedAccount: () => void;
   selectFeed: (feedId: string) => void;
   selectFolder: (folderId: string) => void;
-  selectSmartView: (kind: "unread" | "starred") => void;
+  selectSmartView: (kind: "unread" | "starred" | "recent") => void;
   selectTag: (tagId: string) => void;
   selectAll: () => void;
   selectArticle: (id: string) => void;
@@ -360,7 +360,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   selectSmartView: (kind) =>
     set({
       selection: { type: "smart", kind },
-      viewMode: kind === "starred" ? "all" : "unread",
+      viewMode: kind === "unread" ? "unread" : "all",
       selectedArticleId: null,
       contentMode: "empty",
       focusedPane: "list",

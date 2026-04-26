@@ -12,6 +12,7 @@ export const ArticleDtoSchema = z.object({
   thumbnail: z.string().nullable(),
   is_read: z.boolean(),
   is_starred: z.boolean(),
+  viewed_at: z.string().nullable().optional(),
 });
 
 export type ArticleDto = z.infer<typeof ArticleDtoSchema>;

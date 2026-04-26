@@ -21,6 +21,7 @@ export function useSidebarControllerSections({
   sidebarDensity,
   showSidebarUnread,
   showSidebarStarred,
+  showSidebarRecentArticles,
   showSidebarTags,
   setExpandedFolders,
   selectFeed,
@@ -76,6 +77,7 @@ export function useSidebarControllerSections({
     showStarredCount,
     showSidebarUnread,
     showSidebarStarred,
+    showSidebarRecentArticles,
     t,
   });
   const {
@@ -103,6 +105,7 @@ export function useSidebarControllerSections({
     sidebarDensity,
     showSidebarUnread,
     showSidebarStarred,
+    showSidebarRecentArticles,
     showSidebarTags,
     tags,
     setExpandedFolders,

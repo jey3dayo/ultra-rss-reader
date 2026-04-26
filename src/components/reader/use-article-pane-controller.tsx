@@ -1,6 +1,7 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useSetRead } from "@/hooks/use-articles";
+import { useRecordArticleView, useSetRead } from "@/hooks/use-articles";
+import { resolvePreferenceValue, usePreferencesStore } from "@/stores/preferences-store";
 import type { ArticlePaneControllerResult, ArticlePaneProps } from "./article-view.types";
 import { useArticleAutoMark } from "./use-article-auto-mark";
 import { useArticleBrowserOverlay } from "./use-article-browser-overlay";
@@ -44,6 +45,11 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
     },
   });
   const setRead = useSetRead();
+  const recordArticleView = useRecordArticleView();
+  const historyEnabled = usePreferencesStore(
+    (state) => resolvePreferenceValue(state.prefs, "recent_articles_history_enabled") === "true",
+  );
+  const recordedSelectionRef = useRef<string | null>(null);
 
   useArticleAutoMark({
     articleId: article.id,
@@ -55,6 +61,28 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
     setRead,
     showToast,
   });
+
+  useEffect(() => {
+    if (!historyEnabled || !feed?.account_id) {
+      return;
+    }
+
+    const selectionKey = `${feed.account_id}:${article.id}`;
+    if (recordedSelectionRef.current === selectionKey) {
+      return;
+    }
+    recordedSelectionRef.current = selectionKey;
+
+    recordArticleView.mutate(
+      { accountId: feed.account_id, articleId: article.id },
+      {
+        onError: (error) => {
+          recordedSelectionRef.current = null;
+          showToast(error.message);
+        },
+      },
+    );
+  }, [article.id, feed?.account_id, historyEnabled, recordArticleView, showToast]);
 
   const handleCloseView = useCallback(() => {
     clearArticle();

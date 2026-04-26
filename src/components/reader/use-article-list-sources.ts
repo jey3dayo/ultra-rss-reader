@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ArticleDto } from "@/api/tauri-commands";
-import { useAccountArticles, useArticles, useStarredArticles } from "@/hooks/use-articles";
+import { useAccountArticles, useArticles, useRecentArticles, useStarredArticles } from "@/hooks/use-articles";
 import { useFeeds } from "@/hooks/use-feeds";
 import { adoptSnapshotByKey, useScreenSnapshot } from "@/hooks/use-screen-snapshot";
 import { useArticlesByTag } from "@/hooks/use-tags";
@@ -51,6 +51,9 @@ export function useArticleListSources({
   const { data: starredArticles, isLoading: isLoadingStarredArticles } = useStarredArticles(
     smartViewKind === "starred" ? accountListScopeId : null,
   );
+  const { data: recentArticles, isLoading: isLoadingRecentArticles } = useRecentArticles(
+    smartViewKind === "recent" ? accountListScopeId : null,
+  );
   const { data: tagArticles, isLoading: isLoadingTagArticles } = useArticlesByTag(tagId, selectedAccountId);
   const feedsSnapshotCandidate = useMemo(
     () => (selectedAccountId !== null && feeds !== undefined ? { accountId: selectedAccountId, feeds } : null),
@@ -59,7 +62,8 @@ export function useArticleListSources({
   const { snapshot: feedsSnapshot } = useScreenSnapshot(feedsSnapshotCandidate, feedsSnapshotCandidate !== null);
   const adoptedFeedsSnapshot = adoptSnapshotByKey(feedsSnapshot, "accountId", selectedAccountId);
   const resolvedFeeds = adoptedFeedsSnapshot?.feeds ?? feeds;
-  const accountSelectionArticles = smartViewKind === "starred" ? starredArticles : accountArticles;
+  const accountSelectionArticles =
+    smartViewKind === "starred" ? starredArticles : smartViewKind === "recent" ? recentArticles : accountArticles;
   const primarySourceArticles =
     selectionContext.kind === "feed"
       ? articles
@@ -73,7 +77,9 @@ export function useArticleListSources({
         ? isLoadingTagArticles
         : smartViewKind === "starred"
           ? isLoadingStarredArticles
-          : isLoadingAccountArticles;
+          : smartViewKind === "recent"
+            ? isLoadingRecentArticles
+            : isLoadingAccountArticles;
   const primarySourceSnapshotCandidate = useMemo<ArticleListPrimarySourceSnapshot | null>(
     () =>
       primarySourceArticles === undefined
@@ -99,6 +105,7 @@ export function useArticleListSources({
     const sources = [
       primarySourceArticles,
       accountArticles,
+      recentArticles,
       articles,
       allFeedArticles,
       allAccountArticles,
@@ -122,6 +129,7 @@ export function useArticleListSources({
     allFeedArticles,
     allAccountArticles,
     primarySourceArticles,
+    recentArticles,
     retainedArticleIds,
     tagArticles,
   ]);

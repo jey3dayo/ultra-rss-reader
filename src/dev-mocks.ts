@@ -8,6 +8,7 @@ import {
   addAccountArgs,
   addLocalFeedArgs,
   checkBrowserEmbedSupportArgs,
+  clearArticleViewHistoryArgs,
   countAccountStarredArticlesArgs,
   countAccountUnreadArticlesArgs,
   createFolderArgs,
@@ -26,12 +27,14 @@ import {
   listArticlesByTagArgs,
   listFeedsArgs,
   listFoldersArgs,
+  listRecentArticlesArgs,
   listStarredArticlesArgs,
   markArticleReadArgs,
   markArticlesReadArgs,
   markFeedReadArgs,
   markFolderReadArgs,
   openInBrowserArgs,
+  recordArticleViewArgs,
   renameAccountArgs,
   renameFeedArgs,
   renameTagArgs,
@@ -50,6 +53,7 @@ import {
 import type {
   AccountDto,
   AccountSyncStatusDto,
+  ArticleDto,
   FeedDto,
   FolderDto,
   MuteKeywordDto,
@@ -67,6 +71,10 @@ let nextTagId = 100;
 let nextMuteKeywordId = 100;
 const mockPreferences = new Map<string, string>();
 const mockMuteKeywords: MuteKeywordDto[] = [];
+const mockArticleViewHistory: { accountId: string; articleId: string; viewedAt: string }[] = [
+  { accountId: "acc-freshrss", articleId: "art-2", viewedAt: "2026-04-20T10:00:00Z" },
+  { accountId: "acc-freshrss", articleId: "art-1", viewedAt: "2026-04-20T09:30:00Z" },
+];
 
 function titleFromUrl(feedUrl: string): string {
   try {
@@ -302,6 +310,23 @@ export function setupDevMocks() {
         return applyMuteKeywordFilter(mockArticles.filter((a) => feedIds.includes(a.feed_id) && a.is_starred));
       }
 
+      case "list_recent_articles": {
+        const { accountId, offset = 0, limit = 20 } = listRecentArticlesArgs.parse(payload);
+        const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
+        const articles = mockArticleViewHistory
+          .filter((item) => item.accountId === accountId)
+          .slice(offset, offset + limit)
+          .map((item): ArticleDto | null => {
+            const article = mockArticles.find((candidate) => candidate.id === item.articleId);
+            if (!article || !feedIds.has(article.feed_id)) {
+              return null;
+            }
+            return { ...article, viewed_at: item.viewedAt };
+          })
+          .filter((article): article is ArticleDto => article !== null);
+        return applyMuteKeywordFilter(articles);
+      }
+
       case "get_feed_integrity_report":
         return feedIntegrityReport;
 
@@ -372,6 +397,36 @@ export function setupDevMocks() {
           recalcUnread(art.feed_id);
         }
         return null;
+      }
+
+      case "record_article_view": {
+        const { accountId, articleId } = recordArticleViewArgs.parse(payload);
+        const feedIds = new Set(mockFeeds.filter((feed) => feed.account_id === accountId).map((feed) => feed.id));
+        const article = mockArticles.find((candidate) => candidate.id === articleId);
+        if (!article || !feedIds.has(article.feed_id)) {
+          return null;
+        }
+        const existingIndex = mockArticleViewHistory.findIndex(
+          (item) => item.accountId === accountId && item.articleId === articleId,
+        );
+        if (existingIndex >= 0) {
+          mockArticleViewHistory.splice(existingIndex, 1);
+        }
+        mockArticleViewHistory.unshift({ accountId, articleId, viewedAt: getCurrentIsoTimestamp() });
+        mockArticleViewHistory.splice(20);
+        return null;
+      }
+
+      case "clear_article_view_history": {
+        const { accountId } = clearArticleViewHistoryArgs.parse(payload);
+        let removed = 0;
+        for (let index = mockArticleViewHistory.length - 1; index >= 0; index--) {
+          if (mockArticleViewHistory[index].accountId === accountId) {
+            mockArticleViewHistory.splice(index, 1);
+            removed++;
+          }
+        }
+        return removed;
       }
 
       case "mark_articles_read": {

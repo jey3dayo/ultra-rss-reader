@@ -34,7 +34,7 @@ export type ArticleViewSummaryState =
     }
   | {
       kind: "smart";
-      smartKind: "unread" | "starred";
+      smartKind: "unread" | "starred" | "recent";
       articleCount: number;
       feedCount: number;
       latestArticlePublishedAt?: string | null;

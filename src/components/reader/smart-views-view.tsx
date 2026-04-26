@@ -14,6 +14,11 @@ const SMART_VIEW_TONE_CLASSNAMES = {
     hover: "hover:text-[var(--semantic-tone-starred-sidebar-foreground)]",
     trailing: "text-[var(--semantic-tone-starred-sidebar-foreground)] opacity-80",
   },
+  recent: {
+    selected: "bg-surface-2 text-foreground",
+    hover: "hover:text-foreground",
+    trailing: "text-foreground-soft opacity-80",
+  },
 } as const;
 
 export function SmartViewsView({ title, views, onSelectSmartView }: SidebarSmartViewsProps) {

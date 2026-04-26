@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 
-use crate::domain::article::Article;
+use crate::domain::article::{Article, ArticleViewHistoryItem};
 use crate::domain::error::DomainResult;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 
@@ -41,8 +41,15 @@ pub trait ArticleRepository {
         account_id: &AccountId,
         pagination: &Pagination,
     ) -> DomainResult<Vec<Article>>;
+    fn find_recently_viewed_by_account(
+        &self,
+        account_id: &AccountId,
+        pagination: &Pagination,
+    ) -> DomainResult<Vec<ArticleViewHistoryItem>>;
     fn count_unread_by_account(&self, account_id: &AccountId) -> DomainResult<i32>;
     fn count_starred_by_account(&self, account_id: &AccountId) -> DomainResult<i32>;
+    fn record_view(&self, account_id: &AccountId, article_id: &ArticleId) -> DomainResult<()>;
+    fn clear_view_history(&self, account_id: &AccountId) -> DomainResult<u64>;
     fn upsert(&self, articles: &[Article]) -> DomainResult<()>;
     fn mark_as_read(&self, id: &ArticleId, read: bool) -> DomainResult<()>;
     fn mark_many_as_read(&self, ids: &[ArticleId]) -> DomainResult<()>;

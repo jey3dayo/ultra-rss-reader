@@ -1,7 +1,10 @@
+import { useCallback } from "react";
+import { useClearArticleViewHistory } from "@/hooks/use-articles";
 import { displayPresetToPreferenceValues, resolveAppDefaultDisplayPreset } from "@/lib/article-display";
 import type { DevIntent } from "@/lib/dev-intent";
 import { DEV_SCENARIO_ID } from "@/lib/dev-scenario-ids";
 import { resolvePreferenceValue } from "@/stores/preferences-store";
+import { useUiStore } from "@/stores/ui-store";
 import type { ReadingSettingsViewProps } from "./reading-settings-view";
 import type { SettingsPreferenceViewPropsParams } from "./settings-page.types";
 
@@ -17,6 +20,26 @@ export function useReadingSettingsViewProps({
 }: UseReadingSettingsViewPropsParams): ReadingSettingsViewProps {
   const shouldShowDisplayModeOptions = devIntent === DEV_SCENARIO_ID.openSettingsReadingDisplayMode;
   const displayModeOpenState = shouldShowDisplayModeOptions ? { open: true } : {};
+  const selectedAccountId = useUiStore((state) => state.selectedAccountId);
+  const showToast = useUiStore((state) => state.showToast);
+  const showConfirm = useUiStore((state) => state.showConfirm);
+  const clearHistory = useClearArticleViewHistory();
+  const handleClearRecentArticles = useCallback(() => {
+    if (!selectedAccountId) {
+      return;
+    }
+
+    showConfirm(
+      t("reading.confirm_clear_recent_articles"),
+      () => {
+        clearHistory.mutate(selectedAccountId, {
+          onSuccess: () => showToast(t("reading.clear_recent_articles_success")),
+          onError: (error) => showToast(t("reading.clear_recent_articles_failed", { message: error.message })),
+        });
+      },
+      { actionLabel: t("reading.clear_recent_articles") },
+    );
+  }, [clearHistory, selectedAccountId, showConfirm, showToast, t]);
 
   return {
     title: t("reading.heading"),
@@ -68,6 +91,21 @@ export function useReadingSettingsViewProps({
               { value: "after_1s", label: t("reading.mark_after_1s") },
             ],
             onChange: (value) => setPref("after_reading", value),
+          },
+          {
+            id: "recent-articles-history-enabled",
+            type: "switch",
+            label: t("reading.recent_articles_history_enabled"),
+            checked: resolvePreferenceValue(prefs, "recent_articles_history_enabled") === "true",
+            onChange: (checked) => setPref("recent_articles_history_enabled", String(checked)),
+          },
+          {
+            id: "clear-recent-articles",
+            type: "action",
+            label: t("reading.recent_articles_history"),
+            actionLabel: t("reading.clear_recent_articles"),
+            onAction: handleClearRecentArticles,
+            disabled: !selectedAccountId || clearHistory.isPending,
           },
         ],
       },

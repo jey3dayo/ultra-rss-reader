@@ -42,6 +42,9 @@ export function useSidebarUiState(): SidebarUiStateResult {
   const showSidebarStarred = usePreferencesStore(
     (s) => resolvePreferenceValue(s.prefs, "show_sidebar_starred") === "true",
   );
+  const showSidebarRecentArticles = usePreferencesStore(
+    (s) => resolvePreferenceValue(s.prefs, "show_sidebar_recent_articles") === "true",
+  );
   const showSidebarTags = usePreferencesStore((s) => resolvePreferenceValue(s.prefs, "show_sidebar_tags") === "true");
   const displayFavicons = usePreferencesStore((s) => (s.prefs.display_favicons ?? "true") === "true");
   const grayscaleFavicons = usePreferencesStore((s) => (s.prefs.grayscale_favicons ?? "false") === "true");
@@ -88,6 +91,7 @@ export function useSidebarUiState(): SidebarUiStateResult {
     showStarredCount,
     showSidebarUnread,
     showSidebarStarred,
+    showSidebarRecentArticles,
     showSidebarTags,
     displayFavicons,
     grayscaleFavicons,

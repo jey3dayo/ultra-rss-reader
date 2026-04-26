@@ -2,6 +2,8 @@
   "articles": "Articles",
   "unread": "Unread",
   "starred": "Starred",
+  "recent_articles": "Recently Viewed",
+  "viewed_at": "Viewed {{time}}",
   "tagged_articles": "Tagged Articles",
   "all_articles": "All Articles",
   "no_articles": "No articles",

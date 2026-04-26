@@ -197,6 +197,27 @@ describe("article-list utils", () => {
     expect(result.map((article) => article.id)).toEqual(["starred-unread"]);
   });
 
+  it("keeps recently viewed articles in history order", () => {
+    const result = selectVisibleArticles({
+      articles: [],
+      accountArticles: [
+        { ...sampleArticles[0], id: "viewed-first", published_at: "2026-04-20T00:00:00Z" },
+        { ...sampleArticles[1], id: "viewed-second", published_at: "2026-04-22T00:00:00Z" },
+      ],
+      tagArticles: [],
+      searchResults: [],
+      feedId: null,
+      tagId: null,
+      viewMode: "all",
+      showSearch: false,
+      searchQuery: "",
+      sortUnread: "newest_first",
+      smartViewKind: "recent",
+    });
+
+    expect(result.map((article) => article.id)).toEqual(["viewed-first", "viewed-second"]);
+  });
+
   it("groups articles by feed title", () => {
     const feedNameMap = new Map(sampleFeeds.map((feed) => [feed.id, feed.title]));
 

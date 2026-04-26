@@ -28,6 +28,10 @@ export function useArticleListViewState({
       return { primaryLabel: t("unread"), secondaryLabel: null, tone: "unread" as const };
     }
 
+    if (selection.kind === "recent") {
+      return { primaryLabel: t("recent_articles"), secondaryLabel: null, tone: null };
+    }
+
     return {
       primaryLabel: t("starred"),
       secondaryLabel: null,
@@ -44,12 +48,20 @@ export function useArticleListViewState({
       return ["unread"];
     }
 
+    if (selection.kind === "recent") {
+      return ["all"];
+    }
+
     return ["unread", "all"];
   }, [selection]);
 
   const footerDisabledModes = useMemo<ReadonlyArray<"all" | "unread" | "starred">>(() => {
     if (selection.type === "smart" && selection.kind === "unread") {
       return ["unread"];
+    }
+
+    if (selection.type === "smart" && selection.kind === "recent") {
+      return ["all"];
     }
 
     return [];
