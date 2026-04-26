@@ -3,6 +3,7 @@ import { useEffect, useMemo } from "react";
 import { executeAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
+import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
 
@@ -17,7 +18,7 @@ export function useKeyboard() {
   const keyToAction = useMemo(() => buildKeyToActionMap(prefs), [prefs]);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+    const handler = createKeyboardEventListener((e) => {
       const targetElement = e.target instanceof Element ? e.target : null;
       if (targetElement?.closest('[data-disable-global-shortcuts="true"]')) {
         return;
@@ -86,9 +87,8 @@ export function useKeyboard() {
           executeAction("reload-webview");
           break;
       }
-    };
+    });
 
-    window.addEventListener("keydown", handler, true);
-    return () => window.removeEventListener("keydown", handler, true);
+    return bindWindowEvents([{ type: "keydown", listener: handler, options: true }]);
   }, [store, keyToAction]);
 }

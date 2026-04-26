@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import { useCallback } from "react";
 import {
+  type AppError,
   type BrowserWebviewState,
   goBackBrowserWebview,
   goForwardBrowserWebview,
@@ -9,6 +10,8 @@ import {
 import { openUrlInExternalBrowser } from "./article-browser-actions";
 import type { UseBrowserViewActionsParams } from "./browser-view.types";
 import { isMissingEmbeddedBrowserWebviewError, setBrowserStateWithRef } from "./browser-webview-state";
+
+type BrowserWebviewCommand = () => Promise<Result.Result<BrowserWebviewState, AppError>>;
 
 export function useBrowserViewActions({
   browserUrl,
@@ -54,43 +57,35 @@ export function useBrowserViewActions({
     syncBrowserWebview,
   ]);
 
-  const handleGoBack = useCallback(async () => {
-    if (!browserStateRef.current?.can_go_back) {
-      return;
-    }
+  const runBrowserWebviewCommand = useCallback(
+    async (command: BrowserWebviewCommand, errorLabel: string) => {
+      Result.pipe(
+        await command(),
+        Result.inspect(applyBrowserState),
+        Result.inspectError(async (error) => {
+          if (isMissingEmbeddedBrowserWebviewError(error)) {
+            await recoverMissingEmbeddedBrowserWebview();
+            return;
+          }
+          console.error(errorLabel, error);
+          showToast(error.message);
+        }),
+      );
+    },
+    [applyBrowserState, recoverMissingEmbeddedBrowserWebview, showToast],
+  );
 
-    Result.pipe(
-      await goBackBrowserWebview(),
-      Result.inspect(applyBrowserState),
-      Result.inspectError(async (error) => {
-        if (isMissingEmbeddedBrowserWebviewError(error)) {
-          await recoverMissingEmbeddedBrowserWebview();
-          return;
-        }
-        console.error("Failed to go back in browser webview:", error);
-        showToast(error.message);
-      }),
-    );
-  }, [applyBrowserState, browserStateRef, recoverMissingEmbeddedBrowserWebview, showToast]);
+  const handleGoBack = useCallback(async () => {
+    if (browserStateRef.current?.can_go_back) {
+      await runBrowserWebviewCommand(goBackBrowserWebview, "Failed to go back in browser webview:");
+    }
+  }, [browserStateRef, runBrowserWebviewCommand]);
 
   const handleGoForward = useCallback(async () => {
-    if (!browserStateRef.current?.can_go_forward) {
-      return;
+    if (browserStateRef.current?.can_go_forward) {
+      await runBrowserWebviewCommand(goForwardBrowserWebview, "Failed to go forward in browser webview:");
     }
-
-    Result.pipe(
-      await goForwardBrowserWebview(),
-      Result.inspect(applyBrowserState),
-      Result.inspectError(async (error) => {
-        if (isMissingEmbeddedBrowserWebviewError(error)) {
-          await recoverMissingEmbeddedBrowserWebview();
-          return;
-        }
-        console.error("Failed to go forward in browser webview:", error);
-        showToast(error.message);
-      }),
-    );
-  }, [applyBrowserState, browserStateRef, recoverMissingEmbeddedBrowserWebview, showToast]);
+  }, [browserStateRef, runBrowserWebviewCommand]);
 
   const handleRetry = useCallback(() => {
     fallbackInFlightRef.current = false;
@@ -115,19 +110,8 @@ export function useBrowserViewActions({
       return;
     }
 
-    Result.pipe(
-      await reloadBrowserWebview(),
-      Result.inspect(applyBrowserState),
-      Result.inspectError(async (error) => {
-        if (isMissingEmbeddedBrowserWebviewError(error)) {
-          await recoverMissingEmbeddedBrowserWebview();
-          return;
-        }
-        console.error("Failed to reload browser webview:", error);
-        showToast(error.message);
-      }),
-    );
-  }, [applyBrowserState, browserUrl, recoverMissingEmbeddedBrowserWebview, showToast]);
+    await runBrowserWebviewCommand(reloadBrowserWebview, "Failed to reload browser webview:");
+  }, [browserUrl, runBrowserWebviewCommand]);
 
   const handleOpenExternal = useCallback(async () => {
     if (!browserUrl) {

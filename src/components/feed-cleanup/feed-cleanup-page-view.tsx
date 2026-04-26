@@ -10,6 +10,7 @@ import {
   SIDEBAR_PANE_WIDTH_PX,
 } from "@/constants/ui-layout";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
+import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
 import { usePlatformStore } from "@/stores/platform-store";
 import type { FeedCleanupPageViewProps } from "./feed-cleanup.types";
 import { FeedCleanupOverviewPanel } from "./feed-cleanup-overview-panel";
@@ -196,15 +197,15 @@ export function FeedCleanupPageView({
       observer.observe(layoutRef.current);
     }
 
-    window.addEventListener("resize", updateLayoutWidth);
+    const removeWindowEvents = bindWindowEvents([{ type: "resize", listener: updateLayoutWidth }]);
     return () => {
       observer?.disconnect();
-      window.removeEventListener("resize", updateLayoutWidth);
+      removeWindowEvents();
     };
   }, []);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyDown = createKeyboardEventListener((event) => {
       const state = keyboardStateRef.current;
       const target = event.target;
       if (
@@ -271,10 +272,9 @@ export function FeedCleanupPageView({
         default:
           return;
       }
-    };
+    });
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return bindWindowEvents([{ type: "keydown", listener: handleKeyDown }]);
   }, []);
 
   const layoutMode =

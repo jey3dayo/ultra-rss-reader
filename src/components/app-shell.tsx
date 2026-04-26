@@ -17,6 +17,13 @@ import { emitDebugInputTrace } from "../lib/debug-input-trace";
 import { attachTauriListeners } from "../lib/tauri-event-listeners";
 import { cn } from "../lib/utils";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "../lib/window-chrome";
+import {
+  bindWindowEvents,
+  createCustomEventDetailListener,
+  createKeyboardEventListener,
+  createMouseEventListener,
+  createPointerEventListener,
+} from "../lib/window-events";
 import { usePlatformStore } from "../stores/platform-store";
 import { resolvePreferenceValue, usePreferencesStore } from "../stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
@@ -165,6 +172,18 @@ function describeActiveElement(element: Element | null): string {
   return parts.join(" | ");
 }
 
+function isBrowserDebugGeometrySnapshot(value: unknown): value is BrowserDebugGeometrySnapshot {
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+
+  return "layoutDiagnostics" in value && "nativeDiagnostics" in value;
+}
+
+function isBrowserDebugGeometryDetail(value: unknown): value is BrowserDebugGeometrySnapshot | null {
+  return value === null || isBrowserDebugGeometrySnapshot(value);
+}
+
 type FocusDebugHudState = {
   activeElementDescription: string;
   traces: string[];
@@ -223,59 +242,53 @@ function FocusDebugHud() {
     };
 
     update();
-    const keyTraceListener = (event: KeyboardEvent) => {
+    const keyTraceListener = createKeyboardEventListener((event) => {
       dispatch({
         type: "append-trace",
         value: `${formatDebugTimestamp()} raw-key ${event.key} target=${describeActiveElement(
           event.target instanceof Element ? event.target : null,
         )}`,
       });
-    };
-    window.addEventListener("focusin", update, true);
-    window.addEventListener("focusout", update, true);
-    window.addEventListener("keydown", update, true);
-    window.addEventListener("keydown", keyTraceListener, true);
-    const traceListener = (event: Event) => {
-      const detail = (event as CustomEvent<string>).detail;
-      dispatch({ type: "append-trace", value: detail });
-    };
-    const geometryListener = (event: Event) => {
+    });
+    const traceListener = createCustomEventDetailListener(
+      (value): value is string => typeof value === "string",
+      (detail) => {
+        dispatch({ type: "append-trace", value: detail });
+      },
+    );
+    const geometryListener = createCustomEventDetailListener(isBrowserDebugGeometryDetail, (detail) => {
       dispatch({
         type: "set-browser-geometry",
-        value: (event as CustomEvent<BrowserDebugGeometrySnapshot | null>).detail,
+        value: detail,
       });
-    };
-    const pointerTraceListener = (event: PointerEvent) => {
+    });
+    const pointerTraceListener = createPointerEventListener((event) => {
       dispatch({
         type: "append-trace",
         value: `${formatDebugTimestamp()} raw-pointer ${event.type} x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeActiveElement(
           event.target instanceof Element ? event.target : null,
         )}`,
       });
-    };
-    const clickTraceListener = (event: MouseEvent) => {
+    });
+    const clickTraceListener = createMouseEventListener((event) => {
       dispatch({
         type: "append-trace",
         value: `${formatDebugTimestamp()} raw-click x=${Math.round(event.clientX)} y=${Math.round(event.clientY)} target=${describeActiveElement(
           event.target instanceof Element ? event.target : null,
         )}`,
       });
-    };
-    window.addEventListener(APP_EVENTS.debugInputTrace, traceListener);
-    window.addEventListener(APP_EVENTS.browserDebugGeometry, geometryListener);
-    window.addEventListener("pointerdown", pointerTraceListener, true);
-    window.addEventListener("click", clickTraceListener, true);
+    });
 
-    return () => {
-      window.removeEventListener("focusin", update, true);
-      window.removeEventListener("focusout", update, true);
-      window.removeEventListener("keydown", update, true);
-      window.removeEventListener("keydown", keyTraceListener, true);
-      window.removeEventListener(APP_EVENTS.debugInputTrace, traceListener);
-      window.removeEventListener(APP_EVENTS.browserDebugGeometry, geometryListener);
-      window.removeEventListener("pointerdown", pointerTraceListener, true);
-      window.removeEventListener("click", clickTraceListener, true);
-    };
+    return bindWindowEvents([
+      { type: "focusin", listener: update, options: true },
+      { type: "focusout", listener: update, options: true },
+      { type: "keydown", listener: update, options: true },
+      { type: "keydown", listener: keyTraceListener, options: true },
+      { type: APP_EVENTS.debugInputTrace, listener: traceListener },
+      { type: APP_EVENTS.browserDebugGeometry, listener: geometryListener },
+      { type: "pointerdown", listener: pointerTraceListener, options: true },
+      { type: "click", listener: clickTraceListener, options: true },
+    ]);
   }, []);
 
   useEffect(() => {

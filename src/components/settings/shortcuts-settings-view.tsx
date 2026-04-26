@@ -3,6 +3,7 @@ import { SettingsActionButton } from "@/components/settings/settings-action-butt
 import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
+import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
 
 export type ShortcutsSettingsItem = {
   id: string;
@@ -44,12 +45,11 @@ function ShortcutKeyBadge({ item, pressAKeyLabel }: ShortcutKeyBadgeProps) {
 
     badgeRef.current?.focus();
 
-    const handler = (event: globalThis.KeyboardEvent) => {
+    const handler = createKeyboardEventListener((event) => {
       item.onKeyDown?.(event);
-    };
+    });
 
-    window.addEventListener("keydown", handler, true);
-    return () => window.removeEventListener("keydown", handler, true);
+    return bindWindowEvents([{ type: "keydown", listener: handler, options: true }]);
   }, [item.isRecording, item.onKeyDown]);
 
   return (

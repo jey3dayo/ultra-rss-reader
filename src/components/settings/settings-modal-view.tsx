@@ -6,6 +6,7 @@ import { IndeterminateProgress } from "@/components/shared/indeterminate-progres
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { bindWindowEvents } from "@/lib/window-events";
 
 export type { SettingsModalViewProps } from "@/components/settings/settings-modal.types";
 
@@ -65,12 +66,12 @@ function useScrollOverflowState(dependency: unknown) {
     const animationFrame = window.requestAnimationFrame(() => {
       updateOverflow();
     });
-    window.addEventListener("resize", updateOverflow);
+    const removeWindowEvents = bindWindowEvents([{ type: "resize", listener: updateOverflow }]);
 
     if (typeof ResizeObserver === "undefined") {
       return () => {
         window.cancelAnimationFrame(animationFrame);
-        window.removeEventListener("resize", updateOverflow);
+        removeWindowEvents();
       };
     }
 
@@ -99,7 +100,7 @@ function useScrollOverflowState(dependency: unknown) {
 
     return () => {
       window.cancelAnimationFrame(animationFrame);
-      window.removeEventListener("resize", updateOverflow);
+      removeWindowEvents();
       mutationObserver?.disconnect();
       resizeObserver.disconnect();
     };

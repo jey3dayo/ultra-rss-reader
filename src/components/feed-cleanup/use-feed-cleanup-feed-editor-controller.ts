@@ -9,7 +9,7 @@ import { resolveFeedDisplayPreset } from "@/lib/article-display";
 import { copyValueToClipboard } from "@/lib/clipboard";
 import { invalidateArticleQueries, invalidateFeedQueries } from "@/lib/query-invalidation";
 import { useUiStore } from "@/stores/ui-store";
-import { type FeedEditDisplayPreset, submitFeedEdits } from "../reader/feed-edit-submit";
+import { type FeedEditDisplayPreset, type FeedEditorState, submitFeedEdits } from "../reader/feed-edit-submit";
 import { buildFolderOptions, useFolderSelection } from "../reader/use-folder-selection";
 import type {
   FeedCleanupDisplayModeOption,
@@ -17,12 +17,9 @@ import type {
   FeedCleanupFeedEditorControllerParams,
 } from "./feed-cleanup.types";
 
-type FeedCleanupFeedEditorState = {
-  title: string;
-  displayPreset: FeedEditDisplayPreset;
-  loading: boolean;
+type FeedCleanupFeedEditorState = FeedEditorState<{
   refetching: boolean;
-};
+}>;
 
 type FeedCleanupFeedEditorAction =
   | { type: "set-title"; value: string }

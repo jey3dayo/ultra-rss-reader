@@ -1,7 +1,12 @@
 import { useCallback, useEffect } from "react";
 import { APP_EVENTS } from "@/constants/events";
 import { getAdjacentItemId } from "@/lib/article-list";
+import { bindWindowEvents, createCustomEventDetailListener } from "@/lib/window-events";
 import type { SidebarFeedNavigationParams } from "./sidebar-feed-section.types";
+
+function isFeedNavigationDirection(value: unknown): value is 1 | -1 {
+  return value === 1 || value === -1;
+}
 
 export function useSidebarFeedNavigation({
   orderedFeedIds,
@@ -38,14 +43,10 @@ export function useSidebarFeedNavigation({
   );
 
   useEffect(() => {
-    const handler = (event: Event) => {
-      const direction = (event as CustomEvent<1 | -1>).detail;
+    const handler = createCustomEventDetailListener(isFeedNavigationDirection, (direction) => {
       navigateFeed(direction);
-    };
+    });
 
-    window.addEventListener(APP_EVENTS.navigateFeed, handler);
-    return () => {
-      window.removeEventListener(APP_EVENTS.navigateFeed, handler);
-    };
+    return bindWindowEvents([{ type: APP_EVENTS.navigateFeed, listener: handler }]);
   }, [navigateFeed]);
 }

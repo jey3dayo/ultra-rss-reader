@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { executeAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
+import { bindWindowEvents, createMouseEventListener } from "@/lib/window-events";
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) {
@@ -41,16 +42,16 @@ function isMouseNavigationButton(event: MouseEvent): boolean {
 
 export function useMouseNavigation() {
   useEffect(() => {
-    const handleMouseDown = (event: MouseEvent) => {
+    const handleMouseDown = createMouseEventListener((event) => {
       if (!isMouseNavigationButton(event) || event.defaultPrevented || isIgnoredMouseNavigationTarget(event.target)) {
         return;
       }
 
       event.preventDefault();
       event.stopPropagation();
-    };
+    });
 
-    const handleMouseUp = (event: MouseEvent) => {
+    const handleMouseUp = createMouseEventListener((event) => {
       if (!isMouseNavigationButton(event) || event.defaultPrevented || isIgnoredMouseNavigationTarget(event.target)) {
         return;
       }
@@ -60,14 +61,11 @@ export function useMouseNavigation() {
       const action = event.button === 3 ? "mouse-back" : "mouse-forward";
       emitDebugInputTrace(`window-mouse ${event.button} -> ${action}`);
       executeAction(action);
-    };
+    });
 
-    window.addEventListener("mousedown", handleMouseDown, true);
-    window.addEventListener("mouseup", handleMouseUp, true);
-
-    return () => {
-      window.removeEventListener("mousedown", handleMouseDown, true);
-      window.removeEventListener("mouseup", handleMouseUp, true);
-    };
+    return bindWindowEvents([
+      { type: "mousedown", listener: handleMouseDown, options: true },
+      { type: "mouseup", listener: handleMouseUp, options: true },
+    ]);
   }, []);
 }

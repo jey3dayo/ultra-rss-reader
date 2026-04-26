@@ -8,7 +8,7 @@ import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
 import { resolveFeedDisplayPreset } from "@/lib/article-display";
 import { copyValueToClipboard } from "@/lib/clipboard";
 import { useUiStore } from "@/stores/ui-store";
-import { submitFeedEdits } from "./feed-edit-submit";
+import { type FeedEditorState, submitFeedEdits } from "./feed-edit-submit";
 import type {
   FeedEditDisplayPreset,
   RenameFeedDialogController,
@@ -16,11 +16,7 @@ import type {
 } from "./rename-feed-dialog.types";
 import { buildFolderOptions, useFolderSelection } from "./use-folder-selection";
 
-type RenameFeedDialogState = {
-  title: string;
-  displayPreset: FeedEditDisplayPreset;
-  loading: boolean;
-};
+type RenameFeedDialogState = FeedEditorState;
 
 type RenameFeedDialogAction =
   | { type: "reset"; feed: FeedDto }

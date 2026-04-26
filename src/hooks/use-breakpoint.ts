@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { bindWindowEvents } from "@/lib/window-events";
 import { usePreferencesStore } from "../stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
 import { resolveResponsiveLayoutMode } from "./use-layout";
@@ -14,7 +15,6 @@ export function useBreakpoint() {
       setLayoutMode(resolveResponsiveLayoutMode(preferredLayoutMode, w));
     };
     update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
+    return bindWindowEvents([{ type: "resize", listener: update }]);
   }, [setLayoutMode, layoutPref]);
 }

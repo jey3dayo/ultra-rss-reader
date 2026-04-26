@@ -3,9 +3,14 @@ import { renameFeed } from "@/api/tauri-commands";
 import { displayPresetToTriStateModes, resolveFeedDisplayPreset } from "@/lib/article-display";
 import { createFolderIfNeeded } from "./feed-folder-flow";
 import { invalidateFeedQueries } from "./feed-query-cache";
-import type { SubmitFeedEditsParams } from "./rename-feed-dialog.types";
+import type { FeedEditDisplayPreset, SubmitFeedEditsParams } from "./rename-feed-dialog.types";
 
 export type { FeedEditDisplayPreset, SubmitFeedEditsParams } from "./rename-feed-dialog.types";
+export type FeedEditorState<ExtraState extends object = object> = {
+  title: string;
+  displayPreset: FeedEditDisplayPreset;
+  loading: boolean;
+} & ExtraState;
 
 export async function submitFeedEdits({
   feed,

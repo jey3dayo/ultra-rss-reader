@@ -1,4 +1,7 @@
 import { useEffect, useEffectEvent, useLayoutEffect } from "react";
+
+export { bindWindowEvents } from "@/lib/window-events";
+
 import { useUiStore } from "@/stores/ui-store";
 
 type BrowserUrlCleanup = ReturnType<typeof useEffect>;
@@ -7,31 +10,6 @@ type BrowserUrlScope = {
   isCurrent: () => boolean;
 };
 type BrowserUrlEffect = (scope: BrowserUrlScope) => BrowserUrlCleanup;
-type KnownWindowEventBinding<K extends keyof WindowEventMap = keyof WindowEventMap> = {
-  type: K;
-  listener: (event: WindowEventMap[K]) => void;
-  options?: boolean | AddEventListenerOptions;
-};
-
-type CustomWindowEventBinding = {
-  type: string;
-  listener: EventListenerOrEventListenerObject;
-  options?: boolean | AddEventListenerOptions;
-};
-
-type WindowEventBinding = KnownWindowEventBinding | CustomWindowEventBinding;
-
-export function bindWindowEvents(bindings: readonly WindowEventBinding[]) {
-  for (const { type, listener, options } of bindings) {
-    window.addEventListener(type, listener as EventListenerOrEventListenerObject, options);
-  }
-
-  return () => {
-    for (const { type, listener, options } of bindings) {
-      window.removeEventListener(type, listener as EventListenerOrEventListenerObject, options);
-    }
-  };
-}
 
 export function isCurrentBrowserUrl(browserUrl: string) {
   return useUiStore.getState().browserUrl === browserUrl;

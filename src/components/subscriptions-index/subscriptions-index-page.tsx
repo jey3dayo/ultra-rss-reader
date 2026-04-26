@@ -17,6 +17,7 @@ import {
   isSubscriptionRowFlagged,
   resolveSubscriptionRowStatus,
 } from "@/lib/subscriptions-index";
+import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
 import type { FeedCleanupContextReason } from "@/stores/ui-store";
 import { useUiStore } from "@/stores/ui-store";
 import type {
@@ -260,7 +261,7 @@ export function SubscriptionsIndexPage() {
       : undefined;
 
   useLayoutEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyDown = createKeyboardEventListener((event) => {
       const target = event.target;
       if (
         event.defaultPrevented ||
@@ -276,10 +277,9 @@ export function SubscriptionsIndexPage() {
       event.preventDefault();
       event.stopPropagation();
       closeSubscriptionsWorkspace();
-    };
+    });
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return bindWindowEvents([{ type: "keydown", listener: handleKeyDown }]);
   }, [closeSubscriptionsWorkspace]);
 
   return (
