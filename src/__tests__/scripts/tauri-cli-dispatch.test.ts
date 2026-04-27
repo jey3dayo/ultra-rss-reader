@@ -8,6 +8,10 @@ import {
   shouldCleanStaleMacosDevBundle,
 } from "../../../scripts/tauri-cli-dispatch.mjs";
 
+function normalizePathSeparators(value: string) {
+  return value.replaceAll("\\", "/");
+}
+
 describe("isWslEnvironment", () => {
   it("detects WSL via WSL_INTEROP", () => {
     expect(
@@ -76,14 +80,14 @@ describe("removeStaleMacosDevBundle", () => {
       cwd: "/repo",
       platform: "darwin",
       readFileImpl: async (targetPath) => {
-        const pathText = String(targetPath);
+        const pathText = normalizePathSeparators(String(targetPath));
         if (pathText.includes("/debug/bundle/") || pathText.includes("/release/bundle/")) {
           return `<?xml version="1.0"?><plist><dict><key>CFBundleIdentifier</key><string>com.ultra-rss-reader.dev</string></dict></plist>`;
         }
         throw new Error(`unexpected path: ${pathText}`);
       },
       rmImpl: async (targetPath) => {
-        removedPaths.push(String(targetPath));
+        removedPaths.push(normalizePathSeparators(String(targetPath)));
       },
     });
 
@@ -103,7 +107,7 @@ describe("removeStaleMacosDevBundle", () => {
       readFileImpl: async () =>
         `<?xml version="1.0"?><plist><dict><key>CFBundleIdentifier</key><string>com.jey3dayo.ultra-rss-reader</string></dict></plist>`,
       rmImpl: async (targetPath) => {
-        removedPaths.push(String(targetPath));
+        removedPaths.push(normalizePathSeparators(String(targetPath)));
       },
     });
 
