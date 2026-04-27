@@ -4,6 +4,30 @@ Format: [Keep a Changelog](https://keepachangelog.com/)
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-04-27
+
+### Features
+
+- 最近見た記事の履歴を追加し、アプリ再起動後も閲覧文脈をたどりやすくした
+- reader で中クリックした feed をそのまま既読にできるようにし、一覧整理を素早く行えるようにした
+
+### Bug Fixes
+
+- reader の記事移動を矢印キーで扱えるようにし、キーボード操作の引っかかりを減らした
+- packaged build の identifier を安定化し、配布ビルドで設定や保存先がぶれないようにした
+- Tauri の dev build 設定と macOS の stale bundle cleanup を調整し、開発起動まわりの失敗を抑えた
+
+### Documentation
+
+- 閲覧復帰ロードマップ、recent article settings の回帰メモ、完了済み TODO の整理を反映した
+
+### Maintenance
+
+- recent article history の上限や日付処理、window event helper、共通 helper を整理し、関連コードの見通しを上げた
+- validation schema / types と component date handling を分離整理し、責務の切り分けを進めた
+- settings の recent article preference テストと article list の account mock を補強し、回帰確認を厚くした
+- Vite dev server caching を無効化し、Windows 向け Tauri dispatch test と CI まわりの安定性を上げた
+
 ## [0.20.0] - 2026-04-26
 
 ### Bug Fixes
