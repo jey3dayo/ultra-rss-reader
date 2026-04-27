@@ -2,7 +2,9 @@
 
 import { execFile, spawn } from "node:child_process";
 import { Buffer } from "node:buffer";
+import { readFile, rm } from "node:fs/promises";
 import os from "node:os";
+import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
@@ -62,6 +64,59 @@ export function buildLocalTauriSpawnSpec(cliArgs, scriptUrl = import.meta.url) {
     command: "pnpm",
     args: ["exec", "tauri", ...cliArgs],
   };
+}
+
+const DEV_CONFIG_PATH = path.join("src-tauri", "tauri.dev.conf.json");
+const STALE_MACOS_DEV_BUNDLE_PATHS = [
+  path.join("src-tauri", "target", "debug", "bundle", "macos", "Ultra RSS Reader.app"),
+  path.join("src-tauri", "target", "release", "bundle", "macos", "Ultra RSS Reader.app"),
+];
+
+/**
+ * @param {string[]} cliArgs
+ * @returns {boolean}
+ */
+export function shouldCleanStaleMacosDevBundle(cliArgs) {
+  return cliArgs[0] === "dev" && cliArgs.includes(DEV_CONFIG_PATH);
+}
+
+/**
+ * @param {{ cwd?: string; platform?: NodeJS.Platform; readFileImpl?: typeof readFile; rmImpl?: typeof rm }} [options]
+ * @returns {Promise<boolean>}
+ */
+export async function removeStaleMacosDevBundle(options = {}) {
+  const cwd = options.cwd ?? process.cwd();
+  const platform = options.platform ?? process.platform;
+  const readFileImpl = options.readFileImpl ?? readFile;
+  const rmImpl = options.rmImpl ?? rm;
+
+  if (platform !== "darwin") {
+    return false;
+  }
+
+  let removedAny = false;
+
+  for (const bundlePath of STALE_MACOS_DEV_BUNDLE_PATHS) {
+    const infoPlistPath = path.join(cwd, bundlePath, "Contents", "Info.plist");
+    let infoPlist = "";
+    try {
+      infoPlist = await readFileImpl(infoPlistPath, "utf8");
+    } catch {
+      continue;
+    }
+
+    if (
+      !infoPlist.includes("<key>CFBundleIdentifier</key>")
+      || !infoPlist.includes("<string>com.ultra-rss-reader.dev</string>")
+    ) {
+      continue;
+    }
+
+    await rmImpl(path.join(cwd, bundlePath), { recursive: true, force: true });
+    removedAny = true;
+  }
+
+  return removedAny;
 }
 
 /**
@@ -152,6 +207,9 @@ async function resolveSpawnSpec(cliArgs) {
 
 async function main() {
   const cliArgs = process.argv.slice(2);
+  if (shouldCleanStaleMacosDevBundle(cliArgs)) {
+    await removeStaleMacosDevBundle();
+  }
   const spawnSpec = await resolveSpawnSpec(cliArgs);
   const child = spawn(spawnSpec.command, spawnSpec.args, {
     stdio: "inherit",

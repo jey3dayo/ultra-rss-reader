@@ -4,6 +4,8 @@ import {
   buildWslTauriSpawnSpec,
   isWslEnvironment,
   pickWindowsEnvOverrides,
+  removeStaleMacosDevBundle,
+  shouldCleanStaleMacosDevBundle,
 } from "../../../scripts/tauri-cli-dispatch.mjs";
 
 describe("isWslEnvironment", () => {
@@ -55,6 +57,58 @@ describe("buildLocalTauriSpawnSpec", () => {
 
     expect(spawnSpec.command).toBe("pnpm");
     expect(spawnSpec.args).toEqual(["exec", "tauri", "dev", "-c", "src-tauri/tauri.dev.conf.json"]);
+  });
+});
+
+describe("shouldCleanStaleMacosDevBundle", () => {
+  it("cleans only dev runs that use the dev overlay config", () => {
+    expect(shouldCleanStaleMacosDevBundle(["dev", "-c", "src-tauri/tauri.dev.conf.json"])).toBe(true);
+    expect(shouldCleanStaleMacosDevBundle(["build", "-c", "src-tauri/tauri.dev.conf.json"])).toBe(false);
+    expect(shouldCleanStaleMacosDevBundle(["dev", "-c", "src-tauri/tauri.conf.json"])).toBe(false);
+  });
+});
+
+describe("removeStaleMacosDevBundle", () => {
+  it("removes a stale macOS dev bundle artifact with the dev bundle identifier", async () => {
+    const removedPaths: string[] = [];
+
+    const removed = await removeStaleMacosDevBundle({
+      cwd: "/repo",
+      platform: "darwin",
+      readFileImpl: async (targetPath) => {
+        const pathText = String(targetPath);
+        if (pathText.includes("/debug/bundle/") || pathText.includes("/release/bundle/")) {
+          return `<?xml version="1.0"?><plist><dict><key>CFBundleIdentifier</key><string>com.ultra-rss-reader.dev</string></dict></plist>`;
+        }
+        throw new Error(`unexpected path: ${pathText}`);
+      },
+      rmImpl: async (targetPath) => {
+        removedPaths.push(String(targetPath));
+      },
+    });
+
+    expect(removed).toBe(true);
+    expect(removedPaths).toEqual([
+      "/repo/src-tauri/target/debug/bundle/macos/Ultra RSS Reader.app",
+      "/repo/src-tauri/target/release/bundle/macos/Ultra RSS Reader.app",
+    ]);
+  });
+
+  it("keeps non-dev bundles intact", async () => {
+    const removedPaths: string[] = [];
+
+    const removed = await removeStaleMacosDevBundle({
+      cwd: "/repo",
+      platform: "darwin",
+      readFileImpl: async () =>
+        `<?xml version="1.0"?><plist><dict><key>CFBundleIdentifier</key><string>com.jey3dayo.ultra-rss-reader</string></dict></plist>`,
+      rmImpl: async (targetPath) => {
+        removedPaths.push(String(targetPath));
+      },
+    });
+
+    expect(removed).toBe(false);
+    expect(removedPaths).toEqual([]);
   });
 });
 
