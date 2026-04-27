@@ -81,13 +81,14 @@ export function shouldCleanStaleMacosDevBundle(cliArgs) {
 }
 
 /**
- * @param {{ cwd?: string; platform?: NodeJS.Platform; readFileImpl?: typeof readFile; rmImpl?: typeof rm }} [options]
+ * @param {{ cwd?: string; platform?: NodeJS.Platform; readFileImpl?: (path: string, encoding: "utf8") => Promise<string>; rmImpl?: typeof rm }} [options]
  * @returns {Promise<boolean>}
  */
 export async function removeStaleMacosDevBundle(options = {}) {
   const cwd = options.cwd ?? process.cwd();
   const platform = options.platform ?? process.platform;
-  const readFileImpl = options.readFileImpl ?? readFile;
+  const readFileImpl =
+    /** @type {(path: string, encoding: "utf8") => Promise<string>} */ (options.readFileImpl ?? readFile);
   const rmImpl = options.rmImpl ?? rm;
 
   if (platform !== "darwin") {

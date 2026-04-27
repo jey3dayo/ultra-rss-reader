@@ -10,6 +10,19 @@ Important implementation constraints:
 - Rust follows a layered architecture: `commands -> service -> repository -> domain -> infra`.
 - Do not hold `std::sync::Mutex` locks across `.await` points.
 - Credentials must stay in the OS keyring; never add them to SQLite. `DEV_CREDENTIALS=1` is for development builds only.
+- Prefer editing existing files over creating new files.
+- Keep changes scoped to the requested task; avoid unrelated refactors and docs churn.
+- Put temporary artifacts under `tmp/`.
+- Do not claim work complete without running at least `mise run check` unless the task is explicitly docs-only.
+
+## Fast Path
+
+- Product and architecture context: [README](README.md)
+- Repository-local agent workflow: [CLAUDE](CLAUDE.md)
+- Router and precedence: [AGENTS](AGENTS.md)
+- Operational doc index: [docs/README.md](docs/README.md)
+- Default local verification: `mise run check`
+- Full local CI gate: `mise run ci`
 
 ## Start Here
 

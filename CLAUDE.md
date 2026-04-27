@@ -3,12 +3,21 @@
 Use [README.md](README.md) as the primary source of truth for product overview, architecture, development modes, and command details.
 This file stays intentionally short and focuses on agent-facing workflow guidance.
 
-## Daily Workflow
+## First Actions
 
 - Run `mise run check` before committing.
 - Use `mise run ci` when you need the full repository gate including build validation.
 - Default desktop development entry point: `mise run app:dev`.
 - Use `mise run app:dev:browser` only when browser-mode UI debugging is enough.
+
+## High-Signal Rules
+
+- Prefer editing existing files over creating new files.
+- Keep changes scoped to the requested task; avoid incidental refactors.
+- Put screenshots and other temporary artifacts under `tmp/`.
+- For UI changes, check `DESIGN.md` before introducing new reusable patterns.
+- For UI review or abstraction decisions, follow `DESIGN_REVIEW.md`.
+- Before release validation or packaged-build handoff, follow [docs/release-manual-verification.md](docs/release-manual-verification.md).
 
 ## Operational Notes
 
@@ -42,8 +51,6 @@ This file stays intentionally short and focuses on agent-facing workflow guidanc
 ## Agent Routing
 
 - `AGENTS.md` is only the entry point. Keep repository-local operating guidance centralized in this file.
-- For UI implementation, consult `DESIGN.md` before changing visuals or introducing reusable design patterns.
-- For UI review and abstraction decisions, follow `DESIGN_REVIEW.md`.
 - Put longer debugging, recovery, or diagnostic workflows in skills or `README.md` / `docs/`, not in `AGENTS.md`.
 
 ## MCP and Skills

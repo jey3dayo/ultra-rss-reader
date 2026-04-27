@@ -21,6 +21,29 @@ It supports local feeds and FreshRSS, stores data in SQLite, and keeps credentia
 - Theming — Light/dark with system detection, OKLch color tokens
 - Secure credentials — OS keyring (Keychain / Credential Manager / Secret Service), never SQLite
 
+## Start Here
+
+If you are new to the repository, use this order:
+
+1. Read this `README.md` for product, architecture, development modes, and verification scope.
+2. Run `mise install` and `pnpm install`.
+3. Start the app with `mise run app:dev`.
+4. Use `mise run check` as the default local verification gate.
+5. Follow [docs/release-manual-verification.md](docs/release-manual-verification.md) before any release or packaged-build handoff.
+
+## Quick Command Reference
+
+```bash
+mise run app:dev      # default native development
+mise run app:dev:browser  # browser-only UI debugging
+mise run check        # format + lint + test
+mise run ci           # CI-equivalent local gate
+mise run test:e2e     # Playwright browser-mode E2E tests
+mise run test:live    # FreshRSS live integration tests
+```
+
+Use the detailed command table below when you need a specialized workflow such as native keyring validation, signed macOS runs, or focused dev entry points.
+
 ## Command Palette Feed Landing
 
 - Press `Cmd+K` / `Ctrl+K` to open the command palette
@@ -182,6 +205,14 @@ Always run `mise run check` before committing.
 - Use [docs/incident-runbook.md](docs/incident-runbook.md) for the shortest path to logs, backups, and failure-specific triage steps.
 - If the app looks stale during development, make sure you are using `mise run app:dev` or `mise run app:dev:browser`, not `pnpm preview`.
 - If `pnpm preview` does not reflect a recent frontend change, run `pnpm build` first so `dist/` is regenerated.
+
+## Documentation Routing
+
+- Use [docs/README.md](docs/README.md) when you need an operational or historical document and do not know the exact file yet.
+- Use [docs/release-manual-verification.md](docs/release-manual-verification.md) for packaged builds, updater checks, and release sign-off.
+- Use [docs/incident-runbook.md](docs/incident-runbook.md) for logs, backups, recovery, updater, keyring, and sync triage.
+- Use [docs/feed-content-privacy.md](docs/feed-content-privacy.md) for privacy and CSP rules around remote article content.
+- Use [docs/superpowers/README.md](docs/superpowers/README.md) for dated design and implementation records.
 
 ## Documentation Map
 
