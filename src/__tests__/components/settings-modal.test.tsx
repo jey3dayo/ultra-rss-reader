@@ -648,4 +648,28 @@ describe("SettingsModal", () => {
 
     expect(usePreferencesStore.getState().prefs.open_first_article_on_feed_selection).toBe("true");
   });
+
+  it("renders recently viewed reading controls and updates the history preference", async () => {
+    const user = userEvent.setup();
+
+    usePreferencesStore.setState({
+      prefs: {},
+      loaded: true,
+    });
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "account-1",
+    });
+
+    render(<ReadingSettings />, { wrapper: createWrapper() });
+
+    const historySwitch = screen.getByRole("switch", { name: "Record recently viewed articles" });
+    expect(historySwitch).toBeChecked();
+    expect(screen.getByRole("button", { name: "Clear history: Recently viewed history" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Open the first article when selecting a feed" })).toBeInTheDocument();
+
+    await user.click(historySwitch);
+
+    expect(usePreferencesStore.getState().prefs.recent_articles_history_enabled).toBe("false");
+  });
 });

@@ -35,16 +35,20 @@ describe("GeneralSettings", () => {
 
     const unread = screen.getByRole("switch", { name: "Show Unread" });
     const starred = screen.getByRole("switch", { name: "Show Starred" });
+    const recent = screen.getByRole("switch", { name: "Show Recently Viewed" });
     const tags = screen.getByRole("switch", { name: "Show Tags" });
 
     expect(unread).toBeChecked();
     expect(starred).toBeChecked();
+    expect(recent).toBeChecked();
     expect(tags).toBeChecked();
 
     await user.click(unread);
+    await user.click(recent);
     await user.click(tags);
 
     expect(usePreferencesStore.getState().prefs.show_sidebar_unread).toBe("false");
+    expect(usePreferencesStore.getState().prefs.show_sidebar_recent_articles).toBe("false");
     expect(usePreferencesStore.getState().prefs.show_sidebar_tags).toBe("false");
     expect(usePreferencesStore.getState().prefs.show_sidebar_starred).toBeUndefined();
   });
