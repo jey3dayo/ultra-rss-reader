@@ -20,6 +20,9 @@ export default defineConfig(async () => ({
     port: 1420,
     strictPort: true,
     host: host || false,
+    headers: {
+      "Cache-Control": "no-store",
+    },
     hmr: host
       ? {
           protocol: "ws",
