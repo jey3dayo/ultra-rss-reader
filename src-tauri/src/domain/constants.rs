@@ -1,0 +1,1 @@
+pub const RECENT_ARTICLE_HISTORY_LIMIT: usize = 50;

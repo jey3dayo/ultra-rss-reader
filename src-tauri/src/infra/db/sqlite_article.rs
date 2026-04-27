@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::domain::article::{Article, ArticleViewHistoryItem};
+use crate::domain::constants::RECENT_ARTICLE_HISTORY_LIMIT;
 use crate::domain::error::DomainResult;
 use crate::domain::types::{AccountId, ArticleId, FeedId, FolderId};
 use crate::infra::db::sqlite_mute_keyword::{
@@ -109,7 +110,6 @@ fn row_to_article(row: &rusqlite::Row) -> rusqlite::Result<Article> {
 }
 
 const SELECT_COLS: &str = "id, feed_id, remote_id, title, content_raw, content_sanitized, sanitizer_version, summary, url, author, thumbnail, published_at, is_read, is_starred, fetched_at";
-const ARTICLE_VIEW_HISTORY_LIMIT: usize = 20;
 
 fn article_body_text(value: &str, summary: Option<&str>) -> String {
     if value.trim().is_empty() {
@@ -517,7 +517,7 @@ impl ArticleRepository for SqliteArticleRepository<'_> {
                  ORDER BY viewed_at DESC
                  LIMIT ?2
                )",
-            params![account_id.0, ARTICLE_VIEW_HISTORY_LIMIT as i64],
+            params![account_id.0, RECENT_ARTICLE_HISTORY_LIMIT as i64],
         )?;
         tx.commit()?;
         Ok(())
@@ -1512,7 +1512,7 @@ mod tests {
         let feed_b = insert_test_feed(&db, &account_b);
         let repo = SqliteArticleRepository::new(db.writer());
 
-        let articles_a = (0..22)
+        let articles_a = (0..(RECENT_ARTICLE_HISTORY_LIMIT + 2))
             .map(|index| make_article(&feed_a, &format!("Account A Article {index:02}")))
             .collect::<Vec<_>>();
         let article_b = make_article(&feed_b, "Account B Article");
@@ -1530,7 +1530,7 @@ mod tests {
                 &account_a,
                 &Pagination {
                     offset: 0,
-                    limit: 25,
+                    limit: RECENT_ARTICLE_HISTORY_LIMIT + 5,
                 },
             )
             .unwrap();
@@ -1538,7 +1538,7 @@ mod tests {
             .find_recently_viewed_by_account(&account_b, &Pagination::default())
             .unwrap();
 
-        assert_eq!(recent_a.len(), 20);
+        assert_eq!(recent_a.len(), RECENT_ARTICLE_HISTORY_LIMIT);
         assert_eq!(recent_a[0].article.id, articles_a[3].id);
         assert_eq!(
             recent_a
