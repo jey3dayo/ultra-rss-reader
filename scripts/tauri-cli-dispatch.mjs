@@ -73,11 +73,20 @@ const STALE_MACOS_DEV_BUNDLE_PATHS = [
 ];
 
 /**
+ * @param {string} value
+ * @returns {string}
+ */
+function normalizePathForComparison(value) {
+  return value.replaceAll("\\", "/");
+}
+
+/**
  * @param {string[]} cliArgs
  * @returns {boolean}
  */
 export function shouldCleanStaleMacosDevBundle(cliArgs) {
-  return cliArgs[0] === "dev" && cliArgs.includes(DEV_CONFIG_PATH);
+  return cliArgs[0] === "dev"
+    && cliArgs.some((arg) => normalizePathForComparison(arg) === normalizePathForComparison(DEV_CONFIG_PATH));
 }
 
 /**
