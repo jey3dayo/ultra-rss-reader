@@ -13,6 +13,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import {
   type MockTauriCommandCall,
+  sampleAccounts,
   sampleArticles,
   sampleFeeds,
   setupTauriMocks,
@@ -28,6 +29,8 @@ describe("ArticleList", () => {
     usePreferencesStore.setState({ prefs: {}, loaded: false });
     setupTauriMocks((cmd, args) => {
       switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
         case "list_feeds":
           return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
         case "list_articles":
