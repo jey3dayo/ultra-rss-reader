@@ -64,6 +64,21 @@ function setupAutoMarkMocks(calls: MockTauriCommandCall[]) {
   });
 }
 
+function setupArticleViewRecordingMocks(calls: MockTauriCommandCall[]) {
+  setupTauriMocks((cmd, args) => {
+    calls.push({ cmd, args });
+
+    switch (cmd) {
+      case "get_article_tags":
+        return [];
+      case "record_article_view":
+        return null;
+      default:
+        return undefined;
+    }
+  });
+}
+
 async function expectArticleAutoMarksAsRead({
   afterReading,
   delayMs,
@@ -226,6 +241,43 @@ describe("ArticleView", () => {
       expect(useUiStore.getState().focusedPane).toBe("list");
       expect(useUiStore.getState().contentMode).toBe("empty");
     });
+  });
+
+  it("records article views outside the recent smart view", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    setupArticleViewRecordingMocks(calls);
+
+    render(<ArticlePane {...requirePrimaryArticlePaneProps()} />, {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(calls).toContainEqual({
+        cmd: "record_article_view",
+        args: { accountId: "acc-1", articleId: "art-1" },
+      });
+    }, ciWaitOptions);
+  });
+
+  it("does not reorder recent smart view by recording the selected article again", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    setupArticleViewRecordingMocks(calls);
+    useUiStore.setState({
+      selectedAccountId: "acc-1",
+      selection: { type: "smart", kind: "recent" },
+      selectedArticleId: "art-1",
+      contentMode: "reader",
+    });
+
+    render(<ArticlePane {...requirePrimaryArticlePaneProps()} />, {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(screen.getByTestId("article-pane")).toBeInTheDocument(), ciWaitOptions);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(calls.filter((call) => call.cmd === "record_article_view")).toHaveLength(0);
   });
 
   it("opens the web preview from the article title when open_links is in_app", async () => {

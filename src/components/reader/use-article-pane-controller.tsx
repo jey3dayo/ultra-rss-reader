@@ -14,6 +14,7 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
     layoutMode,
     contentMode,
     browserUrl,
+    selection,
     clearArticle,
     showToast,
     addRecentlyRead,
@@ -49,6 +50,7 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
   const historyEnabled = usePreferencesStore(
     (state) => resolvePreferenceValue(state.prefs, "recent_articles_history_enabled") === "true",
   );
+  const isRecentSmartView = selection.type === "smart" && selection.kind === "recent";
   const recordedSelectionRef = useRef<string | null>(null);
 
   useArticleAutoMark({
@@ -63,7 +65,7 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
   });
 
   useEffect(() => {
-    if (!historyEnabled || !feed?.account_id) {
+    if (!historyEnabled || isRecentSmartView || !feed?.account_id) {
       return;
     }
 
@@ -82,7 +84,7 @@ export function useArticlePaneController({ article, feed }: ArticlePaneProps): A
         },
       },
     );
-  }, [article.id, feed?.account_id, historyEnabled, recordArticleView, showToast]);
+  }, [article.id, feed?.account_id, historyEnabled, isRecentSmartView, recordArticleView, showToast]);
 
   const handleCloseView = useCallback(() => {
     clearArticle();

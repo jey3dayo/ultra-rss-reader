@@ -6,6 +6,7 @@ export function useArticleViewUiState() {
   const layoutMode = useUiStore((s) => s.layoutMode);
   const contentMode = useUiStore((s) => s.contentMode);
   const browserUrl = useUiStore((s) => s.browserUrl);
+  const selection = useUiStore((s) => s.selection);
   const clearArticle = useUiStore((s) => s.clearArticle);
   const showToast = useUiStore((s) => s.showToast);
   const addRecentlyRead = useUiStore((s) => s.addRecentlyRead);
@@ -19,6 +20,7 @@ export function useArticleViewUiState() {
     layoutMode,
     contentMode,
     browserUrl,
+    selection,
     clearArticle,
     showToast,
     addRecentlyRead,
