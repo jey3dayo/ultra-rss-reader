@@ -37,6 +37,7 @@ export function SidebarContentSections({
   sidebarDensity,
   isFeedTreeLoading,
   showFeedTreeSkeleton,
+  onFocusAccountList,
 }: SidebarContentSectionsProps) {
   const { t: commonT } = useTranslation("common");
   const tagItems = useSidebarTagItems({ tags, tagArticleCounts, selection });
@@ -91,6 +92,7 @@ export function SidebarContentSections({
       settingsLabel={settingsLabel}
       onOpenSubscriptionsIndex={onOpenSubscriptionsIndex}
       onOpenSettings={onOpenSettings}
+      onFocusAccountList={onFocusAccountList}
       addFeedDialog={addFeedDialog}
     />
   );

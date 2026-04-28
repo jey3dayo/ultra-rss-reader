@@ -39,15 +39,20 @@ export const mockAccounts: AccountDto[] = [
 ];
 
 export const mockFolders: FolderDto[] = [
-  { id: "folder-gaming", account_id: "acc-freshrss", name: "Gaming", sort_order: 0 },
-  { id: "folder-tech", account_id: "acc-freshrss", name: "Tech", sort_order: 1 },
+  { id: "folder-comic", account_id: "acc-freshrss", name: "Comic", sort_order: 0 },
+  { id: "folder-gaming", account_id: "acc-freshrss", name: "Gaming", sort_order: 1 },
+  { id: "folder-misc", account_id: "acc-freshrss", name: "Misc", sort_order: 2 },
+  { id: "folder-must-read", account_id: "acc-freshrss", name: "Must Read", sort_order: 3 },
+  { id: "folder-news", account_id: "acc-freshrss", name: "News", sort_order: 4 },
+  { id: "folder-tech", account_id: "acc-freshrss", name: "Tech", sort_order: 5 },
+  { id: "folder-youtube", account_id: "acc-freshrss", name: "youtube", sort_order: 6 },
 ];
 
 export const mockFeeds: FeedDto[] = [
   {
     id: "feed-automaton",
     account_id: "acc-freshrss",
-    folder_id: "folder-gaming",
+    folder_id: "folder-misc",
     title: "AUTOMATON",
     url: "https://automaton-media.com/feed/",
     site_url: "https://automaton-media.com",
@@ -58,7 +63,7 @@ export const mockFeeds: FeedDto[] = [
   {
     id: "feed-hatima",
     account_id: "acc-freshrss",
-    folder_id: "folder-gaming",
+    folder_id: "folder-misc",
     title: "はちま起稿",
     url: "https://esuteru.com/feed/",
     site_url: "https://esuteru.com",
@@ -69,7 +74,7 @@ export const mockFeeds: FeedDto[] = [
   {
     id: "feed-yumenavi",
     account_id: "acc-freshrss",
-    folder_id: "folder-gaming",
+    folder_id: "folder-misc",
     title: "ゆめ痛 -News Alert-",
     url: "https://yumenavi.info/feed/",
     site_url: "https://yumenavi.info",
@@ -102,7 +107,7 @@ export const mockFeeds: FeedDto[] = [
   {
     id: "feed-nhk",
     account_id: "acc-freshrss",
-    folder_id: null,
+    folder_id: "folder-news",
     title: "NHKニュース",
     url: "https://www.nhk.or.jp/rss/news/cat0.xml",
     site_url: "https://www.nhk.or.jp",
@@ -113,7 +118,7 @@ export const mockFeeds: FeedDto[] = [
   {
     id: "feed-hatena",
     account_id: "acc-freshrss",
-    folder_id: null,
+    folder_id: "folder-news",
     title: "はてブ 人気エントリー",
     url: "https://b.hatena.ne.jp/hotentry/it.rss",
     site_url: "https://b.hatena.ne.jp",
@@ -135,7 +140,7 @@ export const mockFeeds: FeedDto[] = [
   {
     id: "feed-npaka",
     account_id: "acc-freshrss",
-    folder_id: null,
+    folder_id: "folder-tech",
     title: "npaka",
     url: "https://note.com/npaka/rss",
     site_url: "https://note.com/npaka",
@@ -146,11 +151,77 @@ export const mockFeeds: FeedDto[] = [
   {
     id: "feed-chimolog",
     account_id: "acc-freshrss",
-    folder_id: null,
+    folder_id: "folder-tech",
     title: "ちもろぐ",
     url: "https://chimolog.co/feed/",
     site_url: "https://chimolog.co",
     unread_count: 1,
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
+  },
+  {
+    id: "feed-zakkukukan",
+    account_id: "acc-freshrss",
+    folder_id: "folder-misc",
+    title: "雑貨kUkan [full]",
+    url: "https://www.zakkukukan.com/feed/",
+    site_url: "https://www.zakkukukan.com",
+    unread_count: 11,
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
+  },
+  {
+    id: "feed-internet-watch",
+    account_id: "acc-freshrss",
+    folder_id: "folder-tech",
+    title: "INTERNET Watch",
+    url: "https://internet.watch.impress.co.jp/data/rss/1.0/iw/feed.rdf",
+    site_url: "https://internet.watch.impress.co.jp",
+    unread_count: 119,
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
+  },
+  {
+    id: "feed-pc-parts",
+    account_id: "acc-freshrss",
+    folder_id: "folder-tech",
+    title: "PCパーツまとめ [full]",
+    url: "https://blog.livedoor.jp/bluejay01-review/feed",
+    site_url: "https://blog.livedoor.jp/bluejay01-review/",
+    unread_count: 187,
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
+  },
+  {
+    id: "feed-v",
+    account_id: "acc-freshrss",
+    folder_id: "folder-tech",
+    title: "V",
+    url: "https://example.com/v/feed.xml",
+    site_url: "https://example.com/v",
+    unread_count: 3,
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
+  },
+  {
+    id: "feed-uchiran",
+    account_id: "acc-freshrss",
+    folder_id: "folder-youtube",
+    title: "ウチラン",
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=mock-uchiran",
+    site_url: "https://www.youtube.com",
+    unread_count: 11,
+    reader_mode: "inherit",
+    web_preview_mode: "inherit",
+  },
+  {
+    id: "feed-tanoshii",
+    account_id: "acc-freshrss",
+    folder_id: "folder-youtube",
+    title: "田楽",
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=mock-tanoshii",
+    site_url: "https://www.youtube.com",
+    unread_count: 20,
     reader_mode: "inherit",
     web_preview_mode: "inherit",
   },
@@ -166,6 +237,254 @@ export const mockArticleTags: { article_id: string; tag_id: string }[] = [
   { article_id: "art-1", tag_id: "tag-important" },
   { article_id: "art-1", tag_id: "tag-work" },
   { article_id: "art-4", tag_id: "tag-read-later" },
+];
+
+type MockArticleSeed = {
+  id: string;
+  feedId: string;
+  title: string;
+  summary: string;
+  url: string;
+  author: string | null;
+  date: Date;
+  hours: number;
+  minutes: number;
+  contentHtml?: string;
+  thumbnail?: string | null;
+  isRead?: boolean;
+  isStarred?: boolean;
+};
+
+function createMockArticle(seed: MockArticleSeed): ArticleDto {
+  return {
+    id: seed.id,
+    feed_id: seed.feedId,
+    title: seed.title,
+    content_sanitized:
+      seed.contentHtml ??
+      `<p>${seed.summary}</p><p>キーボード操作とスクロール量を確認しやすいように用意したブラウザ開発用のサンプル記事です。</p>`,
+    summary: seed.summary,
+    url: seed.url,
+    author: seed.author,
+    published_at: mockArticlePublishedAt(seed.date, seed.hours, seed.minutes),
+    thumbnail: seed.thumbnail ?? null,
+    is_read: seed.isRead ?? false,
+    is_starred: seed.isStarred ?? false,
+  };
+}
+
+const longReaderKeyboardContent = Array.from({ length: 18 }, (_, index) => {
+  const sectionNumber = index + 1;
+  return `<p>長文スクロール検証セクション ${sectionNumber}。記事画面にフォーカスがある状態で上下キーを押したとき、reader のスクロール領域だけが自然に移動することを確認するための本文です。本文量を十分に確保して、ブラウザと Tauri のどちらでも scrollTop の変化を観察できます。</p>`;
+}).join("");
+
+const generatedMockArticles: ArticleDto[] = [
+  createMockArticle({
+    id: "art-9",
+    feedId: "feed-nhk",
+    title: "【ライブ配信中】“りくりゅう” ペアが引退会見",
+    summary: "フィギュアスケートのペアで日本勢として初のメダルを獲得した三浦璃来選手と木原龍一選手が引退会見。",
+    url: "https://www3.nhk.or.jp/news/html/mock-figure-skating.html",
+    author: "NHK",
+    date: now,
+    hours: 10,
+    minutes: 53,
+    contentHtml: longReaderKeyboardContent,
+  }),
+  createMockArticle({
+    id: "art-10",
+    feedId: "feed-nhk",
+    title: "岩手 大槌町の山林火災「局地激甚災害」に指定へ 赤間防災相",
+    summary: "岩手県大槌町の山林火災について、政府は局地激甚災害に指定する方針を示しました。",
+    url: "https://www3.nhk.or.jp/news/html/mock-wildfire.html",
+    author: "NHK",
+    date: now,
+    hours: 9,
+    minutes: 51,
+  }),
+  createMockArticle({
+    id: "art-11",
+    feedId: "feed-nhk",
+    title: "夕食会発砲事件 大統領の暗殺未遂容疑など 容疑者を訴追",
+    summary: "首都ワシントンで発生した事件をめぐり、当局は容疑者を訴追しました。",
+    url: "https://www3.nhk.or.jp/news/html/mock-shooting.html",
+    author: "NHK",
+    date: now,
+    hours: 9,
+    minutes: 11,
+  }),
+  createMockArticle({
+    id: "art-12",
+    feedId: "feed-nhk",
+    title: "3月の有効求人倍率 全国平均で1.18倍 前月下回る 厚労省",
+    summary: "厚生労働省によりますと、3月の有効求人倍率は全国平均で1.18倍でした。",
+    url: "https://www3.nhk.or.jp/news/html/mock-jobs.html",
+    author: "NHK",
+    date: now,
+    hours: 8,
+    minutes: 42,
+  }),
+  createMockArticle({
+    id: "art-13",
+    feedId: "feed-nhk",
+    title: "3月の完全失業率 2.7% 前月より0.1ポイント悪化",
+    summary: "総務省によりますと、3月の全国の完全失業率は2.7%でした。",
+    url: "https://www3.nhk.or.jp/news/html/mock-unemployment.html",
+    author: "NHK",
+    date: now,
+    hours: 8,
+    minutes: 36,
+  }),
+  createMockArticle({
+    id: "art-14",
+    feedId: "feed-nhk",
+    title: "英国王夫妻 国賓として米訪問 35年ぶり連邦議会で演説も",
+    summary: "イギリスのチャールズ国王夫妻がアメリカを訪問し、連邦議会で演説する予定です。",
+    url: "https://www3.nhk.or.jp/news/html/mock-king.html",
+    author: "NHK",
+    date: now,
+    hours: 8,
+    minutes: 0,
+  }),
+  createMockArticle({
+    id: "art-15",
+    feedId: "feed-nhk",
+    title: "米ホワイトハウス “イラン側から新提案 大統領らが議論”",
+    summary: "アメリカとイスラエルが、イランへの軍事作戦をめぐり協議しました。",
+    url: "https://www3.nhk.or.jp/news/html/mock-whitehouse.html",
+    author: "NHK",
+    date: now,
+    hours: 6,
+    minutes: 10,
+  }),
+  createMockArticle({
+    id: "art-16",
+    feedId: "feed-hatena",
+    title: "“伝家の宝刀” なんてない「異常で恐ろしい」首相の衆院解散権",
+    summary: "衆議院の解散権をめぐる論点を、過去の事例とともに整理します。",
+    url: "https://b.hatena.ne.jp/hotentry/mock-1",
+    author: "日本経済新聞",
+    date: now,
+    hours: 8,
+    minutes: 18,
+    thumbnail: "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=400&h=300&fit=crop",
+  }),
+  createMockArticle({
+    id: "art-17",
+    feedId: "feed-hatena",
+    title: "OpenAI、Microsoftと独占契約終了 Amazon経由でモデル提供 - 日本経済新聞",
+    summary: "OpenAIとMicrosoftの契約見直しをめぐるニュースをまとめます。",
+    url: "https://b.hatena.ne.jp/hotentry/mock-2",
+    author: "日本経済新聞",
+    date: now,
+    hours: 7,
+    minutes: 46,
+    thumbnail: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=300&fit=crop",
+  }),
+  createMockArticle({
+    id: "art-18",
+    feedId: "feed-hatena",
+    title: "欧州で航空燃料不足、6月に欠航拡大の恐れ ANA・JAL途中給油探る",
+    summary: "欧州で航空燃料不足が続き、日本の航空会社も運航計画を見直しています。",
+    url: "https://b.hatena.ne.jp/hotentry/mock-3",
+    author: "日本経済新聞",
+    date: now,
+    hours: 7,
+    minutes: 19,
+    thumbnail: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=300&fit=crop",
+  }),
+  createMockArticle({
+    id: "art-19",
+    feedId: "feed-hatena",
+    title: "一時期よく見かけた「カーディガンを腰に巻くスタイル」は今若い子はあまりしないのだろうか？",
+    summary: "ファッションの流行変化について、SNS上の反応をまとめた記事です。",
+    url: "https://b.hatena.ne.jp/hotentry/mock-4",
+    author: "togetter",
+    date: now,
+    hours: 6,
+    minutes: 45,
+    thumbnail: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=300&fit=crop",
+  }),
+  createMockArticle({
+    id: "art-20",
+    feedId: "feed-hatena",
+    title: "Scribe v2 リアルタイム音声認識 - 150ms 低遅延 API",
+    summary: "リアルタイム音声認識 API の改善点と、低遅延化の仕組みを紹介します。",
+    url: "https://b.hatena.ne.jp/hotentry/mock-5",
+    author: "Developer Blog",
+    date: now,
+    hours: 5,
+    minutes: 39,
+    thumbnail: null,
+  }),
+  createMockArticle({
+    id: "art-21",
+    feedId: "feed-internet-watch",
+    title: "家庭内ネットワークを見直すなら、まず確認したいルーター設定",
+    summary: "家庭内ネットワークの速度と安全性を改善するための基本設定を解説します。",
+    url: "https://internet.watch.impress.co.jp/mock/router",
+    author: "INTERNET Watch",
+    date: yesterday,
+    hours: 17,
+    minutes: 20,
+  }),
+  createMockArticle({
+    id: "art-22",
+    feedId: "feed-internet-watch",
+    title: "パスキー対応サービスが拡大、移行時に気をつけたいポイント",
+    summary: "パスキー対応が広がる中、複数端末で安全に使うための注意点をまとめます。",
+    url: "https://internet.watch.impress.co.jp/mock/passkeys",
+    author: "INTERNET Watch",
+    date: yesterday,
+    hours: 15,
+    minutes: 4,
+  }),
+  createMockArticle({
+    id: "art-23",
+    feedId: "feed-pc-parts",
+    title: "次世代GPUの補助電源、ケーブル取り回しで注意したいこと",
+    summary: "自作PCで高性能GPUを扱う際の電源ケーブルとケース内エアフローの注意点。",
+    url: "https://blog.livedoor.jp/bluejay01-review/mock-gpu",
+    author: "PCパーツまとめ",
+    date: yesterday,
+    hours: 13,
+    minutes: 40,
+  }),
+  createMockArticle({
+    id: "art-24",
+    feedId: "feed-pc-parts",
+    title: "ミニPCの発熱対策、静音性と性能のバランスをどう取るか",
+    summary: "コンパクトな筐体で温度を抑えるための置き場所とファン設定を紹介します。",
+    url: "https://blog.livedoor.jp/bluejay01-review/mock-mini-pc",
+    author: "PCパーツまとめ",
+    date: yesterday,
+    hours: 12,
+    minutes: 25,
+  }),
+  createMockArticle({
+    id: "art-25",
+    feedId: "feed-uchiran",
+    title: "今週の気になる配信まとめ、コメント欄で話題になった場面",
+    summary: "配信の見どころと、視聴者コメントで盛り上がった場面を振り返ります。",
+    url: "https://www.youtube.com/watch?v=mock-uchiran-1",
+    author: "ウチラン",
+    date: yesterday,
+    hours: 11,
+    minutes: 10,
+    thumbnail: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=300&fit=crop",
+  }),
+  createMockArticle({
+    id: "art-26",
+    feedId: "feed-tanoshii",
+    title: "週末に遊びたい協力ゲーム特集、短時間でも盛り上がるタイトル",
+    summary: "週末に友人と遊びやすい協力ゲームを、プレイ時間別に紹介します。",
+    url: "https://www.youtube.com/watch?v=mock-tanoshii-1",
+    author: "田楽",
+    date: yesterday,
+    hours: 10,
+    minutes: 42,
+    thumbnail: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=300&fit=crop",
+  }),
 ];
 
 export const mockArticles: ArticleDto[] = [
@@ -282,6 +601,7 @@ export const mockArticles: ArticleDto[] = [
     is_read: false,
     is_starred: true,
   },
+  ...generatedMockArticles,
 ];
 
 for (const feed of mockFeeds) {

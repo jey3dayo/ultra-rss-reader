@@ -125,6 +125,7 @@ interface UiState {
   layoutMode: LayoutMode;
   focusedPane: FocusedPane;
   sidebarOpen: boolean;
+  accountPaneOpen: boolean;
   contentMode: ContentMode;
   selectedAccountId: string | null;
   selection: UiSelection;
@@ -168,6 +169,9 @@ interface UiActions {
   openSidebar: () => void;
   closeSidebar: () => void;
   toggleSidebar: () => void;
+  openAccountPane: () => void;
+  closeAccountPane: () => void;
+  toggleAccountPane: () => void;
   selectAccount: (id: string) => void;
   restoreAccountSelection: (id: string, options?: { focusedPane?: FocusedPane }) => void;
   clearSelectedAccount: () => void;
@@ -243,6 +247,7 @@ const initialState: UiState = {
   layoutMode: "wide",
   focusedPane: "sidebar",
   sidebarOpen: true,
+  accountPaneOpen: false,
   contentMode: "empty",
   selectedAccountId: null,
   selection: { type: "all" },
@@ -289,6 +294,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   closeSidebar: () =>
     set((state) => ({
       sidebarOpen: false,
+      accountPaneOpen: false,
       focusedPane: state.focusedPane === "sidebar" ? getSidebarHiddenFallbackPane(state) : state.focusedPane,
     })),
   toggleSidebar: () =>
@@ -296,6 +302,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
       state.sidebarOpen
         ? {
             sidebarOpen: false,
+            accountPaneOpen: false,
             focusedPane: state.focusedPane === "sidebar" ? getSidebarHiddenFallbackPane(state) : state.focusedPane,
           }
         : {
@@ -303,9 +310,18 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
             focusedPane: "sidebar",
           },
     ),
+  openAccountPane: () => set({ accountPaneOpen: true, sidebarOpen: true, focusedPane: "sidebar" }),
+  closeAccountPane: () => set({ accountPaneOpen: false }),
+  toggleAccountPane: () =>
+    set((state) => ({
+      accountPaneOpen: !state.accountPaneOpen,
+      sidebarOpen: true,
+      focusedPane: "sidebar",
+    })),
   selectAccount: (id) =>
     set({
       selectedAccountId: id,
+      accountPaneOpen: false,
       selection: { type: "all" },
       viewMode: "unread",
       selectedArticleId: null,
@@ -317,6 +333,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   restoreAccountSelection: (id, options) =>
     set({
       selectedAccountId: id,
+      accountPaneOpen: false,
       selection: { type: "smart", kind: "unread" },
       viewMode: "unread",
       selectedArticleId: null,
@@ -328,6 +345,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   clearSelectedAccount: () =>
     set({
       selectedAccountId: null,
+      accountPaneOpen: false,
       selection: { type: "all" },
       viewMode: "unread",
       selectedArticleId: null,
@@ -338,6 +356,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     }),
   selectFeed: (feedId) =>
     set({
+      accountPaneOpen: false,
       selection: { type: "feed", feedId },
       viewMode: "unread",
       selectedArticleId: null,
@@ -348,6 +367,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     }),
   selectFolder: (folderId) =>
     set((state) => ({
+      accountPaneOpen: false,
       selection: { type: "folder", folderId },
       viewMode: "unread",
       selectedArticleId: null,
@@ -359,6 +379,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     })),
   selectSmartView: (kind) =>
     set({
+      accountPaneOpen: false,
       selection: { type: "smart", kind },
       viewMode: kind === "unread" ? "unread" : "all",
       selectedArticleId: null,
@@ -369,6 +390,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     }),
   selectTag: (tagId) =>
     set({
+      accountPaneOpen: false,
       selection: { type: "tag", tagId },
       viewMode: "unread",
       selectedArticleId: null,
@@ -379,6 +401,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     }),
   selectAll: () =>
     set({
+      accountPaneOpen: false,
       selection: { type: "all" },
       viewMode: "unread",
       selectedArticleId: null,
@@ -389,6 +412,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     }),
   selectArticle: (id) =>
     set((state) => ({
+      accountPaneOpen: false,
       selectedArticleId: id,
       contentMode: "reader",
       focusedPane: "content",
@@ -401,6 +425,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   clearArticle: () => set({ selectedArticleId: null, contentMode: "empty" }),
   openBrowser: (url) =>
     set({
+      accountPaneOpen: false,
       contentMode: "browser",
       browserUrl: url,
       browserNavigationState: { canGoBack: false, canGoForward: false },
@@ -410,6 +435,7 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
     }),
   closeBrowser: () =>
     set((s) => ({
+      accountPaneOpen: false,
       contentMode: s.selectedArticleId ? "reader" : "empty",
       browserUrl: null,
       browserNavigationState: null,
@@ -468,21 +494,25 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   setAppLoading: (loading) => set({ appLoading: loading }),
   openSubscriptionsIndex: (returnState) =>
     set({
+      accountPaneOpen: false,
       subscriptionsWorkspace: { kind: "index", cleanupContext: null, returnState },
       focusedPane: "content",
     }),
   openFeedCleanup: (context) =>
     set({
+      accountPaneOpen: false,
       subscriptionsWorkspace: { kind: "cleanup", cleanupContext: context ?? null },
       focusedPane: "content",
     }),
   closeFeedCleanup: () =>
     set((state) => ({
+      accountPaneOpen: false,
       subscriptionsWorkspace: null,
       focusedPane: state.selectedArticleId ? "content" : "list",
     })),
   closeSubscriptionsWorkspace: () =>
     set((state) => ({
+      accountPaneOpen: false,
       subscriptionsWorkspace: null,
       focusedPane: state.selectedArticleId ? "content" : "list",
     })),

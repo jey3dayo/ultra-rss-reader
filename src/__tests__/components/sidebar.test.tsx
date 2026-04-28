@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
+import { AccountPane } from "@/components/reader/account-pane";
 import { ArticleList } from "@/components/reader/article-list";
 import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
@@ -15,6 +16,7 @@ import {
   type MockTauriCommandCall,
   sampleAccounts,
   sampleFeeds,
+  sampleTags,
   setupTauriMocks,
 } from "../../../tests/helpers/tauri-mocks";
 
@@ -1293,6 +1295,70 @@ describe("Sidebar", () => {
     });
   });
 
+  it("moves focus through all sidebar navigation rows with arrow keys", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+          return [{ id: "folder-1", account_id: args.accountId, name: "Work", sort_order: 0 }];
+        case "list_feeds":
+          return [
+            { ...sampleFeeds[0], id: "feed-1", title: "Alpha Feed", folder_id: "folder-1", unread_count: 4 },
+            { ...sampleFeeds[1], id: "feed-2", title: "Beta Feed", folder_id: "folder-1", unread_count: 2 },
+          ];
+        case "list_articles":
+        case "list_account_articles":
+          return [];
+        case "list_tags":
+          return sampleTags;
+        case "get_tag_article_counts":
+          return { "tag-1": 2, "tag-2": 1 };
+        default:
+          return null;
+      }
+    });
+
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "smart", kind: "unread" },
+      viewMode: "unread",
+      expandedFolderIds: new Set(["folder-1"]),
+    });
+
+    render(<Sidebar />, { wrapper: createWrapper() });
+
+    await screen.findByText("Alpha Feed");
+    await screen.findByText("Tech");
+    const getTargets = () =>
+      Array.from(document.querySelectorAll<HTMLButtonElement>('[data-sidebar-navigation-target="true"]')).filter(
+        (target) => !target.closest('[aria-hidden="true"]'),
+      );
+
+    expect(getTargets().length).toBeGreaterThanOrEqual(8);
+    getTargets()[0]?.focus();
+
+    for (let index = 0; index < 6; index += 1) {
+      const currentTarget = getTargets()[index];
+      const nextTarget = getTargets()[index + 1];
+      expect(currentTarget).toHaveFocus();
+      fireEvent.keyDown(currentTarget, { key: "ArrowDown" });
+      await waitFor(() => {
+        expect(nextTarget).toHaveFocus();
+      });
+    }
+
+    const currentTarget = getTargets()[6];
+    const previousTarget = getTargets()[5];
+    expect(currentTarget).toHaveFocus();
+    fireEvent.keyDown(currentTarget, { key: "ArrowUp" });
+
+    await waitFor(() => {
+      expect(previousTarget).toHaveFocus();
+    });
+  });
+
   it("opens the focused feed with Enter from the sidebar", async () => {
     const user = userEvent.setup();
 
@@ -1343,6 +1409,74 @@ describe("Sidebar", () => {
     await waitFor(() => {
       expect(useUiStore.getState().selection).toEqual({ type: "feed", feedId: "feed-2" });
       expect(useUiStore.getState().focusedPane).toBe("list");
+    });
+  });
+
+  it("moves focus from a selected feed to the article list with ArrowRight", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      focusedPane: "sidebar",
+      viewMode: "all",
+    });
+
+    render(
+      <>
+        <Sidebar />
+        <ArticleList />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    await screen.findByText("Tech Blog");
+    const selectedFeed = document.querySelector('[data-feed-id="feed-1"]') as HTMLButtonElement | null;
+    expect(selectedFeed).not.toBeNull();
+    if (!selectedFeed) {
+      throw new Error("Expected feed button for feed-1");
+    }
+    selectedFeed.focus();
+
+    fireEvent.keyDown(selectedFeed, { key: "ArrowRight" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().focusedPane).toBe("list");
+      expect(screen.getByRole("option", { name: /First Article/ })).toHaveFocus();
+    });
+  });
+
+  it("opens the account pane from a selected feed with ArrowLeft", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "feed", feedId: "feed-1" },
+      focusedPane: "sidebar",
+      viewMode: "all",
+    });
+
+    render(
+      <>
+        <AccountPane />
+        <Sidebar />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    await screen.findByText("Tech Blog");
+    const selectedFeed = document.querySelector('[data-feed-id="feed-1"]') as HTMLButtonElement | null;
+    expect(selectedFeed).not.toBeNull();
+    if (!selectedFeed) {
+      throw new Error("Expected feed button for feed-1");
+    }
+    selectedFeed.focus();
+
+    fireEvent.keyDown(selectedFeed, { key: "ArrowLeft" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().accountPaneOpen).toBe(true);
+      expect(
+        within(screen.getByRole("navigation", { name: "Accounts" })).getByRole("button", { name: /Local/ }),
+      ).toHaveFocus();
     });
   });
 

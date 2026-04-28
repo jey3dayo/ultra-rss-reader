@@ -36,6 +36,7 @@ export function useArticleListInteractions({
 
   const handleListKeyDownCapture = useArticleListKeydownHandler({
     selectedArticleId,
+    selectArticle,
     clearArticle,
     toggleSidebar,
     openSidebar,

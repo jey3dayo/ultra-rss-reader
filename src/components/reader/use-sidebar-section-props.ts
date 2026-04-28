@@ -25,6 +25,7 @@ export function useSidebarSectionProps({
   toggleAccountList,
   handleSelectAccount,
   closeAccountList,
+  focusAccountList,
   visibleSmartViews,
   selectSmartView,
   isFeedsSectionOpen,
@@ -100,6 +101,7 @@ export function useSidebarSectionProps({
     sidebarDensity,
     isFeedTreeLoading,
     showFeedTreeSkeleton,
+    onFocusAccountList: focusAccountList,
   });
   const smartViewsProps = useSidebarSmartViewsProps({
     t,

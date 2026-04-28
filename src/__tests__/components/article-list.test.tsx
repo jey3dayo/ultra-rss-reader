@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppConfirmDialog } from "@/components/app-confirm-dialog";
 import { ArticleList } from "@/components/reader/article-list";
 import { ArticleView } from "@/components/reader/article-view";
+import { Sidebar } from "@/components/reader/sidebar";
 import { APP_EVENTS } from "@/constants/events";
 import * as articleHooks from "@/hooks/use-articles";
 import * as tagHooks from "@/hooks/use-tags";
@@ -565,6 +566,112 @@ describe("ArticleList", () => {
     await waitFor(() => {
       expect(useUiStore.getState().selectedArticleId).toBe("art-1");
       expect(screen.getByRole("option", { name: /First Article/ })).toHaveFocus();
+    });
+  });
+
+  it("moves from the focused article row to the article pane with ArrowRight", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().setViewMode("all");
+    useUiStore.getState().selectArticle("art-1");
+
+    render(
+      <>
+        <ArticleList />
+        <ArticleView />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    const firstOption = await screen.findByRole("option", { name: /First Article/ });
+    firstOption.focus();
+    expect(firstOption).toHaveFocus();
+
+    fireEvent.keyDown(firstOption, { key: "ArrowRight" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(useUiStore.getState().focusedPane).toBe("content");
+      expect(useUiStore.getState().browserUrl).toBeNull();
+      expect(screen.getByTestId("article-pane")).toHaveFocus();
+    });
+  });
+
+  it("selects a focused unselected article and moves to the article pane with ArrowRight", async () => {
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().setViewMode("all");
+    useUiStore.getState().clearArticle();
+
+    render(
+      <>
+        <ArticleList />
+        <ArticleView />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    const secondOption = await screen.findByRole("option", { name: /Second Article/ });
+    secondOption.focus();
+    expect(secondOption).toHaveFocus();
+
+    fireEvent.keyDown(secondOption, { key: "ArrowRight" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedArticleId).toBe("art-2");
+      expect(useUiStore.getState().contentMode).toBe("reader");
+      expect(useUiStore.getState().focusedPane).toBe("content");
+      expect(useUiStore.getState().browserUrl).toBeNull();
+      expect(screen.getByTestId("article-pane")).toHaveFocus();
+    });
+  });
+
+  it("returns focus from the article list to the selected feed with ArrowLeft", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+        case "list_tags":
+          return [];
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_articles":
+          return sampleArticles.filter((article) => article.feed_id === args.feedId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectFeed("feed-1");
+    useUiStore.getState().setViewMode("all");
+    useUiStore.getState().selectArticle("art-1");
+    useUiStore.setState({ focusedPane: "list" });
+
+    render(
+      <>
+        <Sidebar />
+        <ArticleList />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    const firstOption = await screen.findByRole("option", { name: /First Article/ });
+    firstOption.focus();
+    expect(firstOption).toHaveFocus();
+
+    fireEvent.keyDown(firstOption, { key: "ArrowLeft" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().focusedPane).toBe("sidebar");
+      expect(document.querySelector('[data-feed-id="feed-1"]')).toHaveFocus();
     });
   });
 

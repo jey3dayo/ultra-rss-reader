@@ -100,6 +100,7 @@ export type ArticleListFeedModeControlProps = {
 export type ArticleListItemProps = {
   article: ArticleDto;
   isSelected: boolean;
+  isActivePane?: boolean;
   isRecentlyRead: boolean;
   dimArchived: string;
   textPreview: string;
@@ -440,6 +441,7 @@ export type HandleArticleListKeyboardActionParams = {
 
 export type UseArticleListKeydownHandlerParams = {
   selectedArticleId: string | null;
+  selectArticle: (articleId: string) => void;
   clearArticle: HandleArticleListKeyboardActionParams["clearArticle"];
   toggleSidebar: HandleArticleListKeyboardActionParams["toggleSidebar"];
   openSidebar: HandleArticleListKeyboardActionParams["openSidebar"];

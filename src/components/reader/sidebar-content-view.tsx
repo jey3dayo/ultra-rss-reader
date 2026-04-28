@@ -1,41 +1,40 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { APP_EVENTS } from "@/constants/events";
+import { focusArticleListRowTargetWhenReady } from "@/lib/reader-focus";
+import { useUiStore } from "@/stores/ui-store";
 import type { SidebarContentViewProps } from "./sidebar.types";
 import { SidebarFeedSection } from "./sidebar-feed-section";
 import { SidebarFooterActions } from "./sidebar-footer-actions";
 
-function focusSelectedSubscriptionFeed(attemptsRemaining = 12) {
-  const target = document.querySelector<HTMLElement>('[data-sidebar-selected-target="true"][data-feed-id]');
-  target?.focus({ preventScroll: true });
-  target?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
-
-  if (attemptsRemaining <= 1) {
-    return;
-  }
-
-  window.setTimeout(() => focusSelectedSubscriptionFeed(attemptsRemaining - 1), 50);
+function focusArticleListPane() {
+  const store = useUiStore.getState();
+  store.setFocusedPane("list");
+  focusArticleListRowTargetWhenReady(store.selectedArticleId);
 }
 
-function handleSubscriptionListKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
-  if (event.defaultPrevented || (event.key !== "ArrowDown" && event.key !== "ArrowUp")) {
+function handleSubscriptionListKeyDown(event: ReactKeyboardEvent<HTMLDivElement>, onFocusAccountList: () => void) {
+  if (event.defaultPrevented || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) {
     return;
   }
 
   const target = event.target instanceof Element ? event.target : null;
-  if (!target?.closest("[data-feed-id]")) {
+  const sidebarTarget = target?.closest('[data-sidebar-navigation-target="true"]');
+  if (!sidebarTarget) {
     return;
   }
 
   event.preventDefault();
   event.stopPropagation();
 
-  window.dispatchEvent(
-    new CustomEvent(APP_EVENTS.navigateFeed, {
-      detail: event.key === "ArrowDown" ? 1 : -1,
-    }),
-  );
-  focusSelectedSubscriptionFeed();
+  if (event.key === "ArrowLeft") {
+    onFocusAccountList();
+    return;
+  }
+
+  if (event.key === "ArrowRight") {
+    focusArticleListPane();
+    return;
+  }
 }
 
 export function SidebarContentView({
@@ -50,6 +49,7 @@ export function SidebarContentView({
   settingsLabel,
   onOpenSubscriptionsIndex,
   onOpenSettings,
+  onFocusAccountList,
   addFeedDialog,
 }: SidebarContentViewProps) {
   return (
@@ -66,7 +66,7 @@ export function SidebarContentView({
         className="flex-1"
         contentClassName="pb-4 pr-3"
         viewportRef={viewportRef}
-        onKeyDown={handleSubscriptionListKeyDown}
+        onKeyDown={(event) => handleSubscriptionListKeyDown(event, onFocusAccountList)}
       >
         <div>
           {feedTree}

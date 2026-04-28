@@ -13,6 +13,7 @@ describe("useUiStore", () => {
     expect(s.selection).toEqual({ type: "all" });
     expect(s.commandPaletteOpen).toBe(false);
     expect(s.sidebarOpen).toBe(true);
+    expect(s.accountPaneOpen).toBe(false);
   });
 
   it("openCommandPalette sets true", () => {
@@ -191,5 +192,34 @@ describe("useUiStore", () => {
 
     expect(useUiStore.getState().sidebarOpen).toBe(true);
     expect(useUiStore.getState().focusedPane).toBe("sidebar");
+  });
+
+  it("opens, closes, and toggles the transient account pane", () => {
+    useUiStore.getState().openAccountPane();
+    expect(useUiStore.getState().accountPaneOpen).toBe(true);
+
+    useUiStore.getState().toggleAccountPane();
+    expect(useUiStore.getState().accountPaneOpen).toBe(false);
+
+    useUiStore.getState().toggleAccountPane();
+    expect(useUiStore.getState().accountPaneOpen).toBe(true);
+
+    useUiStore.getState().closeAccountPane();
+    expect(useUiStore.getState().accountPaneOpen).toBe(false);
+  });
+
+  it("closes the account pane when navigation leaves the account rail context", () => {
+    useUiStore.setState({ accountPaneOpen: true });
+
+    useUiStore.getState().selectAccount("acc-1");
+    expect(useUiStore.getState().accountPaneOpen).toBe(false);
+
+    useUiStore.setState({ accountPaneOpen: true, focusedPane: "sidebar" });
+    useUiStore.getState().closeSidebar();
+    expect(useUiStore.getState().accountPaneOpen).toBe(false);
+
+    useUiStore.setState({ accountPaneOpen: true });
+    useUiStore.getState().openSubscriptionsIndex();
+    expect(useUiStore.getState().accountPaneOpen).toBe(false);
   });
 });

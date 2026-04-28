@@ -1,6 +1,9 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useUpdateFeedFolder } from "@/hooks/use-update-feed-folder";
+import { focusSelectedAccountPaneTarget } from "@/lib/reader-focus";
+import { useUiStore } from "@/stores/ui-store";
+import { focusAccountItem } from "./account-switcher-menu";
 import type { SidebarControllerResult } from "./sidebar.types";
 import { useSidebarAccountSelection } from "./use-sidebar-account-selection";
 import { useSidebarControllerActions } from "./use-sidebar-controller-actions";
@@ -81,6 +84,43 @@ export function useSidebarController(): SidebarControllerResult {
     isSyncDisabled,
   } = useSidebarRuntime();
   const updateFeedFolderMutation = useUpdateFeedFolder();
+
+  const focusAccountList = useCallback(() => {
+    const accountCount = accounts?.length ?? 0;
+    if (accountCount === 0) {
+      return;
+    }
+
+    if (layoutMode === "wide") {
+      useUiStore.getState().openAccountPane();
+      requestAnimationFrame(() => {
+        focusSelectedAccountPaneTarget();
+      });
+      return;
+    }
+
+    if (accountCount > 1 && !isAccountListOpen) {
+      toggleAccountList();
+    }
+
+    window.setTimeout(() => {
+      if (accountCount <= 1) {
+        accountTriggerRef.current?.focus();
+        return;
+      }
+
+      const selectedIndex = accounts?.findIndex((account) => account.id === selectedAccountId) ?? -1;
+      focusAccountItem(accountItemRefs, accountCount, selectedIndex >= 0 ? selectedIndex : 0);
+    }, 0);
+  }, [
+    accountItemRefs,
+    accountTriggerRef,
+    accounts,
+    isAccountListOpen,
+    layoutMode,
+    selectedAccountId,
+    toggleAccountList,
+  ]);
 
   useEffect(() => {
     if (focusedPane !== "sidebar" || selection.type !== "feed") {
@@ -190,6 +230,7 @@ export function useSidebarController(): SidebarControllerResult {
     toggleAccountList,
     handleSelectAccount,
     closeAccountList,
+    focusAccountList,
     syncProgress,
     handleSync,
     syncTooltipLabel,

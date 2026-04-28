@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+import { useUiStore } from "@/stores/ui-store";
 import { ArticleReaderBody } from "./article-reader-body";
 import { ArticleToolbarView } from "./article-toolbar-view";
 import type { ArticlePaneProps, ArticleToolbarProps } from "./article-view.types";
@@ -24,6 +26,7 @@ export function ArticleToolbar({ article, isBrowserOpen, onCloseView, onToggleBr
 }
 
 export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
+  const focusedPane = useUiStore((state) => state.focusedPane);
   const {
     toolbarProps,
     browserOverlayProps,
@@ -36,7 +39,17 @@ export function ArticlePane({ article, feed, feedName }: ArticlePaneProps) {
   const { onOpenArticleTitleInWebPreview, ...readerBodyStateProps } = readerBodyProps;
 
   return (
-    <div data-testid="article-pane" className="typography-lane-reader flex h-full flex-1 flex-col bg-background">
+    <div
+      data-testid="article-pane"
+      data-article-content-pane="true"
+      data-active-pane={focusedPane === "content" ? "true" : "false"}
+      tabIndex={-1}
+      className={cn(
+        "typography-lane-reader flex h-full flex-1 flex-col bg-background outline-none transition-[background-color,box-shadow] duration-150",
+        focusedPane === "content" &&
+          "bg-[linear-gradient(90deg,var(--background)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_24%,var(--background))_100%)]",
+      )}
+    >
       <ArticleToolbar {...toolbarProps} />
       <BrowserOverlaySurface {...browserOverlayProps} toolbarActions={browserOverlayToolbarActions}>
         {showWebPreviewUnavailableWarning ? (

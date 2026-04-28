@@ -3,12 +3,20 @@ import { useEffect, useMemo } from "react";
 import { executeAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
+import { focusArticleListRowTargetWhenReady, focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
 
 function emitKeyboardEvent(name: (typeof keyboardEvents)[keyof typeof keyboardEvents]) {
   window.dispatchEvent(new Event(name));
+}
+
+function isTextEditingTarget(target: Element | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+  );
 }
 
 export function useKeyboard() {
@@ -21,6 +29,46 @@ export function useKeyboard() {
     const handler = createKeyboardEventListener((e) => {
       const targetElement = e.target instanceof Element ? e.target : null;
       if (targetElement?.closest('[data-disable-global-shortcuts="true"]')) {
+        return;
+      }
+
+      const currentStore = useUiStore.getState();
+      const isSidebarArrowKey =
+        (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "ArrowLeft" || e.key === "ArrowRight") &&
+        targetElement?.closest('[data-sidebar-pane="true"]');
+      if (isSidebarArrowKey) {
+        return;
+      }
+
+      const articleListOptionTarget = targetElement?.closest('[role="option"][data-article-id]');
+      const articleListPaneTarget = targetElement?.closest('[data-article-list-pane="true"]');
+      if (
+        e.key === "ArrowLeft" &&
+        currentStore.focusedPane === "content" &&
+        articleListPaneTarget &&
+        !isTextEditingTarget(targetElement)
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        currentStore.openSidebar();
+        emitDebugInputTrace("window-key ArrowLeft -> focus-sidebar");
+        requestAnimationFrame(() => {
+          focusSelectedSidebarTarget();
+        });
+        return;
+      }
+
+      if (
+        e.key === "ArrowLeft" &&
+        currentStore.focusedPane === "content" &&
+        !articleListOptionTarget &&
+        !isTextEditingTarget(targetElement)
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        currentStore.setFocusedPane("list");
+        emitDebugInputTrace("window-key ArrowLeft -> focus-list");
+        focusArticleListRowTargetWhenReady(currentStore.selectedArticleId);
         return;
       }
 

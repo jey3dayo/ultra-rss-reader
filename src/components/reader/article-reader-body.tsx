@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -18,6 +18,7 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
   const { i18n } = useTranslation();
   const openLinks = usePreferencesStore((s) => s.prefs.open_links ?? "in_app");
   const selectFeed = useUiStore((s) => s.selectFeed);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
   const articleUrl = article.url;
   const [contentContainerElement, setContentContainerElement] = useState<HTMLDivElement | null>(null);
   const articleContentHtml = article.content_sanitized;
@@ -67,8 +68,30 @@ export function ArticleReaderBody({ article, feedName, onOpenArticleTitleInWebPr
     };
   }, [articleContentHtml, contentContainerElement]);
 
+  const handleReaderKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+      return;
+    }
+
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
+    }
+
+    event.preventDefault();
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    const scrollAmount = Math.max(72, Math.round(viewport.clientHeight * 0.8));
+    viewport.scrollTop += direction * scrollAmount;
+  }, []);
+
   return (
-    <ScrollArea data-testid="article-reader-scroll-area" className="h-full" contentClassName="pr-3">
+    <ScrollArea
+      data-testid="article-reader-scroll-area"
+      className="h-full"
+      contentClassName="pr-3"
+      viewportRef={viewportRef}
+      onKeyDown={handleReaderKeyDown}
+    >
       <article className="mx-auto max-w-[44rem] px-7 pb-20 pt-10 md:px-11 md:pt-13">
         <ArticleMetaView
           title={article.title}

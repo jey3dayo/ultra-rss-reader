@@ -2,12 +2,14 @@ import { Result } from "@praha/byethrow";
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback } from "react";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import { resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
+import { focusArticleContentTarget, focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
 import type { UseArticleListKeydownHandlerParams } from "./article-list.types";
 import { handleArticleListKeyboardAction } from "./article-list-keyboard-action";
 
 export function useArticleListKeydownHandler({
   selectedArticleId,
+  selectArticle,
   clearArticle,
   toggleSidebar,
   openSidebar,
@@ -16,7 +18,8 @@ export function useArticleListKeydownHandler({
   return useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
       const target = event.target instanceof Element ? event.target : null;
-      if (!target?.closest('[role="option"]')) {
+      const optionTarget = target?.closest<HTMLElement>('[role="option"]') ?? null;
+      if (!optionTarget) {
         return;
       }
 
@@ -35,12 +38,46 @@ export function useArticleListKeydownHandler({
         return;
       }
 
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        event.stopPropagation();
+
+        emitDebugInputTrace("list-key ArrowLeft -> focus-sidebar");
+        openSidebar();
+        requestAnimationFrame(() => {
+          focusSelectedSidebarTarget();
+        });
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        event.stopPropagation();
+
+        emitDebugInputTrace("list-key ArrowRight -> focus-content");
+        const focusedArticleId = optionTarget.dataset.articleId;
+        if (focusedArticleId && focusedArticleId !== selectedArticleId) {
+          selectArticle(focusedArticleId);
+          requestAnimationFrame(() => {
+            focusArticleContentTarget();
+          });
+          return;
+        }
+        if (focusedArticleId) {
+          selectArticle(focusedArticleId);
+        }
+        requestAnimationFrame(() => {
+          focusArticleContentTarget();
+        });
+        return;
+      }
+
       const action = resolveKeyboardAction({
         key: event.key,
         metaKey: event.metaKey,
         ctrlKey: event.ctrlKey,
         shiftKey: event.shiftKey,
-        targetTag: target.tagName,
+        targetTag: optionTarget.tagName,
         selectedArticleId,
         contentMode: useUiStore.getState().contentMode,
         viewMode: useUiStore.getState().viewMode,
@@ -63,6 +100,6 @@ export function useArticleListKeydownHandler({
         openSidebar,
       });
     },
-    [clearArticle, keyToAction, openSidebar, selectedArticleId, toggleSidebar],
+    [clearArticle, keyToAction, openSidebar, selectArticle, selectedArticleId, toggleSidebar],
   );
 }

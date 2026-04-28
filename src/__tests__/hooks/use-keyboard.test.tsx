@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "@/components/app-shell";
+import { keyboardEvents } from "@/lib/keyboard-shortcuts";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
@@ -356,6 +357,72 @@ describe("useKeyboard", () => {
       expect(useUiStore.getState().sidebarOpen).toBe(true);
       expect(useUiStore.getState().focusedPane).toBe("sidebar");
     });
+  });
+
+  it("pressing ArrowLeft in the article pane returns focus to the article list", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    renderAppShell(calls);
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    useUiStore.setState({ focusedPane: "content" });
+
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().focusedPane).toBe("list");
+      expect(screen.getByRole("option", { name: /First Article/ })).toHaveFocus();
+    });
+  });
+
+  it("pressing ArrowLeft on a focused article list row returns focus to the selected feed", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    renderAppShell(calls);
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    useUiStore.setState({ focusedPane: "content" });
+    const firstArticle = screen.getByRole("option", { name: /First Article/ });
+    firstArticle.focus();
+    expect(firstArticle).toHaveFocus();
+
+    fireEvent.keyDown(firstArticle, { key: "ArrowLeft" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().focusedPane).toBe("sidebar");
+      expect(document.querySelector('[data-feed-id="feed-1"]')).toHaveFocus();
+    });
+  });
+
+  it("does not run global ArrowRight shortcuts when moving focus from the sidebar to the article list", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    renderAppShell(calls);
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    usePreferencesStore.setState({
+      prefs: {
+        after_reading: "do_nothing",
+        ask_before_mark_all: "false",
+        shortcut_open_in_app_browser: "ArrowRight",
+      },
+      loaded: true,
+    });
+
+    const openBrowserSpy = vi.fn();
+    window.addEventListener(keyboardEvents.openInAppBrowser, openBrowserSpy);
+    const selectedFeed = document.querySelector('[data-feed-id="feed-1"]') as HTMLButtonElement | null;
+    expect(selectedFeed).not.toBeNull();
+    if (!selectedFeed) {
+      throw new Error("Expected feed button for feed-1");
+    }
+    selectedFeed.focus();
+
+    fireEvent.keyDown(selectedFeed, { key: "ArrowRight" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().focusedPane).toBe("list");
+      expect(screen.getByRole("option", { name: /First Article/ })).toHaveFocus();
+    });
+    expect(openBrowserSpy).not.toHaveBeenCalled();
+    window.removeEventListener(keyboardEvents.openInAppBrowser, openBrowserSpy);
   });
 
   it("pressing Cmd+1 switches to the unread filter", async () => {

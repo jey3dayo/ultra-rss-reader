@@ -1,4 +1,5 @@
 export const SIDEBAR_PANE_WIDTH_PX = 280;
+export const ACCOUNT_PANE_WIDTH_PX = 236;
 export const ARTICLE_LIST_PANE_WIDTH_PX = 380;
 
 export const MOBILE_LAYOUT_BREAKPOINT_PX = 640;

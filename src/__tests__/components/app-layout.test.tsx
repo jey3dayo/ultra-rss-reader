@@ -9,6 +9,10 @@ vi.mock("@/components/reader/sidebar", () => ({
   Sidebar: () => <div>Sidebar</div>,
 }));
 
+vi.mock("@/components/reader/account-pane", () => ({
+  AccountPane: () => <div>Account Pane</div>,
+}));
+
 vi.mock("@/components/reader/article-list", () => ({
   ArticleList: () => <div>Article List</div>,
 }));
@@ -103,6 +107,42 @@ describe("AppLayout", () => {
     expect(screen.getByTestId("main-stage").firstElementChild).toHaveStyle({
       width: `${ARTICLE_LIST_PANE_WIDTH_PX}px`,
     });
+  });
+
+  it("keeps the transient account pane mounted for wide layout open and close motion", () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "wide",
+      focusedPane: "sidebar",
+      sidebarOpen: true,
+      accountPaneOpen: false,
+    });
+
+    render(<AppLayout />);
+
+    const shell = screen.getByTestId("wide-account-pane-shell");
+    expect(shell).toHaveClass("transition-[width,opacity,transform,border-color]");
+    expect(shell).toHaveClass("opacity-0");
+    expect(shell).toHaveStyle({ width: "0px" });
+    expect(screen.getByTestId("wide-account-pane-content")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByTestId("wide-account-pane-content")).toHaveAttribute("inert");
+    expect(screen.getByText("Account Pane")).toBeInTheDocument();
+  });
+
+  it("opens the transient account pane at the left edge in wide layout", () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "wide",
+      focusedPane: "sidebar",
+      sidebarOpen: true,
+      accountPaneOpen: true,
+    });
+
+    render(<AppLayout />);
+
+    expect(screen.getByTestId("wide-account-pane-shell")).toHaveClass("opacity-100", "translate-x-0");
+    expect(screen.getByTestId("wide-account-pane-shell")).not.toHaveStyle({ width: "0px" });
+    expect(screen.getByTestId("wide-account-pane-content")).not.toHaveAttribute("aria-hidden", "true");
   });
 
   it("does not render the browser overlay root inside AppLayout", () => {

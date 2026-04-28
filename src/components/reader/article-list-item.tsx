@@ -3,12 +3,15 @@ import { useTranslation } from "react-i18next";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { formatArticleTime } from "@/lib/article-list";
 import { stripHtmlTags } from "@/lib/html";
+import { focusArticleContentTarget } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
+import { useUiStore } from "@/stores/ui-store";
 import type { ArticleListItemProps } from "./article-list.types";
 
 export function ArticleListItem({
   article,
   isSelected,
+  isActivePane,
   isRecentlyRead,
   dimArchived,
   textPreview,
@@ -18,6 +21,8 @@ export function ArticleListItem({
   onSelect,
 }: ArticleListItemProps) {
   const { t } = useTranslation("reader");
+  const focusedPane = useUiStore((state) => state.focusedPane);
+  const activePane = isActivePane ?? focusedPane === "list";
   const isRead = article.is_read || isRecentlyRead;
   const isUnread = !isRead;
   const normalizedTitle = article.title.trim();
@@ -45,6 +50,9 @@ export function ArticleListItem({
 
     event.preventDefault();
     onSelect();
+    requestAnimationFrame(() => {
+      focusArticleContentTarget();
+    });
   };
 
   return (
@@ -53,6 +61,7 @@ export function ArticleListItem({
       role="option"
       tabIndex={isSelected ? 0 : -1}
       aria-selected={isSelected}
+      data-active-pane={isSelected ? String(activePane) : undefined}
       aria-label={`${article.title}${isRead ? "" : ` ${t("unread_suffix")}`}${article.is_starred ? ` ${t("starred_suffix")}` : ""}`}
       onClick={onSelect}
       onKeyDown={handleKeyDown}
@@ -60,14 +69,25 @@ export function ArticleListItem({
         "relative isolate flex w-full cursor-pointer flex-col gap-1 rounded-lg px-4 py-3 text-left outline-none transition-[background-color,border-color,box-shadow,color,opacity] duration-150",
         selectionStyle === "classic"
           ? cn(
-              "focus-visible:bg-surface-1/72 focus-visible:shadow-[inset_0_0_0_1px_var(--color-border-strong)]",
-              isSelected && "border-l-2 border-primary bg-surface-1/72",
+              "focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_58%,transparent)_100%)]",
+              isSelected &&
+                activePane &&
+                "border-l-2 border-primary bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]",
+              isSelected &&
+                !activePane &&
+                "border-l-2 border-border-strong/60 bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_68%,transparent)_100%)]",
             )
           : cn(
               isSelected &&
-                "bg-[var(--sidebar-selection-background)] after:absolute after:inset-y-2 after:left-1.5 after:w-1 after:rounded-full after:bg-border-strong",
+                cn(
+                  activePane
+                    ? "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)] after:bg-border-strong focus-visible:bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]"
+                    : "bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_68%,transparent)_100%)] after:bg-border-strong/60 focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_68%,transparent)_100%)]",
+                  "after:absolute after:inset-y-2 after:left-1.5 after:w-1 after:rounded-full",
+                ),
             ),
-        !isSelected && "hover:bg-surface-1/72",
+        !isSelected &&
+          "hover:bg-surface-1/72 focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_58%,transparent)_100%)]",
         isRead && !isSelected && (isRecentlyRead || dimArchived === "true") && "opacity-50",
       )}
     >

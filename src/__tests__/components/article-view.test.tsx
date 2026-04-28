@@ -125,6 +125,16 @@ function setReadingListPlatformSupport(enabled: boolean) {
   });
 }
 
+function getArticleReaderViewport() {
+  const viewport = screen
+    .getByTestId("article-reader-scroll-area")
+    .querySelector<HTMLElement>('[data-slot="scroll-area-viewport"]');
+  if (!viewport) {
+    throw new Error("Expected article reader viewport");
+  }
+  return viewport;
+}
+
 describe("ArticleView", () => {
   beforeEach(() => {
     Object.defineProperty(window, "innerWidth", {
@@ -2117,6 +2127,42 @@ describe("ArticleView", () => {
     ).toHaveClass("pr-3");
     expect(screen.getByTestId("article-reader-body").querySelector(".border-t")).toHaveClass("border-border/20");
     expect(warning).toHaveClass("bg-state-warning-surface", "text-state-warning-foreground");
+  });
+
+  it("scrolls the reader viewport with ArrowUp and ArrowDown", async () => {
+    setupTauriMocks((cmd) => {
+      switch (cmd) {
+        case "list_tags":
+          return [];
+        case "get_article_tags":
+          return [];
+        default:
+          return undefined;
+      }
+    });
+    const longArticle = {
+      ...primaryArticle,
+      content_sanitized: Array.from(
+        { length: 16 },
+        (_, index) =>
+          `<p>Long reader keyboard test paragraph ${index + 1}. This paragraph keeps the article scrollable.</p>`,
+      ).join(""),
+    };
+
+    render(<ArticlePane article={longArticle} feed={{ ...primaryFeed, reader_mode: "on" }} feedName="Tech Blog" />, {
+      wrapper: createWrapper(),
+    });
+
+    await screen.findByRole("heading", { level: 1, name: "First Article" });
+    const viewport = getArticleReaderViewport();
+    Object.defineProperty(viewport, "clientHeight", { configurable: true, value: 500 });
+    viewport.scrollTop = 0;
+
+    fireEvent.keyDown(viewport, { key: "ArrowDown" });
+    expect(viewport.scrollTop).toBe(400);
+
+    fireEvent.keyDown(viewport, { key: "ArrowUp" });
+    expect(viewport.scrollTop).toBe(0);
   });
 
   it("renders the subscriptions index page instead of the reader when the subscriptions workspace is open", async () => {

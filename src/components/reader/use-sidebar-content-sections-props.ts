@@ -24,6 +24,7 @@ export function useSidebarContentSectionsProps({
   sidebarDensity,
   isFeedTreeLoading,
   showFeedTreeSkeleton,
+  onFocusAccountList,
 }: SidebarContentSectionsPropsParams): SidebarContentSectionsProps {
   return {
     subscriptionsLabel: t("subscriptions"),
@@ -54,5 +55,6 @@ export function useSidebarContentSectionsProps({
     sidebarDensity,
     isFeedTreeLoading,
     showFeedTreeSkeleton,
+    onFocusAccountList,
   };
 }

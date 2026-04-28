@@ -11,6 +11,7 @@ export function ArticleList() {
 
   return (
     <div
+      data-article-list-pane="true"
       className={cn(
         "flex h-full flex-col border-r border-[var(--subscriptions-pane-divider)] bg-[linear-gradient(180deg,rgba(247,247,244,0.94)_0%,rgba(235,234,229,0.82)_100%)] dark:bg-[linear-gradient(180deg,rgba(38,34,29,0.94)_0%,rgba(28,25,21,0.88)_100%)]",
         layoutMode === "mobile" ? "w-full" : undefined,

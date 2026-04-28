@@ -26,6 +26,7 @@ export type SidebarNavButtonProps = ComponentPropsWithoutRef<"button"> & {
   children?: ReactNode;
   trailing?: ReactNode;
   selected?: boolean;
+  activePane?: boolean;
   selectedIndicatorMode?: "always" | "hide-on-row-hover" | "hidden";
   size?: "default" | "compact";
   density?: SidebarDensity;
@@ -62,6 +63,7 @@ export type SidebarContentSectionsProps = {
   sidebarDensity: SidebarDensity;
   isFeedTreeLoading: boolean;
   showFeedTreeSkeleton: boolean;
+  onFocusAccountList: () => void;
 };
 
 export type SidebarContentProps = SidebarContentSectionsProps;
@@ -139,6 +141,7 @@ export type SidebarControllerSectionsParams = {
   toggleAccountList: () => void;
   handleSelectAccount: SidebarAccountSectionProps["onSelectAccount"];
   closeAccountList: () => void;
+  focusAccountList: () => void;
   syncProgress: SidebarHeaderPropsParams["syncProgress"];
   handleSync: SidebarHeaderPropsParams["handleSync"];
   syncTooltipLabel: SidebarHeaderPropsParams["syncTooltipLabel"];
@@ -242,6 +245,7 @@ export type SidebarContentSectionsPropsParams = {
   sidebarDensity: SidebarDensity;
   isFeedTreeLoading: SidebarContentSectionsProps["isFeedTreeLoading"];
   showFeedTreeSkeleton: SidebarContentSectionsProps["showFeedTreeSkeleton"];
+  onFocusAccountList: SidebarContentSectionsProps["onFocusAccountList"];
 };
 
 export type SidebarSectionPropsParams = {
@@ -265,6 +269,7 @@ export type SidebarSectionPropsParams = {
   toggleAccountList: () => void;
   handleSelectAccount: SidebarAccountSectionProps["onSelectAccount"];
   closeAccountList: () => void;
+  focusAccountList: () => void;
   visibleSmartViews: SidebarSmartViewsResult;
   selectSmartView: SidebarSmartViewsProps["onSelectSmartView"];
   isFeedsSectionOpen: boolean;
@@ -326,6 +331,7 @@ export type SidebarContentViewProps = {
   onOpenSubscriptionsIndex: () => void;
   onOpenSettings: () => void;
   addFeedDialog?: ReactNode;
+  onFocusAccountList: () => void;
 };
 
 export type SidebarContextMenuRenderersResult = {

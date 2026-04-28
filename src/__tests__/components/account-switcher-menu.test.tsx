@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AccountSwitcherMenu } from "@/components/reader/account-switcher-menu";
@@ -48,5 +48,38 @@ describe("AccountSwitcherMenu", () => {
 
     expect(onSelectAccount).toHaveBeenCalledWith("acc-2");
     expect(onClose).toHaveBeenCalledWith(false);
+  });
+
+  it("returns focus to the selected sidebar target with ArrowRight", async () => {
+    const onSelectAccount = vi.fn();
+    const onClose = vi.fn();
+    const itemRefs = { current: [] as Array<HTMLButtonElement | null> };
+
+    render(
+      <>
+        <button type="button" data-sidebar-selected-target="true" data-feed-id="feed-1">
+          Tech Blog
+        </button>
+        <AccountSwitcherMenu
+          accounts={sampleAccounts}
+          selectedAccountId="acc-1"
+          menuId="account-switcher-menu"
+          menuLabel="Accounts"
+          itemRefs={itemRefs}
+          onSelectAccount={onSelectAccount}
+          onClose={onClose}
+        />
+      </>,
+    );
+
+    const localButton = screen.getByRole("menuitemradio", { name: /Local/i });
+    localButton.focus();
+
+    fireEvent.keyDown(localButton, { key: "ArrowRight" });
+
+    expect(onClose).toHaveBeenCalledWith(false);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Tech Blog" })).toHaveFocus();
+    });
   });
 });

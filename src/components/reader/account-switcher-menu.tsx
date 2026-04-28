@@ -1,5 +1,6 @@
 import type { RefObject } from "react";
 import { NavRowButton } from "@/components/shared/nav-row-button";
+import { focusSelectedSidebarTarget } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import type { AccountSwitcherMenuProps } from "./account-switcher.types";
 import { focusRovingButton } from "./roving-focus";
@@ -47,6 +48,13 @@ export function AccountSwitcherMenu({
         if (e.key === "ArrowUp") {
           e.preventDefault();
           focusAccountItem(itemRefs, accounts.length, currentIndex >= 0 ? currentIndex - 1 : accounts.length - 1);
+        }
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          onClose(false);
+          requestAnimationFrame(() => {
+            focusSelectedSidebarTarget();
+          });
         }
       }}
     >

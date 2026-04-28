@@ -1,10 +1,15 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleListItem } from "@/components/reader/article-list-item";
+import { useUiStore } from "@/stores/ui-store";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { sampleArticles } from "../../../tests/helpers/tauri-mocks";
 
 describe("ArticleListItem", () => {
+  beforeEach(() => {
+    useUiStore.setState({ ...useUiStore.getInitialState(), focusedPane: "list" });
+  });
+
   it("treats recently read retained articles as read in accessibility labels", () => {
     render(
       <ArticleListItem
@@ -178,7 +183,9 @@ describe("ArticleListItem", () => {
     );
 
     const selectedOption = screen.getByRole("option", { name: "First Article (unread)" });
-    expect(selectedOption).toHaveClass("bg-[var(--sidebar-selection-background)]");
+    expect(selectedOption).toHaveClass(
+      "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]",
+    );
     expect(selectedOption).not.toHaveClass("ring-1");
     expect(selectedOption).not.toHaveClass("ring-border-strong");
     expect(selectedOption).toHaveClass("after:bg-border-strong");
@@ -201,6 +208,53 @@ describe("ArticleListItem", () => {
     expect(screen.getByRole("option", { name: "First Article (unread)" })).toHaveClass("hover:bg-surface-1/72");
   });
 
+  it("distinguishes active and inactive selected rows", () => {
+    const { rerender } = render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
+        isSelected
+        isActivePane={false}
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const inactiveOption = screen.getByRole("option", { name: "First Article (unread)" });
+    expect(inactiveOption).toHaveAttribute("data-active-pane", "false");
+    expect(inactiveOption).toHaveClass(
+      "bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_68%,transparent)_100%)]",
+    );
+    expect(inactiveOption).not.toHaveClass("shadow-[var(--sidebar-selection-shadow)]");
+
+    rerender(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
+        isSelected
+        isActivePane
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+    );
+
+    const activeOption = screen.getByRole("option", { name: "First Article (unread)" });
+    expect(activeOption).toHaveAttribute("data-active-pane", "true");
+    expect(activeOption).toHaveClass(
+      "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]",
+    );
+    expect(activeOption).toHaveClass("after:bg-border-strong");
+  });
+
   it("keeps classic selection highlighted without using a loud primary wash", () => {
     render(
       <ArticleListItem
@@ -218,7 +272,11 @@ describe("ArticleListItem", () => {
     );
 
     const option = screen.getByRole("option", { name: "First Article (unread)" });
-    expect(option).toHaveClass("border-l-2", "border-primary", "bg-surface-1/72");
+    expect(option).toHaveClass(
+      "border-l-2",
+      "border-primary",
+      "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]",
+    );
   });
 
   it("keeps selected modern rows free from extra keyboard focus outlines", () => {
@@ -245,6 +303,30 @@ describe("ArticleListItem", () => {
     expect(option).not.toHaveClass("focus-visible:bg-surface-1/72");
     expect(option).not.toHaveClass("focus-visible:shadow-[inset_0_0_0_1px_var(--color-border-strong)]");
     expect(option).not.toHaveClass("shadow-[var(--sidebar-selection-shadow)]");
+  });
+
+  it("shows a quiet keyboard focus gradient on unselected modern rows", () => {
+    render(
+      <ArticleListItem
+        article={{ ...sampleArticles[0], is_read: false, is_starred: false }}
+        isSelected={false}
+        isRecentlyRead={false}
+        dimArchived="true"
+        textPreview="true"
+        imagePreviews="off"
+        selectionStyle="modern"
+        feedName={undefined}
+        onSelect={() => {}}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    const option = screen.getByRole("option", { name: "First Article (unread)" });
+    expect(option).toHaveClass(
+      "focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_58%,transparent)_100%)]",
+    );
+    expect(option).not.toHaveClass("focus-visible:ring-2");
+    expect(option).not.toHaveClass("focus-visible:outline-[var(--color-ring)]");
   });
 
   it("removes inline timestamps from article rows to keep the title column dominant", () => {
