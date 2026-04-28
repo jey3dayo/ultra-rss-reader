@@ -1,4 +1,5 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import { focusArticleListRowTargetWhenReady } from "@/lib/reader-focus";
 import { useUiStore } from "@/stores/ui-store";
 import { SidebarAccountSection } from "./sidebar-account-section";
 import { SidebarContentSections } from "./sidebar-content-sections";
@@ -24,14 +25,36 @@ function focusSidebarNavigationTarget(target: HTMLButtonElement) {
   });
 }
 
-function handleSidebarKeyDown(event: ReactKeyboardEvent<HTMLElement>) {
-  if (event.defaultPrevented || (event.key !== "ArrowDown" && event.key !== "ArrowUp")) {
+function focusArticleListPane() {
+  const store = useUiStore.getState();
+  store.setFocusedPane("list");
+  focusArticleListRowTargetWhenReady(store.selectedArticleId);
+}
+
+function handleSidebarKeyDown(event: ReactKeyboardEvent<HTMLElement>, onFocusAccountList: () => void) {
+  if (
+    event.defaultPrevented ||
+    (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "ArrowLeft" && event.key !== "ArrowRight")
+  ) {
     return;
   }
 
   const target = event.target instanceof Element ? event.target : null;
   const currentTarget = target?.closest<HTMLButtonElement>('[data-sidebar-navigation-target="true"]');
   if (!currentTarget) {
+    return;
+  }
+
+  if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.key === "ArrowLeft") {
+      onFocusAccountList();
+      return;
+    }
+
+    focusArticleListPane();
     return;
   }
 
@@ -57,7 +80,12 @@ export function Sidebar() {
     useSidebarController();
 
   return (
-    <nav aria-label="Sidebar" className={sidebarClassName} data-sidebar-pane="true" onKeyDown={handleSidebarKeyDown}>
+    <nav
+      aria-label="Sidebar"
+      className={sidebarClassName}
+      data-sidebar-pane="true"
+      onKeyDown={(event) => handleSidebarKeyDown(event, contentSectionsProps.onFocusAccountList)}
+    >
       <SidebarHeaderView {...headerProps} />
       <SidebarAccountSection {...accountSectionProps} />
       <SmartViewsView {...smartViewsProps} />

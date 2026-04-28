@@ -675,6 +675,52 @@ describe("ArticleList", () => {
     });
   });
 
+  it("returns focus from the article list to the selected smart view with ArrowLeft", async () => {
+    setupTauriMocks((cmd, args) => {
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_folders":
+        case "list_tags":
+          return [];
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_account_articles":
+          return sampleArticles.filter((article) =>
+            sampleFeeds.some((feed) => feed.id === article.feed_id && feed.account_id === args.accountId),
+          );
+        case "get_tag_article_counts":
+          return {};
+        default:
+          return undefined;
+      }
+    });
+
+    useUiStore.getState().selectAccount("acc-1");
+    useUiStore.getState().selectSmartView("unread");
+    useUiStore.getState().selectArticle("art-1");
+    useUiStore.setState({ focusedPane: "list" });
+
+    render(
+      <>
+        <Sidebar />
+        <ArticleList />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    const firstOption = await screen.findByRole("option", { name: /First Article/ });
+    firstOption.focus();
+    expect(firstOption).toHaveFocus();
+
+    fireEvent.keyDown(firstOption, { key: "ArrowLeft" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().focusedPane).toBe("sidebar");
+      expect(screen.getByRole("button", { name: /Unread/ })).toHaveFocus();
+    });
+  });
+
   it("focuses the first article row and opens it with Enter when the list pane becomes active", async () => {
     const user = userEvent.setup();
 

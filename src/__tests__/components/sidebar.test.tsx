@@ -1445,6 +1445,34 @@ describe("Sidebar", () => {
     });
   });
 
+  it("moves focus from a selected smart view to the article list with ArrowRight", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      selection: { type: "smart", kind: "unread" },
+      focusedPane: "sidebar",
+      viewMode: "unread",
+    });
+
+    render(
+      <>
+        <Sidebar />
+        <ArticleList />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    const unreadButton = await screen.findByRole("button", { name: /Unread/ });
+    unreadButton.focus();
+
+    fireEvent.keyDown(unreadButton, { key: "ArrowRight" });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().focusedPane).toBe("list");
+      expect(screen.getByRole("option", { name: /First Article/ })).toHaveFocus();
+    });
+  });
+
   it("opens the account pane from a selected feed with ArrowLeft", async () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
