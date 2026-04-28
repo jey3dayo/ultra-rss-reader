@@ -39,6 +39,7 @@ const meta = {
     browserGeometryRows: sampleGeometryRows,
     traces: sampleTraces,
     onCopyClick: fn(),
+    onCloseClick: fn(),
     onCopyPointerDown: fn(),
     defaultExpanded: false,
     defaultShowGeometry: false,

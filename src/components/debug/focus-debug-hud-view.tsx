@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Copy } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, MoveDiagonal2, X } from "lucide-react";
 import { useId, useState } from "react";
 import { DebugHudActionButton } from "@/components/debug/debug-hud-action-button";
 import { DebugHudFrame } from "@/components/debug/debug-hud-frame";
@@ -12,6 +12,16 @@ const DEBUG_HUD_INNER_CARD_LIGHT_CLASS = `${DEBUG_HUD_INNER_CARD_CLASS} bg-white
 const DEBUG_HUD_INNER_CARD_DARK_CLASS = `${DEBUG_HUD_INNER_CARD_CLASS} bg-black/24`;
 const DEBUG_HUD_QUIET_BADGE_CLASS =
   "rounded-full border border-white/8 bg-white/[0.05] px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/58";
+const DEBUG_HUD_POSITIONS = ["bottom-right", "top-left", "top-right", "bottom-left"] as const;
+
+type DebugHudPosition = (typeof DEBUG_HUD_POSITIONS)[number];
+
+const DEBUG_HUD_POSITION_CLASS: Record<DebugHudPosition, string> = {
+  "bottom-right": "right-4 bottom-4",
+  "top-right": "top-4 right-4",
+  "top-left": "top-4 left-4",
+  "bottom-left": "bottom-4 left-4",
+};
 
 function extractCollapsedSummaryParts(description: string) {
   const labelMatch = description.match(/label=(.+)$/);
@@ -37,6 +47,7 @@ export type FocusDebugHudViewProps = {
   browserGeometryRows?: BrowserDebugGeometryRow[];
   traces: string[];
   onCopyClick: () => void;
+  onCloseClick: () => void;
   onCopyPointerDown?: (event: React.PointerEvent<HTMLButtonElement>) => void;
   defaultExpanded?: boolean;
   defaultShowGeometry?: boolean;
@@ -52,21 +63,34 @@ export function FocusDebugHudView({
   browserGeometryRows = EMPTY_BROWSER_GEOMETRY_ROWS,
   traces,
   onCopyClick,
+  onCloseClick,
   onCopyPointerDown,
   defaultExpanded = false,
   defaultShowGeometry = false,
 }: FocusDebugHudViewProps) {
   const [expanded, setExpanded] = useState(() => defaultExpanded);
   const [showGeometry, setShowGeometry] = useState(() => defaultShowGeometry);
+  const [position, setPosition] = useState<DebugHudPosition>("bottom-right");
   const tracePanelId = useId();
   const geometryPanelId = useId();
 
   const visibleTraces = expanded ? traces : traces.slice(-2);
   const latestTrace = traces.length > 0 ? traces[traces.length - 1] : "No trace yet";
   const collapsedSummary = extractCollapsedSummaryParts(activeElementDescription);
+  const moveHud = () => {
+    setPosition((currentPosition) => {
+      const currentIndex = DEBUG_HUD_POSITIONS.indexOf(currentPosition);
+      return DEBUG_HUD_POSITIONS[(currentIndex + 1) % DEBUG_HUD_POSITIONS.length];
+    });
+  };
 
   return (
-    <div className="pointer-events-none fixed right-4 bottom-4 z-[2147483647] max-w-[min(28rem,calc(100vw-1rem))]">
+    <div
+      className={cn(
+        "pointer-events-none fixed z-[2147483647] max-w-[min(28rem,calc(100vw-1rem))]",
+        DEBUG_HUD_POSITION_CLASS[position],
+      )}
+    >
       <DebugHudFrame
         as="section"
         data-debug-hud=""
@@ -77,7 +101,7 @@ export function FocusDebugHudView({
           expanded ? "h-[min(22rem,calc(100vh-2rem))]" : "h-auto",
         )}
       >
-        <header className="flex items-start justify-between gap-3 border-b border-white/10 px-3 py-2.5">
+        <header className="flex items-start justify-between gap-3 border-b border-white/10 px-3 py-2">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/48">Debug HUD</p>
             <div className="mt-1 flex flex-wrap gap-1.5">
@@ -85,14 +109,17 @@ export function FocusDebugHudView({
               <span className={DEBUG_HUD_QUIET_BADGE_CLASS}>{`mode=${contentMode}`}</span>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="-mr-1 flex items-center gap-1">
+            <DebugHudActionButton type="button" onClick={moveHud} aria-label="Move debug HUD" className="size-8 px-0">
+              <MoveDiagonal2 className="size-3.5" />
+            </DebugHudActionButton>
             <DebugHudActionButton
               type="button"
               onClick={() => setExpanded((current) => !current)}
               aria-label={expanded ? "Collapse debug HUD" : "Expand debug HUD"}
               aria-expanded={expanded}
               aria-controls={tracePanelId}
-              className="min-h-11 w-11 px-0"
+              className="size-8 px-0"
             >
               {expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
             </DebugHudActionButton>
@@ -101,9 +128,17 @@ export function FocusDebugHudView({
               aria-label="Copy debug HUD"
               onClick={onCopyClick}
               onPointerDown={onCopyPointerDown}
-              className="min-h-11 w-11 px-0"
+              className="size-8 px-0"
             >
               <Copy className="size-3.5" />
+            </DebugHudActionButton>
+            <DebugHudActionButton
+              type="button"
+              aria-label="Hide debug HUD"
+              onClick={onCloseClick}
+              className="size-8 px-0"
+            >
+              <X className="size-3.5" />
             </DebugHudActionButton>
           </div>
         </header>
@@ -159,7 +194,7 @@ export function FocusDebugHudView({
                   onClick={() => setShowGeometry((current) => !current)}
                   aria-expanded={showGeometry}
                   aria-controls={geometryPanelId}
-                  className="min-h-11 border-transparent bg-transparent text-white/56 shadow-none hover:border-transparent hover:bg-white/[0.04] hover:text-white/82 focus-visible:border-transparent focus-visible:bg-white/[0.04] focus-visible:text-white/82"
+                  className="h-8 border-transparent bg-transparent px-2 text-[11px] text-white/56 shadow-none hover:border-transparent hover:bg-white/[0.04] hover:text-white/82 focus-visible:border-transparent focus-visible:bg-white/[0.04] focus-visible:text-white/82"
                 >
                   {showGeometry ? "Hide" : "Show"}
                 </DebugHudActionButton>

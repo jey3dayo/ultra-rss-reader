@@ -16,6 +16,7 @@ describe("FocusDebugHudView", () => {
         browserGeometryRows={[]}
         traces={["12:00:00.000 raw-key Enter"]}
         onCopyClick={vi.fn()}
+        onCloseClick={vi.fn()}
         onCopyPointerDown={vi.fn()}
       />,
     );
@@ -42,6 +43,7 @@ describe("FocusDebugHudView", () => {
         browserGeometryRows={[]}
         traces={["12:00:00.000 raw-key Enter"]}
         onCopyClick={vi.fn()}
+        onCloseClick={vi.fn()}
         onCopyPointerDown={vi.fn()}
       />,
     );
@@ -67,6 +69,7 @@ describe("FocusDebugHudView", () => {
         browserGeometryRows={[]}
         traces={["12:00:00.000 raw-key Enter", "12:00:00.050 focus copy-button"]}
         onCopyClick={vi.fn()}
+        onCloseClick={vi.fn()}
         onCopyPointerDown={vi.fn()}
       />,
     );
@@ -80,7 +83,7 @@ describe("FocusDebugHudView", () => {
     expect(screen.queryByText("Trace")).not.toBeInTheDocument();
   });
 
-  it("anchors the HUD to the bottom-right corner", () => {
+  it("anchors the HUD to the bottom-right corner by default", () => {
     render(
       <FocusDebugHudView
         focusedPane="list"
@@ -92,6 +95,7 @@ describe("FocusDebugHudView", () => {
         browserGeometryRows={[]}
         traces={["12:00:00.000 raw-key Enter"]}
         onCopyClick={vi.fn()}
+        onCloseClick={vi.fn()}
         onCopyPointerDown={vi.fn()}
       />,
     );
@@ -100,6 +104,41 @@ describe("FocusDebugHudView", () => {
     const container = hud?.parentElement;
 
     expect(container).toHaveClass("right-4");
+    expect(container).not.toHaveClass("left-4");
+  });
+
+  it("cycles the HUD through screen corners", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <FocusDebugHudView
+        focusedPane="list"
+        contentMode="reader"
+        selectedArticleId="article-1"
+        browserCloseInFlight={false}
+        pendingBrowserCloseAction={null}
+        activeElementDescription="button | label=Copy debug HUD"
+        browserGeometryRows={[]}
+        traces={["12:00:00.000 raw-key Enter"]}
+        onCopyClick={vi.fn()}
+        onCloseClick={vi.fn()}
+        onCopyPointerDown={vi.fn()}
+      />,
+    );
+
+    const moveButton = screen.getByRole("button", { name: "Move debug HUD" });
+    const container = moveButton.closest("section")?.parentElement;
+
+    expect(container).toHaveClass("right-4", "bottom-4");
+
+    await user.click(moveButton);
+
+    expect(container).toHaveClass("top-4", "left-4");
+    expect(container).not.toHaveClass("bottom-4");
+
+    await user.click(moveButton);
+
+    expect(container).toHaveClass("top-4", "right-4");
     expect(container).not.toHaveClass("left-4");
   });
 
@@ -117,6 +156,7 @@ describe("FocusDebugHudView", () => {
         browserGeometryRows={[]}
         traces={["12:00:00.000 raw-key Enter"]}
         onCopyClick={vi.fn()}
+        onCloseClick={vi.fn()}
         onCopyPointerDown={vi.fn()}
       />,
     );
@@ -130,7 +170,7 @@ describe("FocusDebugHudView", () => {
     expect(screen.getByRole("button", { name: "Collapse debug HUD" })).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("adopts the shared button family while keeping HUD actions touch-safe", async () => {
+  it("uses compact header-style utility actions", async () => {
     const user = userEvent.setup();
 
     render(
@@ -144,14 +184,19 @@ describe("FocusDebugHudView", () => {
         browserGeometryRows={[{ label: "viewport", value: "390 x 844" }]}
         traces={["12:00:00.000 raw-key Enter"]}
         onCopyClick={vi.fn()}
+        onCloseClick={vi.fn()}
         onCopyPointerDown={vi.fn()}
       />,
     );
 
     expect(screen.getByRole("button", { name: "Expand debug HUD" })).toHaveAttribute("data-debug-hud-action-button");
-    expect(screen.getByRole("button", { name: "Expand debug HUD" })).toHaveClass("min-h-11", "w-11");
+    expect(screen.getByRole("button", { name: "Expand debug HUD" })).toHaveClass("size-8", "px-0");
+    expect(screen.getByRole("button", { name: "Move debug HUD" })).toHaveAttribute("data-debug-hud-action-button");
+    expect(screen.getByRole("button", { name: "Move debug HUD" })).toHaveClass("size-8", "px-0");
     expect(screen.getByRole("button", { name: "Copy debug HUD" })).toHaveAttribute("data-debug-hud-action-button");
-    expect(screen.getByRole("button", { name: "Copy debug HUD" })).toHaveClass("min-h-11", "w-11", "px-0");
+    expect(screen.getByRole("button", { name: "Copy debug HUD" })).toHaveClass("size-8", "px-0");
+    expect(screen.getByRole("button", { name: "Hide debug HUD" })).toHaveAttribute("data-debug-hud-action-button");
+    expect(screen.getByRole("button", { name: "Hide debug HUD" })).toHaveClass("size-8", "px-0");
     expect(screen.queryByText(/^More$/)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Less$/)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Copy$/)).not.toBeInTheDocument();
@@ -159,7 +204,7 @@ describe("FocusDebugHudView", () => {
     await user.click(screen.getByRole("button", { name: "Expand debug HUD" }));
 
     expect(screen.getByRole("button", { name: "Show" })).toHaveAttribute("data-debug-hud-action-button");
-    expect(screen.getByRole("button", { name: "Show" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Show" })).toHaveClass("h-8");
     expect(screen.getByRole("button", { name: "Show" })).toHaveClass("border-transparent", "bg-transparent");
   });
 
@@ -175,6 +220,7 @@ describe("FocusDebugHudView", () => {
         browserGeometryRows={[]}
         traces={["12:00:00.000 raw-key Enter"]}
         onCopyClick={vi.fn()}
+        onCloseClick={vi.fn()}
         onCopyPointerDown={vi.fn()}
         defaultExpanded
       />,

@@ -261,6 +261,44 @@ describe("AppShell", () => {
     });
   });
 
+  it("keeps the debug HUD available while priority overlays are open", async () => {
+    usePreferencesStore.setState((state) => ({
+      ...state,
+      prefs: { ...state.prefs, debug_browser_hud: "true" },
+    }));
+
+    const { rerender } = render(<AppShell />, { wrapper: createWrapper() });
+
+    expect(await screen.findByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
+
+    useUiStore.setState({ settingsOpen: true });
+    rerender(<AppShell />);
+
+    expect(screen.getByText("Settings Modal")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
+
+    useUiStore.setState({ settingsOpen: false });
+    rerender(<AppShell />);
+
+    expect(await screen.findByRole("button", { name: "Copy debug HUD" })).toBeInTheDocument();
+  });
+
+  it("turns off the debug HUD preference from the HUD close action", async () => {
+    const user = userEvent.setup();
+
+    usePreferencesStore.setState((state) => ({
+      ...state,
+      prefs: { ...state.prefs, debug_browser_hud: "true" },
+    }));
+
+    render(<AppShell />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Hide debug HUD" }));
+
+    expect(usePreferencesStore.getState().prefs.debug_browser_hud).toBe("false");
+    expect(screen.queryByRole("button", { name: "Hide debug HUD" })).not.toBeInTheDocument();
+  });
+
   it("shows browser geometry rows inside the debug HUD when preview diagnostics are published", async () => {
     usePreferencesStore.setState((state) => ({
       ...state,

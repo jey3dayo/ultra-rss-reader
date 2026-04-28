@@ -233,6 +233,7 @@ function FocusDebugHud() {
   const browserCloseInFlight = useUiStore((state) => state.browserCloseInFlight);
   const pendingBrowserCloseAction = useUiStore((state) => state.pendingBrowserCloseAction);
   const showToast = useUiStore((state) => state.showToast);
+  const setPref = usePreferencesStore((state) => state.setPref);
   const [state, dispatch] = useReducer(focusDebugHudReducer, initialFocusDebugHudState);
   const { activeElementDescription, traces, browserGeometry } = state;
 
@@ -345,6 +346,7 @@ function FocusDebugHud() {
           event.preventDefault();
           emitDebugInputTrace("hud-pointer-down");
         }}
+        onCloseClick={() => setPref("debug_browser_hud", "false")}
       />
     </Suspense>
   );

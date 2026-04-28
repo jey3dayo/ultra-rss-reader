@@ -29,6 +29,8 @@
 
 - [ ] `Debug HUD` の collision handling を見直す
   - dev アプリ実機で、HUD を表示したまま `設定` モーダルを開くと HUD がモーダル上に残り、内容を隠しうる
+  - 2026-04-28 の実機レビューで、設定モーダル右下の操作領域と HUD が重なり、閉じるボタン周辺の可読性と操作性を下げることを再確認
+  - 修正方針: HUD は overlay デバッグにも必要なため自動非表示にはせず、4 隅へ移動できる導線で重なりを避ける。閉じる操作は設定の `Debug HUD` と同じ preference を `false` にする
   - 少なくとも modal / dialog / toast などの高優先 overlay と重なったときは、自動で退避・縮小・片側ドック・一時非表示のいずれかが必要
   - 対象: `src/components/debug/focus-debug-hud-view.tsx`, `src/components/app-shell.tsx`
 
