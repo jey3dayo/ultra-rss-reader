@@ -91,7 +91,8 @@ export function useSidebarController(): SidebarControllerResult {
       return;
     }
 
-    if (layoutMode === "wide") {
+    if (layoutMode !== "mobile") {
+      closeAccountList();
       useUiStore.getState().openAccountPane();
       requestAnimationFrame(() => {
         focusSelectedAccountPaneTarget();
@@ -116,6 +117,7 @@ export function useSidebarController(): SidebarControllerResult {
     accountItemRefs,
     accountTriggerRef,
     accounts,
+    closeAccountList,
     isAccountListOpen,
     layoutMode,
     selectedAccountId,

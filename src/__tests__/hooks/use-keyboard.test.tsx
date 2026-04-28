@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "@/components/app-shell";
 import { keyboardEvents } from "@/lib/keyboard-shortcuts";
@@ -126,6 +126,34 @@ describe("useKeyboard", () => {
     });
     expect(useUiStore.getState().selectedArticleId).toBe("art-1");
     expect(useUiStore.getState().contentMode).toBe("reader");
+  });
+
+  it("moves focus inside the account pane from a body-level arrow key event", async () => {
+    const calls: MockTauriCommandCall[] = [];
+    renderAppShell(calls);
+
+    useUiStore.setState({
+      ...useUiStore.getState(),
+      accountPaneOpen: true,
+      focusedPane: "sidebar",
+      selectedAccountId: "acc-2",
+    });
+
+    const accountPane = await screen.findByRole("navigation", { name: "Accounts" });
+    const localAccount = await within(accountPane).findByRole("button", { name: /Local/ });
+    const freshRssAccount = await within(accountPane).findByRole("button", { name: /FreshRSS/ });
+
+    await waitFor(() => {
+      expect(freshRssAccount).toHaveFocus();
+    });
+
+    document.body.focus();
+    fireEvent.keyDown(window, { key: "Up" });
+    expect(localAccount).toHaveFocus();
+
+    document.body.focus();
+    fireEvent.keyDown(window, { key: "Down" });
+    expect(freshRssAccount).toHaveFocus();
   });
 
   it("pressing m toggles the selected article back to unread", async () => {

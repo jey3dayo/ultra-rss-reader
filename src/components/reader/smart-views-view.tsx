@@ -1,4 +1,4 @@
-import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
+import { SIDEBAR_SELECTED_TARGET_ATTRIBUTE, SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import type { SidebarSmartViewsProps } from "./sidebar.types";
 import { SidebarNavButton } from "./sidebar-nav-button";
@@ -36,6 +36,7 @@ export function SmartViewsView({ title, views, onSelectSmartView }: SidebarSmart
           aria-pressed={view.isSelected}
           selected={view.isSelected}
           selectedIndicatorMode="always"
+          {...{ [SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE]: view.kind }}
           {...(view.isSelected ? { [SIDEBAR_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
           size="default"
           trailing={view.showCount ? view.count.toLocaleString() : undefined}

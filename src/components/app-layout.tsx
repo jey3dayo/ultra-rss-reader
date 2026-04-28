@@ -10,10 +10,12 @@ import { Sidebar } from "./reader/sidebar";
 function SlidingPaneLayout({
   layoutMode,
   focusedPane,
+  accountPaneOpen,
   subscriptionsWorkspaceOpen,
 }: {
   layoutMode: "compact" | "mobile";
   focusedPane: "sidebar" | "list" | "content";
+  accountPaneOpen: boolean;
   subscriptionsWorkspaceOpen: boolean;
 }) {
   if (subscriptionsWorkspaceOpen) {
@@ -26,39 +28,56 @@ function SlidingPaneLayout({
 
   const isMobile = layoutMode === "mobile";
   const translateX = computeTranslateX(layoutMode, focusedPane);
+  const shouldShowAccountPane = !isMobile && accountPaneOpen;
 
   return (
     <div className="h-full overflow-hidden bg-background text-foreground">
-      <div
-        data-testid="sliding-pane-tray"
-        className="flex h-full transition-transform duration-300 ease-in-out motion-reduce:duration-0"
-        style={{
-          width: isMobile ? "300%" : `calc(100% + ${SIDEBAR_PANE_WIDTH_PX}px)`,
-          transform: `translateX(${translateX})`,
-        }}
-      >
+      <div className="flex h-full overflow-hidden">
         <div
-          className={cn(isMobile ? "w-1/3 shrink-0" : "shrink-0")}
-          style={isMobile ? undefined : { width: `${SIDEBAR_PANE_WIDTH_PX}px` }}
-          aria-hidden={!isPaneVisible(layoutMode, focusedPane, "sidebar")}
-          {...(!isPaneVisible(layoutMode, focusedPane, "sidebar") ? { inert: true } : {})}
+          data-testid="compact-account-pane-shell"
+          className={cn(
+            "h-full shrink-0 overflow-hidden border-r border-border bg-background transition-[width,opacity,transform] duration-200 ease-out motion-reduce:transition-none",
+            shouldShowAccountPane ? "opacity-100 translate-x-0" : "pointer-events-none -translate-x-2 opacity-0",
+          )}
+          style={{ width: shouldShowAccountPane ? `${ACCOUNT_PANE_WIDTH_PX}px` : "0px" }}
+          aria-hidden={!shouldShowAccountPane}
+          {...(!shouldShowAccountPane ? { inert: true } : {})}
         >
-          <Sidebar />
+          <AccountPane />
         </div>
-        <div
-          className={cn(isMobile ? "w-1/3 shrink-0" : "shrink-0")}
-          style={isMobile ? undefined : { width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}
-          aria-hidden={!isPaneVisible(layoutMode, focusedPane, "list")}
-          {...(!isPaneVisible(layoutMode, focusedPane, "list") ? { inert: true } : {})}
-        >
-          <ArticleList />
-        </div>
-        <div
-          className={cn(isMobile ? "w-1/3 shrink-0" : "min-w-0 flex-1")}
-          aria-hidden={!isPaneVisible(layoutMode, focusedPane, "content")}
-          {...(!isPaneVisible(layoutMode, focusedPane, "content") ? { inert: true } : {})}
-        >
-          <ArticleView />
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <div
+            data-testid="sliding-pane-tray"
+            className="flex h-full transition-transform duration-300 ease-in-out motion-reduce:duration-0"
+            style={{
+              width: isMobile ? "300%" : `calc(100% + ${SIDEBAR_PANE_WIDTH_PX}px)`,
+              transform: `translateX(${translateX})`,
+            }}
+          >
+            <div
+              className={cn(isMobile ? "w-1/3 shrink-0" : "shrink-0")}
+              style={isMobile ? undefined : { width: `${SIDEBAR_PANE_WIDTH_PX}px` }}
+              aria-hidden={!isPaneVisible(layoutMode, focusedPane, "sidebar")}
+              {...(!isPaneVisible(layoutMode, focusedPane, "sidebar") ? { inert: true } : {})}
+            >
+              <Sidebar />
+            </div>
+            <div
+              className={cn(isMobile ? "w-1/3 shrink-0" : "shrink-0")}
+              style={isMobile ? undefined : { width: `${ARTICLE_LIST_PANE_WIDTH_PX}px` }}
+              aria-hidden={!isPaneVisible(layoutMode, focusedPane, "list")}
+              {...(!isPaneVisible(layoutMode, focusedPane, "list") ? { inert: true } : {})}
+            >
+              <ArticleList />
+            </div>
+            <div
+              className={cn(isMobile ? "w-1/3 shrink-0" : "min-w-0 flex-1")}
+              aria-hidden={!isPaneVisible(layoutMode, focusedPane, "content")}
+              {...(!isPaneVisible(layoutMode, focusedPane, "content") ? { inert: true } : {})}
+            >
+              <ArticleView />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -90,6 +109,7 @@ export function AppLayout() {
         <SlidingPaneLayout
           layoutMode={layoutMode}
           focusedPane={focusedPane}
+          accountPaneOpen={accountPaneOpen}
           subscriptionsWorkspaceOpen={subscriptionsWorkspaceOpen}
         />
       )}

@@ -4,6 +4,12 @@ import { executeAction } from "@/lib/actions";
 import { emitDebugInputTrace } from "@/lib/debug-input-trace";
 import { buildKeyToActionMap, type keyboardEvents, resolveKeyboardAction } from "@/lib/keyboard-shortcuts";
 import { focusArticleListRowTargetWhenReady, focusSelectedSidebarTarget } from "@/lib/reader-focus";
+import {
+  closeAccountPaneAndFocusSidebar,
+  focusAdjacentAccountPaneTarget,
+  normalizePaneNavigationKey,
+  selectCurrentAccountPaneTargetAndFocusSidebar,
+} from "@/lib/reader-pane-navigation";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useUiStore } from "../stores/ui-store";
@@ -33,6 +39,41 @@ export function useKeyboard() {
       }
 
       const currentStore = useUiStore.getState();
+      const normalizedPaneKey = normalizePaneNavigationKey(e.key);
+      const targetInAccountPane = targetElement?.closest('[data-account-pane="true"]');
+      const targetInSidebarPane = targetElement?.closest('[data-sidebar-pane="true"]');
+      const targetInAccountSwitcherMenu = targetElement?.closest('[data-account-switcher-menu="true"]');
+      const shouldRouteAccountPaneKey =
+        currentStore.accountPaneOpen &&
+        currentStore.focusedPane === "sidebar" &&
+        !isTextEditingTarget(targetElement) &&
+        (!targetInSidebarPane || targetInAccountPane || targetInAccountSwitcherMenu);
+      if (shouldRouteAccountPaneKey) {
+        if (normalizedPaneKey === "ArrowDown" || normalizedPaneKey === "ArrowUp") {
+          e.preventDefault();
+          e.stopPropagation();
+          focusAdjacentAccountPaneTarget(normalizedPaneKey === "ArrowDown" ? 1 : -1);
+          emitDebugInputTrace(`window-key ${e.key} -> focus-account-pane`);
+          return;
+        }
+
+        if (normalizedPaneKey === "ArrowRight" || normalizedPaneKey === "Enter") {
+          e.preventDefault();
+          e.stopPropagation();
+          selectCurrentAccountPaneTargetAndFocusSidebar();
+          emitDebugInputTrace(`window-key ${e.key} -> select-account-pane`);
+          return;
+        }
+
+        if (normalizedPaneKey === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          closeAccountPaneAndFocusSidebar();
+          emitDebugInputTrace(`window-key ${e.key} -> close-account-pane`);
+          return;
+        }
+      }
+
       const isSidebarArrowKey =
         (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "ArrowLeft" || e.key === "ArrowRight") &&
         targetElement?.closest('[data-sidebar-pane="true"]');

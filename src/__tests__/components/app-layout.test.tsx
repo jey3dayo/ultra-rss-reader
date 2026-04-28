@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppLayout } from "@/components/app-layout";
-import { ARTICLE_LIST_PANE_WIDTH_PX, SIDEBAR_PANE_WIDTH_PX } from "@/constants/ui-layout";
+import { ACCOUNT_PANE_WIDTH_PX, ARTICLE_LIST_PANE_WIDTH_PX, SIDEBAR_PANE_WIDTH_PX } from "@/constants/ui-layout";
 import { usePlatformStore } from "@/stores/platform-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -143,6 +143,40 @@ describe("AppLayout", () => {
     expect(screen.getByTestId("wide-account-pane-shell")).toHaveClass("opacity-100", "translate-x-0");
     expect(screen.getByTestId("wide-account-pane-shell")).not.toHaveStyle({ width: "0px" });
     expect(screen.getByTestId("wide-account-pane-content")).not.toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("opens the transient account pane at the left edge in compact layout", () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "compact",
+      focusedPane: "sidebar",
+      accountPaneOpen: true,
+    });
+
+    render(<AppLayout />);
+
+    const shell = screen.getByTestId("compact-account-pane-shell");
+    expect(shell).toHaveClass("opacity-100", "translate-x-0");
+    expect(shell).toHaveStyle({ width: `${ACCOUNT_PANE_WIDTH_PX}px` });
+    expect(shell).not.toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByText("Account Pane")).toBeInTheDocument();
+  });
+
+  it("keeps the transient account pane hidden in mobile layout", () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "mobile",
+      focusedPane: "sidebar",
+      accountPaneOpen: true,
+    });
+
+    render(<AppLayout />);
+
+    const shell = screen.getByTestId("compact-account-pane-shell");
+    expect(shell).toHaveClass("opacity-0");
+    expect(shell).toHaveStyle({ width: "0px" });
+    expect(shell).toHaveAttribute("aria-hidden", "true");
+    expect(shell).toHaveAttribute("inert");
   });
 
   it("does not render the browser overlay root inside AppLayout", () => {

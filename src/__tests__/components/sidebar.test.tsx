@@ -1508,6 +1508,123 @@ describe("Sidebar", () => {
     });
   });
 
+  it("opens the account pane instead of the account switcher popover from the account title on wide layout", async () => {
+    const user = userEvent.setup();
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      focusedPane: "sidebar",
+      layoutMode: "wide",
+    });
+
+    render(
+      <>
+        <AccountPane />
+        <Sidebar />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    const sidebar = screen.getByRole("navigation", { name: "Sidebar" });
+    const trigger = await within(sidebar).findByRole("button", { name: /Local/ });
+
+    await user.click(trigger);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("menu", { name: "Accounts" })).not.toBeInTheDocument();
+      expect(useUiStore.getState().accountPaneOpen).toBe(true);
+      expect(
+        within(screen.getByRole("navigation", { name: "Accounts" })).getByRole("button", { name: /Local/ }),
+      ).toHaveFocus();
+    });
+  });
+
+  it("moves focus inside the account pane with Up and Down keys", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      accountPaneOpen: true,
+      focusedPane: "sidebar",
+    });
+
+    render(<AccountPane />, { wrapper: createWrapper() });
+
+    const accountPane = screen.getByRole("navigation", { name: "Accounts" });
+    const localAccount = await within(accountPane).findByRole("button", { name: /Local/ });
+    const freshRssAccount = within(accountPane).getByRole("button", { name: /FreshRSS/ });
+
+    localAccount.focus();
+    expect(localAccount).toHaveFocus();
+
+    fireEvent.keyDown(localAccount, { key: "Down" });
+    expect(freshRssAccount).toHaveFocus();
+
+    fireEvent.keyDown(freshRssAccount, { key: "Up" });
+    expect(localAccount).toHaveFocus();
+  });
+
+  it("keeps selected and focused account pane rows visually distinct", async () => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      accountPaneOpen: true,
+      focusedPane: "sidebar",
+    });
+
+    render(<AccountPane />, { wrapper: createWrapper() });
+
+    const accountPane = screen.getByRole("navigation", { name: "Accounts" });
+    const localAccount = await within(accountPane).findByRole("button", { name: /Local/ });
+    const freshRssAccount = within(accountPane).getByRole("button", { name: /FreshRSS/ });
+
+    freshRssAccount.focus();
+
+    expect(localAccount).toHaveAttribute("aria-current", "true");
+    expect(localAccount).toHaveAttribute("data-account-pane-selected-target", "true");
+    expect(localAccount).toHaveClass("after:right-0", "after:bg-sidebar-foreground/48");
+    expect(localAccount.querySelector("svg")).not.toBeNull();
+    expect(freshRssAccount).toHaveFocus();
+    expect(freshRssAccount).not.toHaveAttribute("aria-current");
+    expect(freshRssAccount).not.toHaveAttribute("data-account-pane-selected-target");
+    expect(freshRssAccount.querySelector("svg")).toBeNull();
+  });
+
+  it.each([
+    "Enter",
+    "ArrowRight",
+  ] as const)("selects the focused account with %s and returns focus to the unread smart view", async (key) => {
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      selectedAccountId: "acc-1",
+      accountPaneOpen: true,
+      focusedPane: "sidebar",
+      layoutMode: "wide",
+    });
+
+    render(
+      <>
+        <AccountPane />
+        <Sidebar />
+      </>,
+      { wrapper: createWrapper() },
+    );
+
+    const accountPane = screen.getByRole("navigation", { name: "Accounts" });
+    const freshRssAccount = await within(accountPane).findByRole("button", { name: /FreshRSS/ });
+    const sidebar = screen.getByRole("navigation", { name: "Sidebar" });
+    const unreadButton = await within(sidebar).findByRole("button", { name: /Unread/ });
+
+    freshRssAccount.focus();
+    fireEvent.keyDown(freshRssAccount, { key });
+
+    await waitFor(() => {
+      expect(useUiStore.getState().selectedAccountId).toBe("acc-2");
+      expect(useUiStore.getState().accountPaneOpen).toBe(false);
+      expect(useUiStore.getState().focusedPane).toBe("sidebar");
+      expect(unreadButton).toHaveFocus();
+    });
+  });
+
   it("opens the first article immediately when the reading preference is enabled", async () => {
     const user = userEvent.setup();
 
@@ -1980,6 +2097,11 @@ describe("Sidebar", () => {
     const retryAt = "2026-04-13T03:15:00Z";
     const retryTime = formatAccountSyncRetryTime(retryAt, "en");
     const expectedStatusLabel = retryTime ? `Retrying at ${retryTime}` : "Retrying soon";
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "mobile",
+      focusedPane: "sidebar",
+    });
 
     setupTauriMocks((cmd, args) => {
       if (cmd === "get_account_sync_status" && args.accountId === "acc-2") {
@@ -2088,6 +2210,11 @@ describe("Sidebar", () => {
 
   it("opens the account switcher with expanded state and closes it on Escape", async () => {
     const user = userEvent.setup();
+    useUiStore.setState({
+      ...useUiStore.getInitialState(),
+      layoutMode: "mobile",
+      focusedPane: "sidebar",
+    });
     render(<Sidebar />, { wrapper: createWrapper() });
 
     const trigger = await screen.findByRole("button", { name: /Local/ });
@@ -2326,6 +2453,11 @@ describe("Sidebar", () => {
     expect(settingsButton.closest('[data-slot="scroll-area"]')).toBeNull();
     expect(scrollArea).toBeInTheDocument();
     expect(footerRow).toHaveClass("border-[var(--sidebar-frame-border)]", "bg-[var(--sidebar-frame-solid-surface)]");
+    expect(subscriptionsIndexButton).toHaveClass(
+      "focus-visible:bg-[color-mix(in_srgb,var(--sidebar-frame-solid-surface)_88%,var(--surface-2)_12%)]",
+    );
+    expect(subscriptionsIndexButton).toHaveClass("focus-visible:ring-0");
+    expect(subscriptionsIndexButton).not.toHaveClass("focus-visible:ring-ring/40");
 
     await user.click(settingsButton);
 

@@ -1,6 +1,7 @@
 export const SIDEBAR_SELECTED_TARGET_ATTRIBUTE = "data-sidebar-selected-target";
 export const SIDEBAR_FALLBACK_TARGET_ATTRIBUTE = "data-sidebar-fallback-target";
 export const ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE = "data-account-pane-selected-target";
+export const SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE = "data-sidebar-smart-view-kind";
 
 function focusElement(target: HTMLElement): boolean {
   if (target.hasAttribute("disabled")) {
@@ -77,6 +78,31 @@ export function focusSelectedSidebarTarget(): boolean {
     document.querySelector<HTMLElement>(`[${SIDEBAR_FALLBACK_TARGET_ATTRIBUTE}="true"]`);
 
   return selectedTarget ? focusElement(selectedTarget) : false;
+}
+
+export function focusSidebarSmartViewTarget(kind: "unread" | "starred" | "recent"): boolean {
+  if (typeof document === "undefined") {
+    return false;
+  }
+
+  const target = document.querySelector<HTMLElement>(`[${SIDEBAR_SMART_VIEW_KIND_ATTRIBUTE}="${kind}"]`);
+  return target ? focusElement(target) : false;
+}
+
+export function focusSidebarSmartViewTargetWhenReady(
+  kind: "unread" | "starred" | "recent",
+  attemptsRemaining = 12,
+): void {
+  if (focusSidebarSmartViewTarget(kind)) {
+    return;
+  }
+
+  if (attemptsRemaining <= 1) {
+    focusSelectedSidebarTarget();
+    return;
+  }
+
+  window.setTimeout(() => focusSidebarSmartViewTargetWhenReady(kind, attemptsRemaining - 1), 50);
 }
 
 export function focusSelectedAccountPaneTarget(): boolean {

@@ -31,6 +31,7 @@ export function AccountSwitcherMenu({
     <div
       id={menuId}
       role="menu"
+      data-account-switcher-menu="true"
       aria-label={menuLabel}
       className="absolute top-full left-0 z-50 min-w-[200px] rounded-xl bg-surface-2/90 p-1 shadow-elevation-2"
       onKeyDown={(e) => {

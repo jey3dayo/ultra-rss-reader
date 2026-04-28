@@ -1,25 +1,25 @@
+import { Check } from "lucide-react";
 import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccounts } from "@/hooks/use-accounts";
 import {
   ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE,
   focusSelectedAccountPaneTarget,
-  focusSelectedSidebarTarget,
+  focusSidebarSmartViewTargetWhenReady,
 } from "@/lib/reader-focus";
+import {
+  ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE,
+  closeAccountPaneAndFocusSidebar,
+  focusAdjacentAccountPaneTarget,
+  normalizePaneNavigationKey,
+  selectCurrentAccountPaneTargetAndFocusSidebar,
+} from "@/lib/reader-pane-navigation";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
-import { focusRovingButton } from "./roving-focus";
 import { useSidebarAccountStatusLabels } from "./use-sidebar-account-status-labels";
 
 function shouldShowKindLabel(name: string, kind: string): boolean {
   return name.trim().toLocaleLowerCase() !== kind.trim().toLocaleLowerCase();
-}
-
-function closePaneAndFocusSidebar() {
-  useUiStore.getState().closeAccountPane();
-  requestAnimationFrame(() => {
-    focusSelectedSidebarTarget();
-  });
 }
 
 export function AccountPane() {
@@ -46,36 +46,29 @@ export function AccountPane() {
       return;
     }
 
-    const currentIndex = itemRefs.current.indexOf(document.activeElement as HTMLButtonElement);
-
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault();
-      event.stopPropagation();
-      const direction = event.key === "ArrowDown" ? 1 : -1;
-      focusRovingButton(itemRefs, accounts.length, currentIndex >= 0 ? currentIndex + direction : 0);
+    const key = normalizePaneNavigationKey(event.key);
+    if (!key) {
       return;
     }
 
-    if (event.key === "ArrowRight" || event.key === "Escape") {
+    if (key === "ArrowDown" || key === "ArrowUp") {
       event.preventDefault();
       event.stopPropagation();
-      closePaneAndFocusSidebar();
+      focusAdjacentAccountPaneTarget(key === "ArrowDown" ? 1 : -1);
       return;
     }
 
-    if (event.key === "Enter") {
-      const account = accounts[currentIndex];
-      if (!account) {
-        return;
-      }
-
+    if (key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
-      selectAccount(account.id);
-      useUiStore.getState().setFocusedPane("sidebar");
-      requestAnimationFrame(() => {
-        focusSelectedSidebarTarget();
-      });
+      closeAccountPaneAndFocusSidebar();
+      return;
+    }
+
+    if (key === "Enter" || key === "ArrowRight") {
+      event.preventDefault();
+      event.stopPropagation();
+      selectCurrentAccountPaneTargetAndFocusSidebar();
     }
   };
 
@@ -107,30 +100,36 @@ export function AccountPane() {
                 }}
                 type="button"
                 data-account-pane-navigation-target="true"
+                {...{ [ACCOUNT_PANE_ACCOUNT_ID_ATTRIBUTE]: account.id }}
                 {...(selected ? { [ACCOUNT_PANE_SELECTED_TARGET_ATTRIBUTE]: "true" } : {})}
+                {...(selected ? { "aria-current": "true" } : {})}
                 data-active-pane={selected ? "true" : undefined}
                 className={cn(
-                  "motion-contextual-surface relative flex w-full flex-col items-start gap-0.5 rounded-md px-3 py-2 text-left text-sm select-none transition-[background-color,color,box-shadow] duration-150 focus:outline-none",
+                  "motion-contextual-surface relative flex min-h-11 w-full flex-col items-start gap-0.5 rounded-md px-3 py-2 pr-9 text-left text-sm select-none transition-[background-color,color,box-shadow] duration-150 focus:outline-none",
                   selected
-                    ? "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)] text-[var(--sidebar-selection-foreground)] before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-primary/85 focus-visible:bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_68%,var(--sidebar-hover-surface))_100%)]"
-                    : "text-sidebar-foreground/88 hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground focus-visible:bg-[linear-gradient(90deg,var(--sidebar-hover-surface)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_58%,transparent)_100%)] focus-visible:text-sidebar-foreground",
+                    ? "bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_84%,var(--sidebar-hover-surface))_100%)] text-sidebar-foreground shadow-[var(--sidebar-selection-shadow)] after:absolute after:inset-y-1.5 after:right-0 after:w-0.5 after:rounded-full after:bg-sidebar-foreground/48 focus-visible:bg-[linear-gradient(90deg,var(--sidebar-selection-background)_0%,color-mix(in_srgb,var(--sidebar-selection-background)_92%,var(--sidebar-hover-surface))_100%)] focus-visible:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--sidebar-foreground)_18%,transparent)]"
+                    : "text-sidebar-foreground/82 hover:bg-[var(--sidebar-hover-surface)] hover:text-sidebar-foreground focus-visible:bg-[linear-gradient(90deg,color-mix(in_srgb,var(--sidebar-hover-surface)_72%,transparent)_0%,color-mix(in_srgb,var(--sidebar-hover-surface)_34%,transparent)_100%)] focus-visible:text-sidebar-foreground focus-visible:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--sidebar-foreground)_10%,transparent)]",
                 )}
                 onClick={() => {
                   selectAccount(account.id);
                   useUiStore.getState().setFocusedPane("sidebar");
-                  requestAnimationFrame(() => {
-                    focusSelectedSidebarTarget();
-                  });
+                  focusSidebarSmartViewTargetWhenReady("unread");
                 }}
               >
                 <span className="flex max-w-full items-center gap-2">
-                  <span className="truncate font-medium">{account.name}</span>
+                  <span className={cn("truncate", selected ? "font-semibold" : "font-medium")}>{account.name}</span>
                   {showKindLabel ? (
                     <span className="shrink-0 text-xs text-sidebar-foreground/54">{account.kind}</span>
                   ) : null}
                 </span>
                 {statusLabel ? (
                   <span className="max-w-full truncate text-xs text-sidebar-foreground/56">{statusLabel}</span>
+                ) : null}
+                {selected ? (
+                  <Check
+                    aria-hidden="true"
+                    className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-sidebar-foreground/72"
+                  />
                 ) : null}
               </button>
             );
