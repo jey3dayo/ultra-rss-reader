@@ -197,6 +197,9 @@ pub fn run() {
 
             if let Some(window) = app.get_webview_window("main") {
                 window
+                    .set_title(" ")
+                    .expect("Failed to clear main window title");
+                window
                     .set_title_bar_style(main_window_title_bar_style())
                     .expect("Failed to configure main window title bar style");
             }

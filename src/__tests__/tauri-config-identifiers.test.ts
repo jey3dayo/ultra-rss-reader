@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 function readConfig(path: string): {
+  productName?: string;
   identifier?: string;
   build?: {
     beforeDevCommand?: string;
@@ -10,14 +11,25 @@ function readConfig(path: string): {
     beforeBuildCommand?: string;
     frontendDist?: string;
   };
+  app?: {
+    windows?: Array<{
+      title?: string;
+    }>;
+  };
 } {
   return JSON.parse(readFileSync(resolve(process.cwd(), path), "utf8")) as {
+    productName?: string;
     identifier?: string;
     build?: {
       beforeDevCommand?: string;
       devUrl?: string;
       beforeBuildCommand?: string;
       frontendDist?: string;
+    };
+    app?: {
+      windows?: Array<{
+        title?: string;
+      }>;
     };
   };
 }
@@ -29,13 +41,17 @@ describe("Tauri bundle identifiers", () => {
   });
 
   it("uses a separate identifier only for dev-mode runs", () => {
-    expect(readConfig("src-tauri/tauri.dev.conf.json").identifier).toBe("com.ultra-rss-reader.dev");
+    const devConfig = readConfig("src-tauri/tauri.dev.conf.json");
+
+    expect(devConfig.identifier).toBe("com.ultra-rss-reader.dev");
+    expect(devConfig.productName).toBe("Ultra RSS Reader Dev");
+    expect(devConfig.app?.windows?.[0]?.title).toBe(" ");
   });
 
   it("keeps the dev overlay config pointed at the Vite dev server", () => {
     expect(readConfig("src-tauri/tauri.dev.conf.json").build).toMatchObject({
       beforeDevCommand: "pnpm run dev:tauri:vite",
-      devUrl: "http://localhost:1420",
+      devUrl: "http://127.0.0.1:1420",
       beforeBuildCommand: "pnpm exec tsc && pnpm exec vite build",
       frontendDist: "../dist",
     });

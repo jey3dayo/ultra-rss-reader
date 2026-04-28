@@ -1,16 +1,16 @@
 {
-  "productName": "Ultra RSS Reader (Dev)",
+  "productName": "Ultra RSS Reader Dev",
   "identifier": "com.ultra-rss-reader.dev",
   "build": {
     "beforeDevCommand": "pnpm run dev:tauri:vite",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://127.0.0.1:1420",
     "beforeBuildCommand": "pnpm exec tsc && pnpm exec vite build",
     "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
-        "title": "",
+        "title": " ",
         "width": 1400,
         "height": 900
       }

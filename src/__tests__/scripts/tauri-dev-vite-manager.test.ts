@@ -32,7 +32,8 @@ describe("buildViteSpawnSpec", () => {
     const spawnSpec = buildViteSpawnSpec("file:///C:/repo/scripts/tauri-dev-vite-manager.mjs");
 
     expect(spawnSpec.command).toBe(process.execPath);
-    expect(spawnSpec.args).toHaveLength(1);
+    expect(spawnSpec.args).toHaveLength(6);
     expect(spawnSpec.args[0]).toMatch(/node_modules[\\/]+vite[\\/]+bin[\\/]+vite\.js$/);
+    expect(spawnSpec.args.slice(1)).toEqual(["--host", "127.0.0.1", "--port", "1420", "--strictPort"]);
   });
 });

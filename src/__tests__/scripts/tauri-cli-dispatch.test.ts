@@ -93,6 +93,8 @@ describe("removeStaleMacosDevBundle", () => {
 
     expect(removed).toBe(true);
     expect(removedPaths).toEqual([
+      "/repo/src-tauri/target/debug/bundle/macos/Ultra RSS Reader Dev.app",
+      "/repo/src-tauri/target/release/bundle/macos/Ultra RSS Reader Dev.app",
       "/repo/src-tauri/target/debug/bundle/macos/Ultra RSS Reader.app",
       "/repo/src-tauri/target/release/bundle/macos/Ultra RSS Reader.app",
     ]);

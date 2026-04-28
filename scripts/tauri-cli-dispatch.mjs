@@ -68,6 +68,8 @@ export function buildLocalTauriSpawnSpec(cliArgs, scriptUrl = import.meta.url) {
 
 const DEV_CONFIG_PATH = path.join("src-tauri", "tauri.dev.conf.json");
 const STALE_MACOS_DEV_BUNDLE_PATHS = [
+  path.join("src-tauri", "target", "debug", "bundle", "macos", "Ultra RSS Reader Dev.app"),
+  path.join("src-tauri", "target", "release", "bundle", "macos", "Ultra RSS Reader Dev.app"),
   path.join("src-tauri", "target", "debug", "bundle", "macos", "Ultra RSS Reader.app"),
   path.join("src-tauri", "target", "release", "bundle", "macos", "Ultra RSS Reader.app"),
 ];

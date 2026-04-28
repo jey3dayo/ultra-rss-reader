@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 const DEFAULT_DEV_PORT = 1420;
+const DEFAULT_DEV_HOST = "127.0.0.1";
 const PORT_WAIT_TIMEOUT_MS = 10_000;
 const PORT_WAIT_INTERVAL_MS = 250;
 
@@ -38,7 +39,14 @@ export function classifyPortOwnerCommandLine(commandLine) {
 export function buildViteSpawnSpec(scriptUrl = import.meta.url) {
   return {
     command: process.execPath,
-    args: [fileURLToPath(new URL("../node_modules/vite/bin/vite.js", scriptUrl))],
+    args: [
+      fileURLToPath(new URL("../node_modules/vite/bin/vite.js", scriptUrl)),
+      "--host",
+      DEFAULT_DEV_HOST,
+      "--port",
+      String(DEFAULT_DEV_PORT),
+      "--strictPort",
+    ],
   };
 }
 
