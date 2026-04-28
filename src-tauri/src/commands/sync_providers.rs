@@ -928,9 +928,11 @@ async fn reconcile_greader_unread_counts(
                 .unwrap_or(0)
         };
 
-        if server_unread_count > local_unread_count {
-            backfill_greader_unread_entries_for_feed(db, provider, account, feed).await?;
-            backfilled_feeds += 1;
+        if server_unread_count != local_unread_count {
+            reconcile_greader_unread_state_for_feed(db, provider, account, feed).await?;
+            if server_unread_count > local_unread_count {
+                backfilled_feeds += 1;
+            }
         }
 
         let db_guard = lock_db(db)?;
@@ -941,16 +943,93 @@ async fn reconcile_greader_unread_counts(
     Ok(backfilled_feeds)
 }
 
-async fn backfill_greader_unread_entries_for_feed(
+async fn reconcile_greader_unread_state_for_feed(
     db: &Mutex<DbManager>,
     provider: &GReaderProvider,
     account: &Account,
     feed: &Feed,
 ) -> Result<(), AppError> {
-    let Some(remote_id) = feed.remote_id.as_deref() else {
-        return Ok(());
+    let unread_remote_ids =
+        fetch_greader_unread_entries_for_feed(db, provider, account, feed).await?;
+    let pending_remote_ids = {
+        let db_guard = lock_db(db)?;
+        let pending_repo = SqlitePendingMutationRepository::new(db_guard.reader());
+        pending_repo
+            .find_by_account(&account.id)?
+            .into_iter()
+            .map(|mutation| mutation.remote_entry_id)
+            .collect::<HashSet<_>>()
     };
 
+    let db_guard = lock_db(db)?;
+    let tx = db_guard
+        .writer()
+        .unchecked_transaction()
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)?;
+    let rows = {
+        let mut stmt = tx
+            .prepare(
+                "SELECT id, remote_id
+             FROM articles
+             WHERE feed_id = ?1 AND remote_id IS NOT NULL",
+            )
+            .map_err(crate::domain::error::DomainError::from)
+            .map_err(AppError::from)?;
+        let rows = stmt
+            .query_map(rusqlite::params![feed.id.as_ref()], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })
+            .map_err(crate::domain::error::DomainError::from)
+            .map_err(AppError::from)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(crate::domain::error::DomainError::from)
+            .map_err(AppError::from)?;
+        rows
+    };
+
+    {
+        let mut update_stmt = tx
+            .prepare("UPDATE articles SET is_read = ?1 WHERE id = ?2")
+            .map_err(crate::domain::error::DomainError::from)
+            .map_err(AppError::from)?;
+        for (article_id, remote_id) in rows {
+            if pending_remote_ids.contains(&remote_id) {
+                continue;
+            }
+            update_stmt
+                .execute(rusqlite::params![
+                    !unread_remote_ids.contains(&remote_id),
+                    article_id
+                ])
+                .map_err(crate::domain::error::DomainError::from)
+                .map_err(AppError::from)?;
+        }
+    }
+
+    tx.commit()
+        .map_err(crate::domain::error::DomainError::from)
+        .map_err(AppError::from)?;
+    drop(db_guard);
+
+    let db_guard = lock_db(db)?;
+    let article_repo = SqliteArticleRepository::new(db_guard.writer());
+    let _ = article_repo.mark_muted_unread_as_read(&account.id, None);
+
+    Ok(())
+}
+
+async fn fetch_greader_unread_entries_for_feed(
+    db: &Mutex<DbManager>,
+    provider: &GReaderProvider,
+    account: &Account,
+    feed: &Feed,
+) -> Result<HashSet<String>, AppError> {
+    let Some(remote_id) = feed.remote_id.as_deref() else {
+        return Ok(HashSet::new());
+    };
+
+    let mut unread_remote_ids = HashSet::new();
     let mut cursor: Option<SyncCursor> = None;
     loop {
         let result = provider
@@ -961,30 +1040,10 @@ async fn backfill_greader_unread_entries_for_feed(
             .entries
             .iter()
             .map(|entry| {
-                let id = generate_entry_id(
-                    account.id.as_ref(),
-                    entry.id.as_deref(),
-                    &feed.url,
-                    entry.url.as_deref(),
-                    Some(&entry.title),
-                );
-                Article {
-                    id,
-                    feed_id: feed.id.clone(),
-                    remote_id: entry.id.clone(),
-                    title: entry.title.clone(),
-                    content_raw: entry.content.clone(),
-                    content_sanitized: sanitizer::sanitize_html(&entry.content),
-                    sanitizer_version: sanitizer::SANITIZER_VERSION,
-                    summary: entry.summary.clone(),
-                    url: entry.url.clone(),
-                    author: entry.author.clone(),
-                    published_at: entry.published_at.unwrap_or_else(chrono::Utc::now),
-                    thumbnail: entry.thumbnail.clone(),
-                    is_read: entry.is_read.unwrap_or(false),
-                    is_starred: entry.is_starred.unwrap_or(false),
-                    fetched_at: chrono::Utc::now(),
+                if let Some(remote_id) = entry.id.as_ref() {
+                    unread_remote_ids.insert(remote_id.clone());
                 }
+                build_article_from_remote_entry(account, feed, entry)
             })
             .collect();
 
@@ -1005,7 +1064,7 @@ async fn backfill_greader_unread_entries_for_feed(
         cursor = result.next_cursor;
     }
 
-    Ok(())
+    Ok(unread_remote_ids)
 }
 
 fn feed_scope_key(remote_id: &str) -> String {
@@ -1658,6 +1717,141 @@ mod tests {
 
         assert_eq!(backfilled, 1);
         assert_eq!(reconciled_feed.unread_count, 0);
+    }
+
+    #[tokio::test]
+    async fn reconcile_greader_unread_counts_marks_local_surplus_unread_as_read() {
+        let mut server = mockito::Server::new_async().await;
+        server
+            .mock("POST", "/api/greader.php/accounts/ClientLogin")
+            .with_status(200)
+            .with_body("Auth=tok\n")
+            .create_async()
+            .await;
+
+        let unread_stream_mock = server
+            .mock(
+                "GET",
+                "/api/greader.php/reader/api/0/stream/contents/feed%2Fhttps%3A%2F%2Fexample.com%2Frss",
+            )
+            .match_query(Matcher::AllOf(vec![
+                Matcher::UrlEncoded("output".into(), "json".into()),
+                Matcher::UrlEncoded("n".into(), "200".into()),
+                Matcher::UrlEncoded("xt".into(), "user/-/state/com.google/read".into()),
+            ]))
+            .match_header("Authorization", "GoogleLogin auth=tok")
+            .with_status(200)
+            .with_body(
+                r#"{
+                    "items": [
+                        {
+                            "id": "tag:google.com,2005:reader/item/0000000000000001",
+                            "title": "Still Unread",
+                            "alternate": [{ "href": "https://example.com/1" }],
+                            "categories": [],
+                            "published": 1767225600
+                        }
+                    ]
+                }"#,
+            )
+            .create_async()
+            .await;
+
+        let db = test_db();
+        let (account, feed) = insert_account_and_feed(&db, &server.url());
+        let local_articles = [
+            Article {
+                id: generate_entry_id(
+                    account.id.as_ref(),
+                    Some("tag:google.com,2005:reader/item/0000000000000001"),
+                    &feed.url,
+                    Some("https://example.com/1"),
+                    Some("Still Unread"),
+                ),
+                feed_id: feed.id.clone(),
+                remote_id: Some("tag:google.com,2005:reader/item/0000000000000001".to_string()),
+                title: "Still Unread".to_string(),
+                content_raw: "body".to_string(),
+                content_sanitized: "body".to_string(),
+                sanitizer_version: sanitizer::SANITIZER_VERSION,
+                summary: None,
+                url: Some("https://example.com/1".to_string()),
+                author: None,
+                published_at: chrono::Utc::now(),
+                thumbnail: None,
+                is_read: false,
+                is_starred: false,
+                fetched_at: chrono::Utc::now(),
+            },
+            Article {
+                id: generate_entry_id(
+                    account.id.as_ref(),
+                    Some("tag:google.com,2005:reader/item/0000000000000002"),
+                    &feed.url,
+                    Some("https://example.com/2"),
+                    Some("Stale Unread"),
+                ),
+                feed_id: feed.id.clone(),
+                remote_id: Some("tag:google.com,2005:reader/item/0000000000000002".to_string()),
+                title: "Stale Unread".to_string(),
+                content_raw: "body".to_string(),
+                content_sanitized: "body".to_string(),
+                sanitizer_version: sanitizer::SANITIZER_VERSION,
+                summary: None,
+                url: Some("https://example.com/2".to_string()),
+                author: None,
+                published_at: chrono::Utc::now(),
+                thumbnail: None,
+                is_read: false,
+                is_starred: false,
+                fetched_at: chrono::Utc::now(),
+            },
+        ];
+        {
+            let db_guard = db.lock().unwrap();
+            let article_repo = SqliteArticleRepository::new(db_guard.writer());
+            let feed_repo = SqliteFeedRepository::new(db_guard.writer());
+            article_repo.upsert(&local_articles).unwrap();
+            feed_repo.update_unread_count(&feed.id, 2).unwrap();
+        }
+
+        let provider = authenticated_provider(&server.url()).await;
+        let server_unread_counts = HashMap::from([(FEED_REMOTE_ID.to_string(), 1)]);
+
+        let backfilled = reconcile_greader_unread_counts(
+            &db,
+            &provider,
+            &account,
+            std::slice::from_ref(&feed),
+            &server_unread_counts,
+        )
+        .await
+        .unwrap();
+
+        unread_stream_mock.assert_async().await;
+
+        let db_guard = db.lock().unwrap();
+        let article_repo = SqliteArticleRepository::new(db_guard.reader());
+        let feed_repo = SqliteFeedRepository::new(db_guard.reader());
+        let articles = article_repo
+            .find_by_feed(&feed.id, &Pagination::default())
+            .unwrap();
+        let reconciled_feed = feed_repo.find_by_id(&feed.id).unwrap().unwrap();
+        let read_by_remote_id = articles
+            .iter()
+            .map(|article| (article.remote_id.as_deref(), article.is_read))
+            .collect::<HashMap<_, _>>();
+
+        assert_eq!(backfilled, 0);
+        assert_eq!(reconciled_feed.unread_count, 1);
+        assert_eq!(
+            read_by_remote_id.get(&Some("tag:google.com,2005:reader/item/0000000000000001")),
+            Some(&false)
+        );
+        assert_eq!(
+            read_by_remote_id.get(&Some("tag:google.com,2005:reader/item/0000000000000002")),
+            Some(&true)
+        );
     }
 
     #[tokio::test]
