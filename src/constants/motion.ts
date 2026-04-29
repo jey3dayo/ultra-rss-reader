@@ -1,8 +1,13 @@
+export const MOTION_BUTTON_SURFACE_CLASS_NAME = "motion-button-surface";
+export const MOTION_DISCLOSURE_PANEL_CLASS_NAME = "motion-disclosure-panel";
+export const MOTION_DISCLOSURE_TRIGGER_CLASS_NAME = "motion-disclosure-trigger";
 export const MOTION_CONTENT_SWAP_CLASS_NAME = "motion-content-swap";
 export const MOTION_CONTEXTUAL_SURFACE_CLASS_NAME = "motion-contextual-surface";
 export const MOTION_STATIC_HOVER_SURFACE_CLASS_NAME = "motion-static-hover-surface";
 export const MOTION_RESIZE_SURFACE_CLASS_NAME = "motion-resize-surface";
 export const MOTION_POPUP_SURFACE_CLASS_NAME = "motion-popup-surface";
+export const MOTION_POPUP_OVERLAY_CLASS_NAME = "motion-popup-overlay";
+export const MOTION_POPUP_DIALOG_CLASS_NAME = "motion-popup-dialog";
 
 export const MOTION_PHASE_STEADY = "steady";
 export const MOTION_PHASE_ENTERING = "entering";

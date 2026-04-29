@@ -8,13 +8,18 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  MOTION_BUTTON_SURFACE_CLASS_NAME,
   MOTION_CONTENT_SWAP_CLASS_NAME,
   MOTION_CONTEXTUAL_SURFACE_CLASS_NAME,
+  MOTION_DISCLOSURE_PANEL_CLASS_NAME,
+  MOTION_DISCLOSURE_TRIGGER_CLASS_NAME,
   MOTION_ICON_SWAP_CLASS_NAME,
   MOTION_ICON_SWAP_ICON_A,
   MOTION_ICON_SWAP_ICON_CLASS_NAME,
   MOTION_ICON_SWAP_STATE_A,
   MOTION_PHASE_ENTERING,
+  MOTION_POPUP_DIALOG_CLASS_NAME,
+  MOTION_POPUP_OVERLAY_CLASS_NAME,
   MOTION_POPUP_SURFACE_CLASS_NAME,
   MOTION_RESIZE_SURFACE_CLASS_NAME,
   MOTION_STATIC_HOVER_SURFACE_CLASS_NAME,
@@ -34,7 +39,7 @@ describe("Design-themed UI primitives", () => {
     );
 
     expect(screen.getByRole("button", { name: "Primary" })).toHaveClass("bg-surface-3", "shadow-elevation-1");
-    expect(screen.getByRole("button", { name: "Primary" })).toHaveClass("motion-button-surface");
+    expect(screen.getByRole("button", { name: "Primary" })).toHaveClass(MOTION_BUTTON_SURFACE_CLASS_NAME);
     expect(screen.getByRole("button", { name: "Primary" })).toHaveClass("rounded-md");
     expect(screen.getByRole("button", { name: "Outline" })).toHaveClass("bg-surface-1", "border-border-strong");
     expect(screen.getByRole("button", { name: "Outline" })).toHaveClass("rounded-md");
@@ -74,7 +79,7 @@ describe("Design-themed UI primitives", () => {
     expect(globalCss).toContain("--motion-duration-content-swap: 180ms;");
     expect(globalCss).toContain("--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);");
     expect(globalCss).toContain("--motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);");
-    expect(globalCss).toContain(".motion-disclosure-panel");
+    expect(globalCss).toContain(`.${MOTION_DISCLOSURE_PANEL_CLASS_NAME}`);
     expect(globalCss).toContain(`.${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME}`);
     expect(globalCss).toContain(`.${MOTION_STATIC_HOVER_SURFACE_CLASS_NAME}`);
     expect(globalCss).toContain(`.${MOTION_CONTENT_SWAP_CLASS_NAME}`);
@@ -87,7 +92,7 @@ describe("Design-themed UI primitives", () => {
     expect(globalCss).toContain(`.${MOTION_POPUP_SURFACE_CLASS_NAME}[data-side="top"]`);
     expect(globalCss).toContain("@starting-style");
     expect(globalCss).toContain(`.${MOTION_POPUP_SURFACE_CLASS_NAME}[data-starting-style]`);
-    expect(globalCss).toContain(".motion-disclosure-trigger:hover");
+    expect(globalCss).toContain(`.${MOTION_DISCLOSURE_TRIGGER_CLASS_NAME}:hover`);
     expect(globalCss).not.toContain("transform: translateY(-1px);");
     expect(globalCss).not.toContain(
       "box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 28%, transparent);",
@@ -149,7 +154,7 @@ describe("Design-themed UI primitives", () => {
     const overlay = document.querySelector('[data-slot="dialog-overlay"]');
 
     expect(overlay).toHaveClass("bg-dialog-overlay", "bg-dialog-scrim", "supports-backdrop-filter:backdrop-blur-sm");
-    expect(overlay).toHaveClass("motion-popup-overlay");
+    expect(overlay).toHaveClass(MOTION_POPUP_OVERLAY_CLASS_NAME);
     expect(globalCss).toContain("--color-dialog-overlay: var(--dialog-overlay);");
     expect(globalCss).toContain("--dialog-overlay: rgba(38, 37, 30, 0.18);");
     expect(globalCss).toContain(":root.dark {");
@@ -160,7 +165,7 @@ describe("Design-themed UI primitives", () => {
       "border-border",
       "shadow-elevation-3",
     );
-    expect(screen.getByRole("dialog", { name: "Confirm" })).toHaveClass("motion-popup-dialog");
+    expect(screen.getByRole("dialog", { name: "Confirm" })).toHaveClass(MOTION_POPUP_DIALOG_CLASS_NAME);
     expect(screen.getByRole("dialog", { name: "Confirm" })).toHaveClass(
       "focus-visible:border-border-strong",
       "focus-visible:ring-3",
