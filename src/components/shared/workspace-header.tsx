@@ -1,6 +1,7 @@
 import { ChevronLeft, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { MOTION_PHASE_ENTERING, MOTION_PHASE_STEADY, type MotionPhase } from "@/constants";
 import { cn } from "@/lib/utils";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -46,7 +47,7 @@ export function WorkspaceHeader({
   const showEyebrowInTitleGroup = isDesktopApp && !useCompactDesktopHeader;
   const contentKey = `${eyebrow}::${title}::${subtitle}`;
   const previousContentKeyRef = useRef(contentKey);
-  const [contentMotionPhase, setContentMotionPhase] = useState<"steady" | "entering">("steady");
+  const [contentMotionPhase, setContentMotionPhase] = useState<MotionPhase>(MOTION_PHASE_STEADY);
 
   useEffect(() => {
     if (previousContentKeyRef.current === contentKey) {
@@ -54,12 +55,12 @@ export function WorkspaceHeader({
     }
 
     previousContentKeyRef.current = contentKey;
-    setContentMotionPhase("entering");
+    setContentMotionPhase(MOTION_PHASE_ENTERING);
 
     let resetHandle = 0;
     const frameHandle = requestAnimationFrame(() => {
       resetHandle = requestAnimationFrame(() => {
-        setContentMotionPhase("steady");
+        setContentMotionPhase(MOTION_PHASE_STEADY);
       });
     });
 

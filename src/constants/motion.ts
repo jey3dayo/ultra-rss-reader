@@ -1,3 +1,9 @@
+export const MOTION_CONTENT_SWAP_CLASS_NAME = "motion-content-swap";
+
+export const MOTION_PHASE_STEADY = "steady";
+export const MOTION_PHASE_ENTERING = "entering";
+export type MotionPhase = typeof MOTION_PHASE_STEADY | typeof MOTION_PHASE_ENTERING;
+
 export const MOTION_ICON_SWAP_CLASS_NAME = "motion-icon-swap";
 export const MOTION_ICON_SWAP_ICON_CLASS_NAME = "motion-icon-swap-icon";
 

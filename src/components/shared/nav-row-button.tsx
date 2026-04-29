@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { forwardRef } from "react";
+import { MOTION_PHASE_ENTERING } from "@/constants";
 import { cn } from "@/lib/utils";
 
 type NavRowButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "title"> & {
@@ -49,7 +50,7 @@ export const NavRowButton = forwardRef<HTMLButtonElement, NavRowButtonProps>(
           <div className="shrink-0">
             <span
               key={trailingMotionKey}
-              data-motion-phase={trailingMotionKey ? "entering" : undefined}
+              data-motion-phase={trailingMotionKey ? MOTION_PHASE_ENTERING : undefined}
               className="motion-content-swap tabular-nums"
             >
               {trailing}

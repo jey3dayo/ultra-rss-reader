@@ -8,10 +8,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  MOTION_CONTENT_SWAP_CLASS_NAME,
   MOTION_ICON_SWAP_CLASS_NAME,
   MOTION_ICON_SWAP_ICON_A,
   MOTION_ICON_SWAP_ICON_CLASS_NAME,
   MOTION_ICON_SWAP_STATE_A,
+  MOTION_PHASE_ENTERING,
 } from "@/constants";
 
 const globalCss = readFileSync(join(process.cwd(), "src/styles/global.css"), "utf8");
@@ -71,7 +73,7 @@ describe("Design-themed UI primitives", () => {
     expect(globalCss).toContain(".motion-disclosure-panel");
     expect(globalCss).toContain(".motion-contextual-surface");
     expect(globalCss).toContain(".motion-static-hover-surface");
-    expect(globalCss).toContain(".motion-content-swap");
+    expect(globalCss).toContain(`.${MOTION_CONTENT_SWAP_CLASS_NAME}`);
     expect(globalCss).toContain(`.${MOTION_ICON_SWAP_CLASS_NAME}`);
     expect(globalCss).toContain(
       `.${MOTION_ICON_SWAP_CLASS_NAME}[data-state="${MOTION_ICON_SWAP_STATE_A}"] > .${MOTION_ICON_SWAP_ICON_CLASS_NAME}[data-icon="${MOTION_ICON_SWAP_ICON_A}"]`,
@@ -88,7 +90,7 @@ describe("Design-themed UI primitives", () => {
     );
     expect(globalCss).toContain("border-color: color-mix(in srgb, var(--color-border-strong) 28%, transparent);");
     expect(globalCss).toContain(".motion-contextual-surface:focus-within");
-    expect(globalCss).toContain('.motion-content-swap[data-motion-phase="entering"]');
+    expect(globalCss).toContain(`.${MOTION_CONTENT_SWAP_CLASS_NAME}[data-motion-phase="${MOTION_PHASE_ENTERING}"]`);
     expect(globalCss).toContain("@keyframes motion-content-swap-enter");
     expect(globalCss).toContain("@media (prefers-reduced-motion: reduce)");
     expect(globalCss).toContain(

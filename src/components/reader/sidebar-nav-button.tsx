@@ -1,4 +1,5 @@
 import { forwardRef } from "react";
+import { MOTION_PHASE_ENTERING } from "@/constants";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import type { SidebarNavButtonProps } from "./sidebar.types";
@@ -64,7 +65,7 @@ export const SidebarNavButton = forwardRef<HTMLButtonElement, SidebarNavButtonPr
         {trailing ? (
           <span
             key={trailingMotionKey}
-            data-motion-phase={trailingMotionKey ? "entering" : undefined}
+            data-motion-phase={trailingMotionKey ? MOTION_PHASE_ENTERING : undefined}
             className={cn(
               "motion-content-swap ml-3 shrink-0 text-[0.75rem] font-medium tabular-nums text-[var(--sidebar-foreground-muted-strong)]",
               selected && activePane && "text-[var(--sidebar-selection-muted)]",
