@@ -2,6 +2,7 @@ import type { ActiveDropTarget } from "./feed-tree.types";
 
 export const FEED_DROP_TARGET_KIND_ATTRIBUTE = "data-feed-drop-kind";
 export const FEED_DROP_TARGET_ID_ATTRIBUTE = "data-feed-drop-target";
+export type FeedDropTargetAttribute = typeof FEED_DROP_TARGET_KIND_ATTRIBUTE | typeof FEED_DROP_TARGET_ID_ATTRIBUTE;
 
 export function isSameFeedDropTarget(left: ActiveDropTarget, right: ActiveDropTarget): boolean {
   if (left?.kind !== right?.kind) {
