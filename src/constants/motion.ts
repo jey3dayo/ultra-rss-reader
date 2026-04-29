@@ -1,3 +1,4 @@
+export const MOTION_INTERACTIVE_SURFACE_CLASS_NAME = "motion-interactive-surface";
 export const MOTION_BUTTON_SURFACE_CLASS_NAME = "motion-button-surface";
 export const MOTION_DISCLOSURE_PANEL_CLASS_NAME = "motion-disclosure-panel";
 export const MOTION_DISCLOSURE_TRIGGER_CLASS_NAME = "motion-disclosure-trigger";

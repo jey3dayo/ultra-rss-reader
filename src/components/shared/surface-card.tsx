@@ -1,10 +1,11 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { HTMLAttributes } from "react";
 
+import { MOTION_CONTEXTUAL_SURFACE_CLASS_NAME } from "@/constants";
 import { cn } from "@/lib/utils";
 
 const surfaceCardVariants = cva(
-  "motion-contextual-surface border text-card-foreground shadow-elevation-1 transition-[background-color,border-color,box-shadow]",
+  `${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME} border text-card-foreground shadow-elevation-1 transition-[background-color,border-color,box-shadow]`,
   {
     variants: {
       variant: {

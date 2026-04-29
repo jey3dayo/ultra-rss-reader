@@ -1,6 +1,11 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { forwardRef } from "react";
-import { MOTION_PHASE_ENTERING } from "@/constants";
+import {
+  MOTION_CONTENT_SWAP_CLASS_NAME,
+  MOTION_CONTEXTUAL_SURFACE_CLASS_NAME,
+  MOTION_INTERACTIVE_SURFACE_CLASS_NAME,
+  MOTION_PHASE_ENTERING,
+} from "@/constants";
 import { cn } from "@/lib/utils";
 
 type NavRowButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "title"> & {
@@ -25,7 +30,9 @@ export const NavRowButton = forwardRef<HTMLButtonElement, NavRowButtonProps>(
         ref={ref}
         type={type}
         className={cn(
-          "motion-interactive-surface motion-contextual-surface group flex w-full items-start gap-3 rounded-md px-3 py-2 text-left select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+          MOTION_CONTEXTUAL_SURFACE_CLASS_NAME,
+          MOTION_INTERACTIVE_SURFACE_CLASS_NAME,
+          "group flex w-full items-start gap-3 rounded-md px-3 py-2 text-left select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
           tone === "sidebar"
             ? "focus-visible:bg-sidebar-accent/65 focus-visible:text-sidebar-foreground"
             : "border focus-visible:border-border-strong focus-visible:bg-surface-2/90",
@@ -51,7 +58,7 @@ export const NavRowButton = forwardRef<HTMLButtonElement, NavRowButtonProps>(
             <span
               key={trailingMotionKey}
               data-motion-phase={trailingMotionKey ? MOTION_PHASE_ENTERING : undefined}
-              className="motion-content-swap tabular-nums"
+              className={cn(MOTION_CONTENT_SWAP_CLASS_NAME, "tabular-nums")}
             >
               {trailing}
             </span>

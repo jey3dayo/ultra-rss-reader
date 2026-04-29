@@ -4,6 +4,7 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { XIcon } from "lucide-react";
 import type * as React from "react";
 import { Button } from "@/components/ui/button";
+import { MOTION_POPUP_DIALOG_CLASS_NAME, MOTION_POPUP_OVERLAY_CLASS_NAME } from "@/constants";
 import { cn } from "@/lib/utils";
 
 export type DialogProps = DialogPrimitive.Root.Props;
@@ -50,7 +51,9 @@ function getDialogOverlayPresetClass(preset: DialogOverlayPreset) {
 }
 
 function DialogOverlay({ className, ...props }: DialogOverlayProps) {
-  const overlayClassName = ["motion-popup-overlay fixed inset-0 isolate z-50", className].filter(Boolean).join(" ");
+  const overlayClassName = [MOTION_POPUP_OVERLAY_CLASS_NAME, "fixed inset-0 isolate z-50", className]
+    .filter(Boolean)
+    .join(" ");
 
   return <DialogPrimitive.Backdrop data-slot="dialog-overlay" className={overlayClassName} {...props} />;
 }
@@ -73,7 +76,8 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "motion-popup-dialog fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-xl border border-border bg-surface-2 p-5 text-sm text-popover-foreground shadow-elevation-3 outline-none focus-visible:border-border-strong focus-visible:ring-3 focus-visible:ring-ring/50 sm:max-w-sm",
+          MOTION_POPUP_DIALOG_CLASS_NAME,
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-xl border border-border bg-surface-2 p-5 text-sm text-popover-foreground shadow-elevation-3 outline-none focus-visible:border-border-strong focus-visible:ring-3 focus-visible:ring-ring/50 sm:max-w-sm",
           className,
         )}
         {...props}

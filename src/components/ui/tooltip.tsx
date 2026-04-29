@@ -1,4 +1,6 @@
 import { Tooltip } from "@base-ui/react/tooltip";
+import { MOTION_POPUP_SURFACE_CLASS_NAME } from "@/constants";
+import { cn } from "@/lib/utils";
 
 export type TooltipProviderProps = {
   children: React.ReactNode;
@@ -19,7 +21,12 @@ export function AppTooltip({ label, children }: AppTooltipProps) {
       <Tooltip.Trigger render={children} />
       <Tooltip.Portal>
         <Tooltip.Positioner side="bottom" sideOffset={8}>
-          <Tooltip.Popup className="motion-popup-surface z-[80] rounded-md border border-border/70 bg-surface-1/96 px-2 py-1 text-xs text-foreground shadow-elevation-1">
+          <Tooltip.Popup
+            className={cn(
+              MOTION_POPUP_SURFACE_CLASS_NAME,
+              "z-[80] rounded-md border border-border/70 bg-surface-1/96 px-2 py-1 text-xs text-foreground shadow-elevation-1",
+            )}
+          >
             {label}
           </Tooltip.Popup>
         </Tooltip.Positioner>

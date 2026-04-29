@@ -2,6 +2,7 @@ import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import type * as React from "react";
 
+import { MOTION_POPUP_SURFACE_CLASS_NAME } from "@/constants";
 import { cn } from "@/lib/utils";
 
 export type SelectProps = SelectPrimitive.Root.Props<string>;
@@ -46,7 +47,8 @@ function SelectPopup({ className, children, ...props }: SelectPopupProps) {
         <SelectPrimitive.Popup
           data-slot="select-popup"
           className={cn(
-            "motion-popup-surface bg-surface-1 text-popover-foreground relative z-50 max-h-64 min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-md border border-border p-1 shadow-elevation-2",
+            MOTION_POPUP_SURFACE_CLASS_NAME,
+            "bg-surface-1 text-popover-foreground relative z-50 max-h-64 min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-md border border-border p-1 shadow-elevation-2",
             className,
           )}
           {...props}

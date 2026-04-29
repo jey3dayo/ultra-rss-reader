@@ -2,6 +2,7 @@ import { listen } from "@tauri-apps/api/event";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useReducer } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { MOTION_POPUP_SURFACE_CLASS_NAME } from "../constants";
 import { APP_EVENTS } from "../constants/events";
 import { useAppIconTheme } from "../hooks/use-app-icon-theme";
 import { useBadge } from "../hooks/use-badge";
@@ -103,7 +104,10 @@ function Toast() {
       data-open
       data-side="top"
       data-testid="app-toast"
-      className="motion-popup-surface fixed right-4 bottom-4 z-[100] flex max-w-sm flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground shadow-elevation-2"
+      className={cn(
+        MOTION_POPUP_SURFACE_CLASS_NAME,
+        "fixed right-4 bottom-4 z-[100] flex max-w-sm flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground shadow-elevation-2",
+      )}
     >
       <div className="flex items-center gap-2">
         <span className="flex-1">{message}</span>

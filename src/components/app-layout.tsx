@@ -1,3 +1,4 @@
+import { MOTION_RESIZE_SURFACE_CLASS_NAME } from "@/constants";
 import { ACCOUNT_PANE_WIDTH_PX, ARTICLE_LIST_PANE_WIDTH_PX, SIDEBAR_PANE_WIDTH_PX } from "@/constants/ui-layout";
 import { computeTranslateX, isPaneVisible, resolveLayout } from "../hooks/use-layout";
 import { cn } from "../lib/utils";
@@ -36,7 +37,8 @@ function SlidingPaneLayout({
         <div
           data-testid="compact-account-pane-shell"
           className={cn(
-            "motion-resize-surface h-full shrink-0 overflow-hidden border-r border-border bg-background",
+            MOTION_RESIZE_SURFACE_CLASS_NAME,
+            "h-full shrink-0 overflow-hidden border-r border-border bg-background",
             shouldShowAccountPane ? "opacity-100 translate-x-0" : "pointer-events-none -translate-x-2 opacity-0",
           )}
           style={{
@@ -143,7 +145,8 @@ function WideLayout({
           <div
             data-testid="wide-account-pane-shell"
             className={cn(
-              "motion-resize-surface shrink-0 overflow-hidden border-r",
+              MOTION_RESIZE_SURFACE_CLASS_NAME,
+              "shrink-0 overflow-hidden border-r",
               shouldShowAccountPane
                 ? "border-border opacity-100 translate-x-0"
                 : "border-transparent opacity-0 -translate-x-3",
@@ -165,7 +168,8 @@ function WideLayout({
           <div
             data-testid="wide-sidebar-shell"
             className={cn(
-              "motion-resize-surface shrink-0 overflow-hidden border-r",
+              MOTION_RESIZE_SURFACE_CLASS_NAME,
+              "shrink-0 overflow-hidden border-r",
               shouldShowSidebar
                 ? "border-border opacity-100 translate-x-0"
                 : "border-transparent opacity-0 -translate-x-3",
