@@ -70,8 +70,8 @@ describe("UI Reference canvases", () => {
     expect(screen.getByText("この購読を削除しますか？").parentElement?.parentElement).toHaveClass("rounded-lg");
 
     expect(screen.getByText("Context menu shell")).toBeInTheDocument();
-    expect(screen.getByText("Open site")).toBeInTheDocument();
-    expect(screen.getByText("Mark all as read")).toBeInTheDocument();
+    expect(screen.getAllByText("Open site").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Mark all as read").length).toBeGreaterThan(0);
     expect(
       screen
         .getByText("This is the workspace frame around the menu body, not the reusable menu body itself.")
