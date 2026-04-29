@@ -10,7 +10,7 @@ describe("browser-view-presentation", () => {
     });
 
     expect(presentation.geometry.compact).toBe(true);
-    expect(presentation.geometry.stage.top).toBe(64);
+    expect(presentation.geometry.stage.top).toBe(56);
     expect(presentation.leadingActionSurface).toEqual({
       compact: true,
       tone: "default",

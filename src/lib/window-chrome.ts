@@ -6,7 +6,15 @@ type DesktopOverlayTitlebarOptions = {
 };
 
 export function hasTauriRuntime(): boolean {
-  return typeof window !== "undefined" && window.__TAURI_INTERNALS__ != null;
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  if (window.__DEV_BROWSER_MOCKS__ === true || window.__ULTRA_RSS_BROWSER_MOCKS__ === true) {
+    return false;
+  }
+
+  return window.__TAURI_INTERNALS__ != null;
 }
 
 function looksLikeMacPlatform(): boolean {

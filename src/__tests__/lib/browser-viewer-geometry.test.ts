@@ -12,26 +12,26 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.compact).toBe(true);
     expect(geometry.ultraCompact).toBe(false);
     expect(geometry.stage.left).toBe(0);
-    expect(geometry.stage.top).toBe(64);
+    expect(geometry.stage.top).toBe(56);
     expect(geometry.stage.right).toBe(0);
     expect(geometry.stage.bottom).toBe(0);
     expect(geometry.chromeRail.visible).toBe(true);
     expect(geometry.chromeRail.left).toBe(0);
     expect(geometry.chromeRail.right).toBe(0);
     expect(geometry.chromeRail.top).toBe(0);
-    expect(geometry.chromeRail.height).toBe(64);
+    expect(geometry.chromeRail.height).toBe(56);
     expect(geometry.host.left).toBe(0);
     expect(geometry.host.top).toBe(0);
     expect(geometry.host.right).toBe(0);
     expect(geometry.host.bottom).toBe(0);
     expect(geometry.diagnostics.compact).toBe(true);
-    expect(geometry.diagnostics.top).toBe(66);
-    expect(geometry.chrome.visualHeaderHeight).toBe(64);
+    expect(geometry.diagnostics.top).toBe(58);
+    expect(geometry.chrome.visualHeaderHeight).toBe(56);
     expect(geometry.chrome.leadingSafeInset).toBe(12);
     expect(geometry.chrome.leading.left).toBe(12);
-    expect(geometry.chrome.leading.top).toBe(12);
+    expect(geometry.chrome.leading.top).toBe(6);
     expect(geometry.chrome.action.right).toBe(12);
-    expect(geometry.chrome.action.top).toBe(12);
+    expect(geometry.chrome.action.top).toBe(6);
     expect(geometry.chrome.action.size).toBe(44);
   });
 
@@ -48,9 +48,9 @@ describe("resolveBrowserViewerGeometry", () => {
     });
 
     expect(hiddenDiagnostics.diagnostics.compact).toBe(true);
-    expect(hiddenDiagnostics.diagnostics.top).toBe(66);
+    expect(hiddenDiagnostics.diagnostics.top).toBe(58);
     expect(visibleDiagnostics.diagnostics.compact).toBe(true);
-    expect(visibleDiagnostics.diagnostics.top).toBe(66);
+    expect(visibleDiagnostics.diagnostics.top).toBe(58);
     expect(visibleDiagnostics).toEqual(hiddenDiagnostics);
   });
 
@@ -64,27 +64,27 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.compact).toBe(false);
     expect(geometry.ultraCompact).toBe(false);
     expect(geometry.stage.left).toBe(0);
-    expect(geometry.stage.top).toBe(56);
+    expect(geometry.stage.top).toBe(48);
     expect(geometry.stage.right).toBe(0);
     expect(geometry.stage.bottom).toBe(0);
     expect(geometry.chromeRail.visible).toBe(true);
     expect(geometry.chromeRail.left).toBe(0);
     expect(geometry.chromeRail.right).toBe(0);
     expect(geometry.chromeRail.top).toBe(0);
-    expect(geometry.chromeRail.height).toBe(56);
+    expect(geometry.chromeRail.height).toBe(48);
     expect(geometry.host.left).toBe(0);
     expect(geometry.host.top).toBe(0);
     expect(geometry.host.right).toBe(0);
     expect(geometry.host.bottom).toBe(0);
     expect(geometry.diagnostics.compact).toBe(false);
-    expect(geometry.diagnostics.top).toBe(64);
-    expect(geometry.chrome.visualHeaderHeight).toBe(56);
+    expect(geometry.diagnostics.top).toBe(56);
+    expect(geometry.chrome.visualHeaderHeight).toBe(48);
     expect(geometry.chrome.leadingSafeInset).toBe(16);
     expect(geometry.chrome.leading.left).toBe(16);
-    expect(geometry.chrome.leading.top).toBe(12);
+    expect(geometry.chrome.leading.top).toBe(8);
     expect(geometry.chrome.action.right).toBe(16);
-    expect(geometry.chrome.action.top).toBe(12);
-    expect(geometry.chrome.action.size).toBe(44);
+    expect(geometry.chrome.action.top).toBe(8);
+    expect(geometry.chrome.action.size).toBe(32);
   });
 
   it("keeps the desktop visual header height while reserving extra leading space for macOS overlay titlebars", () => {
@@ -95,16 +95,16 @@ describe("resolveBrowserViewerGeometry", () => {
       overlayTitlebar: true,
     });
 
-    expect(geometry.stage.top).toBe(56);
-    expect(geometry.chromeRail.height).toBe(56);
-    expect(geometry.chrome.visualHeaderHeight).toBe(56);
+    expect(geometry.stage.top).toBe(48);
+    expect(geometry.chromeRail.height).toBe(48);
+    expect(geometry.chrome.visualHeaderHeight).toBe(48);
     expect(geometry.chrome.leadingSafeInset).toBe(72);
     expect(geometry.chrome.leading.left).toBe(72);
-    expect(geometry.chrome.leading.top).toBe(12);
+    expect(geometry.chrome.leading.top).toBe(8);
     expect(geometry.chrome.action.right).toBe(16);
-    expect(geometry.chrome.action.top).toBe(12);
-    expect(geometry.chrome.action.size).toBe(44);
-    expect(geometry.diagnostics.top).toBe(64);
+    expect(geometry.chrome.action.top).toBe(8);
+    expect(geometry.chrome.action.size).toBe(32);
+    expect(geometry.diagnostics.top).toBe(56);
   });
 
   it("keeps the compact macOS overlay contract aligned with the same visual header height", () => {
@@ -115,14 +115,14 @@ describe("resolveBrowserViewerGeometry", () => {
       overlayTitlebar: true,
     });
 
-    expect(geometry.stage.top).toBe(64);
-    expect(geometry.chromeRail.height).toBe(64);
-    expect(geometry.chrome.visualHeaderHeight).toBe(64);
+    expect(geometry.stage.top).toBe(56);
+    expect(geometry.chromeRail.height).toBe(56);
+    expect(geometry.chrome.visualHeaderHeight).toBe(56);
     expect(geometry.chrome.leadingSafeInset).toBe(64);
     expect(geometry.chrome.leading.left).toBe(64);
-    expect(geometry.chrome.leading.top).toBe(12);
+    expect(geometry.chrome.leading.top).toBe(6);
     expect(geometry.chrome.action.right).toBe(12);
-    expect(geometry.chrome.action.top).toBe(12);
+    expect(geometry.chrome.action.top).toBe(6);
     expect(geometry.chrome.action.size).toBe(44);
   });
 
@@ -136,26 +136,26 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(geometry.compact).toBe(true);
     expect(geometry.ultraCompact).toBe(true);
     expect(geometry.stage.left).toBe(0);
-    expect(geometry.stage.top).toBe(64);
+    expect(geometry.stage.top).toBe(56);
     expect(geometry.stage.right).toBe(0);
     expect(geometry.stage.bottom).toBe(0);
     expect(geometry.chromeRail.visible).toBe(true);
     expect(geometry.chromeRail.left).toBe(0);
     expect(geometry.chromeRail.right).toBe(0);
     expect(geometry.chromeRail.top).toBe(0);
-    expect(geometry.chromeRail.height).toBe(64);
+    expect(geometry.chromeRail.height).toBe(56);
     expect(geometry.host.left).toBe(0);
     expect(geometry.host.top).toBe(0);
     expect(geometry.host.right).toBe(0);
     expect(geometry.host.bottom).toBe(0);
     expect(geometry.diagnostics.compact).toBe(true);
-    expect(geometry.diagnostics.top).toBe(66);
-    expect(geometry.chrome.visualHeaderHeight).toBe(64);
+    expect(geometry.diagnostics.top).toBe(58);
+    expect(geometry.chrome.visualHeaderHeight).toBe(56);
     expect(geometry.chrome.leadingSafeInset).toBe(12);
     expect(geometry.chrome.leading.left).toBe(12);
-    expect(geometry.chrome.leading.top).toBe(12);
+    expect(geometry.chrome.leading.top).toBe(6);
     expect(geometry.chrome.action.right).toBe(12);
-    expect(geometry.chrome.action.top).toBe(12);
+    expect(geometry.chrome.action.top).toBe(6);
     expect(geometry.chrome.action.size).toBe(44);
   });
 
@@ -176,6 +176,6 @@ describe("resolveBrowserViewerGeometry", () => {
     expect(hiddenDiagnostics.chrome).toEqual(visibleDiagnostics.chrome);
     expect(hiddenDiagnostics.chromeRail).toEqual(visibleDiagnostics.chromeRail);
     expect(hiddenDiagnostics.diagnostics.top).toBe(16);
-    expect(visibleDiagnostics.diagnostics.top).toBe(64);
+    expect(visibleDiagnostics.diagnostics.top).toBe(56);
   });
 });
