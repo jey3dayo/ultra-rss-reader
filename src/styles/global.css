@@ -589,8 +589,7 @@ body {
 :root.theme-transitioning body *,
 :root.theme-transitioning body *::before,
 :root.theme-transitioning body *::after {
-  transition-property:
-    background-color, border-color, color, fill, stroke, box-shadow, text-decoration-color, outline-color;
+  transition-property: background-color, border-color, color, fill, stroke, text-decoration-color, outline-color;
   transition-duration: var(--motion-duration-theme);
   transition-timing-function: var(--motion-ease-standard);
 }

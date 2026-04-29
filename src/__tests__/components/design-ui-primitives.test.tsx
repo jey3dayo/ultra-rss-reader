@@ -57,6 +57,7 @@ describe("Design-themed UI primitives", () => {
     expect(globalCss).toContain("--motion-duration-disclosure: 200ms;");
     expect(globalCss).toContain("--motion-duration-popup: 160ms;");
     expect(globalCss).toContain("--motion-duration-resize: 260ms;");
+    expect(globalCss).toContain("--motion-duration-theme: 240ms;");
     expect(globalCss).toContain("--motion-duration-contextual: 180ms;");
     expect(globalCss).toContain("--motion-duration-content-swap: 180ms;");
     expect(globalCss).toContain("--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);");
@@ -79,6 +80,12 @@ describe("Design-themed UI primitives", () => {
     expect(globalCss).toContain('.motion-content-swap[data-motion-phase="entering"]');
     expect(globalCss).toContain("@keyframes motion-content-swap-enter");
     expect(globalCss).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(globalCss).toContain(
+      "background-color, border-color, color, fill, stroke, text-decoration-color, outline-color",
+    );
+    expect(globalCss).not.toContain(
+      "background-color, border-color, color, fill, stroke, box-shadow, text-decoration-color, outline-color",
+    );
   });
 
   it("uses semantic danger borders for invalid field states", () => {
