@@ -3,8 +3,10 @@ import { Copy, Ellipsis, ExternalLink, Eye, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { StarIcon, UnreadIcon } from "@/components/shared/article-state-icon";
 import { IconToolbarButton, IconToolbarMenuTrigger, IconToolbarToggle } from "@/components/shared/icon-toolbar-control";
+import { MotionIconSwap } from "@/components/shared/motion-icon-swap";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { MOTION_ICON_SWAP_STATE_A, MOTION_ICON_SWAP_STATE_B } from "@/constants";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import type { ArticleToolbarActionStripProps, ArticleToolbarViewProps } from "./article-toolbar.types";
@@ -197,7 +199,11 @@ export function ArticleToolbarActionStrip({
               pressedTone="accent"
               focusTargetKey="open-in-browser"
             >
-              <Eye className="h-4 w-4" />
+              <MotionIconSwap
+                state={isBrowserOpen ? MOTION_ICON_SWAP_STATE_B : MOTION_ICON_SWAP_STATE_A}
+                iconA={<Eye className="h-4 w-4" />}
+                iconB={<X className="h-4 w-4" />}
+              />
             </IconToolbarToggle>
           ) : null}
         </>

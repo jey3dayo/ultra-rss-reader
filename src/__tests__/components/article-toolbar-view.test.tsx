@@ -2,7 +2,18 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleToolbarView } from "@/components/reader/article-toolbar-view";
+import {
+  MOTION_ICON_SWAP_CLASS_NAME,
+  MOTION_ICON_SWAP_ICON_A,
+  MOTION_ICON_SWAP_ICON_B,
+  MOTION_ICON_SWAP_STATE_A,
+  MOTION_ICON_SWAP_STATE_B,
+} from "@/constants";
 import { useUiStore } from "@/stores/ui-store";
+
+const motionIconSwapSelector = `.${MOTION_ICON_SWAP_CLASS_NAME}`;
+const motionIconSlotASelector = `[data-icon="${MOTION_ICON_SWAP_ICON_A}"]`;
+const motionIconSlotBSelector = `[data-icon="${MOTION_ICON_SWAP_ICON_B}"]`;
 
 describe("ArticleToolbarView", () => {
   beforeEach(() => {
@@ -62,18 +73,25 @@ describe("ArticleToolbarView", () => {
 
     const readButton = screen.getByRole("button", { name: "Toggle read" });
     const starButton = screen.getByRole("button", { name: "Toggle star" });
+    const previewButton = screen.getByRole("button", { name: "Open Web Preview" });
     const readIcon = readButton.querySelector("span");
     const starIcon = starButton.querySelector("svg");
+    const previewIconSwap = previewButton.querySelector(motionIconSwapSelector);
 
     expect(readButton).toHaveClass("text-foreground-soft");
     expect(starButton).toHaveClass("text-foreground-soft");
     expect(readButton).toHaveAttribute("aria-pressed", "true");
     expect(starButton).toHaveAttribute("aria-pressed", "false");
+    expect(previewButton).toHaveAttribute("aria-pressed", "false");
     expect(readIcon).not.toBeNull();
     expect(readIcon).not.toHaveClass("text-[var(--tone-unread)]");
     expect(starIcon).not.toBeNull();
     expect(starIcon).not.toHaveClass("text-[var(--tone-starred)]");
     expect(starIcon).not.toHaveClass("fill-[var(--tone-starred)]");
+    expect(previewIconSwap).not.toBeNull();
+    expect(previewIconSwap).toHaveAttribute("data-state", MOTION_ICON_SWAP_STATE_A);
+    expect(previewIconSwap?.querySelector(`${motionIconSlotASelector} svg`)).not.toBeNull();
+    expect(previewIconSwap?.querySelector(`${motionIconSlotBSelector} svg`)).not.toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Close article" }));
     await user.click(readButton);
@@ -319,6 +337,10 @@ describe("ArticleToolbarView", () => {
     );
 
     expect(screen.getByRole("button", { name: "Close Web Preview" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: "Close Web Preview" }).querySelector(motionIconSwapSelector),
+    ).toHaveAttribute("data-state", MOTION_ICON_SWAP_STATE_B);
     expect(screen.queryByText("S")).not.toBeInTheDocument();
     expect(screen.queryByText("P")).not.toBeInTheDocument();
   });

@@ -7,6 +7,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  MOTION_ICON_SWAP_CLASS_NAME,
+  MOTION_ICON_SWAP_ICON_A,
+  MOTION_ICON_SWAP_ICON_CLASS_NAME,
+  MOTION_ICON_SWAP_STATE_A,
+} from "@/constants";
 
 const globalCss = readFileSync(join(process.cwd(), "src/styles/global.css"), "utf8");
 
@@ -66,6 +72,10 @@ describe("Design-themed UI primitives", () => {
     expect(globalCss).toContain(".motion-contextual-surface");
     expect(globalCss).toContain(".motion-static-hover-surface");
     expect(globalCss).toContain(".motion-content-swap");
+    expect(globalCss).toContain(`.${MOTION_ICON_SWAP_CLASS_NAME}`);
+    expect(globalCss).toContain(
+      `.${MOTION_ICON_SWAP_CLASS_NAME}[data-state="${MOTION_ICON_SWAP_STATE_A}"] > .${MOTION_ICON_SWAP_ICON_CLASS_NAME}[data-icon="${MOTION_ICON_SWAP_ICON_A}"]`,
+    );
     expect(globalCss).toContain(".motion-resize-surface");
     expect(globalCss).toContain(".motion-popup-surface");
     expect(globalCss).toContain('.motion-popup-surface[data-side="top"]');
