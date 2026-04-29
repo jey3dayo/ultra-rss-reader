@@ -103,7 +103,7 @@
   --motion-duration-disclosure: 200ms;
   --motion-duration-popup: 160ms;
   --motion-duration-resize: 260ms;
-  --motion-duration-theme: 180ms;
+  --motion-duration-theme: 240ms;
   --motion-duration-contextual: 180ms;
   --motion-duration-content-swap: 180ms;
   --motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
