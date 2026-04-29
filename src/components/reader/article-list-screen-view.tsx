@@ -88,13 +88,15 @@ export function ArticleListScreenView({
                   "text-foreground",
                   isSetupEmptyState
                     ? "text-base font-medium leading-6 tracking-[-0.01em]"
-                    : "text-[1.15rem] font-semibold leading-[1.2] tracking-[-0.02em]",
+                    : "min-h-11 text-[1.15rem] font-semibold leading-[1.2] tracking-[-0.02em]",
                 )}
               >
                 {emptyMessage}
               </p>
               {emptyDescription ? (
-                <p className={cn("text-sm leading-6 text-foreground-soft", isSetupEmptyState ? "mt-2" : "mt-3")}>
+                <p
+                  className={cn("text-sm leading-6 text-foreground-soft", isSetupEmptyState ? "mt-2" : "mt-3 min-h-12")}
+                >
                   {emptyDescription}
                 </p>
               ) : null}
