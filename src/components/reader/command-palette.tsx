@@ -34,7 +34,7 @@ export function CommandPalette() {
           className="[&_[cmdk-group-heading]]:text-foreground-soft **:data-[slot=command-input-wrapper]:h-14 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-3 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-1 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-3 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
         >
           <CommandInput placeholder={placeholder} value={input} onValueChange={setInput} />
-          <CommandPaletteResults getCommandItemValue={getCommandItemValue} {...resultsProps} />
+          <CommandPaletteResults resultsMotionKey={input} getCommandItemValue={getCommandItemValue} {...resultsProps} />
           <CommandSeparator />
           <div
             data-testid="command-palette-prefix-hints"

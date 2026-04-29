@@ -112,6 +112,8 @@ describe("CommandPalette", () => {
     expect(screen.getByRole("dialog").querySelector('[data-slot="command"]')).toHaveClass(
       "[&_[cmdk-group-heading]]:text-foreground-soft",
     );
+    expect(screen.getByTestId("command-palette-results")).toHaveAttribute("data-motion-phase", "entering");
+    expect(screen.getByTestId("command-palette-results")).toHaveClass("motion-content-swap");
     expect(screen.getByTestId("command-palette-prefix-hints")).toHaveClass("text-foreground-soft");
     expect(screen.getByRole("option", { name: /Open settings/ })).toHaveClass("rounded-md");
     expect(screen.queryByRole("option", { name: /Tech Blog/ })).not.toBeInTheDocument();

@@ -4,6 +4,7 @@ import { CommandPaletteActionGroups } from "./command-palette-action-groups";
 import { CommandPaletteResourceGroups } from "./command-palette-resource-groups";
 
 export function CommandPaletteResults({
+  resultsMotionKey = "",
   recentActions,
   filteredActions,
   filteredDevScenarios,
@@ -31,7 +32,12 @@ export function CommandPaletteResults({
   onArticleSelect,
 }: CommandPaletteResultsProps) {
   return (
-    <CommandList>
+    <CommandList
+      key={resultsMotionKey}
+      data-testid="command-palette-results"
+      data-motion-phase="entering"
+      className="motion-content-swap"
+    >
       <CommandPaletteActionGroups
         recentActions={recentActions}
         filteredActions={filteredActions}

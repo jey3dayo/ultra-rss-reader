@@ -21,6 +21,7 @@ export type PaletteAction = CommandPaletteActionItem & {
 export type CommandPaletteItemValueResolver = (kind: CommandPaletteItemKind, id: string) => string;
 
 export type CommandPaletteResultsProps = {
+  resultsMotionKey?: string;
   recentActions: CommandPaletteActionItem[];
   filteredActions: CommandPaletteActionItem[];
   filteredDevScenarios: RuntimeDevScenario[];
