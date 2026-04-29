@@ -42,3 +42,12 @@
 ## 次の並列バッチ候補
 
 - 次に大きな UI バッチを始めるときは、必要な write scope ごとにここへ再追加する
+
+## リファクタ再実行メモ
+
+- [ ] 別作業のアニメーション実装が落ち着いた後に、unused cleanup を再実行する
+  - `react-doctor` の候補: `src/components/ui/confirm-dialog.tsx`, `src/components/ui/switch.tsx`, `src/constants/index.ts`
+  - `src/lib/webview-history.ts` は一度削除後に別作業で revert されたため、必要性を確認してから触る
+  - `settings-modal.tsx` の accounts view 解決ロジックは一度 `resolveSettingsAccountsView` 抽出で警告解消できたが、別作業で revert されたため再適用前に最新実装を確認する
+  - `similarity-ts --threshold 0.95 src` の残りは `useArticleListKeydownHandler` と `useArticleListNavigation` のみ。責務差があるため、無理な共通化はしない
+  - 再開時は `mise run check` と `mise run build` まで通す
