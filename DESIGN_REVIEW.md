@@ -126,6 +126,16 @@ When reviewing settings rows or input-control specimens, check these before sugg
 - compact controls do not invent one-off placement
 - `DESIGN.md` and `UI Reference / Input Controls Canvas` were checked before proposing a feature-local fix
 
+### Runtime Chrome Checklist
+
+When reviewing browser previews, embedded WebView surfaces, or app-shell chrome, separate browser-mode evidence from native Tauri evidence before judging platform-specific layout:
+
+- browser-mode screenshots can validate React layout, density, and visual rhythm, but not native child-webview bounds or desktop titlebar behavior
+- browser-mode mocks must not reserve macOS traffic-light, titlebar, or platform-safe insets unless the real native runtime is active
+- native Tauri checks own child-webview bounds, logical-vs-physical pixel behavior, platform titlebar reserves, and OS-specific window chrome
+- header height, close/action button centering, and overlay rail density should stay app-owned and visually consistent across browser preview, macOS, and Windows unless a native platform constraint requires an explicit exception
+- if browser-mode and native Tauri disagree, inspect the overlay root, host rect, and native bounds contract before adding local padding or per-platform offsets
+
 ## Escalation
 
 If the direction is unclear:
