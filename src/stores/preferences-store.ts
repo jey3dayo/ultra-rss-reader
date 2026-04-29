@@ -20,7 +20,7 @@ import { useUiStore } from "@/stores/ui-store";
 const objectHasOwnProperty = Object.prototype.hasOwnProperty;
 
 const THEME_TRANSITION_CLASS = "theme-transitioning";
-const THEME_TRANSITION_DURATION_MS = 240;
+const THEME_TRANSITION_DURATION_MS = 180;
 
 export type { AfterReadingPreference, SortSubscriptions, Theme };
 export { preferenceDefaults, resolvePreferenceValue };

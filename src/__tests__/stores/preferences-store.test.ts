@@ -42,7 +42,7 @@ describe("usePreferencesStore preferences", () => {
     expect(document.documentElement).toHaveClass("dark");
     expect(document.documentElement).toHaveClass("theme-transitioning");
 
-    vi.advanceTimersByTime(240);
+    vi.advanceTimersByTime(180);
 
     expect(document.documentElement).not.toHaveClass("theme-transitioning");
   });

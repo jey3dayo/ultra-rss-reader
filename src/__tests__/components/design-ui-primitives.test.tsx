@@ -57,7 +57,7 @@ describe("Design-themed UI primitives", () => {
     expect(globalCss).toContain("--motion-duration-disclosure: 200ms;");
     expect(globalCss).toContain("--motion-duration-popup: 160ms;");
     expect(globalCss).toContain("--motion-duration-resize: 260ms;");
-    expect(globalCss).toContain("--motion-duration-theme: 240ms;");
+    expect(globalCss).toContain("--motion-duration-theme: 180ms;");
     expect(globalCss).toContain("--motion-duration-contextual: 180ms;");
     expect(globalCss).toContain("--motion-duration-content-swap: 180ms;");
     expect(globalCss).toContain("--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);");
