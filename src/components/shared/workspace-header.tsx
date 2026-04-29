@@ -1,7 +1,12 @@
 import { ChevronLeft, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MOTION_PHASE_ENTERING, MOTION_PHASE_STEADY, type MotionPhase } from "@/constants";
+import {
+  MOTION_CONTENT_SWAP_CLASS_NAME,
+  MOTION_PHASE_ENTERING,
+  MOTION_PHASE_STEADY,
+  type MotionPhase,
+} from "@/constants";
 import { cn } from "@/lib/utils";
 import { hasTauriRuntime, shouldUseDesktopOverlayTitlebar } from "@/lib/window-chrome";
 import { usePlatformStore } from "@/stores/platform-store";
@@ -133,7 +138,7 @@ export function WorkspaceHeader({
             {showEyebrowInTopRow ? (
               <p
                 data-motion-phase={contentMotionPhase}
-                className="motion-content-swap font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase"
+                className={`${MOTION_CONTENT_SWAP_CLASS_NAME} font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase`}
               >
                 {eyebrow}
               </p>
@@ -179,7 +184,7 @@ export function WorkspaceHeader({
               >
                 <p
                   data-motion-phase={contentMotionPhase}
-                  className="motion-content-swap font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase"
+                  className={`${MOTION_CONTENT_SWAP_CLASS_NAME} font-sans text-[11px] font-medium tracking-[0.18em] text-foreground-soft uppercase`}
                 >
                   {eyebrow}
                 </p>
@@ -216,7 +221,7 @@ export function WorkspaceHeader({
               >
                 <h1
                   data-motion-phase={contentMotionPhase}
-                  className="motion-content-swap font-sans text-[1.65rem] leading-[0.96] font-normal tracking-[-0.04em] text-foreground"
+                  className={`${MOTION_CONTENT_SWAP_CLASS_NAME} font-sans text-[1.65rem] leading-[0.96] font-normal tracking-[-0.04em] text-foreground`}
                 >
                   {title}
                 </h1>
@@ -225,7 +230,7 @@ export function WorkspaceHeader({
           ) : (
             <h1
               data-motion-phase={contentMotionPhase}
-              className="motion-content-swap font-sans text-[1.65rem] leading-[0.96] font-normal tracking-[-0.04em] text-foreground"
+              className={`${MOTION_CONTENT_SWAP_CLASS_NAME} font-sans text-[1.65rem] leading-[0.96] font-normal tracking-[-0.04em] text-foreground`}
             >
               {title}
             </h1>
@@ -235,7 +240,7 @@ export function WorkspaceHeader({
               data-testid="workspace-header-subtitle-content"
               data-motion-phase={contentMotionPhase}
               className={cn(
-                "motion-content-swap max-w-2xl font-serif text-[0.95rem] leading-[1.42] text-foreground-soft",
+                `${MOTION_CONTENT_SWAP_CLASS_NAME} max-w-2xl font-serif text-[0.95rem] leading-[1.42] text-foreground-soft`,
                 useDesktopOverlay && "pointer-events-none",
               )}
             >
