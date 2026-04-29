@@ -9,11 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   MOTION_CONTENT_SWAP_CLASS_NAME,
+  MOTION_CONTEXTUAL_SURFACE_CLASS_NAME,
   MOTION_ICON_SWAP_CLASS_NAME,
   MOTION_ICON_SWAP_ICON_A,
   MOTION_ICON_SWAP_ICON_CLASS_NAME,
   MOTION_ICON_SWAP_STATE_A,
   MOTION_PHASE_ENTERING,
+  MOTION_POPUP_SURFACE_CLASS_NAME,
+  MOTION_RESIZE_SURFACE_CLASS_NAME,
+  MOTION_STATIC_HOVER_SURFACE_CLASS_NAME,
 } from "@/constants";
 
 const globalCss = readFileSync(join(process.cwd(), "src/styles/global.css"), "utf8");
@@ -71,25 +75,25 @@ describe("Design-themed UI primitives", () => {
     expect(globalCss).toContain("--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);");
     expect(globalCss).toContain("--motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);");
     expect(globalCss).toContain(".motion-disclosure-panel");
-    expect(globalCss).toContain(".motion-contextual-surface");
-    expect(globalCss).toContain(".motion-static-hover-surface");
+    expect(globalCss).toContain(`.${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME}`);
+    expect(globalCss).toContain(`.${MOTION_STATIC_HOVER_SURFACE_CLASS_NAME}`);
     expect(globalCss).toContain(`.${MOTION_CONTENT_SWAP_CLASS_NAME}`);
     expect(globalCss).toContain(`.${MOTION_ICON_SWAP_CLASS_NAME}`);
     expect(globalCss).toContain(
       `.${MOTION_ICON_SWAP_CLASS_NAME}[data-state="${MOTION_ICON_SWAP_STATE_A}"] > .${MOTION_ICON_SWAP_ICON_CLASS_NAME}[data-icon="${MOTION_ICON_SWAP_ICON_A}"]`,
     );
-    expect(globalCss).toContain(".motion-resize-surface");
-    expect(globalCss).toContain(".motion-popup-surface");
-    expect(globalCss).toContain('.motion-popup-surface[data-side="top"]');
+    expect(globalCss).toContain(`.${MOTION_RESIZE_SURFACE_CLASS_NAME}`);
+    expect(globalCss).toContain(`.${MOTION_POPUP_SURFACE_CLASS_NAME}`);
+    expect(globalCss).toContain(`.${MOTION_POPUP_SURFACE_CLASS_NAME}[data-side="top"]`);
     expect(globalCss).toContain("@starting-style");
-    expect(globalCss).toContain(".motion-popup-surface[data-starting-style]");
+    expect(globalCss).toContain(`.${MOTION_POPUP_SURFACE_CLASS_NAME}[data-starting-style]`);
     expect(globalCss).toContain(".motion-disclosure-trigger:hover");
     expect(globalCss).not.toContain("transform: translateY(-1px);");
     expect(globalCss).not.toContain(
       "box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-border-strong) 28%, transparent);",
     );
     expect(globalCss).toContain("border-color: color-mix(in srgb, var(--color-border-strong) 28%, transparent);");
-    expect(globalCss).toContain(".motion-contextual-surface:focus-within");
+    expect(globalCss).toContain(`.${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME}:focus-within`);
     expect(globalCss).toContain(`.${MOTION_CONTENT_SWAP_CLASS_NAME}[data-motion-phase="${MOTION_PHASE_ENTERING}"]`);
     expect(globalCss).toContain("@keyframes motion-content-swap-enter");
     expect(globalCss).toContain("@media (prefers-reduced-motion: reduce)");

@@ -1,4 +1,8 @@
 export const MOTION_CONTENT_SWAP_CLASS_NAME = "motion-content-swap";
+export const MOTION_CONTEXTUAL_SURFACE_CLASS_NAME = "motion-contextual-surface";
+export const MOTION_STATIC_HOVER_SURFACE_CLASS_NAME = "motion-static-hover-surface";
+export const MOTION_RESIZE_SURFACE_CLASS_NAME = "motion-resize-surface";
+export const MOTION_POPUP_SURFACE_CLASS_NAME = "motion-popup-surface";
 
 export const MOTION_PHASE_STEADY = "steady";
 export const MOTION_PHASE_ENTERING = "entering";
