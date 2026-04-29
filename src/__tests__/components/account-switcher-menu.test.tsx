@@ -29,8 +29,11 @@ describe("AccountSwitcherMenu", () => {
     const freshRssButton = screen.getByRole("menuitemradio", { name: /FreshRSS/i });
 
     expect(menu).toHaveClass("rounded-xl");
+    expect(menu).toHaveClass("motion-popup-surface");
     expect(menu).toHaveClass("bg-surface-2/90");
     expect(menu).toHaveClass("shadow-elevation-2");
+    expect(menu).toHaveAttribute("data-open", "");
+    expect(menu).toHaveAttribute("data-side", "bottom");
     expect(localButton).toHaveClass("bg-[var(--sidebar-hover-surface)]");
     expect(localButton).toHaveClass("text-sidebar-foreground");
     expect(localButton).toHaveClass("shadow-none");
