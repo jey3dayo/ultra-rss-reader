@@ -69,6 +69,7 @@ describe("Design-themed UI primitives", () => {
     expect(globalCss).toContain(".motion-resize-surface");
     expect(globalCss).toContain(".motion-popup-surface");
     expect(globalCss).toContain('.motion-popup-surface[data-side="top"]');
+    expect(globalCss).toContain("@starting-style");
     expect(globalCss).toContain(".motion-popup-surface[data-starting-style]");
     expect(globalCss).toContain(".motion-disclosure-trigger:hover");
     expect(globalCss).not.toContain("transform: translateY(-1px);");

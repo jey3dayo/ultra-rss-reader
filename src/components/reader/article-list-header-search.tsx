@@ -9,7 +9,11 @@ export function ArticleListHeaderSearch({
   onSearchQueryChange,
 }: ArticleListHeaderSearchProps) {
   return (
-    <div className="border-b border-border px-4 py-2">
+    <div
+      data-testid="article-list-search-motion"
+      data-motion-phase="entering"
+      className="motion-content-swap border-b border-border px-4 py-2"
+    >
       <Input
         ref={searchInputRef}
         name="article-search"

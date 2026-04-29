@@ -10,7 +10,7 @@ export function DiscoveredFeedOptionsView({
   onValueChange,
 }: DiscoveredFeedOptionsViewProps) {
   return (
-    <div className="space-y-1">
+    <div data-motion-phase="entering" className="motion-content-swap space-y-1">
       <p className="text-xs text-foreground-soft">{summary}</p>
       <RadioGroup
         name={name}

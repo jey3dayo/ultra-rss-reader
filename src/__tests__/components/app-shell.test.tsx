@@ -230,6 +230,9 @@ describe("AppShell", () => {
       throw new Error("Expected copy toast message to be set");
     }
     expect(screen.getAllByText(toastMessage).length).toBeGreaterThan(0);
+    expect(screen.getByTestId("app-toast")).toHaveClass("motion-popup-surface");
+    expect(screen.getByTestId("app-toast")).toHaveAttribute("data-open");
+    expect(screen.getByTestId("app-toast")).toHaveAttribute("data-side", "top");
     expect(screen.getByRole("button", { name: "Close" })).toHaveClass("text-foreground-soft");
     expect(screen.getByRole("button", { name: "Close" })).toHaveClass("hover:bg-surface-1/72");
   });

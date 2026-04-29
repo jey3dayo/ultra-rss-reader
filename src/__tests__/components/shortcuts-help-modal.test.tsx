@@ -56,6 +56,8 @@ describe("ShortcutsHelpModal", () => {
     expect(screen.getByText("?").closest("p")).toHaveClass("flex-wrap");
     expect(option).toHaveClass("flex-col");
     expect(option.querySelector("[data-slot='command-shortcut']")).toHaveClass("ml-0");
+    expect(screen.getByTestId("shortcuts-help-results")).toHaveClass("motion-content-swap");
+    expect(screen.getByTestId("shortcuts-help-results")).toHaveAttribute("data-motion-phase", "entering");
   });
 
   it("closes when escape is pressed", async () => {

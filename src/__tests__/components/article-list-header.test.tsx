@@ -51,6 +51,8 @@ describe("ArticleListHeader", () => {
     );
 
     expect(screen.getByRole("textbox", { name: "Search articles" })).toHaveAttribute("placeholder", "Search articles…");
+    expect(screen.getByTestId("article-list-search-motion")).toHaveClass("motion-content-swap");
+    expect(screen.getByTestId("article-list-search-motion")).toHaveAttribute("data-motion-phase", "entering");
   });
 
   it("shows a sidebar toggle button when requested", async () => {

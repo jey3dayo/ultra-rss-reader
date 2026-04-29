@@ -79,21 +79,32 @@ describe("AddFeedDialogView", () => {
     expect(screen.getByRole("dialog")).toHaveClass("bg-surface-2", "shadow-elevation-3");
     expect(screen.getByText("Add a feed from a URL or website")).toHaveClass("text-foreground-soft");
     expect(screen.getByLabelText("Feed or Site URL")).toHaveValue("https://example.com");
-    expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass("rounded-md", "bg-surface-1/80");
+    expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass(
+      "motion-contextual-surface",
+      "rounded-md",
+      "bg-surface-1/80",
+    );
     expect(screen.getByText("Feed or Site URL")).toHaveClass("text-foreground-soft");
-    expect(screen.getByText("Paste a feed or site URL.")).toHaveClass("text-foreground-soft");
-    expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("bg-surface-1/80");
+    expect(screen.getByText("Paste a feed or site URL.")).toHaveClass("motion-content-swap", "text-foreground-soft");
+    expect(screen.getByText("Found 2 feeds").parentElement).toHaveClass("motion-content-swap");
+    expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("motion-content-swap", "bg-surface-1/80");
+    expect(screen.getByTestId("feed-dialog-folder-section")).toHaveAttribute("data-motion-phase", "entering");
     expect(screen.getByRole("radio", { name: "Tech Blog" })).toBeInTheDocument();
     expect(screen.getByTestId("feed-dialog-folder-section")).toHaveClass("rounded-md");
     expect(screen.getByRole("combobox", { name: "Folder" })).toHaveTextContent("New folder");
     expect(screen.getByLabelText("Folder name")).toHaveValue("Reading");
     expect(screen.getByText("Feed detected").closest('[data-surface-card="info"]')).toHaveClass(
+      "motion-content-swap",
       "border-state-success-border",
       "bg-state-success-surface",
       "text-state-success-foreground",
     );
     expect(screen.getByRole("button", { name: "Add" })).toHaveClass("min-h-11");
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Add" }).closest('[data-slot="dialog-footer"]')).toHaveClass(
+      "mx-0",
+      "mb-0",
+    );
 
     await user.click(screen.getByRole("button", { name: "Discover" }));
     await user.click(screen.getByText("News Feed"));
@@ -168,14 +179,20 @@ describe("AddFeedDialogView", () => {
     expect(helperText.id).not.toBe("");
     expect(screen.getByRole("dialog")).toHaveClass("rounded-xl");
     expect(screen.getByRole("dialog")).toHaveClass("bg-surface-2", "shadow-elevation-3");
-    expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass("rounded-md", "bg-surface-1/80");
-    expect(helperText).toHaveClass("rounded-md");
+    expect(screen.getByTestId("feed-dialog-url-section")).toHaveClass(
+      "motion-contextual-surface",
+      "rounded-md",
+      "bg-surface-1/80",
+    );
+    expect(helperText).toHaveClass("motion-content-swap", "rounded-md");
+    expect(helperText).toHaveAttribute("data-motion-phase", "entering");
     expect(helperText).toHaveClass(
       "border-state-danger-border",
       "bg-state-danger-surface",
       "text-state-danger-foreground",
     );
     expect(screen.getByText("Invalid URL").closest('[data-surface-card="info"]')).toHaveClass(
+      "motion-content-swap",
       "border-state-danger-border",
       "bg-state-danger-surface",
     );

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Command,
@@ -32,6 +32,13 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
   const { t } = useTranslation("reader");
   const platformKind = usePlatformStore((state) => state.platform.kind);
   const shortcutPrefs = usePreferencesStore((state) => state.prefs);
+  const [searchValue, setSearchValue] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setSearchValue("");
+    }
+  }, [open]);
 
   const shortcuts = useMemo<ShortcutHelpItem[]>(
     () =>
@@ -74,8 +81,17 @@ export function ShortcutsHelpModal({ open, onOpenChange }: ShortcutsHelpModalPro
         </div>
 
         <Command shouldFilter={true} className="max-h-none rounded-none">
-          <CommandInput placeholder={t("shortcuts_help.placeholder")} />
-          <CommandList className="max-h-[360px]">
+          <CommandInput
+            value={searchValue}
+            onValueChange={setSearchValue}
+            placeholder={t("shortcuts_help.placeholder")}
+          />
+          <CommandList
+            key={searchValue.trim().toLowerCase()}
+            data-testid="shortcuts-help-results"
+            data-motion-phase="entering"
+            className="motion-content-swap max-h-[360px]"
+          >
             {shortcutsByCategory.map((category) => {
               const visibleItems = category.items;
 

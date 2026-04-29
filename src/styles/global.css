@@ -794,6 +794,14 @@ body {
   transform: translate(0, 0) scale(1);
 }
 
+@starting-style {
+  .motion-popup-surface[data-open] {
+    opacity: 0;
+    transform: translate(var(--motion-popup-translate-x), var(--motion-popup-translate-y))
+      scale(var(--motion-popup-scale-closed));
+  }
+}
+
 .motion-popup-surface[data-closed],
 .motion-popup-surface[data-starting-style],
 .motion-popup-surface[data-ending-style] {

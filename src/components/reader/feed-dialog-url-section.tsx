@@ -25,7 +25,10 @@ export function FeedDialogUrlSection({
   helperTone,
 }: FeedDialogUrlSectionViewProps) {
   return (
-    <div data-testid="feed-dialog-url-section" className="rounded-md border border-border/70 bg-surface-1/80 px-4 py-4">
+    <div
+      data-testid="feed-dialog-url-section"
+      className="motion-contextual-surface rounded-md border border-border/70 bg-surface-1/80 px-4 py-4"
+    >
       <div className="space-y-3">
         <label htmlFor={inputId} className="block text-sm font-medium text-foreground-soft">
           {label}
@@ -70,10 +73,11 @@ export function FeedDialogUrlSection({
       {helperText ? (
         <p
           id={helperTextId}
+          data-motion-phase="entering"
           className={
             helperTone === "error"
-              ? "mt-3 rounded-md border border-state-danger-border bg-state-danger-surface px-3 py-2 text-sm text-state-danger-foreground"
-              : "mt-3 text-sm leading-6 text-foreground-soft"
+              ? "motion-content-swap mt-3 rounded-md border border-state-danger-border bg-state-danger-surface px-3 py-2 text-sm text-state-danger-foreground"
+              : "motion-content-swap mt-3 text-sm leading-6 text-foreground-soft"
           }
         >
           {helperText}

@@ -99,24 +99,37 @@ export function FeedDialogFormView({
           {folderSelectProps ? (
             <div
               data-testid="feed-dialog-folder-section"
-              className="rounded-md border border-border/70 bg-surface-1/80 px-4 py-4"
+              data-motion-phase="entering"
+              className="motion-content-swap rounded-md border border-border/70 bg-surface-1/80 px-4 py-4"
             >
               <FolderSelectView {...folderSelectProps} />
             </div>
           ) : null}
 
           {successMessage && !error ? (
-            <SurfaceCard variant="info" tone="success" padding="compact">
+            <SurfaceCard
+              variant="info"
+              tone="success"
+              padding="compact"
+              data-motion-phase="entering"
+              className="motion-content-swap"
+            >
               <p className="text-sm">{successMessage}</p>
             </SurfaceCard>
           ) : null}
           {error ? (
-            <SurfaceCard variant="info" tone="danger" padding="compact">
+            <SurfaceCard
+              variant="info"
+              tone="danger"
+              padding="compact"
+              data-motion-phase="entering"
+              className="motion-content-swap"
+            >
               <p className="text-sm">{error}</p>
             </SurfaceCard>
           ) : null}
         </form>
-        <DialogFooter className="border-t border-border/70 bg-surface-1/72 px-6 py-4">
+        <DialogFooter className="mx-0 mb-0 border-t border-border/70 bg-surface-1/72 px-6 py-4">
           <FormActionButtons
             cancelLabel={labels.cancel}
             submitLabel={labels.submit}
