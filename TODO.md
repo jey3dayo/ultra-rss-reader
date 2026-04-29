@@ -32,6 +32,11 @@
   - 適用する場合は `browser-overlay-stage` / `browser-overlay-chrome` / native webview bounds の同期を実機で確認してから進める
   - まずは既存 overlay の resize / open / close 時に jank が出ているかを計測し、必要な箇所だけに限定する
 
+- [ ] 高頻度・高密度 UI への motion 適用は専用検証バッチで進める
+  - Article detail の記事切替は本文読書中の視線移動に影響するため、title / meta / tag area ごとに必要性を見て限定適用する
+  - Feed tree drag overlay はドラッグ中の高頻度更新と重なるため、入口だけにするか、drag preview には適用しない方針も含めて実機確認する
+  - どちらも適用前後でキーボード操作、ドラッグ、連続記事移動時の jank を確認する
+
 - [ ] `Debug HUD` の collision handling を見直す
   - dev アプリ実機で、HUD を表示したまま `設定` モーダルを開くと HUD がモーダル上に残り、内容を隠しうる
   - 2026-04-28 の実機レビューで、設定モーダル右下の操作領域と HUD が重なり、閉じるボタン周辺の可読性と操作性を下げることを再確認

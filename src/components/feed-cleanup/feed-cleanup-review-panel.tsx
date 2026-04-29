@@ -44,7 +44,11 @@ export function FeedCleanupReviewPanel({
       <h3 className="sr-only">{reviewLabel}</h3>
       {integrityMode ? (
         selectedIntegrityIssue ? (
-          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <div
+            key={selectedIntegrityIssue.missing_feed_id}
+            data-motion-phase="entering"
+            className="motion-content-swap min-h-0 flex-1 overflow-y-auto pr-1"
+          >
             <FeedCleanupCard
               className="border-border/65 shadow-none"
               style={{ backgroundColor: "var(--cleanup-card-surface)" }}
@@ -81,14 +85,21 @@ export function FeedCleanupReviewPanel({
             </FeedCleanupCard>
           </div>
         ) : (
-          <p className="rounded-md border border-dashed border-border px-4 py-6 font-serif text-sm text-foreground-soft">
+          <p
+            data-motion-phase="entering"
+            className="motion-content-swap rounded-md border border-dashed border-border px-4 py-6 font-serif text-sm text-foreground-soft"
+          >
             {integrityEmptyLabel}
           </p>
         )
       ) : selectedCandidate && editing ? (
         editor
       ) : selectedCandidate && selectedFeed && selectedMetrics && selectedSummary ? (
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        <div
+          key={selectedCandidate.feedId}
+          data-motion-phase="entering"
+          className="motion-content-swap min-h-0 flex-1 overflow-y-auto pr-1"
+        >
           <div className="space-y-4">
             <FeedDetailPanel
               title={selectedCandidate.title}
@@ -138,7 +149,10 @@ export function FeedCleanupReviewPanel({
           </div>
         </div>
       ) : (
-        <p className="rounded-md border border-dashed border-border px-4 py-6 font-serif text-sm text-foreground-soft">
+        <p
+          data-motion-phase="entering"
+          className="motion-content-swap rounded-md border border-dashed border-border px-4 py-6 font-serif text-sm text-foreground-soft"
+        >
           {noSelectionLabel}
         </p>
       )}

@@ -54,7 +54,8 @@ describe("MuteSettingsView", () => {
     expect(
       screen.getByText("Existing matches are marked read immediately. Turning this off does not restore unread state."),
     ).toHaveClass("text-foreground-soft");
-    expect(screen.getByText("No mute keywords yet.")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("No mute keywords yet.")).toHaveClass("motion-content-swap", "text-foreground-soft");
+    expect(screen.getByText("No mute keywords yet.")).toHaveAttribute("data-motion-phase", "entering");
     expect(screen.getByRole("switch", { name: "Mark muted items as read" })).not.toHaveAttribute("aria-disabled");
   });
 

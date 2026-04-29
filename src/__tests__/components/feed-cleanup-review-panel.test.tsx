@@ -122,6 +122,8 @@ describe("FeedCleanupReviewPanel", () => {
     const detailScrollRegion = panel.querySelector("div.overflow-y-auto");
     expect(detailScrollRegion).toBeTruthy();
     expect(detailScrollRegion).toHaveClass("min-h-0");
+    expect(detailScrollRegion).toHaveClass("motion-content-swap");
+    expect(detailScrollRegion).toHaveAttribute("data-motion-phase", "entering");
     expect(detailScrollRegion).toHaveClass("flex-1");
     expect(detailScrollRegion).toHaveClass("overflow-y-auto");
 
@@ -154,7 +156,11 @@ describe("FeedCleanupReviewPanel", () => {
       />,
     );
 
-    expect(screen.getByText("Select a feed to review.")).toHaveClass("rounded-md", "text-foreground-soft");
+    expect(screen.getByText("Select a feed to review.")).toHaveClass(
+      "motion-content-swap",
+      "rounded-md",
+      "text-foreground-soft",
+    );
   });
 
   it("renders integrity details in integrity mode", () => {
@@ -173,6 +179,7 @@ describe("FeedCleanupReviewPanel", () => {
 
     expect(screen.getByText("Needs repair")).toBeInTheDocument();
     const panel = screen.getByTestId("feed-cleanup-review-panel");
+    expect(panel.querySelector(".motion-content-swap")).toHaveAttribute("data-motion-phase", "entering");
     expect(screen.getByText("Needs repair").closest('[data-surface-card="section"]')).toHaveClass("rounded-md");
     expect(screen.getByText("Needs repair").closest('[data-surface-card="info"]')).toHaveClass(
       "rounded-md",
@@ -186,6 +193,9 @@ describe("FeedCleanupReviewPanel", () => {
   it("uses the shared soft foreground for empty integrity state", () => {
     render(<FeedCleanupReviewPanel {...buildProps()} selectedIntegrityIssue={null} integrityMode={true} />);
 
-    expect(screen.getByText("No integrity issues selected.")).toHaveClass("text-foreground-soft");
+    expect(screen.getByText("No integrity issues selected.")).toHaveClass(
+      "motion-content-swap",
+      "text-foreground-soft",
+    );
   });
 });

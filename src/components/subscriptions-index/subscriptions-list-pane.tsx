@@ -81,7 +81,10 @@ export function SubscriptionsListPane({
         onScroll={(event) => onListScrollTopChange?.(event.currentTarget.scrollTop)}
       >
         {!hasRows ? (
-          <p className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground-soft">
+          <p
+            data-motion-phase="entering"
+            className="motion-content-swap rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground-soft"
+          >
             {emptyLabel}
           </p>
         ) : (

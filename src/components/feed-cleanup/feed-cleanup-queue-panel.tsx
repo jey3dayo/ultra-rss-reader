@@ -83,7 +83,10 @@ export function FeedCleanupQueuePanel({
       <div data-testid="feed-cleanup-queue-list" className={queueListClassName}>
         {integrityMode ? (
           integrityIssues.length === 0 ? (
-            <p className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground-soft">
+            <p
+              data-motion-phase="entering"
+              className="motion-content-swap rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground-soft"
+            >
               {integrityEmptyLabel}
             </p>
           ) : (
@@ -94,7 +97,7 @@ export function FeedCleanupQueuePanel({
                 aria-label={`${integrityDetailLabels.queue_item_title}: ${issue.missing_feed_id}`}
                 onClick={() => onSelectIntegrityIssue(issue.missing_feed_id)}
                 className={cn(
-                  "flex w-full cursor-pointer flex-col gap-2 rounded-md border px-4 py-3 text-left transition-colors",
+                  "motion-contextual-surface flex w-full cursor-pointer flex-col gap-2 rounded-md border px-4 py-3 text-left transition-colors",
                   selectedIntegrityIssue?.missing_feed_id === issue.missing_feed_id
                     ? "border-state-warning-border bg-state-warning-surface text-state-warning-foreground"
                     : "border-border bg-card hover:bg-surface-2",
@@ -113,17 +116,21 @@ export function FeedCleanupQueuePanel({
             ))
           )
         ) : queue.length === 0 ? (
-          <p className="rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground-soft">
+          <p
+            data-motion-phase="entering"
+            className="motion-content-swap rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground-soft"
+          >
             {emptyLabel}
           </p>
         ) : (
           <div className="space-y-3 pr-3 [scrollbar-gutter:stable]">
             <SurfaceCard
               data-testid="feed-cleanup-selection-rail"
+              data-motion-phase="entering"
               variant="section"
               tone={selectionRailActive ? "emphasis" : "default"}
               padding="compact"
-              className="min-h-[4.75rem] rounded-md shadow-none"
+              className="motion-content-swap min-h-[4.75rem] rounded-md shadow-none"
             >
               <div className="flex min-h-[3.25rem] flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center gap-3 text-sm font-medium text-foreground">
@@ -183,11 +190,12 @@ export function FeedCleanupQueuePanel({
                   data-testid={`feed-cleanup-queue-row-${candidate.feedId}`}
                   data-selected={isSelected}
                   data-focused={isFocused}
+                  data-motion-phase="entering"
                   variant="section"
                   tone={isCurrent || isSelected ? "default" : "subtle"}
                   padding="compact"
                   className={cn(
-                    "rounded-md transition-colors duration-150 hover:bg-surface-1/72",
+                    "motion-content-swap rounded-md transition-colors duration-150 hover:bg-surface-1/72",
                     isCurrent || isSelected
                       ? "border-border-strong bg-card/52 shadow-none"
                       : "border-border/55 shadow-none",

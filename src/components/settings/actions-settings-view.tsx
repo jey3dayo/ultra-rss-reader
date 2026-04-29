@@ -22,7 +22,11 @@ export function ActionsSettingsView({ title, heading, toggleLabel, services }: A
     <SettingsContentLayout title={title} outerTestId="actions-settings-root">
       <SettingsSection heading={heading} surface="flat">
         {services.map((service) => (
-          <div key={service.id} className="flex min-h-[56px] items-center gap-3 border-b border-border py-3">
+          <div
+            key={service.id}
+            data-motion-phase="entering"
+            className="motion-content-swap motion-contextual-surface flex min-h-[56px] items-center gap-3 border-b border-border py-3"
+          >
             <span className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-1/72 text-foreground-soft">
               {service.icon}
             </span>

@@ -65,12 +65,19 @@ export function SubscriptionDetailPane({
       </div>
       {!row || !metrics ? (
         <div className="flex items-center lg:min-h-0 lg:flex-1">
-          <p className="w-full rounded-md border border-dashed border-border/70 bg-surface-1/78 px-5 py-6 text-sm text-foreground-soft">
+          <p
+            data-motion-phase="entering"
+            className="motion-content-swap w-full rounded-md border border-dashed border-border/70 bg-surface-1/78 px-5 py-6 text-sm text-foreground-soft"
+          >
             {emptyLabel}
           </p>
         </div>
       ) : (
-        <div className="pr-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+        <div
+          key={row.feed.id}
+          data-motion-phase="entering"
+          className="motion-content-swap pr-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
+        >
           <div className="flex w-full flex-col gap-4 pb-7 pt-1 lg:min-h-full">
             <FeedDetailPanel
               title={row.feed.title}
@@ -114,10 +121,11 @@ export function SubscriptionDetailPane({
             {decisionActions ? (
               <SurfaceCard
                 data-testid="subscriptions-detail-decision-bar"
+                data-motion-phase="entering"
                 variant="section"
                 tone="default"
                 padding="compact"
-                className="grid grid-cols-3 gap-2 rounded-md px-4 shadow-none sm:px-5"
+                className="motion-content-swap grid grid-cols-3 gap-2 rounded-md px-4 shadow-none sm:px-5"
               >
                 <DecisionButton
                   intent="keep"

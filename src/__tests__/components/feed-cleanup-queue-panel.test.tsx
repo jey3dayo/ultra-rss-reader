@@ -74,6 +74,8 @@ describe("FeedCleanupQueuePanel", () => {
     const selectionRail = screen.getByTestId("feed-cleanup-selection-rail");
 
     expect(selectionRail).toBeInTheDocument();
+    expect(selectionRail).toHaveClass("motion-content-swap");
+    expect(selectionRail).toHaveAttribute("data-motion-phase", "entering");
     expect(screen.getByText("Selected set")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Keep selected" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Defer selected" })).toBeDisabled();
@@ -160,6 +162,8 @@ describe("FeedCleanupQueuePanel", () => {
     const queueRow = screen.getByTestId("feed-cleanup-queue-row-feed-1");
 
     expect(queueRow).toHaveClass("rounded-md");
+    expect(queueRow).toHaveClass("motion-content-swap");
+    expect(queueRow).toHaveAttribute("data-motion-phase", "entering");
     expect(queueRow).toHaveClass("border-border-strong");
     expect(queueRow).toHaveClass("bg-card/52");
     expect(within(queueRow).queryByRole("button", { name: "Delete" })).toBeNull();
@@ -179,7 +183,11 @@ describe("FeedCleanupQueuePanel", () => {
   it("uses rounded-md for empty states and integrity queue rows", () => {
     const { rerender } = render(<FeedCleanupQueuePanel {...buildProps()} queue={[]} />);
 
-    expect(screen.getByText("No cleanup candidates right now.")).toHaveClass("rounded-md", "text-foreground-soft");
+    expect(screen.getByText("No cleanup candidates right now.")).toHaveClass(
+      "motion-content-swap",
+      "rounded-md",
+      "text-foreground-soft",
+    );
 
     rerender(
       <FeedCleanupQueuePanel
@@ -197,6 +205,7 @@ describe("FeedCleanupQueuePanel", () => {
     );
 
     expect(screen.getByRole("button", { name: "Missing feed: missing-feed" })).toHaveClass(
+      "motion-contextual-surface",
       "rounded-md",
       "hover:bg-surface-2",
     );

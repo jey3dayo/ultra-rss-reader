@@ -146,7 +146,12 @@ export function MuteSettingsView({
 
         <SettingsSection heading={savedHeading} surface="flat">
           {rules.length === 0 ? (
-            <p className="border-b border-border py-3 text-sm text-foreground-soft">{emptyState}</p>
+            <p
+              data-motion-phase="entering"
+              className="motion-content-swap border-b border-border py-3 text-sm text-foreground-soft"
+            >
+              {emptyState}
+            </p>
           ) : (
             rules.map((rule) => (
               <LabeledControlRow
