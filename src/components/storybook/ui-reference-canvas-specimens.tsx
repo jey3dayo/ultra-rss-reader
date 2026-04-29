@@ -1051,8 +1051,8 @@ export function ShellExamplesSpecimen() {
 
 export function MotionTransitionsSpecimen() {
   const [expanded, setExpanded] = useState(false);
-  const [popupOpen, setPopupOpen] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(true);
+  const [popupOpen, setPopupOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
     <SurfaceCard variant="section">
