@@ -3,6 +3,7 @@ import { StackedInputField } from "@/components/shared/stacked-input-field";
 import { StackedSelectField } from "@/components/shared/stacked-select-field";
 
 export const NEW_FOLDER_VALUE = "__new__";
+export type NewFolderValue = typeof NEW_FOLDER_VALUE;
 
 export type FolderSelectOption = {
   value: string;
