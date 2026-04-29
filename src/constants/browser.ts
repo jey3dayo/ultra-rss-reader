@@ -4,6 +4,8 @@ export const BROWSER_WINDOW_EVENTS = {
   fallback: "browser-webview-fallback",
   diagnostics: "browser-webview-diagnostics",
 } as const;
+export type BrowserWindowEventKey = keyof typeof BROWSER_WINDOW_EVENTS;
+export type BrowserWindowEventName = (typeof BROWSER_WINDOW_EVENTS)[BrowserWindowEventKey];
 
 export const BROWSER_WINDOW_LOAD_TIMEOUT_MS = 10_000;
 export const BROWSER_WEBVIEW_DEFAULT_SCALE_FACTOR = 1;
