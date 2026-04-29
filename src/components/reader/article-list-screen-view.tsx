@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { ArticleGroupsView, type ArticleGroupsViewGroup } from "./article-groups-view";
 import type { ArticleListEmptyStateVariant } from "./article-list.types";
-import { ReaderPassiveCard, readerPassiveCardOffsetClassName } from "./reader-passive-card";
+import { ReaderPassiveCard, readerListPassiveCardOffsetClassName } from "./reader-passive-card";
 
 export type ArticleListScreenViewProps = {
   listAriaLabel: string;
@@ -73,8 +73,8 @@ export function ArticleListScreenView({
           {isHiddenEmptyState ? null : (
             <ReaderPassiveCard
               className={cn(
-                "w-full max-w-sm px-5 py-6 text-left",
-                !isSetupEmptyState ? readerPassiveCardOffsetClassName : undefined,
+                "w-full max-w-sm px-5 py-5 text-left",
+                !isSetupEmptyState ? readerListPassiveCardOffsetClassName : undefined,
                 isSetupEmptyState
                   ? "rounded-2xl border border-border/65 bg-surface-1/48 shadow-[0_18px_48px_-40px_rgba(38,37,30,0.18)] dark:border-border/75 dark:bg-[rgba(38,34,29,0.52)] dark:shadow-none"
                   : undefined,

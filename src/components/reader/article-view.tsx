@@ -225,7 +225,7 @@ function EmptyState({
             message: t("select_article_to_read"),
             description: t("empty_state_default_description"),
             hints: [t("empty_state_search_hint"), t("empty_state_web_preview_hint")],
-            // Optical centering keeps passive cards from reading too low in tall detail panes.
+            // Align passive cards with the adjacent search-empty surface while avoiding header overlap.
             containerClassName: readerPassiveCardOffsetClassName,
             cardClassName: undefined,
             actions: [],

@@ -1768,7 +1768,7 @@ describe("ArticleView", () => {
     render(<ArticleView />, { wrapper: createWrapper() });
 
     const summary = await screen.findByTestId("article-selection-summary");
-    expect(summary).toHaveClass("-translate-y-[14%]", "md:-translate-y-[16%]");
+    expect(summary).toHaveClass("translate-y-[4%]");
     expect(
       within(summary).getByRole("heading", { level: 3, name: "Tech Blog" }).closest('[data-surface-card="section"]'),
     ).toHaveClass("rounded-3xl", "bg-card/38", "shadow-none", "dark:bg-card/38");
