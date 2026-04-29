@@ -1,5 +1,6 @@
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
+import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import type { DiscoveredFeedOptionsViewProps } from "./add-feed-dialog.types";
 
 export function DiscoveredFeedOptionsView({
@@ -10,7 +11,10 @@ export function DiscoveredFeedOptionsView({
   onValueChange,
 }: DiscoveredFeedOptionsViewProps) {
   return (
-    <div data-motion-phase="entering" className="motion-content-swap space-y-1">
+    <div
+      {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
+      className={`${MOTION_CONTENT_SWAP_CLASS_NAME} space-y-1`}
+    >
       <p className="text-xs text-foreground-soft">{summary}</p>
       <RadioGroup
         name={name}

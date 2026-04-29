@@ -1,3 +1,4 @@
+import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import type { ArticleListContextStripProps } from "./article-list.types";
 
 const TONE_STYLES = {
@@ -32,8 +33,8 @@ export function ArticleListContextStrip({ primaryLabel, secondaryLabel, tone }: 
       data-testid="article-list-context-strip"
       data-style="band"
       data-tone={tone ?? "neutral"}
-      data-motion-phase="entering"
-      className="motion-content-swap relative flex items-center justify-between border-b border-[var(--reader-context-border)] bg-surface-1/72 px-4 py-1.5"
+      {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
+      className={`${MOTION_CONTENT_SWAP_CLASS_NAME} relative flex items-center justify-between border-b border-[var(--reader-context-border)] bg-surface-1/72 px-4 py-1.5`}
     >
       <span
         aria-hidden="true"

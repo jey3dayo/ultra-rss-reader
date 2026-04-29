@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import type { ArticleListHeaderSearchProps } from "./article-list.types";
 
 export function ArticleListHeaderSearch({
@@ -11,8 +12,8 @@ export function ArticleListHeaderSearch({
   return (
     <div
       data-testid="article-list-search-motion"
-      data-motion-phase="entering"
-      className="motion-content-swap border-b border-border px-4 py-2"
+      {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
+      className={`${MOTION_CONTENT_SWAP_CLASS_NAME} border-b border-border px-4 py-2`}
     >
       <Input
         ref={searchInputRef}

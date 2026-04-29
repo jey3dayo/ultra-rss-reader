@@ -1,3 +1,4 @@
+import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { CommandEmpty, CommandList } from "../ui/command";
 import type { CommandPaletteResultsProps } from "./command-palette.types";
 import { CommandPaletteActionGroups } from "./command-palette-action-groups";
@@ -35,8 +36,8 @@ export function CommandPaletteResults({
     <CommandList
       key={resultsMotionKey}
       data-testid="command-palette-results"
-      data-motion-phase="entering"
-      className="motion-content-swap"
+      {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
+      className={MOTION_CONTENT_SWAP_CLASS_NAME}
     >
       <CommandPaletteActionGroups
         recentActions={recentActions}

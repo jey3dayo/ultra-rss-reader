@@ -2,6 +2,7 @@ import { ContextMenu } from "@base-ui/react/context-menu";
 import type { FeedDto } from "@/api/tauri-commands";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { NavRowButton } from "@/components/shared/nav-row-button";
+import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { cn } from "@/lib/utils";
 import { FeedContextMenuContent } from "./feed-context-menu";
 
@@ -40,8 +41,8 @@ function getFeedItemButtonProps({ feed, displayFavicons, grayscaleFavicons }: Fe
       feed.unread_count > 0 ? (
         <span
           key={`${feed.id}:${feed.unread_count}`}
-          data-motion-phase="entering"
-          className="motion-content-swap inline-flex tabular-nums"
+          {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
+          className={`${MOTION_CONTENT_SWAP_CLASS_NAME} inline-flex tabular-nums`}
         >
           {feed.unread_count}
         </span>
