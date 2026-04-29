@@ -106,57 +106,6 @@ function SettingsContent({
   }
 }
 
-type SettingsAccountsViewResolution = {
-  accountId: string | null;
-  addAccount: boolean;
-};
-
-function resolveSettingsAccountsView({
-  settingsCategory,
-  settingsAccountId,
-  settingsAddAccount,
-  visibleAccounts,
-  activeSetupAccountId,
-  hasSelectedVisibleAccount,
-  resolvedSettingsAccountId,
-}: {
-  settingsCategory: string;
-  settingsAccountId: string | null;
-  settingsAddAccount: boolean;
-  visibleAccounts: AccountDto[] | undefined;
-  activeSetupAccountId: string | null;
-  hasSelectedVisibleAccount: boolean;
-  resolvedSettingsAccountId: string | null;
-}): SettingsAccountsViewResolution | null {
-  if (settingsCategory !== "accounts" || !visibleAccounts) {
-    return null;
-  }
-
-  if (activeSetupAccountId) {
-    return settingsAccountId !== activeSetupAccountId || settingsAddAccount
-      ? { accountId: activeSetupAccountId, addAccount: false }
-      : null;
-  }
-
-  if (settingsAccountId && !hasSelectedVisibleAccount) {
-    return resolvedSettingsAccountId
-      ? { accountId: resolvedSettingsAccountId, addAccount: false }
-      : { accountId: null, addAccount: true };
-  }
-
-  if (settingsAddAccount) {
-    return null;
-  }
-
-  if (resolvedSettingsAccountId) {
-    return settingsAccountId !== resolvedSettingsAccountId
-      ? { accountId: resolvedSettingsAccountId, addAccount: false }
-      : null;
-  }
-
-  return settingsAccountId || !settingsAddAccount ? { accountId: null, addAccount: true } : null;
-}
-
 export function SettingsModal() {
   const { t } = useTranslation("settings");
   const devBuild = import.meta.env.DEV;
@@ -233,17 +182,39 @@ export function SettingsModal() {
   }, [setSettingsCategory, settingsCategory]);
 
   useEffect(() => {
-    const nextView = resolveSettingsAccountsView({
-      settingsCategory,
-      settingsAccountId,
-      settingsAddAccount,
-      visibleAccounts,
-      activeSetupAccountId,
-      hasSelectedVisibleAccount,
-      resolvedSettingsAccountId,
-    });
-    if (nextView) {
-      setSettingsAccountsView(nextView.accountId, nextView.addAccount);
+    if (settingsCategory !== "accounts" || !visibleAccounts) {
+      return;
+    }
+
+    if (activeSetupAccountId) {
+      if (settingsAccountId !== activeSetupAccountId || settingsAddAccount) {
+        setSettingsAccountsView(activeSetupAccountId, false);
+      }
+      return;
+    }
+
+    if (settingsAccountId && !hasSelectedVisibleAccount) {
+      if (resolvedSettingsAccountId) {
+        setSettingsAccountsView(resolvedSettingsAccountId, false);
+      } else {
+        setSettingsAccountsView(null, true);
+      }
+      return;
+    }
+
+    if (settingsAddAccount) {
+      return;
+    }
+
+    if (resolvedSettingsAccountId) {
+      if (settingsAccountId !== resolvedSettingsAccountId) {
+        setSettingsAccountsView(resolvedSettingsAccountId, false);
+      }
+      return;
+    }
+
+    if (settingsAccountId || !settingsAddAccount) {
+      setSettingsAccountsView(null, true);
     }
   }, [
     settingsCategory,
