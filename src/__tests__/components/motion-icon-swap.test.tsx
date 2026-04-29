@@ -3,6 +3,8 @@ import { Eye, X } from "lucide-react";
 import { describe, expect, it } from "vitest";
 import { MotionIconSwap } from "@/components/shared/motion-icon-swap";
 import {
+  MOTION_DATA_ICON_ATTRIBUTE,
+  MOTION_DATA_STATE_ATTRIBUTE,
   MOTION_ICON_SWAP_CLASS_NAME,
   MOTION_ICON_SWAP_ICON_A,
   MOTION_ICON_SWAP_ICON_B,
@@ -11,8 +13,8 @@ import {
 } from "@/constants";
 
 const motionIconSwapSelector = `.${MOTION_ICON_SWAP_CLASS_NAME}`;
-const motionIconSlotASelector = `[data-icon="${MOTION_ICON_SWAP_ICON_A}"]`;
-const motionIconSlotBSelector = `[data-icon="${MOTION_ICON_SWAP_ICON_B}"]`;
+const motionIconSlotASelector = `[${MOTION_DATA_ICON_ATTRIBUTE}="${MOTION_ICON_SWAP_ICON_A}"]`;
+const motionIconSlotBSelector = `[${MOTION_DATA_ICON_ATTRIBUTE}="${MOTION_ICON_SWAP_ICON_B}"]`;
 
 describe("MotionIconSwap", () => {
   it("renders both icons and exposes the active state through data attributes", () => {
@@ -31,7 +33,7 @@ describe("MotionIconSwap", () => {
 
     expect(iconSwap).not.toBeNull();
     expect(iconSwap).toHaveAttribute("aria-hidden", "true");
-    expect(iconSwap).toHaveAttribute("data-state", MOTION_ICON_SWAP_STATE_A);
+    expect(iconSwap).toHaveAttribute(MOTION_DATA_STATE_ATTRIBUTE, MOTION_ICON_SWAP_STATE_A);
     expect(iconSwap?.querySelector(motionIconSlotASelector)).toContainElement(screen.getByTestId("preview-open-icon"));
     expect(iconSwap?.querySelector(motionIconSlotBSelector)).toContainElement(screen.getByTestId("preview-close-icon"));
 
@@ -47,6 +49,6 @@ describe("MotionIconSwap", () => {
 
     expect(
       screen.getByRole("button", { name: "Close Web Preview" }).querySelector(motionIconSwapSelector),
-    ).toHaveAttribute("data-state", MOTION_ICON_SWAP_STATE_B);
+    ).toHaveAttribute(MOTION_DATA_STATE_ATTRIBUTE, MOTION_ICON_SWAP_STATE_B);
   });
 });

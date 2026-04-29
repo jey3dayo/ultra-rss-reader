@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleToolbarView } from "@/components/reader/article-toolbar-view";
 import {
+  MOTION_DATA_ICON_ATTRIBUTE,
+  MOTION_DATA_STATE_ATTRIBUTE,
   MOTION_ICON_SWAP_CLASS_NAME,
   MOTION_ICON_SWAP_ICON_A,
   MOTION_ICON_SWAP_ICON_B,
@@ -12,8 +14,8 @@ import {
 import { useUiStore } from "@/stores/ui-store";
 
 const motionIconSwapSelector = `.${MOTION_ICON_SWAP_CLASS_NAME}`;
-const motionIconSlotASelector = `[data-icon="${MOTION_ICON_SWAP_ICON_A}"]`;
-const motionIconSlotBSelector = `[data-icon="${MOTION_ICON_SWAP_ICON_B}"]`;
+const motionIconSlotASelector = `[${MOTION_DATA_ICON_ATTRIBUTE}="${MOTION_ICON_SWAP_ICON_A}"]`;
+const motionIconSlotBSelector = `[${MOTION_DATA_ICON_ATTRIBUTE}="${MOTION_ICON_SWAP_ICON_B}"]`;
 
 describe("ArticleToolbarView", () => {
   beforeEach(() => {
@@ -89,7 +91,7 @@ describe("ArticleToolbarView", () => {
     expect(starIcon).not.toHaveClass("text-[var(--tone-starred)]");
     expect(starIcon).not.toHaveClass("fill-[var(--tone-starred)]");
     expect(previewIconSwap).not.toBeNull();
-    expect(previewIconSwap).toHaveAttribute("data-state", MOTION_ICON_SWAP_STATE_A);
+    expect(previewIconSwap).toHaveAttribute(MOTION_DATA_STATE_ATTRIBUTE, MOTION_ICON_SWAP_STATE_A);
     expect(previewIconSwap?.querySelector(`${motionIconSlotASelector} svg`)).not.toBeNull();
     expect(previewIconSwap?.querySelector(`${motionIconSlotBSelector} svg`)).not.toBeNull();
 
@@ -340,7 +342,7 @@ describe("ArticleToolbarView", () => {
     expect(screen.getByRole("button", { name: "Close Web Preview" })).toHaveAttribute("aria-pressed", "true");
     expect(
       screen.getByRole("button", { name: "Close Web Preview" }).querySelector(motionIconSwapSelector),
-    ).toHaveAttribute("data-state", MOTION_ICON_SWAP_STATE_B);
+    ).toHaveAttribute(MOTION_DATA_STATE_ATTRIBUTE, MOTION_ICON_SWAP_STATE_B);
     expect(screen.queryByText("S")).not.toBeInTheDocument();
     expect(screen.queryByText("P")).not.toBeInTheDocument();
   });

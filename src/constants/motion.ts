@@ -8,6 +8,14 @@ export const MOTION_RESIZE_SURFACE_CLASS_NAME = "motion-resize-surface";
 export const MOTION_POPUP_SURFACE_CLASS_NAME = "motion-popup-surface";
 export const MOTION_POPUP_OVERLAY_CLASS_NAME = "motion-popup-overlay";
 export const MOTION_POPUP_DIALOG_CLASS_NAME = "motion-popup-dialog";
+export const MOTION_CONTENT_SWAP_ENTER_KEYFRAMES_NAME = "motion-content-swap-enter";
+
+export const MOTION_DATA_PHASE_ATTRIBUTE = "data-motion-phase";
+export const MOTION_DATA_STATE_ATTRIBUTE = "data-state";
+export const MOTION_DATA_ICON_ATTRIBUTE = "data-icon";
+export const MOTION_DATA_SIDE_ATTRIBUTE = "data-side";
+export const MOTION_DATA_STARTING_STYLE_ATTRIBUTE = "data-starting-style";
+export const MOTION_POPUP_SIDE_TOP = "top";
 
 export const MOTION_PHASE_STEADY = "steady";
 export const MOTION_PHASE_ENTERING = "entering";
