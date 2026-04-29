@@ -287,6 +287,10 @@ describe("ArticleListScreenView", () => {
 
     expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument();
     expect(screen.getByText("Queue")).toBeInTheDocument();
+    expect(screen.getByText('No matches for "Nope"').closest(".rounded-3xl")).toHaveClass(
+      "-translate-y-[14%]",
+      "md:-translate-y-[16%]",
+    );
     expect(screen.getByText('No matches for "Nope"')).toHaveClass("min-h-11");
     expect(screen.getByText("Try a different keyword or clear the current search.")).toHaveClass(
       "mt-3",

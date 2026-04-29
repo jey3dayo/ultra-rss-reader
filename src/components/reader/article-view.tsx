@@ -9,7 +9,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
 import { ArticlePane, ArticleToolbar } from "./article-pane-view";
 import { ArticleEmptyStateShell, ArticleNotFoundStateView, BrowserOnlyStateView } from "./article-view-state";
-import { readerPassiveCardClassName } from "./reader-passive-card";
+import { readerPassiveCardClassName, readerPassiveCardOffsetClassName } from "./reader-passive-card";
 import { type ArticleViewSummaryState, useArticleViewSelection } from "./use-article-view-selection";
 import { useArticleViewUiState } from "./use-article-view-ui-state";
 
@@ -25,8 +25,7 @@ const LazySubscriptionsIndexPage = lazy(async () => {
 
 export { ArticlePane, ArticleToolbar } from "./article-pane-view";
 
-const OPTICAL_CENTER_OFFSET_CLASS_NAME = "-translate-y-[14%] md:-translate-y-[16%]";
-const SUMMARY_CONTAINER_CLASS_NAME = `w-full max-w-[42rem] ${OPTICAL_CENTER_OFFSET_CLASS_NAME}`;
+const SUMMARY_CONTAINER_CLASS_NAME = `w-full max-w-[42rem] ${readerPassiveCardOffsetClassName}`;
 
 type SummaryCardProps = {
   title: string;
@@ -227,7 +226,7 @@ function EmptyState({
             description: t("empty_state_default_description"),
             hints: [t("empty_state_search_hint"), t("empty_state_web_preview_hint")],
             // Optical centering keeps passive cards from reading too low in tall detail panes.
-            containerClassName: OPTICAL_CENTER_OFFSET_CLASS_NAME,
+            containerClassName: readerPassiveCardOffsetClassName,
             cardClassName: undefined,
             actions: [],
           };
