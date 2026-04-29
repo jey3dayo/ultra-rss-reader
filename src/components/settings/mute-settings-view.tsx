@@ -7,6 +7,7 @@ import { GradientSwitch } from "@/components/shared/gradient-switch";
 import { LabeledControlRow } from "@/components/shared/labeled-control-row";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { getOptionLabelByValue } from "@/lib/options";
 
 export type MuteSettingsScopeOption = {
@@ -147,8 +148,8 @@ export function MuteSettingsView({
         <SettingsSection heading={savedHeading} surface="flat">
           {rules.length === 0 ? (
             <p
-              data-motion-phase="entering"
-              className="motion-content-swap border-b border-border py-3 text-sm text-foreground-soft"
+              {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
+              className={`${MOTION_CONTENT_SWAP_CLASS_NAME} border-b border-border py-3 text-sm text-foreground-soft`}
             >
               {emptyState}
             </p>

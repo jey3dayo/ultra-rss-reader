@@ -1,6 +1,12 @@
 import { SettingsContentLayout } from "@/components/settings/settings-content-layout";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { GradientSwitch } from "@/components/shared/gradient-switch";
+import {
+  MOTION_CONTENT_SWAP_CLASS_NAME,
+  MOTION_CONTEXTUAL_SURFACE_CLASS_NAME,
+  MOTION_DATA_PHASE_ATTRIBUTE,
+  MOTION_PHASE_ENTERING,
+} from "@/constants/motion";
 
 export type ActionsSettingsService = {
   id: string;
@@ -24,8 +30,8 @@ export function ActionsSettingsView({ title, heading, toggleLabel, services }: A
         {services.map((service) => (
           <div
             key={service.id}
-            data-motion-phase="entering"
-            className="motion-content-swap motion-contextual-surface flex min-h-[56px] items-center gap-3 border-b border-border py-3"
+            {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
+            className={`${MOTION_CONTENT_SWAP_CLASS_NAME} ${MOTION_CONTEXTUAL_SURFACE_CLASS_NAME} flex min-h-[56px] items-center gap-3 border-b border-border py-3`}
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-md bg-surface-1/72 text-foreground-soft">
               {service.icon}

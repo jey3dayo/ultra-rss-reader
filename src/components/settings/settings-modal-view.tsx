@@ -5,6 +5,7 @@ import type { SettingsModalViewProps } from "@/components/settings/settings-moda
 import { IndeterminateProgress } from "@/components/shared/indeterminate-progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { cn } from "@/lib/utils";
 import { bindWindowEvents } from "@/lib/window-events";
 
@@ -255,7 +256,11 @@ export function SettingsModalView({
               contentClassName="pr-3"
               className={cn("h-full min-h-0", !contentHasOverflow && HIDDEN_SCROLLBAR_CLASS)}
             >
-              <div data-testid="settings-content-motion" data-motion-phase="entering" className="motion-content-swap">
+              <div
+                data-testid="settings-content-motion"
+                {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
+                className={MOTION_CONTENT_SWAP_CLASS_NAME}
+              >
                 {content}
               </div>
             </ScrollArea>
