@@ -3,6 +3,7 @@ import { DecisionButton } from "@/components/shared/decision-button";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { SurfaceCard } from "@/components/shared/surface-card";
+import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { formatSubscriptionDate } from "@/lib/subscriptions-index";
 import type {
   SubscriptionDetailCandidate,
@@ -66,8 +67,8 @@ export function SubscriptionDetailPane({
       {!row || !metrics ? (
         <div className="flex items-center lg:min-h-0 lg:flex-1">
           <p
-            data-motion-phase="entering"
-            className="motion-content-swap w-full rounded-md border border-dashed border-border/70 bg-surface-1/78 px-5 py-6 text-sm text-foreground-soft"
+            {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
+            className={`${MOTION_CONTENT_SWAP_CLASS_NAME} w-full rounded-md border border-dashed border-border/70 bg-surface-1/78 px-5 py-6 text-sm text-foreground-soft`}
           >
             {emptyLabel}
           </p>
@@ -75,8 +76,8 @@ export function SubscriptionDetailPane({
       ) : (
         <div
           key={row.feed.id}
-          data-motion-phase="entering"
-          className="motion-content-swap pr-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto"
+          {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
+          className={`${MOTION_CONTENT_SWAP_CLASS_NAME} pr-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto`}
         >
           <div className="flex w-full flex-col gap-4 pb-7 pt-1 lg:min-h-full">
             <FeedDetailPanel
@@ -121,11 +122,11 @@ export function SubscriptionDetailPane({
             {decisionActions ? (
               <SurfaceCard
                 data-testid="subscriptions-detail-decision-bar"
-                data-motion-phase="entering"
+                {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
                 variant="section"
                 tone="default"
                 padding="compact"
-                className="motion-content-swap grid grid-cols-3 gap-2 rounded-md px-4 shadow-none sm:px-5"
+                className={`${MOTION_CONTENT_SWAP_CLASS_NAME} grid grid-cols-3 gap-2 rounded-md px-4 shadow-none sm:px-5`}
               >
                 <DecisionButton
                   intent="keep"

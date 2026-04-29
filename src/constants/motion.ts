@@ -44,6 +44,10 @@ export const MOTION_PHASE_STEADY = "steady";
 export const MOTION_PHASE_ENTERING = "entering";
 export type MotionPhase = typeof MOTION_PHASE_STEADY | typeof MOTION_PHASE_ENTERING;
 
+export const MOTION_STATE_OPEN = "open";
+export const MOTION_STATE_CLOSED = "closed";
+export type MotionDisclosureState = typeof MOTION_STATE_OPEN | typeof MOTION_STATE_CLOSED;
+
 export const MOTION_ICON_SWAP_CLASS_NAME = "motion-icon-swap";
 export const MOTION_ICON_SWAP_ICON_CLASS_NAME = "motion-icon-swap-icon";
 

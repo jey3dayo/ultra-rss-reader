@@ -3,6 +3,14 @@ import { useEffect, useRef } from "react";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
 import { LabelChip } from "@/components/shared/label-chip";
 import { NavRowButton } from "@/components/shared/nav-row-button";
+import {
+  MOTION_CONTENT_SWAP_CLASS_NAME,
+  MOTION_DATA_PHASE_ATTRIBUTE,
+  MOTION_DATA_STATE_ATTRIBUTE,
+  MOTION_PHASE_ENTERING,
+  MOTION_STATE_CLOSED,
+  MOTION_STATE_OPEN,
+} from "@/constants/motion";
 import { cn } from "@/lib/utils";
 import type { SubscriptionListGroup, SubscriptionListRow } from "./subscriptions-index.types";
 
@@ -82,8 +90,8 @@ export function SubscriptionsListPane({
       >
         {!hasRows ? (
           <p
-            data-motion-phase="entering"
-            className="motion-content-swap rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground-soft"
+            {...{ [MOTION_DATA_PHASE_ATTRIBUTE]: MOTION_PHASE_ENTERING }}
+            className={`${MOTION_CONTENT_SWAP_CLASS_NAME} rounded-md border border-dashed border-border px-4 py-6 text-sm text-foreground-soft`}
           >
             {emptyLabel}
           </p>
@@ -125,7 +133,7 @@ export function SubscriptionsListPane({
                 </button>
                 <div
                   id={groupBodyId}
-                  data-state={expanded ? "open" : "closed"}
+                  {...{ [MOTION_DATA_STATE_ATTRIBUTE]: expanded ? MOTION_STATE_OPEN : MOTION_STATE_CLOSED }}
                   aria-hidden={expanded ? "false" : "true"}
                   className="motion-disclosure-panel"
                 >
