@@ -122,7 +122,7 @@ describe("buildWslTauriSpawnSpec", () => {
   it("dispatches Tauri through Windows PowerShell from a WSL shell", () => {
     const spawnSpec = buildWslTauriSpawnSpec(["dev", "-c", "src-tauri/tauri.dev.conf.json"], "C:\\repo", {
       DEV_CREDENTIALS: "1",
-      VITE_DEV_INTENT: "open-feed-cleanup",
+      VITE_DEV_INTENT: "open-subscriptions-index",
     });
 
     expect(spawnSpec.command).toBe("sh");
@@ -130,7 +130,7 @@ describe("buildWslTauriSpawnSpec", () => {
     expect(spawnSpec.args[1]).toContain(
       "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -OutputFormat Text -EncodedCommand ",
     );
-    expect(spawnSpec.args[1]).not.toContain("open-feed-cleanup");
+    expect(spawnSpec.args[1]).not.toContain("open-subscriptions-index");
 
     const encodedCommand = spawnSpec.args[1].split(" -EncodedCommand ")[1];
     const powerShellScript = Buffer.from(encodedCommand, "base64").toString("utf16le");

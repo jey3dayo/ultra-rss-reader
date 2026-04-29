@@ -37,7 +37,6 @@ export type SidebarUiStateResult = Pick<
   | "toggleFolder"
   | "openSettings"
   | "openSubscriptionsIndex"
-  | "openFeedCleanup"
   | "isAddFeedDialogOpen"
   | "openAddFeedDialog"
   | "closeAddFeedDialog"

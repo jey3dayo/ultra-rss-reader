@@ -138,7 +138,7 @@ const meta = {
   args: {
     runtimeMode: "browser",
     eyebrow: "TRIAGE",
-    title: "購読の整理",
+    title: "購読一覧",
     subtitle: "動きの少ない購読を見直します。",
     backLabel: "戻る",
     closeLabel: "閉じる",

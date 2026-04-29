@@ -31,7 +31,6 @@ const preview: Preview = {
           ["Page", "Section", "Nav"],
           "Reader",
           ["Article", "Sidebar", "Dialog", "Menu", "Browser"],
-          "Feed Cleanup",
           "Internal",
           ["Debug", "Review"],
         ],

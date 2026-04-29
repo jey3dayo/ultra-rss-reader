@@ -2227,7 +2227,7 @@ describe("ArticleView", () => {
       selection: { type: "feed", feedId: "feed-1" },
       selectedArticleId: "art-1",
       contentMode: "reader",
-      subscriptionsWorkspace: { kind: "index", cleanupContext: null },
+      subscriptionsWorkspace: { kind: "index" },
     });
 
     render(<ArticleView />, { wrapper: createWrapper() });

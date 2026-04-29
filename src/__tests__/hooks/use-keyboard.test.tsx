@@ -113,7 +113,7 @@ describe("useKeyboard", () => {
 
     useUiStore.setState({
       ...useUiStore.getState(),
-      subscriptionsWorkspace: { kind: "index", cleanupContext: null },
+      subscriptionsWorkspace: { kind: "index" },
       focusedPane: "content",
     });
 

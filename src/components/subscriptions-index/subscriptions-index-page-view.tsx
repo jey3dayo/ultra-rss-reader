@@ -44,8 +44,6 @@ export function SubscriptionsIndexPageView({
   recentArticlesHeading,
   displayModeLabel,
   displayModeValue,
-  batchReviewLabel,
-  batchReviewDescription,
   decisionActions,
   backLabel,
   closeLabel,
@@ -54,7 +52,6 @@ export function SubscriptionsIndexPageView({
   onSelectFeed,
   onListScrollTopChange,
   onToggleGroup,
-  onOpenCleanup,
   onBack,
   onClose,
 }: {
@@ -84,8 +81,6 @@ export function SubscriptionsIndexPageView({
   recentArticlesHeading: string;
   displayModeLabel: string;
   displayModeValue: string;
-  batchReviewLabel?: string;
-  batchReviewDescription?: string;
   decisionActions: {
     keepLabel: string;
     deferLabel: string;
@@ -101,7 +96,6 @@ export function SubscriptionsIndexPageView({
   onSelectFeed: (feedId: string) => void;
   onListScrollTopChange: (scrollTop: number) => void;
   onToggleGroup: (groupKey: string) => void;
-  onOpenCleanup: () => void;
   onBack: () => void;
   onClose: () => void;
 }) {
@@ -124,13 +118,7 @@ export function SubscriptionsIndexPageView({
       />
       <div className={`${WORKSPACE_CHROME_SPACING_CLASS} pt-1 sm:pt-1.5`}>
         <div className={`${WORKSPACE_CANVAS_CLASS} gap-3.5 sm:gap-4 ${useDesktopOverlay ? "pl-6 sm:pl-6" : ""}`}>
-          <SubscriptionsOverviewSummary
-            cards={summaryCards}
-            onSelectFilter={onSelectSummaryFilter}
-            batchActionLabel={batchReviewLabel}
-            batchActionDescription={batchReviewDescription}
-            onOpenBatchAction={batchReviewLabel ? onOpenCleanup : null}
-          />
+          <SubscriptionsOverviewSummary cards={summaryCards} onSelectFilter={onSelectSummaryFilter} />
           <div
             data-testid="subscriptions-workspace-shell"
             className={workspaceSplitShellClassName("mt-0 border-border/55")}

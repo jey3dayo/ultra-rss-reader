@@ -90,7 +90,6 @@ describe("DebugSettings", () => {
     render(<DebugSettings />, { wrapper: createWrapper() });
 
     expect(screen.getByText("Open web preview geometry check")).toHaveClass("whitespace-nowrap");
-    expect(screen.getByText("Open feed cleanup broken references")).toHaveClass("whitespace-nowrap");
     expect(screen.getByText("Open reading display mode settings")).toHaveClass("whitespace-nowrap");
   });
 

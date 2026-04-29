@@ -9,8 +9,6 @@ describe("dev-intent helpers", () => {
   it("parses known dev scenario ids", () => {
     expect(parseDevIntent("open-add-feed-dialog")).toBe("open-add-feed-dialog");
     expect(parseDevIntent("open-command-palette")).toBe("open-command-palette");
-    expect(parseDevIntent("open-feed-cleanup")).toBe("open-feed-cleanup");
-    expect(parseDevIntent("open-feed-cleanup-broken-references")).toBe("open-feed-cleanup-broken-references");
     expect(parseDevIntent("open-shortcuts-help")).toBe("open-shortcuts-help");
     expect(parseDevIntent("open-settings-actions")).toBe("open-settings-actions");
     expect(parseDevIntent("open-settings-accounts")).toBe("open-settings-accounts");

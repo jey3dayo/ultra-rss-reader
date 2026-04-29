@@ -1,58 +1,47 @@
 import { useLayoutEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { UnsubscribeDialog } from "@/components/reader/unsubscribe-feed-dialog";
-import { useAccountArticles, useFeedIntegrityReport } from "@/hooks/use-articles";
+import { useAccountArticles } from "@/hooks/use-articles";
 import { useDeleteFeed } from "@/hooks/use-delete-feed";
 import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { resolveFeedDisplayPreset } from "@/lib/article-display";
 import { getCurrentDate } from "@/lib/datetime";
-import { buildCleanupReasonFacts, buildFeedCleanupCandidates, summarizeCleanupCandidate } from "@/lib/feed-cleanup";
 import {
-  buildCleanupCandidateMap,
+  buildSubscriptionReviewCandidates,
+  buildSubscriptionReviewReasonFacts,
+  summarizeSubscriptionReviewCandidate,
+} from "@/lib/subscription-review-candidates";
+import {
   buildSubscriptionDetailMetrics,
   buildSubscriptionListGroups,
+  buildSubscriptionReviewCandidateMap,
   buildSubscriptionsIndexSummary,
   formatSubscriptionDate,
   isSubscriptionRowFlagged,
   resolveSubscriptionRowStatus,
 } from "@/lib/subscriptions-index";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
-import type { FeedCleanupContextReason } from "@/stores/ui-store";
 import { useUiStore } from "@/stores/ui-store";
 import type {
   SubscriptionDetailCandidate,
   SubscriptionListRow,
   SubscriptionSummaryCard,
-  SubscriptionSummaryFilterKey,
 } from "./subscriptions-index.types";
 import { SubscriptionsIndexPageView } from "./subscriptions-index-page-view";
 import { useSubscriptionsIndexState } from "./use-subscriptions-index-state";
 
-function resolveBatchCleanupReason(filterKey: SubscriptionSummaryFilterKey): FeedCleanupContextReason {
-  if (filterKey === "broken") {
-    return "broken_references";
-  }
-  if (filterKey === "stale") {
-    return "stale_90d";
-  }
-  return "review";
-}
-
 export function SubscriptionsIndexPage() {
   const { t, i18n } = useTranslation("subscriptions");
   const { t: tr } = useTranslation("reader");
-  const { t: tCleanup } = useTranslation("cleanup");
   const { t: tc } = useTranslation("common");
   const selectedAccountId = useUiStore((state) => state.selectedAccountId);
-  const openFeedCleanup = useUiStore((state) => state.openFeedCleanup);
   const closeSubscriptionsWorkspace = useUiStore((state) => state.closeSubscriptionsWorkspace);
   const showToast = useUiStore((state) => state.showToast);
   const subscriptionsWorkspace = useUiStore((state) => state.subscriptionsWorkspace);
   const { data: feeds = [] } = useFeeds(selectedAccountId);
   const { data: folders = [] } = useFolders(selectedAccountId);
   const { data: accountArticles = [] } = useAccountArticles(selectedAccountId);
-  const { data: integrityReport } = useFeedIntegrityReport();
   const deleteFeedMutation = useDeleteFeed();
   const [deleteTargetFeed, setDeleteTargetFeed] = useState<SubscriptionListRow["feed"] | null>(null);
   const [listScrollTop, setListScrollTop] = useState(
@@ -61,7 +50,7 @@ export function SubscriptionsIndexPage() {
 
   const candidates = useMemo(
     () =>
-      buildFeedCleanupCandidates({
+      buildSubscriptionReviewCandidates({
         feeds,
         folders,
         articles: accountArticles,
@@ -71,7 +60,7 @@ export function SubscriptionsIndexPage() {
     [accountArticles, feeds, folders],
   );
 
-  const candidateMap = useMemo(() => buildCleanupCandidateMap(candidates), [candidates]);
+  const candidateMap = useMemo(() => buildSubscriptionReviewCandidateMap(candidates), [candidates]);
   const folderNameById = useMemo(() => new Map(folders.map((folder) => [folder.id, folder.name])), [folders]);
   const rows = useMemo<SubscriptionListRow[]>(
     () =>
@@ -80,12 +69,9 @@ export function SubscriptionsIndexPage() {
         folderId: feed.folder_id,
         folderName: feed.folder_id ? (folderNameById.get(feed.folder_id) ?? null) : null,
         latestArticleAt: candidateMap.get(feed.id)?.latestArticleAt ?? null,
-        status: resolveSubscriptionRowStatus({
-          candidate: candidateMap.get(feed.id),
-          integrityReport,
-        }),
+        status: resolveSubscriptionRowStatus({ candidate: candidateMap.get(feed.id) }),
       })),
-    [candidateMap, feeds, folderNameById, integrityReport],
+    [candidateMap, feeds, folderNameById],
   );
 
   const state = useSubscriptionsIndexState(rows, {
@@ -123,8 +109,8 @@ export function SubscriptionsIndexPage() {
       };
     }
 
-    const summary = summarizeCleanupCandidate(selectedCandidate);
-    const reasonFacts = buildCleanupReasonFacts(selectedCandidate);
+    const summary = summarizeSubscriptionReviewCandidate(selectedCandidate);
+    const reasonFacts = buildSubscriptionReviewReasonFacts(selectedCandidate);
     const summaryText = t(
       summary.summaryKey === "stale_and_inactive"
         ? "detail_reason_stale_and_inactive"
@@ -147,16 +133,16 @@ export function SubscriptionsIndexPage() {
           ? reasonFacts
               .map((fact) =>
                 fact.key === "stale_days"
-                  ? tCleanup("fact_stale_days", { count: fact.value })
+                  ? t("fact_stale_days", { count: fact.value })
                   : fact.key === "unread_count"
-                    ? tCleanup("fact_unread_count", { count: fact.value })
-                    : tCleanup("fact_starred_count", { count: fact.value }),
+                    ? t("fact_unread_count", { count: fact.value })
+                    : t("fact_starred_count", { count: fact.value }),
               )
               .join(" / ")
           : summaryText,
-      reasonLabels: selectedCandidate.reasonKeys.map((reasonKey) => tCleanup(`reason_${reasonKey}`)),
+      reasonLabels: selectedCandidate.reasonKeys.map((reasonKey) => t(`reason_${reasonKey}`)),
     };
-  }, [selectedCandidate, state.selectedRow, t, tCleanup]);
+  }, [selectedCandidate, state.selectedRow, t]);
 
   const selectedDisplayModeLabel = state.selectedRow
     ? (() => {
@@ -176,7 +162,7 @@ export function SubscriptionsIndexPage() {
     [state.visibleRows, t],
   );
 
-  const summary = buildSubscriptionsIndexSummary({ feeds, candidates, integrityReport });
+  const summary = buildSubscriptionsIndexSummary({ feeds, candidates });
   const summaryCards = [
     {
       filterKey: "all",
@@ -201,14 +187,6 @@ export function SubscriptionsIndexPage() {
       caption: t("summary_stale_caption", { count: summary.staleCount }),
       tone: "stale",
       isActive: state.activeSummaryFilter === "stale",
-    },
-    {
-      filterKey: "broken",
-      label: t("summary_broken"),
-      value: String(summary.brokenReferenceCount),
-      caption: t("summary_broken_caption", { count: summary.brokenReferenceCount }),
-      tone: "danger",
-      isActive: state.activeSummaryFilter === "broken",
     },
   ] satisfies SubscriptionSummaryCard[];
 
@@ -242,23 +220,6 @@ export function SubscriptionsIndexPage() {
           },
         }
       : null;
-
-  const returnState = {
-    activeSummaryFilter: state.activeSummaryFilter,
-    selectedFeedId: state.selectedFeedId,
-    expandedGroups: state.expandedGroups,
-    listScrollTop,
-    keptFeedIds: [...state.keptFeedIds],
-    deferredFeedIds: [...state.deferredFeedIds],
-  };
-
-  const batchReviewLabel =
-    (state.activeSummaryFilter === "review" ||
-      state.activeSummaryFilter === "stale" ||
-      state.activeSummaryFilter === "broken") &&
-    (state.visibleRows.length > 0 || state.activeSummaryFilter === "broken")
-      ? t("batch_review_action")
-      : undefined;
 
   useLayoutEffect(() => {
     const handleKeyDown = createKeyboardEventListener((event) => {
@@ -295,8 +256,8 @@ export function SubscriptionsIndexPage() {
         selectedRow={state.selectedRow}
         selectedMetrics={selectedMetrics}
         selectedDetailCandidate={selectedDetailCandidate}
-        emptyLabel={state.activeSummaryFilter === "broken" ? t("empty_broken_filter") : t("empty")}
-        detailEmptyLabel={state.activeSummaryFilter === "broken" ? t("detail_empty_broken") : t("detail_empty")}
+        emptyLabel={t("empty")}
+        detailEmptyLabel={t("detail_empty")}
         statusLabels={{
           normal: t("status_normal"),
           review: t("status_review"),
@@ -311,24 +272,16 @@ export function SubscriptionsIndexPage() {
             : t("meta_latest_article_none")
         }
         dateLocale={i18n.language}
-        folderLabel={tCleanup("folder")}
+        folderLabel={t("folder")}
         listScrollTop={listScrollTop}
-        latestArticleLabel={tCleanup("latest_article")}
-        unreadCountLabel={tCleanup("unread_count")}
-        starredCountLabel={tCleanup("starred_count")}
+        latestArticleLabel={t("latest_article")}
+        unreadCountLabel={t("unread_count")}
+        starredCountLabel={t("starred_count")}
         reasonHeading={t("detail_reason_heading")}
         reasonHint={t("detail_reason_hint")}
         recentArticlesHeading={t("detail_recent_articles")}
         displayModeLabel={tr("display_mode")}
         displayModeValue={selectedDisplayModeLabel}
-        batchReviewLabel={batchReviewLabel}
-        batchReviewDescription={
-          batchReviewLabel
-            ? t("batch_review_description", {
-                count: state.activeSummaryFilter === "broken" ? summary.brokenReferenceCount : state.visibleRows.length,
-              })
-            : undefined
-        }
         decisionActions={decisionActions}
         backLabel={tc("back")}
         closeLabel={tc("close")}
@@ -337,14 +290,6 @@ export function SubscriptionsIndexPage() {
         onSelectFeed={state.setSelectedFeedId}
         onListScrollTopChange={setListScrollTop}
         onToggleGroup={state.toggleGroup}
-        onOpenCleanup={() => {
-          openFeedCleanup({
-            reason: resolveBatchCleanupReason(state.activeSummaryFilter),
-            feedIds: state.visibleRows.map((row) => row.feed.id),
-            returnTo: "index",
-            returnState,
-          });
-        }}
         onBack={() => closeSubscriptionsWorkspace()}
         onClose={() => closeSubscriptionsWorkspace()}
       />

@@ -100,30 +100,15 @@ describe("setupDevMocks", () => {
     expect(starredArticles[0]?.is_starred).toBe(true);
   });
 
-  it("returns grouped broken references for the dedicated feed cleanup integrity intent", async () => {
-    vi.stubEnv("VITE_DEV_INTENT", "open-feed-cleanup-broken-references");
-
+  it("returns an empty integrity report in browser-only mode", async () => {
     setupDevMocks();
 
     const result = await getFeedIntegrityReport();
     const report = Result.unwrap(result);
 
     expect(report).toEqual({
-      orphaned_article_count: 3,
-      orphaned_feeds: [
-        {
-          missing_feed_id: "ghost-feed-001",
-          article_count: 2,
-          latest_article_title: "Broken article from archived source",
-          latest_article_published_at: "2026-03-29T12:00:00.000Z",
-        },
-        {
-          missing_feed_id: "ghost-feed-002",
-          article_count: 1,
-          latest_article_title: "Another broken entry",
-          latest_article_published_at: "2026-03-27T09:30:00.000Z",
-        },
-      ],
+      orphaned_article_count: 0,
+      orphaned_feeds: [],
     });
   });
 });

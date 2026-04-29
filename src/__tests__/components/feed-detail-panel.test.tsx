@@ -30,7 +30,7 @@ describe("FeedDetailPanel", () => {
             url: "https://example.com/article",
           },
         ]}
-        primaryAction={{ label: "購読の整理", onClick: () => {} }}
+        primaryAction={{ label: "フィードを編集", onClick: () => {} }}
       />,
     );
 
@@ -72,15 +72,15 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByText("Work").closest("dd")).toHaveClass("text-foreground");
     expect(screen.getByRole("link", { name: "https://example.com/help" })).toHaveClass("text-foreground-soft");
     expect(screen.getByText("最近の記事").parentElement).toHaveClass("border-t", "pt-4");
-    expect(screen.getByRole("button", { name: "購読の整理" }).parentElement).toHaveClass("border-t", "pt-4");
-    expect(screen.getByRole("button", { name: "購読の整理" })).toHaveClass(
+    expect(screen.getByRole("button", { name: "フィードを編集" }).parentElement).toHaveClass("border-t", "pt-4");
+    expect(screen.getByRole("button", { name: "フィードを編集" })).toHaveClass(
       "h-9",
       "px-3",
       "sm:px-3.5",
       "border-border-strong",
       "bg-surface-1/88",
     );
-    expect(screen.getByRole("button", { name: "購読の整理" })).not.toHaveClass("rounded-full");
+    expect(screen.getByRole("button", { name: "フィードを編集" })).not.toHaveClass("rounded-full");
   });
 
   it("renders neutral reason chips instead of muted chips", () => {

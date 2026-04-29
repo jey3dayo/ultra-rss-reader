@@ -42,11 +42,11 @@ describe("AppLayout", () => {
     });
   });
 
-  it("shows only the workspace content when feed cleanup is open in wide layout", () => {
+  it("shows only the workspace content when subscriptions workspace is open in wide layout", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       layoutMode: "wide",
-      subscriptionsWorkspace: { kind: "cleanup", cleanupContext: null },
+      subscriptionsWorkspace: { kind: "index" },
       focusedPane: "content",
     });
 
@@ -61,7 +61,7 @@ describe("AppLayout", () => {
     useUiStore.setState({
       ...useUiStore.getInitialState(),
       layoutMode: "wide",
-      subscriptionsWorkspace: { kind: "index", cleanupContext: null },
+      subscriptionsWorkspace: { kind: "index" },
       focusedPane: "content",
     });
 

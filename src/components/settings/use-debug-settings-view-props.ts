@@ -6,7 +6,6 @@ type UseDebugSettingsViewPropsParams = SettingsPreferenceViewPropsParams & {
   credentialsBackendValue: string;
   openWebPreviewUrl: () => void;
   openWebPreviewGeometryCheck: () => void;
-  runFeedCleanupBrokenReferencesScenario: () => void;
   runReadingDisplayModeScenario: () => void;
 };
 
@@ -18,7 +17,6 @@ export function useDebugSettingsViewProps({
   credentialsBackendValue,
   openWebPreviewUrl,
   openWebPreviewGeometryCheck,
-  runFeedCleanupBrokenReferencesScenario,
   runReadingDisplayModeScenario,
 }: UseDebugSettingsViewPropsParams): SettingsPageViewProps {
   return {
@@ -79,17 +77,6 @@ export function useDebugSettingsViewProps({
             labelClassName: "whitespace-nowrap",
             disabled: !devBuild,
             onAction: openWebPreviewGeometryCheck,
-          },
-          {
-            id: "debug-feed-cleanup-broken-references",
-            type: "action",
-            label: t("debug.feed_cleanup_broken_references"),
-            actionLabel: t("debug.open_short"),
-            actionSize: "compact",
-            rowClassName: "gap-4 sm:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]",
-            labelClassName: "whitespace-nowrap",
-            disabled: !devBuild,
-            onAction: runFeedCleanupBrokenReferencesScenario,
           },
           {
             id: "debug-reading-display-mode",

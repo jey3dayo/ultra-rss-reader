@@ -87,7 +87,7 @@ describe("Shared stories", () => {
 
   it("renders workspace header stories for browser and desktop runtime modes", () => {
     renderStory(workspaceHeaderMeta, WorkspaceHeaderBrowserPreview);
-    expect(screen.getByRole("heading", { name: "購読の整理" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "購読一覧" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "戻る" })).toBeInTheDocument();
     expect(screen.queryByTestId("workspace-header-drag-region")).toBeNull();
 
@@ -98,7 +98,7 @@ describe("Shared stories", () => {
 
     cleanup();
     renderStory(workspaceHeaderMeta, WorkspaceHeaderWindowsDesktop);
-    expect(screen.getByRole("heading", { name: "購読の整理" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "購読一覧" })).toBeInTheDocument();
     expect(screen.queryByTestId("workspace-header-drag-region")).toBeNull();
   });
 });

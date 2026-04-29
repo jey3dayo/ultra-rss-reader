@@ -262,7 +262,6 @@ describe("Sidebar", () => {
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
-      cleanupContext: null,
     });
   });
 
@@ -2473,7 +2472,6 @@ describe("Sidebar", () => {
 
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
-      cleanupContext: null,
     });
     expect(useUiStore.getState().focusedPane).toBe("content");
   });
@@ -2493,7 +2491,6 @@ describe("Sidebar", () => {
     await user.click(screen.getByRole("button", { name: "Manage Subscriptions" }));
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
-      cleanupContext: null,
     });
   });
 

@@ -50,7 +50,7 @@ describe("useDevIntent", () => {
   });
 
   it("defers startup scenario execution until after the effect commits", async () => {
-    vi.stubEnv("VITE_DEV_INTENT", "open-feed-cleanup");
+    vi.stubEnv("VITE_DEV_INTENT", "open-subscriptions-index");
 
     renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -61,7 +61,7 @@ describe("useDevIntent", () => {
     await vi.runAllTimersAsync();
 
     expect(runRuntimeDevScenarioMock).toHaveBeenCalledTimes(1);
-    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-feed-cleanup");
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-subscriptions-index");
   });
 
   it("runs the subscriptions-index startup scenario when requested", async () => {
@@ -117,7 +117,7 @@ describe("useDevIntent", () => {
   });
 
   it("runs the startup scenario only once under StrictMode", async () => {
-    vi.stubEnv("VITE_DEV_INTENT", "open-feed-cleanup");
+    vi.stubEnv("VITE_DEV_INTENT", "open-subscriptions-index");
 
     renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <StrictMode>{children}</StrictMode>,
@@ -126,11 +126,11 @@ describe("useDevIntent", () => {
     await vi.runAllTimersAsync();
 
     expect(runRuntimeDevScenarioMock).toHaveBeenCalledTimes(1);
-    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-feed-cleanup");
+    expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-subscriptions-index");
   });
 
   it("allows a fresh remount to retry startup execution in the same session", async () => {
-    vi.stubEnv("VITE_DEV_INTENT", "open-feed-cleanup");
+    vi.stubEnv("VITE_DEV_INTENT", "open-subscriptions-index");
 
     const first = renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -162,7 +162,7 @@ describe("useDevIntent", () => {
 
   it("does not load the dev scenario runtime outside dev builds", async () => {
     vi.stubEnv("DEV", false);
-    vi.stubEnv("VITE_DEV_INTENT", "open-feed-cleanup");
+    vi.stubEnv("VITE_DEV_INTENT", "open-subscriptions-index");
 
     renderHook(() => useDevIntent(), {
       wrapper: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -175,7 +175,7 @@ describe("useDevIntent", () => {
 
   it("shows a toast when startup scenario execution fails", async () => {
     vi.useRealTimers();
-    vi.stubEnv("VITE_DEV_INTENT", "open-feed-cleanup");
+    vi.stubEnv("VITE_DEV_INTENT", "open-subscriptions-index");
     runRuntimeDevScenarioMock.mockRejectedValueOnce(new Error("boom"));
 
     renderHook(() => useDevIntent(), {
@@ -183,9 +183,9 @@ describe("useDevIntent", () => {
     });
 
     await waitFor(() => {
-      expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-feed-cleanup");
+      expect(runRuntimeDevScenarioMock).toHaveBeenCalledWith("open-subscriptions-index");
       expect(useUiStore.getState().toastMessage).toEqual({
-        message: 'Failed to run dev scenario "open-feed-cleanup": boom',
+        message: 'Failed to run dev scenario "open-subscriptions-index": boom',
       });
     });
   });

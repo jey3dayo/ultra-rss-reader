@@ -20,8 +20,6 @@ export const DEV_SCENARIO_ID = {
   openShortcutsHelp: "open-shortcuts-help",
   openWebPreviewGeometryCheck: "open-web-preview-geometry-check",
   openAddFeedDialog: "open-add-feed-dialog",
-  openFeedCleanup: "open-feed-cleanup",
-  openFeedCleanupBrokenReferences: "open-feed-cleanup-broken-references",
   syncAllSmoke: "sync-all-smoke",
 } as const;
 
@@ -49,8 +47,6 @@ export const DEV_SCENARIO_IDS = [
   DEV_SCENARIO_ID.openShortcutsHelp,
   DEV_SCENARIO_ID.openWebPreviewGeometryCheck,
   DEV_SCENARIO_ID.openAddFeedDialog,
-  DEV_SCENARIO_ID.openFeedCleanup,
-  DEV_SCENARIO_ID.openFeedCleanupBrokenReferences,
   DEV_SCENARIO_ID.syncAllSmoke,
 ] as const satisfies readonly DevScenarioId[];
 

@@ -1,11 +1,11 @@
-import type { ArticleDto, FeedDto, FeedIntegrityReportDto } from "@/api/tauri-commands";
+import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type {
   SubscriptionListGroup,
   SubscriptionListRow,
 } from "@/components/subscriptions-index/subscriptions-index.types";
 import { compareDateInputsAsc, formatMediumDate } from "@/lib/datetime";
-import type { FeedCleanupCandidate } from "@/lib/feed-cleanup";
-import { summarizeCleanupCandidate } from "@/lib/feed-cleanup";
+import type { SubscriptionReviewCandidate } from "@/lib/subscription-review-candidates";
+import { summarizeSubscriptionReviewCandidate } from "@/lib/subscription-review-candidates";
 
 export type SubscriptionRowStatus =
   | { tone: "neutral"; labelKey: "normal" }
@@ -18,26 +18,25 @@ export function isSubscriptionRowFlagged(status: SubscriptionRowStatus): boolean
 export function buildSubscriptionsIndexSummary({
   feeds,
   candidates,
-  integrityReport,
 }: {
   feeds: FeedDto[];
-  candidates: FeedCleanupCandidate[];
-  integrityReport?: FeedIntegrityReportDto | null;
+  candidates: SubscriptionReviewCandidate[];
 }): {
   totalCount: number;
   reviewCount: number;
   staleCount: number;
-  brokenReferenceCount: number;
 } {
   return {
     totalCount: feeds.length,
-    reviewCount: candidates.filter((candidate) => summarizeCleanupCandidate(candidate).tone !== "low").length,
+    reviewCount: candidates.filter((candidate) => summarizeSubscriptionReviewCandidate(candidate).tone !== "low")
+      .length,
     staleCount: candidates.filter((candidate) => candidate.reasonKeys.includes("stale_90d")).length,
-    brokenReferenceCount: integrityReport?.orphaned_article_count ?? 0,
   };
 }
 
-export function buildCleanupCandidateMap(candidates: FeedCleanupCandidate[]): Map<string, FeedCleanupCandidate> {
+export function buildSubscriptionReviewCandidateMap(
+  candidates: SubscriptionReviewCandidate[],
+): Map<string, SubscriptionReviewCandidate> {
   return new Map(candidates.map((candidate) => [candidate.feedId, candidate]));
 }
 
@@ -71,10 +70,9 @@ export function buildSubscriptionListGroups(
 export function resolveSubscriptionRowStatus({
   candidate,
 }: {
-  candidate?: FeedCleanupCandidate;
-  integrityReport?: FeedIntegrityReportDto | null;
+  candidate?: SubscriptionReviewCandidate;
 }): SubscriptionRowStatus {
-  if (!candidate || summarizeCleanupCandidate(candidate).tone === "low") {
+  if (!candidate || summarizeSubscriptionReviewCandidate(candidate).tone === "low") {
     return { tone: "neutral", labelKey: "normal" };
   }
 

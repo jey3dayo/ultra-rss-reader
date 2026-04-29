@@ -33,15 +33,7 @@ const sharedGroups = ["Layout", "Fields", "Rows", "Controls", "Dialogs", "Naviga
 const settingsGroups = ["Page", "Section", "Nav"] as const;
 const readerGroups = ["Article", "Sidebar", "Dialog", "Menu", "Browser"] as const;
 const internalGroups = ["Debug", "Review"] as const;
-const topLevelGroups = [
-  "UI Reference",
-  "Shared",
-  "Primitives",
-  "Settings",
-  "Reader",
-  "Feed Cleanup",
-  "Internal",
-] as const;
+const topLevelGroups = ["UI Reference", "Shared", "Primitives", "Settings", "Reader", "Internal"] as const;
 
 function titlesUnder(group: string) {
   return titles.filter((title) => title.startsWith(`${group}/`));
@@ -67,7 +59,6 @@ describe("Storybook Explorer organization", () => {
         ["Page", "Section", "Nav"],
         "Reader",
         ["Article", "Sidebar", "Dialog", "Menu", "Browser"],
-        "Feed Cleanup",
         "Internal",
         ["Debug", "Review"],
       ],
@@ -113,12 +104,6 @@ describe("Storybook Explorer organization", () => {
 
   it("includes the sidebar feed-tree skeleton review story", () => {
     expect(titles).toContain("Reader/Sidebar/SidebarFeedTreeSkeleton");
-  });
-
-  it("keeps feed cleanup stories compact and panel-oriented", () => {
-    expect([...titlesUnder("Feed Cleanup")].sort()).toEqual(
-      ["Feed Cleanup/OverviewPanel", "Feed Cleanup/QueuePanel", "Feed Cleanup/ReviewPanel"].sort(),
-    );
   });
 
   it("isolates internal stories under debug or review only", () => {

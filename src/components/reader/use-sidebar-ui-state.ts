@@ -23,7 +23,6 @@ export function useSidebarUiState(): SidebarUiStateResult {
   const toggleFolder = useUiStore((s) => s.toggleFolder);
   const openSettings = useUiStore((s) => s.openSettings);
   const openSubscriptionsIndex = useUiStore((s) => s.openSubscriptionsIndex);
-  const openFeedCleanup = useUiStore((s) => s.openFeedCleanup);
   const isAddFeedDialogOpen = useUiStore((s) => s.isAddFeedDialogOpen);
   const openAddFeedDialog = useUiStore((s) => s.openAddFeedDialog);
   const closeAddFeedDialog = useUiStore((s) => s.closeAddFeedDialog);
@@ -77,7 +76,6 @@ export function useSidebarUiState(): SidebarUiStateResult {
     toggleFolder,
     openSettings,
     openSubscriptionsIndex,
-    openFeedCleanup,
     isAddFeedDialogOpen,
     openAddFeedDialog,
     closeAddFeedDialog,

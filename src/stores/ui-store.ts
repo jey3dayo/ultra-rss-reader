@@ -65,8 +65,7 @@ export type BrowserNavigationState = {
   canGoBack: boolean;
   canGoForward: boolean;
 };
-export type FeedCleanupContextReason = "review" | "stale_90d" | "no_unread" | "no_stars" | "broken_references";
-export type SubscriptionSummaryFilterState = "all" | "review" | "stale" | "broken";
+export type SubscriptionSummaryFilterState = "all" | "review" | "stale";
 export type SubscriptionsWorkspaceReturnState = {
   activeSummaryFilter: SubscriptionSummaryFilterState;
   selectedFeedId: string | null;
@@ -75,16 +74,10 @@ export type SubscriptionsWorkspaceReturnState = {
   keptFeedIds: string[];
   deferredFeedIds: string[];
 };
-export type FeedCleanupContext = {
-  reason: FeedCleanupContextReason;
-  feedId?: string | null;
-  feedIds?: string[];
+export type SubscriptionsWorkspace = {
+  kind: "index";
   returnState?: SubscriptionsWorkspaceReturnState;
-  returnTo: "index";
 };
-export type SubscriptionsWorkspace =
-  | { kind: "index"; cleanupContext: null; returnState?: SubscriptionsWorkspaceReturnState }
-  | { kind: "cleanup"; cleanupContext: FeedCleanupContext | null };
 export type SettingsCategory =
   | "general"
   | "appearance"
@@ -208,8 +201,6 @@ interface UiActions {
   setSettingsLoading: (loading: boolean) => void;
   setAppLoading: (loading: boolean) => void;
   openSubscriptionsIndex: (state?: SubscriptionsWorkspaceReturnState) => void;
-  openFeedCleanup: (context?: FeedCleanupContext) => void;
-  closeFeedCleanup: () => void;
   closeSubscriptionsWorkspace: () => void;
   applySyncProgress: (event: SyncProgressEvent) => void;
   clearSyncProgress: () => void;
@@ -495,21 +486,9 @@ export const useUiStore = create<UiState & UiActions>()((set) => ({
   openSubscriptionsIndex: (returnState) =>
     set({
       accountPaneOpen: false,
-      subscriptionsWorkspace: { kind: "index", cleanupContext: null, returnState },
+      subscriptionsWorkspace: { kind: "index", returnState },
       focusedPane: "content",
     }),
-  openFeedCleanup: (context) =>
-    set({
-      accountPaneOpen: false,
-      subscriptionsWorkspace: { kind: "cleanup", cleanupContext: context ?? null },
-      focusedPane: "content",
-    }),
-  closeFeedCleanup: () =>
-    set((state) => ({
-      accountPaneOpen: false,
-      subscriptionsWorkspace: null,
-      focusedPane: state.selectedArticleId ? "content" : "list",
-    })),
   closeSubscriptionsWorkspace: () =>
     set((state) => ({
       accountPaneOpen: false,

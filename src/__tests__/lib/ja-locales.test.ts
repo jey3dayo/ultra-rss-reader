@@ -1,22 +1,19 @@
 import { describe, expect, it } from "vitest";
-import jaCleanup from "@/locales/ja/cleanup.json";
-import jaSidebar from "@/locales/ja/sidebar.json";
+import jaSubscriptions from "@/locales/ja/subscriptions.json";
 
 describe("Japanese feed management labels", () => {
-  it("uses 購読の整理 for the sidebar and page title", () => {
-    expect(jaSidebar.feed_cleanup).toBe("購読の整理");
-    expect(jaCleanup.title).toBe("購読の整理");
+  it("uses 購読一覧 for the subscription workspace title", () => {
+    expect(jaSubscriptions.title).toBe("購読一覧");
   });
 
-  it("keeps cleanup decision labels consistent", () => {
-    expect(jaCleanup.defer).toBe("あとで見直す");
-    expect(jaCleanup.deferred_badge).toBe("あとで見直す");
-    expect(jaCleanup.review_status).toBe("未判断");
+  it("keeps subscription review reason labels consistent", () => {
+    expect(jaSubscriptions.reason_no_unread).toBe("未読なし");
+    expect(jaSubscriptions.reason_no_stars).toBe("スターなし");
+    expect(jaSubscriptions.fact_stale_days).toBe("更新なし {{count}}日");
   });
 
-  it("uses natural keep guidance copy in the review panel", () => {
-    expect(jaCleanup.priority_keep).toBe("今は残す");
-    expect(jaCleanup.summary_headline_keep).toBe("今はそのままでよさそうです");
-    expect(jaCleanup.candidate_summary_healthy_feed).toBe("最近も更新があり、今すぐ触る必要はなさそうです。");
+  it("keeps in-place decision labels short", () => {
+    expect(jaSubscriptions.decision_keep).toBe("残す");
+    expect(jaSubscriptions.decision_defer).toBe("あとで");
   });
 });

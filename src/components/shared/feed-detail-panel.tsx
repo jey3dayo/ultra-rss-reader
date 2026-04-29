@@ -1,7 +1,7 @@
 import { ExternalLink, List } from "lucide-react";
 import type { ReactNode } from "react";
-import { FeedCleanupCard, FeedCleanupDetailRow } from "@/components/feed-cleanup/feed-cleanup-card";
 import { workspaceCompactActionButtonClassName } from "@/components/shared/decision-button";
+import { FeedDetailCard, FeedDetailRow } from "@/components/shared/feed-detail-card";
 import { LabelChip } from "@/components/shared/label-chip";
 import { SurfaceCard } from "@/components/shared/surface-card";
 import { Button } from "@/components/ui/button";
@@ -109,7 +109,7 @@ export function FeedDetailPanel({
   secondaryAction,
 }: FeedDetailPanelProps) {
   return (
-    <FeedCleanupCard data-feed-detail-panel="" className={cn("border-border/65 bg-card/38 shadow-none", className)}>
+    <FeedDetailCard data-feed-detail-panel="" className={cn("border-border/65 bg-card/38 shadow-none", className)}>
       <div className="space-y-5">
         <div className={cn("grid items-start gap-3", leadingVisual ? "grid-cols-[auto_minmax(0,1fr)]" : "grid-cols-1")}>
           {leadingVisual ? (
@@ -189,7 +189,7 @@ export function FeedDetailPanel({
         <div className="grid gap-4">
           <dl className="grid gap-3.5 border-t border-border/55 pt-3.5 text-sm">
             {metrics.map((metric) => (
-              <FeedCleanupDetailRow key={String(metric.label)} label={metric.label} value={metric.value} />
+              <FeedDetailRow key={String(metric.label)} label={metric.label} value={metric.value} />
             ))}
           </dl>
 
@@ -262,6 +262,6 @@ export function FeedDetailPanel({
           </div>
         ) : null}
       </div>
-    </FeedCleanupCard>
+    </FeedDetailCard>
   );
 }

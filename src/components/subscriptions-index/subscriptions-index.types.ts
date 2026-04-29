@@ -1,15 +1,15 @@
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
-import type { FeedCleanupCandidate, FeedCleanupTone } from "@/lib/feed-cleanup";
+import type { SubscriptionReviewCandidate, SubscriptionReviewTone } from "@/lib/subscription-review-candidates";
 import type { SubscriptionRowStatus } from "@/lib/subscriptions-index";
 
-export type SubscriptionSummaryFilterKey = "all" | "review" | "stale" | "broken";
+export type SubscriptionSummaryFilterKey = "all" | "review" | "stale";
 
 export type SubscriptionSummaryCard = {
   filterKey: SubscriptionSummaryFilterKey;
   label: string;
   value: string;
   caption?: string;
-  tone?: "neutral" | "review" | "stale" | "danger";
+  tone?: "neutral" | "review" | "stale";
   isActive?: boolean;
 };
 
@@ -35,8 +35,8 @@ export type SubscriptionDetailMetrics = {
 };
 
 export type SubscriptionDetailCandidate = {
-  candidate: FeedCleanupCandidate | null;
-  tone: FeedCleanupTone | "neutral";
+  candidate: SubscriptionReviewCandidate | null;
+  tone: SubscriptionReviewTone | "neutral";
   statusLabel: string;
   summary: string | null;
   reasonBoxBody: string | null;

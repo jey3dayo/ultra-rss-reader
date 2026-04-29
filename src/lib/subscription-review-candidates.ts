@@ -1,25 +1,19 @@
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
-import {
-  compareDateInputsAsc,
-  differenceInDays,
-  formatMediumDate,
-  formatShortDate,
-  parseDateInput,
-} from "@/lib/datetime";
+import { compareDateInputsAsc, differenceInDays, parseDateInput } from "@/lib/datetime";
 
-export type FeedCleanupReasonKey = "stale_90d" | "no_unread" | "no_stars";
-export type FeedCleanupTone = "high" | "medium" | "low";
-export type FeedCleanupTitleKey = "review_now" | "consider" | "keep";
-export type FeedCleanupSummaryKey =
+export type SubscriptionReviewReasonKey = "stale_90d" | "no_unread" | "no_stars";
+export type SubscriptionReviewTone = "high" | "medium" | "low";
+export type SubscriptionReviewTitleKey = "review_now" | "consider" | "keep";
+export type SubscriptionReviewSummaryKey =
   | "stale_and_inactive"
   | "stale_with_no_stars"
   | "inactive_without_signals"
   | "stale_but_supported"
   | "healthy_feed";
 
-export type FeedCleanupReasonFactKey = "stale_days" | "unread_count" | "starred_count";
+export type SubscriptionReviewReasonFactKey = "stale_days" | "unread_count" | "starred_count";
 
-export type FeedCleanupCandidate = {
+export type SubscriptionReviewCandidate = {
   feedId: string;
   title: string;
   folderId: string | null;
@@ -28,10 +22,10 @@ export type FeedCleanupCandidate = {
   staleDays: number | null;
   unreadCount: number;
   starredCount: number;
-  reasonKeys: FeedCleanupReasonKey[];
+  reasonKeys: SubscriptionReviewReasonKey[];
 };
 
-export type BuildFeedCleanupCandidatesParams = {
+export type BuildSubscriptionReviewCandidatesParams = {
   feeds: FeedDto[];
   folders: FolderDto[];
   articles: ArticleDto[];
@@ -39,10 +33,10 @@ export type BuildFeedCleanupCandidatesParams = {
   hiddenFeedIds: ReadonlySet<string>;
 };
 
-export function summarizeCleanupCandidate(candidate: FeedCleanupCandidate): {
-  tone: FeedCleanupTone;
-  titleKey: FeedCleanupTitleKey;
-  summaryKey: FeedCleanupSummaryKey;
+export function summarizeSubscriptionReviewCandidate(candidate: SubscriptionReviewCandidate): {
+  tone: SubscriptionReviewTone;
+  titleKey: SubscriptionReviewTitleKey;
+  summaryKey: SubscriptionReviewSummaryKey;
 } {
   const hasStale = candidate.reasonKeys.includes("stale_90d");
   const hasNoUnread = candidate.reasonKeys.includes("no_unread");
@@ -87,11 +81,11 @@ export function summarizeCleanupCandidate(candidate: FeedCleanupCandidate): {
   };
 }
 
-export function buildCleanupReasonFacts(candidate: FeedCleanupCandidate): Array<{
-  key: FeedCleanupReasonFactKey;
+export function buildSubscriptionReviewReasonFacts(candidate: SubscriptionReviewCandidate): Array<{
+  key: SubscriptionReviewReasonFactKey;
   value: number;
 }> {
-  const facts: Array<{ key: FeedCleanupReasonFactKey; value: number }> = [];
+  const facts: Array<{ key: SubscriptionReviewReasonFactKey; value: number }> = [];
 
   if (candidate.reasonKeys.includes("stale_90d") && candidate.staleDays != null) {
     facts.push({ key: "stale_days", value: candidate.staleDays });
@@ -106,21 +100,13 @@ export function buildCleanupReasonFacts(candidate: FeedCleanupCandidate): Array<
   return facts;
 }
 
-export function formatFeedCleanupDate(value: string | null, locale: string): string {
-  return formatMediumDate(value, locale) ?? "—";
-}
-
-export function formatFeedCleanupRecentArticleDate(value: string | null, locale: string): string {
-  return formatShortDate(value, locale) ?? "—";
-}
-
-export function buildFeedCleanupCandidates({
+export function buildSubscriptionReviewCandidates({
   feeds,
   folders,
   articles,
   now,
   hiddenFeedIds,
-}: BuildFeedCleanupCandidatesParams): FeedCleanupCandidate[] {
+}: BuildSubscriptionReviewCandidatesParams): SubscriptionReviewCandidate[] {
   const folderNameById = new Map(folders.map((folder) => [folder.id, folder.name]));
   const articleGroups = new Map<string, ArticleDto[]>();
 
@@ -147,7 +133,7 @@ export function buildFeedCleanupCandidates({
       const latestArticleDate = parseDateInput(latestArticleAt);
       const staleDays = latestArticleDate === null ? null : differenceInDays(now, latestArticleDate);
       const starredCount = feedArticles.filter((article) => article.is_starred).length;
-      const reasonKeys: FeedCleanupReasonKey[] = [];
+      const reasonKeys: SubscriptionReviewReasonKey[] = [];
 
       if (staleDays != null && staleDays >= 90) {
         reasonKeys.push("stale_90d");
@@ -169,7 +155,7 @@ export function buildFeedCleanupCandidates({
         unreadCount: feed.unread_count,
         starredCount,
         reasonKeys,
-      } satisfies FeedCleanupCandidate;
+      } satisfies SubscriptionReviewCandidate;
     })
     .sort((left, right) => {
       const staleDelta = (right.staleDays ?? -1) - (left.staleDays ?? -1);

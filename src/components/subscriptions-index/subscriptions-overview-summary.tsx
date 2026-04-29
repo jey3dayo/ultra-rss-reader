@@ -13,14 +13,6 @@ const summaryToneClassNames = {
     activeBadge: "border-border-strong/70 bg-surface-1 text-foreground",
     activeValue: "text-foreground",
   },
-  danger: {
-    card: "border-state-danger-border/75 bg-state-danger-surface/84",
-    activeCard:
-      "border-state-danger-border/90 bg-state-danger-surface shadow-[var(--subscriptions-summary-active-shadow-danger)] ring-1 ring-[color:var(--subscriptions-summary-active-ring-danger)]",
-    activeAccent: "bg-state-danger-border",
-    activeBadge: "border-state-danger-border/75 bg-state-danger-surface/92 text-state-danger-foreground",
-    activeValue: "text-state-danger-foreground",
-  },
   stale: {
     card: "border-state-warning-border/75 bg-state-warning-surface/84",
     activeCard:
@@ -55,15 +47,9 @@ function resolveSummaryToneClasses(tone: SubscriptionSummaryCard["tone"] = "neut
 export function SubscriptionsOverviewSummary({
   cards,
   onSelectFilter,
-  batchActionLabel,
-  batchActionDescription,
-  onOpenBatchAction,
 }: {
   cards: SubscriptionSummaryCard[];
   onSelectFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
-  batchActionLabel?: string;
-  batchActionDescription?: string;
-  onOpenBatchAction?: (() => void) | null;
 }) {
   const resolveActiveBadgeLabel = () => "表示中";
 
@@ -88,7 +74,7 @@ export function SubscriptionsOverviewSummary({
         backgroundColor: "var(--subscriptions-summary-surface)",
       }}
     >
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[0.96fr_1.12fr_0.96fr_0.96fr] lg:gap-3.5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:gap-3.5">
         {cards.map((card) => {
           const numericValue = Number(card.value);
           const isActionable = Number.isFinite(numericValue);
@@ -193,18 +179,6 @@ export function SubscriptionsOverviewSummary({
           );
         })}
       </div>
-      {batchActionLabel && onOpenBatchAction ? (
-        <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-surface-1/82 px-4 py-2.5">
-          <p className="text-sm text-foreground-soft">{batchActionDescription}</p>
-          <button
-            type="button"
-            className="rounded-md border border-border-strong bg-surface-1 px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-surface-2"
-            onClick={onOpenBatchAction}
-          >
-            {batchActionLabel}
-          </button>
-        </div>
-      ) : null}
     </section>
   );
 }

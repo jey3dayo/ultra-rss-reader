@@ -71,7 +71,6 @@ export function DebugSettings() {
     credentialsBackendValue,
     openWebPreviewUrl,
     openWebPreviewGeometryCheck,
-    runFeedCleanupBrokenReferencesScenario: () => void runScenario(DEV_SCENARIO_ID.openFeedCleanupBrokenReferences),
     runReadingDisplayModeScenario: () => void runScenario(DEV_SCENARIO_ID.openSettingsReadingDisplayMode),
   });
 

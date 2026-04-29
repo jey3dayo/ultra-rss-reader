@@ -689,7 +689,7 @@ export function WorkspaceTwoPaneSpecimen() {
                 <p className="mt-2 text-[2rem] font-semibold tracking-[-0.04em] text-foreground">6</p>
               </div>
               <div className="rounded-md border border-border/70 bg-background/90 px-3 py-3">
-                <p className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">参照エラー</p>
+                <p className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">90日停止</p>
                 <p className="mt-2 text-[2rem] font-semibold tracking-[-0.04em] text-foreground">1</p>
               </div>
             </div>

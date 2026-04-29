@@ -132,16 +132,6 @@ const DEV_SCENARIO_DETAILS: Record<DevScenarioId, Omit<DevScenario, "id">> = {
     keywords: ["add", "feed", "dialog"],
     run: createActionBackedDevScenarioRunner("open-add-feed"),
   },
-  [DEV_SCENARIO_ID.openFeedCleanup]: {
-    title: "Open feed cleanup",
-    keywords: ["feed", "cleanup", "management"],
-    run: createActionBackedDevScenarioRunner("open-feed-cleanup"),
-  },
-  [DEV_SCENARIO_ID.openFeedCleanupBrokenReferences]: {
-    title: "Open feed cleanup broken references",
-    keywords: ["feed", "cleanup", "management", "broken", "references", "integrity"],
-    run: createActionBackedDevScenarioRunner("open-feed-cleanup"),
-  },
   [DEV_SCENARIO_ID.syncAllSmoke]: {
     title: "Sync all smoke",
     keywords: ["sync", "smoke"],

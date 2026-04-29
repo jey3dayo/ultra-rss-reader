@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
-import { buildFeedCleanupCandidates, summarizeCleanupCandidate } from "@/lib/feed-cleanup";
+import {
+  buildSubscriptionReviewCandidates,
+  summarizeSubscriptionReviewCandidate,
+} from "@/lib/subscription-review-candidates";
 
 const feeds: FeedDto[] = [
   {
@@ -102,9 +105,9 @@ const articles: ArticleDto[] = [
   },
 ];
 
-describe("buildFeedCleanupCandidates", () => {
+describe("buildSubscriptionReviewCandidates", () => {
   it("derives one candidate per feed with latest article, folder name, and signal counts", () => {
-    const candidates = buildFeedCleanupCandidates({
+    const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
       articles,
@@ -124,7 +127,7 @@ describe("buildFeedCleanupCandidates", () => {
   });
 
   it("marks stale low-signal feeds with cleanup reasons and sorts the strongest candidate first", () => {
-    const candidates = buildFeedCleanupCandidates({
+    const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
       articles,
@@ -140,7 +143,7 @@ describe("buildFeedCleanupCandidates", () => {
   });
 
   it("excludes candidates removed by keep or later local state", () => {
-    const candidates = buildFeedCleanupCandidates({
+    const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
       articles,
@@ -152,7 +155,7 @@ describe("buildFeedCleanupCandidates", () => {
   });
 
   it("summarizes candidate urgency for the review panel", () => {
-    const candidates = buildFeedCleanupCandidates({
+    const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
       articles,
@@ -167,12 +170,12 @@ describe("buildFeedCleanupCandidates", () => {
       throw new Error("expected cleanup candidates to include review and keep entries");
     }
 
-    expect(summarizeCleanupCandidate(firstCandidate)).toEqual({
+    expect(summarizeSubscriptionReviewCandidate(firstCandidate)).toEqual({
       tone: "high",
       titleKey: "review_now",
       summaryKey: "stale_and_inactive",
     });
-    expect(summarizeCleanupCandidate(thirdCandidate)).toEqual({
+    expect(summarizeSubscriptionReviewCandidate(thirdCandidate)).toEqual({
       tone: "low",
       titleKey: "keep",
       summaryKey: "healthy_feed",

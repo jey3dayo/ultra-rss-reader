@@ -62,7 +62,6 @@ import type {
 import { mockAccounts, mockArticles, mockArticleTags, mockFeeds, mockFolders, mockTags } from "./dev-mock-data";
 import { addHours, getCurrentDate, getCurrentIsoTimestamp, toIsoTimestamp } from "./lib/datetime";
 import { readDevIntent, readDevWebUrl, readDevWindowSize } from "./lib/dev-intent";
-import { DEV_SCENARIO_ID } from "./lib/dev-scenario-ids";
 
 let nextAccountId = 100;
 let nextFeedId = 100;
@@ -135,27 +134,7 @@ export function setupDevMocks() {
   window.__DEV_BROWSER_MOCKS__ = true;
   window.__ULTRA_RSS_BROWSER_MOCKS__ = true;
 
-  const devIntent = readDevIntent();
-  const feedIntegrityReport =
-    devIntent === DEV_SCENARIO_ID.openFeedCleanupBrokenReferences
-      ? {
-          orphaned_article_count: 3,
-          orphaned_feeds: [
-            {
-              missing_feed_id: "ghost-feed-001",
-              article_count: 2,
-              latest_article_title: "Broken article from archived source",
-              latest_article_published_at: "2026-03-29T12:00:00.000Z",
-            },
-            {
-              missing_feed_id: "ghost-feed-002",
-              article_count: 1,
-              latest_article_title: "Another broken entry",
-              latest_article_published_at: "2026-03-27T09:30:00.000Z",
-            },
-          ],
-        }
-      : { orphaned_article_count: 0, orphaned_feeds: [] };
+  const feedIntegrityReport = { orphaned_article_count: 0, orphaned_feeds: [] };
 
   console.info("[dev-mocks] Tauri not detected, injecting mock IPC with rich data for browser debugging");
 

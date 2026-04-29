@@ -48,7 +48,6 @@ type ArticleViewEmptyState = {
 
 export type ArticleViewSelectionState =
   | { kind: "subscriptions-index" }
-  | { kind: "feed-cleanup" }
   | { kind: "browser-only"; browserUrl: string }
   | ArticleViewEmptyState
   | { kind: "not-found" }
@@ -102,10 +101,6 @@ export function useArticleViewSelection(): ArticleViewSelectionState {
 
   if (subscriptionsWorkspace?.kind === "index") {
     return { kind: "subscriptions-index" };
-  }
-
-  if (subscriptionsWorkspace?.kind === "cleanup") {
-    return { kind: "feed-cleanup" };
   }
 
   if (contentMode === "browser" && browserUrl && !selectedArticleId) {

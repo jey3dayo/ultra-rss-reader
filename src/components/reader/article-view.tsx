@@ -13,11 +13,6 @@ import { readerPassiveCardClassName, readerPassiveCardOffsetClassName } from "./
 import { type ArticleViewSummaryState, useArticleViewSelection } from "./use-article-view-selection";
 import { useArticleViewUiState } from "./use-article-view-ui-state";
 
-const LazyFeedCleanupPage = lazy(async () => {
-  const mod = await import("../feed-cleanup/feed-cleanup-page");
-  return { default: mod.FeedCleanupPage };
-});
-
 const LazySubscriptionsIndexPage = lazy(async () => {
   const mod = await import("../subscriptions-index/subscriptions-index-page");
   return { default: mod.SubscriptionsIndexPage };
@@ -265,14 +260,6 @@ export function ArticleView() {
     return (
       <Suspense fallback={null}>
         <LazySubscriptionsIndexPage />
-      </Suspense>
-    );
-  }
-
-  if (selectionState.kind === "feed-cleanup") {
-    return (
-      <Suspense fallback={null}>
-        <LazyFeedCleanupPage />
       </Suspense>
     );
   }

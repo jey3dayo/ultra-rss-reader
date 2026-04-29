@@ -23,14 +23,14 @@ import { sampleAccounts, sampleArticles, sampleFeeds, setupTauriMocks } from "..
 
 const devScenarioFixtures = [
   {
-    id: "open-feed-cleanup-broken-references",
-    title: "Open feed cleanup broken references",
-    keywords: ["feed", "cleanup", "broken", "references"],
-  },
-  {
     id: "open-add-feed-dialog",
     title: "Open add feed dialog",
     keywords: ["add", "feed", "dialog"],
+  },
+  {
+    id: "open-subscriptions-index",
+    title: "Open subscriptions index",
+    keywords: ["subscriptions", "workspace"],
   },
 ] as const;
 
@@ -183,7 +183,7 @@ describe("CommandPalette", () => {
     await user.click(await screen.findByRole("option", { name: /Manage Subscriptions/ }));
 
     await waitFor(() => {
-      expect(useUiStore.getState().subscriptionsWorkspace).toEqual({ kind: "index", cleanupContext: null });
+      expect(useUiStore.getState().subscriptionsWorkspace).toMatchObject({ kind: "index" });
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
     });
   });
@@ -261,7 +261,7 @@ describe("CommandPalette", () => {
 
     expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
     expect(screen.queryByText("Dev Scenarios")).not.toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: /Open feed cleanup broken references/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Open add feed dialog/ })).not.toBeInTheDocument();
     expect(loadCommandPaletteDevScenariosMock).not.toHaveBeenCalled();
 
     first.unmount();
@@ -270,7 +270,7 @@ describe("CommandPalette", () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     expect(await screen.findByText("Dev Scenarios", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /Open feed cleanup broken references/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Open add feed dialog/ })).toBeInTheDocument();
     expect(loadCommandPaletteDevScenariosMock).toHaveBeenCalledTimes(1);
   });
 
@@ -281,16 +281,16 @@ describe("CommandPalette", () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     const input = await screen.findByPlaceholderText("Search commands…");
-    await user.type(input, "broken");
-
-    expect(await screen.findByRole("option", { name: /Open feed cleanup broken references/ })).toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: /Open add feed dialog/ })).not.toBeInTheDocument();
-
-    await user.clear(input);
-    await user.type(input, "dialog");
+    await user.type(input, "add");
 
     expect(await screen.findByRole("option", { name: /Open add feed dialog/ })).toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: /Open feed cleanup broken references/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Open subscriptions index/ })).not.toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, "subscriptions");
+
+    expect(await screen.findByRole("option", { name: /Open subscriptions index/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Open add feed dialog/ })).not.toBeInTheDocument();
   });
 
   it("shows a dev-only restart action and executes it", async () => {
@@ -317,10 +317,10 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("option", { name: /Open feed cleanup broken references/ }));
+    await user.click(await screen.findByRole("option", { name: /Open add feed dialog/ }));
 
     await waitFor(() => {
-      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("open-feed-cleanup-broken-references");
+      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("open-add-feed-dialog");
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
       expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBeNull();
     });
@@ -334,11 +334,11 @@ describe("CommandPalette", () => {
     render(<CommandPalette />, { wrapper: createWrapper() });
 
     const input = await screen.findByPlaceholderText("Search commands…");
-    await user.type(input, "broken");
-    await user.click(await screen.findByRole("option", { name: /Open feed cleanup broken references/ }));
+    await user.type(input, "add");
+    await user.click(await screen.findByRole("option", { name: /Open add feed dialog/ }));
 
     await waitFor(() => {
-      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("open-feed-cleanup-broken-references");
+      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("open-add-feed-dialog");
       expect(localStorage.getItem(STORAGE_KEYS.commandHistory)).toBe(JSON.stringify(["action:open-settings"]));
     });
   });
@@ -350,13 +350,13 @@ describe("CommandPalette", () => {
 
     render(<CommandPalette />, { wrapper: createWrapper() });
 
-    await user.click(await screen.findByRole("option", { name: /Open feed cleanup broken references/ }));
+    await user.click(await screen.findByRole("option", { name: /Open add feed dialog/ }));
 
     await waitFor(() => {
-      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("open-feed-cleanup-broken-references");
+      expect(runCommandPaletteDevScenarioMock).toHaveBeenCalledWith("open-add-feed-dialog");
       expect(useUiStore.getState().commandPaletteOpen).toBe(false);
       expect(useUiStore.getState().toastMessage).toEqual({
-        message: 'Failed to run dev scenario "open-feed-cleanup-broken-references": boom',
+        message: 'Failed to run dev scenario "open-add-feed-dialog": boom',
       });
     });
   });

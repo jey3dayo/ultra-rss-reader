@@ -26,7 +26,6 @@ export type AppAction =
   | "open-settings-accounts-add-freshrss"
   | "open-add-feed"
   | "open-subscriptions-index"
-  | "open-feed-cleanup"
   | "open-command-palette"
   | "restart-app"
   | "prev-article"
@@ -64,7 +63,6 @@ const appActions = new Set<string>([
   "open-settings-accounts-add-freshrss",
   "open-add-feed",
   "open-subscriptions-index",
-  "open-feed-cleanup",
   "open-command-palette",
   "restart-app",
   "prev-article",
@@ -297,9 +295,6 @@ export function executeAction(action: AppAction): void {
       break;
     case "open-subscriptions-index":
       store.openSubscriptionsIndex();
-      break;
-    case "open-feed-cleanup":
-      store.openFeedCleanup({ reason: "review", returnTo: "index" });
       break;
     case "open-command-palette":
       store.toggleCommandPalette();

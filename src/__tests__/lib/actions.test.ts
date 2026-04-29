@@ -177,18 +177,7 @@ describe("executeAction", () => {
       executeAction("open-subscriptions-index");
       expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
         kind: "index",
-        cleanupContext: null,
       });
-      expect(useUiStore.getState().focusedPane).toBe("content");
-    });
-
-    it("opens the feed cleanup workspace with default review context", () => {
-      executeAction("open-feed-cleanup");
-      expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
-        kind: "cleanup",
-        cleanupContext: { reason: "review", returnTo: "index" },
-      });
-      expect("feedCleanupOpen" in useUiStore.getState()).toBe(false);
       expect(useUiStore.getState().focusedPane).toBe("content");
     });
   });
@@ -686,11 +675,11 @@ describe("executeAction", () => {
       expect(isAppAction("restart-app")).toBe(true);
       expect(isAppAction("set-theme-dark")).toBe(true);
       expect(isAppAction("open-subscriptions-index")).toBe(true);
-      expect(isAppAction("open-feed-cleanup")).toBe(true);
     });
 
     it("returns false for unknown actions", () => {
       expect(isAppAction("unknown-action")).toBe(false);
+      expect(isAppAction("open-feed-cleanup")).toBe(false);
       expect(isAppAction("")).toBe(false);
     });
   });

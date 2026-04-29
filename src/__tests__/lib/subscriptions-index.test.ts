@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { ArticleDto, FeedDto, FeedIntegrityReportDto, FolderDto } from "@/api/tauri-commands";
-import { buildFeedCleanupCandidates } from "@/lib/feed-cleanup";
+import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
+import { buildSubscriptionReviewCandidates } from "@/lib/subscription-review-candidates";
 import {
-  buildCleanupCandidateMap,
   buildSubscriptionDetailMetrics,
+  buildSubscriptionReviewCandidateMap,
   buildSubscriptionsIndexSummary,
   resolveSubscriptionRowStatus,
 } from "@/lib/subscriptions-index";
@@ -132,21 +132,9 @@ const articles: ArticleDto[] = [
   },
 ];
 
-const integrityReport: FeedIntegrityReportDto = {
-  orphaned_article_count: 3,
-  orphaned_feeds: [
-    {
-      missing_feed_id: "missing-feed",
-      article_count: 3,
-      latest_article_title: "Broken latest post",
-      latest_article_published_at: "2026-03-15T12:00:00Z",
-    },
-  ],
-};
-
 describe("subscriptions index helpers", () => {
-  it("builds summary counts from all feeds, cleanup candidates, and integrity report", () => {
-    const candidates = buildFeedCleanupCandidates({
+  it("builds summary counts from all feeds and review candidates", () => {
+    const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
       articles,
@@ -154,42 +142,38 @@ describe("subscriptions index helpers", () => {
       hiddenFeedIds: new Set(),
     });
 
-    expect(buildSubscriptionsIndexSummary({ feeds, candidates, integrityReport })).toEqual({
+    expect(buildSubscriptionsIndexSummary({ feeds, candidates })).toEqual({
       totalCount: 4,
       reviewCount: 3,
       staleCount: 2,
-      brokenReferenceCount: 3,
     });
   });
 
-  it("derives row status from cleanup candidates only", () => {
-    const candidates = buildFeedCleanupCandidates({
+  it("derives row status from review candidates only", () => {
+    const candidates = buildSubscriptionReviewCandidates({
       feeds,
       folders,
       articles,
       now: new Date("2026-04-05T00:00:00Z"),
       hiddenFeedIds: new Set(),
     });
-    const candidateMap = buildCleanupCandidateMap(candidates);
+    const candidateMap = buildSubscriptionReviewCandidateMap(candidates);
 
     expect(
       resolveSubscriptionRowStatus({
         candidate: candidateMap.get("feed-stale"),
-        integrityReport,
       }),
     ).toEqual({ tone: "medium", labelKey: "stale_90d" });
 
     expect(
       resolveSubscriptionRowStatus({
         candidate: candidateMap.get("feed-active"),
-        integrityReport,
       }),
     ).toEqual({ tone: "neutral", labelKey: "normal" });
 
     expect(
       resolveSubscriptionRowStatus({
         candidate: candidateMap.get("feed-broken"),
-        integrityReport,
       }),
     ).toEqual({ tone: "medium", labelKey: "no_unread" });
   });

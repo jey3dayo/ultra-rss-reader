@@ -34,23 +34,15 @@ describe("useUiStore", () => {
     expect(useUiStore.getState().commandPaletteOpen).toBe(false);
   });
 
-  it("opens subscriptions index and cleanup as explicit workspaces", () => {
+  it("opens and closes the subscriptions index workspace", () => {
     expect(useUiStore.getState().subscriptionsWorkspace).toBeNull();
     expect("feedCleanupOpen" in useUiStore.getState()).toBe(false);
 
     useUiStore.getState().openSubscriptionsIndex();
     expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
       kind: "index",
-      cleanupContext: null,
     });
     expect(useUiStore.getState().focusedPane).toBe("content");
-    expect("feedCleanupOpen" in useUiStore.getState()).toBe(false);
-
-    useUiStore.getState().openFeedCleanup({ reason: "stale_90d", returnTo: "index" });
-    expect(useUiStore.getState().subscriptionsWorkspace).toEqual({
-      kind: "cleanup",
-      cleanupContext: { reason: "stale_90d", returnTo: "index" },
-    });
     expect("feedCleanupOpen" in useUiStore.getState()).toBe(false);
 
     useUiStore.getState().closeSubscriptionsWorkspace();
