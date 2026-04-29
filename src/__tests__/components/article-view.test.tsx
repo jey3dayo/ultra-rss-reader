@@ -1769,6 +1769,9 @@ describe("ArticleView", () => {
 
     const summary = await screen.findByTestId("article-selection-summary");
     expect(summary).toHaveClass("-translate-y-[14%]", "md:-translate-y-[16%]");
+    expect(
+      within(summary).getByRole("heading", { level: 3, name: "Tech Blog" }).closest('[data-surface-card="section"]'),
+    ).toHaveClass("rounded-3xl", "bg-card/38", "shadow-none", "dark:bg-card/38");
     expect(within(summary).getByRole("heading", { level: 3, name: "Tech Blog" })).toBeInTheDocument();
     expect(within(summary).getByText("Latest Article")).toBeInTheDocument();
     expect(within(summary).getByText("First Article")).toBeInTheDocument();

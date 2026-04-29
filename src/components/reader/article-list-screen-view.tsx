@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { ArticleGroupsView, type ArticleGroupsViewGroup } from "./article-groups-view";
 import type { ArticleListEmptyStateVariant } from "./article-list.types";
+import { ReaderPassiveCard } from "./reader-passive-card";
 
 export type ArticleListScreenViewProps = {
   listAriaLabel: string;
@@ -70,12 +71,12 @@ export function ArticleListScreenView({
       <ScrollArea className="h-full" viewportRef={viewportRef}>
         <div className={cn("h-full", isHiddenEmptyState ? "" : "flex items-center justify-center p-6")}>
           {isHiddenEmptyState ? null : (
-            <div
+            <ReaderPassiveCard
               className={cn(
                 "w-full max-w-sm px-5 py-6 text-left",
                 isSetupEmptyState
                   ? "rounded-2xl border border-border/65 bg-surface-1/48 shadow-[0_18px_48px_-40px_rgba(38,37,30,0.18)] dark:border-border/75 dark:bg-[rgba(38,34,29,0.52)] dark:shadow-none"
-                  : "rounded-3xl border border-border/80 bg-[linear-gradient(180deg,rgba(247,247,244,0.94)_0%,rgba(235,234,229,0.86)_100%)] shadow-[0_24px_56px_-40px_rgba(38,37,30,0.26)] dark:border-border/90 dark:bg-[linear-gradient(180deg,rgba(38,34,29,0.96)_0%,rgba(28,25,21,0.92)_100%)] dark:shadow-[0_32px_88px_-52px_rgba(0,0,0,0.62)]",
+                  : undefined,
               )}
             >
               {isSetupEmptyState ? null : (
@@ -105,7 +106,7 @@ export function ArticleListScreenView({
                   {emptyActionLabel}
                 </Button>
               ) : null}
-            </div>
+            </ReaderPassiveCard>
           )}
         </div>
       </ScrollArea>

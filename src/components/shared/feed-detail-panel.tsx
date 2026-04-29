@@ -26,6 +26,7 @@ const EMPTY_LINKS: FeedDetailLink[] = [];
 
 type FeedDetailPanelProps = {
   title: string;
+  className?: string;
   titleHref?: string | null;
   badgeLabel?: string;
   badgeTone?: FeedDetailTone;
@@ -92,6 +93,7 @@ function resolveReasonBoxClassName(tone: FeedDetailTone) {
 
 export function FeedDetailPanel({
   title,
+  className,
   titleHref = null,
   badgeLabel,
   badgeTone = "neutral",
@@ -107,7 +109,7 @@ export function FeedDetailPanel({
   secondaryAction,
 }: FeedDetailPanelProps) {
   return (
-    <FeedCleanupCard data-feed-detail-panel="" className="border-border/65 bg-card/38 shadow-none">
+    <FeedCleanupCard data-feed-detail-panel="" className={cn("border-border/65 bg-card/38 shadow-none", className)}>
       <div className="space-y-5">
         <div className={cn("grid items-start gap-3", leadingVisual ? "grid-cols-[auto_minmax(0,1fr)]" : "grid-cols-1")}>
           {leadingVisual ? (

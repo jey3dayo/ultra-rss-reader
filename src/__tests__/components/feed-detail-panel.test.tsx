@@ -100,4 +100,20 @@ describe("FeedDetailPanel", () => {
     expect(screen.getByText("整理候補").closest("span")).toHaveClass("rounded-md");
     expect(screen.getByText("未読 0件").closest("span")).toHaveAttribute("data-label-chip", "neutral");
   });
+
+  it("allows reader shells to share the detail panel surface treatment", () => {
+    render(
+      <FeedDetailPanel
+        title="Example Feed"
+        className="rounded-3xl bg-card/38"
+        metrics={[{ label: "フォルダ", value: "Work" }]}
+        recentArticlesHeading="最近の記事"
+        recentArticles={[]}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Example Feed" }).closest('[data-surface-card="section"]'),
+    ).toHaveClass("rounded-3xl", "bg-card/38");
+  });
 });

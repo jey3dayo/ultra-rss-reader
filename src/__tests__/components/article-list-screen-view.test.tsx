@@ -51,9 +51,11 @@ describe("ArticleListScreenView", () => {
 
     expect(screen.getByText("No articles")).toBeInTheDocument();
     expect(container.querySelector(".rounded-3xl")).toHaveClass(
+      "bg-card/38",
+      "shadow-none",
       "dark:border-border/90",
-      "dark:bg-[linear-gradient(180deg,rgba(38,34,29,0.96)_0%,rgba(28,25,21,0.92)_100%)]",
-      "dark:shadow-[0_32px_88px_-52px_rgba(0,0,0,0.62)]",
+      "dark:bg-card/38",
+      "dark:shadow-none",
     );
 
     rerender(
