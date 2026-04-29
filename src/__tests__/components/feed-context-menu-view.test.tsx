@@ -35,6 +35,7 @@ describe("FeedContextMenuView", () => {
     );
 
     expect(screen.getByRole("menuitem", { name: "Edit…" }).closest("[data-side]")).toHaveClass(
+      "motion-popup-surface",
       "bg-surface-2/96",
       "shadow-elevation-3",
     );

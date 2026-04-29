@@ -56,14 +56,19 @@ describe("Design-themed UI primitives", () => {
     expect(screen.getByRole("combobox", { name: "Theme" })).toHaveClass("bg-surface-1", "border-border");
     expect(globalCss).toContain("--motion-duration-disclosure: 200ms;");
     expect(globalCss).toContain("--motion-duration-popup: 160ms;");
+    expect(globalCss).toContain("--motion-duration-resize: 260ms;");
     expect(globalCss).toContain("--motion-duration-contextual: 180ms;");
     expect(globalCss).toContain("--motion-duration-content-swap: 180ms;");
     expect(globalCss).toContain("--motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);");
+    expect(globalCss).toContain("--motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);");
     expect(globalCss).toContain(".motion-disclosure-panel");
     expect(globalCss).toContain(".motion-contextual-surface");
     expect(globalCss).toContain(".motion-static-hover-surface");
     expect(globalCss).toContain(".motion-content-swap");
+    expect(globalCss).toContain(".motion-resize-surface");
     expect(globalCss).toContain(".motion-popup-surface");
+    expect(globalCss).toContain('.motion-popup-surface[data-side="top"]');
+    expect(globalCss).toContain(".motion-popup-surface[data-starting-style]");
     expect(globalCss).toContain(".motion-disclosure-trigger:hover");
     expect(globalCss).not.toContain("transform: translateY(-1px);");
     expect(globalCss).not.toContain(
@@ -73,6 +78,7 @@ describe("Design-themed UI primitives", () => {
     expect(globalCss).toContain(".motion-contextual-surface:focus-within");
     expect(globalCss).toContain('.motion-content-swap[data-motion-phase="entering"]');
     expect(globalCss).toContain("@keyframes motion-content-swap-enter");
+    expect(globalCss).toContain("@media (prefers-reduced-motion: reduce)");
   });
 
   it("uses semantic danger borders for invalid field states", () => {

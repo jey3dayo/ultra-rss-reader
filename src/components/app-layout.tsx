@@ -36,10 +36,12 @@ function SlidingPaneLayout({
         <div
           data-testid="compact-account-pane-shell"
           className={cn(
-            "h-full shrink-0 overflow-hidden border-r border-border bg-background transition-[width,opacity,transform] duration-200 ease-out motion-reduce:transition-none",
+            "motion-resize-surface h-full shrink-0 overflow-hidden border-r border-border bg-background",
             shouldShowAccountPane ? "opacity-100 translate-x-0" : "pointer-events-none -translate-x-2 opacity-0",
           )}
-          style={{ width: shouldShowAccountPane ? `${ACCOUNT_PANE_WIDTH_PX}px` : "0px" }}
+          style={{
+            width: shouldShowAccountPane ? `${ACCOUNT_PANE_WIDTH_PX}px` : "0px",
+          }}
           aria-hidden={!shouldShowAccountPane}
           {...(!shouldShowAccountPane ? { inert: true } : {})}
         >
@@ -141,12 +143,14 @@ function WideLayout({
           <div
             data-testid="wide-account-pane-shell"
             className={cn(
-              "shrink-0 overflow-hidden border-r transition-[width,opacity,transform,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              "motion-resize-surface shrink-0 overflow-hidden border-r",
               shouldShowAccountPane
                 ? "border-border opacity-100 translate-x-0"
                 : "border-transparent opacity-0 -translate-x-3",
             )}
-            style={{ width: shouldShowAccountPane ? `${ACCOUNT_PANE_WIDTH_PX}px` : "0px" }}
+            style={{
+              width: shouldShowAccountPane ? `${ACCOUNT_PANE_WIDTH_PX}px` : "0px",
+            }}
           >
             <div
               data-testid="wide-account-pane-content"
@@ -161,12 +165,14 @@ function WideLayout({
           <div
             data-testid="wide-sidebar-shell"
             className={cn(
-              "shrink-0 overflow-hidden border-r transition-[width,opacity,transform,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              "motion-resize-surface shrink-0 overflow-hidden border-r",
               shouldShowSidebar
                 ? "border-border opacity-100 translate-x-0"
                 : "border-transparent opacity-0 -translate-x-3",
             )}
-            style={{ width: shouldShowSidebar ? `${SIDEBAR_PANE_WIDTH_PX}px` : "0px" }}
+            style={{
+              width: shouldShowSidebar ? `${SIDEBAR_PANE_WIDTH_PX}px` : "0px",
+            }}
           >
             <div
               data-testid="wide-sidebar-content"

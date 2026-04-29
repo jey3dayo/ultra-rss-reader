@@ -5,6 +5,7 @@ import { ToggleGroup } from "@base-ui/react/toggle-group";
 import { AlertTriangle, BookOpen, Check, Clock3, List, Palette, Settings2, Trash2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
+import { contextMenuStyles } from "@/components/reader/context-menu-styles";
 import { FolderSectionView } from "@/components/reader/folder-section";
 import { AccountConnectionSummary } from "@/components/settings/account-connection-summary";
 import { AccountsNavView } from "@/components/settings/accounts-nav-view";
@@ -68,9 +69,24 @@ const REFERENCE_FILTER_TONE_CLASSNAMES = {
 } as const;
 
 const REFERENCE_NAV_ITEMS: SettingsNavItem[] = [
-  { id: "general", label: "General", icon: <Settings2 className="h-4 w-4" />, isActive: true },
-  { id: "appearance", label: "Appearance", icon: <Palette className="h-4 w-4" />, isActive: false },
-  { id: "reading", label: "Reading", icon: <BookOpen className="h-4 w-4" />, isActive: false },
+  {
+    id: "general",
+    label: "General",
+    icon: <Settings2 className="h-4 w-4" />,
+    isActive: true,
+  },
+  {
+    id: "appearance",
+    label: "Appearance",
+    icon: <Palette className="h-4 w-4" />,
+    isActive: false,
+  },
+  {
+    id: "reading",
+    label: "Reading",
+    icon: <BookOpen className="h-4 w-4" />,
+    isActive: false,
+  },
 ];
 
 const ACCOUNT_CARDS: AccountNavItem[] = [
@@ -645,7 +661,11 @@ export function DetailPanelSpecimen() {
               url: "https://example.com/article",
             },
           ]}
-          primaryAction={{ label: "フィードを編集", onClick: () => {}, ariaLabel: "フィードを編集" }}
+          primaryAction={{
+            label: "フィードを編集",
+            onClick: () => {},
+            ariaLabel: "フィードを編集",
+          }}
           reasonChips={["一度見ておきたい購読"]}
         />
       </div>
@@ -720,7 +740,11 @@ export function WorkspaceTwoPaneSpecimen() {
                 url: "https://example.com/article",
               },
             ]}
-            primaryAction={{ label: "フィードを編集", onClick: () => {}, ariaLabel: "フィードを編集" }}
+            primaryAction={{
+              label: "フィードを編集",
+              onClick: () => {},
+              ariaLabel: "フィードを編集",
+            }}
             reasonChips={["一度見ておきたい購読"]}
           />
         </div>
@@ -1017,6 +1041,113 @@ export function ShellExamplesSpecimen() {
               </div>
               <div className="my-1 h-px bg-border" />
               <div className="flex w-full items-center rounded-md px-3 py-1.5">Unsubscribe…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </SurfaceCard>
+  );
+}
+
+export function MotionTransitionsSpecimen() {
+  const [expanded, setExpanded] = useState(false);
+  const [popupOpen, setPopupOpen] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(true);
+
+  return (
+    <SurfaceCard variant="section">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <SectionHeading>Motion surfaces</SectionHeading>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={() => setExpanded((value) => !value)}>
+            Resize
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setPopupOpen((value) => !value)}>
+            Popup
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setDialogOpen((value) => !value)}>
+            Dialog
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 xl:grid-cols-3">
+        <div className="rounded-lg border border-border/70 bg-background/70 p-4">
+          <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-foreground/58">Resize surface</div>
+          <div
+            className={cn(
+              "motion-resize-surface overflow-hidden rounded-lg border border-border bg-surface-2 shadow-elevation-1",
+              expanded ? "h-[168px] max-w-[360px]" : "h-[112px] max-w-[250px]",
+            )}
+          >
+            <div className="flex h-full min-w-[250px] flex-col justify-between p-4">
+              <div>
+                <div className="mb-1 text-sm font-medium text-foreground">Account pane</div>
+                <p className="max-w-[18rem] font-serif text-xs leading-[1.45] text-foreground/62">
+                  Width and height changes share the same measured desktop rhythm.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <span className="h-1.5 w-16 rounded-full bg-primary/45" />
+                <span className="h-1.5 w-10 rounded-full bg-border-strong/45" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border/70 bg-background/70 p-4">
+          <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-foreground/58">Popup surface</div>
+          <Button size="sm" variant="outline" aria-expanded={popupOpen}>
+            Feed
+          </Button>
+          <div
+            data-side="bottom"
+            {...(popupOpen ? { "data-open": "" } : { "data-closed": "" })}
+            className={cn(contextMenuStyles.popup, "mt-3 w-[220px]")}
+          >
+            <div className={contextMenuStyles.item}>Edit...</div>
+            <div className={contextMenuStyles.item}>Open site</div>
+            <div className={contextMenuStyles.item}>Mark all as read</div>
+            <div className={contextMenuStyles.separator} />
+            <div className="px-3 py-1 text-xs font-medium text-foreground-soft">Display mode</div>
+            <div className={contextMenuStyles.item}>
+              <span className="mr-2 inline-flex w-4 justify-center">
+                <Check className="h-3 w-3" />
+              </span>
+              Preview
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border/70 bg-background/70 p-4">
+          <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-foreground/58">Dialog and popover</div>
+          <div className="relative h-[210px] overflow-hidden rounded-lg border border-border/70 bg-surface-1/80">
+            <div
+              className="motion-popup-overlay absolute inset-0 bg-dialog-overlay bg-dialog-scrim"
+              {...(dialogOpen ? { "data-open": "" } : { "data-closed": "" })}
+            />
+            <div
+              role="dialog"
+              aria-label="Motion specimen dialog"
+              className="motion-popup-dialog absolute top-1/2 left-1/2 grid w-[230px] gap-3 rounded-xl border border-border bg-surface-2 p-4 text-sm text-popover-foreground shadow-elevation-3"
+              {...(dialogOpen ? { "data-open": "" } : { "data-closed": "" })}
+            >
+              <div className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15">
+                  <Clock3 className="h-4 w-4 text-primary" />
+                </span>
+                <div className="font-medium">Sync complete</div>
+              </div>
+              <p className="font-serif text-xs leading-[1.45] text-foreground/62">
+                Dialog motion stays centered and quieter than the surrounding chrome.
+              </p>
+            </div>
+            <div
+              data-side="top"
+              {...(popupOpen ? { "data-open": "" } : { "data-closed": "" })}
+              className="motion-popup-surface absolute right-4 bottom-4 rounded-md border border-border/70 bg-surface-1/96 px-2 py-1 text-xs text-foreground shadow-elevation-1"
+            >
+              Copy link
             </div>
           </div>
         </div>

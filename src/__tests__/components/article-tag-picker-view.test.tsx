@@ -35,13 +35,16 @@ describe("ArticleTagPickerView", () => {
       />,
     );
 
-    const removeButton = screen.getByRole("button", { name: "Remove tag Later" });
+    const removeButton = screen.getByRole("button", {
+      name: "Remove tag Later",
+    });
     const addTagButton = screen.getByRole("button", { name: "Add tag" });
     expect(removeButton).toHaveClass("size-4");
     expect(screen.queryByText("Tags")).not.toBeInTheDocument();
     expect(addTagButton).not.toHaveClass("size-8");
     expect(addTagButton).toHaveClass("min-h-6", "rounded-full", "border", "bg-surface-2/88", "text-foreground");
     expect(screen.getByRole("listbox", { name: "Available tags" })).toHaveClass(
+      "motion-popup-surface",
       "rounded-lg",
       "bg-surface-2",
       "shadow-elevation-3",

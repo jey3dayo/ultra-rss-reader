@@ -3,6 +3,7 @@ import {
   AnnotatedNote,
   LeftBandShellSpecimen,
   MainContentShellSpecimen,
+  MotionTransitionsSpecimen,
   ReferencePage,
   ShellExamplesSpecimen,
 } from "@/components/storybook/ui-reference-canvas-specimens";
@@ -24,6 +25,7 @@ export function ShellOverlayCanvas() {
             />
           </MainContentShellSpecimen>
         </div>
+        <MotionTransitionsSpecimen />
         <ShellExamplesSpecimen />
       </div>
     </ReferencePage>

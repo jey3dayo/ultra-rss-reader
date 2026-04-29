@@ -22,7 +22,9 @@ export function ArticleTagPickerPopover({
       id={pickerId}
       role="listbox"
       aria-label={labels.availableTags}
-      className="absolute top-full left-0 z-50 mt-2 min-w-[220px] rounded-lg border border-border/70 bg-surface-2 p-1.5 shadow-elevation-3"
+      data-open
+      data-side="bottom"
+      className="motion-popup-surface absolute top-full left-0 z-50 mt-2 min-w-[220px] rounded-lg border border-border/70 bg-surface-2 p-1.5 shadow-elevation-3"
       onKeyDown={onListboxKeyDown}
     >
       {availableTags.map((tag, index) => (

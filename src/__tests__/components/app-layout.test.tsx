@@ -84,7 +84,7 @@ describe("AppLayout", () => {
 
     const shell = screen.getByTestId("wide-sidebar-shell");
 
-    expect(shell).toHaveClass("transition-[width,opacity,transform,border-color]");
+    expect(shell).toHaveClass("motion-resize-surface");
     expect(shell).toHaveClass("opacity-0");
     expect(shell).toHaveStyle({ width: "0px" });
     const sidebarContent = screen.getByTestId("wide-sidebar-content");
@@ -102,8 +102,12 @@ describe("AppLayout", () => {
 
     render(<AppLayout />);
 
-    expect(screen.getByTestId("wide-sidebar-shell")).toHaveStyle({ width: `${SIDEBAR_PANE_WIDTH_PX}px` });
-    expect(screen.getByTestId("wide-sidebar-content")).toHaveStyle({ width: `${SIDEBAR_PANE_WIDTH_PX}px` });
+    expect(screen.getByTestId("wide-sidebar-shell")).toHaveStyle({
+      width: `${SIDEBAR_PANE_WIDTH_PX}px`,
+    });
+    expect(screen.getByTestId("wide-sidebar-content")).toHaveStyle({
+      width: `${SIDEBAR_PANE_WIDTH_PX}px`,
+    });
     expect(screen.getByTestId("main-stage").firstElementChild).toHaveStyle({
       width: `${ARTICLE_LIST_PANE_WIDTH_PX}px`,
     });
@@ -121,7 +125,7 @@ describe("AppLayout", () => {
     render(<AppLayout />);
 
     const shell = screen.getByTestId("wide-account-pane-shell");
-    expect(shell).toHaveClass("transition-[width,opacity,transform,border-color]");
+    expect(shell).toHaveClass("motion-resize-surface");
     expect(shell).toHaveClass("opacity-0");
     expect(shell).toHaveStyle({ width: "0px" });
     expect(screen.getByTestId("wide-account-pane-content")).toHaveAttribute("aria-hidden", "true");
@@ -141,7 +145,9 @@ describe("AppLayout", () => {
     render(<AppLayout />);
 
     expect(screen.getByTestId("wide-account-pane-shell")).toHaveClass("opacity-100", "translate-x-0");
-    expect(screen.getByTestId("wide-account-pane-shell")).not.toHaveStyle({ width: "0px" });
+    expect(screen.getByTestId("wide-account-pane-shell")).not.toHaveStyle({
+      width: "0px",
+    });
     expect(screen.getByTestId("wide-account-pane-content")).not.toHaveAttribute("aria-hidden", "true");
   });
 
@@ -156,6 +162,7 @@ describe("AppLayout", () => {
     render(<AppLayout />);
 
     const shell = screen.getByTestId("compact-account-pane-shell");
+    expect(shell).toHaveClass("motion-resize-surface");
     expect(shell).toHaveClass("opacity-100", "translate-x-0");
     expect(shell).toHaveStyle({ width: `${ACCOUNT_PANE_WIDTH_PX}px` });
     expect(shell).not.toHaveAttribute("aria-hidden", "true");
