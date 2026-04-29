@@ -255,7 +255,9 @@ export function SettingsModalView({
               contentClassName="pr-3"
               className={cn("h-full min-h-0", !contentHasOverflow && HIDDEN_SCROLLBAR_CLASS)}
             >
-              {content}
+              <div data-testid="settings-content-motion" data-motion-phase="entering" className="motion-content-swap">
+                {content}
+              </div>
             </ScrollArea>
             {contentHasOverflow ? (
               <div

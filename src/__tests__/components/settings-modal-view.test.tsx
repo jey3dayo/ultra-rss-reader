@@ -86,6 +86,8 @@ describe("SettingsModalView", () => {
     expect(screen.getAllByTestId("accounts-nav")).toHaveLength(2);
     expect(screen.getAllByTestId("accounts-nav")[0]).toHaveTextContent("Accounts navigation");
     expect(screen.getByText("Settings content")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-content-motion")).toHaveAttribute("data-motion-phase", "entering");
+    expect(screen.getByTestId("settings-content-motion")).toHaveClass("motion-content-swap");
 
     fireEvent.click(screen.getByRole("button", { name: "Close preferences" }));
 
