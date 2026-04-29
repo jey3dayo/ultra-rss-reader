@@ -78,10 +78,6 @@ export function isSameLocalDay(left: Date, right: Date): boolean {
   );
 }
 
-export function differenceInCalendarDays(later: Date, earlier: Date): number {
-  return Math.floor((getStartOfLocalDay(later).getTime() - getStartOfLocalDay(earlier).getTime()) / MS_PER_DAY);
-}
-
 export function differenceInDays(later: Date, earlier: Date): number {
   return Math.floor((later.getTime() - earlier.getTime()) / MS_PER_DAY);
 }

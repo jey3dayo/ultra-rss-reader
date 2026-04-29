@@ -207,7 +207,7 @@ export const shortcutPrefKey = (id: ShortcutActionId): string => `shortcut_${id}
 
 export type KeyboardShortcutPrefs = Record<string, string>;
 export type KeyToActionMap = Map<string, ShortcutActionId>;
-export function getShortcutKey(id: ShortcutActionId, prefs: KeyboardShortcutPrefs): string {
+function getShortcutKey(id: ShortcutActionId, prefs: KeyboardShortcutPrefs): string {
   const definition = shortcutDefinitions.find((item) => item.id === id);
   return prefs[shortcutPrefKey(id)] ?? definition?.defaultKey ?? "";
 }
@@ -228,12 +228,7 @@ export function buildKeyToActionMap(prefs: KeyboardShortcutPrefs): KeyToActionMa
 }
 
 /** Normalize a KeyboardEvent into the key string format used in shortcut definitions. */
-export function normalizeKeyFromEvent(e: {
-  key: string;
-  metaKey: boolean;
-  ctrlKey: boolean;
-  shiftKey: boolean;
-}): string {
+function normalizeKeyFromEvent(e: { key: string; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }): string {
   const parts: string[] = [];
   if (e.metaKey || e.ctrlKey) parts.push("\u2318");
   if (e.shiftKey && e.key !== "Shift") parts.push("Shift");

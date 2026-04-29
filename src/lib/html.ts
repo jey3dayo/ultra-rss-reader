@@ -37,7 +37,7 @@ function normalizeVisibleText(text: string): string {
     .trim();
 }
 
-export function stripLeadingDuplicateLabel(html: string, label?: string | null): string {
+function stripLeadingDuplicateLabel(html: string, label?: string | null): string {
   if (!html || !label || typeof DOMParser === "undefined") {
     return html;
   }

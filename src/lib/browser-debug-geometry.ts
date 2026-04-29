@@ -52,51 +52,8 @@ function formatRatio(value: number, total: number) {
   return `${((value / total) * 100).toFixed(BROWSER_GEOMETRY_PERCENT_FRACTION_DIGITS)}%`;
 }
 
-export function formatCompactFill(width: number, height: number, totalWidth: number, totalHeight: number) {
+function formatCompactFill(width: number, height: number, totalWidth: number, totalHeight: number) {
   return `${formatRatio(width, totalWidth)} ${formatRatio(height, totalHeight)}`;
-}
-
-export function getBrowserGeometryStripItems(snapshot: BrowserDebugGeometrySnapshot, compact: boolean): string[] {
-  const fullItems: string[] = [];
-  const compactItems: string[] = [];
-  const { layoutDiagnostics, nativeDiagnostics } = snapshot;
-
-  if (layoutDiagnostics) {
-    const viewportItem = `vp ${layoutDiagnostics.viewport.width}x${layoutDiagnostics.viewport.height}`;
-    const hostItem = `host ${layoutDiagnostics.hostLogical.width}x${layoutDiagnostics.hostLogical.height}`;
-    const fillItem = `fill ${formatCompactFill(
-      layoutDiagnostics.hostLogical.width,
-      layoutDiagnostics.hostLogical.height,
-      layoutDiagnostics.overlay.width,
-      layoutDiagnostics.overlay.height,
-    )}`;
-    const laneItem = `lane L${layoutDiagnostics.lane.left} T${layoutDiagnostics.lane.top} R${layoutDiagnostics.lane.right} B${layoutDiagnostics.lane.bottom}`;
-    fullItems.push(viewportItem, hostItem, fillItem, laneItem);
-    compactItems.push(viewportItem, fillItem);
-  }
-
-  if (nativeDiagnostics) {
-    fullItems.push(
-      `rust ${nativeDiagnostics.action} x${nativeDiagnostics.scaleFactor.toFixed(BROWSER_GEOMETRY_SCALE_FACTOR_FRACTION_DIGITS)}`,
-    );
-    if (nativeDiagnostics.nativeWebviewBounds) {
-      const nativeItem = `native ${Math.round(nativeDiagnostics.nativeWebviewBounds.width)}x${Math.round(nativeDiagnostics.nativeWebviewBounds.height)}`;
-      fullItems.push(nativeItem);
-      compactItems.push(nativeItem);
-    }
-    if (nativeDiagnostics.nativeWebviewBounds && layoutDiagnostics) {
-      const matchItem = `match ${formatCompactFill(
-        nativeDiagnostics.nativeWebviewBounds.width,
-        nativeDiagnostics.nativeWebviewBounds.height,
-        layoutDiagnostics.hostLogical.width,
-        layoutDiagnostics.hostLogical.height,
-      )}`;
-      fullItems.push(matchItem);
-      compactItems.push(matchItem);
-    }
-  }
-
-  return compact ? compactItems : fullItems;
 }
 
 export function getBrowserGeometryRows(snapshot: BrowserDebugGeometrySnapshot): BrowserDebugGeometryRow[] {
