@@ -27,6 +27,11 @@
 
 ## UI/UX 監査の残り
 
+- [ ] Browser overlay 周辺への共通 motion 適用を検証する
+  - Tauri child webview geometry と重なり、見た目の polish よりレイアウト安定性を優先する必要がある
+  - 適用する場合は `browser-overlay-stage` / `browser-overlay-chrome` / native webview bounds の同期を実機で確認してから進める
+  - まずは既存 overlay の resize / open / close 時に jank が出ているかを計測し、必要な箇所だけに限定する
+
 - [ ] `Debug HUD` の collision handling を見直す
   - dev アプリ実機で、HUD を表示したまま `設定` モーダルを開くと HUD がモーダル上に残り、内容を隠しうる
   - 2026-04-28 の実機レビューで、設定モーダル右下の操作領域と HUD が重なり、閉じるボタン周辺の可読性と操作性を下げることを再確認
