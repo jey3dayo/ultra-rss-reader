@@ -53,6 +53,32 @@ export const InsideIconAction: Story = {
   },
 };
 
+export const LongLabelActions: Story = {
+  args: {
+    label: "Workspace synchronization endpoint URL",
+    name: "workspace-sync-url",
+    value: "https://reader.example.com/api/sync/workspace/main",
+    actionLabel: "Reset",
+    onAction: fn(),
+  },
+};
+
+export const LongLabelInsideAction: Story = {
+  args: {
+    label: "Personal access token for background sync",
+    name: "background-sync-token",
+    value: "token_••••••••••••••••",
+    actionLabel: "Reset token",
+    actionAriaLabel: "Reset token",
+    actionTooltipLabel: "Reset token",
+    actionIcon: <RotateCcw />,
+    actionPlacement: "inside",
+    actionVariant: "ghost",
+    actionSize: "icon-sm",
+    onAction: fn(),
+  },
+};
+
 export const Disabled: Story = {
   args: {
     disabled: true,
