@@ -40,7 +40,7 @@ function toArticleTagPickerTagView(tag: { id: string; name: string; color: strin
   };
 }
 
-function buildArticleTagPickerLists(params: {
+export function buildArticleTagPickerLists(params: {
   articleTags: Array<{ id: string; name: string; color: string | null }> | undefined;
   allTags: Array<{ id: string; name: string; color: string | null }> | undefined;
 }): {

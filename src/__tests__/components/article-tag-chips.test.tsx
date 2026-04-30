@@ -1,11 +1,33 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { ArticleTagChips } from "@/components/reader/article-tag-chips";
+import { ArticleTagChips, buildArticleTagPickerLists } from "@/components/reader/article-tag-chips";
 import { createWrapper } from "../../../tests/helpers/create-wrapper";
 import { setupTauriMocks } from "../../../tests/helpers/tauri-mocks";
 
 describe("ArticleTagChips", () => {
+  it("builds assigned and available tag picker lists", () => {
+    expect(
+      buildArticleTagPickerLists({
+        articleTags: [{ id: "tag-later", name: "Later", color: "#3b82f6" }],
+        allTags: [
+          { id: "tag-later", name: "Later", color: "#3b82f6" },
+          { id: "tag-important", name: "Important", color: "#ef4444" },
+        ],
+      }),
+    ).toEqual({
+      assignedTags: [{ id: "tag-later", name: "Later", color: "#3b82f6" }],
+      availableTags: [{ id: "tag-important", name: "Important", color: "#ef4444" }],
+    });
+  });
+
+  it("builds empty picker lists before tag queries resolve", () => {
+    expect(buildArticleTagPickerLists({ articleTags: undefined, allTags: undefined })).toEqual({
+      assignedTags: [],
+      availableTags: [],
+    });
+  });
+
   it("separates assigned tags from available tag options", async () => {
     const user = userEvent.setup();
     setupTauriMocks((cmd) => {
