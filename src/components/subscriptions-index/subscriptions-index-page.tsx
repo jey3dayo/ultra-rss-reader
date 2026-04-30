@@ -15,7 +15,6 @@ import {
 } from "@/lib/subscription-review-candidates";
 import {
   buildSubscriptionDetailCandidate,
-  buildSubscriptionDetailMetrics,
   buildSubscriptionListGroups,
   buildSubscriptionListRows,
   buildSubscriptionReviewCandidateMap,
@@ -23,6 +22,8 @@ import {
   buildSubscriptionsIndexSummary,
   formatSubscriptionDate,
   isSubscriptionRowFlagged,
+  resolveSelectedSubscriptionCandidate,
+  resolveSelectedSubscriptionDetailMetrics,
   resolveSubscriptionsInventoryHeading,
 } from "@/lib/subscriptions-index";
 import { bindWindowEvents, createKeyboardEventListener } from "@/lib/window-events";
@@ -83,13 +84,11 @@ export function SubscriptionsIndexPage() {
     initialDeferredFeedIds:
       subscriptionsWorkspace?.kind === "index" ? subscriptionsWorkspace.returnState?.deferredFeedIds : undefined,
   });
-  const selectedMetrics = state.selectedRow
-    ? buildSubscriptionDetailMetrics({
-        feed: state.selectedRow.feed,
-        articles: accountArticles,
-      })
-    : null;
-  const selectedCandidate = state.selectedRow ? (candidateMap.get(state.selectedRow.feed.id) ?? null) : null;
+  const selectedMetrics = resolveSelectedSubscriptionDetailMetrics({
+    selectedRow: state.selectedRow,
+    articles: accountArticles,
+  });
+  const selectedCandidate = resolveSelectedSubscriptionCandidate({ selectedRow: state.selectedRow, candidateMap });
   const selectedDetailCandidate = useMemo<SubscriptionDetailCandidate | null>(
     () =>
       buildSubscriptionDetailCandidate({

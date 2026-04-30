@@ -15,6 +15,8 @@ import {
   countStarredArticles,
   findLatestArticleTimestamp,
   formatSubscriptionDate,
+  resolveSelectedSubscriptionCandidate,
+  resolveSelectedSubscriptionDetailMetrics,
   resolveSubscriptionRowStatus,
   resolveSubscriptionsInventoryHeading,
 } from "@/lib/subscriptions-index";
@@ -261,6 +263,23 @@ describe("subscriptions index helpers", () => {
       latestArticleAt: "2025-11-01T10:00:00Z",
       status: { tone: "medium", labelKey: "stale_90d" },
     });
+    expect(
+      resolveSelectedSubscriptionCandidate({
+        selectedRow: rows[0],
+        candidateMap: buildSubscriptionReviewCandidateMap(candidates),
+      })?.feedId,
+    ).toBe("feed-stale");
+    expect(resolveSelectedSubscriptionCandidate({ selectedRow: null, candidateMap: new Map() })).toBeNull();
+    expect(
+      resolveSelectedSubscriptionDetailMetrics({
+        selectedRow: rows[0],
+        articles,
+      }),
+    ).toMatchObject({
+      latestArticleAt: "2025-11-01T10:00:00Z",
+      starredCount: 1,
+    });
+    expect(resolveSelectedSubscriptionDetailMetrics({ selectedRow: null, articles })).toBeNull();
   });
 
   it("filters visible rows by review status, local decisions, search query, and sort key", () => {

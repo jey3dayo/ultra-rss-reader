@@ -1,6 +1,7 @@
 import type { ArticleDto, FeedDto } from "@/api/tauri-commands";
 import type {
   SubscriptionDetailCandidate,
+  SubscriptionDetailMetrics,
   SubscriptionListGroup,
   SubscriptionListRow,
   SubscriptionSummaryCard,
@@ -243,6 +244,22 @@ export function buildSubscriptionReviewCandidateMap(
   candidates: SubscriptionReviewCandidate[],
 ): Map<string, SubscriptionReviewCandidate> {
   return new Map(candidates.map((candidate) => [candidate.feedId, candidate]));
+}
+
+export function resolveSelectedSubscriptionCandidate(params: {
+  selectedRow: SubscriptionListRow | null;
+  candidateMap: Map<string, SubscriptionReviewCandidate>;
+}): SubscriptionReviewCandidate | null {
+  const { selectedRow, candidateMap } = params;
+  return selectedRow ? (candidateMap.get(selectedRow.feed.id) ?? null) : null;
+}
+
+export function resolveSelectedSubscriptionDetailMetrics(params: {
+  selectedRow: SubscriptionListRow | null;
+  articles: ArticleDto[];
+}): SubscriptionDetailMetrics | null {
+  const { selectedRow, articles } = params;
+  return selectedRow ? buildSubscriptionDetailMetrics({ feed: selectedRow.feed, articles }) : null;
 }
 
 export function buildSubscriptionListGroups(
