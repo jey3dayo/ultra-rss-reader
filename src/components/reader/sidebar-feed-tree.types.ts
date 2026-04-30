@@ -38,6 +38,17 @@ export type SidebarVisibleFeedTreeResult = {
   orderedFeedIds: string[];
 };
 
+export type SidebarFeedTreeFolderBuildParams = {
+  sortedFolderList: FolderDto[];
+  feedsByFolder: Map<string, FeedDto[]>;
+  visibleFolderFeedsById: Map<string, FeedDto[]>;
+  expandedFolderIds: ReadonlySet<string>;
+  selectedFolderId: string | null;
+  selectedFeedId: string | null;
+  grayscaleFavicons: boolean;
+  hideEmptyFoldersInCurrentView: boolean;
+};
+
 export type UseSidebarFeedTreeParams = {
   feeds: FeedDto[] | undefined;
   folders: FolderDto[] | undefined;

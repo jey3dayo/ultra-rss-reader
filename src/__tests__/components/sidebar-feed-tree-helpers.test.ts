@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
-import { getVisibleSidebarFeedTreeData } from "@/components/reader/sidebar-feed-tree-helpers";
+import {
+  buildSidebarFeedTreeFolders,
+  getVisibleSidebarFeedTreeData,
+} from "@/components/reader/sidebar-feed-tree-helpers";
 
 const folders: FolderDto[] = [
   { id: "folder-1", account_id: "acc-1", name: "Folder 1", sort_order: 0 },
@@ -102,5 +105,37 @@ describe("getVisibleSidebarFeedTreeData", () => {
     expect(result.visibleFolderFeedsById.get("folder-2")?.map((feed) => feed.id)).toEqual(["feed-d"]);
     expect(result.visibleUnfolderedFeeds.map((feed) => feed.id)).toEqual(["feed-c"]);
     expect(result.orderedFeedIds).toEqual(["feed-a", "feed-d", "feed-c"]);
+  });
+
+  it("builds folder view models from raw and visible feed collections", () => {
+    const visibleFolderFeedsById = new Map<string, FeedDto[]>([["folder-1", [feeds[0]]]]);
+
+    const folderModels = buildSidebarFeedTreeFolders({
+      sortedFolderList: folders,
+      feedsByFolder,
+      visibleFolderFeedsById,
+      expandedFolderIds: new Set(["folder-1"]),
+      selectedFolderId: "folder-2",
+      selectedFeedId: "feed-a",
+      grayscaleFavicons: true,
+      hideEmptyFoldersInCurrentView: true,
+    });
+
+    expect(folderModels).toMatchObject([
+      {
+        id: "folder-1",
+        unreadCount: 3,
+        isExpanded: true,
+        isSelected: false,
+        feeds: [{ id: "feed-a", isSelected: true, grayscaleFavicon: true }],
+      },
+      {
+        id: "folder-2",
+        unreadCount: 0,
+        isExpanded: false,
+        isSelected: true,
+        feeds: [],
+      },
+    ]);
   });
 });

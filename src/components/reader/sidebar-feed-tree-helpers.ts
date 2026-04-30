@@ -1,6 +1,8 @@
 import type { FeedDto } from "@/api/tauri-commands";
-import type { FeedTreeFeedViewModel } from "./feed-tree.types";
+import { countUnreadFeedsInFolder } from "@/lib/sidebar";
+import type { FeedTreeFeedViewModel, FeedTreeFolderViewModel } from "./feed-tree.types";
 import type {
+  SidebarFeedTreeFolderBuildParams,
   SidebarFeedTreeViewMode,
   SidebarFeedTreeViewModelOptions,
   SidebarFolderFeedVisibilityParams,
@@ -92,4 +94,32 @@ export function getVisibleSidebarFeedTreeData({
     visibleUnfolderedFeeds,
     orderedFeedIds,
   };
+}
+
+export function buildSidebarFeedTreeFolders({
+  sortedFolderList,
+  feedsByFolder,
+  visibleFolderFeedsById,
+  expandedFolderIds,
+  selectedFolderId,
+  selectedFeedId,
+  grayscaleFavicons,
+  hideEmptyFoldersInCurrentView,
+}: SidebarFeedTreeFolderBuildParams): FeedTreeFolderViewModel[] {
+  return sortedFolderList
+    .map((folder) => {
+      const rawFolderFeeds = feedsByFolder.get(folder.id) ?? [];
+      const folderFeeds = visibleFolderFeedsById.get(folder.id) ?? [];
+      return {
+        id: folder.id,
+        name: folder.name,
+        accountId: folder.account_id,
+        sortOrder: folder.sort_order,
+        unreadCount: countUnreadFeedsInFolder(rawFolderFeeds, folder.id),
+        isExpanded: expandedFolderIds.has(folder.id),
+        isSelected: selectedFolderId === folder.id,
+        feeds: mapFeedsToFeedTreeViewModels(folderFeeds, { selectedFeedId, grayscaleFavicons }),
+      };
+    })
+    .filter((folder) => !hideEmptyFoldersInCurrentView || folder.isSelected || folder.feeds.length > 0);
 }
