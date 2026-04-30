@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FeedDto } from "@/api/tauri-commands";
-import { groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
+import { countFeedsInFolder, countUnreadFeedsInFolder, groupFeedsByFolder, sortFeedsByPreference } from "@/lib/sidebar";
 import { buildSidebarSmartViews } from "@/lib/sidebar-smart-views";
 
 const makeFeed = (overrides: Partial<FeedDto> & { id: string }): FeedDto => ({
@@ -72,6 +72,27 @@ describe("sortFeedsByPreference", () => {
 
   it("keeps feeds alphabetical even when the preference is newest_first", () => {
     expect(sortFeedsByPreference(feeds, "newest_first").map((feed) => feed.id)).toEqual(["f2", "f3", "f1"]);
+  });
+});
+
+describe("folder feed counts", () => {
+  const feeds = [
+    makeFeed({ id: "f1", folder_id: "folder-a", unread_count: 3 }),
+    makeFeed({ id: "f2", folder_id: "folder-a", unread_count: 4 }),
+    makeFeed({ id: "f3", folder_id: "folder-b", unread_count: 9 }),
+    makeFeed({ id: "f4", folder_id: null, unread_count: 2 }),
+  ];
+
+  it("counts feeds in a folder", () => {
+    expect(countFeedsInFolder(feeds, "folder-a")).toBe(2);
+    expect(countFeedsInFolder(feeds, "folder-missing")).toBe(0);
+    expect(countFeedsInFolder(undefined, "folder-a")).toBe(0);
+  });
+
+  it("sums unread feeds in a folder", () => {
+    expect(countUnreadFeedsInFolder(feeds, "folder-a")).toBe(7);
+    expect(countUnreadFeedsInFolder(feeds, "folder-missing")).toBe(0);
+    expect(countUnreadFeedsInFolder(undefined, "folder-a")).toBe(0);
   });
 });
 

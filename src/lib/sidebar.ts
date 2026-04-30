@@ -24,3 +24,11 @@ export function groupFeedsByFolder(feeds: FeedDto[]): GroupedFeeds {
 export function sortFeedsByPreference(feeds: FeedDto[], _sortPreference?: SortSubscriptions): FeedDto[] {
   return [...feeds].sort((a, b) => a.title.localeCompare(b.title));
 }
+
+export function countFeedsInFolder(feeds: FeedDto[] | undefined, folderId: string): number {
+  return (feeds ?? []).filter((feed) => feed.folder_id === folderId).length;
+}
+
+export function countUnreadFeedsInFolder(feeds: FeedDto[] | undefined, folderId: string): number {
+  return (feeds ?? []).filter((feed) => feed.folder_id === folderId).reduce((sum, feed) => sum + feed.unread_count, 0);
+}

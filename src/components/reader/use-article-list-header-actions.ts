@@ -10,6 +10,7 @@ import {
   resolveFeedDisplayPreset,
 } from "@/lib/article-display";
 import { getUnreadArticleIds } from "@/lib/article-list";
+import { countUnreadFeedsInFolder } from "@/lib/sidebar";
 import type { UseArticleListHeaderActionsParams, UseArticleListHeaderActionsResult } from "./article-list.types";
 
 export function useArticleListHeaderActions({
@@ -51,9 +52,7 @@ export function useArticleListHeaderActions({
       return 0;
     }
 
-    return (feeds ?? [])
-      .filter((feed) => feed.folder_id === selection.folderId)
-      .reduce((sum, feed) => sum + feed.unread_count, 0);
+    return countUnreadFeedsInFolder(feeds, selection.folderId);
   }, [feeds, selection]);
 
   const doMarkAllRead = useCallback(() => {

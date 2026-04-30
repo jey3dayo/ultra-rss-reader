@@ -1,6 +1,7 @@
 import { Result } from "@praha/byethrow";
 import type { ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
 import { formatMediumDate, getDateInputTimeMs, parseDateInput } from "@/lib/datetime";
+import { countFeedsInFolder } from "@/lib/sidebar";
 
 export type FindSelectedArticleParams = {
   selectedArticleId: string | null;
@@ -214,7 +215,7 @@ export function buildArticleViewSummary(params: {
     return {
       kind: "folder",
       folder,
-      feedCount: (feeds ?? []).filter((feed) => feed.folder_id === folder.id).length,
+      feedCount: countFeedsInFolder(feeds, folder.id),
       unreadCount: filteredArticles.filter((article) => !article.is_read).length,
       latestArticlePublishedAt: latestVisibleArticle?.published_at ?? null,
     };
