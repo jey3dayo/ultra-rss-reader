@@ -15,4 +15,11 @@ describe("getOptionLabelByValue", () => {
     expect(getOptionLabelByValue(options, "custom")).toBe("custom");
     expect(getOptionLabelByValue(options, null)).toBe("");
   });
+
+  it("resolves empty option labels for null and empty values", () => {
+    const optionsWithEmpty = [{ value: "", label: "Use default" }, ...options] as const;
+
+    expect(getOptionLabelByValue(optionsWithEmpty, "")).toBe("Use default");
+    expect(getOptionLabelByValue(optionsWithEmpty, null)).toBe("Use default");
+  });
 });
