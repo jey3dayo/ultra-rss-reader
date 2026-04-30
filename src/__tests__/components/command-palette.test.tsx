@@ -137,6 +137,33 @@ describe("CommandPalette", () => {
     expect(screen.queryByText("Recent Actions")).not.toBeInTheDocument();
   });
 
+  it("does not request feeds when no account is selected", async () => {
+    const requestedCommands: string[] = [];
+    useUiStore.setState({ selectedAccountId: null });
+    setupTauriMocks((cmd, args) => {
+      requestedCommands.push(cmd);
+      switch (cmd) {
+        case "list_accounts":
+          return sampleAccounts;
+        case "list_feeds":
+          return sampleFeeds.filter((feed) => feed.account_id === args.accountId);
+        case "list_tags":
+          return [{ id: "tag-1", name: "Later", color: "#3b82f6" }];
+        case "search_articles":
+          return sampleArticles.filter((article) =>
+            article.title.toLowerCase().includes(String(args.query).toLowerCase()),
+          );
+        default:
+          return null;
+      }
+    });
+
+    render(<CommandPalette />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Actions", { selector: "[cmdk-group-heading]" })).toBeInTheDocument();
+    expect(requestedCommands).not.toContain("list_feeds");
+  });
+
   it("renders the no-results helper in foreground-soft tone", async () => {
     const user = userEvent.setup();
 

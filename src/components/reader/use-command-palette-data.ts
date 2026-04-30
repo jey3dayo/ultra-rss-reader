@@ -78,7 +78,7 @@ export function useCommandPaletteData({
   query,
   selectedAccountId,
 }: UseCommandPaletteDataParams): UseCommandPaletteDataResult {
-  const { data: feeds = [] } = useFeeds(selectedAccountId ?? "");
+  const { data: feeds = [] } = useFeeds(selectedAccountId);
   const { data: tags = [] } = useTags();
   const { data: articles = [] } = useSearchArticles(selectedAccountId, prefix === null ? deferredQuery : "");
 
