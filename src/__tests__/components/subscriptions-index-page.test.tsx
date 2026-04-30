@@ -141,7 +141,7 @@ describe("SubscriptionsIndexPage", () => {
     );
     expect(screen.getByText("未読 0件")).toBeInTheDocument();
     expect(screen.getByText((text) => text.startsWith("最終更新 ") && text.includes("2024"))).toBeInTheDocument();
-    expect(screen.getAllByText("整理不要").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("対応不要").length).toBeGreaterThan(0);
 
     const detailPane = screen.getByTestId("subscriptions-detail-pane");
     expect(await within(detailPane).findByRole("heading", { name: "Example Feed" })).toBeInTheDocument();
@@ -160,7 +160,7 @@ describe("SubscriptionsIndexPage", () => {
     const secondaryFeed = screen.getByRole("button", { name: /Fresh Feed/ });
     expect(selectedFeed).toHaveAccessibleName(/Example Feed/);
     expect(selectedFeed).toHaveAccessibleName(/未読 0件/);
-    expect(within(secondaryFeed).getByText("整理不要").closest("[data-label-chip]")).toHaveAttribute(
+    expect(within(secondaryFeed).getByText("対応不要").closest("[data-label-chip]")).toHaveAttribute(
       "data-label-chip",
       "neutral",
     );
@@ -191,7 +191,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(selectedFeed.querySelector('img[src*="google.com/s2/favicons?domain=example.com"]')).toBeTruthy();
   });
 
-  it("treats summary cards as in-place filters instead of cleanup navigation", async () => {
+  it("treats summary cards as in-place filters instead of workspace navigation", async () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
     const totalSubscriptionsLabel = await screen.findByRole("button", { name: /総購読数/ });
@@ -431,7 +431,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(listScrollRegion).toHaveProperty("scrollTop", 18);
   });
 
-  it("hides feeds already kept in cleanup when returning to the review filter", async () => {
+  it("hides feeds already marked to keep when restoring the review filter", async () => {
     useUiStore.setState({
       ...useUiStore.getState(),
       subscriptionsWorkspace: {
@@ -542,7 +542,7 @@ describe("SubscriptionsIndexPage", () => {
     expect(within(listPane).getByText("一致する購読はありません。")).toHaveClass("text-foreground-soft");
   });
 
-  it("does not render the removed broken references entry", async () => {
+  it("does not render the removed integrity-error entry", async () => {
     render(<SubscriptionsIndexPage />, { wrapper: createWrapper() });
 
     await screen.findByRole("button", { name: /総購読数/ });
