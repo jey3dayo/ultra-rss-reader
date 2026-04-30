@@ -14,7 +14,6 @@
 
 - [ ] 高リスクな button family 化候補は UI Reference で基準を固めてから wrapper 化する
   - `TagOptionButton` は `TagOptionRowButton` または `NavRowButton` 系への寄せ候補。popover option と navigation row の semantics を混ぜすぎないよう UI Reference で比較してから進める
-  - `AccountSwitcherView` の title trigger は `AccountSwitcherTriggerButton` 候補。`h1`、fallback focus target、single-account の cursor default が絡むため、一般 `Button` へ吸収しない
   - feed tree drop target 系は visual button ではなく invisible hit target / drop zone として扱い、通常の button family 統合対象から外す
 
 - [ ] Browser overlay 周辺への共通 motion 適用を検証する

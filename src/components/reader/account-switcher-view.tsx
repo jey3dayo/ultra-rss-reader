@@ -1,9 +1,43 @@
 import { ChevronDown } from "lucide-react";
-import { useEffect } from "react";
+import { type ButtonHTMLAttributes, forwardRef, useEffect } from "react";
 import { SIDEBAR_FALLBACK_TARGET_ATTRIBUTE } from "@/lib/reader-focus";
 import { cn } from "@/lib/utils";
 import type { AccountSwitcherProps } from "./account-switcher.types";
 import { AccountSwitcherMenu, focusAccountItem } from "./account-switcher-menu";
+
+type AccountSwitcherTriggerButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  accountName: string;
+  hasMultipleAccounts: boolean;
+  lastSyncedLabel: string;
+};
+
+export const AccountSwitcherTriggerButton = forwardRef<HTMLButtonElement, AccountSwitcherTriggerButtonProps>(
+  ({ accountName, className, hasMultipleAccounts, lastSyncedLabel, type = "button", ...props }, ref) => (
+    <button
+      ref={ref}
+      type={type}
+      {...{ [SIDEBAR_FALLBACK_TARGET_ATTRIBUTE]: "true" }}
+      className={cn(
+        "group flex w-full flex-col items-start gap-0.5 rounded-xl text-left select-none transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        hasMultipleAccounts
+          ? "cursor-pointer text-sidebar-foreground/92 hover:text-sidebar-foreground"
+          : "cursor-default text-sidebar-foreground",
+        className,
+      )}
+      {...props}
+    >
+      <h1 className="flex max-w-full items-end gap-1.5 text-[1.68rem] leading-[0.95] font-medium tracking-[-0.055em] text-current">
+        {accountName}
+        {hasMultipleAccounts ? (
+          <ChevronDown className="mb-0.5 h-3.5 w-3.5 shrink-0 text-sidebar-foreground/56 transition-colors duration-200 group-hover:text-sidebar-foreground/78" />
+        ) : null}
+      </h1>
+      <p className="text-[0.72rem] font-medium tracking-[0.04em] text-sidebar-foreground/54">{lastSyncedLabel}</p>
+    </button>
+  ),
+);
+
+AccountSwitcherTriggerButton.displayName = "AccountSwitcherTriggerButton";
 
 export function AccountSwitcherView({
   title,
@@ -34,10 +68,11 @@ export function AccountSwitcherView({
 
   return (
     <div className="relative px-5 pt-4 pb-4">
-      <button
+      <AccountSwitcherTriggerButton
         ref={triggerRef}
-        type="button"
-        {...{ [SIDEBAR_FALLBACK_TARGET_ATTRIBUTE]: "true" }}
+        accountName={selectedAccount?.name ?? title}
+        hasMultipleAccounts={hasMultipleAccounts}
+        lastSyncedLabel={lastSyncedLabel}
         onClick={() => hasMultipleAccounts && onToggle()}
         onKeyDown={(e) => {
           if (!hasMultipleAccounts) return;
@@ -50,24 +85,10 @@ export function AccountSwitcherView({
             onClose(true);
           }
         }}
-        className={cn(
-          "group flex w-full flex-col items-start gap-0.5 rounded-xl text-left select-none transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-          hasMultipleAccounts
-            ? "cursor-pointer text-sidebar-foreground/92 hover:text-sidebar-foreground"
-            : "cursor-default text-sidebar-foreground",
-        )}
         aria-haspopup={hasMultipleAccounts ? "menu" : undefined}
         aria-expanded={hasMultipleAccounts ? isExpanded : undefined}
         aria-controls={hasMultipleAccounts ? menuId : undefined}
-      >
-        <h1 className="flex max-w-full items-end gap-1.5 text-[1.68rem] leading-[0.95] font-medium tracking-[-0.055em] text-current">
-          {selectedAccount?.name ?? title}
-          {hasMultipleAccounts && (
-            <ChevronDown className="mb-0.5 h-3.5 w-3.5 shrink-0 text-sidebar-foreground/56 transition-colors duration-200 group-hover:text-sidebar-foreground/78" />
-          )}
-        </h1>
-        <p className="text-[0.72rem] font-medium tracking-[0.04em] text-sidebar-foreground/54">{lastSyncedLabel}</p>
-      </button>
+      />
 
       {isExpanded && accounts.length > 0 ? (
         <AccountSwitcherMenu

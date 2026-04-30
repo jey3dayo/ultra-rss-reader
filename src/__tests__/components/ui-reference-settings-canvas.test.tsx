@@ -34,6 +34,8 @@ describe("UI Reference canvases", () => {
     expect(screen.getByRole("button", { name: "Add tag" })).toHaveClass("rounded-full", "min-h-6");
     expect(screen.getByRole("button", { name: "Add compact tag" })).toHaveClass("rounded-full", "gap-0");
     expect(screen.getByRole("button", { name: "design" })).toHaveClass("motion-static-hover-surface", "rounded-md");
+    expect(screen.getByRole("button", { name: "Local Today at 10:42" })).toHaveAttribute("aria-haspopup", "menu");
+    expect(screen.getByRole("button", { name: "Single Not synced yet" })).not.toHaveAttribute("aria-haspopup");
     expect(screen.getByRole("button", { name: "General Account and settings section row 12" })).toBeInTheDocument();
   });
 

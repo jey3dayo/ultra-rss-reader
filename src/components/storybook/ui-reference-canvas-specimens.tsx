@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
+import { AccountSwitcherTriggerButton } from "@/components/reader/account-switcher-view";
 import { TagOptionButton, TagPickerTriggerButton } from "@/components/reader/article-tag-picker-buttons";
 import { ArticleToolbarActionStrip } from "@/components/reader/article-toolbar-view";
 import { contextMenuStyles } from "@/components/reader/context-menu-styles";
@@ -645,7 +646,7 @@ export function SpecializedButtonPatternsSpecimen() {
   return (
     <SurfaceCard variant="section">
       <SectionHeading className="mb-2">Specialized button patterns</SectionHeading>
-      <div data-testid="reference-specialized-button-patterns" className="grid gap-3 lg:grid-cols-4">
+      <div data-testid="reference-specialized-button-patterns" className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
           <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
             Tag chip action
@@ -694,6 +695,25 @@ export function SpecializedButtonPatternsSpecimen() {
             optionAriaLabel={(option) => `Select ${option}`}
             onChange={setTagColor}
           />
+        </div>
+        <div className="rounded-md border border-[var(--sidebar-frame-border)] bg-[var(--sidebar-frame-solid-surface)] p-3 text-sidebar-foreground">
+          <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-sidebar-foreground/58 uppercase">
+            Account switcher trigger
+          </div>
+          <div className="space-y-3">
+            <AccountSwitcherTriggerButton
+              accountName="Local"
+              lastSyncedLabel="Today at 10:42"
+              hasMultipleAccounts
+              aria-expanded="false"
+              aria-haspopup="menu"
+            />
+            <AccountSwitcherTriggerButton
+              accountName="Single"
+              lastSyncedLabel="Not synced yet"
+              hasMultipleAccounts={false}
+            />
+          </div>
         </div>
         <div className="rounded-md border border-border/60 bg-surface-1/70 p-3">
           <div className="mb-2 text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
