@@ -79,7 +79,7 @@ describe("IconToolbarControl", () => {
     );
   });
 
-  it("supports semantic pressed styling for starred toggles", () => {
+  it("keeps starred pressed styling borderless for shared toolbar toggles", () => {
     render(
       <TooltipProvider>
         <IconToolbarToggle label="Toggle star" pressed={true} pressedTone="starred" onPressedChange={vi.fn()}>
@@ -89,8 +89,9 @@ describe("IconToolbarControl", () => {
     );
 
     expect(screen.getByRole("button", { name: "Toggle star" })).toHaveClass(
-      "data-[pressed]:bg-[var(--semantic-tone-starred-surface)]",
-      "data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)]",
+      "data-[pressed]:bg-transparent",
+      "data-[pressed]:text-[var(--tone-starred)]",
+      "data-[pressed]:focus-visible:bg-transparent",
     );
   });
 

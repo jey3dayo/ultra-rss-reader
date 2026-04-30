@@ -20,7 +20,7 @@ export const iconToolbarControlVariants = cva(iconToolbarButtonClassName, {
       accent:
         "data-[pressed]:bg-primary/12 data-[pressed]:text-primary data-[pressed]:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
       starred:
-        "data-[pressed]:bg-[var(--semantic-tone-starred-surface)] data-[pressed]:text-[var(--semantic-tone-starred-content-foreground)] data-[pressed]:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
+        "data-[pressed]:bg-transparent data-[pressed]:text-[var(--tone-starred)] data-[pressed]:shadow-none data-[pressed]:focus-visible:bg-transparent",
     },
   },
   defaultVariants: {
