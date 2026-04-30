@@ -166,3 +166,7 @@ export function formatMediumDate(value: DateInput, locale?: string): string | nu
     day: "numeric",
   });
 }
+
+export function formatMediumDateOrDash(value: DateInput, locale?: string): string {
+  return formatMediumDate(value, locale) ?? "—";
+}

@@ -1,7 +1,8 @@
 import { Result } from "@praha/byethrow";
 import type { ArticleDto, FeedDto, FolderDto, TagDto } from "@/api/tauri-commands";
 import { countUnreadArticles } from "@/lib/article-list";
-import { formatMediumDate, getDateInputTimeMs, parseDateInput } from "@/lib/datetime";
+import { formatMediumDateOrDash, getDateInputTimeMs, parseDateInput } from "@/lib/datetime";
+import { resolveFeedWebsiteHref, resolveSiteHostLabel } from "@/lib/feed";
 import { countFeedsInFolder } from "@/lib/sidebar";
 
 export type FindSelectedArticleParams = {
@@ -61,14 +62,14 @@ export function findSelectedArticle(params: FindSelectedArticleParams): Result.R
   return article ? Result.succeed(article) : Result.fail("article_not_found");
 }
 
-export function findLatestArticle(articles: ArticleDto[] | undefined): Result.Result<ArticleDto, "no_articles"> {
+export function findLatestArticleOrNull(articles: ArticleDto[] | undefined): ArticleDto | null {
   if (!articles || articles.length === 0) {
-    return Result.fail("no_articles");
+    return null;
   }
 
   const [firstArticle, ...restArticles] = articles;
   if (!firstArticle) {
-    return Result.fail("no_articles");
+    return null;
   }
 
   const latest = restArticles.reduce<ArticleDto>((currentLatest, candidate) => {
@@ -86,7 +87,12 @@ export function findLatestArticle(articles: ArticleDto[] | undefined): Result.Re
     return candidateTime > latestTime ? candidate : currentLatest;
   }, firstArticle);
 
-  return Result.succeed(latest);
+  return latest;
+}
+
+export function findLatestArticle(articles: ArticleDto[] | undefined): Result.Result<ArticleDto, "no_articles"> {
+  const latestArticle = findLatestArticleOrNull(articles);
+  return latestArticle ? Result.succeed(latestArticle) : Result.fail("no_articles");
 }
 
 export function shouldOpenArticleTitleInExternalBrowser(params: LinkNavigationParams): boolean {
@@ -147,24 +153,16 @@ export function formatArticleDate(dateStr: string, locale = "en-US"): string {
 }
 
 export function formatArticleSummaryDate(value: string | null | undefined, locale: string): string {
-  return formatMediumDate(value, locale) ?? "—";
+  return formatMediumDateOrDash(value, locale);
 }
 
 export function resolveArticleSummaryWebsiteHref(feed: FeedDto): string | null {
-  return feed.site_url || feed.url || null;
+  return resolveFeedWebsiteHref(feed.site_url, feed.url);
 }
 
 export function resolveArticleSummaryWebsiteLabel(feed: FeedDto): string | null {
   const href = resolveArticleSummaryWebsiteHref(feed);
-  if (!href) {
-    return null;
-  }
-
-  try {
-    return new URL(href).host;
-  } catch {
-    return href;
-  }
+  return href ? resolveSiteHostLabel(feed.site_url, feed.url) : null;
 }
 
 export function buildArticleViewSummary(params: {

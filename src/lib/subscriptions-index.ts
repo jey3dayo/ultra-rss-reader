@@ -9,7 +9,8 @@ import type {
   SubscriptionSummaryFilterKey,
 } from "@/components/subscriptions-index/subscriptions-index.types";
 import { resolveFeedDisplayPreset, resolveFeedDisplayPresetLabel } from "@/lib/article-display";
-import { compareDateInputsAsc, formatMediumDate, getDateInputTimeMs } from "@/lib/datetime";
+import { findLatestArticleOrNull } from "@/lib/article-view";
+import { compareDateInputsAsc, formatMediumDateOrDash, getDateInputTimeMs } from "@/lib/datetime";
 import type { SubscriptionReviewCandidate } from "@/lib/subscription-review-candidates";
 import {
   buildSubscriptionReviewReasonFacts,
@@ -40,20 +41,7 @@ export function countStarredArticles(articles: ArticleDto[]): number {
 }
 
 export function findLatestArticleTimestamp(articles: ArticleDto[]): string | null {
-  return (
-    articles.reduce<{ timestamp: string; timeMs: number } | null>((latest, article) => {
-      const articleTimeMs = getDateInputTimeMs(article.published_at);
-      if (articleTimeMs === null) {
-        return latest;
-      }
-
-      if (latest === null) {
-        return { timestamp: article.published_at, timeMs: articleTimeMs };
-      }
-
-      return articleTimeMs > latest.timeMs ? { timestamp: article.published_at, timeMs: articleTimeMs } : latest;
-    }, null)?.timestamp ?? null
-  );
+  return findLatestArticleOrNull(articles)?.published_at ?? null;
 }
 
 export function rowMatchesSubscriptionSummaryFilter(
@@ -397,5 +385,5 @@ export function buildSubscriptionDetailMetrics({ feed, articles }: { feed: FeedD
 }
 
 export function formatSubscriptionDate(value: string | null | undefined, locale?: string): string {
-  return formatMediumDate(value, locale) ?? "—";
+  return formatMediumDateOrDash(value, locale);
 }
