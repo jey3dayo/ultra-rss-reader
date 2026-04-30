@@ -3,6 +3,8 @@ import type { ArticleDto, FeedDto, FolderDto } from "@/api/tauri-commands";
 import {
   buildFolderNameByIdMap,
   buildSubscriptionReviewCandidates,
+  resolveSubscriptionReviewReasonFactTranslationKey,
+  resolveSubscriptionReviewSummaryTranslationKey,
   summarizeSubscriptionReviewCandidate,
 } from "@/lib/subscription-review-candidates";
 
@@ -185,5 +187,24 @@ describe("buildSubscriptionReviewCandidates", () => {
       titleKey: "keep",
       summaryKey: "healthy_feed",
     });
+  });
+
+  it("resolves review summary and fact translation keys", () => {
+    expect(resolveSubscriptionReviewSummaryTranslationKey("stale_and_inactive")).toBe(
+      "detail_reason_stale_and_inactive",
+    );
+    expect(resolveSubscriptionReviewSummaryTranslationKey("stale_with_no_stars")).toBe(
+      "detail_reason_stale_with_no_stars",
+    );
+    expect(resolveSubscriptionReviewSummaryTranslationKey("inactive_without_signals")).toBe(
+      "detail_reason_inactive_without_signals",
+    );
+    expect(resolveSubscriptionReviewSummaryTranslationKey("stale_but_supported")).toBe(
+      "detail_reason_stale_but_supported",
+    );
+    expect(resolveSubscriptionReviewSummaryTranslationKey("healthy_feed")).toBe("detail_reason_normal");
+    expect(resolveSubscriptionReviewReasonFactTranslationKey("stale_days")).toBe("fact_stale_days");
+    expect(resolveSubscriptionReviewReasonFactTranslationKey("unread_count")).toBe("fact_unread_count");
+    expect(resolveSubscriptionReviewReasonFactTranslationKey("starred_count")).toBe("fact_starred_count");
   });
 });

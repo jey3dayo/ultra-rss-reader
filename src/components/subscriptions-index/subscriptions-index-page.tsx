@@ -7,7 +7,12 @@ import { useFeeds } from "@/hooks/use-feeds";
 import { useFolders } from "@/hooks/use-folders";
 import { resolveFeedDisplayPreset, resolveFeedDisplayPresetLabel } from "@/lib/article-display";
 import { getCurrentDate } from "@/lib/datetime";
-import { buildFolderNameByIdMap, buildSubscriptionReviewCandidates } from "@/lib/subscription-review-candidates";
+import {
+  buildFolderNameByIdMap,
+  buildSubscriptionReviewCandidates,
+  resolveSubscriptionReviewReasonFactTranslationKey,
+  resolveSubscriptionReviewSummaryTranslationKey,
+} from "@/lib/subscription-review-candidates";
 import {
   buildSubscriptionDetailCandidate,
   buildSubscriptionDetailMetrics,
@@ -93,24 +98,8 @@ export function SubscriptionsIndexPage() {
         labels: {
           statusLabel: (labelKey) => t(`status_${labelKey}`),
           normalReason: t("detail_reason_normal"),
-          summaryText: (summaryKey) =>
-            t(
-              summaryKey === "stale_and_inactive"
-                ? "detail_reason_stale_and_inactive"
-                : summaryKey === "stale_with_no_stars"
-                  ? "detail_reason_stale_with_no_stars"
-                  : summaryKey === "inactive_without_signals"
-                    ? "detail_reason_inactive_without_signals"
-                    : summaryKey === "stale_but_supported"
-                      ? "detail_reason_stale_but_supported"
-                      : "detail_reason_normal",
-            ),
-          reasonFact: (fact) =>
-            fact.key === "stale_days"
-              ? t("fact_stale_days", { count: fact.value })
-              : fact.key === "unread_count"
-                ? t("fact_unread_count", { count: fact.value })
-                : t("fact_starred_count", { count: fact.value }),
+          summaryText: (summaryKey) => t(resolveSubscriptionReviewSummaryTranslationKey(summaryKey)),
+          reasonFact: (fact) => t(resolveSubscriptionReviewReasonFactTranslationKey(fact.key), { count: fact.value }),
           reasonLabel: (reasonKey) => t(`reason_${reasonKey}`),
         },
       }),

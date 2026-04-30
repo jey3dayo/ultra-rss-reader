@@ -41,6 +41,47 @@ export function hasSubscriptionReviewReason(
   return candidate.reasonKeys.includes(reasonKey);
 }
 
+export function resolveSubscriptionReviewSummaryTranslationKey(
+  summaryKey: SubscriptionReviewSummaryKey,
+):
+  | "detail_reason_stale_and_inactive"
+  | "detail_reason_stale_with_no_stars"
+  | "detail_reason_inactive_without_signals"
+  | "detail_reason_stale_but_supported"
+  | "detail_reason_normal" {
+  if (summaryKey === "stale_and_inactive") {
+    return "detail_reason_stale_and_inactive";
+  }
+
+  if (summaryKey === "stale_with_no_stars") {
+    return "detail_reason_stale_with_no_stars";
+  }
+
+  if (summaryKey === "inactive_without_signals") {
+    return "detail_reason_inactive_without_signals";
+  }
+
+  if (summaryKey === "stale_but_supported") {
+    return "detail_reason_stale_but_supported";
+  }
+
+  return "detail_reason_normal";
+}
+
+export function resolveSubscriptionReviewReasonFactTranslationKey(
+  factKey: SubscriptionReviewReasonFactKey,
+): "fact_stale_days" | "fact_unread_count" | "fact_starred_count" {
+  if (factKey === "stale_days") {
+    return "fact_stale_days";
+  }
+
+  if (factKey === "unread_count") {
+    return "fact_unread_count";
+  }
+
+  return "fact_starred_count";
+}
+
 export function summarizeSubscriptionReviewCandidate(candidate: SubscriptionReviewCandidate): {
   tone: SubscriptionReviewTone;
   titleKey: SubscriptionReviewTitleKey;
