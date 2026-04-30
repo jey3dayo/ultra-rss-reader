@@ -79,6 +79,98 @@ function resolveSummaryToneClasses(tone: SubscriptionSummaryCard["tone"] = "neut
   return summaryToneClassNames[tone ?? "neutral"];
 }
 
+type SummaryFilterCardButtonProps = {
+  card: SubscriptionSummaryCard;
+  className: string;
+  isPrimary?: boolean;
+  onSelectFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
+  toneClasses: (typeof summaryToneClassNames)[SubscriptionSummaryTone];
+};
+
+function resolveActiveBadgeLabel() {
+  return "表示中";
+}
+
+function resolveActionChipLabel({
+  filterKey,
+  isActive,
+}: {
+  filterKey: SubscriptionSummaryCard["filterKey"];
+  isActive?: boolean;
+}) {
+  if (isActive) {
+    return filterKey === "all" ? "全件表示" : "フィルタ中";
+  }
+
+  return filterKey === "all" ? "すべて表示" : "絞り込む";
+}
+
+function SummaryFilterCardButton({
+  card,
+  className,
+  isPrimary = false,
+  onSelectFilter,
+  toneClasses,
+}: SummaryFilterCardButtonProps) {
+  return (
+    <button
+      type="button"
+      className={cn(className, "group cursor-pointer", "hover:border-border-strong/90")}
+      aria-pressed={card.isActive}
+      onClick={() => onSelectFilter(card.filterKey)}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "absolute inset-x-0 top-0 h-1.5 transition-opacity duration-150",
+          toneClasses.activeAccent,
+          card.isActive ? "opacity-100" : "opacity-0",
+        )}
+      />
+      <div>
+        <div className="mb-2 flex items-start justify-between gap-3">
+          <SummaryText as="span" variant="label" className="block">
+            {card.label}
+          </SummaryText>
+          <span data-testid="subscriptions-summary-card-badge-slot" className="flex min-w-[4.75rem] justify-end">
+            <span
+              className={cn(
+                "inline-flex h-6 items-center rounded-full border border-border-strong/70 bg-surface-1 px-2.5 text-[10px] font-medium tracking-[0.12em] text-foreground uppercase shadow-[var(--subscriptions-summary-badge-shadow)]",
+                card.isActive && toneClasses.activeBadge,
+                !card.isActive && "invisible",
+              )}
+              aria-hidden={card.isActive ? undefined : "true"}
+            >
+              {resolveActiveBadgeLabel()}
+            </span>
+          </span>
+        </div>
+        <SummaryText as="span" variant="actionableValue" className={cn(card.isActive && toneClasses.activeValue)}>
+          {card.value}
+        </SummaryText>
+        {card.caption ? (
+          <SummaryText as="p" variant="actionableCaption" className={cn(card.isActive && "text-foreground")}>
+            {card.caption}
+          </SummaryText>
+        ) : null}
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <LabelChip
+          tone="neutral"
+          className={cn(
+            "px-2 py-0.75 text-[10px] text-foreground-soft transition-colors group-hover:text-foreground",
+            card.isActive &&
+              "border-border-strong/75 bg-surface-1 text-foreground shadow-[var(--subscriptions-summary-active-chip-shadow)]",
+            isPrimary && !card.isActive && "bg-surface-1/88",
+          )}
+        >
+          {resolveActionChipLabel({ filterKey: card.filterKey, isActive: card.isActive })}
+        </LabelChip>
+      </div>
+    </button>
+  );
+}
+
 export function SubscriptionsOverviewSummary({
   cards,
   onSelectFilter,
@@ -86,22 +178,6 @@ export function SubscriptionsOverviewSummary({
   cards: SubscriptionSummaryCard[];
   onSelectFilter: (filterKey: SubscriptionSummaryCard["filterKey"]) => void;
 }) {
-  const resolveActiveBadgeLabel = () => "表示中";
-
-  const resolveActionChipLabel = ({
-    filterKey,
-    isActive,
-  }: {
-    filterKey: SubscriptionSummaryCard["filterKey"];
-    isActive?: boolean;
-  }) => {
-    if (isActive) {
-      return filterKey === "all" ? "全件表示" : "フィルタ中";
-    }
-
-    return filterKey === "all" ? "すべて表示" : "絞り込む";
-  };
-
   return (
     <section
       className="rounded-lg border border-border/55 px-4 py-3 sm:px-5 sm:py-4"
@@ -125,69 +201,14 @@ export function SubscriptionsOverviewSummary({
 
           if (isActionable) {
             return (
-              <button
+              <SummaryFilterCardButton
                 key={card.label}
-                type="button"
-                className={cn(className, "group cursor-pointer", "hover:border-border-strong/90")}
-                aria-pressed={card.isActive}
-                onClick={() => onSelectFilter(card.filterKey)}
-              >
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "absolute inset-x-0 top-0 h-1.5 transition-opacity duration-150",
-                    toneClasses.activeAccent,
-                    card.isActive ? "opacity-100" : "opacity-0",
-                  )}
-                />
-                <div>
-                  <div className="mb-2 flex items-start justify-between gap-3">
-                    <SummaryText as="span" variant="label" className="block">
-                      {card.label}
-                    </SummaryText>
-                    <span
-                      data-testid="subscriptions-summary-card-badge-slot"
-                      className="flex min-w-[4.75rem] justify-end"
-                    >
-                      <span
-                        className={cn(
-                          "inline-flex h-6 items-center rounded-full border border-border-strong/70 bg-surface-1 px-2.5 text-[10px] font-medium tracking-[0.12em] text-foreground uppercase shadow-[var(--subscriptions-summary-badge-shadow)]",
-                          card.isActive && toneClasses.activeBadge,
-                          !card.isActive && "invisible",
-                        )}
-                        aria-hidden={card.isActive ? undefined : "true"}
-                      >
-                        {resolveActiveBadgeLabel()}
-                      </span>
-                    </span>
-                  </div>
-                  <SummaryText
-                    as="span"
-                    variant="actionableValue"
-                    className={cn(card.isActive && toneClasses.activeValue)}
-                  >
-                    {card.value}
-                  </SummaryText>
-                  {card.caption ? (
-                    <SummaryText as="p" variant="actionableCaption" className={cn(card.isActive && "text-foreground")}>
-                      {card.caption}
-                    </SummaryText>
-                  ) : null}
-                </div>
-                <div className="mt-2 flex items-center justify-between gap-3">
-                  <LabelChip
-                    tone="neutral"
-                    className={cn(
-                      "px-2 py-0.75 text-[10px] text-foreground-soft transition-colors group-hover:text-foreground",
-                      card.isActive &&
-                        "border-border-strong/75 bg-surface-1 text-foreground shadow-[var(--subscriptions-summary-active-chip-shadow)]",
-                      isPrimary && !card.isActive && "bg-surface-1/88",
-                    )}
-                  >
-                    {resolveActionChipLabel({ filterKey: card.filterKey, isActive: card.isActive })}
-                  </LabelChip>
-                </div>
-              </button>
+                card={card}
+                className={className}
+                isPrimary={isPrimary}
+                onSelectFilter={onSelectFilter}
+                toneClasses={toneClasses}
+              />
             );
           }
 

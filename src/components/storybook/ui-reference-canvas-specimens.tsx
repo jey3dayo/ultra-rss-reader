@@ -59,6 +59,8 @@ import { SurfaceCard } from "@/components/shared/surface-card";
 import { TagChip } from "@/components/shared/tag-chip";
 import { TagColorPicker } from "@/components/shared/tag-color-picker";
 import { WorkspaceHeaderActionButton } from "@/components/shared/workspace-header";
+import type { SubscriptionSummaryCard } from "@/components/subscriptions-index/subscriptions-index.types";
+import { SubscriptionsOverviewSummary } from "@/components/subscriptions-index/subscriptions-overview-summary";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -210,6 +212,33 @@ const BUTTON_FAMILY_GUIDE = [
     example: "Close workspace",
   },
 ] as const;
+
+const SUMMARY_FILTER_CARDS: SubscriptionSummaryCard[] = [
+  {
+    filterKey: "all",
+    label: "すべての購読",
+    value: "163",
+    caption: "現在管理しているフィード",
+    tone: "neutral",
+    isActive: true,
+  },
+  {
+    filterKey: "review",
+    label: "確認待ち",
+    value: "12",
+    caption: "継続判断が必要な候補",
+    tone: "review",
+    isActive: false,
+  },
+  {
+    filterKey: "stale",
+    label: "90日以上更新なし",
+    value: "8",
+    caption: "最近動きがない購読",
+    tone: "stale",
+    isActive: false,
+  },
+];
 
 export function ButtonFamilyGuideSpecimen() {
   return (
@@ -1069,6 +1098,27 @@ export function WorkspaceFilterClusterSpecimen() {
       <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
         密度の高いワークスペースでは、pill よりも少し角張った filter chip
         を優先する。件数バッジはさらに一段小さく角を落として、本文ラベルより控えめに扱う。
+      </p>
+    </SurfaceCard>
+  );
+}
+
+export function SummaryFilterCardsSpecimen() {
+  const [activeFilter, setActiveFilter] = useState<SubscriptionSummaryCard["filterKey"]>("all");
+  const cards = SUMMARY_FILTER_CARDS.map((card) => ({
+    ...card,
+    isActive: card.filterKey === activeFilter,
+  }));
+
+  return (
+    <SurfaceCard variant="section">
+      <SectionHeading className="mb-2">Summary filter cards</SectionHeading>
+      <div data-testid="reference-summary-filter-card-frame">
+        <SubscriptionsOverviewSummary cards={cards} onSelectFilter={setActiveFilter} />
+      </div>
+      <p className="mt-3 font-serif text-xs leading-[1.45] text-foreground/58">
+        card 全体が filter button になるワークスペース summary。active accent、badge slot、数値 typography、 static card
+        との差分を確認してから wrapper 化する。
       </p>
     </SurfaceCard>
   );

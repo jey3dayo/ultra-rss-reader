@@ -201,6 +201,9 @@ describe("UI Reference canvases", () => {
     expect(screen.getByTestId("reference-workspace-filter-cluster-frame")).toHaveClass("rounded-md");
     expect(screen.getByRole("button", { name: "すべて163" })).toHaveClass("rounded-md");
     expect(within(screen.getByRole("button", { name: "すべて163" })).getByText("163")).toHaveClass("rounded-sm");
+    expect(screen.getByText("Summary filter cards")).toBeInTheDocument();
+    expect(screen.getByTestId("reference-summary-filter-card-frame")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /確認待ち/ })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByTestId("reference-workspace-action-cluster")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Keep selected" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
     expect(screen.getByRole("button", { name: "Defer selected" })).toHaveClass("rounded-md", "min-w-[7.5rem]");
@@ -212,7 +215,7 @@ describe("UI Reference canvases", () => {
     expect(screen.getAllByText("AUTOMATON").length).toBeGreaterThan(0);
     expect(screen.getByTestId("reference-workspace-two-pane-frame")).toHaveClass("rounded-md");
     expect(screen.getByText("Announcement cards")).toBeInTheDocument();
-    expect(screen.getByText("確認待ち")).toBeInTheDocument();
+    expect(screen.getAllByText("確認待ち").length).toBeGreaterThan(0);
     expect(screen.getByText("判断済み")).toBeInTheDocument();
   });
 

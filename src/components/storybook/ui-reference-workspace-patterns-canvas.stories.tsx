@@ -5,6 +5,7 @@ import {
   DetailPanelSpecimen,
   ReferencePage,
   SettingsHeaderSummarySpecimen,
+  SummaryFilterCardsSpecimen,
   WorkspaceActionClusterSpecimen,
   WorkspaceFilterClusterSpecimen,
   WorkspaceTwoPaneSpecimen,
@@ -20,6 +21,7 @@ export function ViewSpecimensCanvas() {
         />
         <div className="grid gap-4 xl:grid-cols-2">
           <WorkspaceFilterClusterSpecimen />
+          <SummaryFilterCardsSpecimen />
           <WorkspaceActionClusterSpecimen />
           <AnnouncementCardsSpecimen />
           <DetailPanelSpecimen />
