@@ -144,4 +144,22 @@ describe("shared form controls", () => {
     expect(onSelectChange).toHaveBeenCalledWith("feedbin");
     expect(onSwitchChange).toHaveBeenCalledWith(true);
   });
+
+  it("keeps unknown select values visible as their raw value", () => {
+    render(
+      <LabeledSelectRow
+        label="Display mode"
+        name="display-mode"
+        value="custom"
+        options={[
+          { value: "standard", label: "Standard" },
+          { value: "preview", label: "Preview" },
+        ]}
+        onChange={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    );
+
+    expect(screen.getByRole("combobox", { name: "Display mode" })).toHaveTextContent("custom");
+  });
 });

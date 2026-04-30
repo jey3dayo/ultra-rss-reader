@@ -32,6 +32,7 @@ export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm
     }),
   );
   const sizeClassName = faviconSizeClassNames[size];
+  const fallbackLabel = title.trim().charAt(0).toUpperCase() || "?";
 
   if (!host || failed) {
     return (
@@ -41,7 +42,7 @@ export function FeedFavicon({ title, url, siteUrl, grayscale = false, size = "sm
           sizeClassName.fallback,
         )}
       >
-        {title.charAt(0).toUpperCase()}
+        {fallbackLabel}
       </span>
     );
   }

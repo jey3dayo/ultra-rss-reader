@@ -10,4 +10,10 @@ describe("FeedFavicon", () => {
 
     expect(fallback).toHaveClass("bg-surface-1/72", "text-foreground-soft");
   });
+
+  it("uses a stable fallback glyph when the title is empty", () => {
+    render(<FeedFavicon title=" " url="" siteUrl="" />);
+
+    expect(screen.getByText("?")).toHaveClass("bg-surface-1/72", "text-foreground-soft");
+  });
 });
