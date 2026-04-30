@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { FeedDto } from "@/api/tauri-commands";
 import { FeedDetailPanel } from "@/components/shared/feed-detail-panel";
 import { FeedFavicon } from "@/components/shared/feed-favicon";
+import { MotionNumber } from "@/components/shared/motion-number";
 import { formatArticleSummaryDate, resolveArticleDateLocale } from "@/lib/article-view";
 import { useUiStore } from "@/stores/ui-store";
 import { ArticleEmptyStateView } from "./article-empty-state-view";
@@ -28,6 +29,12 @@ type SummaryCardProps = {
   leadingVisual?: ReactNode;
   metrics: Array<{ label: string; value: ReactNode }>;
 };
+
+function renderSummaryCount(value: number, locale: string) {
+  const label = value.toLocaleString(locale);
+
+  return <MotionNumber key={label} value={label} />;
+}
 
 function resolveWebsiteHref(feed: FeedDto): string | null {
   return feed.site_url || feed.url || null;
@@ -123,8 +130,8 @@ function buildSummaryCardProps(
       title: summary.folder.name,
       leadingVisual: <FolderClosed className="h-5 w-5 text-foreground-soft" />,
       metrics: [
-        { label: sidebarT("feeds"), value: summary.feedCount.toLocaleString() },
-        { label: readerT("unread"), value: summary.unreadCount.toLocaleString() },
+        { label: sidebarT("feeds"), value: renderSummaryCount(summary.feedCount, locale) },
+        { label: readerT("unread"), value: renderSummaryCount(summary.unreadCount, locale) },
         { label: readerT("latest_update"), value: formatArticleSummaryDate(summary.latestArticlePublishedAt, locale) },
       ],
     };
@@ -139,8 +146,8 @@ function buildSummaryCardProps(
         <TagIcon className="h-5 w-5 text-foreground-soft" />
       ),
       metrics: [
-        { label: readerT("articles"), value: summary.articleCount.toLocaleString() },
-        { label: sidebarT("feeds"), value: summary.feedCount.toLocaleString() },
+        { label: readerT("articles"), value: renderSummaryCount(summary.articleCount, locale) },
+        { label: sidebarT("feeds"), value: renderSummaryCount(summary.feedCount, locale) },
         { label: readerT("latest_update"), value: formatArticleSummaryDate(summary.latestArticlePublishedAt, locale) },
       ],
     };
@@ -155,8 +162,8 @@ function buildSummaryCardProps(
         <Star className="h-5 w-5 text-foreground-soft" />
       ),
     metrics: [
-      { label: readerT("articles"), value: summary.articleCount.toLocaleString() },
-      { label: sidebarT("feeds"), value: summary.feedCount.toLocaleString() },
+      { label: readerT("articles"), value: renderSummaryCount(summary.articleCount, locale) },
+      { label: sidebarT("feeds"), value: renderSummaryCount(summary.feedCount, locale) },
       { label: readerT("latest_update"), value: formatArticleSummaryDate(summary.latestArticlePublishedAt, locale) },
     ],
   };

@@ -1848,9 +1848,9 @@ describe("ArticleView", () => {
     const summary = await screen.findByTestId("article-selection-summary");
     expect(within(summary).getByRole("heading", { level: 3, name: "Gaming" })).toBeInTheDocument();
     expect(within(summary).getByText("Feeds")).toBeInTheDocument();
-    expect(within(summary).getByText("2")).toBeInTheDocument();
+    expect(within(summary).getByText("2")).toHaveClass("motion-content-swap", "tabular-nums");
     expect(within(summary).getByText("Unread")).toBeInTheDocument();
-    expect(within(summary).getByText("1")).toBeInTheDocument();
+    expect(within(summary).getByText("1")).toHaveClass("motion-content-swap", "tabular-nums");
     expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
     expect(screen.queryByText("Select an article")).not.toBeInTheDocument();
   });
@@ -1886,9 +1886,13 @@ describe("ArticleView", () => {
     const summary = await screen.findByTestId("article-selection-summary");
     expect(within(summary).getByRole("heading", { level: 3, name: "Tech" })).toBeInTheDocument();
     expect(within(summary).getByText("Articles")).toBeInTheDocument();
-    expect(within(summary).getAllByText("2").length).toBeGreaterThan(0);
+    expect(
+      within(summary)
+        .getAllByText("2")
+        .some((node) => node.classList.contains("motion-content-swap")),
+    ).toBe(true);
     expect(within(summary).getByText("Feeds")).toBeInTheDocument();
-    expect(within(summary).getByText("1")).toBeInTheDocument();
+    expect(within(summary).getByText("1")).toHaveClass("motion-content-swap", "tabular-nums");
     expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
   });
 
@@ -1907,7 +1911,11 @@ describe("ArticleView", () => {
     expect(within(summary).getByRole("heading", { level: 3, name: "Unread" })).toBeInTheDocument();
     expect(within(summary).getByText("Articles")).toBeInTheDocument();
     await waitFor(() => {
-      expect(within(summary).getAllByText("1").length).toBeGreaterThan(0);
+      expect(
+        within(summary)
+          .getAllByText("1")
+          .some((node) => node.classList.contains("motion-content-swap")),
+      ).toBe(true);
     });
     expect(within(summary).getByText("Feeds")).toBeInTheDocument();
     expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
@@ -1929,7 +1937,11 @@ describe("ArticleView", () => {
     expect(within(summary).getByRole("heading", { level: 3, name: "Starred" })).toBeInTheDocument();
     expect(within(summary).getByText("Articles")).toBeInTheDocument();
     await waitFor(() => {
-      expect(within(summary).getAllByText("1").length).toBeGreaterThan(0);
+      expect(
+        within(summary)
+          .getAllByText("1")
+          .some((node) => node.classList.contains("motion-content-swap")),
+      ).toBe(true);
     });
     expect(within(summary).getByText("Feeds")).toBeInTheDocument();
     expect(within(summary).getByText("Latest Update")).toBeInTheDocument();
