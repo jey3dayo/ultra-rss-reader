@@ -10,9 +10,8 @@ import { useUpdateFeedDisplaySettings } from "@/hooks/use-update-feed-display-mo
 import {
   buildFeedDisplayPresetOptions,
   displayPresetToTriStateModes,
-  feedModesToDisplayPresetOption,
   isFeedDisplayPresetOption,
-  resolveFeedDisplayOverrides,
+  resolveFeedDisplayPreset,
 } from "@/lib/article-display";
 import { resolveSiteHostLabel } from "@/lib/feed";
 import { usePreferencesStore } from "@/stores/preferences-store";
@@ -59,10 +58,7 @@ export function FeedContextMenuContent({ feed }: FeedContextMenuContentProps) {
   const updateFeedDisplaySettings = useUpdateFeedDisplaySettings();
 
   const siteHost = resolveSiteHostLabel(feed.site_url, feed.url);
-  const selectedDisplayPreset = feedModesToDisplayPresetOption(
-    resolveFeedDisplayOverrides(feed).readerMode,
-    resolveFeedDisplayOverrides(feed).webPreviewMode,
-  );
+  const selectedDisplayPreset = resolveFeedDisplayPreset(feed);
   const displayPresetOptions = buildFeedDisplayPresetOptions({
     default: t("display_mode_default"),
     standard: t("display_mode_standard"),
