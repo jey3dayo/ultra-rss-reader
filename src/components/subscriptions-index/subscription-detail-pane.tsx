@@ -6,10 +6,45 @@ import { SurfaceCard } from "@/components/shared/surface-card";
 import { MOTION_CONTENT_SWAP_CLASS_NAME, MOTION_DATA_PHASE_ATTRIBUTE, MOTION_PHASE_ENTERING } from "@/constants/motion";
 import { formatSubscriptionDate } from "@/lib/subscriptions-index";
 import type {
+  SubscriptionDecisionActions,
   SubscriptionDetailCandidate,
   SubscriptionDetailMetrics,
   SubscriptionListRow,
 } from "./subscriptions-index.types";
+
+type DecisionActionConfig = {
+  key: "keep" | "defer" | "delete";
+  intent: "keep" | "defer" | "delete";
+  label: string;
+  onClick: () => void;
+  icon: typeof Check;
+};
+
+function buildDecisionActionConfigs(decisionActions: SubscriptionDecisionActions): DecisionActionConfig[] {
+  return [
+    {
+      key: "keep",
+      intent: "keep",
+      label: decisionActions.keepLabel,
+      onClick: decisionActions.onKeep,
+      icon: Check,
+    },
+    {
+      key: "defer",
+      intent: "defer",
+      label: decisionActions.deferLabel,
+      onClick: decisionActions.onDefer,
+      icon: Clock3,
+    },
+    {
+      key: "delete",
+      intent: "delete",
+      label: decisionActions.deleteLabel,
+      onClick: decisionActions.onDelete,
+      icon: Trash2,
+    },
+  ];
+}
 
 export function SubscriptionDetailPane({
   heading,
@@ -44,14 +79,7 @@ export function SubscriptionDetailPane({
   displayModeLabel: string;
   displayModeValue: string;
   dateLocale: string;
-  decisionActions: {
-    keepLabel: string;
-    deferLabel: string;
-    deleteLabel: string;
-    onKeep: () => void;
-    onDefer: () => void;
-    onDelete: () => void;
-  } | null;
+  decisionActions: SubscriptionDecisionActions | null;
 }) {
   return (
     <section
@@ -128,33 +156,22 @@ export function SubscriptionDetailPane({
                 padding="compact"
                 className={`${MOTION_CONTENT_SWAP_CLASS_NAME} grid grid-cols-3 gap-2 rounded-md px-4 shadow-none sm:px-5`}
               >
-                <DecisionButton
-                  intent="keep"
-                  size="lg"
-                  aria-label={decisionActions.keepLabel}
-                  onClick={decisionActions.onKeep}
-                >
-                  <Check className="h-4 w-4" />
-                  {decisionActions.keepLabel}
-                </DecisionButton>
-                <DecisionButton
-                  intent="defer"
-                  size="lg"
-                  aria-label={decisionActions.deferLabel}
-                  onClick={decisionActions.onDefer}
-                >
-                  <Clock3 className="h-4 w-4" />
-                  {decisionActions.deferLabel}
-                </DecisionButton>
-                <DecisionButton
-                  intent="delete"
-                  size="lg"
-                  aria-label={decisionActions.deleteLabel}
-                  onClick={decisionActions.onDelete}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  {decisionActions.deleteLabel}
-                </DecisionButton>
+                {buildDecisionActionConfigs(decisionActions).map((action) => {
+                  const Icon = action.icon;
+
+                  return (
+                    <DecisionButton
+                      key={action.key}
+                      intent={action.intent}
+                      size="lg"
+                      aria-label={action.label}
+                      onClick={action.onClick}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {action.label}
+                    </DecisionButton>
+                  );
+                })}
               </SurfaceCard>
             ) : null}
           </div>
