@@ -22,7 +22,7 @@ import {
 import { type ReactNode, useState } from "react";
 import type { FeedDto, FolderDto } from "@/api/tauri-commands";
 import { AccountSwitcherTriggerButton } from "@/components/reader/account-switcher-view";
-import { TagOptionButton, TagPickerTriggerButton } from "@/components/reader/article-tag-picker-buttons";
+import { TagOptionRowButton, TagPickerTriggerButton } from "@/components/reader/article-tag-picker-buttons";
 import { ArticleToolbarActionStrip } from "@/components/reader/article-toolbar-view";
 import { contextMenuStyles } from "@/components/reader/context-menu-styles";
 import { FolderSectionView } from "@/components/reader/folder-section";
@@ -679,8 +679,8 @@ export function SpecializedButtonPatternsSpecimen() {
               <Plus className="h-3 w-3" aria-hidden="true" />
             </TagPickerTriggerButton>
             <div className="w-full rounded-md border border-border/60 bg-surface-2 p-1.5">
-              <TagOptionButton swatchColor={TAG_COLOR_PRESETS[2]}>design</TagOptionButton>
-              <TagOptionButton>reader</TagOptionButton>
+              <TagOptionRowButton swatchColor={TAG_COLOR_PRESETS[2]}>design</TagOptionRowButton>
+              <TagOptionRowButton>reader</TagOptionRowButton>
             </div>
           </div>
         </div>

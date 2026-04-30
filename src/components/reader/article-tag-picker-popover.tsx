@@ -2,7 +2,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ArticleTagPickerPopoverProps } from "./article-tag-picker.types";
-import { TagOptionButton } from "./article-tag-picker-buttons";
+import { TagOptionRowButton } from "./article-tag-picker-buttons";
 
 export function ArticleTagPickerPopover({
   pickerId,
@@ -29,7 +29,7 @@ export function ArticleTagPickerPopover({
       onKeyDown={onListboxKeyDown}
     >
       {availableTags.map((tag, index) => (
-        <TagOptionButton
+        <TagOptionRowButton
           key={tag.id}
           ref={(element) => {
             tagOptionRefs.current[index] = element;
@@ -43,7 +43,7 @@ export function ArticleTagPickerPopover({
           }}
         >
           {tag.name}
-        </TagOptionButton>
+        </TagOptionRowButton>
       ))}
       <div className="mt-1 flex items-center gap-1.5 border-t border-border/70 px-2 pt-2">
         <Input

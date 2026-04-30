@@ -7,7 +7,7 @@ type TagPickerTriggerButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   expanded?: boolean;
 };
 
-type TagOptionButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "color"> & {
+type TagOptionRowButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "color"> & {
   swatchColor?: string | null;
   children: ReactNode;
 };
@@ -35,7 +35,7 @@ export const TagPickerTriggerButton = forwardRef<HTMLButtonElement, TagPickerTri
 
 TagPickerTriggerButton.displayName = "TagPickerTriggerButton";
 
-export const TagOptionButton = forwardRef<HTMLButtonElement, TagOptionButtonProps>(
+export const TagOptionRowButton = forwardRef<HTMLButtonElement, TagOptionRowButtonProps>(
   ({ children, className, swatchColor, type = "button", ...props }, ref) => (
     <button
       ref={ref}
@@ -54,4 +54,4 @@ export const TagOptionButton = forwardRef<HTMLButtonElement, TagOptionButtonProp
   ),
 );
 
-TagOptionButton.displayName = "TagOptionButton";
+TagOptionRowButton.displayName = "TagOptionRowButton";
