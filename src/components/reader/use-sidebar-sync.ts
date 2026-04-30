@@ -42,6 +42,10 @@ function sidebarSyncReducer(state: SidebarSyncState, action: SidebarSyncAction):
   }
 }
 
+function extractTauriEventPayload<T>(event: unknown): T {
+  return typeof event === "object" && event !== null && "payload" in event ? (event.payload as T) : (event as T);
+}
+
 export function useSidebarSync({
   selectedAccountId,
   syncProgress,
@@ -109,10 +113,7 @@ export function useSidebarSync({
   useEffect(() => {
     return attachTauriListeners([
       listen("sync-progress", (event) => {
-        const payload =
-          typeof event === "object" && event !== null && "payload" in event
-            ? (event.payload as SidebarSyncProgressPayload)
-            : (event as SidebarSyncProgressPayload);
+        const payload = extractTauriEventPayload<SidebarSyncProgressPayload>(event);
         applySyncProgress(payload);
       }),
       listen("sync-completed", () => {
@@ -120,10 +121,7 @@ export function useSidebarSync({
         invalidateAccountSyncStatuses();
       }),
       listen("sync-warning", (event) => {
-        const payload =
-          typeof event === "object" && event !== null && "payload" in event
-            ? (event.payload as SidebarSyncWarningPayload)
-            : (event as SidebarSyncWarningPayload);
+        const payload = extractTauriEventPayload<SidebarSyncWarningPayload>(event);
         if (payload.length > 0) {
           invalidateAccountSyncStatuses();
           showToast(resolveSidebarSyncFeedbackMessage(t, summarizeSyncWarnings(payload)));
