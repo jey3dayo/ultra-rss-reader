@@ -4,6 +4,7 @@ import {
   compareAsc,
   differenceInDays as differenceInDateFnsDays,
   format,
+  getTime,
   isSameDay,
   isValid,
   set,
@@ -52,7 +53,8 @@ export function parseDateInput(value: DateInput): Date | null {
 }
 
 export function getDateInputTimeMs(value: DateInput): number | null {
-  return parseDateInput(value)?.getTime() ?? null;
+  const date = parseDateInput(value);
+  return date === null ? null : getTime(date);
 }
 
 export function compareDateInputsAsc(left: DateInput, right: DateInput): number {

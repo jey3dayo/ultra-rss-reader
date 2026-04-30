@@ -5,6 +5,7 @@ import {
   differenceInDays,
   formatLocalHourMinute,
   formatMediumDate,
+  getDateInputTimeMs,
   parseDateInput,
 } from "@/lib/datetime";
 
@@ -22,6 +23,11 @@ describe("datetime helpers", () => {
   it("keeps invalid comparisons neutral", () => {
     expect(compareDateInputsAsc("2026-05-01T10:30:00Z", "not-a-date")).toBe(0);
     expect(compareDateInputsAsc("not-a-date", "2026-05-01T10:30:00Z")).toBe(0);
+  });
+
+  it("returns the timestamp for valid date inputs", () => {
+    expect(getDateInputTimeMs("2026-05-01T10:30:00Z")).toBe(new Date("2026-05-01T10:30:00Z").getTime());
+    expect(getDateInputTimeMs("not-a-date")).toBeNull();
   });
 
   it("creates a local date time from a base date", () => {
