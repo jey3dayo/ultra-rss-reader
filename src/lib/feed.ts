@@ -12,3 +12,8 @@ export function extractSiteHost(siteUrl: string, feedUrl: string): Result.Result
     return Result.fail(url);
   }
 }
+
+export function resolveSiteHostLabel(siteUrl: string, feedUrl: string): string {
+  const hostResult = extractSiteHost(siteUrl, feedUrl);
+  return Result.isSuccess(hostResult) ? Result.unwrap(hostResult) : Result.unwrapError(hostResult);
+}
