@@ -13,9 +13,33 @@ import {
 import type {
   ArticleListPrimarySourceContext,
   ArticleListPrimarySourceSnapshot,
+  ArticleListViewMode,
   UseArticleListSourcesParams,
   UseArticleListSourcesResult,
 } from "./article-list.types";
+
+function resolveArticleListSourceSelection(params: {
+  selection: UseArticleListSourcesParams["selection"];
+  selectedAccountId: string | null;
+  viewMode: ArticleListViewMode;
+}) {
+  const { selection, selectedAccountId, viewMode } = params;
+  const feedId = selection.type === "feed" ? selection.feedId : null;
+  const folderId = selection.type === "folder" ? selection.folderId : null;
+  const tagId = selection.type === "tag" ? selection.tagId : null;
+  const smartViewKind = selection.type === "smart" ? selection.kind : null;
+  const accountListScopeId = feedId || tagId ? null : selectedAccountId;
+
+  return {
+    feedId,
+    folderId,
+    tagId,
+    smartViewKind,
+    accountListScopeId,
+    unreadOnlyForFeed: smartViewKind !== "starred" && viewMode === "unread",
+    unreadOnlyForAccount: smartViewKind === "unread" || (smartViewKind !== "starred" && viewMode === "unread"),
+  };
+}
 
 function resolvePrimarySourceArticles(params: {
   selectionContext: ArticleListPrimarySourceContext;
@@ -81,13 +105,12 @@ export function useArticleListSources({
   retainedArticleIds,
   viewMode,
 }: UseArticleListSourcesParams): UseArticleListSourcesResult {
-  const feedId = selection.type === "feed" ? selection.feedId : null;
-  const folderId = selection.type === "folder" ? selection.folderId : null;
-  const tagId = selection.type === "tag" ? selection.tagId : null;
-  const smartViewKind = selection.type === "smart" ? selection.kind : null;
-  const accountListScopeId = feedId || tagId ? null : selectedAccountId;
-  const unreadOnlyForFeed = smartViewKind !== "starred" && viewMode === "unread";
-  const unreadOnlyForAccount = smartViewKind === "unread" || (smartViewKind !== "starred" && viewMode === "unread");
+  const { feedId, folderId, tagId, smartViewKind, accountListScopeId, unreadOnlyForFeed, unreadOnlyForAccount } =
+    resolveArticleListSourceSelection({
+      selection,
+      selectedAccountId,
+      viewMode,
+    });
   const { data: feeds } = useFeeds(selectedAccountId);
   const { data: allFeedArticles } = useArticles(feedId);
   const { data: articles, isLoading } = useArticles(feedId, { unreadOnly: unreadOnlyForFeed });
