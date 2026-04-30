@@ -3,13 +3,17 @@ paths:
   - "src/components/**/*.{ts,tsx}"
 ---
 
-# shadcn/ui コンポーネントルール
+# shadcn/ui / Base UI コンポーネントルール
 
 ## `src/components/ui/` は直接編集しない
 
-- shadcn/ui が生成したコンポーネント（`src/components/ui/`）のデフォルトスタイルを変更しない
+- `src/components/ui/` は shadcn recipe を起点にした Base UI wrapper の置き場として扱う
+- runtime primitive は Base UI を優先し、shadcn は recipe / CLI / style preset / registry 設定として維持する
+- `cmdk` は command palette / accessible command UI 用の別ライブラリとして維持し、`cmdk` 経由の transitive Radix は Base UI 移行の削除対象にしない
+- shadcn/ui が生成したコンポーネント（`src/components/ui/`）のデフォルトスタイルを安易に変更しない
 - カスタマイズは利用側で `className` props を渡し、`cn()` の tailwind-merge で上書きする
-- やむを得ず ui/ を編集する場合はコミットメッセージに理由を明記する
+- Base UI wrapper の保守、recipe 追従、a11y / focus bugfix、runtime primitive 方針との整合修正に限り `ui/` の編集を許可する
+- やむを得ず `ui/` を編集する場合はスコープを最小化し、コミットメッセージまたは完了報告に理由を明記する
 
 ## レスポンシブプレフィックスの上書き
 
