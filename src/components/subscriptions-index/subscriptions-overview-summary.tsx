@@ -1,3 +1,5 @@
+import { cva, type VariantProps } from "class-variance-authority";
+import type { ReactNode } from "react";
 import { LabelChip } from "@/components/shared/label-chip";
 import { cn } from "@/lib/utils";
 import type { SubscriptionSummaryCard } from "./subscriptions-index.types";
@@ -39,6 +41,39 @@ const summaryToneClassNames = {
     activeValue: string;
   }
 >;
+
+const summaryTextVariants = cva("", {
+  variants: {
+    variant: {
+      label: "text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase",
+      actionableValue: "mt-1.5 block text-[1.72rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[1.96rem]",
+      staticValue: "mt-2 text-[1.85rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.1rem]",
+      actionableCaption:
+        "mt-1 max-w-[24ch] text-[12px] leading-5 text-foreground-soft sm:max-w-[26ch] sm:text-[13px] sm:leading-[1.5]",
+      staticCaption:
+        "mt-1.5 max-w-[24ch] text-[13px] leading-5 text-foreground-soft sm:mt-2 sm:max-w-[26ch] sm:text-sm sm:leading-[1.55]",
+    },
+  },
+});
+
+type SummaryTextVariantProps = VariantProps<typeof summaryTextVariants>;
+
+type SummaryTextProps = {
+  as: "p" | "span";
+  children: ReactNode;
+  className?: string;
+  variant: NonNullable<SummaryTextVariantProps["variant"]>;
+};
+
+function SummaryText({ as, children, className, variant }: SummaryTextProps) {
+  const resolvedClassName = cn(summaryTextVariants({ variant }), className);
+
+  if (as === "span") {
+    return <span className={resolvedClassName}>{children}</span>;
+  }
+
+  return <p className={resolvedClassName}>{children}</p>;
+}
 
 function resolveSummaryToneClasses(tone: SubscriptionSummaryCard["tone"] = "neutral") {
   return summaryToneClassNames[tone ?? "neutral"];
@@ -107,9 +142,9 @@ export function SubscriptionsOverviewSummary({
                 />
                 <div>
                   <div className="mb-2 flex items-start justify-between gap-3">
-                    <span className="block text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">
+                    <SummaryText as="span" variant="label" className="block">
                       {card.label}
-                    </span>
+                    </SummaryText>
                     <span
                       data-testid="subscriptions-summary-card-badge-slot"
                       className="flex min-w-[4.75rem] justify-end"
@@ -126,23 +161,17 @@ export function SubscriptionsOverviewSummary({
                       </span>
                     </span>
                   </div>
-                  <span
-                    className={cn(
-                      "mt-1.5 block text-[1.72rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[1.96rem]",
-                      card.isActive && toneClasses.activeValue,
-                    )}
+                  <SummaryText
+                    as="span"
+                    variant="actionableValue"
+                    className={cn(card.isActive && toneClasses.activeValue)}
                   >
                     {card.value}
-                  </span>
+                  </SummaryText>
                   {card.caption ? (
-                    <p
-                      className={cn(
-                        "mt-1 max-w-[24ch] text-[12px] leading-5 text-foreground-soft sm:max-w-[26ch] sm:text-[13px] sm:leading-[1.5]",
-                        card.isActive && "text-foreground",
-                      )}
-                    >
+                    <SummaryText as="p" variant="actionableCaption" className={cn(card.isActive && "text-foreground")}>
                       {card.caption}
-                    </p>
+                    </SummaryText>
                   ) : null}
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-3">
@@ -165,14 +194,16 @@ export function SubscriptionsOverviewSummary({
           return (
             <div key={card.label} className={className}>
               <div>
-                <p className="text-[11px] font-medium tracking-[0.14em] text-foreground-soft uppercase">{card.label}</p>
-                <p className="mt-2 text-[1.85rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.1rem]">
+                <SummaryText as="p" variant="label">
+                  {card.label}
+                </SummaryText>
+                <SummaryText as="p" variant="staticValue">
                   {card.value}
-                </p>
+                </SummaryText>
                 {card.caption ? (
-                  <p className="mt-1.5 max-w-[24ch] text-[13px] leading-5 text-foreground-soft sm:mt-2 sm:max-w-[26ch] sm:text-sm sm:leading-[1.55]">
+                  <SummaryText as="p" variant="staticCaption">
                     {card.caption}
-                  </p>
+                  </SummaryText>
                 ) : null}
               </div>
             </div>
